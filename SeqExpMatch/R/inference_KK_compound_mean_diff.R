@@ -5,7 +5,7 @@
 #' 
 #'
 #' @export
-SeqDesignInferenceKKCompoundMeanDiffMLE = R6::R6Class("SeqDesignInferenceKKCompoundMeanDiffMLE",
+SeqDesignInferenceKKCompoundMeanDiff = R6::R6Class("SeqDesignInferenceKKCompoundMeanDiff",
 	inherit = SeqDesignInferenceMLEorKMKK,
 	public = list(
 		
@@ -17,8 +17,10 @@ SeqDesignInferenceKKCompoundMeanDiffMLE = R6::R6Class("SeqDesignInferenceKKCompo
 		#' 							for \code{test_type = "MLE-or-KM-based"}.
 		#' @param verbose			A flag indicating whether messages should be displayed to the user. Default is \code{TRUE}
 		#' 
-		initialize = function(seq_des_obj, num_cores = 1, verbose = TRUE){
-			super$initialize(seq_des_obj, num_cores, verbose)	
+		initialize = function(seq_des_obj, num_cores = 1, verbose = TRUE){		
+			super$initialize(seq_des_obj, num_cores, verbose)
+			assertNoCensoring(private$any_censoring)	
+			
 		},
 		
 		#' Compute treatment effect
@@ -38,19 +40,16 @@ SeqDesignInferenceKKCompoundMeanDiffMLE = R6::R6Class("SeqDesignInferenceKKCompo
 		#' seq_des$add_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 		#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
 		#' 
-		#' seq_des_inf = SeqDesignInference$new(seq_des)
+		#' seq_des_inf = SeqDesignInferenceKKCompoundMeanDiff$new(seq_des)
 		#' seq_des_inf$compute_treatment_estimate()
 		#' 	
 		compute_treatment_estimate = function(){			
-			if (is.null(private$cached_values$KKstats)){
-				private$KKstats = private$compute_continuous_post_matching_data_KK()
-			}
-			private$cached_values$beta_hat_T = 	if (KKstats$nRT <= 1 || KKstats$nRC <= 1){
-													KKstats$d_bar	
-												} else if (KKstats$m == 0){ #sometimes there's no matches
-													KKstats$r_bar			
+			private$cached_values$beta_hat_T = 	if (private$KKstats$nRT <= 1 || private$KKstats$nRC <= 1){
+													private$KKstats$d_bar	
+												} else if (private$KKstats$m == 0){ #sometimes there's no matches
+													private$KKstats$r_bar			
 												} else {
-													KKstats$w_star * KKstats$d_bar + (1 - KKstats$w_star) * KKstats$r_bar #proper weighting
+													private$KKstats$w_star * private$KKstats$d_bar + (1 - private$KKstats$w_star) * private$KKstats$r_bar #proper weighting
 												}
 			private$cached_values$beta_hat_T
 		},
@@ -58,17 +57,11 @@ SeqDesignInferenceKKCompoundMeanDiffMLE = R6::R6Class("SeqDesignInferenceKKCompo
 		#' Compute confidence interval
 		#'
 		#' @description
-		#' Computes a 1-alpha level frequentist confidence interval differently for all response types, estimate types and test types.
+		#' Computes a 1-alpha level frequentist confidence interval
 		#' 
 		#' Here we use the theory that MLE's computed for GLM's are asymptotically normal (except in the case 
 		#' of estimat_type "median difference" where a nonparametric bootstrap confidence interval (see the \code{controlTest::quantileControlTest} method)
 		#' is employed. Hence these confidence intervals are asymptotically valid and thus approximate for any sample size.
-		#' 
-		#' [II] test type "randomization-exact"
-		#' Here we invert the randomization test that tests the strong null H_0: y_T_i - y_C_i = delta <=> (y_T_i - delta) - y_C_i = 0 so 
-		#' we adjust the treatment responses downward by delta. We then find the set of all delta values that is above 1 - alpha/2 (i.e. two-sided)
-		#' This is accomplished via a bisection algorithm (algorithm 1 of Glazer and Stark, 2025 available at
-		#' https://arxiv.org/abs/2405.05238). These confidence intervals are exact to within tolerance \code{pval_epsilon}.
 		#' 
 		#' @param alpha					The confidence level in the computed confidence interval is 1 - \code{alpha}. The default is 0.05.
 		#' 
@@ -84,7 +77,7 @@ SeqDesignInferenceKKCompoundMeanDiffMLE = R6::R6Class("SeqDesignInferenceKKCompo
 		#' seq_des$add_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 		#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
 		#' 
-		#' seq_des_inf = SeqDesignInference$new(seq_des, test_type = "MLE-or-KM-based")
+		#' seq_des_inf = SeqDesignInferenceKKCompoundMeanDiff$new(seq_des, test_type = "MLE-or-KM-based")
 		#' seq_des_inf$compute_confidence_interval()
 		#'	
 		compute_mle_confidence_interval = function(alpha = 0.05){
@@ -100,9 +93,9 @@ SeqDesignInferenceKKCompoundMeanDiffMLE = R6::R6Class("SeqDesignInferenceKKCompo
 		#' Compute p-value
 		#'
 		#' @description
-		#' Computes a 2-sided p-value for all types of inferential settings written about in the initializer
+		#' Computes a 2-sided p-value
 		#'
-		#' @param delta					The null difference to test against. For any treatment effect at all this is set to zero (the default).
+		#' @param delta	The null difference to test against. For any treatment effect at all this is set to zero (the default).
 		#' 
 		#' @return 	The approximate frequentist p-value
 		#' 
@@ -116,7 +109,7 @@ SeqDesignInferenceKKCompoundMeanDiffMLE = R6::R6Class("SeqDesignInferenceKKCompo
 		#' seq_des$add_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 		#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
 		#' 
-		#' seq_des_inf = SeqDesignInference$new(seq_des)
+		#' seq_des_inf = SeqDesignInferenceKKCompoundMeanDiff$new(seq_des)
 		#' seq_des_inf$compute_two_sided_pval_for_treatment_effect()
 		#' 		
 		compute_mle_two_sided_pval_for_treatment_effect = function(delta = 0){
@@ -131,8 +124,7 @@ SeqDesignInferenceKKCompoundMeanDiffMLE = R6::R6Class("SeqDesignInferenceKKCompo
 		}
 	),
 	
-	private = list(	
-		KKstats = NULL,
+	private = list(
 					
 		shared = function(){
 			if (is.null(private$cached_values$beta_hat_T)){

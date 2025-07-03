@@ -6,7 +6,7 @@
 #' 
 #'
 #' @export
-SeqDesignInferenceSimpleMeanDiffMLE = R6::R6Class("SeqDesignInferenceSimpleMeanDiffMLE",
+SeqDesignInferenceContMultOLS = R6::R6Class("SeqDesignInferenceContMultOLS",
 	inherit = SeqDesignInferenceMLEorKM,
 	public = list(
 		
@@ -19,12 +19,10 @@ SeqDesignInferenceSimpleMeanDiffMLE = R6::R6Class("SeqDesignInferenceSimpleMeanD
 		#' @param verbose			A flag indicating whether messages should be displayed to the user. Default is \code{TRUE}
 		#'
 		initialize = function(seq_des_obj, num_cores = 1, verbose = TRUE){			
+			assertResponseType(seq_des_obj$get_response_type(), "continuous")			
 			super$initialize(seq_des_obj, num_cores, verbose)	
+			assertNoCensoring(private$any_censoring)
 			private$cached_values = super$get_cached_values()
-			
-			if (private$any_censoring){
-				stop("Simple Mean Difference estimation is not possible when there are any censored responses. Use \"restricted mean difference\" instead.")
-			}
 		},
 		
 		#' @description
@@ -42,12 +40,12 @@ SeqDesignInferenceSimpleMeanDiffMLE = R6::R6Class("SeqDesignInferenceSimpleMeanD
 		#' seq_des$add_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 		#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
 		#' 
-		#' seq_des_inf = SeqDesignInferenceSimpleMeanDiffMLE$new(seq_des)
+		#' seq_des_inf = SeqDesignInferenceContMultOLS$new(seq_des)
 		#' seq_des_inf$compute_treatment_estimate()
 		#' 	
-		compute_treatment_estimate = function(){
+		compute_treatment_estimate = function(){			
 			if (is.null(private$cached_values$beta_T)){
-				private$cached_values$beta_hat_T = mean(super$get_yTs()) - mean(super$get_yCs())
+				private$cached_values$beta_hat_T = 
 			}			
 			private$cached_values$beta_hat_T
 		},
@@ -76,22 +74,24 @@ SeqDesignInferenceSimpleMeanDiffMLE = R6::R6Class("SeqDesignInferenceSimpleMeanD
 		#' seq_des$add_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 		#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
 		#' 
-		#' seq_des_inf = SeqDesignInferenceSimpleMeanDiffMLE$new(seq_des, test_type = "MLE-or-KM-based")
+		#' seq_des_inf = SeqDesignInferenceContMultOLS$new(seq_des, test_type = "MLE-or-KM-based")
 		#' seq_des_inf$compute_confidence_interval()
 		#'		
 		compute_mle_confidence_interval = function(alpha = 0.05){
 			assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)	
-			if (is.null(private$cached_values$s_beta_hat_T)){
+			if (is.null(private$cached_values$ols_regr_mod_summary_table)){
 				private$shared()
+			}			
+			if (is.null(private$cached_values$beta_T)){
+				private$cached_values$beta_hat_T = private$cached_values$ols_regr_mod_summary_table[2, 1]
 			}
-			
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
+
 		},
 		
 		#' Compute p-value
 		#'
 		#' @description
-		#' Computes a 2-sided p-value for all types of inferential settings written about in the initializer
+		#' Computes a 2-sided p-value
 		#'
 		#' @param delta					The null difference to test against. For any treatment effect at all this is set to zero (the default).
 		#' 
@@ -107,19 +107,12 @@ SeqDesignInferenceSimpleMeanDiffMLE = R6::R6Class("SeqDesignInferenceSimpleMeanD
 		#' seq_des$add_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 		#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
 		#' 
-		#' seq_des_inf = SeqDesignInferenceSimpleMeanDiffMLE$new(seq_des)
+		#' seq_des_inf = SeqDesignInferenceContMultOLS$new(seq_des)
 		#' seq_des_inf$compute_two_sided_pval_for_treatment_effect()
 		#' 				
 		compute_mle_two_sided_pval_for_treatment_effect = function(delta = 0){
 			assertNumeric(delta)
-			if (is.null(private$cached_values$df)){
-				private$shared()
-			}
 			
-			2 * pt(
-					-abs(private$cached_values$beta_hat_T - delta) / private$cached_values$s_beta_hat_T, 
-						private$cached_values$df
-				)
 		}
 	),
 	
@@ -127,19 +120,7 @@ SeqDesignInferenceSimpleMeanDiffMLE = R6::R6Class("SeqDesignInferenceSimpleMeanD
 		cached_values = list(),
 		
 		shared = function(){
-			if (is.null(private$cached_values$beta_hat_T)){
-				self$compute_treatment_estimate()
-			}
-			
-			nT = length(super$get_yTs())
-			nC = length(super$get_yCs())
-			s_1_sq = var(super$get_yTs()) / nT 
-			s_2_sq = var(super$get_yCs()) / nC
-			private$cached_values$s_beta_hat_T = sqrt(s_1_sq + s_2_sq)
-			private$cached_values$df = (s_1_sq + s_2_sq)^2 / (
-											s_1_sq^2 / (nT - 1) + s_2_sq^2 / (nC - 1)
-										) #Welch-Satterthwaite formula
-			private$cached_values$is_z = FALSE
+
 		}
 		
 	)		
