@@ -20,7 +20,7 @@ with numpy.random.default_rng(106).
 NOTE (corrected 2026-08-05): an earlier pass through this file claimed a
 tol default mismatch here (same claim, and same correction, as
 test_fast_log_binomial_regression.py). It was wrong -- R's own default
-(EDI/R/RcppExports.R, EDI/src/fast_log_binomial_regression.cpp) is
+(R/EDI/R/RcppExports.R, R/EDI/src/fast_log_binomial_regression.cpp) is
 tol=1e-6, identical to the Python binding's. No drift exists. The call
 below still passes tol=1e-8 explicitly on both the R-fixture side and here
 -- a deliberately tighter-than-default convergence criterion for fixture

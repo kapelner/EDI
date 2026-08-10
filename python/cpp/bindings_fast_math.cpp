@@ -1,8 +1,8 @@
-// Compiles directly against EDI/src's portable (EDI_CORE_ONLY-safe) scalar
+// Compiles directly against R/EDI/src's portable (EDI_CORE_ONLY-safe) scalar
 // math headers -- fast_gamma_functions.h, fast_erfc.h,
 // _helper_functions_core.h, ordinal_fixed_link_helpers.h -- via the CMake
 // include path set in ../CMakeLists.txt. No file under python/ is a copy of
-// anything in EDI/src; every function below is a thin vectorizing wrapper
+// anything in R/EDI/src; every function below is a thin vectorizing wrapper
 // around an inline scalar function that already lives in one of those
 // headers (used elsewhere by EDI's own model-fitting kernels), so there is
 // nothing new to validate numerically here -- just the elementwise loop.

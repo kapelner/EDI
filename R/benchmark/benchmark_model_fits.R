@@ -1821,7 +1821,7 @@ if (requireNamespace("commonmark", quietly = TRUE)) {
   # benchmark_model_fits_python.html's layout exactly), not above it.
   nav_block = paste(
     '<nav><a href="#results">Results</a><a href="#wald">Wald (full inference)</a><a href="#utility">Utility / math kernels</a></nav>',
-    '<p>R analog of <a href="benchmark_model_fits_python.html">benchmark_model_fits_python.html</a> — same three tables, same table shape, same three-color row coding.</p>',
+    '<p>R analog of <a href="../../python/benchmark/benchmark_model_fits_python.html">benchmark_model_fits_python.html</a> — same three tables, same table shape, same three-color row coding.</p>',
     sep = "\n"
   )
   body_html = sub("(<h1>[^<]*</h1>\n<p><em>Generated:[^<]*</em></p>\n)", paste0("\\1", nav_block, "\n"), body_html)

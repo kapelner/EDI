@@ -1,8 +1,8 @@
 // Binds GLMM-family model-fitting kernels. fast_poisson_glmm_internal is
-// *defined* in EDI/src/fast_poisson_glmm.cpp, which is compiled as its own
+// *defined* in R/EDI/src/fast_poisson_glmm.cpp, which is compiled as its own
 // source in this same CMake target (see ../CMakeLists.txt) -- it is
 // declared, not redefined, here. Nothing under python/ is a copy of
-// anything in EDI/src.
+// anything in R/EDI/src.
 
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>

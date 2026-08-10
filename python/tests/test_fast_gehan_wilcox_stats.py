@@ -5,7 +5,7 @@ This does NOT re-verify the statistical correctness of the Peto-Prentice
 (Gehan-Wilcoxon, rho=1) test itself -- that's the same
 fast_gehan_wilcox_internal object code the R package's own test suite
 already exercises via EDI:::fast_gehan_wilcox_stats_cpp (both call the
-identical fast_gehan_wilcox_internal in EDI/src/fast_gehan_wilcox.cpp,
+identical fast_gehan_wilcox_internal in R/EDI/src/fast_gehan_wilcox.cpp,
 re-exposed under external linkage as fast_gehan_wilcox_result so this
 binding's translation unit can call it). What this test covers: the
 pybind11 binding layer itself and the EDI_CORE_ONLY compiled path.

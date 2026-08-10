@@ -70,21 +70,21 @@ The package has no response type for either sub-case today. The closest
 existing analogs are:
 
 - `ordinal`: an *ordered* categorical outcome with a single natural scale
-  direction — see [design_abstract.R:94](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_abstract.R:94),
+  direction — see [design_abstract.R:94](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:94),
   which lists the full allowed `response_type` set as `"continuous",
   "incidence", "proportion", "count", "survival", "ordinal"` — note neither
   `nominal` nor any rank/choice type is present, confirming both are entirely
   new additions today.
 - `InferenceOrdinalAdjCatLogit` / `InferenceOrdinalStereotypeLogit`
-  ([inference_ordinal_adj_cat_logit.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_ordinal_adj_cat_logit.R),
-  [inference_ordinal_stereotype_logit.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_ordinal_stereotype_logit.R)):
+  ([inference_ordinal_adj_cat_logit.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_ordinal_adj_cat_logit.R),
+  [inference_ordinal_stereotype_logit.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_ordinal_stereotype_logit.R)):
   these already fit multi-parameter, per-category logit models and are the
   closest existing template for *any* new choice-among-categories model,
   because they demonstrate the package already knows how to fit models with
   more free parameters than one scalar treatment effect and reduce the output
   to a single `beta_hat_T` for the package's asymptotic CI/p-value API (see
   `get_likelihood_test_spec()` at
-  [inference_ordinal_stereotype_logit.R:170](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_ordinal_stereotype_logit.R:170)).
+  [inference_ordinal_stereotype_logit.R:170](/home/kapelner/workspace/EDI/R/EDI/R/inference_ordinal_stereotype_logit.R:170)).
 - Nothing in `EDI/src/*.cpp` implements a multinomial-logit, conditional-logit,
   or rank-ordered-logit likelihood today (confirmed via
   `grep -rli "multinom\|plackett\|rank.*logit\|conditional.*logit" EDI/src/*.cpp`
@@ -159,7 +159,7 @@ Every response type currently in the package — including the newly-analyzed
 `nominal` case — is stored as **one scalar or one factor level per subject**
 in the `Design` base class's `y` vector
 (`private$y = rep(NA_real_, n)`,
-[design_abstract.R:123](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_abstract.R:123)),
+[design_abstract.R:123](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:123)),
 and every value-add/assert method (`add_one_subject_response()`,
 `assert_y()`, etc.) is written assuming a subject contributes exactly one
 number or one factor level.
@@ -186,15 +186,15 @@ subset). This means:
 
 The package's shared likelihood-backed inference layer,
 `inference_asymp_lik_std_mod_cache` in
-[inference_all_abstract_asymp_lik_std_mod_cache.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R),
+[inference_all_abstract_asymp_lik_std_mod_cache.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R),
 assumes:
 
 - `generate_mod()` returns a fitted-model object from which a scalar treatment
   estimate `beta_hat_T` and its standard error are extracted (see
   `compute_estimate()` at
-  [inference_all_abstract_asymp_lik_std_mod_cache.R:9](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:9)
+  [inference_all_abstract_asymp_lik_std_mod_cache.R:9](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:9)
   and `get_standard_error()` at
-  [inference_all_abstract_asymp_lik_std_mod_cache.R:52](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:52)),
+  [inference_all_abstract_asymp_lik_std_mod_cache.R:52](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:52)),
   used by 50 concrete `get_likelihood_test_spec()` implementations across the
   package (`grep -rln "get_likelihood_test_spec" EDI/R/*.R | wc -l` → 50).
 
@@ -217,7 +217,7 @@ to a single discrete choice.
 ### `SimulationFramework`: harder than nominal
 
 `SimulationFramework`'s `transform_cont_y_based_on_response_type()`
-([simulations_framework.R:126-152](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R:126))
+([simulations_framework.R:126-152](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:126))
 transforms one latent continuous draw `y_cont` per subject into one observed
 response value via a `switch(response_type, ...)`. Even the hardest existing
 case (`ordinal`, via quantile-cut) still produces one scalar per subject. A

@@ -92,7 +92,7 @@ def test_estimate_only_matches_full_fit_beta():
     # Unlike fast_poisson_glmm (which includes vcov/fisher_information as
     # None in its estimate_only branch), fast_gaussian_lmm's estimate_only
     # branch omits those keys entirely -- see fast_gaussian_lmm_internal in
-    # EDI/src/fast_gaussian_lmm.cpp. Documenting the actual contract here
+    # R/EDI/src/fast_gaussian_lmm.cpp. Documenting the actual contract here
     # rather than assuming parity with the poisson_glmm kernel.
     assert "vcov" not in res
     assert "fisher_information" not in res

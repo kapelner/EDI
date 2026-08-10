@@ -5,7 +5,7 @@ This does NOT re-verify the statistical correctness of the Hodges-Lehmann
 estimator itself -- that's the same hl_from_groups object code the R
 package's own test suite already exercises via
 EDI:::wilcox_hl_point_estimate_cpp (both call the identical hl_from_groups
-in EDI/src/fast_wilcox_hl.cpp, re-exposed under external linkage as
+in R/EDI/src/fast_wilcox_hl.cpp, re-exposed under external linkage as
 wilcox_hl_point_estimate_result so this binding's translation unit can call
 it). What this test covers: the pybind11 binding layer itself and the
 EDI_CORE_ONLY compiled path.

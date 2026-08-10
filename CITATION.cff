@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "EDI: Experimental Design and Inference"
+version: 1.0.0
+date-released: "2026-08-10"
+authors:
+  - family-names: Kapelner
+    given-names: Adam
+    email: kapelner@qc.cuny.edu
+    orcid: "https://orcid.org/0000-0001-5985-6792"
+repository-code: "https://github.com/kapelner/EDI"
+url: "https://github.com/kapelner/EDI"
+license: GPL-3.0
+keywords:
+  - experimental design
+  - covariate balance
+  - matching on the fly
+  - sequential design
+  - randomized controlled trial
+  - causal inference
+abstract: >
+  EDI (Experimental Design and Inference) is a library of experimental
+  designs, both fixed and sequential, that use matching-on-the-fly
+  techniques to maintain covariate balance, paired with inference
+  procedures (exact, asymptotic, and distribution-free) tailored to each
+  design and response type (continuous, incidence, count, proportion,
+  survival, and ordinal). The core model-fitting kernels are written in
+  C++ (Eigen + LBFGS++) for speed, with both an R package (EDI, R6-based)
+  and a Python package (edi_kernels, pybind11-based) built on the shared
+  core.

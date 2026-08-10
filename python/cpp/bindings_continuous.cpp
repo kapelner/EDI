@@ -1,5 +1,5 @@
 // Binds continuous-outcome model-fitting kernels (OLS, robust regression).
-// Each *_internal function is defined in its own EDI/src/fast_*.cpp file,
+// Each *_internal function is defined in its own R/EDI/src/fast_*.cpp file,
 // compiled as its own source in this same CMake target (see
 // ../CMakeLists.txt) -- declared, not redefined, here.
 
@@ -19,7 +19,7 @@ ModelResult fast_ols_internal(
     bool estimate_only
 );
 
-// Matches EDI/src/fast_robust_regression.cpp's file-local RobustModelResult
+// Matches R/EDI/src/fast_robust_regression.cpp's file-local RobustModelResult
 // exactly (no shared header exists for it) -- keep in sync if that struct's
 // field list ever changes.
 struct RobustModelResult {

@@ -51,7 +51,7 @@ test-extras = ["test"]
 
 [tool.cibuildwheel.linux]
 # manylinux_2_28 (AlmaLinux 8 based) rather than the manylinux2014 default:
-# EDI/src is built as C++20 (CMakeLists.txt CMAKE_CXX_STANDARD), which
+# R/EDI/src is built as C++20 (CMakeLists.txt CMAKE_CXX_STANDARD), which
 # manylinux2014's stock devtoolset compiler doesn't reliably support.
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"

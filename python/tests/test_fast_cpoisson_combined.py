@@ -16,7 +16,7 @@ in R (the with_var R export is the one with a working R-facing entry point
 for this kernel; it shares the same fast_cpoisson_combined_internal call as
 the plain Python binding, just also computing the variance) on the exact
 same synthetic dataset generated below with numpy.random.default_rng(102)
-(see package_metadata/python_bindings_package_spec.md "Testing"). Do not
+(see R/package_metadata/python_bindings_package_spec.md "Testing"). Do not
 regenerate this fixture casually -- if it needs updating, regenerate from R
 and update the comment with the date/EDI version.
 """

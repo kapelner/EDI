@@ -10,7 +10,7 @@ LBFGSpp, not the R build's RcppEigen/RcppNumerical).
 
 HISTORICAL NOTE: an earlier pass through this file found a real default
 mismatch -- R's fast_neg_bin_cpp defaults to smart_cold_start = FALSE
-(confirmed: EDI/src/fast_negbin_regression.cpp's three R-facing entry
+(confirmed: R/EDI/src/fast_negbin_regression.cpp's three R-facing entry
 points, fast_neg_bin_cpp/_with_var_cpp/_weighted_cpp, all explicitly
 declare smart_cold_start = false; the shared fast_neg_bin_internal core
 they call into defaults to true, but every R wrapper overrides that), while
@@ -23,7 +23,7 @@ test that checks Python's now-fixed default against a fresh R fixture
 computed with smart_cold_start omitted (i.e. R's own default, FALSE).
 
 Also note: res["neg_loglik"] is always NaN for this kernel -- ModelResult's
-neg_ll field is never populated in EDI/src/fast_negbin_regression.cpp (R's
+neg_ll field is never populated in R/EDI/src/fast_negbin_regression.cpp (R's
 own equivalent value lives in a separately-computed $logLik field that
 never flows through the ModelResult struct the Python binding reads from).
 Not a binding bug; this test does not assert on it. res["dispersion"]

@@ -5,7 +5,7 @@ This does NOT re-verify the statistical correctness of the Newcombe hybrid
 score interval itself -- that's the same newcombe_independent_ci_internal
 object code the R package's own test suite already exercises via
 EDI:::newcombe_independent_ci_cpp (both call the identical
-newcombe_independent_ci_internal in EDI/src/newcombe_speedups.cpp;
+newcombe_independent_ci_internal in R/EDI/src/newcombe_speedups.cpp;
 newcombe_independent_ci_cpp is now a thin Rcpp::NumericVector wrapper around
 it). What this test covers: the pybind11 binding layer itself and the
 EDI_CORE_ONLY compiled path.

@@ -3,7 +3,7 @@
 This does NOT re-verify the statistical correctness of the Miettinen-Nurminen
 score CI itself -- that's the same mn_ci_internal object code the R
 package's own test suite already exercises via EDI:::mn_ci_cpp (both call
-the identical mn_ci_internal in EDI/src/miettinen_nurminen_speedups.cpp;
+the identical mn_ci_internal in R/EDI/src/miettinen_nurminen_speedups.cpp;
 mn_ci_cpp is now a thin Rcpp::NumericVector wrapper around it). What this
 test covers: the pybind11 binding layer itself (argument marshaling,
 defaults, tuple conversion) and the EDI_CORE_ONLY compiled path.
@@ -11,7 +11,7 @@ defaults, tuple conversion) and the EDI_CORE_ONLY compiled path.
 The expected values below were computed once via:
     EDI:::mn_ci_cpp(x_t, n_t, x_c, n_c, p_t, p_c, alpha, pval_epsilon)
 in R on x_t=30, n_t=100, x_c=18, n_c=95 (see
-package_metadata/python_bindings_package_spec.md "Testing").
+R/package_metadata/python_bindings_package_spec.md "Testing").
 """
 import pytest
 

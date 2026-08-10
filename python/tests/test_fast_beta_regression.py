@@ -11,7 +11,7 @@ LBFGSpp, not the R build's RcppEigen/RcppNumerical).
 
 Note: res["neg_loglik"] is always NaN for this kernel, same root cause as
 fast_neg_bin -- ModelResult's neg_ll field is never populated in
-EDI/src/fast_beta_regression.cpp (R's own $neg_loglik is computed
+R/EDI/src/fast_beta_regression.cpp (R's own $neg_loglik is computed
 separately and never flows through the ModelResult struct the Python
 binding reads from). Not a binding bug; this test does not assert on it.
 res["dispersion"] carries the real value (R's $phi).

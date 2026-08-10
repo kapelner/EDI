@@ -2,7 +2,7 @@
 if (!requireNamespace("pkgload", quietly = TRUE)) {
     stop("The 'pkgload' package is required.")
 }
-pkgload::load_all("/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI", quiet = TRUE)
+pkgload::load_all("/home/kapelner/workspace/EDI/R/EDI", quiet = TRUE)
 library(data.table)
 
 set.seed(42)
@@ -29,7 +29,7 @@ generate_data = function(n, p, rt) {
     res
 }
 
-results_csv = "/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/heavy_paths_results.csv"
+results_csv = "/home/kapelner/workspace/EDI/heavy_paths_results.csv"
 
 for (spec in heavy_specs) {
     cat(sprintf("\n>>> %s... ", spec$name)); flush.console()

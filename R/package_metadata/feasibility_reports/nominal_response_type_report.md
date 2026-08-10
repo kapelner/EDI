@@ -165,9 +165,9 @@ state for:
 - `original_ordinal_levels`
 - coercion of ordered factors to integer storage
 
-See [design_abstract.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_abstract.R:42),
-[design_abstract.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_abstract.R:63),
-and [design_abstract.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_abstract.R:119).
+See [design_abstract.R](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:42),
+[design_abstract.R](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:63),
+and [design_abstract.R](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:119).
 
 So nominal can reuse the idea that a categorical response may carry labels that
 are distinct from the internal numeric storage. But unordered categories still
@@ -181,7 +181,7 @@ The `Design` base class currently validates:
 
 - `continuous`, `incidence`, `proportion`, `count`, `survival`, `ordinal`
 
-in [design_abstract.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_abstract.R:56).
+in [design_abstract.R](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:56).
 
 To add `nominal`, the `Design` layer would need:
 
@@ -215,8 +215,8 @@ This is where nominal is not free.
 
 `DesignSeqOneByOneKK21` and related paths explicitly branch on `response_type`
 to compute covariate weights from the observed response family; see
-[design_seq_one_by_one_KK21.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_seq_one_by_one_KK21.R:253)
-through [design_seq_one_by_one_KK21.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_seq_one_by_one_KK21.R:281).
+[design_seq_one_by_one_KK21.R](/home/kapelner/workspace/EDI/R/EDI/R/design_seq_one_by_one_KK21.R:253)
+through [design_seq_one_by_one_KK21.R](/home/kapelner/workspace/EDI/R/EDI/R/design_seq_one_by_one_KK21.R:281).
 
 Today they have hand-written logic for:
 
@@ -241,15 +241,15 @@ So response-adaptive KK weighting is one of the harder design-side additions.
 It currently:
 
 - validates the response-type enum in
-  [simulations_framework.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R:499)
+  [simulations_framework.R](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:499)
 - transforms latent continuous signals to response-family scale in
-  [simulations_framework.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R:126)
+  [simulations_framework.R](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:126)
 - defines response-type-specific treatment-effect semantics in
-  [simulations_framework.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R:2133)
+  [simulations_framework.R](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:2133)
   and
-  [simulations_framework.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R:2887)
+  [simulations_framework.R](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:2887)
 - chooses curated default inference classes by response type in
-  [simulations_framework.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R:3106)
+  [simulations_framework.R](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:3106)
 
 For nominal, the framework would need new answers to all of these questions:
 
@@ -301,7 +301,7 @@ This class currently computes:
 - mean of treated outcomes minus mean of control outcomes
 
 with no response-type assertion in the initializer; see
-[inference_all_mean_diff.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_mean_diff.R:29).
+[inference_all_mean_diff.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_mean_diff.R:29).
 
 That means if `nominal` were added naively and internally encoded as integers,
 this class would likely run and produce a meaningless result based on arbitrary
@@ -321,7 +321,7 @@ This class currently supports:
 - `continuous`, `count`, `proportion`, `survival`, `ordinal`
 
 and explicitly rejects `incidence`; see
-[inference_all_simple_wilcox.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_simple_wilcox.R:74).
+[inference_all_simple_wilcox.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_simple_wilcox.R:74).
 
 Nominal should also be explicitly rejected because:
 
@@ -333,7 +333,7 @@ So this is another path that needs an explicit guard, not accidental acceptance.
 ### `InferenceMLEorKMSummaryTable`: neutral abstract layer
 
 This is an abstract summary-table layer; see
-[inference_all_abstract_mle_or_KM_summary_table.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_mle_or_KM_summary_table.R:8).
+[inference_all_abstract_mle_or_KM_summary_table.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_mle_or_KM_summary_table.R:8).
 
 By itself, it is not nominal-specific and does not block nominal. But its
 assumption is still:
@@ -351,7 +351,7 @@ This layer is reusable, but only for certain nominal-model designs.
 ### `InferenceAsympLikStdModCache`: reusable for scalar nominal models
 
 This abstract class is the common path for many likelihood-based families; see
-[inference_all_abstract_asymp_lik_std_mod_cache.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:6).
+[inference_all_abstract_asymp_lik_std_mod_cache.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:6).
 
 It assumes:
 
@@ -382,7 +382,7 @@ The blocker is still the choice of nominal statistic / estimand.
 
 `InferenceSuite` discovers compatibility by trying to instantiate each class and
 looking for incompatibility messages; see
-[inference_suite.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_suite.R:110).
+[inference_suite.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_suite.R:110).
 
 That means `InferenceSuite` will work fine for nominal **if and only if**:
 

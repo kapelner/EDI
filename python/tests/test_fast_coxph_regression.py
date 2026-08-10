@@ -12,7 +12,7 @@ RcppNumerical).
 The expected values below were computed once via:
     EDI:::fast_coxph_regression_cpp(X, y, dead)
 in R, on the exact same synthetic dataset generated below with
-numpy.random.default_rng(123) (see package_metadata/python_bindings_package_spec.md
+numpy.random.default_rng(123) (see R/package_metadata/python_bindings_package_spec.md
 "Testing"). Do not regenerate this fixture casually -- if it needs updating,
 regenerate from R and update the comment with the date/EDI version.
 
@@ -20,7 +20,7 @@ Note: fast_coxph_regression's Python binding is deliberately unstratified
 with no cluster-robust vcov (see python/cpp/bindings_survival.cpp); X has no
 intercept column, matching the Cox partial-likelihood convention (the
 baseline hazard absorbs it) -- this matches the R side's own test
-convention in EDI/tests/testthat/test-rcpp-fitting-real-data.R.
+convention in R/EDI/tests/testthat/test-rcpp-fitting-real-data.R.
 """
 import numpy as np
 import pytest
@@ -84,7 +84,7 @@ def test_estimate_only_omits_vcov_fields():
 
     # estimate_only skips the vcov computation entirely (the key is absent,
     # not set to None) but still includes fisher_information/gradient_norm
-    # -- see fast_coxph_regression_internal in EDI/src/fast_coxph_regression.cpp.
+    # -- see fast_coxph_regression_internal in R/EDI/src/fast_coxph_regression.cpp.
     assert "vcov" not in res
     assert res["fisher_information"].shape == (X.shape[1], X.shape[1])
     assert res["coefficients"] == pytest.approx(R_COEFFICIENTS, abs=1e-6, rel=1e-6)

@@ -2,17 +2,17 @@ on:
   push:
     branches: [main, master]
     paths: &r-cmd-check-paths
-      - 'EDI/**/*.R'
-      - 'EDI/**/*.Rd'
-      - 'EDI/**/*.cpp'
-      - 'EDI/**/*.h'
-      - 'EDI/**/*.hpp'
-      - 'EDI/DESCRIPTION'
-      - 'EDI/NAMESPACE'
-      - 'EDI/configure'
-      - 'EDI/configure.win'
-      - 'EDI/src/Makevars'
-      - 'EDI/src/Makevars.win'
+      - 'R/EDI/**/*.R'
+      - 'R/EDI/**/*.Rd'
+      - 'R/EDI/**/*.cpp'
+      - 'R/EDI/**/*.h'
+      - 'R/EDI/**/*.hpp'
+      - 'R/EDI/DESCRIPTION'
+      - 'R/EDI/NAMESPACE'
+      - 'R/EDI/configure'
+      - 'R/EDI/configure.win'
+      - 'R/EDI/src/Makevars'
+      - 'R/EDI/src/Makevars.win'
       - '.github/workflows/R-CMD-check.yaml'
   pull_request:
     branches: [main, master]
@@ -21,13 +21,13 @@ on:
 name: R-CMD-check
 
 # Standard CRAN-style check matrix for the EDI R package (see
-# EDI/DESCRIPTION). This repo also holds an unrelated Python-bindings
+# R/EDI/DESCRIPTION). This repo also holds an unrelated Python-bindings
 # subproject (python/, checked by build-wheels.yml) and paper-reproduction
-# code -- every step below is pointed at working-directory: EDI
-# accordingly, since EDI/DESCRIPTION isn't at the repo root.
+# code -- every step below is pointed at working-directory: R/EDI
+# accordingly, since R/EDI/DESCRIPTION isn't at the repo root.
 #
 # EDI links against RcppEigen/RcppNumerical (see LinkingTo in
-# EDI/DESCRIPTION) and compiles a large src/ tree of C++ kernels, so this
+# R/EDI/DESCRIPTION) and compiles a large src/ tree of C++ kernels, so this
 # is a real compiled-package check, not just a lint pass -- worth running
 # across the full macOS/Windows/Linux x devel/release/oldrel-1 matrix to
 # catch platform-specific compiler differences (MSVC vs. clang vs. gcc)
@@ -38,7 +38,7 @@ name: R-CMD-check
 # The `paths:` filter above only triggers this on pushes/PRs that touch R,
 # Rd, or C++ sources (or the build-critical DESCRIPTION/NAMESPACE/configure/
 # Makevars files, or this workflow itself) -- cosmetic changes (docs/*.md,
-# benchmark/ scripts, the python/ subproject, package_metadata/ python
+# R/benchmark/ scripts, the python/ subproject, R/package_metadata/ python
 # integration scripts, etc.) don't spend CI minutes on a full compiled-package
 # matrix build.
 #
@@ -77,7 +77,7 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
       # Portable build: skips -march=native/-mtune=native/-fno-lto and the
-      # CXXFLAGS override (see EDI/configure). Those are opt-in for local
+      # CXXFLAGS override (see R/EDI/configure). Those are opt-in for local
       # performance-tuned builds (EDI_PORTABLE=0, the default) but would
       # otherwise trip "checking compilation flags in Makevars" here.
       EDI_PORTABLE: 1
@@ -110,13 +110,13 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          working-directory: EDI
+          working-directory: R/EDI
           extra-packages: any::rcmdcheck
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
         with:
-          working-directory: EDI
+          working-directory: R/EDI
           upload-snapshots: true
           args: 'c("--no-manual", "--as-cran")'
           build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
@@ -168,13 +168,13 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          working-directory: EDI
+          working-directory: R/EDI
           extra-packages: any::rcmdcheck
           dependencies: 'NA'
 
       - uses: r-lib/actions/check-r-package@v2
         with:
-          working-directory: EDI
+          working-directory: R/EDI
           args: 'c("--no-manual", "--as-cran")'
           build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
           error-on: '"note"'
@@ -218,16 +218,16 @@ jobs:
       # doesn't ship it pre-built -- see the valgrind job's identical step
       # for the "there is no package called 'Matrix'" failure this avoids.
       - name: Install EDI's Depends/Imports/LinkingTo (Suggests skipped -- not needed to catch memory bugs in the core kernels, and roughly doubles this already-slow job otherwise)
-        working-directory: EDI
+        working-directory: R/EDI
         run: |
           RDscript -e 'install.packages(c("R6","checkmate","Rcpp","RcppEigen","RcppNumerical","data.table","survival","Matrix","lattice","boot","class","cluster","codetools","foreign","KernSmooth","mgcv","nlme","nnet","rpart","spatial","nbpMatching","anticlust","missRanger","missForest","numDeriv","digest","methods","MASS","RhpcBLASctl","randomizr","testthat"), repos = "https://cloud.r-project.org")'
 
       - name: Build
-        working-directory: EDI
+        working-directory: R/EDI
         run: RD CMD build --no-build-vignettes --no-manual .
 
       - name: Check under ASAN/UBSAN
-        working-directory: EDI
+        working-directory: R/EDI
         # --no-examples: examples aren't guarded against missing Suggests
         # the way tests are (skip_if_not_installed()), and this job
         # deliberately doesn't install every Suggests package (see the
@@ -246,7 +246,7 @@ jobs:
       # upload it as an artifact automatically) has no other way to surface.
       - name: Show 00install.out on failure
         if: failure()
-        working-directory: EDI
+        working-directory: R/EDI
         run: cat EDI.Rcheck/00install.out || true
 
   # Valgrind memcheck build. Catches memory bugs (uninitialized reads,
@@ -294,16 +294,16 @@ jobs:
       # for lazy loading" for EDI itself fails with "there is no package
       # called 'Matrix'" while transitively loading survival's namespace.
       - name: Install EDI's Depends/Imports/LinkingTo (Suggests skipped -- not needed to catch memory bugs in the core kernels, and would multiply the runtime of an already-very-slow job)
-        working-directory: EDI
+        working-directory: R/EDI
         run: |
           RDscript -e 'install.packages(c("R6","checkmate","Rcpp","RcppEigen","RcppNumerical","data.table","survival","Matrix","lattice","boot","class","cluster","codetools","foreign","KernSmooth","mgcv","nlme","nnet","rpart","spatial","nbpMatching","anticlust","missRanger","missForest","numDeriv","digest","methods","MASS","RhpcBLASctl","randomizr","testthat"), repos = "https://cloud.r-project.org")'
 
       - name: Build
-        working-directory: EDI
+        working-directory: R/EDI
         run: RD CMD build --no-build-vignettes --no-manual .
 
       - name: Check under valgrind
-        working-directory: EDI
+        working-directory: R/EDI
         # --no-examples: see the sanitizers job's identical flag/comment above.
         run: RD CMD check --no-manual --no-build-vignettes --no-examples --as-cran --use-valgrind EDI_*.tar.gz
 
@@ -312,6 +312,6 @@ jobs:
       # pointer to this file.
       - name: Show 00install.out on failure
         if: failure()
-        working-directory: EDI
+        working-directory: R/EDI
         run: cat EDI.Rcheck/00install.out || true
 

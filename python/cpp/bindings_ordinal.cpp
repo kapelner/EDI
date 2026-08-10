@@ -13,7 +13,7 @@
 
 namespace py = pybind11;
 
-// External linkage in EDI/src/fast_adjacent_category_logit.cpp (moved out of
+// External linkage in R/EDI/src/fast_adjacent_category_logit.cpp (moved out of
 // that file's anonymous namespace specifically so this binding can call them).
 std::vector<double> get_levels(const Eigen::Ref<const Eigen::VectorXd>& y);
 std::vector<int> map_y_to_1K(const Eigen::Ref<const Eigen::VectorXd>& y, const std::vector<double>& levels);

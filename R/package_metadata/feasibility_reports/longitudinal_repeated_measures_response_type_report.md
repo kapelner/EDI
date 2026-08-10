@@ -41,10 +41,10 @@ the `Design` base class's core response container itself.
 The good news, and the main finding of this report: the package **already
 has real within-cluster-correlation machinery** — GEE with a working
 correlation structure (`corstr = "exchangeable"`,
-[inference_mixin_kk_gee_shared.R:426](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_mixin_kk_gee_shared.R:426))
+[inference_mixin_kk_gee_shared.R:426](/home/kapelner/workspace/EDI/R/EDI/R/inference_mixin_kk_gee_shared.R:426))
 and GLMM with a subject-level random intercept
 (`(1 | group_id)`,
-[inference_continuous_KK_glmm.R:5](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_continuous_KK_glmm.R:5)).
+[inference_continuous_KK_glmm.R:5](/home/kapelner/workspace/EDI/R/EDI/R/inference_continuous_KK_glmm.R:5)).
 Both exist today to handle correlation **induced by the KK matched-pair
 design** (correlation *across different subjects* who share a match
 group), not correlation from **repeated observations on the same
@@ -92,7 +92,7 @@ scheduled follow-up**, which is itself a design-level feature EDI does not
 currently model at all — every `Design` subclass assumes exactly one
 outcome collection event per subject
 (`add_one_subject_response(t, y, dead = 1)`,
-[design_abstract.R:145](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_abstract.R:145)).
+[design_abstract.R:145](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:145)).
 So this feature is not "add a response type" so much as "add a second
 design dimension" (time), which is a more structural change than any of
 the six existing response types individually represent.
@@ -106,13 +106,13 @@ unit (KK matched-pair, not subject-over-time):
 ### GEE with a working correlation structure
 
 `InferenceMixinKKGEEShared`
-([inference_mixin_kk_gee_shared.R:18](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_mixin_kk_gee_shared.R:18))
+([inference_mixin_kk_gee_shared.R:18](/home/kapelner/workspace/EDI/R/EDI/R/inference_mixin_kk_gee_shared.R:18))
 is spliced into every KK-GEE daughter class (`InferenceCountKKGEE`,
 `InferenceOrdinalKKCLMMAbstract`'s GEE cousins, etc.) and fits with
 `corstr = "exchangeable"` at
-[inference_mixin_kk_gee_shared.R:426](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_mixin_kk_gee_shared.R:426)
+[inference_mixin_kk_gee_shared.R:426](/home/kapelner/workspace/EDI/R/EDI/R/inference_mixin_kk_gee_shared.R:426)
 and
-[:476](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_mixin_kk_gee_shared.R:476).
+[:476](/home/kapelner/workspace/EDI/R/EDI/R/inference_mixin_kk_gee_shared.R:476).
 GEE with an exchangeable, AR(1), or unstructured working correlation is
 the textbook marginal-model approach to repeated measures. The cluster
 variable it currently groups on is the KK match id, not a subject-time
@@ -124,10 +124,10 @@ head start this project would have.
 ### GLMM with a subject-level random intercept
 
 `InferenceContinKKGLMM`
-([inference_continuous_KK_glmm.R:1](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_continuous_KK_glmm.R:1))
+([inference_continuous_KK_glmm.R:1](/home/kapelner/workspace/EDI/R/EDI/R/inference_continuous_KK_glmm.R:1))
 fits `(1 | group_id)` where `group_id` is literally the KK match-id vector
 (`group_id = m_vec`,
-[inference_continuous_KK_glmm.R:160](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_continuous_KK_glmm.R:160)).
+[inference_continuous_KK_glmm.R:160](/home/kapelner/workspace/EDI/R/EDI/R/inference_continuous_KK_glmm.R:160)).
 A repeated-measures random-intercept (or random-intercept-and-slope) model
 is structurally the same fitting problem with `group_id = subject_id`
 instead. The Rcpp/L-BFGS Gaussian LMM kernel underneath this class is very
@@ -148,10 +148,10 @@ refactoring existing correct code, not inventing new numerics.
 This is the layer that makes repeated measures fundamentally different
 from every prior response-type addition. `private$y` is a flat vector
 indexed by subject order `t`
-([design_abstract.R:145](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_abstract.R:145),
+([design_abstract.R:145](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:145),
 `add_one_subject_response = function(t, y, dead = 1)`), and
 `add_all_subject_responses(ys, deads = NULL)`
-([design_abstract.R:200](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_abstract.R:200))
+([design_abstract.R:200](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:200))
 takes one scalar per subject. Every downstream consumer of `Design`
 (inference classes, `SimulationFramework`, summary tables) reads `y` as
 "the outcome," singular, per subject.
@@ -184,9 +184,9 @@ would need only pass-through changes.
 
 `DesignSeqOneByOneKK21` branches explicitly on `response_type` to compute
 adaptive covariate weights from the observed response
-([design_seq_one_by_one_KK21.R:259](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_seq_one_by_one_KK21.R:259)
+([design_seq_one_by_one_KK21.R:259](/home/kapelner/workspace/EDI/R/EDI/R/design_seq_one_by_one_KK21.R:259)
 through
-[:292](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_seq_one_by_one_KK21.R:292)).
+[:292](/home/kapelner/workspace/EDI/R/EDI/R/design_seq_one_by_one_KK21.R:292)).
 This logic assumes one committed response value is available to weight on
 by the time the next subject is assigned. A subject who is still mid-panel
 (has some but not all waves observed) breaks that assumption outright —
@@ -203,12 +203,12 @@ weighting on panel data deferred indefinitely.
 `SimulationFramework` generates one `response_type`-conditional scalar per
 subject via
 `transform_cont_y_based_on_response_type()`
-([simulations_framework.R:126](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R:126),
+([simulations_framework.R:126](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:126),
 `switch(response_type, ...)` at
-[:136](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R:136))
+[:136](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:136))
 and defines the scalar "true effect" used for MSE/coverage/power per
 response type in a second `switch(private$current_response_type, ...)` at
-[simulations_framework.R:3913](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R:3913).
+[simulations_framework.R:3913](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:3913).
 Both would need a genuinely new branch: generating `T` correlated draws
 per subject (e.g. an AR(1) or compound-symmetric latent process across
 waves) rather than one draw, and defining what the "true treatment effect"
@@ -266,7 +266,7 @@ mean-diff/Wilcoxon side itself.
 
 This abstract class assumes `generate_mod()` returns a fitted object with
 `b[2]` as a scalar treatment effect
-([inference_all_abstract_asymp_lik_std_mod_cache.R:6](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:6)).
+([inference_all_abstract_asymp_lik_std_mod_cache.R:6](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:6)).
 A marginal GEE-style repeated-measures fit produces exactly that shape (a
 scalar population-averaged treatment coefficient), so this layer is
 reusable for the recommended first estimand above — it is not reusable
@@ -287,7 +287,7 @@ repeated-measures inference class.
 
 Same conclusion as the nominal report: `InferenceSuite` discovers
 compatibility by construction-time rejection
-([inference_suite.R:110](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_suite.R:110)),
+([inference_suite.R:110](/home/kapelner/workspace/EDI/R/EDI/R/inference_suite.R:110)),
 so this is not a blocker as long as new repeated-measures classes assert
 their response type explicitly and existing scalar classes reject it.
 
@@ -311,7 +311,7 @@ repeated measures.
    treatment effect via GEE with a caller-selectable working correlation
    (`exchangeable`, `ar1`, `independence`), generalizing
    `InferenceMixinKKGEEShared`'s existing fit code
-   ([inference_mixin_kk_gee_shared.R:426](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_mixin_kk_gee_shared.R:426))
+   ([inference_mixin_kk_gee_shared.R:426](/home/kapelner/workspace/EDI/R/EDI/R/inference_mixin_kk_gee_shared.R:426))
    to an arbitrary subject-time cluster index. This should be the
    flagship first path — it reuses the most existing machinery and
    produces the estimand shape (`beta_hat_T` scalar) every downstream
@@ -320,7 +320,7 @@ repeated measures.
 2. **`InferenceLongitudinalGLMM`** — subject-specific treatment effect via
    a random-intercept mixed model, generalizing `InferenceContinKKGLMM`'s
    `(1 | group_id)` fit
-   ([inference_continuous_KK_glmm.R:160](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_continuous_KK_glmm.R:160))
+   ([inference_continuous_KK_glmm.R:160](/home/kapelner/workspace/EDI/R/EDI/R/inference_continuous_KK_glmm.R:160))
    to `group_id = subject_id`.
 3. Defer treatment-by-time interaction, random slopes, and any
    response-adaptive-design integration (KK21 weighting on panel data) to
@@ -337,14 +337,14 @@ A new branch is needed that generates `T` within-subject-correlated draws
 (e.g. compound-symmetric or AR(1) latent noise across waves) instead of
 one draw per subject, extending
 `transform_cont_y_based_on_response_type()`
-([simulations_framework.R:126](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R:126)).
+([simulations_framework.R:126](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:126)).
 This is not a one-line `switch` branch addition — it changes the shape of
 what the generator returns (a `subject x wave` matrix, not a vector).
 
 ### Treatment effect semantics and truth
 
 `betaT` and the true-effect computation at
-[simulations_framework.R:3913](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R:3913)
+[simulations_framework.R:3913](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:3913)
 are both currently scalar-per-response-type. For the recommended
 marginal-GEE first estimand, `betaT` can stay scalar (a
 population-averaged shift applied at every wave), which keeps this
@@ -359,9 +359,9 @@ scope for a first version.
 
 Refactor the GEE-fit-with-working-correlation logic in
 `InferenceMixinKKGEEShared`
-([inference_mixin_kk_gee_shared.R:18](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_mixin_kk_gee_shared.R:18))
+([inference_mixin_kk_gee_shared.R:18](/home/kapelner/workspace/EDI/R/EDI/R/inference_mixin_kk_gee_shared.R:18))
 and the GLMM-fit-with-random-intercept logic in `InferenceContinKKGLMM`
-([inference_continuous_KK_glmm.R:1](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_continuous_KK_glmm.R:1))
+([inference_continuous_KK_glmm.R:1](/home/kapelner/workspace/EDI/R/EDI/R/inference_continuous_KK_glmm.R:1))
 into shared mixins parameterized by an arbitrary cluster-index vector,
 without changing behavior for the existing KK match-id use case. This is
 low-risk, mechanical refactoring that pays for itself even before

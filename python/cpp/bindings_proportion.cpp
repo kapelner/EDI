@@ -104,5 +104,5 @@ void bind_proportion(py::module_& m) {
     py::arg("optimization_alg") = "lbfgs",
     py::arg("warm_start_fisher_info") = py::none(),
     "Fast zero-one-inflated beta regression via L-BFGS. Returned 'params' packs "
-    "[beta, log_phi, zero_one_inflation_params]; see EDI/src/fast_zero_one_inflated_beta.cpp.");
+    "[beta, log_phi, zero_one_inflation_params]; see R/EDI/src/fast_zero_one_inflated_beta.cpp.");
 }

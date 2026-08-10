@@ -5,13 +5,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# EDI/src is the single source of truth for every model-fitting kernel and
+# R/EDI/src is the single source of truth for every model-fitting kernel and
 # shared header -- nothing under python/ ever copies a .cpp/.h file from
 # there. This include path is what lets python/cpp/*.cpp #include headers
-# (and, once a given EDI/src/*.cpp has been given the EDI_CORE_ONLY
+# (and, once a given R/EDI/src/*.cpp has been given the EDI_CORE_ONLY
 # treatment, call its *_internal functions) directly out of the R package's
-# own source tree. See package_metadata/python_bindings_package_spec.md.
-set(EDI_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../EDI/src)
+# own source tree. See R/package_metadata/python_bindings_package_spec.md.
+set(EDI_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../R/EDI/src)
 
 find_package(Python 3.9 REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
@@ -28,7 +28,7 @@ find_package(OpenMP)
 # `scipy-openblas32` PyPI package (a pip-installable OpenBLAS build with a
 # CMake package config, used the same way by numpy/scipy/scikit-learn's own
 # cibuildwheel configs) -- installed via [tool.cibuildwheel]'s
-# `before-build`, never a hard `EDI/src` dependency.
+# `before-build`, never a hard `R/EDI/src` dependency.
 find_package(BLAS QUIET)
 set(EDI_USING_SCIPY_OPENBLAS FALSE)
 if(NOT BLAS_FOUND)
@@ -121,10 +121,10 @@ FetchContent_Populate(
     GIT_SHALLOW TRUE
 )
 
-# EDI/src/_helper_functions_core.h does #include <optimization/LBFGS.h> --
+# R/EDI/src/_helper_functions_core.h does #include <optimization/LBFGS.h> --
 # that "optimization/" prefix is RcppNumerical's own vendoring convention
 # (inst/include/optimization/LBFGS.h), not upstream LBFGSpp's layout (which
-# is just include/LBFGS.h). Rather than touch EDI/src to special-case the
+# is just include/LBFGS.h). Rather than touch R/EDI/src to special-case the
 # Python build's directory layout, shim it here: a symlink so the same
 # #include line resolves against the fetched upstream copy too.
 set(EDI_LBFGSPP_SHIM_DIR ${CMAKE_BINARY_DIR}/lbfgspp_shim)
@@ -135,15 +135,15 @@ endif()
 
 option(EDI_PY_PORTABLE "Drop -march=native for portable/cross-compiled wheels" OFF)
 
-# Building every EDI/src kernel with EDI_CORE_ONLY defined swaps out the
+# Building every R/EDI/src kernel with EDI_CORE_ONLY defined swaps out the
 # Rcpp/R-specific include branches (RcppEigen.h, Rmath.h, R_ext/BLAS.h) for
 # vanilla Eigen + a CBLAS declaration -- see _helper_functions_core.h and
-# fast_gamma_functions.h in EDI/src. No R installation or Rmath/libRmath
+# fast_gamma_functions.h in R/EDI/src. No R installation or Rmath/libRmath
 # linkage is required for this build.
 add_compile_definitions(EDI_CORE_ONLY)
 
-# EDI/src/*.cpp sources compiled directly into this extension (not copied).
-# Add one line here per EDI/src file whose *_internal function gets a
+# R/EDI/src/*.cpp sources compiled directly into this extension (not copied).
+# Add one line here per R/EDI/src file whose *_internal function gets a
 # Python binding, in step with the corresponding python/cpp/bindings_*.cpp
 # file that declares/calls it.
 set(EDI_KERNEL_SOURCES
@@ -219,7 +219,7 @@ if(MSVC)
     # M_PI (and the other <cmath> M_* constants) is a POSIX/GNU extension --
     # glibc/Apple libc++ expose it unconditionally, but MSVC's CRT only
     # defines it when _USE_MATH_DEFINES is set before <cmath>/<math.h> is
-    # first included. EDI/src uses M_PI directly in several files (shared
+    # first included. R/EDI/src uses M_PI directly in several files (shared
     # via _helper_functions_core.h/_glmm_engine.h, hence a target-wide
     # define here rather than patching each file's include order) -- the R
     # package build never hit this because RcppEigen/R itself always

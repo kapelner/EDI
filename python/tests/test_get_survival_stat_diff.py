@@ -5,7 +5,7 @@ This does NOT re-verify the statistical correctness of the KM-median-
 difference statistic itself -- that's the same algorithm (KM curve, R's
 survival::quantile.survfit step-function median semantics) the R package's
 own test suite already exercises via EDI:::get_survival_stat_diff (both
-call the identical logic in EDI/src/fast_survival_stats.cpp, ported to
+call the identical logic in R/EDI/src/fast_survival_stats.cpp, ported to
 get_survival_stat_diff_result/get_survival_stat_for_group_result so this
 binding's translation unit can call it directly without an SEXP/wrap()
 round-trip). What this test covers: the pybind11 binding layer itself and

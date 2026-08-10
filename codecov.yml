@@ -1,0 +1,40 @@
+# Two independent packages (R/EDI and python/) share this repo, so coverage
+# is split by flag rather than merged into one number -- see
+# .github/workflows/test-coverage.yaml (flag: r) and python-tests.yml
+# (flag: python).
+
+coverage:
+  status:
+    project:
+      default: false
+      r:
+        flags: [r]
+        target: auto
+      python:
+        flags: [python]
+        target: auto
+    patch:
+      default: true
+
+flags:
+  r:
+    paths:
+      - R/EDI/R/
+      - R/EDI/src/
+    carryforward: true
+  python:
+    paths:
+      - python/src/
+      - python/cpp/
+    carryforward: true
+
+ignore:
+  - "R/benchmark/**"
+  - "R/package_metadata/**"
+  - "R/profile/**"
+  - "R/package_tests/**"
+  - "python/tests/**"
+  - "graft/**"
+
+comment:
+  layout: "header, diff, flags, files"

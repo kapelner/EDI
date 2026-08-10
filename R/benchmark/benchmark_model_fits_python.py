@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Python analog of benchmark/benchmark_model_fits.R.
 
-Generates package_metadata/benchmark_model_fits_python.html: the same
+Generates python/benchmark/benchmark_model_fits_python.html: the same
 Class/Response/EDI-Time/Canonical-Pkg/Canonical-Func/Canonical-Time/Speedup/
 Timing-Pval table shape as benchmark_model_fits_R.html, same three-color row
 coding (green = EDI faster + significant, grey = NA timing comparison, blue =
@@ -624,7 +624,7 @@ def build_rmst_diff():
         return restricted_mean_survival_time(kmt, t=tmax) - restricted_mean_survival_time(kmc, t=tmax)
 
     # Note: EDI's own restricted-mean kernel truncates each group at that
-    # group's own max observed time (matching EDI/src/fast_survival_stats.cpp's
+    # group's own max observed time (matching R/EDI/src/fast_survival_stats.cpp's
     # get_survival_stat_for_group_result), not lifelines' shared min(yt.max(),
     # yc.max()) convention above -- same "fastest native entry point per
     # package" comparison discipline used throughout this benchmark (e.g. the
@@ -1029,7 +1029,7 @@ def build_zinb_wald():
 
 def _robust_sandwich_se(b, scale, Xf, y, j0, c_bisquare=4.685):
     """M-estimator sandwich variance for coefficient j0 (0-indexed), mirroring
-    EDI/src/fast_robust_regression.cpp's fast_robust_regression_cpp exactly
+    R/EDI/src/fast_robust_regression.cpp's fast_robust_regression_cpp exactly
     (the psi/psi' computation living in that Rcpp-only wrapper, not in the
     shared *_internal() core, so it isn't a field the Python binding's dict
     can just return -- it has to be reproduced here). Only the default
@@ -1281,7 +1281,7 @@ def build_lin_wald():
     y, w, X = d["y"], d["w"], d["X"]
     Xc = X - X.mean(0)
     Xint = np.column_stack([np.ones(len(y)), w, Xc, Xc * w[:, None]])
-    # Lin's estimator is specifically HC2-robust (see EDI/R/inference_continuous_lin.R's
+    # Lin's estimator is specifically HC2-robust (see R/EDI/R/inference_continuous_lin.R's
     # ols_hc2_post_fit_cpp call) -- statsmodels' default fit() uses classical
     # (homoskedastic) SEs, which would compare EDI's real HC2 SE against a
     # different quantity entirely. cov_type="HC2" makes this apples-to-apples
@@ -1684,7 +1684,7 @@ def build_util_log1pexp():
 
 # 8 of these 14 kernels (digamma, trigamma, lgamma, lbeta, dnbinom_mu,
 # qnorm, log_pnorm, log_dnorm) match real EDI R package exports
-# (EDI/src/fast_math_utils.cpp — see benchmark_model_fits.R's Utility
+# (R/EDI/src/fast_math_utils.cpp — see benchmark_model_fits.R's Utility
 # table). fast_pchisq_upper is bound in EDI's own python/cpp/
 # bindings_fast_math.cpp stub, but that build isn't wired into this
 # benchmark (it's another session's in-progress, uncommitted scaffold —
@@ -1938,14 +1938,14 @@ nav a {{ margin-right: 1rem; }}
 <p><em>Generated: {generated}</em></p>
 <nav><a href="#results">Point-estimate</a><a href="#wald">Wald (full inference)</a><a href="#utility">Utility / math kernels</a></nav>
 
-<p>Python analog of <a href="benchmark_model_fits_R.html">benchmark_model_fits_R.html</a> —
+<p>Python analog of <a href="../../R/benchmark/benchmark_model_fits_R.html">benchmark_model_fits_R.html</a> —
 same three tables (point-estimate, Wald/full-inference, utility math kernels), same table shape,
-same three-color row coding. Produced by <code>package_metadata/benchmark_model_fits_python.py</code>.</p>
+same three-color row coding. Produced by <code>R/benchmark/benchmark_model_fits_python.py</code>.</p>
 
 <h2>Status: EDI Python bindings are in-progress (built fresh on every run)</h2>
 <p>EDI's C++ model-fitting kernels are being bound to Python in an active, uncommitted,
 in-progress scaffold under <code>python/</code> (a separate effort from this benchmark script
-— see <code>package_metadata/python_bindings_package_spec.md</code>). This script does not
+— see <code>R/package_metadata/python_bindings_package_spec.md</code>). This script does not
 own or edit that scaffold; at the top of every run it configures and builds whatever is
 currently there (via CMake, into an isolated <code>/tmp</code> directory) and imports
 whatever compiles, so the <strong>EDI Time</strong> column reflects the real state of that
@@ -2018,18 +2018,20 @@ line in different places.)</p>
 
 <h2 id="utility">Utility / Math Kernel Performance ({u_ok} of {len(util_rows)} functions timed)</h2>
 {LEGEND_HTML}
-<p>EDI's internal <code>fast_*</code> scalar math kernels — every one that exists in <code>EDI/src</code> (<code>fast_digamma</code>, <code>fast_trigamma</code>, <code>fast_lgamma</code>, <code>fast_lbeta</code>, <code>fast_qnorm</code>, <code>fast_log_pnorm</code>, <code>fast_log_dnorm</code>, <code>fast_dnbinom_mu</code>, <code>fast_pchisq_upper</code>, <code>fast_erfc</code>, <code>pnorm_fast</code>, <code>dnorm_fast</code>, <code>fast_atan</code>, <code>fast_log1pexp</code>) — vs. their scipy/numpy vectorized equivalents, over a length-{N_UTIL} vector. Only <code>fast_pchisq_upper</code> is declared in the <code>python/</code> <code>fast_math</code> stub (<code>python/cpp/bindings_fast_math.cpp</code>), and even that build currently fails to import (an unrelated undefined symbol from other in-progress bindings in the same compiled module — <code>python/build_verify/</code>), so no row has a usable EDI binding yet and every row is grey today.</p>
+<p>EDI's internal <code>fast_*</code> scalar math kernels — every one that exists in <code>R/EDI/src</code> (<code>fast_digamma</code>, <code>fast_trigamma</code>, <code>fast_lgamma</code>, <code>fast_lbeta</code>, <code>fast_qnorm</code>, <code>fast_log_pnorm</code>, <code>fast_log_dnorm</code>, <code>fast_dnbinom_mu</code>, <code>fast_pchisq_upper</code>, <code>fast_erfc</code>, <code>pnorm_fast</code>, <code>dnorm_fast</code>, <code>fast_atan</code>, <code>fast_log1pexp</code>) — vs. their scipy/numpy vectorized equivalents, over a length-{N_UTIL} vector. Only <code>fast_pchisq_upper</code> is declared in the <code>python/</code> <code>fast_math</code> stub (<code>python/cpp/bindings_fast_math.cpp</code>), and even that build currently fails to import (an unrelated undefined symbol from other in-progress bindings in the same compiled module — <code>python/build_verify/</code>), so no row has a usable EDI binding yet and every row is grey today.</p>
 {TABLE_HEAD_HTML}
 {render_table_html(util_rows)}
 </tbody>
 </table>
 <p><small>{u_ok} of {len(util_rows)} functions have a working canonical timing; {u_fail} failed on this run.</small></p>
 
-<p><small>See <code>package_metadata/python_bindings_package_spec.md</code> for the full kernel-binding plan.</small></p>
+<p><small>See <code>R/package_metadata/python_bindings_package_spec.md</code> for the full kernel-binding plan.</small></p>
 </body></html>
 """
 
-    out_path = "package_metadata/benchmark_model_fits_python.html"
+    out_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "..",
+        "python", "benchmark", "benchmark_model_fits_python.html")
     with open(out_path, "w") as f:
         f.write(html)
     sync_combined_markdown_with_python_html(html, out_path)

@@ -1,11 +1,11 @@
 #ifndef EDI_RESULT_MAP_PYBIND_H
 #define EDI_RESULT_MAP_PYBIND_H
 
-// The pybind11-side twin of EDI/src/result_map_rcpp.h -- converts a
-// portable edi::ResultMap (built by an EDI/src/*_internal function, no
+// The pybind11-side twin of R/EDI/src/result_map_rcpp.h -- converts a
+// portable edi::ResultMap (built by an R/EDI/src/*_internal function, no
 // Rcpp/R dependency) into a Python dict. Mirrors that file's std::visit
 // shape exactly so the two boundary layers stay in lockstep; see
-// package_metadata/python_bindings_package_spec.md's "Result Conversion".
+// R/package_metadata/python_bindings_package_spec.md's "Result Conversion".
 
 #include "result_map.h"
 #include <pybind11/eigen.h>

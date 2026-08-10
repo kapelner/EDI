@@ -15,7 +15,7 @@ The package currently assumes smooth likelihoods with usable gradients and Hessi
 
 ## Why This Is Not Just “Add `lambda`”
 
-The shared likelihood-testing base is in [EDI/R/inference_all_abstract_asymp_lik.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_asymp_lik.R), and it assumes every likelihood path can provide:
+The shared likelihood-testing base is in [EDI/R/inference_all_abstract_asymp_lik.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik.R), and it assumes every likelihood path can provide:
 
 - a full fit
 - a null fit with the treatment fixed
@@ -43,9 +43,9 @@ The package currently has **37** R likelihood-spec entry points (`get_likelihood
 
 That means “all likelihood paths” spans several distinct families, not one homogeneous regression stack:
 
-- ordinary GLM-style models under [EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R)
-- count-likelihood models under [EDI/R/inference_count_likelihood.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_likelihood.R)
-- companion-likelihood count models such as [EDI/R/inference_count_quasipoisson.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_quasipoisson.R) and [EDI/R/inference_count_robust_poisson.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_robust_poisson.R)
+- ordinary GLM-style models under [EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R)
+- count-likelihood models under [EDI/R/inference_count_likelihood.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_likelihood.R)
+- companion-likelihood count models such as [EDI/R/inference_count_quasipoisson.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_quasipoisson.R) and [EDI/R/inference_count_robust_poisson.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_robust_poisson.R)
 - ordinal likelihood models with threshold parameters
 - survival models with partial likelihood / parametric likelihood
 - KK combined-likelihood / GLMM / frailty / copula models
@@ -55,7 +55,7 @@ So the right question is not “can the package do penalties?” but “how many
 
 ## What Makes L2 Plausible
 
-The native optimization layer is centralized enough that ridge can be threaded through it. The key optimizer hooks are in [EDI/src/_helper_functions.h](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/_helper_functions.h), especially:
+The native optimization layer is centralized enough that ridge can be threaded through it. The key optimizer hooks are in [EDI/src/_helper_functions.h](/home/kapelner/workspace/EDI/R/EDI/src/_helper_functions.h), especially:
 
 - `optimize_likelihood_lbfgs`
 - `optimize_likelihood_newton`
@@ -77,12 +77,12 @@ and its derivatives would be adjusted accordingly.
 
 For models like:
 
-- [EDI/src/fast_logistic_regression.cpp](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/fast_logistic_regression.cpp)
-- [EDI/src/fast_poisson_regression.cpp](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/fast_poisson_regression.cpp)
-- [EDI/src/fast_negbin_regression.cpp](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/fast_negbin_regression.cpp)
-- [EDI/src/fast_ordinal_regression.cpp](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/fast_ordinal_regression.cpp)
-- [EDI/src/fast_weibull_regression.cpp](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/fast_weibull_regression.cpp)
-- [EDI/src/fast_coxph_regression.cpp](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/fast_coxph_regression.cpp)
+- [EDI/src/fast_logistic_regression.cpp](/home/kapelner/workspace/EDI/R/EDI/src/fast_logistic_regression.cpp)
+- [EDI/src/fast_poisson_regression.cpp](/home/kapelner/workspace/EDI/R/EDI/src/fast_poisson_regression.cpp)
+- [EDI/src/fast_negbin_regression.cpp](/home/kapelner/workspace/EDI/R/EDI/src/fast_negbin_regression.cpp)
+- [EDI/src/fast_ordinal_regression.cpp](/home/kapelner/workspace/EDI/R/EDI/src/fast_ordinal_regression.cpp)
+- [EDI/src/fast_weibull_regression.cpp](/home/kapelner/workspace/EDI/R/EDI/src/fast_weibull_regression.cpp)
+- [EDI/src/fast_coxph_regression.cpp](/home/kapelner/workspace/EDI/R/EDI/src/fast_coxph_regression.cpp)
 
 that is a real but straightforward implementation pattern.
 
@@ -107,7 +107,7 @@ So L1 is not just “add an absolute value term.” It requires either:
 
 ### 2. The testing layer
 
-The likelihood-test machinery in [EDI/R/inference_all_abstract_asymp_lik.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_asymp_lik.R) computes:
+The likelihood-test machinery in [EDI/R/inference_all_abstract_asymp_lik.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik.R) computes:
 
 - score tests
 - gradient tests
@@ -163,15 +163,15 @@ The current codebase does not separate those notions cleanly. For example, `scor
 
 Many classes already warm-start null fits. Examples include:
 
-- [EDI/R/inference_count_poisson.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_poisson.R)
-- [EDI/R/inference_count_negbin.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_negbin.R)
-- [EDI/R/inference_count_zero_augmented_poisson_abstract.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_zero_augmented_poisson_abstract.R)
+- [EDI/R/inference_count_poisson.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_poisson.R)
+- [EDI/R/inference_count_negbin.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_negbin.R)
+- [EDI/R/inference_count_zero_augmented_poisson_abstract.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_zero_augmented_poisson_abstract.R)
 
 Ridge will usually help convergence, but CI inversion still requires many constrained refits. Those refits must carry the same penalty configuration and mask logic everywhere.
 
 ### 4. Companion-likelihood classes are conceptually different
 
-[EDI/R/inference_count_quasipoisson.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_quasipoisson.R) and [EDI/R/inference_count_robust_poisson.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_robust_poisson.R) report quasi / sandwich inference but use a Poisson companion likelihood for score and LR paths.
+[EDI/R/inference_count_quasipoisson.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_quasipoisson.R) and [EDI/R/inference_count_robust_poisson.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_robust_poisson.R) report quasi / sandwich inference but use a Poisson companion likelihood for score and LR paths.
 
 If you add penalties here, you must decide whether the penalty belongs to:
 

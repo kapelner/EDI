@@ -1,10 +1,10 @@
 # Changelog
 
 All notable changes to `edi_kernels` are documented here. The version
-number tracks `EDI/DESCRIPTION`'s `Version` field (see
-`package_metadata/python_bindings_package_spec.md`'s "Versioning"
+number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
+`R/package_metadata/python_bindings_package_spec.md`'s "Versioning"
 checklist item) — a `.postN` suffix is used for Python-packaging-only
-changes that don't touch `EDI/src/*.cpp`.
+changes that don't touch `R/EDI/src/*.cpp`.
 
 ## [1.0.0] - 2026-08-05
 
@@ -12,13 +12,13 @@ Initial release.
 
 ### Added
 
-- pybind11 bindings for all 33 `EDI/src` model-fitting kernels (37 bound
+- pybind11 bindings for all 33 `R/EDI/src` model-fitting kernels (37 bound
   Python functions total, counting the `_with_var` secondary entry points
   for `fast_log_binomial_regression`/`fast_identity_binomial_regression`),
   covering the continuous, binary, count, proportion, ordinal, incidence/
   GEE, survival, and GLMM/CLMM/LMM response-type families.
 - An `EDI_CORE_ONLY` build path: every bound kernel compiles directly out
-  of `EDI/src/*.cpp` with zero R/Rcpp/Rmath dependency, against vanilla
+  of `R/EDI/src/*.cpp` with zero R/Rcpp/Rmath dependency, against vanilla
   Eigen + LBFGSpp fetched from their own upstream repositories. No kernel
   logic is duplicated or reimplemented in Python or in the `pybind11`
   binding layer.
@@ -35,11 +35,11 @@ Initial release.
   for the families that don't (GLMM/CLMM/LMM, adjacent-category/
   continuation-ratio/stereotype ordinal, zero-one-inflated beta, Weibull
   frailty, KK-combined estimators) rather than silently omitting them.
-- `package_metadata/benchmark_model_fits_python.html`: a generated
+- `R/package_metadata/benchmark_model_fits_python.html`: a generated
   benchmark report in the same column shape as the R package's own
   `benchmark_model_fits_R.html`.
 - Packaging: `python/README.md`, `python/LICENSE` (GPL-3.0-only, matching
-  `EDI/DESCRIPTION`'s `License: GPL-3`), portable-wheel support via
+  `R/EDI/DESCRIPTION`'s `License: GPL-3`), portable-wheel support via
   `[tool.cibuildwheel]` (manylinux_2_28, macOS x86_64+arm64, Windows with a
   `scipy-openblas32` BLAS fallback), and a CI pipeline
   (`.github/workflows/build-wheels.yml`) that builds every platform's wheel

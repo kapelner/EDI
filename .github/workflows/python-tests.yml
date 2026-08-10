@@ -1,0 +1,59 @@
+name: python-tests
+
+# Fast dev-loop correctness + coverage for edi_kernels: a plain editable
+# build + pytest run on every push/PR that touches the Python bindings or
+# the C++ kernels they wrap, on a single OS. This is deliberately separate
+# from build-wheels.yml, which builds real distributable wheels across
+# macOS/Windows/Linux via cibuildwheel (and already runs this same test
+# suite once per wheel as part of that) but only on push to main or a
+# `py-v*` tag -- not on every PR. This workflow exists to give PRs fast
+# feedback and a coverage number without waiting on a full multi-OS wheel
+# build.
+#
+# Package root is python/ (pyproject.toml lives there), since this repo
+# also holds the unrelated R package (R/EDI/) and paper-reproduction code.
+
+on:
+  push:
+    branches: [main, master]
+    paths: &python-test-paths
+      - 'python/**'
+      - 'R/EDI/src/**/*.cpp'
+      - 'R/EDI/src/**/*.h'
+      - 'R/EDI/src/**/*.hpp'
+      - '.github/workflows/python-tests.yml'
+  pull_request:
+    branches: [main, master]
+    paths: *python-test-paths
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      # manylinux wheel builds (build-wheels.yml) get BLAS from the
+      # manylinux_2_28 image's openblas-devel; a plain ubuntu-latest runner
+      # needs the same system package explicitly (see CMakeLists.txt's
+      # find_package(BLAS)).
+      - name: Install system BLAS
+        run: sudo apt-get update && sudo apt-get install -y libopenblas-dev
+
+      - name: Install edi_kernels (editable) + test deps
+        run: pip install -e "./python[test]" pytest-cov
+
+      - name: Run tests with coverage
+        working-directory: python
+        run: python -m pytest tests -q --cov=edi_kernels --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: python/coverage.xml
+          flags: python
+          fail_ci_if_error: false

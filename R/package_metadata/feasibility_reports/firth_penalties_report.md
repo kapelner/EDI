@@ -47,7 +47,7 @@ That means first and second derivatives are no longer enough in the generic opti
 
 ## What The Current Code Supports Well
 
-The package already has a broad likelihood-testing abstraction in [EDI/R/inference_all_abstract_asymp_lik.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_asymp_lik.R). Each likelihood-backed class supplies some combination of:
+The package already has a broad likelihood-testing abstraction in [EDI/R/inference_all_abstract_asymp_lik.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik.R). Each likelihood-backed class supplies some combination of:
 
 - `fit_null`
 - `score`
@@ -55,7 +55,7 @@ The package already has a broad likelihood-testing abstraction in [EDI/R/inferen
 - `fisher_information`
 - `neg_loglik`
 
-There are also shared native optimizer helpers in [EDI/src/_helper_functions.h](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/_helper_functions.h), including:
+There are also shared native optimizer helpers in [EDI/src/_helper_functions.h](/home/kapelner/workspace/EDI/R/EDI/src/_helper_functions.h), including:
 
 - `optimize_likelihood_lbfgs`
 - `optimize_likelihood_newton`
@@ -114,7 +114,7 @@ But in this codebase, information support is mixed:
 - a smaller subset explicitly advertises Fisher support
 - some paths treat observed information as the main information object
 
-The default likelihood base in [EDI/R/inference_all_abstract_asymp_lik.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_asymp_lik.R) defaults to observed information unless a class explicitly supports Fisher.
+The default likelihood base in [EDI/R/inference_all_abstract_asymp_lik.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik.R) defaults to observed information unless a class explicitly supports Fisher.
 
 Only a small subset of classes explicitly overrides `supports_fisher_information()`. So before implementing Firth package-wide, you would have to decide:
 
@@ -126,7 +126,7 @@ Without that decision, "add Firth" is underspecified.
 
 ## Why Generic Numerical Firth Is Not Attractive
 
-There is a numerical gradient helper and a numerical Hessian helper in [EDI/src/_helper_functions.h](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/_helper_functions.h).
+There is a numerical gradient helper and a numerical Hessian helper in [EDI/src/_helper_functions.h](/home/kapelner/workspace/EDI/R/EDI/src/_helper_functions.h).
 
 In theory, you could try to build a generic Firth objective by:
 
@@ -160,7 +160,7 @@ does not turn "Firth everywhere" into a small project, for reasons specific to
 how this package uses a fit once it has one:
 
 1. **Refit volume.** CI inversion runs root-finding over repeated *constrained
-   null refits* (see [EDI/R/inference_all_abstract_asymp_lik.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_asymp_lik.R)),
+   null refits* (see [EDI/R/inference_all_abstract_asymp_lik.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik.R)),
    and the test suite / bootstrap paths call these thousands of times.
    Derivative-free methods typically need roughly an order of magnitude more
    function evaluations than L-BFGS/Newton for comparable precision, and each
@@ -210,8 +210,8 @@ precision cost — concentrated on exactly the paths that can least afford it.
 
 Some native model files already include ad hoc smooth penalties or barriers. For example:
 
-- [EDI/src/fast_logistic_glmm.cpp](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/fast_logistic_glmm.cpp)
-- [EDI/src/fast_hurdle_poisson_glmm.cpp](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/fast_hurdle_poisson_glmm.cpp)
+- [EDI/src/fast_logistic_glmm.cpp](/home/kapelner/workspace/EDI/R/EDI/src/fast_logistic_glmm.cpp)
+- [EDI/src/fast_hurdle_poisson_glmm.cpp](/home/kapelner/workspace/EDI/R/EDI/src/fast_hurdle_poisson_glmm.cpp)
 
 Those are useful evidence that penalized objectives can be carried through the current solver stack.
 
@@ -234,7 +234,7 @@ That policy does not exist yet.
 
 ## The Testing Layer Complicates Things
 
-The likelihood machinery in [EDI/R/inference_all_abstract_asymp_lik.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract_asymp_lik.R) supports:
+The likelihood machinery in [EDI/R/inference_all_abstract_asymp_lik.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik.R) supports:
 
 - Wald tests
 - score tests
@@ -651,7 +651,7 @@ This appendix works out the specific "bespoke" algebra referenced in the
 `InferenceSurvivalCoxPHRegr` / `InferenceSurvivalStratCoxPHRegr` rows above,
 so that a future implementation does not have to re-derive it. It follows the
 Breslow tie-handling and risk-set-sum structure already implemented in
-[EDI/src/fast_coxph_regression.cpp](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/fast_coxph_regression.cpp)
+[EDI/src/fast_coxph_regression.cpp](/home/kapelner/workspace/EDI/R/EDI/src/fast_coxph_regression.cpp)
 (the `S0`/`S1`/`S2` accumulation loop around lines 154–214), and shows exactly
 what a third moment tensor `S3` would need to add.
 

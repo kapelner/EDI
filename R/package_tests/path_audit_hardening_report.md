@@ -185,4 +185,4 @@ Simple closed-form model-based Wald paths can remain dark green when they have a
 5. Keep studentized, BCa, jackknife, randomization, and BRT light green unless a class-specific guarantee is established.
 
 
-# cd /home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr && Rscript package_tests/comprehensive_tests.R 40 1 proportion  2>&1 | tee package_tests/comprehensive_tests_proportion_$(date +%Y%m%d_%H%M%S).log
+# cd /home/kapelner/workspace/EDI && Rscript package_tests/comprehensive_tests.R 40 1 proportion  2>&1 | tee package_tests/comprehensive_tests_proportion_$(date +%Y%m%d_%H%M%S).log

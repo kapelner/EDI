@@ -85,19 +85,19 @@ directly relevant precedent:
 ### Pattern A: the count two-formula "zero-augmented" family
 
 `InferenceCountZeroAugmentedPoissonAbstract`
-([EDI/R/inference_count_zero_augmented_poisson_abstract.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_zero_augmented_poisson_abstract.R))
+([EDI/R/inference_count_zero_augmented_poisson_abstract.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_zero_augmented_poisson_abstract.R))
 is the shared base class behind `InferenceCountZeroInflatedPoisson`,
 `InferenceCountZeroInflatedNegBin`
-([EDI/R/inference_count_zero_inflated.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_zero_inflated.R)),
+([EDI/R/inference_count_zero_inflated.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_zero_inflated.R)),
 and `InferenceCountHurdlePoisson`
-([EDI/R/inference_count_hurdle.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_hurdle.R):16-34).
+([EDI/R/inference_count_hurdle.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_hurdle.R):16-34).
 It provides, generically over the "zero-generating process" vs
 "count-generating process" split:
 
 - two independent design-matrix/formula slots — `model_formula` (conditional
   component) and `model_formula_zero` (auxiliary zero/hurdle component) —
   see `initialize()` at
-  [inference_count_zero_augmented_poisson_abstract.R:30-57](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_zero_augmented_poisson_abstract.R#L30-L57)
+  [inference_count_zero_augmented_poisson_abstract.R:30-57](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_zero_augmented_poisson_abstract.R#L30-L57)
 - native Rcpp fast paths (`fast_zinb_cpp`, `fast_zero_augmented_poisson_cpp`)
   with a `glmmTMB` fallback (`fit_zero_augmented_model()`, line 718)
 - a treatment-only closed-form fallback for when the full covariate-adjusted
@@ -119,14 +119,14 @@ It provides, generically over the "zero-generating process" vs
   rather than re-litigate
 - an explicit `assertNoCensoring(private$any_censoring)` guard in
   `initialize()`
-  ([inference_count_zero_augmented_poisson_abstract.R:46](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_zero_augmented_poisson_abstract.R#L46))
+  ([inference_count_zero_augmented_poisson_abstract.R:46](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_zero_augmented_poisson_abstract.R#L46))
   — this is the load-bearing fact behind this report's split verdict: the
   pattern is *architected* for structural zeros, not censoring, and says so.
 
 ### Pattern B: the single-likelihood three-component mixture
 
 `InferencePropZeroOneInflatedBetaRegr`
-([EDI/R/inference_proportion_zero_one_inflated_beta.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_proportion_zero_one_inflated_beta.R):26-45)
+([EDI/R/inference_proportion_zero_one_inflated_beta.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_proportion_zero_one_inflated_beta.R):26-45)
 takes a different, lighter-weight route: it inherits directly from
 `InferenceAsympLikStdModCache` (the common likelihood-cache base used by most
 scalar-treatment-effect MLE paths) rather than building its own two-formula
@@ -143,7 +143,7 @@ zero-one-inflated beta (bounded interior).
 ### Design-layer support
 
 `Design`'s response-type validation
-([EDI/R/design_abstract.R:94](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_abstract.R#L94))
+([EDI/R/design_abstract.R:94](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R#L94))
 already allows `continuous`. Confirmed: none of `InferenceCountZeroInflatedPoisson`,
 `InferenceCountZeroInflatedNegBin`, `InferenceCountHurdlePoisson`, or
 `InferenceCountHurdleNegBin` required a new `response_type` value — they all
@@ -174,7 +174,7 @@ introduced here, there is nothing for them to adapt to.
 ### 3. KK21 / response-adaptive weighting designs: easy (structural-zero case)
 
 `DesignSeqOneByOneKK21`'s response-family branches
-([EDI/R/design_seq_one_by_one_KK21.R:253-281](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/design_seq_one_by_one_KK21.R#L253-L281))
+([EDI/R/design_seq_one_by_one_KK21.R:253-281](/home/kapelner/workspace/EDI/R/EDI/R/design_seq_one_by_one_KK21.R#L253-L281))
 already have a `continuous` branch. A semi-continuous outcome observed during
 sequential assignment is *still a continuous response* from this layer's
 point of view — no separate weighting logic is required unless response-adaptive
@@ -216,7 +216,7 @@ Confirmed via grep: **none** of the existing zero-augmented count classes
 (`InferenceCountZeroInflatedPoisson`, `InferenceCountZeroInflatedNegBin`,
 `InferenceCountHurdlePoisson`, `InferenceCountHurdleNegBin`) are referenced
 anywhere in
-[EDI/R/simulations_framework.R](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R) —
+[EDI/R/simulations_framework.R](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R) —
 there is no zero-inflated/hurdle count DGP generator, no `betaT` semantics
 for a two-part treatment effect, and none of the four classes appear in the
 curated default inference sets. This means `SimulationFramework` support for
@@ -238,7 +238,7 @@ and `multivariate` are not: the treatment effect is the conditional-mean
 shift on the positive-tail component (exactly mirroring how the existing
 zero-augmented count classes report `beta_hat_T` from the conditional
 component alone — see `out$beta_hat_T = as.numeric(fit$params[2])` at
-[inference_count_zero_augmented_poisson_abstract.R:838](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_count_zero_augmented_poisson_abstract.R#L838)).
+[inference_count_zero_augmented_poisson_abstract.R:838](/home/kapelner/workspace/EDI/R/EDI/R/inference_count_zero_augmented_poisson_abstract.R#L838)).
 No new API shape, no vector-valued output, no new summary-table
 convention is needed.
 
@@ -289,7 +289,7 @@ risk than `nominal`.
 
 Because no new `response_type` is introduced, `InferenceSuite`'s
 compatibility-discovery mechanism
-([EDI/R/inference_suite.R:110](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_suite.R#L110))
+([EDI/R/inference_suite.R:110](/home/kapelner/workspace/EDI/R/EDI/R/inference_suite.R#L110))
 needs no changes at all for the structural-zero sub-case — a new
 `continuous`-typed class is automatically discoverable the same way any new
 count- or proportion-typed class already is.
@@ -319,7 +319,7 @@ zero-process), then draw the positive value from a log-normal or Gamma
 distribution conditional on being positive. This is a direct generalization
 of the existing `transform_cont_y_based_on_response_type()`
 switch-based dispatch
-([EDI/R/simulations_framework.R:126](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/simulations_framework.R#L126))
+([EDI/R/simulations_framework.R:126](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R#L126))
 — conceptually smaller in scope than `nominal`'s softmax-utility generator,
 since it only needs one Bernoulli gate plus the *already-existing* continuous
 generator for the positive part.

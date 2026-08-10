@@ -10,7 +10,7 @@ fetched Eigen + LBFGSpp, not the R build's RcppEigen/RcppNumerical).
 
 X INCLUDES an intercept column (unlike fast_ordinal_glmm/fast_ordinal_clmm,
 which do not) -- see the comment on fast_logistic_glmm_cpp's X_r parameter
-in EDI/src/fast_logistic_glmm.cpp. j_T is the 0-based treatment column
+in R/EDI/src/fast_logistic_glmm.cpp. j_T is the 0-based treatment column
 index.
 
 *** group_id must partition observations into groups of size EXACTLY 1 or

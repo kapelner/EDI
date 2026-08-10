@@ -2,7 +2,7 @@
 
 This is the "families with a confirmed clean baseline" subset of the
 Python Baseline Registry table in
-``package_metadata/python_bindings_package_spec.md`` (TODO-5): OLS, robust
+``R/package_metadata/python_bindings_package_spec.md`` (TODO-5): OLS, robust
 regression, logistic, probit, log-binomial (+ identity-binomial), Poisson,
 NegBin, ZINB/ZAP/hurdle-NegBin, beta regression, Cox PH, Weibull AFT,
 proportional-odds/cauchit/cloglog ordinal, and GEE.

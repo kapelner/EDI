@@ -15,7 +15,7 @@ with them.
 The expected values below were computed once via:
     EDI:::fast_ordinal_regression_cpp(X, y)
 in R, on the exact same synthetic dataset generated below with
-numpy.random.default_rng(123) (see package_metadata/python_bindings_package_spec.md
+numpy.random.default_rng(123) (see R/package_metadata/python_bindings_package_spec.md
 "Testing"). Do not regenerate this fixture casually -- if it needs updating,
 regenerate from R and update the comment with the date/EDI version.
 """

@@ -17,8 +17,8 @@ under the log link) generated below with numpy.random.default_rng(105).
 
 NOTE (corrected 2026-08-05): an earlier pass through this file claimed R's
 tol default here was 1e-8 versus Python's 1e-6, and called it a real
-mismatch worth fixing. That was wrong -- EDI/R/RcppExports.R and
-EDI/src/fast_log_binomial_regression.cpp both show R's own default is
+mismatch worth fixing. That was wrong -- R/EDI/R/RcppExports.R and
+R/EDI/src/fast_log_binomial_regression.cpp both show R's own default is
 tol=1e-6, identical to the Python binding's (python/cpp/bindings_binary.cpp,
 bind_constrained_binomial). No R/Python default drift exists for this
 kernel's tol. (The likely source of the earlier confusion:

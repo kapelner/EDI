@@ -22,7 +22,7 @@ Spot-checking a representative spread of native fitters:
 
 | Fitter | Returns |
 |---|---|
-| `fast_logistic_regression_cpp` ([fast_logistic_regression.cpp:316-332](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/fast_logistic_regression.cpp)) | `b`, `w`/`XtWX`/`fisher_information`, `score`, `neg_ll`, `converged`, `iterations` |
+| `fast_logistic_regression_cpp` ([fast_logistic_regression.cpp:316-332](/home/kapelner/workspace/EDI/R/EDI/src/fast_logistic_regression.cpp)) | `b`, `w`/`XtWX`/`fisher_information`, `score`, `neg_ll`, `converged`, `iterations` |
 | `fast_poisson_regression_cpp` (`fast_poisson_regression.cpp:531-539`) | `b`, `ssq_b_j`/`ssq_b_2`, `dispersion`, `mu`, `converged`, `iterations` — **no score or information at all** |
 | `fast_logistic_glmm_cpp` (`fast_logistic_glmm.cpp:500-565`) | `params`/`b`/`log_sigma`, `ssq_b_T`, `vcov`, `score`, `information`, `converged`, `neg_loglik` — richest of the sample, but `estimate_only` mode drops score/information/vcov entirely |
 | `fast_coxph_regression_cpp` (`fast_coxph_regression.cpp:636-711`) | `coefficients`, `converged`, `neg_ll`, `iterations`, `fisher_information` — the only family that threads `iterations` through *every* return branch |
@@ -36,7 +36,7 @@ is ever surfaced, by any family.
 
 ### `converged` cannot be trusted the way its name suggests
 
-`optimize_likelihood_lbfgs` ([_helper_functions.h:988-1014](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/src/_helper_functions.h)) sets
+`optimize_likelihood_lbfgs` ([_helper_functions.h:988-1014](/home/kapelner/workspace/EDI/R/EDI/src/_helper_functions.h)) sets
 
 ```cpp
 fit.converged = (fit.niter < maxit);
@@ -86,7 +86,7 @@ magnitude and convergence checks.
 
 ### There is one real precedent for detect-then-structurally-recover
 
-`fit_with_hardened_qr_column_dropping` ([inference_all_abstract.R:889+](/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI/R/inference_all_abstract.R), used at 45+ call sites via `InferenceMixinKKGEEShared`/`InferenceMixinKKGLMMShared`) runs a rank-revealing pivoted QR on the design matrix, keeps `qr_X$pivot[seq_len(qr_X$rank)]` plus any required columns, and refits on the reduced matrix. This is a genuine example of the pattern this report proposes generalizing: detect a specific failure mode via a cheap decomposition, then recover structurally rather than just erroring. But it is gated behind a `private$harden` opt-in flag, not automatic, and it only covers rank deficiency.
+`fit_with_hardened_qr_column_dropping` ([inference_all_abstract.R:889+](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract.R), used at 45+ call sites via `InferenceMixinKKGEEShared`/`InferenceMixinKKGLMMShared`) runs a rank-revealing pivoted QR on the design matrix, keeps `qr_X$pivot[seq_len(qr_X$rank)]` plus any required columns, and refits on the reduced matrix. This is a genuine example of the pattern this report proposes generalizing: detect a specific failure mode via a cheap decomposition, then recover structurally rather than just erroring. But it is gated behind a `private$harden` opt-in flag, not automatic, and it only covers rank deficiency.
 
 ### Two boundary pathologies are silently swallowed, not diagnosed
 

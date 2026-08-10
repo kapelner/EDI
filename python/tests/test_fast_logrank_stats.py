@@ -4,7 +4,7 @@ fixture.
 This does NOT re-verify the statistical correctness of the log-rank test
 itself -- that's the same fast_logrank_internal object code the R package's
 own test suite already exercises via EDI:::fast_logrank_stats_cpp (both
-call the identical fast_logrank_internal in EDI/src/fast_logrank.cpp,
+call the identical fast_logrank_internal in R/EDI/src/fast_logrank.cpp,
 re-exposed under external linkage as fast_logrank_result so this binding's
 translation unit can call it). What this test covers: the pybind11 binding
 layer itself and the EDI_CORE_ONLY compiled path.

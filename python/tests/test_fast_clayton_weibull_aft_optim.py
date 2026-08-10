@@ -18,12 +18,12 @@ mismatch between the two languages for this kernel).
 
 warm_start_params has no default on either side (length p + 2: beta, then
 log_sigma, then log_theta -- see ClaytonWeibullLikelihood::operator() in
-EDI/src/fast_survival_models_optim.cpp) -- a zero vector is used here.
+R/EDI/src/fast_survival_models_optim.cpp) -- a zero vector is used here.
 
 The expected values below were computed once via:
     EDI:::fast_clayton_weibull_aft_optim_cpp(X, y, dead, pair_idx, singleton_rows, warm_start_params)
 in R, on the exact same synthetic dataset generated below with
-numpy.random.default_rng(104) (see package_metadata/python_bindings_package_spec.md
+numpy.random.default_rng(104) (see R/package_metadata/python_bindings_package_spec.md
 "Testing"). Do not regenerate this fixture casually -- if it needs
 updating, regenerate from R and update the comment with the date/EDI version.
 """

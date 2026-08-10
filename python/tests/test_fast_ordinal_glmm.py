@@ -9,7 +9,7 @@ conversion) and the EDI_CORE_ONLY compiled path (this extension links
 fetched Eigen + LBFGSpp, not the R build's RcppEigen/RcppNumerical).
 
 X has NO intercept column (per the comment on fast_ordinal_glmm_cpp's X
-parameter in EDI/src/fast_ordinal_glmm.cpp -- the K-1 alpha thresholds
+parameter in R/EDI/src/fast_ordinal_glmm.cpp -- the K-1 alpha thresholds
 serve that role); y is 1-indexed (values in {1,...,K}); j_T is the 0-based
 treatment column index.
 

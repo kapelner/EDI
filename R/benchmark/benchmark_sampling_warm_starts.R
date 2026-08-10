@@ -2,7 +2,7 @@
 if (!requireNamespace("pkgload", quietly = TRUE)) {
     stop("The 'pkgload' package is required.")
 }
-pkgload::load_all("/home/kapelner/workspace/matching_on_the_fly_designs_R_package_and_paper_repr/EDI", quiet = TRUE)
+pkgload::load_all("/home/kapelner/workspace/EDI/R/EDI", quiet = TRUE)
 library(data.table)
 
 set.seed(42)

@@ -13,7 +13,7 @@ fetched Eigen + LBFGSpp, not the R build's RcppEigen/RcppNumerical).
 The expected values below were computed once via:
     EDI:::fast_dep_cens_transform_optim_cpp(X, y, dead)
 in R, on the exact same synthetic dataset generated below with
-numpy.random.default_rng(105) (see package_metadata/python_bindings_package_spec.md
+numpy.random.default_rng(105) (see R/package_metadata/python_bindings_package_spec.md
 "Testing"). Do not regenerate this fixture casually -- if it needs
 updating, regenerate from R and update the comment with the date/EDI version.
 """

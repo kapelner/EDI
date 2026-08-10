@@ -2,7 +2,7 @@ name: Build edi_kernels wheels
 
 # Builds portable (non -march=native) wheels for the edi_kernels Python
 # package -- see python/pyproject.toml's [tool.cibuildwheel] and
-# package_metadata/python_bindings_package_spec.md's "Building portable
+# R/package_metadata/python_bindings_package_spec.md's "Building portable
 # wheels" checklist. On a manual (workflow_dispatch) run, this only builds
 # and uploads wheels/sdist as CI artifacts. On an actual `py-v*` tag push,
 # the `publish` job additionally uploads them to PyPI via Trusted
@@ -12,7 +12,7 @@ name: Build edi_kernels wheels
 # per cibuildwheel's own recommended pattern.
 #
 # The package root is python/ (pyproject.toml lives there, not at the repo
-# root), since this repo also holds the unrelated R package (EDI/) and
+# root), since this repo also holds the unrelated R package (R/EDI/) and
 # paper reproduction code -- every cibuildwheel step below is pointed at
 # package-dir: python accordingly.
 #
@@ -35,22 +35,22 @@ on:
     # job below still only fires on an actual tag push, so a plain main push
     # can never trigger a PyPI upload.
     #
-    # EDI/src/**/*.{cpp,h,hpp} is included because CMakeLists.txt compiles
-    # those kernel sources directly into this extension (EDI/src is their
+    # R/EDI/src/**/*.{cpp,h,hpp} is included because CMakeLists.txt compiles
+    # those kernel sources directly into this extension (R/EDI/src is their
     # single source of truth, per the comment there) -- a change there is a
-    # C++ change to this build even though the file lives under EDI/. Plain
-    # R sources/docs (EDI/R, EDI/man, *.md reports, benchmark/*.R) do not
+    # C++ change to this build even though the file lives under R/EDI/. Plain
+    # R sources/docs (R/EDI/R, R/EDI/man, *.md reports, R/benchmark/*.R) do not
     # affect this build and are intentionally left out; **/*.py picks up
     # both the python/ package and cross-language integration scripts like
-    # benchmark/benchmark_model_fits_python.py without also matching its
+    # R/benchmark/benchmark_model_fits_python.py without also matching its
     # sibling .R/.md/.html files in that same directory.
     branches:
       - main
     paths:
       - "python/**"
-      - "EDI/src/**/*.cpp"
-      - "EDI/src/**/*.h"
-      - "EDI/src/**/*.hpp"
+      - "R/EDI/src/**/*.cpp"
+      - "R/EDI/src/**/*.h"
+      - "R/EDI/src/**/*.hpp"
       - "**/*.py"
       - ".github/workflows/build-wheels.yml"
   workflow_dispatch: {}
