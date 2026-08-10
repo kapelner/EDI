@@ -1,0 +1,97 @@
+"source","tier","target","status","reason","duration_time_sec"
+"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
+"public_argument_coverage","","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","skipped_slow_cases=25",NA
+"public_workflow_coverage","smoke","create_model_matrix_from_features","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","generate_covariate_dataset","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","get_bootstrap_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","get_cold_start_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","get_parallel_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","get_warm_start_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","InferenceAllKKMeanDiffIVWC","exempted","InferenceAllKKMeanDiffIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceAllKKWilcoxIVWC","exempted","InferenceAllKKWilcoxIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass).",NA
+"public_workflow_coverage","nightly","InferenceAllSimpleMeanDiff::compute_m_out_of_n_bootstrap_two_sided_pval::compute_m_out_of_n_bootstrap_two_sided_pval","exempted","m must satisfy 5 <= m <= 4.",NA
+"public_workflow_coverage","nightly","InferenceAllSimpleMeanDiff::compute_subsampling_confidence_interval::compute_subsampling_confidence_interval","exempted","b must satisfy 5 <= b <= 4.",NA
+"public_workflow_coverage","smoke","InferenceBaiAdjustedTKK14","exempted","InferenceBaiAdjustedTKK14 requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceBaiAdjustedTKK21","exempted","InferenceBaiAdjustedTKK21 requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceContinKKGLMM","exempted","InferenceContinKKGLMM requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceContinKKOLSIVWC","exempted","InferenceContinKKOLSIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass).",NA
+"public_workflow_coverage","smoke","InferenceContinKKOLSOneLik","exempted","InferenceContinKKOLSOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass).",NA
+"public_workflow_coverage","smoke","InferenceContinKKQuantileRegrIVWC","exempted","InferenceContinKKQuantileRegrIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceContinKKQuantileRegrOneLik","exempted","InferenceContinKKQuantileRegrOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceContinKKRobustRegrIVWC","exempted","InferenceContinKKRobustRegrIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass).",NA
+"public_workflow_coverage","smoke","InferenceContinKKRobustRegrOneLik","exempted","InferenceContinKKRobustRegrOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass).",NA
+"public_workflow_coverage","smoke","InferenceCountKKCondPoissonOneLik","exempted","InferenceCountKKCondPoissonOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceCountKKGLMM","exempted","InferenceCountKKGLMM requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceCountPoissonKKGEE","exempted","InferenceCountPoissonKKGEE requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceIncidExactBinomial","exempted","Exact binomial incidence inference requires DesignFixedBinaryMatch or KK matching designs.",NA
+"public_workflow_coverage","smoke","InferenceIncidExtendedRobins","exempted","InferenceIncidExtendedRobins requires a blocking design with equal block sizes and even allocation.",NA
+"public_workflow_coverage","smoke","InferenceIncidKKCondLogitGLMMIVWC","exempted","InferenceIncidKKCondLogitGLMMIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceIncidKKCondLogitGLMMOneLik","exempted","InferenceIncidKKCondLogitGLMMOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceIncidKKCondLogitIVWC","exempted","InferenceIncidKKCondLogitIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceIncidKKCondLogitOneLik","exempted","InferenceIncidKKCondLogitOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceIncidKKGCompRiskDiff","exempted","InferenceIncidKKGCompRiskDiff requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceIncidKKGCompRiskRatio","exempted","InferenceIncidKKGCompRiskRatio requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceIncidKKGEE","exempted","InferenceIncidKKGEE requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceIncidKKModifiedPoisson","exempted","InferenceIncidKKModifiedPoisson requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceIncidKKNewcombeRiskDiff","exempted","InferenceIncidKKNewcombeRiskDiff requires a KK matching-on-the-fly design.",NA
+"public_workflow_coverage","smoke","InferenceOrdinalKKCLMM","exempted","InferenceOrdinalKKCLMM requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceOrdinalKKCLMMCauchit","exempted","InferenceOrdinalKKCLMMCauchit requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceOrdinalKKCLMMCloglog","exempted","InferenceOrdinalKKCLMMCloglog requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceOrdinalKKCLMMProbit","exempted","InferenceOrdinalKKCLMMProbit requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceOrdinalKKCondAdjCatLogitRegr","exempted","InferenceOrdinalKKCondAdjCatLogitRegr requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceOrdinalKKGEE","exempted","InferenceOrdinalKKGEE requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceOrdinalKKGLMM","exempted","InferenceOrdinalKKGLMM requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceOrdinalPairedSignTest","exempted","InferenceOrdinalPairedSignTest requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferencePropKKGEE","exempted","InferencePropKKGEE requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferencePropKKGLMM","exempted","InferencePropKKGLMM requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferencePropKKQuantileRegrIVWC","exempted","InferencePropKKQuantileRegrIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferencePropKKQuantileRegrOneLik","exempted","InferencePropKKQuantileRegrOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalKKClaytonCopulaIVWC","exempted","InferenceSurvivalKKClaytonCopulaIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalKKClaytonCopulaOneLik","exempted","InferenceSurvivalKKClaytonCopulaOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalKKLWACoxPHIVWC","exempted","InferenceSurvivalKKLWACoxPHIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalKKLWACoxPHOneLik","exempted","InferenceSurvivalKKLWACoxPHOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalKKRankRegrIVWC","exempted","InferenceSurvivalKKRankRegrIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalKKStratCoxPHIVWC","exempted","InferenceSurvivalKKStratCoxPHIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalKKStratCoxPHOneLik","exempted","InferenceSurvivalKKStratCoxPHOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalKKWeibullFrailtyIVWC","exempted","InferenceSurvivalKKWeibullFrailtyIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalKKWeibullFrailtyOneLik","exempted","InferenceSurvivalKKWeibullFrailtyOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalKKWeibullMarginal","exempted","InferenceSurvivalKKWeibullMarginal requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","inv_logit","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","logit","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","robust_negbinreg","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","robust_survreg","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","robust_survreg_with_surv_object","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","sample_mode","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","set_cold_start_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","set_num_cores","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","set_parallel_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","set_warm_start_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","summary_glm_lean","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","transform_cont_y_based_on_response_type","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","unset_num_cores","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","nightly","InferenceAllSimpleMeanDiff::compute_param_bootstrap_confidence_interval::compute_param_bootstrap_confidence_interval","unsupported","InferenceAllSimpleMeanDiff does not support parametric-bootstrap estimate bias correction. Override private$supports_param_bootstrap_estimate() and simulate_under_lik_null().",NA
+"public_workflow_coverage","nightly","InferenceAllSimpleMeanDiff::compute_param_bootstrap_pval::compute_param_bootstrap_pval","unsupported","InferenceAllSimpleMeanDiff does not support parametric-bootstrap estimate bias correction. Override private$supports_param_bootstrap_estimate() and simulate_under_lik_null().",NA

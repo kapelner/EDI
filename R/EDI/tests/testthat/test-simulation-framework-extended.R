@@ -2,6 +2,10 @@ library(testthat)
 library(EDI)
 
 test_that("SimulationFramework supports parallel execution", {
+	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"avoid spawning a real fork cluster/mirai daemons under covr's gcov-instrumented build"
+	)
 	results_file <- tempfile(fileext = ".csv")
 	set.seed(123)
 	sim <- SimulationFramework$new(
@@ -25,6 +29,10 @@ test_that("SimulationFramework supports parallel execution", {
 
 test_that("SimulationFramework supports mirai-backed replication parallelism", {
 	skip_if_not_installed("mirai")
+	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"avoid spawning real mirai daemons under covr's gcov-instrumented build"
+	)
 
 	on.exit(unset_num_cores(), add = TRUE)
 

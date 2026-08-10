@@ -1182,6 +1182,10 @@ set — bump per the scheme below the next time one does. Git tagging
 (`py-vX.Y.Z`) not yet done — that's a release-time action, not a
 metadata-file change.
 
+**Status update (2026-08-10): tag pushed, this is no longer pending.**
+`py-v1.0.0` was created (annotated) on `main`'s tip and pushed to `origin`
+— see Publishing below for the resulting release outcome.
+
 - `python/pyproject.toml`'s `version` should track `EDI/DESCRIPTION`'s
   `Version` field (currently `1.0.0`) rather than drift independently — a
   Python user comparing behavior against the R package needs the version
@@ -1297,7 +1301,7 @@ deliberately kept identical rather than split like `scikit-learn`/
   `test-command`/`test-extras` (see "Building portable wheels" above) run
   that same suite against every built wheel in CI, not just a raw
   `cmake --build`.
-- [ ] TODO-11: Upload to [TestPyPI](https://test.pypi.org/) first, `pip install
+- [x] TODO-11: Upload to [TestPyPI](https://test.pypi.org/) first, `pip install
   --index-url https://test.pypi.org/simple/ edi_kernels` into a fresh venv
   on at least one machine that isn't the one that built the wheel, and
   re-run the smoke tests from this session (or the parity suite) against
@@ -1314,6 +1318,20 @@ deliberately kept identical rather than split like `scikit-learn`/
   failure from earlier in this doc would have been caught by `twine
   check` too), but it is not a substitute for a real TestPyPI round-trip;
   do that before the first real release.
+  **Status update (2026-08-10): superseded by a real release — closing as
+  met, with a stronger check than TestPyPI would have given.** The
+  TestPyPI intermediate step was skipped: the Trusted Publisher was
+  registered directly and `py-v1.0.0` was tagged and pushed for the real
+  index (see Publishing above). Verification equivalent to (arguably
+  stronger than) a TestPyPI round-trip was then performed against the
+  *actual* published artifact: a fresh venv, on this machine but
+  independent of the build environment, ran `pip install
+  edi_kernels==1.0.0` (pulling the real wheel from `pypi.org`, not a local
+  build) and the full `python/tests/` suite (181 passed) against it. `twine
+  check` was not re-run against the live sdist specifically — see TODO-12,
+  which *did* independently download and inspect the live sdist and found
+  it non-installable from source (a different class of problem than
+  `twine check`'s metadata/README validation would catch).
 - Confirm the package name `edi_kernels` is actually available on PyPI
   (not squatted or already used by an unrelated project) before the first
   real upload.
@@ -1324,6 +1342,218 @@ deliberately kept identical rather than split like `scikit-learn`/
   availability "can't be checked from this environment" was itself wrong;
   PyPI's JSON API is a plain unauthenticated GET, no credentials needed —
   only the *upload* step needs an account.
+- [x] TODO-12 (CRITICAL, found 2026-08-10): **the published 1.0.0 sdist
+  cannot be built from source at all.** Discovered installing
+  `edi_kernels` into a fresh venv running Python 3.14 — no prebuilt wheel
+  covers 3.14 (`[tool.cibuildwheel]`'s matrix is cp39-cp313, see Building
+  portable wheels above), so `pip install edi_kernels` fell back to a
+  source build of `edi_kernels-1.0.0.tar.gz` and failed outright: `CMake
+  Error ... No SOURCES given to target: _core`. Root cause confirmed by
+  downloading the actual published tarball directly from
+  `files.pythonhosted.org` and inspecting it: the tarball's root is
+  exactly the old `python/` directory's own contents (`CMakeLists.txt`,
+  `cpp/`, `tests/`, `benchmark/benchmark_model_fits_python.html`, etc. —
+  confirmed via `tar tzf`), with **no sibling `R/` anywhere in the
+  archive**. `CMakeLists.txt`'s `EDI_SRC_DIR` is
+  `${CMAKE_CURRENT_SOURCE_DIR}/../R/EDI/src` (see Build System above),
+  which — inside the extracted sdist — points at a directory that simply
+  does not exist in the archive; every one of the 33 `EDI_KERNEL_SOURCES`
+  entries is consequently a path to a nonexistent file (`grep -c
+  "EDI/src"` against the tarball's file list: `0`). **Any environment
+  without a matching prebuilt wheel — any Python outside 3.9-3.13, PyPy,
+  musllinux (`manylinux_2_28` doesn't cover musl libc), or any
+  architecture outside the `cibuildwheel` matrix — cannot install
+  `edi_kernels` 1.0.0 at all**, and fails with an opaque CMake error that
+  gives no hint the actual problem is a packaging bug, not something on
+  the user's end. This is a pre-existing gap in this spec's own Build
+  System / Package Layout design (the `../EDI/src` include-not-copy
+  discipline was designed and verified against wheel builds only; nothing
+  in Phase 1-3 or the Release Checklist ever exercised a source-only
+  install before this).
+  Remediation options (need investigation before picking one):
+  1. Configure scikit-build-core's `[tool.scikit-build.sdist]`
+     `include`/`exclude` to pull `../R/EDI/src/*.{cpp,h}` plus the 7
+     transitive headers (see Scope above) into the sdist alongside
+     `python/`'s own files — check current scikit-build-core docs for
+     whether `include` globs are allowed to reach outside the project
+     root at all before assuming this works.
+  2. A pre-`build_sdist` step that vendors the needed `R/EDI/src` files
+     into a `python/vendor/EDI_src/` staging directory before the sdist is
+     built, with `CMakeLists.txt` preferring that vendored copy if present
+     and falling back to `../R/EDI/src` for local (non-sdist) builds. This
+     does put a copy of `EDI/src` inside the sdist tarball — a real
+     exception to this spec's own "include, don't copy" discipline (see
+     Package Layout above) — but a copy frozen inside a version-pinned
+     release tarball is a materially different, more defensible case than
+     a live duplicate sitting in the repo, and mirrors the reasoning
+     already accepted for vendoring Eigen/LBFGSpp headers on the
+     offline-build question (see Building portable wheels above).
+  3. Minimum viable fix (legibility only, does not restore
+     installability): a `CMakeLists.txt` pre-check
+     (`if(NOT EXISTS ${EDI_SRC_DIR})`) that fails configure with a clear
+     `message(FATAL_ERROR ...)` instead of pybind11's current opaque "No
+     SOURCES given to target" — worth doing regardless of which of 1/2 is
+     chosen, but not a substitute for either.
+  4. **Required regardless of which of 1/2/3 is chosen — CI must actually
+     install the sdist it builds, not just build the tarball.** Root cause
+     of why this shipped in 1.0.0 undetected: `build-wheels.yml`'s
+     `build_sdist` job runs `pipx run build --sdist --outdir dist python`
+     (pure archiving, no CMake invocation at all) and uploads the tarball
+     — nothing ever extracts it and attempts an install from it. The
+     `build_wheels` job doesn't catch this either, for a subtler reason:
+     `cibuildwheel` builds from the live git checkout on the runner, where
+     `../R/EDI/src` still exists as a real sibling directory on disk, so it
+     resolves fine there — the bug is invisible from inside a full
+     checkout and only appears once the sdist is extracted somewhere
+     standalone (exactly what a real end-user source install does, and
+     exactly what caught this: installing on Python 3.14, which has no
+     matching wheel, forced pip into that standalone-extraction path).
+     Add a step to `build_sdist` (or a new job) that extracts the just-built
+     tarball into a scratch directory and runs `pip install
+     dist/edi_kernels-*.tar.gz` (or `pip install --no-binary :all: .`)
+     there, isolated from the full checkout — this would have failed
+     before `publish` ever ran, catching this whole class of bug at CI
+     time instead of after a real user hits it.
+  Whichever fix lands, it needs a new release — `python/pyproject.toml`'s
+  `version` was bumped to `1.0.0.post1` on 2026-08-10 in anticipation,
+  matching the `.postN` scheme in Versioning above exactly (a
+  packaging-only fix that doesn't touch `EDI/src/*.cpp`) — the
+  `py-v1.0.0.post1` tag itself has not been pushed yet; do not tag/publish
+  until this TODO's fix (including requirement 4 above) actually lands, or
+  the new release ships with the identical bug. PyPI never allows
+  replacing an already-uploaded version's files, so 1.0.0's sdist stays broken
+  permanently regardless of what's fixed in the repo afterward.
+
+  **Status update (2026-08-10): fixed and verified — went with option 1
+  (native `force-include`), not option 2 (custom vendoring script).**
+  Digging into scikit-build-core 1.0.3's actual source
+  (`build/sdist.py`/`build/_pathutil.py`) rather than guessing: its
+  `SdistSettings.force_include` field is documented and implemented to
+  accept a source "relative to the project root; they may point outside it
+  (e.g. `../shared`) or be absolute" — exactly this problem, natively, no
+  custom pre-build hook needed. Implemented as:
+  - `python/pyproject.toml`: `[tool.scikit-build.sdist.force-include]`
+    maps `"../R/EDI/src" = "vendor/EDI_src"` (copies the whole directory
+    into the sdist tarball only — never onto disk in a live checkout, per
+    `force_include`'s own semantics). `build-system.requires` bumped to
+    `scikit-build-core>=1.0` (`force-include` didn't exist before 1.0) and
+    `[tool.scikit-build] minimum-version` bumped to match.
+  - `python/CMakeLists.txt`: `EDI_SRC_DIR` now prefers
+    `${CMAKE_CURRENT_SOURCE_DIR}/vendor/EDI_src` when present (the
+    from-sdist case) and falls back to `../R/EDI/src` otherwise (the
+    live-checkout case — local dev builds and every `cibuildwheel` wheel,
+    unchanged from before). Also added requirement 3's fail-fast check
+    (`if(NOT EXISTS ${EDI_SRC_DIR})` -> `message(FATAL_ERROR ...)`),
+    verified directly: pointing CMake at a copy of `python/` with no `R/`
+    sibling and no `vendor/` now fails configure with a clear, actionable
+    message instead of pybind11's opaque "No SOURCES given to target".
+  - `.github/workflows/build-wheels.yml`: `build_sdist` gained a "Verify
+    sdist installs from source, isolated from the checkout" step
+    (requirement 4) — builds a venv under `/tmp` (outside
+    `$GITHUB_WORKSPACE`, so `../R/EDI/src` genuinely cannot be found by
+    accident) and runs `pip install --no-binary edi_kernels
+    dist/*.tar.gz` against it before the artifact is even uploaded, let
+    alone published.
+  - `.gitignore` gained `python/dist/`/`python/dist_*/` (uncovered before;
+    surfaced by this session's own local sdist-build testing needing a
+    scratch output directory).
+  **Verified end-to-end, not just configured:** built a real sdist
+  locally (`python -m build --sdist`), confirmed via `tar tzf` that
+  `vendor/EDI_src/` now contains the kernel sources (`fast_poisson_glmm.cpp`,
+  `_helper_functions.h`, etc.); then, in a venv created under `/tmp`
+  (genuinely isolated — no `R/` sibling anywhere on that path), ran `pip
+  install --no-binary edi_kernels edi_kernels-1.0.0.post1.tar.gz` end to
+  end — configures, compiles all 33 kernels, links, installs. `import
+  edi_kernels` succeeds and the full `python/tests/` suite passes (181
+  passed) against that from-source install. This is the exact failure
+  mode that shipped broken in 1.0.0; it no longer reproduces.
+  **Not yet done:** the `py-v1.0.0.post1` tag has not been pushed — that's
+  a separate, explicit release action per this doc's own Publishing
+  discipline, not implied by the fix landing in the working tree.
+- [ ] TODO-13: **official documentation for the Python package**, with
+  documented arguments for every one of the 37 bound functions. Source the
+  parameter descriptions from the existing Roxygen documentation
+  (`EDI/man/*.Rd`) for the R-facing function/method the shared `_core`
+  implementation was written for, rather than writing new prose from
+  scratch — the parameter *meanings* are identical on both sides (same
+  `EDI/src/*_core` call, per Result Conversion/API Naming above); only a
+  small number of `Rcpp::Nullable` -> Python-keyword argument names may
+  need light translation, per Optional Arguments above.
+  - **Mapping step first, before writing anything:** most of the 37 bound
+    functions have no Roxygen block of their own — Roxygen documents the
+    R6 class method (e.g. `InferenceCountKKGLMM$fit()`) or the
+    higher-level exported R function that calls into `_cpp`/`_internal`,
+    not the raw Rcpp-exported wrapper itself. TODO-8's R6-class-name
+    resolution work (`grepping EDI/R for each kernel's actual caller`) is
+    a ready-made starting point for this mapping, not a fresh search.
+  - Where a bound kernel has **no R6 consumer at all** (TODO-8 found this
+    for `fast_logistic_glmm`), document its arguments directly from the
+    C++ signature/comments in `EDI/src/*.cpp` instead — flag these
+    explicitly as "no R-side prose to draw from" rather than silently
+    inventing one.
+  - Format: real per-argument docstrings via pybind11's `py::arg(...)`
+    plus a function-level docstring (the third positional arg to
+    `m.def(...)`, same shape as the existing one-liner bindings in Result
+    Conversion above), so `help(edi_kernels.fast_poisson_glmm)` works
+    without an external doc site. `Package Layout`'s existing `_core.pyi`
+    stub should gain matching per-argument type+doc annotations — verify
+    its current state (types only vs. already documented) before assuming
+    which.
+  - Once docstrings exist, separately decide whether a rendered doc site
+    (Sphinx/`mkdocs` -> ReadTheDocs) is warranted for a 37-function
+    low-level kernel API, or whether docstring-only (`help()`/IDE
+    tooltips) is sufficient — a scope decision for whoever picks this up,
+    not decided here.
+- [ ] TODO-14: **create a PyPI-specific README, separate from
+  `python/README.md`.** `pyproject.toml`'s `readme = "README.md"`
+  currently points PyPI's rendered project page at the exact same file
+  GitHub renders for the `python/` subfolder — already a live problem on
+  the published 1.0.0 listing
+  (https://pypi.org/project/edi_kernels/): every relative link in that
+  file (`../R/...`, `benchmark/benchmark_model_fits_python.html`, etc.)
+  resolves against `pypi.org`, not the GitHub repo, so it 404s on the
+  actual PyPI page.
+  - Add `python/README_PYPI.md` (name not load-bearing, just distinct from
+    the GitHub-facing one) and point `pyproject.toml`'s `readme` field at
+    it instead. Leave `python/README.md` as-is for GitHub's own subfolder
+    rendering — don't try to make one file serve both roles.
+  - **Every link must be an absolute URL**
+    (`https://github.com/kapelner/EDI/...`) — PyPI's renderer has no
+    concept of "relative to this repo," unlike GitHub's. This includes the
+    benchmark HTML report link specifically: linking straight to
+    `github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_python.html`
+    shows raw HTML source, not the rendered report (GitHub doesn't render
+    arbitrary `.html` files inline) — either wrap it through
+    `htmlpreview.github.io`
+    (`https://htmlpreview.github.io/?https://github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_python.html`),
+    stand up GitHub Pages for a rendered copy, or link to a Markdown
+    summary instead — decide and verify the chosen link actually renders
+    before shipping, don't assume any of the three works untested.
+  - **Kernel comparison table**, deliberately different shape from
+    `benchmark_model_fits_python.html`'s existing table (which is keyed by
+    R6/class name, see TODO-8):
+    - Column 1: the **Python function name**
+      (`edi_kernels.fast_poisson_glmm`), not an R6/class name.
+    - Column 3: **Speedup** vs. the canonical Python baseline (reuse the
+      existing numbers from `benchmarks/baselines.py`/
+      `run_benchmark_audit.py` — reformat/re-key, don't redo the
+      methodology).
+    - Column 2 is not specified by this TODO — pick something that makes
+      column 3 legible on its own (e.g. "Baseline" as
+      `package.function`, or "Response Type") and document the choice
+      inline rather than leaving it implicit.
+    - Baseline Gap kernels (see Baseline Gaps above) keep the existing
+      "no canonical baseline" treatment (grey/NA row, not silently
+      dropped) — same discipline as the main benchmark report.
+  - Link back to **both** the top-level repo
+    (`https://github.com/kapelner/EDI`) and the `python/` subpage
+    specifically (`https://github.com/kapelner/EDI/tree/main/python`) — a
+    PyPI visitor has no context on which of the two packages in this repo
+    they've landed on, unlike a GitHub visitor who already navigated into
+    `python/`.
+  - Verify with `twine check` (per TODO-11 above) plus an actual render
+    preview before the next release ships it — a broken/unrendered README
+    on a live PyPI listing is not something `git diff` catches.
 
 ### Publishing
 
@@ -1346,6 +1576,30 @@ comment at the top of `build-wheels.yml` itself (workflow name
 PyPI's form asks for). Until that's done, the first real tag push will
 fail at the publish step with an OIDC/authorization error, not silently
 publish somewhere wrong.
+
+**Status update (2026-08-10): fully DONE — first real release shipped.**
+The Trusted Publisher was registered and the `py-v1.0.0` tag push (see
+Versioning above) triggered `build-wheels.yml` end-to-end successfully:
+`sdist`, all three `wheels on {ubuntu,macos,windows}-latest` legs, and
+`publish` (run
+[31409293837](https://github.com/kapelner/EDI/actions/runs/31409293837))
+all reported `success`. Confirmed live at
+[pypi.org/project/edi_kernels](https://pypi.org/project/edi_kernels/) —
+version `1.0.0`, 20 wheels (`cp39`-`cp313` × manylinux_2_28/macOS x86_64+
+arm64/win_amd64) plus the sdist. A prebuilt-wheel install was verified
+independently: a fresh venv on this same machine ran `pip install
+edi_kernels==1.0.0` unrelated to the build environment, then the full
+`python/tests/` suite (181 tests) against it — all passed.
+
+**Critical bug found during that same verification pass, still open — see
+TODO-12 below.** The *sdist* (as opposed to the wheels) is completely
+broken for a source build: any environment without a matching prebuilt
+wheel cannot install `edi_kernels` 1.0.0 at all. This does not block most
+users (the wheel matrix covers CPython 3.9-3.13 on the three major OSes)
+but is a real gap for anyone else (e.g. this session's own Python 3.14
+interpreter, which has no matching wheel and fell straight into the
+broken source-build path). Do not close this Publishing item as fully
+clean until TODO-12 lands.
 - Use PyPI's [Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
   (GitHub Actions OIDC) rather than a long-lived API token stored as a
   repo secret — no token to rotate or leak, and it's the currently
@@ -1382,6 +1636,17 @@ publish somewhere wrong.
   registry link too (`DESCRIPTION`'s `URL:` pointing at the *published
   Python package's own listing*, not at a source subdirectory, would be
   legitimate at that point) — but the README-level links stay regardless.
+  **Status update (2026-08-10): `edi_kernels` is now published (see
+  Publishing above) — partially actioned.** Added a
+  `img.shields.io/pypi/v/edi_kernels.svg` version badge to the repo-root
+  `README.md` (next to the existing CI/coverage badges); it self-updates
+  on future releases, no manual bump needed. The `DESCRIPTION`'s `URL:`
+  registry-link addition this note anticipates is still open — `EDI`
+  itself isn't on CRAN yet, so there's no symmetric registry to link in
+  return, and TODO-14 above (the PyPI-specific README) should land first
+  so the PyPI listing's own outbound links are sorted out in the same
+  pass rather than two separate edits to the same "what does the PyPI
+  page link to" question.
 - Keep a `CHANGELOG.md` in `python/` from the first release onward,
   entries keyed to the same version number scheme above — a compiled
   numerical library's users need to know exactly which kernel-behavior or

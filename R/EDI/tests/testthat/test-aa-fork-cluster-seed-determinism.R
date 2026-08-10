@@ -14,6 +14,10 @@ make_fork_seed_completed_fixed_design = function(seed = NULL, n = 10) {
 test_that("Inference seed: same seed + same num_cores gives same rand p-value (fork cluster)", {
 	skip_on_os("windows")
 	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"avoid spawning a real fork cluster under covr's gcov-instrumented build"
+	)
+	skip_if(
 		isTRUE(EDI:::edi_env$mirai_has_been_used),
 		"fork clusters cannot be started safely after mirai has been used in this R session"
 	)

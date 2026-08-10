@@ -121,6 +121,7 @@ test_that("compute_rand_confidence_interval works for proportion response", {
 })
 
 test_that("proportion quantile randomization CI shifts on the logit scale once", {
+	skip_if_not_installed("quantreg")
 	set.seed(124)
 	n <- 48
 	des <- DesignSeqOneByOneiBCRD$new(n = n, response_type = "proportion", verbose = FALSE)

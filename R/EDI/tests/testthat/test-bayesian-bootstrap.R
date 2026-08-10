@@ -422,6 +422,7 @@ test_that("ordinal likelihood-gap weighted hooks are finite and exact empirical 
 
 test_that("next-wave weighted hooks return finite estimates on KK GEE paths", {
 	skip_if_not_installed("multgee")
+	skip_if_not_installed("geepack")
 
 	des_incid = make_kk_design_for_weighted_bayes_boot("incidence", c(0L, 1L, 0L, 1L, 1L, 0L, 1L, 0L))
 	inf_incid = InferenceIncidKKGEE$new(des_incid, use_rcpp = TRUE, verbose = FALSE)
@@ -466,6 +467,10 @@ test_that("next-wave weighted hooks return finite estimates on KK GEE paths", {
 
 test_that("Bayesian bootstrap matches mirai-backed parallel execution", {
 	skip_if_not_installed("mirai")
+	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"avoid spawning real mirai daemons under covr's gcov-instrumented build"
+	)
 
 	on.exit(unset_num_cores(), add = TRUE)
 

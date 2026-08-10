@@ -12,6 +12,8 @@ library(EDI)
 library(R6)
 
 InferenceCustomAsymp <- getFromNamespace("InferenceCustomAsymp", "EDI")
+InferenceCustomRand <- getFromNamespace("InferenceCustomRand", "EDI")
+InferenceCustomBoot <- getFromNamespace("InferenceCustomBoot", "EDI")
 ```
 
 ## Inference Contract
@@ -35,6 +37,29 @@ Use public accessors instead of private fields:
 - `get_analysis_data()`
 - `get_design_object()`
 - `get_response_type()`
+
+### Randomization Inference
+
+Custom randomization-inference classes should inherit from
+`InferenceCustomRand`. This base class inherits from `Inference`, includes the
+`RandomizationTest` component, and has `likelihood_tier = "none"`.
+
+Subclasses implement `fit(estimate_only = FALSE)` and return a named list with
+the same required `estimate` field used by `InferenceCustomAsymp`. Standard
+errors and degrees of freedom are not part of this minimal contract; the class
+only promises `fit()`/`compute_estimate()` behavior plus the randomization-test
+machinery supplied by EDI.
+
+### Bootstrap Inference
+
+Custom bootstrap-inference classes should inherit from `InferenceCustomBoot`.
+This base class inherits from `InferenceJackknife`, so subclasses reuse EDI's
+jackknife and bootstrap machinery while supplying only the estimator.
+
+Subclasses implement `fit(estimate_only = FALSE)` and return a named list with
+the required numeric scalar `estimate`. Optional `model` and
+`nonestimable_reason` fields are supported, but no standard error or degrees of
+freedom is required for the minimal bootstrap extension contract.
 
 ## Example
 
@@ -80,7 +105,7 @@ inf$compute_bootstrap_two_sided_pval(B = 501)
 EDI also provides internal bases for user-defined designs:
 
 ```r
-DesignCustomFixed <- getFromNamespace("DesignCustomFixed", "EDI")
+DesignFixedCustom <- getFromNamespace("DesignFixedCustom", "EDI")
 DesignCustomSequential <- getFromNamespace("DesignCustomSequential", "EDI")
 ```
 
@@ -89,43 +114,28 @@ assignment matrix. For sequential designs, implement `assignment_rule()` and
 return a scalar 0/1 assignment for the current subject. EDI handles subject
 storage, response recording, and validation.
 
-## Implementation TODOs
+## Custom Shell Audit
 
-### Doc Accuracy
+The current custom shell set is sufficient for the documented extension
+contract:
 
-- [ ] TODO-1: Fix the wrong class name in the "Custom Designs" section. The doc
-  says `DesignCustomFixed <- getFromNamespace("DesignCustomFixed", "EDI")`, but
-  the actual internal base class is named `DesignFixedCustom` (defined at
-  `EDI/R/design_custom_extensions.R:9`, `R6::R6Class("DesignFixedCustom", ...)`).
-  `getFromNamespace("DesignCustomFixed", "EDI")` throws today because no object
-  by that name exists. `EDI/tests/testthat/test-custom-extension-contract.R:7,77`
-  already uses the correct `DesignFixedCustom` name, confirming the doc — not
-  the code — has the name swapped.
+- `DesignFixedCustom` covers fixed-sample assignment generators.
+- `DesignCustomSequential` covers one-subject-at-a-time assignment rules.
+- `InferenceCustomAsymp` covers custom estimators that provide Wald-style
+  standard errors and optional degrees of freedom.
+- `InferenceCustomRand` covers custom estimators that should reuse EDI's
+  randomization-test machinery.
+- `InferenceCustomBoot` covers custom estimators that should reuse EDI's
+  jackknife/bootstrap machinery without requiring an asymptotic standard error.
 
-### Missing Coverage
+Do not add response-family-specific custom inference shells unless a concrete
+extension use case needs response-specific behavior beyond the generic analysis
+data accessors. Most response/model R6 classes in `EDI/R` are concrete
+implementations, not separate user extension surfaces.
 
-- [ ] TODO-2: Document `InferenceCustomRand` and `InferenceCustomBoot`
-  (`EDI/R/inference_custom_extensions.R:125` and `:169`), the two other
-  user-facing custom-inference base classes. The doc's "Inference Contract"
-  section only covers `InferenceCustomAsymp`, but the opening paragraph
-  promises "randomization, bootstrap, and summary methods" reuse, and the
-  source's own roxygen comments for all three classes explicitly cross-link
-  the other two (e.g. `EDI/R/inference_custom_extensions.R:41-44`). Add a
-  subsection per class covering: `InferenceCustomRand` (inherits `Inference`,
-  `components = "RandomizationTest"`, `likelihood_tier = "none"`, only a
-  `fit()`/`compute_estimate()` contract — no `se`/`df` needed) and
-  `InferenceCustomBoot` (inherits `InferenceJackknife`, same minimal
-  `fit()`/`compute_estimate()` contract, gains jackknife/bootstrap machinery
-  from the parent).
-
-### Test Coverage
-
-- [ ] TODO-3: Add a behavioral subclass test for `InferenceCustomRand` and one
-  for `InferenceCustomBoot`, mirroring the working end-to-end example already
-  present for `InferenceCustomAsymp` in
-  `EDI/tests/testthat/test-custom-extension-contract.R:17-75`. Currently those
-  two classes are only checked for existence/retrievability
-  (`test-custom-extension-contract.R:12-13`) — there is no test that actually
-  subclasses either one, implements `fit()`, and calls `compute_estimate()`
-  end-to-end, so a future refactor of `InferenceRand`/`InferenceJackknife`
-  could silently break either extension contract without any test failing.
+No `InferenceCustomExact` or parametric-bootstrap custom shell is needed for
+this contract. `InferenceExact` dispatches exact p-value and interval methods
+through private exact-test implementations, and `InferenceParamBootstrap`
+requires likelihood-null simulation/refit hooks. Those are not simple
+`fit()`/`compute_estimate()` shells, so exposing them would need a separate API
+design rather than another thin custom R6 wrapper.

@@ -315,3 +315,18 @@ jobs:
         working-directory: R/EDI
         run: cat EDI.Rcheck/00install.out || true
 
+      # When a *test* (as opposed to install) fails under valgrind, RD CMD
+      # check's console output prints only the last 13 lines of that test's
+      # output -- for a long-running testthat.R run under valgrind, those 13
+      # lines are just the tail of the final LEAK SUMMARY, not the individual
+      # "N errors from M contexts" reports (invalid reads/writes, uninitialised
+      # value use, etc.) that valgrind printed earlier and that R saves in
+      # full to testthat.Rout.fail. Without this, that file only ever existed
+      # on the ephemeral runner and the actual error is unrecoverable from the
+      # workflow log (see the 2026-08-10 valgrind failure this was written to
+      # diagnose, whose log showed nothing but a truncated leak summary).
+      - name: Show tests/testthat.Rout(.fail) on failure
+        if: failure()
+        working-directory: R/EDI
+        run: cat EDI.Rcheck/tests/testthat.Rout.fail EDI.Rcheck/tests/testthat.Rout 2>/dev/null || true
+

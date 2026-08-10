@@ -2,6 +2,10 @@ library(testthat)
 library(EDI)
 
 test_that("SimulationFramework restores parallelism settings", {
+	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"avoid spawning a real fork cluster/mirai daemons under covr's gcov-instrumented build"
+	)
 	# Setup initial state
 	set_num_cores(2L, force_mirai = isTRUE(EDI:::edi_env$mirai_has_been_used))
 	initial_cores = EDI:::get_num_cores()
@@ -70,6 +74,10 @@ test_that("SimulationFramework restores num_cores_override", {
 
 test_that("mirai use blocks later fork clusters in the same R session", {
 	skip_if_not_installed("mirai")
+	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"avoid spawning real mirai daemons under covr's gcov-instrumented build"
+	)
 	# set_num_cores() takes the mirai path whenever .Platform$OS.type != "unix"
 	# (see globals.R), so on Windows it never reaches the fork branch this
 	# test is exercising -- there's no "switch to fork" to block in the first

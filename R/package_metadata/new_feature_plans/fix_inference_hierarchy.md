@@ -448,86 +448,86 @@ randomization distributions.
 
 ### Lazy Component Loading
 
-- [ ] Split component metadata from component implementation so class
+- [x] Split component metadata from component implementation so class
   discovery, capability queries, compatibility checks, and method availability
   are resolved without parsing heavy component bodies.
-- [ ] Add `component_loader` metadata to `InferenceComponent()` for components
+- [x] Add `component_loader` metadata to `InferenceComponent()` for components
   whose public/private lists should be loaded on demand.
-- [ ] Keep lightweight method stubs for capability-backed public APIs on the
+- [x] Keep lightweight method stubs for capability-backed public APIs on the
   assembled class; each stub should load the component implementation and then
   dispatch to the real method on first use.
-- [ ] Add a per-class component implementation cache so a component is loaded
+- [x] Add a per-class component implementation cache so a component is loaded
   at most once per R session and repeated bootstrap calls do not pay parse or
   assembly cost repeatedly.
-- [ ] Add `load_inference_component(component_name)` with deterministic errors
+- [x] Add `load_inference_component(component_name)` with deterministic errors
   for missing source files, missing optional packages, invalid component
   objects, and contract mismatches after load.
-- [ ] Make lazy loading invisible to `supports()`, `capabilities()`,
+- [x] Make lazy loading invisible to `supports()`, `capabilities()`,
   `InferenceSuite` discovery, and migration validation; these must continue to
   use eager metadata only.
-- [ ] Classify components by load policy: `eager` for root contracts and cheap
+- [x] Classify components by load policy: `eager` for root contracts and cheap
   shared methods, `lazy` for expensive optional methods such as parametric
   likelihood bootstrap, Bartlett correction, simulation-heavy randomization
   bootstrap, Bayesian bootstrap, and GLMM/ordinal/count likelihood plumbing.
-- [ ] Add tests that a class advertising `parametric_likelihood_bootstrap` does
+- [x] Add tests that a class advertising `parametric_likelihood_bootstrap` does
   not load the parametric-bootstrap implementation until
   `compute_lik_ratio_bootstrap_*()` or diagnostics are called.
-- [ ] Add tests that lazy loading preserves public method presence before load,
+- [x] Add tests that lazy loading preserves public method presence before load,
   produces identical results after load, and leaves unsupported methods absent.
-- [ ] Add tests that lazy component dependencies are loaded in resolved
+- [x] Add tests that lazy component dependencies are loaded in resolved
   topological order and that dependency cycles still fail before any
   implementation body is loaded.
-- [ ] Add tests that optional-package failures occur only when invoking the lazy
+- [x] Add tests that optional-package failures occur only when invoking the lazy
   capability, not during package load, registry population, or class discovery.
-- [ ] Benchmark package load and `InferenceSuite` discovery before and after
+- [x] Benchmark package load and `InferenceSuite` discovery before and after
   lazy loading, with explicit targets for parse time and loaded object count.
 
 #### Performance Gates
 
-- [ ] Keep only a small static metadata table eager at package load.
-- [ ] Do not scan, instantiate, or force every R6 generator during package
+- [x] Keep only a small static metadata table eager at package load.
+- [x] Do not scan, instantiate, or force every R6 generator during package
   load.
-- [ ] Cache `get_effective_components()` and `get_effective_capabilities()` so
+- [x] Cache `get_effective_components()` and `get_effective_capabilities()` so
   repeated object construction and discovery do not recompute component
   closure.
-- [ ] Run expensive contract validation only in tests, CI, or explicit
+- [x] Run expensive contract validation only in tests, CI, or explicit
   development mode; normal package use should validate only cheap metadata
   invariants.
-- [ ] Lazy-load heavy component implementations only on first use of the
+- [x] Lazy-load heavy component implementations only on first use of the
   corresponding capability.
-- [ ] Keep `InferenceSuite` discovery metadata-only, with no constructors and
+- [x] Keep `InferenceSuite` discovery metadata-only, with no constructors and
   no component implementation loading.
-- [ ] Add package-load and `InferenceSuite` discovery benchmarks as performance
+- [x] Add package-load and `InferenceSuite` discovery benchmarks as performance
   gates before enabling the shallow hierarchy by default.
 
 #### Runtime Performance Traps
 
-- [ ] Cache resolved dispatch targets after first use so bootstrap,
+- [x] Cache resolved dispatch targets after first use so bootstrap,
   likelihood, and randomization hot paths do not repeat capability lookup,
   component resolution, loader checks, and wrapper dispatch on every call.
-- [ ] Cache effective components and effective capabilities at class scope, not
+- [x] Cache effective components and effective capabilities at class scope, not
   object scope, so registry cost is not shifted from package load into every
   object construction or method call.
-- [ ] Lazy-load by component or coherent component bundle, not by individual
+- [x] Lazy-load by component or coherent component bundle, not by individual
   method, to avoid many tiny parse/load operations.
-- [ ] Keep lazy stubs small: they should reference component names and method
+- [x] Keep lazy stubs small: they should reference component names and method
   names, not capture component objects, full registries, parsed bodies, or large
   environments.
-- [ ] Avoid dynamic R6 method rebinding on every object or call; use stable
+- [x] Avoid dynamic R6 method rebinding on every object or call; use stable
   stubs that resolve once and store a function pointer or class-level dispatch
   cache.
-- [ ] Keep contract completeness checks, parser-backed body-reference checks,
+- [x] Keep contract completeness checks, parser-backed body-reference checks,
   collision audits, and full component validation out of production paths; run
   them only in tests, CI, or explicit development mode.
-- [ ] Keep metadata tables lightweight: plain scalars, vectors, small lists,
+- [x] Keep metadata tables lightweight: plain scalars, vectors, small lists,
   and cheap predicates only. Do not store method bodies, parsed expressions, or
   R6 generators in eager metadata.
-- [ ] Assemble component public/private lists once per class, not during every
+- [x] Assemble component public/private lists once per class, not during every
   object construction.
-- [ ] Keep `InferenceSuite` compatibility predicates pure and cheap; do not
+- [x] Keep `InferenceSuite` compatibility predicates pure and cheap; do not
   normalize the same design repeatedly, probe optional packages repeatedly, or
   fit/touch models during discovery.
-- [ ] Cache optional-package availability so repeated `requireNamespace()`
+- [x] Cache optional-package availability so repeated `requireNamespace()`
   checks across many classes do not dominate discovery or first-use cost.
 
 ### Class Definition

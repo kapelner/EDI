@@ -7,11 +7,38 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # R/EDI/src is the single source of truth for every model-fitting kernel and
 # shared header -- nothing under python/ ever copies a .cpp/.h file from
-# there. This include path is what lets python/cpp/*.cpp #include headers
-# (and, once a given R/EDI/src/*.cpp has been given the EDI_CORE_ONLY
-# treatment, call its *_internal functions) directly out of the R package's
-# own source tree. See R/package_metadata/python_bindings_package_spec.md.
-set(EDI_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../R/EDI/src)
+# there in a live checkout (local builds, and every wheel cibuildwheel
+# produces, which always build from a full git checkout where ../R/EDI/src
+# exists as a real sibling directory). This include path is what lets
+# python/cpp/*.cpp #include headers (and, once a given R/EDI/src/*.cpp has
+# been given the EDI_CORE_ONLY treatment, call its *_internal functions)
+# directly out of the R package's own source tree.
+#
+# The one exception is a *source install from the sdist*: an sdist tarball
+# only packages python/'s own tree, so ../R/EDI/src does not exist once it's
+# extracted standalone (see python_bindings_package_spec.md's TODO-12 for
+# the 2026-08-10 discovery -- this shipped broken in 1.0.0, silently, since
+# nothing in CI ever installed the sdist it built, only the wheels built
+# from a live checkout). pyproject.toml's [tool.scikit-build.sdist.
+# force-include] copies R/EDI/src into vendor/EDI_src *inside the sdist
+# only* (never onto disk in a live checkout) to close that gap, so prefer
+# that vendored copy when present and fall back to the live sibling
+# otherwise -- covers both cases with the same variable.
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/vendor/EDI_src)
+    set(EDI_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/EDI_src)
+else()
+    set(EDI_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../R/EDI/src)
+endif()
+if(NOT EXISTS ${EDI_SRC_DIR})
+    message(FATAL_ERROR
+        "EDI_SRC_DIR (${EDI_SRC_DIR}) does not exist. If building from a "
+        "live checkout, this repo must be cloned in full (R/EDI/src is a "
+        "required sibling of python/, not an optional piece). If building "
+        "from an sdist, its [tool.scikit-build.sdist.force-include] step "
+        "should have vendored the sources into vendor/EDI_src -- check "
+        "that the sdist was built with a pyproject.toml that has that "
+        "setting (see python_bindings_package_spec.md TODO-12).")
+endif()
 
 find_package(Python 3.9 REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)

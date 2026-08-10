@@ -61,7 +61,7 @@ test_that("active behavior components are registered with canonical names", {
 		expect_silent(EDI:::validate_inference_component(component))
 		expect_named(component, c(
 			"name", "status", "source_name", "file", "public", "private",
-			"dependencies", "provides_public_methods", "provides_private_methods",
+			"component_loader", "dependencies", "provides_public_methods", "provides_private_methods",
 			"owns_state", "requires_state", "requires_public_methods",
 			"requires_private_methods", "optional_public_methods",
 			"optional_private_methods", "requires_super_methods",
@@ -91,7 +91,11 @@ test_that("active behavior components are registered with canonical names", {
 	expect_identical(components$ExactFisherIncidence$source_name, "InferenceIncidExactFisher")
 	expect_identical(components$ExactZhangIncidence$source_name, "InferenceIncidenceExactZhang")
 	expect_identical(components$BartlettApproximation$source_name, "InferenceExtBartlettApprox")
-	expect_gt(length(components$BartlettApproximation$private), 0L)
+	expect_identical(components$ParametricLikelihoodBootstrap$component_loader$load_policy, "lazy")
+	expect_identical(components$BartlettApproximation$component_loader$load_policy, "lazy")
+	expect_equal(length(components$ParametricLikelihoodBootstrap$public), 0L)
+	expect_equal(length(components$BartlettApproximation$private), 0L)
+	expect_equal(length(components$RandomizationTest$optional_private_methods), 0L)
 })
 
 test_that("component provided method metadata matches actual list names", {
@@ -163,6 +167,24 @@ test_that("component body references are declared by component contracts", {
 	for (component in components) {
 		expect_silent(EDI:::validate_component_body_references(component))
 	}
+})
+
+test_that("expensive component contract completion is explicit", {
+	old_option = getOption("EDI.validate_inference_contracts")
+	on.exit(options(EDI.validate_inference_contracts = old_option), add = TRUE)
+	on.exit(EDI:::populate_inference_component_registry(), add = TRUE)
+
+	options(EDI.validate_inference_contracts = FALSE)
+	EDI:::populate_inference_component_registry()
+	cheap_component = EDI:::get_inference_component("RandomizationTest")
+	expect_equal(length(cheap_component$optional_private_methods), 0L)
+	expect_silent(EDI:::validate_component_body_references(cheap_component))
+
+	options(EDI.validate_inference_contracts = TRUE)
+	EDI:::populate_inference_component_registry()
+	completed_component = EDI:::get_inference_component("RandomizationTest")
+	expect_gt(length(completed_component$optional_private_methods), 0L)
+	expect_silent(EDI:::validate_component_body_references(completed_component))
 })
 
 test_that("exact-specific component body references are declared by their contracts", {
@@ -270,6 +292,233 @@ test_that("define_inference_class assembles component public and private members
 	expect_identical(obj$host_public(), "host")
 	expect_true("component_public" %in% names(gen$public_methods))
 	expect_true("component_private" %in% names(gen$private_methods))
+})
+
+test_that("lazy components preserve method presence and load on first use", {
+	on.exit(EDI:::populate_inference_component_registry(), add = TRUE)
+	on.exit(EDI:::clear_inference_component_implementation_cache(), add = TRUE)
+	source_file = tempfile(fileext = ".R")
+	writeLines(c(
+		"TemporaryLazySource = list(",
+		"  public = list(",
+		"    lazy_public = function(x = 'ok') private$lazy_private(x),",
+		"    diagnostic_public = function() private$lazy_state",
+		"  ),",
+		"  private = list(",
+		"    lazy_state = 'loaded',",
+		"    lazy_private = function(x) paste(private$lazy_state, x)",
+		"  )",
+		")"
+	), source_file)
+
+	EDI:::register_inference_component(EDI:::InferenceComponent(
+		name = "TemporaryLazyComponent",
+		status = "active",
+		source_name = "TemporaryLazySource",
+		file = source_file,
+		component_loader = list(load_policy = "lazy"),
+		provides_public_methods = c("lazy_public", "diagnostic_public"),
+		provides_private_methods = c("lazy_state", "lazy_private"),
+		owns_state = "lazy_state",
+		provides_capabilities = "temporary_lazy_capability"
+	))
+	gen = EDI:::define_inference_class(
+		classname = "InferenceTemporaryLazyHost",
+		components = "TemporaryLazyComponent",
+		metadata = list(likelihood_tier = "none")
+	)
+	obj = gen$new()
+
+	expect_true("lazy_public" %in% names(gen$public_methods))
+	expect_true("diagnostic_public" %in% names(gen$public_methods))
+	expect_false("unsupported_lazy_public" %in% names(gen$public_methods))
+	expect_identical(EDI:::inference_component_load_trace("InferenceTemporaryLazyHost"), character())
+	expect_identical(obj$lazy_public("first"), "loaded first")
+	expect_identical(obj$diagnostic_public(), "loaded")
+	dispatch_cache = EDI:::get_inference_component_dispatch_cache_env("InferenceTemporaryLazyHost")
+	expect_true(exists("TemporaryLazyComponent", envir = dispatch_cache, inherits = FALSE))
+	dispatch = get("TemporaryLazyComponent", envir = dispatch_cache, inherits = FALSE)
+	expect_true("lazy_public" %in% names(dispatch$public))
+	expect_true("lazy_private" %in% names(dispatch$private))
+	expect_true("TemporaryLazyComponent" %in% obj$.__enclos_env__$private$.__loaded_lazy_components)
+	expect_identical(
+		EDI:::inference_component_load_trace("InferenceTemporaryLazyHost"),
+		"TemporaryLazyComponent"
+	)
+	expect_identical(obj$lazy_public("second"), "loaded second")
+	obj2 = gen$new()
+	expect_identical(obj2$lazy_public("third"), "loaded third")
+	expect_identical(names(get("TemporaryLazyComponent", envir = dispatch_cache, inherits = FALSE)$public), names(dispatch$public))
+	expect_identical(
+		EDI:::inference_component_load_trace("InferenceTemporaryLazyHost"),
+		"TemporaryLazyComponent"
+	)
+})
+
+test_that("parametric likelihood bootstrap metadata is lazy until a stub or loader is used", {
+	on.exit(EDI:::clear_inference_component_implementation_cache(), add = TRUE)
+	EDI:::clear_inference_component_implementation_cache()
+	component = EDI:::get_inference_component("ParametricLikelihoodBootstrap")
+
+	expect_identical(component$component_loader$load_policy, "lazy")
+	expect_equal(length(component$public), 0L)
+	expect_true("compute_lik_ratio_bootstrap_two_sided_pval" %in% EDI:::component_public_names(component))
+	expect_true("parametric_likelihood_bootstrap" %in% EDI:::get_effective_capabilities("InferenceParamBootstrap"))
+	expect_identical(EDI:::inference_component_load_trace("InferenceParamBootstrap"), character())
+
+	loaded = EDI:::load_inference_component("ParametricLikelihoodBootstrap", class_name = "InferenceParamBootstrap")
+	expect_true("compute_lik_ratio_bootstrap_two_sided_pval" %in% names(loaded$public))
+	expect_identical(
+		EDI:::inference_component_load_trace("InferenceParamBootstrap"),
+		c("Jackknife", "Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap")
+	)
+	again = EDI:::load_inference_component("ParametricLikelihoodBootstrap", class_name = "InferenceParamBootstrap")
+	expect_identical(names(again$public), names(loaded$public))
+	expect_identical(
+		EDI:::inference_component_load_trace("InferenceParamBootstrap"),
+		c("Jackknife", "Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap")
+	)
+})
+
+test_that("lazy component dependency cycles fail before implementation load", {
+	on.exit(EDI:::populate_inference_component_registry(), add = TRUE)
+	on.exit(EDI:::clear_inference_component_implementation_cache(), add = TRUE)
+	source_file = tempfile(fileext = ".R")
+	writeLines("CycleSource = list(public = list(), private = list())", source_file)
+	for (spec in list(
+		list(name = "TemporaryLazyCycleA", dependencies = "TemporaryLazyCycleB"),
+		list(name = "TemporaryLazyCycleB", dependencies = "TemporaryLazyCycleA")
+	)) {
+		EDI:::register_inference_component(EDI:::InferenceComponent(
+			name = spec$name,
+			status = "active",
+			source_name = "CycleSource",
+			file = source_file,
+			component_loader = list(load_policy = "lazy"),
+			dependencies = spec$dependencies,
+			provides_public_methods = character(),
+			provides_private_methods = character()
+		))
+	}
+
+	expect_error(
+		EDI:::load_inference_component("TemporaryLazyCycleA", class_name = "CycleHost"),
+		"Component dependency cycle detected"
+	)
+	expect_identical(EDI:::inference_component_load_trace("CycleHost"), character())
+})
+
+test_that("lazy component dependencies load in resolved topological order", {
+	on.exit(EDI:::populate_inference_component_registry(), add = TRUE)
+	on.exit(EDI:::clear_inference_component_implementation_cache(), add = TRUE)
+	specs = list(
+		list(name = "TemporaryLazyTopoLeaf", method = "leaf_public", dependencies = character()),
+		list(name = "TemporaryLazyTopoMiddle", method = "middle_public", dependencies = "TemporaryLazyTopoLeaf"),
+		list(name = "TemporaryLazyTopoRoot", method = "root_public", dependencies = "TemporaryLazyTopoMiddle")
+	)
+	for (spec in specs) {
+		source_file = tempfile(fileext = ".R")
+		writeLines(sprintf(
+			"TopoSource = list(public = list(%s = function() '%s'), private = list())",
+			spec$method,
+			spec$name
+		), source_file)
+		EDI:::register_inference_component(EDI:::InferenceComponent(
+			name = spec$name,
+			status = "active",
+			source_name = "TopoSource",
+			file = source_file,
+			component_loader = list(load_policy = "lazy"),
+			dependencies = spec$dependencies,
+			provides_public_methods = spec$method,
+			provides_private_methods = character()
+		))
+	}
+
+	loaded = EDI:::load_inference_component("TemporaryLazyTopoRoot", class_name = "TopoHost")
+
+	expect_true("root_public" %in% names(loaded$public))
+	expect_identical(
+		EDI:::inference_component_load_trace("TopoHost"),
+		c("TemporaryLazyTopoLeaf", "TemporaryLazyTopoMiddle", "TemporaryLazyTopoRoot")
+	)
+})
+
+test_that("lazy loader reports deterministic source, package, object, and contract failures", {
+	on.exit(EDI:::populate_inference_component_registry(), add = TRUE)
+	on.exit(EDI:::clear_inference_component_implementation_cache(), add = TRUE)
+	missing_file = tempfile(fileext = ".R")
+	EDI:::register_inference_component(EDI:::InferenceComponent(
+		name = "TemporaryLazyMissingFile",
+		status = "active",
+		source_name = "MissingSource",
+		file = missing_file,
+		component_loader = list(load_policy = "lazy"),
+		provides_public_methods = "x",
+		provides_private_methods = character()
+	))
+	expect_error(
+		EDI:::load_inference_component("TemporaryLazyMissingFile", class_name = "LoaderErrorHost"),
+		"source file"
+	)
+
+	optional_file = tempfile(fileext = ".R")
+	writeLines("OptionalSource = list(public = list(x = function() TRUE), private = list())", optional_file)
+	EDI:::register_inference_component(EDI:::InferenceComponent(
+		name = "TemporaryLazyMissingPackage",
+		status = "active",
+		source_name = "OptionalSource",
+		file = optional_file,
+		component_loader = list(
+			load_policy = "lazy",
+			optional_packages = "EDIDefinitelyMissingPackageForLazyTest"
+		),
+		provides_public_methods = "x",
+		provides_private_methods = character()
+	))
+	expect_true("TemporaryLazyMissingPackage" %in% ls(EDI:::EDI_INFERENCE_COMPONENTS))
+	expect_error(
+		EDI:::load_inference_component("TemporaryLazyMissingPackage", class_name = "LoaderErrorHost"),
+		"optional package"
+	)
+	expect_true(exists(
+		"EDIDefinitelyMissingPackageForLazyTest",
+		envir = EDI:::EDI_OPTIONAL_PACKAGE_AVAILABILITY_CACHE,
+		inherits = FALSE
+	))
+	expect_false(EDI:::optional_package_available("EDIDefinitelyMissingPackageForLazyTest"))
+
+	invalid_file = tempfile(fileext = ".R")
+	writeLines("InvalidSource = 1", invalid_file)
+	EDI:::register_inference_component(EDI:::InferenceComponent(
+		name = "TemporaryLazyInvalidObject",
+		status = "active",
+		source_name = "InvalidSource",
+		file = invalid_file,
+		component_loader = list(load_policy = "lazy"),
+		provides_public_methods = "x",
+		provides_private_methods = character()
+	))
+	expect_error(
+		EDI:::load_inference_component("TemporaryLazyInvalidObject", class_name = "LoaderErrorHost"),
+		"source must be an R6 generator or public/private list"
+	)
+
+	mismatch_file = tempfile(fileext = ".R")
+	writeLines("MismatchSource = list(public = list(y = function() TRUE), private = list())", mismatch_file)
+	EDI:::register_inference_component(EDI:::InferenceComponent(
+		name = "TemporaryLazyContractMismatch",
+		status = "active",
+		source_name = "MismatchSource",
+		file = mismatch_file,
+		component_loader = list(load_policy = "lazy"),
+		provides_public_methods = "x",
+		provides_private_methods = character()
+	))
+	expect_error(
+		EDI:::load_inference_component("TemporaryLazyContractMismatch", class_name = "LoaderErrorHost"),
+		"public method contract mismatch"
+	)
 })
 
 test_that("factory validation rejects unsatisfied component contracts", {

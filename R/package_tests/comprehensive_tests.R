@@ -219,6 +219,97 @@ round_duration_field = function(value){
 	round(num, 3)
 }
 
+current_github_commit_id = function(){
+	commit = tryCatch(
+		system2("git", c("-C", repo_root, "rev-parse", "HEAD"), stdout = TRUE, stderr = FALSE),
+		error = function(e) NA_character_
+	)
+	if (!length(commit) || is.na(commit[1]) || !nzchar(commit[1])) NA_character_ else commit[1]
+}
+
+GITHUB_COMMIT_ID = current_github_commit_id()
+
+stable_text_checksum = function(value){
+	text = paste(as.character(value), collapse = "\r")
+	raw_vals = as.integer(charToRaw(enc2utf8(text)))
+	modulus = 4294967296
+	hash = 2166136261
+	for (byte in raw_vals) {
+		hash = (hash * 16777619 + byte) %% modulus
+	}
+	digits = "0123456789abcdef"
+	out = character(8L)
+	for (i in 8L:1L) {
+		nibble = hash %% 16
+		out[i] = substr(digits, nibble + 1L, nibble + 1L)
+		hash = floor(hash / 16)
+	}
+	paste(out, collapse = "")
+}
+
+sanitize_case_id_part = function(value){
+	value = gsub("[^A-Za-z0-9]+", "_", as.character(value))
+	value = gsub("_+", "_", value)
+	value = gsub("^_|_$", "", value)
+	ifelse(nzchar(value), value, "NA")
+}
+
+build_comprehensive_case_id = function(dataset_val, response_val, design_val, inference_val, function_run_val){
+	signature = paste(
+		as.character(dataset_val),
+		as.character(response_val),
+		as.character(design_val),
+		as.character(inference_val),
+		as.character(function_run_val),
+		sep = "||"
+	)
+	prefix = paste(
+		"comprehensive_tests",
+		sanitize_case_id_part(response_val),
+		sanitize_case_id_part(design_val),
+		sanitize_case_id_part(function_run_val),
+		sep = "__"
+	)
+	prefix = substr(prefix, 1L, 120L)
+	paste(prefix, stable_text_checksum(signature), sep = "_")
+}
+
+method_family_for_function_run = function(function_run){
+	label = as.character(function_run)
+	if (grepl("_debug$", label)) return("debug_distribution")
+	if (grepl("bayesian_bootstrap", label, fixed = TRUE)) return("bayesian_bootstrap")
+	if (grepl("parametric_bootstrap|lik_ratio_bootstrap", label)) return("parametric_bootstrap")
+	if (grepl("bootstrap", label, fixed = TRUE)) return("bootstrap")
+	if (grepl("jackknife", label, fixed = TRUE)) return("jackknife")
+	if (grepl("bartlett", label, fixed = TRUE)) return("bartlett")
+	if (grepl("rand", label, fixed = TRUE)) return("rand")
+	if (grepl("exact", label, fixed = TRUE)) return("exact")
+	if (grepl("wald", label, fixed = TRUE)) return("wald")
+	if (grepl("score", label, fixed = TRUE)) return("score")
+	if (grepl("lik_ratio", label, fixed = TRUE)) return("lik_ratio")
+	if (grepl("gradient", label, fixed = TRUE)) return("gradient")
+	if (grepl("asymp", label, fixed = TRUE)) return("asymp")
+	if (grepl("confidence_interval", label, fixed = TRUE)) return("confidence_interval")
+	if (grepl("pval", label, fixed = TRUE)) return("p_value")
+	if (grepl("estimate", label, fixed = TRUE)) return("estimate")
+	"other"
+}
+
+skip_reason_for_result = function(status, error_message){
+	msg = if (is.null(error_message) || is.na(error_message) || !nzchar(error_message)) "" else as.character(error_message)
+	if (identical(status, "error")) return("error")
+	if (nzchar(msg)) {
+		if (grepl("timeout", msg, ignore.case = TRUE)) return("timeout")
+		if (grepl("non-estimable", msg, ignore.case = TRUE)) return("nonestimable")
+		if (grepl("not implemented|must implement|does not support|not supported", msg, ignore.case = TRUE)) return("unsupported")
+		if (grepl("Invalid output|NA/NaN/Inf|non-finite|finite standard error|Degenerate confidence interval", msg, ignore.case = TRUE)) return("numeric_instability")
+		if (grepl("missing output|Allowed missing output", msg, ignore.case = TRUE)) return("allowed_missing_output")
+		return("recorded_skip")
+	}
+	if (identical(status, "ok")) return("")
+	"unknown"
+}
+
 heartbeat_cache = new.env(parent = emptyenv())
 heartbeat_cache$path = NA_character_
 heartbeat_cache$size = NA_real_
@@ -413,6 +504,13 @@ results_dt = data.table(
 	inference_class = character(),
 	function_run = character(),
 	id = character(),
+	case_id = character(),
+	coverage_scope = character(),
+	runner = character(),
+	github_commit_id = character(),
+	method_family = character(),
+	argument_coverage_kind = character(),
+	skip_reason = character(),
 	timestamp = character(),
 	duration_time_sec = numeric(),
 	duration_time_sec_raw = numeric(),
@@ -445,7 +543,7 @@ ensure_existing_results_schema = function(){
 	missing_cols = setdiff(expected_cols, names(existing_results_dt))
 	if (!length(missing_cols)) return(invisible(FALSE))
 	for (col in missing_cols) {
-		if (col %in% c("heartbeat_log", "result", "status", "error_message", "result_1", "result_2", "timestamp", "id", "dataset", "response_type", "design", "inference_class", "function_run")) {
+		if (col %in% c("heartbeat_log", "result", "status", "error_message", "result_1", "result_2", "timestamp", "id", "case_id", "coverage_scope", "runner", "github_commit_id", "method_family", "argument_coverage_kind", "skip_reason", "dataset", "response_type", "design", "inference_class", "function_run")) {
 			existing_results_dt[, (col) := NA_character_]
 		} else if (col == "beta_T" || grepl("duration|epoch|pval|prob|sd|coverage", col)) {
 			existing_results_dt[, (col) := NA_real_]
@@ -454,6 +552,16 @@ ensure_existing_results_schema = function(){
 		} else {
 			existing_results_dt[, (col) := NA_integer_]
 		}
+	}
+	if (all(c("dataset", "response_type", "design", "inference_class", "function_run") %in% names(existing_results_dt))) {
+		existing_results_dt[is.na(case_id) | !nzchar(ifelse(is.na(case_id), "", case_id)), case_id := build_comprehensive_case_id(dataset, response_type, design, inference_class, function_run)]
+		existing_results_dt[is.na(coverage_scope) | !nzchar(ifelse(is.na(coverage_scope), "", coverage_scope)), coverage_scope := "comprehensive_workflow"]
+		existing_results_dt[is.na(runner) | !nzchar(ifelse(is.na(runner), "", runner)), runner := "comprehensive_tests"]
+		existing_results_dt[is.na(method_family) | !nzchar(ifelse(is.na(method_family), "", method_family)), method_family := vapply(function_run, method_family_for_function_run, character(1))]
+		existing_results_dt[is.na(argument_coverage_kind) | !nzchar(ifelse(is.na(argument_coverage_kind), "", argument_coverage_kind)), argument_coverage_kind := "not_argument_combination"]
+	}
+	if (all(c("status", "error_message") %in% names(existing_results_dt))) {
+		existing_results_dt[is.na(skip_reason) | !nzchar(ifelse(is.na(skip_reason), "", skip_reason)), skip_reason := mapply(skip_reason_for_result, status, error_message, USE.NAMES = FALSE)]
 	}
 	extra_cols = setdiff(names(existing_results_dt), expected_cols)
 	data.table::setcolorder(existing_results_dt, c(expected_cols, extra_cols))
@@ -604,6 +712,7 @@ record_result = function(dataset_name, dataset_n_rows, dataset_n_cols, response_
 	}
 	cache_estimate_logging_theta(inference_class, dataset_name, beta_T, response_type, coverage_truth)
 	run_row_id <<- run_row_id + 1L
+	error_message_chr = if (is.null(error_message)) NA_character_ else as.character(error_message)
 	results_dt <<- data.table::rbindlist(list(
 		results_dt,
 		data.table(
@@ -615,6 +724,13 @@ record_result = function(dataset_name, dataset_n_rows, dataset_n_cols, response_
 			inference_class = inference_class,
 			function_run = function_run,
 			id = build_result_key(rep_curr, beta_T, dataset_name, response_type, design_type, inference_class, function_run),
+			case_id = build_comprehensive_case_id(dataset_name, response_type, design_type, inference_class, function_run),
+			coverage_scope = "comprehensive_workflow",
+			runner = "comprehensive_tests",
+			github_commit_id = GITHUB_COMMIT_ID,
+			method_family = method_family_for_function_run(function_run),
+			argument_coverage_kind = "not_argument_combination",
+			skip_reason = skip_reason_for_result(status, error_message_chr),
 			timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
 			duration_time_sec = round_duration_field(duration_time_sec),
 			duration_time_sec_raw = round_duration_field(duration_time_sec),
@@ -627,7 +743,7 @@ record_result = function(dataset_name, dataset_n_rows, dataset_n_cols, response_
 			result_2 = result_2,
 			coverage_truth = coverage_truth,
 			beta_T_in_confidence_interval = beta_T_in_confidence_interval,
-				error_message = if (is.null(error_message)) NA_character_ else as.character(error_message),
+			error_message = error_message_chr,
 			run_row_id = run_row_id,
 			r = as.integer(r),
 			pval_epsilon = pval_epsilon,

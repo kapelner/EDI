@@ -2,9 +2,9 @@
 #'
 #' Bundles a design object with a set of inference classes and their
 #' constructor arguments.  On initialization the suite automatically
-#' introspects the package namespace to discover every concrete
-#' \code{Inference} subclass that is compatible with the supplied design
-#' object, so the applicable list never goes stale as new classes are added.
+#' consults inference metadata to discover every concrete \code{Inference}
+#' subclass that is compatible with the supplied design object, so the
+#' applicable list never goes stale as new classes are registered.
 #'
 #' Discovery uses package metadata rather than constructor probing: only
 #' exported, non-abstract \code{Inference} generators are considered, and
@@ -100,34 +100,6 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 	private = list(
 		des_obj          = NULL,
 		inference_params = NULL,
-		# Known abstract / infrastructure classes. Discovery also treats any
-		# generator whose name contains "Abstract" as abstract.
-		.abstract_class_names = c(
-			"Inference",
-			"InferenceAsymp", "InferenceJackknife", "InferenceNonParamBootstrap", "InferenceBayesianBootstrap", "InferenceRand",
-			"InferenceRandCI", "InferenceRandBootstrap", "InferenceRandBootstrapCI", "InferenceExact",
-			"InferenceAsympLik", "InferenceParamBootstrap",
-			"InferenceKKPassThroughCompound", "InferenceKKPassThroughCompoundNoParamBootstrap",
-			"InferenceAsympLikStdModCache", "InferenceAsympLikStdModCacheNoParamBootstrap",
-			"InferenceCountLikelihood", "InferenceCountLikelihoodNoParamBootstrap",
-			"InferenceCountCompositeLikelihood",
-			"InferenceMLEorKMSummaryTable"
-		),
-		.is_inference_subclass = function(obj) {
-			if (!inherits(obj, "R6ClassGenerator")) return(FALSE)
-			anc = obj
-			while (!is.null(anc)) {
-				if (identical(anc$classname, "Inference")) return(TRUE)
-				anc = anc$get_inherit()
-			}
-			FALSE
-		},
-		.is_exported_inference_class = function(nm) {
-			nm %in% getNamespaceExports("EDI")
-		},
-		.is_abstract_inference_class = function(nm) {
-			nm %in% private$.abstract_class_names || grepl("Abstract", nm, fixed = TRUE)
-		},
 		.design_metadata = function(des_obj) {
 			list(
 				response_type = des_obj$get_response_type(),
@@ -137,27 +109,12 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			)
 		},
 		.class_compatibility_metadata = function(nm) {
-			if (grepl("^InferenceContin", nm) || grepl("^InferenceBai", nm)) {
-				response_types = "continuous"
-			} else if (grepl("^InferenceCount", nm)) {
-				response_types = "count"
-			} else if (grepl("^InferenceIncid", nm) || grepl("^InferenceIncidence", nm)) {
-				response_types = "incidence"
-			} else if (grepl("^InferenceOrdinal", nm)) {
-				response_types = "ordinal"
-			} else if (grepl("^InferenceProp", nm)) {
-				response_types = "proportion"
-			} else if (grepl("^InferenceSurvival", nm)) {
-				response_types = "survival"
-			} else if (grepl("^InferenceAll", nm)) {
-				response_types = c("continuous", "incidence", "count", "proportion", "survival", "ordinal")
-			} else {
-				response_types = character()
-			}
+			metadata = get_inference_class_metadata(nm)
+			exported = isTRUE(metadata$exported) || nm %in% getNamespaceExports("EDI")
 			list(
-				abstract = private$.is_abstract_inference_class(nm),
-				exported = private$.is_exported_inference_class(nm),
-				response_types = response_types,
+				abstract = isTRUE(metadata$abstract),
+				exported = exported,
+				response_types = metadata$response_types %||% character(),
 				requires_kk = grepl("KK", nm, fixed = TRUE),
 				requires_blocking = nm %in% c("InferenceIncidCMH", "InferenceIncidExtendedRobins"),
 				requires_uncensored = nm %in% c(
@@ -181,18 +138,13 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				TRUE
 		},
 		.discover_applicable_design_classes = function(des_obj) {
-			ns        = getNamespace("EDI")
-			all_names = ls(ns)
+			registry = inference_class_registry_as_list()
+			exports = getNamespaceExports("EDI")
 			design_meta = private$.design_metadata(des_obj)
-			# Filter to exported, concrete Inference subclasses. Aliases are removed
-			# by requiring the namespace binding name to match the generator classname.
-			candidates = Filter(function(nm) {
-				obj = get(nm, envir = ns)
-				private$.is_inference_subclass(obj) &&
-					identical(obj$classname, nm) &&
-					private$.is_exported_inference_class(nm) &&
-					!private$.is_abstract_inference_class(nm)
-			}, all_names)
+			candidates = names(Filter(function(metadata) {
+				(isTRUE(metadata$exported) || metadata$name %in% exports) &&
+					!isTRUE(metadata$abstract)
+			}, registry))
 			applicable = Filter(function(nm) {
 				private$.is_compatible_with_design_metadata(nm, design_meta)
 			}, candidates)

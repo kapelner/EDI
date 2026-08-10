@@ -8,7 +8,7 @@ on:
       - 'R/EDI/**/*.hpp'
       - 'R/EDI/DESCRIPTION'
       - 'R/EDI/tests/**'
-      - '.github/workflows/test-coverage.yaml'
+      - '.github/workflows/test-coverage-R.yaml'
   pull_request:
     branches: [main, master]
     paths: *r-coverage-paths
@@ -18,7 +18,7 @@ name: test-coverage
 # Standard r-lib/covr coverage run for the EDI R package (see
 # R-CMD-check.yaml's identical working-directory: R/EDI note -- this repo
 # also holds an unrelated Python-bindings subproject checked by
-# python-tests.yml). Runs the testthat suite once under covr instrumentation
+# python-tests.yml/test-coverage-python.yml). Runs the testthat suite once under covr instrumentation
 # and uploads the result to Codecov, tagged with the `r` flag so it doesn't
 # get averaged together with the Python coverage number under the same
 # project (see codecov.yml).
@@ -31,6 +31,23 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
       EDI_PORTABLE: 1
+      # This build is compiled with -O0 --coverage (gcov instrumentation) for
+      # line coverage, not -fopenmp's normal optimized codegen. Pin every
+      # thread-pool env var EDI's own make_configured_fork_cluster() resets in
+      # forked children (see R/EDI/R/globals.R) to 1 here too, so no OpenMP
+      # thread pool is ever alive in the *parent* process either -- forking a
+      # multi-threaded process (parallel::makeForkCluster(), used by several
+      # tests) is a known hang/crash hazard, and this instrumented build's
+      # subprocess died silently mid-suite (readRDS "error reading from
+      # connection" merging coverage, i.e. a truncated trace file from an
+      # abnormal exit) on 2026-08-10, see
+      # https://github.com/kapelner/EDI/actions/runs/31406650101/job/93514519023.
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 1
+      GOTO_NUM_THREADS: 1
+      VECLIB_MAXIMUM_THREADS: 1
+      NUMEXPR_NUM_THREADS: 1
 
     steps:
       - uses: actions/checkout@v7

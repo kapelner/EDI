@@ -8,6 +8,8 @@
 #' @keywords internal
 #' @noRd
 EDI_INFERENCE_CLASS_REGISTRY = new.env(parent = emptyenv())
+EDI_INFERENCE_EFFECTIVE_COMPONENTS_CACHE = new.env(parent = emptyenv())
+EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE = new.env(parent = emptyenv())
 
 EDI_INFERENCE_ALLOWED_LIKELIHOOD_TIERS = c("none", "quasi", "partial", "full")
 
@@ -257,6 +259,7 @@ register_inference_class = function(name, parent = NULL, metadata = list(), dire
 		stop(sprintf("Inference class metadata already registered for %s.", name), call. = FALSE)
 	}
 	assign(name, record, envir = EDI_INFERENCE_CLASS_REGISTRY)
+	clear_inference_effective_metadata_cache()
 	invisible(record)
 }
 
@@ -290,6 +293,12 @@ get_inference_class_metadata = function(name) {
 
 get_direct_components = function(name) {
 	get_inference_class_metadata(name)$direct_components
+}
+
+clear_inference_effective_metadata_cache = function() {
+	rm(list = ls(EDI_INFERENCE_EFFECTIVE_COMPONENTS_CACHE), envir = EDI_INFERENCE_EFFECTIVE_COMPONENTS_CACHE)
+	rm(list = ls(EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE), envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE)
+	invisible(TRUE)
 }
 
 resolve_inference_components = function(name) {
@@ -328,15 +337,25 @@ resolve_inference_components = function(name) {
 }
 
 get_effective_components = function(name) {
-	resolve_inference_components(name)
+	if (exists(name, envir = EDI_INFERENCE_EFFECTIVE_COMPONENTS_CACHE, inherits = FALSE)) {
+		return(get(name, envir = EDI_INFERENCE_EFFECTIVE_COMPONENTS_CACHE, inherits = FALSE))
+	}
+	components = resolve_inference_components(name)
+	assign(name, components, envir = EDI_INFERENCE_EFFECTIVE_COMPONENTS_CACHE)
+	components
 }
 
 get_effective_capabilities = function(name) {
+	if (exists(name, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE, inherits = FALSE)) {
+		return(get(name, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE, inherits = FALSE))
+	}
 	metadata = get_inference_class_metadata(name)
 	component_capabilities = as.character(unlist(lapply(get_effective_components(name), function(component_name) {
 		get_inference_component(component_name)$provides_capabilities
 	}), use.names = FALSE))
-	unique(c(component_capabilities, metadata$capabilities %||% character()))
+	capabilities = unique(c(component_capabilities, metadata$capabilities %||% character()))
+	assign(name, capabilities, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE)
+	capabilities
 }
 
 inference_class_ancestor_names = function(name, registry = inference_class_registry_as_list()) {
@@ -842,6 +861,7 @@ mark_custom_randomization_classes_migrated = function(class_names = custom_rando
 
 clear_inference_class_registry = function() {
 	rm(list = ls(EDI_INFERENCE_CLASS_REGISTRY), envir = EDI_INFERENCE_CLASS_REGISTRY)
+	clear_inference_effective_metadata_cache()
 	invisible(TRUE)
 }
 

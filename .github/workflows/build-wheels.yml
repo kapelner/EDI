@@ -86,6 +86,31 @@ jobs:
       - name: Build sdist
         run: pipx run build --sdist --outdir dist python
 
+      # Building the tarball only proves `python -m build --sdist` succeeded
+      # as an archiving step -- it says nothing about whether the resulting
+      # tarball can actually be built from source. This gap is exactly how
+      # edi_kernels 1.0.0's sdist shipped broken and undetected: EDI_SRC_DIR
+      # (CMakeLists.txt) pointed at ../R/EDI/src, which only exists as a
+      # sibling of python/ in a live git checkout -- every wheel this
+      # workflow builds comes from cibuildwheel building against that live
+      # checkout, so the missing-sources problem never surfaced there either.
+      # It only appears once the sdist is extracted somewhere standalone,
+      # which is exactly what a real `pip install edi_kernels` does whenever
+      # no prebuilt wheel matches (see
+      # R/package_metadata/new_feature_plans/python_bindings_package_spec.md's
+      # TODO-12). Installing into a venv under /tmp, well outside
+      # $GITHUB_WORKSPACE, reproduces that standalone-extraction condition
+      # instead of accidentally building against the live checkout sitting
+      # right next to it.
+      - name: Verify sdist installs from source, isolated from the checkout
+        run: |
+          set -e
+          SDIST=$(readlink -f dist/*.tar.gz)
+          python -m venv /tmp/sdist_verify_venv
+          /tmp/sdist_verify_venv/bin/pip install --upgrade pip
+          /tmp/sdist_verify_venv/bin/pip install --no-binary edi_kernels "$SDIST"
+          /tmp/sdist_verify_venv/bin/python -c "import edi_kernels; print('edi_kernels imported OK from', edi_kernels.__file__)"
+
       - uses: actions/upload-artifact@v7
         with:
           name: sdist

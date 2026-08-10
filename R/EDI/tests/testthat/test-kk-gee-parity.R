@@ -121,6 +121,7 @@ test_that("incidence, count, and proportion KK GEE wrappers match backend fits",
 
 test_that("ordinal KK GEE wrapper matches direct multgee backend fit", {
 	skip_if_not_installed("multgee")
+	skip_if_not_installed("geepack")
 	set.seed(20260423)
 
 	des <- make_kk_design_for_gee_test("ordinal")

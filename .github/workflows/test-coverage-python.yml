@@ -1,0 +1,56 @@
+name: test-coverage-python
+
+# Coverage-only run for edi_kernels: re-runs the pytest suite under
+# pytest-cov instrumentation and uploads the result to Codecov, tagged with
+# the `python` flag (see codecov.yml). Python-side analog of
+# test-coverage-R.yaml -- pass/fail signal lives in python-tests.yml instead
+# (the analog of R-CMD-check.yaml), so tests run twice on CI, same as the R
+# side: once fast for the pass/fail check, once instrumented for coverage.
+#
+# Package root is python/ (pyproject.toml lives there), since this repo
+# also holds the unrelated R package (R/EDI/) and paper-reproduction code.
+
+on:
+  push:
+    branches: [main, master]
+    paths: &python-test-paths
+      - 'python/**'
+      - 'R/EDI/src/**/*.cpp'
+      - 'R/EDI/src/**/*.h'
+      - 'R/EDI/src/**/*.hpp'
+      - '.github/workflows/test-coverage-python.yml'
+  pull_request:
+    branches: [main, master]
+    paths: *python-test-paths
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      # manylinux wheel builds (build-wheels.yml) get BLAS from the
+      # manylinux_2_28 image's openblas-devel; a plain ubuntu-latest runner
+      # needs the same system package explicitly (see CMakeLists.txt's
+      # find_package(BLAS)).
+      - name: Install system BLAS
+        run: sudo apt-get update && sudo apt-get install -y libopenblas-dev
+
+      - name: Install edi_kernels (editable) + test deps
+        run: pip install -e "./python[test]" pytest-cov
+
+      - name: Run tests with coverage
+        working-directory: python
+        run: python -m pytest tests -q --cov=edi_kernels --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: python/coverage.xml
+          flags: python
+          fail_ci_if_error: false

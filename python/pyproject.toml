@@ -11,12 +11,12 @@
 # 2026-08-09). Declaring it here lets pip's own isolated-build-env
 # resolution install it where CMake will actually look, matching how
 # numpy/scipy handle the same problem.
-requires = ["scikit-build-core>=0.10", "pybind11>=2.13", "scipy-openblas32; sys_platform == 'win32'"]
+requires = ["scikit-build-core>=1.0", "pybind11>=2.13", "scipy-openblas32; sys_platform == 'win32'"]
 build-backend = "scikit_build_core.build"
 
 [project]
 name = "edi_kernels"
-version = "1.0.0"
+version = "1.0.0.post1"
 description = "Python bindings for EDI's C++ model-fitting kernels (pybind11, no R/Rcpp dependency)"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -28,9 +28,24 @@ dependencies = ["numpy>=1.24"]
 test = ["pytest>=7.0", "scipy>=1.10"]
 
 [tool.scikit-build]
-minimum-version = "0.10"
+minimum-version = "1.0"
 build-dir = "build/{wheel_tag}"
 wheel.packages = ["src/edi_kernels"]
+
+# The sdist only packages python/'s own tree by default -- R/EDI/src (the
+# kernel sources CMakeLists.txt's EDI_SRC_DIR points at) lives one level
+# above the project root and is otherwise silently dropped, leaving a
+# tarball that cannot be built from source at all (see
+# python_bindings_package_spec.md's TODO-12: this shipped broken in
+# 1.0.0, undetected, since CI only ever installed the wheels -- which build
+# from a live checkout where ../R/EDI/src is a real sibling directory --
+# never the sdist itself). force-include supports a source outside the
+# project root (see scikit-build-core's SdistSettings.force_include
+# docstring), so this copies R/EDI/src into vendor/EDI_src *inside the
+# sdist only* -- never onto disk in a live checkout -- which
+# CMakeLists.txt then prefers over ../R/EDI/src when present.
+[tool.scikit-build.sdist.force-include]
+"../R/EDI/src" = "vendor/EDI_src"
 
 [tool.scikit-build.cmake.define]
 EDI_PY_PORTABLE = "OFF"

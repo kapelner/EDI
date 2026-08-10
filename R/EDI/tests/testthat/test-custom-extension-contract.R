@@ -73,6 +73,79 @@ test_that("custom asymptotic inference works from an external-package-like envir
 	expect_true(boot_p >= 0 && boot_p <= 1)
 })
 
+test_that("custom randomization inference works from an external-package-like environment", {
+	ext_env = new.env(parent = globalenv())
+	ext_env$R6Class = R6::R6Class
+	ext_env$InferenceCustomRand = getFromNamespace("InferenceCustomRand", "EDI")
+
+	evalq({
+		ExternalRandMeanDiff = R6Class(
+			"ExternalRandMeanDiff",
+			inherit = InferenceCustomRand,
+			lock_objects = FALSE,
+			public = list(
+				fit = function(estimate_only = FALSE) {
+					dat = self$get_analysis_data()
+					y_t = dat$y[dat$w == 1]
+					y_c = dat$y[dat$w == 0]
+					list(
+						estimate = mean(y_t) - mean(y_c),
+						model = list(estimate_only = estimate_only)
+					)
+				}
+			)
+		)
+	}, envir = ext_env)
+
+	des = DesignFixedBernoulli$new(n = 20, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = seq_len(20)))
+	des$overwrite_all_subject_assignments(rep(c(0, 1), each = 10))
+	des$add_all_subject_responses(c(1:10, 12:21))
+
+	inf = ext_env$ExternalRandMeanDiff$new(des, verbose = FALSE)
+	expect_s3_class(inf, "ExternalRandMeanDiff")
+	expect_equal(inf$get_response(), c(1:10, 12:21))
+	expect_equal(inf$get_treatment(), rep(c(0, 1), each = 10))
+	expect_equal(nrow(inf$get_analysis_data()), 20)
+	expect_equal(inf$compute_estimate(), 11)
+})
+
+test_that("custom bootstrap inference works from an external-package-like environment", {
+	ext_env = new.env(parent = globalenv())
+	ext_env$R6Class = R6::R6Class
+	ext_env$InferenceCustomBoot = getFromNamespace("InferenceCustomBoot", "EDI")
+
+	evalq({
+		ExternalBootMedianDiff = R6Class(
+			"ExternalBootMedianDiff",
+			inherit = InferenceCustomBoot,
+			lock_objects = FALSE,
+			public = list(
+				fit = function(estimate_only = FALSE) {
+					dat = self$get_analysis_data()
+					y_t = dat$y[dat$w == 1]
+					y_c = dat$y[dat$w == 0]
+					list(
+						estimate = stats::median(y_t) - stats::median(y_c),
+						model = list(estimate_only = estimate_only)
+					)
+				}
+			)
+		)
+	}, envir = ext_env)
+
+	des = DesignFixedBernoulli$new(n = 20, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = seq_len(20)))
+	des$overwrite_all_subject_assignments(rep(c(0, 1), each = 10))
+	des$add_all_subject_responses(c(1:10, 12:21))
+
+	inf = ext_env$ExternalBootMedianDiff$new(des, verbose = FALSE)
+	expect_s3_class(inf, "ExternalBootMedianDiff")
+	expect_identical(inf$get_design_object(), des)
+	expect_equal(inf$get_response_type(), "continuous")
+	expect_equal(inf$compute_estimate(), 11)
+})
+
 test_that("custom design extension bases delegate user assignment rules", {
 	CustomFixedBase = getFromNamespace("DesignFixedCustom", "EDI")
 	CustomSequentialBase = getFromNamespace("DesignCustomSequential", "EDI")

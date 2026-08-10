@@ -130,6 +130,8 @@ test_that("likelihood-ratio CI inversion reuses memoized null fits and neg-logli
 })
 
 test_that("KK OLS gradient CI reuses memoized null fits on repeated evaluation", {
+	skip_if_not_installed("nbpMatching")
+
 	des <- DesignFixedBinaryMatch$new(response_type = "continuous", n = 6, verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x = c(-2, -1, 0, 1, 2, 3)))
 	des$assign_w_to_all_subjects()

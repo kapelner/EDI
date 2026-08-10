@@ -84,6 +84,10 @@ test_that("parametric bootstrap worker loader stores a simulated null draw", {
 })
 
 test_that("generic parametric bootstrap LR is serial-parallel deterministic under a fixed seed", {
+	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"avoid spawning real mirai daemons under covr's gcov-instrumented build"
+	)
 	des <- make_param_boot_logit_design(seed = 20260521L, n = 100L)
 	if (isTRUE(EDI:::edi_env$mirai_has_been_used)) {
 		set_num_cores(2L, force_mirai = TRUE)
@@ -117,6 +121,10 @@ test_that("generic parametric bootstrap LR is serial-parallel deterministic unde
 })
 
 test_that("parametric bootstrap LR keeps deterministic mode off when no seed is set", {
+	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"avoid spawning real mirai daemons under covr's gcov-instrumented build"
+	)
 	des <- make_param_boot_logit_design(seed = 20260522L, n = 90L)
 	if (isTRUE(EDI:::edi_env$mirai_has_been_used)) {
 		set_num_cores(2L, force_mirai = TRUE)

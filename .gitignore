@@ -13,6 +13,8 @@ Rlib/*
 # Python package build artifacts
 python/build/
 python/build_*/
+python/dist/
+python/dist_*/
 python/**/__pycache__/
 python/**/*.so
 python/**/*.egg-info/

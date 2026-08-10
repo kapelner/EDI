@@ -1,3 +1,6 @@
+library(testthat)
+library(EDI)
+
 test_that("migration golden design builders are registered for all response types", {
 	builders = inference_migration_golden_design_builders()
 	expect_named(builders, c("continuous", "incidence", "count", "proportion", "ordinal", "survival"))

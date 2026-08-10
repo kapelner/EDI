@@ -3,6 +3,7 @@ library(EDI)
 
 test_that("KK robust regression muffles MM non-convergence and falls back internally", {
 	skip_if_not_installed("MASS")
+	skip_if_not_installed("nbpMatching")
 
 	des = DesignFixedBinaryMatch$new(response_type = "continuous", n = 4, verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x = c(-1, -0.5, 0.5, 1)))
@@ -27,6 +28,8 @@ test_that("KK robust regression muffles MM non-convergence and falls back intern
 })
 
 test_that("KK hurdle-Poisson combined-likelihood warns once before bootstrap fallback", {
+	skip_if_not_installed("nbpMatching")
+
 	des = DesignFixedBinaryMatch$new(response_type = "count", n = 4, verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x = c(-1, -0.5, 0.5, 1)))
 	des$assign_w_to_all_subjects()
@@ -41,6 +44,8 @@ test_that("KK hurdle-Poisson combined-likelihood warns once before bootstrap fal
 })
 
 test_that("KK count one-likelihood paths produce finite estimates", {
+	skip_if_not_installed("nbpMatching")
+
 	des = DesignFixedBinaryMatch$new(response_type = "count", n = 6, verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x = c(-1, -0.5, 0.25, 0.75, 1.5, 2)))
 	des$assign_w_to_all_subjects()

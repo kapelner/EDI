@@ -149,6 +149,7 @@ test_that("DesignFixedOptimalBlocks get_w and draw_ws return {0,1}", {
 })
 
 test_that("DesignFixedMatchingGreedyPairSwitching get_w and draw_ws return {0,1}", {
+  skip_if_not_installed("nbpMatching")
   set.seed(1)
   des = run_fixed_design(DesignFixedMatchingGreedyPairSwitching$new(n = n12, response_type = "continuous"), X12)
   expect_w_encoding(des$get_w(), n12)

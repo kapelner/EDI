@@ -486,6 +486,29 @@ test_that("resolve_inference_components expands dependencies deterministically",
 		EDI:::get_effective_capabilities("InferenceTemporaryComponentDependencyHost"),
 		c("kk_passthrough", "nonparametric_bootstrap", "kk_compound")
 	)
+	expect_true(exists(
+		"InferenceTemporaryComponentDependencyHost",
+		envir = EDI:::EDI_INFERENCE_EFFECTIVE_COMPONENTS_CACHE,
+		inherits = FALSE
+	))
+	expect_true(exists(
+		"InferenceTemporaryComponentDependencyHost",
+		envir = EDI:::EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE,
+		inherits = FALSE
+	))
+	cached_components = EDI:::get_effective_components("InferenceTemporaryComponentDependencyHost")
+	expect_identical(cached_components, c("KKPassThrough", "KKCompound"))
+	EDI:::register_inference_class(
+		name = "InferenceTemporaryCacheInvalidationHost",
+		parent = "Inference",
+		metadata = temporary_inference_metadata(),
+		direct_components = character()
+	)
+	expect_false(exists(
+		"InferenceTemporaryComponentDependencyHost",
+		envir = EDI:::EDI_INFERENCE_EFFECTIVE_COMPONENTS_CACHE,
+		inherits = FALSE
+	))
 })
 
 test_that("daughter classes inherit parent components and capabilities", {

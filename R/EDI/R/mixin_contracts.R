@@ -285,10 +285,82 @@ EDI_COMPONENT_SPECS = list(
 	),
 	NonparametricBootstrap = list(
 		status = "active",
+		load_policy = "lazy",
 		source_name = "InferenceNonParamBootstrap",
 		file = "inference_all_abstract_non_param_boot.R",
 		dependencies = "RandomizationCI",
 		owns_state = c(
+			"boot_distr_cache", "jack_distr_cache",
+			"bootstrap_extreme_estimate_threshold",
+			"bootstrap_extreme_ci_width_threshold"
+		),
+		provides_public_methods = c(
+			"approximate_m_out_of_n_bootstrap_distribution_beta_hat_T",
+			"compute_m_out_of_n_bootstrap_two_sided_pval",
+			"compute_m_out_of_n_bootstrap_confidence_interval",
+			"select_optimal_m_out_of_n_bootstrap",
+			"approximate_subsampling_distribution_beta_hat_T",
+			"compute_subsampling_two_sided_pval",
+			"compute_subsampling_confidence_interval",
+			"select_optimal_b_subsampling",
+			"compute_subsampling_sensitivity",
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_bootstrap_two_sided_pval",
+			"compute_bootstrap_confidence_interval"
+		),
+		provides_private_methods = c(
+			"bca_ci_core", "bca_pval_core", "resolve_resampling_unit",
+			"get_exchangeable_units", "get_resampling_cluster_ids",
+			"get_resampling_strata_ids", "get_resampling_block_ids",
+			"resampling_effective_p", "resolve_resampling_size",
+			"allocate_resampling_sizes_by_stratum", "sample_exchangeable_unit_ids",
+			"build_resampling_draw_from_units", "generate_exchangeable_resampling_draws",
+			"compute_resampling_draw_distribution",
+			"get_cached_centered_resampling_pivot",
+			"set_cached_centered_resampling_pivot",
+			"resampling_ci_from_centered_distribution", "resampling_centered_pval",
+			"resampling_scaling_factor", "select_optimal_resample_size",
+			"approximate_m_out_of_n_bootstrap_distribution_beta_hat_T_impl",
+			"compute_m_out_of_n_bootstrap_two_sided_pval_impl",
+			"compute_m_out_of_n_bootstrap_confidence_interval_impl",
+			"select_optimal_m_out_of_n_bootstrap_impl",
+			"m_out_of_n_bootstrap_cache_key", "m_out_of_n_bootstrap_centered_pivot",
+			"resampling_scaling_key", "m_out_of_n_bootstrap_sample_indices",
+			"load_m_out_of_n_bootstrap_draw_into_worker",
+			"evaluate_m_out_of_n_bootstrap_size",
+			"approximate_subsampling_distribution_beta_hat_T_impl",
+			"compute_subsampling_two_sided_pval_impl",
+			"compute_subsampling_confidence_interval_impl",
+			"select_optimal_b_subsampling_impl", "compute_subsampling_sensitivity_impl",
+			"subsampling_cache_key", "subsampling_centered_pivot",
+			"subsampling_sample_indices", "load_subsampling_draw_into_worker",
+			"compute_subsampling_worker_estimate", "evaluate_subsampling_size",
+			"assert_valid_bootstrap_type", "get_bootstrap_type",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"missing_bootstrap_ci", "check_bootstrap_replicate_deadline",
+			"is_resampling_control_condition", "resampling_error_to_na",
+			"bootstrap_estimates_extreme", "bootstrap_confidence_interval_extreme",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"validate_bootstrap_worker_state", "create_reusable_bootstrap_worker",
+			"load_bootstrap_draw_into_worker", "load_non_param_bootstrap_draw_into_worker",
+			"estimate_bootstrap_worker", "create_design_backed_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"load_bootstrap_sample_into_design_backed_worker",
+			"compute_bootstrap_worker_estimate",
+			"compute_bootstrap_worker_estimate_via_compute_treatment_estimate",
+			"compute_reusable_bootstrap_worker_distribution",
+			"compute_bootstrap_distribution_with_reused_workers",
+			"compute_jackknife_distribution_with_reused_workers",
+			"bootstrap_sample_indices", "renumber_match_ids",
+			"get_cluster_jackknife_ids", "build_jackknife_deletion_draws",
+			"bootstrap_subset_inference", "bootstrap_replication_stats",
+			"approximate_bootstrap_statistics_beta_hat_T",
+			"approximate_jackknife_distribution_beta_hat_T_private",
+			"ci_from_boot_distribution", "studentized_interval_scale_unstable",
+			"studentized_bootstrap_pivots", "ci_studentized",
+			"ci_symmetric_studentized", "ci_bca", "ci_calibrated_bootstrap",
+			"ci_smoothed_bootstrap", "infer_original_se", "pval_bca",
 			"boot_distr_cache", "jack_distr_cache",
 			"bootstrap_extreme_estimate_threshold",
 			"bootstrap_extreme_ci_width_threshold"
@@ -299,20 +371,57 @@ EDI_COMPONENT_SPECS = list(
 	),
 	RandomizationBootstrap = list(
 		status = "active",
+		load_policy = "lazy",
 		source_name = "InferenceRandBootstrap",
 		file = "inference_all_abstract_rand_bootstrap.R",
 		dependencies = "NonparametricBootstrap",
 		owns_state = c("rand_boot_draws_counter", "brt_mc_control"),
+		provides_public_methods = c(
+			"approximate_rand_bootstrap_distribution_beta_hat_T",
+			"compute_rand_bootstrap_two_sided_pval"
+		),
+		provides_private_methods = c(
+			"rand_bootstrap_transform_code", "rand_bootstrap_draw_matrices",
+			"generate_rand_bootstrap_draws", "load_rand_bootstrap_draw_into_worker",
+			"load_rand_bootstrap_assignment_into_worker",
+			"compute_rand_bootstrap_distribution_with_reused_workers",
+			"get_brt_distribution_prefix", "compute_two_sided_brt_pval_with_sequential_mc",
+			"run_rand_bootstrap_iteration_with_se",
+			"compute_brt_null_statistics_with_reused_workers",
+			"compute_brt_null_statistics_with_se", "compute_two_sided_brt_pval_studentized",
+			"run_rand_bootstrap_iteration", "rand_boot_draws_counter", "brt_mc_control"
+		),
 		provides_capabilities = "randomization_bootstrap",
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
 		declare_body_references_optional = TRUE
 	),
 	BayesianBootstrap = list(
 		status = "active",
+		load_policy = "lazy",
 		source_name = "InferenceBayesianBootstrap",
 		file = "inference_all_abstract_bayesian_bootstrap.R",
 		dependencies = "RandomizationBootstrap",
 		owns_state = c(
+			"current_bayesian_bootstrap_context",
+			"current_bayesian_bootstrap_subject_or_block_weights"
+		),
+		provides_public_methods = c(
+			"compute_estimate_with_bootstrap_weights",
+			"approximate_bayesian_bootstrap_distribution_beta_hat_T",
+			"compute_bayesian_bootstrap_two_sided_pval",
+			"compute_bayesian_bootstrap_confidence_interval"
+		),
+		provides_private_methods = c(
+			"supports_bayesian_bootstrap", "bayesian_bootstrap_cache_key",
+			"build_bayesian_bootstrap_context", "bayesian_bootstrap_sample_weights",
+			"expand_subject_or_block_weights_to_row_weights",
+			"load_bayesian_bootstrap_weights_into_worker",
+			"load_bayesian_bootstrap_draw_into_worker",
+			"compute_bayesian_bootstrap_worker_estimate",
+			"approximate_bayesian_bootstrap_statistics_beta_hat_T",
+			"approximate_bayesian_jackknife_distribution_beta_hat_T",
+			"ci_bayesian_bca", "pval_bayesian_bca",
+			"compute_bayesian_bootstrap_distribution_with_reused_workers",
 			"current_bayesian_bootstrap_context",
 			"current_bayesian_bootstrap_subject_or_block_weights"
 		),
@@ -394,6 +503,7 @@ EDI_COMPONENT_SPECS = list(
 	),
 	ParametricLikelihoodBootstrap = list(
 		status = "active",
+		load_policy = "lazy",
 		source_name = "InferenceParamBootstrap",
 		file = "inference_all_abstract_param_boot.R",
 		dependencies = "LikelihoodTests",
@@ -401,6 +511,58 @@ EDI_COMPONENT_SPECS = list(
 			"bartlett_factor_mc_min_usable_fraction",
 			"bartlett_factor_mc_max_attempts_per_replicate",
 			"param_bootstrap_extreme_lr_threshold"
+		),
+		provides_public_methods = c(
+			"get_last_param_bootstrap_diagnostics",
+			"compute_lik_ratio_bootstrap_two_sided_pval",
+			"compute_lik_ratio_bootstrap_confidence_interval",
+			"get_last_param_bootstrap_estimate_diagnostics",
+			"compute_param_bootstrap_estimate",
+			"compute_param_bootstrap_confidence_interval",
+			"compute_param_bootstrap_pval"
+		),
+		provides_private_methods = c(
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx",
+			"extract_param_bootstrap_estimate_coef",
+			"param_bootstrap_estimate_threshold",
+			"param_bootstrap_estimate_extreme",
+			"param_bootstrap_confidence_interval_extreme",
+			"run_param_bootstrap_estimate_batch",
+			"run_param_bootstrap_estimate_replicates",
+			"compute_param_bootstrap_estimate_impl",
+			"supports_param_bootstrap_estimate",
+			"is_a_param_bootstrap",
+			"param_bootstrap_lr_extreme",
+			"run_param_bootstrap_replicates",
+			"simulate_param_boot_bernoulli_y",
+			"simulate_param_boot_poisson_y",
+			"simulate_param_boot_gaussian_y",
+			"simulate_param_boot_ordinal_y",
+			"simulate_param_boot_weibull_observed",
+			"supports_reusable_param_bootstrap_worker",
+			"use_reusable_param_bootstrap_worker",
+			"use_deterministic_param_bootstrap",
+			"with_param_bootstrap_thread_budget",
+			"with_param_bootstrap_seed",
+			"param_boot_failure_result",
+			"param_boot_success_result",
+			"validate_param_bootstrap_spec",
+			"validate_param_bootstrap_worker_data",
+			"extract_param_bootstrap_failure_reason",
+			"compute_param_bootstrap_lr_from_boot_spec",
+			"compute_param_bootstrap_lr_impl",
+			"load_param_bootstrap_draw_into_worker",
+			"create_param_bootstrap_worker_state",
+			"compute_param_bootstrap_worker_lrt",
+			"summarize_param_bootstrap_diagnostics",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_lik_ratio_param_bootstrap_confidence_interval",
+			"simulate_under_lik_null",
+			"bartlett_factor_mc_min_usable_fraction",
+			"bartlett_factor_mc_max_attempts_per_replicate",
+			"param_bootstrap_extreme_lr_threshold",
+			"param_bootstrap_extreme_estimate_threshold"
 		),
 		provides_capabilities = "parametric_likelihood_bootstrap",
 		allowed_likelihood_tiers = c("partial", "full"),
@@ -417,9 +579,33 @@ EDI_COMPONENT_SPECS = list(
 	),
 	CountLikelihoodPlumbing = list(
 		status = "active",
+		load_policy = "lazy",
 		source_name = "InferenceCountLikelihood",
 		file = "inference_all_abstract_count_likelihood.R",
 		dependencies = "LikelihoodTests",
+		provides_public_methods = c(
+			"compute_estimate", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval", "compute_wald_two_sided_pval",
+			"compute_wald_confidence_interval", "compute_score_two_sided_pval",
+			"compute_score_confidence_interval", "compute_lik_ratio_two_sided_pval",
+			"compute_lik_ratio_confidence_interval", "compute_gradient_two_sided_pval",
+			"compute_gradient_confidence_interval",
+			"compute_lik_ratio_bootstrap_two_sided_pval",
+			"compute_lik_ratio_bootstrap_confidence_interval"
+		),
+		provides_private_methods = c(
+			"shared", "get_standard_error", "get_degrees_of_freedom",
+			"get_backend_warm_start_args", "supports_lik_ratio_param_bootstrap",
+			"supports_likelihood_tests", "get_likelihood_test_spec",
+			"compute_score_two_sided_pval_impl", "compute_gradient_two_sided_pval_impl",
+			"compute_lik_ratio_two_sided_pval_impl",
+			"compute_score_confidence_interval_impl",
+			"compute_gradient_confidence_interval_impl",
+			"compute_lik_ratio_confidence_interval_impl",
+			"count_likelihood_block_asymp_unsupported",
+			"mark_count_likelihood_block_asymp_nonestimable",
+			"count_likelihood_missing_ci", "is_a_count_likelihood"
+		),
 		provides_capabilities = "count_likelihood_plumbing",
 		allowed_likelihood_tiers = c("quasi", "full"),
 		declare_body_references_optional = TRUE
@@ -451,12 +637,26 @@ EDI_COMPONENT_SPECS = list(
 	),
 	KKGLMM = list(
 		status = "active",
+		load_policy = "lazy",
 		source_name = "InferenceMixinKKGLMMShared",
 		file = "inference_mixin_kk_glmm_shared.R",
 		dependencies = character(),
 		owns_state = c(
 			"m", "optimization_alg", "skip_glmm_pkg_check",
 			"max_abs_reasonable_coef", "kk_glmm_engine"
+		),
+		provides_public_methods = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
+		),
+		provides_private_methods = c(
+			"m", "optimization_alg", "skip_glmm_pkg_check",
+			"max_abs_reasonable_coef", "kk_glmm_engine",
+			"is_a_glmm_family", "init_kk_glmm_shared", "glmm_predictors_df",
+			"glmm_predictors_df_candidates", "get_standard_error",
+			"get_degrees_of_freedom", "shared_glmm_tmb", "assert_finite_se",
+			"fit_glmm_on_data", "fit_weighted_glmm_on_data", "fit_glmm",
+			"compute_weighted_glmm_bootstrap_estimate", ".is_usable_glmm_fit"
 		),
 		requires_state = c("any_censoring", "cached_values", "harden", "n", "y"),
 		requires_public_methods = c("get_testing_type", "num_cores"),
@@ -532,12 +732,20 @@ EDI_COMPONENT_SPECS = list(
 	),
 	BartlettApproximation = list(
 		status = "active",
+		load_policy = "lazy",
 		source_name = "InferenceExtBartlettApprox",
 		file = "inference_ext_bartlett_approx.R",
 		dependencies = "ParametricLikelihoodBootstrap",
 		owns_state = c(
 			"bartlett_factor_mc_min_usable_fraction",
 			"bartlett_factor_mc_max_attempts_per_replicate"
+		),
+		provides_public_methods = character(),
+		provides_private_methods = c(
+			"bartlett_factor_mc_min_usable_fraction",
+			"bartlett_factor_mc_max_attempts_per_replicate",
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx"
 		),
 		requires_state = "active_resampling_operation",
 		requires_public_methods = character(),
@@ -563,6 +771,7 @@ InferenceComponent = function(
 	file,
 	public = list(),
 	private = list(),
+	component_loader = list(load_policy = "eager"),
 	dependencies = character(),
 	provides_public_methods = names(public) %||% character(),
 	provides_private_methods = names(private) %||% character(),
@@ -588,6 +797,7 @@ InferenceComponent = function(
 		file = file,
 		public = public,
 		private = private,
+		component_loader = component_loader,
 		dependencies = dependencies,
 		provides_public_methods = provides_public_methods,
 		provides_private_methods = provides_private_methods,
@@ -612,7 +822,7 @@ InferenceComponent = function(
 validate_inference_component = function(component) {
 	required = c(
 		"name", "status", "source_name", "file", "public", "private",
-		"dependencies", "provides_public_methods", "provides_private_methods",
+		"component_loader", "dependencies", "provides_public_methods", "provides_private_methods",
 		"owns_state", "requires_state", "requires_public_methods",
 		"requires_private_methods", "optional_public_methods",
 		"optional_private_methods", "requires_super_methods",
@@ -637,7 +847,14 @@ validate_inference_component = function(component) {
 	if (!is.list(component$public) || !is.list(component$private)) {
 		stop(sprintf("Inference component %s must provide public/private lists.", component$name), call. = FALSE)
 	}
-	for (field in setdiff(required, c("public", "private", "allowed_host_overrides", "forbidden_refs"))) {
+	if (!is.list(component$component_loader)) {
+		stop(sprintf("Inference component %s must provide `component_loader` metadata.", component$name), call. = FALSE)
+	}
+	load_policy = component$component_loader$load_policy %||% "eager"
+	if (!identical(load_policy, "eager") && !identical(load_policy, "lazy")) {
+		stop(sprintf("Inference component %s has invalid load policy.", component$name), call. = FALSE)
+	}
+	for (field in setdiff(required, c("public", "private", "component_loader", "allowed_host_overrides", "forbidden_refs"))) {
 		if (!is.character(component[[field]])) {
 			stop(sprintf("Inference component %s has non-character `%s`.", component$name, field), call. = FALSE)
 		}
@@ -645,10 +862,12 @@ validate_inference_component = function(component) {
 	if (!all(component$allowed_likelihood_tiers %in% EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS)) {
 		stop(sprintf("Inference component %s has invalid likelihood tier.", component$name), call. = FALSE)
 	}
-	if (!identical(sort(component$provides_public_methods), sort(component_public_names(component)))) {
+	if (!isTRUE(is_lazy_inference_component(component)) &&
+			!identical(sort(component$provides_public_methods), sort(component_public_names(component)))) {
 		stop(sprintf("Inference component %s has stale public method metadata.", component$name), call. = FALSE)
 	}
-	if (!identical(sort(component$provides_private_methods), sort(component_private_names(component)))) {
+	if (!isTRUE(is_lazy_inference_component(component)) &&
+			!identical(sort(component$provides_private_methods), sort(component_private_names(component)))) {
 		stop(sprintf("Inference component %s has stale private method metadata.", component$name), call. = FALSE)
 	}
 	invisible(TRUE)
@@ -665,6 +884,7 @@ register_inference_component = function(component) {
 
 clear_inference_component_registry = function() {
 	rm(list = ls(EDI_INFERENCE_COMPONENTS), envir = EDI_INFERENCE_COMPONENTS)
+	clear_inference_component_implementation_cache()
 	invisible(TRUE)
 }
 
@@ -679,11 +899,55 @@ get_inference_component = function(name) {
 	get(name, envir = EDI_INFERENCE_COMPONENTS, inherits = FALSE)
 }
 
+EDI_INFERENCE_COMPONENT_IMPLEMENTATION_CACHE = new.env(parent = emptyenv())
+EDI_INFERENCE_LAZY_DISPATCH_CACHE = new.env(parent = emptyenv())
+EDI_INFERENCE_COMPONENT_LOAD_TRACE = new.env(parent = emptyenv())
+EDI_OPTIONAL_PACKAGE_AVAILABILITY_CACHE = new.env(parent = emptyenv())
+
+is_lazy_inference_component = function(component) {
+	identical(component$component_loader$load_policy %||% "eager", "lazy")
+}
+
+should_run_expensive_inference_contract_validation = function() {
+	isTRUE(getOption("EDI.validate_inference_contracts", FALSE)) ||
+		identical(Sys.getenv("EDI_VALIDATE_INFERENCE_CONTRACTS"), "true")
+}
+
+optional_package_available = function(pkg) {
+	if (exists(pkg, envir = EDI_OPTIONAL_PACKAGE_AVAILABILITY_CACHE, inherits = FALSE)) {
+		return(get(pkg, envir = EDI_OPTIONAL_PACKAGE_AVAILABILITY_CACHE, inherits = FALSE))
+	}
+	available = requireNamespace(pkg, quietly = TRUE)
+	assign(pkg, available, envir = EDI_OPTIONAL_PACKAGE_AVAILABILITY_CACHE)
+	available
+}
+
+clear_inference_component_implementation_cache = function() {
+	rm(list = ls(EDI_INFERENCE_COMPONENT_IMPLEMENTATION_CACHE), envir = EDI_INFERENCE_COMPONENT_IMPLEMENTATION_CACHE)
+	rm(list = ls(EDI_INFERENCE_LAZY_DISPATCH_CACHE), envir = EDI_INFERENCE_LAZY_DISPATCH_CACHE)
+	rm(list = ls(EDI_INFERENCE_COMPONENT_LOAD_TRACE), envir = EDI_INFERENCE_COMPONENT_LOAD_TRACE)
+	rm(list = ls(EDI_OPTIONAL_PACKAGE_AVAILABILITY_CACHE), envir = EDI_OPTIONAL_PACKAGE_AVAILABILITY_CACHE)
+	invisible(TRUE)
+}
+
+inference_component_load_trace = function(class_name = NULL) {
+	if (is.null(class_name)) {
+		return(mget(ls(EDI_INFERENCE_COMPONENT_LOAD_TRACE), envir = EDI_INFERENCE_COMPONENT_LOAD_TRACE, inherits = FALSE))
+	}
+	get0(class_name, envir = EDI_INFERENCE_COMPONENT_LOAD_TRACE, inherits = FALSE, ifnotfound = character())
+}
+
 component_public_names = function(component) {
+	if (isTRUE(is_lazy_inference_component(component))) {
+		return(component$provides_public_methods %||% character())
+	}
 	names(component$public) %||% character()
 }
 
 component_private_names = function(component) {
+	if (isTRUE(is_lazy_inference_component(component))) {
+		return(component$provides_private_methods %||% character())
+	}
 	names(component$private) %||% character()
 }
 
@@ -701,6 +965,190 @@ inference_component_source_parts = function(source) {
 		))
 	}
 	stop("Inference component source must be an R6 generator or public/private list.", call. = FALSE)
+}
+
+find_inference_component_source_file = function(file) {
+	if (file.exists(file)) {
+		return(normalizePath(file, mustWork = FALSE))
+	}
+	candidates = c(
+		file.path("R", file),
+		file.path("EDI", "R", file),
+		file.path("R", "EDI", "R", file),
+		system.file("R", file, package = "EDI")
+	)
+	candidates = candidates[nzchar(candidates)]
+	hits = candidates[file.exists(candidates)]
+	if (length(hits) == 0L) return(NA_character_)
+	normalizePath(hits[[1L]], mustWork = FALSE)
+}
+
+get_inference_component_cache_env = function(class_name) {
+	class_name = class_name %||% "<global>"
+	if (!exists(class_name, envir = EDI_INFERENCE_COMPONENT_IMPLEMENTATION_CACHE, inherits = FALSE)) {
+		assign(class_name, new.env(parent = emptyenv()), envir = EDI_INFERENCE_COMPONENT_IMPLEMENTATION_CACHE)
+	}
+	get(class_name, envir = EDI_INFERENCE_COMPONENT_IMPLEMENTATION_CACHE, inherits = FALSE)
+}
+
+get_inference_component_dispatch_cache_env = function(class_name) {
+	class_name = class_name %||% "<global>"
+	if (!exists(class_name, envir = EDI_INFERENCE_LAZY_DISPATCH_CACHE, inherits = FALSE)) {
+		assign(class_name, new.env(parent = emptyenv()), envir = EDI_INFERENCE_LAZY_DISPATCH_CACHE)
+	}
+	get(class_name, envir = EDI_INFERENCE_LAZY_DISPATCH_CACHE, inherits = FALSE)
+}
+
+get_lazy_component_dispatch = function(component_name, class_name) {
+	cache = get_inference_component_dispatch_cache_env(class_name)
+	if (exists(component_name, envir = cache, inherits = FALSE)) {
+		return(get(component_name, envir = cache, inherits = FALSE))
+	}
+	component = load_inference_component(component_name, class_name = class_name)
+	dispatch = list(
+		public = component$public,
+		private = component$private
+	)
+	assign(component_name, dispatch, envir = cache)
+	dispatch
+}
+
+load_inference_component = function(component_name, class_name = "<global>", ns = environment(populate_inference_component_registry)) {
+	component = get_inference_component(component_name)
+	cache = get_inference_component_cache_env(class_name)
+	if (exists(component_name, envir = cache, inherits = FALSE)) {
+		return(get(component_name, envir = cache, inherits = FALSE))
+	}
+	component_order = tryCatch(
+		resolve_component_dependencies(component_name),
+		error = function(e) {
+			stop(sprintf("Cannot load inference component %s: %s", component_name, conditionMessage(e)), call. = FALSE)
+		}
+	)
+	for (name in component_order) {
+		if (exists(name, envir = cache, inherits = FALSE)) next
+		meta = get_inference_component(name)
+		for (pkg in meta$component_loader$optional_packages %||% character()) {
+			if (!optional_package_available(pkg)) {
+				stop(sprintf(
+					"Cannot load inference component %s: optional package `%s` is not installed.",
+					name,
+					pkg
+				), call. = FALSE)
+			}
+		}
+		source_name = meta$source_name
+		source = get0(source_name, envir = ns, inherits = TRUE, ifnotfound = NULL)
+		if (is.null(source)) {
+			source_file = find_inference_component_source_file(meta$file)
+			if (is.na(source_file)) {
+				stop(sprintf(
+					"Cannot load inference component %s: source file `%s` was not found.",
+					name,
+					meta$file
+				), call. = FALSE)
+			}
+			load_env = new.env(parent = ns)
+			sys.source(source_file, envir = load_env)
+			source = get0(source_name, envir = load_env, inherits = TRUE, ifnotfound = NULL)
+			if (is.null(source)) {
+				stop(sprintf(
+					"Cannot load inference component %s: source object `%s` was not created by `%s`.",
+					name,
+					source_name,
+					meta$file
+				), call. = FALSE)
+			}
+		}
+		parts = tryCatch(
+			inference_component_source_parts(source),
+			error = function(e) {
+				stop(sprintf("Cannot load inference component %s: %s", name, conditionMessage(e)), call. = FALSE)
+			}
+		)
+		loaded = meta
+		loaded$public = parts$public
+		loaded$private = parts$private
+		loaded$component_loader$load_policy = "eager"
+		if (!identical(sort(meta$provides_public_methods), sort(names(parts$public) %||% character()))) {
+			stop(sprintf("Cannot load inference component %s: public method contract mismatch after load.", name), call. = FALSE)
+		}
+		if (!identical(sort(meta$provides_private_methods), sort(names(parts$private) %||% character()))) {
+			stop(sprintf("Cannot load inference component %s: private method contract mismatch after load.", name), call. = FALSE)
+		}
+		validate_inference_component(loaded)
+		assign(name, loaded, envir = cache)
+		assign(class_name, c(get0(class_name, envir = EDI_INFERENCE_COMPONENT_LOAD_TRACE, inherits = FALSE, ifnotfound = character()), name),
+			envir = EDI_INFERENCE_COMPONENT_LOAD_TRACE)
+	}
+	get(component_name, envir = cache, inherits = FALSE)
+}
+
+install_lazy_inference_component = function(self, private, class_name, component_name) {
+	loaded_marker_name = ".__loaded_lazy_components"
+	loaded = get0(loaded_marker_name, envir = private, inherits = FALSE, ifnotfound = character())
+	if (component_name %in% loaded) {
+		return(invisible(get_lazy_component_dispatch(component_name, class_name)))
+	}
+	dispatch = get_lazy_component_dispatch(component_name, class_name)
+	method_env = parent.frame()
+	assign_method = function(env, name, value) {
+		if (is.function(value)) environment(value) = method_env
+		was_locked = exists(name, envir = env, inherits = FALSE) && bindingIsLocked(name, env)
+		if (isTRUE(was_locked)) unlockBinding(name, env)
+		env[[name]] = value
+		if (isTRUE(was_locked)) lockBinding(name, env)
+		invisible(value)
+	}
+	for (name in names(dispatch$private) %||% character()) {
+		assign_method(private, name, dispatch$private[[name]])
+	}
+	for (name in names(dispatch$public) %||% character()) {
+		assign_method(self, name, dispatch$public[[name]])
+	}
+	assign_method(private, loaded_marker_name, unique(c(loaded, component_name)))
+	invisible(dispatch)
+}
+
+lazy_component_public_stub = function(component_name, method_name) {
+	fn = function(...) NULL
+	body(fn) = substitute({
+		install_lazy_inference_component(self, private, class(self)[1L], .component_name)
+		self[[.method_name]](...)
+	}, list(.component_name = component_name, .method_name = method_name))
+	fn
+}
+
+lazy_component_private_stub = function(component_name, method_name) {
+	fn = function(...) NULL
+	body(fn) = substitute({
+		install_lazy_inference_component(self, private, class(self)[1L], .component_name)
+		private[[.method_name]](...)
+	}, list(.component_name = component_name, .method_name = method_name))
+	fn
+}
+
+lazy_component_entries = function(component, slot) {
+	if (identical(slot, "public")) {
+		return(stats::setNames(
+			lapply(component$provides_public_methods, function(method_name) {
+				lazy_component_public_stub(component$name, method_name)
+			}),
+			component$provides_public_methods
+		))
+	}
+	private_names = component$provides_private_methods
+	private_state = intersect(private_names, component$owns_state)
+	private_methods = setdiff(private_names, private_state)
+	c(
+		stats::setNames(vector("list", length(private_state)), private_state),
+		stats::setNames(
+			lapply(private_methods, function(method_name) {
+				lazy_component_private_stub(component$name, method_name)
+			}),
+			private_methods
+		)
+	)
 }
 
 complete_component_reference_contract = function(component) {
@@ -749,22 +1197,40 @@ register_inference_component_from_spec = function(name, ns = environment(populat
 	}
 	source_name = spec$source_name %||% name
 	declare_body_references_optional = isTRUE(spec$declare_body_references_optional)
+	load_policy = spec$load_policy %||% "eager"
+	optional_packages = spec$optional_packages %||% character()
 	spec$source_name = NULL
 	spec$declare_body_references_optional = NULL
-	source = get(source_name, envir = ns, inherits = TRUE)
-	parts = inference_component_source_parts(source)
-	component = do.call(InferenceComponent, c(
-		list(
-			name = name,
-			source_name = source_name,
-			public = parts$public,
-			private = parts$private,
-			provides_public_methods = names(parts$public) %||% character(),
-			provides_private_methods = names(parts$private) %||% character()
-		),
-		spec
-	))
-	if (declare_body_references_optional) {
+	spec$load_policy = NULL
+	spec$optional_packages = NULL
+	if (identical(load_policy, "lazy") &&
+			!is.null(spec$provides_public_methods) &&
+			!is.null(spec$provides_private_methods)) {
+		parts = list(public = list(), private = list())
+	} else {
+		source = get(source_name, envir = ns, inherits = TRUE)
+		parts = inference_component_source_parts(source)
+	}
+	component_args = list(
+		name = name,
+		source_name = source_name,
+		public = parts$public,
+		private = parts$private,
+		component_loader = list(
+			load_policy = load_policy,
+			optional_packages = optional_packages
+		)
+	)
+	if (is.null(spec$provides_public_methods)) {
+		component_args$provides_public_methods = names(parts$public) %||% character()
+	}
+	if (is.null(spec$provides_private_methods)) {
+		component_args$provides_private_methods = names(parts$private) %||% character()
+	}
+	component = do.call(InferenceComponent, c(component_args, spec))
+	if (declare_body_references_optional &&
+			!isTRUE(is_lazy_inference_component(component)) &&
+			should_run_expensive_inference_contract_validation()) {
 		component = complete_component_reference_contract(component)
 	}
 	register_inference_component(component)
@@ -828,6 +1294,9 @@ component_declared_reference_names = function(component) {
 }
 
 validate_component_body_references = function(component) {
+	if (!isTRUE(is_lazy_inference_component(component))) {
+		component = complete_component_reference_contract(component)
+	}
 	refs = component_body_references(component)
 	declared = component_declared_reference_names(component)
 	offenders = character()
@@ -981,7 +1450,12 @@ combine_component_slot = function(target_name, component_names, slot, host_entri
 	combined = list()
 	combined_kinds = character()
 	for (component_name in component_names) {
-		component_entries = as.list(get_inference_component(component_name)[[slot]])
+		component = get_inference_component(component_name)
+		component_entries = if (isTRUE(is_lazy_inference_component(component))) {
+			lazy_component_entries(component, slot)
+		} else {
+			as.list(component[[slot]])
+		}
 		incoming_names = names(component_entries) %||% character()
 		incoming_kinds = entry_kinds(component_entries)
 		collisions = intersect(names(combined), incoming_names)

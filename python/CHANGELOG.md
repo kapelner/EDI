@@ -57,3 +57,4 @@ Initial release.
   `fast_weibull_regression`) rather than setting them to `None` the way
   `fast_poisson_glmm` does — inconsistent across kernels, documented
   per-file in the affected parity tests.
+- The published sdist cannot be built from source at all (`EDI_SRC_DIR`'s `../R/EDI/src` resolves outside the tarball) — affects any install without a matching prebuilt wheel (e.g. Python 3.14, musllinux, non-x86/arm64); see `R/package_metadata/new_feature_plans/python_bindings_package_spec.md` TODO-12.

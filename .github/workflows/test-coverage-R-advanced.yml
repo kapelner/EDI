@@ -1,0 +1,85 @@
+name: test-coverage-R-advanced
+
+# Advanced EDI R coverage/gate harness built from
+# R/package_metadata/finished_features/comprehensive_test_suite.md. This is
+# intentionally separate from test-coverage-R.yaml: it runs the comprehensive
+# package_tests/ orchestration, unified analyzer, and quality gates rather than
+# covr/testthat line coverage.
+
+on:
+  push:
+    branches: [main, master]
+    paths: &r-advanced-coverage-paths
+      - 'R/EDI/**/*.R'
+      - 'R/EDI/**/*.Rd'
+      - 'R/EDI/**/*.cpp'
+      - 'R/EDI/**/*.h'
+      - 'R/EDI/**/*.hpp'
+      - 'R/EDI/DESCRIPTION'
+      - 'R/EDI/NAMESPACE'
+      - 'R/EDI/tests/**'
+      - 'R/package_tests/**'
+      - 'R/package_metadata/finished_features/comprehensive_test_suite.md'
+      - '.github/workflows/test-coverage-R-advanced.yml'
+  pull_request:
+    branches: [main, master]
+    paths: *r-advanced-coverage-paths
+  workflow_dispatch: {}
+
+jobs:
+  test-coverage-R-advanced:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      EDI_PORTABLE: 1
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 1
+      GOTO_NUM_THREADS: 1
+      VECLIB_MAXIMUM_THREADS: 1
+      NUMEXPR_NUM_THREADS: 1
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+          extra-packages: any::rcmdcheck
+
+      - name: Install EDI
+        run: R CMD INSTALL R/EDI
+
+      - name: Run comprehensive suite smoke tier
+        working-directory: R
+        run: Rscript package_tests/run_comprehensive_suite.R smoke "" 300 --force
+
+      - name: Analyze comprehensive suite coverage
+        working-directory: R
+        run: Rscript package_tests/analyze_comprehensive_suite.R
+
+      - name: Run comprehensive suite quality gates
+        working-directory: R
+        run: Rscript package_tests/check_comprehensive_suite_quality_gates.R ci
+
+      - name: Upload comprehensive suite artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: comprehensive-suite-r-advanced
+          path: |
+            R/package_tests/comprehensive_suite_results.csv
+            R/package_tests/comprehensive_suite_failures.csv
+            R/package_tests/comprehensive_suite_coverage.csv
+            R/package_tests/comprehensive_suite_report.html
+            R/package_tests/comprehensive_suite_quality_gates.csv
+            R/package_tests/comprehensive_suite_quality_gate_summary.csv
+            R/package_tests/comprehensive_suite_workflow_coverage.csv
