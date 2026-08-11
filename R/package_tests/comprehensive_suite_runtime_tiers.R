@@ -24,7 +24,7 @@ build_comprehensive_suite_runtime_tiers = function() {
 		default_timeout_sec = c(180L, 600L, 1800L, 3600L),
 		argument_combination_tier = c("smoke", "ci", "ci", "ci"),
 		argument_combination_mode = c("run_or_resume_existing_cases", "run_or_resume_existing_cases", "import_ci_results", "import_ci_results"),
-		comprehensive_harness_mode = c("import_existing_results", "import_existing_results", "bounded_filtered_run", "maximal_registry_driven_run"),
+		comprehensive_harness_mode = c("bounded_filtered_run", "bounded_filtered_run", "bounded_filtered_run", "maximal_registry_driven_run"),
 		workflow_tier = c("smoke", "ci", "nightly", "release"),
 		internal_safety_net_mode = c("highest_fan_in_smoke", "representative_high_fan_in", "broader_internal_surfaces", "all_required_internal_surfaces"),
 		resampling_scale = c("tiny", "small", "moderate", "larger"),
@@ -35,8 +35,8 @@ build_comprehensive_suite_runtime_tiers = function() {
 		manual_or_scheduled = c("manual_or_ci", "scheduled_ci", "scheduled_nightly", "manual_release"),
 		hard_failure_policy = c("dependency_schema_and_unexpected_errors", "dependency_schema_unexpected_errors_and_strict_public_invariants", "report_slow_cases_and_unexpected_errors", "final_report_with_exemptions"),
 		description = c(
-			"Dependency validation, argument-combination smoke import, default workflows, highest-fan-in internal validators, tiny B/r.",
-			"Argument-combination CI import, representative workflows, selected method-family checks, strict public invariants.",
+			"Dependency validation, argument-combination smoke import, bounded-filtered comprehensive harness run, default workflows, highest-fan-in internal validators, tiny B/r.",
+			"Argument-combination CI import, bounded-filtered comprehensive harness run, representative workflows, selected method-family checks, strict public invariants.",
 			"Broader comprehensive harness paths, more datasets/fixtures/formulas, targeted high-risk 3-way workflows, broader internal safety nets, slow-case reporting.",
 			"Maximal registry-driven coverage, selected exhaustive small spaces, larger resampling counts, all required internal safety nets, final report with exemptions."
 		),
