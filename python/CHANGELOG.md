@@ -6,14 +6,14 @@ number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
 checklist item) — a `.postN` suffix is used for Python-packaging-only
 changes that don't touch `R/EDI/src/*.cpp`.
 
-## [Unreleased]
+## [1.0.0.post1] - 2026-08-11
 
-Not yet published to PyPI — the `py-v1.0.0.post1` tag push on 2026-08-11
-failed at the `sdist` CI job (before `publish` ran, so nothing broken
-shipped) and the fix below landed after that; more changes (a survival-API
-revision) are planned before this is tagged again. Version number will be
-`1.0.0.post1` once released, per this file's own `.postN` scheme (none of
-this touches `R/EDI/src/*.cpp`).
+Packaging-only release — none of this touches `R/EDI/src/*.cpp`, per this
+file's own `.postN` scheme. (A first `py-v1.0.0.post1` tag push on
+2026-08-11 failed at the `sdist` CI job before `publish` ran, so nothing
+broken shipped under that version; the BLAS-fallback fix below landed
+after that, and this is the tag actually released.) A survival-API
+revision is planned for a future release and is not part of this one.
 
 ### Fixed
 
