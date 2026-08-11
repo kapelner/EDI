@@ -266,6 +266,38 @@ if(EDI_USING_SCIPY_OPENBLAS)
     # symbol -- unnecessary (and unset) when a system/manylinux/Accelerate
     # BLAS provides the un-prefixed name directly.
     target_compile_definitions(_core PRIVATE cblas_dsyrk=scipy_cblas_dsyrk)
+    # libscipy_openblas.so lives inside the scipy_openblas32 *package's own*
+    # site-packages tree (its get_lib_dir()), never on any system linker
+    # search path -- and that package is only guaranteed present in pip's
+    # *ephemeral* isolated build environment (see ../pyproject.toml's
+    # [build-system] comment), which is deleted once the wheel is built. A
+    # cibuildwheel-built wheel doesn't care (auditwheel/delocate/delvewheel
+    # repair physically bundles whichever BLAS got linked into the wheel
+    # itself), but a plain `pip install` from the sdist has no such repair
+    # step -- confirmed the hard way: it built and installed successfully,
+    # then failed at `import edi_kernels` with "libscipy_openblas.so: cannot
+    # open shared object file" on 2026-08-11, on a stock ubuntu-latest CI
+    # runner, in the isolated verification venv the "Verify sdist installs
+    # from source" CI step (TODO-12) creates for exactly this class of bug.
+    # Fix: an $ORIGIN/@loader_path-relative RPATH, set at build time but
+    # only resolved at import time in whatever venv the wheel eventually
+    # gets installed into -- valid because scipy_openblas32 is declared as a
+    # genuine (not just build-time) runtime dependency in ../pyproject.toml,
+    # so it always ends up as a sibling package directory next to
+    # edi_kernels/ in that venv's site-packages, regardless of which venv
+    # that turns out to be. Windows PE DLL loading has no RPATH equivalent
+    # (PATH/DLL-search-order based instead) and isn't handled here -- a
+    # from-source build on Windows without delvewheel repair is a separate,
+    # not-yet-exercised problem (see "Building portable wheels" in
+    # python_bindings_package_spec.md).
+    if(APPLE)
+        set_target_properties(_core PROPERTIES INSTALL_RPATH "@loader_path/../scipy_openblas32/lib")
+    elseif(NOT WIN32)
+        set_target_properties(_core PROPERTIES INSTALL_RPATH "$ORIGIN/../scipy_openblas32/lib")
+    endif()
+    if(NOT WIN32)
+        set_target_properties(_core PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
+    endif()
 endif()
 # These are GCC/Clang flags; MSVC (Windows wheel builds, see
 # [tool.cibuildwheel.windows]) doesn't understand '-' prefixed options like

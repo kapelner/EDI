@@ -41,7 +41,21 @@ readme = "README_PYPI.md"
 requires-python = ">=3.9"
 license = "GPL-3.0-only"
 license-files = ["LICENSE"]
-dependencies = ["numpy>=1.24"]
+# scipy-openblas32 is also a genuine *runtime* dependency, not just a build
+# one (see [build-system] requires' comment for why it's needed at build
+# time at all) -- only actually exercised by a from-source install (no
+# cibuildwheel/auditwheel-style repair step to bundle the BLAS it links
+# into the wheel itself, unlike every cibuildwheel-built wheel this project
+# publishes, none of which need it present at runtime regardless of which
+# BLAS they were built against). Declaring it unconditionally here means
+# every install -- including the prebuilt wheels that never touch it --
+# carries a small (few-MB) unused dependency, a deliberate simplicity/size
+# tradeoff over trying to make this build-path-conditional, which PEP 508
+# environment markers have no way to express (they condition on the
+# installing environment, not on which pipeline produced the artifact).
+# See CMakeLists.txt's matching RPATH comment for the mechanism this makes
+# actually work at import time.
+dependencies = ["numpy>=1.24", "scipy-openblas32"]
 
 [project.optional-dependencies]
 test = ["pytest>=7.0", "scipy>=1.10"]
