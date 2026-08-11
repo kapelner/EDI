@@ -1470,7 +1470,7 @@ deliberately kept identical rather than split like `scikit-learn`/
   **Not yet done:** the `py-v1.0.0.post1` tag has not been pushed — that's
   a separate, explicit release action per this doc's own Publishing
   discipline, not implied by the fix landing in the working tree.
-- [ ] TODO-13: **official documentation for the Python package**, with
+- [x] TODO-13: **official documentation for the Python package**, with
   documented arguments for every one of the 37 bound functions. Source the
   parameter descriptions from the existing Roxygen documentation
   (`EDI/man/*.Rd`) for the R-facing function/method the shared `_core`
@@ -1504,7 +1504,75 @@ deliberately kept identical rather than split like `scikit-learn`/
     low-level kernel API, or whether docstring-only (`help()`/IDE
     tooltips) is sufficient — a scope decision for whoever picks this up,
     not decided here.
-- [ ] TODO-14: **create a PyPI-specific README, separate from
+
+  **Status update (2026-08-11): done — with two corrections to this
+  item's own framing, found while doing the work.** First, the "37 bound
+  functions" count above was already stale before this TODO started (see
+  TODO-12's parallel correction) — the real count is 49 non-fast-math
+  functions (63 including `fast_math`, out of scope here per this item's
+  own text). All 49 now have real per-argument docstrings. Second, the
+  mapping step surfaced a sharper distinction than "most have no Roxygen
+  block": *34 of the 49* have zero R-side roxygen for the exact raw
+  kernel a Python binding calls (confirmed empirically, file by file, not
+  assumed) — either because the backing `.cpp` file has no `//' @param`
+  block at all, or because it does but documents a *different* exported
+  function in the same file (e.g. `fast_wilcox_hl.cpp`'s roxygen
+  documents a permutation-batch export, not the single-point-estimate one
+  `wilcox_hl_point_estimate` actually binds). For those 34, descriptions
+  are grounded in the C++ implementation directly (shared-helper
+  semantics like `make_fixed_param_spec`'s `fixed_idx`/`fixed_values`
+  contract, or a sibling kernel's roxygen for shared GLMM/quadrature
+  parameters like `n_gh`/`max_abs_log_sigma` when the exact file has
+  none) rather than invented from scratch — every docstring says
+  explicitly which source it drew from. The other *15* do have a direct
+  `//' @param` match and use that text (lightly reworded only where the
+  Rcpp parameter name differs from the Python one, e.g. `X_sexp` ->
+  `X`). `fast_logistic_glmm` was re-verified (per this item's own
+  "verify, don't assume" instruction) to still have no R6 consumer in
+  `EDI/R` at all — noted explicitly in its docstring rather than
+  papered over.
+
+  Format: a full NumPy-style `Parameters` section (not just per-`py::arg`
+  short strings — pybind11 has no native mechanism for attaching prose to
+  an individual `py::arg`, only one docstring per function) appended to
+  each `m.def(...)` call's existing one-line summary. The one file needing
+  a non-trivial C++ change was `bindings_binary.cpp`: its
+  `bind_constrained_binomial` helper is called twice (log-binomial,
+  identity-binomial) with two docstrings threaded through as `const char*`
+  parameters, so the Parameters-section text is built once as a named
+  local `std::string` inside the helper (not a temporary in the `m.def()`
+  argument list, to remove any doubt about lifetime, even though pybind11
+  copies the C string immediately via `strdup` regardless) and reused for
+  both calls.
+
+  `Package Layout`'s `_core.pyi` stub did not exist at all (not
+  "types-only" as this item's text speculated — genuinely absent, along
+  with a PEP 561 `py.typed` marker, without which type checkers ignore a
+  stub even if present). Rather than hand-writing 49 signatures,
+  generated it with `pybind11-stubgen` against the freshly-built,
+  fully-documented module — this both types every argument correctly
+  (pybind11's own `py::arg()` metadata) and carries every docstring
+  through automatically, so `_core.pyi` and the compiled `__doc__`
+  strings can't drift out of sync by construction. Added `py.typed`
+  alongside it. Both ship in the wheel for free (`wheel.packages =
+  ["src/edi_kernels"]` already copies the whole directory, no config
+  change needed) — verified via a real `pip install .` into a fresh venv
+  and inspecting the installed package's file list.
+
+  Rendered-doc-site question (Sphinx/`mkdocs`) intentionally left
+  undecided, per this item's own text.
+
+  **Verified, not just written:** rebuilt the extension from scratch after
+  every docstring edit (zero compiler warnings/errors across all touched
+  files); `help(edi_kernels.<fn>)` visually confirmed on multiple sample
+  functions (plain and templated) to render a clean summary +
+  `Parameters` block; full `python/tests/` suite re-run and passing (181)
+  against the rebuilt, freshly-`pip install`-ed package. Re-verified again
+  after an unrelated same-session change to several `R/EDI/src/*.cpp`
+  files (local-variable renames inside R-facing SEXP wrappers, not the
+  `_internal` signatures these bindings call) — clean rebuild, 181/181
+  still passing.
+- [x] TODO-14: **create a PyPI-specific README, separate from
   `python/README.md`.** `pyproject.toml`'s `readme = "README.md"`
   currently points PyPI's rendered project page at the exact same file
   GitHub renders for the `python/` subfolder — already a live problem on
@@ -1534,17 +1602,14 @@ deliberately kept identical rather than split like `scikit-learn`/
     R6/class name, see TODO-8):
     - Column 1: the **Python function name**
       (`edi_kernels.fast_poisson_glmm`), not an R6/class name.
-    - Column 3: **Speedup** vs. the canonical Python baseline (reuse the
+    - Column 2: **Speedup** vs. the canonical Python baseline (reuse the
       existing numbers from `benchmarks/baselines.py`/
       `run_benchmark_audit.py` — reformat/re-key, don't redo the
       methodology).
-    - Column 2 is not specified by this TODO — pick something that makes
-      column 3 legible on its own (e.g. "Baseline" as
-      `package.function`, or "Response Type") and document the choice
-      inline rather than leaving it implicit.
-    - Baseline Gap kernels (see Baseline Gaps above) keep the existing
-      "no canonical baseline" treatment (grey/NA row, not silently
-      dropped) — same discipline as the main benchmark report.
+    - Column 3 is the canonical package/function in python
+    - column 4 is EDI timing and Column 5 is python timing
+    - Baseline Gap kernels (see Baseline Gaps above) are not displayed in this table 
+      as we have another listing below this table.
   - Link back to **both** the top-level repo
     (`https://github.com/kapelner/EDI`) and the `python/` subpage
     specifically (`https://github.com/kapelner/EDI/tree/main/python`) — a
@@ -1554,6 +1619,66 @@ deliberately kept identical rather than split like `scikit-learn`/
   - Verify with `twine check` (per TODO-11 above) plus an actual render
     preview before the next release ships it — a broken/unrendered README
     on a live PyPI listing is not something `git diff` catches.
+
+  **Status update (2026-08-11): done.** `python/README_PYPI.md` added;
+  `pyproject.toml`'s `readme` field now points there instead of
+  `README.md` (which stays as-is for GitHub's subfolder rendering).
+  Every link is an absolute `github.com/kapelner/EDI/...` URL — verified
+  zero relative links remain (`grep`), and `twine check` against a fresh
+  sdist build passed, which both validates the metadata and actually
+  renders the Markdown (the same check PyPI's own upload endpoint runs)
+  rather than just eyeballing it.
+
+  **Benchmark HTML link — corrected twice, now verified against actual
+  HTTP response headers, not just fetched content.** First pass:
+  `htmlpreview.github.io` doesn't work for an automated fetch (it's a
+  client-side JS redirector; a plain fetch just returns its static
+  landing page) — switched to jsDelivr's CDN mirror
+  (`cdn.jsdelivr.net/gh/kapelner/EDI@main/...`) instead, "verified" by
+  fetching it and seeing real table rows come back. **That verification
+  was flawed and the fix was wrong, caught 2026-08-11 by the user
+  actually opening the link in a real browser** — jsDelivr does return
+  the file's bytes to a generic fetch (which is all the first check
+  measured), but serves it with `Content-Type: text/plain` (confirmed via
+  `curl -I`), so a real browser shows raw source/downloads it rather than
+  rendering a page; a text-extracting fetch tool can't detect this
+  because it doesn't honor `Content-Type` the way a browser does. Checked
+  response headers directly this time before picking a fix:
+  `raw.githubusercontent.com` and jsDelivr both force
+  `text/plain`/`nosniff`; `raw.githack.com`/`rawcdn.githack.com` both
+  correctly return `Content-Type: text/html`. Switched to
+  `rawcdn.githack.com` (the production/CDN-backed one of that pair —
+  `raw.githack.com` itself is explicitly for development use per its own
+  docs) in both `README_PYPI.md` and `python/README.md` — the latter
+  wasn't actually a separate follow-up, it uses the identical link and
+  needed the identical fix, done in the same pass once the real problem
+  was found.
+
+  **Kernel comparison table:** columns exactly as this item specifies
+  (Python function name / Speedup / canonical package+function / EDI ms /
+  Python ms), sourced from the existing (2026-08-04) generated report's
+  Point-Estimate table — reformatted and re-keyed by function name via the
+  `MODEL_SPECS` class->kernel mapping, not re-benchmarked. Rows for the
+  same function across multiple R6 classes with near-identical numbers
+  (e.g. `fast_poisson_regression` benchmarked under
+  `InferenceCountPoisson`/`QuasiPoisson`/`RobustPoisson`/
+  `InferenceIncidModifiedPoisson`) are collapsed to one row; rows for the
+  same function under materially different modes
+  (`fast_zero_augmented_poisson`'s `is_hurdle` True/False,
+  `get_survival_stat_diff`'s `median`/`restricted_mean`) are kept as
+  separate rows with the mode noted in column 1. Baseline Gap kernels are
+  excluded from this table and listed separately below it, per this
+  item's own instruction. Three G-computation rows
+  (`InferenceIncidGCompRiskDiff`/`RiskRatio`,
+  `InferencePropGCompMeanDiff`, `InferenceOrdinalGCompMeanDiff`) are real,
+  non-Baseline-Gap numbers but were left out of both listings and called
+  out in a footnote instead — their `edi_kernel` field in `MODEL_SPECS` is
+  a composite ("`fast_logistic_regression` + gcomp utility"), not a
+  single bindable function, so putting a function name in column 1 for
+  them would misattribute the timing.
+
+  Links back to both the top-level repo and the `python/` subpage are
+  present near the top of the file, both absolute.
 
 ### Publishing
 
@@ -1637,16 +1762,19 @@ clean until TODO-12 lands.
   Python package's own listing*, not at a source subdirectory, would be
   legitimate at that point) — but the README-level links stay regardless.
   **Status update (2026-08-10): `edi_kernels` is now published (see
-  Publishing above) — partially actioned.** Added a
-  `img.shields.io/pypi/v/edi_kernels.svg` version badge to the repo-root
-  `README.md` (next to the existing CI/coverage badges); it self-updates
-  on future releases, no manual bump needed. The `DESCRIPTION`'s `URL:`
-  registry-link addition this note anticipates is still open — `EDI`
-  itself isn't on CRAN yet, so there's no symmetric registry to link in
-  return, and TODO-14 above (the PyPI-specific README) should land first
-  so the PyPI listing's own outbound links are sorted out in the same
-  pass rather than two separate edits to the same "what does the PyPI
-  page link to" question.
+  Publishing above).** Added a `img.shields.io/pypi/v/edi_kernels.svg`
+  version badge to the repo-root `README.md` (next to the existing
+  CI/coverage badges); it self-updates on future releases, no manual bump
+  needed.
+  **Status update (2026-08-11): `DESCRIPTION`'s `URL:` done too, now that
+  TODO-14 (PyPI-specific README) has landed.** `R/EDI/DESCRIPTION`'s
+  `URL:` field is now a two-entry DCF list —
+  `https://github.com/kapelner/EDI` and
+  `https://pypi.org/project/edi_kernels/` — verified it still parses as a
+  single field via `read.dcf()` (R DESCRIPTION's `URL:` accepts a
+  comma-separated, continuation-indented list; confirmed rather than
+  assumed the wrapped syntax is valid). `EDI` itself still isn't on CRAN,
+  so there's no symmetric CRAN-side registry entry to add in return yet.
 - Keep a `CHANGELOG.md` in `python/` from the first release onward,
   entries keyed to the same version number scheme above — a compiled
   numerical library's users need to know exactly which kernel-behavior or

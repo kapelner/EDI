@@ -5,9 +5,9 @@
 \title{Fast Zero-Augmented Poisson Regression (C++)}
 \usage{
 fast_zero_augmented_poisson_cpp(
-  X_sexp,
-  y_sexp,
-  Xzi_sexp,
+  X,
+  y,
+  Xzi,
   is_hurdle,
   warm_start_params = NULL,
   smart_cold_start = TRUE,
@@ -21,11 +21,11 @@ fast_zero_augmented_poisson_cpp(
 )
 }
 \arguments{
-\item{X_sexp}{Matrix of predictors for the conditional component.}
+\item{X}{Matrix of predictors for the conditional component.}
 
-\item{y_sexp}{Vector of responses.}
+\item{y}{Vector of responses.}
 
-\item{Xzi_sexp}{Matrix of predictors for the zero-inflation/hurdle component.}
+\item{Xzi}{Matrix of predictors for the zero-inflation/hurdle component.}
 
 \item{is_hurdle}{If TRUE, fit a hurdle model; if FALSE, fit a zero-inflated model.}
 

@@ -5,8 +5,8 @@
 \title{Fast Negative Binomial Regression (C++ Backend)}
 \usage{
 fast_neg_bin_cpp(
-  X_sexp,
-  y_sexp,
+  X,
+  y,
   warm_start_params = NULL,
   smart_cold_start = FALSE,
   maxit = 1000L,
@@ -20,9 +20,9 @@ fast_neg_bin_cpp(
 )
 }
 \arguments{
-\item{X_sexp}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors.}
 
-\item{y_sexp}{A numeric vector of responses.}
+\item{y}{A numeric vector of responses.}
 
 \item{warm_start_params}{Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.}
 

@@ -301,8 +301,8 @@ Eigen::MatrixXd get_probit_regression_hessian_cpp(SEXP X_sexp, SEXP beta_sexp) {
 
 //' @title Fast Probit Regression (C++)
 //' @description High-performance probit GLM fitting via IRLS or L-BFGS.
-//' @param X_sexp A numeric matrix of predictors (including intercept column).
-//' @param y_sexp A numeric vector of binary responses (0/1).
+//' @param X A numeric matrix of predictors (including intercept column).
+//' @param y A numeric vector of binary responses (0/1).
 //' @param warm_start_beta Optional starting values for coefficients.
 //' @param smart_cold_start Logical. If TRUE, use an OLS-based initial guess when no warm start is provided.
 //' @param maxit Maximum number of iterations.
@@ -317,7 +317,7 @@ Eigen::MatrixXd get_probit_regression_hessian_cpp(SEXP X_sexp, SEXP beta_sexp) {
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_probit_regression_cpp(SEXP X_sexp, SEXP y_sexp,
+List fast_probit_regression_cpp(SEXP X, SEXP y,
         Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
         bool smart_cold_start = true,
         int maxit = 100, double tol = 1e-8,
@@ -327,13 +327,13 @@ List fast_probit_regression_cpp(SEXP X_sexp, SEXP y_sexp,
         Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
         Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
         bool estimate_only = false) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
+    NumericMatrix X_r(X);
+    NumericVector y_r(y);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
 
     ModelResult res = fast_probit_regression_internal(
-        X, y, Eigen::VectorXd(),
+        X_mat, y_vec, Eigen::VectorXd(),
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         smart_cold_start, maxit, tol,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -348,8 +348,8 @@ List fast_probit_regression_cpp(SEXP X_sexp, SEXP y_sexp,
             .set("converged", res.converged)
             .set("iterations", res.iterations));
     }
-    const int n = X.rows();
-    const Eigen::VectorXd eta = X * res.b;
+    const int n = X_mat.rows();
+    const Eigen::VectorXd eta = X_mat * res.b;
     Eigen::VectorXd weights_vec(n);
     for (int i = 0; i < n; ++i) {
         const double ei = eta[i];
@@ -407,7 +407,7 @@ List fast_probit_regression_weighted_cpp(SEXP X_sexp, SEXP y_sexp,
 }
 
 // [[Rcpp::export]]
-List fast_probit_regression_with_var_cpp(SEXP X_sexp, SEXP y_sexp, int j = 2,
+List fast_probit_regression_with_var_cpp(SEXP X, SEXP y, int j = 2,
         Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
         bool smart_cold_start = true,
         Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
@@ -415,13 +415,13 @@ List fast_probit_regression_with_var_cpp(SEXP X_sexp, SEXP y_sexp, int j = 2,
         std::string optimization_alg = "irls",
         Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
         Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
+    NumericMatrix X_r(X);
+    NumericVector y_r(y);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
 
     ModelResult res = fast_probit_regression_internal(
-        X, y, Eigen::VectorXd(),
+        X_mat, y_vec, Eigen::VectorXd(),
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         smart_cold_start, 100, 1e-8,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -432,7 +432,7 @@ List fast_probit_regression_with_var_cpp(SEXP X_sexp, SEXP y_sexp, int j = 2,
         false);
 
     FixedParamSpec fixed_spec = make_fixed_param_spec(
-        X.cols(),
+        X_mat.cols(),
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values));
     Eigen::MatrixXd info_free = subset_matrix(res.XtWX, fixed_spec.free_idx, fixed_spec.free_idx);
@@ -443,10 +443,10 @@ List fast_probit_regression_with_var_cpp(SEXP X_sexp, SEXP y_sexp, int j = 2,
         return -1;
     };
 
-    int free_j = (j > 0 && j <= X.cols()) ? free_idx_of(j - 1) : -1;
+    int free_j = (j > 0 && j <= X_mat.cols()) ? free_idx_of(j - 1) : -1;
     res.ssq_b_j = (free_j > 0) ? compute_diagonal_inverse_entry(info_free, free_j) : NA_REAL;
 
-    int free_2 = (X.cols() >= 2) ? free_idx_of(1) : -1;
+    int free_2 = (X_mat.cols() >= 2) ? free_idx_of(1) : -1;
     res.ssq_b_2 = (free_2 > 0) ? compute_diagonal_inverse_entry(info_free, free_2) : NA_REAL;
 
     Eigen::MatrixXd neg_XtWX = -res.XtWX;

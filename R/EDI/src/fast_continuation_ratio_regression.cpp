@@ -206,8 +206,8 @@ Eigen::MatrixXd get_continuation_ratio_regression_hessian_cpp(SEXP X_sexp,
 
 //' @title Fast Continuation-Ratio Regression (C++)
 //' @description High-performance continuation-ratio logit model fitting.
-//' @param X_sexp A numeric matrix of predictors (no intercept column; threshold intercepts are estimated internally).
-//' @param y_sexp A numeric vector of ordinal responses.
+//' @param X A numeric matrix of predictors (no intercept column; threshold intercepts are estimated internally).
+//' @param y A numeric vector of ordinal responses.
 //' @param maxit Maximum number of iterations.
 //' @param tol Convergence tolerance.
 //' @param warm_start_beta Optional starting values for coefficients.
@@ -220,21 +220,21 @@ Eigen::MatrixXd get_continuation_ratio_regression_hessian_cpp(SEXP X_sexp,
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_continuation_ratio_regression_cpp(SEXP X_sexp, SEXP y_sexp, int maxit = 100, double tol = 1e-8,
+List fast_continuation_ratio_regression_cpp(SEXP X, SEXP y, int maxit = 100, double tol = 1e-8,
                                              Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
                                              bool smart_cold_start = true,
                                              Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
                                              Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
                                              std::string optimization_alg = "lbfgs",
                                              Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_r(X_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    NumericVector y_r(y_sexp);
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
+    NumericMatrix X_r(X);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    NumericVector y_r(y);
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
 
-    int p = X.cols();
+    int p = X_mat.cols();
     ContinuationRatioFit cr = fast_continuation_ratio_internal(
-        X, y, maxit, tol,
+        X_mat, y_vec, maxit, tol,
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         smart_cold_start,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -263,21 +263,21 @@ List fast_continuation_ratio_regression_cpp(SEXP X_sexp, SEXP y_sexp, int maxit 
 }
 
 // [[Rcpp::export]]
-List fast_continuation_ratio_regression_with_var_cpp(SEXP X_sexp, SEXP y_sexp, int maxit = 100, double tol = 1e-8,
+List fast_continuation_ratio_regression_with_var_cpp(SEXP X, SEXP y, int maxit = 100, double tol = 1e-8,
                                                       Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
                                                       bool smart_cold_start = true,
                                                       Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
                                                       Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
                                                       std::string optimization_alg = "lbfgs",
                                                       Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_r(X_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    NumericVector y_r(y_sexp);
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
+    NumericMatrix X_r(X);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    NumericVector y_r(y);
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
 
-    int p = X.cols();
+    int p = X_mat.cols();
     ContinuationRatioFit cr = fast_continuation_ratio_internal(
-        X, y, maxit, tol,
+        X_mat, y_vec, maxit, tol,
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         smart_cold_start,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),

@@ -155,7 +155,40 @@ void bind_survival(py::module_& m) {
     py::arg("optimization_alg") = "newton_raphson",
     py::arg("warm_start_fisher_info") = py::none(),
     "Fast Cox proportional-hazards regression via Newton-Raphson (unstratified, "
-    "no cluster-robust vcov).");
+    "no cluster-robust vcov). No R-side roxygen documents this raw kernel "
+    "directly (fast_coxph_regression.cpp's roxygen documents a bootstrap helper, "
+    "not this fit function); parameters follow the same conventions used "
+    "throughout this module.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    Numeric matrix of predictors (no intercept column -- Cox regression is\n"
+    "    fit on the partial likelihood, which has none).\n"
+    "y : ndarray\n"
+    "    Numeric vector of survival/censoring times.\n"
+    "dead : ndarray\n"
+    "    0/1 event indicator (1 = event, 0 = censored), same length as y.\n"
+    "warm_start_beta : ndarray, optional\n"
+    "    Optional starting values for coefficients. If provided,\n"
+    "    smart_cold_start is ignored.\n"
+    "smart_cold_start : bool, default True\n"
+    "    If True, use an initial OLS-based guess when starting from scratch. Ignored\n"
+    "    if a warm start is provided.\n"
+    "estimate_only : bool, default False\n"
+    "    If True, skip variance-covariance computation and return only\n"
+    "    coefficients.\n"
+    "maxit : int, default 20\n"
+    "    Maximum number of Newton-Raphson iterations.\n"
+    "tol : float, default 1e-9\n"
+    "    Convergence tolerance.\n"
+    "fixed_idx : ndarray of int, optional\n"
+    "    Optional indices of fixed parameters.\n"
+    "fixed_values : ndarray, optional\n"
+    "    Optional values for fixed parameters.\n"
+    "optimization_alg : str, default \"newton_raphson\"\n"
+    "    Optimization algorithm.\n"
+    "warm_start_fisher_info : ndarray, optional\n"
+    "    Optional initial Fisher information matrix for the first iteration.");
 
     m.def("fast_stratified_coxph_regression", [](const Eigen::Ref<const Eigen::MatrixXd>& X,
                                                   const Eigen::Ref<const Eigen::VectorXd>& y,
@@ -187,7 +220,42 @@ void bind_survival(py::module_& m) {
     py::arg("warm_start_fisher_info") = py::none(),
     "Fast stratified Cox proportional-hazards regression via Newton-Raphson: one shared "
     "beta fit jointly across strata-specific baseline hazards. strata: integer group "
-    "labels, any values (grouped internally, not required to be 0-based/contiguous).");
+    "labels, any values (grouped internally, not required to be 0-based/contiguous). "
+    "No R-side roxygen documents this raw kernel directly (fast_coxph_regression.cpp's "
+    "roxygen documents a bootstrap helper, not this fit function); other parameters "
+    "follow fast_coxph_regression's conventions (see its docstring).\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    Numeric matrix of predictors (no intercept column).\n"
+    "y : ndarray\n"
+    "    Numeric vector of survival/censoring times.\n"
+    "dead : ndarray\n"
+    "    0/1 event indicator (1 = event, 0 = censored), same length as y.\n"
+    "strata : ndarray of int\n"
+    "    Stratum label for each subject; each stratum gets its own baseline\n"
+    "    hazard while sharing one beta across all strata.\n"
+    "warm_start_beta : ndarray, optional\n"
+    "    Optional starting values for coefficients. If provided,\n"
+    "    smart_cold_start is ignored.\n"
+    "smart_cold_start : bool, default True\n"
+    "    If True, use an initial OLS-based guess when starting from scratch. Ignored\n"
+    "    if a warm start is provided.\n"
+    "estimate_only : bool, default False\n"
+    "    If True, skip variance-covariance computation and return only\n"
+    "    coefficients.\n"
+    "maxit : int, default 20\n"
+    "    Maximum number of Newton-Raphson iterations.\n"
+    "tol : float, default 1e-9\n"
+    "    Convergence tolerance.\n"
+    "fixed_idx : ndarray of int, optional\n"
+    "    Optional indices of fixed parameters.\n"
+    "fixed_values : ndarray, optional\n"
+    "    Optional values for fixed parameters.\n"
+    "optimization_alg : str, default \"newton_raphson\"\n"
+    "    Optimization algorithm.\n"
+    "warm_start_fisher_info : ndarray, optional\n"
+    "    Optional initial Fisher information matrix for the first iteration.");
 
     m.def("fast_weibull_regression", [](const Eigen::Ref<const Eigen::MatrixXd>& X,
                                         const Eigen::Ref<const Eigen::VectorXd>& y,
@@ -216,7 +284,35 @@ void bind_survival(py::module_& m) {
     py::arg("fixed_values") = py::none(),
     py::arg("optimization_alg") = "lbfgs",
     py::arg("warm_start_fisher_info") = py::none(),
-    "Fast Weibull AFT regression via L-BFGS. Returned 'params' = [beta, log_sigma].");
+    "Fast Weibull AFT regression via L-BFGS. Returned 'params' = [beta, log_sigma]. "
+    "Parameters sourced from R/EDI/man/ documentation for "
+    "fast_weibull_regression_cpp.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    A numeric matrix of predictors.\n"
+    "y : ndarray\n"
+    "    A numeric vector of survival times.\n"
+    "dead : ndarray\n"
+    "    A numeric vector of event indicators (1=event, 0=censored).\n"
+    "warm_start_params : ndarray, optional\n"
+    "    Optional starting values for coefficients.\n"
+    "smart_cold_start : bool, default True\n"
+    "    If True, use an initial OLS-based guess.\n"
+    "estimate_only : bool, default False\n"
+    "    If True, do not compute the variance-covariance matrix.\n"
+    "maxit : int, default 100\n"
+    "    Maximum number of iterations.\n"
+    "tol : float, default 1e-8\n"
+    "    Convergence tolerance.\n"
+    "fixed_idx : ndarray of int, optional\n"
+    "    Optional indices of fixed parameters.\n"
+    "fixed_values : ndarray, optional\n"
+    "    Optional values for fixed parameters.\n"
+    "optimization_alg : str, default \"lbfgs\"\n"
+    "    Optimization algorithm.\n"
+    "warm_start_fisher_info : ndarray, optional\n"
+    "    Optional initial Fisher information matrix.");
 
     m.def("fast_weibull_frailty", [](const Eigen::Ref<const Eigen::MatrixXd>& X,
                                       const Eigen::Ref<const Eigen::VectorXd>& y,
@@ -252,7 +348,44 @@ void bind_survival(py::module_& m) {
     py::arg("optimization_alg") = "lbfgs",
     py::arg("warm_start_fisher_info") = py::none(),
     "Fast Weibull AFT frailty regression (random intercept, Gauss-Hermite quadrature) "
-    "via L-BFGS.");
+    "via L-BFGS. No R-side roxygen documents this raw kernel directly "
+    "(fast_weibull_frailty.cpp has none); shared adaptive-quadrature parameter "
+    "meanings (n_gh/max_abs_log_sigma/etc.) are grounded in R/EDI/man/ "
+    "documentation for the GLMM-engine sibling fast_ordinal_glmm_cpp.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    A numeric matrix of predictors.\n"
+    "y : ndarray\n"
+    "    A numeric vector of survival times.\n"
+    "dead : ndarray\n"
+    "    0/1 event indicator (1 = event, 0 = censored).\n"
+    "group_id : ndarray of int\n"
+    "    Group (shared-frailty cluster) identifiers, one per row of X/y.\n"
+    "warm_start_params : ndarray, optional\n"
+    "    Optional starting values for all parameters [beta, log_sigma_shape,\n"
+    "    log_sigma_frailty].\n"
+    "warm_start_beta : ndarray, optional\n"
+    "    Optional starting values for the coefficients only.\n"
+    "estimate_only : bool, default False\n"
+    "    If True, skip variance-component calculations.\n"
+    "n_gh : int, default 20\n"
+    "    Number of Gauss-Hermite quadrature nodes used to integrate out the\n"
+    "    shared frailty term.\n"
+    "max_abs_log_sigma : float, default 8.0\n"
+    "    Maximum allowed value for log(sigma) (the frailty SD).\n"
+    "maxit : int, default 300\n"
+    "    Maximum number of iterations.\n"
+    "eps_g : float, default 1e-6\n"
+    "    Convergence tolerance for the gradient.\n"
+    "fixed_idx : ndarray of int, optional\n"
+    "    Optional indices of fixed parameters.\n"
+    "fixed_values : ndarray, optional\n"
+    "    Optional values for fixed parameters.\n"
+    "optimization_alg : str, default \"lbfgs\"\n"
+    "    Optimization algorithm.\n"
+    "warm_start_fisher_info : ndarray, optional\n"
+    "    Optional initial Fisher information matrix for the first iteration.");
 
     m.def("fast_clayton_weibull_aft_optim", [](const Eigen::Ref<const Eigen::MatrixXd>& X,
                                                 const Eigen::Ref<const Eigen::VectorXd>& y,
@@ -284,7 +417,40 @@ void bind_survival(py::module_& m) {
     "Fast Clayton-copula Weibull AFT regression (matched pairs + singleton reservoir "
     "design) via L-BFGS. pair_idx: 0-based (n_pairs x 2) row indices into X/y/dead; "
     "singleton_rows: 0-based row indices of reservoir singletons. warm_start_params "
-    "is required (no default cold start).");
+    "is required (no default cold start). No R-side roxygen documents this raw "
+    "kernel directly (fast_survival_models_optim.cpp has none).\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    A numeric matrix of predictors.\n"
+    "y : ndarray\n"
+    "    A numeric vector of survival/censoring times.\n"
+    "dead : ndarray\n"
+    "    0/1 event indicator (1 = event, 0 = censored).\n"
+    "pair_idx : ndarray of int\n"
+    "    0-based (n_pairs, 2) matrix of row indices into X/y/dead identifying\n"
+    "    each Clayton-copula-dependent matched pair.\n"
+    "singleton_rows : ndarray of int\n"
+    "    0-based row indices of reservoir subjects not in any pair (treated as\n"
+    "    independent).\n"
+    "warm_start_params : ndarray\n"
+    "    Required starting values for all parameters (no default cold start is\n"
+    "    implemented for this kernel).\n"
+    "estimate_only : bool, default False\n"
+    "    If True, skip variance-covariance computation and return only\n"
+    "    coefficients.\n"
+    "maxit : int, default 2000\n"
+    "    Maximum number of iterations.\n"
+    "reltol : float, default 1e-9\n"
+    "    Relative convergence tolerance.\n"
+    "fixed_idx : ndarray of int, optional\n"
+    "    Optional indices of fixed parameters.\n"
+    "fixed_values : ndarray, optional\n"
+    "    Optional values for fixed parameters.\n"
+    "optimization_alg : str, default \"lbfgs\"\n"
+    "    Optimization algorithm.\n"
+    "warm_start_fisher_info : ndarray, optional\n"
+    "    Optional initial Fisher information matrix for the first iteration.");
 
     m.def("fast_dep_cens_transform_optim", [](const Eigen::Ref<const Eigen::MatrixXd>& X,
                                                const Eigen::Ref<const Eigen::VectorXd>& y,
@@ -313,7 +479,39 @@ void bind_survival(py::module_& m) {
     py::arg("fixed_values") = py::none(),
     py::arg("optimization_alg") = "lbfgs",
     py::arg("warm_start_fisher_info") = py::none(),
-    "Fast dependent-censoring transformation-model regression via L-BFGS.");
+    "Fast dependent-censoring transformation-model regression via L-BFGS. No "
+    "R-side roxygen documents this raw kernel directly "
+    "(fast_survival_models_optim.cpp has none); parameters follow the same "
+    "conventions used throughout this module.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    A numeric matrix of predictors.\n"
+    "y : ndarray\n"
+    "    A numeric vector of survival/censoring times.\n"
+    "dead : ndarray\n"
+    "    0/1 event indicator (1 = event, 0 = censored).\n"
+    "warm_start_params : ndarray, optional\n"
+    "    Optional starting values for all parameters. If provided,\n"
+    "    smart_cold_start is ignored.\n"
+    "smart_cold_start : bool, default True\n"
+    "    If True, use an initial OLS-based guess when starting from scratch. Ignored\n"
+    "    if a warm start is provided.\n"
+    "estimate_only : bool, default False\n"
+    "    If True, skip variance-covariance computation and return only\n"
+    "    coefficients.\n"
+    "maxit : int, default 2000\n"
+    "    Maximum number of iterations.\n"
+    "reltol : float, default 1e-9\n"
+    "    Relative convergence tolerance.\n"
+    "fixed_idx : ndarray of int, optional\n"
+    "    Optional indices of fixed parameters.\n"
+    "fixed_values : ndarray, optional\n"
+    "    Optional values for fixed parameters.\n"
+    "optimization_alg : str, default \"lbfgs\"\n"
+    "    Optimization algorithm.\n"
+    "warm_start_fisher_info : ndarray, optional\n"
+    "    Optional initial Fisher information matrix for the first iteration.");
 
     m.def("fast_gehan_wilcox_stats", [](const Eigen::Ref<const Eigen::VectorXd>& time,
                                          const std::vector<int>& dead,
@@ -335,7 +533,17 @@ void bind_survival(py::module_& m) {
     "0/1 vectors (event indicator / treatment indicator). Returns score, "
     "var_score (Peto-Prentice-weighted logrank score/variance), beta_hat "
     "(treatment-minus-control mean of Peto-Prentice-weighted martingale "
-    "residuals -- the point estimate), se_beta_hat, n_treat, n_control.");
+    "residuals -- the point estimate), se_beta_hat, n_treat, n_control. No "
+    "R-side roxygen documents this raw kernel directly (fast_gehan_wilcox.cpp "
+    "has none).\n\n"
+    "Parameters\n"
+    "----------\n"
+    "time : ndarray\n"
+    "    Numeric vector of survival/censoring times.\n"
+    "dead : list of int\n"
+    "    0/1 event indicator (1 = event, 0 = censored), same length as time.\n"
+    "w : list of int\n"
+    "    0/1 treatment indicator, same length as time.");
 
     m.def("fast_logrank_stats", [](const Eigen::Ref<const Eigen::VectorXd>& time,
                                     const std::vector<int>& dead,
@@ -356,7 +564,16 @@ void bind_survival(py::module_& m) {
     "Standard (rho=0) two-sample log-rank test. dead/w are 0/1 vectors "
     "(event indicator / treatment indicator). Returns score, var_score, "
     "beta_hat (treatment-minus-control mean of martingale residuals -- the "
-    "point estimate), se_beta_hat, n_treat, n_control.");
+    "point estimate), se_beta_hat, n_treat, n_control. No R-side roxygen "
+    "documents this raw kernel directly (fast_logrank.cpp has none).\n\n"
+    "Parameters\n"
+    "----------\n"
+    "time : ndarray\n"
+    "    Numeric vector of survival/censoring times.\n"
+    "dead : list of int\n"
+    "    0/1 event indicator (1 = event, 0 = censored), same length as time.\n"
+    "w : list of int\n"
+    "    0/1 treatment indicator, same length as time.");
 
     m.def("get_survival_stat_diff", &get_survival_stat_diff_result,
     py::arg("y"), py::arg("dead"), py::arg("w"), py::arg("requested_stat") = "median",
@@ -364,5 +581,16 @@ void bind_survival(py::module_& m) {
     "statistic. requested_stat is 'median' (KM median survival time, "
     "matching survival::quantile.survfit's step-function semantics) or "
     "'restricted_mean'. dead/w are 0/1 vectors (event indicator / treatment "
-    "indicator).");
+    "indicator). Parameters sourced from R/EDI/man/ documentation for this "
+    "same-named function in R/EDI/src/fast_survival_stats.cpp.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "y : ndarray\n"
+    "    Numeric vector of survival times.\n"
+    "dead : ndarray of int\n"
+    "    Event indicator (1=event, 0=censored).\n"
+    "w : ndarray of int\n"
+    "    Treatment assignment (1=treatment, 0=control).\n"
+    "requested_stat : str, default \"median\"\n"
+    "    Either \"median\" or \"restricted_mean\".");
 }

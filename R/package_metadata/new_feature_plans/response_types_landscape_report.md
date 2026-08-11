@@ -891,15 +891,23 @@ landscape survey guessed:
   today — it's a survival-style censoring problem, not a mixture-model
   variant.
 - [x] TODO-8: `interval-censored` survival outcomes — see
-  `package_metadata/interval_censored_survival_response_type_report.md`.
-  Verdict: **split by engine** — parametric Weibull interval-censored
-  regression is **moderate** (`fast_weibull_regression_cpp` just needs a new
-  `log(S(L)-S(R))` likelihood branch), the semiparametric Cox-analogue is
-  **hard** (Cox partial likelihood has no interval-data extension; needs a
-  new NPMLE/EM engine), and the `Design`-layer response storage
-  (`design_abstract.R`, currently one scalar `y` + one `dead` flag) needs a
-  real schema change to represent an `(L,R)` interval at all — distinct from
-  the existing `InferenceSurvivalDepCensTransformRegr`
+  `package_metadata/interval_censored_survival_response_type_report.md`
+  — **note (fixed stale cross-reference)**: that filename was never
+  actually created; the real document is
+  `package_metadata/new_feature_plans/interval_censored_survival_response.md`.
+  Revised verdict per that document: parametric Weibull interval-censored
+  regression is **moderate** (`fast_weibull_regression_cpp` needs a
+  `log(S(L)-S(R))` likelihood branch, which also picks up left-censoring
+  for free as the `L=0` degenerate case); the semiparametric Cox-analogue
+  reframes from "hard, needs a new NPMLE/EM engine" to **moderate** —
+  that engine already exists outside this package (`icenReg::ic_sp()`,
+  `interval::ictest()`/`icfit()`), so the real work is dependency +
+  integration glue, not new numerical methods; the `Design`-layer schema
+  change is a `y`/`y_L`/`y_R` triple (not just a bigger `(L,R)` pair) —
+  smaller than initially estimated, though it does require migrating every
+  existing survival `Inference*` class's internal read of `private$y` to
+  a shared accessor, which is real but mechanical, output-preserving work.
+  Distinct from the existing `InferenceSurvivalDepCensTransformRegr`
   (EDI/R/inference_survival_dep_cens_transform.R), which handles *dependent*
   right-censoring, not interval censoring.
 

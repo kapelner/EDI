@@ -327,7 +327,7 @@ start_heartbeat_process = function(){
 		shQuote(as.character(HEARTBEAT_INTERVAL_SEC))
 	)
 	tryCatch({
-		system2("sh", c("-c", cmd), wait = FALSE, stdout = FALSE, stderr = FALSE)
+		system2("sh", c("-c", shQuote(cmd)), wait = FALSE, stdout = FALSE, stderr = FALSE)
 		invisible(TRUE)
 	}, error = function(e) invisible(FALSE))
 }

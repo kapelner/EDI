@@ -5,8 +5,8 @@
 \title{Fast Beta Regression with Variance Calculation (C++ Backend)}
 \usage{
 fast_beta_regression_with_var_cpp(
-  X_sexp,
-  y_sexp,
+  X,
+  y,
   warm_start_beta = NULL,
   smart_cold_start = TRUE,
   start_phi = 10,
@@ -18,9 +18,9 @@ fast_beta_regression_with_var_cpp(
 )
 }
 \arguments{
-\item{X_sexp}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors.}
 
-\item{y_sexp}{A numeric vector of responses (in (0, 1)).}
+\item{y}{A numeric vector of responses (in (0, 1)).}
 
 \item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
 

@@ -330,6 +330,109 @@ Do not skip step 4's bit-identical diff even for functions that look like
 pure refactors — this is the entire safety net for a change that touches
 ~50 files without altering intended behavior.
 
+## Status (updated 2026-08-11)
+
+Audited against the current state of `EDI/src` and `python/cpp`. This section
+tracks progress; see TODO Checklist below for the item-by-item breakdown it's
+based on.
+
+- **Infrastructure (Phase 1) is done.** `result_map.h` and `result_map_rcpp.h`
+  both exist as specified. The pilot migration (`fast_poisson_glmm_cpp`) is
+  done in substance — its core is extracted into
+  `fast_poisson_glmm_internal`, which returns `edi::ResultMap`, and the
+  wrapper takes `Eigen::Map`/plain Rcpp-sugar params directly and calls
+  `edi::to_rcpp_list(...)`. One deviation from the Migration Pattern as
+  written: the wrapper's declared return type is still `SEXP`, not
+  `Rcpp::List` — functionally identical (per this doc's own "cosmetic" note
+  in Motivation) but not literally matching the pattern; folding this into
+  Phase 4 cleanup is the cheapest way to close it out.
+- **`scripts/check_core_no_rcpp.sh` now exists** (`R/scripts/check_core_no_rcpp.sh`
+  + `check_core_no_rcpp.py`) and has been run. It doesn't do a naive whole-file
+  grep — since this codebase's actual convention (documented in
+  `fast_gamma_functions.h`, not anticipated by this doc when it was written)
+  is same-file `#ifdef EDI_CORE_ONLY`/`#ifndef EDI_CORE_ONLY` splitting rather
+  than separate `*_core.cpp` files, the script statically tracks that
+  conditional nesting to determine which lines would survive an
+  `EDI_CORE_ONLY` compile, and only flags `SEXP`/`Rcpp::`/`#include
+  <Rcpp...>` in *those* lines (comments and string/char literals are
+  stripped first, so prose that merely mentions "SEXP" doesn't trip it).
+  Whole-file `*_core.cpp`/`*_core.h` files are checked unconditionally in
+  full. Verified against a positive control (an injected `SEXP` parameter
+  was caught at the correct line, then reverted) and a negative control (a
+  real doc comment containing the literal word "SEXP" was correctly not
+  flagged). **Current result: 49 migrated files checked (the same set with
+  Python/pybind11 bindings), 0 violations — every core region that has
+  actually been through the `EDI_CORE_ONLY` split is genuinely Rcpp/SEXP-free
+  today.** 69 files were skipped as not-yet-migrated (no `EDI_CORE_ONLY`
+  guard found), consistent with Phase 2/3/4 still being open for them.
+- **Phase 3 (`List::create` → `ResultMap`) is substantially further along
+  than the checklist reflects.** 32 files already build results via
+  `edi::ResultMap`, covering essentially every primary fitting function
+  across all four family groupings in TODO-6–9 (continuous/OLS, count/
+  ordinal, incidence/survival/proportion, and GLMM/KK-combined, including the
+  large state-heavy files called out as Phase-3-last: `fast_clogit_plus_glmm.cpp`,
+  `fast_cpoisson_combined.cpp`). This looks like it happened outside/ahead of
+  this checklist rather than because of it — worth reconciling with whoever
+  did that work rather than re-deriving it from scratch.
+  28 files still call `List::create` somewhere; that remainder is concentrated in:
+  - RNG-dependent files correctly left alone per the RNG Handling exclusion
+    (`bootstrap_match_indices.cpp`, `exchangeable_resampling_draws.cpp`,
+    `generate_permutations.cpp`, `randomization_loop.cpp`,
+    `simulation_dgp.cpp`, `test_smart_starts.cpp`);
+  - design/matching/speedup helper files never explicitly named in the
+    phase breakdown (`build_kk_combined_clogit_design.cpp`,
+    `build_kk_combined_ols_design.cpp`, `gcomp_speedups.cpp`,
+    `robust_post_fit_speedups.cpp`, `match_data_compute_speedup.cpp`,
+    `qr_reduce_design_matrix.cpp`, `kk_bootstrap_reservoir_stats.cpp`,
+    `kk_cluster_ids.cpp`, `kk_lin_match_data.cpp`, `zhang_exact_speedups.cpp`,
+    `survival_strata_ids.cpp`, `base_bootstrap_loop.cpp`, `build_info.cpp`);
+  - secondary exported helpers (score/hessian/post-fit getters) living in
+    otherwise-migrated model files (e.g. `fast_coxph_regression.cpp`,
+    `fast_logrank.cpp`, `fast_ordinal_regression.cpp`,
+    `fast_zero_augmented_poisson.cpp`, `fast_zinb.cpp`,
+    `fast_gehan_wilcox.cpp`, `fast_jonckheere_terpstra.cpp`,
+    `fast_ridit_analysis.cpp`).
+- **Phase 4 (raw `SEXP`-return wrapper signatures) has not been started.**
+  All 13 files from the Motivation audit still declare their exported
+  wrapper functions as returning `SEXP` rather than `Rcpp::List`, including
+  `fast_poisson_glmm.cpp` despite its core being migrated (see above). One
+  additional file not in the original 13, `fast_gehan_wilcox.cpp`, was found
+  in this audit with the same pattern and should be folded into TODO-10.
+  `sample_mode.cpp` is unchanged, as intended (Non-Goals).
+- **Phase 2 (zero-copy `Eigen::Map` params) is unstarted as a phase**, though
+  it's now partially and *incidentally* satisfied for the 16 files touched by
+  a separate, narrower task done in this same session (see next bullet) —
+  that work is not a substitute for TODO-5.
+  48 files still contain the manual `SEXP ..._sexp` → `NumericMatrix`/
+  `NumericVector` → `Eigen::Map` boilerplate this phase is meant to delete.
+- **This session's actual contribution: an argument-*naming* cleanup, not
+  Phase 2.** Per explicit user request, stripped the `_sexp` suffix from the
+  argument *names* (not types) of all 41 `NAMESPACE`-exported (public) C++
+  functions across 16 source files — e.g.
+  `fast_weibull_regression_cpp(X_sexp, y_sexp, dead_sexp, ...)` became
+  `fast_weibull_regression_cpp(X, y, dead, ...)`. Parameters are still typed
+  `SEXP`; the manual `NumericMatrix`/`Eigen::Map` conversion lines are still
+  present; internal (non-exported) functions in those same 16 files were
+  deliberately left untouched, per instruction. Net effect: nicer R-facing
+  argument names now show up in `?fast_weibull_regression_cpp` etc., but this
+  doesn't advance Phase 2, 3, or 4 of this spec — it's an orthogonal,
+  smaller-scope fix that happened to touch an overlapping set of files.
+  Also updated as part of that work: `RcppExports.R`/`.cpp`, man pages,
+  `NAMESPACE` (regenerated, unchanged), and the handful of R call sites/tests
+  that passed those arguments by name.
+- **TODO-13 (pybind11 layer) is done and shipped**, despite being explicitly
+  out of scope for this doc. `python/cpp/result_map_pybind.h` exists as the
+  pybind11 twin of `result_map_rcpp.h`, 10 `bindings_*.cpp` files
+  (~3,760 lines) wrap all 33 `edi::ResultMap`-returning cores (37 bound
+  functions), and the resulting `edi_kernels` package was actually
+  published to PyPI as `py-v1.0.0` — verified post-publish by installing
+  from `pypi.org` into an independent venv and passing the full 181-test
+  suite, not just a local build check. A critical sdist-install bug found
+  2026-08-10 was fixed and verified (`.post1`). Tracked in full by a
+  separate `python_bindings_package_spec.md`; its own remaining open items
+  are documentation polish (parameter-level docs, a PyPI-specific README),
+  not the binding layer.
+
 ## Implementation Phases
 
 ### Phase 1: Infrastructure
@@ -385,20 +488,52 @@ pure refactors — this is the entire safety net for a change that touches
 
 ## TODO Checklist
 
-- [ ] TODO-1: Add `EDI/src/result_map.h` (`edi::ResultValue`, `edi::ResultMap`).
-- [ ] TODO-2: Add `EDI/src/result_map_rcpp.h` (`edi::to_rcpp_list`).
-- [ ] TODO-3: Add `scripts/check_core_no_rcpp.sh`.
-- [ ] TODO-4: Migrate `fast_poisson_glmm_cpp` end-to-end as the pilot; confirm
+- [x] TODO-1: Add `EDI/src/result_map.h` (`edi::ResultValue`, `edi::ResultMap`).
+      Done — file exists as specified.
+- [x] TODO-2: Add `EDI/src/result_map_rcpp.h` (`edi::to_rcpp_list`).
+      Done — file exists as specified.
+- [x] TODO-3: Add `scripts/check_core_no_rcpp.sh`.
+      Done — `R/scripts/check_core_no_rcpp.sh` (+ companion `.py`). Tracks
+      `EDI_CORE_ONLY` conditional nesting rather than naive whole-file grep
+      (see Status). Run against `R/EDI/src`: 49 migrated files checked, 0
+      violations.
+- [x] TODO-4: Migrate `fast_poisson_glmm_cpp` end-to-end as the pilot; confirm
       bit-identical test diff before proceeding further.
-- [ ] TODO-5: Phase 2 — zero-copy input cleanup across the 51 `_sexp`-pattern
+      Done in substance (core in `fast_poisson_glmm_internal`, returns
+      `edi::ResultMap`, wrapper takes `Eigen::Map` params directly and calls
+      `edi::to_rcpp_list`). Minor gap: wrapper return type is still declared
+      `SEXP` rather than `Rcpp::List` — fold that into TODO-10.
+- [~] TODO-5: Phase 2 — zero-copy input cleanup across the 51 `_sexp`-pattern
       files (excludes the 15 RNG files and `sample_mode.cpp`).
-- [ ] TODO-6: Phase 3 — migrate continuous/OLS-family `List::create` files.
-- [ ] TODO-7: Phase 3 — migrate count/ordinal-family `List::create` files.
-- [ ] TODO-8: Phase 3 — migrate incidence/survival/proportion-family
+      Not started as a phase. 48 files still have the manual `_sexp` ->
+      `NumericMatrix`/`NumericVector` -> `Eigen::Map` boilerplate. Note: a
+      separate, narrower same-session task renamed the *argument names* (not
+      types) of the 41 public functions across 16 of these files
+      (`X_sexp`->`X` etc.) for API hygiene — params are still `SEXP`-typed
+      and the manual conversion lines are still present, so this does not
+      count as TODO-5 progress; internal (non-exported) functions in those
+      16 files were left untouched.
+- [~] TODO-6: Phase 3 — migrate continuous/OLS-family `List::create` files.
+      Primary fitting functions done (e.g. `fast_ols.cpp`,
+      `fast_robust_regression.cpp` use `edi::ResultMap`); some
+      non-family-named helper files with `List::create` remain (see Status).
+- [~] TODO-7: Phase 3 — migrate count/ordinal-family `List::create` files.
+      Primary fitting functions done across binomial/poisson/negbin/beta and
+      ordinal variants; secondary exported helpers (score/hessian getters,
+      `fast_zinb.cpp`, `fast_ridit_analysis.cpp`, `fast_jonckheere_terpstra.cpp`)
+      still call `List::create`.
+- [~] TODO-8: Phase 3 — migrate incidence/survival/proportion-family
       `List::create` files.
-- [ ] TODO-9: Phase 3 — migrate KK-combined/GLMM `List::create` files
+      Primary survival/proportion fitting functions done (`fast_weibull_regression.cpp`,
+      `fast_weibull_frailty.cpp`, `fast_zero_one_inflated_beta.cpp`,
+      `fast_zero_augmented_poisson.cpp`); `fast_coxph_regression.cpp` and
+      `fast_logrank.cpp` still call `List::create` (also overlaps TODO-10).
+- [x] TODO-9: Phase 3 — migrate KK-combined/GLMM `List::create` files
       (`fast_clogit_plus_glmm.cpp`, `fast_cpoisson_combined.cpp`, and
       similarly state-heavy files).
+      Done — both named files plus `fast_gee.cpp`, `fast_gaussian_lmm.cpp`,
+      `fast_logistic_glmm.cpp`, `fast_ordinal_glmm.cpp`, `fast_ordinal_clmm.cpp`,
+      `fast_hurdle_poisson_glmm.cpp` all build results via `edi::ResultMap`.
 - [ ] TODO-10: Phase 4 — migrate the remaining raw-`SEXP`-return files:
       `fast_survival_models_optim.cpp`, `fast_zero_one_inflated_beta.cpp`,
       `fast_stereotype_logit.cpp`, `fast_ordinal_regression.cpp`,
@@ -406,13 +541,34 @@ pure refactors — this is the entire safety net for a change that touches
       `fast_ordinal_cloglog_regression.cpp`,
       `fast_ordinal_cauchit_regression.cpp`, `fast_coxph_regression.cpp`,
       `fast_logrank.cpp`.
-- [ ] TODO-11: Phase 5 — full-repo `check_core_no_rcpp.sh` sweep +
+      Not started — all 13 original files (plus `fast_poisson_glmm.cpp`,
+      whose core is otherwise migrated, and `fast_gehan_wilcox.cpp`, found in
+      this audit but missing from the original list) still declare `SEXP`
+      as the wrapper return type. `sample_mode.cpp` correctly left alone.
+- [~] TODO-11: Phase 5 — full-repo `check_core_no_rcpp.sh` sweep +
       full `package_tests/` run.
+      Sweep half done: `check_core_no_rcpp.sh` now runs clean (0 violations)
+      against every file that has actually been through the `EDI_CORE_ONLY`
+      split — but that's only 49 of ~118 relevant files today, so this sweep
+      needs re-running as Phase 2/3/4 close out the rest, not just once at
+      the end. The full `package_tests/` run has not been done as part of
+      this pass.
 - [ ] TODO-12 (separate follow-up spec, not this one): decide RNG-stream
       strategy for the 15 excluded files, then migrate them.
-- [ ] TODO-13 (separate follow-up spec, not this one): write the pybind11
+      Not started.
+- [x] TODO-13 (separate follow-up spec, not this one): write the pybind11
       binding layer against the now-Rcpp-free cores, adding
       `result_map_pybind.h`.
+      Done, and shipped: `python/cpp/result_map_pybind.h` exists, 10
+      `bindings_*.cpp` files (~3,760 lines) bind all 33 kernels / 37
+      functions, and `edi_kernels` `py-v1.0.0` was published to real PyPI
+      (Trusted Publisher, verified by installing from `pypi.org` into an
+      independent venv and passing the full 181-test suite) — not just a
+      local build. A critical sdist-install bug found 2026-08-10 was fixed
+      and verified (`.post1`). Tracked in detail by a separate
+      `python_bindings_package_spec.md`, whose own remaining open items
+      (parameter-level docs for all 37 functions, a PyPI-specific README)
+      are documentation polish, not the binding layer itself.
 
 ## Acceptance Criteria
 

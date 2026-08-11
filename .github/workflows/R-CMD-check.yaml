@@ -63,6 +63,15 @@ jobs:
 
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
 
+    # Every leg normally finishes in well under an hour (macOS ~32s of that
+    # is examples; the slowest observed full leg, windows-latest, took
+    # 42m54s). 90 gives headroom for normal variance while still catching a
+    # genuine hang long before GitHub's own 6h hard kill -- see the
+    # 2026-08-10 incident where ubuntu-latest (oldrel-1) and the sibling
+    # R-CMD-check-no-suggests job below both sat stuck in check-r-package
+    # for 4+ hours with no timeout to stop them.
+    timeout-minutes: 90
+
     strategy:
       fail-fast: false
       matrix:
@@ -149,6 +158,10 @@ jobs:
   R-CMD-check-no-suggests:
     runs-on: ubuntu-latest
     name: ubuntu-latest (release, no Suggests)
+
+    # See R-CMD-check's identical timeout-minutes comment above -- this job
+    # hit the same 4+ hour stuck-in-check-r-package incident on 2026-08-10.
+    timeout-minutes: 90
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}

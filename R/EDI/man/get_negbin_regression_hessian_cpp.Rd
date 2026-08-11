@@ -4,14 +4,14 @@
 \alias{get_negbin_regression_hessian_cpp}
 \title{Compute Negative Binomial Regression Hessian}
 \usage{
-get_negbin_regression_hessian_cpp(X_sexp, y_sexp, params_sexp)
+get_negbin_regression_hessian_cpp(X, y, params)
 }
 \arguments{
-\item{X_sexp}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors.}
 
-\item{y_sexp}{A numeric vector of responses.}
+\item{y}{A numeric vector of responses.}
 
-\item{params_sexp}{A numeric vector of parameters [beta, log_theta].}
+\item{params}{A numeric vector of parameters [beta, log_theta].}
 }
 \value{
 A numeric matrix representing the Hessian.

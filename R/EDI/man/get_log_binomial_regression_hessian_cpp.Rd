@@ -4,14 +4,14 @@
 \alias{get_log_binomial_regression_hessian_cpp}
 \title{Compute Log-Binomial Regression Hessian}
 \usage{
-get_log_binomial_regression_hessian_cpp(X_r, y_r, beta_sexp)
+get_log_binomial_regression_hessian_cpp(X_r, y_r, beta)
 }
 \arguments{
 \item{X_r}{A numeric matrix of predictors.}
 
 \item{y_r}{A binary numeric vector of responses.}
 
-\item{beta_sexp}{A numeric vector of coefficients.}
+\item{beta}{A numeric vector of coefficients.}
 }
 \value{
 A numeric matrix representing the Hessian.

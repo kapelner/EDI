@@ -162,58 +162,58 @@ edi::ResultMap fast_weibull_regression_internal(
 #ifndef EDI_CORE_ONLY
 //' @title Compute Weibull Regression Score
 //' @description Calculates the score vector (gradient of the log-likelihood) for a Weibull AFT regression model.
-//' @param X_sexp A numeric matrix of predictors.
-//' @param y_sexp A numeric vector of survival times.
-//' @param dead_sexp A numeric vector of event indicators.
-//' @param params_sexp A numeric vector of parameters [beta, log_sigma].
+//' @param X A numeric matrix of predictors.
+//' @param y A numeric vector of survival times.
+//' @param dead A numeric vector of event indicators.
+//' @param params A numeric vector of parameters [beta, log_sigma].
 //' @return A numeric vector representing the score.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-Eigen::VectorXd get_weibull_regression_score_cpp(SEXP X_sexp,
-                                                 SEXP y_sexp,
-                                                 SEXP dead_sexp,
-                                                 SEXP params_sexp) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    NumericVector dead_r(dead_sexp);
-    NumericVector params_r(params_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::VectorXd> dead(dead_r.begin(), dead_r.size());
-    Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::VectorXd get_weibull_regression_score_cpp(SEXP X,
+                                                 SEXP y,
+                                                 SEXP dead,
+                                                 SEXP params) {
+    NumericMatrix X_r(X);
+    NumericVector y_r(y);
+    NumericVector dead_r(dead);
+    NumericVector params_r(params);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+    Eigen::Map<const Eigen::VectorXd> dead_vec(dead_r.begin(), dead_r.size());
+    Eigen::Map<const Eigen::VectorXd> params_vec(params_r.begin(), params_r.size());
 
-    WeibullAFTLikelihood fun(y, dead, X);
-    Eigen::VectorXd grad(params.size());
-    fun(params, grad);
+    WeibullAFTLikelihood fun(y_vec, dead_vec, X_mat);
+    Eigen::VectorXd grad(params_vec.size());
+    fun(params_vec, grad);
     return -grad;
 }
 
 //' @title Compute Weibull Regression Hessian
 //' @description Calculates the Hessian matrix (second derivatives of the log-likelihood) for a Weibull AFT regression model.
-//' @param X_sexp A numeric matrix of predictors.
-//' @param y_sexp A numeric vector of survival times.
-//' @param dead_sexp A numeric vector of event indicators.
-//' @param params_sexp A numeric vector of parameters [beta, log_sigma].
+//' @param X A numeric matrix of predictors.
+//' @param y A numeric vector of survival times.
+//' @param dead A numeric vector of event indicators.
+//' @param params A numeric vector of parameters [beta, log_sigma].
 //' @return A numeric matrix representing the Hessian.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-Eigen::MatrixXd get_weibull_regression_hessian_cpp(SEXP X_sexp,
-                                                   SEXP y_sexp,
-                                                   SEXP dead_sexp,
-                                                   SEXP params_sexp) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    NumericVector dead_r(dead_sexp);
-    NumericVector params_r(params_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::VectorXd> dead(dead_r.begin(), dead_r.size());
-    Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::MatrixXd get_weibull_regression_hessian_cpp(SEXP X,
+                                                   SEXP y,
+                                                   SEXP dead,
+                                                   SEXP params) {
+    NumericMatrix X_r(X);
+    NumericVector y_r(y);
+    NumericVector dead_r(dead);
+    NumericVector params_r(params);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+    Eigen::Map<const Eigen::VectorXd> dead_vec(dead_r.begin(), dead_r.size());
+    Eigen::Map<const Eigen::VectorXd> params_vec(params_r.begin(), params_r.size());
 
-    WeibullAFTLikelihood fun(y, dead, X);
-    return -fun.hessian(params);
+    WeibullAFTLikelihood fun(y_vec, dead_vec, X_mat);
+    return -fun.hessian(params_vec);
 }
 
 // [[Rcpp::export]]
@@ -298,9 +298,9 @@ NumericVector compute_weibull_rand_bootstrap_parallel_cpp(
 
 //' @title Fast Weibull AFT Regression (C++)
 //' @description Weibull Accelerated Failure Time model fitting.
-//' @param X_sexp A numeric matrix of predictors.
-//' @param y_sexp A numeric vector of survival times.
-//' @param dead_sexp A numeric vector of event indicators (1=event, 0=censored).
+//' @param X A numeric matrix of predictors.
+//' @param y A numeric vector of survival times.
+//' @param dead A numeric vector of event indicators (1=event, 0=censored).
 //' @param warm_start_params Optional starting values for coefficients.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess.
 //' @param estimate_only Logical. If TRUE, do not compute variance-covariance.
@@ -314,9 +314,9 @@ NumericVector compute_weibull_rand_bootstrap_parallel_cpp(
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_weibull_regression_cpp(SEXP X_sexp, 
-                                 SEXP y_sexp, 
-                                 SEXP dead_sexp,
+List fast_weibull_regression_cpp(SEXP X, 
+                                 SEXP y, 
+                                 SEXP dead,
                                  Nullable<NumericVector> warm_start_params = R_NilValue,
                                  bool smart_cold_start = true,
                                  bool estimate_only = false,
@@ -326,19 +326,19 @@ List fast_weibull_regression_cpp(SEXP X_sexp,
                                  Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
                                  std::string optimization_alg = "lbfgs",
                                  Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    NumericVector dead_r(dead_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::VectorXd> dead(dead_r.begin(), dead_r.size());
+    NumericMatrix X_r(X);
+    NumericVector y_r(y);
+    NumericVector dead_r(dead);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+    Eigen::Map<const Eigen::VectorXd> dead_vec(dead_r.begin(), dead_r.size());
 
-    int p = (int)X.cols();
+    int p = (int)X_mat.cols();
     FixedParamSpec fixed_spec = make_fixed_param_spec(
         p + 1,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values));
-    WeibullAFTLikelihood fun(y, dead, X);
+    WeibullAFTLikelihood fun(y_vec, dead_vec, X_mat);
 
     Eigen::VectorXd params = Eigen::VectorXd::Zero(p + 1);
     std::optional<Eigen::VectorXd> warm_start_params_opt = nullable_to_optional<Eigen::VectorXd>(warm_start_params);
@@ -350,7 +350,7 @@ List fast_weibull_regression_cpp(SEXP X_sexp,
         legacy_start.beta = Eigen::VectorXd::Zero(p);
         legacy_start.log_sigma = 0.0;
         
-        WeibullStart start = smart_cold_start ? weibull_aft_start_or_legacy(X, y, dead, legacy_start, fixed_spec) : legacy_start;
+        WeibullStart start = smart_cold_start ? weibull_aft_start_or_legacy(X_mat, y_vec, dead_vec, legacy_start, fixed_spec) : legacy_start;
         params = weibull_start_to_params(start);
     }
     

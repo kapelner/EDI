@@ -4,16 +4,16 @@
 \alias{get_weibull_regression_score_cpp}
 \title{Compute Weibull Regression Score}
 \usage{
-get_weibull_regression_score_cpp(X_sexp, y_sexp, dead_sexp, params_sexp)
+get_weibull_regression_score_cpp(X, y, dead, params)
 }
 \arguments{
-\item{X_sexp}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors.}
 
-\item{y_sexp}{A numeric vector of survival times.}
+\item{y}{A numeric vector of survival times.}
 
-\item{dead_sexp}{A numeric vector of event indicators.}
+\item{dead}{A numeric vector of event indicators.}
 
-\item{params_sexp}{A numeric vector of parameters [beta, log_sigma].}
+\item{params}{A numeric vector of parameters [beta, log_sigma].}
 }
 \value{
 A numeric vector representing the score.

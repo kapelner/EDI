@@ -514,7 +514,7 @@ InferenceOrdinalContRatioRegr = R6::R6Class("InferenceOrdinalContRatioRegr",
 			ws   = private$get_fit_warm_start_for_length("beta", n_params) %||% params_null
 			full = tryCatch(
 				fast_continuation_ratio_regression_cpp(
-					X_sexp = X_fit, y_sexp = y_sim,
+					X = X_fit, y = y_sim,
 					warm_start_beta = ws,
 					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params)
 				),
@@ -529,7 +529,7 @@ InferenceOrdinalContRatioRegr = R6::R6Class("InferenceOrdinalContRatioRegr",
 					ws2 = start %||% private$get_fit_warm_start_for_length("beta", n_params) %||% params_null
 					f2  = tryCatch(
 						fast_continuation_ratio_regression_cpp(
-							X_sexp = X_fit, y_sexp = y_sim,
+							X = X_fit, y = y_sim,
 							warm_start_beta = ws2,
 							warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
 							fixed_idx = j, fixed_values = d

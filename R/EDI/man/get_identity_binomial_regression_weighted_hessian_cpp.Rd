@@ -8,7 +8,7 @@ get_identity_binomial_regression_weighted_hessian_cpp(
   X_r,
   y_r,
   weights_r,
-  beta_sexp
+  beta
 )
 }
 \arguments{
@@ -18,7 +18,7 @@ get_identity_binomial_regression_weighted_hessian_cpp(
 
 \item{weights_r}{A nonnegative numeric vector of observation weights.}
 
-\item{beta_sexp}{A numeric vector of coefficients.}
+\item{beta}{A numeric vector of coefficients.}
 }
 \value{
 A numeric matrix representing the weighted Hessian.

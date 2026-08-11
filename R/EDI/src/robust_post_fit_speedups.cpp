@@ -255,21 +255,21 @@ List ols_hc2_post_fit_precomputed_cpp(SEXP X_fit_sexp,
 }
 
 // [[Rcpp::export]]
-List ols_hc2_post_fit_cpp(SEXP X_fit_sexp,
-                          SEXP y_sexp,
-                          SEXP coef_hat_sexp,
+List ols_hc2_post_fit_cpp(SEXP X_fit,
+                          SEXP y,
+                          SEXP coef_hat,
                           int j_treat) {
-  Rcpp::NumericMatrix X_fit_r(X_fit_sexp);
-  Rcpp::NumericVector y_r(y_sexp);
-  Rcpp::NumericVector coef_hat_r(coef_hat_sexp);
-  Eigen::Map<const Eigen::MatrixXd> X_fit(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
-  Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-  Eigen::Map<const Eigen::VectorXd> coef_hat(coef_hat_r.begin(), coef_hat_r.size());
-  List setup = ols_hc2_setup_cpp(X_fit_sexp);
+  Rcpp::NumericMatrix X_fit_r(X_fit);
+  Rcpp::NumericVector y_r(y);
+  Rcpp::NumericVector coef_hat_r(coef_hat);
+  Eigen::Map<const Eigen::MatrixXd> X_fit_mat(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
+  Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+  Eigen::Map<const Eigen::VectorXd> coef_hat_vec(coef_hat_r.begin(), coef_hat_r.size());
+  List setup = ols_hc2_setup_cpp(X_fit);
   return ols_hc2_post_fit_precomputed_cpp(
-    X_fit_sexp,
-    y_sexp,
-    coef_hat_sexp,
+    X_fit,
+    y,
+    coef_hat,
     setup["bread"],
     setup["hat"],
     j_treat

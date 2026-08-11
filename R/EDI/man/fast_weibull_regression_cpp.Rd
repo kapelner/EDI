@@ -5,9 +5,9 @@
 \title{Fast Weibull Regression (C++ Backend)}
 \usage{
 fast_weibull_regression_cpp(
-  X_sexp,
-  y_sexp,
-  dead_sexp,
+  X,
+  y,
+  dead,
   warm_start_params = NULL,
   smart_cold_start = TRUE,
   estimate_only = FALSE,
@@ -20,11 +20,11 @@ fast_weibull_regression_cpp(
 )
 }
 \arguments{
-\item{X_sexp}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors.}
 
-\item{y_sexp}{A numeric vector of survival times.}
+\item{y}{A numeric vector of survival times.}
 
-\item{dead_sexp}{A numeric vector of event indicators (1=event, 0=censored).}
+\item{dead}{A numeric vector of event indicators (1=event, 0=censored).}
 
 \item{warm_start_params}{Optional starting values for coefficients.}
 

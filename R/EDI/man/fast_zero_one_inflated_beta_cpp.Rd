@@ -5,9 +5,9 @@
 \title{Fast Zero/One-Inflated Beta Regression (C++)}
 \usage{
 fast_zero_one_inflated_beta_cpp(
-  X_sexp,
-  X_zero_one_sexp,
-  y_sexp,
+  X,
+  X_zero_one,
+  y,
   warm_start_params = NULL,
   smart_cold_start = TRUE,
   fixed_idx = NULL,
@@ -18,11 +18,11 @@ fast_zero_one_inflated_beta_cpp(
 )
 }
 \arguments{
-\item{X_sexp}{Matrix of predictors for the beta component.}
+\item{X}{Matrix of predictors for the beta component.}
 
-\item{X_zero_one_sexp}{Matrix of predictors for the zero and one inflation components.}
+\item{X_zero_one}{Matrix of predictors for the zero and one inflation components.}
 
-\item{y_sexp}{Vector of responses in [0, 1].}
+\item{y}{Vector of responses in [0, 1].}
 
 \item{warm_start_params}{Optional starting values for all parameters. If provided, \code{smart_cold_start} is ignored.}
 

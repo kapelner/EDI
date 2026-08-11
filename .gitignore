@@ -125,3 +125,6 @@ graft/
 .gemini/*
 AGENTS.md
 GEMINI.md
+
+# Private research notes — not for public repo history
+R/package_metadata/new_research_ideas/*

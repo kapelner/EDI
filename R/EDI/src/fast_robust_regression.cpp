@@ -208,8 +208,8 @@ RobustModelResult fast_robust_regression_internal(
 #ifndef EDI_CORE_ONLY
 //' @title Fast Robust Regression (C++)
 //' @description High-performance robust regression fitting using IRLS.
-//' @param X_sexp A numeric matrix of predictors.
-//' @param y_sexp A numeric vector of responses.
+//' @param X A numeric matrix of predictors.
+//' @param y A numeric vector of responses.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param method Robust estimation method ("M" or "MM").
 //' @param j 1-based index of the parameter for which to return specific variance.
@@ -225,8 +225,8 @@ RobustModelResult fast_robust_regression_internal(
 //' @keywords internal
 // [[Rcpp::export]]
 List fast_robust_regression_cpp(
-    SEXP X_sexp, 
-    SEXP y_sexp, 
+    SEXP X, 
+    SEXP y, 
     Nullable<NumericVector> warm_start_beta = R_NilValue,
     bool smart_cold_start = true,
     std::string method = "MM",
@@ -240,13 +240,13 @@ List fast_robust_regression_cpp(
     Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
     bool estimate_only = false
 ) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
+    NumericMatrix X_r(X);
+    NumericVector y_r(y);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
 
     RobustModelResult res = fast_robust_regression_internal(
-        X, y,
+        X_mat, y_vec,
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         smart_cold_start, method, c, 4.685, maxit, tol, -1.0,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -255,7 +255,7 @@ List fast_robust_regression_cpp(
         nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
         estimate_only, j);
     FixedParamSpec fixed_spec = make_fixed_param_spec(
-        X.cols(),
+        X_mat.cols(),
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values));
 
@@ -269,12 +269,12 @@ List fast_robust_regression_cpp(
 
     if (!res.converged && res.XtWX.rows() == 0) {
         Eigen::MatrixXd XtWX_free = weighted_crossprod(res.X_free, res.w);
-        res.XtWX = expand_free_covariance(X.cols(), fixed_spec, XtWX_free, false);
+        res.XtWX = expand_free_covariance(X_mat.cols(), fixed_spec, XtWX_free, false);
     }
 
-    int n = X.rows();
-    int p = X.cols();
-    Eigen::VectorXd r = y - X * res.b;
+    int n = X_mat.rows();
+    int p = X_mat.cols();
+    Eigen::VectorXd r = y_vec - X_mat * res.b;
     
     double ssq_j = NA_REAL;
     if (res.converged || res.iterations == maxit) {

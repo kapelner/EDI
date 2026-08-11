@@ -96,7 +96,30 @@ void bind_incidence(py::module_& m) {
     py::arg("maxit") = 100,
     py::arg("tol") = 1e-8,
     "Fast GEE (singleton/pair clusters only) via Fisher scoring. "
-    "family is one of 'gaussian', 'binomial', 'poisson'.");
+    "family is one of 'gaussian', 'binomial', 'poisson'. No R-side roxygen "
+    "documents this raw kernel directly (fast_gee.cpp has none); parameters "
+    "follow the same conventions used throughout this module.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    Numeric matrix of predictors (including intercept column where wanted).\n"
+    "y : ndarray\n"
+    "    Numeric vector of responses, matching family's distribution.\n"
+    "group_id : ndarray of int\n"
+    "    Cluster identifiers, one per row of X/y; every cluster here must be a\n"
+    "    singleton (size 1) or a pair (size 2) -- this is the specialized\n"
+    "    fast path, not a general GEE solver.\n"
+    "family : str\n"
+    "    One of \"gaussian\", \"binomial\", \"poisson\" -- the GEE working\n"
+    "    variance/link family.\n"
+    "warm_start_beta : ndarray, optional\n"
+    "    Optional starting values for coefficients.\n"
+    "warm_start_fisher_info : ndarray, optional\n"
+    "    Optional initial Fisher information matrix for the first iteration.\n"
+    "maxit : int, default 100\n"
+    "    Maximum number of Fisher-scoring iterations.\n"
+    "tol : float, default 1e-8\n"
+    "    Convergence tolerance.");
 
     m.def("mn_ci", [](double x_t, double n_t, double x_c, double n_c, double p_t_obs, double p_c_obs,
                        double alpha, double pval_epsilon) {
@@ -111,12 +134,53 @@ void bind_incidence(py::module_& m) {
     py::arg("alpha") = 0.05,
     py::arg("pval_epsilon") = 1e-7,
     "Miettinen-Nurminen score confidence interval for a risk difference "
-    "(inverts the constrained score test via bisection). Returns (lower, upper).");
+    "(inverts the constrained score test via bisection). Returns (lower, upper). "
+    "Shared x_t/n_t/x_c/n_c/p_t_obs/p_c_obs argument meanings sourced from "
+    "R/EDI/man/ documentation for the sibling mn_pvalue_cpp/mn_z_statistic_cpp "
+    "(same file); alpha/pval_epsilon are this CI-inversion wrapper's own "
+    "arguments, undocumented on the R side.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "x_t : float\n"
+    "    Number of events in the treatment arm.\n"
+    "n_t : float\n"
+    "    Number of subjects in the treatment arm.\n"
+    "x_c : float\n"
+    "    Number of events in the control arm.\n"
+    "n_c : float\n"
+    "    Number of subjects in the control arm.\n"
+    "p_t_obs : float\n"
+    "    Observed treatment-arm risk (typically x_t / n_t).\n"
+    "p_c_obs : float\n"
+    "    Observed control-arm risk (typically x_c / n_c).\n"
+    "alpha : float, default 0.05\n"
+    "    Significance level; the returned interval has nominal coverage\n"
+    "    1 - alpha.\n"
+    "pval_epsilon : float, default 1e-7\n"
+    "    Numerical tolerance for the bisection search that inverts the score\n"
+    "    test to find each bound.");
 
     m.def("mn_pvalue", &mn_pvalue_cpp,
     py::arg("x_t"), py::arg("n_t"), py::arg("x_c"), py::arg("n_c"),
     py::arg("delta"), py::arg("p_t_obs"), py::arg("p_c_obs"),
-    "Miettinen-Nurminen two-sided score p-value for testing risk difference = delta.");
+    "Miettinen-Nurminen two-sided score p-value for testing risk difference = "
+    "delta. Parameters sourced from R/EDI/man/ documentation for mn_pvalue_cpp.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "x_t : float\n"
+    "    Number of events in the treatment arm.\n"
+    "n_t : float\n"
+    "    Number of subjects in the treatment arm.\n"
+    "x_c : float\n"
+    "    Number of events in the control arm.\n"
+    "n_c : float\n"
+    "    Number of subjects in the control arm.\n"
+    "delta : float\n"
+    "    Null risk difference to test against.\n"
+    "p_t_obs : float\n"
+    "    Observed treatment-arm risk (typically x_t / n_t).\n"
+    "p_c_obs : float\n"
+    "    Observed control-arm risk (typically x_c / n_c).");
 
     m.def("newcombe_independent_ci", [](double x1, double n1, double x2, double n2, double alpha) {
         NewcombeCIBounds r = newcombe_independent_ci_internal(x1, n1, x2, n2, alpha);
@@ -128,5 +192,22 @@ void bind_incidence(py::module_& m) {
     py::arg("x1"), py::arg("n1"), py::arg("x2"), py::arg("n2"),
     py::arg("alpha") = 0.05,
     "Newcombe hybrid score confidence interval for independent proportions "
-    "(Method 10). Returns (lower, upper).");
+    "(Method 10). Returns (lower, upper). R/EDI/src/newcombe_speedups.cpp's "
+    "roxygen for this exact function has only an (untagged) title, no @param "
+    "entries; argument meanings below follow directly from the two-independent-"
+    "proportions parameterization the title names, and match the sibling "
+    "newcombe_paired_ci_cpp's x/n naming in the same file.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "x1 : float\n"
+    "    Number of events in group 1.\n"
+    "n1 : float\n"
+    "    Number of subjects in group 1.\n"
+    "x2 : float\n"
+    "    Number of events in group 2.\n"
+    "n2 : float\n"
+    "    Number of subjects in group 2.\n"
+    "alpha : float, default 0.05\n"
+    "    Significance level; the returned interval has nominal coverage\n"
+    "    1 - alpha.");
 }

@@ -392,9 +392,9 @@ Eigen::MatrixXd get_zero_augmented_poisson_hessian_cpp(SEXP X_sexp,
 
 //' @title Fast Zero-Augmented Poisson Regression (C++)
 //' @description High-performance ZIP or hurdle Poisson regression fitting using Newton-Raphson or L-BFGS.
-//' @param X_sexp Matrix of predictors for the conditional component.
-//' @param y_sexp Vector of responses.
-//' @param Xzi_sexp Matrix of predictors for the zero-inflation/hurdle component.
+//' @param X Matrix of predictors for the conditional component.
+//' @param y Vector of responses.
+//' @param Xzi Matrix of predictors for the zero-inflation/hurdle component.
 //' @param is_hurdle If TRUE, fit a hurdle model; if FALSE, fit a zero-inflated model.
 //' @param warm_start_params Optional starting values for all parameters. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
@@ -409,9 +409,9 @@ Eigen::MatrixXd get_zero_augmented_poisson_hessian_cpp(SEXP X_sexp,
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_zero_augmented_poisson_cpp(SEXP X_sexp,
-                                     SEXP y_sexp,
-                                     SEXP Xzi_sexp,
+List fast_zero_augmented_poisson_cpp(SEXP X,
+                                     SEXP y,
+                                     SEXP Xzi,
                                      bool is_hurdle,
                                      Nullable<NumericVector> warm_start_params = R_NilValue,
                                      bool smart_cold_start = true,
@@ -422,15 +422,15 @@ List fast_zero_augmented_poisson_cpp(SEXP X_sexp,
                                      Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
                                      std::string optimization_alg = "lbfgs",
                                      Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    NumericMatrix Xzi_r(Xzi_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::MatrixXd> Xzi(Xzi_r.begin(), Xzi_r.nrow(), Xzi_r.ncol());
+    NumericMatrix X_r(X);
+    NumericVector y_r(y);
+    NumericMatrix Xzi_r(Xzi);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+    Eigen::Map<const Eigen::MatrixXd> Xzi_mat(Xzi_r.begin(), Xzi_r.nrow(), Xzi_r.ncol());
 
-    int p_cond = X.cols();
-    int p_zi = Xzi.cols();
+    int p_cond = X_mat.cols();
+    int p_zi = Xzi_mat.cols();
     int total_p = p_cond + p_zi;
 
     FixedParamSpec fixed_spec = make_fixed_param_spec(
@@ -441,7 +441,7 @@ List fast_zero_augmented_poisson_cpp(SEXP X_sexp,
     LikelihoodFitResult fit;
     try {
         fit = fast_zap_internal(
-            X, y, Xzi, is_hurdle,
+            X_mat, y_vec, Xzi_mat, is_hurdle,
             nullable_to_optional<Eigen::VectorXd>(warm_start_params),
             smart_cold_start, maxit, tol,
             nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -452,7 +452,7 @@ List fast_zero_augmented_poisson_cpp(SEXP X_sexp,
         return edi::to_rcpp_list(edi::ResultMap().set("converged", false).set("gradient_norm", NA_REAL));
     }
     Eigen::VectorXd params = fit.params;
-    ZeroAugmentedPoisson fun(y, X, Xzi, is_hurdle);
+    ZeroAugmentedPoisson fun(y_vec, X_mat, Xzi_mat, is_hurdle);
 
     if (estimate_only) {
         return edi::to_rcpp_list(edi::ResultMap()

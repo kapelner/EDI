@@ -436,7 +436,7 @@ fast_weibull_regression = function(y, dead, X, use_rcpp = TRUE, estimate_only = 
 		}
 		
 		res = tryCatch(
-			fast_weibull_regression_cpp(X_sexp = X, y_sexp = as.numeric(y), dead_sexp = as.numeric(dead),
+			fast_weibull_regression_cpp(X = X, y = as.numeric(y), dead = as.numeric(dead),
 			                            warm_start_params = warm_start_params,
 			                            smart_cold_start = FALSE, 
 			                            estimate_only = estimate_only, 

@@ -5,8 +5,8 @@
 \title{Fast Adjacent-Category Logit (C++)}
 \usage{
 fast_adjacent_category_logit_cpp(
-  X_sexp,
-  y_sexp,
+  X,
+  y,
   maxit = 100L,
   tol = 1e-08,
   smart_cold_start = TRUE,
@@ -19,9 +19,9 @@ fast_adjacent_category_logit_cpp(
 )
 }
 \arguments{
-\item{X_sexp}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors.}
 
-\item{y_sexp}{A numeric vector of responses (categorical).}
+\item{y}{A numeric vector of responses (categorical).}
 
 \item{maxit}{Maximum number of iterations.}
 

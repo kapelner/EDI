@@ -74,7 +74,37 @@ void bind_proportion(py::module_& m) {
     py::arg("optimization_alg") = "lbfgs",
     py::arg("warm_start_fisher_info") = py::none(),
     py::arg("estimate_only") = false,
-    "Fast beta regression via L-BFGS. Returned 'b' is [beta, log_phi].");
+    "Fast beta regression via L-BFGS. Returned 'b' is [beta, log_phi]. Parameters "
+    "sourced from R/EDI/man/ documentation for fast_beta_regression_cpp/"
+    "fast_beta_regression_weighted_cpp.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    A numeric matrix of predictors.\n"
+    "y : ndarray\n"
+    "    A numeric vector of responses (in (0, 1)).\n"
+    "weights : ndarray, optional\n"
+    "    Optional nonnegative row weights; if provided, routes to the weighted\n"
+    "    fit backend.\n"
+    "warm_start_beta : ndarray, optional\n"
+    "    Optional starting values for coefficients. If provided,\n"
+    "    smart_cold_start is ignored.\n"
+    "smart_cold_start : bool, default True\n"
+    "    If True, use an initial OLS-based guess when starting from scratch (a\n"
+    "    \"cold start\") with no prior knowledge. Ignored if a warm start is\n"
+    "    provided.\n"
+    "start_phi : float, default 10.0\n"
+    "    Optional starting value for the precision parameter phi.\n"
+    "fixed_idx : ndarray of int, optional\n"
+    "    Optional indices of fixed parameters.\n"
+    "fixed_values : ndarray, optional\n"
+    "    Optional values for fixed parameters.\n"
+    "optimization_alg : str, default \"lbfgs\"\n"
+    "    Optimization algorithm.\n"
+    "warm_start_fisher_info : ndarray, optional\n"
+    "    Optional initial Fisher information matrix.\n"
+    "estimate_only : bool, default False\n"
+    "    If True, skip Fisher information / variance calculation.");
 
     m.def("fast_zero_one_inflated_beta", [](const Eigen::Ref<const Eigen::MatrixXd>& X,
                                              const Eigen::Ref<const Eigen::MatrixXd>& X_zero_one,
@@ -104,5 +134,30 @@ void bind_proportion(py::module_& m) {
     py::arg("optimization_alg") = "lbfgs",
     py::arg("warm_start_fisher_info") = py::none(),
     "Fast zero-one-inflated beta regression via L-BFGS. Returned 'params' packs "
-    "[beta, log_phi, zero_one_inflation_params]; see R/EDI/src/fast_zero_one_inflated_beta.cpp.");
+    "[beta, log_phi, zero_one_inflation_params]; see R/EDI/src/fast_zero_one_inflated_beta.cpp. "
+    "Parameters sourced from R/EDI/man/ documentation for "
+    "fast_zero_one_inflated_beta_cpp.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    Matrix of predictors for the beta component.\n"
+    "X_zero_one : ndarray\n"
+    "    Matrix of predictors for the zero- and one-inflation components.\n"
+    "y : ndarray\n"
+    "    Vector of responses in [0, 1].\n"
+    "warm_start_params : ndarray, optional\n"
+    "    Optional starting values for all parameters. If provided,\n"
+    "    smart_cold_start is ignored.\n"
+    "smart_cold_start : bool, default True\n"
+    "    If True, use an initial OLS-based guess when starting from scratch (a\n"
+    "    \"cold start\") with no prior knowledge. Ignored if a warm start is\n"
+    "    provided.\n"
+    "fixed_idx : ndarray of int, optional\n"
+    "    Optional indices of fixed parameters.\n"
+    "fixed_values : ndarray, optional\n"
+    "    Optional values for fixed parameters.\n"
+    "optimization_alg : str, default \"lbfgs\"\n"
+    "    Optimization algorithm.\n"
+    "warm_start_fisher_info : ndarray, optional\n"
+    "    Optional initial Fisher information matrix for the first iteration.");
 }

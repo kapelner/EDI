@@ -90,7 +90,28 @@ void bind_continuous(py::module_& m) {
     py::arg("fixed_idx") = py::none(),
     py::arg("fixed_values") = py::none(),
     py::arg("estimate_only") = true,
-    "Fast OLS regression (coefficients only unless estimate_only=False, which also returns XtWX).");
+    "Fast closed-form OLS regression (coefficients only unless estimate_only=False, "
+    "which also returns XtWX). No R-side roxygen documents this raw kernel directly "
+    "(fast_ols_cpp has none); parameters follow the same fixed_idx/fixed_values "
+    "convention used throughout this module.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    Numeric design matrix of predictors (including an intercept column if one\n"
+    "    is wanted -- this kernel does not add one implicitly).\n"
+    "y : ndarray\n"
+    "    Numeric vector of continuous responses.\n"
+    "fixed_idx : ndarray of int, optional\n"
+    "    0-based indices of coefficients to hold fixed at fixed_values rather than\n"
+    "    estimate, instead of dropping those columns from X entirely. Must be paired\n"
+    "    with fixed_values (both or neither).\n"
+    "fixed_values : ndarray, optional\n"
+    "    Values to hold the fixed_idx coefficients at; y is adjusted for their\n"
+    "    contribution before the remaining (free) coefficients are estimated.\n"
+    "estimate_only : bool, default True\n"
+    "    If True, skip computing XtWX (the crossproduct needed for standard errors)\n"
+    "    and return only the coefficient vector -- faster when only a point estimate\n"
+    "    is needed.");
 
     m.def("fast_robust_regression", [](const Eigen::Ref<const Eigen::MatrixXd>& X,
                                         const Eigen::Ref<const Eigen::VectorXd>& y,
@@ -130,14 +151,61 @@ void bind_continuous(py::module_& m) {
     py::arg("warm_start_weights") = py::none(),
     py::arg("warm_start_fisher_info") = py::none(),
     py::arg("estimate_only") = false,
-    "Robust regression via IRLS (Huber/Tukey bisquare M/MM-estimation).");
+    "Robust regression via IRLS (Huber M or Huber-then-Tukey-bisquare MM-estimation). "
+    "Parameters sourced from R/EDI/man/ documentation for fast_robust_regression_cpp.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    Numeric matrix of predictors.\n"
+    "y : ndarray\n"
+    "    Numeric vector of responses.\n"
+    "warm_start_beta : ndarray, optional\n"
+    "    Optional starting values for coefficients. If provided, smart_cold_start is\n"
+    "    ignored.\n"
+    "smart_cold_start : bool, default True\n"
+    "    If True, use an initial OLS-based guess when starting from scratch (a \"cold\n"
+    "    start\") with no prior knowledge. Ignored if a warm start is provided.\n"
+    "method : str, default \"MM\"\n"
+    "    Robust estimation method: \"M\" (single-stage Huber M-estimation) or \"MM\"\n"
+    "    (S-then-M two-stage estimation, more resistant to high-leverage outliers).\n"
+    "j : int, default 2\n"
+    "    1-based index of the coefficient for which to return an individual variance\n"
+    "    (ssq_b_j in the result).\n"
+    "c : float, default 1.345\n"
+    "    Huber tuning constant (used for the M-step; the Tukey bisquare tuning\n"
+    "    constant for the MM-step's S-estimator is fixed internally at 4.685).\n"
+    "maxit : int, default 50\n"
+    "    Maximum number of IRLS iterations.\n"
+    "tol : float, default 1e-7\n"
+    "    Convergence tolerance.\n"
+    "fixed_idx : ndarray of int, optional\n"
+    "    Optional 0-based indices of coefficients to hold fixed at fixed_values\n"
+    "    rather than estimate.\n"
+    "fixed_values : ndarray, optional\n"
+    "    Optional values for the fixed_idx coefficients.\n"
+    "warm_start_weights : ndarray, optional\n"
+    "    Optional initial IRLS working weights for the first iteration.\n"
+    "warm_start_fisher_info : ndarray, optional\n"
+    "    Optional initial Fisher information matrix for the first IRLS iteration.\n"
+    "estimate_only : bool, default False\n"
+    "    If True, skip variance-component calculations and return only the point\n"
+    "    estimate.");
 
     m.def("wilcox_hl_point_estimate", &wilcox_hl_point_estimate_result,
     py::arg("y"), py::arg("w"),
     "Hodges-Lehmann point estimate (median of all pairwise treatment-minus-"
     "control differences, exact for small n or via bisection selection for "
     "large n) for the two-sample Wilcoxon rank-sum problem. w is a 0/1 "
-    "treatment indicator; non-finite y entries are dropped.");
+    "treatment indicator; non-finite y entries are dropped. No R-side roxygen "
+    "documents this exact raw kernel (fast_wilcox_hl.cpp's roxygen documents a "
+    "different, permutation-batch export in the same file); parameters are named "
+    "for their role in the algorithm above.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "y : ndarray\n"
+    "    Numeric response vector.\n"
+    "w : ndarray of int\n"
+    "    0/1 treatment indicator, same length as y.");
 
     m.def("ols_hc2_post_fit", [](const Eigen::Ref<const Eigen::MatrixXd>& X_fit,
                                   const Eigen::Ref<const Eigen::VectorXd>& y,
@@ -155,8 +223,21 @@ void bind_continuous(py::module_& m) {
     },
     py::arg("X_fit"), py::arg("y"), py::arg("coef_hat"), py::arg("j_treat") = 2,
     "HC2 heteroskedasticity-robust (sandwich) standard errors for an "
-    "already-fitted OLS coefficient vector. X_fit is the fitting design "
-    "matrix (e.g. Lin's intercept+treatment+centered-covariates+treatment"
-    "×covariate design); j_treat is the 1-indexed column whose SE/z-value "
-    "is highlighted as beta_hat/se (std_err/z_vals cover every column).");
+    "already-fitted OLS coefficient vector. No R-side roxygen documents this raw "
+    "kernel directly (robust_post_fit_speedups.cpp has none).\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X_fit : ndarray\n"
+    "    The fitting design matrix (e.g. Lin's intercept+treatment+centered-\n"
+    "    covariates+treatment×covariate design) -- must match the matrix the\n"
+    "    supplied coef_hat was actually fit against.\n"
+    "y : ndarray\n"
+    "    Numeric response vector used in the original fit.\n"
+    "coef_hat : ndarray\n"
+    "    The already-fitted OLS coefficient vector to compute post-fit HC2\n"
+    "    standard errors for.\n"
+    "j_treat : int, default 2\n"
+    "    1-based column of X_fit/coef_hat whose SE/z-value is highlighted as\n"
+    "    beta_hat/se in the result (std_err/z_vals cover every column\n"
+    "    regardless).");
 }

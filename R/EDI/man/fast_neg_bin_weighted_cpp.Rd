@@ -5,9 +5,9 @@
 \title{Fast Weighted Negative Binomial Regression (C++)}
 \usage{
 fast_neg_bin_weighted_cpp(
-  X_sexp,
-  y_sexp,
-  weights_sexp,
+  X,
+  y,
+  weights,
   warm_start_params = NULL,
   smart_cold_start = FALSE,
   maxit = 1000L,
@@ -21,11 +21,11 @@ fast_neg_bin_weighted_cpp(
 )
 }
 \arguments{
-\item{X_sexp}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors.}
 
-\item{y_sexp}{A numeric vector of responses.}
+\item{y}{A numeric vector of responses.}
 
-\item{weights_sexp}{A nonnegative numeric vector of row weights.}
+\item{weights}{A nonnegative numeric vector of row weights.}
 
 \item{warm_start_params}{Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.}
 

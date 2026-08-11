@@ -301,31 +301,31 @@ Eigen::VectorXd get_beta_regression_score_cpp(SEXP X_sexp,
 
 //' @title Compute Beta Regression Hessian
 //' @description Calculates the Hessian matrix (second derivatives of the log-likelihood) for a beta regression model.
-//' @param X_sexp A numeric matrix of predictors.
-//' @param y_sexp A numeric vector of responses.
-//' @param params_sexp A numeric vector of parameters [beta, log_phi].
+//' @param X A numeric matrix of predictors.
+//' @param y A numeric vector of responses.
+//' @param params A numeric vector of parameters [beta, log_phi].
 //' @return A numeric matrix representing the Hessian.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-Eigen::MatrixXd get_beta_regression_hessian_cpp(SEXP X_sexp,
-                                                SEXP y_sexp,
-                                                SEXP params_sexp) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    NumericVector params_r(params_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::MatrixXd get_beta_regression_hessian_cpp(SEXP X,
+                                                SEXP y,
+                                                SEXP params) {
+    NumericMatrix X_r(X);
+    NumericVector y_r(y);
+    NumericVector params_r(params);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+    Eigen::Map<const Eigen::VectorXd> params_vec(params_r.begin(), params_r.size());
 
-    BetaRegression fun(y, X);
-    return -fun.hessian(params); // Return the actual Hessian of log-likelihood (Fisher Information is -Hessian)
+    BetaRegression fun(y_vec, X_mat);
+    return -fun.hessian(params_vec); // Return the actual Hessian of log-likelihood (Fisher Information is -Hessian)
 }
 
 //' @title Fast Beta Regression (C++)
 //' @description High-performance beta regression fitting using Newton-Raphson or L-BFGS.
-//' @param X_sexp A numeric matrix of predictors.
-//' @param y_sexp A numeric vector of responses (in (0, 1)).
+//' @param X A numeric matrix of predictors.
+//' @param y A numeric vector of responses (in (0, 1)).
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
 //' @param start_phi Optional starting value for precision parameter phi.
@@ -342,8 +342,8 @@ Eigen::MatrixXd get_beta_regression_hessian_cpp(SEXP X_sexp,
 //' y = runif(10)
 //' fast_beta_regression_cpp(X, y)
 // [[Rcpp::export]]
-List fast_beta_regression_cpp(SEXP X_sexp,
-								SEXP y_sexp,
+List fast_beta_regression_cpp(SEXP X,
+								SEXP y,
 								Nullable<NumericVector> warm_start_beta = R_NilValue,
 								bool smart_cold_start = true,
 								double start_phi = 10.0,
@@ -354,10 +354,10 @@ List fast_beta_regression_cpp(SEXP X_sexp,
                                 Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
                                 bool estimate_only = false) {
 
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
+    NumericMatrix X_r(X);
+    NumericVector y_r(y);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
 
     Eigen::VectorXd sb;
     Eigen::VectorXd* sb_ptr = nullptr;
@@ -368,7 +368,7 @@ List fast_beta_regression_cpp(SEXP X_sexp,
     }
 
     ModelResult fit = fast_beta_regression_internal(
-        X, y, nullptr, sb_ptr, smart_cold_start, start_phi,
+        X_mat, y_vec, nullptr, sb_ptr, smart_cold_start, start_phi,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values),
         optimization_alg,
@@ -378,7 +378,7 @@ List fast_beta_regression_cpp(SEXP X_sexp,
     Eigen::VectorXd params_full(fit.b.size() + 1);
     params_full.head(fit.b.size()) = fit.b;
     params_full[fit.b.size()] = std::log(fit.dispersion);
-    BetaRegression fun_neg_ll(y, X);
+    BetaRegression fun_neg_ll(y_vec, X_mat);
     Eigen::VectorXd dummy_grad(params_full.size());
     double neg_loglik = fun_neg_ll(params_full, dummy_grad);
 
@@ -392,9 +392,9 @@ List fast_beta_regression_cpp(SEXP X_sexp,
 
 //' @title Fast Weighted Beta Regression (C++)
 //' @description High-performance beta regression fitting with nonnegative row weights.
-//' @param X_sexp A numeric matrix of predictors.
-//' @param y_sexp A numeric vector of responses (in (0, 1)).
-//' @param weights_sexp A nonnegative numeric vector of row weights.
+//' @param X A numeric matrix of predictors.
+//' @param y A numeric vector of responses (in (0, 1)).
+//' @param weights A nonnegative numeric vector of row weights.
 //' @param warm_start_beta Optional starting values for coefficients.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when no warm start is provided.
 //' @param start_phi Optional starting value for precision parameter phi.
@@ -408,9 +408,9 @@ List fast_beta_regression_cpp(SEXP X_sexp,
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_beta_regression_weighted_cpp(SEXP X_sexp,
-								SEXP y_sexp,
-								SEXP weights_sexp,
+List fast_beta_regression_weighted_cpp(SEXP X,
+								SEXP y,
+								SEXP weights,
 								Nullable<NumericVector> warm_start_beta = R_NilValue,
 								bool smart_cold_start = true,
 								double start_phi = 10.0,
@@ -421,19 +421,19 @@ List fast_beta_regression_weighted_cpp(SEXP X_sexp,
                                 Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
                                 bool estimate_only = false) {
 
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    NumericVector weights_r(weights_sexp);
+    NumericMatrix X_r(X);
+    NumericVector y_r(y);
+    NumericVector weights_r(weights);
     if (weights_r.size() != X_r.nrow()) {
         stop("weights length must equal nrow(X)");
     }
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::VectorXd> weights(weights_r.begin(), weights_r.size());
-    if ((weights.array() < 0.0).any() || !weights.allFinite() || weights.sum() <= 0.0) {
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+    Eigen::Map<const Eigen::VectorXd> weights_map(weights_r.begin(), weights_r.size());
+    if ((weights_map.array() < 0.0).any() || !weights_map.allFinite() || weights_map.sum() <= 0.0) {
         stop("weights must be finite, nonnegative, and have positive sum");
     }
-    Eigen::VectorXd weights_vec = weights;
+    Eigen::VectorXd weights_vec = weights_map;
 
     Eigen::VectorXd sb;
     Eigen::VectorXd* sb_ptr = nullptr;
@@ -444,7 +444,7 @@ List fast_beta_regression_weighted_cpp(SEXP X_sexp,
     }
 
     ModelResult fit = fast_beta_regression_internal(
-        X, y, &weights_vec, sb_ptr, smart_cold_start, start_phi,
+        X_mat, y_vec, &weights_vec, sb_ptr, smart_cold_start, start_phi,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values),
         optimization_alg,
@@ -454,7 +454,7 @@ List fast_beta_regression_weighted_cpp(SEXP X_sexp,
     Eigen::VectorXd params_full(fit.b.size() + 1);
     params_full.head(fit.b.size()) = fit.b;
     params_full[fit.b.size()] = std::log(fit.dispersion);
-    BetaRegression fun_neg_ll(y, X, weights);
+    BetaRegression fun_neg_ll(y_vec, X_mat, weights_vec);
     Eigen::VectorXd dummy_grad(params_full.size());
     double neg_loglik = fun_neg_ll(params_full, dummy_grad);
 
@@ -468,8 +468,8 @@ List fast_beta_regression_weighted_cpp(SEXP X_sexp,
 
 //' @title Fast Beta Regression with Variance (C++)
 //' @description Beta regression with full variance-covariance matrix and standard error estimation.
-//' @param X_sexp A numeric matrix of predictors.
-//' @param y_sexp A numeric vector of responses (in (0, 1)).
+//' @param X A numeric matrix of predictors.
+//' @param y A numeric vector of responses (in (0, 1)).
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
 //' @param start_phi Optional starting value for precision parameter phi.
@@ -485,8 +485,8 @@ List fast_beta_regression_weighted_cpp(SEXP X_sexp,
 //' y = runif(10)
 //' fast_beta_regression_with_var_cpp(X, y)
 // [[Rcpp::export]]
-List fast_beta_regression_with_var_cpp(SEXP X_sexp,
-									 SEXP y_sexp,
+List fast_beta_regression_with_var_cpp(SEXP X,
+									 SEXP y,
 									 Nullable<NumericVector> warm_start_beta = R_NilValue,
 									 bool smart_cold_start = true,
 									 double start_phi = 10.0,
@@ -497,10 +497,10 @@ List fast_beta_regression_with_var_cpp(SEXP X_sexp,
                                      std::string optimization_alg = "lbfgs",
                                      Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
 
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
+    NumericMatrix X_r(X);
+    NumericVector y_r(y);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
 
     Eigen::VectorXd sb;
     Eigen::VectorXd* sb_ptr = nullptr;
@@ -511,24 +511,24 @@ List fast_beta_regression_with_var_cpp(SEXP X_sexp,
     }
 
     ModelResult fit = fast_beta_regression_internal(
-        X, y, nullptr, sb_ptr, smart_cold_start, start_phi,
+        X_mat, y_vec, nullptr, sb_ptr, smart_cold_start, start_phi,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values),
         optimization_alg,
         nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info));
     FixedParamSpec fixed_spec = make_fixed_param_spec(
-        X.cols() + 1,
+        X_mat.cols() + 1,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values));
     Eigen::MatrixXd H_free = subset_matrix(fit.XtWX, fixed_spec.free_idx, fixed_spec.free_idx);
 	Eigen::MatrixXd cov_free = H_free.inverse();
-    Eigen::MatrixXd cov_mat = expand_free_covariance(X.cols() + 1, fixed_spec, cov_free, true);
+    Eigen::MatrixXd cov_mat = expand_free_covariance(X_mat.cols() + 1, fixed_spec, cov_free, true);
     Eigen::VectorXd se = cov_mat.diagonal().array().sqrt();
 
     Eigen::VectorXd params_full(fit.b.size() + 1);
     params_full.head(fit.b.size()) = fit.b;
     params_full[fit.b.size()] = std::log(fit.dispersion);
-    BetaRegression fun_neg_ll(y, X);
+    BetaRegression fun_neg_ll(y_vec, X_mat);
     Eigen::VectorXd dummy_grad(params_full.size());
     double neg_loglik = fun_neg_ll(params_full, dummy_grad);
 

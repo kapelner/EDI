@@ -65,6 +65,77 @@ static void bind_constrained_binomial(py::module_& m, const char* name,
                                        const char* name_with_var,
                                        BinomialConstrainedLink link_type,
                                        const char* doc, const char* doc_with_var) {
+    // No R-side roxygen documents either raw kernel directly
+    // (fast_log_binomial_regression.cpp has none); parameters follow the same
+    // conventions used throughout this module. Built as named locals (not
+    // temporaries in the m.def() argument list below) so their lifetime
+    // unambiguously covers both m.def() calls regardless of exactly when
+    // pybind11 copies the C string (it does so immediately via strdup, but
+    // this removes any doubt).
+    const std::string full_doc = std::string(doc) +
+        "\n\n"
+        "Parameters\n"
+        "----------\n"
+        "X : ndarray\n"
+        "    Numeric matrix of predictors (including intercept column).\n"
+        "y : ndarray\n"
+        "    Numeric vector of binary (0/1) responses.\n"
+        "weights : ndarray, optional\n"
+        "    Optional nonnegative row weights; if provided, routes to the weighted\n"
+        "    fit backend.\n"
+        "maxit : int, default 100\n"
+        "    Maximum number of iterations.\n"
+        "tol : float, default 1e-6\n"
+        "    Convergence tolerance.\n"
+        "fixed_idx : ndarray of int, optional\n"
+        "    Optional indices of coefficients to hold fixed at fixed_values rather\n"
+        "    than estimate.\n"
+        "fixed_values : ndarray, optional\n"
+        "    Optional values for the fixed_idx coefficients.\n"
+        "warm_start_beta : ndarray, optional\n"
+        "    Optional starting values for coefficients. If provided,\n"
+        "    smart_cold_start is ignored.\n"
+        "smart_cold_start : bool, default True\n"
+        "    If True, use an initial OLS-based guess when starting from scratch.\n"
+        "    Ignored if a warm start is provided.\n"
+        "warm_start_weights : ndarray, optional\n"
+        "    Optional initial working weights for the first iteration.\n"
+        "warm_start_fisher_info : ndarray, optional\n"
+        "    Optional initial Fisher information matrix for the first iteration.\n"
+        "estimate_only : bool, default False\n"
+        "    If True, skip variance-component calculations and return only the\n"
+        "    point estimate.";
+    const std::string full_doc_with_var = std::string(doc_with_var) +
+        "\n\n"
+        "Parameters\n"
+        "----------\n"
+        "X : ndarray\n"
+        "    Numeric matrix of predictors (including intercept column).\n"
+        "y : ndarray\n"
+        "    Numeric vector of binary (0/1) responses.\n"
+        "j : int, default 2\n"
+        "    1-based index of the coefficient whose individual variance (ssq_b_j)\n"
+        "    is returned.\n"
+        "maxit : int, default 100\n"
+        "    Maximum number of iterations.\n"
+        "tol : float, default 1e-6\n"
+        "    Convergence tolerance.\n"
+        "fixed_idx : ndarray of int, optional\n"
+        "    Optional indices of coefficients to hold fixed at fixed_values rather\n"
+        "    than estimate.\n"
+        "fixed_values : ndarray, optional\n"
+        "    Optional values for the fixed_idx coefficients.\n"
+        "warm_start_beta : ndarray, optional\n"
+        "    Optional starting values for coefficients. If provided,\n"
+        "    smart_cold_start is ignored.\n"
+        "smart_cold_start : bool, default True\n"
+        "    If True, use an initial OLS-based guess when starting from scratch.\n"
+        "    Ignored if a warm start is provided.\n"
+        "warm_start_weights : ndarray, optional\n"
+        "    Optional initial working weights for the first iteration.\n"
+        "warm_start_fisher_info : ndarray, optional\n"
+        "    Optional initial Fisher information matrix for the first iteration.";
+
     m.def(name, [link_type](const Eigen::Ref<const Eigen::MatrixXd>& X,
                              const Eigen::Ref<const Eigen::VectorXd>& y,
                              std::optional<Eigen::VectorXd> weights,
@@ -99,7 +170,7 @@ static void bind_constrained_binomial(py::module_& m, const char* name,
     py::arg("warm_start_weights") = py::none(),
     py::arg("warm_start_fisher_info") = py::none(),
     py::arg("estimate_only") = false,
-    doc);
+    full_doc.c_str());
 
     m.def(name_with_var, [link_type](const Eigen::Ref<const Eigen::MatrixXd>& X,
                                       const Eigen::Ref<const Eigen::VectorXd>& y,
@@ -127,7 +198,7 @@ static void bind_constrained_binomial(py::module_& m, const char* name,
     py::arg("smart_cold_start") = true,
     py::arg("warm_start_weights") = py::none(),
     py::arg("warm_start_fisher_info") = py::none(),
-    doc_with_var);
+    full_doc_with_var.c_str());
 }
 
 ModelResult fast_logistic_regression_internal(
@@ -210,7 +281,39 @@ void bind_binary(py::module_& m) {
     py::arg("warm_start_weights") = py::none(),
     py::arg("warm_start_fisher_info") = py::none(),
     py::arg("estimate_only") = false,
-    "Fast logistic regression via IRLS or L-BFGS.");
+    "Fast logistic regression via IRLS or L-BFGS. No R-side roxygen documents "
+    "this raw kernel directly (fast_logistic_regression.cpp has none); parameter "
+    "meanings are grounded in R/EDI/man/ documentation for the sibling "
+    "fast_probit_regression_cpp, which shares the same argument list and IRLS/"
+    "L-BFGS machinery.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    Numeric matrix of predictors (including intercept column).\n"
+    "y : ndarray\n"
+    "    Numeric vector of binary (0/1) responses.\n"
+    "weights : ndarray, optional\n"
+    "    Optional nonnegative row weights for a weighted fit.\n"
+    "warm_start_beta : ndarray, optional\n"
+    "    Optional starting values for coefficients.\n"
+    "smart_cold_start : bool, default False\n"
+    "    If True, use an OLS-based initial guess when no warm start is provided.\n"
+    "maxit : int, default 100\n"
+    "    Maximum number of iterations.\n"
+    "tol : float, default 1e-8\n"
+    "    Convergence tolerance.\n"
+    "fixed_idx : ndarray of int, optional\n"
+    "    Optional indices of fixed parameters.\n"
+    "fixed_values : ndarray, optional\n"
+    "    Optional values for fixed parameters.\n"
+    "optimization_alg : str, default \"irls\"\n"
+    "    Optimization algorithm (\"irls\" or \"lbfgs\").\n"
+    "warm_start_weights : ndarray, optional\n"
+    "    Optional initial IRLS working weights.\n"
+    "warm_start_fisher_info : ndarray, optional\n"
+    "    Optional initial Fisher information matrix.\n"
+    "estimate_only : bool, default False\n"
+    "    If True, skip variance computation and return only coefficients.");
 
     m.def("fast_probit_regression", [](const Eigen::Ref<const Eigen::MatrixXd>& X,
                                         const Eigen::Ref<const Eigen::VectorXd>& y,
@@ -242,7 +345,36 @@ void bind_binary(py::module_& m) {
     py::arg("warm_start_weights") = py::none(),
     py::arg("warm_start_fisher_info") = py::none(),
     py::arg("estimate_only") = false,
-    "Fast probit regression via IRLS or L-BFGS.");
+    "Fast probit regression via IRLS or L-BFGS. Parameters sourced from "
+    "R/EDI/man/ documentation for fast_probit_regression_cpp.\n\n"
+    "Parameters\n"
+    "----------\n"
+    "X : ndarray\n"
+    "    A numeric matrix of predictors (including intercept column).\n"
+    "y : ndarray\n"
+    "    A numeric vector of binary responses (0/1).\n"
+    "weights : ndarray, optional\n"
+    "    Optional nonnegative row weights for a weighted fit.\n"
+    "warm_start_beta : ndarray, optional\n"
+    "    Optional starting values for coefficients.\n"
+    "smart_cold_start : bool, default True\n"
+    "    If True, use an OLS-based initial guess when no warm start is provided.\n"
+    "maxit : int, default 100\n"
+    "    Maximum number of iterations.\n"
+    "tol : float, default 1e-8\n"
+    "    Convergence tolerance.\n"
+    "fixed_idx : ndarray of int, optional\n"
+    "    Optional indices of fixed parameters.\n"
+    "fixed_values : ndarray, optional\n"
+    "    Optional values for fixed parameters.\n"
+    "optimization_alg : str, default \"irls\"\n"
+    "    Optimization algorithm (\"irls\" or \"lbfgs\").\n"
+    "warm_start_weights : ndarray, optional\n"
+    "    Optional initial IRLS working weights.\n"
+    "warm_start_fisher_info : ndarray, optional\n"
+    "    Optional initial Fisher information matrix.\n"
+    "estimate_only : bool, default False\n"
+    "    If True, skip variance computation and return only coefficients.");
 
     bind_constrained_binomial(m, "fast_log_binomial_regression", "fast_log_binomial_regression_with_var",
         BinomialConstrainedLink::kLog,

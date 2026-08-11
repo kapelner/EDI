@@ -12,7 +12,7 @@ test_that("gcomp_ordinal_proportional_odds_post_fit_cpp mean1/mean0/md match R r
 	alpha_hat <- as.numeric(fit$alpha)
 
 	result <- gcomp_ordinal_proportional_odds_post_fit_cpp(
-		X_fit_sexp = X, coef_hat_sexp = coef_hat, alpha_hat_sexp = alpha_hat, j_treat = 1L
+		X_fit = X, coef_hat = coef_hat, alpha_hat = alpha_hat, j_treat = 1L
 	)
 
 	mean_ref <- function(design) {

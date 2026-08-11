@@ -5,9 +5,9 @@
 \title{Fast Weighted Beta Regression (C++)}
 \usage{
 fast_beta_regression_weighted_cpp(
-  X_sexp,
-  y_sexp,
-  weights_sexp,
+  X,
+  y,
+  weights,
   warm_start_beta = NULL,
   smart_cold_start = TRUE,
   start_phi = 10,
@@ -20,11 +20,11 @@ fast_beta_regression_weighted_cpp(
 )
 }
 \arguments{
-\item{X_sexp}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors.}
 
-\item{y_sexp}{A numeric vector of responses (in (0, 1)).}
+\item{y}{A numeric vector of responses (in (0, 1)).}
 
-\item{weights_sexp}{A nonnegative numeric vector of row weights.}
+\item{weights}{A nonnegative numeric vector of row weights.}
 
 \item{warm_start_beta}{Optional starting values for coefficients.}
 

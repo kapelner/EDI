@@ -132,18 +132,18 @@ void recurse_jt_distribution(int idx,
 }  // namespace
 
 // [[Rcpp::export]]
-List exact_jonckheere_terpstra_pval_cpp(SEXP y_sexp,
-                                        SEXP w_sexp) {
-  IntegerVector y_r(y_sexp);
-  IntegerVector w_r(w_sexp);
-  Eigen::Map<const Eigen::VectorXi> y(y_r.begin(), y_r.size());
-  Eigen::Map<const Eigen::VectorXi> w(w_r.begin(), w_r.size());
-  const int n = y.size();
-  if (w.size() != n) stop("dimension mismatch in exact_jonckheere_terpstra_pval_cpp");
+List exact_jonckheere_terpstra_pval_cpp(SEXP y,
+                                        SEXP w) {
+  IntegerVector y_r(y);
+  IntegerVector w_r(w);
+  Eigen::Map<const Eigen::VectorXi> y_vec(y_r.begin(), y_r.size());
+  Eigen::Map<const Eigen::VectorXi> w_vec(w_r.begin(), w_r.size());
+  const int n = y_vec.size();
+  if (w_vec.size() != n) stop("dimension mismatch in exact_jonckheere_terpstra_pval_cpp");
   if (n == 0) stop("empty input in exact_jonckheere_terpstra_pval_cpp");
 
-  const int* y_ptr = y.data();
-  const int* w_ptr = w.data();
+  const int* y_ptr = y_vec.data();
+  const int* w_ptr = w_vec.data();
 
   int n_treat = 0;
   int n_control = 0;

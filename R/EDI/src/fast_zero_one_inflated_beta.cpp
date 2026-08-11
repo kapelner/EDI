@@ -512,9 +512,9 @@ SEXP get_zero_one_inflated_beta_hessian_cpp(SEXP X_sexp,
 
 //' @title Fast Zero/One-Inflated Beta Regression (C++)
 //' @description High-performance zero/one-inflated beta regression fitting using Newton-Raphson or L-BFGS.
-//' @param X_sexp Matrix of predictors for the beta component.
-//' @param X_zero_one_sexp Matrix of predictors for the zero and one inflation components.
-//' @param y_sexp Vector of responses in [0, 1].
+//' @param X Matrix of predictors for the beta component.
+//' @param X_zero_one Matrix of predictors for the zero and one inflation components.
+//' @param y Vector of responses in [0, 1].
 //' @param warm_start_params Optional starting values for all parameters. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
 //' @param fixed_idx Optional indices of fixed parameters.
@@ -526,9 +526,9 @@ SEXP get_zero_one_inflated_beta_hessian_cpp(SEXP X_sexp,
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_zero_one_inflated_beta_cpp(SEXP X_sexp,
-									 SEXP X_zero_one_sexp,
-									 SEXP y_sexp,
+List fast_zero_one_inflated_beta_cpp(SEXP X,
+									 SEXP X_zero_one,
+									 SEXP y,
 									 Nullable<NumericVector> warm_start_params = R_NilValue,
 									 bool smart_cold_start = true,
 									 Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
@@ -537,18 +537,18 @@ List fast_zero_one_inflated_beta_cpp(SEXP X_sexp,
 									 Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
 									 bool estimate_only = false){
 
-    NumericMatrix X_r(X_sexp);
-    NumericMatrix X_zero_one_r(X_zero_one_sexp);
-    NumericVector y_r(y_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::MatrixXd> X_zero_one(X_zero_one_r.begin(), X_zero_one_r.nrow(), X_zero_one_r.ncol());
+    NumericMatrix X_r(X);
+    NumericMatrix X_zero_one_r(X_zero_one);
+    NumericVector y_r(y);
+    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+    Eigen::Map<const Eigen::MatrixXd> X_zero_one_mat(X_zero_one_r.begin(), X_zero_one_r.nrow(), X_zero_one_r.ncol());
     Eigen::Map<const Eigen::VectorXd> y_eigen(y_r.begin(), y_r.size());
 
-	int p = X.cols();
-	int p_zero_one = X_zero_one.cols();
+	int p = X_mat.cols();
+	int p_zero_one = X_zero_one_mat.cols();
 
 	LikelihoodFitResult fit = fast_zero_one_inflated_beta_internal(
-		X, X_zero_one, y_eigen,
+		X_mat, X_zero_one_mat, y_eigen,
 		nullable_to_optional<Eigen::VectorXd>(warm_start_params),
 		smart_cold_start,
 		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -572,7 +572,7 @@ List fast_zero_one_inflated_beta_cpp(SEXP X_sexp,
 		params.size(),
 		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
 		nullable_to_optional<Eigen::VectorXd>(fixed_values));
-	ZeroOneInflatedBeta fun(y_eigen, X, X_zero_one);
+	ZeroOneInflatedBeta fun(y_eigen, X_mat, X_zero_one_mat);
 	Eigen::MatrixXd observed_information = fun.hessian(params);
 
 	int dim = params.size();

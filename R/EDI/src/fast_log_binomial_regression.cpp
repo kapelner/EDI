@@ -654,42 +654,42 @@ Eigen::MatrixXd constrained_binomial_weighted_hessian_cpp_impl(const Eigen::Ref<
 //' @description Calculates the score vector (gradient of the log-likelihood) for a log-binomial regression model.
 //' @param X_r A numeric matrix of predictors.
 //' @param y_r A binary numeric vector of responses.
-//' @param beta_sexp A numeric vector of coefficients.
+//' @param beta A numeric vector of coefficients.
 //' @return A numeric vector representing the score.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
 Eigen::VectorXd get_log_binomial_regression_score_cpp(SEXP X_r,
 													  SEXP y_r,
-													  SEXP beta_sexp) {
+													  SEXP beta) {
     NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
     Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    NumericVector beta_r(beta_sexp);
-    Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
-	return constrained_binomial_score_cpp_impl(X, y, beta, BinomialConstrainedLink::kLog);
+    NumericVector beta_r(beta);
+    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
+	return constrained_binomial_score_cpp_impl(X, y, beta_vec, BinomialConstrainedLink::kLog);
 }
 
 //' @title Compute Log-Binomial Regression Hessian
 //' @description Calculates the Hessian matrix (second derivatives of the log-likelihood) for a log-binomial regression model.
 //' @param X_r A numeric matrix of predictors.
 //' @param y_r A binary numeric vector of responses.
-//' @param beta_sexp A numeric vector of coefficients.
+//' @param beta A numeric vector of coefficients.
 //' @return A numeric matrix representing the Hessian.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
 Eigen::MatrixXd get_log_binomial_regression_hessian_cpp(SEXP X_r,
 														SEXP y_r,
-														SEXP beta_sexp) {
+														SEXP beta) {
     NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
     Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    NumericVector beta_r(beta_sexp);
-    Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
-	return constrained_binomial_hessian_cpp_impl(X, y, beta, BinomialConstrainedLink::kLog);
+    NumericVector beta_r(beta);
+    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
+	return constrained_binomial_hessian_cpp_impl(X, y, beta_vec, BinomialConstrainedLink::kLog);
 }
 
 //' @title Compute Weighted Log-Binomial Regression Score
@@ -697,7 +697,7 @@ Eigen::MatrixXd get_log_binomial_regression_hessian_cpp(SEXP X_r,
 //' @param X_r A numeric matrix of predictors.
 //' @param y_r A binary numeric vector of responses.
 //' @param weights_r A nonnegative numeric vector of observation weights.
-//' @param beta_sexp A numeric vector of coefficients.
+//' @param beta A numeric vector of coefficients.
 //' @return A numeric vector representing the weighted score.
 //' @export
 //' @keywords internal
@@ -705,16 +705,16 @@ Eigen::MatrixXd get_log_binomial_regression_hessian_cpp(SEXP X_r,
 Eigen::VectorXd get_log_binomial_regression_weighted_score_cpp(SEXP X_r,
                                                                SEXP y_r,
                                                                SEXP weights_r,
-                                                               SEXP beta_sexp) {
+                                                               SEXP beta) {
     NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
     Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     NumericVector weights_vec(weights_r);
     Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());
-    NumericVector beta_r(beta_sexp);
-    Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
-  return constrained_binomial_weighted_score_cpp_impl(X, y, weights, beta, BinomialConstrainedLink::kLog);
+    NumericVector beta_r(beta);
+    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
+  return constrained_binomial_weighted_score_cpp_impl(X, y, weights, beta_vec, BinomialConstrainedLink::kLog);
 }
 
 //' @title Compute Weighted Log-Binomial Regression Hessian
@@ -722,7 +722,7 @@ Eigen::VectorXd get_log_binomial_regression_weighted_score_cpp(SEXP X_r,
 //' @param X_r A numeric matrix of predictors.
 //' @param y_r A binary numeric vector of responses.
 //' @param weights_r A nonnegative numeric vector of observation weights.
-//' @param beta_sexp A numeric vector of coefficients.
+//' @param beta A numeric vector of coefficients.
 //' @return A numeric matrix representing the weighted Hessian.
 //' @export
 //' @keywords internal
@@ -730,58 +730,58 @@ Eigen::VectorXd get_log_binomial_regression_weighted_score_cpp(SEXP X_r,
 Eigen::MatrixXd get_log_binomial_regression_weighted_hessian_cpp(SEXP X_r,
                                                                  SEXP y_r,
                                                                  SEXP weights_r,
-                                                                 SEXP beta_sexp) {
+                                                                 SEXP beta) {
     NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
     Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     NumericVector weights_vec(weights_r);
     Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());
-    NumericVector beta_r(beta_sexp);
-    Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
-  return constrained_binomial_weighted_hessian_cpp_impl(X, y, weights, beta, BinomialConstrainedLink::kLog);
+    NumericVector beta_r(beta);
+    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
+  return constrained_binomial_weighted_hessian_cpp_impl(X, y, weights, beta_vec, BinomialConstrainedLink::kLog);
 }
 
 //' @title Compute Identity-Binomial Regression Score
 //' @description Calculates the score vector for a binomial regression model with an identity link.
 //' @param X_r A numeric matrix of predictors.
 //' @param y_r A binary numeric vector of responses.
-//' @param beta_sexp A numeric vector of coefficients.
+//' @param beta A numeric vector of coefficients.
 //' @return A numeric vector representing the score.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
 Eigen::VectorXd get_identity_binomial_regression_score_cpp(SEXP X_r,
 														   SEXP y_r,
-														   SEXP beta_sexp) {
+														   SEXP beta) {
     NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
     Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    NumericVector beta_r(beta_sexp);
-    Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
-	return constrained_binomial_score_cpp_impl(X, y, beta, BinomialConstrainedLink::kIdentity);
+    NumericVector beta_r(beta);
+    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
+	return constrained_binomial_score_cpp_impl(X, y, beta_vec, BinomialConstrainedLink::kIdentity);
 }
 
 //' @title Compute Identity-Binomial Regression Hessian
 //' @description Calculates the Hessian matrix for a binomial regression model with an identity link.
 //' @param X_r A numeric matrix of predictors.
 //' @param y_r A binary numeric vector of responses.
-//' @param beta_sexp A numeric vector of coefficients.
+//' @param beta A numeric vector of coefficients.
 //' @return A numeric matrix representing the Hessian.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
 Eigen::MatrixXd get_identity_binomial_regression_hessian_cpp(SEXP X_r,
 															 SEXP y_r,
-															 SEXP beta_sexp) {
+															 SEXP beta) {
     NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
     Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    NumericVector beta_r(beta_sexp);
-    Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
-	return constrained_binomial_hessian_cpp_impl(X, y, beta, BinomialConstrainedLink::kIdentity);
+    NumericVector beta_r(beta);
+    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
+	return constrained_binomial_hessian_cpp_impl(X, y, beta_vec, BinomialConstrainedLink::kIdentity);
 }
 
 //' @title Compute Weighted Identity-Binomial Regression Score
@@ -789,7 +789,7 @@ Eigen::MatrixXd get_identity_binomial_regression_hessian_cpp(SEXP X_r,
 //' @param X_r A numeric matrix of predictors.
 //' @param y_r A binary numeric vector of responses.
 //' @param weights_r A nonnegative numeric vector of observation weights.
-//' @param beta_sexp A numeric vector of coefficients.
+//' @param beta A numeric vector of coefficients.
 //' @return A numeric vector representing the weighted score.
 //' @export
 //' @keywords internal
@@ -797,16 +797,16 @@ Eigen::MatrixXd get_identity_binomial_regression_hessian_cpp(SEXP X_r,
 Eigen::VectorXd get_identity_binomial_regression_weighted_score_cpp(SEXP X_r,
                                                                     SEXP y_r,
                                                                     SEXP weights_r,
-                                                                    SEXP beta_sexp) {
+                                                                    SEXP beta) {
     NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
     Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     NumericVector weights_vec(weights_r);
     Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());
-    NumericVector beta_r(beta_sexp);
-    Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
-  return constrained_binomial_weighted_score_cpp_impl(X, y, weights, beta, BinomialConstrainedLink::kIdentity);
+    NumericVector beta_r(beta);
+    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
+  return constrained_binomial_weighted_score_cpp_impl(X, y, weights, beta_vec, BinomialConstrainedLink::kIdentity);
 }
 
 //' @title Compute Weighted Identity-Binomial Regression Hessian
@@ -814,7 +814,7 @@ Eigen::VectorXd get_identity_binomial_regression_weighted_score_cpp(SEXP X_r,
 //' @param X_r A numeric matrix of predictors.
 //' @param y_r A binary numeric vector of responses.
 //' @param weights_r A nonnegative numeric vector of observation weights.
-//' @param beta_sexp A numeric vector of coefficients.
+//' @param beta A numeric vector of coefficients.
 //' @return A numeric matrix representing the weighted Hessian.
 //' @export
 //' @keywords internal
@@ -822,16 +822,16 @@ Eigen::VectorXd get_identity_binomial_regression_weighted_score_cpp(SEXP X_r,
 Eigen::MatrixXd get_identity_binomial_regression_weighted_hessian_cpp(SEXP X_r,
                                                                       SEXP y_r,
                                                                       SEXP weights_r,
-                                                                      SEXP beta_sexp) {
+                                                                      SEXP beta) {
     NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
     Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     NumericVector weights_vec(weights_r);
     Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());
-    NumericVector beta_r(beta_sexp);
-    Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
-  return constrained_binomial_weighted_hessian_cpp_impl(X, y, weights, beta, BinomialConstrainedLink::kIdentity);
+    NumericVector beta_r(beta);
+    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
+  return constrained_binomial_weighted_hessian_cpp_impl(X, y, weights, beta_vec, BinomialConstrainedLink::kIdentity);
 }
 
 //' @title Fast Log-Binomial Regression (C++)

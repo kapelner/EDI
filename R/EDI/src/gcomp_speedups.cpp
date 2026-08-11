@@ -55,32 +55,32 @@ Eigen::MatrixXd cluster_meat(const Eigen::MatrixXd& X_fit,
 
 //' @title Fast G-Computation Point Estimate for Fractional Logit (C++)
 //' @description Computes marginal mean difference under the fractional logit (quasi-binomial) model using G-computation.
-//' @param X_fit_sexp Numeric matrix of predictors including intercept.
-//' @param coef_hat_sexp Numeric vector of fitted coefficients.
+//' @param X_fit Numeric matrix of predictors including intercept.
+//' @param coef_hat Numeric vector of fitted coefficients.
 //' @param j_treat 1-based column index of the treatment indicator in X_fit.
 //' @return A list with elements \code{mean1}, \code{mean0}, and \code{md} (mean difference).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List gcomp_fractional_logit_point_estimate_cpp(SEXP X_fit_sexp,
-                                               SEXP coef_hat_sexp,
+List gcomp_fractional_logit_point_estimate_cpp(SEXP X_fit,
+                                               SEXP coef_hat,
                                                int j_treat) {
-  Rcpp::NumericMatrix X_fit_r(X_fit_sexp);
-  Rcpp::NumericVector coef_hat_r(coef_hat_sexp);
-  Eigen::Map<const Eigen::MatrixXd> X_fit(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
-  Eigen::Map<const Eigen::VectorXd> coef_hat(coef_hat_r.begin(), coef_hat_r.size());
-  const int n = X_fit.rows();
-  const int p = X_fit.cols();
+  Rcpp::NumericMatrix X_fit_r(X_fit);
+  Rcpp::NumericVector coef_hat_r(coef_hat);
+  Eigen::Map<const Eigen::MatrixXd> X_fit_mat(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
+  Eigen::Map<const Eigen::VectorXd> coef_hat_vec(coef_hat_r.begin(), coef_hat_r.size());
+  const int n = X_fit_mat.rows();
+  const int p = X_fit_mat.cols();
   const int j_treat0 = j_treat - 1;
 
   if (j_treat0 < 0 || j_treat0 >= p) {
     stop("treatment column index is out of bounds");
   }
 
-  Eigen::VectorXd eta = X_fit * coef_hat;
-  Eigen::VectorXd eta_base = eta - coef_hat[j_treat0] * X_fit.col(j_treat0);
+  Eigen::VectorXd eta = X_fit_mat * coef_hat_vec;
+  Eigen::VectorXd eta_base = eta - coef_hat_vec[j_treat0] * X_fit_mat.col(j_treat0);
 
-  Eigen::ArrayXd risk1_arr = plogis_array_safe((eta_base.array() + coef_hat[j_treat0]));
+  Eigen::ArrayXd risk1_arr = plogis_array_safe((eta_base.array() + coef_hat_vec[j_treat0]));
   Eigen::ArrayXd risk0_arr = plogis_array_safe(eta_base.array());
 
   double mean1 = risk1_arr.mean();
@@ -95,21 +95,21 @@ List gcomp_fractional_logit_point_estimate_cpp(SEXP X_fit_sexp,
 
 //' @title Fast G-Computation Point Estimate for Logistic Regression (C++)
 //' @description Computes marginal risk difference and risk ratio under the logistic model using G-computation.
-//' @param X_fit_sexp Numeric matrix of predictors including intercept.
-//' @param coef_hat_sexp Numeric vector of fitted coefficients.
+//' @param X_fit Numeric matrix of predictors including intercept.
+//' @param coef_hat Numeric vector of fitted coefficients.
 //' @param j_treat 1-based column index of the treatment indicator in X_fit.
 //' @return A list with elements \code{mean1}, \code{mean0}, and \code{md} (mean difference).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List gcomp_logistic_point_estimate_cpp(SEXP X_fit_sexp,
-                                        SEXP coef_hat_sexp,
+List gcomp_logistic_point_estimate_cpp(SEXP X_fit,
+                                        SEXP coef_hat,
                                         int j_treat) {
-  Rcpp::NumericMatrix X_fit_r(X_fit_sexp);
-  Rcpp::NumericVector coef_hat_r(coef_hat_sexp);
-  Eigen::Map<const Eigen::MatrixXd> X_fit(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
-  Eigen::Map<const Eigen::VectorXd> coef_hat(coef_hat_r.begin(), coef_hat_r.size());
-  return gcomp_fractional_logit_point_estimate_cpp(X_fit_sexp, coef_hat_sexp, j_treat);
+  Rcpp::NumericMatrix X_fit_r(X_fit);
+  Rcpp::NumericVector coef_hat_r(coef_hat);
+  Eigen::Map<const Eigen::MatrixXd> X_fit_mat(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
+  Eigen::Map<const Eigen::VectorXd> coef_hat_vec(coef_hat_r.begin(), coef_hat_r.size());
+  return gcomp_fractional_logit_point_estimate_cpp(X_fit, coef_hat, j_treat);
 }
 
 namespace {
@@ -253,13 +253,13 @@ LogisticPostFitResult compute_gcomp_logistic_post_fit(SEXP X_fit_sexp,
 }  // namespace
 
 // [[Rcpp::export]]
-List gcomp_logistic_post_fit_cpp(SEXP X_fit_sexp,
-                                 SEXP y_sexp,
-                                 SEXP coef_hat_sexp,
-                                 SEXP mu_hat_sexp,
+List gcomp_logistic_post_fit_cpp(SEXP X_fit,
+                                 SEXP y,
+                                 SEXP coef_hat,
+                                 SEXP mu_hat,
                                  int j_treat) {
   LogisticPostFitResult result = compute_gcomp_logistic_post_fit(
-    X_fit_sexp, y_sexp, coef_hat_sexp, mu_hat_sexp, j_treat
+    X_fit, y, coef_hat, mu_hat, j_treat
   );
   return List::create(
     _["vcov"] = result.vcov,
@@ -420,22 +420,22 @@ List gcomp_logistic_cluster_post_fit_cpp(SEXP X_fit_sexp,
 }
 
 // [[Rcpp::export]]
-List gcomp_ordinal_proportional_odds_post_fit_cpp(SEXP X_fit_sexp,
-                                                  SEXP coef_hat_sexp,
-                                                  SEXP alpha_hat_sexp,
+List gcomp_ordinal_proportional_odds_post_fit_cpp(SEXP X_fit,
+                                                  SEXP coef_hat,
+                                                  SEXP alpha_hat,
                                                   int j_treat) {
-  Rcpp::NumericMatrix X_fit_r(X_fit_sexp);
-  Rcpp::NumericVector coef_hat_r(coef_hat_sexp);
-  Rcpp::NumericVector alpha_hat_r(alpha_hat_sexp);
-  Eigen::Map<const Eigen::MatrixXd> X_fit(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
-  Eigen::Map<const Eigen::VectorXd> coef_hat(coef_hat_r.begin(), coef_hat_r.size());
-  Eigen::Map<const Eigen::VectorXd> alpha_hat(alpha_hat_r.begin(), alpha_hat_r.size());
-  const int n = X_fit.rows();
-  const int K_minus_1 = alpha_hat.size();
+  Rcpp::NumericMatrix X_fit_r(X_fit);
+  Rcpp::NumericVector coef_hat_r(coef_hat);
+  Rcpp::NumericVector alpha_hat_r(alpha_hat);
+  Eigen::Map<const Eigen::MatrixXd> X_fit_mat(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
+  Eigen::Map<const Eigen::VectorXd> coef_hat_vec(coef_hat_r.begin(), coef_hat_r.size());
+  Eigen::Map<const Eigen::VectorXd> alpha_hat_vec(alpha_hat_r.begin(), alpha_hat_r.size());
+  const int n = X_fit_mat.rows();
+  const int K_minus_1 = alpha_hat_vec.size();
   const int j_treat0 = j_treat - 1;
 
-  Eigen::VectorXd eta_base = X_fit * coef_hat - coef_hat[j_treat0] * X_fit.col(j_treat0);
-  Eigen::VectorXd eta1 = eta_base.array() + coef_hat[j_treat0];
+  Eigen::VectorXd eta_base = X_fit_mat * coef_hat_vec - coef_hat_vec[j_treat0] * X_fit_mat.col(j_treat0);
+  Eigen::VectorXd eta1 = eta_base.array() + coef_hat_vec[j_treat0];
   Eigen::VectorXd eta0 = eta_base;
 
   auto compute_mean = [&](const Eigen::VectorXd& eta_vec) {
@@ -443,7 +443,7 @@ List gcomp_ordinal_proportional_odds_post_fit_cpp(SEXP X_fit_sexp,
     for (int i = 0; i < n; ++i) {
       double m = 1.0;
       for (int k = 0; k < K_minus_1; ++k) {
-        m += 1.0 - plogis_stable(alpha_hat[k] - eta_vec[i]);
+        m += 1.0 - plogis_stable(alpha_hat_vec[k] - eta_vec[i]);
       }
       sum += m;
     }

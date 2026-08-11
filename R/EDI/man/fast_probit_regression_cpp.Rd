@@ -5,8 +5,8 @@
 \title{Fast Probit Regression (C++)}
 \usage{
 fast_probit_regression_cpp(
-  X_sexp,
-  y_sexp,
+  X,
+  y,
   warm_start_beta = NULL,
   smart_cold_start = TRUE,
   maxit = 100L,
@@ -20,9 +20,9 @@ fast_probit_regression_cpp(
 )
 }
 \arguments{
-\item{X_sexp}{A numeric matrix of predictors (including intercept column).}
+\item{X}{A numeric matrix of predictors (including intercept column).}
 
-\item{y_sexp}{A numeric vector of binary responses (0/1).}
+\item{y}{A numeric vector of binary responses (0/1).}
 
 \item{warm_start_beta}{Optional starting values for coefficients.}
 

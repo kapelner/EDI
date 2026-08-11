@@ -5,8 +5,8 @@
 \title{Fast Robust Regression (C++)}
 \usage{
 fast_robust_regression_cpp(
-  X_sexp,
-  y_sexp,
+  X,
+  y,
   warm_start_beta = NULL,
   smart_cold_start = TRUE,
   method = "MM",
@@ -22,9 +22,9 @@ fast_robust_regression_cpp(
 )
 }
 \arguments{
-\item{X_sexp}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors.}
 
-\item{y_sexp}{A numeric vector of responses.}
+\item{y}{A numeric vector of responses.}
 
 \item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
 

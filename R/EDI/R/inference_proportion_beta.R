@@ -73,9 +73,9 @@ InferencePropBetaRegr = R6::R6Class("InferencePropBetaRegr",
 							10
 						}
 						fast_beta_regression_weighted_cpp(
-							X_sexp = X_fit,
-							y_sexp = y_fit,
-							weights_sexp = row_weights,
+							X = X_fit,
+							y = y_fit,
+							weights = row_weights,
 							warm_start_beta = start_beta,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info,
 							smart_cold_start = private$smart_cold_start_default,
