@@ -2,11 +2,13 @@
 
 All notable changes to `edi_kernels` are documented here. The version
 number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
-`R/package_metadata/python_bindings_package_spec.md`'s "Versioning"
-checklist item) — a `.postN` suffix is used for Python-packaging-only
-changes that don't touch `R/EDI/src/*.cpp`.
+`R/package_metadata/finished_features/python_bindings_package_spec.md`'s
+"Versioning" checklist item) — a `.postN` suffix is used for
+Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
-## [Unreleased]
+## [1.0.0.post3] - 2026-08-12
+
+Packaging/CI-only release — none of this touches `R/EDI/src/*.cpp`.
 
 ### Changed
 

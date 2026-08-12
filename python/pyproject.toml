@@ -35,7 +35,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "edi_kernels"
-version = "1.0.0.post2"
+version = "1.0.0.post3"
 description = "Python bindings for EDI's C++ model-fitting kernels (pybind11, no R/Rcpp dependency)"
 readme = "README_PYPI.md"
 requires-python = ">=3.9"
