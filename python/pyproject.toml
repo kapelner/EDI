@@ -116,7 +116,14 @@ archs = ["x86_64", "arm64"]
 # clang doesn't bundle OpenMP); installed so OpenMP::OpenMP_CXX
 # (CMakeLists.txt's optional find_package(OpenMP)) is actually found rather
 # than silently building single-threaded.
-before-all = "brew install libomp"
+# `brew untap aws/tap` first: GitHub's macos-latest image ships with this
+# tap pre-installed and untrusted, which makes Homebrew's tap-trust check
+# print a warning on *any* `brew install` regardless of what's being
+# installed -- confirmed harmless (we never use anything from it), so
+# removing it is cleaner than silencing the check globally via
+# HOMEBREW_NO_REQUIRE_TAP_TRUST=1, which Homebrew's own message says is
+# unsupported and slated for removal.
+before-all = "brew untap aws/tap; brew install libomp"
 
 [tool.cibuildwheel.windows]
 # No system package manager and no Accelerate-equivalent BLAS on Windows --

@@ -6,6 +6,28 @@ number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
 checklist item) — a `.postN` suffix is used for Python-packaging-only
 changes that don't touch `R/EDI/src/*.cpp`.
 
+## [Unreleased]
+
+### Changed
+
+- `.github/workflows/build-wheels.yml`: bumped `pypa/cibuildwheel` from
+  `v2.23.4` to `v4.2.0` -- the older tag's composite action pinned
+  `actions/setup-python@v5`, which GitHub now runs forcibly under Node 24
+  with a deprecation warning on every wheel-build job; `v4.2.0`'s action
+  uses `actions/setup-python@v7`, which targets Node 24 natively.
+  Confirmed the new version parses `python/pyproject.toml`'s
+  `[tool.cibuildwheel]` config identically (same cp39-cp313 x
+  linux/macos/windows build matrix, via `cibuildwheel
+  --print-build-identifiers`) before adopting it.
+- `python/pyproject.toml`'s macOS `before-all` now runs
+  `brew untap aws/tap` before `brew install libomp` -- `macos-latest`
+  runners ship with this tap pre-installed and untrusted, which made
+  Homebrew's tap-trust check print a warning on every `brew install`
+  regardless of what was being installed. Untapping it (rather than
+  setting `HOMEBREW_NO_REQUIRE_TAP_TRUST=1`, which Homebrew's own message
+  says is unsupported and slated for removal) is harmless since nothing
+  here uses `aws/tap`.
+
 ## [1.0.0.post2] - 2026-08-12
 
 Packaging-only release — none of this touches `R/EDI/src/*.cpp`.
