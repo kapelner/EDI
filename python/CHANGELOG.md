@@ -6,6 +6,42 @@ number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
 checklist item) — a `.postN` suffix is used for Python-packaging-only
 changes that don't touch `R/EDI/src/*.cpp`.
 
+## [Unreleased]
+
+### Fixed
+
+- `edi_kernels/__init__.py` only re-exported 1 of the 14 `fast_math`
+  utility scalar kernels (`fast_pchisq_upper`) at the public top-level
+  namespace — the other 13 (`fast_digamma`, `fast_trigamma`, `fast_lgamma`,
+  `fast_lbeta`, `fast_dnbinom_mu`, `fast_qnorm`, `fast_log_pnorm`,
+  `fast_log_dnorm`, `fast_erfc`, `pnorm_fast`, `dnorm_fast`, `fast_atan`,
+  `fast_log1pexp`) were compiled into `_core` same as always but never
+  surfaced through `from edi_kernels import ...`. Found by actually running
+  `python/README_PYPI.md`'s own new Utilities example against the real
+  published `1.0.0.post1` package rather than assuming it worked.
+
+### Added
+
+- `python/README_PYPI.md`: a full runnable example for every one of the 14
+  `fast_math` utility functions (previously only `fast_pchisq_upper` had
+  one), plus a dedicated "Utility (math kernel) speed gains" table mirroring
+  the model-fitting one. Two model-fitting kernels
+  (`fast_clayton_weibull_aft_optim`, `fast_dep_cens_transform_optim`) were
+  also found to be completely unlisted in either comparison table despite
+  having working examples already — added to "Kernels with no Python
+  canonical baseline" (15 -> 17 entries).
+- `python/README_PYPI.md`'s Proportion example now also covers
+  `gee_pairs_singletons(..., "binomial")` on a `(0, 1)`-valued response —
+  this is the exact kernel R's `InferencePropKKGEE` calls (GEE has no
+  separate "proportion" family; the binomial working-variance/logit link
+  already applies to any response in `[0, 1]`), confirmed by tracing
+  `InferencePropKKGEE` -> `gee_family_str()` -> `gee_pairs_singletons_cpp`
+  in `R/EDI/R/inference_mixin_kk_gee_shared.R`. Previously only shown with
+  a strictly-binary response in the Incidence section.
+- All 63 public `edi_kernels` functions audited end-to-end: every one has
+  a runnable Usage example, and all 7 Usage code blocks execute cleanly
+  against the real installed package.
+
 ## [1.0.0.post1] - 2026-08-11
 
 Packaging-only release — none of this touches `R/EDI/src/*.cpp`, per this

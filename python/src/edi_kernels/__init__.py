@@ -57,6 +57,25 @@ from ._core import (
     fast_logistic_glmm,
     fast_hurdle_poisson_glmm,
     fast_clogit_plus_glmm,
+    # fast_math (utility scalar kernels) -- fast_pchisq_upper above was the
+    # only one of these 14 actually re-exported here; the other 13 were
+    # compiled into _core same as always but never surfaced through the
+    # public edi_kernels namespace, an oversight caught 2026-08-12 by
+    # trying to run python/README_PYPI.md's own new Utilities example
+    # against the real published 1.0.0.post1 package.
+    fast_digamma,
+    fast_trigamma,
+    fast_lgamma,
+    fast_lbeta,
+    fast_dnbinom_mu,
+    fast_qnorm,
+    fast_log_pnorm,
+    fast_log_dnorm,
+    fast_erfc,
+    pnorm_fast,
+    dnorm_fast,
+    fast_atan,
+    fast_log1pexp,
 )
 
 __all__ = [
@@ -110,4 +129,17 @@ __all__ = [
     "fast_logistic_glmm",
     "fast_hurdle_poisson_glmm",
     "fast_clogit_plus_glmm",
+    "fast_digamma",
+    "fast_trigamma",
+    "fast_lgamma",
+    "fast_lbeta",
+    "fast_dnbinom_mu",
+    "fast_qnorm",
+    "fast_log_pnorm",
+    "fast_log_dnorm",
+    "fast_erfc",
+    "pnorm_fast",
+    "dnorm_fast",
+    "fast_atan",
+    "fast_log1pexp",
 ]

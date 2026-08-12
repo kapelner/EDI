@@ -42,30 +42,30 @@ against are omitted from this table — see
 [Kernels with no Python canonical baseline](#kernels-with-no-python-canonical-baseline)
 below for those instead.
 
-| Response type | Function | Speedup | Canonical (package / function) | EDI (ms) | Canonical (ms) |
-|---|---|---:|---|---:|---:|
-| continuous | `fast_robust_regression` | **69.49x** | statsmodels `RLM` | 0.17 | 11.92 |
-| continuous | `wilcox_hl_point_estimate` | **4.57x** | numpy `median(HL pairwise diff)` | 0.25 | 1.12 |
-| continuous | `fast_ols` | **3.25x** | numpy `linalg.lstsq` | 0.03 | 0.11 |
-| incidence | `fast_identity_binomial_regression` | **149.00x** | statsmodels `GLM(Binomial, identity link)` | 0.10 | 15.49 |
-| incidence | `fast_probit_regression` | **21.34x** | statsmodels `GLM(Binomial, probit link)` | 0.44 | 9.38 |
-| incidence | `fast_logistic_regression` | **17.04x** | statsmodels `GLM(Binomial)` | 0.24 | 4.03 |
-| incidence | `fast_log_binomial_regression` | **3.15x** | statsmodels `GLM(Binomial, log link)` | 1.63 | 5.13 |
-| survival | `fast_weibull_regression` | **2423.43x** | lifelines `WeibullAFTFitter` | 0.08 | 192.55 |
-| survival | `get_survival_stat_diff` (median) | **1647.81x** | lifelines `KaplanMeierFitter(median)` | 0.02 | 26.52 |
-| survival | `get_survival_stat_diff` (restricted_mean) | **1460.28x** | lifelines `utils.restricted_mean_survival_time` | 0.01 | 19.30 |
-| survival | `fast_stratified_coxph_regression` | **583.92x** | lifelines `CoxPHFitter(strata=)` | 0.47 | 273.61 |
-| survival | `fast_logrank_stats` | **212.34x** | lifelines `statistics.logrank_test` | 0.12 | 26.28 |
-| survival | `fast_coxph_regression` | **102.32x** | scikit-survival `CoxPHSurvivalAnalysis` | 0.50 | 51.62 |
-| count | `fast_hurdle_negbin` | **57.90x** | statsmodels `HurdleCountModel(negbin)` | 2.33 | 135.15 |
-| count | `fast_zero_augmented_poisson` (is_hurdle=True) | **29.33x** | statsmodels `HurdleCountModel(poisson)` | 1.43 | 41.83 |
-| count | `fast_zinb` | **25.56x** | statsmodels `ZeroInflatedNegativeBinomialP` | 13.96 | 356.91 |
-| count | `fast_poisson_regression` | **22.54x** | statsmodels `GLM(Poisson)` | 0.18 | 3.94 |
-| count | `fast_neg_bin` | **22.13x** | statsmodels `NegativeBinomial` | 0.81 | 17.87 |
-| count | `fast_zero_augmented_poisson` (is_hurdle=False) | **4.96x** | statsmodels `ZeroInflatedPoisson` | 11.91 | 59.04 |
-| proportion | `fast_beta_regression` | **11.99x** | statsmodels `BetaModel` | 1.40 | 16.81 |
-| ordinal | `fast_ordinal_regression` | **129.83x** | statsmodels `OrderedModel(logit)` | 0.91 | 117.69 |
-| ordinal | `fast_ordinal_probit_regression` | **106.95x** | statsmodels `OrderedModel(probit)` | 0.80 | 86.01 |
+| Speed<br>Up | Response<br>type | Function | Canonical package<br>and function | EDI<br>(ms) | Canonical<br>(ms) |
+|---:|---|---|---|---:|---:|
+| **69.5x** | continuous | `fast_robust_regression` | statsmodels `RLM` | 0.17 | 11.92 |
+| **4.57x** | continuous | `wilcox_hl_point_estimate` | numpy `median(HL pairwise diff)` | 0.25 | 1.12 |
+| **3.25x** | continuous | `fast_ols` | numpy `linalg.lstsq` | 0.03 | 0.11 |
+| **149x** | incidence | `fast_identity_binomial_regression` | statsmodels `GLM(Binomial, identity link)` | 0.10 | 15.49 |
+| **21.3x** | incidence | `fast_probit_regression` | statsmodels `GLM(Binomial, probit link)` | 0.44 | 9.38 |
+| **17.0x** | incidence | `fast_logistic_regression` | statsmodels `GLM(Binomial)` | 0.24 | 4.03 |
+| **3.15x** | incidence | `fast_log_binomial_regression` | statsmodels `GLM(Binomial, log link)` | 1.63 | 5.13 |
+| **2420x** | survival | `fast_weibull_regression` | lifelines `WeibullAFTFitter` | 0.08 | 192.55 |
+| **1650x** | survival | `get_survival_stat_diff` (median) | lifelines `KaplanMeierFitter(median)` | 0.02 | 26.52 |
+| **1460x** | survival | `get_survival_stat_diff` (restricted_mean) | lifelines `utils.restricted_mean_survival_time` | 0.01 | 19.30 |
+| **584x** | survival | `fast_stratified_coxph_regression` | lifelines `CoxPHFitter(strata=)` | 0.47 | 273.61 |
+| **212x** | survival | `fast_logrank_stats` | lifelines `statistics.logrank_test` | 0.12 | 26.28 |
+| **102x** | survival | `fast_coxph_regression` | scikit-survival `CoxPHSurvivalAnalysis` | 0.50 | 51.62 |
+| **57.9x** | count | `fast_hurdle_negbin` | statsmodels `HurdleCountModel(negbin)` | 2.33 | 135.15 |
+| **29.3x** | count | `fast_zero_augmented_poisson` (is_hurdle=True) | statsmodels `HurdleCountModel(poisson)` | 1.43 | 41.83 |
+| **25.6x** | count | `fast_zinb` | statsmodels `ZeroInflatedNegativeBinomialP` | 13.96 | 356.91 |
+| **22.5x** | count | `fast_poisson_regression` | statsmodels `GLM(Poisson)` | 0.18 | 3.94 |
+| **22.1x** | count | `fast_neg_bin` | statsmodels `NegativeBinomial` | 0.81 | 17.87 |
+| **4.96x** | count | `fast_zero_augmented_poisson` (is_hurdle=False) | statsmodels `ZeroInflatedPoisson` | 11.91 | 59.04 |
+| **12.0x** | proportion | `fast_beta_regression` | statsmodels `BetaModel` | 1.40 | 16.81 |
+| **130x** | ordinal | `fast_ordinal_regression` | statsmodels `OrderedModel(logit)` | 0.91 | 117.69 |
+| **107x** | ordinal | `fast_ordinal_probit_regression` | statsmodels `OrderedModel(probit)` | 0.80 | 86.01 |
 
 Three additional response-family rows in the underlying benchmark
 (`InferenceIncidGCompRiskDiff`/`RiskRatio`, `InferencePropGCompMeanDiff`,
@@ -75,24 +75,42 @@ that post-processing utility isn't itself a separately exposed
 `edi_kernels` function, so those rows are left out of the table above
 rather than misattributing their timing to a single bindable kernel.
 
-**→ Full results, including the Wald/full-inference table (standard errors
-+ p-values), the utility/math-kernel table, dataset spec, and methodology
-notes:**
-[`benchmark_model_fits_python.html`](https://rawcdn.githack.com/kapelner/EDI/main/python/benchmark/benchmark_model_fits_python.html).
+Full results, including the Wald/full-inference table (standard errors
+and p-values), the utility/math-kernel table, dataset spec, and methodology
+notes: [`benchmark_model_fits_python.html`](https://rawcdn.githack.com/kapelner/EDI/main/python/benchmark/benchmark_model_fits_python.html). 
 Same table shape as the R package's own
 [`benchmark_model_fits_R.html`](https://rawcdn.githack.com/kapelner/EDI/main/R/benchmark/benchmark_model_fits_R.html).
-(GitHub does not render standalone `.html` files inline when linked
-directly, and neither `htmlpreview.github.io` nor jsDelivr's CDN mirror
-actually renders as a page either — the former needs client-side JS a
-plain link visit won't trigger reliably, and the latter serves GitHub
-files as `Content-Type: text/plain` regardless of extension. Both links
-above go through `githack.com`'s CDN mirror of this repo instead, which
-serves the file with the correct `text/html` content type, confirmed via
-its response headers, so it renders as a normal web page.)
+
+### Utility (math kernel) speed gains
+
+The `fast_math` scalar functions underneath several of the model-fitting
+kernels above (`fast_digamma`/`fast_trigamma`/etc., used internally by the
+NegBin/Beta/ZINB/Hurdle likelihoods and probit cold-start heuristics) are
+also directly exposed and independently benchmarked, vectorized, against
+scipy/numpy's own vectorized equivalents over a length-5000 array. Same
+methodology and columns as the table above; all 14 have a canonical
+baseline, so there's no separate "no baseline" table for this group.
+
+| Speed<br>Up | Function | Canonical package<br>and function | EDI<br>(ms) | Canonical<br>(ms) |
+|---:|---|---|---:|---:|
+| **85.6x** | `fast_log_dnorm` | scipy `stats.norm.logpdf` | 0.00269 | 0.23 |
+| **63.5x** | `fast_trigamma` | scipy `special.polygamma(1,.)` | 0.03 | 1.90 |
+| **9.70x** | `fast_qnorm` | scipy `stats.norm.ppf` | 0.04 | 0.38 |
+| **4.79x** | `dnorm_fast` | scipy `stats.norm.pdf` | 0.05 | 0.25 |
+| **2.77x** | `fast_atan` | numpy `arctan` | 0.03 | 0.09 |
+| **2.77x** | `pnorm_fast` | scipy `stats.norm.cdf` | 0.11 | 0.31 |
+| **2.65x** | `fast_log_pnorm` | scipy `stats.norm.logcdf` | 0.16 | 0.43 |
+| **2.26x** | `fast_lbeta` | scipy `special.betaln` | 0.32 | 0.72 |
+| **1.59x** | `fast_digamma` | scipy `special.digamma` | 0.08 | 0.13 |
+| **1.54x** | `fast_log1pexp` | numpy `logaddexp(0,.)` | 0.10 | 0.15 |
+| **1.52x** | `fast_pchisq_upper` | scipy `stats.chi2.sf` | 0.76 | 1.16 |
+| **1.36x** | `fast_lgamma` | scipy `special.gammaln` | 0.10 | 0.14 |
+| **1.27x** | `fast_erfc` | scipy `special.erfc` | 0.11 | 0.14 |
+| **1.19x** | `fast_dnbinom_mu` | scipy `stats.nbinom.logpmf` | 0.61 | 0.72 |
 
 ## Kernels with no Python canonical baseline
 
-Fifteen bound kernels have no clean, actively-maintained Python package to
+Seventeen bound kernels have no clean, actively-maintained Python package to
 benchmark against (an absent comparison is more honest than a mismatched
 substitute baseline). They're bound in `edi_kernels` regardless — EDI is
 still the only fast way to fit them in Python — they just have no speedup
@@ -115,6 +133,8 @@ number to show:
 | `fast_stereotype_logit` | Stereotype logit ordinal regression | no Python package implements this link |
 | `fast_zero_one_inflated_beta` | Zero-one-inflated beta regression (proportions) | no canonical package in either R or Python |
 | `fast_weibull_frailty` | Weibull AFT with shared log-normal frailty | no clean Python package (even the R side only has a partial/PH-parameterized `frailtypack` analog) |
+| `fast_clayton_weibull_aft_optim` | KK combined (matched-pair + reservoir) Clayton-copula-dependent-censoring Weibull AFT estimator | no canonical analog in either R or Python |
+| `fast_dep_cens_transform_optim` | Dependent-censoring transformation-model regression | no canonical analog in either R or Python |
 
 ## Usage
 
@@ -386,7 +406,7 @@ fit = fast_hurdle_poisson_glmm(X, y_pois_clustered, group_id, j_T=1, estimate_on
 
 ```python
 import numpy as np
-from edi_kernels import fast_beta_regression, fast_zero_one_inflated_beta
+from edi_kernels import fast_beta_regression, fast_zero_one_inflated_beta, gee_pairs_singletons
 
 rng = np.random.default_rng(4)
 n = 300
@@ -410,6 +430,13 @@ y01[(u >= p0) & (u < p0 + p1)] = 1.0
 
 # proportion -- zero-one-inflated beta regression (single-mode kernel; no estimate_only/with_var split)
 fit = fast_zero_one_inflated_beta(X, X, y01)
+
+# proportion -- matched-pair/singleton GEE on a (0, 1)-valued response: the same gee_pairs_singletons
+# kernel as the Incidence section above (there is no separate "proportion" GEE family -- the binomial
+# working variance/logit link applies to any response in [0, 1], not just strictly-binary data), and
+# the kernel that backs R's KK-design InferencePropKKGEE.
+group_id = np.repeat(np.arange(n // 2), 2).astype(np.int32) + 1
+fit = gee_pairs_singletons(X, y_beta, group_id, "binomial")
 ```
 
 ### Ordinal
@@ -515,7 +542,10 @@ from edi_kernels import (
     ols_hc2_post_fit, wilcox_hl_point_estimate,
     mn_ci, mn_pvalue, newcombe_independent_ci,
     fast_gehan_wilcox_stats, fast_logrank_stats, get_survival_stat_diff,
-    fast_ridit_analysis, fast_pchisq_upper,
+    fast_ridit_analysis,
+    fast_pchisq_upper, fast_digamma, fast_trigamma, fast_lgamma, fast_lbeta,
+    fast_dnbinom_mu, fast_qnorm, fast_log_pnorm, fast_log_dnorm, fast_erfc,
+    pnorm_fast, dnorm_fast, fast_atan, fast_log1pexp,
 )
 
 rng = np.random.default_rng(6)
@@ -560,6 +590,35 @@ ridit = fast_ridit_analysis(w_ridit, y_ridit, "control")
 
 # not tied to any response type -- upper-tail (survival function) p-value for a chi-squared statistic
 pval = fast_pchisq_upper(3.84, df=1)
+
+# utility -- vectorized scalar math kernels (each also used internally by the model-fitting
+# kernels above); all take/return a plain 1-D ndarray, elementwise.
+z = rng.normal(size=8)             # unrestricted reals, for the normal-distribution family below
+p = rng.uniform(0.01, 0.99, 8)     # in (0, 1), for fast_qnorm
+x_pos = rng.uniform(0.5, 5.0, 8)   # positive reals, for the gamma-function family below
+counts = rng.integers(0, 20, 8).astype(np.float64)  # non-negative, for fast_dnbinom_mu
+
+# utility -- standard normal PDF/CDFs/quantile and their logs (elementwise)
+dens = dnorm_fast(z)
+cum = pnorm_fast(z)
+erfc_vals = fast_erfc(z)
+log_dens = fast_log_dnorm(z)
+log_cum = fast_log_pnorm(z)
+quant = fast_qnorm(p)
+
+# utility -- digamma/trigamma/log-gamma (elementwise)
+dig = fast_digamma(x_pos)
+trig = fast_trigamma(x_pos)
+lgam = fast_lgamma(x_pos)
+# utility -- log-beta (elementwise, two equal-length arrays)
+lbet = fast_lbeta(x_pos, x_pos[::-1])
+
+# utility -- mean-parameterized negative-binomial log-density (elementwise x; scalar size/mu)
+nb_logpmf = fast_dnbinom_mu(counts, size=4.0, mu=6.0, return_log=True)
+
+# utility -- arctangent, softplus (elementwise)
+atan_vals = fast_atan(z)
+softplus_vals = fast_log1pexp(z)
 ```
 
 ## License
