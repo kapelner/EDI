@@ -297,3 +297,5 @@ InferenceIncidProbitRegr = R6::R6Class("InferenceIncidProbitRegr",
 		}
 	)
 )
+
+IncidenceProbitLikelihoodSource = inference_component_source_parts(InferenceIncidProbitRegr)

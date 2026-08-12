@@ -21,9 +21,7 @@
 #' seq_des_inf$compute_asymp_two_sided_pval()
 #' }
 #' @export
-InferenceAllSimpleMeanDiff = R6::R6Class("InferenceAllSimpleMeanDiff",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
+SimpleMeanDifferenceSource = list(
 	public = list(
 		#' @description Initialize a simple mean-difference inference object.
 		#' @param des_obj A DesignSeqOneByOne object whose entire n subjects are assigned
@@ -45,16 +43,6 @@ InferenceAllSimpleMeanDiff = R6::R6Class("InferenceAllSimpleMeanDiff",
 			super$initialize(des_obj = des_obj, verbose = verbose, harden = TRUE, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			private$fit_warm_start_enabled = FALSE
 			private$max_resample_attempts = max_resample_attempts
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
 		},
 		#' @description Uses the shared asymptotic confidence-interval contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
@@ -329,5 +317,47 @@ InferenceAllSimpleMeanDiff = R6::R6Class("InferenceAllSimpleMeanDiff",
 		get_likelihood_test_spec = function(){
 			NULL
 		}
+	)
+)
+
+InferenceAllSimpleMeanDiff = define_inference_class(
+	classname = "InferenceAllSimpleMeanDiff",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
+	public = list(
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"compute_fast_bootstrap_distr",
+			"compute_fast_randomization_distr",
+			"compute_fast_rand_bootstrap_distr",
+			"compute_rand_bootstrap_ci_affine_coefs",
+			"shared",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_likelihood_tests",
+			"get_supported_testing_types_impl",
+			"simulate_under_lik_null",
+			"compute_brt_null_statistics_with_se",
+			"get_likelihood_test_spec"
+		)
 	)
 )

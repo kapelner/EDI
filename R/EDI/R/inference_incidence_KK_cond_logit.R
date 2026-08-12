@@ -1,3 +1,134 @@
+conditional_logit_prepare_combined_design = function(private_env, KKstats) {
+	m = KKstats$m
+	nRT = KKstats$nRT
+	nRC = KKstats$nRC
+	p = ncol(as.matrix(private_env$X))
+	has_reservoir = nRT > 0 && nRC > 0
+	X_comb = NULL
+	y_comb = NULL
+	j_beta_T = 2L
+	m_vec = private_env$m
+	if (is.null(m_vec)) m_vec = rep(NA_integer_, private_env$n)
+	m_vec[is.na(m_vec)] = 0L
+	if (m > 0) {
+		i_matched = which(m_vec > 0L)
+		y_m = private_env$y[i_matched]
+		w_m = private_env$w[i_matched]
+		strata_m = m_vec[i_matched]
+		X_mat = if (p > 0L) as.matrix(private_env$get_X()[i_matched, , drop = FALSE]) else matrix(nrow = length(y_m), ncol = 0L)
+		if (has_reservoir) {
+			y_r = KKstats$y_reservoir
+			w_r = KKstats$w_reservoir
+			X_r = if (p > 0L) as.matrix(KKstats$X_reservoir) else matrix(nrow = length(y_r), ncol = 0L)
+			design = build_matching_combined_clogit_design_cpp(
+				as.double(y_m), as.double(w_m), X_mat, as.integer(strata_m),
+				as.double(y_r), as.double(w_r), X_r
+			)
+			X_comb = design$X_comb
+			y_comb = design$y_comb
+			j_beta_T = 2L
+		} else {
+			res = collect_discordant_pairs_cpp(
+				as.double(y_m), as.double(w_m), X_mat, as.integer(strata_m)
+			)
+			if (res$nd > 0) {
+				X_comb = if (p > 0L) cbind(res$t_diffs, res$X_diffs) else matrix(res$t_diffs, ncol = 1L)
+				y_comb = res$y_01
+				j_beta_T = 1L
+			}
+		}
+	} else if (has_reservoir) {
+		y_r = KKstats$y_reservoir
+		w_r = KKstats$w_reservoir
+		X_comb = if (p > 0L) cbind(1, w_r, as.matrix(KKstats$X_reservoir)) else cbind(1, w_r)
+		y_comb = y_r
+	}
+	if (!is.null(X_comb)) {
+		colnames(X_comb) = paste0("x", seq_len(ncol(X_comb)))
+		colnames(X_comb)[j_beta_T] = "beta_T"
+	}
+	list(X = X_comb, y = y_comb, j_beta_T = j_beta_T, has_reservoir = has_reservoir)
+}
+
+conditional_logit_weighted_combined_estimate = function(private_env, KKstats, row_weights) {
+	design = conditional_logit_prepare_combined_design(private_env, KKstats)
+	if (is.null(design$X)) return(NA_real_)
+	kk_w = kk_pair_and_reservoir_bootstrap_weights(private_env, row_weights)
+	w_comb = if (isTRUE(design$has_reservoir) && KKstats$m > 0) {
+		c(kk_w$pair_weights, kk_w$reservoir_weights)
+	} else if (KKstats$m > 0) {
+		kk_w$pair_weights[seq_len(nrow(design$X))]
+	} else {
+		kk_w$reservoir_weights
+	}
+	ok = is.finite(w_comb) & w_comb > 0 & is.finite(design$y)
+	if (!any(ok)) return(NA_real_)
+	X_comb = design$X[ok, , drop = FALSE]
+	y_comb = design$y[ok]
+	w_comb = w_comb[ok]
+	mod = tryCatch(
+		fast_logistic_regression_weighted_cpp(
+			X = X_comb,
+			y = y_comb,
+			weights = w_comb,
+			warm_start_beta = private_env$get_fit_warm_start_for_length("beta", ncol(X_comb)),
+			warm_start_fisher_info = private_env$get_fit_warm_start_fisher(ncol(X_comb)),
+			optimization_alg = private_env$optimization_alg
+		),
+		error = function(e) NULL
+	)
+	j_beta_fit = match("beta_T", colnames(X_comb))
+	if (is.null(mod) || is.na(j_beta_fit) || length(mod$b) < j_beta_fit || !is.finite(mod$b[j_beta_fit])) return(NA_real_)
+	as.numeric(mod$b[j_beta_fit])
+}
+
+conditional_logit_neg_loglik = function(X, y, b) {
+	eta = as.numeric(X %*% as.numeric(b))
+	log_denom = ifelse(eta > 0, eta + log1p(exp(-eta)), log1p(exp(eta)))
+	-sum(y * eta - log_denom)
+}
+
+conditional_logit_fit_matched_pairs = function(KKstats) {
+	y_m_all = KKstats$yTs_matched - KKstats$yCs_matched
+	i_m_disc = which(abs(y_m_all) == 1)
+	if (length(i_m_disc) == 0L) return(NULL)
+	X_m = cbind(treatment = 1, KKstats$X_matched_diffs[i_m_disc, , drop = FALSE])
+	y_m = (y_m_all[i_m_disc] + 1) / 2
+	tryCatch(fast_logistic_regression_with_var_cpp(X_m, y_m, j = 1L), error = function(e) NULL)
+}
+
+conditional_logit_fit_reservoir = function(KKstats, X_covars) {
+	y_r = KKstats$y_reservoir
+	w_r = KKstats$w_reservoir
+	X_r = if (is.null(X_covars) || ncol(X_covars) == 0) {
+		cbind(`(Intercept)` = 1, treatment = w_r)
+	} else {
+		cbind(`(Intercept)` = 1, treatment = w_r, KKstats$X_reservoir)
+	}
+	tryCatch(fast_logistic_regression_with_var_cpp(X_r, y_r, j = 2L), error = function(e) NULL)
+}
+
+ConditionalLogitPartialLikelihoodSource = list(
+	public = list(),
+	private = list(
+		conditional_logit_prepare_combined_design = function(KKstats) {
+			conditional_logit_prepare_combined_design(private, KKstats)
+		},
+		conditional_logit_weighted_combined_estimate = function(KKstats, row_weights) {
+			conditional_logit_weighted_combined_estimate(private, KKstats, row_weights)
+		},
+		conditional_logit_neg_loglik = function(X, y, b) {
+			conditional_logit_neg_loglik(X, y, b)
+		},
+		conditional_logit_fit_matched_pairs = function(KKstats) {
+			conditional_logit_fit_matched_pairs(KKstats)
+		},
+		conditional_logit_fit_reservoir = function(KKstats, X_covars) {
+			conditional_logit_fit_reservoir(KKstats, X_covars)
+		}
+	)
+)
+
 #' Conditional Logistic Combined-Likelihood Inference for KK Designs with Binary Responses
 #'
 #' Fits a single joint likelihood over all KK design data for incidence responses.
@@ -101,62 +232,15 @@ InferenceIncidKKCondLogitOneLik = R6::R6Class("InferenceIncidKKCondLogitOneLik",
 			KKstats = private$cached_values$KKstats
 			if (is.null(KKstats)) return(invisible(NULL))
 
-			m   = KKstats$m
-			nRT = KKstats$nRT
-			nRC = KKstats$nRC
-			p             = ncol(as.matrix(private$X))
-			has_reservoir = nRT > 0 && nRC > 0
-
-			X_comb   = NULL
-			y_comb   = NULL
-			j_beta_T = 2L
-
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-
-			if (m > 0){
-				i_matched = which(m_vec > 0L)
-				y_m      = private$y[i_matched]
-				w_m      = private$w[i_matched]
-				strata_m = m_vec[i_matched]
-				X_mat    = if (p > 0L) as.matrix(private$get_X()[i_matched, , drop = FALSE]) else matrix(nrow = length(y_m), ncol = 0L)
-
-				if (has_reservoir){
-					y_r    = KKstats$y_reservoir
-					w_r    = KKstats$w_reservoir
-					X_r    = if (p > 0L) as.matrix(KKstats$X_reservoir) else matrix(nrow = length(y_r), ncol = 0L)
-					design = build_matching_combined_clogit_design_cpp(
-						as.double(y_m), as.double(w_m), X_mat, as.integer(strata_m),
-						as.double(y_r), as.double(w_r), X_r
-					)
-					X_comb   = design$X_comb
-					y_comb   = design$y_comb
-					j_beta_T = 2L
-				} else {
-					res = collect_discordant_pairs_cpp(
-						as.double(y_m), as.double(w_m), X_mat, as.integer(strata_m)
-					)
-					if (res$nd > 0){
-						X_comb   = if (p > 0L) cbind(res$t_diffs, res$X_diffs) else matrix(res$t_diffs, ncol = 1L)
-						y_comb   = res$y_01
-						j_beta_T = 1L
-					}
-				}
-			} else if (has_reservoir){
-				y_r    = KKstats$y_reservoir
-				w_r    = KKstats$w_reservoir
-				X_comb = if (p > 0L) cbind(1, w_r, as.matrix(KKstats$X_reservoir)) else cbind(1, w_r)
-				y_comb = y_r
-			}
+			design = conditional_logit_prepare_combined_design(private, KKstats)
+			X_comb = design$X
+			y_comb = design$y
+			j_beta_T = design$j_beta_T
 
 			if (is.null(X_comb)){
 				private$cache_nonestimable_estimate("kk_clogit_combined_no_informative_data")
 				return(invisible(NULL))
 			}
-
-			colnames(X_comb) = paste0("x", seq_len(ncol(X_comb)))
-			colnames(X_comb)[j_beta_T] = "beta_T"
 
 			attempt = private$fit_with_hardened_qr_column_dropping(
 				X_full = X_comb,
@@ -270,9 +354,7 @@ InferenceIncidKKCondLogitOneLik = R6::R6Class("InferenceIncidKKCondLogitOneLik",
 					-get_logistic_regression_hessian_cpp(X_fit, as.numeric(fit$b))
 				},
 				neg_loglik = function(fit){
-					eta = as.numeric(X_fit %*% as.numeric(fit$b))
-					log_denom = ifelse(eta > 0, eta + log1p(exp(-eta)), log1p(exp(eta)))
-					-sum(y * eta - log_denom)
+					conditional_logit_neg_loglik(X_fit, y, fit$b)
 				}
 			)
 		},
@@ -283,75 +365,7 @@ InferenceIncidKKCondLogitOneLik = R6::R6Class("InferenceIncidKKCondLogitOneLik",
 			}
 			KKstats = private$cached_values$KKstats
 			if (is.null(KKstats)) return(NA_real_)
-			m   = KKstats$m
-			nRT = KKstats$nRT
-			nRC = KKstats$nRC
-			p             = ncol(as.matrix(private$X))
-			has_reservoir = nRT > 0 && nRC > 0
-			kk_w = kk_pair_and_reservoir_bootstrap_weights(private, row_weights)
-			X_comb = NULL
-			y_comb = NULL
-			w_comb = NULL
-			j_beta_T = 2L
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			if (m > 0){
-				i_matched = which(m_vec > 0L)
-				y_m = private$y[i_matched]
-				w_m = private$w[i_matched]
-				strata_m = m_vec[i_matched]
-				X_mat = if (p > 0L) as.matrix(private$get_X()[i_matched, , drop = FALSE]) else matrix(nrow = length(y_m), ncol = 0L)
-				if (has_reservoir){
-					y_r = KKstats$y_reservoir
-					w_r = KKstats$w_reservoir
-					X_r = if (p > 0L) as.matrix(KKstats$X_reservoir) else matrix(nrow = length(y_r), ncol = 0L)
-					design = build_matching_combined_clogit_design_cpp(
-						as.double(y_m), as.double(w_m), X_mat, as.integer(strata_m),
-						as.double(y_r), as.double(w_r), X_r
-					)
-					X_comb = design$X_comb
-					y_comb = design$y_comb
-					w_comb = c(kk_w$pair_weights, kk_w$reservoir_weights)
-					j_beta_T = 2L
-				} else {
-					res = collect_discordant_pairs_cpp(as.double(y_m), as.double(w_m), X_mat, as.integer(strata_m))
-					if (res$nd > 0){
-						X_comb = if (p > 0L) cbind(res$t_diffs, res$X_diffs) else matrix(res$t_diffs, ncol = 1L)
-						y_comb = res$y_01
-						w_comb = kk_w$pair_weights[seq_len(res$nd)]
-						j_beta_T = 1L
-					}
-				}
-			} else if (has_reservoir){
-				y_r = KKstats$y_reservoir
-				w_r = KKstats$w_reservoir
-				X_comb = if (p > 0L) cbind(1, w_r, as.matrix(KKstats$X_reservoir)) else cbind(1, w_r)
-				y_comb = y_r
-				w_comb = kk_w$reservoir_weights
-			}
-			if (is.null(X_comb) || is.null(w_comb)) return(NA_real_)
-			colnames(X_comb) = paste0("x", seq_len(ncol(X_comb)))
-			colnames(X_comb)[j_beta_T] = "beta_T"
-			ok = is.finite(w_comb) & w_comb > 0 & is.finite(y_comb)
-			if (!any(ok)) return(NA_real_)
-			X_comb = X_comb[ok, , drop = FALSE]
-			y_comb = y_comb[ok]
-			w_comb = w_comb[ok]
-			mod = tryCatch(
-				fast_logistic_regression_weighted_cpp(
-					X = X_comb,
-					y = y_comb,
-					weights = w_comb,
-					warm_start_beta = private$get_fit_warm_start_for_length("beta", ncol(X_comb)),
-					warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X_comb)),
-					optimization_alg = private$optimization_alg
-				),
-				error = function(e) NULL
-			)
-			j_beta_fit = match("beta_T", colnames(X_comb))
-			if (is.null(mod) || is.na(j_beta_fit) || length(mod$b) < j_beta_fit || !is.finite(mod$b[j_beta_fit])) return(NA_real_)
-			as.numeric(mod$b[j_beta_fit])
+			conditional_logit_weighted_combined_estimate(private, KKstats, row_weights)
 		},
 		simulate_under_lik_null = function(spec, delta, null_fit){
 			X = spec$X
@@ -381,9 +395,7 @@ InferenceIncidKKCondLogitOneLik = R6::R6Class("InferenceIncidKKCondLogitOneLik",
 					)
 				},
 				neg_loglik = function(fit){
-					eta = as.numeric(X %*% as.numeric(fit$b))
-					log_denom = ifelse(eta > 0, eta + log1p(exp(-eta)), log1p(exp(eta)))
-					-sum(y_sim * eta - log_denom)
+					conditional_logit_neg_loglik(X, y_sim, fit$b)
 				}
 			)
 		}
@@ -496,23 +508,7 @@ InferenceIncidKKCondLogitIVWC = R6::R6Class("InferenceIncidKKCondLogitIVWC",
 			private$cached_values$df = Inf
 		},
 		clogit_for_matched_pairs = function(KKstats, X_covars){
-			yTs = KKstats$yTs_matched
-			yCs = KKstats$yCs_matched
-			y_m_all = yTs - yCs # 1 if (1,0), -1 if (0,1)
-			i_m_disc = which(abs(y_m_all) == 1)
-			if (length(i_m_disc) == 0L) {
-				private$cached_values$beta_T_matched = NA_real_
-				private$cached_values$ssq_beta_T_matched = NA_real_
-				return(invisible(NULL))
-			}
-			# X_m should be the difference X_T - X_C. 
-			# KKstats$X_matched_diffs is already X_T - X_C.
-			# For treatment effect, the difference is 1 - 0 = 1.
-			X_m = cbind(treatment = 1, KKstats$X_matched_diffs[i_m_disc, , drop = FALSE])
-			y_m = (y_m_all[i_m_disc] + 1) / 2 # 1 if (1,0), 0 if (0,1)
-			
-			# Conditional logistic fit via internal Rcpp
-			fit = tryCatch(fast_logistic_regression_with_var_cpp(X_m, y_m, j = 1L), error = function(e) NULL)
+			fit = conditional_logit_fit_matched_pairs(KKstats)
 			if (is.null(fit) || !isTRUE(fit$converged)){
 				private$cached_values$beta_T_matched = NA_real_
 				private$cached_values$ssq_beta_T_matched = NA_real_
@@ -522,15 +518,7 @@ InferenceIncidKKCondLogitIVWC = R6::R6Class("InferenceIncidKKCondLogitIVWC",
 			private$cached_values$ssq_beta_T_matched = as.numeric(fit$ssq_b_j)
 		},
 		logistic_for_reservoir = function(KKstats, X_covars){
-			y_r = KKstats$y_reservoir
-			w_r = KKstats$w_reservoir
-			if (is.null(X_covars) || ncol(X_covars) == 0){
-				X_r = cbind(`(Intercept)` = 1, treatment = w_r)
-			} else {
-				X_r = cbind(`(Intercept)` = 1, treatment = w_r, KKstats$X_reservoir)
-			}
-			# Logistic fit via internal Rcpp
-			fit = tryCatch(fast_logistic_regression_with_var_cpp(X_r, y_r, j = 2L), error = function(e) NULL)
+			fit = conditional_logit_fit_reservoir(KKstats, X_covars)
 			if (is.null(fit) || !isTRUE(fit$converged)){
 				private$cached_values$beta_T_reservoir = NA_real_
 				private$cached_values$ssq_beta_T_reservoir = NA_real_

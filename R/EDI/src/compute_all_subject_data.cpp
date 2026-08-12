@@ -224,15 +224,16 @@ static SubsetResult process_subset(
 	return result;
 }
 
+// X: Full covariate matrix (n x p), but only first t rows are valid
+// t: Current subject index (1-indexed)
+// i_all_y_present_R: R indices (1-indexed) where y is present
 // [[Rcpp::export]]
-List compute_all_subject_data_cpp(
-	SEXP X_sexp,                        // Full covariate matrix (n x p), but only first t rows are valid
-	int t,                               // Current subject index (1-indexed)
-	const IntegerVector& i_all_y_present_R, // R indices (1-indexed) where y is present
-	double rank_tol = 1e-12
-) {
-	NumericMatrix X_r(X_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
+List compute_all_subject_data_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
+	int t,
+	const IntegerVector& i_all_y_present_R,
+	double rank_tol = 1e-12) {
+
+	
 	// Convert R indices (1-indexed) to C++ indices (0-indexed)
 	std::vector<int> i_past;          // indices 0 to t-2 (subjects 1 to t-1)
 	std::vector<int> i_all;           // indices 0 to t-1 (subjects 1 to t)

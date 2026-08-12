@@ -5,14 +5,14 @@
 \title{Calculates the difference in a survival statistic (median or restricted mean)
 between two groups (treatment vs control)}
 \usage{
-get_survival_stat_diff(y_sexp, dead_sexp, w_sexp, requested_stat)
+get_survival_stat_diff(y, dead, w, requested_stat)
 }
 \arguments{
-\item{y_sexp}{Numeric vector of survival times.}
+\item{y}{Numeric vector of survival times.}
 
-\item{dead_sexp}{Integer vector of event indicators (1=event, 0=censored).}
+\item{dead}{Integer vector of event indicators (1=event, 0=censored).}
 
-\item{w_sexp}{Integer vector of treatment assignments (1=treatment, 0=control).}
+\item{w}{Integer vector of treatment assignments (1=treatment, 0=control).}
 
 \item{requested_stat}{A string, either "median" or "restricted_mean".}
 }

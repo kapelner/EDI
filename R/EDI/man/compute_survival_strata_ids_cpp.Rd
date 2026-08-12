@@ -5,14 +5,14 @@
 \title{Compute automatic survival strata IDs from low-cardinality covariates}
 \usage{
 compute_survival_strata_ids_cpp(
-  X_sexp,
+  X,
   max_unique_per_col = 4L,
   max_strata_cols = 4L,
   min_count_per_level = 2L
 )
 }
 \arguments{
-\item{X_sexp}{Numeric covariate matrix.}
+\item{X}{Numeric covariate matrix.}
 
 \item{max_unique_per_col}{Maximum number of unique values allowed for a column
 to be considered a stratification candidate.}

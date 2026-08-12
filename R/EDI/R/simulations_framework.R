@@ -163,6 +163,30 @@ get_r6_init_fn = function(r6gen) {
   }
   NULL
 }
+
+# Bridges the DGP-facing (y, dead) contract used by apply_treatment_and_noise_cpp
+# and the custom_apply_treatment_and_noise extension point to Design's
+# y/y_L/y_R storage schema: dead == 1 (exact) maps to y with y_L/y_R unset,
+# dead == 0 (right-censored) maps to y_L = y, y_R = Inf with y unset.
+# Vectorized; safe for non-survival response types since dead is always 1
+# there (see simulation_dgp.cpp), which round-trips to plain y with no bounds.
+dead_to_response_bounds = function(y, dead) {
+  exact = dead == 1
+  list(
+    y   = ifelse(exact, y, NA_real_),
+    y_L = ifelse(exact, NA_real_, y),
+    y_R = ifelse(exact, NA_real_, Inf)
+  )
+}
+
+# add_one_subject_response() (unlike its vectorized sibling) treats any
+# non-NULL argument as "supplied", NA included -- so a single-subject call
+# built from dead_to_response_bounds()'s output must convert its NA slot(s)
+# to actual NULL before forwarding.
+add_bounded_response_to_design = function(des, t, bounds) {
+  na_to_null = function(x) if (is.na(x)) NULL else x
+  des$add_one_subject_response(t, na_to_null(bounds$y), na_to_null(bounds$y_L), na_to_null(bounds$y_R))
+}
 #' Simulation Framework for Experimental Designs and Inference Methods
 #'
 #' @description An R6 class for benchmarking experimental designs and inference methods by
@@ -3010,12 +3034,14 @@ SimulationFramework = R6::R6Class("SimulationFramework",
             d$add_all_subjects_to_experiment(obs_out$X)
             d$assign_w_to_all_subjects(as.integer(obs_out$w))
             dead_obs = obs_out$dead %||% rep(1L, state$n)
-            d$add_all_subject_responses(obs_out$y, dead_obs)
+            bounds = dead_to_response_bounds(obs_out$y, dead_obs)
+            d$add_all_subject_responses(bounds$y, bounds$y_L, bounds$y_R)
           } else if (inherits(d, "DesignSeqOneByOne")) {
             for (t in seq_len(state$n)) {
               w_t = d$add_one_subject_to_experiment_and_assign(X[t, , drop = FALSE])
               out = apply_treatment_and_noise(y_linear_model[t], w_t, rep_data)
-              d$add_one_subject_response(t, out$y, out$dead)
+              bounds = dead_to_response_bounds(out$y, out$dead)
+              add_bounded_response_to_design(d, t, bounds)
             }
           } else {
             # Check for precomp_w BEFORE building the design so we can skip the
@@ -3056,7 +3082,8 @@ SimulationFramework = R6::R6Class("SimulationFramework",
             d$assign_w_to_all_subjects(precomp_w)
             w = d$get_w()
             out = apply_treatment_and_noise(y_linear_model, w, rep_data)
-            d$add_all_subject_responses(out$y, out$dead)
+            bounds = dead_to_response_bounds(out$y, out$dead)
+            d$add_all_subject_responses(bounds$y, bounds$y_L, bounds$y_R)
           }
           d
         }, error = function(e) {
@@ -3103,7 +3130,8 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           # (X and w are unchanged; only y is redrawn.)
           if (y_rep > 1L) {
             out_y = apply_treatment_and_noise(y_linear_model, w_for_yrep, rep_data)
-            des_obj$add_all_subject_responses(out_y$y, out_y$dead)
+            bounds_y = dead_to_response_bounds(out_y$y, out_y$dead)
+            des_obj$add_all_subject_responses(bounds_y$y, bounds_y$y_L, bounds_y$y_R)
           }
         for (ii in seq_along(state$inference_classes)) {
           inf_gen  = state$inference_classes[[ii]]
@@ -3999,7 +4027,6 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         priv$w = rep(c(0L, 1L), length.out = n)
         priv$y = rep(0, n)
         priv$y_original = priv$y
-        priv$dead = rep(1L, n)  # 1 = uncensored; 0 would trigger "uncensored responses" asserts
         priv$t = n
         # Some fixed designs derive their blocking structure lazily from the
         # covariates. Build that structure here so validation-time assertions
@@ -4028,7 +4055,8 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           w_t = des_obj$add_one_subject_to_experiment_and_assign(
             X[t, , drop = FALSE])
           out = private$.apply_treatment_and_noise(y_linear_model[t], w_t, rep_data)
-          des_obj$add_one_subject_response(t, out$y, out$dead)
+          bounds = dead_to_response_bounds(out$y, out$dead)
+          add_bounded_response_to_design(des_obj, t, bounds)
         }
       } else {
         # Fixed: all assignments known upfront — vectorize across all n subjects.
@@ -4036,7 +4064,8 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         des_obj$assign_w_to_all_subjects()
         w   = des_obj$get_w()
         out = private$.apply_treatment_and_noise(y_linear_model, w, rep_data)
-        des_obj$add_all_subject_responses(out$y, out$dead)
+        bounds = dead_to_response_bounds(out$y, out$dead)
+        des_obj$add_all_subject_responses(bounds$y, bounds$y_L, bounds$y_R)
       }
       des_obj
     },

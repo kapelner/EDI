@@ -5,9 +5,7 @@
 #' # Example for InferenceIncidenceExactZhang
 #' }
 #' @export
-InferenceIncidenceExactZhang = R6::R6Class("InferenceIncidenceExactZhang",
-	lock_objects = FALSE,
-	inherit = InferenceExact,
+ExactZhangIncidenceSource = list(
 	public = list(
 		#' @description Initialize exact Zhang incidence inference.
 		#' @param des_obj A completed design object.
@@ -97,5 +95,23 @@ InferenceIncidenceExactZhang = R6::R6Class("InferenceIncidenceExactZhang",
 				)
 			)
 		}
+	)
+)
+
+InferenceIncidenceExactZhang = define_inference_class(
+	classname = "InferenceIncidenceExactZhang",
+	inherit = Inference,
+	components = "ExactZhangIncidence",
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = "compute_exact_confidence_interval",
+		private = c(
+			"default_exact_type",
+			"resolve_exact_type",
+			"normalize_exact_inference_args",
+			"assert_exact_inference_params",
+			"compute_exact_confidence_interval_by_type",
+			"compute_exact_two_sided_pval_for_treatment_effect_by_type"
+		)
 	)
 )

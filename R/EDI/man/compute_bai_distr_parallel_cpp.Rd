@@ -5,25 +5,25 @@
 \title{Fast Bai Adjusted T Statistic for Multiple Permutations}
 \usage{
 compute_bai_distr_parallel_cpp(
-  w_mat_sexp,
-  m_mat_sexp,
-  y_sexp,
+  w_mat,
+  m_mat,
+  y,
   delta,
-  halves_idx_sexp,
+  halves_idx,
   convex_flag,
   num_cores
 )
 }
 \arguments{
-\item{w_mat_sexp}{Integer matrix of permuted treatment assignments (n x r).}
+\item{w_mat}{Integer matrix of permuted treatment assignments (n x r).}
 
-\item{m_mat_sexp}{Integer matrix of match indicators (n x r).}
+\item{m_mat}{Integer matrix of match indicators (n x r).}
 
-\item{y_sexp}{Numeric response vector.}
+\item{y}{Numeric response vector.}
 
 \item{delta}{Null treatment effect shift.}
 
-\item{halves_idx_sexp}{Integer matrix of half-sample indices.}
+\item{halves_idx}{Integer matrix of half-sample indices.}
 
 \item{convex_flag}{Logical flag for convex combination.}
 

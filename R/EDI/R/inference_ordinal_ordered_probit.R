@@ -255,3 +255,5 @@ InferenceOrdinalOrderedProbitRegr = R6::R6Class("InferenceOrdinalOrderedProbitRe
 		}
 	)
 )
+
+OrdinalOrderedProbitLikelihoodSource = inference_component_source_parts(InferenceOrdinalOrderedProbitRegr)

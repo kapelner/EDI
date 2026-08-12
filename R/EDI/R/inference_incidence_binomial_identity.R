@@ -311,3 +311,5 @@ InferenceIncidBinomialIdentityRiskDiff = R6::R6Class("InferenceIncidBinomialIden
 		}
 	)
 )
+
+IncidenceBinomialIdentityLikelihoodSource = inference_component_source_parts(InferenceIncidBinomialIdentityRiskDiff)

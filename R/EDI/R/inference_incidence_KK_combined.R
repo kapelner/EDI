@@ -15,10 +15,11 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceIncidKKGEE = R6::R6Class("InferenceIncidKKGEE",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
-	public = utils::modifyList(as.list(InferenceMixinKKGEEShared$public), list(
+InferenceIncidKKGEE = define_inference_class(
+	classname = "InferenceIncidKKGEE",
+	inherit = Inference,
+	components = "KKGEE",
+	public = list(
 		#' @description Initialize KK combined binary-response inference, validate the
 		#'   matched/reservoir design, and prepare the component models used by
 		#'   \code{\link[EDI:InferenceIncidKKGEE]{InferenceIncidKKGEE}}.
@@ -30,76 +31,37 @@ InferenceIncidKKGEE = R6::R6Class("InferenceIncidKKGEE",
 		initialize = function(des_obj, model_formula = NULL, use_rcpp = TRUE, verbose = FALSE, smart_cold_start_default = NULL){
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			private$init_kk_gee_shared(des_obj, use_rcpp = use_rcpp, model_formula = model_formula)
-		},
-		#' @description Compute the KK combined binary-response treatment estimate by
-		#'   fitting the configured matched/reservoir incidence components and caching
-		#'   the effect for related \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}
-		#'   methods.
-		#' @param estimate_only Whether to skip standard-error calculations.
-		compute_estimate = function(estimate_only = FALSE){
-			private$shared_gee_dispatch(estimate_only = estimate_only)
-			private$cached_values$beta_hat_T
-		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param alpha Confidence level.
-		compute_asymp_confidence_interval = function(alpha = 0.05){
-			private$shared_gee_dispatch(estimate_only = FALSE)
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
-		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta Null treatment effect value.
-		compute_asymp_two_sided_pval = function(delta = 0){
-			private$shared_gee_dispatch(estimate_only = FALSE)
-			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-		},
-		#' @description Recomputes the class-specific treatment estimate for a bootstrap sample; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param subject_or_block_weights Row weights for the bootstrap sample.
-		#' @param estimate_only If TRUE, skip variance calculations.
-		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
-			if (length(row_weights) > 0L && all(is.finite(row_weights)) &&
-			    (max(row_weights) - min(row_weights)) <= sqrt(.Machine$double.eps)) {
-				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
-				if (is.finite(beta_hat_T)) {
-					private$cached_values$beta_hat_T = beta_hat_T
-					private$cached_values$s_beta_hat_T = NA_real_
-					private$cached_values$df = Inf
-					private$cached_values$summary_table = NULL
-					private$cached_values$nonestimable = FALSE
-					private$cached_values$nonestimable_reason = NULL
-					private$cached_values$nonestimable_stage = NULL
-					return(private$cached_values$beta_hat_T)
-				}
-			}
-			beta_hat_T = private$fit_weighted_gee_with_fallback(row_weights)
-			private$cached_values$beta_hat_T = as.numeric(beta_hat_T)[1L]
-			private$cached_values$s_beta_hat_T = NA_real_
-			private$cached_values$df = Inf
-			private$cached_values$summary_table = NULL
-			private$cached_values$nonestimable = !is.finite(private$cached_values$beta_hat_T)
-			private$cached_values$nonestimable_reason = if (is.finite(private$cached_values$beta_hat_T)) NULL else "weighted_gee_estimate_unavailable"
-			private$cached_values$nonestimable_stage = if (is.finite(private$cached_values$beta_hat_T)) NULL else "estimate"
-			private$cached_values$beta_hat_T
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
 		}
-	)),
-	private = utils::modifyList(as.list(InferenceMixinKKGEEShared$private), list(
+	),
+	private = list(
 		gee_response_type = function() "incidence",
 		gee_family        = function() stats::binomial(link = "logit"),
 		shared_gee_dispatch = function(estimate_only = FALSE) private$shared_gee_default(estimate_only)
-	))
+	),
+	metadata = list(likelihood_tier = "quasi"),
+	overrides = list(
+		public = c(
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval"
+		),
+		private = c(
+			"shared",
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_wald_confidence_interval_impl",
+			"compute_wald_two_sided_pval_impl",
+			"get_complexity_tier"
+		)
+	)
 )
 #' Abstract class for Conditional Logistic Combined-Likelihood Combined Inference
 #'

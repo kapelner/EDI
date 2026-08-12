@@ -12,20 +12,18 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-NumericVector compute_matching_compound_distr_parallel_cpp(
-	SEXP y_sexp,
-	SEXP w_mat_sexp,
-	SEXP m_mat_sexp,
-	int num_cores) {
-	NumericVector y_r(y_sexp);
-	IntegerMatrix w_mat_r(w_mat_sexp);
-	IntegerMatrix m_mat_r(m_mat_sexp);
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	Eigen::Map<const Eigen::MatrixXi> w_mat(w_mat_r.begin(), w_mat_r.nrow(), w_mat_r.ncol());
-	Eigen::Map<const Eigen::MatrixXi> m_mat(m_mat_r.begin(), m_mat_r.nrow(), m_mat_r.ncol());
+NumericVector compute_matching_compound_distr_parallel_cpp(SEXP y, const Eigen::Map<Eigen::MatrixXi>& w_mat, const Eigen::Map<Eigen::MatrixXi>& m_mat, int num_cores) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+	
+
+	
+
+	
 
 	int nsim = w_mat.cols();
-	int n = y.size();
+	int n = y_vec_coerced.size();
 	std::vector<double> results_vec(nsim, NA_REAL);
 	double* res_ptr = results_vec.data();
 	const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
@@ -46,7 +44,7 @@ NumericVector compute_matching_compound_distr_parallel_cpp(
 			const int* m_col = m_mat.data() + static_cast<size_t>(b) * n;
 
 			// Single merged pass: max_m + scatter fill + unmatched sum+sumsq.
-			// Reads m_col, w_col, y once each instead of 3-4 times.
+			// Reads m_col, w_col, y_vec_coerced once each instead of 3-4 times.
 			treated_idx.assign(n, -1);
 			control_idx.assign(n, -1);
 			int m = 0;
@@ -60,7 +58,7 @@ NumericVector compute_matching_compound_distr_parallel_cpp(
 					if (w_col[i] == 1) treated_idx[slot] = i;
 					else control_idx[slot] = i;
 				} else {
-					const double yi = y[i];
+					const double yi = y_vec_coerced[i];
 					if (w_col[i] == 1) { nRT++; sum_T += yi; sum_T2 += yi * yi; }
 					else { nRC++; sum_C += yi; sum_C2 += yi * yi; }
 				}
@@ -73,7 +71,7 @@ NumericVector compute_matching_compound_distr_parallel_cpp(
 				double sum_d = 0.0, sum_d2 = 0.0;
 				diffs.resize(m);
 				for (int slot = 0; slot < m; ++slot) {
-					const double diff = y[treated_idx[slot]] - y[control_idx[slot]];
+					const double diff = y_vec_coerced[treated_idx[slot]] - y_vec_coerced[control_idx[slot]];
 					diffs[slot] = diff;
 					sum_d  += diff;
 					sum_d2 += diff * diff;
@@ -118,17 +116,16 @@ NumericVector compute_matching_compound_distr_parallel_cpp(
 }
 
 // [[Rcpp::export]]
-NumericVector compute_matching_compound_bootstrap_parallel_cpp(
-	SEXP w_mat_sexp,
-	SEXP m_mat_sexp,
-	SEXP y_mat_sexp,
-	int num_cores) {
-	IntegerMatrix w_mat_r(w_mat_sexp);
-	IntegerMatrix m_mat_r(m_mat_sexp);
-	NumericMatrix y_mat_r(y_mat_sexp);
-	Eigen::Map<const Eigen::MatrixXi> w_mat(w_mat_r.begin(), w_mat_r.nrow(), w_mat_r.ncol());
-	Eigen::Map<const Eigen::MatrixXi> m_mat(m_mat_r.begin(), m_mat_r.nrow(), m_mat_r.ncol());
-	Eigen::Map<const Eigen::MatrixXd> y_mat(y_mat_r.begin(), y_mat_r.nrow(), y_mat_r.ncol());
+NumericVector compute_matching_compound_bootstrap_parallel_cpp( const Eigen::Map<Eigen::MatrixXi>& w_mat,
+		const Eigen::Map<Eigen::MatrixXi>& m_mat,
+		const Eigen::Map<Eigen::MatrixXd>& y_mat,
+		int num_cores) {
+
+	
+
+	
+
+	
 
 	int nsim = w_mat.cols();
 	int n = w_mat.rows();

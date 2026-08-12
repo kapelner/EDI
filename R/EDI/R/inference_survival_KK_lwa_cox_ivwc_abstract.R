@@ -244,3 +244,27 @@ InferenceAbstractKKLWACoxIVWC = R6::R6Class("InferenceAbstractKKLWACoxIVWC",
 		}
 	)
 )
+
+KKLWACoxIVWCPartialLikelihoodSource = list(
+	public = list(),
+	private = list(
+		kk_lwa_cox_ivwc_shared = function(estimate_only = FALSE) {
+			private$shared(estimate_only = estimate_only)
+		},
+		kk_lwa_cox_ivwc_assert_finite_se = function() {
+			private$assert_finite_se()
+		},
+		kk_lwa_cox_design_candidates = function(w, X) {
+			private$cox_design_candidates(w, X)
+		},
+		kk_lwa_cox_fit_model = function(y, dead, w, X, cluster = NULL) {
+			private$fit_cox_model(y = y, dead = dead, w = w, X = X, cluster = cluster)
+		},
+		kk_lwa_cox_for_matched_pairs = function() {
+			private$lwa_cox_for_matched_pairs()
+		},
+		kk_lwa_cox_for_reservoir = function() {
+			private$cox_for_reservoir()
+		}
+	)
+)

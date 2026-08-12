@@ -1,0 +1,252 @@
+#!/usr/bin/env bash
+# Local pre-push gate: run the same checks CI would run, but only the ones
+# relevant to what's actually changing, and skip the parts that duplicate
+# work CI already does more thoroughly (--as-cran extras, multi-OS/ASAN/
+# valgrind). The goal is to catch the common break-CI cases (a C++ syntax
+# error, a failing test) before spending GitHub Actions minutes on them.
+#
+# Install with: git config core.hooksPath .githooks
+#
+# Bypass for a single push (e.g. deliberate WIP): git push --no-verify
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+zero_sha="0000000000000000000000000000000000000000"
+empty_tree_sha="4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # git's canonical empty-tree object, always valid
+changed_files_file="$(mktemp)"
+trap 'rm -f "$changed_files_file"' EXIT
+roxygen_touched=0
+
+# git feeds "<local ref> <local sha> <remote ref> <remote sha>" lines on stdin,
+# one per ref being pushed. Collect the union of files changed by each.
+while read -r local_ref local_sha remote_ref remote_sha; do
+	[ "$local_sha" = "$zero_sha" ] && continue  # deleting a remote ref -- nothing to check
+
+	if [ "$remote_sha" = "$zero_sha" ]; then
+		# New branch/ref on the remote: no remote_sha to diff against. Fall back to
+		# the merge-base with main; if even that fails (e.g. no origin/main locally),
+		# diff against the empty tree so every file in the pushed commit counts as
+		# changed, rather than skipping checks.
+		base="$(git merge-base "$local_sha" origin/main 2>/dev/null || true)"
+		[ -z "$base" ] && base="$empty_tree_sha"
+	else
+		base="$remote_sha"
+	fi
+
+	git diff --name-only "$base" "$local_sha" >> "$changed_files_file"
+
+	# Content-level check, not just "did the file change": most edits to an R
+	# source file don't touch its roxygen comments at all, so gating on the
+	# file list alone would run fast_roxygenize.R far more often than needed.
+	# `#'` line additions/removals are roxygen doc-comment edits; an
+	# `[[Rcpp::export]]` tag change affects Rcpp::compileAttributes()'s output
+	# (also run by fast_roxygenize.R), so it counts too.
+	if git diff -U0 "$base" "$local_sha" -- 'R/EDI/R/*.R' 'R/EDI/src/*.cpp' 2>/dev/null \
+		| grep -qE "^[+-]#'|^[+-].*\[\[Rcpp::export"; then
+		roxygen_touched=1
+	fi
+done
+
+sort -u "$changed_files_file" -o "$changed_files_file"
+
+if [ ! -s "$changed_files_file" ]; then
+	echo "pre-push: no file changes detected relative to the remote, skipping local checks."
+	exit 0
+fi
+
+echo "pre-push: files changed since remote:"
+sed 's/^/  /' "$changed_files_file"
+echo
+
+# Mirrors R-CMD-check.yaml's path filter: R/EDI/**/*.{R,Rd,cpp,h,hpp},
+# DESCRIPTION, NAMESPACE, configure(.win), src/Makevars(.win).
+run_r_tests=0
+if grep -qE '^R/EDI/(.*\.(R|Rd|cpp|h|hpp)|DESCRIPTION|NAMESPACE|configure|configure\.win|src/Makevars|src/Makevars\.win)$' "$changed_files_file"; then
+	run_r_tests=1
+fi
+
+# Mirrors python-tests.yml's path filter: python/** plus R/EDI/src/**/*.{cpp,h,hpp}
+# -- R/EDI/src is the single source of truth the Python C++ extension compiles
+# directly (see python/CMakeLists.txt), so a kernel change affects both sides.
+run_python_tests=0
+if grep -qE '^python/|^R/EDI/src/.*\.(cpp|h|hpp)$' "$changed_files_file"; then
+	run_python_tests=1
+fi
+
+# Mirrors test-coverage-R-advanced.yml's path filter: anything that would trigger
+# run_r_tests above, plus R/package_tests/** itself and the one doc file the
+# workflow also watches.
+run_comprehensive_suite=0
+if [ "$run_r_tests" = "1" ] || grep -qE '^R/package_tests/|^R/package_metadata/finished_features/comprehensive_test_suite\.md$' "$changed_files_file"; then
+	run_comprehensive_suite=1
+fi
+
+failed=0
+
+if [ "$roxygen_touched" = "1" ]; then
+	echo "pre-push: roxygen comments / [[Rcpp::export]] tags changed -- running fast_roxygenize.R ..."
+	# fast_roxygenize.R regenerates R/EDI/man/*.Rd, R/EDI/NAMESPACE, and
+	# R/EDI/R/RcppExports.R + R/EDI/src/RcppExports.cpp *in place* -- this is a
+	# real side effect on the working tree, not just a check, and is the whole
+	# point (stale generated docs/exports are exactly what this is meant to
+	# catch). Runs before the install below so a changed Rcpp::export
+	# signature gets a freshly regenerated RcppExports.cpp before compiling
+	# against it, rather than compiling against a stale one.
+	roxy_out="$(mktemp)"
+	(cd R && Rscript fast_roxygenize.R) > "$roxy_out" 2>&1
+	roxy_status=$?
+	cat "$roxy_out"
+	if [ "$roxy_status" != "0" ]; then
+		echo "pre-push: fast_roxygenize.R FAILED (see output above)." >&2
+		failed=1
+	elif grep -qE "^Warning" "$roxy_out"; then
+		# roxygenize() reports doc problems (undocumented R6 methods, etc.) as R
+		# warnings, not errors -- Rscript still exits 0, so the exit code alone
+		# can't catch these; the printed "Warning message(s):" block is the
+		# only signal.
+		echo "pre-push: fast_roxygenize.R reported a documentation warning (see output above)." >&2
+		failed=1
+	fi
+	rm -f "$roxy_out"
+else
+	echo "pre-push: no roxygen-relevant changes, skipping fast_roxygenize.R."
+fi
+
+echo
+
+# One shared, in-place install for both R blocks below, instead of each doing
+# its own. R CMD INSTALL compiles directly against R/EDI/src's existing *.o
+# files (standard make-based incremental build -- unchanged *.cpp files are
+# NOT recompiled), unlike R CMD build/check, which always extracts into a
+# fresh, *.o-free tarball (verified: 0 of 856 packaged files) and therefore
+# always forces a full from-scratch recompile regardless of what changed or
+# where it runs. That trades away R CMD check's other sub-checks (Rd,
+# NAMESPACE, DESCRIPTION fields, examples, packaging/.Rbuildignore
+# correctness) -- those only mean anything against the real tarball
+# round-trip, so they're left to CI's R-CMD-check.yaml (--as-cran), which
+# already covers them authoritatively.
+need_install=0
+if [ "$run_r_tests" = "1" ] || [ "$run_comprehensive_suite" = "1" ]; then
+	need_install=1
+fi
+
+install_ok=1
+if [ "$need_install" = "1" ]; then
+	echo "pre-push: installing EDI (incremental) ..."
+	# This install is only ever used to run tests/scripts against, never as a
+	# package someone actually loads and uses day-to-day -- skip everything
+	# that doesn't affect whether the code runs correctly.
+	if ! R CMD INSTALL --no-byte-compile --no-lazydata --no-html --no-demo --no-help --no-pdf R/EDI; then
+		install_ok=0
+	fi
+fi
+
+echo
+
+if [ "$run_r_tests" = "1" ]; then
+	if [ "$install_ok" = "0" ]; then
+		echo "pre-push: skipping R tests, install failed above." >&2
+		failed=1
+	else
+		echo "pre-push: R-relevant files changed -- running R's test suite ..."
+		# Same script + NOT_CRAN gate R CMD check's own "checking tests" phase
+		# runs internally, just invoked directly against the already-installed
+		# package instead of paying for a second, tarball-forced full recompile.
+		if ! NOT_CRAN=true Rscript R/EDI/tests/testthat.R; then
+			echo "pre-push: R tests FAILED." >&2
+			failed=1
+		fi
+	fi
+else
+	echo "pre-push: no R-relevant files changed, skipping R checks."
+fi
+
+echo
+
+if [ "$run_comprehensive_suite" = "1" ]; then
+	if [ "$install_ok" = "0" ]; then
+		echo "pre-push: skipping comprehensive suite, install failed above." >&2
+		failed=1
+	else
+		echo "pre-push: R/package_tests-relevant files changed -- running comprehensive suite (smoke tier) + drift check ..."
+		if (
+			cd R &&
+			Rscript package_tests/public_api_inventory.R &&
+			Rscript package_tests/extract_checkmate_argument_contracts.R &&
+			Rscript package_tests/generate_public_argument_combinations.R &&
+			Rscript package_tests/run_public_argument_combinations.R &&
+			Rscript package_tests/analyze_public_argument_combinations.R &&
+			Rscript package_tests/public_argument_combination_integration.R &&
+			Rscript package_tests/check_public_argument_combination_quality_gates.R report &&
+			Rscript package_tests/comprehensive_suite_registry.R &&
+			Rscript package_tests/audit_comprehensive_suite_baseline.R &&
+			# comprehensive_suite_exemptions.csv deliberately excluded -- see
+			# test-coverage-R-advanced.yml's identical drift-check comment:
+			# audit_comprehensive_suite_baseline.R stamps it with
+			# created_date = Sys.Date() on every run, so it always "drifts".
+			git diff --exit-code -- \
+				package_tests/public_api_inventory.csv \
+				package_tests/public_argument_baseline_gap_report.csv \
+				package_tests/checkmate_argument_contracts.csv \
+				package_tests/public_argument_combination_cases.csv \
+				package_tests/public_argument_combination_rejected_candidates.csv \
+				package_tests/public_argument_combination_coverage.csv \
+				package_tests/public_argument_combination_results.csv \
+				package_tests/public_argument_combination_failures.csv \
+				package_tests/public_argument_combination_uncovered_apis.csv \
+				package_tests/public_argument_combination_registry_drift.csv \
+				package_tests/public_argument_combination_slowest_cases.csv \
+				package_tests/public_argument_combination_ci_failure_summary.csv \
+				package_tests/public_argument_combination_cases_integrated.csv \
+				package_tests/public_argument_combination_results_integrated.csv \
+				package_tests/public_argument_combination_coverage_integrated.csv \
+				package_tests/public_argument_combination_quality_gates.csv \
+				package_tests/public_argument_combination_quality_gate_summary.csv \
+				package_tests/comprehensive_suite_registry.csv \
+				package_tests/comprehensive_suite_baseline_audit.csv &&
+			Rscript package_tests/run_comprehensive_suite.R smoke "" 300 --force &&
+			Rscript package_tests/analyze_comprehensive_suite.R &&
+			Rscript package_tests/check_comprehensive_suite_quality_gates.R ci
+		); then
+			:
+		else
+			echo "pre-push: comprehensive suite / drift check FAILED." >&2
+			echo "pre-push: if this is a drift failure (git diff above), regenerate and commit the affected package_tests/ CSVs -- see R/package_tests/public_argument_combination_runner.md." >&2
+			failed=1
+		fi
+	fi
+else
+	echo "pre-push: no R/package_tests-relevant files changed, skipping comprehensive suite."
+fi
+
+echo
+
+if [ "$run_python_tests" = "1" ]; then
+	echo "pre-push: python/C++-relevant files changed -- running edi_kernels test suite ..."
+	# This system's python3 is PEP 668 externally-managed, so a bare `pip install`
+	# fails outright -- use a persistent venv (created once, reused thereafter)
+	# instead of a plain system-wide install.
+	py_venv="$repo_root/python/.venv"
+	if [ ! -d "$py_venv" ]; then
+		python3 -m venv "$py_venv"
+	fi
+	if ! ( cd python && "$py_venv/bin/pip" install -q -e ".[test]" && "$py_venv/bin/python" -m pytest tests -q ); then
+		echo "pre-push: python tests FAILED." >&2
+		failed=1
+	fi
+else
+	echo "pre-push: no python/C++-relevant files changed, skipping python checks."
+fi
+
+echo
+
+if [ "$failed" = "1" ]; then
+	echo "pre-push: one or more local checks failed -- push aborted." >&2
+	echo "pre-push: fix the failure, or bypass with 'git push --no-verify' if you really mean to push anyway." >&2
+	exit 1
+fi
+
+echo "pre-push: all local checks passed."
+exit 0

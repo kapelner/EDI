@@ -438,7 +438,7 @@ test_that("KK count combined-likelihood multi inference handles full-width covar
 	for (i in seq_len(nrow(X))) {
 		w_i <- des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 		y_i <- round(y[i] * exp(rnorm(1, mean = 0, sd = 0.1) * w_i))
-		des$add_one_subject_response(i, y_i, 1)
+		des$add_one_subject_response(i, y_i)
 	}
 
 	inf <- InferenceCountKKCondPoissonOneLik$new(des, verbose = FALSE)

@@ -15,9 +15,10 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceCountRobustPoisson = R6::R6Class("InferenceCountRobustPoisson",
-	lock_objects = FALSE,
-	inherit = InferenceCountCompositeLikelihood,
+InferenceCountRobustPoisson = define_inference_class(
+	classname = "InferenceCountRobustPoisson",
+	inherit = Inference,
+	components = c("Wald", "CountCompositeLikelihood", "RobustSandwich"),
 	public = list(
 				
 		#' @description Initialize a robust Poisson regression inference object.
@@ -183,26 +184,14 @@ InferenceCountRobustPoisson = R6::R6Class("InferenceCountRobustPoisson",
 				return(list(b = b_full, ssq_b_2 = NA_real_, X_fit = X_fit, j_treat = j_treat, mod = mod, XtWX = mod$XtWX))
 			}
 			
-			cross_mat = mod$XtWX
-			bread = tryCatch(
-				solve(cross_mat),
-				error = function(e) {
-					if (is_edi_control_condition(e)) stop(e)
-					NULL
-				}
-			)
-			if (is.null(bread)){
-				return(list(b = b_full, ssq_b_2 = NA_real_, X_fit = X_fit, j_treat = j_treat, mod = mod, XtWX = mod$XtWX))
-			}
 			mu_hat = as.numeric(mod$mu)
 			resid = as.numeric(private$y) - mu_hat
-			meat = crossprod(X_fit, X_fit * (resid^2))
-			vcov_robust = bread %*% meat %*% bread
-			
-			ssq_b_j = as.numeric(vcov_robust[j_treat, j_treat])
-			if (!is.finite(ssq_b_j) || ssq_b_j < 0){
-				ssq_b_j = NA_real_
-			}
+			ssq_b_j = robust_sandwich_variance_from_xtwx(
+				X = X_fit,
+				residuals = resid,
+				XtWX = mod$XtWX,
+				j = j_treat
+			)
 			list(b = b_full, ssq_b_2 = ssq_b_j, mod = mod, XtWX = mod$XtWX, X_fit = X_fit, j_treat = j_treat)
 		},
 		generate_mod = function(estimate_only = FALSE){
@@ -218,5 +207,20 @@ InferenceCountRobustPoisson = R6::R6Class("InferenceCountRobustPoisson",
 			}
 			model_output
 		}
+		),
+		metadata = list(likelihood_tier = "quasi"),
+		overrides = list(
+			public = c(
+				"compute_estimate", "compute_estimate_with_bootstrap_weights",
+				"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
+			),
+			private = c(
+				"best_X_colnames",
+				"compute_treatment_estimate_during_randomization_inference",
+				"supports_reusable_bootstrap_worker", "build_design_matrix",
+				"fit_count_model_with_var", "generate_mod",
+				"get_standard_error", "get_degrees_of_freedom",
+				"get_supported_testing_types_impl"
+			)
+		)
 	)
-)

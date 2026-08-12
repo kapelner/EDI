@@ -34,9 +34,9 @@ WilsonCIBounds wilson_score_interval_internal(double x, double n, double alpha) 
     return WilsonCIBounds{std::max(0.0, lower), std::min(1.0, upper)};
 }
 
+#ifndef EDI_CORE_ONLY
 //' Wilson Score Interval for a Single Proportion
 //' @keywords internal
-#ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
 NumericVector wilson_score_interval_cpp(double x, double n, double alpha) {
     WilsonCIBounds r = wilson_score_interval_internal(x, n, alpha);
@@ -69,9 +69,9 @@ NewcombeCIBounds newcombe_independent_ci_internal(double x1, double n1, double x
     return NewcombeCIBounds{std::max(-1.0, lower), std::min(1.0, upper)};
 }
 
+#ifndef EDI_CORE_ONLY
 //' Newcombe Hybrid Score Interval for Independent Proportions (Method 10)
 //' @keywords internal
-#ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
 NumericVector newcombe_independent_ci_cpp(double x1, double n1, double x2, double n2, double alpha) {
     NewcombeCIBounds r = newcombe_independent_ci_internal(x1, n1, x2, n2, alpha);

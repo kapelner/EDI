@@ -751,3 +751,5 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		}
 	)
 )
+
+IncidenceGComputationSource = inference_component_source_parts(InferenceIncidGCompAbstract)

@@ -441,3 +441,5 @@ InferenceIncidLogBinomial = R6::R6Class("InferenceIncidLogBinomial",
 		}
 	)
 )
+
+IncidenceLogBinomialLikelihoodSource = inference_component_source_parts(InferenceIncidLogBinomial)

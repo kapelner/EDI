@@ -65,6 +65,87 @@ InferenceMixinKKGEEShared = list(
 				}
 				NA_real_
 			}
+		},
+		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps){
+			if (should_run_asserts()) {
+				private$assert_design_supports_resampling("Randomization inference")
+				assertLogical(na.rm)
+			}
+			if (should_run_asserts() && private$should_use_zhang_incidence_randomization()){
+				if (!identical(transform_responses, "none")) {
+					stop("transform_responses is not supported for incidence randomization inference.")
+				}
+				rand_type = if (is.null(type)) "Zhang" else type
+				exact_args = private$normalize_exact_inference_args(
+					rand_type,
+					args_for_type = args_for_type
+				)
+				return(private$compute_exact_two_sided_pval_rand(rand_type, delta, exact_args))
+			}
+			if (should_run_asserts()) {
+				private$assert_no_incidence_only_randomization_args(private$des_obj_priv_int$response_type, type, args_for_type)
+				if (private$des_obj_priv_int$response_type == "incidence" &&
+						is.null(private$custom_randomization_statistic_function) &&
+						!private$should_use_design_randomization_for_incidence()) {
+					stop("Randomization tests are not supported for incidence. Use Zhang method.")
+				}
+			}
+			mc_control_for_perms = private$randomization_mc_control
+			defer_permutation_generation_for_mc =
+				is.null(permutations) &&
+				private$sequential_mc_control_enabled(mc_control_for_perms) &&
+				as.integer(mc_control_for_perms$mc_batch_size) < as.integer(r)
+			if (is.null(permutations) && !defer_permutation_generation_for_mc) permutations = private$generate_permutations(r)
+			if (identical(transform_responses, "none")) {
+				transform_responses = switch(
+					private$des_obj_priv_int$response_type,
+					continuous = "none",
+					proportion = "logit",
+					count = "log",
+					survival = "log",
+					"none"
+				)
+			}
+			cache_key = private$build_randomization_distribution_cache_key(r, delta, transform_responses, permutations)
+			if (transform_responses == "none" && is.null(private[["custom_randomization_statistic_function"]]) &&
+					!is.null(private$cached_values$t0s_rand) && length(private$cached_values$t0s_rand) >= r) {
+				t0s = private$cached_values$t0s_rand[seq_len(r)] + delta
+				t = private$compute_treatment_estimate_during_randomization_inference()
+				if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)
+				if (length(t) != 1 || !is.finite(t)) {
+					if (isTRUE(private$harden)) private$cache_nonestimable_estimate("randomization_observed_statistic_unavailable")
+					return(NA_real_)
+				}
+				return(private$compute_two_sided_randomization_pval_from_t0s(t0s, t))
+			}
+			private$ensure_resampling_distribution_cache("rand")
+			t = private$compute_treatment_estimate_during_randomization_inference()
+			if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)
+			if (length(t) != 1 || !is.finite(t)) {
+				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("randomization_observed_statistic_unavailable")
+				return(NA_real_)
+			}
+			mc_pval = private$compute_two_sided_pval_with_sequential_mc(
+				t = t,
+				r = r,
+				delta = delta,
+				transform_responses = transform_responses,
+				show_progress = show_progress,
+				permutations = permutations,
+				cache_key = cache_key,
+				zero_one_logit_clamp = zero_one_logit_clamp
+			)
+			if (!is.null(mc_pval)) return(mc_pval)
+			t0s = private$get_randomization_distribution_prefix(
+				r = r,
+				delta = delta,
+				transform_responses = transform_responses,
+				show_progress = show_progress,
+				permutations = permutations,
+				cache_key = cache_key,
+				zero_one_logit_clamp = zero_one_logit_clamp
+			)
+			private$compute_two_sided_randomization_pval_from_t0s(t0s, t)
 		}
 	),
 	private = list(

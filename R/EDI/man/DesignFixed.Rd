@@ -66,8 +66,9 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-get_X'><code>Design$get_X()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X_imp'><code>Design$get_X_imp()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X_raw'><code>Design$get_X_raw()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-get_dead'><code>Design$get_dead()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_design_formula'><code>Design$get_design_formula()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-get_effective_dead'><code>Design$get_effective_dead()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-get_effective_time'><code>Design$get_effective_time()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_missingness_method'><code>Design$get_missingness_method()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_n'><code>Design$get_n()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_ordinal_levels'><code>Design$get_ordinal_levels()</code></a></li>
@@ -78,6 +79,8 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-get_t'><code>Design$get_t()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_w'><code>Design$get_w()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y'><code>Design$get_y()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
@@ -194,14 +197,25 @@ round-trip for \code{DesignFixedGreedy}).}
   Add all subject responses for a fixed design.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{DesignFixed$add_all_subject_responses(ys, deads = NULL)}
+    \preformatted{DesignFixed$add_all_subject_responses(ys = NULL, y_Ls = NULL, y_Rs = NULL)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{ys}}{The responses as a numeric vector.}
-      \item{\code{deads}}{The binary vector indicating if dead/censored.}
+      \item{\code{ys}}{The exact responses as a numeric vector, \code{NA} for any
+subject whose response is censored (supply \code{y_Ls}/\code{y_Rs}
+for those instead).}
+      \item{\code{y_Ls}}{The censored-response lower bounds, \code{NA} for any
+subject with an exact response in \code{ys}. Right-censored:
+the last known event-free time (pair with \code{y_Rs = Inf}).
+Left-censored: \code{0}, stated explicitly -- left-censoring is
+not yet implemented (see \code{y_Rs}). Interval-censored: the
+interval's lower bound.}
+      \item{\code{y_Rs}}{The censored-response upper bounds, \code{NA} for any
+subject with an exact response in \code{ys}. Right-censored:
+\code{Inf}. Left-/interval-censored: the confirmed-by time /
+interval upper bound.}
     }
     \if{html}{\out{</div>}}
   }

@@ -164,6 +164,7 @@ static double cpoisson_combined_neg_loglik_cpp_impl(
 	return -loglik;
 }
 
+#ifndef EDI_CORE_ONLY
 //' @title Compute Combined Conditional-Poisson Score
 //' @description Calculates the score vector for the combined conditional-Poisson and Poisson log-likelihood.
 //' @param yT_v_r Treated counts per pair.
@@ -176,7 +177,6 @@ static double cpoisson_combined_neg_loglik_cpp_impl(
 //' @return A numeric vector representing the score.
 //' @export
 //' @keywords internal
-#ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
 SEXP get_cpoisson_combined_score_cpp(
 	const NumericVector& yT_v_r,
@@ -234,21 +234,6 @@ SEXP get_cpoisson_combined_hessian_cpp(
 }
 #endif // EDI_CORE_ONLY
 
-//' @title Fast Combined Conditional-Poisson Regression (C++)
-//' @description High-performance fitting of a model combining conditional Poisson (for matched pairs) and marginal Poisson (for reservoir subjects).
-//' @param yT_v_r Treated counts per pair.
-//' @param n_k_v_r Total counts per pair.
-//' @param X_diff_v_r Covariate differences.
-//' @param y_r_r Reservoir outcomes.
-//' @param w_r_r Reservoir treatment indicators.
-//' @param X_r_r Reservoir covariates.
-//' @param maxit Maximum number of iterations.
-//' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @return A list containing coefficients, variance estimates, and likelihood statistics.
-//' @export
-//' @keywords internal
 edi::ResultMap fast_cpoisson_combined_internal(
 	const Eigen::Ref<const Eigen::VectorXd>& yT_v,       // treated count per valid pair (nd)
 	const Eigen::Ref<const Eigen::VectorXd>& n_k_v,      // total count per valid pair (nd)
@@ -440,6 +425,21 @@ edi::ResultMap fast_cpoisson_combined_internal(
 }
 
 #ifndef EDI_CORE_ONLY
+//' @title Fast Combined Conditional-Poisson Regression (C++)
+//' @description High-performance fitting of a model combining conditional Poisson (for matched pairs) and marginal Poisson (for reservoir subjects).
+//' @param yT_v_r Treated counts per pair.
+//' @param n_k_v_r Total counts per pair.
+//' @param X_diff_v_r Covariate differences.
+//' @param y_r_r Reservoir outcomes.
+//' @param w_r_r Reservoir treatment indicators.
+//' @param X_r_r Reservoir covariates.
+//' @param maxit Maximum number of iterations.
+//' @param tol Convergence tolerance.
+//' @param fixed_idx Optional indices of fixed parameters.
+//' @param fixed_values Optional values for fixed parameters.
+//' @return A list containing coefficients, variance estimates, and likelihood statistics.
+//' @export
+//' @keywords internal
 // [[Rcpp::export]]
 SEXP fast_cpoisson_combined_with_var_cpp(
 	const NumericVector& yT_v_r,       // treated count per valid pair (nd)

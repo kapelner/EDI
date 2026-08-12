@@ -127,7 +127,8 @@ Design = R6::R6Class("Design",
 				private$y = 	     rep(NA_real_, n)
 				private$y_original = rep(NA_real_, n)
 				private$w = 	     rep(NA_real_, n)
-				private$dead =       rep(NA_real_, n)
+				private$y_L =        rep(NA_real_, n)
+				private$y_R =        rep(NA_real_, n)
 			}
 			if (private$verbose){
 				cat(paste0("Initialized a ",
@@ -143,52 +144,98 @@ Design = R6::R6Class("Design",
 		#' @description For CARA designs, add a single subject response.
 		#'
 		#' @param t The subject index.
-		#' @param y The response value.
-		#' @param dead If the response is censored (0 for survival).
-		add_one_subject_response = function(t, y, dead = 1) {
+		#' @param y The exact response value. Supply this XOR both \code{y_L}
+		#'   and \code{y_R} -- never together, never just one of the two.
+		#' @param y_L For a censored survival response, the lower bound of the
+		#'   event-time interval. Right-censored: the last known event-free
+		#'   time (pair with \code{y_R = Inf}). Left-censored: \code{0},
+		#'   which must be stated explicitly rather than defaulted.
+		#'   Interval-censored: the interval's lower bound. Storage accepts
+		#'   any well-formed left-/interval-censored value; whether a given
+		#'   \code{Inference} class can actually consume it depends on that
+		#'   class (most survival \code{Inference} classes still only accept
+		#'   exact/right-censored data and will reject construction with a
+		#'   clear error otherwise -- see individual class docs).
+		#' @param y_R For a censored survival response, the upper bound of the
+		#'   event-time interval. Right-censored: \code{Inf}. Left-/
+		#'   interval-censored: the confirmed-by time / interval upper bound.
+		add_one_subject_response = function(t, y = NULL, y_L = NULL, y_R = NULL) {
 			if (should_run_asserts()) {
 				assertNumeric(t, len = 1)
-				assertNumeric(y, len = 1)
-				assertNumeric(dead, len = 1)
-				assertChoice(dead, c(0, 1))
 				assertCount(t, positive = TRUE)
 				if (t > private$t){
 					stop(paste("You cannot add response for subject", t, "when the most recent subjects' record added is", private$t))
 				}
+				assertNumeric(y, len = 1, null.ok = TRUE)
+				assertNumeric(y_L, len = 1, null.ok = TRUE)
+				assertNumeric(y_R, len = 1, null.ok = TRUE)
 			}
-			if (length(private$y) >= t & !is.na(private$y[t])){
-				warning(paste("Overwriting previous response for t =", t, "y[t] =", private$y[t]))
+			has_y = !is.null(y)
+			has_bounds = !is.null(y_L) && !is.null(y_R)
+			# Always enforced, never gated behind should_run_asserts(): unlike
+			# the type/range checks above (which fail loud-but-cheaply-skippable
+			# when disabled), a left-/interval-censored row that slips past this
+			# gate is stored silently and later misread by get_effective_time()/
+			# get_effective_dead() as ordinary right-censoring -- silently wrong
+			# numbers, not a cryptic error -- so this must hold even with
+			# assertions off (e.g. SimulationFramework's default
+			# turn_off_asserts_for_speed = TRUE). See TODO-1a/TODO-2 in
+			# interval_censored_survival_response.md.
+			if (!is.null(y_L) && is.null(y_R)){
+				stop("y_L was supplied without y_R -- both bounds are required together for a censored response.")
 			}
-			if (private$response_type == "ordinal" && is.factor(y)){
-				if (should_run_asserts()) {
-					assertFactor(y, ordered = TRUE, any.missing = FALSE)
+			if (is.null(y_L) && !is.null(y_R)){
+				stop("y_R was supplied without y_L -- both bounds are required together for a censored response.")
+			}
+			if (has_y && has_bounds){
+				stop("Supply either y (exact response) or both y_L and y_R (censored response), not both.")
+			}
+			if (!has_y && !has_bounds){
+				stop("You must supply either y (exact response) or both y_L and y_R (censored response).")
+			}
+			if (has_bounds && private$response_type != "survival"){
+				stop("censored observations are only available for survival response types")
+			}
+			if (length(private$y) >= t & !(is.na(private$y[t]) && is.na(private$y_L[t]) && is.na(private$y_R[t]))){
+				warning(paste("Overwriting previous response for t =", t))
+			}
+			if (has_y){
+				if (private$response_type == "ordinal" && is.factor(y)){
+					if (should_run_asserts()) {
+						assertFactor(y, ordered = TRUE, any.missing = FALSE)
+					}
+					levs = levels(y)
+					private$ordinal_levels = levs
+					if (private$response_type_original == "ordinal" && is.null(private$original_ordinal_levels)){
+						private$original_ordinal_levels = levs
+					}
+					y = as.integer(y)
 				}
-				levs = levels(y)
-				private$ordinal_levels = levs
-				if (private$response_type_original == "ordinal" && is.null(private$original_ordinal_levels)){
-					private$original_ordinal_levels = levs
+				private$assert_y(y, private$response_type)
+				if (private$response_type == "survival" && y == 0){
+					warning("0 survival responses not allowed --- recording .Machine$double.eps as its value instead")
+					y = .Machine$double.eps
 				}
-				y = as.integer(y)
-			}
-			
-			private$assert_y(y, private$response_type)
-			if (private$response_type == "survival" && y == 0){
-				warning("0 survival responses not allowed --- recording .Machine$double.eps as its value instead")
-				y = .Machine$double.eps
-			}
-			if (should_run_asserts()) {
-				if (dead == 0 & private$response_type != "survival"){
-					stop("censored observations are only available for survival response types")
+			} else {
+				# Always enforced -- see the note above add_one_subject_response's
+				# earlier shape checks.
+				if (!is.finite(y_L) || y_L < 0){
+					stop("y_L must be finite and >= 0.")
+				}
+				if (!(y_R > y_L)){
+					stop("y_R must be strictly greater than y_L.")
 				}
 			}
 			if (private$fixed_sample | t <= length(private$y)){
-				private$y[t] = y
-				private$y_original[t] = y
-				private$dead[t] = dead
+				private$y[t] = if (has_y) y else NA_real_
+				private$y_original[t] = if (has_y) y else NA_real_
+				private$y_L[t] = if (has_y) NA_real_ else y_L
+				private$y_R[t] = if (has_y) NA_real_ else y_R
 			} else if (t == length(private$y) + 1){
-				private$y = c(private$y, y)
-				private$y_original = c(private$y_original, y)
-				private$dead = c(private$dead, dead)
+				private$y = c(private$y, if (has_y) y else NA_real_)
+				private$y_original = c(private$y_original, if (has_y) y else NA_real_)
+				private$y_L = c(private$y_L, if (has_y) NA_real_ else y_L)
+				private$y_R = c(private$y_R, if (has_y) NA_real_ else y_R)
 			} else {
 				if (should_run_asserts()) {
 					stop("You cannot add a response for a subject that has not yet arrived when the sample size is not fixed in advance.")
@@ -198,26 +245,68 @@ Design = R6::R6Class("Design",
 		},
 		#' @description For non-CARA designs, add all subject responses.
 		#'
-		#' @param ys The responses as a numeric vector.
-		#' @param deads The binary vector indicating if dead/censored.
-		add_all_subject_responses = function(ys, deads = NULL) {
-			if (is.null(deads)){
-				deads = rep(1, private$t)
-			}
+		#' @param ys The exact responses as a numeric vector, \code{NA} for any
+		#'   subject whose response is censored (supply \code{y_Ls}/\code{y_Rs}
+		#'   for those instead).
+		#' @param y_Ls The censored-response lower bounds, \code{NA} for any
+		#'   subject with an exact response in \code{ys}. Right-censored:
+		#'   the last known event-free time (pair with \code{y_Rs = Inf}).
+		#'   Left-censored: \code{0}, stated explicitly. Interval-censored:
+		#'   the interval's lower bound. Storage accepts any well-formed
+		#'   left-/interval-censored value; whether a given \code{Inference}
+		#'   class can actually consume it depends on that class (most
+		#'   survival \code{Inference} classes still only accept exact/
+		#'   right-censored data and will reject construction with a clear
+		#'   error otherwise -- see individual class docs).
+		#' @param y_Rs The censored-response upper bounds, \code{NA} for any
+		#'   subject with an exact response in \code{ys}. Right-censored:
+		#'   \code{Inf}. Left-/interval-censored: the confirmed-by time /
+		#'   interval upper bound.
+		add_all_subject_responses = function(ys = NULL, y_Ls = NULL, y_Rs = NULL) {
+			if (is.null(ys)) ys = rep(NA_real_, private$t)
+			if (is.null(y_Ls)) y_Ls = rep(NA_real_, private$t)
+			if (is.null(y_Rs)) y_Rs = rep(NA_real_, private$t)
 			if (should_run_asserts()) {
 				if (private$response_type == "ordinal" && is.factor(ys)){
 					assertFactor(ys, len = private$t, ordered = TRUE, any.missing = FALSE)
 				} else {
 					assertNumeric(ys, len = private$t)
 				}
-				private$assert_y(ys, private$response_type)
-				assertNumeric(deads, len = private$t)
-				
-				if (private$response_type != "survival" && any(deads == 0)){
-					stop("censored observations are only available for survival response types")
+				assertNumeric(y_Ls, len = private$t)
+				assertNumeric(y_Rs, len = private$t)
+			}
+			has_y = if (is.factor(ys)) !is.na(as.integer(ys)) else !is.na(ys)
+			has_bounds = !is.na(y_Ls) & !is.na(y_Rs)
+			# Always enforced, never gated behind should_run_asserts() -- see the
+			# note above add_one_subject_response's equivalent checks: a left-/
+			# interval-censored row that slips past this gate is stored silently
+			# and later misread by get_effective_time()/get_effective_dead() as
+			# ordinary right-censoring, not a cryptic error.
+			partial_bounds = xor(is.na(y_Ls), is.na(y_Rs))
+			if (any(partial_bounds)){
+				stop("y_Ls and y_Rs must be supplied together (both or neither) for every subject.")
+			}
+			if (any(has_y & has_bounds)){
+				stop("Supply either ys or (y_Ls, y_Rs) for each subject, not both.")
+			}
+			if (any(!has_y & !has_bounds)){
+				stop("Each subject needs either ys or both y_Ls and y_Rs.")
+			}
+			if (any(has_bounds) && private$response_type != "survival"){
+				stop("censored observations are only available for survival response types")
+			}
+			if (any(has_bounds)){
+				if (any(!is.finite(y_Ls[has_bounds]) | y_Ls[has_bounds] < 0)){
+					stop("y_L must be finite and >= 0 for every censored subject.")
+				}
+				if (any(!(y_Rs[has_bounds] > y_Ls[has_bounds]))){
+					stop("y_R must be strictly greater than y_L for every censored subject.")
 				}
 			}
-			
+			if (should_run_asserts()) {
+				private$assert_y(ys[has_y], private$response_type)
+			}
+
 			if (private$response_type == "ordinal" && is.factor(ys)){
 				levs = levels(ys)
 				private$ordinal_levels = levs
@@ -228,7 +317,8 @@ Design = R6::R6Class("Design",
 			}
 			private$y = as.numeric(ys)
 			private$y_original = as.numeric(ys)
-			private$dead = as.numeric(deads)
+			private$y_L = as.numeric(y_Ls)
+			private$y_R = as.numeric(y_Rs)
 			private$y_i_t_i = as.list(seq_len(private$t))
 		},
 		#' @description For analysis on already-completed experimental data
@@ -261,7 +351,7 @@ Design = R6::R6Class("Design",
 		assert_all_responses_recorded = function(){
 			if (should_run_asserts()) {
 				self$assert_all_subjects_arrived()
-				if (sum(!is.na(private$y)) != length(private$w)){
+				if (sum(!(is.na(private$y) & is.na(private$y_L) & is.na(private$y_R))) != length(private$w)){
 					stop("This experiment is incomplete as all responses aren't recorded yet.")
 				}
 			}
@@ -272,7 +362,7 @@ Design = R6::R6Class("Design",
 		check_experiment_completed = function(){
 			if (private$fixed_sample & private$t < private$n){
 				FALSE
-			} else if (sum(!is.na(private$y)) != length(private$w)){
+			} else if (sum(!(is.na(private$y) & is.na(private$y_L) & is.na(private$y_R))) != length(private$w)){
 				FALSE
 			} else {
 				TRUE
@@ -298,7 +388,20 @@ Design = R6::R6Class("Design",
 		#'
 		#' @return  \code{TRUE} if any censored.
 		any_censoring = function(){
-			sum(private$dead) < length(private$dead)
+			any(is.na(private$y))
+		},
+		#' @description Checks if the experiment has any left- or
+		#'   interval-censored survival responses -- i.e. any subject whose
+		#'   \code{y_R} is finite (right-censored subjects have
+		#'   \code{y_R = Inf}, which is excluded). Most survival
+		#'   \code{Inference} classes cannot yet consume this shape of data
+		#'   (see \code{get_effective_time()}/\code{get_effective_dead()});
+		#'   this is the check \code{Inference$initialize()} uses to reject
+		#'   construction cleanly for those classes.
+		#'
+		#' @return  \code{TRUE} if any subject is left- or interval-censored.
+		has_general_censoring = function(){
+			any(is.finite(private$y_R))
 		},
 		#' @description Get t
 		#'
@@ -355,11 +458,46 @@ Design = R6::R6Class("Design",
 		get_n = function(){
 			ifelse(private$fixed_sample, private$n, private$t)
 		},
-		#' @description Get dead
+		#' @description Get y_L
 		#'
-		#' @return 			A binary vector of whether the subject is dead.
-		get_dead = function(){
-			private$dead
+		#' @return 			A numeric vector of censored-response lower bounds
+		#'   (\code{NA} for exact-response subjects).
+		get_y_L = function(){
+			private$y_L
+		},
+		#' @description Get y_R
+		#'
+		#' @return 			A numeric vector of censored-response upper bounds
+		#'   (\code{NA} for exact-response subjects).
+		get_y_R = function(){
+			private$y_R
+		},
+		#' @description Get the effective response time per subject: the exact
+		#'   value \code{y} where recorded, or the lower bound \code{y_L}
+		#'   for a censored subject. This reconstructs "the one informative
+		#'   number" every response type other than left-/interval-censored
+		#'   survival data has always had, for code that needs a single
+		#'   numeric value per subject rather than the \code{y}/\code{y_L}/
+		#'   \code{y_R} triple directly.
+		#'
+		#' @return 			A numeric vector, one value per subject.
+		get_effective_time = function(){
+			ifelse(is.na(private$y), private$y_L, private$y)
+		},
+		#' @description Get the effective event indicator per subject: \code{1}
+		#'   for an exact response, \code{0} for a censored one. This
+		#'   reconstructs today's \code{dead} semantics for right-censored
+		#'   survival data (and is trivially all-\code{1} for every other
+		#'   response type, which never has censoring). It is only valid
+		#'   for exact/right-censored data -- a left- or interval-censored
+		#'   subject also returns \code{0} here, which is not meaningful
+		#'   right-censoring status, so callers must confirm (e.g. via
+		#'   \code{any_censoring()} plus their own censoring-shape checks)
+		#'   that no such rows are present before relying on this value.
+		#'
+		#' @return 			An integer vector, one value per subject.
+		get_effective_dead = function(){
+			as.integer(!is.na(private$y))
 		},
 		#' @description Get probability of treatment
 		#'
@@ -467,7 +605,8 @@ Design = R6::R6Class("Design",
 		w = numeric(),
 		y = numeric(),
 		y_original = numeric(),
-		dead = numeric(),
+		y_L = numeric(),
+		y_R = numeric(),
 		permutations_cache   = list(),
 		lin_centered_covariates = NULL,
 		draw_bootstrap_indices = function(bootstrap_type = NULL){
@@ -491,7 +630,8 @@ Design = R6::R6Class("Design",
 			private$w    = private$w[i_b]
 			private$y    = private$y[i_b]
 			private$y_original = private$y_original[i_b]
-			private$dead = private$dead[i_b]
+			private$y_L  = private$y_L[i_b]
+			private$y_R  = private$y_R[i_b]
 			invisible(self)
 		},
 		assert_y = function(y, response_type) {
@@ -543,15 +683,16 @@ Design = R6::R6Class("Design",
 					idx_cols_to_convert_to_factor = which(col_types == "character")
 					private$Ximp[, (idx_cols_to_convert_to_factor) := lapply(.SD, as.factor), .SDcols = idx_cols_to_convert_to_factor]
 					#now do the imputation here by using missRanger (fast but fragile) and if that fails, use missForest (slow but more robust)
+					y_eff_for_impute = self$get_effective_time()
 					private$Ximp = tryCatch({
-											if (any(!is.na(private$y))){
-												suppressWarnings(missRanger(cbind(private$Ximp, private$y[1 : nrow(private$Ximp)]), verbose = FALSE, num.threads = self$num_cores)[, 1 : ncol(private$Ximp)])
+											if (any(!is.na(y_eff_for_impute))){
+												suppressWarnings(missRanger(cbind(private$Ximp, y_eff_for_impute[1 : nrow(private$Ximp)]), verbose = FALSE, num.threads = self$num_cores)[, 1 : ncol(private$Ximp)])
 											} else {
 												suppressWarnings(missRanger(private$Ximp, verbose = FALSE, num.threads = self$num_cores))
 											}
 										}, error = function(e){
-											if (any(!is.na(private$y))){
-												suppressWarnings(missForest(cbind(private$Ximp, private$y[1 : nrow(private$Ximp)]), num.threads = self$num_cores)$ximp[, 1 : ncol(private$Ximp)])
+											if (any(!is.na(y_eff_for_impute))){
+												suppressWarnings(missForest(cbind(private$Ximp, y_eff_for_impute[1 : nrow(private$Ximp)]), num.threads = self$num_cores)$ximp[, 1 : ncol(private$Ximp)])
 											} else {
 												suppressWarnings(missForest(private$Ximp, num.threads = self$num_cores)$ximp)
 											}
@@ -585,7 +726,7 @@ Design = R6::R6Class("Design",
 			}
 		},
 		compute_all_subject_data = function(){
-			i_present_y = which(!is.na(private$y))
+			i_present_y = which(!(is.na(private$y) & is.na(private$y_L) & is.na(private$y_R)))
 			i_all = 1 : private$t
 			i_all_y_present = intersect(i_all, i_present_y)
 			
@@ -627,8 +768,8 @@ Design = R6::R6Class("Design",
 			# Add the simple array slices that don't need C++ optimization
 			# These MUST NOT be cached because w and y change during randomization!
 			cpp_result$w_all_with_y_scaled = private$w[i_all_y_present]
-			cpp_result$y_all = private$y[i_all_y_present]
-			cpp_result$dead_all = private$dead[i_all_y_present]
+			cpp_result$y_all = self$get_effective_time()[i_all_y_present]
+			cpp_result$dead_all = self$get_effective_dead()[i_all_y_present]
 			cpp_result
 		},
 		assign_wt_Bernoulli = function(){

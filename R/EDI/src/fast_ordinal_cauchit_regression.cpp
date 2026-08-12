@@ -62,7 +62,7 @@ NumericVector fast_atan_cauchit_cpp(const NumericVector& x) {
 }
 
 // [[Rcpp::export]]
-SEXP get_ordinal_cauchit_regression_score_cpp(const Rcpp::NumericMatrix& X,
+Eigen::VectorXd get_ordinal_cauchit_regression_score_cpp(const Rcpp::NumericMatrix& X,
 														 const Rcpp::NumericVector& y,
 														 const Rcpp::NumericVector& params,
 														 Nullable<IntegerVector> fixed_idx = R_NilValue,
@@ -79,11 +79,11 @@ SEXP get_ordinal_cauchit_regression_score_cpp(const Rcpp::NumericMatrix& X,
 	Eigen::VectorXd par = apply_fixed_values(map_params, fixed_spec);
 	Eigen::VectorXd grad(par.size());
 	model(par, grad);
-	return wrap(-grad);
+	return -grad;
 }
 
 // [[Rcpp::export]]
-SEXP get_ordinal_cauchit_regression_hessian_cpp(const Rcpp::NumericMatrix& X,
+Eigen::MatrixXd get_ordinal_cauchit_regression_hessian_cpp(const Rcpp::NumericMatrix& X,
 														   const Rcpp::NumericVector& y,
 														   const Rcpp::NumericVector& params,
 														   Nullable<IntegerVector> fixed_idx = R_NilValue,
@@ -98,7 +98,7 @@ SEXP get_ordinal_cauchit_regression_hessian_cpp(const Rcpp::NumericMatrix& X,
 		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
 		nullable_to_optional<Eigen::VectorXd>(fixed_values));
 	Eigen::VectorXd par = apply_fixed_values(map_params, fixed_spec);
-	return wrap(-model.hessian(par));
+	return -model.hessian(par);
 }
 #endif // EDI_CORE_ONLY
 

@@ -14,9 +14,10 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceCountQuasiPoisson = R6::R6Class("InferenceCountQuasiPoisson",
-	lock_objects = FALSE,
-	inherit = InferenceCountCompositeLikelihood,
+InferenceCountQuasiPoisson = define_inference_class(
+	classname = "InferenceCountQuasiPoisson",
+	inherit = Inference,
+	components = c("Wald", "CountCompositeLikelihood"),
 	public = list(
 				
 		#' @description Initialize a quasi-Poisson regression inference object.
@@ -184,5 +185,19 @@ InferenceCountQuasiPoisson = R6::R6Class("InferenceCountQuasiPoisson",
 			}
 			attempt$fit
 		}
+		),
+		metadata = list(likelihood_tier = "quasi"),
+		overrides = list(
+			public = c(
+				"compute_estimate", "compute_estimate_with_bootstrap_weights",
+				"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
+			),
+			private = c(
+				"best_X_colnames", "build_design_matrix",
+				"compute_treatment_estimate_during_randomization_inference",
+				"supports_reusable_bootstrap_worker", "generate_mod",
+				"get_standard_error", "get_degrees_of_freedom",
+				"get_supported_testing_types_impl"
+			)
+		)
 	)
-)

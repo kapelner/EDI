@@ -31,6 +31,8 @@ InferenceIncidGCompRiskDiff = R6::R6Class("InferenceIncidGCompRiskDiff",
 	)
 )
 
+IncidenceGComputationRiskDiffSource = inference_component_source_parts(InferenceIncidGCompRiskDiff)
+
 #' G-Computation Risk-Ratio Inference for Binary Responses
 #'
 #' Fits a logistic working model for an incidence outcome using treatment and,
@@ -63,3 +65,5 @@ InferenceIncidGCompRiskRatio = R6::R6Class("InferenceIncidGCompRiskRatio",
 		get_estimand_type = function() "RR"
 	)
 )
+
+IncidenceGComputationRiskRatioSource = inference_component_source_parts(InferenceIncidGCompRiskRatio)

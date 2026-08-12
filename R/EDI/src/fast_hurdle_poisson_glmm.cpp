@@ -591,272 +591,244 @@ edi::ResultMap fast_hurdle_poisson_glmm_internal(
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-Eigen::VectorXd get_hurdle_poisson_glmm_score_cpp(
-	SEXP X_r,
-	SEXP y_r,
-	SEXP group_id_r,
-	SEXP params_sexp,
-	int n_gh = 7
-) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	IntegerVector group_id_int(group_id_r);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::VectorXd get_hurdle_poisson_glmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+	
+
+	
+
+	
+
+	
 	std::vector<int> pos_idx;
-	pos_idx.reserve(X.rows());
-	for (int i = 0; i < X.rows(); ++i) {
-		if (y[i] > 0.0) pos_idx.push_back(i);
+	pos_idx.reserve(X_r.rows());
+	for (int i = 0; i < X_r.rows(); ++i) {
+		if (y_r_vec_coerced[i] > 0.0) pos_idx.push_back(i);
 	}
 	const int n_pos = static_cast<int>(pos_idx.size());
-	Eigen::MatrixXd X_pos(n_pos, X.cols());
+	Eigen::MatrixXd X_pos(n_pos, X_r.cols());
 	Eigen::VectorXd y_pos(n_pos);
 	std::vector<int> gid_pos(n_pos);
 	for (int k = 0; k < n_pos; ++k) {
 		const int i = pos_idx[k];
-		X_pos.row(k) = X.row(i);
-		y_pos[k] = y[i];
-		gid_pos[k] = group_id[i];
+		X_pos.row(k) = X_r.row(i);
+		y_pos[k] = y_r_vec_coerced[i];
+		gid_pos[k] = group_id_r[i];
 	}
 	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh);
 	HurdlePoissonGLMMObjective obj(dat);
 	Eigen::VectorXd grad(params.size());
 	obj(params, grad);
-	grad[X.cols()] -= soft_barrier_hp_grad(params[X.cols()]);
+	grad[X_r.cols()] -= soft_barrier_hp_grad(params[X_r.cols()]);
 	return -grad;
 }
 
 // [[Rcpp::export]]
-Eigen::VectorXd get_hurdle_poisson_glmm_weighted_score_cpp(
-	SEXP X_r,
-	SEXP y_r,
-	SEXP group_id_r,
-	SEXP weights_r,
-	SEXP params_sexp,
-	int n_gh = 7
-) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	IntegerVector group_id_int(group_id_r);
-	NumericVector weights_vec(weights_r);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
-	Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::VectorXd get_hurdle_poisson_glmm_weighted_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, SEXP weights_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
+	NumericVector weights_r_r_coerced(weights_r); Eigen::Map<const Eigen::VectorXd> weights_r_vec_coerced(weights_r_r_coerced.begin(), weights_r_r_coerced.size());
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+	
+
+	
+
+	
+
+	
+
+	
 	std::vector<int> pos_idx;
-	pos_idx.reserve(X.rows());
-	for (int i = 0; i < X.rows(); ++i) {
-		if (y[i] > 0.0 && i < weights.size() && weights[i] > 0.0) pos_idx.push_back(i);
+	pos_idx.reserve(X_r.rows());
+	for (int i = 0; i < X_r.rows(); ++i) {
+		if (y_r_vec_coerced[i] > 0.0 && i < weights_r_vec_coerced.size() && weights_r_vec_coerced[i] > 0.0) pos_idx.push_back(i);
 	}
 	const int n_pos = static_cast<int>(pos_idx.size());
-	Eigen::MatrixXd X_pos(n_pos, X.cols());
+	Eigen::MatrixXd X_pos(n_pos, X_r.cols());
 	Eigen::VectorXd y_pos(n_pos);
 	Eigen::VectorXd weights_pos(n_pos);
 	std::vector<int> gid_pos(n_pos);
 	for (int k = 0; k < n_pos; ++k) {
 		const int i = pos_idx[k];
-		X_pos.row(k) = X.row(i);
-		y_pos[k] = y[i];
-		weights_pos[k] = weights[i];
-		gid_pos[k] = group_id[i];
+		X_pos.row(k) = X_r.row(i);
+		y_pos[k] = y_r_vec_coerced[i];
+		weights_pos[k] = weights_r_vec_coerced[i];
+		gid_pos[k] = group_id_r[i];
 	}
 	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh, &weights_pos);
 	HurdlePoissonGLMMObjective obj(dat);
 	Eigen::VectorXd grad(params.size());
 	obj(params, grad);
-	grad[X.cols()] -= soft_barrier_hp_grad(params[X.cols()]);
+	grad[X_r.cols()] -= soft_barrier_hp_grad(params[X_r.cols()]);
 	return -grad;
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd get_hurdle_poisson_glmm_hessian_cpp(
-	SEXP X_r,
-	SEXP y_r,
-	SEXP group_id_r,
-	SEXP params_sexp,
-	int n_gh = 7
-) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	IntegerVector group_id_int(group_id_r);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::MatrixXd get_hurdle_poisson_glmm_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+	
+
+	
+
+	
+
+	
 	std::vector<int> pos_idx;
-	pos_idx.reserve(X.rows());
-	for (int i = 0; i < X.rows(); ++i) {
-		if (y[i] > 0.0) pos_idx.push_back(i);
+	pos_idx.reserve(X_r.rows());
+	for (int i = 0; i < X_r.rows(); ++i) {
+		if (y_r_vec_coerced[i] > 0.0) pos_idx.push_back(i);
 	}
 	const int n_pos = static_cast<int>(pos_idx.size());
-	Eigen::MatrixXd X_pos(n_pos, X.cols());
+	Eigen::MatrixXd X_pos(n_pos, X_r.cols());
 	Eigen::VectorXd y_pos(n_pos);
 	std::vector<int> gid_pos(n_pos);
 	for (int k = 0; k < n_pos; ++k) {
 		const int i = pos_idx[k];
-		X_pos.row(k) = X.row(i);
-		y_pos[k] = y[i];
-		gid_pos[k] = group_id[i];
+		X_pos.row(k) = X_r.row(i);
+		y_pos[k] = y_r_vec_coerced[i];
+		gid_pos[k] = group_id_r[i];
 	}
 	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh);
 	HurdlePoissonGLMMObjective obj(dat);
 	Eigen::MatrixXd information = obj.hessian(params);
-	information(X.cols(), X.cols()) -= soft_barrier_hp_hessian(params[X.cols()]);
+	information(X_r.cols(), X_r.cols()) -= soft_barrier_hp_hessian(params[X_r.cols()]);
 	return -information;
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd get_hurdle_poisson_glmm_weighted_hessian_cpp(
-	SEXP X_r,
-	SEXP y_r,
-	SEXP group_id_r,
-	SEXP weights_r,
-	SEXP params_sexp,
-	int n_gh = 7
-) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	IntegerVector group_id_int(group_id_r);
-	NumericVector weights_vec(weights_r);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
-	Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::MatrixXd get_hurdle_poisson_glmm_weighted_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, SEXP weights_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
+	NumericVector weights_r_r_coerced(weights_r); Eigen::Map<const Eigen::VectorXd> weights_r_vec_coerced(weights_r_r_coerced.begin(), weights_r_r_coerced.size());
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+	
+
+	
+
+	
+
+	
+
+	
 	std::vector<int> pos_idx;
-	pos_idx.reserve(X.rows());
-	for (int i = 0; i < X.rows(); ++i) {
-		if (y[i] > 0.0 && i < weights.size() && weights[i] > 0.0) pos_idx.push_back(i);
+	pos_idx.reserve(X_r.rows());
+	for (int i = 0; i < X_r.rows(); ++i) {
+		if (y_r_vec_coerced[i] > 0.0 && i < weights_r_vec_coerced.size() && weights_r_vec_coerced[i] > 0.0) pos_idx.push_back(i);
 	}
 	const int n_pos = static_cast<int>(pos_idx.size());
-	Eigen::MatrixXd X_pos(n_pos, X.cols());
+	Eigen::MatrixXd X_pos(n_pos, X_r.cols());
 	Eigen::VectorXd y_pos(n_pos);
 	Eigen::VectorXd weights_pos(n_pos);
 	std::vector<int> gid_pos(n_pos);
 	for (int k = 0; k < n_pos; ++k) {
 		const int i = pos_idx[k];
-		X_pos.row(k) = X.row(i);
-		y_pos[k] = y[i];
-		weights_pos[k] = weights[i];
-		gid_pos[k] = group_id[i];
+		X_pos.row(k) = X_r.row(i);
+		y_pos[k] = y_r_vec_coerced[i];
+		weights_pos[k] = weights_r_vec_coerced[i];
+		gid_pos[k] = group_id_r[i];
 	}
 	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh, &weights_pos);
 	HurdlePoissonGLMMObjective obj(dat);
 	Eigen::MatrixXd information = obj.hessian(params);
-	information(X.cols(), X.cols()) -= soft_barrier_hp_hessian(params[X.cols()]);
+	information(X_r.cols(), X_r.cols()) -= soft_barrier_hp_hessian(params[X_r.cols()]);
 	return -information;
 }
 
 // [[Rcpp::export]]
-double get_hurdle_poisson_glmm_neg_loglik_cpp(
-	SEXP X_r,
-	SEXP y_r,
-	SEXP group_id_r,
-	SEXP params_sexp,
-	int n_gh = 7
-) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	IntegerVector group_id_int(group_id_r);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+double get_hurdle_poisson_glmm_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+	
+
+	
+
+	
+
+	
 	std::vector<int> pos_idx;
-	pos_idx.reserve(X.rows());
-	for (int i = 0; i < X.rows(); ++i) {
-		if (y[i] > 0.0) pos_idx.push_back(i);
+	pos_idx.reserve(X_r.rows());
+	for (int i = 0; i < X_r.rows(); ++i) {
+		if (y_r_vec_coerced[i] > 0.0) pos_idx.push_back(i);
 	}
 	const int n_pos = static_cast<int>(pos_idx.size());
-	Eigen::MatrixXd X_pos(n_pos, X.cols());
+	Eigen::MatrixXd X_pos(n_pos, X_r.cols());
 	Eigen::VectorXd y_pos(n_pos);
 	std::vector<int> gid_pos(n_pos);
 	for (int k = 0; k < n_pos; ++k) {
 		const int i = pos_idx[k];
-		X_pos.row(k) = X.row(i);
-		y_pos[k] = y[i];
-		gid_pos[k] = group_id[i];
+		X_pos.row(k) = X_r.row(i);
+		y_pos[k] = y_r_vec_coerced[i];
+		gid_pos[k] = group_id_r[i];
 	}
 	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh);
 	HurdlePoissonGLMMObjective obj(dat);
-	return likelihood_value(obj, params) - soft_barrier_hp(params[X.cols()]);
+	return likelihood_value(obj, params) - soft_barrier_hp(params[X_r.cols()]);
 }
 
 // [[Rcpp::export]]
-double get_hurdle_poisson_glmm_weighted_neg_loglik_cpp(
-	SEXP X_r,
-	SEXP y_r,
-	SEXP group_id_r,
-	SEXP weights_r,
-	SEXP params_sexp,
-	int n_gh = 7
-) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	IntegerVector group_id_int(group_id_r);
-	NumericVector weights_vec(weights_r);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
-	Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+double get_hurdle_poisson_glmm_weighted_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, SEXP weights_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
+	NumericVector weights_r_r_coerced(weights_r); Eigen::Map<const Eigen::VectorXd> weights_r_vec_coerced(weights_r_r_coerced.begin(), weights_r_r_coerced.size());
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+	
+
+	
+
+	
+
+	
+
+	
 	std::vector<int> pos_idx;
-	pos_idx.reserve(X.rows());
-	for (int i = 0; i < X.rows(); ++i) {
-		if (y[i] > 0.0 && i < weights.size() && weights[i] > 0.0) pos_idx.push_back(i);
+	pos_idx.reserve(X_r.rows());
+	for (int i = 0; i < X_r.rows(); ++i) {
+		if (y_r_vec_coerced[i] > 0.0 && i < weights_r_vec_coerced.size() && weights_r_vec_coerced[i] > 0.0) pos_idx.push_back(i);
 	}
 	const int n_pos = static_cast<int>(pos_idx.size());
-	Eigen::MatrixXd X_pos(n_pos, X.cols());
+	Eigen::MatrixXd X_pos(n_pos, X_r.cols());
 	Eigen::VectorXd y_pos(n_pos);
 	Eigen::VectorXd weights_pos(n_pos);
 	std::vector<int> gid_pos(n_pos);
 	for (int k = 0; k < n_pos; ++k) {
 		const int i = pos_idx[k];
-		X_pos.row(k) = X.row(i);
-		y_pos[k] = y[i];
-		weights_pos[k] = weights[i];
-		gid_pos[k] = group_id[i];
+		X_pos.row(k) = X_r.row(i);
+		y_pos[k] = y_r_vec_coerced[i];
+		weights_pos[k] = weights_r_vec_coerced[i];
+		gid_pos[k] = group_id_r[i];
 	}
 	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh, &weights_pos);
 	HurdlePoissonGLMMObjective obj(dat);
-	return likelihood_value(obj, params) - soft_barrier_hp(params[X.cols()]);
+	return likelihood_value(obj, params) - soft_barrier_hp(params[X_r.cols()]);
 }
 
 // [[Rcpp::export]]
-List fast_hurdle_poisson_glmm_cpp(
-	SEXP X_r,
-	SEXP y_r,
-	SEXP group_id_r,
-	int j_T,
-	Nullable<NumericVector> warm_start_params = R_NilValue,
-	bool smart_cold_start = true,
-	bool estimate_only = false,
-	int n_gh = 7,
-	int maxit = 300,
-	double eps_g = 1e-6,
-	std::string optimization_alg = "lbfgs",
-	Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-	Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-	Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue
-) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	IntegerVector group_id_int(group_id_r);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
+List fast_hurdle_poisson_glmm_cpp( const Eigen::Map<Eigen::MatrixXd>& X_r,
+		SEXP y_r,
+		const Eigen::Map<Eigen::VectorXi>& group_id_r,
+		int j_T,
+		Nullable<NumericVector> warm_start_params = R_NilValue,
+		bool smart_cold_start = true,
+		bool estimate_only = false,
+		int n_gh = 7,
+		int maxit = 300,
+		double eps_g = 1e-6,
+		std::string optimization_alg = "lbfgs",
+		Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
+		Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
+		Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
 
+	// See fast_logistic_regression_with_var_cpp for why y_r is coerced here
+	// rather than taken as a direct Eigen::Map.
+	NumericVector y_vec(y_r);
+	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
 	edi::ResultMap res = fast_hurdle_poisson_glmm_internal(
-		X, y, group_id, j_T,
+		X_r, y, group_id_r, j_T,
 		nullable_to_optional<Eigen::VectorXd>(warm_start_params),
 		smart_cold_start, estimate_only, n_gh, maxit, eps_g, optimization_alg,
 		nullable_to_optional<Eigen::VectorXi>(fixed_idx),

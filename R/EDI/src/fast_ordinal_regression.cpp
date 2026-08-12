@@ -74,15 +74,15 @@ public:
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-SEXP get_ordinal_regression_score_cpp(const Rcpp::NumericMatrix& X, const Rcpp::NumericVector& y, const Rcpp::NumericVector& params) {
+Eigen::VectorXd get_ordinal_regression_score_cpp(const Rcpp::NumericMatrix& X, const Rcpp::NumericVector& y, const Rcpp::NumericVector& params) {
     Eigen::Map<const Eigen::MatrixXd> map_X(X.begin(), X.rows(), X.cols());
     Eigen::Map<const Eigen::VectorXd> map_y(y.begin(), y.size());
     Eigen::Map<const Eigen::VectorXd> map_params(params.begin(), params.size());
-    
+
     OrdinalRegression model(map_X, map_y);
     Eigen::VectorXd grad(map_params.size());
     model(map_params, grad);
-    return wrap(-grad);
+    return -grad;
 }
 
 //' @title Compute Ordinal Regression Hessian
@@ -94,13 +94,13 @@ SEXP get_ordinal_regression_score_cpp(const Rcpp::NumericMatrix& X, const Rcpp::
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-SEXP get_ordinal_regression_hessian_cpp(const Rcpp::NumericMatrix& X, const Rcpp::NumericVector& y, const Rcpp::NumericVector& params) {
+Eigen::MatrixXd get_ordinal_regression_hessian_cpp(const Rcpp::NumericMatrix& X, const Rcpp::NumericVector& y, const Rcpp::NumericVector& params) {
     Eigen::Map<const Eigen::MatrixXd> map_X(X.begin(), X.rows(), X.cols());
     Eigen::Map<const Eigen::VectorXd> map_y(y.begin(), y.size());
     Eigen::Map<const Eigen::VectorXd> map_params(params.begin(), params.size());
-    
+
     OrdinalRegression model(map_X, map_y);
-    return wrap(-model.hessian(map_params));
+    return -model.hessian(map_params);
 }
 #endif // EDI_CORE_ONLY
 

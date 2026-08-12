@@ -62,7 +62,10 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \item \href{#method-Design-get_w}{\code{Design$get_w()}}
     \item \href{#method-Design-draw_ws_according_to_design}{\code{Design$draw_ws_according_to_design()}}
     \item \href{#method-Design-get_n}{\code{Design$get_n()}}
-    \item \href{#method-Design-get_dead}{\code{Design$get_dead()}}
+    \item \href{#method-Design-get_y_L}{\code{Design$get_y_L()}}
+    \item \href{#method-Design-get_y_R}{\code{Design$get_y_R()}}
+    \item \href{#method-Design-get_effective_time}{\code{Design$get_effective_time()}}
+    \item \href{#method-Design-get_effective_dead}{\code{Design$get_effective_dead()}}
     \item \href{#method-Design-get_prob_T}{\code{Design$get_prob_T()}}
     \item \href{#method-Design-has_covariates}{\code{Design$has_covariates()}}
     \item \href{#method-Design-get_response_type}{\code{Design$get_response_type()}}
@@ -238,15 +241,24 @@ covariates. Default is \code{~ .}.}
   For CARA designs, add a single subject response.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{Design$add_one_subject_response(t, y, dead = 1)}
+    \preformatted{Design$add_one_subject_response(t, y = NULL, y_L = NULL, y_R = NULL)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{t}}{The subject index.}
-      \item{\code{y}}{The response value.}
-      \item{\code{dead}}{If the response is censored (0 for survival).}
+      \item{\code{y}}{The exact response value. Supply this XOR both \code{y_L}
+and \code{y_R} -- never together, never just one of the two.}
+      \item{\code{y_L}}{For a censored survival response, the lower bound of the
+event-time interval. Right-censored: the last known event-free
+time (pair with \code{y_R = Inf}). Left-censored: \code{0},
+which must be stated explicitly rather than defaulted -- and
+note left-censoring is not yet implemented (see \code{y_R}).
+Interval-censored: the interval's lower bound.}
+      \item{\code{y_R}}{For a censored survival response, the upper bound of the
+event-time interval. Right-censored: \code{Inf}. Left-/
+interval-censored: the confirmed-by time / interval upper bound.}
     }
     \if{html}{\out{</div>}}
   }
@@ -259,14 +271,25 @@ covariates. Default is \code{~ .}.}
   For non-CARA designs, add all subject responses.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{Design$add_all_subject_responses(ys, deads = NULL)}
+    \preformatted{Design$add_all_subject_responses(ys = NULL, y_Ls = NULL, y_Rs = NULL)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{ys}}{The responses as a numeric vector.}
-      \item{\code{deads}}{The binary vector indicating if dead/censored.}
+      \item{\code{ys}}{The exact responses as a numeric vector, \code{NA} for any
+subject whose response is censored (supply \code{y_Ls}/\code{y_Rs}
+for those instead).}
+      \item{\code{y_Ls}}{The censored-response lower bounds, \code{NA} for any
+subject with an exact response in \code{ys}. Right-censored:
+the last known event-free time (pair with \code{y_Rs = Inf}).
+Left-censored: \code{0}, stated explicitly -- left-censoring is
+not yet implemented (see \code{y_Rs}). Interval-censored: the
+interval's lower bound.}
+      \item{\code{y_Rs}}{The censored-response upper bounds, \code{NA} for any
+subject with an exact response in \code{ys}. Right-censored:
+\code{Inf}. Left-/interval-censored: the confirmed-by time /
+interval upper bound.}
     }
     \if{html}{\out{</div>}}
   }
@@ -527,17 +550,79 @@ covariates. Default is \code{~ .}.}
 }
 
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-get_dead"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-get_dead}{}}}
-\subsection{\code{Design$get_dead()}}{
-  Get dead
+\if{html}{\out{<a id="method-Design-get_y_L"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-get_y_L}{}}}
+\subsection{\code{Design$get_y_L()}}{
+  Get y_L
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{Design$get_dead()}
+    \preformatted{Design$get_y_L()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A binary vector of whether the subject is dead.
+    A numeric vector of censored-response lower bounds
+  (\code{NA} for exact-response subjects).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-get_y_R"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-get_y_R}{}}}
+\subsection{\code{Design$get_y_R()}}{
+  Get y_R
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$get_y_R()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A numeric vector of censored-response upper bounds
+  (\code{NA} for exact-response subjects).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-get_effective_time"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-get_effective_time}{}}}
+\subsection{\code{Design$get_effective_time()}}{
+  Get the effective response time per subject: the exact
+  value \code{y} where recorded, or the lower bound \code{y_L}
+  for a censored subject. This reconstructs "the one informative
+  number" every response type other than left-/interval-censored
+  survival data has always had, for code that needs a single
+  numeric value per subject rather than the \code{y}/\code{y_L}/
+  \code{y_R} triple directly.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$get_effective_time()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A numeric vector, one value per subject.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-get_effective_dead"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-get_effective_dead}{}}}
+\subsection{\code{Design$get_effective_dead()}}{
+  Get the effective event indicator per subject: \code{1}
+  for an exact response, \code{0} for a censored one. This
+  reconstructs today's \code{dead} semantics for right-censored
+  survival data (and is trivially all-\code{1} for every other
+  response type, which never has censoring). It is only valid
+  for exact/right-censored data -- a left- or interval-censored
+  subject also returns \code{0} here, which is not meaningful
+  right-censoring status, so callers must confirm (e.g. via
+  \code{any_censoring()} plus their own censoring-shape checks)
+  that no such rows are present before relying on this value.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$get_effective_dead()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    An integer vector, one value per subject.
   }
 }
 

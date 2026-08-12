@@ -450,8 +450,11 @@ InferenceSurvivalKKClaytonCopulaIVWC = R6::R6Class("InferenceSurvivalKKClaytonCo
 				}
 			}
 		}
+		)
 	)
-)
+
+SurvivalKKClaytonCopulaIVWCSource = inference_component_source_parts(InferenceSurvivalKKClaytonCopulaIVWC)
+
 #' Clayton Copula Combined-Likelihood Inference for KK Designs
 #'
 #' Gamma-frailty (Clayton copula) Weibull estimator; see
@@ -849,3 +852,5 @@ InferenceSurvivalKKClaytonCopulaOneLik = R6::R6Class("InferenceSurvivalKKClayton
 		}
 	)))
 )
+
+SurvivalKKClaytonCopulaOneLikSource = inference_component_source_parts(InferenceSurvivalKKClaytonCopulaOneLik)

@@ -86,12 +86,27 @@ DesignFixed = R6::R6Class("DesignFixed",
 		},
 		#' @description Add all subject responses for a fixed design.
 		#'
-		#' @param ys The responses as a numeric vector.
-		#' @param deads The binary vector indicating if dead/censored.
-		add_all_subject_responses = function(ys, deads = NULL){
-			if (is.null(deads)){
-				deads = rep(1, private$t)
-			}
+		#' @param ys The exact responses as a numeric vector, \code{NA} for any
+		#'   subject whose response is censored (supply \code{y_Ls}/\code{y_Rs}
+		#'   for those instead).
+		#' @param y_Ls The censored-response lower bounds, \code{NA} for any
+		#'   subject with an exact response in \code{ys}. Right-censored:
+		#'   the last known event-free time (pair with \code{y_Rs = Inf}).
+		#'   Left-censored: \code{0}, stated explicitly. Interval-censored:
+		#'   the interval's lower bound. Storage accepts any well-formed
+		#'   left-/interval-censored value; whether a given \code{Inference}
+		#'   class can actually consume it depends on that class (most
+		#'   survival \code{Inference} classes still only accept exact/
+		#'   right-censored data and will reject construction with a clear
+		#'   error otherwise -- see individual class docs).
+		#' @param y_Rs The censored-response upper bounds, \code{NA} for any
+		#'   subject with an exact response in \code{ys}. Right-censored:
+		#'   \code{Inf}. Left-/interval-censored: the confirmed-by time /
+		#'   interval upper bound.
+		add_all_subject_responses = function(ys = NULL, y_Ls = NULL, y_Rs = NULL){
+			if (is.null(ys)) ys = rep(NA_real_, private$t)
+			if (is.null(y_Ls)) y_Ls = rep(NA_real_, private$t)
+			if (is.null(y_Rs)) y_Rs = rep(NA_real_, private$t)
 			if (should_run_asserts()) {
 				self$assert_fixed_sample()
 				if (private$response_type == "ordinal" && is.factor(ys)){
@@ -99,14 +114,42 @@ DesignFixed = R6::R6Class("DesignFixed",
 				} else {
 					assertNumeric(ys, len = private$t)
 				}
-				private$assert_y(ys, private$response_type)
-				assertNumeric(deads, len = private$t)
-				
-				if (private$response_type != "survival" && any(deads == 0)){
-					stop("censored observations are only available for survival response types")
+				assertNumeric(y_Ls, len = private$t)
+				assertNumeric(y_Rs, len = private$t)
+			}
+			has_y = if (is.factor(ys)) !is.na(as.integer(ys)) else !is.na(ys)
+			has_bounds = !is.na(y_Ls) & !is.na(y_Rs)
+			# Always enforced, never gated behind should_run_asserts() -- see the
+			# note above Design's equivalent checks (design_abstract.R): a
+			# left-/interval-censored row that slips past this gate is stored
+			# silently and later misread by get_effective_time()/
+			# get_effective_dead() as ordinary right-censoring, not a cryptic
+			# error.
+			partial_bounds = xor(is.na(y_Ls), is.na(y_Rs))
+			if (any(partial_bounds)){
+				stop("y_Ls and y_Rs must be supplied together (both or neither) for every subject.")
+			}
+			if (any(has_y & has_bounds)){
+				stop("Supply either ys or (y_Ls, y_Rs) for each subject, not both.")
+			}
+			if (any(!has_y & !has_bounds)){
+				stop("Each subject needs either ys or both y_Ls and y_Rs.")
+			}
+			if (any(has_bounds) && private$response_type != "survival"){
+				stop("censored observations are only available for survival response types")
+			}
+			if (any(has_bounds)){
+				if (any(!is.finite(y_Ls[has_bounds]) | y_Ls[has_bounds] < 0)){
+					stop("y_L must be finite and >= 0 for every censored subject.")
+				}
+				if (any(!(y_Rs[has_bounds] > y_Ls[has_bounds]))){
+					stop("y_R must be strictly greater than y_L for every censored subject.")
 				}
 			}
-			
+			if (should_run_asserts()) {
+				private$assert_y(ys[has_y], private$response_type)
+			}
+
 			if (private$response_type == "ordinal" && is.factor(ys)){
 				levs = levels(ys)
 				private$ordinal_levels = levs
@@ -117,7 +160,8 @@ DesignFixed = R6::R6Class("DesignFixed",
 			}
 			private$y = as.numeric(ys)
 			private$y_original = as.numeric(ys)
-			private$dead = as.numeric(deads)
+			private$y_L = as.numeric(y_Ls)
+			private$y_R = as.numeric(y_Rs)
 			private$y_i_t_i = as.list(seq_len(private$t))
 		},
 		#' @description Overwrite all subject assignments for a fixed design.

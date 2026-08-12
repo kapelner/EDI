@@ -4,6 +4,7 @@
 constexpr double NA_REAL = std::numeric_limits<double>::quiet_NaN();
 #else
 #include <RcppEigen.h>
+#include "result_map_rcpp.h"
 #endif
 #include <algorithm>
 #include <cmath>
@@ -164,12 +165,14 @@ RiditAnalysisResult fast_ridit_analysis_result(const Eigen::Ref<const Eigen::Vec
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-List fast_ridit_scores_cpp(SEXP y_sexp, SEXP ref_idx_sexp) {
-    IntegerVector y_vec(y_sexp);
-    Eigen::Map<const Eigen::VectorXi> y(y_vec.begin(), y_vec.size());
-    IntegerVector ref_idx_vec(ref_idx_sexp);
-    Eigen::Map<const Eigen::VectorXi> ref_idx(ref_idx_vec.begin(), ref_idx_vec.size());
-    int n = y.size();
+List fast_ridit_scores_cpp(SEXP y, const Eigen::Map<Eigen::VectorXi>& ref_idx) {
+	IntegerVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXi> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+    
+
+    
+    int n = y_vec_coerced.size();
     int n_ref = ref_idx.size();
 
     std::vector<int> ref_idx_zero_based;
@@ -178,34 +181,41 @@ List fast_ridit_scores_cpp(SEXP y_sexp, SEXP ref_idx_sexp) {
         ref_idx_zero_based.push_back(ref_idx[i] - 1);
     }
 
-    RiditScoreData ridit_data = fast_ridit_scores_from_ref_indices(y.data(), n, ref_idx_zero_based);
-    return List::create(
-        Named("scores") = wrap(ridit_data.scores),
-        Named("levels") = wrap(ridit_data.levels),
-        Named("ref_p") = wrap(ridit_data.ref_p)
-    );
+    RiditScoreData ridit_data = fast_ridit_scores_from_ref_indices(y_vec_coerced.data(), n, ref_idx_zero_based);
+    // levels stays on the wrap() path (not edi::ResultMap): it's an integer
+    // category-label vector, and ResultMap's ResultValue variant has no
+    // integer-vector member (only Eigen::VectorXd/MatrixXd) -- routing it
+    // through would silently turn it into a double vector on the R side.
+    List out = edi::to_rcpp_list(edi::ResultMap()
+        .set("scores", Eigen::VectorXd::Map(ridit_data.scores.data(), (Eigen::Index)ridit_data.scores.size()))
+        .set("ref_p", Eigen::VectorXd::Map(ridit_data.ref_p.data(), (Eigen::Index)ridit_data.ref_p.size())));
+    out["levels"] = wrap(ridit_data.levels);
+    return out;
 }
 
 // [[Rcpp::export]]
-List fast_ridit_analysis_cpp(SEXP w_sexp, SEXP y_sexp, const std::string& reference = "control") {
-    IntegerVector w_vec(w_sexp);
-    Eigen::Map<const Eigen::VectorXi> w(w_vec.begin(), w_vec.size());
-    IntegerVector y_vec(y_sexp);
-    Eigen::Map<const Eigen::VectorXi> y(y_vec.begin(), y_vec.size());
+List fast_ridit_analysis_cpp(SEXP w, SEXP y, const std::string& reference = "control") {
+	IntegerVector w_r_coerced(w); Eigen::Map<const Eigen::VectorXi> w_vec_coerced(w_r_coerced.begin(), w_r_coerced.size());
+	IntegerVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXi> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-    RiditAnalysisResult res = fast_ridit_analysis_result(w, y, reference);
+
+    
+
+    
+
+    RiditAnalysisResult res = fast_ridit_analysis_result(w_vec_coerced, y_vec_coerced, reference);
     if (res.scores.empty()) {
         return List::create();
     }
 
-    return List::create(
-        Named("mean_ridit_t") = res.mean_ridit_t,
-        Named("mean_ridit_c") = res.mean_ridit_c,
-        Named("estimate") = res.estimate,
-        Named("se") = res.se,
-        Named("scores") = wrap(res.scores),
-        Named("levels") = wrap(res.levels),
-        Named("ref_p") = wrap(res.ref_p)
-    );
+    List out = edi::to_rcpp_list(edi::ResultMap()
+        .set("mean_ridit_t", res.mean_ridit_t)
+        .set("mean_ridit_c", res.mean_ridit_c)
+        .set("estimate", res.estimate)
+        .set("se", res.se)
+        .set("scores", Eigen::VectorXd::Map(res.scores.data(), (Eigen::Index)res.scores.size()))
+        .set("ref_p", Eigen::VectorXd::Map(res.ref_p.data(), (Eigen::Index)res.ref_p.size())));
+    out["levels"] = wrap(res.levels);
+    return out;
 }
 #endif // EDI_CORE_ONLY

@@ -139,7 +139,7 @@ inference_count_likelihood_public = list(
 		}
 	)
 
-inference_count_likelihood_private = list(
+	inference_count_likelihood_private = list(
 		# --- Count-specific shared logic ---
 
 		shared = function(estimate_only = FALSE){
@@ -251,15 +251,22 @@ inference_count_likelihood_private = list(
 			private$cache_nonestimable_se("count_likelihood_asymp_block_size_gt_one_not_supported")
 			TRUE
 		},
-		count_likelihood_missing_ci = function(alpha = 0.05){
-			ci = c(NA_real_, NA_real_)
-			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			ci
-		}
-	)
+			count_likelihood_missing_ci = function(alpha = 0.05){
+				ci = c(NA_real_, NA_real_)
+				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+				ci
+			}
+		)
 
-InferenceCountLikelihood = R6::R6Class("InferenceCountLikelihood",
-	lock_objects = FALSE,
+	CountLikelihoodPlumbingSource = list(
+		public = inference_count_likelihood_public,
+		private = c(inference_count_likelihood_private, list(
+			is_a_count_likelihood = function() TRUE
+		))
+	)
+	
+	InferenceCountLikelihood = R6::R6Class("InferenceCountLikelihood",
+		lock_objects = FALSE,
 	inherit = InferenceParamBootstrap,
 	public = inference_count_likelihood_public,
 	private = c(inference_count_likelihood_private, list(

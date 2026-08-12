@@ -246,6 +246,7 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
         .set("iterations", fit.niter);
 }
 
+#ifndef EDI_CORE_ONLY
 //' @title Fast Zero-Inflated Negative Binomial Regression (C++)
 //' @description High-performance zero-inflated negative binomial model fitting via L-BFGS.
 //' @param X Numeric matrix of predictors for the count component (including intercept).
@@ -262,7 +263,6 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
 //' @param estimate_only Logical. If TRUE, skip variance computation and return only coefficients.
 //' @return A list containing coefficients and convergence status.
 //' @keywords internal
-#ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
 List fast_zinb_cpp(SEXP X, SEXP Xzi, SEXP y,
                    Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue,
@@ -293,15 +293,15 @@ List fast_zinb_cpp(SEXP X, SEXP Xzi, SEXP y,
     const int p_cond = Xc.cols();
     const int p_zi = Xz.cols();
     if (estimate_only) {
-        return List::create(
-            Named("params") = fit.params,
-            Named("coefficients") = List::create(
-                Named("cond") = fit.params.head(p_cond),
-                Named("zi") = fit.params.segment(p_cond, p_zi)
-            ),
-            Named("converged") = fit.converged,
-            Named("iterations") = fit.niter
+        List out = edi::to_rcpp_list(edi::ResultMap()
+            .set("params", fit.params)
+            .set("converged", fit.converged)
+            .set("iterations", fit.niter));
+        out["coefficients"] = List::create(
+            Named("cond") = fit.params.head(p_cond),
+            Named("zi") = fit.params.segment(p_cond, p_zi)
         );
+        return out;
     }
 
     Eigen::MatrixXd hess = obj.hessian(fit.params);

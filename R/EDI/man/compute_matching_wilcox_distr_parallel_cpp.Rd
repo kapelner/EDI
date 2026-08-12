@@ -5,9 +5,9 @@
 \title{Fast KK Wilcoxon Statistic for Multiple Permutations}
 \usage{
 compute_matching_wilcox_distr_parallel_cpp(
-  w_mat_sexp,
-  m_mat_sexp,
-  y_sexp,
+  w_mat,
+  m_mat,
+  y,
   delta,
   transform_code,
   zero_one_logit_clamp,
@@ -16,11 +16,11 @@ compute_matching_wilcox_distr_parallel_cpp(
 )
 }
 \arguments{
-\item{w_mat_sexp}{Integer matrix of permuted treatment assignments (n x r).}
+\item{w_mat}{Integer matrix of permuted treatment assignments (n x r).}
 
-\item{m_mat_sexp}{Integer matrix of match indicators (n x r).}
+\item{m_mat}{Integer matrix of match indicators (n x r).}
 
-\item{y_sexp}{Numeric response vector.}
+\item{y}{Numeric response vector.}
 
 \item{delta}{Null treatment effect shift.}
 

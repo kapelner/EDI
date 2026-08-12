@@ -406,8 +406,11 @@ InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullF
 				return(invisible(NULL))
 			}
 		}
+		)
 	)
-)
+
+SurvivalKKWeibullFrailtyIVWCSource = inference_component_source_parts(InferenceAbstractKKWeibullFrailtyIVWC)
+
 #' Abstract class for Weibull Frailty Combined-Likelihood Inference
 #'
 #' One-likelihood (combined matched-pair + reservoir) analog of
@@ -748,8 +751,11 @@ InferenceAbstractKKWeibullFrailtyOneLik = R6::R6Class("InferenceAbstractKKWeibul
 			if (is.null(fit) || !isTRUE(fit$converged) || length(fit$b) < 1L || !is.finite(fit$b[1L])) return(NA_real_)
 			as.numeric(fit$b[1L])
 		}
-	)))
-)
+		)))
+	)
+
+SurvivalKKWeibullFrailtyOneLikSource = inference_component_source_parts(InferenceAbstractKKWeibullFrailtyOneLik)
+
 #' Weibull Frailty IVWC Inference for KK Designs
 #'
 #' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
@@ -773,8 +779,11 @@ InferenceSurvivalKKWeibullFrailtyIVWC = R6::R6Class("InferenceSurvivalKKWeibullF
 			self$set_optimization_alg(optimization_alg)
 			super$initialize(des_obj = des_obj, model_formula = model_formula, verbose = verbose)
 		}
+		)
 	)
-)
+
+SurvivalKKWeibullFrailtyIVWCLeafSource = inference_component_source_parts(InferenceSurvivalKKWeibullFrailtyIVWC)
+
 #' Weibull Frailty Combined-Likelihood Inference for KK Designs
 #'
 #' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
@@ -796,5 +805,7 @@ InferenceSurvivalKKWeibullFrailtyOneLik = R6::R6Class("InferenceSurvivalKKWeibul
 			self$set_optimization_alg(optimization_alg)
 			super$initialize(des_obj = des_obj, model_formula = model_formula, use_rcpp = use_rcpp, verbose = verbose)
 		}
+		)
 	)
-)
+
+SurvivalKKWeibullFrailtyOneLikLeafSource = inference_component_source_parts(InferenceSurvivalKKWeibullFrailtyOneLik)

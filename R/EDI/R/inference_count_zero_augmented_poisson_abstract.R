@@ -1119,5 +1119,7 @@ InferenceCountZeroAugmentedPoissonAbstract = R6::R6Class("InferenceCountZeroAugm
 				}
 			)
 		}
+		)
 	)
-)
+
+ZeroAugmentedCountLikelihoodSource = inference_component_source_parts(InferenceCountZeroAugmentedPoissonAbstract)

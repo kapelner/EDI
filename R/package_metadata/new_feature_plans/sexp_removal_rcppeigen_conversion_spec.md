@@ -399,12 +399,62 @@ based on.
   additional file not in the original 13, `fast_gehan_wilcox.cpp`, was found
   in this audit with the same pattern and should be folded into TODO-10.
   `sample_mode.cpp` is unchanged, as intended (Non-Goals).
-- **Phase 2 (zero-copy `Eigen::Map` params) is unstarted as a phase**, though
-  it's now partially and *incidentally* satisfied for the 16 files touched by
-  a separate, narrower task done in this same session (see next bullet) —
-  that work is not a substitute for TODO-5.
-  48 files still contain the manual `SEXP ..._sexp` → `NumericMatrix`/
-  `NumericVector` → `Eigen::Map` boilerplate this phase is meant to delete.
+- **Phase 2 (zero-copy `Eigen::Map` params) update (2026-08-12): substantially
+  executed, with one known gap and one deliberately-paused edge.**
+  - Converted all 38 files matched by the `_sexp`-naming target list (the
+    5 files excluded for RNG/callback/scalar-only reasons — see the earlier
+    audit — correctly untouched). 377 parameters converted automatically,
+    plus manual fixes for cases the conversion script couldn't handle safely
+    on its own: a raw-R-C-API function (`fast_bai_parallel.cpp`), a few
+    files where a comment embedded inside a multi-line parameter list broke
+    the script's comma-splitting (`compute_all_subject_data.cpp`,
+    `compute_mahal_distances.cpp`, `fast_gaussian_lmm.cpp`,
+    `fast_logistic_glmm.cpp`), an internal (non-exported) helper shared by
+    two exported wrappers (`gcomp_speedups.cpp`'s
+    `compute_gcomp_logistic_post_fit`), and a delegate-call mismatch where a
+    wrapper forwarded the derived `Eigen::Map` instead of the raw parameter
+    to a SEXP-taking internal sibling (`robust_post_fit_speedups.cpp`).
+  - **Real regression found and fixed during verification, not just a
+    mechanical port:** `Eigen::Map`-typed parameters require an *exact* R
+    type match — no int↔double coercion, unlike the
+    `NumericVector(SEXP)`/`IntegerVector(SEXP)` constructors the pre-Phase-2
+    code used, which coerced silently. R's own RNG functions are
+    inconsistent about this (`rbinom`/`rpois` return integer, `rnbinom`
+    returns double), so no single static Eigen type is safe for
+    response/count-like data. Found via the project's own
+    `test-rcpp-fitting-equivalence.R`/`test-fast_glm_outputs.R`/etc. failing
+    after the conversion. Fixed by reverting *only* the affected parameter
+    (`y`, `dead`, `w`, `weights`, `m_vec`, and their `_r`-suffixed variants)
+    back to `SEXP` → coercing `NumericVector`/`IntegerVector` → `Eigen::Map`,
+    preserving each function's original coercion type exactly, while keeping
+    every other parameter (`X`, etc.) as the zero-copy direct `Eigen::Map`.
+    109 of the 134 converted functions needed this exception (8 found via
+    the failing tests, 101 more via a systematic sweep of every
+    response/count-shaped `Eigen::Map<VectorXd/Xi>` parameter across all 134
+    functions). Verified: full package compiles clean, all 6
+    kernel-equivalence test files pass with 0 failures, and a full test-suite
+    run confirms zero remaining `"Wrong R type for mapped vector"` errors
+    anywhere (the only failures left are from an unrelated, actively-in-flight
+    `y`/`y_L`/`y_R` censored-response API change elsewhere in the repo).
+  - **Known real gap, not yet closed:** the target-file list was built from
+    `grep -rl "_sexp" *.cpp`, which missed files where an *earlier* session
+    had already stripped the `_sexp` suffix from argument names (leaving
+    clean `SEXP X, SEXP y` signatures with no `_sexp` substring left to
+    match) without doing the actual Phase 2 type conversion. Confirmed still
+    on the old manual pattern: `fast_ols.cpp`, `fast_log_binomial_regression.cpp`,
+    `fast_robust_regression.cpp`, `fast_zinb.cpp`, `fast_gee.cpp`,
+    `fast_jonckheere_terpstra.cpp`, plus a handful of individual functions in
+    files that were otherwise converted (`fast_ridit_analysis.cpp`'s
+    `fast_ridit_analysis_cpp`, `fast_wilcox_hl.cpp`'s
+    `wilcox_hl_point_estimate_cpp`, `fast_wilcox_parallel.cpp`'s
+    `compute_wilcox_distr_from_list_parallel_cpp`, `fast_weibull_regression.cpp`
+    (all 3 exports), `fast_survival_stats.cpp` (all 4 exports)).
+  - **Deliberately not touched further this session:** closing the gap above
+    would mean converting exactly the `y`/`dead`/`weights`-shaped parameters
+    that are the subject of an active, separate, in-progress change elsewhere
+    in the repo (migrating the response representation from `y`/`dead` to
+    `y`/`y_L`/`y_R`). Touching those parameters now would conflict with that
+    work; left alone until it lands.
 - **This session's actual contribution: an argument-*naming* cleanup, not
   Phase 2.** Per explicit user request, stripped the `_sexp` suffix from the
   argument *names* (not types) of all 41 `NAMESPACE`-exported (public) C++
@@ -505,23 +555,104 @@ based on.
       `SEXP` rather than `Rcpp::List` — fold that into TODO-10.
 - [~] TODO-5: Phase 2 — zero-copy input cleanup across the 51 `_sexp`-pattern
       files (excludes the 15 RNG files and `sample_mode.cpp`).
-      Not started as a phase. 48 files still have the manual `_sexp` ->
-      `NumericMatrix`/`NumericVector` -> `Eigen::Map` boilerplate. Note: a
-      separate, narrower same-session task renamed the *argument names* (not
-      types) of the 41 public functions across 16 of these files
-      (`X_sexp`->`X` etc.) for API hygiene — params are still `SEXP`-typed
-      and the manual conversion lines are still present, so this does not
-      count as TODO-5 progress; internal (non-exported) functions in those
-      16 files were left untouched.
-- [~] TODO-6: Phase 3 — migrate continuous/OLS-family `List::create` files.
-      Primary fitting functions done (e.g. `fast_ols.cpp`,
-      `fast_robust_regression.cpp` use `edi::ResultMap`); some
-      non-family-named helper files with `List::create` remain (see Status).
-- [~] TODO-7: Phase 3 — migrate count/ordinal-family `List::create` files.
-      Primary fitting functions done across binomial/poisson/negbin/beta and
-      ordinal variants; secondary exported helpers (score/hessian getters,
-      `fast_zinb.cpp`, `fast_ridit_analysis.cpp`, `fast_jonckheere_terpstra.cpp`)
-      still call `List::create`.
+      **Update 2026-08-12: substantially done, deliberately not 100%.** All
+      38 files matched by the `_sexp`-naming scan converted to direct
+      `Eigen::Map` parameters (see Status for the full breakdown, including a
+      real type-strictness regression found and fixed along the way). One
+      parameter family is a **permanent, intentional exception, not a
+      leftover**: `y`/`dead`/`w`/`weights`/`m_vec`-shaped parameters were
+      kept on `SEXP` → coercing `NumericVector`/`IntegerVector` →
+      `Eigen::Map`, because `Eigen::Map<VectorXd>`/`Eigen::Map<VectorXi>`
+      require an *exact* R storage-mode match and R's own generators don't
+      honor a consistent int/double contract for this kind of data
+      (`rbinom`/`rpois` return integer, `rnbinom` returns double, for
+      conceptually identical "count" data) — a real, general Rcpp/RcppEigen
+      limitation, not something fixable by picking a "better" static type.
+      Remaining genuine gap (not exempted, just not reached): `fast_ols.cpp`,
+      `fast_log_binomial_regression.cpp`, `fast_robust_regression.cpp`,
+      `fast_zinb.cpp`, `fast_gee.cpp`, `fast_jonckheere_terpstra.cpp`, and a
+      few individual functions elsewhere — missed because they'd already had
+      `_sexp` stripped from argument names in an earlier session, so the
+      `grep -rl "_sexp"` scan used to build today's target list didn't catch
+      them despite the manual conversion pattern still being present.
+      Deliberately left alone rather than closed out immediately: finishing
+      it means touching the same `y`/`dead`/`weights` parameters an active,
+      separate, in-progress change elsewhere in the repo is mid-migrating
+      (`y`/`dead` → `y`/`y_L`/`y_R`) — revisit once that lands.
+- [x] TODO-6: Phase 3 — migrate continuous/OLS-family `List::create` files.
+      **Done 2026-08-12.** `fast_ols.cpp`/`fast_robust_regression.cpp` were
+      already fully on `edi::ResultMap` (no remaining work — done ahead of
+      this checklist by whoever did that earlier pass). The two remaining
+      OLS-specific files converted this session:
+      `robust_post_fit_speedups.cpp` (`ols_hc2_setup_cpp`,
+      `ols_hc2_post_fit_cpp`, `ols_hc2_post_fit_precomputed_cpp`,
+      `glm_sandwich_post_fit_cpp`, `glm_cluster_sandwich_post_fit_cpp` — the
+      shared `summarize_with_vcov` helper now builds `edi::ResultMap` instead
+      of `Rcpp::List` directly, each export wraps it with
+      `edi::to_rcpp_list`) and `build_kk_combined_ols_design.cpp`
+      (`build_matching_combined_ols_design_cpp`). Both files' portable cores
+      (`ols_hc2_post_fit_result`, `summarize_with_vcov_result`) were already
+      Rcpp-free plain-struct returns from an earlier pass — this just closed
+      the last `List::create` mile at the R boundary. No overlap with the
+      active `y`/`dead` → `y`/`y_L`/`y_R` response-representation migration
+      elsewhere in the repo (checked: neither file references `dead`, `y_L`,
+      or `y_R` — continuous/OLS models have no censoring concept). Verified:
+      full recompile clean, `test-kk-ols-se.R` (21 assertions) and
+      `test-ols-hc2-hat-vectorized.R` (4 assertions) both pass with 0
+      failures. Two more OLS-*adjacent* files still have `List::create`
+      (`match_data_compute_speedup.cpp`, `qr_reduce_design_matrix.cpp`) but
+      are shared cross-family infrastructure, not OLS-specific — left for
+      whichever of TODO-7/8 (or a dedicated cleanup pass) actually owns them.
+- [x] TODO-7: Phase 3 — migrate count/ordinal-family `List::create` files.
+      **Done 2026-08-12.** Primary fitting functions were already done across
+      binomial/poisson/negbin/beta and ordinal variants; this pass closed the
+      three secondary exported helpers named in this TODO:
+      `fast_zinb.cpp` (`fast_zinb_cpp`'s `estimate_only` branch — the nested
+      `coefficients = list(cond=, zi=)` sub-list has no `edi::ResultMap`
+      representation since `ResultValue`'s variant doesn't include a list
+      type, so the flat fields (`params`, `converged`, `iterations`) go
+      through `edi::ResultMap`/`to_rcpp_list` and `coefficients` is attached
+      after, mirroring the pattern the non-`estimate_only` branch already
+      used one call below via `make_uniform_likelihood_fit_result`),
+      `fast_ridit_analysis.cpp` (`fast_ridit_scores_cpp`,
+      `fast_ridit_analysis_cpp` — `scores`/`ref_p` go through `ResultMap` as
+      `Eigen::VectorXd::Map(...)`, but `levels` stays on the `wrap()` path
+      deliberately: it's an integer category-label vector and `ResultValue`
+      has no integer-vector member, so routing it through `ResultMap` would
+      silently turn it into a double vector on the R side — the same
+      type-strictness hazard flagged earlier this session for `y`/`dead`/
+      `weights`), and `fast_jonckheere_terpstra.cpp`
+      (`exact_jonckheere_terpstra_pval_cpp` — all 7 fields are scalar
+      int/double, straightforward `ResultMap` conversion, file had no
+      `EDI_CORE_ONLY` split and isn't in `python/CMakeLists.txt`, so
+      `result_map_rcpp.h` was added unconditionally like
+      `build_kk_combined_ols_design.cpp` in TODO-6).
+      `fast_ordinal_regression.cpp` was also audited (it's mostly already on
+      `edi::ResultMap`/`edi::to_rcpp_list`; its remaining SEXP-return
+      functions are TODO-10's concern, not TODO-7's) but its two
+      `List::create` calls (`expand_continuation_ratio_data_cpp`,
+      `expand_adjacent_category_data_cpp`) were deliberately left alone: all
+      three fields they return (`y`, `w`, `strata`) are integer vectors
+      consumed downstream as strata/grouping keys, the same
+      `ResultValue`-has-no-integer-vector gap as `levels` above, and higher
+      risk since strata/grouping values are more likely to hit an
+      `Eigen::Map<VectorXi>`-typed consumer than a display-only ridit level.
+      No overlap with the active `y`/`dead` → `y`/`y_L`/`y_R` migration
+      elsewhere in the repo (checked: none of the four files reference
+      `dead`, `y_L`, or `y_R`). Verified: full recompile clean; runtime
+      smoke test of all four converted functions confirmed correct values
+      *and* correct R-side types (`levels`/`stat2`/`n_treat`/`n_control`
+      stayed integer, `params`/`scores`/`vcov` stayed double); existing
+      tests `test-rcpp-fitting-equivalence.R` (68 assertions),
+      `test-zinb-operator-workspace.R` (7), `test-rcpp-fitting-real-data.R`
+      (37), `test-zinb-std-lgamma.R` (3), and
+      `test-brt-smoothed-noise-mat-plumbing.R` (7) all pass with 0 failures
+      (run via `pkgload::load_all(compile = FALSE)` since compiling had
+      already produced a fresh `.so`). `test-rand-bootstrap.R` and
+      `test-bayesian-bootstrap.R` show pre-existing failures referencing
+      `y_L`/`y_R`/`deads` — these are from the user's concurrent in-progress
+      migration in unrelated files, not from this TODO-7 change (none of the
+      four files touched here are anywhere near bootstrap/design code).
 - [~] TODO-8: Phase 3 — migrate incidence/survival/proportion-family
       `List::create` files.
       Primary survival/proportion fitting functions done (`fast_weibull_regression.cpp`,

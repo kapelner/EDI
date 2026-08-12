@@ -182,6 +182,7 @@ capability_requires = list(
 	),
 	kk_passthrough = list(),
 	kk_compound = list(),
+	robust_sandwich = list(likelihood_tier = "quasi"),
 	kk_gee = list(likelihood_tier = "quasi"),
 	kk_glmm = list(likelihood_tier = c("partial", "full")),
 	off_optimum_likelihood_eval = list(
@@ -448,6 +449,51 @@ EDI_COMPONENT_SPECS = list(
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
 		declare_body_references_optional = TRUE
 	),
+	SimpleMeanDifference = list(
+		status = "active",
+		source_name = "SimpleMeanDifferenceSource",
+		file = "inference_all_mean_diff.R",
+		dependencies = character(),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "none",
+		declare_body_references_optional = TRUE
+	),
+	SimpleMeanDifferencePooledVar = list(
+		status = "active",
+		source_name = "SimpleMeanDifferencePooledVarSource",
+		file = "inference_all_simple_mean_diff_pooled_var.R",
+		dependencies = "SimpleMeanDifference",
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "none",
+		declare_body_references_optional = TRUE
+	),
+	KKMeanDifferenceIVWC = list(
+		status = "active",
+		source_name = "KKMeanDifferenceIVWCSource",
+		file = "inference_all_KK_mean_diff_IVWC.R",
+		dependencies = "KKCompound",
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "none",
+		declare_body_references_optional = TRUE
+	),
+	KKWilcoxIVWC = list(
+		status = "active",
+		source_name = "KKWilcoxIVWCSource",
+		file = "inference_all_KK_wilcox_ivwc.R",
+		dependencies = character(),
+		provides_capabilities = c("kk_passthrough", "kk_compound"),
+		allowed_likelihood_tiers = "none",
+		declare_body_references_optional = TRUE
+	),
+	SimpleWilcox = list(
+		status = "active",
+		source_name = "SimpleWilcoxSource",
+		file = "inference_all_simple_wilcox.R",
+		dependencies = character(),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "none",
+		declare_body_references_optional = TRUE
+	),
 	ExactTest = list(
 		status = "active",
 		source_name = "InferenceExact",
@@ -460,7 +506,7 @@ EDI_COMPONENT_SPECS = list(
 	),
 	ExactBinomialIncidence = list(
 		status = "active",
-		source_name = "InferenceIncidExactBinomial",
+		source_name = "ExactBinomialIncidenceSource",
 		file = "inference_incidence_exact_binomial.R",
 		dependencies = "ExactTest",
 		requires_capabilities = "exact_test",
@@ -470,7 +516,7 @@ EDI_COMPONENT_SPECS = list(
 	),
 	ExactFisherIncidence = list(
 		status = "active",
-		source_name = "InferenceIncidExactFisher",
+		source_name = "ExactFisherIncidenceSource",
 		file = "inference_indicidence_exact_fisher.R",
 		dependencies = "ExactTest",
 		requires_capabilities = "exact_test",
@@ -480,7 +526,7 @@ EDI_COMPONENT_SPECS = list(
 	),
 	ExactZhangIncidence = list(
 		status = "active",
-		source_name = "InferenceIncidenceExactZhang",
+		source_name = "ExactZhangIncidenceSource",
 		file = "inference_incidence_exact_zhang.R",
 		dependencies = "ExactTest",
 		requires_capabilities = "exact_test",
@@ -568,20 +614,154 @@ EDI_COMPONENT_SPECS = list(
 		allowed_likelihood_tiers = c("partial", "full"),
 		declare_body_references_optional = TRUE
 	),
-	StandardModelCache = list(
-		status = "active",
-		source_name = "InferenceAsympLikStdModCache",
-		file = "inference_all_abstract_asymp_lik_std_mod_cache.R",
-		dependencies = "LikelihoodTests",
-		provides_capabilities = "standard_model_cache",
+		StandardModelCache = list(
+			status = "active",
+			source_name = "StandardModelCacheSource",
+			file = "inference_all_abstract_asymp_lik_std_mod_cache.R",
+			dependencies = "LikelihoodTests",
+			provides_capabilities = "standard_model_cache",
 		allowed_likelihood_tiers = c("quasi", "partial", "full"),
 		declare_body_references_optional = TRUE
 	),
-	CountLikelihoodPlumbing = list(
+	CoxPartialLikelihood = list(
 		status = "active",
 		load_policy = "lazy",
-		source_name = "InferenceCountLikelihood",
-		file = "inference_all_abstract_count_likelihood.R",
+		source_name = "CoxPartialLikelihoodSource",
+		file = "inference_survival_coxph.R",
+		dependencies = "StandardModelCache",
+		provides_public_methods = character(),
+		provides_private_methods = c(
+			"fit_survival_coxph_kernel",
+			"fit_survival_coxph_fixed_kernel",
+			"cox_neg_loglik_breslow_r",
+			"cox_score_breslow_fd_r",
+			"cox_information_breslow_fd_r",
+			"cox_partial_likelihood_coefficients_extreme"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "partial",
+		declare_body_references_optional = TRUE
+	),
+	StratifiedCoxPartialLikelihood = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "StratifiedCoxPartialLikelihoodSource",
+		file = "inference_survival_strat_cox.R",
+		dependencies = "CoxPartialLikelihood",
+		provides_public_methods = character(),
+		provides_private_methods = c(
+			"cox_partial_likelihood_strata_info",
+			"cox_partial_likelihood_reduce_covariates",
+			"cox_partial_likelihood_informative_rows",
+			"cox_partial_likelihood_fit_with_formula",
+			"cox_partial_likelihood_fit_estimate_only_fast"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "partial",
+		declare_body_references_optional = TRUE
+	),
+	ConditionalLogitPartialLikelihood = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "ConditionalLogitPartialLikelihoodSource",
+		file = "inference_incidence_KK_cond_logit.R",
+		dependencies = character(),
+		provides_public_methods = character(),
+		provides_private_methods = c(
+			"conditional_logit_prepare_combined_design",
+			"conditional_logit_weighted_combined_estimate",
+			"conditional_logit_neg_loglik",
+			"conditional_logit_fit_matched_pairs",
+			"conditional_logit_fit_reservoir"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "partial",
+		declare_body_references_optional = TRUE
+	),
+	OrdinalConditionalLogitPartialLikelihood = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "OrdinalConditionalLogitPartialLikelihoodSource",
+		file = "inference_ordinal_KK_cond_logit_abstract.R",
+		dependencies = "ConditionalLogitPartialLikelihood",
+		provides_public_methods = character(),
+		provides_private_methods = c(
+			"ordinal_cond_clogit_compute_setup",
+			"ordinal_cond_clogit_assert_finite_se",
+			"ordinal_cond_clogit_shared_univ",
+			"ordinal_cond_clogit_shared_multi"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "partial",
+		declare_body_references_optional = TRUE
+	),
+	KKLWACoxIVWCPartialLikelihood = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "KKLWACoxIVWCPartialLikelihoodSource",
+		file = "inference_survival_KK_lwa_cox_ivwc_abstract.R",
+		dependencies = "Wald",
+		provides_public_methods = character(),
+		provides_private_methods = c(
+			"kk_lwa_cox_ivwc_shared",
+			"kk_lwa_cox_ivwc_assert_finite_se",
+			"kk_lwa_cox_design_candidates",
+			"kk_lwa_cox_fit_model",
+			"kk_lwa_cox_for_matched_pairs",
+			"kk_lwa_cox_for_reservoir"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "partial",
+		declare_body_references_optional = TRUE
+	),
+	KKLWACoxOneLikPartialLikelihood = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "KKLWACoxOneLikPartialLikelihoodSource",
+		file = "inference_survival_KK_lwa_cox_one_lik_abstract.R",
+		dependencies = "ParametricLikelihoodBootstrap",
+		provides_public_methods = character(),
+		provides_private_methods = c(
+			"kk_lwa_cox_one_lik_get_standard_error",
+			"kk_lwa_cox_one_lik_get_degrees_of_freedom",
+			"kk_lwa_cox_one_lik_assert_finite_se",
+			"kk_lwa_cox_one_lik_supports_likelihood_tests",
+			"kk_lwa_cox_one_lik_supports_lik_ratio_param_bootstrap",
+			"kk_lwa_cox_one_lik_simulate_under_lik_null",
+			"kk_lwa_cox_one_lik_get_likelihood_test_spec",
+			"kk_lwa_cox_one_lik_compute_treatment_estimate_during_randomization_inference",
+			"kk_lwa_cox_one_lik_design_matrix_candidates",
+			"kk_lwa_cox_one_lik_shared_combined_likelihood"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "partial",
+		declare_body_references_optional = TRUE
+	),
+	KKSurvivalRankRegression = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "KKSurvivalRankRegressionSource",
+		file = "inference_survival_KK_rank_regr_ivwc_abstract.R",
+		dependencies = "Wald",
+		provides_public_methods = character(),
+		provides_private_methods = c(
+			"kk_survival_rank_design_candidates",
+			"kk_survival_rank_extract_term_estimate",
+			"kk_survival_rank_extract_term_se",
+			"kk_survival_rank_shared",
+			"kk_survival_rank_assert_finite_se",
+			"kk_survival_rank_aftsrr_for_matched_pairs",
+			"kk_survival_rank_aftsrr_for_reservoir"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = c("none", "partial"),
+		declare_body_references_optional = TRUE
+	),
+			CountLikelihoodPlumbing = list(
+				status = "active",
+				load_policy = "lazy",
+				source_name = "CountLikelihoodPlumbingSource",
+			file = "inference_all_abstract_count_likelihood.R",
 		dependencies = "LikelihoodTests",
 		provides_public_methods = c(
 			"compute_estimate", "compute_asymp_confidence_interval",
@@ -607,14 +787,690 @@ EDI_COMPONENT_SPECS = list(
 			"count_likelihood_missing_ci", "is_a_count_likelihood"
 		),
 		provides_capabilities = "count_likelihood_plumbing",
-		allowed_likelihood_tiers = c("quasi", "full"),
-		declare_body_references_optional = TRUE
-	),
-	KKGEE = list(
-		status = "active",
-		source_name = "InferenceMixinKKGEEShared",
+			allowed_likelihood_tiers = c("quasi", "full"),
+			declare_body_references_optional = TRUE
+		),
+			CountCompositeLikelihood = list(
+				status = "active",
+				source_name = "CountCompositeLikelihoodSource",
+				file = "inference_count_composite_likelihood.R",
+				dependencies = character(),
+				provides_capabilities = "count_composite_likelihood",
+				allowed_likelihood_tiers = "quasi",
+				declare_body_references_optional = TRUE
+			),
+			ZeroAugmentedCountLikelihood = list(
+				status = "active",
+				load_policy = "lazy",
+				source_name = "ZeroAugmentedCountLikelihoodSource",
+				file = "inference_count_zero_augmented_poisson_abstract.R",
+				dependencies = "CountLikelihoodPlumbing",
+				provides_public_methods = c(
+					"initialize",
+					"compute_asymp_confidence_interval",
+					"compute_asymp_two_sided_pval",
+					"compute_estimate_with_bootstrap_weights",
+					"compute_jackknife_estimate",
+					"compute_jackknife_bias_estimate",
+					"compute_jackknife_std_error",
+					"compute_jackknife_wald_two_sided_pval",
+					"compute_jackknife_wald_confidence_interval",
+					"compute_bootstrap_two_sided_pval",
+					"compute_bootstrap_confidence_interval",
+					"compute_bayesian_bootstrap_two_sided_pval",
+					"compute_bayesian_bootstrap_confidence_interval"
+				),
+				provides_private_methods = c(
+					"is_a_count_zero_augmented_poisson",
+					"supports_reusable_bootstrap_worker",
+					"create_bootstrap_worker_state",
+					"load_bootstrap_sample_into_worker",
+					"compute_bootstrap_worker_estimate",
+					"record_zero_augmented_fit_summary",
+					"invalidate_likelihood_fit",
+					"get_standard_error",
+					"get_degrees_of_freedom",
+					"safe_zero_augmented_vcov_se",
+					"get_complexity_tier",
+					"build_component_matrix",
+					"build_component_frame",
+					"build_formula_from_matrix",
+					"zero_augmented_sandwich_se",
+					"hurdle_poisson_lambda_mle",
+					"hurdle_poisson_neg_loglik",
+					"fit_treatment_only_hurdle_poisson_closed_form",
+					"compute_treatment_estimate_during_randomization_inference",
+					"za_family",
+					"za_description",
+					"supports_likelihood_tests",
+					"get_likelihood_test_spec",
+					"predictors_df",
+					"fit_zero_augmented_model",
+					"generate_mod",
+					"assert_finite_se",
+					"supports_lik_ratio_param_bootstrap",
+					"supports_lik_ratio_param_bootstrap_confidence_interval",
+					"simulate_under_lik_null",
+					"cached_mod",
+					"za_X_cov_all",
+					"za_Xzi_cov_all",
+					"best_X_colnames",
+					"best_Xzi_colnames",
+					"use_rcpp",
+					"model_formula_zero"
+				),
+				provides_capabilities = character(),
+				allowed_likelihood_tiers = "full",
+				declare_body_references_optional = TRUE
+			),
+			OrdinalProportionalOddsLikelihood = list(
+				status = "active",
+				load_policy = "lazy",
+				source_name = "OrdinalProportionalOddsLikelihoodSource",
+				file = "inference_ordinal_proportional_odds.R",
+				dependencies = "StandardModelCache",
+				provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
+				provides_private_methods = c(
+					"get_complexity_tier",
+					"compute_treatment_estimate_during_randomization_inference",
+					"supports_reusable_bootstrap_worker",
+					"supports_lik_ratio_param_bootstrap",
+					"supports_likelihood_tests",
+					"simulate_under_lik_null",
+					"get_likelihood_test_spec",
+					"generate_mod",
+					"build_design_matrix",
+					"best_X_colnames"
+				),
+				provides_capabilities = character(),
+				allowed_likelihood_tiers = "full",
+				declare_body_references_optional = TRUE
+			),
+			OrdinalAdjacentCategoryLikelihood = list(
+				status = "active",
+				load_policy = "lazy",
+				source_name = "OrdinalAdjacentCategoryLikelihoodSource",
+				file = "inference_ordinal_adj_cat_logit.R",
+				dependencies = "StandardModelCache",
+				provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
+				provides_private_methods = c(
+					"supports_likelihood_tests",
+					"compute_treatment_estimate_during_randomization_inference",
+					"supports_reusable_bootstrap_worker",
+					"get_bootstrap_worker_spec",
+					"generate_mod",
+					"get_likelihood_test_spec",
+					"supports_lik_ratio_param_bootstrap",
+					"simulate_under_lik_null",
+					"build_design_matrix",
+					"best_Xmm_colnames"
+				),
+				provides_capabilities = character(),
+				allowed_likelihood_tiers = "full",
+				declare_body_references_optional = TRUE
+			),
+			OrdinalCloglogLikelihood = list(
+				status = "active",
+				load_policy = "lazy",
+				source_name = "OrdinalCloglogLikelihoodSource",
+				file = "inference_ordinal_cloglog.R",
+				dependencies = "StandardModelCache",
+				provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
+				provides_private_methods = c(
+					"compute_treatment_estimate_during_randomization_inference",
+					"supports_reusable_bootstrap_worker",
+					"supports_lik_ratio_param_bootstrap",
+					"supports_likelihood_tests",
+					"supports_fisher_information",
+					"simulate_under_lik_null",
+					"get_likelihood_test_spec",
+					"generate_mod",
+					"build_design_matrix",
+					"best_X_colnames"
+				),
+				provides_capabilities = character(),
+				allowed_likelihood_tiers = "full",
+				declare_body_references_optional = TRUE
+			),
+			OrdinalCauchitLikelihood = list(
+				status = "active",
+				load_policy = "lazy",
+				source_name = "OrdinalCauchitLikelihoodSource",
+				file = "inference_ordinal_cauchit.R",
+				dependencies = "StandardModelCache",
+				provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
+				provides_private_methods = c(
+					"compute_treatment_estimate_during_randomization_inference",
+					"supports_reusable_bootstrap_worker",
+					"supports_lik_ratio_param_bootstrap",
+					"supports_likelihood_tests",
+					"supports_fisher_information",
+					"simulate_under_lik_null",
+					"get_likelihood_test_spec",
+					"generate_mod",
+					"build_design_matrix",
+					"best_X_colnames"
+				),
+				provides_capabilities = character(),
+				allowed_likelihood_tiers = "full",
+				declare_body_references_optional = TRUE
+			),
+			OrdinalStereotypeLikelihood = list(
+				status = "active",
+				load_policy = "lazy",
+				source_name = "OrdinalStereotypeLikelihoodSource",
+				file = "inference_ordinal_stereotype_logit.R",
+				dependencies = "StandardModelCache",
+				provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
+				provides_private_methods = c(
+					"supports_likelihood_tests",
+					"get_complexity_tier",
+					"compute_treatment_estimate_during_randomization_inference",
+					"supports_reusable_bootstrap_worker",
+					"get_bootstrap_worker_spec",
+					"generate_mod",
+					"get_likelihood_test_spec",
+					"supports_lik_ratio_param_bootstrap",
+					"simulate_under_lik_null",
+					"build_design_matrix",
+					"best_Xmm_colnames"
+				),
+				provides_capabilities = character(),
+				allowed_likelihood_tiers = "full",
+				declare_body_references_optional = TRUE
+			),
+			OrdinalContinuationRatioLikelihood = list(
+				status = "active",
+				load_policy = "lazy",
+				source_name = "OrdinalContinuationRatioLikelihoodSource",
+				file = "inference_ordinal_stereotype_logit.R",
+				dependencies = "StandardModelCache",
+				provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
+				provides_private_methods = c(
+					"supports_likelihood_tests",
+					"get_complexity_tier",
+					"compute_treatment_estimate_during_randomization_inference",
+					"generate_mod",
+					"get_likelihood_test_spec",
+					"supports_lik_ratio_param_bootstrap",
+					"simulate_under_lik_null",
+					"build_design_matrix",
+					"best_Xmm_colnames"
+				),
+				provides_capabilities = character(),
+				allowed_likelihood_tiers = "full",
+				declare_body_references_optional = TRUE
+			),
+				OrdinalOrderedProbitLikelihood = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "OrdinalOrderedProbitLikelihoodSource",
+				file = "inference_ordinal_ordered_probit.R",
+				dependencies = "StandardModelCache",
+				provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
+				provides_private_methods = c(
+					"get_complexity_tier",
+					"compute_treatment_estimate_during_randomization_inference",
+					"supports_reusable_bootstrap_worker",
+					"supports_lik_ratio_param_bootstrap",
+					"supports_likelihood_tests",
+					"supports_fisher_information",
+					"simulate_under_lik_null",
+					"get_likelihood_test_spec",
+					"generate_mod",
+					"build_design_matrix",
+					"best_X_colnames"
+				),
+				provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				IncidenceLogisticLikelihood = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "IncidenceLogisticLikelihoodSource",
+					file = "inference_incidence_logit.R",
+					dependencies = "StandardModelCache",
+					provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
+					provides_private_methods = c(
+						"is_logistic_fit_reasonable",
+						"compute_treatment_estimate_during_randomization_inference",
+						"supports_reusable_bootstrap_worker",
+						"supports_lik_ratio_param_bootstrap",
+						"supports_likelihood_tests",
+						"supports_fisher_information",
+						"simulate_under_lik_null",
+						"get_likelihood_test_spec",
+						"generate_mod",
+						"build_design_matrix",
+						"get_complexity_tier",
+						"best_X_colnames",
+						"logit_X_full_cache",
+						"logit_w_cache",
+						"max_abs_reasonable_coef"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				IncidenceProbitLikelihood = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "IncidenceProbitLikelihoodSource",
+					file = "inference_incidence_probit.R",
+					dependencies = "StandardModelCache",
+					provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
+					provides_private_methods = c(
+						"is_probit_fit_reasonable",
+						"get_complexity_tier",
+						"compute_treatment_estimate_during_randomization_inference",
+						"supports_reusable_bootstrap_worker",
+						"supports_lik_ratio_param_bootstrap",
+						"supports_likelihood_tests",
+						"supports_fisher_information",
+						"simulate_under_lik_null",
+						"get_likelihood_test_spec",
+						"generate_mod",
+						"build_design_matrix",
+						"best_X_colnames",
+						"max_abs_reasonable_coef"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				IncidenceLogBinomialLikelihood = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "IncidenceLogBinomialLikelihoodSource",
+					file = "inference_incidence_log_binomial.R",
+					dependencies = "StandardModelCache",
+					provides_public_methods = c(
+						"initialize",
+						"compute_estimate_with_bootstrap_weights",
+						"compute_score_confidence_interval",
+						"compute_gradient_confidence_interval"
+					),
+					provides_private_methods = c(
+						"is_log_binomial_fit_reasonable",
+						"get_complexity_tier",
+						"compute_treatment_estimate_during_randomization_inference",
+						"supports_reusable_bootstrap_worker",
+						"supports_lik_ratio_param_bootstrap",
+						"supports_likelihood_tests",
+						"compute_gradient_confidence_interval_impl",
+						"simulate_under_lik_null",
+						"get_likelihood_test_spec",
+						"generate_mod",
+						"build_design_matrix",
+						"best_X_colnames",
+						"logbin_X_full_cache",
+						"logbin_w_cache",
+						"max_abs_reasonable_coef"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				IncidenceModifiedPoissonLikelihood = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "IncidenceModifiedPoissonLikelihoodSource",
+					file = "inference_incidence_modified_poisson.R",
+					dependencies = "StandardModelCache",
+					provides_public_methods = c(
+						"initialize",
+						"compute_estimate",
+						"compute_asymp_confidence_interval",
+						"compute_asymp_two_sided_pval",
+						"compute_estimate_with_bootstrap_weights"
+					),
+					provides_private_methods = c(
+						"build_design_matrix",
+						"compute_treatment_estimate_during_randomization_inference",
+						"supports_reusable_bootstrap_worker",
+						"supports_lik_ratio_param_bootstrap",
+						"supports_likelihood_tests",
+						"get_supported_testing_types_impl",
+						"is_modified_poisson_fit_reasonable",
+						"simulate_under_lik_null",
+						"get_likelihood_test_spec",
+						"generate_mod",
+						"best_X_colnames",
+						"cached_mod",
+						"max_abs_reasonable_coef",
+						"max_abs_reasonable_linear_predictor"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				IncidenceBinomialIdentityLikelihood = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "IncidenceBinomialIdentityLikelihoodSource",
+					file = "inference_incidence_binomial_identity.R",
+					dependencies = "StandardModelCache",
+					provides_public_methods = c(
+						"initialize",
+						"compute_estimate_with_bootstrap_weights",
+						"compute_lik_ratio_confidence_interval"
+					),
+					provides_private_methods = c(
+						"build_design_matrix",
+						"is_identity_binomial_fit_reasonable",
+						"compute_treatment_estimate_during_randomization_inference",
+						"supports_reusable_bootstrap_worker",
+						"supports_likelihood_tests",
+						"get_supported_testing_types_impl",
+						"supports_lik_ratio_param_bootstrap",
+						"simulate_under_lik_null",
+						"get_likelihood_test_spec",
+						"generate_mod",
+						"best_X_colnames"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				IncidenceGComputation = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "IncidenceGComputationSource",
+					file = "inference_incidence_gcomp_abstract.R",
+					dependencies = character(),
+					provides_public_methods = c(
+						"initialize",
+						"approximate_bootstrap_distribution_beta_hat_T",
+						"compute_estimate",
+						"get_standard_error",
+						"compute_estimate_with_bootstrap_weights",
+						"compute_asymp_confidence_interval",
+						"compute_asymp_two_sided_pval",
+						"compute_wald_two_sided_pval",
+						"compute_wald_confidence_interval",
+						"compute_bootstrap_confidence_interval",
+						"compute_bootstrap_two_sided_pval",
+						"compute_bayesian_bootstrap_two_sided_pval",
+						"compute_bayesian_bootstrap_confidence_interval",
+						"compute_jackknife_wald_two_sided_pval",
+						"compute_jackknife_wald_confidence_interval"
+					),
+					provides_private_methods = c(
+						"is_a_incid_gcomp",
+						"compute_treatment_estimate_during_randomization_inference",
+						"build_design_matrix",
+						"get_estimand_type",
+						"get_covariate_names",
+						"default_null_value",
+						"compute_rr_bootstrap_basic_confidence_interval",
+						"compute_rr_bayesian_bootstrap_log_confidence_interval",
+						"compute_rr_jackknife_log_se",
+						"compute_rr_jackknife_wald_two_sided_pval",
+						"compute_rr_jackknife_wald_confidence_interval",
+						"set_failed_fit_cache",
+						"effects_are_usable",
+						"weighted_gcomp_fit",
+						"weighted_gcomp_effects_from_row_weights",
+						"coefficients_are_usable",
+						"fit_logistic_with_sandwich",
+						"compute_standardized_effects_r",
+						"compute_standardized_effects",
+						"get_effect_estimate",
+						"compute_effect_confidence_interval",
+						"compute_effect_pvalue",
+						"shared",
+						"best_X_colnames",
+						"gcomp_boot_beta",
+						"prob_clip_eps",
+						"max_abs_reasonable_coef"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "none",
+					declare_body_references_optional = TRUE
+				),
+				IncidenceGComputationRiskDiff = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "IncidenceGComputationRiskDiffSource",
+					file = "inference_incidence_gcomp.R",
+					dependencies = "IncidenceGComputation",
+					provides_public_methods = character(),
+					provides_private_methods = c("build_design_matrix", "get_estimand_type"),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "none",
+					declare_body_references_optional = TRUE
+				),
+				IncidenceGComputationRiskRatio = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "IncidenceGComputationRiskRatioSource",
+					file = "inference_incidence_gcomp.R",
+					dependencies = "IncidenceGComputation",
+					provides_public_methods = character(),
+					provides_private_methods = c("build_design_matrix", "get_estimand_type"),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "none",
+					declare_body_references_optional = TRUE
+				),
+				SurvivalWeibullLikelihood = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "SurvivalWeibullLikelihoodSource",
+					file = "inference_survival_weibull.R",
+					dependencies = "StandardModelCache",
+					provides_public_methods = c(
+						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
+					),
+					provides_private_methods = c(
+						"get_complexity_tier", "compute_treatment_estimate_during_randomization_inference",
+						"supports_reusable_bootstrap_worker", "supports_lik_ratio_param_bootstrap",
+						"supports_likelihood_tests", "simulate_under_lik_null", "get_likelihood_test_spec",
+						"generate_mod", "build_design_matrix", "best_X_colnames"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				SurvivalDepCensTransform = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "SurvivalDepCensTransformSource",
+					file = "inference_survival_dep_cens_transform.R",
+					dependencies = character(),
+					provides_public_methods = c(
+						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+						"compute_jackknife_estimate", "compute_jackknife_bias_estimate",
+						"compute_jackknife_std_error", "compute_jackknife_wald_two_sided_pval",
+						"compute_jackknife_wald_confidence_interval", "compute_rand_two_sided_pval",
+						"compute_rand_confidence_interval", "compute_bootstrap_confidence_interval",
+						"compute_bootstrap_confidence_interval_basic", "compute_bootstrap_confidence_interval_bca",
+						"compute_bootstrap_confidence_interval_studentized",
+						"approximate_randomization_distribution_beta_hat_T",
+						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+						"compute_score_two_sided_pval", "compute_lik_ratio_confidence_interval"
+					),
+					provides_private_methods = c(
+						"dep_cens_percentile_bootstrap_ci", "dep_cens_ci_excludes_zero",
+						"dep_cens_ci_too_wide", "dep_cens_validate_bootstrap_ci",
+						"compute_treatment_estimate_during_randomization_inference",
+						"supports_reusable_bootstrap_worker", "supports_likelihood_tests",
+						"get_likelihood_test_spec", "generate_mod", "supports_lik_ratio_param_bootstrap",
+						"simulate_under_lik_null", "build_design_matrix", "dep_cens_bootstrap_ci_max_abs",
+						"best_X_colnames"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "none",
+					declare_body_references_optional = TRUE
+				),
+				SurvivalKKWeibullMarginal = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "SurvivalKKWeibullMarginalSource",
+					file = "inference_survival_KK_weibull_marginal.R",
+					dependencies = character(),
+					provides_public_methods = c(
+						"approximate_bootstrap_distribution_beta_hat_T", "compute_estimate_with_bootstrap_weights",
+						"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+						"compute_asymp_two_sided_pval", "duplicate"
+					),
+					provides_private_methods = c(
+						"is_a_kk_passthrough_design", "compute_basic_match_data", "supports_information_preference",
+						"supports_observed_information", "get_supported_testing_types_impl",
+						"get_supported_information_preferences_impl", "use_reusable_kk_bootstrap_worker",
+						"init_kk_passthrough", "create_kk_bootstrap_context", "create_kk_bootstrap_worker_state",
+						"load_kk_bootstrap_sample_into_worker", "clear_kk_bootstrap_worker_design_caches",
+						"compute_kk_bootstrap_worker_estimate", "compute_kk_bootstrap_debug_with_reused_worker",
+						"compute_kk_bootstrap_distribution_with_reused_workers", "compute_basic_kk_match_data_impl",
+						"supports_likelihood_tests", "get_cluster_ids", "fit_weibull_marginal_cpp",
+						"fit_weibull_marginal_survreg", "shared", "assert_finite_se", "get_standard_error",
+						"get_degrees_of_freedom", "compute_treatment_estimate_during_randomization_inference",
+						"compute_fast_rand_bootstrap_distr", "m", "kk_passthrough", "y_temp", "dead", "w",
+						"X", "any_censoring", "best_par", "optimization_alg", "best_Xmm_colnames",
+						"max_abs_reasonable_coef"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				SurvivalKKClaytonCopulaIVWC = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "SurvivalKKClaytonCopulaIVWCSource",
+					file = "inference_survival_KK_clayton_copula.R",
+					dependencies = character(),
+					provides_public_methods = c(
+						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+						"approximate_bootstrap_distribution_beta_hat_T", "duplicate"
+					),
+					provides_private_methods = c(
+						"compute_basic_match_data", "compute_treatment_estimate_during_randomization_inference",
+						"assert_finite_se", "filtered_covariate_candidates", "design_matrix_candidates",
+						"shared", "clayton_copula_for_matched_pairs", "weibull_for_reservoir",
+						"optimization_alg", "best_par", "best_X_colnames", "cached_mod",
+						"best_X_colnames_matched", "best_X_colnames_reservoir",
+						"cached_vc_params_matched", "cached_vc_params_reservoir", "max_abs_reasonable_coef"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				SurvivalKKClaytonCopulaOneLik = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "SurvivalKKClaytonCopulaOneLikSource",
+					file = "inference_survival_KK_clayton_copula.R",
+					dependencies = character(),
+					provides_public_methods = c(
+						"approximate_bootstrap_distribution_beta_hat_T", "compute_estimate_with_bootstrap_weights",
+						"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+						"compute_asymp_two_sided_pval", "duplicate"
+					),
+					provides_private_methods = c(
+						"is_a_kk_passthrough_design", "compute_basic_match_data", "supports_information_preference",
+						"supports_observed_information", "get_supported_testing_types_impl",
+						"get_supported_information_preferences_impl", "use_reusable_kk_bootstrap_worker",
+						"init_kk_passthrough", "create_kk_bootstrap_context", "create_kk_bootstrap_worker_state",
+						"load_kk_bootstrap_sample_into_worker", "clear_kk_bootstrap_worker_design_caches",
+						"compute_kk_bootstrap_worker_estimate", "compute_kk_bootstrap_debug_with_reused_worker",
+						"compute_kk_bootstrap_distribution_with_reused_workers", "compute_basic_kk_match_data_impl",
+						"compute_treatment_estimate_during_randomization_inference", "get_standard_error",
+						"get_degrees_of_freedom", "assert_finite_se", "supports_likelihood_tests",
+						"get_likelihood_test_spec", "filtered_covariate_candidates", "shared",
+						"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null", "m",
+						"kk_passthrough", "y_temp", "dead", "w", "X", "any_censoring",
+						"optimization_alg", "best_Xmm_colnames", "max_abs_reasonable_coef"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				SurvivalKKWeibullFrailtyIVWC = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "SurvivalKKWeibullFrailtyIVWCSource",
+					file = "inference_survival_KK_weibull_frailty.R",
+					dependencies = character(),
+					provides_public_methods = c(
+						"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+						"compute_asymp_two_sided_pval", "approximate_bootstrap_distribution_beta_hat_T",
+						"duplicate"
+					),
+					provides_private_methods = c(
+						"is_a_kk_weibull_frailty_ivwc", "compute_basic_match_data",
+						"supports_lik_ratio_param_bootstrap",
+						"compute_treatment_estimate_during_randomization_inference",
+						"frailty_for_matched_pairs", "weibull_for_reservoir", "shared",
+						"assert_finite_se", "optimization_alg", "best_par", "best_X_colnames",
+						"any_censoring", "m", "cached_mod", "best_X_colnames_matched",
+						"best_X_colnames_reservoir", "max_abs_reasonable_coef",
+						"cached_vc_params_matched", "cached_vc_params_reservoir"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				SurvivalKKWeibullFrailtyIVWCLeaf = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "SurvivalKKWeibullFrailtyIVWCLeafSource",
+					file = "inference_survival_KK_weibull_frailty.R",
+					dependencies = character(),
+					provides_public_methods = "initialize",
+					provides_private_methods = character(),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				SurvivalKKWeibullFrailtyOneLik = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "SurvivalKKWeibullFrailtyOneLikSource",
+					file = "inference_survival_KK_weibull_frailty.R",
+					dependencies = character(),
+					provides_public_methods = c(
+						"approximate_bootstrap_distribution_beta_hat_T", "compute_estimate_with_bootstrap_weights",
+						"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+						"compute_asymp_two_sided_pval"
+					),
+					provides_private_methods = c(
+						"is_a_kk_passthrough_design", "compute_basic_match_data", "supports_information_preference",
+						"supports_observed_information", "get_supported_testing_types_impl",
+						"get_supported_information_preferences_impl", "use_reusable_kk_bootstrap_worker",
+						"init_kk_passthrough", "create_kk_bootstrap_context", "create_kk_bootstrap_worker_state",
+						"load_kk_bootstrap_sample_into_worker", "clear_kk_bootstrap_worker_design_caches",
+						"compute_kk_bootstrap_worker_estimate", "compute_kk_bootstrap_debug_with_reused_worker",
+						"compute_kk_bootstrap_distribution_with_reused_workers", "compute_basic_kk_match_data_impl",
+						"is_a_kk_weibull_frailty_one_lik", "shared_combined_likelihood",
+						"supports_likelihood_tests", "get_likelihood_test_spec", "get_standard_error",
+						"get_degrees_of_freedom", "assert_finite_se", "supports_lik_ratio_param_bootstrap",
+						"simulate_under_lik_null", "compute_treatment_estimate_during_randomization_inference",
+						"m", "kk_passthrough", "y_temp", "dead", "w", "X", "optimization_alg",
+						"best_Xmm_colnames", "use_rcpp", "max_abs_reasonable_coef"
+					),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				SurvivalKKWeibullFrailtyOneLikLeaf = list(
+					status = "active",
+					load_policy = "lazy",
+					source_name = "SurvivalKKWeibullFrailtyOneLikLeafSource",
+					file = "inference_survival_KK_weibull_frailty.R",
+					dependencies = character(),
+					provides_public_methods = "initialize",
+					provides_private_methods = character(),
+					provides_capabilities = character(),
+					allowed_likelihood_tiers = "full",
+					declare_body_references_optional = TRUE
+				),
+				KKGEE = list(
+					status = "active",
+					source_name = "InferenceMixinKKGEEShared",
 		file = "inference_mixin_kk_gee_shared.R",
-		dependencies = character(),
+		dependencies = c("BayesianBootstrap", "Wald"),
 		owns_state = c("m", "use_rcpp", "max_abs_reasonable_coef", "kk_gee_engine"),
 		requires_state = c("any_censoring", "cached_values", "harden", "n", "y"),
 		requires_public_methods = character(),
@@ -634,6 +1490,15 @@ EDI_COMPONENT_SPECS = list(
 		provides_capabilities = c("kk_gee", "wald"),
 		allowed_likelihood_tiers = c("quasi"),
 		conflicts = character()
+	),
+	RobustSandwich = list(
+		status = "active",
+		source_name = "RobustSandwichSource",
+		file = "robust_sandwich_helpers.R",
+		dependencies = character(),
+		provides_capabilities = "robust_sandwich",
+		allowed_likelihood_tiers = "quasi",
+		declare_body_references_optional = TRUE
 	),
 	KKGLMM = list(
 		status = "active",
@@ -1086,7 +1951,10 @@ load_inference_component = function(component_name, class_name = "<global>", ns 
 
 install_lazy_inference_component = function(self, private, class_name, component_name) {
 	loaded_marker_name = ".__loaded_lazy_components"
-	loaded = get0(loaded_marker_name, envir = private, inherits = FALSE, ifnotfound = character())
+	loaded = unique(c(
+		get0(loaded_marker_name, envir = private, inherits = FALSE, ifnotfound = character()),
+		attr(private, loaded_marker_name, exact = TRUE) %||% character()
+	))
 	if (component_name %in% loaded) {
 		return(invisible(get_lazy_component_dispatch(component_name, class_name)))
 	}
@@ -1094,6 +1962,16 @@ install_lazy_inference_component = function(self, private, class_name, component
 	method_env = parent.frame()
 	assign_method = function(env, name, value) {
 		if (is.function(value)) environment(value) = method_env
+		if (exists(name, envir = env, inherits = FALSE)) {
+			current = get(name, envir = env, inherits = FALSE)
+			if (!is.function(value) && !is.null(current)) {
+				return(invisible(current))
+			}
+			if (is.function(current) &&
+					!identical(attr(current, "inference_lazy_component_stub", exact = TRUE), component_name)) {
+				return(invisible(current))
+			}
+		}
 		was_locked = exists(name, envir = env, inherits = FALSE) && bindingIsLocked(name, env)
 		if (isTRUE(was_locked)) unlockBinding(name, env)
 		env[[name]] = value
@@ -1106,7 +1984,12 @@ install_lazy_inference_component = function(self, private, class_name, component
 	for (name in names(dispatch$public) %||% character()) {
 		assign_method(self, name, dispatch$public[[name]])
 	}
-	assign_method(private, loaded_marker_name, unique(c(loaded, component_name)))
+	loaded = unique(c(loaded, component_name))
+	if (exists(loaded_marker_name, envir = private, inherits = FALSE) || !environmentIsLocked(private)) {
+		assign_method(private, loaded_marker_name, loaded)
+	} else {
+		attr(private, loaded_marker_name) = loaded
+	}
 	invisible(dispatch)
 }
 
@@ -1116,6 +1999,7 @@ lazy_component_public_stub = function(component_name, method_name) {
 		install_lazy_inference_component(self, private, class(self)[1L], .component_name)
 		self[[.method_name]](...)
 	}, list(.component_name = component_name, .method_name = method_name))
+	attr(fn, "inference_lazy_component_stub") = component_name
 	fn
 }
 
@@ -1125,6 +2009,7 @@ lazy_component_private_stub = function(component_name, method_name) {
 		install_lazy_inference_component(self, private, class(self)[1L], .component_name)
 		private[[.method_name]](...)
 	}, list(.component_name = component_name, .method_name = method_name))
+	attr(fn, "inference_lazy_component_stub") = component_name
 	fn
 }
 
@@ -1411,17 +2296,6 @@ resolve_component_dependencies = function(component_names, satisfied_components 
 		visit(component_name)
 	}
 
-	duplicated_dependencies = sort(unique(expanded_dependencies[
-		duplicated(expanded_dependencies) &
-			!(expanded_dependencies %in% satisfied_components)
-	]))
-	if (length(duplicated_dependencies) > 0L) {
-		stop(sprintf(
-			"Component dependency graph duplicates transitive component(s): %s",
-			paste(duplicated_dependencies, collapse = ", ")
-		), call. = FALSE)
-	}
-
 	resolved
 }
 
@@ -1530,12 +2404,12 @@ assemble_private = function(target_name, component_names = character(), private 
 
 r6_inherited_public_names = function(inherit) {
 	if (is.null(inherit)) return(character())
-	names(inherit$public_methods) %||% character()
+	unique(c(names(inherit$public_methods) %||% character(), names(inherit$active) %||% character()))
 }
 
 r6_inherited_private_names = function(inherit) {
 	if (is.null(inherit)) return(character())
-	names(inherit$private_methods) %||% character()
+	unique(c(names(inherit$private_methods) %||% character(), names(inherit$private_fields) %||% character()))
 }
 
 validate_inference_class_definition = function(
@@ -1544,6 +2418,7 @@ validate_inference_class_definition = function(
 	component_names = character(),
 	public = list(),
 	private = list(),
+	active = NULL,
 	metadata = list(),
 	overrides = list(),
 	public_methods_for_capability = NULL,
@@ -1566,7 +2441,7 @@ validate_inference_class_definition = function(
 		as.character(unlist(lapply(components, `[[`, "provides_capabilities"), use.names = FALSE)),
 		metadata$capabilities %||% character()
 	))
-	public_names = unique(c(r6_inherited_public_names(inherit), names(public) %||% character()))
+	public_names = unique(c(r6_inherited_public_names(inherit), names(public) %||% character(), names(active) %||% character()))
 	private_names = unique(c(r6_inherited_private_names(inherit), names(private) %||% character()))
 
 	public_private_overlap = intersect(public_names, private_names)
@@ -1729,6 +2604,7 @@ define_inference_class = function(
 		component_names = component_names,
 		public = assembled_public,
 		private = assembled_private,
+		active = active,
 		metadata = metadata,
 		overrides = overrides,
 		public_methods_for_capability = public_methods_for_capability,

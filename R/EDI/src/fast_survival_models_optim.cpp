@@ -468,98 +468,86 @@ public:
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-SEXP get_clayton_weibull_aft_score_cpp(
-    SEXP X_sexp,
-    SEXP y_sexp,
-    SEXP dead_sexp,
-    SEXP pair_idx_sexp,
-    SEXP singleton_rows_sexp,
-    SEXP params_sexp
-) {
-    NumericMatrix X_mat(X_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-    NumericVector y_vec(y_sexp);
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    NumericVector dead_vec(dead_sexp);
-    Eigen::Map<const Eigen::VectorXd> dead(dead_vec.begin(), dead_vec.size());
-    IntegerMatrix pair_idx_mat(pair_idx_sexp);
-    Eigen::Map<const Eigen::MatrixXi> pair_idx(pair_idx_mat.begin(), pair_idx_mat.nrow(), pair_idx_mat.ncol());
-    IntegerVector singleton_rows_vec(singleton_rows_sexp);
-    Eigen::Map<const Eigen::VectorXi> singleton_rows(singleton_rows_vec.begin(), singleton_rows_vec.size());
-    NumericVector params_vec(params_sexp);
-    Eigen::Map<const Eigen::VectorXd> params(params_vec.begin(), params_vec.size());
+SEXP get_clayton_weibull_aft_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::MatrixXi>& pair_idx, const Eigen::Map<Eigen::VectorXi>& singleton_rows, const Eigen::Map<Eigen::VectorXd>& params) {
+	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-    ClaytonWeibullLikelihood fun(y, dead, X, pair_idx, singleton_rows);
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    ClaytonWeibullLikelihood fun(y_vec_coerced, dead_vec_coerced, X, pair_idx, singleton_rows);
     Eigen::VectorXd grad(params.size());
     fun(params, grad);
     return wrap(-grad);
 }
 
 // [[Rcpp::export]]
-SEXP get_clayton_weibull_aft_hessian_cpp(
-    SEXP X_sexp,
-    SEXP y_sexp,
-    SEXP dead_sexp,
-    SEXP pair_idx_sexp,
-    SEXP singleton_rows_sexp,
-    SEXP params_sexp
-) {
-    NumericMatrix X_mat(X_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-    NumericVector y_vec(y_sexp);
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    NumericVector dead_vec(dead_sexp);
-    Eigen::Map<const Eigen::VectorXd> dead(dead_vec.begin(), dead_vec.size());
-    IntegerMatrix pair_idx_mat(pair_idx_sexp);
-    Eigen::Map<const Eigen::MatrixXi> pair_idx(pair_idx_mat.begin(), pair_idx_mat.nrow(), pair_idx_mat.ncol());
-    IntegerVector singleton_rows_vec(singleton_rows_sexp);
-    Eigen::Map<const Eigen::VectorXi> singleton_rows(singleton_rows_vec.begin(), singleton_rows_vec.size());
-    NumericVector params_vec(params_sexp);
-    Eigen::Map<const Eigen::VectorXd> params(params_vec.begin(), params_vec.size());
+SEXP get_clayton_weibull_aft_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::MatrixXi>& pair_idx, const Eigen::Map<Eigen::VectorXi>& singleton_rows, const Eigen::Map<Eigen::VectorXd>& params) {
+	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-    ClaytonWeibullLikelihood fun(y, dead, X, pair_idx, singleton_rows);
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    ClaytonWeibullLikelihood fun(y_vec_coerced, dead_vec_coerced, X, pair_idx, singleton_rows);
     return wrap(-fun.hessian(params));
 }
 
 // [[Rcpp::export]]
-SEXP get_dep_cens_transform_score_cpp(
-    SEXP X_sexp,
-    SEXP y_sexp,
-    SEXP dead_sexp,
-    SEXP params_sexp
-) {
-    NumericMatrix X_mat(X_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-    NumericVector y_vec(y_sexp);
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    NumericVector dead_vec(dead_sexp);
-    Eigen::Map<const Eigen::VectorXd> dead(dead_vec.begin(), dead_vec.size());
-    NumericVector params_vec(params_sexp);
-    Eigen::Map<const Eigen::VectorXd> params(params_vec.begin(), params_vec.size());
+SEXP get_dep_cens_transform_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::VectorXd>& params) {
+	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-    DepCensTransformLikelihood fun(y, dead, X);
+
+    
+
+    
+
+    
+
+    
+
+    DepCensTransformLikelihood fun(y_vec_coerced, dead_vec_coerced, X);
     Eigen::VectorXd grad(params.size());
     fun(params, grad);
     return wrap(-grad);
 }
 
 // [[Rcpp::export]]
-SEXP get_dep_cens_transform_hessian_cpp(
-    SEXP X_sexp,
-    SEXP y_sexp,
-    SEXP dead_sexp,
-    SEXP params_sexp
-) {
-    NumericMatrix X_mat(X_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-    NumericVector y_vec(y_sexp);
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    NumericVector dead_vec(dead_sexp);
-    Eigen::Map<const Eigen::VectorXd> dead(dead_vec.begin(), dead_vec.size());
-    NumericVector params_vec(params_sexp);
-    Eigen::Map<const Eigen::VectorXd> params(params_vec.begin(), params_vec.size());
+SEXP get_dep_cens_transform_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::VectorXd>& params) {
+	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-    DepCensTransformLikelihood fun(y, dead, X);
+
+    
+
+    
+
+    
+
+    
+
+    DepCensTransformLikelihood fun(y_vec_coerced, dead_vec_coerced, X);
     Eigen::MatrixXd H = -fun.hessian(params);
     Eigen::MatrixXd Hsym = (0.5 * (H + H.transpose())).eval();
     return wrap(Hsym);
@@ -746,36 +734,25 @@ edi::ResultMap fast_dep_cens_transform_optim_internal(
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-List fast_clayton_weibull_aft_optim_cpp(
-    SEXP X_sexp,
-    SEXP y_sexp,
-    SEXP dead_sexp,
-    SEXP pair_idx_sexp,
-    SEXP singleton_rows_sexp,
-    SEXP warm_start_params_sexp,
-    bool estimate_only = false,
-    int maxit = 2000,
-    double reltol = 1e-9,
-    Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-    Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-    std::string optimization_alg = "lbfgs",
-    Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue
-) {
-    NumericMatrix X_mat(X_sexp);
-    NumericVector y_vec(y_sexp);
-    NumericVector dead_vec(dead_sexp);
-    IntegerMatrix pair_idx_int_mat(pair_idx_sexp);
-    IntegerVector singleton_rows_int_vec(singleton_rows_sexp);
-    NumericVector warm_start_params_vec(warm_start_params_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    Eigen::Map<const Eigen::VectorXd> dead(dead_vec.begin(), dead_vec.size());
-    Eigen::Map<const Eigen::MatrixXi> pair_idx(pair_idx_int_mat.begin(), pair_idx_int_mat.nrow(), pair_idx_int_mat.ncol());
-    Eigen::Map<const Eigen::VectorXi> singleton_rows(singleton_rows_int_vec.begin(), singleton_rows_int_vec.size());
-    Eigen::Map<const Eigen::VectorXd> warm_start_params(warm_start_params_vec.begin(), warm_start_params_vec.size());
+List fast_clayton_weibull_aft_optim_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::MatrixXi>& pair_idx, const Eigen::Map<Eigen::VectorXi>& singleton_rows, const Eigen::Map<Eigen::VectorXd>& warm_start_params, bool estimate_only = false, int maxit = 2000, double reltol = 1e-9, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
+	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     edi::ResultMap out = fast_clayton_weibull_aft_optim_internal(
-        X, y, dead, pair_idx, singleton_rows, warm_start_params,
+        X, y_vec_coerced, dead_vec_coerced, pair_idx, singleton_rows, warm_start_params,
         estimate_only, maxit, reltol,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values),
@@ -785,29 +762,19 @@ List fast_clayton_weibull_aft_optim_cpp(
 }
 
 // [[Rcpp::export]]
-List fast_dep_cens_transform_optim_cpp(
-    SEXP X_sexp,
-    SEXP y_sexp,
-    SEXP dead_sexp,
-    Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue,
-    bool smart_cold_start = true,
-    bool estimate_only = false,
-    int maxit = 2000,
-    double reltol = 1e-9,
-    Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-    Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-    std::string optimization_alg = "lbfgs",
-    Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue
-) {
-    NumericMatrix X_mat(X_sexp);
-    NumericVector y_vec(y_sexp);
-    NumericVector dead_vec(dead_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    Eigen::Map<const Eigen::VectorXd> dead(dead_vec.begin(), dead_vec.size());
+List fast_dep_cens_transform_optim_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = true, bool estimate_only = false, int maxit = 2000, double reltol = 1e-9, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
+	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+    
+
+    
+
+    
 
     edi::ResultMap out = fast_dep_cens_transform_optim_internal(
-        X, y, dead,
+        X, y_vec_coerced, dead_vec_coerced,
         nullable_to_optional<Eigen::VectorXd>(warm_start_params),
         smart_cold_start, estimate_only, maxit, reltol,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),

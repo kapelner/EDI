@@ -28,7 +28,7 @@ inline bool candidate_less(const CandidateColumn& a, const CandidateColumn& b) {
 //' support automatic stratified Cox models when the design object stores observed
 //' covariates but no explicit stratum variable.
 //'
-//' @param X_sexp Numeric covariate matrix.
+//' @param X Numeric covariate matrix.
 //' @param max_unique_per_col Maximum number of unique values allowed for a column
 //'   to be considered a stratification candidate.
 //' @param max_strata_cols Maximum number of candidate columns to combine.
@@ -36,12 +36,12 @@ inline bool candidate_less(const CandidateColumn& a, const CandidateColumn& b) {
 //'   candidate column.
 //' @return A list with `strata_id`, `selected_cols`, and `num_strata`.
 // [[Rcpp::export]]
-List compute_survival_strata_ids_cpp(SEXP X_sexp,
-                                     int max_unique_per_col = 4,
-                                     int max_strata_cols = 4,
-                                     int min_count_per_level = 2) {
-  Rcpp::NumericMatrix X_r(X_sexp);
-  Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
+List compute_survival_strata_ids_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
+		int max_unique_per_col = 4,
+		int max_strata_cols = 4,
+		int min_count_per_level = 2) {
+
+  
   const int n = X.rows();
   const int p = X.cols();
   IntegerVector default_ids(n, 1);

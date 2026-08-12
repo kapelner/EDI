@@ -477,33 +477,18 @@ edi::ResultMap fast_gaussian_lmm_internal(
 
 #ifndef EDI_CORE_ONLY
 // ── R-exported: fit Gaussian LMM ─────────────────────────────────────────────
+// X_r: n x p, intercept in col 0, treatment in col 1
+// group_id_r: 1-based group IDs (length n)
+// weights: per-obs case weights (NULL = uniform)
 // [[Rcpp::export]]
-List fast_gaussian_lmm_cpp(
-    SEXP X_r,       // n × p, intercept in col 0, treatment in col 1
-    SEXP y_r,
-    SEXP group_id_r, // 1-based group IDs (length n)
-    Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue,
-    Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
-    bool  estimate_only = false,
-    int   maxit  = 300,
-    double eps_g = 1e-6,
-    Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-    Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-    std::string optimization_alg = "lbfgs",
-    Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
-    Rcpp::Nullable<Rcpp::NumericVector> weights = R_NilValue  // per-obs case weights (NULL = uniform)
-) {
-    NumericMatrix X_mat(X_r);
-    NumericVector y_vec(y_r);
-    IntegerVector group_id_int(group_id_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
+List fast_gaussian_lmm_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue, bool  estimate_only = false, int   maxit  = 300, double eps_g = 1e-6, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> weights = R_NilValue) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 
-    const int p = (int)X.cols();
+
+    const int p = (int)X_r.cols();
 
     edi::ResultMap res = fast_gaussian_lmm_internal(
-        X, y, group_id,
+        X_r, y_r_vec_coerced, group_id_r,
         nullable_to_optional<Eigen::VectorXd>(warm_start_params),
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         estimate_only, maxit, eps_g,
@@ -542,25 +527,15 @@ List fast_gaussian_lmm_cpp(
 // where a_g = v_e + m_g*v_b,  c_g = v_b/(v_e*a_g),
 //       sx_g = X_g'1_m,  sy_g = 1_m'y_g.
 // [[Rcpp::export]]
-Rcpp::NumericVector fast_gaussian_lmm_gls_cpp(
-    SEXP X_r,
-    SEXP y_r,
-    SEXP group_id_r,
-    double log_sigma_e,
-    double log_sigma_b,
-    Rcpp::Nullable<Rcpp::NumericVector> weights = R_NilValue
-) {
-    NumericMatrix X_mat(X_r);
-    NumericVector y_vec(y_r);
-    IntegerVector group_id_int(group_id_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
+Rcpp::NumericVector fast_gaussian_lmm_gls_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, double log_sigma_e, double log_sigma_b, Rcpp::Nullable<Rcpp::NumericVector> weights = R_NilValue) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 
-    const int n = y.size(), p = X.cols();
+
+    const int n = y_r_vec_coerced.size(), p = X_r.cols();
 
     std::vector<int> gid(n);
     {
-        const int* gid_ptr = group_id_int.begin();
+        const int* gid_ptr = group_id_r.data();
         std::vector<int> gid_r(gid_ptr, gid_ptr + n);
         std::vector<int> uniq = gid_r;
         std::sort(uniq.begin(), uniq.end());
@@ -574,7 +549,7 @@ Rcpp::NumericVector fast_gaussian_lmm_gls_cpp(
         NumericVector wts(weights);
         w_vec.assign(wts.begin(), wts.end());
     }
-    LMMData dat(y, X, gid, w_vec);
+    LMMData dat(y_r_vec_coerced, X_r, gid, w_vec);
 
     const double v_e = std::exp(2.0 * log_sigma_e);
     const double v_b = std::exp(2.0 * log_sigma_b);
@@ -619,25 +594,22 @@ Rcpp::NumericVector fast_gaussian_lmm_gls_cpp(
 
 // ── R-exported: score (gradient of log_lik) at arbitrary par ─────────────────
 // [[Rcpp::export]]
-NumericVector get_gaussian_lmm_score_cpp(
-    SEXP X_r,
-    SEXP y_r,
-    SEXP group_id_r,
-    SEXP par_sexp
-) {
-    NumericMatrix X_mat(X_r);
-    NumericVector y_vec(y_r);
-    IntegerVector group_id_int(group_id_r);
-    NumericVector par_r(par_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
-    Eigen::Map<const Eigen::VectorXd> par(par_r.begin(), par_r.size());
+NumericVector get_gaussian_lmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& par) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 
-    const int n = y.size();
+
+    
+
+    
+
+    
+
+    
+
+    const int n = y_r_vec_coerced.size();
     std::vector<int> gid(n);
     {
-        const int* gid_ptr = group_id.data();
+        const int* gid_ptr = group_id_r.data();
         std::vector<int> gid_r(gid_ptr, gid_ptr + n);
         std::vector<int> uniq = gid_r;
         std::sort(uniq.begin(), uniq.end());
@@ -645,8 +617,8 @@ NumericVector get_gaussian_lmm_score_cpp(
         for (int i = 0; i < n; ++i)
             gid[i] = (int)(std::lower_bound(uniq.begin(), uniq.end(), gid_r[i]) - uniq.begin());
     }
-    LMMData dat(y, X, gid);
-    const int k = X.cols() + 2;  // p betas + log_sigma_e + log_sigma_b
+    LMMData dat(y_r_vec_coerced, X_r, gid);
+    const int k = X_r.cols() + 2;  // p betas + log_sigma_e + log_sigma_b
     if (par.size() != k) {
         return NumericVector(k, NA_REAL);
     }
@@ -665,26 +637,22 @@ NumericVector get_gaussian_lmm_score_cpp(
 
 // ── R-exported: observed Fisher information (Hessian of neg_ll) at par ───────
 // [[Rcpp::export]]
-NumericMatrix get_gaussian_lmm_fisher_cpp(
-    SEXP X_r,
-    SEXP y_r,
-    SEXP group_id_r,
-    SEXP par_sexp,
-    double h_rel = 1e-4
-) {
-    NumericMatrix X_mat(X_r);
-    NumericVector y_vec(y_r);
-    IntegerVector group_id_int(group_id_r);
-    NumericVector par_r(par_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
-    Eigen::Map<const Eigen::VectorXd> par(par_r.begin(), par_r.size());
+NumericMatrix get_gaussian_lmm_fisher_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& par, double h_rel = 1e-4) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 
-    const int n = y.size();
+
+    
+
+    
+
+    
+
+    
+
+    const int n = y_r_vec_coerced.size();
     std::vector<int> gid(n);
     {
-        const int* gid_ptr = group_id.data();
+        const int* gid_ptr = group_id_r.data();
         std::vector<int> gid_r(gid_ptr, gid_ptr + n);
         std::vector<int> uniq = gid_r;
         std::sort(uniq.begin(), uniq.end());
@@ -692,7 +660,7 @@ NumericMatrix get_gaussian_lmm_fisher_cpp(
         for (int i = 0; i < n; ++i)
             gid[i] = (int)(std::lower_bound(uniq.begin(), uniq.end(), gid_r[i]) - uniq.begin());
     }
-    LMMData dat(y, X, gid);
+    LMMData dat(y_r_vec_coerced, X_r, gid);
     Eigen::MatrixXd H = lmm_fisher_hessian(dat, par, h_rel);
     return wrap(H);
 }

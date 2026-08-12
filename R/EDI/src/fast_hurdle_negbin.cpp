@@ -844,16 +844,16 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-Eigen::VectorXd get_hurdle_negbin_count_score_cpp(SEXP X_r,
-												  SEXP y_r,
-												  SEXP params_sexp) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
-	edi::ResultMap pos = build_positive_hurdle_negbin_data(X, y);
+Eigen::VectorXd get_hurdle_negbin_count_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXd>& params) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+	
+
+	
+
+	
+	edi::ResultMap pos = build_positive_hurdle_negbin_data(X_r, y_r_vec_coerced);
 	MatrixXd X_pos = *pos.get_if<Eigen::MatrixXd>("X_pos");
 	VectorXi y_pos = pos.get_if<Eigen::VectorXd>("y_pos")->cast<int>();
 	TruncatedNegBinCount fun(X_pos, y_pos);
@@ -863,16 +863,16 @@ Eigen::VectorXd get_hurdle_negbin_count_score_cpp(SEXP X_r,
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd get_hurdle_negbin_count_hessian_cpp(SEXP X_r,
-													SEXP y_r,
-													SEXP params_sexp) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
-	edi::ResultMap pos = build_positive_hurdle_negbin_data(X, y);
+Eigen::MatrixXd get_hurdle_negbin_count_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXd>& params) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+	
+
+	
+
+	
+	edi::ResultMap pos = build_positive_hurdle_negbin_data(X_r, y_r_vec_coerced);
 	MatrixXd X_pos = *pos.get_if<Eigen::MatrixXd>("X_pos");
 	VectorXi y_pos = pos.get_if<Eigen::VectorXd>("y_pos")->cast<int>();
 	TruncatedNegBinCount fun(X_pos, y_pos);
@@ -880,28 +880,18 @@ Eigen::MatrixXd get_hurdle_negbin_count_hessian_cpp(SEXP X_r,
 }
 
 // [[Rcpp::export]]
-List fast_hurdle_negbin_cpp(SEXP X_r,
-						   SEXP y_r,
-						   SEXP X_hurdle_r,
-						   Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue,
-						   bool smart_cold_start = true,
-						   int maxit = 1000,
-						   double tol = 1e-8,
-						   Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-						   Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-						   std::string optimization_alg = "lbfgs",
-						   Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
-						   Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_hurdle_fisher_info = R_NilValue,
-						   bool estimate_only = false) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	NumericMatrix X_hurdle_mat(X_hurdle_r);
-	Eigen::Map<const Eigen::MatrixXd> X_hurdle(X_hurdle_mat.begin(), X_hurdle_mat.nrow(), X_hurdle_mat.ncol());
+List fast_hurdle_negbin_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::MatrixXd>& X_hurdle_r, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = true, int maxit = 1000, double tol = 1e-8, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_hurdle_fisher_info = R_NilValue, bool estimate_only = false) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+	
+
+	
+
+	
 
 	edi::ResultMap res = fast_hurdle_negbin_internal(
-		X, y, X_hurdle,
+		X_r, y_r_vec_coerced, X_hurdle_r,
 		nullable_to_optional<Eigen::VectorXd>(warm_start_params),
 		smart_cold_start, maxit, tol,
 		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -939,28 +929,18 @@ List fast_hurdle_negbin_cpp(SEXP X_r,
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_hurdle_negbin_with_var_cpp(SEXP X_r,
-									 SEXP y_r,
-									 SEXP X_hurdle_r,
-									 int j = 2,
-									 Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue,
-									 bool smart_cold_start = true,
-									 int maxit = 1000,
-									 double tol = 1e-8,
-									 Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-									 Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-									 std::string optimization_alg = "lbfgs",
-									 Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
-									 Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_hurdle_fisher_info = R_NilValue) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	NumericMatrix X_hurdle_mat(X_hurdle_r);
-	Eigen::Map<const Eigen::MatrixXd> X_hurdle(X_hurdle_mat.begin(), X_hurdle_mat.nrow(), X_hurdle_mat.ncol());
+List fast_hurdle_negbin_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::MatrixXd>& X_hurdle_r, int j = 2, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = true, int maxit = 1000, double tol = 1e-8, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_hurdle_fisher_info = R_NilValue) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+	
+
+	
+
+	
 
 	edi::ResultMap res = fast_hurdle_negbin_internal(
-		X, y, X_hurdle,
+		X_r, y_r_vec_coerced, X_hurdle_r,
 		nullable_to_optional<Eigen::VectorXd>(warm_start_params),
 		smart_cold_start, maxit, tol,
 		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -974,24 +954,16 @@ List fast_hurdle_negbin_with_var_cpp(SEXP X_r,
 }
 
 // [[Rcpp::export]]
-List fast_truncated_negbin_count_cpp(SEXP X_r,
-									 SEXP y_r,
-									 Nullable<NumericVector> warm_start_params = R_NilValue,
-									 bool smart_cold_start = true,
-									 bool estimate_only = false,
-									 int maxit = 1000,
-									 double tol = 1e-8,
-									 Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-									 Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-									 std::string optimization_alg = "lbfgs",
-									 Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_mat(X_r);
-    NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
+List fast_truncated_negbin_count_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, Nullable<NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = true, bool estimate_only = false, int maxit = 1000, double tol = 1e-8, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+    
+
+    
 
     edi::ResultMap res = fast_truncated_negbin_count_internal(
-        X, y,
+        X_r, y_r_vec_coerced,
         nullable_to_optional<Eigen::VectorXd>(warm_start_params),
         smart_cold_start, estimate_only, maxit, tol,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),

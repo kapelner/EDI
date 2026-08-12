@@ -6,9 +6,9 @@
 \description{
 Bundles a design object with a set of inference classes and their
 constructor arguments.  On initialization the suite automatically
-introspects the package namespace to discover every concrete
-\code{Inference} subclass that is compatible with the supplied design
-object, so the applicable list never goes stale as new classes are added.
+consults inference metadata to discover every concrete \code{Inference}
+subclass that is compatible with the supplied design object, so the
+applicable list never goes stale as new classes are registered.
 
 Discovery uses package metadata rather than constructor probing: only
 exported, non-abstract \code{Inference} generators are considered, and

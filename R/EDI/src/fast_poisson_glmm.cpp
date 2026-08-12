@@ -455,7 +455,7 @@ edi::ResultMap fast_poisson_glmm_internal(
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-SEXP fast_poisson_glmm_cpp(
+List fast_poisson_glmm_cpp(
 	const NumericMatrix& X_r,
 	const NumericVector& y_r,
 	const IntegerVector& group_id_r,
@@ -499,7 +499,7 @@ SEXP fast_poisson_glmm_cpp(
 
 // ── R-exported: score (gradient of log_lik) at arbitrary par ─────────────────
 // [[Rcpp::export]]
-SEXP get_poisson_glmm_score_cpp(
+Eigen::VectorXd get_poisson_glmm_score_cpp(
 	const NumericMatrix& X_r,
 	const NumericVector& y_r,
 	const IntegerVector& group_id_r,
@@ -517,12 +517,12 @@ SEXP get_poisson_glmm_score_cpp(
 	PoissonGLMMObjective obj(dat);
 	Eigen::VectorXd grad;
 	obj(par, grad);
-	return wrap(-grad);
+	return -grad;
 }
 
 // ── R-exported: observed information (Hessian of neg_ll) at par ─────────────
 // [[Rcpp::export]]
-SEXP get_poisson_glmm_hessian_cpp(
+Eigen::MatrixXd get_poisson_glmm_hessian_cpp(
 	const NumericMatrix& X_r,
 	const NumericVector& y_r,
 	const IntegerVector& group_id_r,
@@ -538,6 +538,6 @@ SEXP get_poisson_glmm_hessian_cpp(
 	for (int i = 0; i < group_id.size(); ++i) gid_v[i] = group_id[i];
 	PoissonGLMMData dat(X, y, gid_v, n_gh);
 	PoissonGLMMObjective obj(dat);
-	return wrap(-obj.hessian(par));
+	return -obj.hessian(par);
 }
 #endif // EDI_CORE_ONLY

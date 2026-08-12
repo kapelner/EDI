@@ -248,27 +248,30 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-Eigen::VectorXd get_logistic_regression_score_cpp(SEXP X_sexp, SEXP y_sexp, SEXP beta_sexp) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    NumericVector beta_r(beta_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
+Eigen::VectorXd get_logistic_regression_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, const Eigen::Map<Eigen::VectorXd>& beta) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+    
+
+    
+
+    
 
     const int n = X.rows();
     Eigen::VectorXd eta = X * beta;
     Eigen::VectorXd mu(n);
     mu.array() = 1.0 / (1.0 + (-eta.array()).exp());
-    return X.transpose() * (y - mu);
+    return X.transpose() * (y_vec_coerced - mu);
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd get_logistic_regression_hessian_cpp(SEXP X_sexp, SEXP beta_sexp) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector beta_r(beta_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
+Eigen::MatrixXd get_logistic_regression_hessian_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
+		const Eigen::Map<Eigen::VectorXd>& beta) {
+
+    
+
+    
 
     const int n = X.rows();
     Eigen::VectorXd eta = X * beta;
@@ -279,60 +282,58 @@ Eigen::MatrixXd get_logistic_regression_hessian_cpp(SEXP X_sexp, SEXP beta_sexp)
 }
 
 // [[Rcpp::export]]
-Eigen::VectorXd get_logistic_regression_weighted_score_cpp(SEXP X_sexp, SEXP y_sexp, SEXP weights_sexp, SEXP beta_sexp) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    NumericVector w_r(weights_sexp);
-    NumericVector beta_r(beta_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::VectorXd> weights(w_r.begin(), w_r.size());
-    Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
+Eigen::VectorXd get_logistic_regression_weighted_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP weights, const Eigen::Map<Eigen::VectorXd>& beta) {
+	NumericVector weights_r_coerced(weights); Eigen::Map<const Eigen::VectorXd> weights_vec_coerced(weights_r_coerced.begin(), weights_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+    
+
+    
+
+    
+
+    
 
     const int n = X.rows();
     Eigen::VectorXd eta = X * beta;
     Eigen::VectorXd mu(n);
     mu.array() = 1.0 / (1.0 + (-eta.array()).exp());
-    Eigen::VectorXd diff = y - mu;
-    diff.array() *= weights.array();
+    Eigen::VectorXd diff = y_vec_coerced - mu;
+    diff.array() *= weights_vec_coerced.array();
     return X.transpose() * diff;
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd get_logistic_regression_weighted_hessian_cpp(SEXP X_sexp, SEXP weights_sexp, SEXP beta_sexp) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector w_r(weights_sexp);
-    NumericVector beta_r(beta_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> weights(w_r.begin(), w_r.size());
-    Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
+Eigen::MatrixXd get_logistic_regression_weighted_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP weights, const Eigen::Map<Eigen::VectorXd>& beta) {
+	NumericVector weights_r_coerced(weights); Eigen::Map<const Eigen::VectorXd> weights_vec_coerced(weights_r_coerced.begin(), weights_r_coerced.size());
+
+
+    
+
+    
+
+    
 
     const int n = X.rows();
     Eigen::VectorXd eta = X * beta;
     Eigen::VectorXd w(n);
     w.array() = 1.0 / (1.0 + (-eta.array()).exp()); // mu
-    w.array() = w.array() * (1.0 - w.array()) * weights.array();
+    w.array() = w.array() * (1.0 - w.array()) * weights_vec_coerced.array();
     return -weighted_crossprod(X, w);
 }
 
 // [[Rcpp::export]]
-List fast_logistic_regression_cpp(SEXP X, SEXP y,
-                                  Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
-                                  bool smart_cold_start = false,
-                                  int maxit = 100, double tol = 1e-8,
-                                  Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-                                  Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-                                  std::string optimization_alg = "irls",
-                                  Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
-                                  Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
-                                  bool estimate_only = false) {
-    NumericMatrix X_r(X);
-    NumericVector y_r(y);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+List fast_logistic_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue, bool smart_cold_start = false, int maxit = 100, double tol = 1e-8, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "irls", Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, bool estimate_only = false) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+    
+
+    
 
     ModelResult res = fast_logistic_regression_internal(
-        X_mat, y_vec, Eigen::VectorXd(),
+        X, y_vec_coerced, Eigen::VectorXd(),
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         smart_cold_start, maxit, tol,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -362,23 +363,18 @@ List fast_logistic_regression_cpp(SEXP X, SEXP y,
 }
 
 // [[Rcpp::export]]
-List fast_logistic_regression_weighted_cpp(SEXP X, SEXP y, SEXP weights,
-                                           Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
-                                           bool smart_cold_start = false,
-                                           int maxit = 100, double tol = 1e-8,
-                                           Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-                                           Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-                                           std::string optimization_alg = "irls",
-                                           Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
-                                           Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_r(X);
-    NumericVector y_r(y);
-    NumericVector w_r(weights);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::VectorXd> weights_vec(w_r.begin(), w_r.size());
+List fast_logistic_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP weights, Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue, bool smart_cold_start = false, int maxit = 100, double tol = 1e-8, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "irls", Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
+	NumericVector weights_r_coerced(weights); Eigen::Map<const Eigen::VectorXd> weights_vec_coerced(weights_r_coerced.begin(), weights_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+    
+
+    
+
+    
     ModelResult res = fast_logistic_regression_internal(
-        X_mat, y_vec, weights_vec,
+        X, y_vec_coerced, weights_vec_coerced,
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         smart_cold_start, maxit, tol,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -399,20 +395,25 @@ List fast_logistic_regression_weighted_cpp(SEXP X, SEXP y, SEXP weights,
 }
 
 // [[Rcpp::export]]
-List fast_logistic_regression_with_var_cpp(SEXP X, SEXP y, int j = 2,
-                                           Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
-                                           bool smart_cold_start = false,
-                                           Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-                                           Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-                                           std::string optimization_alg = "irls",
-                                           Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
-                                           Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_r(X);
+List fast_logistic_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
+		SEXP y,
+		int j = 2,
+		Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
+		bool smart_cold_start = false,
+		Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
+		Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
+		std::string optimization_alg = "irls",
+		Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
+		Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
+
+    // Coerce y explicitly: unlike the other Eigen::Map params here, y commonly
+    // arrives int-typed (e.g. rbinom()) -- Eigen::Map<VectorXd> has no
+    // coercion path, so this restores the NumericVector(SEXP) auto-coercion
+    // the pre-zero-copy version of this function relied on.
     NumericVector y_r(y);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
     Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
     ModelResult res = fast_logistic_regression_internal(
-        X_mat, y_vec, Eigen::VectorXd(),
+        X, y_vec, Eigen::VectorXd(),
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         smart_cold_start, 100, 1e-8,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -421,7 +422,7 @@ List fast_logistic_regression_with_var_cpp(SEXP X, SEXP y, int j = 2,
         nullable_to_optional<Eigen::VectorXd>(warm_start_weights),
         nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info));
     FixedParamSpec fixed_spec = make_fixed_param_spec(
-        X_mat.cols(),
+        X.cols(),
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values));
 
@@ -433,10 +434,10 @@ List fast_logistic_regression_with_var_cpp(SEXP X, SEXP y, int j = 2,
         return -1;
     };
 
-    int free_j = (j > 0 && j <= X_mat.cols()) ? free_idx_of(j - 1) : -1;
+    int free_j = (j > 0 && j <= X.cols()) ? free_idx_of(j - 1) : -1;
     res.ssq_b_j = (free_j > 0) ? compute_diagonal_inverse_entry(info_free, free_j) : NA_REAL;
 
-    int free_2 = (X_mat.cols() >= 2) ? free_idx_of(1) : -1;
+    int free_2 = (X.cols() >= 2) ? free_idx_of(1) : -1;
     res.ssq_b_2 = (free_2 > 0) ? compute_diagonal_inverse_entry(info_free, free_2) : NA_REAL;
 
     Eigen::MatrixXd neg_XtWX = -res.XtWX;

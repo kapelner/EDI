@@ -243,3 +243,5 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 		}
 	)
 )
+
+OrdinalCauchitLikelihoodSource = inference_component_source_parts(InferenceOrdinalCauchitRegr)

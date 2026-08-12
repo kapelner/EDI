@@ -167,19 +167,22 @@ double get_survival_stat_diff_result(const Eigen::Ref<const Eigen::VectorXd>& y,
 #ifndef EDI_CORE_ONLY
 //' Calculates the median or restricted mean survival time for a single group
 //'
-//' @param y_sexp Numeric vector of survival times.
-//' @param dead_sexp Integer vector of event indicators (1=event, 0=censored).
+//' @param y Numeric vector of survival times.
+//' @param dead Integer vector of event indicators (1=event, 0=censored).
 //' @param requested_stat A string, either "median" or "restricted_mean".
 //' @return The calculated statistic.
 //' @keywords internal
 // [[Rcpp::export]]
-double get_survival_stat_for_group(SEXP y_sexp, SEXP dead_sexp, std::string requested_stat) {
-    NumericVector y_vec(y_sexp);
-    IntegerVector dead_int(dead_sexp);
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    Eigen::Map<const Eigen::VectorXi> dead(dead_int.begin(), dead_int.size());
-    // Combine y and dead into a data frame-like structure for sorting
-    int n = y.size();
+double get_survival_stat_for_group(SEXP y, SEXP dead, std::string requested_stat) {
+	IntegerVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXi> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+    
+
+    
+    // Combine y_vec_coerced and dead_vec_coerced into a data frame-like structure for sorting
+    int n = y_vec_coerced.size();
     if (n == 0) {
         return NA_REAL;
     }
@@ -191,7 +194,7 @@ double get_survival_stat_for_group(SEXP y_sexp, SEXP dead_sexp, std::string requ
 
     std::vector<Subject> subjects(n);
     for (int i = 0; i < n; ++i) {
-        subjects[i] = {y[i], dead[i]};
+        subjects[i] = {y_vec_coerced[i], dead_vec_coerced[i]};
     }
 
     // Sort subjects by time
@@ -234,7 +237,6 @@ double get_survival_stat_for_group(SEXP y_sexp, SEXP dead_sexp, std::string requ
         i = j;
     }
 
-
     if (requested_stat == "median") {
         const double tol = std::sqrt(std::numeric_limits<double>::epsilon());
         for (size_t i = 0; i < survival_probs.size(); ++i) {
@@ -266,23 +268,27 @@ double get_survival_stat_for_group(SEXP y_sexp, SEXP dead_sexp, std::string requ
 //' Calculates the difference in a survival statistic (median or restricted mean)
 //' between two groups (treatment vs control)
 //'
-//' @param y_sexp Numeric vector of survival times.
-//' @param dead_sexp Integer vector of event indicators (1=event, 0=censored).
-//' @param w_sexp Integer vector of treatment assignments (1=treatment, 0=control).
+//' @param y Numeric vector of survival times.
+//' @param dead Integer vector of event indicators (1=event, 0=censored).
+//' @param w Integer vector of treatment assignments (1=treatment, 0=control).
 //' @param requested_stat A string, either "median" or "restricted_mean".
 //' @return The difference in the statistic (treatment - control).
 //' @keywords internal
 // [[Rcpp::export]]
-double get_survival_stat_diff(SEXP y_sexp, SEXP dead_sexp, SEXP w_sexp, std::string requested_stat) {
-    NumericVector y_vec(y_sexp);
-    IntegerVector dead_int(dead_sexp);
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    Eigen::Map<const Eigen::VectorXi> dead(dead_int.begin(), dead_int.size());
-    IntegerVector w_int(w_sexp);
-    Eigen::Map<const Eigen::VectorXi> w(w_int.begin(), w_int.size());
+double get_survival_stat_diff(SEXP y, SEXP dead, SEXP w, std::string requested_stat) {
+	IntegerVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXi> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	IntegerVector w_r_coerced(w); Eigen::Map<const Eigen::VectorXi> w_vec_coerced(w_r_coerced.begin(), w_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+    
+
+    
+
+    
     std::vector<int> control_indices_std, treatment_indices_std;
-    for (int i = 0; i < w.size(); ++i) {
-        if (w[i] == 0) {
+    for (int i = 0; i < w_vec_coerced.size(); ++i) {
+        if (w_vec_coerced[i] == 0) {
             control_indices_std.push_back(i);
         } else {
             treatment_indices_std.push_back(i);
@@ -293,16 +299,22 @@ double get_survival_stat_diff(SEXP y_sexp, SEXP dead_sexp, SEXP w_sexp, std::str
     std::vector<int> dead_control_std, dead_treatment_std;
 
     for (int idx : control_indices_std) {
-        y_control_std.push_back(y[idx]);
-        dead_control_std.push_back(dead[idx]);
+        y_control_std.push_back(y_vec_coerced[idx]);
+        dead_control_std.push_back(dead_vec_coerced[idx]);
     }
     for (int idx : treatment_indices_std) {
-        y_treatment_std.push_back(y[idx]);
-        dead_treatment_std.push_back(dead[idx]);
+        y_treatment_std.push_back(y_vec_coerced[idx]);
+        dead_treatment_std.push_back(dead_vec_coerced[idx]);
     }
 
-    double stat_control = get_survival_stat_for_group(wrap(y_control_std), wrap(dead_control_std), requested_stat);
-    double stat_treatment = get_survival_stat_for_group(wrap(y_treatment_std), wrap(dead_treatment_std), requested_stat);
+    double stat_control = get_survival_stat_for_group_result(
+        Eigen::Map<const Eigen::VectorXd>(y_control_std.data(), y_control_std.size()),
+        Eigen::Map<const Eigen::VectorXi>(dead_control_std.data(), dead_control_std.size()),
+        requested_stat);
+    double stat_treatment = get_survival_stat_for_group_result(
+        Eigen::Map<const Eigen::VectorXd>(y_treatment_std.data(), y_treatment_std.size()),
+        Eigen::Map<const Eigen::VectorXi>(dead_treatment_std.data(), dead_treatment_std.size()),
+        requested_stat);
 
     if (R_IsNA(stat_treatment) || R_IsNA(stat_control)) {
         return NA_REAL;
@@ -322,22 +334,25 @@ double get_survival_stat_diff(SEXP y_sexp, SEXP dead_sexp, SEXP w_sexp, std::str
 //' Terms where n_j == d_j are omitted: S drops to 0 there, so A(t_j) = 0 and the
 //' contribution is 0 in the limit regardless of the undefined Greenwood denominator.
 //'
-//' @param y_sexp Numeric vector of survival times.
-//' @param dead_sexp Integer vector of event indicators (1=event, 0=censored).
+//' @param y Numeric vector of survival times.
+//' @param dead Integer vector of event indicators (1=event, 0=censored).
 //' @return The standard error of the restricted mean.
 //' @keywords internal
 // [[Rcpp::export]]
-double get_restricted_mean_se_for_group(SEXP y_sexp, SEXP dead_sexp) {
-    NumericVector y_vec(y_sexp);
-    IntegerVector dead_int(dead_sexp);
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    Eigen::Map<const Eigen::VectorXi> dead(dead_int.begin(), dead_int.size());
-    int n = y.size();
+double get_restricted_mean_se_for_group(SEXP y, SEXP dead) {
+	IntegerVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXi> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+    
+
+    
+    int n = y_vec_coerced.size();
     if (n == 0) return NA_REAL;
 
     struct Subject { double time; int status; };
     std::vector<Subject> subjects(n);
-    for (int i = 0; i < n; ++i) subjects[i] = {y[i], dead[i]};
+    for (int i = 0; i < n; ++i) subjects[i] = {y_vec_coerced[i], dead_vec_coerced[i]};
     std::sort(subjects.begin(), subjects.end(), [](const Subject& a, const Subject& b) {
         return a.time < b.time;
     });
@@ -391,22 +406,26 @@ double get_restricted_mean_se_for_group(SEXP y_sexp, SEXP dead_sexp) {
 
 //' Calculates the standard error of the difference in restricted mean survival times
 //'
-//' @param y_sexp Numeric vector of survival times.
-//' @param dead_sexp Integer vector of event indicators (1=event, 0=censored).
-//' @param w_sexp Integer vector of treatment assignments (1=treatment, 0=control).
+//' @param y Numeric vector of survival times.
+//' @param dead Integer vector of event indicators (1=event, 0=censored).
+//' @param w Integer vector of treatment assignments (1=treatment, 0=control).
 //' @return The standard error of the difference.
 //' @keywords internal
 // [[Rcpp::export]]
-double get_restricted_mean_se_diff(SEXP y_sexp, SEXP dead_sexp, SEXP w_sexp) {
-    NumericVector y_vec(y_sexp);
-    IntegerVector dead_int(dead_sexp);
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    Eigen::Map<const Eigen::VectorXi> dead(dead_int.begin(), dead_int.size());
-    IntegerVector w_int(w_sexp);
-    Eigen::Map<const Eigen::VectorXi> w(w_int.begin(), w_int.size());
+double get_restricted_mean_se_diff(SEXP y, SEXP dead, SEXP w) {
+	IntegerVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXi> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	IntegerVector w_r_coerced(w); Eigen::Map<const Eigen::VectorXi> w_vec_coerced(w_r_coerced.begin(), w_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+    
+
+    
+
+    
     std::vector<int> control_indices_std, treatment_indices_std;
-    for (int i = 0; i < w.size(); ++i) {
-        if (w[i] == 0) {
+    for (int i = 0; i < w_vec_coerced.size(); ++i) {
+        if (w_vec_coerced[i] == 0) {
             control_indices_std.push_back(i);
         } else {
             treatment_indices_std.push_back(i);
@@ -417,16 +436,18 @@ double get_restricted_mean_se_diff(SEXP y_sexp, SEXP dead_sexp, SEXP w_sexp) {
     std::vector<int> dead_control_std, dead_treatment_std;
 
     for (int idx : control_indices_std) {
-        y_control_std.push_back(y[idx]);
-        dead_control_std.push_back(dead[idx]);
+        y_control_std.push_back(y_vec_coerced[idx]);
+        dead_control_std.push_back(dead_vec_coerced[idx]);
     }
     for (int idx : treatment_indices_std) {
-        y_treatment_std.push_back(y[idx]);
-        dead_treatment_std.push_back(dead[idx]);
+        y_treatment_std.push_back(y_vec_coerced[idx]);
+        dead_treatment_std.push_back(dead_vec_coerced[idx]);
     }
 
-    double se_control = get_restricted_mean_se_for_group(wrap(y_control_std), wrap(dead_control_std));
-    double se_treatment = get_restricted_mean_se_for_group(wrap(y_treatment_std), wrap(dead_treatment_std));
+    double se_control = get_restricted_mean_se_for_group(
+        wrap(y_control_std), wrap(dead_control_std));
+    double se_treatment = get_restricted_mean_se_for_group(
+        wrap(y_treatment_std), wrap(dead_treatment_std));
 
     if (R_IsNA(se_treatment) || R_IsNA(se_control)) {
         return NA_REAL;
@@ -554,8 +575,14 @@ NumericVector compute_survival_stat_diff_rand_bootstrap_serial_cpp(
       }
     }
     if (y_t.empty() || y_c.empty()) continue;
-    const double stat_t = get_survival_stat_for_group(wrap(y_t), wrap(d_t), requested_stat);
-    const double stat_c = get_survival_stat_for_group(wrap(y_c), wrap(d_c), requested_stat);
+    const double stat_t = get_survival_stat_for_group_result(
+      Eigen::Map<const Eigen::VectorXd>(y_t.data(), y_t.size()),
+      Eigen::Map<const Eigen::VectorXi>(d_t.data(), d_t.size()),
+      requested_stat);
+    const double stat_c = get_survival_stat_for_group_result(
+      Eigen::Map<const Eigen::VectorXd>(y_c.data(), y_c.size()),
+      Eigen::Map<const Eigen::VectorXi>(d_c.data(), d_c.size()),
+      requested_stat);
     if (std::isfinite(stat_t) && std::isfinite(stat_c)) results[b] = stat_t - stat_c;
   }
 

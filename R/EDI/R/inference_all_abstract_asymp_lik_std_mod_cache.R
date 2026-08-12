@@ -35,7 +35,7 @@ inference_asymp_lik_std_mod_cache_public = list(
 			super$compute_asymp_two_sided_pval(delta)
 		}
 	)
-inference_asymp_lik_std_mod_cache_private = list(
+	inference_asymp_lik_std_mod_cache_private = list(
 		supports_likelihood_tests = function(){
 			TRUE
 		},
@@ -169,14 +169,19 @@ inference_asymp_lik_std_mod_cache_private = list(
 			}
 		},
 		# Helper for subclasses to extract the policy-driven warm start arguments for C++ calls.
-		get_backend_warm_start_args = function(expected_length, expected_fisher_dim = expected_length) {
-			private$get_optimal_warm_start_config(expected_length, expected_fisher_dim)
-		}
-	)
+			get_backend_warm_start_args = function(expected_length, expected_fisher_dim = expected_length) {
+				private$get_optimal_warm_start_config(expected_length, expected_fisher_dim)
+			}
+		)
 
-InferenceAsympLikStdModCache = R6::R6Class("InferenceAsympLikStdModCache",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
+	StandardModelCacheSource = list(
+		public = inference_asymp_lik_std_mod_cache_public,
+		private = inference_asymp_lik_std_mod_cache_private
+	)
+	
+	InferenceAsympLikStdModCache = R6::R6Class("InferenceAsympLikStdModCache",
+		lock_objects = FALSE,
+		inherit = InferenceParamBootstrap,
 	public = inference_asymp_lik_std_mod_cache_public,
 	private = c(inference_asymp_lik_std_mod_cache_private, list(
 		is_a_asymp_lik_std_mod_cache = function() TRUE

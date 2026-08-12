@@ -114,20 +114,6 @@ double mn_pvalue_cpp(double x_t, double n_t, double x_c, double n_c, double delt
     return 2.0 * pnorm_fast(-std::abs(z));
 }
 
-//' Miettinen-Nurminen Confidence Interval for Risk Difference
-//'
-//' Computes an approximate Miettinen-Nurminen confidence interval for the risk
-//' difference by inverting the score test with a bisection search.
-//'
-//' @param x_t Number of events in treatment.
-//' @param n_t Number of subjects in treatment.
-//' @param x_c Number of events in control.
-//' @param n_c Number of subjects in control.
-//' @param p_t_obs Observed treatment-arm risk.
-//' @param p_c_obs Observed control-arm risk.
-//' @param alpha The confidence level is \code{1 - alpha}.
-//' @param pval_epsilon Bisection tolerance in p-value space.
-//' @return A length-2 numeric vector containing the lower and upper CI bounds.
 struct MNCIBounds {
     double lower;
     double upper;
@@ -170,6 +156,20 @@ MNCIBounds mn_ci_internal(double x_t, double n_t, double x_c, double n_c, double
 }
 
 #ifndef EDI_CORE_ONLY
+//' Miettinen-Nurminen Confidence Interval for Risk Difference
+//'
+//' Computes an approximate Miettinen-Nurminen confidence interval for the risk
+//' difference by inverting the score test with a bisection search.
+//'
+//' @param x_t Number of events in treatment.
+//' @param n_t Number of subjects in treatment.
+//' @param x_c Number of events in control.
+//' @param n_c Number of subjects in control.
+//' @param p_t_obs Observed treatment-arm risk.
+//' @param p_c_obs Observed control-arm risk.
+//' @param alpha The confidence level is \code{1 - alpha}.
+//' @param pval_epsilon Bisection tolerance in p-value space.
+//' @return A length-2 numeric vector containing the lower and upper CI bounds.
 // [[Rcpp::export]]
 NumericVector mn_ci_cpp(double x_t, double n_t, double x_c, double n_c, double p_t_obs, double p_c_obs, double alpha, double pval_epsilon) {
     MNCIBounds r = mn_ci_internal(x_t, n_t, x_c, n_c, p_t_obs, p_c_obs, alpha, pval_epsilon);

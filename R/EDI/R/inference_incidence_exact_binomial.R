@@ -16,9 +16,7 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceIncidExactBinomial = R6::R6Class("InferenceIncidExactBinomial",
-	lock_objects = FALSE,
-	inherit = InferenceExact,
+ExactBinomialIncidenceSource = list(
 	public = list(
 		#' @description Initialize exact matched-pair binomial inference for incidence outcomes.
 		#' @param des_obj A completed design object.
@@ -49,16 +47,6 @@ InferenceIncidExactBinomial = R6::R6Class("InferenceIncidExactBinomial",
 		#' @return The treatment estimate.
 		compute_estimate = function(estimate_only = FALSE){
 			private$get_exact_binomial_log_or_estimate()
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
 		}
 	),
 	private = list(
@@ -179,5 +167,22 @@ InferenceIncidExactBinomial = R6::R6Class("InferenceIncidExactBinomial",
 			private$cached_values$incidence_exact_binomial_stats = stats
 			stats
 		}
+	)
+)
+
+InferenceIncidExactBinomial = define_inference_class(
+	classname = "InferenceIncidExactBinomial",
+	inherit = Inference,
+	components = "ExactBinomialIncidence",
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		private = c(
+			"default_exact_type",
+			"resolve_exact_type",
+			"normalize_exact_inference_args",
+			"assert_exact_inference_params",
+			"compute_exact_confidence_interval_by_type",
+			"compute_exact_two_sided_pval_for_treatment_effect_by_type"
+		)
 	)
 )

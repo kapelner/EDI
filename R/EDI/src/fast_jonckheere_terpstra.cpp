@@ -1,4 +1,5 @@
 #include "_helper_functions.h"
+#include "result_map_rcpp.h"
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
 #include <algorithm>
@@ -212,15 +213,14 @@ List exact_jonckheere_terpstra_pval_cpp(SEXP y,
   const double p_exact = std::min(1.0, 2.0 * std::min(p_lower, p_upper));
   const double superiority = static_cast<double>(stat2_obs) / (2.0 * n_treat * n_control);
 
-  return List::create(
-    _["stat2"] = stat2_obs,
-    _["n_treat"] = n_treat,
-    _["n_control"] = n_control,
-    _["superiority"] = superiority,
-    _["p_lower"] = p_lower,
-    _["p_upper"] = p_upper,
-    _["p_exact"] = p_exact
-  );
+  return edi::to_rcpp_list(edi::ResultMap()
+    .set("stat2", stat2_obs)
+    .set("n_treat", n_treat)
+    .set("n_control", n_control)
+    .set("superiority", superiority)
+    .set("p_lower", p_lower)
+    .set("p_upper", p_upper)
+    .set("p_exact", p_exact));
 }
 
 // BRT variant of the two-group superiority statistic P(Y_T > Y_C) + 0.5 P(Y_T = Y_C) - 0.5

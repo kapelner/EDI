@@ -110,35 +110,41 @@ double beta_aic_internal(const Eigen::Ref<const Eigen::VectorXd>& y,
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-double beta_loglik_cpp(SEXP y_sexp, SEXP mu_sexp, const double phi, SEXP wt_sexp) {
-	Rcpp::NumericVector y_r(y_sexp);
-	Rcpp::NumericVector mu_r(mu_sexp);
-	Rcpp::NumericVector wt_r(wt_sexp);
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	Eigen::Map<const Eigen::VectorXd> mu(mu_r.begin(), mu_r.size());
-	Eigen::Map<const Eigen::VectorXd> wt(wt_r.begin(), wt_r.size());
-	return beta_loglik_internal(y, mu, phi, wt);
+double beta_loglik_cpp(SEXP y, const Eigen::Map<Eigen::VectorXd>& mu, const double phi, const Eigen::Map<Eigen::VectorXd>& wt) {
+	Rcpp::NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+	
+
+	
+
+	
+	return beta_loglik_internal(y_vec_coerced, mu, phi, wt);
 }
 
 // [[Rcpp::export]]
-Eigen::VectorXd beta_dev_resids_cpp(SEXP y_sexp, SEXP mu_sexp, const double phi, SEXP wt_sexp) {
-	Rcpp::NumericVector y_r(y_sexp);
-	Rcpp::NumericVector mu_r(mu_sexp);
-	Rcpp::NumericVector wt_r(wt_sexp);
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	Eigen::Map<const Eigen::VectorXd> mu(mu_r.begin(), mu_r.size());
-	Eigen::Map<const Eigen::VectorXd> wt(wt_r.begin(), wt_r.size());
-	return beta_dev_resids_internal(y, mu, phi, wt);
+Eigen::VectorXd beta_dev_resids_cpp(SEXP y, const Eigen::Map<Eigen::VectorXd>& mu, const double phi, const Eigen::Map<Eigen::VectorXd>& wt) {
+	Rcpp::NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+	
+
+	
+
+	
+	return beta_dev_resids_internal(y_vec_coerced, mu, phi, wt);
 }
 
 // [[Rcpp::export]]
-double beta_aic_cpp(SEXP y_sexp, SEXP mu_sexp, const double phi, SEXP wt_sexp) {
-	Rcpp::NumericVector y_r(y_sexp);
-	Rcpp::NumericVector mu_r(mu_sexp);
-	Rcpp::NumericVector wt_r(wt_sexp);
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	Eigen::Map<const Eigen::VectorXd> mu(mu_r.begin(), mu_r.size());
-	Eigen::Map<const Eigen::VectorXd> wt(wt_r.begin(), wt_r.size());
-	return beta_aic_internal(y, mu, phi, wt);
+double beta_aic_cpp(SEXP y, const Eigen::Map<Eigen::VectorXd>& mu, const double phi, const Eigen::Map<Eigen::VectorXd>& wt) {
+	Rcpp::NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+	
+
+	
+
+	
+	return beta_aic_internal(y_vec_coerced, mu, phi, wt);
 }
 #endif // EDI_CORE_ONLY

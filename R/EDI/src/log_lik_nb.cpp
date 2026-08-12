@@ -4,27 +4,23 @@
 // [[Rcpp::depends(RcppEigen)]]
 
 // [[Rcpp::export]]
-double neg_loglik_nb_cpp(double theta,
-							SEXP beta_sexp,
-			                SEXP X_sexp,
-			                SEXP y_sexp
-	                 	) {
+double neg_loglik_nb_cpp(double theta, const Eigen::Map<Eigen::VectorXd>& beta, const Eigen::Map<Eigen::MatrixXd>& X, SEXP y) {
 	using namespace Rcpp;
-	NumericVector beta_r(beta_sexp);
-	NumericMatrix X_r(X_sexp);
-	IntegerVector y_r(y_sexp);
-	Eigen::Map<const Eigen::VectorXd> beta(beta_r.begin(), beta_r.size());
-	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-	Eigen::Map<const Eigen::VectorXi> y(y_r.begin(), y_r.size());
+
+	IntegerVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXi> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+
+
 
 	Eigen::VectorXd eta = X * beta;
 	Eigen::VectorXd mu = eta.array().exp();
 
 	double ll = 0.0;
-	int n = y.size();
+	int n = y_vec_coerced.size();
 
 	for (int i = 0; i < n; i++) {
-	double yi = static_cast<double>(y[i]);
+	double yi = static_cast<double>(y_vec_coerced[i]);
 	double mui = mu[i];
 
 	ll += std::lgamma(yi + theta)

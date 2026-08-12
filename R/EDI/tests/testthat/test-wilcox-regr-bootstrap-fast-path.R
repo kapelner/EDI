@@ -5,6 +5,7 @@ test_that("KK Wilcox rank-regression fast bootstrap matches the generic KK boots
 
 	SlowInferenceAllKKWilcoxIVWC = R6::R6Class(
 		"SlowInferenceAllKKWilcoxIVWC",
+		lock_objects = FALSE,
 		inherit = InferenceAllKKWilcoxIVWC,
 		private = list(
 			compute_fast_bootstrap_distr = function(B, i_reservoir, n_reservoir, m, y, w, m_vec){

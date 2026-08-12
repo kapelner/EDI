@@ -165,17 +165,17 @@ ContinuationRatioFit fast_continuation_ratio_internal(
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-Eigen::VectorXd get_continuation_ratio_regression_score_cpp(SEXP X_sexp,
-															SEXP y_sexp,
-															SEXP params_sexp) {
-	NumericMatrix X_r(X_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-	NumericVector y_r(y_sexp);
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::VectorXd get_continuation_ratio_regression_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, const Eigen::Map<Eigen::VectorXd>& params) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-	ContinuationRatioAugmentedData aug = build_continuation_ratio_augmented_data(X, y);
+
+	
+
+	
+
+	
+
+	ContinuationRatioAugmentedData aug = build_continuation_ratio_augmented_data(X, y_vec_coerced);
 	MatrixXd X_aug = aug.X_aug;
 	VectorXd z = aug.z;
 	if (X_aug.rows() == 0) return VectorXd::Zero(params.size());
@@ -185,17 +185,17 @@ Eigen::VectorXd get_continuation_ratio_regression_score_cpp(SEXP X_sexp,
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd get_continuation_ratio_regression_hessian_cpp(SEXP X_sexp,
-															  SEXP y_sexp,
-															  SEXP params_sexp) {
-	NumericMatrix X_r(X_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-	NumericVector y_r(y_sexp);
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::MatrixXd get_continuation_ratio_regression_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, const Eigen::Map<Eigen::VectorXd>& params) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-	ContinuationRatioAugmentedData aug = build_continuation_ratio_augmented_data(X, y);
+
+	
+
+	
+
+	
+
+	ContinuationRatioAugmentedData aug = build_continuation_ratio_augmented_data(X, y_vec_coerced);
 	MatrixXd X_aug = aug.X_aug;
 	if (X_aug.rows() == 0) return MatrixXd::Zero(params.size(), params.size());
 	VectorXd eta = X_aug * params;
@@ -220,21 +220,17 @@ Eigen::MatrixXd get_continuation_ratio_regression_hessian_cpp(SEXP X_sexp,
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_continuation_ratio_regression_cpp(SEXP X, SEXP y, int maxit = 100, double tol = 1e-8,
-                                             Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
-                                             bool smart_cold_start = true,
-                                             Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-                                             Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-                                             std::string optimization_alg = "lbfgs",
-                                             Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_r(X);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
-    NumericVector y_r(y);
-    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+List fast_continuation_ratio_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, int maxit = 100, double tol = 1e-8, Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue, bool smart_cold_start = true, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-    int p = X_mat.cols();
+
+    
+
+    
+
+    int p = X.cols();
     ContinuationRatioFit cr = fast_continuation_ratio_internal(
-        X_mat, y_vec, maxit, tol,
+        X, y_vec_coerced, maxit, tol,
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         smart_cold_start,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -263,21 +259,24 @@ List fast_continuation_ratio_regression_cpp(SEXP X, SEXP y, int maxit = 100, dou
 }
 
 // [[Rcpp::export]]
-List fast_continuation_ratio_regression_with_var_cpp(SEXP X, SEXP y, int maxit = 100, double tol = 1e-8,
-                                                      Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
-                                                      bool smart_cold_start = true,
-                                                      Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-                                                      Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-                                                      std::string optimization_alg = "lbfgs",
-                                                      Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_r(X);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
+List fast_continuation_ratio_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
+		SEXP y,
+		int maxit = 100,
+		double tol = 1e-8,
+		Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
+		bool smart_cold_start = true,
+		Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
+		Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
+		std::string optimization_alg = "lbfgs",
+		Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
+
+    // See fast_logistic_regression_with_var_cpp for why y is coerced here
+    // rather than taken as a direct Eigen::Map.
     NumericVector y_r(y);
     Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
-
-    int p = X_mat.cols();
+    int p = X.cols();
     ContinuationRatioFit cr = fast_continuation_ratio_internal(
-        X_mat, y_vec, maxit, tol,
+        X, y_vec, maxit, tol,
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         smart_cold_start,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),

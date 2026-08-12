@@ -250,9 +250,11 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		},
 		compute_weights = function(all_subject_data){
 			xs = all_subject_data$X_all_with_y_scaled
-			i_y_present = which(!is.na(private$y))
-			ys = private$y[i_y_present]
-			deads = private$dead[i_y_present]
+			i_y_present = which(!(is.na(private$y) & is.na(private$y_L) & is.na(private$y_R)))
+			y_eff = self$get_effective_time()
+			dead_eff = self$get_effective_dead()
+			ys = y_eff[i_y_present]
+			deads = dead_eff[i_y_present]
 			if (private$too_early_to_match()){
 				return(rep(1, all_subject_data$rank_all_with_y_scaled))
 			}

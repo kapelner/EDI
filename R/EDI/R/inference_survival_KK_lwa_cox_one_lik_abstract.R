@@ -340,3 +340,39 @@ InferenceAbstractKKLWACoxOneLik = R6::R6Class("InferenceAbstractKKLWACoxOneLik",
 		}
 	))
 )
+
+KKLWACoxOneLikPartialLikelihoodSource = list(
+	public = list(),
+	private = list(
+		kk_lwa_cox_one_lik_get_standard_error = function() {
+			private$get_standard_error()
+		},
+		kk_lwa_cox_one_lik_get_degrees_of_freedom = function() {
+			private$get_degrees_of_freedom()
+		},
+		kk_lwa_cox_one_lik_assert_finite_se = function() {
+			private$assert_finite_se()
+		},
+		kk_lwa_cox_one_lik_supports_likelihood_tests = function() {
+			private$supports_likelihood_tests()
+		},
+		kk_lwa_cox_one_lik_supports_lik_ratio_param_bootstrap = function() {
+			private$supports_lik_ratio_param_bootstrap()
+		},
+		kk_lwa_cox_one_lik_simulate_under_lik_null = function(spec, delta, null_fit) {
+			private$simulate_under_lik_null(spec, delta, null_fit)
+		},
+		kk_lwa_cox_one_lik_get_likelihood_test_spec = function() {
+			private$get_likelihood_test_spec()
+		},
+		kk_lwa_cox_one_lik_compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE) {
+			private$compute_treatment_estimate_during_randomization_inference(estimate_only = estimate_only)
+		},
+		kk_lwa_cox_one_lik_design_matrix_candidates = function() {
+			private$design_matrix_candidates()
+		},
+		kk_lwa_cox_one_lik_shared_combined_likelihood = function(estimate_only = FALSE) {
+			private$shared_combined_likelihood(estimate_only = estimate_only)
+		}
+	)
+)

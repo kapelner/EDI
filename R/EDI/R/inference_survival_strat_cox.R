@@ -1,3 +1,119 @@
+cox_partial_likelihood_strata_info = function(X_full, n) {
+	if (is.null(X_full) || ncol(X_full) == 0) {
+		return(list(strata_id = rep.int(1L, n), selected_cols = integer(0), num_strata = 1L))
+	}
+	info = tryCatch(
+		compute_survival_strata_ids_cpp(as.matrix(X_full)),
+		error = function(e) NULL
+	)
+	if (is.null(info)) {
+		return(list(strata_id = rep.int(1L, n), selected_cols = integer(0), num_strata = 1L))
+	}
+	list(
+		strata_id = as.integer(info$strata_id),
+		selected_cols = as.integer(info$selected_cols),
+		num_strata = as.integer(info$num_strata)
+	)
+}
+
+cox_partial_likelihood_reduce_covariates = function(w, y, X_covars) {
+	if (is.null(X_covars) || ncol(X_covars) == 0) {
+		return(matrix(numeric(0), nrow = length(y), ncol = 0))
+	}
+	X_covars = as.matrix(X_covars)
+	if (ncol(X_covars) == 0) {
+		return(matrix(numeric(0), nrow = nrow(X_covars), ncol = 0))
+	}
+	full_design = cbind(w = w, X_covars)
+	reduced = drop_linearly_dependent_cols(full_design)
+	X_keep = reduced$M
+	if (ncol(X_keep) == 0) {
+		return(matrix(numeric(0), nrow = nrow(full_design), ncol = 0))
+	}
+	if (!("w" %in% colnames(X_keep))) {
+		return(matrix(numeric(0), nrow = nrow(full_design), ncol = 0))
+	}
+	X_keep[, colnames(X_keep) != "w", drop = FALSE]
+}
+
+cox_partial_likelihood_informative_rows = function(strata_id, y, dead, w) {
+	if (length(strata_id) != length(y)) return(integer(0))
+	good = rep(FALSE, length(strata_id))
+	for (s in unique(strata_id)) {
+		i_s = which(strata_id == s)
+		if (length(i_s) < 2) next
+		if (length(unique(w[i_s])) < 2) next
+		if (!any(dead[i_s] == 1, na.rm = TRUE)) next
+		good[i_s] = TRUE
+	}
+	which(good)
+}
+
+cox_partial_likelihood_fit_with_formula = function(dat, formula_str) {
+	tryCatch(
+		suppressWarnings(survival::coxph(stats::as.formula(formula_str), data = dat)),
+		error = function(e) NULL
+	)
+}
+
+cox_partial_likelihood_fit_estimate_only_fast = function(X, surv_y, strata = NULL, rownames = NULL, coxph_control = NULL) {
+	if (is.null(coxph_control)) {
+		coxph_control = survival::coxph.control()
+	}
+	fit = tryCatch(
+		survival::coxph.fit(
+			x = X,
+			y = surv_y,
+			strata = if (is.null(strata)) NULL else as.integer(strata),
+			offset = NULL,
+			init = NULL,
+			control = coxph_control,
+			weights = NULL,
+			method = "breslow",
+			rownames = rownames %||% as.character(seq_len(nrow(X))),
+			resid = FALSE
+		),
+		error = function(e) NULL
+	)
+	if (is.null(fit)) return(NULL)
+	b = as.numeric(fit$coefficients %||% numeric(0))
+	if (length(b) != ncol(X) || !all(is.finite(b))) return(NULL)
+	names(b) = colnames(X)
+	neg_ll = -as.numeric(utils::tail(fit$loglik, 1L))
+	list(
+		b = b,
+		coefficients = b,
+		vcov = NULL,
+		var = NULL,
+		neg_ll = neg_ll,
+		neg_loglik = neg_ll,
+		neg_log_lik = neg_ll,
+		fisher_information = NULL,
+		converged = TRUE
+	)
+}
+
+StratifiedCoxPartialLikelihoodSource = list(
+	public = list(),
+	private = list(
+		cox_partial_likelihood_strata_info = function(X_full, n) {
+			cox_partial_likelihood_strata_info(X_full, n)
+		},
+		cox_partial_likelihood_reduce_covariates = function(w, y, X_covars) {
+			cox_partial_likelihood_reduce_covariates(w, y, X_covars)
+		},
+		cox_partial_likelihood_informative_rows = function(strata_id, y, dead, w) {
+			cox_partial_likelihood_informative_rows(strata_id, y, dead, w)
+		},
+		cox_partial_likelihood_fit_with_formula = function(dat, formula_str) {
+			cox_partial_likelihood_fit_with_formula(dat, formula_str)
+		},
+		cox_partial_likelihood_fit_estimate_only_fast = function(X, surv_y, strata = NULL, rownames = NULL, coxph_control = NULL) {
+			cox_partial_likelihood_fit_estimate_only_fast(X, surv_y, strata = strata, rownames = rownames, coxph_control = coxph_control)
+		}
+	)
+)
+
 #' Stratified Cox PH Inference for Survival Responses
 #'
 #' Fits an auto-stratified Cox PH regression. Stratification variables are chosen
@@ -18,9 +134,10 @@
 #' }
 #' }
 #' @export
-InferenceSurvivalStratCoxPHRegr = R6::R6Class("InferenceSurvivalStratCoxPHRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
+InferenceSurvivalStratCoxPHRegr = define_inference_class(
+	classname = "InferenceSurvivalStratCoxPHRegr",
+	inherit = Inference,
+	components = "StratifiedCoxPartialLikelihood",
 	public = list(
 		#' @description Initialize stratified Cox proportional-hazards inference and
 		#'   prepare the partial-likelihood fit used by
@@ -41,6 +158,50 @@ InferenceSurvivalStratCoxPHRegr = R6::R6Class("InferenceSurvivalStratCoxPHRegr",
 			self$set_optimization_alg(optimization_alg, allow_irls = FALSE)
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			private$use_rcpp = use_rcpp
+		},
+		#' @description Computes an asymptotic confidence interval using the configured likelihood-backed test.
+		#' @param alpha Significance level 1 - \code{alpha}. Default 0.05.
+		compute_asymp_confidence_interval = function(alpha = 0.05){
+			if (private$testing_type == "wald") {
+				private$shared(estimate_only = FALSE)
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
+				}
+			}
+			if (should_run_asserts()) {
+				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+			}
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_confidence_interval_impl(alpha),
+				score = private$compute_score_confidence_interval_impl(alpha),
+				gradient = private$compute_gradient_confidence_interval_impl(alpha),
+				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
+			)
+		},
+		#' @description Computes an asymptotic two-sided p-value using the configured likelihood-backed test.
+		#' @param delta Null treatment effect to test against. Default 0.
+		compute_asymp_two_sided_pval = function(delta = 0){
+			if (private$testing_type == "wald") {
+				private$shared(estimate_only = FALSE)
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
+				}
+			}
+			if (should_run_asserts()) {
+				assertNumeric(delta)
+			}
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_two_sided_pval_impl(delta),
+				score = private$compute_score_two_sided_pval_impl(delta),
+				gradient = private$compute_gradient_two_sided_pval_impl(delta),
+				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
+			)
 		},
 		#' @description Recomputes the stratified Cox PH treatment estimate under
 		#'   Bayesian-bootstrap weights.
@@ -225,59 +386,16 @@ InferenceSurvivalStratCoxPHRegr = R6::R6Class("InferenceSurvivalStratCoxPHRegr",
 			)
 		},
 		compute_strata_info = function(X_full) {
-			n = length(private$y)
-			if (is.null(X_full) || ncol(X_full) == 0){
-				return(list(strata_id = rep.int(1L, n), selected_cols = integer(0), num_strata = 1L))
-			}
-			info = tryCatch(
-				compute_survival_strata_ids_cpp(as.matrix(X_full)),
-				error = function(e) NULL
-			)
-			if (is.null(info)){
-				return(list(strata_id = rep.int(1L, n), selected_cols = integer(0), num_strata = 1L))
-			}
-			list(
-				strata_id = as.integer(info$strata_id),
-				selected_cols = as.integer(info$selected_cols),
-				num_strata = as.integer(info$num_strata)
-			)
+			cox_partial_likelihood_strata_info(X_full, length(private$y))
 		},
 		reduce_covariates_preserving_treatment = function(X_covars){
-			if (is.null(X_covars) || ncol(X_covars) == 0){
-				return(matrix(numeric(0), nrow = length(private$y), ncol = 0))
-			}
-			X_covars = as.matrix(X_covars)
-			if (ncol(X_covars) == 0){
-				return(matrix(numeric(0), nrow = nrow(X_covars), ncol = 0))
-			}
-			full_design = cbind(w = private$w, X_covars)
-			reduced = drop_linearly_dependent_cols(full_design)
-			X_keep = reduced$M
-			if (ncol(X_keep) == 0){
-				return(matrix(numeric(0), nrow = nrow(full_design), ncol = 0))
-			}
-			if (!("w" %in% colnames(X_keep))){
-				return(matrix(numeric(0), nrow = nrow(full_design), ncol = 0))
-			}
-			X_keep[, colnames(X_keep) != "w", drop = FALSE]
+			cox_partial_likelihood_reduce_covariates(private$w, private$y, X_covars)
 		},
 		get_informative_rows = function(strata_id){
-			if (length(strata_id) != length(private$y)) return(integer(0))
-			good = rep(FALSE, length(strata_id))
-			for (s in unique(strata_id)){
-				i_s = which(strata_id == s)
-				if (length(i_s) < 2) next
-				if (length(unique(private$w[i_s])) < 2) next
-				if (!any(private$dead[i_s] == 1, na.rm = TRUE)) next
-				good[i_s] = TRUE
-			}
-			which(good)
+			cox_partial_likelihood_informative_rows(strata_id, private$y, private$dead, private$w)
 		},
 		fit_cox_with_formula = function(dat, formula_str){
-			tryCatch(
-				suppressWarnings(survival::coxph(stats::as.formula(formula_str), data = dat)),
-				error = function(e) NULL
-			)
+			cox_partial_likelihood_fit_with_formula(dat, formula_str)
 		},
 		format_mod_output = function(mod){
 			if (is.null(mod)){
@@ -317,30 +435,13 @@ InferenceSurvivalStratCoxPHRegr = R6::R6Class("InferenceSurvivalStratCoxPHRegr",
 			if (is.null(private$coxph_control)) {
 				private$coxph_control = survival::coxph.control()
 			}
-			fit = tryCatch(
-				survival::coxph.fit(
-					x = X,
-					y = surv_y,
-					strata = if (is.null(strata)) NULL else as.integer(strata),
-					offset = NULL,
-					init = NULL,
-					control = private$coxph_control,
-					weights = NULL,
-					method = "breslow",
-					rownames = rownames %||% as.character(seq_len(nrow(X))),
-					resid = FALSE
-				),
-				error = function(e) NULL
+			cox_partial_likelihood_fit_estimate_only_fast(
+				X,
+				surv_y,
+				strata = strata,
+				rownames = rownames,
+				coxph_control = private$coxph_control
 			)
-			if (is.null(fit)) return(NULL)
-			b = as.numeric(fit$coefficients %||% numeric(0))
-			if (length(b) != ncol(X) || !all(is.finite(b))) return(NULL)
-			names(b) = colnames(X)
-			list(b = b, coefficients = b, vcov = NULL, var = NULL,
-				neg_ll = -as.numeric(utils::tail(fit$loglik, 1L)), 
-				neg_loglik = -as.numeric(utils::tail(fit$loglik, 1L)), 
-				neg_log_lik = -as.numeric(utils::tail(fit$loglik, 1L)),
-				fisher_information = NULL, converged = TRUE)
 		},
 		fit_rcpp_stratified = function(rows, X_linear, strata_id, estimate_only = FALSE){
 			inp  = private$build_rcpp_inputs(rows, X_linear)
@@ -682,5 +783,35 @@ InferenceSurvivalStratCoxPHRegr = R6::R6Class("InferenceSurvivalStratCoxPHRegr",
 			}
 			list(b = c(NA_real_, NA_real_), ssq_b_2 = NA_real_, neg_log_lik = NA_real_)
 		}
+	),
+	metadata = list(likelihood_tier = "partial"),
+	overrides = list(
+		public = c(
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"get_supported_testing_types"
+		),
+		private = c(
+			"shared",
+			"cached_mod",
+			"supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap",
+			"simulate_under_lik_null",
+			"get_likelihood_test_spec",
+			"generate_mod",
+			"get_complexity_tier",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval",
+			"compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl",
+			"compute_lik_ratio_two_sided_pval_impl",
+			"get_supported_testing_types_impl"
+		)
 	)
 )

@@ -684,80 +684,80 @@ keeps or drops.
 
 ##### Exact Class Migration
 
-- [ ] Add a temporary test-only legacy definition for
+- [x] Add a temporary test-only legacy definition for
   `InferenceIncidExactBinomialLegacy` and compare it with the migrated
   `InferenceIncidExactBinomial`.
-- [ ] Migrate `InferenceIncidExactBinomial` to `Inference` plus `ExactTest` and
+- [x] Migrate `InferenceIncidExactBinomial` to `Inference` plus `ExactTest` and
   `ExactBinomialIncidence`.
-- [ ] Preserve or intentionally remove inherited bootstrap, randomization,
+- [x] Preserve or intentionally remove inherited bootstrap, randomization,
   Bayesian-bootstrap, and jackknife APIs on `InferenceIncidExactBinomial`
   according to the exact capability manifest.
-- [ ] Add golden tests for binomial exact estimate, exact p-value, exact CI, and
+- [x] Add golden tests for binomial exact estimate, exact p-value, exact CI, and
   any retained optional methods.
-- [ ] Mark `InferenceIncidExactBinomial` migrated after golden tests and method
+- [x] Mark `InferenceIncidExactBinomial` migrated after golden tests and method
   snapshots pass.
-- [ ] Add a temporary test-only legacy definition for
+- [x] Add a temporary test-only legacy definition for
   `InferenceIncidExactFisherLegacy` and compare it with the migrated
   `InferenceIncidExactFisher`.
-- [ ] Migrate `InferenceIncidExactFisher` to `Inference` plus `ExactTest` and
+- [x] Migrate `InferenceIncidExactFisher` to `Inference` plus `ExactTest` and
   `ExactFisherIncidence`.
-- [ ] Preserve or intentionally remove inherited bootstrap, randomization,
+- [x] Preserve or intentionally remove inherited bootstrap, randomization,
   Bayesian-bootstrap, and jackknife APIs on `InferenceIncidExactFisher`
   according to the exact capability manifest.
-- [ ] Add golden tests for Fisher exact estimate, exact p-value, exact CI, and
+- [x] Add golden tests for Fisher exact estimate, exact p-value, exact CI, and
   any retained optional methods across iBCRD, blocking, and matching fixtures.
-- [ ] Mark `InferenceIncidExactFisher` migrated after golden tests and method
+- [x] Mark `InferenceIncidExactFisher` migrated after golden tests and method
   snapshots pass.
-- [ ] Add a temporary test-only legacy definition for
+- [x] Add a temporary test-only legacy definition for
   `InferenceIncidenceExactZhangLegacy` and compare it with the migrated
   `InferenceIncidenceExactZhang`.
-- [ ] Migrate `InferenceIncidenceExactZhang` to `Inference` plus `ExactTest` and
+- [x] Migrate `InferenceIncidenceExactZhang` to `Inference` plus `ExactTest` and
   `ExactZhangIncidence`.
-- [ ] Preserve or intentionally remove inherited bootstrap, randomization,
+- [x] Preserve or intentionally remove inherited bootstrap, randomization,
   Bayesian-bootstrap, and jackknife APIs on `InferenceIncidenceExactZhang`
   according to the exact capability manifest.
-- [ ] Add golden tests for Zhang estimate, exact p-value, exact CI, and any
+- [x] Add golden tests for Zhang estimate, exact p-value, exact CI, and any
   retained optional methods on Bernoulli and matching-capable incidence
   fixtures.
-- [ ] Mark `InferenceIncidenceExactZhang` migrated after golden tests and method
+- [x] Mark `InferenceIncidenceExactZhang` migrated after golden tests and method
   snapshots pass.
 
 ##### Simple Estimator Migration
 
-- [ ] Identify simple mean-difference no-likelihood classes and record their
+- [x] Identify simple mean-difference no-likelihood classes and record their
   current direct parent, effective components, public methods, and private-state
   owners.
-- [ ] Identify Wilcoxon/rank no-likelihood classes and record their current
+- [x] Identify Wilcoxon/rank no-likelihood classes and record their current
   direct parent, effective components, public methods, and private-state owners.
-- [ ] Decide whether each simple estimator keeps randomization, randomization
+- [x] Decide whether each simple estimator keeps randomization, randomization
   CI, nonparametric bootstrap, randomization bootstrap, Bayesian bootstrap, and
   jackknife APIs.
-- [ ] Migrate one simple mean-difference class to `Inference` plus only the
+- [x] Migrate one simple mean-difference class to `Inference` plus only the
   components that match its retained capabilities.
-- [ ] Add golden tests for estimate, randomization, bootstrap, Bayesian
+- [x] Add golden tests for estimate, randomization, bootstrap, Bayesian
   bootstrap, and jackknife outputs for that first simple mean-difference class.
-- [ ] Repeat the simple mean-difference migration class by class, using the
+- [x] Repeat the simple mean-difference migration class by class, using the
   migration-order helper so leaf classes move before concrete parents.
-- [ ] Migrate one Wilcoxon/rank class to `Inference` plus only the components
+- [x] Migrate one Wilcoxon/rank class to `Inference` plus only the components
   that match its retained capabilities.
-- [ ] Add golden tests for estimate, randomization, bootstrap, Bayesian
+- [x] Add golden tests for estimate, randomization, bootstrap, Bayesian
   bootstrap, and jackknife outputs for that first Wilcoxon/rank class.
-- [ ] Repeat the Wilcoxon/rank migration class by class, using the
+- [x] Repeat the Wilcoxon/rank migration class by class, using the
   migration-order helper so leaf classes move before concrete parents.
 
 ##### No-Likelihood Migration Marking
 
-- [ ] Require every no-likelihood migration PR to include before/after manifest
+- [x] Require every no-likelihood migration PR to include before/after manifest
   counts by no-likelihood group.
-- [ ] Require every no-likelihood migration PR to list newly migrated classes and
+- [x] Require every no-likelihood migration PR to list newly migrated classes and
   the optional methods intentionally kept or dropped for each class.
-- [ ] Require `mark_inference_class_migrated()` to pass for each newly migrated
+- [x] Require `mark_inference_class_migrated()` to pass for each newly migrated
   no-likelihood class before checking off its class-specific migration TODO.
-- [ ] Require golden output comparison to pass before marking any no-likelihood
+- [x] Require golden output comparison to pass before marking any no-likelihood
   class `migrated`.
-- [ ] Require method-availability snapshots to pass before marking any
+- [x] Require method-availability snapshots to pass before marking any
   no-likelihood class `migrated`.
-- [ ] Require private-state owner snapshots to pass before marking any
+- [x] Require private-state owner snapshots to pass before marking any
   no-likelihood class `migrated`.
 - [ ] After all no-likelihood classes are migrated, delete no-longer-used
   algorithmic bases in this family and remove them from
@@ -765,54 +765,54 @@ keeps or drops.
 
 #### Quasi And Robust Estimators
 
-- [ ] Identify all `likelihood_tier = "quasi"` concrete classes and verify
+- [x] Identify all `likelihood_tier = "quasi"` concrete classes and verify
   whether each uses GEE, robust/sandwich, quasi-likelihood, or composite
   likelihood behavior.
-- [ ] Extract `RobustSandwich` from robust regression and modified Poisson paths.
-- [ ] Extract `CompositeLikelihoodTests` if composite likelihood needs public
+- [x] Extract `RobustSandwich` from robust regression and modified Poisson paths.
+- [x] Extract `CompositeLikelihoodTests` if composite likelihood needs public
   APIs distinct from normalized likelihood tests.
-- [ ] Migrate `KKGEE` users to `Inference` plus `KKGEE` and required estimator
+- [x] Migrate `KKGEE` users to `Inference` plus `KKGEE` and required estimator
   components after host requirements are fully declared.
-- [ ] Migrate count quasi-Poisson and robust Poisson classes to `Inference` plus
-  `CountLikelihoodPlumbing` and quasi-specific components.
-- [ ] Ensure quasi classes do not expose normalized likelihood-ratio capability
+- [x] Migrate count quasi-Poisson and robust Poisson classes to `Inference` plus
+  `CountCompositeLikelihood` and quasi-specific components.
+- [x] Ensure quasi classes do not expose normalized likelihood-ratio capability
   unless represented by `estimating_equation_likelihood_ratio`.
-- [ ] Mark migrated quasi/robust classes only after estimate, SE, CI, p-value,
+- [x] Mark migrated quasi/robust classes only after estimate, SE, CI, p-value,
   and method-availability snapshots match.
 
 #### Partial-Likelihood Estimators
 
-- [ ] Identify all `likelihood_tier = "partial"` concrete classes.
-- [ ] Extract Cox/stratified-Cox shared behavior from
+- [x] Identify all `likelihood_tier = "partial"` concrete classes.
+- [x] Extract Cox/stratified-Cox shared behavior from
   `InferenceAsympLikStdModCache`.
-- [ ] Extract conditional-logit shared behavior from current conditional
+- [x] Extract conditional-logit shared behavior from current conditional
   incidence and ordinal classes.
-- [ ] Extract LWA Cox and survival rank-regression shared behavior before moving
+- [x] Extract LWA Cox and survival rank-regression shared behavior before moving
   their concrete classes.
-- [ ] Migrate non-KK partial-likelihood classes to `Inference` plus
+- [x] Migrate non-KK partial-likelihood classes to `Inference` plus
   `LikelihoodTests`, `StandardModelCache`, and family-specific components.
 - [ ] Migrate KK partial-likelihood classes only after `KKPassThrough` and
   `KKCompound` host contracts pass collision and dependency validation.
-- [ ] Verify partial-likelihood classes do not gain
+- [x] Verify partial-likelihood classes do not gain
   `parametric_likelihood_bootstrap` unless they provide a null simulator.
 
 #### Full-Likelihood Estimators
 
-- [ ] Identify all `likelihood_tier = "full"` concrete classes and split them by
+- [x] Identify all `likelihood_tier = "full"` concrete classes and split them by
   GLM, count, ordinal, incidence, proportion, survival, and KK/IVWC families.
-- [ ] Extract GLM-family standard-model-cache behavior that is currently shared
+- [x] Extract GLM-family standard-model-cache behavior that is currently shared
   through `InferenceAsympLikStdModCache`.
-- [ ] Extract count likelihood family behavior that is currently shared through
+- [x] Extract count likelihood family behavior that is currently shared through
   `InferenceCountLikelihood`, `InferenceCountLikelihoodNoParamBootstrap`, and
   `InferenceCountCompositeLikelihood`.
-- [ ] Extract zero-augmented count behavior from
+- [x] Extract zero-augmented count behavior from
   `InferenceCountZeroAugmentedPoissonAbstract`.
-- [ ] Extract ordinal likelihood behavior for proportional odds, adjacent
+- [x] Extract ordinal likelihood behavior for proportional odds, adjacent
   category, cloglog, cauchit, stereotype, continuation-ratio, and ordered probit
   paths.
-- [ ] Extract incidence likelihood behavior for logit, probit, log-binomial,
+- [x] Extract incidence likelihood behavior for logit, probit, log-binomial,
   modified Poisson, binomial identity, and g-computation paths.
-- [ ] Extract survival likelihood behavior for Weibull, dependent-censoring
+- [x] Extract survival likelihood behavior for Weibull, dependent-censoring
   transform, Clayton copula, and frailty paths.
 - [ ] Migrate full-likelihood classes to `Inference` plus
   `LikelihoodTests`, `StandardModelCache`, `ParametricLikelihoodBootstrap` when

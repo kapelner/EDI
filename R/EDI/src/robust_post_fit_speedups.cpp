@@ -4,6 +4,7 @@
 #else
 // [[Rcpp::depends(RcppEigen)]]
 #include "_helper_functions.h"
+#include "result_map_rcpp.h"
 #endif
 #include <limits>
 #include <unordered_map>
@@ -134,18 +135,17 @@ SummarizeWithVcovResult ols_hc2_post_fit_result(const Eigen::Ref<const Eigen::Ma
 #ifndef EDI_CORE_ONLY
 namespace {
 
-List summarize_with_vcov(const Eigen::VectorXd& coef_hat,
-                         const Eigen::MatrixXd& vcov,
-                         int j_treat) {
+edi::ResultMap summarize_with_vcov(const Eigen::VectorXd& coef_hat,
+                                   const Eigen::MatrixXd& vcov,
+                                   int j_treat) {
   SummarizeWithVcovResult res = summarize_with_vcov_result(coef_hat, vcov, j_treat);
-  return List::create(
-    _["beta_hat"] = res.beta_hat,
-    _["ssq_hat"] = res.ssq_hat,
-    _["se"] = res.se,
-    _["vcov"] = res.vcov,
-    _["std_err"] = res.std_err,
-    _["z_vals"] = res.z_vals
-  );
+  return edi::ResultMap()
+    .set("beta_hat", res.beta_hat)
+    .set("ssq_hat", res.ssq_hat)
+    .set("se", res.se)
+    .set("vcov", res.vcov)
+    .set("std_err", res.std_err)
+    .set("z_vals", res.z_vals);
 }
 
 Eigen::MatrixXd cluster_meat(const Eigen::MatrixXd& X_fit,
@@ -185,9 +185,9 @@ Eigen::MatrixXd cluster_meat(const Eigen::MatrixXd& X_fit,
 }  // namespace
 
 // [[Rcpp::export]]
-List ols_hc2_setup_cpp(SEXP X_fit_sexp) {
-  Rcpp::NumericMatrix X_fit_r(X_fit_sexp);
-  Eigen::Map<const Eigen::MatrixXd> X_fit(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
+List ols_hc2_setup_cpp( const Eigen::Map<Eigen::MatrixXd>& X_fit) {
+
+  
   const int n = X_fit.rows();
   const int p = X_fit.cols();
   if (!all_finite_mat(X_fit)) {
@@ -206,39 +206,35 @@ List ols_hc2_setup_cpp(SEXP X_fit_sexp) {
 
   const Eigen::VectorXd hat = (X_fit * bread).cwiseProduct(X_fit).rowwise().sum();
 
-  return List::create(
-    _["bread"] = bread,
-    _["hat"] = hat
-  );
+  return edi::to_rcpp_list(edi::ResultMap()
+    .set("bread", bread)
+    .set("hat", hat));
 }
 
 // [[Rcpp::export]]
-List ols_hc2_post_fit_precomputed_cpp(SEXP X_fit_sexp,
-                                      SEXP y_sexp,
-                                      SEXP coef_hat_sexp,
-                                      SEXP bread_sexp,
-                                      SEXP hat_sexp,
-                                      int j_treat) {
-  Rcpp::NumericMatrix X_fit_r(X_fit_sexp);
-  Rcpp::NumericVector y_r(y_sexp);
-  Rcpp::NumericVector coef_hat_r(coef_hat_sexp);
-  Rcpp::NumericMatrix bread_r(bread_sexp);
-  Rcpp::NumericVector hat_r(hat_sexp);
-  Eigen::Map<const Eigen::MatrixXd> X_fit(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
-  Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-  Eigen::Map<const Eigen::VectorXd> coef_hat(coef_hat_r.begin(), coef_hat_r.size());
-  Eigen::Map<const Eigen::MatrixXd> bread(bread_r.begin(), bread_r.nrow(), bread_r.ncol());
-  Eigen::Map<const Eigen::VectorXd> hat(hat_r.begin(), hat_r.size());
+List ols_hc2_post_fit_precomputed_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, const Eigen::Map<Eigen::VectorXd>& coef_hat, const Eigen::Map<Eigen::MatrixXd>& bread, const Eigen::Map<Eigen::VectorXd>& hat, int j_treat) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+  
+
+  
+
+  
+
+  
+
+  
   const int n = X_fit.rows();
   const int p = X_fit.cols();
-  if (y.size() != n || coef_hat.size() != p || bread.rows() != p || bread.cols() != p || hat.size() != n) {
+  if (y_vec_coerced.size() != n || coef_hat.size() != p || bread.rows() != p || bread.cols() != p || hat.size() != n) {
     stop("dimension mismatch in ols_hc2_post_fit_precomputed_cpp");
   }
   if (!all_finite_vec(coef_hat) || !all_finite_mat(bread) || !all_finite_vec(hat)) {
     stop("non-finite inputs");
   }
 
-  const Eigen::VectorXd resid = y - X_fit * coef_hat;
+  const Eigen::VectorXd resid = y_vec_coerced - X_fit * coef_hat;
   if (!all_finite_vec(resid)) {
     stop("non-finite residuals");
   }
@@ -251,20 +247,19 @@ List ols_hc2_post_fit_precomputed_cpp(SEXP X_fit_sexp,
   Eigen::MatrixXd meat = weighted_crossprod(X_fit, omega);
   Eigen::MatrixXd vcov = bread * meat * bread;
   vcov = 0.5 * (vcov + vcov.transpose());
-  return summarize_with_vcov(coef_hat, vcov, j_treat);
+  return edi::to_rcpp_list(summarize_with_vcov(coef_hat, vcov, j_treat));
 }
 
 // [[Rcpp::export]]
-List ols_hc2_post_fit_cpp(SEXP X_fit,
-                          SEXP y,
-                          SEXP coef_hat,
-                          int j_treat) {
-  Rcpp::NumericMatrix X_fit_r(X_fit);
-  Rcpp::NumericVector y_r(y);
-  Rcpp::NumericVector coef_hat_r(coef_hat);
-  Eigen::Map<const Eigen::MatrixXd> X_fit_mat(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
-  Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
-  Eigen::Map<const Eigen::VectorXd> coef_hat_vec(coef_hat_r.begin(), coef_hat_r.size());
+List ols_hc2_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, const Eigen::Map<Eigen::VectorXd>& coef_hat, int j_treat) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+  
+
+  
+
+  
   List setup = ols_hc2_setup_cpp(X_fit);
   return ols_hc2_post_fit_precomputed_cpp(
     X_fit,
@@ -277,25 +272,22 @@ List ols_hc2_post_fit_cpp(SEXP X_fit,
 }
 
 // [[Rcpp::export]]
-List glm_sandwich_post_fit_cpp(SEXP X_fit_sexp,
-                               SEXP y_sexp,
-                               SEXP coef_hat_sexp,
-                               SEXP mu_hat_sexp,
-                               SEXP working_weights_sexp,
-                               int j_treat) {
-  Rcpp::NumericMatrix X_fit_r(X_fit_sexp);
-  Rcpp::NumericVector y_r(y_sexp);
-  Rcpp::NumericVector coef_hat_r(coef_hat_sexp);
-  Rcpp::NumericVector mu_hat_r(mu_hat_sexp);
-  Rcpp::NumericVector working_weights_r(working_weights_sexp);
-  Eigen::Map<const Eigen::MatrixXd> X_fit(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
-  Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-  Eigen::Map<const Eigen::VectorXd> coef_hat(coef_hat_r.begin(), coef_hat_r.size());
-  Eigen::Map<const Eigen::VectorXd> mu_hat(mu_hat_r.begin(), mu_hat_r.size());
-  Eigen::Map<const Eigen::VectorXd> working_weights(working_weights_r.begin(), working_weights_r.size());
+List glm_sandwich_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, const Eigen::Map<Eigen::VectorXd>& coef_hat, const Eigen::Map<Eigen::VectorXd>& mu_hat, const Eigen::Map<Eigen::VectorXd>& working_weights, int j_treat) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+  
+
+  
+
+  
+
+  
+
+  
   const int n = X_fit.rows();
   const int p = X_fit.cols();
-  if (y.size() != n || coef_hat.size() != p || mu_hat.size() != n || working_weights.size() != n) {
+  if (y_vec_coerced.size() != n || coef_hat.size() != p || mu_hat.size() != n || working_weights.size() != n) {
     stop("dimension mismatch in glm_sandwich_post_fit_cpp");
   }
   if (!all_finite_vec(coef_hat) || !all_finite_vec(mu_hat) || !all_finite_vec(working_weights)) {
@@ -318,35 +310,31 @@ List glm_sandwich_post_fit_cpp(SEXP X_fit_sexp,
     stop("failed to invert X'WX");
   }
 
-  const Eigen::VectorXd resid = y - mu_hat;
+  const Eigen::VectorXd resid = y_vec_coerced - mu_hat;
   const Eigen::VectorXd resid_sq = resid.array().square().matrix();
   Eigen::MatrixXd meat = weighted_crossprod(X_fit, resid_sq);
   Eigen::MatrixXd vcov = bread * meat * bread;
   vcov = 0.5 * (vcov + vcov.transpose());
-  return summarize_with_vcov(coef_hat, vcov, j_treat);
+  return edi::to_rcpp_list(summarize_with_vcov(coef_hat, vcov, j_treat));
 }
 
 // [[Rcpp::export]]
-List glm_cluster_sandwich_post_fit_cpp(SEXP X_fit_sexp,
-                                       SEXP y_sexp,
-                                       SEXP coef_hat_sexp,
-                                       SEXP mu_hat_sexp,
-                                       SEXP working_weights_sexp,
-                                       const IntegerVector& cluster_id,
-                                       int j_treat) {
-  Rcpp::NumericMatrix X_fit_r(X_fit_sexp);
-  Rcpp::NumericVector y_r(y_sexp);
-  Rcpp::NumericVector coef_hat_r(coef_hat_sexp);
-  Rcpp::NumericVector mu_hat_r(mu_hat_sexp);
-  Rcpp::NumericVector working_weights_r(working_weights_sexp);
-  Eigen::Map<const Eigen::MatrixXd> X_fit(X_fit_r.begin(), X_fit_r.nrow(), X_fit_r.ncol());
-  Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-  Eigen::Map<const Eigen::VectorXd> coef_hat(coef_hat_r.begin(), coef_hat_r.size());
-  Eigen::Map<const Eigen::VectorXd> mu_hat(mu_hat_r.begin(), mu_hat_r.size());
-  Eigen::Map<const Eigen::VectorXd> working_weights(working_weights_r.begin(), working_weights_r.size());
+List glm_cluster_sandwich_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, const Eigen::Map<Eigen::VectorXd>& coef_hat, const Eigen::Map<Eigen::VectorXd>& mu_hat, const Eigen::Map<Eigen::VectorXd>& working_weights, const IntegerVector& cluster_id, int j_treat) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+  
+
+  
+
+  
+
+  
+
+  
   const int n = X_fit.rows();
   const int p = X_fit.cols();
-  if (y.size() != n || coef_hat.size() != p || mu_hat.size() != n || working_weights.size() != n) {
+  if (y_vec_coerced.size() != n || coef_hat.size() != p || mu_hat.size() != n || working_weights.size() != n) {
     stop("dimension mismatch in glm_cluster_sandwich_post_fit_cpp");
   }
   if (!all_finite_vec(coef_hat) || !all_finite_vec(mu_hat) || !all_finite_vec(working_weights)) {
@@ -369,10 +357,10 @@ List glm_cluster_sandwich_post_fit_cpp(SEXP X_fit_sexp,
     stop("failed to invert X'WX");
   }
 
-  const Eigen::VectorXd resid = y - mu_hat;
+  const Eigen::VectorXd resid = y_vec_coerced - mu_hat;
   Eigen::MatrixXd meat = cluster_meat(X_fit, resid, cluster_id);
   Eigen::MatrixXd vcov = bread * meat * bread;
   vcov = 0.5 * (vcov + vcov.transpose());
-  return summarize_with_vcov(coef_hat, vcov, j_treat);
+  return edi::to_rcpp_list(summarize_with_vcov(coef_hat, vcov, j_treat));
 }
 #endif // EDI_CORE_ONLY

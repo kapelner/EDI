@@ -475,39 +475,37 @@ LikelihoodFitResult fast_zero_one_inflated_beta_internal(
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-SEXP get_zero_one_inflated_beta_score_cpp(SEXP X_sexp,
-                                         SEXP X_zero_one_sexp,
-                                         SEXP y_sexp,
-                                         SEXP params_sexp){
-	NumericMatrix X_mat(X_sexp);
-	NumericMatrix X_zero_one_mat(X_zero_one_sexp);
-	NumericVector y_vec(y_sexp);
-	NumericVector params_vec(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::MatrixXd> X_zero_one(X_zero_one_mat.begin(), X_zero_one_mat.nrow(), X_zero_one_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_vec.begin(), params_vec.size());
-	ZeroOneInflatedBeta fun(y, X, X_zero_one);
+Eigen::VectorXd get_zero_one_inflated_beta_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen::MatrixXd>& X_zero_one, SEXP y, const Eigen::Map<Eigen::VectorXd>& params){
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+	
+
+	
+
+	
+
+	
+	ZeroOneInflatedBeta fun(y_vec_coerced, X, X_zero_one);
 	Eigen::VectorXd grad(params.size());
 	fun(params, grad);
-	return wrap(-grad);
+	return -grad;
 }
 
 // [[Rcpp::export]]
-SEXP get_zero_one_inflated_beta_hessian_cpp(SEXP X_sexp,
-                                           SEXP X_zero_one_sexp,
-                                           SEXP y_sexp,
-                                           SEXP params_sexp){
-	NumericMatrix X_mat(X_sexp);
-	NumericMatrix X_zero_one_mat(X_zero_one_sexp);
-	NumericVector y_vec(y_sexp);
-	NumericVector params_vec(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::MatrixXd> X_zero_one(X_zero_one_mat.begin(), X_zero_one_mat.nrow(), X_zero_one_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_vec.begin(), params_vec.size());
-	ZeroOneInflatedBeta fun(y, X, X_zero_one);
-	return wrap(-fun.hessian(params));
+Eigen::MatrixXd get_zero_one_inflated_beta_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen::MatrixXd>& X_zero_one, SEXP y, const Eigen::Map<Eigen::VectorXd>& params){
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+	
+
+	
+
+	
+
+	
+	ZeroOneInflatedBeta fun(y_vec_coerced, X, X_zero_one);
+	return -fun.hessian(params);
 }
 
 //' @title Fast Zero/One-Inflated Beta Regression (C++)
@@ -526,29 +524,21 @@ SEXP get_zero_one_inflated_beta_hessian_cpp(SEXP X_sexp,
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_zero_one_inflated_beta_cpp(SEXP X,
-									 SEXP X_zero_one,
-									 SEXP y,
-									 Nullable<NumericVector> warm_start_params = R_NilValue,
-									 bool smart_cold_start = true,
-									 Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-									 Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-									 std::string optimization_alg = "lbfgs",
-									 Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
-									 bool estimate_only = false){
+List fast_zero_one_inflated_beta_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen::MatrixXd>& X_zero_one, SEXP y, Nullable<NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = true, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, bool estimate_only = false){
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-    NumericMatrix X_r(X);
-    NumericMatrix X_zero_one_r(X_zero_one);
-    NumericVector y_r(y);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::MatrixXd> X_zero_one_mat(X_zero_one_r.begin(), X_zero_one_r.nrow(), X_zero_one_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y_eigen(y_r.begin(), y_r.size());
 
-	int p = X_mat.cols();
-	int p_zero_one = X_zero_one_mat.cols();
+    
+
+    
+
+    
+
+	int p = X.cols();
+	int p_zero_one = X_zero_one.cols();
 
 	LikelihoodFitResult fit = fast_zero_one_inflated_beta_internal(
-		X_mat, X_zero_one_mat, y_eigen,
+		X, X_zero_one, y_vec_coerced,
 		nullable_to_optional<Eigen::VectorXd>(warm_start_params),
 		smart_cold_start,
 		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -572,7 +562,7 @@ List fast_zero_one_inflated_beta_cpp(SEXP X,
 		params.size(),
 		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
 		nullable_to_optional<Eigen::VectorXd>(fixed_values));
-	ZeroOneInflatedBeta fun(y_eigen, X_mat, X_zero_one_mat);
+	ZeroOneInflatedBeta fun(y_vec_coerced, X, X_zero_one);
 	Eigen::MatrixXd observed_information = fun.hessian(params);
 
 	int dim = params.size();

@@ -1224,7 +1224,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				des_priv$n = length(indices)
 				des_priv$w = w_priv$w
 				des_priv$y = w_priv$y
-				des_priv$dead = w_priv$dead
+				if (!is.null(w_priv$dead) || exists("dead", envir = des_priv, inherits = FALSE)) {
+					des_priv$dead = w_priv$dead
+				}
 				if (!is.null(worker_state$base_m)) des_priv$m = w_priv$m
 				
 				# Subset Xraw, Ximp, and y_i_t_i in the worker's design

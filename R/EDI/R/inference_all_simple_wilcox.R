@@ -18,9 +18,7 @@
 #' seq_des_inf$compute_estimate()
 #' }
 #' @export
-InferenceAllSimpleWilcox = R6::R6Class("InferenceAllSimpleWilcox",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
+SimpleWilcoxSource = list(
 	public = list(
 		#' @description Initialize simple Wilcoxon inference and prepare the
 		#'   rank-based treatment statistic used by
@@ -67,40 +65,6 @@ InferenceAllSimpleWilcox = R6::R6Class("InferenceAllSimpleWilcox",
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
-			private$cached_values$beta_hat_T
-		},
-		#' @description Computes the weighted Hodges-Lehmann style bootstrap estimate.
-		#' @param subject_or_block_weights Bootstrap weights at the subject/block level.
-		#' @param estimate_only If TRUE, skip variance calculations.
-		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
-			beta = private$hl_point_estimate(private$y, private$w, row_weights)
-			private$cached_values$beta_hat_T = beta
-			if (!estimate_only) {
-				y_vals = as.numeric(private$y); w_vals = as.integer(private$w); rw = as.numeric(row_weights)
-				i_t = which(w_vals == 1L & is.finite(y_vals) & is.finite(rw) & rw > 0)
-				i_c = which(w_vals == 0L & is.finite(y_vals) & is.finite(rw) & rw > 0)
-				se = NA_real_
-				if (length(i_t) >= 2L && length(i_c) >= 2L) {
-					diffs = as.numeric(outer(y_vals[i_t], y_vals[i_c], "-"))
-					wdiff = as.numeric(outer(rw[i_t], rw[i_c], "*"))
-					ok = is.finite(diffs) & is.finite(wdiff) & wdiff > 0
-					if (any(ok)) {
-						diffs = diffs[ok]; wdiff = wdiff[ok]
-						o = order(diffs); diffs = diffs[o]; wdiff = wdiff[o]
-						cw = cumsum(wdiff) / sum(wdiff)
-						q025 = diffs[which(cw >= 0.025)[1L]]
-						q975 = diffs[which(cw >= 0.975)[1L]]
-						if (is.finite(q025) && is.finite(q975) && q975 > q025)
-							se = (q975 - q025) / (2 * 1.96)
-					}
-				}
-				private$cached_values$s_beta_hat_T = if (is.finite(se) && se > 0) se else NA_real_
-				private$cached_values$df = NA_real_
-			} else {
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$df = NA_real_
-			}
 			private$cached_values$beta_hat_T
 		},
 		#' @description Wilcoxon rank-sum test p-value (not Wald). For delta != 0 shifts
@@ -333,5 +297,49 @@ InferenceAllSimpleWilcox = R6::R6Class("InferenceAllSimpleWilcox",
 		get_likelihood_test_spec = function(){
 			NULL
 		}
+	)
+)
+
+InferenceAllSimpleWilcox = define_inference_class(
+	classname = "InferenceAllSimpleWilcox",
+	inherit = Inference,
+	components = c("RandomizationBootstrap", "Wald", "SimpleWilcox"),
+	public = list(
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_jackknife_estimate",
+			"compute_jackknife_bias_estimate",
+			"compute_jackknife_std_error",
+			"compute_jackknife_wald_two_sided_pval",
+			"compute_jackknife_wald_confidence_interval"
+		),
+		private = c(
+			"compute_fast_rand_bootstrap_distr",
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"compute_fast_bootstrap_distr",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"compute_fast_randomization_distr",
+			"shared",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_likelihood_tests",
+			"get_supported_testing_types_impl",
+			"simulate_under_lik_null",
+			"get_likelihood_test_spec"
+		)
 	)
 )

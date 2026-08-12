@@ -15,10 +15,11 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceOrdinalKKGEE = R6::R6Class("InferenceOrdinalKKGEE",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
-	public = utils::modifyList(InferenceMixinKKGEEShared$public, list(
+InferenceOrdinalKKGEE = define_inference_class(
+	classname = "InferenceOrdinalKKGEE",
+	inherit = Inference,
+	components = "KKGEE",
+	public = list(
 		#' @description Initialize KK ordinal GEE inference, validate the ordinal
 		#'   matched/reservoir design, and prepare the working estimating-equation
 		#'   model used by \code{\link[EDI:InferenceOrdinalKKGEE]{InferenceOrdinalKKGEE}}.
@@ -37,29 +38,6 @@ InferenceOrdinalKKGEE = R6::R6Class("InferenceOrdinalKKGEE",
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			private$init_kk_gee_shared(des_obj, use_rcpp = FALSE)
-		},
-		#' @description Compute the KK ordinal GEE treatment-effect estimate by
-		#'   fitting the working estimating-equation model and caching the treatment
-		#'   coefficient for related \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}
-		#'   methods.
-		#' @param estimate_only Whether to skip standard-error calculations.
-		compute_estimate = function(estimate_only = FALSE){
-			private$shared_gee_dispatch(estimate_only = estimate_only)
-			private$cached_values$beta_hat_T
-		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param alpha Confidence level.
-		compute_asymp_confidence_interval = function(alpha = 0.05){
-			private$shared_gee_dispatch(estimate_only = FALSE)
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
-		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta Null treatment effect value.
-		compute_asymp_two_sided_pval = function(delta = 0){
-			private$shared_gee_dispatch(estimate_only = FALSE)
-			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
 		#' @description Recomputes the KK ordinal GEE treatment estimate under
 		#'   Bayesian-bootstrap weights.
@@ -110,19 +88,9 @@ InferenceOrdinalKKGEE = R6::R6Class("InferenceOrdinalKKGEE",
 			private$cached_values$df = Inf
 			private$cached_values$summary_table = NULL
 			private$cached_values$beta_hat_T
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
 		}
-	)),
-	private = utils::modifyList(as.list(InferenceMixinKKGEEShared$private), list(
+	),
+	private = list(
 		gee_response_type = function() "ordinal",
 		gee_family        = function() stats::binomial(link = "logit"),
 		# Ordinal response requires ordLORgee, not geeglm.
@@ -193,7 +161,31 @@ InferenceOrdinalKKGEE = R6::R6Class("InferenceOrdinalKKGEE",
 			private$cached_values$df = Inf
 			private$cached_values$summary_table = summary(mod)$coefficients
 		}
-	))
+	),
+	metadata = list(likelihood_tier = "quasi"),
+	overrides = list(
+		public = c(
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval"
+		),
+		private = c(
+			"shared",
+			"compute_treatment_estimate_during_randomization_inference",
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"compute_wald_confidence_interval_impl",
+			"compute_wald_two_sided_pval_impl",
+			"get_complexity_tier"
+		)
+	)
 )
 #' GLMM Inference for KK Designs with Ordinal Response
 #'

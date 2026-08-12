@@ -67,8 +67,9 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-get_X'><code>Design$get_X()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X_imp'><code>Design$get_X_imp()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X_raw'><code>Design$get_X_raw()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-get_dead'><code>Design$get_dead()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_design_formula'><code>Design$get_design_formula()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-get_effective_dead'><code>Design$get_effective_dead()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-get_effective_time'><code>Design$get_effective_time()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_missingness_method'><code>Design$get_missingness_method()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_n'><code>Design$get_n()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_ordinal_levels'><code>Design$get_ordinal_levels()</code></a></li>
@@ -79,6 +80,8 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-get_t'><code>Design$get_t()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_w'><code>Design$get_w()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y'><code>Design$get_y()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>

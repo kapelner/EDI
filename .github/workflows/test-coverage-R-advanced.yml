@@ -58,6 +58,77 @@ jobs:
       - name: Install EDI
         run: R CMD INSTALL R/EDI
 
+      # The steps below regenerate every package_tests/ artifact that's derived from
+      # live introspection of EDI's public API (public_api_inventory.R uses
+      # pkgload::load_all(), so it reflects the *current* checked-out source, not
+      # whatever was true when these CSVs were last committed). run_comprehensive_suite.R's
+      # own dependency check (further down) only verifies these files *exist* -- it has
+      # no way to tell a stale committed copy from a fresh one, so a public signature
+      # change (e.g. adding y_L/y_R to a design's add_one_subject_response()) could
+      # silently go unreflected in the inventory/registry/argument-combination artifacts
+      # forever unless something regenerates and diffs them. That's what these steps do.
+      - name: Rebuild public API inventory + checkmate contracts
+        working-directory: R
+        run: |
+          Rscript package_tests/public_api_inventory.R
+          Rscript package_tests/extract_checkmate_argument_contracts.R
+
+      # Documented as the "Primary commands" sequence in
+      # R/package_tests/public_argument_combination_runner.md.
+      - name: Rebuild argument-combination family
+        working-directory: R
+        run: |
+          Rscript package_tests/generate_public_argument_combinations.R
+          Rscript package_tests/run_public_argument_combinations.R
+          Rscript package_tests/analyze_public_argument_combinations.R
+          Rscript package_tests/public_argument_combination_integration.R
+          Rscript package_tests/check_public_argument_combination_quality_gates.R report
+
+      # comprehensive_suite_registry.R and audit_comprehensive_suite_baseline.R both
+      # read public_argument_combination_coverage.csv (just rebuilt above), so they
+      # have to run after the argument-combination family, not before it.
+      - name: Rebuild registry + baseline audit
+        working-directory: R
+        run: |
+          Rscript package_tests/comprehensive_suite_registry.R
+          Rscript package_tests/audit_comprehensive_suite_baseline.R
+
+      # Fail the build if regenerating from current source produced anything different
+      # from what's committed -- the actual "did someone forget to refresh these after
+      # an API change" check. comprehensive_suite_exemptions.csv is deliberately excluded:
+      # audit_comprehensive_suite_baseline.R stamps it with `created_date = Sys.Date()`
+      # on every run, so it would always show a diff regardless of any real content
+      # change, and its reason/owner/expiry_date columns are scaffolding meant for
+      # later human review, not something this check should gate on.
+      - name: Fail if regenerated artifacts drifted from what's committed
+        working-directory: R
+        run: |
+          drift_files=(
+            package_tests/public_api_inventory.csv
+            package_tests/public_argument_baseline_gap_report.csv
+            package_tests/checkmate_argument_contracts.csv
+            package_tests/public_argument_combination_cases.csv
+            package_tests/public_argument_combination_rejected_candidates.csv
+            package_tests/public_argument_combination_coverage.csv
+            package_tests/public_argument_combination_results.csv
+            package_tests/public_argument_combination_failures.csv
+            package_tests/public_argument_combination_uncovered_apis.csv
+            package_tests/public_argument_combination_registry_drift.csv
+            package_tests/public_argument_combination_slowest_cases.csv
+            package_tests/public_argument_combination_ci_failure_summary.csv
+            package_tests/public_argument_combination_cases_integrated.csv
+            package_tests/public_argument_combination_results_integrated.csv
+            package_tests/public_argument_combination_coverage_integrated.csv
+            package_tests/public_argument_combination_quality_gates.csv
+            package_tests/public_argument_combination_quality_gate_summary.csv
+            package_tests/comprehensive_suite_registry.csv
+            package_tests/comprehensive_suite_baseline_audit.csv
+          )
+          if ! git diff --exit-code -- "${drift_files[@]}"; then
+            echo "::error::package_tests/ generated artifacts are stale relative to current source (diff above). Regenerate locally (see the 'Rebuild ...' steps in this workflow, or R/package_tests/public_argument_combination_runner.md) and commit the updated CSVs."
+            exit 1
+          fi
+
       - name: Run comprehensive suite smoke tier
         working-directory: R
         run: Rscript package_tests/run_comprehensive_suite.R smoke "" 300 --force

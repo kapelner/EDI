@@ -248,3 +248,5 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 		}
 	)
 )
+
+OrdinalCloglogLikelihoodSource = inference_component_source_parts(InferenceOrdinalCloglogRegr)

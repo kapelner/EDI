@@ -16,9 +16,7 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceAllSimpleMeanDiffPooledVar = R6::R6Class("InferenceAllSimpleMeanDiffPooledVar",
-	lock_objects = FALSE,
-	inherit = InferenceAllSimpleMeanDiff,
+SimpleMeanDifferencePooledVarSource = list(
 	public = list(
 		#' @description Initialize simple pooled-variance mean-difference inference
 		#'   for continuous responses and prepare the pooled standard-error
@@ -32,18 +30,18 @@ InferenceAllSimpleMeanDiffPooledVar = R6::R6Class("InferenceAllSimpleMeanDiffPoo
 		#' @param verbose Whether to print progress messages.
 		#' @param smart_cold_start_default Whether to use smart cold start values.
 		#' @return A new \code{InferenceAllSimpleMeanDiffPooledVar} object.
-		initialize = function(des_obj, model_formula = NULL,  verbose = FALSE, smart_cold_start_default = NULL){
-			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL){
+			super$initialize(
+				des_obj = des_obj,
+				verbose = verbose,
+				harden = TRUE,
+				model_formula = model_formula,
+				smart_cold_start_default = smart_cold_start_default
+			)
 			private$fit_warm_start_enabled = FALSE
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
 			}
-		},
-		#' @description Computes the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only If TRUE, skip variance component calculations.
-		compute_estimate = function(estimate_only = FALSE){
-			super$compute_estimate(estimate_only = estimate_only)
 		},
 		#' @description Uses the shared asymptotic confidence-interval contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
@@ -70,16 +68,6 @@ InferenceAllSimpleMeanDiffPooledVar = R6::R6Class("InferenceAllSimpleMeanDiffPoo
 			if (!is.finite(pooled_stats$estimate) || !is.finite(pooled_stats$se) || pooled_stats$se <= 0) return(NA_real_)
 			t_stat = (pooled_stats$estimate - delta) / pooled_stats$se
 			2 * stats::pt(-abs(t_stat), df = pooled_stats$df)
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
 		}
 	),
 	private = list(
@@ -134,5 +122,39 @@ InferenceAllSimpleMeanDiffPooledVar = R6::R6Class("InferenceAllSimpleMeanDiffPoo
 			private$cached_values$simple_mean_diff_pooled_t_components = out
 			out
 		}
+	)
+)
+
+InferenceAllSimpleMeanDiffPooledVar = define_inference_class(
+	classname = "InferenceAllSimpleMeanDiffPooledVar",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifferencePooledVar"),
+	public = list(
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_brt_null_statistics_with_se"
+		)
 	)
 )

@@ -351,42 +351,38 @@ edi::ResultMap fast_zap_with_var_internal(const Eigen::Ref<const Eigen::MatrixXd
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-Eigen::VectorXd get_zero_augmented_poisson_score_cpp(SEXP X_sexp,
-													 SEXP y_sexp,
-													 SEXP Xzi_sexp,
-													 SEXP params_sexp,
-													 bool is_hurdle) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    NumericMatrix Xzi_r(Xzi_sexp);
-    NumericVector params_r(params_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::MatrixXd> Xzi(Xzi_r.begin(), Xzi_r.nrow(), Xzi_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::VectorXd get_zero_augmented_poisson_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, const Eigen::Map<Eigen::MatrixXd>& Xzi, const Eigen::Map<Eigen::VectorXd>& params, bool is_hurdle) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-	ZeroAugmentedPoisson fun(y, X, Xzi, is_hurdle);
+
+    
+
+    
+
+    
+
+    
+
+	ZeroAugmentedPoisson fun(y_vec_coerced, X, Xzi, is_hurdle);
 	Eigen::VectorXd grad(params.size());
 	fun(params, grad);
 	return -grad;
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd get_zero_augmented_poisson_hessian_cpp(SEXP X_sexp,
-													   SEXP y_sexp,
-													   SEXP Xzi_sexp,
-													   SEXP params_sexp,
-													   bool is_hurdle) {
-    NumericMatrix X_r(X_sexp);
-    NumericVector y_r(y_sexp);
-    NumericMatrix Xzi_r(Xzi_sexp);
-    NumericVector params_r(params_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::MatrixXd> Xzi(Xzi_r.begin(), Xzi_r.nrow(), Xzi_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::MatrixXd get_zero_augmented_poisson_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, const Eigen::Map<Eigen::MatrixXd>& Xzi, const Eigen::Map<Eigen::VectorXd>& params, bool is_hurdle) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-	ZeroAugmentedPoisson fun(y, X, Xzi, is_hurdle);
+
+    
+
+    
+
+    
+
+    
+
+	ZeroAugmentedPoisson fun(y_vec_coerced, X, Xzi, is_hurdle);
 	return -fun.hessian(params);
 }
 
@@ -409,28 +405,32 @@ Eigen::MatrixXd get_zero_augmented_poisson_hessian_cpp(SEXP X_sexp,
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_zero_augmented_poisson_cpp(SEXP X,
-                                     SEXP y,
-                                     SEXP Xzi,
-                                     bool is_hurdle,
-                                     Nullable<NumericVector> warm_start_params = R_NilValue,
-                                     bool smart_cold_start = true,
-                                     bool estimate_only = false,
-                                     int maxit = 1000,
-                                     double tol = 1e-8,
-                                     Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-                                     Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-                                     std::string optimization_alg = "lbfgs",
-                                     Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_r(X);
-    NumericVector y_r(y);
-    NumericMatrix Xzi_r(Xzi);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::MatrixXd> Xzi_mat(Xzi_r.begin(), Xzi_r.nrow(), Xzi_r.ncol());
+List fast_zero_augmented_poisson_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
+		SEXP y,
+		const Eigen::Map<Eigen::MatrixXd>& Xzi,
+		bool is_hurdle,
+		Nullable<NumericVector> warm_start_params = R_NilValue,
+		bool smart_cold_start = true,
+		bool estimate_only = false,
+		int maxit = 1000,
+		double tol = 1e-8,
+		Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
+		Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
+		std::string optimization_alg = "lbfgs",
+		Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
 
-    int p_cond = X_mat.cols();
-    int p_zi = Xzi_mat.cols();
+    
+
+    
+
+    
+
+    // See fast_logistic_regression_with_var_cpp for why y is coerced here
+    // rather than taken as a direct Eigen::Map.
+    NumericVector y_r(y);
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+    int p_cond = X.cols();
+    int p_zi = Xzi.cols();
     int total_p = p_cond + p_zi;
 
     FixedParamSpec fixed_spec = make_fixed_param_spec(
@@ -441,7 +441,7 @@ List fast_zero_augmented_poisson_cpp(SEXP X,
     LikelihoodFitResult fit;
     try {
         fit = fast_zap_internal(
-            X_mat, y_vec, Xzi_mat, is_hurdle,
+            X, y_vec, Xzi, is_hurdle,
             nullable_to_optional<Eigen::VectorXd>(warm_start_params),
             smart_cold_start, maxit, tol,
             nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -452,7 +452,7 @@ List fast_zero_augmented_poisson_cpp(SEXP X,
         return edi::to_rcpp_list(edi::ResultMap().set("converged", false).set("gradient_norm", NA_REAL));
     }
     Eigen::VectorXd params = fit.params;
-    ZeroAugmentedPoisson fun(y_vec, X_mat, Xzi_mat, is_hurdle);
+    ZeroAugmentedPoisson fun(y_vec, X, Xzi, is_hurdle);
 
     if (estimate_only) {
         return edi::to_rcpp_list(edi::ResultMap()

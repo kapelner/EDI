@@ -49,18 +49,16 @@ static int find_discordant_pairs(
 // Returns: y_01, t_diffs, X_diffs (each trimmed to nd rows), nd.
 //
 // [[Rcpp::export]]
-List collect_discordant_pairs_cpp(
-	SEXP                       y_m_sexp,
-	SEXP                       w_m_sexp,
-	SEXP                       X_m_sexp,
-	const Rcpp::IntegerVector& strata_m
-) {
-	NumericVector y_m_r(y_m_sexp);
-	NumericVector w_m_r(w_m_sexp);
-	NumericMatrix X_m_r(X_m_sexp);
-	Eigen::Map<const Eigen::VectorXd> y_m(y_m_r.begin(), y_m_r.size());
-	Eigen::Map<const Eigen::VectorXd> w_m(w_m_r.begin(), w_m_r.size());
-	Eigen::Map<const Eigen::MatrixXd> X_m(X_m_r.begin(), X_m_r.nrow(), X_m_r.ncol());
+List collect_discordant_pairs_cpp( const Eigen::Map<Eigen::VectorXd>& y_m,
+		const Eigen::Map<Eigen::VectorXd>& w_m,
+		const Eigen::Map<Eigen::MatrixXd>& X_m,
+		const Rcpp::IntegerVector& strata_m) {
+
+	
+
+	
+
+	
 	const int n_max = (int)y_m.size() / 2 + 1;
 	const int p     = (int)X_m.cols();
 
@@ -92,28 +90,23 @@ List collect_discordant_pairs_cpp(
 // Returns: X_comb ((nd+nR) x (p+2)), y_comb (nd+nR), nd.
 //
 // [[Rcpp::export]]
-List build_matching_combined_clogit_design_cpp(
-	SEXP                       y_m_sexp,
-	SEXP                       w_m_sexp,
-	SEXP                       X_m_sexp,
-	const Rcpp::IntegerVector& strata_m,
-	SEXP                       y_r_sexp,
-	SEXP                       w_r_sexp,
-	SEXP                       X_r_sexp
-) {
-	NumericVector y_m_r(y_m_sexp);
-	NumericVector w_m_r(w_m_sexp);
-	NumericMatrix X_m_r(X_m_sexp);
-	NumericVector y_r_r(y_r_sexp);
-	NumericVector w_r_r(w_r_sexp);
-	NumericMatrix X_r_r(X_r_sexp);
-	Eigen::Map<const Eigen::VectorXd> y_m(y_m_r.begin(), y_m_r.size());
-	Eigen::Map<const Eigen::VectorXd> w_m(w_m_r.begin(), w_m_r.size());
-	Eigen::Map<const Eigen::MatrixXd> X_m(X_m_r.begin(), X_m_r.nrow(), X_m_r.ncol());
-	Eigen::Map<const Eigen::VectorXd> y_r(y_r_r.begin(), y_r_r.size());
-	Eigen::Map<const Eigen::VectorXd> w_r(w_r_r.begin(), w_r_r.size());
-	Eigen::Map<const Eigen::MatrixXd> X_r(X_r_r.begin(), X_r_r.nrow(), X_r_r.ncol());
-	const int nR    = (int)y_r.size();
+List build_matching_combined_clogit_design_cpp(const Eigen::Map<Eigen::VectorXd>& y_m, const Eigen::Map<Eigen::VectorXd>& w_m, const Eigen::Map<Eigen::MatrixXd>& X_m, const Rcpp::IntegerVector& strata_m, SEXP y_r, SEXP w_r, const Eigen::Map<Eigen::MatrixXd>& X_r) {
+	NumericVector w_r_r_coerced(w_r); Eigen::Map<const Eigen::VectorXd> w_r_vec_coerced(w_r_r_coerced.begin(), w_r_r_coerced.size());
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	
+	const int nR    = (int)y_r_vec_coerced.size();
 	const int p     = (int)X_m.cols();
 	const int n_max = (int)y_m.size() / 2 + 1;
 
@@ -136,9 +129,9 @@ List build_matching_combined_clogit_design_cpp(
 
 	// ---- Reservoir rows --------------------------------------------------
 	X_comb.block(nd, 0, nR, 1).setOnes();
-	X_comb.block(nd, 1, nR, 1) = w_r;
+	X_comb.block(nd, 1, nR, 1) = w_r_vec_coerced;
 	if (p > 0) X_comb.block(nd, 2, nR, p) = X_r;
-	y_comb.tail(nR) = y_r;
+	y_comb.tail(nR) = y_r_vec_coerced;
 
 	return List::create(
 		Named("X_comb") = X_comb,

@@ -45,6 +45,8 @@ Suggests:
     geepack,
     glmmTMB,
     glmnet,
+    icenReg,
+    interval,
     lme4,
     multgee,
     nbpMatching,
@@ -95,6 +97,7 @@ Collate:
     'globals.R'
     'additional_asserts.R'
     'mixin_contracts.R'
+    'robust_sandwich_helpers.R'
     'inference_all_abstract_mle_or_KM_summary_table.R'
     'inference_ext_ci_inversion.R'
     'inference_ext_information_matrix.R'

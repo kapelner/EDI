@@ -4,12 +4,12 @@
 \alias{get_survival_stat_for_group}
 \title{Calculates the median or restricted mean survival time for a single group}
 \usage{
-get_survival_stat_for_group(y_sexp, dead_sexp, requested_stat)
+get_survival_stat_for_group(y, dead, requested_stat)
 }
 \arguments{
-\item{y_sexp}{Numeric vector of survival times.}
+\item{y}{Numeric vector of survival times.}
 
-\item{dead_sexp}{Integer vector of event indicators (1=event, 0=censored).}
+\item{dead}{Integer vector of event indicators (1=event, 0=censored).}
 
 \item{requested_stat}{A string, either "median" or "restricted_mean".}
 }

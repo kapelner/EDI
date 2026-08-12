@@ -2,9 +2,9 @@
 
 // [[Rcpp::depends(RcppEigen)]]
 // [[Rcpp::export]]
-Eigen::MatrixXd scale_columns_cpp(SEXP X_sexp) {
-        Rcpp::NumericMatrix X_mat(X_sexp);
-        Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
+Eigen::MatrixXd scale_columns_cpp( const Eigen::Map<Eigen::MatrixXd>& X) {
+
+        
         Eigen::Index n = X.rows();
         Eigen::Index p = X.cols();
 

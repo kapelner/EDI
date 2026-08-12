@@ -315,6 +315,8 @@ InferenceIncidModifiedPoisson = R6::R6Class("InferenceIncidModifiedPoisson",
 	)
 )
 
+IncidenceModifiedPoissonLikelihoodSource = inference_component_source_parts(InferenceIncidModifiedPoisson)
+
 #' Multi-subject Modified Poisson Inference for Incidence Responses
 #'
 #' Historical public alias for the modified Poisson implementation.

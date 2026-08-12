@@ -4,12 +4,12 @@
 \alias{get_restricted_mean_se_for_group}
 \title{Calculates standard variance using the formula from Uno et al}
 \usage{
-get_restricted_mean_se_for_group(y_sexp, dead_sexp)
+get_restricted_mean_se_for_group(y, dead)
 }
 \arguments{
-\item{y_sexp}{Numeric vector of survival times.}
+\item{y}{Numeric vector of survival times.}
 
-\item{dead_sexp}{Integer vector of event indicators (1=event, 0=censored).}
+\item{dead}{Integer vector of event indicators (1=event, 0=censored).}
 }
 \value{
 The standard error of the restricted mean.

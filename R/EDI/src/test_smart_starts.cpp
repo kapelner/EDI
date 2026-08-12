@@ -6,41 +6,48 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-NumericVector test_ols_smart_cold_start_beta_cpp(SEXP X_sexp, SEXP y_sexp) {
-	NumericMatrix X_r(X_sexp); NumericVector y_r(y_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	return wrap(ols_smart_cold_start_beta(X, y));
+NumericVector test_ols_smart_cold_start_beta_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+	
+
+	return wrap(ols_smart_cold_start_beta(X, y_vec_coerced));
 }
 
 // [[Rcpp::export]]
-NumericVector test_ols_smart_cold_start_beta_on_log1p_cpp(SEXP X_sexp, SEXP y_sexp) {
-	NumericMatrix X_r(X_sexp); NumericVector y_r(y_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	return wrap(ols_smart_cold_start_beta_on_log1p(X, y));
+NumericVector test_ols_smart_cold_start_beta_on_log1p_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+	
+
+	return wrap(ols_smart_cold_start_beta_on_log1p(X, y_vec_coerced));
 }
 
 // [[Rcpp::export]]
-NumericVector test_finalize_warm_start_beta_cpp(SEXP smart_cold_start_sexp,
-                                           SEXP legacy_start_sexp,
-                                           bool use_smart = true,
-                                           Nullable<IntegerVector> fixed_idx = R_NilValue,
-                                           Nullable<NumericVector> fixed_values = R_NilValue) {
-	NumericVector smart_cold_start_r(smart_cold_start_sexp); NumericVector legacy_start_r(legacy_start_sexp);
-	Eigen::Map<const Eigen::VectorXd> smart_cold_start(smart_cold_start_r.begin(), smart_cold_start_r.size());
-	Eigen::Map<const Eigen::VectorXd> legacy_start(legacy_start_r.begin(), legacy_start_r.size());
+NumericVector test_finalize_warm_start_beta_cpp( const Eigen::Map<Eigen::VectorXd>& smart_cold_start,
+		const Eigen::Map<Eigen::VectorXd>& legacy_start,
+		bool use_smart = true,
+		Nullable<IntegerVector> fixed_idx = R_NilValue,
+		Nullable<NumericVector> fixed_values = R_NilValue) {
+
+	
+
 	FixedParamSpec fixed_spec = make_fixed_param_spec(legacy_start.size(), fixed_idx, fixed_values);
 	return wrap(finalize_warm_start_beta(smart_cold_start, legacy_start, fixed_spec, use_smart));
 }
 
 // [[Rcpp::export]]
-List test_weibull_aft_start_cpp(SEXP X_sexp, SEXP y_sexp, SEXP dead_sexp) {
-	NumericMatrix X_r(X_sexp); NumericVector y_r(y_sexp); NumericVector dead_r(dead_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	Eigen::Map<const Eigen::VectorXd> dead(dead_r.begin(), dead_r.size());
-	WeibullStart warm_start_params = weibull_aft_start(X, y, dead);
+List test_weibull_aft_start_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead) {
+	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+	
+
+	
+	WeibullStart warm_start_params = weibull_aft_start(X, y_vec_coerced, dead_vec_coerced);
 	return List::create(
 		_["beta"] = wrap(warm_start_params.beta),
 		_["log_sigma"] = warm_start_params.log_sigma,
@@ -49,16 +56,17 @@ List test_weibull_aft_start_cpp(SEXP X_sexp, SEXP y_sexp, SEXP dead_sexp) {
 }
 
 // [[Rcpp::export]]
-List test_ordinal_start_cpp(SEXP X_sexp, SEXP y_sexp,
-                            std::string link = "logit") {
-	NumericMatrix X_r(X_sexp); NumericVector y_r(y_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
+List test_ordinal_start_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, std::string link = "logit") {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+	
+
 	edi_ordinal::Link ordinal_link = edi_ordinal::Link::Logit;
 	if (link == "probit") ordinal_link = edi_ordinal::Link::Probit;
 	else if (link == "cloglog") ordinal_link = edi_ordinal::Link::Cloglog;
 	else if (link == "cauchit") ordinal_link = edi_ordinal::Link::Cauchit;
-	OrdinalStart warm_start_params = ordinal_smart_cold_start(X, y, ordinal_link);
+	OrdinalStart warm_start_params = ordinal_smart_cold_start(X, y_vec_coerced, ordinal_link);
 	return List::create(
 		_["alpha"] = wrap(warm_start_params.alpha),
 		_["beta"] = wrap(warm_start_params.beta),

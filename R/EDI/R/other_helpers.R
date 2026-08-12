@@ -106,6 +106,28 @@ assert_anticlust_installed = function(caller) {
 		stop("Package 'anticlust' is required for ", caller, ".")
 }
 
+assert_icenreg_installed = function(caller) {
+	if (!check_package_installed("icenReg"))
+		stop("Package 'icenReg' is required for ", caller, ". Please install it with install.packages(\"icenReg\").")
+}
+
+# 'interval' depends on Bioconductor's 'Icens', which install.packages()
+# cannot resolve on its own -- it must be installed via BiocManager first,
+# or install.packages("interval") fails with "dependency 'Icens' is not
+# available for package 'interval'".
+assert_interval_installed = function(caller) {
+	if (!check_package_installed("interval")) {
+		stop(
+			"Package 'interval' is required for ", caller, ". It depends on ",
+			"Bioconductor's 'Icens' package, which install.packages() cannot ",
+			"resolve directly. Please install it with:\n",
+			"  if (!requireNamespace(\"BiocManager\", quietly = TRUE)) install.packages(\"BiocManager\")\n",
+			"  BiocManager::install(\"Icens\")\n",
+			"  install.packages(\"interval\")"
+		)
+	}
+}
+
 #' Logit
 #'
 #' Calculates the logit i.e., log(p / (1 - p))
@@ -836,7 +858,7 @@ NULL
 	for (start_par in starts) {
 		fit = tryCatch(
 			fast_dep_cens_transform_optim_cpp(
-				y_sexp = y, dead_sexp = dead, X_sexp = X, warm_start_params = start_par,
+				y = y, dead = dead, X = X, warm_start_params = start_par,
 				maxit = 2000, reltol = if (isTRUE(estimate_only)) 1e-7 else 1e-9,
 				optimization_alg = optimization_alg
 			),
@@ -1168,10 +1190,10 @@ NULL
 	for (start_par in starts) {
 		fit = tryCatch(
 			fast_clayton_weibull_aft_optim_cpp(
-				y_sexp = y, dead_sexp = dead, X_sexp = X,
-				pair_idx_sexp = if (has_pairs) pair_idx - 1L else matrix(0L, 0, 2),
-				singleton_rows_sexp = if (has_singletons) singleton_rows - 1L else integer(0),
-				warm_start_params_sexp = start_par,
+				y = y, dead = dead, X = X,
+				pair_idx = if (has_pairs) pair_idx - 1L else matrix(0L, 0, 2),
+				singleton_rows = if (has_singletons) singleton_rows - 1L else integer(0),
+				warm_start_params = start_par,
 				maxit = 2000, reltol = 1e-9,
 				optimization_alg = optimization_alg,
 				warm_start_fisher_info = warm_start_fisher_info
@@ -1329,10 +1351,10 @@ NULL
 
 	mod = tryCatch(
 		fast_weibull_frailty_cpp(
-			y_sexp = as.numeric(y),
-			dead_sexp = as.numeric(dead),
-			X_sexp = X,
-			group_id_sexp = group_id,
+			y = as.numeric(y),
+			dead = as.numeric(dead),
+			X = X,
+			group_id = group_id,
 			warm_start_params = warm_start_params,
 			warm_start_fisher_info = warm_start_fisher_info,
 			estimate_only = estimate_only,

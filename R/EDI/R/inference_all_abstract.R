@@ -47,12 +47,24 @@ Inference = R6::R6Class("Inference",
 			private$smart_cold_start_default = smart_cold_start_default
 			private$cached_values = list()
 			private$any_censoring = des_obj$any_censoring()
+			private$has_general_censoring = des_obj$has_general_censoring()
+			if (private$has_general_censoring && !private$supports_interval_or_left_censored_data()) {
+				stop(
+					class(self)[1L],
+					" does not support left- or interval-censored survival data (this Design ",
+					"has at least one subject with a finite y_R). This class only accepts exact ",
+					"and right-censored (y_R = Inf) responses -- see interval_censored_survival_response.md ",
+					"for which classes support the general case."
+				)
+			}
 			private$des_obj = des_obj
 			private$des_obj_priv_int = des_obj$.__enclos_env__$private
-			private$y = private$des_obj_priv_int$y
+			private$y = des_obj$get_effective_time()
 			private$y_temp = private$y
 			private$w = private$des_obj_priv_int$w
-			private$dead = private$des_obj_priv_int$dead
+			private$dead = des_obj$get_effective_dead()
+			private$y_L = des_obj$get_y_L()
+			private$y_R = des_obj$get_y_R()
 			private$is_KK = inherits(des_obj, "DesignSeqOneByOneKK14")
 			private$has_match_structure = des_obj$is_a_kk_matching_capable()
 			private$n = des_obj$get_n()
@@ -349,6 +361,19 @@ Inference = R6::R6Class("Inference",
 		get_w_signed = function(w){
 			2 * w - 1
 		},
+		# Capability check: can this concrete Inference class consume left-
+		# or interval-censored survival data (Design$has_general_censoring())?
+		# Default FALSE -- most survival classes still only understand
+		# exact/right-censored data via get_effective_time()/
+		# get_effective_dead() (see design_abstract.R). A class that adds
+		# real support (e.g. InferenceSurvivalCoxPHRegr's icenReg::ic_sp()
+		# dispatch) overrides this to TRUE via define_inference_class()'s
+		# overrides$private mechanism. Checked once, centrally, in
+		# initialize() below -- see interval_censored_survival_response.md
+		# TODO-6.
+		supports_interval_or_left_censored_data = function(){
+			FALSE
+		},
 		seed = NULL,
 		harden = TRUE,
 		des_obj = NULL,		des_obj_priv_int = NULL,
@@ -357,6 +382,7 @@ Inference = R6::R6Class("Inference",
 		has_match_structure = NULL,
 		supports_design_resampling = FALSE,
 		any_censoring = NULL,
+		has_general_censoring = FALSE,
 		warned_no_parallel = FALSE,
 		fork_cluster = NULL,
 		verbose = FALSE,
@@ -366,6 +392,8 @@ Inference = R6::R6Class("Inference",
 		y = NULL,
 		w = NULL,
 		dead = NULL,
+		y_L = NULL,
+		y_R = NULL,
 		y_temp = NULL,
 		X = NULL,
 		model_formula = NULL,

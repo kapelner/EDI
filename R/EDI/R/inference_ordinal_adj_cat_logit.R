@@ -277,4 +277,60 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 			X
 		}
 	)
-)
+	)
+
+	OrdinalAdjacentCategoryLikelihoodSource = inference_component_source_parts(InferenceOrdinalAdjCatLogitRegr)
+
+	InferenceOrdinalAdjCatLogitRegr = define_inference_class(
+		classname = "InferenceOrdinalAdjCatLogitRegr",
+		inherit = Inference,
+		components = c(
+			"BayesianBootstrap", "ParametricLikelihoodBootstrap",
+			"OrdinalAdjacentCategoryLikelihood"
+		),
+		public = list(
+			compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+		),
+		metadata = list(
+			response_types = "ordinal",
+			likelihood_tier = "full",
+			capabilities = "likelihood_ratio"
+		),
+		overrides = list(
+			public = c(
+				"compute_rand_two_sided_pval",
+				"compute_asymp_confidence_interval",
+				"compute_asymp_two_sided_pval",
+				"compute_estimate",
+				"compute_estimate_with_bootstrap_weights",
+				"get_supported_testing_types"
+			),
+			private = c(
+				"resolve_jackknife_unit",
+				"jackknife_block_size_gt_one_unsupported",
+				"mark_jackknife_nonestimable_if_block_unsupported",
+				"supports_reusable_bootstrap_worker",
+				"get_bootstrap_worker_spec",
+				"create_bootstrap_worker_state",
+				"load_bootstrap_sample_into_worker",
+				"compute_bootstrap_worker_estimate",
+				"get_supported_testing_types_impl",
+				"supports_bartlett_likelihood_ratio_approx",
+				"get_bartlett_factor_approx",
+				"compute_treatment_estimate_during_randomization_inference",
+				"get_standard_error",
+				"get_degrees_of_freedom",
+				"make_warm_fit_null_wrapper",
+				"compute_likelihood_test_two_sided_pval",
+				"compute_score_two_sided_pval_impl",
+				"compute_gradient_two_sided_pval_impl",
+				"compute_lik_ratio_two_sided_pval_impl",
+				"get_likelihood_test_spec",
+				"supports_likelihood_tests",
+				"get_complexity_tier",
+				"supports_lik_ratio_param_bootstrap",
+				"simulate_under_lik_null",
+				"generate_mod"
+			)
+		)
+	)

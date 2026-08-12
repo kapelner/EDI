@@ -285,6 +285,8 @@ InferenceOrdinalStereotypeLogitRegr = R6::R6Class("InferenceOrdinalStereotypeLog
 	)
 )
 
+OrdinalStereotypeLikelihoodSource = inference_component_source_parts(InferenceOrdinalStereotypeLogitRegr)
+
 #' Continuation Ratio Regression Inference for Ordinal Responses
 #'
 #' Fits a continuation ratio regression for ordinal responses using the treatment
@@ -554,3 +556,5 @@ InferenceOrdinalContRatioRegr = R6::R6Class("InferenceOrdinalContRatioRegr",
 		}
 	)
 )
+
+OrdinalContinuationRatioLikelihoodSource = inference_component_source_parts(InferenceOrdinalContRatioRegr)

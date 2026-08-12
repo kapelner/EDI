@@ -395,3 +395,5 @@ InferenceSurvivalKKWeibullMarginal = R6::R6Class("InferenceSurvivalKKWeibullMarg
 		}
 	)))
 )
+
+SurvivalKKWeibullMarginalSource = inference_component_source_parts(InferenceSurvivalKKWeibullMarginal)

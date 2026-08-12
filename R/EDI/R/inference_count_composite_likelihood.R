@@ -4,10 +4,7 @@
 #' quasi-likelihood based.
 #'
 #' @keywords internal
-InferenceCountCompositeLikelihood = R6::R6Class("InferenceCountCompositeLikelihood",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
-	public = list(
+inference_count_composite_likelihood_public = list(
 		#' @description Computes the treatment estimate.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
@@ -55,8 +52,9 @@ InferenceCountCompositeLikelihood = R6::R6Class("InferenceCountCompositeLikeliho
 			private$cached_values$s_beta_hat_T = NA_real_
 			private$cached_values$beta_hat_T
 		}
-	),
-	private = list(
+	)
+
+inference_count_composite_likelihood_private = list(
 		is_a_count_composite_likelihood = function() TRUE,
 		generate_mod = function(estimate_only = FALSE) stop(class(self)[1], " must implement generate_mod()"),
 
@@ -184,4 +182,15 @@ InferenceCountCompositeLikelihood = R6::R6Class("InferenceCountCompositeLikeliho
 			NULL
 		}
 	)
+
+CountCompositeLikelihoodSource = list(
+	public = inference_count_composite_likelihood_public,
+	private = inference_count_composite_likelihood_private
+)
+
+InferenceCountCompositeLikelihood = R6::R6Class("InferenceCountCompositeLikelihood",
+	lock_objects = FALSE,
+	inherit = InferenceParamBootstrap,
+	public = inference_count_composite_likelihood_public,
+	private = inference_count_composite_likelihood_private
 )

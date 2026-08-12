@@ -119,3 +119,21 @@ ordinal_cond_clogit_shared_multi = function(private_env, expand_fun, trials_fun)
 	private_env$cached_values$beta_hat_T   = as.numeric(mod$b[1])
 	private_env$cached_values$s_beta_hat_T = sqrt(as.numeric(mod$ssq_b_j))
 }
+
+OrdinalConditionalLogitPartialLikelihoodSource = list(
+	public = list(),
+	private = list(
+		ordinal_cond_clogit_compute_setup = function() {
+			ordinal_cond_clogit_compute_setup(private)
+		},
+		ordinal_cond_clogit_assert_finite_se = function(model_label) {
+			ordinal_cond_clogit_assert_finite_se(private, model_label)
+		},
+		ordinal_cond_clogit_shared_univ = function(expand_fun) {
+			ordinal_cond_clogit_shared_univ(private, expand_fun)
+		},
+		ordinal_cond_clogit_shared_multi = function(expand_fun, trials_fun) {
+			ordinal_cond_clogit_shared_multi(private, expand_fun, trials_fun)
+		}
+	)
+)

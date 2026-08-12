@@ -283,3 +283,5 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 		}
 	)
 )
+
+SurvivalWeibullLikelihoodSource = inference_component_source_parts(InferenceSurvivalWeibullRegr)

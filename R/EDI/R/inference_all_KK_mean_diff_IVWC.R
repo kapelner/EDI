@@ -26,19 +26,23 @@
 #' seq_des_inf$compute_asymp_confidence_interval()
 #' seq_des_inf$compute_asymp_two_sided_pval()
 #' }
-InferenceAllKKMeanDiffIVWC = R6::R6Class("InferenceAllKKMeanDiffIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+KKMeanDifferenceIVWCSource = list(
 	public = list(
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
+		#' @description Initialize KK IVWC mean-difference inference.
+		#' @param des_obj A KK matching-on-the-fly design object.
+		#' @param verbose Whether to print progress messages.
+		#' @param harden Whether to use hardened model-matrix fitting.
+		#' @param model_formula Optional formula for covariate adjustment.
+		#' @param smart_cold_start_default Whether to use smart cold start values.
+		initialize = function(des_obj, verbose = FALSE, harden = TRUE, model_formula = NULL, smart_cold_start_default = NULL){
+			super$initialize(
+				des_obj = des_obj,
+				verbose = verbose,
+				harden = harden,
+				model_formula = model_formula,
+				smart_cold_start_default = smart_cold_start_default
+			)
+			private$init_kk_passthrough(des_obj)
 		},
 		#'
 		#' @description Computes the IVWC mean-difference estimate across pairs and reservoir
@@ -89,25 +93,8 @@ InferenceAllKKMeanDiffIVWC = R6::R6Class("InferenceAllKKMeanDiffIVWC",
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Uses the shared randomization confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceRandCI]{InferenceRandCI}}.
-		#'
-		#' @param alpha The confidence level in the computed confidence
-		#'   interval is 1 - \code{alpha}. The default is 0.05.
-		#' @param  r  	The number of randomization vectors. The default is 501.
-		#' @param  pval_epsilon  		The bisection algorithm tolerance. The default is 0.005.
-		#' @param  show_progress  		Show a text progress indicator.
-		#' @param ci_search_control Optional randomization-CI search control list passed through 
-		#'   to the base method.
-		#' @return  A 1 - alpha sized frequentist confidence interval
-		compute_rand_confidence_interval = function(alpha = 0.05, r = 501, pval_epsilon = 0.005, show_progress = TRUE, ci_search_control = NULL){
-			if (should_run_asserts()) {
-				if (private$des_obj_priv_int$response_type %in% c("proportion", "count", "survival")) {
-					stop("Randomization confidence intervals are not supported for InferenceAllKKMeanDiffIVWC with proportion, count, or survival response types due to inconsistent estimator units on the transformed scale.")
-				}
-			}
-			super$compute_rand_confidence_interval(alpha = alpha, r = r, pval_epsilon = pval_epsilon, show_progress = show_progress, ci_search_control = ci_search_control)
-		}
+		# Randomization CI is provided by RandomizationCI.
+		NULL
 	),
 	private = list(
 		compute_fast_bootstrap_distr = function(B, i_reservoir, n_reservoir, m, y, w, m_vec) {
@@ -228,5 +215,43 @@ InferenceAllKKMeanDiffIVWC = R6::R6Class("InferenceAllKKMeanDiffIVWC",
 					}
 				}
 		}
+	)
+)
+
+KKMeanDifferenceIVWCSource$public = Filter(Negate(is.null), KKMeanDifferenceIVWCSource$public)
+
+InferenceAllKKMeanDiffIVWC = define_inference_class(
+	classname = "InferenceAllKKMeanDiffIVWC",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "KKMeanDifferenceIVWC"),
+	public = list(
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"supports_likelihood_tests",
+			"compute_basic_match_data",
+			"compute_fast_bootstrap_distr",
+			"compute_fast_randomization_distr",
+			"shared"
+		)
 	)
 )

@@ -1,4 +1,5 @@
 #include "_helper_functions.h"
+#include "result_map_rcpp.h"
 using namespace Rcpp;
 
 // Build the combined OLS design matrix and response vector for the KK
@@ -15,25 +16,22 @@ using namespace Rcpp;
 // Scaling by 1/sqrt2 equalises all residual variances to sigma^2.
 //
 // [[Rcpp::export]]
-List build_matching_combined_ols_design_cpp(
-	SEXP yd_sexp,
-	SEXP Xd_sexp,
-	SEXP y_r_sexp,
-	SEXP w_r_sexp,
-	SEXP X_r_sexp
-) {
-	Rcpp::NumericVector yd_r(yd_sexp);
-	Rcpp::NumericMatrix Xd_r(Xd_sexp);
-	Rcpp::NumericVector y_r_r(y_r_sexp);
-	Rcpp::NumericVector w_r_r(w_r_sexp);
-	Rcpp::NumericMatrix X_r_r(X_r_sexp);
-	Eigen::Map<const Eigen::VectorXd> yd(yd_r.begin(), yd_r.size());
-	Eigen::Map<const Eigen::MatrixXd> Xd(Xd_r.begin(), Xd_r.nrow(), Xd_r.ncol());
-	Eigen::Map<const Eigen::VectorXd> y_r(y_r_r.begin(), y_r_r.size());
-	Eigen::Map<const Eigen::VectorXd> w_r(w_r_r.begin(), w_r_r.size());
-	Eigen::Map<const Eigen::MatrixXd> X_r(X_r_r.begin(), X_r_r.nrow(), X_r_r.ncol());
+List build_matching_combined_ols_design_cpp(const Eigen::Map<Eigen::VectorXd>& yd, const Eigen::Map<Eigen::MatrixXd>& Xd, SEXP y_r, SEXP w_r, const Eigen::Map<Eigen::MatrixXd>& X_r) {
+	NumericVector w_r_r_coerced(w_r); Eigen::Map<const Eigen::VectorXd> w_r_vec_coerced(w_r_r_coerced.begin(), w_r_r_coerced.size());
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
+
+	
+
+	
+
+	
+
+	
+
+	
 	const int m   = (int)yd.size();
-	const int nR  = (int)y_r.size();
+	const int nR  = (int)y_r_vec_coerced.size();
 	const int p   = (int)Xd.cols();
 	const double inv_sqrt2 = 1.0 / std::sqrt(2.0);
 
@@ -48,12 +46,11 @@ List build_matching_combined_ols_design_cpp(
 
 	// ---- Reservoir rows --------------------------------------------------
 	X_comb.block(m, 0, nR, 1).setOnes();
-	X_comb.block(m, 1, nR, 1) = w_r;
+	X_comb.block(m, 1, nR, 1) = w_r_vec_coerced;
 	X_comb.block(m, 2, nR, p) = X_r;
-	y_comb.tail(nR)            = y_r;
+	y_comb.tail(nR)            = y_r_vec_coerced;
 
-	return List::create(
-		Named("X_comb") = X_comb,
-		Named("y_comb") = y_comb
-	);
+	return edi::to_rcpp_list(edi::ResultMap()
+		.set("X_comb", X_comb)
+		.set("y_comb", y_comb));
 }

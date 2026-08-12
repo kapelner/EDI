@@ -242,80 +242,65 @@ public:
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-double get_weibull_frailty_neg_loglik_cpp(
-	SEXP X_sexp,
-	SEXP y_sexp,
-	SEXP dead_sexp,
-	SEXP group_id_sexp,
-	SEXP params_sexp,
-	int n_gh = 20,
-	double max_abs_log_sigma = 8.0
-) {
-	NumericMatrix X_r(X_sexp);
-	NumericVector y_r(y_sexp);
-	NumericVector dead_r(dead_sexp);
-	IntegerVector group_id_r(group_id_sexp);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	Eigen::Map<const Eigen::VectorXd> dead(dead_r.begin(), dead_r.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_r.begin(), group_id_r.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+double get_weibull_frailty_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::VectorXi>& group_id, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20, double max_abs_log_sigma = 8.0) {
+	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-	WeibullFrailtyLikelihood obj(y, dead, X, group_id, n_gh, max_abs_log_sigma);
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	WeibullFrailtyLikelihood obj(y_vec_coerced, dead_vec_coerced, X, group_id, n_gh, max_abs_log_sigma);
 	Eigen::VectorXd grad(params.size());
 	return obj(params, grad);
 }
 
 // [[Rcpp::export]]
-Eigen::VectorXd get_weibull_frailty_score_cpp(
-	SEXP X_sexp,
-	SEXP y_sexp,
-	SEXP dead_sexp,
-	SEXP group_id_sexp,
-	SEXP params_sexp,
-	int n_gh = 20,
-	double max_abs_log_sigma = 8.0
-) {
-	NumericMatrix X_r(X_sexp);
-	NumericVector y_r(y_sexp);
-	NumericVector dead_r(dead_sexp);
-	IntegerVector group_id_r(group_id_sexp);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	Eigen::Map<const Eigen::VectorXd> dead(dead_r.begin(), dead_r.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_r.begin(), group_id_r.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::VectorXd get_weibull_frailty_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::VectorXi>& group_id, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20, double max_abs_log_sigma = 8.0) {
+	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-	WeibullFrailtyLikelihood obj(y, dead, X, group_id, n_gh, max_abs_log_sigma);
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	WeibullFrailtyLikelihood obj(y_vec_coerced, dead_vec_coerced, X, group_id, n_gh, max_abs_log_sigma);
 	Eigen::VectorXd grad(params.size());
 	obj(params, grad);
 	return -grad;
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd get_weibull_frailty_hessian_cpp(
-	SEXP X_sexp,
-	SEXP y_sexp,
-	SEXP dead_sexp,
-	SEXP group_id_sexp,
-	SEXP params_sexp,
-	int n_gh = 20,
-	double max_abs_log_sigma = 8.0
-) {
-	NumericMatrix X_r(X_sexp);
-	NumericVector y_r(y_sexp);
-	NumericVector dead_r(dead_sexp);
-	IntegerVector group_id_r(group_id_sexp);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	Eigen::Map<const Eigen::VectorXd> dead(dead_r.begin(), dead_r.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_r.begin(), group_id_r.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::MatrixXd get_weibull_frailty_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::VectorXi>& group_id, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20, double max_abs_log_sigma = 8.0) {
+	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-	WeibullFrailtyLikelihood obj(y, dead, X, group_id, n_gh, max_abs_log_sigma);
+
+	
+
+	
+
+	
+
+	
+
+	
+
+	WeibullFrailtyLikelihood obj(y_vec_coerced, dead_vec_coerced, X, group_id, n_gh, max_abs_log_sigma);
 	return -obj.hessian(params);
 }
 #endif // EDI_CORE_ONLY
@@ -429,34 +414,21 @@ edi::ResultMap fast_weibull_frailty_internal(
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-List fast_weibull_frailty_cpp(
-	SEXP X_sexp,
-	SEXP y_sexp,
-	SEXP dead_sexp,
-	SEXP group_id_sexp,
-	Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue,
-	Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
-	bool estimate_only = false,
-	int n_gh = 20,
-	double max_abs_log_sigma = 8.0,
-	int maxit = 300,
-	double eps_g = 1e-6,
-	Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-	Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-	std::string optimization_alg = "lbfgs",
-	Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue
-) {
-	NumericMatrix X_r(X_sexp);
-	NumericVector y_r(y_sexp);
-	NumericVector dead_r(dead_sexp);
-	IntegerVector group_id_r(group_id_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
-	Eigen::Map<const Eigen::VectorXd> dead(dead_r.begin(), dead_r.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_r.begin(), group_id_r.size());
+List fast_weibull_frailty_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::VectorXi>& group_id, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue, bool estimate_only = false, int n_gh = 20, double max_abs_log_sigma = 8.0, int maxit = 300, double eps_g = 1e-6, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
+	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+	
+
+	
+
+	
+
+	
 
 	edi::ResultMap res = fast_weibull_frailty_internal(
-		X, y, dead, group_id,
+		X, y_vec_coerced, dead_vec_coerced, group_id,
 		nullable_to_optional<Eigen::VectorXd>(warm_start_params),
 		nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
 		estimate_only, n_gh, max_abs_log_sigma, maxit, eps_g,

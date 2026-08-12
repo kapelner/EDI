@@ -344,9 +344,9 @@ double wilcox_hl_point_estimate_result(const Eigen::Ref<const Eigen::VectorXd>& 
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-double wilcox_hl_signed_rank_point_estimate_cpp(SEXP dy_sexp) {
-	NumericVector dy_vec(dy_sexp);
-    Eigen::Map<const Eigen::VectorXd> dy(dy_vec.begin(), dy_vec.size());
+double wilcox_hl_signed_rank_point_estimate_cpp( const Eigen::Map<Eigen::VectorXd>& dy) {
+
+    
     std::vector<double> pair_diffs;
     pair_diffs.reserve(dy.size());
     const double* dy_ptr = dy.data();
@@ -357,19 +357,22 @@ double wilcox_hl_signed_rank_point_estimate_cpp(SEXP dy_sexp) {
 }
 
 // [[Rcpp::export]]
-double wilcox_hl_point_estimate_cpp(SEXP w_sexp, SEXP y_sexp) {
-	IntegerVector w_int(w_sexp);
-	NumericVector y_vec(y_sexp);
-    Eigen::Map<const Eigen::VectorXi> w(w_int.begin(), w_int.size());
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
+double wilcox_hl_point_estimate_cpp(SEXP w, SEXP y) {
+	IntegerVector w_r_coerced(w); Eigen::Map<const Eigen::VectorXi> w_vec_coerced(w_r_coerced.begin(), w_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+	
+
+    
     std::vector<double> y_t;
     std::vector<double> y_c;
-    y_t.reserve(y.size());
-    y_c.reserve(y.size());
+    y_t.reserve(y_vec_coerced.size());
+    y_c.reserve(y_vec_coerced.size());
 
-    const double* y_ptr = y.data();
-    const int* w_ptr = w.data();
-    int n = y.size();
+    const double* y_ptr = y_vec_coerced.data();
+    const int* w_ptr = w_vec_coerced.data();
+    int n = y_vec_coerced.size();
 
     for (int i = 0; i < n; ++i) {
         if (!std::isfinite(y_ptr[i])) continue;
@@ -381,25 +384,23 @@ double wilcox_hl_point_estimate_cpp(SEXP w_sexp, SEXP y_sexp) {
 }
 
 // [[Rcpp::export]]
-NumericVector compute_wilcox_hl_bootstrap_parallel_cpp(
-    SEXP w_sexp,
-    SEXP y_sexp,
-    SEXP indices_mat_sexp,
-    int num_cores) {
+NumericVector compute_wilcox_hl_bootstrap_parallel_cpp(SEXP w, SEXP y, const Eigen::Map<Eigen::MatrixXi>& indices_mat, int num_cores) {
+	IntegerVector w_r_coerced(w); Eigen::Map<const Eigen::VectorXi> w_vec_coerced(w_r_coerced.begin(), w_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-	IntegerVector w_int(w_sexp);
-	NumericVector y_vec(y_sexp);
-    Eigen::Map<const Eigen::VectorXi> w(w_int.begin(), w_int.size());
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	IntegerMatrix indices_int_mat(indices_mat_sexp);
-    Eigen::Map<const Eigen::MatrixXi> indices_mat(indices_int_mat.begin(), indices_int_mat.nrow(), indices_int_mat.ncol());
 
-    const int n = y.size();
-    const int B = indices_mat.cols();
+	
+
     
+
+    
+
+    const int n = y_vec_coerced.size();
+    const int B = indices_mat.cols();
+
     std::vector<double> results_vec(B, NA_REAL);
-    const double* y_ptr = y.data();
-    const int* w_ptr = w.data();
+    const double* y_ptr = y_vec_coerced.data();
+    const int* w_ptr = w_vec_coerced.data();
     const int* idx_ptr = indices_mat.data();
     double* res_ptr = results_vec.data();
 
@@ -423,10 +424,10 @@ NumericVector compute_wilcox_hl_bootstrap_parallel_cpp(
         for (int i = 0; i < n; ++i) {
             const int idx = idx_col[i];
             if (idx < 0 || idx >= n) continue;
-            
+
             const double y_val = y_ptr[idx];
             if (!std::isfinite(y_val)) continue;
-            
+
             if (w_ptr[idx] == 1) y_t.push_back(y_val);
             else if (w_ptr[idx] == 0) y_c.push_back(y_val);
         }
@@ -439,32 +440,27 @@ NumericVector compute_wilcox_hl_bootstrap_parallel_cpp(
 
 //' Fast Wilcoxon HL Statistic for Multiple Permutations
 //'
-//' @param w_mat_sexp Integer matrix of permuted treatment assignments (n x r).
-//' @param y_sexp Numeric response vector.
+//' @param w_mat Integer matrix of permuted treatment assignments (n x r).
+//' @param y Numeric response vector.
 //' @param delta Null treatment effect shift.
 //' @param transform_code Integer code for response transformation.
 //' @param zero_one_logit_clamp Clamp value for logit transformation.
 //' @param num_cores Number of OpenMP threads.
 //' @return Numeric vector of HL statistics.
 // [[Rcpp::export]]
-NumericVector compute_wilcox_hl_distr_parallel_cpp(
-    SEXP w_mat_sexp,
-    SEXP y_sexp,
-    double delta,
-    int transform_code,
-    double zero_one_logit_clamp,
-    int num_cores) {
+NumericVector compute_wilcox_hl_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi>& w_mat, SEXP y, double delta, int transform_code, double zero_one_logit_clamp, int num_cores) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-	IntegerMatrix w_int_mat(w_mat_sexp);
-	NumericVector y_vec(y_sexp);
-    Eigen::Map<const Eigen::MatrixXi> w_mat(w_int_mat.begin(), w_int_mat.nrow(), w_int_mat.ncol());
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
 
-    const int n = y.size();
-    const int nsim = w_mat.cols();
+	
+
     
+
+    const int n = y_vec_coerced.size();
+    const int nsim = w_mat.cols();
+
     std::vector<double> results_vec(nsim, NA_REAL);
-    const double* y_ptr = y.data();
+    const double* y_ptr = y_vec_coerced.data();
     const int* w_ptr = w_mat.data();
     double* res_ptr = results_vec.data();
 
@@ -505,31 +501,28 @@ NumericVector compute_wilcox_hl_distr_parallel_cpp(
 }
 
 // [[Rcpp::export]]
-NumericVector compute_wilcox_matching_ivwc_bootstrap_parallel_cpp(
-    SEXP w_sexp,
-    SEXP y_sexp,
-    SEXP m_vec_sexp,
-    SEXP indices_mat_sexp,
-    SEXP m_mat_sexp,
-    int num_cores) {
+NumericVector compute_wilcox_matching_ivwc_bootstrap_parallel_cpp(SEXP w, SEXP y, SEXP m_vec, const Eigen::Map<Eigen::MatrixXi>& indices_mat, const Eigen::Map<Eigen::MatrixXi>& m_mat, int num_cores) {
+	IntegerVector m_vec_r_coerced(m_vec); Eigen::Map<const Eigen::VectorXi> m_vec_vec_coerced(m_vec_r_coerced.begin(), m_vec_r_coerced.size());
+	IntegerVector w_r_coerced(w); Eigen::Map<const Eigen::VectorXi> w_vec_coerced(w_r_coerced.begin(), w_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-	IntegerVector w_int(w_sexp);
-	NumericVector y_vec(y_sexp);
-    Eigen::Map<const Eigen::VectorXi> w(w_int.begin(), w_int.size());
-    Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	IntegerVector m_int_vec(m_vec_sexp);
-    Eigen::Map<const Eigen::VectorXi> m_vec(m_int_vec.begin(), m_int_vec.size());
-	IntegerMatrix indices_int_mat(indices_mat_sexp);
-    Eigen::Map<const Eigen::MatrixXi> indices_mat(indices_int_mat.begin(), indices_int_mat.nrow(), indices_int_mat.ncol());
-	IntegerMatrix m_int_mat(m_mat_sexp);
-    Eigen::Map<const Eigen::MatrixXi> m_mat(m_int_mat.begin(), m_int_mat.nrow(), m_int_mat.ncol());
+
+	
+
+    
+
+    
+
+    
+
+    
 
     int B = indices_mat.cols();
-    int n = y.size();
-    
+    int n = y_vec_coerced.size();
+
     std::vector<double> results_vec(B, NA_REAL);
-    const double* y_ptr = y.data();
-    const int* w_ptr = w.data();
+    const double* y_ptr = y_vec_coerced.data();
+    const int* w_ptr = w_vec_coerced.data();
     const int* idx_ptr = indices_mat.data();
     const int* m_ptr = m_mat.data();
     double* res_ptr = results_vec.data();
@@ -542,7 +535,7 @@ NumericVector compute_wilcox_matching_ivwc_bootstrap_parallel_cpp(
     for (int b = 0; b < B; ++b) {
         const int* idx_col = idx_ptr + (size_t)b * n;
         const int* m_col = m_ptr + (size_t)b * n;
-        
+
         std::vector<double> pair_diffs;
         std::vector<double> res_y_t;
         std::vector<double> res_y_c;
@@ -552,7 +545,7 @@ NumericVector compute_wilcox_matching_ivwc_bootstrap_parallel_cpp(
             int mid = m_col[i];
             int idx = idx_col[i] - 1;
             if (idx < 0) continue;
-            
+
             if (mid == 0) {
                 if (w_ptr[idx] == 1) res_y_t.push_back(y_ptr[idx]);
                 else res_y_c.push_back(y_ptr[idx]);
@@ -596,22 +589,20 @@ NumericVector compute_wilcox_matching_ivwc_bootstrap_parallel_cpp(
 // applied to the freshly treated on the transform_code scale (see apply_shift; code 4 =
 // count response, multiplicative with rounding).
 // [[Rcpp::export]]
-NumericVector compute_wilcox_hl_rand_bootstrap_parallel_cpp(
-    SEXP y0_sexp,
-    SEXP i_mat_sexp,
-    SEXP w_mat_sexp,
-    double delta,
-    int transform_code,
-    double zero_one_logit_clamp,
-    Rcpp::Nullable<Rcpp::NumericMatrix> noise_mat,
-    int num_cores) {
+NumericVector compute_wilcox_hl_rand_bootstrap_parallel_cpp( const Eigen::Map<Eigen::VectorXd>& y0,
+		const Eigen::Map<Eigen::MatrixXi>& i_mat,
+		const Eigen::Map<Eigen::MatrixXi>& w_mat,
+		double delta,
+		int transform_code,
+		double zero_one_logit_clamp,
+		Rcpp::Nullable<Rcpp::NumericMatrix> noise_mat,
+		int num_cores) {
 
-	NumericVector y0_vec(y0_sexp);
-	IntegerMatrix i_int_mat(i_mat_sexp);
-	IntegerMatrix w_int_mat(w_mat_sexp);
-    Eigen::Map<const Eigen::VectorXd> y0(y0_vec.begin(), y0_vec.size());
-    Eigen::Map<const Eigen::MatrixXi> i_mat(i_int_mat.begin(), i_int_mat.nrow(), i_int_mat.ncol());
-    Eigen::Map<const Eigen::MatrixXi> w_mat(w_int_mat.begin(), w_int_mat.nrow(), w_int_mat.ncol());
+	
+
+    
+
+    
 
     const int n = i_mat.rows();
     const int nsim = i_mat.cols();

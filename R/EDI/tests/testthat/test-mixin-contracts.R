@@ -20,11 +20,32 @@ canonical_component_names = function() {
 	c(
 		"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
 		"RandomizationBootstrap", "BayesianBootstrap", "Jackknife", "Wald",
+		"SimpleMeanDifference", "SimpleMeanDifferencePooledVar",
+		"KKMeanDifferenceIVWC", "SimpleWilcox", "KKWilcoxIVWC",
 		"ExactTest", "ExactBinomialIncidence", "ExactFisherIncidence",
 		"ExactZhangIncidence",
 		"LikelihoodTests", "ParametricLikelihoodBootstrap", "StandardModelCache",
-		"CountLikelihoodPlumbing", "KKPassThrough", "KKCompound", "KKGEE",
-		"KKGLMM", "OffOptimumLikelihoodEval", "BartlettApproximation"
+		"CoxPartialLikelihood", "StratifiedCoxPartialLikelihood",
+		"ConditionalLogitPartialLikelihood", "OrdinalConditionalLogitPartialLikelihood",
+		"KKLWACoxIVWCPartialLikelihood", "KKLWACoxOneLikPartialLikelihood",
+		"KKSurvivalRankRegression",
+			"CountLikelihoodPlumbing", "CountCompositeLikelihood",
+			"ZeroAugmentedCountLikelihood",
+			"OrdinalProportionalOddsLikelihood", "OrdinalAdjacentCategoryLikelihood",
+			"OrdinalCloglogLikelihood", "OrdinalCauchitLikelihood",
+			"OrdinalStereotypeLikelihood", "OrdinalContinuationRatioLikelihood",
+			"OrdinalOrderedProbitLikelihood",
+			"IncidenceLogisticLikelihood", "IncidenceProbitLikelihood",
+			"IncidenceLogBinomialLikelihood", "IncidenceModifiedPoissonLikelihood",
+			"IncidenceBinomialIdentityLikelihood", "IncidenceGComputation",
+			"IncidenceGComputationRiskDiff", "IncidenceGComputationRiskRatio",
+			"SurvivalWeibullLikelihood", "SurvivalDepCensTransform",
+			"SurvivalKKWeibullMarginal", "SurvivalKKClaytonCopulaIVWC",
+			"SurvivalKKClaytonCopulaOneLik", "SurvivalKKWeibullFrailtyIVWC",
+			"SurvivalKKWeibullFrailtyIVWCLeaf", "SurvivalKKWeibullFrailtyOneLik",
+			"SurvivalKKWeibullFrailtyOneLikLeaf",
+					"KKPassThrough", "KKCompound", "KKGEE",
+		"RobustSandwich", "KKGLMM", "OffOptimumLikelihoodEval", "BartlettApproximation"
 	)
 }
 
@@ -87,9 +108,10 @@ test_that("active behavior components are registered with canonical names", {
 	expect_identical(components$KKPassThrough$source_name, "InferenceMixinKKPassThrough")
 	expect_identical(components$RandomizationTest$source_name, "InferenceRand")
 	expect_identical(components$ExactTest$source_name, "InferenceExact")
-	expect_identical(components$ExactBinomialIncidence$source_name, "InferenceIncidExactBinomial")
-	expect_identical(components$ExactFisherIncidence$source_name, "InferenceIncidExactFisher")
-	expect_identical(components$ExactZhangIncidence$source_name, "InferenceIncidenceExactZhang")
+	expect_identical(components$ExactBinomialIncidence$source_name, "ExactBinomialIncidenceSource")
+	expect_identical(components$ExactFisherIncidence$source_name, "ExactFisherIncidenceSource")
+	expect_identical(components$ExactZhangIncidence$source_name, "ExactZhangIncidenceSource")
+	expect_identical(components$RobustSandwich$source_name, "RobustSandwichSource")
 	expect_identical(components$BartlettApproximation$source_name, "InferenceExtBartlettApprox")
 	expect_identical(components$ParametricLikelihoodBootstrap$component_loader$load_policy, "lazy")
 	expect_identical(components$BartlettApproximation$component_loader$load_policy, "lazy")

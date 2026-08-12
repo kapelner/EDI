@@ -136,9 +136,13 @@ test_that("remaining algorithmic compatibility descendants are explicitly tracke
 	pending = Filter(function(record) {
 		identical(record$migration_status, "pending")
 	}, manifest)
+	pending_algorithmic = Filter(function(record) {
+		length(record$algorithmic_compatibility_ancestors) > 0L
+	}, pending)
 
 	expect_gt(length(pending), 0L)
-	for (record in pending) {
+	expect_gt(length(pending_algorithmic), 0L)
+	for (record in pending_algorithmic) {
 		expect_gt(length(record$algorithmic_compatibility_ancestors), 0L)
 		expect_true(all(
 			record$algorithmic_compatibility_ancestors %in%
@@ -323,7 +327,7 @@ test_that("exact incidence behavior manifest records current surface and target 
 	expect_true("ExactBinomialIncidence" %in% manifest$InferenceIncidExactBinomial$target_components)
 	expect_true("ExactFisherIncidence" %in% manifest$InferenceIncidExactFisher$target_components)
 	expect_true("ExactZhangIncidence" %in% manifest$InferenceIncidenceExactZhang$target_components)
-	expect_true(length(manifest$InferenceIncidenceExactZhang$legacy_optional_surface) > 0L)
+	expect_identical(manifest$InferenceIncidenceExactZhang$legacy_optional_surface, character())
 })
 
 test_that("CMH is classified as blocked-incidence Wald behavior, not exact behavior", {

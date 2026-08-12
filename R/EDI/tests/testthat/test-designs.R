@@ -205,8 +205,8 @@ test_that("Response types work", {
 					survival = 10)
 
 	if (rt == "survival") {
-		des$add_one_subject_response(1, val, dead = 1)
-		expect_equal(des$get_dead()[1], 1)
+		des$add_one_subject_response(1, val)
+		expect_equal(des$get_effective_dead()[1], 1)
 	} else {
 		des$add_one_subject_response(1, val)
 	}

@@ -374,3 +374,5 @@ InferenceIncidLogRegr = R6::R6Class("InferenceIncidLogRegr",
 		get_complexity_tier = function() "medium"
 	)
 )
+
+IncidenceLogisticLikelihoodSource = inference_component_source_parts(InferenceIncidLogRegr)

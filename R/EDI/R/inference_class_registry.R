@@ -58,7 +58,255 @@ EDI_CUSTOM_RANDOMIZATION_TARGETS = list(
 	)
 )
 
-EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES = c(
+EDI_SIMPLE_ESTIMATOR_CLASS_NAMES = c(
+	"InferenceAllSimpleMeanDiff",
+	"InferenceAllSimpleMeanDiffPooledVar",
+	"InferenceAllKKMeanDiffIVWC",
+	"InferenceAllSimpleWilcox",
+	"InferenceAllKKWilcoxIVWC"
+)
+
+EDI_NO_LIKELIHOOD_MIGRATION_REQUIRED_EVIDENCE = c(
+	"before_after_manifest_counts",
+	"kept_dropped_optional_methods",
+	"mark_inference_class_migrated",
+	"golden_outputs",
+	"method_availability_snapshot",
+	"private_state_owner_snapshot"
+)
+
+EDI_SIMPLE_ESTIMATOR_TARGETS = list(
+	InferenceAllSimpleMeanDiff = list(
+		family = "simple_mean_difference",
+		target_components = c(
+			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
+			"RandomizationBootstrap", "BayesianBootstrap", "Jackknife", "Wald"
+		),
+		intentional_capabilities = c(
+			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
+			"randomization_bootstrap", "bayesian_bootstrap", "jackknife", "wald"
+		),
+		notes = "Closed-form mean-difference estimator keeps randomization, randomization-CI, nonparametric bootstrap, randomization-bootstrap, Bayesian-bootstrap, jackknife, and Wald APIs; likelihood-test and parametric-likelihood-bootstrap APIs are legacy surface."
+	),
+	InferenceAllSimpleMeanDiffPooledVar = list(
+		family = "simple_mean_difference",
+		target_components = c(
+			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
+			"RandomizationBootstrap", "BayesianBootstrap", "Jackknife", "Wald"
+		),
+		intentional_capabilities = c(
+			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
+			"randomization_bootstrap", "bayesian_bootstrap", "jackknife", "wald"
+		),
+		notes = "Pooled-variance mean-difference estimator keeps the same no-likelihood resampling/Wald APIs as the base simple mean-difference estimator; likelihood-test and parametric-likelihood-bootstrap APIs are legacy surface."
+	),
+	InferenceAllKKMeanDiffIVWC = list(
+		family = "simple_mean_difference",
+		target_components = c(
+			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
+			"RandomizationBootstrap", "BayesianBootstrap", "Jackknife", "Wald",
+			"KKPassThrough", "KKCompound"
+		),
+		intentional_capabilities = c(
+			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
+			"randomization_bootstrap", "bayesian_bootstrap", "jackknife", "wald",
+			"kk_passthrough", "kk_compound"
+		),
+		notes = "KK IVWC mean-difference estimator keeps no-likelihood resampling/Wald APIs plus KK pass-through and compound behavior; likelihood-test APIs are legacy surface."
+	),
+	InferenceAllSimpleWilcox = list(
+		family = "wilcoxon_rank",
+		target_components = c(
+			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
+			"RandomizationBootstrap", "Jackknife", "Wald"
+		),
+		intentional_capabilities = c(
+			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
+			"randomization_bootstrap", "jackknife", "wald"
+		),
+		notes = "Simple Wilcoxon/Hodges-Lehmann estimator keeps randomization, randomization-CI, nonparametric bootstrap, randomization-bootstrap, jackknife stubs, and Wald/asymptotic rank APIs; Bayesian-bootstrap, likelihood-test, and parametric-likelihood-bootstrap APIs are legacy surface."
+	),
+	InferenceAllKKWilcoxIVWC = list(
+		family = "wilcoxon_rank",
+		target_components = c(
+			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
+			"RandomizationBootstrap", "Jackknife", "Wald", "KKWilcoxIVWC"
+		),
+		intentional_capabilities = c(
+			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
+			"randomization_bootstrap", "jackknife", "wald", "kk_passthrough", "kk_compound"
+		),
+		notes = "KK Wilcoxon IVWC estimator keeps rank randomization/resampling APIs plus KK pass-through and compound behavior; Bayesian-bootstrap and likelihood-test APIs are legacy surface."
+	)
+)
+
+EDI_SIMPLE_ESTIMATOR_TARGETS = lapply(EDI_SIMPLE_ESTIMATOR_TARGETS, function(target) {
+	if (is.null(target$migration_status)) {
+		target$migration_status = "migrated"
+	}
+	if (is.null(target$migration_evidence)) {
+		target$migration_evidence = EDI_NO_LIKELIHOOD_MIGRATION_REQUIRED_EVIDENCE
+	}
+	target
+})
+
+EDI_QUASI_ROBUST_CLASS_NAMES = c(
+	"InferenceContinRobustRegr",
+	"InferenceContinKKRobustRegrIVWC",
+	"InferenceContinKKRobustRegrOneLik",
+	"InferenceCountPoissonKKGEE",
+	"InferenceCountQuasiPoisson",
+	"InferenceCountRobustPoisson",
+	"InferenceIncidKKGEE",
+	"InferenceOrdinalKKGEE",
+	"InferencePropKKGEE"
+)
+
+	EDI_QUASI_ROBUST_TARGETS = list(
+	InferenceContinRobustRegr = list(
+		behavior = "robust_sandwich",
+		estimator_family = "continuous_robust_regression",
+		notes = "Huber/robust continuous regression path using robust/sandwich standard errors; no normalized likelihood-ratio surface should be implied by the quasi tier."
+	),
+	InferenceContinKKRobustRegrIVWC = list(
+		behavior = c("robust_sandwich", "kk_passthrough", "kk_compound"),
+		estimator_family = "continuous_kk_robust_regression_ivwc",
+		notes = "KK IVWC robust-regression estimator; keep KK pass-through/compound behavior separate from robust/sandwich estimator logic."
+	),
+	InferenceContinKKRobustRegrOneLik = list(
+		behavior = c("robust_sandwich", "kk_passthrough", "kk_compound"),
+		estimator_family = "continuous_kk_robust_regression_one_likelihood",
+		notes = "KK one-likelihood robust-regression estimator; its robust/sandwich behavior must not be treated as normalized likelihood-ratio support."
+	),
+	InferenceCountPoissonKKGEE = list(
+		behavior = c("gee", "kk_gee"),
+		estimator_family = "count_poisson_kk_gee",
+		notes = "KK GEE count estimator backed by InferenceMixinKKGEEShared; migrate after KKGEE host requirements are complete."
+	),
+	InferenceCountQuasiPoisson = list(
+		behavior = c("quasi_likelihood", "composite_likelihood"),
+		estimator_family = "count_quasipoisson",
+		composite_likelihood_tests_component = FALSE,
+		composite_likelihood_public_methods = character(),
+		notes = "Count quasi-Poisson uses quasi-likelihood estimating equations while currently inheriting CountCompositeLikelihood plumbing."
+	),
+	InferenceCountRobustPoisson = list(
+		behavior = c("robust_sandwich", "composite_likelihood"),
+		estimator_family = "count_robust_poisson",
+		composite_likelihood_tests_component = FALSE,
+		composite_likelihood_public_methods = character(),
+		notes = "Modified/robust Poisson uses sandwich variance while currently inheriting CountCompositeLikelihood plumbing."
+	),
+	InferenceIncidKKGEE = list(
+		behavior = c("gee", "kk_gee"),
+		estimator_family = "incidence_kk_gee",
+		notes = "Incidence KK GEE estimator backed by InferenceMixinKKGEEShared."
+	),
+	InferenceOrdinalKKGEE = list(
+		behavior = c("gee", "kk_gee"),
+		estimator_family = "ordinal_kk_gee",
+		notes = "Ordinal KK GEE estimator backed by InferenceMixinKKGEEShared."
+	),
+	InferencePropKKGEE = list(
+		behavior = c("gee", "kk_gee"),
+		estimator_family = "proportion_kk_gee",
+		notes = "Proportion KK GEE estimator backed by InferenceMixinKKGEEShared."
+		)
+	)
+
+	EDI_PARTIAL_LIKELIHOOD_CLASS_NAMES = c(
+		"InferenceIncidKKCondLogitGLMMIVWC",
+		"InferenceIncidKKCondLogitGLMMOneLik",
+		"InferenceIncidKKCondLogitIVWC",
+		"InferenceIncidKKCondLogitOneLik",
+		"InferenceOrdinalKKCondAdjCatLogitRegr",
+		"InferenceSurvivalCoxPHRegr",
+		"InferenceSurvivalKKLWACoxPHIVWC",
+		"InferenceSurvivalKKLWACoxPHOneLik",
+		"InferenceSurvivalKKStratCoxPHIVWC",
+		"InferenceSurvivalKKStratCoxPHOneLik",
+		"InferenceSurvivalStratCoxPHRegr"
+	)
+
+	EDI_PARTIAL_LIKELIHOOD_TARGETS = list(
+		InferenceIncidKKCondLogitGLMMIVWC = list(
+			behavior = c("conditional_logit", "glmm", "kk_compound", "kk_passthrough"),
+			estimator_family = "incidence_kk_conditional_logit_glmm_ivwc",
+			component_family = "ConditionalLogitPartialLikelihood",
+			target_direct_components = c("ConditionalLogitPartialLikelihood", "KKGLMM", "KKCompound"),
+			notes = "KK incidence conditional-logit GLMM IVWC estimator; migrate only after conditional-logit and KK compound/pass-through host contracts are explicit."
+		),
+		InferenceIncidKKCondLogitGLMMOneLik = list(
+			behavior = c("conditional_logit", "glmm", "kk_passthrough"),
+			estimator_family = "incidence_kk_conditional_logit_glmm_one_likelihood",
+			component_family = "ConditionalLogitPartialLikelihood",
+			target_direct_components = c("ConditionalLogitPartialLikelihood", "KKGLMM"),
+			notes = "KK incidence conditional-logit GLMM one-likelihood estimator; keep conditional-logit plumbing separate from GLMM package/runtime requirements."
+		),
+		InferenceIncidKKCondLogitIVWC = list(
+			behavior = c("conditional_logit", "kk_compound", "kk_passthrough"),
+			estimator_family = "incidence_kk_conditional_logit_ivwc",
+			component_family = "ConditionalLogitPartialLikelihood",
+			target_direct_components = c("ConditionalLogitPartialLikelihood", "KKCompound"),
+			notes = "KK incidence conditional-logit IVWC estimator; depends on KK pass-through/compound behavior plus conditional-logit fit helpers."
+		),
+		InferenceIncidKKCondLogitOneLik = list(
+			behavior = c("conditional_logit", "kk_passthrough"),
+			estimator_family = "incidence_kk_conditional_logit_one_likelihood",
+			component_family = "ConditionalLogitPartialLikelihood",
+			target_direct_components = c("ConditionalLogitPartialLikelihood", "KKPassThrough"),
+			notes = "KK incidence conditional-logit one-likelihood estimator; migrate after conditional-logit null-fit and likelihood-test contracts are declared."
+		),
+		InferenceOrdinalKKCondAdjCatLogitRegr = list(
+			behavior = c("conditional_logit", "ordinal", "kk_passthrough"),
+			estimator_family = "ordinal_kk_conditional_adjacent_category_logit",
+			component_family = "ConditionalLogitPartialLikelihood",
+			target_direct_components = c("OrdinalConditionalLogitPartialLikelihood", "KKPassThrough"),
+			notes = "Ordinal KK conditional adjacent-category logit estimator; shares conditional-logit-style matched-set likelihood behavior with incidence paths."
+		),
+		InferenceSurvivalCoxPHRegr = list(
+			behavior = c("cox", "standard_model_cache"),
+			estimator_family = "survival_cox_ph",
+			component_family = "CoxPartialLikelihood",
+			target_direct_components = "CoxPartialLikelihood",
+			notes = "Non-KK Cox proportional-hazards estimator currently inherits standard-model-cache likelihood behavior."
+		),
+		InferenceSurvivalStratCoxPHRegr = list(
+			behavior = c("cox", "stratified_cox", "standard_model_cache"),
+			estimator_family = "survival_stratified_cox_ph",
+			component_family = "CoxPartialLikelihood",
+			target_direct_components = "StratifiedCoxPartialLikelihood",
+			notes = "Non-KK stratified Cox PH estimator should share the Cox partial-likelihood component family while preserving stratification-specific caches."
+		),
+		InferenceSurvivalKKLWACoxPHIVWC = list(
+			behavior = c("cox", "lwa_cox", "kk_compound", "kk_passthrough"),
+			estimator_family = "survival_kk_lwa_cox_ivwc",
+			component_family = "KKLWACoxPartialLikelihood",
+			target_direct_components = c("KKLWACoxIVWCPartialLikelihood", "KKCompound"),
+			notes = "KK LWA Cox IVWC estimator combines matched cluster-robust Cox and reservoir Cox components."
+		),
+		InferenceSurvivalKKLWACoxPHOneLik = list(
+			behavior = c("cox", "lwa_cox", "kk_passthrough"),
+			estimator_family = "survival_kk_lwa_cox_one_likelihood",
+			component_family = "KKLWACoxPartialLikelihood",
+			target_direct_components = c("KKLWACoxOneLikPartialLikelihood", "KKPassThrough"),
+			notes = "KK LWA Cox one-likelihood estimator uses a combined marginal Cox partial likelihood with cluster-robust variance."
+		),
+		InferenceSurvivalKKStratCoxPHIVWC = list(
+			behavior = c("cox", "stratified_cox", "kk_compound", "kk_passthrough"),
+			estimator_family = "survival_kk_stratified_cox_ivwc",
+			component_family = "KKStratifiedCoxPartialLikelihood",
+			notes = "KK stratified Cox IVWC estimator needs KK compound/pass-through contracts before migration."
+		),
+		InferenceSurvivalKKStratCoxPHOneLik = list(
+			behavior = c("cox", "stratified_cox", "kk_passthrough"),
+			estimator_family = "survival_kk_stratified_cox_one_likelihood",
+			component_family = "KKStratifiedCoxPartialLikelihood",
+			notes = "KK stratified Cox one-likelihood estimator combines matched sets and reservoir subjects in one stratified Cox partial likelihood."
+		)
+	)
+
+	EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES = c(
 	"InferenceAsymp",
 	"InferenceJackknife",
 	"InferenceNonParamBootstrap",
@@ -157,16 +405,63 @@ infer_inference_direct_components = function(name) {
 		InferenceJackknife = "Jackknife",
 		InferenceAsymp = "Wald",
 		InferenceExact = "ExactTest",
+		InferenceIncidExactBinomial = "ExactBinomialIncidence",
+		InferenceIncidExactFisher = "ExactFisherIncidence",
+		InferenceIncidenceExactZhang = "ExactZhangIncidence",
 		InferenceAsympLik = "LikelihoodTests",
 		InferenceParamBootstrap = "ParametricLikelihoodBootstrap",
 		InferenceAsympLikStdModCache = "StandardModelCache",
 		InferenceAsympLikStdModCacheNoParamBootstrap = "StandardModelCache",
-		InferenceCountLikelihood = "CountLikelihoodPlumbing",
-		InferenceCountLikelihoodNoParamBootstrap = "CountLikelihoodPlumbing",
-		InferenceCountCompositeLikelihood = "CountLikelihoodPlumbing",
+			InferenceCountLikelihood = "CountLikelihoodPlumbing",
+			InferenceCountLikelihoodNoParamBootstrap = "CountLikelihoodPlumbing",
+			InferenceCountCompositeLikelihood = "CountLikelihoodPlumbing",
+			InferenceCountZeroAugmentedPoissonAbstract = "ZeroAugmentedCountLikelihood",
+			InferenceCountQuasiPoisson = c("Wald", "CountCompositeLikelihood"),
+			InferenceCountRobustPoisson = c("Wald", "CountCompositeLikelihood", "RobustSandwich"),
+			InferenceOrdinalPropOddsRegr = c(
+				"BayesianBootstrap", "ParametricLikelihoodBootstrap",
+				"OrdinalProportionalOddsLikelihood"
+			),
+			InferenceOrdinalAdjCatLogitRegr = c(
+				"BayesianBootstrap", "ParametricLikelihoodBootstrap",
+				"OrdinalAdjacentCategoryLikelihood"
+			),
+			InferenceOrdinalCloglogRegr = "OrdinalCloglogLikelihood",
+			InferenceOrdinalCauchitRegr = "OrdinalCauchitLikelihood",
+			InferenceOrdinalStereotypeLogitRegr = "OrdinalStereotypeLikelihood",
+			InferenceOrdinalContRatioRegr = "OrdinalContinuationRatioLikelihood",
+			InferenceOrdinalOrderedProbitRegr = "OrdinalOrderedProbitLikelihood",
+			InferenceIncidLogRegr = "IncidenceLogisticLikelihood",
+			InferenceIncidProbitRegr = "IncidenceProbitLikelihood",
+			InferenceIncidLogBinomial = "IncidenceLogBinomialLikelihood",
+			InferenceIncidModifiedPoisson = "IncidenceModifiedPoissonLikelihood",
+			InferenceIncidBinomialIdentityRiskDiff = "IncidenceBinomialIdentityLikelihood",
+			InferenceIncidGCompAbstract = "IncidenceGComputation",
+			InferenceIncidGCompRiskDiff = "IncidenceGComputationRiskDiff",
+			InferenceIncidGCompRiskRatio = "IncidenceGComputationRiskRatio",
+			InferenceSurvivalWeibullRegr = "SurvivalWeibullLikelihood",
+			InferenceSurvivalDepCensTransformRegr = "SurvivalDepCensTransform",
+			InferenceSurvivalKKWeibullMarginal = "SurvivalKKWeibullMarginal",
+			InferenceSurvivalKKClaytonCopulaIVWC = "SurvivalKKClaytonCopulaIVWC",
+			InferenceSurvivalKKClaytonCopulaOneLik = "SurvivalKKClaytonCopulaOneLik",
+			InferenceAbstractKKWeibullFrailtyIVWC = "SurvivalKKWeibullFrailtyIVWC",
+			InferenceSurvivalKKWeibullFrailtyIVWC = "SurvivalKKWeibullFrailtyIVWCLeaf",
+			InferenceAbstractKKWeibullFrailtyOneLik = "SurvivalKKWeibullFrailtyOneLik",
+			InferenceSurvivalKKWeibullFrailtyOneLik = "SurvivalKKWeibullFrailtyOneLikLeaf",
+			InferenceCountPoissonKKGEE = "KKGEE",
+		InferenceIncidKKGEE = "KKGEE",
+		InferenceOrdinalKKGEE = "KKGEE",
+		InferencePropKKGEE = "KKGEE",
 		InferenceKKPassThroughCompound = "KKCompound",
 		InferenceKKPassThroughCompoundNoParamBootstrap = "KKCompound",
 		InferenceCustomRand = "RandomizationTest",
+		InferenceAllSimpleMeanDiff = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
+		InferenceAllSimpleMeanDiffPooledVar = c("BayesianBootstrap", "Wald", "SimpleMeanDifferencePooledVar"),
+		InferenceAllKKMeanDiffIVWC = c("BayesianBootstrap", "Wald", "KKMeanDifferenceIVWC"),
+		InferenceAllSimpleWilcox = c("RandomizationBootstrap", "Wald", "SimpleWilcox"),
+		InferenceAllKKWilcoxIVWC = c("RandomizationBootstrap", "Wald", "KKWilcoxIVWC"),
+		InferenceSurvivalCoxPHRegr = "CoxPartialLikelihood",
+		InferenceSurvivalStratCoxPHRegr = "StratifiedCoxPartialLikelihood",
 		character()
 	)
 }
@@ -510,6 +805,32 @@ inference_public_method_names = function(name, generator = NULL) {
 	unique(public_names)
 }
 
+inference_private_owner_names = function(name, generator = NULL) {
+	if (is.null(generator)) {
+		ns = environment(populate_inference_class_registry)
+		if (!exists(name, envir = ns, inherits = FALSE)) {
+			stop(sprintf("No R6 generator found for inference class %s.", name), call. = FALSE)
+		}
+		generator = get(name, envir = ns, inherits = FALSE)
+	}
+	if (!inherits(generator, "R6ClassGenerator")) {
+		stop(sprintf("Object for %s is not an R6 generator.", name), call. = FALSE)
+	}
+	owners = list()
+	current = generator
+	while (!is.null(current)) {
+		private_names = unique(c(
+			names(current$private_methods) %||% character(),
+			names(current$private_fields) %||% character()
+		))
+		for (private_name in private_names) {
+			owners[[private_name]] = c(owners[[private_name]] %||% character(), current$classname)
+		}
+		current = current$get_inherit()
+	}
+	owners
+}
+
 public_methods_required_for_capabilities = function(capabilities) {
 	unique(as.character(unlist(
 		public_methods_for_capability[intersect(names(public_methods_for_capability), capabilities)],
@@ -639,7 +960,8 @@ inference_hierarchy_migration_summary = function(manifest = inference_hierarchy_
 			"kk_status"
 		)
 	)
-}
+
+	}
 
 inference_hierarchy_migration_order = function(
 	manifest = inference_hierarchy_migration_manifest_as_list(),
@@ -757,7 +1079,407 @@ exact_incidence_behavior_manifest = function() {
 	stats::setNames(lapply(EDI_EXACT_INCIDENCE_CLASS_NAMES, build_exact_incidence_behavior_record), EDI_EXACT_INCIDENCE_CLASS_NAMES)
 }
 
-custom_randomization_direct_host_names = function(registry = inference_class_registry_as_list()) {
+simple_estimator_migration_groups = function(class_names = EDI_SIMPLE_ESTIMATOR_CLASS_NAMES) {
+	targets = EDI_SIMPLE_ESTIMATOR_TARGETS[class_names]
+	missing_targets = setdiff(class_names, names(EDI_SIMPLE_ESTIMATOR_TARGETS))
+	if (length(missing_targets) > 0L) {
+		stop(sprintf(
+			"Simple estimator class(es) are missing target metadata: %s",
+			paste(missing_targets, collapse = ", ")
+		), call. = FALSE)
+	}
+	families = vapply(targets, function(target) target$family, character(1L))
+	list(
+		simple_mean_difference = sort(class_names[families == "simple_mean_difference"]),
+		wilcoxon_rank = sort(class_names[families == "wilcoxon_rank"])
+	)
+}
+
+build_simple_estimator_behavior_record = function(name) {
+	target = EDI_SIMPLE_ESTIMATOR_TARGETS[[name]]
+	if (is.null(target)) {
+		stop(sprintf("%s is not a registered simple estimator migration target.", name), call. = FALSE)
+	}
+	metadata = get_inference_class_metadata(name)
+	private_owners = inference_private_owner_names(name)
+	current_public_methods = inference_public_method_names(name)
+	current_optional_methods = sort(unique(intersect(
+		current_public_methods,
+		inference_optional_method_names_for_capabilities(c(
+			"randomization_test",
+			"randomization_ci",
+			"nonparametric_bootstrap",
+			"randomization_bootstrap",
+			"bayesian_bootstrap",
+			"jackknife",
+			"wald",
+			"likelihood_tests",
+			"parametric_likelihood_bootstrap"
+		))
+	)))
+	intentional_methods = inference_optional_method_names_for_capabilities(target$intentional_capabilities)
+	list(
+		name = name,
+		family = target$family,
+		current_parent = metadata$parent,
+		current_effective_components = get_effective_components(name),
+		current_effective_capabilities = get_effective_capabilities(name),
+		current_public_methods = current_public_methods,
+		current_public_optional_methods = current_optional_methods,
+		private_owner_names = names(private_owners),
+		duplicate_private_owner_names = names(private_owners[vapply(private_owners, length, integer(1L)) > 1L]),
+		migration_status = target$migration_status %||% "pending",
+		migration_evidence = target$migration_evidence %||% character(),
+		target_parent = "Inference",
+		target_components = target$target_components,
+		intentional_capabilities = target$intentional_capabilities,
+		intentional_public_methods = intentional_methods,
+		legacy_optional_surface = setdiff(current_optional_methods, c(intentional_methods, "get_supported_testing_types")),
+		notes = target$notes
+	)
+}
+
+simple_estimator_behavior_manifest = function() {
+	stats::setNames(lapply(EDI_SIMPLE_ESTIMATOR_CLASS_NAMES, build_simple_estimator_behavior_record), EDI_SIMPLE_ESTIMATOR_CLASS_NAMES)
+}
+
+simple_estimator_migration_counts = function(manifest = simple_estimator_behavior_manifest()) {
+	families = sort(unique(vapply(manifest, function(record) record$family, character(1L))))
+	do.call(rbind, lapply(families, function(family) {
+		records = Filter(function(record) identical(record$family, family), manifest)
+		data.frame(
+			family = family,
+			total = length(records),
+			migrated = sum(vapply(records, function(record) identical(record$migration_status, "migrated"), logical(1L))),
+			pending = sum(vapply(records, function(record) !identical(record$migration_status, "migrated"), logical(1L))),
+			stringsAsFactors = FALSE
+		)
+	}))
+}
+
+mark_simple_estimator_classes_migrated = function(class_names = EDI_SIMPLE_ESTIMATOR_CLASS_NAMES) {
+	for (name in class_names) {
+		target = EDI_SIMPLE_ESTIMATOR_TARGETS[[name]]
+		if (is.null(target)) {
+			stop(sprintf("%s is not a registered simple-estimator migration target.", name), call. = FALSE)
+		}
+		if (!identical(target$migration_status %||% "pending", "migrated")) next
+		missing_evidence = setdiff(
+			EDI_NO_LIKELIHOOD_MIGRATION_REQUIRED_EVIDENCE,
+			target$migration_evidence %||% character()
+		)
+		if (length(missing_evidence) > 0L) {
+			stop(sprintf(
+				"%s cannot be marked migrated: missing no-likelihood migration evidence: %s",
+				name,
+				paste(missing_evidence, collapse = ", ")
+			), call. = FALSE)
+		}
+		record = build_simple_estimator_behavior_record(name)
+		if (length(record$legacy_optional_surface) > 0L) {
+			stop(sprintf(
+				"%s cannot be marked migrated: legacy optional public method(s) remain: %s",
+				name,
+				paste(record$legacy_optional_surface, collapse = ", ")
+			), call. = FALSE)
+		}
+		mark_inference_class_migrated(
+			name,
+			public_method_names = record$current_public_optional_methods
+		)
+	}
+	invisible(inference_hierarchy_migration_manifest_as_list()[class_names])
+}
+
+quasi_robust_concrete_class_names = function(manifest = inference_hierarchy_migration_manifest_as_list()) {
+	sort(names(Filter(function(record) {
+		identical(record$current_likelihood_tier, "quasi") && !isTRUE(record$current_abstract)
+	}, manifest)))
+}
+
+quasi_robust_behavior_groups = function(class_names = EDI_QUASI_ROBUST_CLASS_NAMES) {
+	targets = EDI_QUASI_ROBUST_TARGETS[class_names]
+	missing_targets = setdiff(class_names, names(EDI_QUASI_ROBUST_TARGETS))
+	if (length(missing_targets) > 0L) {
+		stop(sprintf(
+			"Quasi/robust class(es) are missing target metadata: %s",
+			paste(missing_targets, collapse = ", ")
+		), call. = FALSE)
+	}
+	behaviors = sort(unique(unlist(lapply(targets, `[[`, "behavior"), use.names = FALSE)))
+	stats::setNames(lapply(behaviors, function(behavior) {
+		sort(names(Filter(function(target) behavior %in% target$behavior, targets)))
+	}), behaviors)
+}
+
+build_quasi_robust_behavior_record = function(name) {
+	target = EDI_QUASI_ROBUST_TARGETS[[name]]
+	if (is.null(target)) {
+		stop(sprintf("%s is not a registered quasi/robust migration target.", name), call. = FALSE)
+	}
+	metadata = get_inference_class_metadata(name)
+	list(
+		name = name,
+		estimator_family = target$estimator_family,
+		behavior = target$behavior,
+		current_parent = metadata$parent,
+		current_effective_components = get_effective_components(name),
+		current_effective_capabilities = get_effective_capabilities(name),
+		current_likelihood_tier = metadata$likelihood_tier,
+		target_parent = "Inference",
+		target_likelihood_tier = "quasi",
+		composite_likelihood_tests_component = isTRUE(target$composite_likelihood_tests_component),
+		composite_likelihood_public_methods = target$composite_likelihood_public_methods %||% character(),
+		notes = target$notes
+	)
+}
+
+quasi_robust_behavior_manifest = function() {
+	manifest_names = quasi_robust_concrete_class_names()
+	missing_targets = setdiff(manifest_names, names(EDI_QUASI_ROBUST_TARGETS))
+	extra_targets = setdiff(names(EDI_QUASI_ROBUST_TARGETS), manifest_names)
+	if (length(missing_targets) > 0L || length(extra_targets) > 0L) {
+		stop(sprintf(
+			"Quasi/robust migration target mismatch. Missing target(s): %s. Extra target(s): %s.",
+			paste(missing_targets, collapse = ", "),
+			paste(extra_targets, collapse = ", ")
+		), call. = FALSE)
+	}
+	stats::setNames(lapply(EDI_QUASI_ROBUST_CLASS_NAMES, build_quasi_robust_behavior_record), EDI_QUASI_ROBUST_CLASS_NAMES)
+}
+
+	quasi_robust_behavior_counts = function(manifest = quasi_robust_behavior_manifest()) {
+		groups = quasi_robust_behavior_groups(names(manifest))
+		do.call(rbind, lapply(names(groups), function(behavior) {
+			data.frame(
+				behavior = behavior,
+				class_count = length(groups[[behavior]]),
+				stringsAsFactors = FALSE
+			)
+		}))
+	}
+
+	partial_likelihood_concrete_class_names = function(manifest = inference_hierarchy_migration_manifest_as_list()) {
+		sort(names(Filter(function(record) {
+			identical(record$current_likelihood_tier, "partial") && !isTRUE(record$current_abstract)
+		}, manifest)))
+	}
+
+	partial_likelihood_behavior_groups = function(class_names = EDI_PARTIAL_LIKELIHOOD_CLASS_NAMES) {
+		targets = EDI_PARTIAL_LIKELIHOOD_TARGETS[class_names]
+		missing_targets = setdiff(class_names, names(EDI_PARTIAL_LIKELIHOOD_TARGETS))
+		if (length(missing_targets) > 0L) {
+			stop(sprintf(
+				"Partial-likelihood class(es) are missing target metadata: %s",
+				paste(missing_targets, collapse = ", ")
+			), call. = FALSE)
+		}
+		behaviors = sort(unique(unlist(lapply(targets, `[[`, "behavior"), use.names = FALSE)))
+		stats::setNames(lapply(behaviors, function(behavior) {
+			sort(names(Filter(function(target) behavior %in% target$behavior, targets)))
+		}), behaviors)
+	}
+
+	partial_likelihood_component_family_groups = function(class_names = EDI_PARTIAL_LIKELIHOOD_CLASS_NAMES) {
+		targets = EDI_PARTIAL_LIKELIHOOD_TARGETS[class_names]
+		missing_targets = setdiff(class_names, names(EDI_PARTIAL_LIKELIHOOD_TARGETS))
+		if (length(missing_targets) > 0L) {
+			stop(sprintf(
+				"Partial-likelihood class(es) are missing target metadata: %s",
+				paste(missing_targets, collapse = ", ")
+			), call. = FALSE)
+		}
+		component_families = sort(unique(vapply(targets, `[[`, character(1L), "component_family")))
+		stats::setNames(lapply(component_families, function(component_family) {
+			sort(names(Filter(function(target) identical(target$component_family, component_family), targets)))
+		}), component_families)
+	}
+
+	build_partial_likelihood_behavior_record = function(name) {
+		target = EDI_PARTIAL_LIKELIHOOD_TARGETS[[name]]
+		if (is.null(target)) {
+			stop(sprintf("%s is not a registered partial-likelihood migration target.", name), call. = FALSE)
+		}
+		metadata = get_inference_class_metadata(name)
+		target_components = if (length(target$target_direct_components %||% character()) > 0L) {
+			resolve_component_dependencies(target$target_direct_components)
+		} else {
+			character()
+		}
+		current_capabilities = get_effective_capabilities(name)
+		target_capabilities = unique(as.character(unlist(lapply(target_components, function(component_name) {
+			get_inference_component(component_name)$provides_capabilities
+		}), use.names = FALSE)))
+		has_null_simulator = "simulate_under_lik_null" %in% names(inference_private_owner_names(name))
+		list(
+			name = name,
+			estimator_family = target$estimator_family,
+			behavior = target$behavior,
+			component_family = target$component_family,
+			target_direct_components = target$target_direct_components %||% character(),
+			target_components = target_components,
+			current_parent = metadata$parent,
+			current_effective_components = get_effective_components(name),
+			current_effective_capabilities = current_capabilities,
+			current_likelihood_tier = metadata$likelihood_tier,
+			target_parent = "Inference",
+			target_likelihood_tier = "partial",
+			target_effective_capabilities = target_capabilities,
+			provides_parametric_likelihood_bootstrap = "parametric_likelihood_bootstrap" %in% current_capabilities,
+			target_provides_parametric_likelihood_bootstrap = "parametric_likelihood_bootstrap" %in% target_capabilities,
+			has_null_simulator = has_null_simulator,
+			notes = target$notes
+		)
+	}
+
+	partial_likelihood_parametric_bootstrap_violations = function(manifest = partial_likelihood_behavior_manifest()) {
+		records = Filter(function(record) {
+			(isTRUE(record$provides_parametric_likelihood_bootstrap) ||
+				isTRUE(record$target_provides_parametric_likelihood_bootstrap)) &&
+				!isTRUE(record$has_null_simulator)
+		}, manifest)
+		if (length(records) == 0L) {
+			return(data.frame(
+				name = character(),
+				current_provides_parametric_likelihood_bootstrap = logical(),
+				target_provides_parametric_likelihood_bootstrap = logical(),
+				has_null_simulator = logical(),
+				stringsAsFactors = FALSE
+			))
+		}
+		do.call(rbind, lapply(records, function(record) {
+			data.frame(
+				name = record$name,
+				current_provides_parametric_likelihood_bootstrap = isTRUE(record$provides_parametric_likelihood_bootstrap),
+				target_provides_parametric_likelihood_bootstrap = isTRUE(record$target_provides_parametric_likelihood_bootstrap),
+				has_null_simulator = isTRUE(record$has_null_simulator),
+				stringsAsFactors = FALSE
+			)
+		}))
+	}
+
+	partial_likelihood_behavior_manifest = function() {
+		manifest_names = partial_likelihood_concrete_class_names()
+		missing_targets = setdiff(manifest_names, names(EDI_PARTIAL_LIKELIHOOD_TARGETS))
+		extra_targets = setdiff(names(EDI_PARTIAL_LIKELIHOOD_TARGETS), manifest_names)
+		if (length(missing_targets) > 0L || length(extra_targets) > 0L) {
+			stop(sprintf(
+				"Partial-likelihood migration target mismatch. Missing target(s): %s. Extra target(s): %s.",
+				paste(missing_targets, collapse = ", "),
+				paste(extra_targets, collapse = ", ")
+			), call. = FALSE)
+		}
+		stats::setNames(lapply(EDI_PARTIAL_LIKELIHOOD_CLASS_NAMES, build_partial_likelihood_behavior_record), EDI_PARTIAL_LIKELIHOOD_CLASS_NAMES)
+	}
+
+	partial_likelihood_behavior_counts = function(manifest = partial_likelihood_behavior_manifest()) {
+		groups = partial_likelihood_behavior_groups(names(manifest))
+		do.call(rbind, lapply(names(groups), function(behavior) {
+			data.frame(
+				behavior = behavior,
+				class_count = length(groups[[behavior]]),
+				stringsAsFactors = FALSE
+			)
+		}))
+	}
+
+	full_likelihood_concrete_class_names = function(manifest = inference_hierarchy_migration_manifest_as_list()) {
+		sort(names(Filter(function(record) {
+			identical(record$current_likelihood_tier, "full") && !isTRUE(record$current_abstract)
+		}, manifest)))
+	}
+
+	full_likelihood_family = function(record) {
+		response_types = record$current_response_types %||% character()
+		if ("continuous" %in% response_types) {
+			return("glm")
+		}
+		for (family in c("count", "ordinal", "incidence", "proportion", "survival")) {
+			if (family %in% response_types) {
+				return(family)
+			}
+		}
+		"other"
+	}
+
+	full_likelihood_behavior_groups = function(class_names = full_likelihood_concrete_class_names()) {
+		manifest = inference_hierarchy_migration_manifest_as_list()[class_names]
+		missing_records = class_names[!vapply(manifest, Negate(is.null), logical(1L))]
+		if (length(missing_records) > 0L) {
+			stop(sprintf(
+				"Full-likelihood class(es) are missing migration metadata: %s",
+				paste(missing_records, collapse = ", ")
+			), call. = FALSE)
+		}
+		groups = list(
+			glm = character(),
+			count = character(),
+			ordinal = character(),
+			incidence = character(),
+			proportion = character(),
+			survival = character(),
+			kk_or_ivwc = character(),
+			non_kk = character()
+		)
+		for (record in manifest) {
+			family = full_likelihood_family(record)
+			groups[[family]] = c(groups[[family]], record$name)
+			if (is_kk_inference_migration_record(record)) {
+				groups$kk_or_ivwc = c(groups$kk_or_ivwc, record$name)
+			} else {
+				groups$non_kk = c(groups$non_kk, record$name)
+			}
+		}
+		lapply(groups, sort)
+	}
+
+	build_full_likelihood_behavior_record = function(name) {
+		metadata = get_inference_class_metadata(name)
+		if (!identical(metadata$likelihood_tier, "full") || isTRUE(metadata$abstract)) {
+			stop(sprintf("%s is not a concrete full-likelihood inference class.", name), call. = FALSE)
+		}
+		migration_record = get_inference_hierarchy_migration_record(name)
+		list(
+			name = name,
+			family = full_likelihood_family(migration_record),
+			kk_status = if (is_kk_inference_migration_record(migration_record)) "KK_or_IVWC" else "non_KK",
+			current_parent = metadata$parent,
+			current_effective_components = get_effective_components(name),
+			current_effective_capabilities = get_effective_capabilities(name),
+			current_likelihood_tier = metadata$likelihood_tier,
+			current_response_types = metadata$response_types,
+			target_parent = "Inference",
+			target_likelihood_tier = "full"
+		)
+	}
+
+	full_likelihood_behavior_manifest = function() {
+		class_names = full_likelihood_concrete_class_names()
+		stats::setNames(lapply(class_names, build_full_likelihood_behavior_record), class_names)
+	}
+
+	full_likelihood_behavior_counts = function(manifest = full_likelihood_behavior_manifest()) {
+		families = sort(unique(vapply(manifest, function(record) record$family, character(1L))))
+		family_counts = do.call(rbind, lapply(families, function(family) {
+			records = Filter(function(record) identical(record$family, family), manifest)
+			data.frame(
+				group = family,
+				class_count = length(records),
+				stringsAsFactors = FALSE
+			)
+		}))
+		kk_counts = do.call(rbind, lapply(c("KK_or_IVWC", "non_KK"), function(kk_status) {
+			records = Filter(function(record) identical(record$kk_status, kk_status), manifest)
+			data.frame(
+				group = kk_status,
+				class_count = length(records),
+				stringsAsFactors = FALSE
+			)
+		}))
+		rbind(family_counts, kk_counts)
+	}
+
+	custom_randomization_direct_host_names = function(registry = inference_class_registry_as_list()) {
 	direct_inference_rand_children = names(Filter(function(metadata) {
 		identical(metadata$parent, "InferenceRand") && !isTRUE(metadata$abstract)
 	}, registry))
@@ -894,6 +1616,7 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 	validate_inference_class_registry()
 	populate_inference_hierarchy_migration_manifest()
 	mark_custom_randomization_classes_migrated()
+	mark_simple_estimator_classes_migrated()
 	invisible(EDI_INFERENCE_CLASS_REGISTRY)
 }
 

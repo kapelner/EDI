@@ -316,27 +316,27 @@ ModelResult fast_neg_bin_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
     return res;
 }
 
+#ifndef EDI_CORE_ONLY
 //' @title Compute Negative Binomial Regression Score
 //' @description Calculates the score vector (gradient of the log-likelihood) for a negative binomial regression model.
-//' @param X_sexp A numeric matrix of predictors.
-//' @param y_sexp A numeric vector of responses (non-negative integers).
-//' @param params_sexp A numeric vector of parameters [beta, log_theta].
+//' @param X A numeric matrix of predictors.
+//' @param y A numeric vector of responses (non-negative integers).
+//' @param params A numeric vector of parameters [beta, log_theta].
 //' @return A numeric vector representing the score.
 //' @export
 //' @keywords internal
-#ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-Eigen::VectorXd get_negbin_regression_score_cpp(SEXP X_sexp,
-                                                SEXP y_sexp,
-                                                SEXP params_sexp) {
-    NumericMatrix X_r(X_sexp);
-    IntegerVector y_r(y_sexp);
-    NumericVector params_r(params_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXi> y(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::VectorXd get_negbin_regression_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, const Eigen::Map<Eigen::VectorXd>& params) {
+	IntegerVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXi> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-    NBLogLik fun(X, y);
+
+    
+
+    
+
+    
+
+    NBLogLik fun(X, y_vec_coerced);
     Eigen::VectorXd grad(params.size());
     fun(params, grad);
     return -grad;
@@ -351,32 +351,32 @@ Eigen::VectorXd get_negbin_regression_score_cpp(SEXP X_sexp,
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-Eigen::MatrixXd get_negbin_regression_hessian_cpp(SEXP X,
-                                                  SEXP y,
-                                                  SEXP params) {
-    NumericMatrix X_r(X);
-    IntegerVector y_r(y);
-    NumericVector params_r(params);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXi> y_vec(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::VectorXd> params_vec(params_r.begin(), params_r.size());
+Eigen::MatrixXd get_negbin_regression_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, const Eigen::Map<Eigen::VectorXd>& params) {
+	IntegerVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXi> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-    NBLogLik fun(X_mat, y_vec);
-    return -fun.hessian(params_vec);
+
+    
+
+    
+
+    
+
+    NBLogLik fun(X, y_vec_coerced);
+    return -fun.hessian(params);
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd get_negbin_regression_expected_hessian_cpp(SEXP X_sexp,
-                                                           SEXP y_sexp,
-                                                           SEXP params_sexp) {
-    NumericMatrix X_r(X_sexp);
-    IntegerVector y_r(y_sexp);
-    NumericVector params_r(params_sexp);
-    Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXi> y(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+Eigen::MatrixXd get_negbin_regression_expected_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, const Eigen::Map<Eigen::VectorXd>& params) {
+	IntegerVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXi> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-    NBLogLik fun(X, y);
+
+    
+
+    
+
+    
+
+    NBLogLik fun(X, y_vec_coerced);
     return fun.expected_hessian(params);
 }
 
@@ -401,25 +401,27 @@ Eigen::MatrixXd get_negbin_regression_expected_hessian_cpp(SEXP X_sexp,
 //' y = rpois(10, 2)
 //' fast_neg_bin_with_var_cpp(X, y)
 // [[Rcpp::export]]
-List fast_neg_bin_with_var_cpp(SEXP X,
-                                SEXP y,
-                                Nullable<NumericVector> warm_start_params = R_NilValue,
-                                bool smart_cold_start = false,
-                                int maxit = 1000,
-                                double eps_f = 1e-8,
-                                double eps_g = 1e-6,
-                                Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-                                Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-                                std::string optimization_alg = "lbfgs",
-                                Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
-                                bool estimate_only = false) {
-    NumericMatrix X_r(X);
-    IntegerVector y_r(y);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXi> y_vec(y_r.begin(), y_r.size());
+List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
+		SEXP y,
+		Nullable<NumericVector> warm_start_params = R_NilValue,
+		bool smart_cold_start = false,
+		int maxit = 1000,
+		double eps_f = 1e-8,
+		double eps_g = 1e-6,
+		Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
+		Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
+		std::string optimization_alg = "lbfgs",
+		Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
+		bool estimate_only = false) {
 
+    // y is coerced explicitly: count data from R's own generators is
+    // inconsistently typed (rbinom/rpois return integer, rnbinom returns
+    // double) -- Eigen::Map<VectorXi> has no coercion path, so this restores
+    // the IntegerVector(SEXP) auto-coercion the pre-zero-copy version relied on.
+    IntegerVector y_r(y);
+    Eigen::Map<const Eigen::VectorXi> y_vec(y_r.begin(), y_r.size());
     ModelResult res = fast_neg_bin_internal(
-        X_mat, y_vec,
+        X, y_vec,
         nullable_to_optional<Eigen::VectorXd>(warm_start_params),
         smart_cold_start, maxit, eps_g,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -428,12 +430,12 @@ List fast_neg_bin_with_var_cpp(SEXP X,
         nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
         estimate_only);
     FixedParamSpec fixed_spec = make_fixed_param_spec(
-        X_mat.cols() + 1,
+        X.cols() + 1,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values));
     Eigen::MatrixXd H_free = subset_matrix(res.XtWX, fixed_spec.free_idx, fixed_spec.free_idx);
     Eigen::MatrixXd cov_free = H_free.inverse();
-    Eigen::MatrixXd vcov = expand_free_covariance(X_mat.cols() + 1, fixed_spec, cov_free, true);
+    Eigen::MatrixXd vcov = expand_free_covariance(X.cols() + 1, fixed_spec, cov_free, true);
     return edi::to_rcpp_list(edi::ResultMap()
         .set("b", res.b)
         .set("theta_hat", res.dispersion)
@@ -465,25 +467,16 @@ List fast_neg_bin_with_var_cpp(SEXP X,
 //' y = rpois(10, 2)
 //' fast_neg_bin_cpp(X, y)
 // [[Rcpp::export]]
-List fast_neg_bin_cpp(SEXP X,
-                        SEXP y,
-                        Nullable<NumericVector> warm_start_params = R_NilValue,
-                        bool smart_cold_start = false,
-                        int maxit = 1000,
-                        double eps_f = 1e-8,
-                        double eps_g = 1e-6,
-                        Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-                        Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-                        std::string optimization_alg = "lbfgs",
-                        Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
-                        bool estimate_only = false) {
-    NumericMatrix X_r(X);
-    IntegerVector y_r(y);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXi> y_vec(y_r.begin(), y_r.size());
+List fast_neg_bin_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Nullable<NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = false, int maxit = 1000, double eps_f = 1e-8, double eps_g = 1e-6, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, bool estimate_only = false) {
+	IntegerVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXi> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+
+    
+
+    
 
     ModelResult res = fast_neg_bin_internal(
-        X_mat, y_vec,
+        X, y_vec_coerced,
         nullable_to_optional<Eigen::VectorXd>(warm_start_params),
         smart_cold_start, maxit, eps_g,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -523,35 +516,20 @@ List fast_neg_bin_cpp(SEXP X,
 //' y = rpois(10, 2)
 //' fast_neg_bin_weighted_cpp(X, y, weights = rep(1, 10))
 // [[Rcpp::export]]
-List fast_neg_bin_weighted_cpp(SEXP X,
-                        SEXP y,
-                        SEXP weights,
-                        Nullable<NumericVector> warm_start_params = R_NilValue,
-                        bool smart_cold_start = false,
-                        int maxit = 1000,
-                        double eps_f = 1e-8,
-                        double eps_g = 1e-6,
-                        Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-                        Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-                        std::string optimization_alg = "lbfgs",
-                        Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
-                        bool estimate_only = false) {
-    NumericMatrix X_r(X);
-    IntegerVector y_r(y);
-    NumericVector weights_r(weights);
-    if (weights_r.size() != X_r.nrow()) {
-        stop("weights length must equal nrow(X)");
+List fast_neg_bin_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP weights, Nullable<NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = false, int maxit = 1000, double eps_f = 1e-8, double eps_g = 1e-6, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, bool estimate_only = false) {
+	NumericVector weights_r_coerced(weights); Eigen::Map<const Eigen::VectorXd> weights_vec_coerced(weights_r_coerced.begin(), weights_r_coerced.size());
+	IntegerVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXi> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
+
+    if (weights_vec_coerced.size() != X.rows()) {
+        stop("weights_vec_coerced length must equal nrow(X)");
     }
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
-    Eigen::Map<const Eigen::VectorXi> y_vec(y_r.begin(), y_r.size());
-    Eigen::Map<const Eigen::VectorXd> weights_map(weights_r.begin(), weights_r.size());
-    if ((weights_map.array() < 0.0).any() || !weights_map.allFinite() || weights_map.sum() <= 0.0) {
-        stop("weights must be finite, nonnegative, and have positive sum");
+    if ((weights_vec_coerced.array() < 0.0).any() || !weights_vec_coerced.allFinite() || weights_vec_coerced.sum() <= 0.0) {
+        stop("weights_vec_coerced must be finite, nonnegative, and have positive sum");
     }
-    Eigen::VectorXd weights_vec = weights_map;
+    Eigen::VectorXd weights_vec = weights_vec_coerced;
 
     ModelResult res = fast_neg_bin_internal(
-        X_mat, y_vec,
+        X, y_vec_coerced,
         nullable_to_optional<Eigen::VectorXd>(warm_start_params),
         smart_cold_start, maxit, eps_g,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),

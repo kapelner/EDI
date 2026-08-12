@@ -894,6 +894,7 @@ edi::ResultMap fast_stereotype_logit_full_internal(
         .set("fisher_information", neg_hess);
 }
 
+#ifndef EDI_CORE_ONLY
 //' @title Compute Stereotype Logit Score
 //' @description Calculates the score vector (gradient of the log-likelihood) for a stereotype logit model.
 //' @param X A numeric matrix of predictors.
@@ -902,9 +903,8 @@ edi::ResultMap fast_stereotype_logit_full_internal(
 //' @return A numeric vector representing the score.
 //' @export
 //' @keywords internal
-#ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-SEXP get_stereotype_logit_score_cpp(const Rcpp::NumericMatrix& X,
+Eigen::VectorXd get_stereotype_logit_score_cpp(const Rcpp::NumericMatrix& X,
 											   const Rcpp::NumericVector& y,
 											   const Rcpp::NumericVector& params) {
     Eigen::Map<const Eigen::MatrixXd> map_X(X.begin(), X.rows(), X.cols());
@@ -914,7 +914,7 @@ SEXP get_stereotype_logit_score_cpp(const Rcpp::NumericMatrix& X,
 	StereotypeLogitRegression model(map_X, map_y);
 	Eigen::VectorXd grad(map_params.size());
 	model.loglik_grad(map_params, &grad);
-	return wrap(grad);
+	return grad;
 }
 
 //' @title Compute Stereotype Logit Hessian
@@ -926,7 +926,7 @@ SEXP get_stereotype_logit_score_cpp(const Rcpp::NumericMatrix& X,
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-SEXP get_stereotype_logit_hessian_cpp(const Rcpp::NumericMatrix& X,
+Eigen::MatrixXd get_stereotype_logit_hessian_cpp(const Rcpp::NumericMatrix& X,
 												 const Rcpp::NumericVector& y,
 												 const Rcpp::NumericVector& params) {
     Eigen::Map<const Eigen::MatrixXd> map_X(X.begin(), X.rows(), X.cols());
@@ -934,7 +934,7 @@ SEXP get_stereotype_logit_hessian_cpp(const Rcpp::NumericMatrix& X,
     Eigen::Map<const Eigen::VectorXd> map_params(params.begin(), params.size());
 
 	StereotypeLogitRegression model(map_X, map_y);
-	return wrap(model.loglik_hessian(map_params));
+	return model.loglik_hessian(map_params);
 }
 
 //' @title Fast Stereotype Logit Regression (C++)

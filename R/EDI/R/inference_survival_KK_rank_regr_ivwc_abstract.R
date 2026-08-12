@@ -334,3 +334,30 @@ InferenceAbstractKKSurvivalRankRegrIVWC = R6::R6Class("InferenceAbstractKKSurviv
 		}
 	)
 )
+
+KKSurvivalRankRegressionSource = list(
+	public = list(),
+	private = list(
+		kk_survival_rank_design_candidates = function(w, X, cache_key = "default") {
+			private$aft_design_candidates(w, X, cache_key = cache_key)
+		},
+		kk_survival_rank_extract_term_estimate = function(mod, term_name = "w") {
+			private$extract_term_estimate(mod, term_name = term_name)
+		},
+		kk_survival_rank_extract_term_se = function(mod, term_name = "w") {
+			private$extract_term_se(mod, term_name = term_name)
+		},
+		kk_survival_rank_shared = function(estimate_only = FALSE) {
+			private$shared(estimate_only = estimate_only)
+		},
+		kk_survival_rank_assert_finite_se = function() {
+			private$assert_finite_se()
+		},
+		kk_survival_rank_aftsrr_for_matched_pairs = function(estimate_only = FALSE) {
+			private$aftsrr_for_matched_pairs(estimate_only = estimate_only)
+		},
+		kk_survival_rank_aftsrr_for_reservoir = function(estimate_only = FALSE) {
+			private$aftsrr_for_reservoir(estimate_only = estimate_only)
+		}
+	)
+)

@@ -6,29 +6,8 @@
 #' required by the full Hodges-Lehmann estimate.
 #'
 #' @keywords internal
-InferenceAbstractKKWilcoxBaseIVWC = R6::R6Class("InferenceAbstractKKWilcoxBaseIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+KKWilcoxIVWCSource = list(
 	public = list(
-		#' @description Initialize the abstract base.
-		#' @param des_obj A DesignSeqOneByOne object (must be a KK design).
-		#' @param model_formula Optional formula for covariate adjustment.
-		#' @param verbose Whether to print progress messages.
-		#' @param smart_cold_start_default Whether to use smart cold start values.
-		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL){
-			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
-			private$init_kk_passthrough(des_obj)
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
-		},
 		#' @description Override to avoid O(n^2) per-resample HL computation during the bootstrap warm-start
 		#' inside compute_rand_confidence_interval. The asymptotic MLE CI is a perfectly
 		#' adequate starting bound for the bisection and is computed in O(1).
@@ -36,134 +15,7 @@ InferenceAbstractKKWilcoxBaseIVWC = R6::R6Class("InferenceAbstractKKWilcoxBaseIV
 		#' @param ... 					Additional arguments passed to super.
 		compute_bootstrap_confidence_interval = function(alpha = 0.05, ...){
 			self$compute_asymp_confidence_interval(alpha)
-		}
-	),
-	private = list(
-		is_a_kk_wilcox_base_ivwc = function() TRUE,
-		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
-		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
-			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
-			# Optimization: w_mat and m_mat are already pre-computed matrices
-			w_mat = permutations$w_mat
-			m_mat = permutations$m_mat
-			nsim = ncol(w_mat)
-			# Reconstruct m_mat if NULL (KK permutations return fixed matching as NULL to save memory)
-			if (is.null(m_mat)) {
-				n_subjects = nrow(w_mat)
-				m_vec = as.integer(private$des_obj_priv_int$m)
-				if (length(m_vec) != n_subjects) m_vec = rep(0L, n_subjects)
-				m_mat = matrix(rep(m_vec, nsim), nrow = n_subjects, ncol = nsim)
-				is_fixed_matching = TRUE
-			} else {
-				# Check if all matchings are identical
-				is_fixed_matching = TRUE
-				if (nsim > 1) {
-					first_match = m_mat[, 1]
-					for (j in 2:min(nsim, 5)) {
-						if (!all(m_mat[, j] == first_match)) {
-							is_fixed_matching = FALSE
-							break
-						}
-					}
-				}
-			}
-			y_sim = as.numeric(y)
-			# Map transform_responses to transform_code
-			t_code = 0L # none
-			if (transform_responses == "log") {
-				t_code = 1L
-			} else if (transform_responses == "logit") {
-				t_code = 2L
-			} else if (transform_responses == "log1p") {
-				t_code = 3L
-			}
-			res = compute_matching_wilcox_distr_parallel_cpp(
-				w_mat,
-				m_mat,
-				y_sim,
-				as.numeric(delta),
-				t_code,
-				as.numeric(zero_one_logit_clamp),
-				is_fixed_matching,
-				private$n_cpp_threads(nsim)
-			)
-			return(res)
 		},
-		# Override the per-permutation statistic to avoid the O(n^2) conf.int = TRUE cost.
-		# Uses standardized Wilcoxon W statistics (conf.int = FALSE, O(n log n)) as the
-		# rank test statistic; monotone with the HL / rank-regression estimate under the null.
-		compute_treatment_estimate_during_randomization_inference = function(){
-			KKstats = private$cached_values$KKstats
-			if (is.null(KKstats)){
-				private$compute_basic_match_data()
-				KKstats = private$cached_values$KKstats
-			}
-			stat = 0
-			n_components = 0
-			# Matched pairs: signed-rank W (standardized)
-			diffs = KKstats$y_matched_diffs
-			m_pairs = length(diffs)
-			if (m_pairs > 0){
-				# Optimization: manually compute Wilcoxon rank sum statistic to avoid R overhead
-				# This is equivalent to wilcox.test(diffs)$statistic
-				abs_diffs = abs(diffs)
-				signs = sign(diffs)
-				if (!all(signs == 0)){
-					# Fast ranking
-					rks = rank(abs_diffs, ties.method = "average")
-					W_plus = sum(rks[signs > 0]) + 0.5 * sum(rks[signs == 0])
-					
-					E_W = m_pairs * (m_pairs + 1) / 4
-					V_W = m_pairs * (m_pairs + 1) * (2 * m_pairs + 1) / 24
-					stat = stat + (W_plus - E_W) / sqrt(V_W)
-					n_components = n_components + 1
-				}
-			}
-			# Reservoir: rank-sum W (standardized)
-			nRT = KKstats$nRT
-			nRC = KKstats$nRC
-			if (nRT > 0 && nRC > 0){
-				y_r = KKstats$y_reservoir
-				w_r = KKstats$w_reservoir
-				# Optimization: use rank() directly
-				rks_r = rank(y_r, ties.method = "average")
-				W_r = sum(rks_r[w_r == 1])
-				
-				E_W = nRT * (nRT + nRC + 1) / 2
-				V_W = nRT * nRC * (nRT + nRC + 1) / 12
-				stat = stat + (W_r - E_W) / sqrt(V_W)
-				n_components = n_components + 1
-			}
-			if (n_components == 0L) NA_real_ else stat
-		}
-	)
-)
-#' Non-parametric Wilcoxon-based Compound Inference for KK Designs
-#'
-#' Fits a non-parametric compound estimator for KK matching-on-the-fly designs.
-#' For matched pairs, it uses the Wilcoxon Signed-Rank Hodges-Lehmann estimate.
-#' For reservoir subjects, it uses the Wilcoxon Rank-Sum (Mann-Whitney U) Hodges-Lehmann
-#' estimate. The two estimates are combined via a variance-weighted linear combination.
-#' This method is robust to outliers and does not assume a specific parametric
-#' distribution for the response.
-#'
-#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(rnorm(10))
-#' inf = InferenceAllKKWilcoxIVWC$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' @export
-InferenceAllKKWilcoxIVWC = R6::R6Class("InferenceAllKKWilcoxIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceAbstractKKWilcoxBaseIVWC,
-	public = list(
 		#' @description Initialize KK inverse-variance combined Wilcoxon inference
 		#'   and prepare matched/reservoir rank-based components used by
 		#'   \code{\link[EDI:InferenceAllKKWilcoxIVWC]{InferenceAllKKWilcoxIVWC}}.
@@ -174,7 +26,7 @@ InferenceAllKKWilcoxIVWC = R6::R6Class("InferenceAllKKWilcoxIVWC",
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
 		#'   design's imputed covariates.
 		#' @param smart_cold_start_default   Whether to use smart cold start values.
-		initialize = function(des_obj, model_formula = NULL,  verbose = FALSE, smart_cold_start_default = NULL){
+		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL){
 			res_type = des_obj$get_response_type()
 			if (should_run_asserts()) {
 				if (res_type == "incidence"){
@@ -189,7 +41,14 @@ InferenceAllKKWilcoxIVWC = R6::R6Class("InferenceAllKKWilcoxIVWC",
 					stop(class(self)[1], " requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass).")
 				}
 			}
-			super$initialize(des_obj = des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+			super$initialize(
+				des_obj = des_obj,
+				verbose = verbose,
+				harden = TRUE,
+				model_formula = model_formula,
+				smart_cold_start_default = smart_cold_start_default
+			)
+			private$init_kk_passthrough(des_obj)
 			if (should_run_asserts()) {
 				if (private$any_censoring){
 					stop(class(self)[1], " does not currently support censored survival data. Use restricted mean or Cox-based methods instead.")
@@ -281,6 +140,103 @@ InferenceAllKKWilcoxIVWC = R6::R6Class("InferenceAllKKWilcoxIVWC",
 		}
 	),
 	private = list(
+		is_a_kk_wilcox_base_ivwc = function() TRUE,
+		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
+		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
+			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
+			# Optimization: w_mat and m_mat are already pre-computed matrices
+			w_mat = permutations$w_mat
+			m_mat = permutations$m_mat
+			nsim = ncol(w_mat)
+			# Reconstruct m_mat if NULL (KK permutations return fixed matching as NULL to save memory)
+			if (is.null(m_mat)) {
+				n_subjects = nrow(w_mat)
+				m_vec = as.integer(private$des_obj_priv_int$m)
+				if (length(m_vec) != n_subjects) m_vec = rep(0L, n_subjects)
+				m_mat = matrix(rep(m_vec, nsim), nrow = n_subjects, ncol = nsim)
+				is_fixed_matching = TRUE
+			} else {
+				# Check if all matchings are identical
+				is_fixed_matching = TRUE
+				if (nsim > 1) {
+					first_match = m_mat[, 1]
+					for (j in 2:min(nsim, 5)) {
+						if (!all(m_mat[, j] == first_match)) {
+							is_fixed_matching = FALSE
+							break
+						}
+					}
+				}
+			}
+			y_sim = as.numeric(y)
+			# Map transform_responses to transform_code
+			t_code = 0L # none
+			if (transform_responses == "log") {
+				t_code = 1L
+			} else if (transform_responses == "logit") {
+				t_code = 2L
+			} else if (transform_responses == "log1p") {
+				t_code = 3L
+			}
+			res = compute_matching_wilcox_distr_parallel_cpp(
+				w_mat,
+				m_mat,
+				y_sim,
+				as.numeric(delta),
+				t_code,
+				as.numeric(zero_one_logit_clamp),
+				is_fixed_matching,
+				private$n_cpp_threads(nsim)
+			)
+			return(res)
+		},
+		# Override the per-permutation statistic to avoid the O(n^2) conf.int = TRUE cost.
+		# Uses standardized Wilcoxon W statistics (conf.int = FALSE, O(n log n)) as the
+		# rank test statistic; monotone with the HL / rank-regression estimate under the null.
+		compute_treatment_estimate_during_randomization_inference = function(){
+			KKstats = private$cached_values$KKstats
+			if (is.null(KKstats)){
+				private$compute_basic_match_data()
+				KKstats = private$cached_values$KKstats
+			}
+			stat = 0
+			n_components = 0
+			# Matched pairs: signed-rank W (standardized)
+			diffs = KKstats$y_matched_diffs
+			m_pairs = length(diffs)
+			if (m_pairs > 0){
+				# Optimization: manually compute Wilcoxon rank sum statistic to avoid R overhead
+				# This is equivalent to wilcox.test(diffs)$statistic
+				abs_diffs = abs(diffs)
+				signs = sign(diffs)
+				if (!all(signs == 0)){
+					# Fast ranking
+					rks = rank(abs_diffs, ties.method = "average")
+					W_plus = sum(rks[signs > 0]) + 0.5 * sum(rks[signs == 0])
+
+					E_W = m_pairs * (m_pairs + 1) / 4
+					V_W = m_pairs * (m_pairs + 1) * (2 * m_pairs + 1) / 24
+					stat = stat + (W_plus - E_W) / sqrt(V_W)
+					n_components = n_components + 1
+				}
+			}
+			# Reservoir: rank-sum W (standardized)
+			nRT = KKstats$nRT
+			nRC = KKstats$nRC
+			if (nRT > 0 && nRC > 0){
+				y_r = KKstats$y_reservoir
+				w_r = KKstats$w_reservoir
+				# Optimization: use rank() directly
+				rks_r = rank(y_r, ties.method = "average")
+				W_r = sum(rks_r[w_r == 1])
+
+				E_W = nRT * (nRT + nRC + 1) / 2
+				V_W = nRT * nRC * (nRT + nRC + 1) / 12
+				stat = stat + (W_r - E_W) / sqrt(V_W)
+				n_components = n_components + 1
+			}
+			if (n_components == 0L) NA_real_ else stat
+		},
 		shared = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
@@ -404,5 +360,90 @@ InferenceAllKKWilcoxIVWC = R6::R6Class("InferenceAllKKWilcoxIVWC",
 				private$n_cpp_threads(B)
 			)
 		}
+	)
+)
+
+kk_wilcox_passthrough_public = InferenceMixinKKPassThrough[["public"]][
+	setdiff(names(InferenceMixinKKPassThrough[["public"]]), "compute_estimate_with_bootstrap_weights")
+]
+kk_wilcox_source_public = c(
+	kk_wilcox_passthrough_public,
+	InferenceMixinKKPassThroughCompound[["public"]],
+	KKWilcoxIVWCSource$public
+)
+KKWilcoxIVWCSource$public = kk_wilcox_source_public[
+	!duplicated(names(kk_wilcox_source_public), fromLast = TRUE)
+]
+kk_wilcox_source_private = c(
+	InferenceMixinKKPassThrough[["private"]],
+	InferenceMixinKKPassThroughCompound[["private"]],
+	KKWilcoxIVWCSource$private
+)
+KKWilcoxIVWCSource$private = kk_wilcox_source_private[
+	!duplicated(names(kk_wilcox_source_private), fromLast = TRUE)
+]
+
+#' Non-parametric Wilcoxon-based Compound Inference for KK Designs
+#'
+#' Fits a non-parametric compound estimator for KK matching-on-the-fly designs.
+#' For matched pairs, it uses the Wilcoxon Signed-Rank Hodges-Lehmann estimate.
+#' For reservoir subjects, it uses the Wilcoxon Rank-Sum (Mann-Whitney U) Hodges-Lehmann
+#' estimate. The two estimates are combined via a variance-weighted linear combination.
+#' This method is robust to outliers and does not assume a specific parametric
+#' distribution for the response.
+#'
+#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(rnorm(10))
+#' inf = InferenceAllKKWilcoxIVWC$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' @export
+InferenceAllKKWilcoxIVWC = define_inference_class(
+	classname = "InferenceAllKKWilcoxIVWC",
+	inherit = Inference,
+	components = c("RandomizationBootstrap", "Wald", "KKWilcoxIVWC"),
+	public = list(
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_bootstrap_confidence_interval",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_jackknife_estimate",
+			"compute_jackknife_bias_estimate",
+			"compute_jackknife_std_error",
+			"compute_jackknife_wald_two_sided_pval",
+			"compute_jackknife_wald_confidence_interval"
+		),
+		private = c(
+			"compute_fast_rand_bootstrap_distr",
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"supports_likelihood_tests",
+			"get_supported_testing_types_impl",
+			"compute_basic_match_data",
+			"compute_fast_bootstrap_distr",
+			"compute_fast_randomization_distr",
+			"compute_treatment_estimate_during_randomization_inference",
+			"shared"
+		)
 	)
 )

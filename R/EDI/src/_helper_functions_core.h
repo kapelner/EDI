@@ -86,9 +86,28 @@ inline void edi_check_R_user_interrupt() {
 #endif
 }
 
+// Rcpp::checkUserInterrupt() detects an expired setTimeLimit() elapsed
+// deadline the same way it detects Ctrl-C: via a longjmp straight to R's top
+// level, bypassing every enclosing tryCatch (including R.utils::withTimeout's
+// own). A .Call that hits this mid-loop crashes the whole R session instead of
+// being gracefully skipped by callers like comprehensive_tests.R's safe_call().
+// Evaluating a trivial R call instead routes through Rf_eval, which is where R
+// checks that same deadline for a normal, catchable "error" condition -- so
+// checking the deadline this way lets a slow bootstrap replicate be caught and
+// skipped rather than taking down the process. Verified empirically: an Rcpp
+// loop polling checkUserInterrupt() past the deadline crashes past tryCatch;
+// the same loop polling proc.time() instead raises a catchable TimeoutException.
+inline void edi_check_time_budget() {
+#ifndef EDI_CORE_ONLY
+    static Rcpp::Function proc_time("proc.time");
+    proc_time();
+#endif
+}
+
 inline void edi_check_R_user_interrupt_every(int iter, int stride = 16) {
     if (stride <= 1 || iter % stride == 0) {
         edi_check_R_user_interrupt();
+        edi_check_time_budget();
     }
 }
 

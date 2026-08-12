@@ -19,6 +19,7 @@ python/**/__pycache__/
 python/**/*.so
 python/**/*.egg-info/
 python/.pytest_cache/
+python/.venv/
 __pycache__/
 *.pyc
 *.pyo

@@ -371,79 +371,67 @@ public:
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-Eigen::VectorXd get_logistic_glmm_score_cpp(
-	SEXP X_r,
-	SEXP y_r,
-	SEXP group_id_r,
-	SEXP params_sexp,
-	int n_gh = 20
-) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	IntegerVector group_id_int(group_id_r);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
-	std::vector<int> gid_v(group_id.data(), group_id.data() + group_id.size());
+Eigen::VectorXd get_logistic_glmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 
-	LogisticGLMMData dat(X, y, gid_v, n_gh);
+
+	
+
+	
+
+	
+
+	
+	std::vector<int> gid_v(group_id_r.data(), group_id_r.data() + group_id_r.size());
+
+	LogisticGLMMData dat(X_r, y_r_vec_coerced, gid_v, n_gh);
 	LogisticGLMMObjective obj(dat);
 
 	Eigen::VectorXd grad(params.size());
 	obj(params, grad);
-	grad[X.cols()] -= log_sigma_penalty_grad(params[X.cols()]);
+	grad[X_r.cols()] -= log_sigma_penalty_grad(params[X_r.cols()]);
 	return -grad;
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd get_logistic_glmm_hessian_cpp(
-	SEXP X_r,
-	SEXP y_r,
-	SEXP group_id_r,
-	SEXP params_sexp,
-	int n_gh = 20
-) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	IntegerVector group_id_int(group_id_r);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
-	std::vector<int> gid_v(group_id.data(), group_id.data() + group_id.size());
+Eigen::MatrixXd get_logistic_glmm_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 
-	LogisticGLMMData dat(X, y, gid_v, n_gh);
+
+	
+
+	
+
+	
+
+	
+	std::vector<int> gid_v(group_id_r.data(), group_id_r.data() + group_id_r.size());
+
+	LogisticGLMMData dat(X_r, y_r_vec_coerced, gid_v, n_gh);
 	LogisticGLMMObjective obj(dat);
 
 	Eigen::MatrixXd information = obj.hessian(params);
-	information(X.cols(), X.cols()) -= log_sigma_penalty_hessian(params[X.cols()]);
+	information(X_r.cols(), X_r.cols()) -= log_sigma_penalty_hessian(params[X_r.cols()]);
 	return -information;
 }
 
 // [[Rcpp::export]]
-double get_logistic_glmm_neg_loglik_cpp(
-	SEXP X_r,
-	SEXP y_r,
-	SEXP group_id_r,
-	SEXP params_sexp,
-	int n_gh = 20
-) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	IntegerVector group_id_int(group_id_r);
-	NumericVector params_r(params_sexp);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
-	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
-	std::vector<int> gid_v(group_id.data(), group_id.data() + group_id.size());
+double get_logistic_glmm_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 
-	LogisticGLMMData dat(X, y, gid_v, n_gh);
+
+	
+
+	
+
+	
+
+	
+	std::vector<int> gid_v(group_id_r.data(), group_id_r.data() + group_id_r.size());
+
+	LogisticGLMMData dat(X_r, y_r_vec_coerced, gid_v, n_gh);
 	LogisticGLMMObjective obj(dat);
-	return likelihood_value(obj, params) - log_sigma_penalty(params[X.cols()]);
+	return likelihood_value(obj, params) - log_sigma_penalty(params[X_r.cols()]);
 }
 #endif // EDI_CORE_ONLY
 
@@ -597,32 +585,17 @@ edi::ResultMap fast_logistic_glmm_internal(
 }
 
 #ifndef EDI_CORE_ONLY
+// X_r: n x p, includes intercept; treatment at col j_T (0-based)
+// y_r: responses in [0,1], length n
+// group_id_r: group IDs, sorted internally
+// j_T: 0-based treatment column index in X
 // [[Rcpp::export]]
-List fast_logistic_glmm_cpp(
-	SEXP X_r,       // n x p, includes intercept; treatment at col j_T (0-based)
-	SEXP y_r,       // responses in [0,1], length n
-	SEXP group_id_r,// group IDs, sorted internally
-	int j_T,                        // 0-based treatment column index in X
-	Nullable<NumericVector> warm_start_params = R_NilValue,
-	bool smart_cold_start = true,
-	bool estimate_only = false,
-	int n_gh = 20,
-	int maxit = 300,
-	double eps_g = 1e-6,
-	std::string optimization_alg = "lbfgs",
-	Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
-	Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
-	Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue
-) {
-	NumericMatrix X_mat(X_r);
-	NumericVector y_vec(y_r);
-	IntegerVector group_id_int(group_id_r);
-	Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-	Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-	Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
+List fast_logistic_glmm_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, int j_T, Nullable<NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = true, bool estimate_only = false, int n_gh = 20, int maxit = 300, double eps_g = 1e-6, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+
 
 	edi::ResultMap res = fast_logistic_glmm_internal(
-		X, y, group_id, j_T,
+		X_r, y_r_vec_coerced, group_id_r, j_T,
 		nullable_to_optional<Eigen::VectorXd>(warm_start_params),
 		smart_cold_start, estimate_only, n_gh, maxit, eps_g, optimization_alg,
 		nullable_to_optional<Eigen::VectorXi>(fixed_idx),

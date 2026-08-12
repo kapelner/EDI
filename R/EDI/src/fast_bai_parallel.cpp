@@ -13,35 +13,25 @@ using namespace Rcpp;
 
 //' Fast Bai Adjusted T Statistic for Multiple Permutations
 //'
-//' @param w_mat_sexp Integer matrix of permuted treatment assignments (n x r).
-//' @param m_mat_sexp Integer matrix of match indicators (n x r).
-//' @param y_sexp Numeric response vector.
+//' @param w_mat Integer matrix of permuted treatment assignments (n x r).
+//' @param m_mat Integer matrix of match indicators (n x r).
+//' @param y Numeric response vector.
 //' @param delta Null treatment effect shift.
-//' @param halves_idx_sexp Integer matrix of half-sample indices.
+//' @param halves_idx Integer matrix of half-sample indices.
 //' @param convex_flag Logical flag for convex combination.
 //' @param num_cores Number of OpenMP threads.
 //' @return Numeric vector of Bai adjusted T statistics.
 // [[Rcpp::export]]
-NumericVector compute_bai_distr_parallel_cpp(
-    SEXP w_mat_sexp,
-    SEXP m_mat_sexp,
-    SEXP y_sexp,
-    double delta,
-    SEXP halves_idx_sexp,
-    bool convex_flag,
-    int num_cores) {
+NumericVector compute_bai_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi>& w_mat, const Eigen::Map<Eigen::MatrixXi>& m_mat, SEXP y, double delta, const Eigen::Map<Eigen::MatrixXi>& halves_idx, bool convex_flag, int num_cores) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-  Eigen::Map<const Eigen::MatrixXi> w_mat(INTEGER(w_mat_sexp), Rf_nrows(w_mat_sexp), Rf_ncols(w_mat_sexp));
-  Eigen::Map<const Eigen::MatrixXi> m_mat(INTEGER(m_mat_sexp), Rf_nrows(m_mat_sexp), Rf_ncols(m_mat_sexp));
-  Eigen::Map<const Eigen::VectorXd> y(REAL(y_sexp), Rf_length(y_sexp));
-  Eigen::Map<const Eigen::MatrixXi> halves_idx(INTEGER(halves_idx_sexp), Rf_nrows(halves_idx_sexp), Rf_ncols(halves_idx_sexp));
 
-  int n = y.size();
+  int n = y_vec_coerced.size();
   int nsim = w_mat.cols();
   int n_halves = halves_idx.rows();
   std::vector<double> results_vec(nsim);
 
-  const double* y_ptr = y.data();
+  const double* y_ptr = y_vec_coerced.data();
   const int* w_ptr = w_mat.data();
   const int* m_ptr = m_mat.data();
   const int* h_ptr = halves_idx.data();

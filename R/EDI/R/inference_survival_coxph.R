@@ -174,6 +174,35 @@
 	info
 }
 
+cox_partial_likelihood_coefficients_extreme = function(coefs, threshold = 20) {
+	coefs = as.numeric(coefs)
+	any(!is.finite(coefs)) || any(abs(coefs) > threshold)
+}
+
+CoxPartialLikelihoodSource = list(
+	public = list(),
+	private = list(
+		fit_survival_coxph_kernel = function(X, y, dead, strata = NULL, offset = NULL, estimate_only = FALSE) {
+			.fit_survival_coxph_kernel(X, y, dead, strata = strata, offset = offset, estimate_only = estimate_only)
+		},
+		fit_survival_coxph_fixed_kernel = function(X, y, dead, strata = NULL, fixed_idx = 1L, fixed_value = 0) {
+			.fit_survival_coxph_fixed_kernel(X, y, dead, strata = strata, fixed_idx = fixed_idx, fixed_value = fixed_value)
+		},
+		cox_neg_loglik_breslow_r = function(X, y, dead, beta, strata = NULL) {
+			.cox_neg_loglik_breslow_r(X, y, dead, beta, strata = strata)
+		},
+		cox_score_breslow_fd_r = function(X, y, dead, beta, strata = NULL) {
+			.cox_score_breslow_fd_r(X, y, dead, beta, strata = strata)
+		},
+		cox_information_breslow_fd_r = function(X, y, dead, beta, strata = NULL) {
+			.cox_information_breslow_fd_r(X, y, dead, beta, strata = strata)
+		},
+		cox_partial_likelihood_coefficients_extreme = function(coefs, threshold = 20) {
+			cox_partial_likelihood_coefficients_extreme(coefs, threshold = threshold)
+		}
+	)
+)
+
 #' Cox Proportional Hazards Regression Inference for Survival Responses
 #'
 #' Fits a Cox proportional hazards regression for survival responses using the
@@ -190,9 +219,10 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceSurvivalCoxPHRegr = R6::R6Class("InferenceSurvivalCoxPHRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
+InferenceSurvivalCoxPHRegr = define_inference_class(
+	classname = "InferenceSurvivalCoxPHRegr",
+	inherit = Inference,
+	components = "CoxPartialLikelihood",
 	public = list(
 
 		#' @description Initialize a Cox PH inference object.
@@ -218,7 +248,68 @@ InferenceSurvivalCoxPHRegr = R6::R6Class("InferenceSurvivalCoxPHRegr",
 		#' @description Computes the Cox PH estimate of the treatment effect.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
-			super$compute_estimate(estimate_only = estimate_only)
+			private$shared(estimate_only = estimate_only)
+			private$cached_values$beta_hat_T
+		},
+		#' @description Computes an asymptotic confidence interval using the configured likelihood-backed test.
+		#' @param alpha Significance level 1 - \code{alpha}. Default 0.05.
+		compute_asymp_confidence_interval = function(alpha = 0.05){
+			if (isTRUE(private$has_general_censoring) && private$testing_type != "wald") {
+				stop(
+					"testing_type = '", private$testing_type, "' is not supported for left-/",
+					"interval-censored survival data (dispatched via icenReg::ic_sp(), which has ",
+					"no partial-likelihood score/gradient/likelihood-ratio machinery to reuse). ",
+					"Use testing_type = 'wald', which is supported."
+				)
+			}
+			if (private$testing_type == "wald") {
+				private$shared(estimate_only = FALSE)
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
+				}
+			}
+			if (should_run_asserts()) {
+				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+			}
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_confidence_interval_impl(alpha),
+				score = private$compute_score_confidence_interval_impl(alpha),
+				gradient = private$compute_gradient_confidence_interval_impl(alpha),
+				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
+			)
+		},
+		#' @description Computes an asymptotic two-sided p-value using the configured likelihood-backed test.
+		#' @param delta Null treatment effect to test against. Default 0.
+		compute_asymp_two_sided_pval = function(delta = 0){
+			if (isTRUE(private$has_general_censoring) && private$testing_type != "wald") {
+				stop(
+					"testing_type = '", private$testing_type, "' is not supported for left-/",
+					"interval-censored survival data (dispatched via icenReg::ic_sp(), which has ",
+					"no partial-likelihood score/gradient/likelihood-ratio machinery to reuse). ",
+					"Use testing_type = 'wald', which is supported."
+				)
+			}
+			if (private$testing_type == "wald") {
+				private$shared(estimate_only = FALSE)
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
+				}
+			}
+			if (should_run_asserts()) {
+				assertNumeric(delta)
+			}
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_two_sided_pval_impl(delta),
+				score = private$compute_score_two_sided_pval_impl(delta),
+				gradient = private$compute_gradient_two_sided_pval_impl(delta),
+				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
+			)
 		},
 		#' @description Recomputes the Cox PH treatment estimate under
 		#'   Bayesian-bootstrap weights.
@@ -227,6 +318,13 @@ InferenceSurvivalCoxPHRegr = R6::R6Class("InferenceSurvivalCoxPHRegr",
 		#' @param estimate_only If \code{TRUE}, compute only the weighted point
 		#'   estimate.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
+			if (isTRUE(private$has_general_censoring)) {
+				stop(
+					"Bayesian-bootstrap weighted re-estimation is not yet supported for left-/",
+					"interval-censored survival data (weighted_cox_bootstrap_surrogate_fit() assumes ",
+					"ordinary right-censoring semantics, which does not apply here)."
+				)
+			}
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			if (weights_are_effectively_constant(row_weights)) {
 				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
@@ -254,9 +352,16 @@ InferenceSurvivalCoxPHRegr = R6::R6Class("InferenceSurvivalCoxPHRegr",
 		cox_X_fit_cache = NULL,
 		cox_data_cache = NULL,
 		cox_w_cache = NULL,
+		# Bootstrap replicates icenReg::ic_sp() uses for its covariance
+		# matrix when dispatching on left-/interval-censored data (see
+		# generate_mod_icen below); the semi-parametric NPMLE fit has no
+		# closed-form SE, so icenReg estimates it this way itself.
+		icen_bs_samples = 200L,
+		supports_interval_or_left_censored_data = function(){
+			TRUE
+		},
 		cox_coefficients_extreme = function(coefs){
-			coefs = as.numeric(coefs)
-			any(!is.finite(coefs)) || any(abs(coefs) > private$cox_extreme_coef_threshold)
+			cox_partial_likelihood_coefficients_extreme(coefs, private$cox_extreme_coef_threshold)
 		},
 		supports_likelihood_tests = function(){
 			isTRUE(private$use_rcpp)
@@ -323,6 +428,17 @@ InferenceSurvivalCoxPHRegr = R6::R6Class("InferenceSurvivalCoxPHRegr",
 			)
 		},
 		generate_mod = function(estimate_only = FALSE){
+			# Top-level dispatch, not a hot-path edit (see the plan's
+			# "Zero-Regression Design Principle"): left-/interval-censored
+			# data never reaches the Breslow partial-likelihood machinery
+			# below at all -- survival::coxph()/the Rcpp kernel have no
+			# extension for it. Guaranteed disjoint from the exact/
+			# right-censored path by Inference$initialize()'s censoring
+			# guard (only classes with supports_interval_or_left_censored_data()
+			# == TRUE, i.e. this class, can even construct with such data).
+			if (isTRUE(private$has_general_censoring)) {
+				return(private$generate_mod_icen(estimate_only))
+			}
 			if (is.null(private$cox_X_fit_cache) || is.null(private$cox_data_cache) || !identical(private$w, private$cox_w_cache)) {
 				X_cov = private$get_X()
 				private$cox_X_fit_cache = if (!is.null(X_cov) && ncol(X_cov) > 0){
@@ -443,7 +559,107 @@ InferenceSurvivalCoxPHRegr = R6::R6Class("InferenceSurvivalCoxPHRegr",
 				)
 			})
 		},
+		# icenReg::ic_sp() dispatch for left-/interval-censored data (TODO-6,
+		# interval_censored_survival_response.md). Reshapes the fit into the
+		# same list(beta_hat_T=, ssq_b_2=, b=, vcov=, neg_log_lik=) shape
+		# generate_mod()'s existing branches return, so compute_estimate()
+		# and the "wald" testing_type path (compute_asymp_confidence_interval()/
+		# compute_asymp_two_sided_pval()) work unchanged. Deliberately does
+		# NOT populate cached_values$likelihood_test_context: the
+		# score/gradient/lik_ratio/bartlett testing types and the
+		# bootstrap-weights/randomization-inference paths are Cox
+		# partial-likelihood-specific and don't generalize to this NPMLE fit
+		# -- those are explicitly blocked elsewhere rather than silently
+		# misapplied to it.
+		generate_mod_icen = function(estimate_only = FALSE){
+			assert_icenreg_installed(class(self)[1L])
+			X_cov = private$get_X()
+			X_fit = if (!is.null(X_cov) && ncol(X_cov) > 0){
+				cbind(treatment = private$w, X_cov)
+			} else {
+				matrix(private$w, ncol = 1, dimnames = list(NULL, "treatment"))
+			}
+			if (private$harden && ncol(X_fit) > 1L) {
+				orig_names = colnames(X_fit)
+				reduced = qr_reduce_preserve_cols_cpp(as.matrix(X_fit), 1L)
+				X_fit = as.matrix(reduced$X_reduced)
+				colnames(X_fit) = orig_names[as.integer(reduced$keep)]
+			}
+			covariate_names = colnames(X_fit)
+			p1 = ncol(X_fit) + 1L
+			na_result = list(b = rep(NA_real_, p1), vcov = matrix(NA_real_, p1, p1))
+			# Exact rows (private$y non-NA) become a zero-width interval
+			# [y, y]; censored rows use their stored y_L/y_R directly --
+			# right-censored (y_R = Inf) and left-censored (y_L = 0) both
+			# fall out of the same cbind(L, R) shape icenReg expects.
+			L = ifelse(is.na(private$y), private$y_L, private$y)
+			R = ifelse(is.na(private$y), private$y_R, private$y)
+			dat = as.data.frame(X_fit)
+			dat$.icen_L = L
+			dat$.icen_R = R
+			fmla = stats::as.formula(paste0(
+				"cbind(.icen_L, .icen_R) ~ ", paste(covariate_names, collapse = " + ")
+			))
+			bs_samples = if (isTRUE(estimate_only)) 0L else private$icen_bs_samples
+			fit = tryCatch(
+				suppressWarnings(icenReg::ic_sp(fmla, data = dat, model = "ph", bs_samples = bs_samples)),
+				error = function(e) NULL
+			)
+			if (is.null(fit)) {
+				private$cached_values$likelihood_test_context = NULL
+				return(na_result)
+			}
+			coefs = as.numeric(fit$coefficients[covariate_names])
+			if (length(coefs) != ncol(X_fit) || !all(is.finite(coefs)) || private$cox_coefficients_extreme(coefs)) {
+				private$cache_nonestimable_estimate("coxph_icenreg_extreme_coefficients")
+				private$cached_values$likelihood_test_context = NULL
+				return(list(
+					beta_hat_T = NA_real_,
+					ssq_b_2 = NA_real_,
+					b = rep(NA_real_, p1),
+					vcov = if (estimate_only) NULL else matrix(NA_real_, p1, p1),
+					neg_log_lik = NA_real_
+				))
+			}
+			private$cached_values$likelihood_test_context = NULL
+			if (isTRUE(estimate_only)) {
+				return(list(
+					beta_hat_T = coefs[1L],
+					ssq_b_2 = NA_real_,
+					b = c(0, coefs),
+					vcov = NULL,
+					neg_log_lik = NA_real_
+				))
+			}
+			var_mat = tryCatch(as.matrix(fit$var)[covariate_names, covariate_names, drop = FALSE], error = function(e) NULL)
+			if (is.null(var_mat) || !all(is.finite(var_mat))) {
+				return(list(
+					beta_hat_T = coefs[1L],
+					ssq_b_2 = NA_real_,
+					b = c(0, coefs),
+					vcov = matrix(NA_real_, p1, p1),
+					neg_log_lik = -as.numeric(fit$llk %||% NA_real_)
+				))
+			}
+			v = matrix(0, p1, p1)
+			v[2:p1, 2:p1] = var_mat
+			list(
+				beta_hat_T = coefs[1L],
+				ssq_b_2 = v[2, 2],
+				b = c(0, coefs),
+				vcov = v,
+				neg_log_lik = -as.numeric(fit$llk %||% NA_real_)
+			)
+		},
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
+			# The Rcpp fast path assumes ordinary right-censoring (dead in
+			# {0,1} against a single y); under general censoring there is no
+			# fast path -- returning NULL here (the framework's established
+			# "no fast path available" signal) falls back to the generic,
+			# slower randomization loop, which re-dispatches through
+			# generate_mod() per replicate and so correctly reuses
+			# generate_mod_icen() above.
+			if (isTRUE(private$has_general_censoring)) return(NULL)
 			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			if (delta != 0 && !identical(transform_responses, "log")) return(NULL)
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)
@@ -459,5 +675,33 @@ InferenceSurvivalCoxPHRegr = R6::R6Class("InferenceSurvivalCoxPHRegr",
 				as.numeric(delta), mats$noise_mat, private$n_cpp_threads(ncol(mats$w_mat))
 			)
 		}
+	),
+	metadata = list(likelihood_tier = "partial"),
+	overrides = list(
+		public = c(
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"get_supported_testing_types"
+		),
+		private = c(
+			"supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap",
+			"simulate_under_lik_null",
+			"get_likelihood_test_spec",
+			"generate_mod",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval",
+			"compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl",
+			"compute_lik_ratio_two_sided_pval_impl",
+			"get_supported_testing_types_impl",
+			"compute_fast_rand_bootstrap_distr"
+		)
 	)
 )

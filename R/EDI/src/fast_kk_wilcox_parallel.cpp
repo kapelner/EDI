@@ -51,9 +51,9 @@ inline double apply_shift(double y_val, double delta, int transform_code, double
 
 //' Fast KK Wilcoxon Statistic for Multiple Permutations
 //'
-//' @param w_mat_sexp Integer matrix of permuted treatment assignments (n x r).
-//' @param m_mat_sexp Integer matrix of match indicators (n x r).
-//' @param y_sexp Numeric response vector.
+//' @param w_mat Integer matrix of permuted treatment assignments (n x r).
+//' @param m_mat Integer matrix of match indicators (n x r).
+//' @param y Numeric response vector.
 //' @param delta Null treatment effect shift.
 //' @param transform_code Integer code for response transformation.
 //' @param zero_one_logit_clamp Clamp value for logit transformation.
@@ -61,28 +61,21 @@ inline double apply_shift(double y_val, double delta, int transform_code, double
 //' @param num_cores Number of OpenMP threads.
 //' @return Numeric vector of KK Wilcoxon statistics.
 // [[Rcpp::export]]
-NumericVector compute_matching_wilcox_distr_parallel_cpp(
-    SEXP w_mat_sexp,
-    SEXP m_mat_sexp,
-    SEXP y_sexp,
-    double delta,
-    int transform_code,
-    double zero_one_logit_clamp,
-    bool is_fixed_matching,
-    int num_cores) {
+NumericVector compute_matching_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi>& w_mat, const Eigen::Map<Eigen::MatrixXi>& m_mat, SEXP y, double delta, int transform_code, double zero_one_logit_clamp, bool is_fixed_matching, int num_cores) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-  IntegerMatrix w_mat_mat(w_mat_sexp);
-  Eigen::Map<const Eigen::MatrixXi> w_mat(w_mat_mat.begin(), w_mat_mat.nrow(), w_mat_mat.ncol());
-  IntegerMatrix m_mat_mat(m_mat_sexp);
-  Eigen::Map<const Eigen::MatrixXi> m_mat(m_mat_mat.begin(), m_mat_mat.nrow(), m_mat_mat.ncol());
-  NumericVector y_vec(y_sexp);
-  Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
 
-  int n = y.size();
+  
+
+  
+
+  
+
+  int n = y_vec_coerced.size();
   int nsim = w_mat.cols();
   std::vector<double> results_vec(nsim);
-  
-  const double* y_ptr = y.data();
+
+  const double* y_ptr = y_vec_coerced.data();
   const int* w_ptr = w_mat.data();
   const int* m_ptr = m_mat.data();
   double* res_ptr = results_vec.data();
@@ -105,7 +98,7 @@ NumericVector compute_matching_wilcox_distr_parallel_cpp(
     std::vector<int> res_idx;
     int max_match = 0;
     for (int i = 0; i < n; ++i) if (m_ptr[i] > max_match) max_match = m_ptr[i];
-    
+
     std::vector<int> match_T_row(max_match, -1), match_C_row(max_match, -1);
     for (int i = 0; i < n; ++i) {
       int m = m_ptr[i];
@@ -116,7 +109,7 @@ NumericVector compute_matching_wilcox_distr_parallel_cpp(
         res_idx.push_back(i);
       }
     }
-    
+
     std::vector<std::pair<int, int>> pairs;
     for (int m = 0; m < max_match; ++m) {
       if (match_T_row[m] != -1 && match_C_row[m] != -1) pairs.push_back({match_T_row[m], match_C_row[m]});
@@ -215,7 +208,7 @@ NumericVector compute_matching_wilcox_distr_parallel_cpp(
   for (int b = 0; b < nsim; ++b) {
     const int* w_col = w_ptr + (size_t)b * n;
     const int* m_col = m_ptr + (size_t)b * n;
-    
+
     std::vector<double> diffs;
     std::vector<double> y_r;
     std::vector<int> w_r;

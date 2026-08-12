@@ -12,30 +12,26 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-NumericVector compute_ols_distr_parallel_cpp(
-        SEXP X_sexp,
-        SEXP y_sexp,
-        SEXP w_mat_sexp,
-        double delta,
-        int num_cores) {
+NumericVector compute_ols_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, const Eigen::Map<Eigen::MatrixXi>& w_mat, double delta, int num_cores) {
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-        NumericMatrix X_mat(X_sexp);
-        NumericVector y_vec(y_sexp);
-        IntegerMatrix w_int_mat(w_mat_sexp);
-        Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-        Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-        Eigen::Map<const Eigen::MatrixXi> w_mat(w_int_mat.begin(), w_int_mat.nrow(), w_int_mat.ncol());
+
+        
+
+        
+
+        
 
         int nsim = w_mat.cols();
-        int n = y.size();
+        int n = y_vec_coerced.size();
         int p_covars = X.cols();
         int p_full = p_covars + 2; // Intercept + w + covars
 
         if (X.rows() != n) {
-                stop("compute_ols_distr_parallel_cpp: X rows must match length(y).");
+                stop("compute_ols_distr_parallel_cpp: X rows must match length(y_vec_coerced).");
         }
         if (w_mat.rows() != n) {
-                stop("compute_ols_distr_parallel_cpp: w_mat rows must match length(y).");
+                stop("compute_ols_distr_parallel_cpp: w_mat rows must match length(y_vec_coerced).");
         }
         if (nsim <= 0) {
                 return NumericVector(0);
@@ -46,7 +42,7 @@ NumericVector compute_ols_distr_parallel_cpp(
 
         std::vector<double> results_vec(nsim);
 
-        const double* y_ptr = y.data();
+        const double* y_ptr = y_vec_coerced.data();
         const int* w_ptr = w_mat.data();
         double* res_ptr = results_vec.data();
         const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
@@ -113,32 +109,29 @@ NumericVector compute_ols_distr_parallel_cpp(
 // Bootstrap OLS: for each column of indices_mat (0-based row indices, -1 = NA bootstrap),
 // resample y/w/X and return the OLS treatment coefficient.
 // [[Rcpp::export]]
-NumericVector compute_ols_bootstrap_parallel_cpp(
-        SEXP X_sexp,
-        SEXP y_sexp,
-        SEXP w_sexp,
-        SEXP indices_mat_sexp,
-        int num_cores) {
+NumericVector compute_ols_bootstrap_parallel_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP w, const Eigen::Map<Eigen::MatrixXi>& indices_mat, int num_cores) {
+	IntegerVector w_r_coerced(w); Eigen::Map<const Eigen::VectorXi> w_vec_coerced(w_r_coerced.begin(), w_r_coerced.size());
+	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
-        NumericMatrix X_mat(X_sexp);
-        NumericVector y_vec(y_sexp);
-        IntegerVector w_int_vec(w_sexp);
-        IntegerMatrix indices_int_mat(indices_mat_sexp);
-        Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
-        Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-        Eigen::Map<const Eigen::VectorXi> w(w_int_vec.begin(), w_int_vec.size());
-        Eigen::Map<const Eigen::MatrixXi> indices_mat(indices_int_mat.begin(), indices_int_mat.nrow(), indices_int_mat.ncol());
+
+        
+
+        
+
+        
+
+        
 
         int B = indices_mat.cols();
         int n_boot = indices_mat.rows(); // bootstrap sample size (= n for simple bootstrap)
         int p_covars = X.cols();
-        int p_full = p_covars + 2; // intercept + w + covars
+        int p_full = p_covars + 2; // intercept + w_vec_coerced + covars
 
-        if (X.rows() != y.size()) {
-                stop("compute_ols_bootstrap_parallel_cpp: X rows must match length(y).");
+        if (X.rows() != y_vec_coerced.size()) {
+                stop("compute_ols_bootstrap_parallel_cpp: X rows must match length(y_vec_coerced).");
         }
-        if (w.size() != y.size()) {
-                stop("compute_ols_bootstrap_parallel_cpp: w length must match length(y).");
+        if (w_vec_coerced.size() != y_vec_coerced.size()) {
+                stop("compute_ols_bootstrap_parallel_cpp: w_vec_coerced length must match length(y_vec_coerced).");
         }
         if (indices_mat.rows() <= 0 || B <= 0) {
                 return NumericVector(0);
@@ -149,8 +142,8 @@ NumericVector compute_ols_bootstrap_parallel_cpp(
 
         std::vector<double> results_vec(B, NA_REAL);
 
-        const double* y_ptr = y.data();
-        const int* w_ptr = w.data();
+        const double* y_ptr = y_vec_coerced.data();
+        const int* w_ptr = w_vec_coerced.data();
         const int* idx_ptr = indices_mat.data();
         const bool use_parallel = should_parallelize_replicates(B, n_boot, num_cores);
 
