@@ -6,7 +6,9 @@ number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
 checklist item) — a `.postN` suffix is used for Python-packaging-only
 changes that don't touch `R/EDI/src/*.cpp`.
 
-## [Unreleased]
+## [1.0.0.post2] - 2026-08-12
+
+Packaging-only release — none of this touches `R/EDI/src/*.cpp`.
 
 ### Fixed
 
