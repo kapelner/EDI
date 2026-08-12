@@ -16,7 +16,7 @@ fetched directly from their own upstream repositories (see
 or `*.h` file — the compiled extension `#include`s them directly from the
 R package's own source tree.
 
-See [`../R/package_metadata/new_feature_plans/python_bindings_package_spec.md`](../R/package_metadata/new_feature_plans/python_bindings_package_spec.md)
+See [`../R/package_metadata/finished_features/python_bindings_package_spec.md`](../R/package_metadata/finished_features/python_bindings_package_spec.md)
 for the full design spec, kernel-by-kernel scope, and baseline-benchmarking
 methodology.
 

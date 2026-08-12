@@ -22,7 +22,7 @@ repositories. Nothing under `python/` is a copy of a `R/EDI/src/*.cpp` or
 package's own source tree.
 
 See the full design spec
-([`python_bindings_package_spec.md`](https://github.com/kapelner/EDI/blob/main/R/package_metadata/new_feature_plans/python_bindings_package_spec.md))
+([`python_bindings_package_spec.md`](https://github.com/kapelner/EDI/blob/main/R/package_metadata/finished_features/python_bindings_package_spec.md))
 for kernel-by-kernel scope and baseline-benchmarking methodology.
 
 ## Install

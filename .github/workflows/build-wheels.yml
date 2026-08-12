@@ -97,7 +97,7 @@ jobs:
       # It only appears once the sdist is extracted somewhere standalone,
       # which is exactly what a real `pip install edi_kernels` does whenever
       # no prebuilt wheel matches (see
-      # R/package_metadata/new_feature_plans/python_bindings_package_spec.md's
+      # R/package_metadata/finished_features/python_bindings_package_spec.md's
       # TODO-12). Installing into a venv under /tmp, well outside
       # $GITHUB_WORKSPACE, reproduces that standalone-extraction condition
       # instead of accidentally building against the live checkout sitting
