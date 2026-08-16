@@ -1201,6 +1201,41 @@ and are not yet covered by any per-class migration checklist:
   `test-inference-class-registry.R` 2787/2787,
   `test-mixin-contracts.R` 1280/1280); only the same pre-existing unrelated
   failures remain elsewhere.
+- [x] `InferenceIncidWald` (`inference_incid_wald.R`) — migrated 2026-08-17 to
+  `Inference` plus `components = c("BayesianBootstrap", "Wald",
+  "SimpleMeanDifference")`, `none` tier (auto-derived). Found via a fresh
+  `inference_hierarchy_migration_manifest_as_list()` audit as a genuinely
+  unaddressed class (zero prior mentions anywhere in this doc) — not one of
+  the original 19/20 enumerated at the top of this subsection. Previously
+  `R6::R6Class(inherit = InferenceAllSimpleMeanDiff, ...)`, overriding only
+  `initialize` (adds the incidence response-type/no-censoring asserts),
+  `get_standard_error`/`get_degrees_of_freedom` (unpooled Wald SE:
+  \eqn{\sqrt{p_T(1-p_T)/n_T + p_C(1-p_C)/n_C}}, `df = NA`), and a private
+  `compute_incidence_wald_components` helper — kept verbatim. Since it now
+  composes `SimpleMeanDifference` directly (rather than inheriting the
+  already-migrated `InferenceAllSimpleMeanDiff`), its own `initialize`
+  collides with the component's and had to be added to `overrides$public`
+  (the only new override beyond copying `InferenceAllSimpleMeanDiff`'s own
+  full `overrides` lists verbatim). Verified via a new
+  `test-incid-wald-migration-golden.R`: a byte-for-byte legacy-class copy
+  compared against the migrated class two ways — (a)
+  `expect_inference_migration_outputs_equal()` for every deterministic
+  method (estimate, asymptotic CI/p-value, capability-absence checks, etc.,
+  all bit-identical), and (b) the stochastic methods (bootstrap,
+  randomization, randomization-bootstrap, jackknife distributions/CIs/
+  p-values) compared separately under a shared explicit `set_seed()` reset
+  before each side's call — necessary because
+  `expect_inference_migration_outputs_equal()` calls legacy then migrated
+  back-to-back off one continuing global RNG stream with no reset, so an
+  RNG-consuming method legitimately diverges by call order alone; this
+  divergence was hit and diagnosed here (first time this harness was used
+  on a stochastic-bootstrap class) before being corrected, not a real
+  migration bug. All comparisons pass bit-identical.
+  `test-inference-class-registry.R` (full suite) and `test-mixin-contracts.R`
+  both clean except the same pre-existing `testthat` version-mismatch
+  failure documented elsewhere in this doc. Manual smoke test also confirmed
+  identical `compute_estimate`/CI/p-value/error-message output against the
+  pre-migration class on an independent fixture.
 - [x] `InferenceOrdinalGCompMeanDiff` (`inference_ordinal_gcomp.R`) — migrated
   2026-08-12 to `Inference` plus `components = c("BayesianBootstrap",
   "Wald")`, `none` tier. Dropped a dead `super$approximate_bootstrap_

@@ -395,7 +395,9 @@ List fast_probit_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Rc
         return edi::to_rcpp_list(edi::ResultMap()
             .set("b", res.b)
             .set("converged", res.converged)
-            .set("iterations", res.num_iter));
+            .set("num_iter", res.num_iter)
+            .set("hit_iteration_cap", res.hit_iteration_cap)
+            .set("gradient_norm", res.gradient_norm));
     }
     const int n = X.rows();
     const Eigen::VectorXd eta = X * res.b;
@@ -410,11 +412,13 @@ List fast_probit_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Rc
     return edi::to_rcpp_list(edi::ResultMap()
         .set("b", res.b)
         .set("w", weights_vec)
-        .set("iterations", res.num_iter)
+        .set("num_iter", res.num_iter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
         .set("fisher_information", res.XtWX)
         .set("score", res.score)
         .set("neg_ll", res.neg_ll)
-        .set("converged", res.converged));
+        .set("converged", res.converged)
+        .set("gradient_norm", res.gradient_norm));
 }
 
 // [[Rcpp::export]]
@@ -446,7 +450,9 @@ List fast_probit_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, S
         .set("score", res.score)
         .set("neg_ll", res.neg_ll)
         .set("converged", res.converged)
-        .set("iterations", res.num_iter));
+        .set("num_iter", res.num_iter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
+        .set("gradient_norm", res.gradient_norm));
 }
 
 //' Fast Probit Regression with Variance Calculation (C++)
@@ -550,6 +556,8 @@ List fast_probit_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
         .set("neg_ll", res.neg_ll)
         .set("loglik", R_finite(res.neg_ll) ? -res.neg_ll : NA_REAL)
         .set("converged", res.converged)
-        .set("iterations", res.num_iter));
+        .set("num_iter", res.num_iter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
+        .set("gradient_norm", res.gradient_norm));
 }
 #endif // EDI_CORE_ONLY

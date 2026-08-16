@@ -997,6 +997,12 @@ struct LikelihoodFitResult {
     double value;
     int niter;
     bool converged;
+    // TRUE iff the optimizer exhausted maxit without meeting the
+    // gradient-norm convergence criterion (mutually exclusive with
+    // `converged`) -- see optimizer_diagnostics_report.md TODO-4. Not
+    // populated by every producer of this struct; only trust it where the
+    // call site is documented as setting it.
+    bool hit_iteration_cap;
     // Gradient norm at the returned params. Populated from values the
     // optimizer already computes as part of its own stopping check (LBFGSpp's
     // internal m_gnorm; Newton's per-iteration grad.norm()) -- never a new
@@ -1008,6 +1014,7 @@ struct LikelihoodFitResult {
         value(std::numeric_limits<double>::quiet_NaN()),
         niter(0),
         converged(false),
+        hit_iteration_cap(false),
         gradient_norm(std::numeric_limits<double>::quiet_NaN()) {}
 };
 
@@ -1238,19 +1245,33 @@ inline LikelihoodFitResult optimize_likelihood_newton(LikelihoodFunctor& fun,
 
         fit.niter = iter + 1;
         if ((step_scale * step).norm() < tol) {
-            fit.converged = true;
+            // Step-size convergence: recompute the gradient norm at the
+            // post-step point (optimizer_diagnostics_report.md TODO-4,
+            // matching fast_logistic_regression.cpp's template) so
+            // `converged` below is classified by the actual gradient at the
+            // returned params, not by this different stopping criterion
+            // having fired.
+            Eigen::VectorXd grad_post(params.size());
+            fun(params, grad_post);
+            last_grad_norm = grad_post.allFinite() ? grad_post.norm() : last_grad_norm;
             fit.params = params;
-            // Gradient at the pre-step point (the last one actually computed);
-            // Newton does not re-evaluate the gradient after accepting a step
-            // within the same iteration, so this is the freshest value on hand.
             fit.gradient_norm = last_grad_norm;
+            fit.converged = (last_grad_norm < tol);
+            fit.hit_iteration_cap = (fit.niter >= maxit) && !fit.converged;
             return fit;
         }
     }
 
+    // Uniform gradient-norm-based convergence (optimizer_diagnostics_report.md
+    // TODO-4): every non-gradient-tol loop exit (non-finite gradient/Hessian,
+    // singular Hessian, line-search failure, maxit exhaustion) already
+    // implies last_grad_norm >= tol -- the gnorm < tol check at the top of
+    // the loop would have returned first otherwise -- so this blanket rule
+    // needs no special-casing, matching the template's analysis.
     fit.params = params;
     fit.value = likelihood_value(fun, params);
-    fit.converged = false;
+    fit.converged = (last_grad_norm < tol);
+    fit.hit_iteration_cap = (fit.niter >= maxit) && !fit.converged;
     fit.gradient_norm = last_grad_norm;
     return fit;
 }

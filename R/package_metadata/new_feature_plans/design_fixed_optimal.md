@@ -159,12 +159,18 @@ Follow the package's existing compiled-function-pointer precedent — the
 `compiled_cpp_stat_fn` XPtr mechanism the custom-randomization-statistic
 machinery already uses — rather than inventing a new calling convention:
 
-- Typedef in a small public header (e.g. `EDI/src/custom_objective.h`,
-  `EDI_CORE_ONLY`-clean):
+- Typedef in a small public header (**landed as `EDI/src/user_compiled_fns.h`**,
+  `EDI_CORE_ONLY`-clean — renamed from the originally planned
+  `custom_objective.h` because it now carries the package-wide calling
+  conventions for all user compiled C++, shared with the custom
+  randomization statistic's XPtr form; see TODO-7's resolution):
   `typedef double (*edi_design_objective_fn)(const Eigen::MatrixXd& X, const Eigen::VectorXd& w);`
 - Users produce the XPtr with `RcppXPtrUtils::cppXPtr()` (documented example
   in the class roxygen), or any mechanism yielding
-  `Rcpp::XPtr<edi_design_objective_fn>`.
+  `Rcpp::XPtr<edi_design_objective_fn>`; a C++ **source string** is also
+  accepted and compiled through the same `cppXPtr` mechanism (uniformity
+  decision, 2026-08-17), with the source retained so parallel workers can
+  recompile locally instead of dereferencing a dead serialized pointer.
 - The optimizer treats it as a black box: **no gradient, no structure** — so
   it is only ever paired with the `"annealing"` solver (see table).
 - **XPtr-only; no plain-R-function fallback (user decision, 2026-08-16,
@@ -865,16 +871,22 @@ solver would extend the practical `n`/`B` range before users must fall back
 to `method = "greedy"`/`"K-way"`, exactly analogous to extending
 `linearization_max_n`.
 
-- [ ] TODO-A1: Add a `roi_solver` argument to `DesignFixedOptimalBlocks$new()`
-  (closed set `"glpk"`/`"gurobi"`/`"cplex"`, default `"glpk"`, only
-  meaningful for `method = "ompr"`), threaded into `solve_optimal_blocks()`'s
-  `ompr.roi::with_ROI(solver = roi_solver, ...)` call in place of the
-  hardcoded string. Reuse the exact Gurobi and CPLEX step-by-step wiring
-  guides written for `DesignFixedOptimal` above (as two subsections,
-  same closed-set rationale, same "never `Suggests`
-  `ROI.plugin.gurobi`/`ROI.plugin.cplex`/`Rcplex`" rule, same lazy
-  `requireNamespace()` check at solve time) rather than re-deriving them —
-  this is a one-line dispatch change plus documentation, not new design
-  work. Update `DesignFixedOptimalBlocks`'s own roxygen with the same two
-  wiring subsections verbatim. Independent of `DesignFixedOptimal`'s
-  implementation timeline; can land on its own schedule.
+- [x] TODO-A1: **Done (2026-08-17).** Added `roi_solver` argument to
+  `DesignFixedOptimalBlocks$new()` (closed set `"glpk"`/`"gurobi"`/`"cplex"`,
+  default `"glpk"`, validated eagerly via `assertChoice(roi_solver,
+  EDI_OPTIMAL_ROI_SOLVERS)` in the constructor's `method == "ompr"` branch;
+  `EDI_OPTIMAL_ROI_SOLVERS` and `assert_optimal_roi_solver()` reused as-is
+  from `helper_optimal_milp_solvers.R`, no new solver-registry logic).
+  Stored as `private$roi_solver` and threaded into `solve_optimal_blocks()`'s
+  `ompr.roi::with_ROI(solver = private$roi_solver, ...)` call in place of the
+  hardcoded `"glpk"` string; the lazy `requireNamespace()`
+  package/vendor-license check (`assert_optimal_roi_solver()`) runs at solve
+  time inside `solve_optimal_blocks()` itself, mirroring
+  `DesignFixedOptimal`'s TODO-5 pattern. `DesignFixedOptimalBlocks`'s roxygen
+  updated with the same two Gurobi/CPLEX wiring subsections (verbatim
+  content, `roi_solver = ...` direct-argument form instead of
+  `solver_args$roi_solver`) plus a "Solver backend" paragraph carrying the
+  same closed-set rationale and "never `Suggests`
+  `ROI.plugin.gurobi`/`ROI.plugin.cplex`/`Rcplex`" rule. `.Rd` regeneration
+  deferred to the next doc batch (interim roxygenize avoided per project
+  convention); `parse()` on the changed file confirmed clean.

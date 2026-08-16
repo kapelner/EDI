@@ -86,6 +86,7 @@ Collate:
     'design_fixed_factorial.R'
     'design_fixed_ibcrd.R'
     'design_fixed_matching_greedy_pair_switching.R'
+    'design_fixed_optimal.R'
     'design_fixed_optimal_blocks.R'
     'design_fixed_rerandomization.R'
     'design_observational.R'

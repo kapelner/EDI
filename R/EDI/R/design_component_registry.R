@@ -288,9 +288,14 @@ validate_design_component_body_references = function(component) {
 # Registers components using either reference-identical methods from the still-live
 # generators or generalized implementations protected by matched-seed golden tests.
 # Concrete classes consume some of these components already; the remaining rewiring
-# is deliberately staged behind the Timing-Family Split. AllocationMatrixValidation
-# alone remains a scaffold because its four live implementations still differ in
-# behavior (fix_design_hierarchy.md, "Evidence of the Problem" item 7).
+# is deliberately staged behind the Timing-Family Split. There is no
+# AllocationMatrixValidation component: its four originally-duplicated
+# validate_allocation_matrix() implementations were deleted outright rather than
+# reconciled into a shared component, after confirming each was dead defensive code
+# (the underlying C++ search kernels each guarantee valid, correctly-shaped, balanced
+# output by construction) except for DesignFixedRerandomization's one real "found
+# fewer than r acceptable draws" case, which now errors directly in that class instead
+# of being routed through a shared validator.
 populate_design_component_registry = function(ns = environment(populate_design_component_registry)) {
 	clear_design_component_registry()
 
@@ -462,11 +467,6 @@ populate_design_component_registry = function(ns = environment(populate_design_c
 		# every bootstrap_type as within-stratum (and also supports no strata).
 		owns_state = "sequential_bootstrap_whole_group",
 		requires_state = c("strata_cols", "uses_covariates", "t", "Xraw")
-	))
-
-	register_design_component(DesignComponent(
-		name = "AllocationMatrixValidation",
-		status = "scaffold"
 	))
 
 	greedy = get("DesignFixedGreedy", envir = ns)
