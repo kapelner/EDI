@@ -139,8 +139,14 @@ ModelResult fast_probit_regression_internal(
         ProbitLbfgsObjective obj(X_free, y_eigen, weights_eigen, eta_fixed, use_weights);
         LikelihoodFitResult fit = optimize_likelihood_lbfgs(obj, beta_free, maxit, tol);
         beta_free = fit.params;
-        res.converged = fit.converged;
-        res.num_iter = std::numeric_limits<int>::min();
+        // Uniform gradient-norm-based convergence (optimizer_diagnostics_report.md
+        // TODO-4), matching fast_logistic_regression.cpp's template: LBFGSpp's
+        // own `fit.converged` also fires on a relative function-value-decrease
+        // criterion, not gradient norm alone, so it is not trusted here.
+        res.gradient_norm = fit.gradient_norm;
+        res.converged = (fit.gradient_norm < tol);
+        res.num_iter = fit.niter;
+        res.hit_iteration_cap = (fit.niter >= maxit) && !res.converged;
         res.neg_ll = fit.value;
     } else {
         Eigen::VectorXd mu(n);
@@ -148,6 +154,7 @@ ModelResult fast_probit_regression_internal(
         Eigen::VectorXd gen_res(n);
         Eigen::MatrixXd XtWX(p_free, p_free);
         Eigen::VectorXd score_free(p_free);
+        double last_grad_norm = std::numeric_limits<double>::quiet_NaN();
 
         for (int iter = 0; iter < maxit; ++iter) {
             res.num_iter++;
@@ -156,12 +163,12 @@ ModelResult fast_probit_regression_internal(
             for (int i = 0; i < n; ++i) {
                 const double ei = eta[i];
                 const double wi = use_weights ? weights_eigen[i] : 1.0;
-                
+
                 const double phi = dnorm_fast(ei);
                 const double Phi = pnorm_fast(ei);
                 const double Phi_inv = 1.0 - Phi;
                 const double vm = std::max(1e-15, Phi * Phi_inv);
-                
+
                 mu[i] = Phi;
                 w[i] = wi * (phi * phi / vm);
                 gen_res[i] = wi * probit_gen_residual_optimized(y_eigen[i], phi, Phi, Phi_inv);
@@ -174,7 +181,8 @@ ModelResult fast_probit_regression_internal(
                 score_free.noalias() = X_free.transpose() * gen_res;
                 XtWX = subset_matrix(*warm_start_fisher_info, fixed_spec.free_idx, fixed_spec.free_idx);
             }
-            if (score_free.norm() < tol) { res.converged = true; break; }
+            last_grad_norm = score_free.norm();
+            if (last_grad_norm < tol) break;
 
             Eigen::LDLT<Eigen::MatrixXd> ldlt(XtWX);
             if (ldlt.info() != Eigen::Success) break;
@@ -182,8 +190,36 @@ ModelResult fast_probit_regression_internal(
             if (!delta.allFinite()) break;
 
             beta_free += delta;
-            if (delta.norm() < tol) { res.converged = true; break; }
+            if (delta.norm() < tol) {
+                // Step-size convergence: recompute the gradient norm at the
+                // post-step point (matching fast_logistic_regression.cpp's
+                // template) so `converged` below is classified by the actual
+                // gradient at the returned beta_free, not by this different
+                // stopping criterion having fired.
+                const Eigen::VectorXd eta_post = X_free * beta_free + eta_fixed;
+                Eigen::VectorXd gen_res_post(n);
+                for (int i = 0; i < n; ++i) {
+                    const double ei = eta_post[i];
+                    const double wi = use_weights ? weights_eigen[i] : 1.0;
+                    const double phi = dnorm_fast(ei);
+                    const double Phi = pnorm_fast(ei);
+                    const double Phi_inv = 1.0 - Phi;
+                    gen_res_post[i] = wi * probit_gen_residual_optimized(y_eigen[i], phi, Phi, Phi_inv);
+                }
+                last_grad_norm = (X_free.transpose() * gen_res_post).norm();
+                break;
+            }
         }
+
+        // Uniform gradient-norm-based convergence (optimizer_diagnostics_report.md
+        // TODO-4): every non-gradient-tol loop exit (singular Hessian,
+        // non-finite step, maxit exhaustion) already implies last_grad_norm >=
+        // tol -- the gradient-tol break above would have fired first
+        // otherwise -- so this blanket rule needs no special-casing, matching
+        // the template's analysis.
+        res.gradient_norm = last_grad_norm;
+        res.converged = (last_grad_norm < tol);
+        res.hit_iteration_cap = (res.num_iter >= maxit) && !res.converged;
         res.mu = mu;
         res.XtWX = expand_free_covariance(p, fixed_spec, XtWX, false);
         res.score = expand_free_params(score_free, Eigen::VectorXd::Zero(p), fixed_spec);

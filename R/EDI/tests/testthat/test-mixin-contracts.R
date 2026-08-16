@@ -149,9 +149,8 @@ test_that("every lazy component implementation matches its declared contract", {
 			error = function(e) errors[[component_name]] <<- conditionMessage(e)
 		)
 	}
-	expect_length(
-		errors,
-		0L,
+	expect_true(
+		length(errors) == 0L,
 		info = if (length(errors) == 0L) NULL else paste(names(errors), errors, sep = ": ", collapse = "\n")
 	)
 })

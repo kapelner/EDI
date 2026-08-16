@@ -179,7 +179,7 @@ void bind_count(py::module_& m) {
         out["converged"] = res.converged;
         out["neg_loglik"] = res.neg_ll;
         out["dispersion"] = res.dispersion;
-        out["iterations"] = res.iterations;
+        out["iterations"] = res.num_iter;
         out["gradient_norm"] = res.gradient_norm;
         return out;
     },
@@ -266,7 +266,7 @@ void bind_count(py::module_& m) {
         out["converged"] = res.converged;
         out["neg_loglik"] = res.neg_ll;
         out["dispersion"] = res.dispersion;
-        out["iterations"] = res.iterations;
+        out["iterations"] = res.num_iter;
         out["gradient_norm"] = res.gradient_norm;
         return out;
     },

@@ -15,7 +15,8 @@ utils::globalVariables(".wgt__")
 # CIs/SEs. Centralized here because this exact 1e6 heuristic was previously
 # copy-pasted independently in helper_glm_fit.R,
 # inference_all_abstract_param_boot.R, inference_all_abstract_non_param_boot.R,
-# and other_helpers.R, with no guarantee the copies stayed in sync.
+# and the helper_*.R files split out of the former other_helpers.R, with no
+# guarantee the copies stayed in sync.
 #
 # Note: inference_mixin_kk_gee_shared.R's private$max_abs_reasonable_coef
 # (default 1e4) is a deliberately different, tighter threshold for that

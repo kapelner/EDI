@@ -207,7 +207,14 @@ if [ "$run_r_tests" = "1" ]; then
 		# Same script + NOT_CRAN gate R CMD check's own "checking tests" phase
 		# runs internally, just invoked directly against the already-installed
 		# package instead of paying for a second, tarball-forced full recompile.
-		if ! NOT_CRAN=true Rscript R/EDI/tests/testthat.R; then
+		# Must run with cwd = R/EDI/tests: test_check() calls
+		# test_dir("testthat", ...) with a path relative to the CURRENT WORKING
+		# DIRECTORY, not the script's location -- R CMD check gets away with a
+		# bare "testthat" because it copies testthat.R into tests/ and runs it
+		# from there. Running from the repo root instead makes "testthat"
+		# resolve to a nonexistent ./testthat, and test_dir() silently reports
+		# "No test files found." rather than erroring.
+		if ! ( cd R/EDI/tests && NOT_CRAN=true Rscript testthat.R ); then
 			echo "pre-push: R tests FAILED." >&2
 			failed=1
 		fi

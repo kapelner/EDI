@@ -721,13 +721,42 @@ open-ended now.
   rate bounded, not zero), l1/ratio parity with the exact solvers,
   unbalanced `n_T`, argument validation, and the auto-dispatch switching
   behavior on both sides of the cutoff for quadratic and ratio.
-- [ ] TODO-7: Implement the `custom_objective` XPtr plumbing
-  (`custom_objective.h` typedef, validation, annealing-solver integration),
-  following the `compiled_cpp_stat_fn` precedent. Validation must reject a
-  plain R function (or anything not an `externalptr` of the correct type)
-  with an error that states the performance reason (per TODO-2), not just
-  "wrong type" — a user who tries passing a closure should immediately
-  understand *why* it's disallowed, not just that it is.
+- [x] TODO-7: **Done (2026-08-17), with scope widened by a user directive:
+  the XPtr handling here and in the custom randomization statistic is now
+  uniform via RcppXPtrUtils.** The header is `src/user_compiled_fns.h` (not
+  the originally planned `custom_objective.h` — it now carries the
+  package-wide calling conventions for ALL user compiled C++, EDI_CORE_ONLY-
+  clean, Eigen-only): `edi_design_objective_fn(X, w)` plus
+  `edi_rand_stat_fn(y, w)`/`edi_rand_stat_dead_fn(y, w, dead)`. Shared R
+  half in `R/helper_user_compiled_fn.R` (in Collate):
+  `normalize_user_cpp_fn()` accepts an `RcppXPtrUtils::cppXPtr()`
+  externalptr OR a C++ source string (compiled via `cppXPtr`, source
+  retained for worker recompilation), verifies recorded signatures with a
+  whitespace/arg-name-insensitive check (deliberately not
+  `RcppXPtrUtils::checkXPtr()`, which compares verbatim strings), and
+  refuses plain R closures with the TODO-2 performance reason;
+  `assert_custom_objective_xptr()` is the objective site's wrapper. Eval
+  shims in `src/user_compiled_fn_shims.cpp` (`eval_custom_design_objective_cpp`,
+  `eval_custom_rand_stat[_dead]_xptr_cpp`) are the single R-side deref
+  points. Annealing integration: `annealing_design_search_cpp` gained the
+  `"custom"` kind (M1 = the n x p model matrix X; flip-eval-restore
+  candidate evaluation; **serial chains** — user code carries no
+  thread-safety guarantee, so the OMP pragma is `if(parallel_ok)`-gated) and
+  a `custom_objective` SEXP param; `annealing_solve_custom()` and
+  `optimal_solve_auto(kind = "custom")` (always annealing, any n) wrap it.
+  Stat-site uniformity: `set_custom_randomization_statistic_cpp()` now also
+  accepts a `cppXPtr` externalptr (Eigen convention above), normalized at
+  entry into the existing `compiled_cpp_stat_fn` slot as a thin closure over
+  the shim — so all ~38 downstream consultation sites work unchanged; bare
+  externalptrs without `cppXPtr`'s recorded signature are refused (arity is
+  undeterminable); the legacy source-string/Rcpp-function forms are
+  untouched. Tests (`test-design-optimal-custom-objective.R`, 21
+  assertions, all passing): shim-vs-R-reference eval, closure refusal
+  naming the performance reason, custom annealing reproducing the certified
+  built-in `abs_sum_diff` optimum, seed determinism, source-string form,
+  wrong-signature XPtr refusal, XPtr-vs-legacy-string stat p-value identity
+  under a shared seed, bare-externalptr stat refusal, and auto-dispatch;
+  annealing + legacy custom-stat baselines re-run green.
 
 - [x] TODO-8: **Done (2026-08-17).** Registry side
   (`design_class_registry.R`): `"deterministic_optimal"` added to

@@ -9,7 +9,7 @@
 // randomization statistic's XPtr form (set_custom_randomization_statistic_cpp;
 // its legacy source-string form predates this convention and keeps its
 // Rcpp-typed, R-callable signature) -- so the pointer handling stays uniform:
-// same validation (normalize_user_cpp_fn() in user_compiled_fn_helpers.R),
+// same validation (normalize_user_cpp_fn() in helper_user_compiled_fn.R),
 // same deref pattern (the eval shims in user_compiled_fn_shims.cpp), same
 // Eigen-only signatures.
 //

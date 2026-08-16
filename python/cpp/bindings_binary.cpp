@@ -244,7 +244,7 @@ static py::dict model_result_to_dict(const ModelResult& res) {
     out["ssq_b_2"] = res.ssq_b_2;
     out["dispersion"] = res.dispersion;
     out["sigma2_hat"] = res.sigma2_hat;
-    out["iterations"] = res.iterations;
+    out["iterations"] = res.num_iter;
     out["converged"] = res.converged;
     out["gradient_norm"] = res.gradient_norm;
     return out;

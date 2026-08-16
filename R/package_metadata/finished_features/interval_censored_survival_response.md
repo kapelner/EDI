@@ -2106,6 +2106,41 @@ wrapping the same base engine).
   resolvable via `exists()` on a fresh install — confirmed unrelated to
   this fix (a class-loading/component-registry issue, `fix_inference_hierarchy.md`
   territory) and not investigated further here.
+- [ ] TODO-28 (added 2026-08-17, found while regenerating the Python
+  benchmark reports and re-checking `python/README_PYPI.md`'s speed-gains
+  table against real numbers): TODO-3's unification of
+  `WeibullAFTLikelihood` onto the general `CensoredRow`/`BoundTerms`
+  machinery costs a real, measured **~3.3-3.7x** per-call slowdown on the
+  exact/right-censored case relative to the true pre-TODO-3 implementation
+  — confirmed via an isolated, no-R/no-Python-overhead harness: the exact
+  `git HEAD` (pre-migration) source of `fast_weibull_regression.cpp`
+  compiled standalone and timed directly against
+  `fast_weibull_regression_internal`, same data (`n=500, p=4`, `dead`
+  80%), same compiler flags (`g++ -O3 -march=native`), same process — no
+  R/Rcpp, no Python/pybind11, no benchmark-harness confounds. Result:
+  `0.033-0.036ms/call` (old) vs `0.115-0.127ms/call` (new, current
+  `fast_weibull_regression_general_internal`). This is *not* something
+  TODO-18-21 introduced — those TODOs only wired up already-existing
+  (already-slower) machinery to Python/R callers; the cost was entirely
+  introduced by TODO-3 itself, and TODO-18-21's own deprecation audit
+  (`fast_weibull_regression_cpp_deprecation.md`) never caught it because
+  it only ever compared the general kernel against the *already-unified*
+  legacy kernel (both post-TODO-3), never against this true original.
+  **Concrete optimization opportunity, not investigated further here**:
+  exact rows (the common case) don't need any `CensoredRow`/`BoundTerms`
+  construction at all — `WeibullAFTLikelihood::operator()`/`hessian()`
+  already branch on `std::isfinite(m_y[i])` per row and only build
+  `CensoredRow` on the censored branch, so the slowdown is likely from
+  something else in the shared per-call path (e.g. `std::optional`
+  argument marshaling, `FixedParamSpec`/`apply_fixed_values` overhead
+  introduced alongside TODO-3, or the extra `y_L`/`y_R` vector
+  allocations `dead_to_bounds`-equivalent conversion now requires even
+  for calls that are 100% exact/right-censored) — needs profiling
+  (`perf record`/`perf annotate`, same method as
+  `R/package_metadata/audits/perf_experiments_final.md`) to actually
+  isolate the hot line(s) before attempting a fix, not guessed at.
+  README/benchmark numbers reflect this real, current behavior
+  accurately (updated 2026-08-17); they are not the bug, the kernel is.
 
 ## Appendix: How Common Is Interval-Censored Survival Data?
 

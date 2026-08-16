@@ -133,12 +133,12 @@ test_that("custom randomization statistic: XPtr form is uniform with the legacy 
 		return s1 / n1 - s0 / n0;
 	}"
 
-	inf1 = InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf1 = EDI:::InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
 	inf1$set_custom_randomization_statistic_cpp(stat_xptr)
 	set.seed(18)
 	p_xptr = inf1$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
 
-	inf2 = InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf2 = EDI:::InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
 	inf2$set_custom_randomization_statistic_cpp(stat_src)
 	set.seed(18)
 	p_src = inf2$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
@@ -152,7 +152,7 @@ test_that("custom randomization statistic: bare externalptrs without cppXPtr's s
 	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(8)))
 	des$assign_w_to_all_subjects()
 	des$add_all_subject_responses(rnorm(8))
-	inf = InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf = EDI:::InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
 	bare = custom_abs_sum_diff_xptr()
 	attributes(bare) = NULL
 	expect_error(inf$set_custom_randomization_statistic_cpp(bare), "RcppXPtrUtils::cppXPtr")
