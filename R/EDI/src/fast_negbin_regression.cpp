@@ -310,7 +310,7 @@ ModelResult fast_neg_bin_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
     res.b = params.head(p);
     res.dispersion = std::exp(params[p]); // theta
     res.XtWX = estimate_only ? Eigen::MatrixXd::Zero(p+1, p+1) : fun.hessian(params);
-    res.iterations = fit.niter;
+    res.num_iter = fit.niter;
     res.converged = fit.converged;
     res.sigma2_hat = -fit.value; // using sigma2_hat to store logLik temporarily
     return res;
@@ -342,12 +342,25 @@ Eigen::VectorXd get_negbin_regression_score_cpp(const Eigen::Map<Eigen::MatrixXd
     return -grad;
 }
 
-//' @title Compute Negative Binomial Regression Hessian
-//' @description Calculates the Hessian matrix (second derivatives of the log-likelihood) for a negative binomial regression model.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param params A numeric vector of parameters [beta, log_theta].
-//' @return A numeric matrix representing the Hessian.
+//' Negative Binomial Regression Hessian, Standalone (C++)
+//'
+//' Computes the (analytic) Hessian matrix of the log-likelihood of the
+//' mean/dispersion-parameterized negative binomial regression model documented
+//' in full at \code{\link{fast_neg_bin_cpp}} (see also
+//' \code{\link{fast_dnbinom_mu_vec_cpp}} for the underlying density), at
+//' arbitrary caller-supplied \code{params} (not necessarily the MLE). Exported
+//' standalone — independent of any optimizer run — for direct numerical
+//' diagnostics at a specific parameter value.
+//'
+//' @param X A numeric matrix of predictors, as used to fit the model.
+//' @param y A numeric vector of nonnegative-integer count responses.
+//' @param params A numeric vector \eqn{[\beta, \log\theta]}: the mean-model
+//'   coefficients followed by the log-dispersion parameter, at which to
+//'   evaluate the Hessian.
+//' @return The \eqn{(p+1) \times (p+1)} Hessian matrix of the log-likelihood at \code{params}.
+//' @seealso \code{\link{get_negbin_regression_score_cpp}} for the corresponding
+//'   gradient at the same point; \code{\link{fast_neg_bin_cpp}} for the full
+//'   model documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -380,20 +393,47 @@ Eigen::MatrixXd get_negbin_regression_expected_hessian_cpp(const Eigen::Map<Eige
     return fun.expected_hessian(params);
 }
 
-//' @title Fast Negative Binomial Regression with Variance (C++)
-//' @description Negative binomial regression fitting with full variance-covariance matrix.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses (non-negative integers).
+//' Fast Negative Binomial Regression with Variance (C++ Backend)
+//'
+//' Fits the same mean/dispersion-parameterized negative-binomial regression as
+//' \code{\link{fast_neg_bin_cpp}} (see that page, and
+//' \code{\link{fast_dnbinom_mu_vec_cpp}}, for the full model) and additionally
+//' computes the full variance-covariance matrix of \code{c(beta, log(theta))}.
+//'
+//' @details
+//' \strong{Variance computation.} The working-weights curvature matrix
+//' \code{res.XtWX} (over all \code{p + 1} parameters) is restricted to the
+//' free (non-\code{fixed_idx}) parameters and inverted via a \strong{plain
+//' matrix inverse} (\code{.inverse()}, not a rank-aware pseudo-inverse as used
+//' by, e.g., \code{\link{fast_adjacent_category_logit_with_var_cpp}}) before
+//' being expanded back to the full \code{(p + 1) x (p + 1)} size as
+//' \code{vcov}. A rank-deficient or near-singular design (after restricting to
+//' free parameters) will therefore produce numerically unstable or \code{NaN}
+//' variances rather than a graceful fallback.
+//'
+//' @param X A numeric matrix of predictors, \eqn{n \times p}.
+//' @param y A numeric (integer-valued) vector of non-negative observed
+//'   counts, length \eqn{n}.
 //' @param warm_start_params Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param maxit Maximum number of iterations.
-//' @param eps_f Convergence tolerance for function value.
-//' @param eps_g Convergence tolerance for gradient.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients, theta, vcov, and convergence status.
+//' @param maxit Maximum number of optimizer iterations.
+//' @param eps_f Convergence tolerance on the objective (log-likelihood) value.
+//' @param eps_g Convergence tolerance on the gradient norm.
+//' @param fixed_idx Optional integer indices (into the \code{c(beta, log(theta))}
+//'   parameter layout) of parameters to hold fixed rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
+//' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
+//' @param warm_start_fisher_info Optional initial Fisher Information matrix to
+//'   warm-start curvature information.
+//' @return A list with components \code{b} (\eqn{\hat\beta}),
+//'   \code{theta_hat} (\eqn{\hat\theta}), \code{logLik}, \code{vcov} (the full
+//'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix),
+//'   \code{converged}, \code{iterations}, and \code{hess_fisher_info_matrix}
+//'   (the working-weights curvature matrix \code{vcov} was inverted from).
+//' @seealso \code{\link{fast_neg_bin_cpp}} for the estimate-only variant and
+//'   full model documentation; \code{\link{fast_neg_bin_weighted_cpp}} for the
+//'   row-weighted estimate-only variant.
 //' @export
 //' @keywords internal
 //' @examples
@@ -441,7 +481,7 @@ List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
         .set("theta_hat", res.dispersion)
         .set("logLik", res.sigma2_hat)
         .set("converged", res.converged)
-        .set("iterations", res.iterations)
+        .set("iterations", res.num_iter)
         .set("hess_fisher_info_matrix", res.XtWX)
         .set("vcov", vcov));
 }
@@ -489,26 +529,43 @@ List fast_neg_bin_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Nullable<Num
         .set("theta_hat", res.dispersion)
         .set("logLik", res.sigma2_hat)
         .set("converged", res.converged)
-        .set("iterations", res.iterations)
+        .set("iterations", res.num_iter)
         .set("fisher_information", res.XtWX));
 }
 
-//' @title Fast Weighted Negative Binomial Regression (C++)
-//' @description High-performance negative binomial regression fitting with nonnegative row weights.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param weights A nonnegative numeric vector of row weights.
+//' Fast Weighted Negative Binomial Regression, Estimate Only (C++ Backend)
+//'
+//' Fits the same mean/dispersion-parameterized negative-binomial regression as
+//' \code{\link{fast_neg_bin_cpp}} (see that page, and
+//' \code{\link{fast_dnbinom_mu_vec_cpp}}, for the full model), with each
+//' observation's contribution to the log-likelihood multiplied by a
+//' nonnegative row weight \code{weights[i]}. Setting all weights to 1 recovers
+//' \code{\link{fast_neg_bin_cpp}} exactly.
+//'
+//' @param X A numeric matrix of predictors, \eqn{n \times p}.
+//' @param y A numeric (integer-valued) vector of non-negative observed
+//'   counts, length \eqn{n}.
+//' @param weights A nonnegative numeric vector of length \eqn{n} giving each
+//'   row's weight.
 //' @param warm_start_params Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param maxit Maximum number of iterations.
-//' @param eps_f Convergence tolerance for function value.
-//' @param eps_g Convergence tolerance for gradient.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
+//' @param maxit Maximum number of optimizer iterations.
+//' @param eps_f Convergence tolerance on the objective (log-likelihood) value.
+//' @param eps_g Convergence tolerance on the gradient norm.
+//' @param fixed_idx Optional integer indices (into the \code{c(beta, log(theta))}
+//'   parameter layout) of parameters to hold fixed rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
+//' @param optimization_alg Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.
+//' @param warm_start_fisher_info Optional initial Fisher Information matrix to
+//'   warm-start curvature information.
 //' @param estimate_only If TRUE, skip Fisher information calculation.
-//' @return A list containing coefficients, theta, and convergence status.
+//' @return A list with the same components as \code{\link{fast_neg_bin_cpp}}:
+//'   \code{b}, \code{theta_hat}, \code{logLik}, \code{converged},
+//'   \code{iterations}, and \code{fisher_information} (all reflecting the
+//'   weighted log-likelihood).
+//' @seealso \code{\link{fast_neg_bin_cpp}} for the unweighted model and full
+//'   documentation.
 //' @export
 //' @keywords internal
 //' @examples
@@ -542,7 +599,7 @@ List fast_neg_bin_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEX
         .set("theta_hat", res.dispersion)
         .set("logLik", res.sigma2_hat)
         .set("converged", res.converged)
-        .set("iterations", res.iterations)
+        .set("iterations", res.num_iter)
         .set("fisher_information", res.XtWX));
 }
 #endif // EDI_CORE_ONLY

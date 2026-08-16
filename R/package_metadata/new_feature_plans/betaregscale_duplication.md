@@ -1,5 +1,7 @@
 # Feature Plan: Duplicate `betaregscale` — Interval-Censored Beta Regression for `proportion`
 
+> **Depends on:** `censored_continuous_response.md` (its Tier-1 censored-quantile machinery is reused verbatim for the proportion logit-transform path); `interval_censored_survival_response.md` (schema). (Global ordering: see `_master.md`.)
+
 ## Status
 
 This is a committed feature plan. It merges and supersedes
@@ -445,7 +447,8 @@ plan's TODOs.
 ### Tier 3 — Hard, structural, same reasoning as the sibling documents (not this plan's scope)
 
 - **`InferencePropKKGEE`** (`R/EDI/R/inference_proportion_KK_combined.R`,
-  via `InferenceMixinKKGEEShared`, `gee_family = stats::binomial(link =
+  via the `KKGEE` component — source `inference_mixin_kk_gee_shared.R`,
+  formerly the `InferenceMixinKKGEEShared` mixin — `gee_family = stats::binomial(link =
   "logit")` at `inference_proportion_KK_combined.R:106`) — binomial-family
   GEE built on working residuals across the matched/reservoir design.
   Same IPCW-GEE-style blocker flagged for `InferenceCountPoissonKKGEE` in

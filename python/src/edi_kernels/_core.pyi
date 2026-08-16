@@ -6,7 +6,7 @@ import collections.abc
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['dnorm_fast', 'fast_adjacent_category_logit', 'fast_atan', 'fast_beta_regression', 'fast_clayton_weibull_aft_optim', 'fast_clogit_plus_glmm', 'fast_continuation_ratio_regression', 'fast_coxph_regression', 'fast_cpoisson_combined', 'fast_dep_cens_transform_optim', 'fast_digamma', 'fast_dnbinom_mu', 'fast_erfc', 'fast_gaussian_lmm', 'fast_gehan_wilcox_stats', 'fast_hurdle_negbin', 'fast_hurdle_poisson_glmm', 'fast_identity_binomial_regression', 'fast_identity_binomial_regression_with_var', 'fast_lbeta', 'fast_lgamma', 'fast_log1pexp', 'fast_log_binomial_regression', 'fast_log_binomial_regression_with_var', 'fast_log_dnorm', 'fast_log_pnorm', 'fast_logistic_glmm', 'fast_logistic_regression', 'fast_logrank_stats', 'fast_neg_bin', 'fast_ols', 'fast_ordinal_cauchit_regression', 'fast_ordinal_clmm', 'fast_ordinal_cloglog_regression', 'fast_ordinal_glmm', 'fast_ordinal_probit_regression', 'fast_ordinal_regression', 'fast_pchisq_upper', 'fast_poisson_glmm', 'fast_poisson_regression', 'fast_probit_regression', 'fast_qnorm', 'fast_ridit_analysis', 'fast_robust_regression', 'fast_stereotype_logit', 'fast_stratified_coxph_regression', 'fast_trigamma', 'fast_truncated_negbin_count', 'fast_weibull_frailty', 'fast_weibull_regression', 'fast_zero_augmented_poisson', 'fast_zero_augmented_poisson_with_var', 'fast_zero_one_inflated_beta', 'fast_zinb', 'fast_zinb_with_var', 'gee_pairs_singletons', 'get_survival_stat_diff', 'mn_ci', 'mn_pvalue', 'newcombe_independent_ci', 'ols_hc2_post_fit', 'pnorm_fast', 'wilcox_hl_point_estimate']
+__all__: list[str] = ['dnorm_fast', 'fast_adjacent_category_logit', 'fast_atan', 'fast_beta_regression', 'fast_clayton_weibull_aft_optim', 'fast_clogit_plus_glmm', 'fast_continuation_ratio_regression', 'fast_coxph_regression', 'fast_cpoisson_combined', 'fast_dep_cens_transform_optim', 'fast_digamma', 'fast_dnbinom_mu', 'fast_erfc', 'fast_gaussian_lmm', 'fast_gehan_wilcox_stats', 'fast_hurdle_negbin', 'fast_hurdle_poisson_glmm', 'fast_identity_binomial_regression', 'fast_identity_binomial_regression_with_var', 'fast_lbeta', 'fast_lgamma', 'fast_log1pexp', 'fast_log_binomial_regression', 'fast_log_binomial_regression_with_var', 'fast_log_dnorm', 'fast_log_pnorm', 'fast_logistic_glmm', 'fast_logistic_regression', 'fast_logrank_stats', 'fast_neg_bin', 'fast_ols', 'fast_ordinal_cauchit_regression', 'fast_ordinal_clmm', 'fast_ordinal_cloglog_regression', 'fast_ordinal_glmm', 'fast_ordinal_probit_regression', 'fast_ordinal_regression', 'fast_pchisq_upper', 'fast_poisson_glmm', 'fast_poisson_regression', 'fast_probit_regression', 'fast_qnorm', 'fast_ridit_analysis', 'fast_robust_regression', 'fast_stereotype_logit', 'fast_stratified_coxph_regression', 'fast_trigamma', 'fast_truncated_negbin_count', 'fast_weibull_frailty', 'fast_weibull_regression_general', 'fast_zero_augmented_poisson', 'fast_zero_augmented_poisson_with_var', 'fast_zero_one_inflated_beta', 'fast_zinb', 'fast_zinb_with_var', 'gee_pairs_singletons', 'get_survival_stat_diff', 'mn_ci', 'mn_pvalue', 'newcombe_independent_ci', 'ols_hc2_post_fit', 'pnorm_fast', 'wilcox_hl_point_estimate']
 def dnorm_fast(x: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
     """
     Vectorized standard normal PDF (elementwise). Matches scipy.stats.norm.pdf.
@@ -1284,18 +1284,20 @@ def fast_weibull_frailty(X: typing.Annotated[numpy.typing.NDArray[numpy.float64]
     warm_start_fisher_info : ndarray, optional
         Optional initial Fisher information matrix for the first iteration.
     """
-def fast_weibull_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], dead: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, estimate_only: bool = False, maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-08, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
+def fast_weibull_regression_general(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], y_L: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], y_R: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, estimate_only: bool = False, maxit: typing.SupportsInt | typing.SupportsIndex = 100, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-08, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """
-    Fast Weibull AFT regression via L-BFGS. Returned 'params' = [beta, log_sigma]. Parameters sourced from R/EDI/man/ documentation for fast_weibull_regression_cpp.
+    Fast Weibull AFT regression with general censoring via L-BFGS. Returned 'params' = [beta, log_sigma].
     
     Parameters
     ----------
     X : ndarray
         A numeric matrix of predictors.
     y : ndarray
-        A numeric vector of survival times.
-    dead : ndarray
-        A numeric vector of event indicators (1=event, 0=censored).
+        Exact survival times; NaN for censored observations.
+    y_L : ndarray
+        Lower censoring bounds; NaN for exact observations and 0 for left censoring.
+    y_R : ndarray
+        Upper censoring bounds; NaN for exact observations and inf for right censoring.
     warm_start_params : ndarray, optional
         Optional starting values for coefficients.
     smart_cold_start : bool, default True

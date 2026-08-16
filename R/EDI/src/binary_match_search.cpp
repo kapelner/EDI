@@ -1,5 +1,5 @@
 #include <Rcpp.h>
-#include <random>
+#include "RNG.h"
 #include <cstdint>
 #include <limits>
 
@@ -13,13 +13,18 @@ using namespace Rcpp;
 
 namespace {
 
-// SplitMix64 bijection: maps integer → well-distributed 64-bit seed.
-// Ensures independent mt19937_64 streams when seeded with consecutive j values.
-inline uint64_t splitmix64(uint64_t x) {
+// SplitMix64 bijection: maps integer → well-distributed 64-bit value, then
+// truncated to 32 bits to seed edi_rng::RRng (RNG.h's portable
+// re-implementation of R's own Mersenne-Twister -- R's Int32 state is
+// genuinely 32-bit, unlike the arbitrary-width std::mt19937_64 this
+// replaces). Ensures independent RRng streams when seeded with consecutive
+// j values.
+inline std::uint32_t splitmix64_seed(std::uint64_t x) {
     x += 0x9e3779b97f4a7c15ULL;
     x  = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
     x  = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
-    return x ^ (x >> 31);
+    x  = x ^ (x >> 31);
+    return static_cast<std::uint32_t>(x);
 }
 
 } // namespace
@@ -48,8 +53,8 @@ NumericMatrix draw_binary_match_assignments_cpp(IntegerMatrix indices_pairs, int
 #pragma omp parallel for schedule(static)
     for (int j = 0; j < r; j++) {
         // Each column gets its own independent PRNG seeded deterministically from master_seed.
-        // splitmix64(master_seed + j) distributes consecutive j values into uncorrelated seeds.
-        std::mt19937_64 rng(splitmix64(master_seed + static_cast<uint64_t>(j)));
+        // splitmix64_seed(master_seed + j) distributes consecutive j values into uncorrelated seeds.
+        edi_rng::RRng rng(splitmix64_seed(master_seed + static_cast<uint64_t>(j)));
 
         double* w_col = w_ptr + static_cast<size_t>(j) * n;
 
@@ -57,8 +62,8 @@ NumericMatrix draw_binary_match_assignments_cpp(IntegerMatrix indices_pairs, int
             const int idx1 = pairs_ptr[i]             - 1;  // Col 0, Row i (column-major)
             const int idx2 = pairs_ptr[i + num_pairs] - 1;  // Col 1, Row i
 
-            // Fast coin flip: test MSB of a 64-bit random word (no FP conversion or division)
-            if (rng() >> 63) {
+            // Fast coin flip: test MSB of a 32-bit random word (no FP conversion or division)
+            if (rng() >> 31) {
                 w_col[idx1] = 1.0;
                 w_col[idx2] = 0.0;
             } else {

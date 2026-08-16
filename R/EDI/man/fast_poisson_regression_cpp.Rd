@@ -2,29 +2,86 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{fast_poisson_regression_cpp}
 \alias{fast_poisson_regression_cpp}
-\title{Fast Poisson Regression (C++ Backend)}
+\title{Fast Poisson Regression, Estimate-Only (C++ Backend)}
 \arguments{
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}
 
-\item{y}{A numeric vector of the response variable, expected to be counts.}
+\item{y}{A numeric vector of the response variable, expected to be nonnegative-integer counts.}
 
-\item{maxit}{Maximum number of iterations for the IRLS algorithm. Defaults to 100.}
+\item{warm_start_beta}{Optional starting values for coefficients \eqn{\beta}. If
+provided, \code{smart_cold_start} is ignored.}
+
+\item{smart_cold_start}{Logical. If \code{TRUE} and no \code{warm_start_beta} is
+supplied, use a Poisson-specific heuristic initial guess rather than a zero cold start.}
+
+\item{maxit}{Maximum number of iterations. Defaults to 100.}
 
 \item{tol}{Convergence tolerance. Defaults to 1e-8.}
 
-\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default), \code{"newton_raphson"}, or \code{"irls"}.}
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed rather than estimate.}
+
+\item{fixed_values}{Optional values to fix the parameters named by \code{fixed_idx} at.}
+
+\item{optimization_alg}{Optimization algorithm: \code{"irls"} (default), \code{"lbfgs"}, or \code{"newton_raphson"}.}
+
+\item{warm_start_weights}{Accepted but unused; see Details.}
+
+\item{warm_start_fisher_info}{Optional initial curvature (information) matrix to warm-start the first iteration.}
+
+\item{estimate_only}{If \code{TRUE}, skip computing \code{mu}, \code{XtWX}/\code{fisher_information},
+and \code{score}, returning only \code{b}, \code{converged}, \code{iterations}, and \code{gradient_norm}.}
 }
 \value{
 A list containing the following components:
 \describe{
-\item{b}{A numeric vector of the estimated Poisson regression coefficients.}
-\item{mu}{The fitted values.}
-\item{XtWX}{The XtWX matrix at the final iteration.}
-\item{converged}{A logical value indicating whether the IRLS algorithm converged.}
+\item{b}{A numeric vector of the estimated Poisson regression coefficients \eqn{\hat\beta}.}
+\item{mu}{(omitted if \code{estimate_only = TRUE}) The fitted means \eqn{\hat\mu_i}.}
+\item{XtWX, fisher_information}{(omitted if \code{estimate_only = TRUE}) Two aliases for the
+  same curvature matrix \eqn{X^\top W X} (\eqn{W = \mathrm{diag}(\hat\mu_i)}) at the fitted
+  coefficients — the Fisher information, which for the canonical log link coincides with the
+  observed information.}
+\item{score}{(omitted if \code{estimate_only = TRUE}) The score vector \eqn{X^\top(y - \hat\mu)}
+  at the fitted coefficients.}
+\item{neg_ll}{(omitted if \code{estimate_only = TRUE}) The negative log-likelihood at the fitted coefficients.}
+\item{converged}{A logical value indicating whether the algorithm converged.}
+\item{iterations}{The number of iterations performed.}
+\item{gradient_norm}{The norm of the score vector at convergence.}
 }
 }
 \description{
-This function provides a fast implementation of Poisson regression using a C++ backend.
-It is designed to efficiently estimate regression coefficients for count outcomes.
+Fits a Poisson regression with the canonical log link, \eqn{Y_i \sim
+\mathrm{Poisson}(\mu_i)}, \eqn{\mu_i = \exp(x_i^\top\beta)} (with \eqn{\eta_i =
+x_i^\top\beta} clamped above at 700 before exponentiating, to avoid overflow),
+by maximum likelihood. By default (\code{optimization_alg = "irls"}), fitting
+uses iteratively reweighted least squares: at each iteration the Fisher-scoring
+(Poisson canonical-link, so Fisher = observed) system \eqn{X^\top W X \, \delta =
+X^\top(y - \mu)} is solved via \code{Eigen::LDLT}, with a backtracking
+step-halving line search (up to 10 halvings) accepting the step only if it does
+not increase the negative log-likelihood; convergence is declared when the score
+norm falls below \code{tol}. Passing \code{optimization_alg = "lbfgs"} or
+\code{"newton_raphson"} instead routes through the generic likelihood optimizer
+(\code{\link[EDI:.normalize_optimizer_algorithm]{.normalize_optimizer_algorithm}}) on the raw (non-IRLS)
+negative log-likelihood/gradient/Hessian.
+}
+\section{Fixed parameters, warm starts}{
+
+\code{fixed_idx} and \code{fixed_values} optionally hold a subset of coefficients
+fixed at caller-supplied constant values (their contribution is folded into the
+linear predictor as an offset) rather than estimated. \code{warm_start_beta}
+supplies starting coefficients directly; otherwise, if \code{smart_cold_start =
+TRUE}, a Poisson-specific heuristic start is used, and if
+\code{warm_start_fisher_info} is also supplied (or, absent that, when
+\code{smart_cold_start = TRUE}), it seeds the curvature estimate used for the
+very first IRLS step (or first quasi-Newton step, for the non-IRLS algorithms).
+\code{warm_start_weights} is accepted for interface parity with sibling
+functions but is \strong{not consulted anywhere} in this function's fitting
+logic.
+}
+
+\seealso{
+\code{\link{fast_poisson_regression_weighted_cpp}} for the observation-weighted
+  variant; \code{\link{fast_poisson_regression_with_var_cpp}} for the variance-computing
+  variant; \code{\link{fast_quasipoisson_regression_with_var_cpp}} for the
+  overdispersion-corrected variant.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_zero_augmented_poisson_cpp}
 \alias{fast_zero_augmented_poisson_cpp}
-\title{Fast Zero-Augmented Poisson Regression (C++)}
+\title{Fast Zero-Inflated or Hurdle Poisson Regression (C++)}
 \usage{
 fast_zero_augmented_poisson_cpp(
   X,
@@ -21,36 +21,87 @@ fast_zero_augmented_poisson_cpp(
 )
 }
 \arguments{
-\item{X}{Matrix of predictors for the conditional component.}
+\item{X}{Matrix of predictors for the conditional (Poisson count) component.}
 
-\item{y}{Vector of responses.}
+\item{y}{Vector of nonnegative-integer count responses.}
 
-\item{Xzi}{Matrix of predictors for the zero-inflation/hurdle component.}
+\item{Xzi}{Matrix of predictors for the zero-inflation/hurdle (logistic) component.}
 
-\item{is_hurdle}{If TRUE, fit a hurdle model; if FALSE, fit a zero-inflated model.}
+\item{is_hurdle}{If \code{TRUE}, fit a hurdle model; if \code{FALSE}, fit a
+zero-inflated model. See Details for the distinction.}
 
-\item{warm_start_params}{Optional starting values for all parameters. If provided, \code{smart_cold_start} is ignored.}
+\item{warm_start_params}{Optional starting values for the joint
+\eqn{[\beta_{\mathrm{cond}}, \beta_{\mathrm{zi}}]} vector. If provided,
+\code{smart_cold_start} is ignored.}
 
-\item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
+\item{smart_cold_start}{Logical. If \code{TRUE} (the default) and no
+\code{warm_start_params} is supplied, use a model-specific heuristic initial guess;
+see Details.}
 
-\item{estimate_only}{If TRUE, skip variance component calculations.}
+\item{estimate_only}{If \code{TRUE}, skip the post-fit Hessian/variance computation
+and return only \code{params}, \code{converged}, \code{neg_ll}/\code{neg_loglik}, and
+\code{gradient_norm}.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of optimizer iterations.}
 
 \item{tol}{Convergence tolerance.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional 1-indexed positions of parameters to hold fixed.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values, parallel to \code{fixed_idx}, of the fixed parameters.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm (default \code{"lbfgs"}).}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first iteration.}
+\item{warm_start_fisher_info}{Optional initial curvature (Fisher/observed information) matrix.}
 }
 \value{
-A list containing coefficients, vcov, and convergence status.
+On optimizer failure: \code{list(converged = FALSE, gradient_norm = NA)}.
+  Otherwise, if \code{estimate_only = TRUE}: a list with \code{params} (the joint
+  fitted \eqn{[\hat\beta_{\mathrm{cond}}, \hat\beta_{\mathrm{zi}}]} vector),
+  \code{converged}, \code{neg_ll}/\code{neg_loglik} (two aliases), and
+  \code{gradient_norm}. Otherwise, additionally: \code{vcov} (the joint
+  variance-covariance matrix), \code{observed_information}/\code{fisher_information}/
+  \code{information} (three aliases for the same observed-information matrix;
+  \code{information_type} is always \code{"observed"}), \code{hessian} (the negative of
+  that same matrix), and \code{coefficients} (a list with \code{cond} and \code{zi}
+  sub-vectors splitting \code{params} back into its two components).
 }
 \description{
-High-performance ZIP or hurdle Poisson regression fitting using Newton-Raphson or L-BFGS.
+Fits, by direct maximum likelihood, a two-component count model with a
+Poisson log-link count component (\eqn{\lambda_i = \exp(x_i^\top\beta_{\mathrm{cond}})},
+\code{X}) and a logit-link binary component
+(\eqn{\pi_i = \mathrm{logit}^{-1}(x_{\mathrm{zi},i}^\top\beta_{\mathrm{zi}})},
+\code{Xzi}). The two supported models differ in how \eqn{\pi_i} enters the
+likelihood:
+\itemize{
+  \item \strong{Zero-inflated Poisson} (\code{is_hurdle = FALSE}): \eqn{\pi_i} is the
+    probability of an \emph{always-zero} latent class, mixed with a Poisson count that
+    can itself produce zeros, \eqn{\Pr(Y_i = 0) = \pi_i + (1-\pi_i) e^{-\lambda_i}} and
+    \eqn{\Pr(Y_i = y \mid y > 0) = (1-\pi_i)\,\mathrm{Poisson}(y; \lambda_i)}.
+  \item \strong{Hurdle Poisson} (\code{is_hurdle = TRUE}): \eqn{\pi_i = \Pr(Y_i = 0)}
+    \emph{directly}, via a simple binary (zero vs. positive) logistic sub-model, and
+    positive counts follow a \strong{zero-truncated} Poisson,
+    \eqn{\Pr(Y_i = y \mid y > 0) = (1-\pi_i)\,\lambda_i^y e^{-\lambda_i} / \left(y!\,(1 -
+    e^{-\lambda_i})\right)}.
 }
+Both branches share one likelihood/gradient/(analytic and expected) Hessian
+implementation, switched at each observation by \code{is_hurdle}. Optimizes the
+joint parameter vector \eqn{[\beta_{\mathrm{cond}}, \beta_{\mathrm{zi}}]} via
+\code{optimization_alg} (default \code{"lbfgs"}). If the optimizer throws an
+exception internally, this function does \strong{not} propagate an R error:
+it returns \code{list(converged = FALSE, gradient_norm = NA)} with no other fields.
+}
+\section{Fixed parameters, warm starts}{
+
+\code{fixed_idx} (1-indexed into the joint parameter vector, \code{X}'s
+coefficients first) and \code{fixed_values} optionally hold a subset of
+parameters fixed at caller-supplied constant values rather than estimated.
+\code{warm_start_params} supplies the full starting vector directly; otherwise,
+if \code{smart_cold_start = TRUE} (the default), a model-specific heuristic
+start is used, and if \code{FALSE}, all parameters start at zero except the
+first conditional-model coefficient, initialized to \eqn{\log(\bar y)} (if
+\eqn{\bar y > 0}). \code{warm_start_fisher_info}, if supplied, seeds the
+curvature estimate used for the optimizer's first iteration.
+}
+
 \keyword{internal}

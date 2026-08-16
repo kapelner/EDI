@@ -2,7 +2,7 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{.normalize_optimizer_algorithm}
 \alias{.normalize_optimizer_algorithm}
-\title{Normalize and validate optimizer algorithm name}
+\title{Normalize and Validate an Optimizer Algorithm Name for the \code{fast_*} C++ Backends}
 \usage{
 .normalize_optimizer_algorithm(
   optimization_alg,
@@ -11,17 +11,50 @@
 )
 }
 \arguments{
-\item{optimization_alg}{Character string or NULL.}
+\item{optimization_alg}{Character string (possibly abbreviated) naming the desired
+optimizer, \code{NULL}, or missing entirely; see Details for resolution order.}
 
-\item{allow_irls}{Logical. Whether "irls" is supported for this model.}
+\item{allow_irls}{Logical. Whether \code{"irls"} is a valid choice (and the default
+default) for this model; \code{FALSE} restricts the allowed set to
+\code{c("lbfgs", "newton_raphson")}.}
 
-\item{default}{Character string. Default if not supplied.}
+\item{default}{Character string used when \code{optimization_alg} is missing or
+\code{NULL}. Defaults to \code{"irls"} when \code{allow_irls = TRUE}, else
+\code{"lbfgs"}.}
 }
 \value{
-A validated character string.
+A validated, unabbreviated character string: one of
+  \code{"newton_raphson"}, \code{"lbfgs"}, or (only when \code{allow_irls = TRUE})
+  \code{"irls"}.
 }
 \description{
-Internal helper to map user-supplied algorithm names to supported strings
-for the underlying C++ optimizers.
+Internal helper shared by the package's \code{fast_*} GLM/survival/ordinal fitting
+wrappers (e.g. \code{\link{fast_logistic_regression}},
+\code{\link{fast_coxph_regression}}) to resolve a user-supplied
+\code{optimization_alg} argument to one of the fixed set of optimizer names the
+underlying C++ backends actually implement, applying a model-specific default when
+none is supplied and rejecting anything else. This centralizes the
+default/validation logic so each \code{fast_*} wrapper does not have to repeat it.
+}
+\details{
+The three possible optimizer names, when supported by a given model, correspond to
+distinct fitting algorithms in the C++ backends: \code{"newton_raphson"} (full
+Newton-Raphson using the analytic Hessian), \code{"lbfgs"} (limited-memory
+quasi-Newton, avoiding an explicit Hessian), and \code{"irls"} (iteratively
+reweighted least squares, the classical GLM-fitting algorithm — only meaningful,
+and only offered, for exponential-family GLMs, hence gated by \code{allow_irls}).
+Which optimizers a given \code{fast_*} function actually accepts (and which is its
+default) varies by model; this function only encodes the generic
+irls-vs-not-irls split, not per-model specifics.
+
+\code{optimization_alg} is matched against the allowed set via
+\code{\link[base]{match.arg}}, so unambiguous partial string matches (e.g.
+\code{"newton"}) are accepted; an unmatched or ambiguous value raises
+\code{match.arg}'s standard error rather than silently falling back to the default.
+\code{missing(optimization_alg)} or an explicit \code{NULL} both resolve to
+\code{default} before matching.
+}
+\seealso{
+\code{\link[base]{match.arg}}, which performs the validation/partial-matching.
 }
 \keyword{internal}

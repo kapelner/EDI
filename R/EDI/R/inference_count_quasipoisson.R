@@ -1,7 +1,19 @@
 #' Quasi-Poisson Regression Inference for Count Responses
 #'
-#' Fits a quasi-Poisson log-link regression for count responses using the
-#' treatment indicator and, optionally, all recorded covariates as predictors.
+#' Fits a Poisson log-link mean model, \eqn{\log E[Y_i \mid x_i] =
+#' x_i^\top\beta}, for count responses using the treatment indicator and,
+#' optionally, all recorded covariates as predictors, via
+#' \code{\link{fast_quasipoisson_regression_with_var_cpp}} — see that page for
+#' the full model and the Pearson-dispersion-scaled ("quasi-Poisson") variance
+#' formula, \eqn{\widehat{\mathrm{Var}}(\hat\beta_k) = \hat\phi\,[(X^\top
+#' \hat{W}X)^{-1}]_{kk}}, which corrects standard errors for overdispersion
+#' (\eqn{\mathrm{Var}(Y_i) > E[Y_i]}) relative to the strict Poisson assumption
+#' without changing the point estimate \eqn{\hat\beta}. This class has no
+#' likelihood-ratio/score/gradient testing capability
+#' (\code{likelihood_tier = "quasi"}): the dispersion-scaled quasi-likelihood is
+#' not a normalized model likelihood, so only Wald inference is available.
+#' Rank-deficient covariate columns are dropped automatically before fitting
+#' (via \code{private$fit_with_hardened_qr_column_dropping()}).
 #'
 #' @examples
 #' \donttest{
@@ -17,10 +29,14 @@
 InferenceCountQuasiPoisson = define_inference_class(
 	classname = "InferenceCountQuasiPoisson",
 	inherit = Inference,
-	components = c("Wald", "CountCompositeLikelihood"),
+	components = c("CountCompositeLikelihood", "BayesianBootstrap", "Wald"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 				
-		#' @description Initialize a quasi-Poisson regression inference object.
+		#' @description Initialize a quasi-Poisson regression inference object for a
+		#'   completed design with a count, uncensored response.
 		#' @param des_obj A completed \code{Design} object with a count response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -38,17 +54,26 @@ InferenceCountQuasiPoisson = define_inference_class(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Computes the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
+		#' @description Computes the quasi-Poisson treatment coefficient
+		#'   \eqn{\hat\beta_T} via \code{\link{fast_quasipoisson_regression_with_var_cpp}}
+		#'   (see class documentation for the full model). Rank-deficient covariate
+		#'   columns are dropped before fitting.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
+		#' @description Recomputes the Poisson-mean-model treatment estimate under
+		#'   subject/block bootstrap weights (via
+		#'   \code{\link{fast_poisson_regression_weighted_cpp}}), used by the
+		#'   Bayesian bootstrap and related weighted-resampling machinery; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#'   Always leaves the standard error and degrees of freedom unavailable
+		#'   (\code{NA}) regardless of \code{estimate_only} — this weighted-refit
+		#'   path never computes the quasi-Poisson dispersion correction.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
-		#' @param estimate_only If TRUE, skip variance calculations.
+		#' @param estimate_only Present for interface parity; this method never
+		#'   computes variance components regardless of its value.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			attempt = private$fit_with_hardened_qr_column_dropping(
@@ -87,15 +112,22 @@ InferenceCountQuasiPoisson = define_inference_class(
 			private$set_fit_warm_start(as.numeric(attempt$fit$b), "beta", fisher = attempt$fit$XtWX)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Computes a \eqn{1-\alpha} level confidence interval for the
+		#'   quasi-Poisson treatment coefficient \eqn{\hat\beta_T}, using the
+		#'   Pearson-dispersion-scaled standard error from
+		#'   \code{\link{fast_quasipoisson_regression_with_var_cpp}} (see class
+		#'   documentation). See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}
+		#'   for the shared asymptotic confidence-interval contract this delegates to.
 		#' @param alpha Confidence level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
+		#'   \beta_T = \code{delta}}, from the same dispersion-scaled standard
+		#'   error used by \code{$compute_asymp_confidence_interval()}. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   asymptotic two-sided p-value contract this delegates to.
 		#' @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared(estimate_only = FALSE)
@@ -190,14 +222,19 @@ InferenceCountQuasiPoisson = define_inference_class(
 		overrides = list(
 			public = c(
 				"compute_estimate", "compute_estimate_with_bootstrap_weights",
-				"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
+				"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+				"compute_rand_two_sided_pval"
 			),
 			private = c(
 				"best_X_colnames", "build_design_matrix",
 				"compute_treatment_estimate_during_randomization_inference",
 				"supports_reusable_bootstrap_worker", "generate_mod",
 				"get_standard_error", "get_degrees_of_freedom",
-				"get_supported_testing_types_impl"
+				"get_supported_testing_types_impl",
+				"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+				"mark_jackknife_nonestimable_if_block_unsupported",
+				"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+				"compute_bootstrap_worker_estimate"
 			)
 		)
 	)

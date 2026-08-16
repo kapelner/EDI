@@ -11,7 +11,7 @@ matched pairs and reservoir subjects.
 }
 \keyword{internal}
 \section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}} -> \code{InferenceAbstractKKCondLogitGLMM}
+\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}} -> \code{InferenceAbstractKKCondLogitGLMM}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -22,7 +22,6 @@ matched pairs and reservoir subjects.
     \item \href{#method-InferenceAbstractKKCondLogitGLMM-compute_estimate_with_bootstrap_weights}{\code{InferenceAbstractKKCondLogitGLMM$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferenceAbstractKKCondLogitGLMM-compute_asymp_confidence_interval}{\code{InferenceAbstractKKCondLogitGLMM$compute_asymp_confidence_interval()}}
     \item \href{#method-InferenceAbstractKKCondLogitGLMM-compute_asymp_two_sided_pval}{\code{InferenceAbstractKKCondLogitGLMM$compute_asymp_two_sided_pval()}}
-    \item \href{#method-InferenceAbstractKKCondLogitGLMM-approximate_bootstrap_distribution_beta_hat_T}{\code{InferenceAbstractKKCondLogitGLMM$approximate_bootstrap_distribution_beta_hat_T()}}
     \item \href{#method-InferenceAbstractKKCondLogitGLMM-clone}{\code{InferenceAbstractKKCondLogitGLMM$clone()}}
   }
 }
@@ -98,6 +97,7 @@ matched pairs and reservoir subjects.
 </details>
 <details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
 <ul>
+  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
@@ -113,8 +113,8 @@ matched pairs and reservoir subjects.
 </details>
 <details><summary>+ inherited public methods from InferenceRandCI</summary>
 <ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
+  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
+  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceRand</summary>
@@ -279,37 +279,6 @@ matched pairs and reservoir subjects.
       \item{\code{delta}}{Numeric. Null treatment effect value (default 0).}
     }
     \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceAbstractKKCondLogitGLMM-approximate_bootstrap_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceAbstractKKCondLogitGLMM-approximate_bootstrap_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceAbstractKKCondLogitGLMM$approximate_bootstrap_distribution_beta_hat_T()}}{
-  Uses the shared nonparametric bootstrap distribution contract; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceAbstractKKCondLogitGLMM$approximate_bootstrap_distribution_beta_hat_T(
-  B = 501,
-  show_progress = TRUE,
-  debug = FALSE,
-  bootstrap_type = NULL
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{B}}{Integer. Number of bootstrap samples (default 501).}
-      \item{\code{show_progress}}{Logical. Whether to show a progress bar.}
-      \item{\code{debug}}{Logical. Whether to return diagnostics.}
-      \item{\code{bootstrap_type}}{Character. Optional resampling scheme.}
-    }
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    A numeric vector of bootstrap estimates.
   }
 }
 

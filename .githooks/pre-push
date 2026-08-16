@@ -85,7 +85,38 @@ fi
 
 failed=0
 
+# Keep README.md's lines-of-code table current: regenerate it in place, then
+# treat a resulting diff as drift (same pattern as the package_tests CSV
+# drift check below) -- the push proceeds only once the refreshed table is
+# committed. update_readme_cloc.sh exits 0 without touching README.md when
+# cloc isn't installed, so machines without cloc aren't blocked.
+echo "pre-push: regenerating README.md lines-of-code table ..."
+if bash scripts/update_readme_cloc.sh; then
+	if ! git diff --exit-code -- README.md; then
+		echo "pre-push: README.md lines-of-code table was stale -- regenerated in place (diff above)." >&2
+		echo "pre-push: commit the updated README.md and push again." >&2
+		failed=1
+	fi
+else
+	echo "pre-push: scripts/update_readme_cloc.sh FAILED." >&2
+	failed=1
+fi
+
+echo
+
 if [ "$roxygen_touched" = "1" ]; then
+	# Run before fast_roxygenize.R: catches a citation-map drift (a renamed/
+	# merged class REFERENCES.md still cites, or a new @references block that
+	# never got indexed) independently of whether Rd regeneration itself
+	# succeeds, and reports it with its own targeted message rather than
+	# folding into fast_roxygenize.R's own warning output.
+	echo "pre-push: roxygen comments changed -- checking @references/REFERENCES.md sync ..."
+	if ! Rscript R/package_tests/check_references_sync.R; then
+		echo "pre-push: @references/REFERENCES.md sync check FAILED (see output above)." >&2
+		failed=1
+	fi
+
+	echo
 	echo "pre-push: roxygen comments / [[Rcpp::export]] tags changed -- running fast_roxygenize.R ..."
 	# fast_roxygenize.R regenerates R/EDI/man/*.Rd, R/EDI/NAMESPACE, and
 	# R/EDI/R/RcppExports.R + R/EDI/src/RcppExports.cpp *in place* -- this is a
@@ -112,6 +143,28 @@ if [ "$roxygen_touched" = "1" ]; then
 	rm -f "$roxy_out"
 else
 	echo "pre-push: no roxygen-relevant changes, skipping fast_roxygenize.R."
+fi
+
+echo
+
+if [ "$run_r_tests" = "1" ]; then
+	# Standing regression gate for package_metadata/new_feature_plans/
+	# unity_build_collision_audit.md's fix: verifies every unity-build
+	# wrapper (R/EDI/src/unity_NN.cpp, EDI_UNITY=1 -- the default) still
+	# compiles cleanly, catching a *future* kernel file introducing a new
+	# duplicated-symbol/repeated-default-argument collision. Runs in an
+	# isolated scratch copy (see the script's own comment for why) --
+	# independent of whether this working tree currently has EDI_UNITY=1 or
+	# =0 configured, so it still catches a regression even when a developer
+	# is deliberately running with EDI_UNITY=0 for fast targeted local
+	# compiles. ~30-40s (10 translation units checked in parallel).
+	echo "pre-push: C++-relevant files changed -- checking unity-build safety ..."
+	if ! bash scripts/check_unity_build_safety.sh; then
+		echo "pre-push: unity-build safety check FAILED (see output above)." >&2
+		failed=1
+	fi
+else
+	echo "pre-push: no C++-relevant changes, skipping unity-build safety check."
 fi
 
 echo

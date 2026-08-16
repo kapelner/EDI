@@ -2,26 +2,85 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{fast_logistic_regression_cpp}
 \alias{fast_logistic_regression_cpp}
-\title{Fast Logistic Regression (C++ Backend)}
+\title{Fast Logistic Regression, Estimate Only (C++ Backend)}
 \arguments{
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}
 
 \item{y}{A numeric vector of the response variable, expected to be binary (0 or 1).}
 
+\item{warm_start_beta}{Optional starting values for coefficients \eqn{\beta}.
+If provided, \code{smart_cold_start} is ignored.}
+
+\item{smart_cold_start}{Logical. If \code{TRUE} and no \code{warm_start_beta}
+is supplied, use an OLS-based initial guess rather than a zero cold start.
+Default \code{FALSE} for this function (unlike most of the package's other
+\code{fast_*} fitters, which default this to \code{TRUE}), since IRLS
+(the default optimizer here) is typically robust enough from a zero start
+for well-behaved logistic regression problems.}
+
 \item{maxit}{Maximum number of iterations for the algorithm. Defaults to 100.}
 
 \item{tol}{Convergence tolerance. Defaults to 1e-8.}
 
-\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default), \code{"newton_raphson"}, or \code{"irls"}.}
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed
+rather than estimate.}
+
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
+
+\item{optimization_alg}{Optimization algorithm: \code{"irls"} (default,
+classical iteratively-reweighted-least-squares Fisher scoring),
+\code{"lbfgs"}, or \code{"newton_raphson"}; see
+\code{\link{.normalize_optimizer_algorithm}}.}
+
+\item{warm_start_weights}{Optional initial IRLS working weights for the
+first iteration.}
+
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix to
+warm-start curvature information.}
+
+\item{estimate_only}{Logical. If \code{TRUE}, skip the working-weights/
+score/Fisher-information computation after convergence, returning only
+\code{b}, \code{converged}, \code{iterations}, and \code{gradient_norm}.}
 }
 \value{
 A list containing the following components:
 \describe{
-\item{b}{A numeric vector of the estimated logistic regression coefficients.}
-\item{w}{The weights (mu*(1-mu)) at the final iteration.}
+\item{b}{A numeric vector of the estimated logistic regression coefficients \eqn{\hat\beta}.}
+\item{w}{The IRLS working weights \eqn{\hat\mu_i(1-\hat\mu_i)} at the final
+  iteration (the Bernoulli variance function evaluated at the fitted
+  probabilities); omitted when \code{estimate_only = TRUE}.}
+\item{iterations}{The number of optimizer iterations performed.}
+\item{fisher_information}{The working-weights curvature matrix
+  \eqn{X^\top W X}; omitted when \code{estimate_only = TRUE}.}
+\item{score}{The score (gradient of the log-likelihood) vector at the fitted
+  coefficients; omitted when \code{estimate_only = TRUE}.}
+\item{neg_ll}{The negative log-likelihood at the fitted coefficients;
+  omitted when \code{estimate_only = TRUE}.}
+\item{converged}{A logical value indicating whether the algorithm converged.}
+\item{gradient_norm}{The norm of the score vector at convergence, a
+  diagnostic of how tightly the convergence criterion was met.}
 }
 }
 \description{
-Fast Logistic Regression (C++ Backend)
+Fits the standard binary logistic regression model,
+\eqn{\mathrm{logit}(\mu_i) = \Pr(Y_i = 1) \text{'s log-odds} = x_i^\top \beta},
+\eqn{\mu_i = \mathrm{logit}^{-1}(x_i^\top \beta)}, via maximum likelihood.
+Coefficients are directly interpretable as \strong{log odds ratios}:
+\eqn{e^{\beta_j}} is the multiplicative change in the odds
+\eqn{\mu_i / (1 - \mu_i)} per unit change in covariate \eqn{j}. This is the
+package's baseline binary-response fitting backend, used wherever an
+incidence/binary outcome needs a logit-link fit (as opposed to the log-link
+or identity-link constrained binomial models in
+\code{\link{fast_log_binomial_regression_cpp}}/
+\code{\link{fast_identity_binomial_regression_cpp}}, which target relative
+risk / risk difference scales instead of odds ratios).
+}
+\seealso{
+\code{\link{fast_logistic_regression_with_var_cpp}} for the
+  variance-augmented variant; \code{\link{fast_logistic_regression}} for the
+  R-level wrapper; \code{\link{fast_log_binomial_regression_cpp}}/
+  \code{\link{fast_identity_binomial_regression_cpp}} for the log-link/
+  identity-link analogs targeting relative-risk/risk-difference scales.
 }

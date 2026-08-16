@@ -7,3 +7,7 @@
 ^src/.*\.dll$
 ^benchmark$
 check_survfit.R
+^cran-comments\.md$
+^simulation_framework_results.*$
+^\.mcp\.json$
+^\.claude$

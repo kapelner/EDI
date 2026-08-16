@@ -2,7 +2,8 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_ordinal_regression_cpp}
 \alias{fast_ordinal_regression_cpp}
-\title{Fast Ordinal Regression (C++)}
+\title{Fast Cumulative Ordinal Regression with a Logit Link, i.e. Proportional-Odds
+Regression (C++)}
 \usage{
 fast_ordinal_regression_cpp(
   X,
@@ -19,30 +20,86 @@ fast_ordinal_regression_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors (no intercept column needed; see Details).}
 
-\item{y}{A numeric vector of responses.}
+\item{y}{A numeric vector of ordinal responses; only the rank order of distinct
+values matters, not their numeric coding.}
 
-\item{warm_start_params}{Optional starting values for [alpha, beta]. If provided, \code{smart_cold_start} is ignored.}
+\item{warm_start_params}{Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.}
 
-\item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
+\item{smart_cold_start}{Logical. If \code{TRUE}, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of optimizer iterations.}
 
 \item{tol}{Convergence tolerance.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional 1-indexed positions (into \eqn{[\alpha,\beta]}) of parameters to hold fixed.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values, parallel to \code{fixed_idx}, of the fixed parameters.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm (default \code{"lbfgs"}).}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+\item{warm_start_fisher_info}{Optional initial curvature (Fisher/observed information) matrix.}
+
+\item{estimate_only}{If \code{TRUE}, skip the post-fit Hessian/variance computation and
+return only point estimates (faster). If \code{FALSE} (the default), also compute and
+return the observed information matrix and (if the resulting free-parameter information
+submatrix is invertible via \code{Eigen::FullPivLU}) the full variance-covariance matrix.}
 }
 \value{
-A list containing coefficients (beta), thresholds (alpha), and convergence status.
+A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
+  (the \eqn{K-1} category thresholds), \code{params} (the concatenated
+  \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
+  when \code{estimate_only = FALSE} (the default), additionally \code{neg_loglik},
+  \code{observed_information}/\code{fisher_information}/\code{information} (all the same
+  observed-information matrix), \code{information_type} (always \code{"observed"}),
+  \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first
+  column — conventionally the treatment effect, since \code{X} carries no separate
+  intercept column here), and \code{vcov} (the full parameter covariance matrix) — the
+  latter two are \code{NA}/omitted (\code{vcov} becomes \code{NULL}) if the free-parameter
+  information matrix is not invertible.
 }
 \description{
-High-performance ordinal regression fitting using Newton-Raphson.
+Fits the classical proportional-odds ordinal regression model (a cumulative-link
+model with the \strong{logit} link) via direct maximum likelihood, jointly
+optimizing the category thresholds and regression coefficients. \code{y}'s
+distinct values (in sorted order, whatever their original coding) are treated as
+\eqn{K} ordered categories; for observation \eqn{i} in category \eqn{k}
+(\eqn{k = 0, \ldots, K-1}),
+\deqn{\mathrm{logit}\,\Pr(Y_i \le k \mid x_i) = \alpha_k - x_i^\top \beta,}
+with \eqn{\alpha_0 < \alpha_1 < \cdots < \alpha_{K-2}} the (increasing) category
+thresholds and \eqn{\beta} the regression coefficients on \code{X} (no separate
+intercept column is needed — the thresholds serve that role); the category
+probability is the corresponding CDF difference, each clamped below at
+\eqn{10^{-12}} before taking logs for numerical safety. The "proportional odds"
+name reflects that \eqn{\beta} does not depend on \eqn{k}: the odds ratio
+\eqn{\exp(-\beta_j)} for a unit increase in covariate \eqn{j} is the same across
+every cumulative cutpoint. If \code{y} has fewer than 2 distinct levels, fitting
+still proceeds with \code{K = 1}, \code{n_alpha = 0} (degenerate: no thresholds
+to estimate); unlike the cauchit/probit/cloglog variants in this package, this
+function does not special-case that as an early return.
+}
+\section{Fixed parameters, warm starts, and optimization}{
+
+\code{fixed_idx} (1-indexed into the combined \eqn{[\alpha, \beta]} parameter
+vector, thresholds first) and \code{fixed_values} optionally hold a subset of
+parameters at caller-supplied constant values rather than estimating them.
+\code{warm_start_params} supplies starting values for \eqn{[\alpha, \beta]}
+directly (skipping \code{smart_cold_start}); otherwise thresholds always start
+evenly spaced on \eqn{(-1, 1)} at \eqn{-1 + 2(k+1)/K}, and \eqn{\beta} starts at
+either zero, or (when \code{smart_cold_start = TRUE}, the default) an OLS fit of
+the rank-rescaled response \eqn{(y - 1)/(K - 1)} on \code{X} — falling back
+silently to zero if that OLS solve is not well-posed. When
+\code{smart_cold_start = TRUE} and no \code{warm_start_fisher_info} is supplied,
+the Hessian at the starting values is additionally used to seed the optimizer's
+first-iteration curvature estimate. Optimization runs via \code{optimization_alg}
+(default \code{"lbfgs"}) for up to \code{maxit} iterations or until the
+parameter/gradient change falls below \code{tol}.
+}
+
+\seealso{
+\code{\link{fast_ordinal_regression_weighted_cpp}} for the observation-weighted
+  variant; \code{\link{fast_ordinal_regression_with_var_cpp}}, which additionally guards
+  the non-invertible case with explicit \code{NA} placeholders.
 }
 \keyword{internal}

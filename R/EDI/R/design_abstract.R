@@ -24,21 +24,6 @@
 Design = R6::R6Class("Design",
 	lock_objects = FALSE,
 	public = list(
-		#' @description Characterization: is this a fixed-sample-size design?
-		#'   Default \code{FALSE}; overridden to \code{TRUE} on \code{DesignFixed}.
-		is_a_fixed = function() FALSE,
-		#' @description Characterization: is this a sequential one-by-one design?
-		#'   Default \code{FALSE}; overridden to \code{TRUE} on
-		#'   \code{DesignSeqOneByOne}.
-		is_a_seq_one_by_one = function() FALSE,
-		#' @description Characterization: is this a custom fixed-design extension?
-		#'   Default \code{FALSE}; overridden to \code{TRUE} on
-		#'   \code{DesignFixedCustom}.
-		is_a_fixed_custom = function() FALSE,
-		#' @description Characterization: is this a custom sequential-design
-		#'   extension? Default \code{FALSE}; overridden to \code{TRUE} on
-		#'   \code{DesignCustomSequential}.
-		is_a_custom_sequential = function() FALSE,
 		#' @description Characterization: is this a KK matching-on-the-fly-capable
 		#'   design (sequential KK or its fixed binary-match equivalent)? Default
 		#'   \code{FALSE}; overridden to \code{TRUE} on
@@ -452,6 +437,172 @@ Design = R6::R6Class("Design",
 		draw_ws_according_to_design = function(r = 1L){
 			private$draw_ws_raw(r)
 		},
+		#' @description Returns the metadata-backed capabilities this design object
+		#'   exposes (see \code{fix_design_hierarchy.md}, "Capability Model").
+		#'
+		#'   Some concrete design classes have now been rewired to consume
+		#'   \code{BlockingStructure}/\code{MatchingStructure}/\code{ClusterStructure}
+		#'   via \code{define_design_class()} (see the "Timing-Family Split" Phase 1
+		#'   TODO notes), but this still bridges the gap for the remaining ones: it
+		#'   unions whatever the class registry resolves today with a legacy fallback
+		#'   that calls the existing \code{is_blocking_design()}/\code{is_matching_design()}/
+		#'   \code{supports_batch_w_pregeneration()} predicates directly, so callers get
+		#'   correct answers regardless of which path a given class has been migrated
+		#'   through. The fallback is temporary and should be deleted once every
+		#'   concrete class is migrated and the registry alone is authoritative.
+		#' @return A character vector of capability names.
+		capabilities = function(){
+			class_name = class(self)[1L]
+			from_registry = if (exists("get_effective_design_capabilities", mode = "function")) {
+				tryCatch(get_effective_design_capabilities(class_name), error = function(e) character())
+			} else {
+				character()
+			}
+			from_legacy = character()
+			if (isTRUE(tryCatch(self$is_blocking_design(), error = function(e) FALSE))) {
+				from_legacy = c(from_legacy, "blocking")
+			}
+			if (isTRUE(tryCatch(self$is_matching_design(), error = function(e) FALSE))) {
+				from_legacy = c(from_legacy, "matching")
+			}
+			if (isTRUE(tryCatch(self$supports_batch_w_pregeneration(), error = function(e) FALSE))) {
+				from_legacy = c(from_legacy, "batch_w_pregeneration")
+			}
+			if (isTRUE(tryCatch(self$supports_resampling(), error = function(e) FALSE))) {
+				from_legacy = c(from_legacy, "resampling")
+			}
+			if (isTRUE(tryCatch(self$supports_randomization_draw(), error = function(e) FALSE))) {
+				from_legacy = c(from_legacy, "randomization_draw")
+			}
+			if (isTRUE(tryCatch(self$supports_resampling_replay(), error = function(e) FALSE))) {
+				from_legacy = c(from_legacy, "resampling_replay")
+			}
+			unique(c(from_registry, from_legacy))
+		},
+		#' @description Returns whether this design object supports a metadata-backed
+		#'   capability. See \code{capabilities()} for the current registry/legacy
+		#'   bridging caveat.
+		#' @param capability A capability name, e.g. \code{"blocking"},
+		#'   \code{"matching"}, or \code{"batch_w_pregeneration"}.
+		#' @return \code{TRUE} if the capability is present, \code{FALSE} otherwise.
+		supports = function(capability){
+			capability %in% self$capabilities()
+		},
+		#' @description Returns the sorted character vector of concrete, exported
+		#'   \code{Inference} class names legal for this design object under
+		#'   default constructor arguments, derived purely from this design's own
+		#'   normalized metadata (response type, KK-matching capability, blocking,
+		#'   and both censoring axes) filtered through the registry's
+		#'   compatibility predicates -- the same normalization and predicate
+		#'   logic \code{\link[EDI:InferenceSuite]{InferenceSuite}} uses for
+		#'   discovery (see \code{normalize_inference_design_metadata()} and
+		#'   \code{is_inference_class_compatible_with_design_metadata()} in
+		#'   \code{inference_suite.R}). No candidate class is constructed to
+		#'   determine applicability, so this has no side effects and cannot be
+		#'   influenced by a constructor failure or a missing optional package
+		#'   (see \code{unavailable_inference_classes_due_to_missing_packages()}
+		#'   for that case, reported separately). A class whose censoring
+		#'   tolerance depends on non-default constructor arguments (e.g.
+		#'   \code{InferenceSurvivalCoxPHRegr} only tolerates general censoring
+		#'   with \code{testing_type = "wald"}) is listed here when its
+		#'   \strong{default} configuration is compatible; a construction-time
+		#'   error for an incompatible non-default argument combination remains
+		#'   the documented behavior of that class's \code{initialize()}.
+		#' @return A sorted character vector of applicable \code{Inference} class
+		#'   names.
+		applicable_inference_class_names = function(){
+			applicable_inference_class_names_for_design(self)
+		},
+		#' @description Companion to \code{applicable_inference_class_names()}:
+		#'   returns the subset of otherwise design-compatible \code{Inference}
+		#'   classes that are excluded solely because a registered
+		#'   \code{required_packages} entry is not installed, as a named list
+		#'   (class name -> character vector of missing package names) -- kept
+		#'   separate from plain design incompatibility so callers can tell "not
+		#'   applicable to this design" apart from "applicable, but an optional
+		#'   dependency isn't installed."
+		#' @return A named list, class name -> missing package names; empty list
+		#'   if none.
+		unavailable_inference_classes_due_to_missing_packages = function(){
+			unavailable_inference_classes_due_to_missing_packages_for_design(self)
+		},
+		#' @description Returns this design object's registry-backed randomization
+		#'   family (see \code{fix_design_hierarchy.md}, "Class Metadata"), e.g.
+		#'   \code{"kk14"}, \code{"bernoulli"}, \code{"rerandomization"}. Replaces
+		#'   class-identity (\code{inherits()}/\code{is()}) dispatch at call sites that
+		#'   need to distinguish design variants (see "Class-Identity Dispatch
+		#'   Replacement"). Returns \code{NA_character_} if the class is not registered
+		#'   or is one of the unsplit/timing-root abstract bases.
+		#' @return A single character string (or \code{NA_character_}).
+		randomization_family = function(){
+			class_name = class(self)[1L]
+			tryCatch(get_design_class_metadata(class_name)$randomization_family, error = function(e) NA_character_)
+		},
+		#' @description Check if the design supports resampling at all -- \code{FALSE}
+		#'   only for the abstract timing-family bases themselves (\code{DesignFixed},
+		#'   \code{DesignSeqOneByOne}, and their custom-extension abstract bases)
+		#'   instantiated directly; \code{TRUE} for every concrete subclass,
+		#'   \strong{including} \code{ObservationalDesign}. This is the general check
+		#'   for resampling methods that never need the design's own randomization
+		#'   mechanism -- plain nonparametric bootstrap, Bayesian bootstrap,
+		#'   m-out-of-n bootstrap, PRW subsampling -- which only resample already-observed
+		#'   units/rows and their fixed, observed assignment, so they remain valid and
+		#'   available even for a design with no randomization mechanism at all (see
+		#'   \code{ObservationalDesign}'s class documentation: "resampling subjects with
+		#'   their observed, fixed assignment does not require a known randomization
+		#'   probability"). Contrast with \code{supports_randomization_draw()}/
+		#'   \code{supports_resampling_replay()} below, which gate the narrower set of
+		#'   methods that actually do need to invoke the design's mechanism (a plain
+		#'   randomization test/CI, or a bootstrap randomization test that re-randomizes
+		#'   resampled data) and are therefore \code{FALSE} for \code{ObservationalDesign}
+		#'   specifically -- see \code{fix_design_hierarchy.md}, "Observational Design
+		#'   Migration" for the live bug that split fixes.
+		#'
+		#' @return 	TRUE if supported.
+		supports_resampling = function(){
+			private$supports_resampling_by_registry_abstract_check()
+		},
+		#' @description Check if this design can draw a fresh treatment assignment
+		#'   from its own randomization mechanism -- the eligibility condition for
+		#'   permutation-style randomization tests/CIs (\code{compute_rand_two_sided_pval()}
+		#'   and friends), which redraw \eqn{w} directly. \code{FALSE} for the abstract
+		#'   timing-family bases themselves (same as \code{supports_resampling()}) and,
+		#'   unlike \code{supports_resampling()}, also \code{FALSE} for
+		#'   \code{ObservationalDesign} (no draw mechanism at all -- \eqn{w} is supplied
+		#'   by the user, so there is nothing to redraw); \code{TRUE} for every other
+		#'   concrete subclass. See \code{supports_resampling()}'s documentation for why
+		#'   this is a narrower, separate capability rather than reusing that one, and
+		#'   "Observational Design Migration" for the live bug this fixes
+		#'   (\code{ObservationalDesign} previously answered the old, unsplit
+		#'   \code{supports_resampling()} \code{TRUE}, silently passing the
+		#'   randomization-test eligibility assert before failing later and deeper,
+		#'   inside \code{draw_ws_raw()}'s throwing stub).
+		#'
+		#' @return 	TRUE if a fresh randomization draw is supported.
+		supports_randomization_draw = function(){
+			private$supports_resampling_by_registry_abstract_check()
+		},
+		#' @description Check if this design's mechanism can be faithfully replayed
+		#'   against resampled data -- the eligibility condition specifically for the
+		#'   bootstrap \emph{randomization test} (BRT), which resamples units and then
+		#'   re-randomizes each resample using the design's own mechanism (see
+		#'   \code{inference_all_abstract_rand_bootstrap.R}'s repeated
+		#'   \code{draw_ws_according_to_design()} calls). \strong{Not} the eligibility
+		#'   condition for plain nonparametric/Bayesian/m-out-of-n/PRW-subsampling
+		#'   bootstrap -- those never redraw \eqn{w} at all (they resample already-observed
+		#'   units and their fixed, observed assignment) and are gated by the broader
+		#'   \code{supports_resampling()} instead, which stays \code{TRUE} for
+		#'   \code{ObservationalDesign}. \code{FALSE} for the same abstract timing-family
+		#'   bases as \code{supports_randomization_draw()} and for
+		#'   \code{ObservationalDesign} (no randomization mechanism to replay); \code{TRUE}
+		#'   for every other concrete subclass. See \code{supports_randomization_draw()}'s
+		#'   documentation for why this is a separate capability rather than the same flag
+		#'   reused.
+		#'
+		#' @return 	TRUE if bootstrap-randomization-test-style replay is supported.
+		supports_resampling_replay = function(){
+			private$supports_resampling_by_registry_abstract_check()
+		},
 		#' @description Get n, the sample size
 		#'
 		#' @return 			The number of subjects.
@@ -504,12 +655,6 @@ Design = R6::R6Class("Design",
 		#' @return 			The specified probability.
 		get_prob_T = function(){
 			private$prob_T
-		},
-		#' @description Checks if the design contains any covariates.
-		#'
-		#' @return \code{TRUE} if there are covariates, \code{FALSE} otherwise.
-		has_covariates = function(){
-			!is.null(private$Xraw) && ncol(private$Xraw) > 0L
 		},
 		#' @description Get response type
 		#'
@@ -594,6 +739,22 @@ Design = R6::R6Class("Design",
 		num_cores = function() get_num_cores()
 	),
 	private = list(
+		# Shared by supports_randomization_draw()/supports_resampling_replay(): both
+		# default to the same "is this a real concrete class, not an abstract
+		# timing-family base" check; ObservationalDesign overrides both public methods
+		# directly to FALSE rather than this shared helper, since it needs to diverge
+		# from the default for a different reason (no draw/replay mechanism at all, not
+		# abstractness).
+		supports_resampling_by_registry_abstract_check = function(){
+			class_name = class(self)[1L]
+			# Unregistered (e.g. a third-party subclass never scanned by
+			# populate_design_class_registry()) defaults to `abstract = FALSE`, not
+			# TRUE: the pre-split supports_resampling() returned TRUE for any subclass
+			# other than the abstract bases themselves, so an unknown-to-the-registry
+			# class should fail open (supports resampling) to match that, not fail
+			# closed.
+			!isTRUE(tryCatch(get_design_class_metadata(class_name)$abstract, error = function(e) FALSE))
+		},
 		seed = NULL,
 		all_subject_data_cache = list(),
 		t = 0L,

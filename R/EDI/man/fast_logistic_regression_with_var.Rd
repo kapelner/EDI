@@ -2,7 +2,7 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{fast_logistic_regression_with_var}
 \alias{fast_logistic_regression_with_var}
-\title{Fast Logistic Regression with Variance Calculation (R Wrapper)}
+\title{Fast Logistic Regression with Variance, Auto-Retrying on Separation (R Wrapper)}
 \usage{
 fast_logistic_regression_with_var(
   X,
@@ -30,19 +30,58 @@ fast_logistic_regression_with_var(
 \value{
 A list containing the following components:
 \describe{
-\item{b}{A numeric vector of the obtained logistic regression coefficients.}
+\item{b}{A numeric vector of the obtained logistic regression coefficients
+  \eqn{\hat\beta}, from whichever (possibly covariate-reduced) fit in the
+  retry sequence ultimately converged.}
 \item{ssq_b_j}{The squared standard error (variance) of the j-th estimated coefficient.}
 \item{ssq_b_2}{The squared standard error (variance) of the second estimated coefficient,
   which typically corresponds to the treatment effect.}
 }
 }
 \description{
-This function provides a fast implementation of logistic regression, wrapping a C++ backend.
-It estimates regression coefficients for binary outcomes and specifically computes the
-variance of the second coefficient (assumed to be the treatment effect).
+Fits the logistic regression model documented in full at
+\code{\link{fast_logistic_regression_cpp}} (log-odds-ratio interpretation,
+IRLS/L-BFGS/Newton-Raphson optimization) via
+\code{\link{fast_logistic_regression_with_var_cpp}}, and additionally
+\strong{detects and automatically retries on (quasi-)complete separation} —
+the well-known logistic-regression failure mode where the MLE does not
+exist because some linear combination of covariates perfectly (or
+near-perfectly) predicts the outcome, causing the optimizer's coefficient
+estimates to diverge to a large-but-finite value that would otherwise
+silently pass ordinary \code{is.finite()} convergence checks and corrupt
+downstream confidence intervals.
+}
+\details{
+\strong{Separation detection and retry.} After each fit attempt,
+\code{is_separated_coefficient_magnitude()} checks whether any fitted
+coefficient exceeds a fixed separation-detection threshold
+(\code{EDI_SEPARATION_THRESHOLD}); if so, the fit is treated as
+\code{converged = FALSE} regardless of what the underlying C++ optimizer
+itself reported. On non-convergence (including detected separation), the
+\strong{covariate (column index \eqn{\ge} 3, i.e. never the intercept in
+column 1 or the treatment column in column 2) with the largest absolute
+fitted coefficient} is dropped, and the model is refit on the reduced
+design; this repeats until either the fit converges or only the intercept
+and treatment columns remain. If separation persists even with just those
+two columns, this function \code{stop()}s with an explicit
+"complete separation detected" error rather than returning a corrupted
+variance estimate.
+
+\strong{Interpretation caveat.} Because covariates can be silently dropped
+by this retry loop, the returned \code{b} may have fewer coefficients than
+\code{ncol(X)} implies, and the fitted model's covariate adjustment set can
+differ from what was requested; callers relying on a specific covariate
+being present in the final fit should check for this rather than assume it
+always is.
 }
 \examples{
 X = matrix(rnorm(100), 10, 10)
 y = rbinom(10, 1, 0.5)
 fast_logistic_regression_with_var(X, y)
+}
+\seealso{
+\code{\link{fast_logistic_regression_with_var_cpp}} for the
+  underlying single-fit (no retry) backend and its variance-computation
+  details; \code{\link{fast_logistic_regression_cpp}} for the full model
+  documentation.
 }

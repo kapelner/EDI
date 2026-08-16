@@ -1,11 +1,32 @@
 #' Ridit Analysis for Ordinal Responses
 #'
 #' Performs Ridit analysis (Relative to an Identified Distribution unit) for
-#' comparing two groups on an ordinal scale. Ridit analysis provides a
-#' distribution-free way to estimate the probability that a randomly selected
-#' member of the treatment group has a better outcome than a randomly selected
-#' member of the control group.
+#' comparing two groups on an ordinal scale. Every subject's category \eqn{k} is
+#' converted to a \strong{ridit score} — its relative rank position within the
+#' \strong{reference} distribution's empirical CDF: \eqn{r_k = F_{\mathrm{ref}}(k{-}1)
+#' + \tfrac12 f_{\mathrm{ref}}(k)}, where \eqn{F_{\mathrm{ref}}} and
+#' \eqn{f_{\mathrm{ref}}} are the reference group's empirical cumulative and
+#' point probabilities. The \code{reference} distribution — controlled by the
+#' \code{reference} constructor argument — may be the \strong{control} arm
+#' (default), the \strong{treatment} arm, or the \strong{pooled} sample. The
+#' treatment effect is the mean ridit score among treated subjects minus
+#' \eqn{0.5} (the value it would take under the null of no group difference,
+#' since a group's own ridit scores against itself as reference always average
+#' to 0.5); this mean ridit score also has a direct interpretation as (an
+#' estimate of) the probability that a randomly selected treated subject's
+#' outcome exceeds a randomly selected reference-distribution subject's outcome
+#' (a Mann-Whitney-type stochastic superiority probability), similar in spirit
+#' to \code{\link[EDI:InferenceOrdinalJonckheereTerpstraTest]{InferenceOrdinalJonckheereTerpstraTest}}'s
+#' superiority measure but referenced against a chosen distribution rather than
+#' always symmetric between the two arms. Standard errors and p-values come
+#' from \code{fast_ridit_analysis_cpp}'s asymptotic formula, not a resampling
+#' approximation.
 #'
+#' @references Bross, I. D. J. (1958). "How to Use Ridit Analysis."
+#'   \emph{Biometrics}, 14(1), 18-38, \doi{10.2307/2527727}, for the ridit
+#'   transformation and its interpretation used here.
+#'
+#' @concept ridit analysis
 #' @export
 #' @examples
 #' set.seed(1)
@@ -23,11 +44,16 @@
 #'   new(seq_des, verbose = FALSE)
 #' infer
 #'
-InferenceOrdinalRidit = R6::R6Class("InferenceOrdinalRidit",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceOrdinalRidit = define_inference_class(
+	classname = "InferenceOrdinalRidit",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
-		#' @description Initialize a Ridit analysis inference object.
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		#' @description Initialize a Ridit analysis inference object for a
+		#'   completed design with an ordinal, uncensored response.
 		#' @param des_obj A DesignSeqOneByOne object whose entire n subjects are assigned and
 		#'   response y is recorded within.
 		#' @param reference The group to use as the "Identified Distribution" (reference).
@@ -54,19 +80,28 @@ InferenceOrdinalRidit = R6::R6Class("InferenceOrdinalRidit",
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Returns the estimated treatment effect (Mean Ridit - 0.5).
+		#' @description Returns the estimated treatment effect: the mean ridit
+		#'   score among treated subjects minus 0.5 (see class documentation for
+		#'   the full ridit-score definition and reference-distribution choice).
 		#' @return The numeric estimate.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the ridit treatment estimate under
-		#'   Bayesian-bootstrap weights.
+		#' @description Recomputes the ridit treatment estimate under subject/block
+		#'   bootstrap weights: the reference distribution's category proportions
+		#'   and every subject's ridit score are recomputed using the weights, then
+		#'   the weighted mean ridit score among treated subjects (minus 0.5) is
+		#'   returned. Used by the Bayesian bootstrap and related
+		#'   weighted-resampling machinery. Always leaves the standard error and
+		#'   degrees of freedom unavailable (\code{NA}) regardless of
+		#'   \code{estimate_only} — this weighted path never computes the
+		#'   asymptotic variance.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
-		#' @param estimate_only If \code{TRUE}, compute only the weighted point
-		#'   estimate.
+		#' @param estimate_only Present for interface parity; this method never
+		#'   computes variance components regardless of its value.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			y = as.integer(private$y)
@@ -121,26 +156,34 @@ InferenceOrdinalRidit = R6::R6Class("InferenceOrdinalRidit",
 			private$cached_values$df = NA_real_
 			private$cached_values$beta_hat_T
 		},
-		#' @description Returns the Mean Ridit for the treatment group.
+		#' @description Returns the mean ridit score among treated subjects (not
+		#'   centered — this is the raw mean, unlike \code{$compute_estimate()}
+		#'   which subtracts 0.5).
 		#' @return The numeric Mean Ridit.
 		get_mean_ridit_treatment = function(){
 			private$shared()
 			private$cached_values$mean_ridit_t
 		},
-		#' @description Returns the ridit scores for all subjects.
+		#' @description Returns each subject's individual ridit score (see class
+		#'   documentation for the ridit-score formula), in subject order.
 		#' @return A numeric vector of scores.
 		get_ridit_scores = function(){
 			private$shared()
 			private$cached_values$scores
 		},
-		#' @description Computes the asymptotic confidence interval for the treatment effect.
+		#' @description Computes the asymptotic confidence interval for the
+		#'   treatment effect (mean ridit \eqn{- 0.5}), using
+		#'   \code{fast_ridit_analysis_cpp}'s asymptotic standard error.
 		#' @param alpha Significance level.
 		#' @return A numeric vector of length 2.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Computes the p-value for the null hypothesis that Mean Ridit = 0.5.
+		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
+		#'   \text{mean ridit} - 0.5 = \code{delta}} (i.e. \code{delta = 0} tests
+		#'   the null of no group difference, mean ridit \eqn{= 0.5}), using
+		#'   \code{fast_ridit_analysis_cpp}'s asymptotic standard error.
 		#' @param delta The null value (centered at 0, so delta=0 means Ridit=0.5).
 		#' @return The p-value.
 		compute_asymp_two_sided_pval = function(delta = 0){
@@ -167,7 +210,6 @@ InferenceOrdinalRidit = R6::R6Class("InferenceOrdinalRidit",
 				private$n_cpp_threads(ncol(mats$w_mat))
 			)
 		},
-		reference = NULL,
 		max_resample_attempts = 50L,
 		shared = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
@@ -235,5 +277,19 @@ InferenceOrdinalRidit = R6::R6Class("InferenceOrdinalRidit",
 				private$n_cpp_threads(B)
 			)
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval"
+		),
+		private = c(
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

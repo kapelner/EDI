@@ -1,5 +1,7 @@
 # Censoring Support for the `count` Response Type
 
+> **Depends on:** `censored_continuous_response.md` (its TODO-1 makes this plan's TODO-1 a one-line addition); `interval_censored_survival_response.md` (schema). (Global ordering: see `_master.md`.)
+
 ## Scope
 
 Today every count-response `Inference*` class refuses censored data outright.
@@ -176,14 +178,14 @@ dispersion scalar are computed from the (now dead-aware) fitted model.
   variants (2 backends each: internal Rcpp and `glmmTMB`), not a small
   patch. Flag as a second-wave project.
 - **`InferenceCountPoissonKKGEE`** (`R/EDI/R/inference_count_KK_gee.R`, via
-  `InferenceMixinKKGEEShared`,
+  the `KKGEE` component — formerly the `InferenceMixinKKGEEShared` mixin,
   `R/EDI/R/inference_mixin_kk_gee_shared.R:147`) — GEE estimating equations
   are built from working residuals across a matched/reservoir design.
   Adapting to censored counts needs an IPCW-GEE-style correction
   (Lin & Ying-style; a real but separate literature, not a code-level
   extension of the existing working-independence machinery).
 - **`InferenceCountKKGLMM`** (`R/EDI/R/inference_count_KK_combined.R`, via
-  `InferenceMixinKKGLMMShared`,
+  the `KKGLMM` component — formerly the `InferenceMixinKKGLMMShared` mixin,
   `R/EDI/R/inference_mixin_kk_glmm_shared.R:95`) — the Poisson GLMM
   integrates the exact-count likelihood over a random effect (Gauss-Hermite
   quadrature / Laplace, per `fast_poisson_glmm_cpp`). Extending the
@@ -208,7 +210,7 @@ not a reuse of `y` + `dead` — and would touch every response-storage call
 site (`add_one_subject_response`, `add_all_subject_responses`, the
 bootstrap/permutation resamplers that currently copy `y`/`dead` in lockstep,
 etc.). The sibling document
-`package_metadata/new_feature_plans/interval_censored_survival_response.md`
+`package_metadata/finished_features/interval_censored_survival_response.md`
 rates the survival analogue of this schema change as real but more tractable
 than it first looks (the `(L, R)` bound is the hard part; the statistical
 engines themselves can mostly be delegated to existing R packages rather
@@ -310,7 +312,7 @@ than built now.
 For interval-censored **survival** data specifically — how common it is,
 its literature, and a full implementation plan with TODOs — see the
 dedicated companion document
-`package_metadata/new_feature_plans/interval_censored_survival_response.md`.
+`package_metadata/finished_features/interval_censored_survival_response.md`.
 (That material used to live in this appendix as a subsection; it moved out
 once it grew into its own implementation plan rather than a background note.)
 The rest of this appendix covers censored/truncated **count** data, which is

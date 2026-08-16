@@ -1,0 +1,269 @@
+---
+title: "Reproducibility: RNG and Seed Conventions"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reproducibility: RNG and Seed Conventions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+EDI draws randomness in several different places — design allocation,
+non-parametric/Bayesian/parametric bootstrap, randomization-based inference,
+and Monte Carlo simulation — from several different RNG sources (R's own
+generator, a portable C++ reimplementation of it, and, in exactly two
+documented cases, hardware entropy that is *not* reproducible at all). This
+page is the single place that explains which mechanism applies where, so
+individual class/function documentation can link here instead of repeating
+it. See `vignette("notation-glossary")` for the symbols referenced below.
+
+## The default case: `seed` sets R's own RNG state once
+
+Every `Design` constructor accepts a `seed` argument. Internally this does
+**not** call `set.seed()` immediately; it stores `private$seed` and calls
+`private$maybe_set_seed()` — `if (!is.null(private$seed)) set.seed(private$seed)`
+— once, immediately before each call that consumes randomness
+(`draw_ws_raw()`/`assign_w_to_all_subjects()`). This means:
+
+- Two designs constructed with the same `seed` and then drawn from once each
+  produce identical allocations.
+- Calling a draw method a second time on the *same* object re-seeds again
+  (since `maybe_set_seed()` runs before every draw), so it reproduces the
+  **first** draw again rather than advancing to a fresh one — draws are not
+  incremented automatically across repeated calls on one object. If you want
+  `r` independent replicate columns, request them in one call
+  (`draw_ws_according_to_design(r)`), not via `r` separate single-draw calls.
+- `seed = NULL` (the default) leaves R's ambient RNG state untouched — draws
+  consume whatever state R's global stream happens to be in, exactly like any
+  other call to `sample()`/`runif()`.
+
+This is the mechanism behind the overwhelming majority of `Design` subclasses
+(`DesignFixedBernoulli`, `DesignFixedFactorial`, `DesignFixedBlocking`, the
+`DesignSeqOneByOne*` family, etc.). Two design families implement "seed means
+R's `set.seed()` governs the draw" via a different, local-generator mechanism,
+documented in detail below: `DesignFixedGreedy` (parallel-safe per-thread
+generators) and `DesignFixedGreedyDOptimal` (a single local generator seeded
+from R's stream). Every concrete design is seed-reproducible; the package
+currently has no exceptions.
+
+## The portable cross-language RNG: `edi_rng::RRng`
+
+Most C++ backends that need bulk random draws (Pocock-Simon minimization's
+`pocock_simon_assign_cpp`, the bootstrap-index generators
+`bootstrap_indices.cpp`/`bootstrap_match_indices.cpp`, weighted-distance
+sampling, and others) do **not** call back into R's `unif_rand()` for every
+individual draw — that has real per-call overhead. Instead they use a
+two-step pattern:
+
+1. Draw **exactly one** value from R's live RNG stream via `R::unif_rand()`,
+   and convert it to a 32-bit integer seed (`edi_rng::seed_from_unif01()`).
+2. Seed a fresh `edi_rng::RRng` instance (`RNG.h`) from that one integer, and
+   do every subsequent draw against that instance instead of R's own
+   generator.
+
+`edi_rng::RRng` is a **portable, from-scratch reimplementation of R's own
+Mersenne-Twister + Inversion generator** (not a wrapper around it) — the same
+generator, byte-for-byte, callable from C++ or Python without linking against
+R's runtime. This is what makes a given seed produce **identical draws in R
+and in the Python bindings (`edi_kernels`)** using the same core, and is why
+individual function docstrings describe this as "seeded from one
+`R::unif_rand()` draw into `edi_rng::RRng`."
+
+**Consequence worth internalizing:** because only one `unif_rand()` value is
+consumed from R's stream per call, R's own `.Random.seed` afterward has
+advanced by exactly one draw, not by however many draws happened inside the
+C++ function — so R-level code interleaving several such calls still gets a
+well-defined, reproducible (if not obviously predictable) sequence of R-level
+draws in between them.
+
+### The one documented exception: continuing R's live stream bit-for-bit
+
+`pocock_simon_redraw_w_cpp` is the **only** function in the package that
+does *not* use the one-draw-seeded pattern above. It instead reads R's live
+`.Random.seed` directly, continues R's Mersenne-Twister stream exactly where
+it left off for every draw inside the loop, and writes the advanced state
+back to `.Random.seed` when done — so its output is bit-identical to what a
+subject-by-subject R-level loop calling `unif_rand()` directly would have
+produced (verified against an independent pure-R reference implementation in
+`test-pocock-simon-redraw-buffers.R`). This requires
+`RNGkind(c("Mersenne-Twister", "Inversion"))` — R's default — and errors if
+`.Random.seed` is not the expected 626-element Mersenne-Twister state vector
+(e.g. if `RNGkind()` was changed). Every other Pocock-Simon/bootstrap
+function in the package uses the one-draw-seeded independent-`RRng` pattern
+instead, specifically so that it does *not* need to make this assumption
+about `.Random.seed`'s internal shape.
+
+## Seed-reproducible via a local generator: `DesignFixedGreedyDOptimal`
+
+Historical note: the two classes this design merges
+(`DesignFixedAOptimal`/`DesignFixedDOptimal`) originally seeded their
+exchange-search kernels' initial random shuffles from `std::random_device`
+(hardware entropy), which made their draws genuinely not reproducible via
+`seed`. The RNG migration (see the SEXP-removal spec's RNG section) replaced
+that with a local `edi_rng::RRng` generator seeded from R's own stream
+(`R::unif_rand()`) inside `d_optimal_search_cpp()`/`a_optimal_search_cpp()`,
+and the merged `DesignFixedGreedyDOptimal` class inherits that behavior:
+**repeated calls with the same `seed` return identical allocations**
+(verified empirically in `test-greedy-d-optimal-merged.R`, and reflected in
+the `seed_reproducible_draw` registry field). Because randomization-based
+inference (`compute_rand_two_sided_pval()`,
+`compute_rand_confidence_interval()`) generates its reference distribution by
+calling the design's own `draw_ws_according_to_design()` (see below),
+randomization p-values/CIs against this design are exactly reproducible with
+`seed` set, like every other design's.
+
+## Seed-reproducible despite being parallel: `DesignFixedGreedy`
+
+`DesignFixedGreedy`'s search (`greedy_design_search_cpp()`) runs `r`
+independent searches in parallel via OpenMP, each with its own
+`std::mt19937` generator — but unlike the A-/D-optimal kernels, these
+per-thread generators are **seeded from R's own RNG state**
+(`GetRNGstate()`/`unif_rand()`) **before the parallel region begins**, so
+`private$maybe_set_seed()` does govern the resulting allocation, and the
+result is identical regardless of how many OpenMP threads (`RhpcBLASctl`/
+`set_num_cores()`) are actually used at draw time. This is the template other
+designs' parallel kernels should follow if they need both speed and
+seed-reproducibility simultaneously — draw all per-worker seeds from R's
+stream up front, before fanning out.
+
+## Randomization inference reuses the design's own draw mechanism
+
+`InferenceRand`'s `generate_permutations(r)` does not implement its own
+permutation-drawing logic; it duplicates the design object
+(`des_obj$duplicate()`) and calls that duplicate's
+`draw_ws_according_to_design(r)` — the exact same entry point
+`assign_w_to_all_subjects()` uses. Consequences:
+
+- **RNG/seed-reproducibility of a randomization p-value or CI is exactly
+  whatever the underlying `Design` subclass's is** — and every concrete
+  design is currently seed-reproducible (see above).
+- **Draw reuse / caching:** the generated permutation matrix is cached,
+  keyed on `r` and a stable signature of the design's structural parameters
+  (class, `n`, `prob_T`, `m`, `strata_cols`). A second call for the same
+  `r` against a structurally-identical design reuses the cached matrix
+  rather than drawing again — so, for example, computing both a randomization
+  p-value and a randomization confidence interval (which internally makes
+  several p-value evaluations at different `delta`) against the same object
+  draws the reference permutation set **once**, not once per evaluation.
+
+## Bootstrap resampling
+
+- **Non-parametric bootstrap:** the default fallback is
+  `sample.int(n, n, replace = TRUE)` — plain R-level sampling, governed by
+  R's ambient RNG state / `set.seed()` exactly like any base-R code.
+  Block/pair/cluster-structured designs instead call
+  `des_obj$draw_bootstrap_indices(bootstrap_type)`, which for most designs
+  routes to the one-draw-seeded `edi_rng::RRng` C++ backends described above
+  (`draw_matching_bootstrap_sample_cpp`, `stratified_bootstrap_indices_cpp`,
+  `resample_group_rows_cpp`) — reproducible via `set.seed()` acting on R's
+  stream at the point the one seeding draw is taken.
+- **Bayesian bootstrap:** weights are drawn as
+  `stats::rgamma(length(idx), shape = 1, rate = 1)`, one Gamma(1,1) draw per
+  exchangeable resampling unit (subject or block), which is the standard
+  construction of Dirichlet$(1,\dots,1)$ weights (a Dirichlet draw is a
+  Gamma$(1,1)$ vector normalized to sum to the unit count — see
+  `vignette("notation-glossary")`'s "Resampling and randomization" section).
+  This is plain R-level `rgamma()`, governed by R's ambient RNG state.
+- **Parametric bootstrap / warm-start / factorization reuse:** several
+  inference classes cache a factorization or warm-start state across
+  bootstrap replicates purely for *speed* (see
+  `get_warm_start_dispatch_policy()`/`set_warm_start_dispatch_policy()`);
+  this caching does not change which random draws are made, only how fast
+  each replicate's model fit converges.
+
+## Simulation (`SimulationFramework`): per-replication and per-cache-job seeds
+
+`SimulationFramework$new(seed = ...)` does **not** rely on a single global
+`set.seed()` call covering the entire run. At the top of `run()`, if `seed`
+is non-`NULL`, R's `.Random.seed` is saved (to be restored via `on.exit()`
+when `run()` returns, so a simulation run never leaks RNG state into the
+caller's session) and `set.seed(private$seed)` is called once — but the more
+important mechanism is per-unit **deterministic seed derivation**:
+
+- Each replication `i` (within a `w`-rep loop) is dispatched with
+  `rep_seed = seed + i`, and the worker executing that replication calls
+  `set.seed(rep_seed)` itself before drawing anything.
+- Each cache-building job (pre-generating the design/SE caches used across
+  replications) is dispatched with `cache_seed = seed + 1000003L + job_idx`
+  — a large additive offset specifically chosen so the cache-job seed range
+  and the replication seed range do not collide for any realistic `Nrep_W`/
+  cell count.
+
+**Why this matters for parallel execution:** because every unit of work
+carries its *own* explicit seed and calls `set.seed()` itself, the ambient
+RNG state of whichever worker process executes it is irrelevant — this is
+what makes a `SimulationFramework` run reproducible **regardless of
+`num_cores`, regardless of whether the fork-cluster or `mirai`-daemon backend
+is used, and regardless of the order in which the scheduler happens to
+dispatch replications/cache jobs** across workers. Each saved on-disk cache
+record additionally stores the RNG state present right after that cache
+object was built (`rng_after`); `restore_rng` (default `FALSE` on cache
+*loads*) controls whether a cache **hit** replays that saved state into the
+current session. Since a cache hit skips the computation that would have
+consumed that randomness anyway, leaving `restore_rng = FALSE` is the
+correct default — cache hits are RNG-inert (they neither consume nor need to
+replay randomness), while a cache **miss** (an actual fresh
+`.run_simulation_cache_job()` call) still explicitly seeds itself via the
+same `seed + 1000003L + job_idx` derivation as any other cache job.
+
+**Consequence:** a `SimulationFramework` run's results are reproducible
+across separate `run()` invocations with the same `seed` and the same
+`(design_classes_and_params, inference_classes_and_params, n, p, betaT, ...)`
+configuration. (Historically this carried an exception for the two
+pre-merge optimal-design classes, whose kernels were not seeded from R's
+stream; since the RNG migration and the `DesignFixedGreedyDOptimal` merge,
+no such exception exists.)
+
+## Monte Carlo error
+
+None of `B_boot`, `r_rand`, or `Nrep_W`/`Nrep_Y_w` has a closed-form "this
+value is large enough" answer baked into the package — larger values reduce
+simulation noise at the cost of runtime, and the right value is
+estimand/design-specific. Rules of thumb used elsewhere in statistics apply
+directly here:
+
+- A **randomization or bootstrap p-value** built from `r`/`B` draws has
+  Monte Carlo standard error on the order of
+  $\sqrt{\hat p (1-\hat p) / r}$ (treating "did this draw's statistic exceed
+  the observed one" as a Bernoulli($\hat p$) indicator) — e.g. `r` = 999
+  gives a Monte Carlo SE of roughly $0.016$ at $\hat p \approx 0.5$, tighter
+  near the tails that usually matter for a decision at $\alpha = 0.05$.
+- A **bootstrap confidence interval's** endpoints (percentile or BCa) are
+  themselves noisy quantile estimates from `B` draws; their Monte Carlo
+  error shrinks roughly like $O(1/\sqrt{B})$, but unlike the p-value case
+  there is no single clean formula — the standard practical guidance is to
+  re-run with a different seed and confirm the interval doesn't move
+  appreciably before trusting a `B_boot` choice for a final reported result.
+- A **`SimulationFramework` operating characteristic** (`MSE`, `coverage`,
+  `power`/`size` in `SimulationFrameworkReport$summarize()`) is itself a
+  Monte Carlo estimate over `Nrep_W * Nrep_Y_w` replications;
+  `coverage_pval`/`size_pval` (exact two-sided binomial test p-values against
+  the nominal $1-\alpha$/$\alpha$ target) are provided specifically so a
+  large enough `Nrep_W` can be chosen to distinguish "genuinely miscalibrated"
+  from "within Monte Carlo noise of nominal" rather than eyeballing a point
+  estimate.
+
+## Reproducing a documented example
+
+To exactly reproduce a design allocation, bootstrap replicate, or
+simulation run shown in this package's own examples/vignettes/published
+comparisons:
+
+1. Use the same R version and the default `RNGkind()`
+   (`c("Mersenne-Twister", "Inversion", "Rejection")`) — the portable
+   `edi_rng::RRng` reimplementation and `pocock_simon_redraw_w_cpp`'s
+   live-stream continuation both assume the Mersenne-Twister + Inversion
+   normal-sampling kind specifically.
+2. Pass an explicit `seed` to the `Design`/`SimulationFramework` constructor
+   rather than relying on ambient RNG state, and do not call any other
+   RNG-consuming code between construction and the draw you want to
+   reproduce (anything that advances R's global stream in between —
+   including, per above, a *second* call to a draw method on the same
+   object — changes what gets drawn next).
+3. For parallel `SimulationFramework` runs, `num_cores` and the fork/`mirai`
+   backend choice do not need to match the original run for reproducibility
+   (per-unit seed derivation makes them irrelevant) — only `seed` and the
+   simulation configuration do.

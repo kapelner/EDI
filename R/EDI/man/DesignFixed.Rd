@@ -21,13 +21,11 @@ des$assign_w_to_all_subjects()
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-DesignFixed-is_a_fixed}{\code{DesignFixed$is_a_fixed()}}
     \item \href{#method-DesignFixed-initialize}{\code{DesignFixed$new()}}
     \item \href{#method-DesignFixed-assign_w_to_all_subjects}{\code{DesignFixed$assign_w_to_all_subjects()}}
     \item \href{#method-DesignFixed-add_all_subjects_to_experiment}{\code{DesignFixed$add_all_subjects_to_experiment()}}
     \item \href{#method-DesignFixed-add_all_subject_responses}{\code{DesignFixed$add_all_subject_responses()}}
     \item \href{#method-DesignFixed-overwrite_all_subject_assignments}{\code{DesignFixed$overwrite_all_subject_assignments()}}
-    \item \href{#method-DesignFixed-supports_resampling}{\code{DesignFixed$supports_resampling()}}
     \item \href{#method-DesignFixed-clone}{\code{DesignFixed$clone()}}
   }
 }
@@ -60,6 +58,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -82,29 +81,19 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_seq_one_by_one'><code>Design$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-DesignFixed-is_a_fixed"></a>}}
-\if{latex}{\out{\hypertarget{method-DesignFixed-is_a_fixed}{}}}
-\subsection{\code{DesignFixed$is_a_fixed()}}{
-  Characterization: this is a fixed-sample-size design.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{DesignFixed$is_a_fixed()}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-DesignFixed-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixed-initialize}{}}}
@@ -209,9 +198,13 @@ for those instead).}
       \item{\code{y_Ls}}{The censored-response lower bounds, \code{NA} for any
 subject with an exact response in \code{ys}. Right-censored:
 the last known event-free time (pair with \code{y_Rs = Inf}).
-Left-censored: \code{0}, stated explicitly -- left-censoring is
-not yet implemented (see \code{y_Rs}). Interval-censored: the
-interval's lower bound.}
+Left-censored: \code{0}, stated explicitly. Interval-censored:
+the interval's lower bound. Storage accepts any well-formed
+left-/interval-censored value; whether a given \code{Inference}
+class can actually consume it depends on that class (most
+survival \code{Inference} classes still only accept exact/
+right-censored data and will reject construction with a clear
+error otherwise -- see individual class docs).}
       \item{\code{y_Rs}}{The censored-response upper bounds, \code{NA} for any
 subject with an exact response in \code{ys}. Right-censored:
 \code{Inf}. Left-/interval-censored: the confirmed-by time /
@@ -237,21 +230,6 @@ interval upper bound.}
       \item{\code{w}}{A \{0,1\} vector of subject assignments (1 = treated, 0 = control).}
     }
     \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-DesignFixed-supports_resampling"></a>}}
-\if{latex}{\out{\hypertarget{method-DesignFixed-supports_resampling}{}}}
-\subsection{\code{DesignFixed$supports_resampling()}}{
-  Check if the design supports resampling.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{DesignFixed$supports_resampling()}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    TRUE if supported.
   }
 }
 

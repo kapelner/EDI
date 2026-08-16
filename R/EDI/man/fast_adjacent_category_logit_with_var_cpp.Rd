@@ -23,28 +23,78 @@ fast_adjacent_category_logit_with_var_cpp(
 
 \item{y}{A numeric vector of responses (categorical).}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of iterations.
+Fast Adjacent-Category Logit Regression with Variance, Direct MLE (C++ Backend)
+
+Fits the same adjacent-category logit model as
+\code{\link{fast_adjacent_category_logit_cpp}} (see that page for the model,
+category-coding/remapping, parameter layout, and optimizer contract, all shared
+unchanged here) and additionally computes the observed-information-based
+variance-covariance matrix of the fitted parameters.}
 
 \item{tol}{Convergence tolerance.}
 
 \item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional integer indices (into the
+\code{c(alpha, beta)} parameter layout described in Details) of parameters to
+hold fixed rather than estimate.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at; must be the same length as \code{fixed_idx}.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm; see Details.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix.}
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix (over
+the full \code{c(alpha, beta)} parameter vector) to warm-start curvature
+information.}
 
-\item{warm_start_params}{Optional starting values for all parameters. If provided, \code{smart_cold_start} is ignored.}
+\item{warm_start_params}{Optional starting values for the full parameter vector
+\code{c(alpha, beta)}. If provided, \code{smart_cold_start} is ignored.}
 
-\item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
+\item{warm_start_beta}{Optional starting values for just the covariate
+coefficients \eqn{\beta} (cut intercepts \eqn{\alpha} are still initialized
+separately). If provided, \code{smart_cold_start} is ignored.}
 }
 \value{
-A list containing coefficients, vcov, and convergence status.
+A list with all the components of
+  \code{\link{fast_adjacent_category_logit_cpp}} (\code{b}, \code{alpha},
+  \code{params}, \code{neg_loglik}, \code{converged}), plus \code{ssq_b_1}
+  (equivalently \code{ssq_b_j}, the variance of the first covariate's
+  coefficient), \code{vcov} (the full parameter variance-covariance matrix, or
+  \code{NULL} if not converged), and \code{fisher_information} (the full observed
+  information matrix at the fitted parameters, over all parameters regardless of
+  \code{fixed_idx}).
 }
 \description{
 Adjacent-category logit model fitting with full variance-covariance matrix.
+}
+\details{
+\strong{Variance computation.} The observed Fisher information (the Hessian of the
+negative log-likelihood, via \code{AdjacentCategoryLogitNegLogLik::hessian()}) is
+evaluated at the fitted parameter vector over \emph{all} \code{n_alpha + p}
+parameters (returned in full as \code{fisher_information}), then restricted to the
+free (non-\code{fixed_idx}) parameters and inverted via a rank-aware
+(\code{symmetric_pseudo_inverse()}, not a plain Cholesky/LDLT solve) inverse
+before being expanded back to full \code{(n_alpha + p) x (n_alpha + p)} size as
+\code{vcov}. The pseudo-inverse is used deliberately: adjacent-category fits can
+have an estimable treatment effect even when nuisance columns make the full
+information matrix rank-deficient, a case where a standard Cholesky/LDLT solve
+can report spurious success with an invalid (sometimes negative) variance rather
+than failing cleanly. \code{vcov} is only populated when \code{converged} is
+\code{TRUE}; otherwise it is \code{NULL}.
+
+\strong{First-covariate variance shortcut.} \code{ssq_b_1} (aliased as
+\code{ssq_b_j} for interface consistency with the package's other
+\code{fast_*_with_var_cpp} functions) is the variance of \eqn{\hat\beta_1}, the
+coefficient on the \strong{first} column of \code{X} — by the package's usual
+convention, the treatment-effect column — extracted directly from the free-parameter
+covariance block rather than requiring the caller to index into the full
+\code{vcov} matrix; it is \code{NA} if that coefficient was fixed
+(via \code{fixed_idx}) or if its estimated variance is non-finite or non-positive.
+}
+\seealso{
+\code{\link{fast_adjacent_category_logit_cpp}} for the estimate-only
+  variant and the full model/parameterization documentation.
 }
 \keyword{internal}

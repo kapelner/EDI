@@ -29,11 +29,11 @@ quasi_robust_expected_behaviors = list(
 		"InferencePropKKGEE"
 	),
 	kk_passthrough = c("InferenceContinKKRobustRegrIVWC", "InferenceContinKKRobustRegrOneLik"),
+	m_estimator_variance = "InferenceContinRobustRegr",
 	quasi_likelihood = "InferenceCountQuasiPoisson",
 	robust_sandwich = c(
 		"InferenceContinKKRobustRegrIVWC",
 		"InferenceContinKKRobustRegrOneLik",
-		"InferenceContinRobustRegr",
 		"InferenceCountRobustPoisson"
 	)
 )
@@ -146,6 +146,7 @@ test_that("current composite count classes advertise Wald-only testing", {
 
 test_that("quasi/robust migration groups classify estimator behavior explicitly", {
 	EDI:::populate_inference_class_registry()
+	manifest = EDI:::quasi_robust_behavior_manifest()
 	groups = EDI:::quasi_robust_behavior_groups()
 	counts = EDI:::quasi_robust_behavior_counts()
 
@@ -161,4 +162,6 @@ test_that("quasi/robust migration groups classify estimator behavior explicitly"
 	expect_setequal(groups$gee, groups$kk_gee)
 	expect_true(all(groups$composite_likelihood %in% quasi_robust_expected_classes))
 	expect_true(all(groups$robust_sandwich %in% quasi_robust_expected_classes))
+	expect_identical(groups$m_estimator_variance, "InferenceContinRobustRegr")
+	expect_false("RobustSandwich" %in% manifest$InferenceContinRobustRegr$current_effective_components)
 })

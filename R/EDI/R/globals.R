@@ -13,7 +13,7 @@ utils::globalVariables(".wgt__")
 # exist (or a bootstrap/LR replicate has diverged) and the optimizer has
 # stopped at a large-but-finite value that would otherwise silently corrupt
 # CIs/SEs. Centralized here because this exact 1e6 heuristic was previously
-# copy-pasted independently in glm_fit_helpers.R,
+# copy-pasted independently in helper_glm_fit.R,
 # inference_all_abstract_param_boot.R, inference_all_abstract_non_param_boot.R,
 # and other_helpers.R, with no guarantee the copies stayed in sync.
 #
@@ -241,15 +241,17 @@ weighted_cox_bootstrap_surrogate_fit = function(time, dead, X, row_weights, stra
     NULL
   }
   fit_cox = function(init = NULL) {
+    # survival::coxph() rejects an explicit init = NULL ("wrong length for
+    # init argument") -- the argument must be omitted entirely to use its
+    # default start, not passed as NULL.
+    args = list(
+      formula = stats::as.formula(paste0("survival::Surv(.time__, .dead__) ~ ", paste(rhs_terms, collapse = " + "))),
+      data = dat,
+      weights = dat$.wgt__
+    )
+    if (!is.null(init)) args$init = init
     tryCatch(
-      suppressWarnings(
-        survival::coxph(
-          stats::as.formula(paste0("survival::Surv(.time__, .dead__) ~ ", paste(rhs_terms, collapse = " + "))),
-          data = dat,
-          weights = .wgt__,
-          init = init
-        )
-      ),
+      suppressWarnings(do.call(survival::coxph, args)),
       error = function(e) NULL
     )
   }
@@ -501,11 +503,42 @@ unset_num_cores = function() {
 }
 #' Get the default parallel dispatch policy
 #'
-#' Returns EDI's built-in blocklist-first dispatch policy. This is the policy
-#' @examples
-#' get_bootstrap_dispatch_policy()
-#' @return A named list describing the built-in dispatch policy.
+#' Returns EDI's built-in \strong{blocklist-first} policy table, consulted by an
+#' internal (non-exported) dispatcher, for deciding whether a given
+#' \code{"bootstrap"} or \code{"rand_ci"} (randomization confidence interval)
+#' operation is forced to run \strong{serially} rather than in parallel, for a
+#' given inference class and response type. "Blocklist-first" means every
+#' operation is parallel-eligible by default; only combinations explicitly
+#' matched below are forced serial.
 #'
+#' @details For a given \code{operation} (\code{"bootstrap"} or
+#'   \code{"rand_ci"}), the dispatcher looks up that operation's sub-list (e.g.
+#'   \code{bootstrap}) and forces serial execution if either the inference class
+#'   name matches any of \code{serial_inference_class_patterns} (regular
+#'   expressions, PCRE-flavored — \code{serial_inference_class_patterns} supports
+#'   lookahead, e.g. the built-in
+#'   \verb{"^InferenceSurvival(?!.*KK)"} pattern matches non-KK survival inference
+#'   classes but excludes matched-design (KK) survival variants) or the response
+#'   type matches any of \code{serial_response_types} exactly. In the built-in
+#'   policy, incidence-response inference generally runs serially for both
+#'   operations (its bootstrap/randomization resampling is not currently
+#'   parallel-safe or not worth parallelizing at typical trial sizes), and
+#'   non-KK survival inference and \code{InferenceAllKKWilcoxIVWC} are
+#'   additionally forced serial for bootstrapping specifically.
+#'
+#' @return A named list with two components, \code{bootstrap} and \code{rand_ci},
+#'   each itself a list with \code{serial_inference_class_patterns} (a character
+#'   vector of PCRE-flavored regular expressions matched against the inference
+#'   class name) and \code{serial_response_types} (a character vector of exact
+#'   response-type strings) — any match in either forces that operation to run
+#'   serially rather than in parallel.
+#' @seealso \code{\link{get_bootstrap_dispatch_policy}},
+#'   \code{\link{get_cold_start_dispatch_policy}}, and
+#'   \code{\link{get_optimization_dispatch_policy}} for the analogous policies
+#'   controlling bootstrap CI type, cold-start behavior, and default optimizer
+#'   algorithm (none of which control parallel-vs-serial dispatch).
+#' @examples
+#' get_parallel_dispatch_policy()
 #' @export
 get_parallel_dispatch_policy = function() {
   list(
@@ -526,13 +559,46 @@ get_parallel_dispatch_policy = function() {
 edi_env$parallel_dispatch_policy_config = get_parallel_dispatch_policy()
 #' Get the default bootstrap dispatch policy
 #'
-#' Returns EDI's built-in policy for choosing a default bootstrap type. Each
-#' inference class can override the standard \code{"bca"} default via a regular
-#' expression pattern.
+#' Returns EDI's built-in policy table, consulted by the internal (non-exported)
+#' dispatcher \code{edi_bootstrap_dispatch_policy()}, for choosing which bootstrap
+#' confidence-interval type — \code{"bca"} (bias-corrected and accelerated) or
+#' \code{"percentile"} — an inference class uses by default.
 #'
 #' @details
-#' The built-in overrides are empirical. Inference classes with repeated
-#' @return A named list describing the default bootstrap type configuration.
+#' The dispatcher resolves a type for a given inference-class name (and, if
+#' available, the fitted inference object) in this precedence order, returning the
+#' first match:
+#' \enumerate{
+#' \item If the object's experimental design class matches a key of
+#'   \code{design_class_overrides} (via \code{\link[methods]{is}}), and the
+#'   inference class name matches one of that design's named regular-expression
+#'   patterns, use the associated type.
+#' \item Otherwise, if the inference class name matches one of
+#'   \code{inference_class_overrides}'s named regular-expression patterns (checked
+#'   in list order, first match wins), use the associated type.
+#' \item Otherwise, fall back to \code{default_type} (\code{"bca"}).
+#' }
+#' Whichever type is resolved by that process, a final safety check applies: if the
+#' resolved type is \code{"bca"} and the fitted object reports (via its private
+#' \code{jackknife_block_size_gt_one_unsupported()} method) that BCa's required
+#' jackknife computation is unsupported for its current data (e.g. a block size
+#' greater than 1), the type is silently downgraded to \code{"percentile"} instead.
+#' This override table exists because BCa is the generally preferred default (it
+#' corrects for both bias and skewness in the bootstrap distribution), but is
+#' empirically unreliable or computationally unsupported for specific inference/
+#' design class combinations — the \code{"percentile"} overrides listed here were
+#' added as those cases were identified, not derived from a general rule.
+#'
+#' @return A named list describing the default bootstrap type configuration, with
+#'   components \code{default_type} (the fallback type, \code{"bca"}),
+#'   \code{inference_class_overrides} (a named character vector: regular-expression
+#'   pattern names to bootstrap-type values, matched against the inference class
+#'   name), and \code{design_class_overrides} (a named list keyed by experimental
+#'   design class name, each value itself a named character vector of
+#'   pattern-to-type overrides scoped to that design).
+#' @seealso \code{\link{get_parallel_dispatch_policy}} for the analogous policy
+#'   controlling forced-serial dispatch; \code{\link{get_optimization_dispatch_policy}}
+#'   for the analogous policy controlling default optimizer algorithm choice.
 #' @examples
 #' get_bootstrap_dispatch_policy()
 #' @export
@@ -579,12 +645,36 @@ get_bootstrap_dispatch_policy = function() {
 edi_env$bootstrap_dispatch_policy_config = get_bootstrap_dispatch_policy()
 #' Get the default optimization dispatch policy
 #'
-#' Returns EDI's built-in policy for choosing a default optimization algorithm.
-#' @details
-#' The built-in overrides are empirical. Regression models generally default to
+#' Returns EDI's built-in policy table, consulted by the internal (non-exported)
+#' dispatcher \code{edi_optimization_dispatch_policy()}, for choosing which
+#' optimization algorithm (\code{"newton_raphson"}, \code{"lbfgs"}, or
+#' \code{"irls"}) an inference class's C++ model-fitting backend uses by default.
+#'
+#' @details The dispatcher checks the inference class name against
+#'   \code{inference_class_overrides}'s named regular-expression patterns in list
+#'   order, returning the associated algorithm string at the first match; if none
+#'   match, it falls back to \code{default_alg} (\code{"newton_raphson"}). Unlike
+#'   \code{\link{get_bootstrap_dispatch_policy}}, there is no separate
+#'   design-class-scoped override table here — only a single flat pattern list.
+#'   The built-in overrides are empirical, chosen per model family based on which
+#'   algorithm converges fastest/most reliably for that likelihood surface in
+#'   practice — e.g. plain-vanilla generalized linear models with a canonical or
+#'   near-canonical link (Poisson, quasi-Poisson, robust Poisson, various incidence
+#'   models) default to \code{"irls"}, most non-canonical-link and ordinal/survival
+#'   models default to \code{"lbfgs"}, and stratified Cox PH and most matched
+#'   (\code{KK*GLMM}-adjacent) models default to \code{"newton_raphson"}.
+#' @return A named list with components \code{default_alg} (the fallback
+#'   algorithm, \code{"newton_raphson"} in the built-in policy) and
+#'   \code{inference_class_overrides} (a named character vector: regular-expression
+#'   pattern names to algorithm-name values, matched against the inference class
+#'   name).
+#' @seealso \code{\link{get_bootstrap_dispatch_policy}} and
+#'   \code{\link{get_cold_start_dispatch_policy}} for the analogous policies
+#'   controlling bootstrap CI type and cold-start behavior;
+#'   \code{\link{.normalize_optimizer_algorithm}} for how a resolved algorithm
+#'   string is validated/normalized before being passed to a C++ backend.
 #' @examples
 #' get_optimization_dispatch_policy()
-#' @return A named list describing the default optimization algorithm configuration.
 #' @export
 get_optimization_dispatch_policy = function() {
   list(
@@ -605,7 +695,7 @@ get_optimization_dispatch_policy = function() {
       "InferenceIncidLogRegr$" = "irls",
       "InferenceIncidProbitRegr$" = "irls",
       "InferencePropFractionalLogit$" = "irls",
-      "InferencePropGCompAbstract$" = "irls",
+      "InferencePropGCompMeanDiff$" = "irls",
       "InferencePropBetaRegr$" = "lbfgs",
       "InferenceOrdinalAdjCatLogitRegr$" = "lbfgs",
       "InferenceOrdinalContRatioRegr$" = "lbfgs",
@@ -623,15 +713,32 @@ get_optimization_dispatch_policy = function() {
 edi_env$optimization_dispatch_policy_config = get_optimization_dispatch_policy()
 #' Get the default cold-start dispatch policy
 #'
-#' Returns EDI's built-in policy for the \code{smart_cold_start} default used
-#' by each inference class.  A \code{TRUE} entry means the solver initialises
-#' via an OLS warm-up before IRLS; \code{FALSE} means a plain zero-vector cold
-#' start.  Benchmarks show the OLS warm-up is net-negative for logistic and
-#' Poisson IRLS at typical trial sizes (the one extra OLS solve costs more than
-#' the IRLS iterations it saves), so those families default to \code{FALSE}.
-#' @return A named list with \code{default} (logical) and
-#'   \code{inference_class_overrides} (named logical vector of regex ->
-#'   logical).
+#' Returns EDI's built-in policy table, consulted by the internal (non-exported)
+#' dispatcher \code{edi_cold_start_dispatch_policy()}, for the \code{smart_cold_start}
+#' default used by each inference class's C++ model-fitting backend. A \code{TRUE}
+#' entry means the solver initializes via an OLS (or otherwise model-appropriate
+#' heuristic) warm-up before iterating; \code{FALSE} means a plain zero-vector cold
+#' start. Benchmarks show the OLS warm-up is net-negative for logistic and Poisson
+#' IRLS at typical trial sizes (the one extra OLS solve costs more than the IRLS
+#' iterations it saves), so those families — along with several G-computation-based
+#' incidence/proportion inference classes — default to \code{FALSE} here.
+#'
+#' @details The dispatcher checks the inference class name against
+#'   \code{inference_class_overrides}'s named regular-expression patterns in list
+#'   order, returning the associated logical value at the first match; if none
+#'   match, it falls back to \code{default} (\code{TRUE}). Unlike
+#'   \code{\link{get_bootstrap_dispatch_policy}}, there is no separate
+#'   design-class-scoped override table here — only a single flat pattern list.
+#'
+#' @return A named list with \code{default} (logical, the fallback when no
+#'   override pattern matches; \code{TRUE} in the built-in policy) and
+#'   \code{inference_class_overrides} (a named logical vector: regular-expression
+#'   pattern names to \code{TRUE}/\code{FALSE} values, matched against the
+#'   inference class name).
+#' @seealso \code{\link{get_bootstrap_dispatch_policy}} and
+#'   \code{\link{get_optimization_dispatch_policy}} for the analogous policies
+#'   controlling bootstrap CI type and default optimizer algorithm;
+#'   \code{\link{set_cold_start_dispatch_policy}} to override this policy at runtime.
 #' @examples
 #' get_cold_start_dispatch_policy()
 #' @export
@@ -654,9 +761,34 @@ get_cold_start_dispatch_policy = function() {
 edi_env$cold_start_dispatch_policy_config = get_cold_start_dispatch_policy()
 #' Update the cold-start dispatch policy
 #'
-#' @param policy Either \code{NULL} or a named list of policy overrides.
-#' @param reset If \code{TRUE}, restore the built-in default policy.
-#' @return Invisible \code{NULL} or the current policy configuration.
+#' Overrides, queries, or resets the runtime policy consulted by
+#' \code{edi_cold_start_dispatch_policy()} for whether an inference class's C++
+#' fitting backend defaults to an OLS-based \code{smart_cold_start} or a plain
+#' zero-vector start; see \code{\link{get_cold_start_dispatch_policy}} for the
+#' built-in default table and the rationale behind it.
+#'
+#' @details Call with no arguments (\code{policy = NULL}, \code{reset = FALSE})
+#'   to retrieve the current configuration without changing it. Pass a named
+#'   list to \code{policy} to merge new/overriding entries into the current
+#'   configuration via \code{\link[utils]{modifyList}} (so \code{default} and/or
+#'   \code{inference_class_overrides} can each be supplied independently, and
+#'   entries not mentioned are left untouched — this cannot \emph{remove} an
+#'   existing override pattern, only add or replace one). Pass \code{reset =
+#'   TRUE} to discard any accumulated overrides and restore the package's
+#'   built-in default policy exactly as returned by
+#'   \code{\link{get_cold_start_dispatch_policy}}.
+#'
+#' @param policy Either \code{NULL} (no change) or a named list of policy
+#'   overrides merged into the current configuration (see Details).
+#' @param reset If \code{TRUE}, discard all overrides and restore the built-in
+#'   default policy.
+#' @return Invisible \code{NULL} when \code{policy} is supplied (a mutation), or
+#'   invisibly the current policy configuration list when called for its
+#'   side-effect-free query/reset value.
+#' @seealso \code{\link{get_cold_start_dispatch_policy}} for the policy schema
+#'   and built-in defaults; \code{\link{set_warm_start_dispatch_policy}} and
+#'   \code{\link{set_optimization_dispatch_policy}} for the analogous setters
+#'   governing warm-starting and optimizer-algorithm choice.
 #' @examples
 #' set_cold_start_dispatch_policy(reset = TRUE)
 #' @export
@@ -690,10 +822,40 @@ edi_cold_start_dispatch_policy = function(inference_class) {
 }
 #' Get the default warm-start dispatch policy
 #'
-#' Returns EDI's built-in policy for choosing whether warm starts are enabled
-#' during different resampling or simulation operations.
+#' Returns EDI's built-in policy table for choosing whether \strong{warm starts}
+#' (reusing a previous fit's parameters/curvature to seed the next fit, e.g.
+#' across bootstrap or randomization replicates) are enabled for a given
+#' inference class during a given resampling or simulation \code{operation}
+#' (one of \code{"jackknife"}, \code{"non_param_boot"}, \code{"bayesian_boot"},
+#' \code{"param_boot"}, or \code{"rand"}).
 #'
-#' @return A named list describing the warm start policy configuration.
+#' @details \strong{This returned list is not the complete policy.} The internal
+#'   (non-exported) dispatcher, \code{edi_warm_start_dispatch_policy(inference_class,
+#'   operation, n)}, consults this table's \code{default} and
+#'   \code{[[operation]]$inference_class_overrides} for its base per-operation
+#'   pattern lookups, but also has a substantial number of additional,
+#'   \strong{hardcoded (not present in this returned list)} empirical
+#'   disable-rules layered on top — many of them further conditioned on the
+#'   current sample size \code{n} (e.g. certain inference-class/operation
+#'   combinations only disable warm starts when \code{n < 200} or \code{n <
+#'   500}, because the extra bookkeeping only pays off once resampling is
+#'   expensive enough per replicate). Calling this function therefore does
+#'   \strong{not} tell you the full set of classes/operations for which warm
+#'   starts are disabled — for that, the dispatcher function's source is
+#'   authoritative, not this configuration table.
+#'
+#' @return A named list with \code{default} (logical, \code{TRUE} in the
+#'   built-in policy) and one component per operation (\code{jackknife},
+#'   \code{non_param_boot}, \code{bayesian_boot}, \code{param_boot},
+#'   \code{rand}), each itself a list containing
+#'   \code{inference_class_overrides} (a named logical vector: regular-expression
+#'   pattern names to \code{TRUE}/\code{FALSE} values, matched against the
+#'   inference class name) — only the first, sample-size-independent layer of
+#'   the full dispatch policy; see Details.
+#' @seealso \code{\link{get_cold_start_dispatch_policy}} for the analogous
+#'   (simpler, single-layer) policy governing the initial cold-start heuristic
+#'   rather than cross-replicate warm-starting; \code{\link{set_warm_start_dispatch_policy}}
+#'   to override this table at runtime.
 #' @examples
 #' get_warm_start_dispatch_policy()
 #' @export
@@ -736,9 +898,40 @@ edi_env$warm_start_dispatch_policy_config = get_warm_start_dispatch_policy()
 
 #' Update the warm-start dispatch policy
 #'
-#' @param policy Either \code{NULL} or a named list of policy overrides.
-#' @param reset If \code{TRUE}, restore the built-in default policy.
-#' @return Invisible \code{NULL} or the current policy configuration.
+#' Overrides, queries, or resets the runtime policy consulted (as one layer of
+#' several — see Details) by \code{edi_warm_start_dispatch_policy()} for
+#' whether an inference class reuses a previous fit's parameters/curvature to
+#' seed the next fit during resampling; see
+#' \code{\link{get_warm_start_dispatch_policy}} for the built-in default table
+#' and its \code{jackknife}/\code{non_param_boot}/\code{bayesian_boot}/
+#' \code{param_boot}/\code{rand} operation schema.
+#'
+#' @details Call with no arguments (\code{policy = NULL}, \code{reset = FALSE})
+#'   to retrieve the current configuration without changing it. Pass a named
+#'   list to \code{policy} to merge new/overriding entries into the current
+#'   configuration via \code{\link[utils]{modifyList}} (per-operation
+#'   sub-lists, e.g. \code{list(rand = list(inference_class_overrides = ...))},
+#'   are merged rather than replaced wholesale). Pass \code{reset = TRUE} to
+#'   discard any accumulated overrides and restore the package's built-in
+#'   default policy exactly as returned by
+#'   \code{\link{get_warm_start_dispatch_policy}}. \strong{This function only
+#'   controls the sample-size-independent pattern-table layer} of the warm-start
+#'   dispatcher; the additional hardcoded, sample-size-conditioned disable rules
+#'   documented on \code{\link{get_warm_start_dispatch_policy}} are not
+#'   affected by any override passed here.
+#'
+#' @param policy Either \code{NULL} (no change) or a named list of per-operation
+#'   policy overrides merged into the current configuration (see Details).
+#' @param reset If \code{TRUE}, discard all overrides and restore the built-in
+#'   default policy.
+#' @return Invisible \code{NULL} when \code{policy} is supplied (a mutation), or
+#'   invisibly the current policy configuration list when called for its
+#'   side-effect-free query/reset value.
+#' @seealso \code{\link{get_warm_start_dispatch_policy}} for the policy schema,
+#'   built-in defaults, and the additional sample-size-conditioned rules this
+#'   setter cannot override; \code{\link{set_cold_start_dispatch_policy}} for
+#'   the analogous, simpler single-layer setter governing the initial
+#'   cold-start heuristic.
 #' @examples
 #' set_warm_start_dispatch_policy(reset = TRUE)
 #' @export
@@ -1008,34 +1201,50 @@ edi_warm_start_dispatch_policy = function(inference_class, operation, n = NULL) 
 #' Update the parallel dispatch policy
 #'
 #' EDI uses an empirical, blocklist-first dispatch policy to decide when an
-#' inference routine should be forced serial even if multiple cores are
-#' available. This function lets the user update that default policy without
-#' editing package internals.
+#' inference routine's \code{"bootstrap"} or \code{"rand_ci"} resampling should
+#' be forced serial even if multiple cores are available (see
+#' \code{\link{get_parallel_dispatch_policy}} for the built-in table and the
+#' PCRE pattern/response-type matching rules it encodes). This function lets
+#' the user update that policy at runtime without editing package internals.
 #'
 #' @details
-#' The policy can be updated in two ways:
+#' The policy can be updated in two mutually exclusive ways:
 #' \itemize{
-#'   \item Pass a named list to merge with the built-in default policy
-#'   configuration. Supported top-level keys are \code{bootstrap} and
-#'   \code{rand_ci}, and each key may contain
-#'   \code{serial_inference_class_patterns} and
-#'   \code{serial_response_types}.
+#'   \item Pass a named list to \code{policy} to merge with the current policy
+#'   configuration via \code{\link[utils]{modifyList}}, one section at a time.
+#'   Supported top-level keys are \code{bootstrap} and \code{rand_ci}, and each
+#'   key's value is itself a list that may contain
+#'   \code{serial_inference_class_patterns} (character vector of PCRE regular
+#'   expressions) and/or \code{serial_response_types} (character vector of
+#'   exact response-type strings); an unrecognized top-level key raises an
+#'   error rather than being silently ignored.
 #'   \item Pass a custom function with signature
-#'   \code{function(inference_class, response_type, operation)} that returns a
-#'   list with at least \code{force_serial} and \code{reason}.
+#'   \code{function(inference_class, response_type, operation)} to \code{policy}
+#'   to \strong{replace} the entire pattern-table dispatch logic with your own
+#'   rule; it must return a list with at least \code{force_serial} (logical)
+#'   and \code{reason} (character). Supplying a function clears any
+#'   list-based overrides accumulated so far and is stored separately from the
+#'   pattern-table configuration.
 #' }
+#' Use \code{reset = TRUE} to discard both the list-based overrides and any
+#' custom function, restoring the package's built-in default policy exactly as
+#' returned by \code{\link{get_parallel_dispatch_policy}}. Do not expect a
+#' universal "more cores is faster" rule — this policy exists because several
+#' resampling workloads have shown consistent multicore \emph{slowdowns} in
+#' package benchmarks.
 #'
-#' Use \code{reset = TRUE} to restore the built-in default policy. Do not expect
-#' a universal "more cores is faster" rule.
-#'
-#' @param policy Either \code{NULL}, a named list of policy overrides, or a
-#'   custom function. If \code{NULL} and \code{reset = FALSE}, the current
-#' @examples
-#' set_parallel_dispatch_policy(reset = TRUE)
+#' @param policy Either \code{NULL} (no change), a named list of policy-section
+#'   overrides, or a custom dispatch function (see Details).
 #' @param reset If \code{TRUE}, restore the built-in default policy and remove
 #'   any custom function override.
-#'
-#' @return Invisible \code{NULL} or the current policy configuration.
+#' @return Invisible \code{NULL} when \code{policy} is supplied (a mutation), or
+#'   invisibly the current policy configuration list when called for its
+#'   side-effect-free query/reset value.
+#' @seealso \code{\link{get_parallel_dispatch_policy}} for the policy schema and
+#'   built-in defaults; \code{\link{set_num_cores}} for setting the actual
+#'   worker-count upper bound this policy operates within.
+#' @examples
+#' set_parallel_dispatch_policy(reset = TRUE)
 #'
 #' @export
 set_parallel_dispatch_policy = function(policy = NULL, reset = FALSE) {
@@ -1069,12 +1278,38 @@ set_parallel_dispatch_policy = function(policy = NULL, reset = FALSE) {
 }
 #' Update the optimization dispatch policy
 #'
+#' Overrides, queries, or resets the runtime policy consulted by
+#' \code{edi_optimization_dispatch_policy()} for which optimization algorithm
+#' (\code{"newton_raphson"}, \code{"lbfgs"}, or \code{"irls"}) an inference
+#' class's C++ model-fitting backend uses by default; see
+#' \code{\link{get_optimization_dispatch_policy}} for the built-in default
+#' table and the empirical rationale behind its per-family choices.
+#'
+#' @details Call with no arguments (\code{policy = NULL}, \code{reset = FALSE})
+#'   to retrieve the current configuration without changing it. Pass a named
+#'   list to \code{policy} to merge new/overriding entries into the current
+#'   configuration via \code{\link[utils]{modifyList}} (\code{default_alg}
+#'   and/or \code{inference_class_overrides} can each be supplied
+#'   independently). Pass \code{reset = TRUE} to discard any accumulated
+#'   overrides and restore the package's built-in default policy exactly as
+#'   returned by \code{\link{get_optimization_dispatch_policy}}. Note that this
+#'   only changes the \emph{default} algorithm consulted when a fitting call
+#'   does not itself specify \code{optimization_alg} explicitly; an explicit
+#'   per-call argument still takes precedence.
+#'
+#' @param policy Either \code{NULL} (no change) or a named list of policy
+#'   overrides merged into the current configuration (see Details).
+#' @param reset If \code{TRUE}, discard all overrides and restore the built-in
+#'   default policy.
+#' @return Invisible \code{NULL} when \code{policy} is supplied (a mutation), or
+#'   invisibly the current policy configuration list when called for its
+#'   side-effect-free query/reset value.
+#' @seealso \code{\link{get_optimization_dispatch_policy}} for the policy
+#'   schema and built-in defaults; \code{\link{set_cold_start_dispatch_policy}}
+#'   and \code{\link{set_warm_start_dispatch_policy}} for the analogous setters
+#'   governing cold-start and warm-start behavior.
 #' @examples
 #' set_optimization_dispatch_policy(reset = TRUE)
-#' @param policy Either \code{NULL} or a named list of policy overrides.
-#' @param reset If \code{TRUE}, restore the built-in default policy.
-#'
-#' @return Invisible \code{NULL} or the current policy configuration.
 #' @export
 set_optimization_dispatch_policy = function(policy = NULL, reset = FALSE) {
   checkmate::assertFlag(reset)

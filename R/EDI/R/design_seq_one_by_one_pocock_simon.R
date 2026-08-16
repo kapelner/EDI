@@ -1,9 +1,44 @@
-#' Pocock & Simon's Minimization Sequential Design
+#' Pocock and Simon's (1975) Minimization Sequential Design
 #'
-#' An R6 Class encapsulating the data and functionality for a Pocock & Simon
-#' sequential experimental design.
-#' This design minimizes the imbalance across treatments for multiple covariates.
+#' A \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} implementing Pocock and
+#' Simon's minimization method: for each categorical covariate in \code{strata_cols},
+#' the design tracks a running treated/control count per covariate \emph{level}
+#' (\code{private$counts}), and for a new subject computes, for each candidate
+#' treatment arm \eqn{k \in \{0, 1\}}, a weighted total imbalance
+#' \deqn{G_k = \sum_{j} weights_j \cdot \mathrm{Var}\big(\text{counts at subject's level of covariate } j,
+#' \text{ after hypothetically assigning arm } k\big),}
+#' where the variance is taken across the two treatment arms' hypothetical counts at
+#' that covariate level (so \eqn{G_k} is large when arm \eqn{k} would leave the
+#' subject's covariate-level counts unbalanced, summed with \code{weights} across
+#' covariates). The subject is then assigned to whichever arm minimizes \eqn{G_k} with
+#' probability \code{p_best} (and to the other arm with probability
+#' \code{1 - p_best}), or — if the two arms are exactly tied — via a plain
+#' \eqn{\mathrm{Bernoulli}(prob\_T)} draw. Unlike
+#' \code{\link[EDI:DesignSeqOneByOneAtkinson]{DesignSeqOneByOneAtkinson}}/
+#' \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}}, which use continuous
+#' covariate distances, minimization operates on categorical/discretized strata and
+#' balances marginal covariate-level counts directly rather than a multivariate
+#' distance or matched-pair structure.
 #'
+#' @details
+#' \strong{Level bookkeeping.} \code{private$ensure_factor_metadata()} maintains a
+#' mapping from each observed level of each \code{strata_cols} column to a row index
+#' in \code{private$counts} (an (total levels across all covariates) x 2 matrix of
+#' running treated/control counts), growing both the level map and \code{counts} as
+#' new levels are encountered; missing values are treated as their own level
+#' (\code{"NA"}).
+#'
+#' \strong{Non-resampling bootstrap.} \code{draw_bootstrap_indices()} always performs a
+#' plain i.i.d. nonparametric bootstrap over subjects (\code{sample_int_replace_cpp()}),
+#' since minimization's adaptive assignment process has no simple exchangeable
+#' resampling unit to preserve (each subject's assignment probability depends on the
+#' full sequence of covariate levels and assignments that preceded it).
+#'
+#' @references Pocock, S. J., and Simon, R. (1975). "Sequential treatment assignment
+#'   with balancing for prognostic factors in the controlled clinical trial."
+#'   \emph{Biometrics}, 31(1), 103-115, \doi{10.2307/2529712}. See also
+#'   \href{https://en.wikipedia.org/wiki/Minimisation_(clinical_trials)}{minimisation
+#'   (clinical trials)} for orientation.
 #' @examples
 #' seq_des = DesignSeqOneByOnePocockSimon$new(strata_cols = 'x1', n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = factor(1, levels=1:2)))
@@ -11,15 +46,24 @@
 DesignSeqOneByOnePocockSimon = R6::R6Class("DesignSeqOneByOnePocockSimon",
 	inherit = DesignSeqOneByOne,
 	public = list(
-		#' @description Initialize a Pocock & Simon sequential experimental design
+		#' @description Initialize a Pocock and Simon (1975) minimization sequential
+		#'   experimental design (see class documentation for the exact imbalance
+		#'   criterion and assignment rule).
 		#'
 		#' @param strata_cols     The names of the covariates to be used for minimization. These
 		#'   must be factor or categorical variables.
-		#' @param weights 		A numeric vector of weights for each covariate. Defaults to 1 for all.
-		#' @param p_best          The probability of assigning the treatment that minimizes the
-		#'   imbalance. Defaults to 0.8.
+		#' @param weights 		A numeric vector of per-covariate weights \eqn{weights_j}
+		#'   in the imbalance criterion \eqn{G_k} (see class documentation), one per
+		#'   entry of \code{strata_cols}, in the same order. Defaults to 1 for all
+		#'   (equal-weighted covariates).
+		#' @param p_best          The probability of assigning the treatment arm that
+		#'   minimizes \eqn{G_k} (see class documentation); the complementary arm is
+		#'   assigned with probability \code{1 - p_best}. Defaults to 0.8 (an 80/20
+		#'   biased coin favoring the balancing arm, rather than a fully deterministic
+		#'   minimization rule).
 		#' @param response_type 	The data type of response values.
-		#' @param prob_T  The probability of the treatment assignment.
+		#' @param prob_T  The probability of the treatment assignment used only when
+		#'   the two arms' imbalance is exactly tied (see class documentation).
 		#' @param include_is_missing_as_a_new_feature  Flag for missingness indicators.
 		#' @param n  		The sample size.
 		#' @param verbose  Flag for verbosity.
@@ -62,9 +106,13 @@ DesignSeqOneByOnePocockSimon = R6::R6Class("DesignSeqOneByOnePocockSimon",
 				private$weights = weights
 			}
 		},
-		#' @description Assign the next subject to a treatment group using minimization.
+		#' @description Draw the next subject's treatment assignment via Pocock and
+		#'   Simon minimization (see class documentation for the exact imbalance
+		#'   criterion \eqn{G_k} and the \code{p_best}/\code{prob_T} assignment rule),
+		#'   and update the running per-covariate-level treated/control counts
+		#'   in-place to reflect this assignment.
 		#'
-		#' @return 	The treatment assignment (0 or 1)
+		#' @return 	The treatment assignment (0 or 1) for the next subject.
 		assign_wt = function(){
 			private$ensure_factor_metadata()
 			subject_levels_idx = private$get_subject_levels_idx(private$Xraw[private$t, ])

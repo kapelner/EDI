@@ -2,7 +2,86 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{exact_jonckheere_terpstra_pval_cpp}
 \alias{exact_jonckheere_terpstra_pval_cpp}
-\title{Export of C++ function exact_jonckheere_terpstra_pval_cpp}
+\title{Exact Two-Group Jonckheere-Terpstra Test via Full Randomization Enumeration (C++ Backend)}
+\arguments{
+\item{y}{Integer (or integer-coercible) vector of length \eqn{n} giving each
+subject's ordinal response value; ties (repeated values) are handled via the
+grouped Mann-Whitney formula above. Must not contain \code{NA}.}
+
+\item{w}{Integer (or integer-coercible) vector of length \eqn{n} with values in
+\code{{0, 1}} giving each subject's group membership; both groups must be
+non-empty and no \code{NA} is permitted.}
+}
+\value{
+A list with components \code{stat2} (twice the observed \eqn{U} statistic,
+  an integer, used internally to keep the enumeration in integer arithmetic),
+  \code{n_treat}, \code{n_control} (the two group sizes), \code{superiority} (the
+  probabilistic-index effect size described above), \code{p_lower}, \code{p_upper}
+  (the exact one-sided randomization-distribution tail probabilities), and
+  \code{p_exact} (the exact two-sided p-value).
+}
 \description{
-Export of C++ function exact_jonckheere_terpstra_pval_cpp
+Computes the exact randomization-distribution p-value and a probabilistic-index
+effect size for the two-group Jonckheere-Terpstra statistic — which, with exactly
+two groups (\code{w} in \code{{0, 1}}), coincides with the Wilcoxon-Mann-Whitney
+\eqn{U} statistic generalized to handle ties (repeated ordinal levels in \code{y}):
+\deqn{U = \sum_{k} t_k \big(2 L_k + (n_k - t_k)\big) / 2,}
+summed over the \eqn{K} distinct observed levels of \code{y} (in increasing order),
+where \eqn{n_k} is the total count at level \eqn{k}, \eqn{t_k} is the observed count
+of \code{w == 1} subjects at level \eqn{k}, and \eqn{L_k} is the number of subjects
+at strictly lower levels (this is the standard "number of favorable comparisons"
+Mann-Whitney statistic, adapted for tied/grouped ordinal data — a tie at the same
+level contributes \eqn{1/2} rather than 0 or 1). The exact (not asymptotic,
+not Monte Carlo) null/reference distribution of this statistic under the sharp null
+of no treatment effect is obtained by enumerating, via a dynamic-programming
+recursion over levels (\code{recurse_jt_distribution()}), every way to distribute
+\code{n_treat} "treated" labels among the \eqn{n} subjects consistent with the fixed
+per-level totals \eqn{n_k} — i.e. the exact multivariate hypergeometric
+randomization distribution of the statistic conditional on the observed level
+counts, with each configuration's probability computed in log-space from
+log-binomial-coefficient weights to avoid overflow for larger \eqn{n}.
+}
+\details{
+\strong{Randomization test, not a model-based test.} This is a randomization
+(permutation) test in the Fisherian sense: it conditions on the observed marginal
+level counts \eqn{n_k} and the group sizes \code{n_treat}/\code{n_control}, and asks
+how extreme the observed statistic is relative to every other way those same labels
+could have been randomly assigned, so its validity does not depend on any
+distributional assumption about \code{y} beyond exchangeability under the null. The
+two-sided p-value is \eqn{p_{\mathrm{exact}} = \min(1, 2 \min(p_{\mathrm{lower}},
+p_{\mathrm{upper}}))}, where \eqn{p_{\mathrm{lower}}}/\eqn{p_{\mathrm{upper}}} are
+the exact one-sided tail probabilities of the randomization distribution at or below
+/ at or above the observed statistic.
+
+\strong{Effect size (\code{superiority}).} \code{superiority} is the probabilistic
+index \eqn{\Pr(Y_T > Y_C) + \tfrac{1}{2}\Pr(Y_T = Y_C)} (equivalently \eqn{U}
+rescaled to \eqn{[0, 1]} by dividing by \eqn{n_{\mathrm{treat}} \cdot
+n_{\mathrm{control}}}), the probability a randomly chosen treated subject's ordinal
+outcome exceeds a randomly chosen control subject's, counting ties as half a win;
+\code{0.5} indicates no stochastic ordering between groups, and \code{1}/\code{0}
+indicate the treated group's outcomes are uniformly higher/lower.
+
+\strong{Input conventions.} \code{y} is coerced to integer and treated as an ordinal
+(or any orderable-by-integer-value) response with an arbitrary number of tied
+levels; \code{w} must be an integer/coercible-to-integer vector of \code{{0, 1}}
+values with both groups non-empty. \code{NA} in either \code{y} or \code{w} is not
+permitted and raises an error, as does a non-\code{{0,1}} value in \code{w} or an
+empty input.
+
+\strong{Complexity.} The recursion's state space scales with the number of distinct
+possible statistic values (\eqn{O(n_{\mathrm{treat}} \cdot n_{\mathrm{control}})}
+many), and thread-local buffers are reused (not reallocated) across repeated calls
+within the same thread for the same or smaller problem sizes; this exact enumeration
+is exponential in the number of distinct levels/group sizes in the worst case
+(unlike an asymptotic normal-approximation JT test), so it is intended for small-to-
+moderate \eqn{n} where exactness matters more than raw speed.
+}
+\seealso{
+\href{https://en.wikipedia.org/wiki/Mann\%E2\%80\%93Whitney_U_test}{Mann-Whitney
+  U test} and
+  \href{https://en.wikipedia.org/wiki/Jonckheere\%27s_trend_test}{Jonckheere's trend
+  test} for background; analogous Python API:
+  \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.mannwhitneyu.html}{SciPy
+  \code{mannwhitneyu}} (\code{method="exact"} for the same exact-enumeration
+  approach, though SciPy's exact path does not handle ties the same way).
 }

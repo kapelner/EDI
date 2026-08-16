@@ -133,7 +133,7 @@ true sampling variance, so tests and intervals err \emph{conservative}
     makes \eqn{w_i} depend on the full covariate and assignment history, and
     conditional assignment probabilities differ from 1/2. Row-level resampling does
     not replicate the covariate balance the rule enforces. Conservative, moderate.}
-  \item{\code{DesignFixedAOptimal}, \code{DesignFixedDOptimal},
+  \item{\code{DesignFixedGreedyDOptimal},
     \code{DesignFixedGreedy}, \code{DesignFixedRerandomization}}{The observed
     \eqn{w} vector is one draw from a tightly constrained (optimized or
     acceptance-sampled) set of allocations. Resampled replicates carry per-row
@@ -194,7 +194,7 @@ Politis, D. N., Romano, J. P., and Wolf, M. (1999).
 }
 \keyword{internal}
 \section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{InferenceNonParamBootstrap}
+\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{InferenceNonParamBootstrap}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -216,8 +216,8 @@ Politis, D. N., Romano, J. P., and Wolf, M. (1999).
 }
 \if{html}{\out{<details><summary>+ inherited public methods from InferenceRandCI</summary>
 <ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
+  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
+  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceRand</summary>

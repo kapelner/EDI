@@ -93,18 +93,33 @@ jobs:
       # --as-cran implies --run-donttest (reruns every example, including
       # \donttest{} blocks, in one combined session). That pass is fast and
       # clean on every other leg of this matrix (macOS: ~32s, all 3 Ubuntu
-      # configs: ~67-68s) but has been observed to hang indefinitely on
+      # configs: ~67-68s) but was observed to hang indefinitely on
       # windows-latest specifically -- a run on 2026-08-09 sat in "checking
       # examples with --run-donttest" for 5.5+ hours before GitHub's own
       # hard 6h job timeout killed it, with no single culprit example
       # isolatable (unlike the earlier Windows-only GLPK-solver test hang;
-      # see test-fixed-design-optimal-blocks.R's skip_on_os("windows")).
-      # Since the other 4 legs already exercise every \donttest{} example
-      # successfully, disabling it only here (rather than dropping --as-cran
-      # entirely) keeps that coverage while avoiding a repeat multi-hour
-      # stuck job. See https://forum.posit.co/t/r-cmd-check-r-4-0-0-now-runs-donttest-how-to-proceed-with-long-running-examples/64493
+      # see test-fixed-design-optimal-blocks.R's skip_on_os("windows")). See
+      # https://forum.posit.co/t/r-cmd-check-r-4-0-0-now-runs-donttest-how-to-proceed-with-long-running-examples/64493
       # for _R_CHECK_DONTTEST_EXAMPLES_ overriding --as-cran's default.
-      _R_CHECK_DONTTEST_EXAMPLES_: ${{ matrix.config.os == 'windows-latest' && 'false' || 'true' }}
+      #
+      # EXPERIMENT (2026-08-17, release_v1_0_0.md Release Gate item): a static
+      # audit of every \donttest{} block found no blocking call (no system(),
+      # Sys.sleep, readline, sockets, download.file, or parallel::mclapply/
+      # cluster usage) and no example on the known-hanging GLPK/ompr MILP
+      # path -- the leading remaining suspect is MinGW's OpenMP/pthread
+      # implementation interacting badly with R's single-threaded example
+      # harness (the package's C++ kernels are pervasively OpenMP-parallel;
+      # see the `_OPENMP`-gated kernels under `src/`). Re-enabling the
+      # donttest pass here with OMP_NUM_THREADS pinned to 1 (Windows-only) is
+      # a targeted test of that hypothesis. Now that the job carries a
+      # 90-minute `timeout-minutes` (see above; added for an unrelated
+      # 2026-08-10 incident), the exposure if this doesn't fix it is capped at
+      # ~90 minutes, not the original 5.5-hour incident. If the hang recurs,
+      # revert both lines below (_R_CHECK_DONTTEST_EXAMPLES_ back to 'false',
+      # drop the OMP_NUM_THREADS override) and fall back to per-file-group CI
+      # bisection instead.
+      _R_CHECK_DONTTEST_EXAMPLES_: true
+      OMP_NUM_THREADS: ${{ matrix.config.os == 'windows-latest' && '1' || '' }}
 
     steps:
       - uses: actions/checkout@v7

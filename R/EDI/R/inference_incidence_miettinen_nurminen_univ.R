@@ -7,9 +7,28 @@
 #'
 #' @details
 #' This class is intentionally unadjusted. It operates on the \eqn{2 \times 2}
-#' table induced by treatment assignment and incidence response, and is therefore
-#' the natural classical binary-endpoint complement to the regression-based
-#' incidence methods already in the package.
+#' table induced by treatment assignment and incidence response (counts
+#' \eqn{x_T, x_C} of events among \eqn{n_T, n_C} treated/control subjects), and
+#' is therefore the natural classical binary-endpoint complement to the
+#' regression-based incidence methods already in the package. The point
+#' estimate is the plain risk difference \eqn{\hat p_T - \hat p_C}; the
+#' Miettinen-Nurminen confidence interval and p-value invert a
+#' \strong{restricted-maximum-likelihood score test} of \eqn{H_0: p_T - p_C =
+#' \delta} (via \code{mn_ci_cpp}/\code{mn_pvalue_cpp}) — under the null, the two
+#' arms' event probabilities are re-estimated subject to the constraint
+#' \eqn{\hat p_T - \hat p_C = \delta}, and the resulting score statistic is
+#' compared to its asymptotic normal distribution, with a small-sample bias
+#' correction factor \eqn{(n_T+n_C)/(n_T+n_C-1)} applied to the naive Wald
+#' variance used elsewhere (e.g. in \code{$compute_estimate_with_bootstrap_weights()},
+#' which never gets this correction since it skips the score-test path
+#' entirely). This score-based interval generally has better small-sample
+#' coverage than the naive normal-approximation Wald interval on the risk
+#' difference.
+#'
+#' @references Miettinen, O., and Nurminen, M. (1985). "Comparative Analysis of
+#'   Two Rates." \emph{Statistics in Medicine}, 4(2), 213-226,
+#'   \doi{10.1002/sim.4780040211}, for the restricted-maximum-likelihood score
+#'   method used here.
 #'
 #' @examples
 #' \donttest{
@@ -21,11 +40,17 @@
 #' inf = InferenceIncidMiettinenNurminenRiskDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @concept risk difference
+#' @concept Miettinen-Nurminen
 #' @export
-InferenceIncidMiettinenNurminenRiskDiff = R6::R6Class("InferenceIncidMiettinenNurminenRiskDiff",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceIncidMiettinenNurminenRiskDiff = define_inference_class(
+	classname = "InferenceIncidMiettinenNurminenRiskDiff",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize a Miettinen-Nurminen risk-difference inference object for a
 		#' completed design with an incidence response.
 		#' @param des_obj A completed \code{DesignSeqOneByOne} object with an incidence response.
@@ -56,16 +81,26 @@ InferenceIncidMiettinenNurminenRiskDiff = R6::R6Class("InferenceIncidMiettinenNu
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Computes the observed risk-difference estimate.
+		#' @description Computes the observed (unadjusted) risk-difference estimate
+		#'   \eqn{\hat p_T - \hat p_C} (see class documentation for the full
+		#'   Miettinen-Nurminen inference model). \code{NA} if either arm is empty.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
+		#' @description Recomputes the risk-difference estimate under subject/block
+		#'   bootstrap weights: the weighted event proportions \eqn{\hat p_T^w =
+		#'   \sum_i r_i y_i \mathbb{1}[w_i=1] / \sum_i r_i \mathbb{1}[w_i=1]} (and
+		#'   analogously for control), differenced. Used by the Bayesian bootstrap
+		#'   and related weighted-resampling machinery; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#'   Always leaves the standard error and degrees of freedom unavailable
+		#'   (\code{NA}) regardless of \code{estimate_only} — this weighted path
+		#'   never computes the Miettinen-Nurminen score-based variance.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
-		#' @param estimate_only If TRUE, skip variance calculations.
+		#' @param estimate_only Present for interface parity; this method never
+		#'   computes variance components regardless of its value.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			i_t = private$w == 1
@@ -96,7 +131,10 @@ InferenceIncidMiettinenNurminenRiskDiff = R6::R6Class("InferenceIncidMiettinenNu
 			private$cached_values$summary_table = NULL
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes a 1 - \code{alpha} Miettinen-Nurminen score confidence interval.
+		#' @description Computes a \eqn{1-\alpha} Miettinen-Nurminen restricted-MLE
+		#'   score confidence interval for the risk difference (see class
+		#'   documentation for the full method), by bisection-inverting the score
+		#'   test (\code{mn_ci_cpp}) to \code{pval_epsilon} tolerance.
 		#' @param alpha The confidence level in the computed confidence
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
 		#' @param pval_epsilon Bisection tolerance for CI bounds.
@@ -112,7 +150,9 @@ InferenceIncidMiettinenNurminenRiskDiff = R6::R6Class("InferenceIncidMiettinenNu
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
 		},
-		#' @description Computes a two-sided Miettinen-Nurminen score p-value.
+		#' @description Computes a two-sided Miettinen-Nurminen restricted-MLE
+		#'   score p-value (\code{mn_pvalue_cpp}) testing \eqn{H_0: p_T - p_C =
+		#'   \code{delta}} (see class documentation for the full method).
 		#' @param delta The null treatment effect on the risk-difference scale.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -201,5 +241,20 @@ InferenceIncidMiettinenNurminenRiskDiff = R6::R6Class("InferenceIncidMiettinenNu
 				)
 			)
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

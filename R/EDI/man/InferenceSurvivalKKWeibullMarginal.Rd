@@ -17,7 +17,7 @@ rather than modeling the within-pair correlation explicitly via a frailty
 term, it fits an ordinary (working-independence) Weibull AFT model and
 corrects the treatment-effect standard error post hoc for the within-pair
 dependence. The model is fit via the package's fast C++ Weibull AFT backend
-(\code{fast_weibull_regression_cpp}) and the cluster-robust sandwich is
+(\code{fast_weibull_regression_general_cpp}) and the cluster-robust sandwich is
 assembled from per-subject dfbeta contributions collapsed within clusters,
 which is numerically equivalent to
 \code{survival::survreg(..., cluster = ..., robust = TRUE)} (retained as a
@@ -35,7 +35,7 @@ inf$compute_estimate()
 }
 }
 \section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceSurvivalKKWeibullMarginal}
+\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceSurvivalKKWeibullMarginal}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -104,8 +104,8 @@ inf$compute_estimate()
 </details>
 <details><summary>+ inherited public methods from InferenceRandCI</summary>
 <ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
+  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
+  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceRand</summary>

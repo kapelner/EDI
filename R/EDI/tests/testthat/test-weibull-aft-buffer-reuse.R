@@ -18,8 +18,11 @@ test_that("Weibull AFT reusable buffers preserve score and Hessian", {
 		-sum(dead * (w - log_sigma - log(y)) - exp(w))
 	}
 
-	score <- EDI:::get_weibull_regression_score_cpp(X, y, dead, params)
-	hessian <- EDI:::get_weibull_regression_hessian_cpp(X, y, dead, params)
+	y_exact <- ifelse(dead != 0, y, NA_real_)
+	y_L <- ifelse(dead == 0, y, NA_real_)
+	y_R <- ifelse(dead == 0, Inf, NA_real_)
+	score <- EDI:::get_weibull_regression_general_score_cpp(X, y_exact, y_L, y_R, params)
+	hessian <- EDI:::get_weibull_regression_general_hessian_cpp(X, y_exact, y_L, y_R, params)
 	expect_equal(
 		as.numeric(score),
 		as.numeric(-numDeriv::grad(nll, params)),

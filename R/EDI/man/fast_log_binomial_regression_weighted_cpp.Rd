@@ -2,10 +2,10 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_log_binomial_regression_weighted_cpp}
 \alias{fast_log_binomial_regression_weighted_cpp}
-\title{Fast Weighted Log-Binomial Regression (C++)}
+\title{Fast Weighted Log-Link Binomial Regression, Estimate Only (C++ Backend)}
 \usage{
 fast_log_binomial_regression_weighted_cpp(
-  X_r,
+  X,
   y_r,
   weights_r,
   maxit = 100L,
@@ -20,30 +20,45 @@ fast_log_binomial_regression_weighted_cpp(
 )
 }
 \arguments{
-\item{X_r}{A numeric matrix of predictors.}
+\item{y_r}{A binary (0/1) numeric vector of responses, length \eqn{n}.}
 
-\item{y_r}{A binary numeric vector of responses.}
+\item{weights_r}{A nonnegative numeric vector of length \eqn{n} giving each
+row's weight.}
 
-\item{weights_r}{A nonnegative numeric vector of observation weights.}
-
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of Fisher-scoring iterations.}
 
 \item{tol}{Convergence tolerance.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed
+rather than estimate.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
 
 \item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
 
 \item{warm_start_weights}{Optional initial working weights for the first IRLS iteration.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+
+\item{X_r}{A numeric matrix of predictors, \eqn{n \times p}.}
 }
 \value{
-A list containing coefficients and fitted values.
+A list with the same components as
+  \code{\link{fast_log_binomial_regression_cpp}}: \code{b}, \code{mu_hat},
+  \code{working_weights}, \code{iterations}, \code{converged}, and
+  \code{fisher_information} (all reflecting the weighted log-likelihood).
 }
 \description{
-High-performance weighted log-binomial regression fitting using Fisher scoring.
+Fits the same log-link (relative-risk) binomial regression as
+\code{\link{fast_log_binomial_regression_cpp}} (see that page for the full
+model and boundary-constrained IRLS line search), with each observation's
+contribution to the log-likelihood and IRLS working weights multiplied by a
+nonnegative row weight \code{weights_r[i]}. Setting all weights to 1
+recovers \code{\link{fast_log_binomial_regression_cpp}} exactly.
+}
+\seealso{
+\code{\link{fast_log_binomial_regression_cpp}} for the unweighted
+  model and full documentation.
 }
 \keyword{internal}

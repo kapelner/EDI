@@ -8,6 +8,18 @@ library(data.table)
 
 set.seed(42)
 
+.fit_weibull_general_right_censored = function(X, y, dead, warm_start_params = NULL,
+        smart_cold_start = TRUE, estimate_only = FALSE, maxit = 100, tol = 1e-8,
+        fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs",
+        warm_start_fisher_info = NULL) {
+    fast_weibull_regression_general_cpp(
+        X, ifelse(dead != 0, y, NA_real_), ifelse(dead == 0, y, NA_real_),
+        ifelse(dead == 0, Inf, NA_real_), warm_start_params, smart_cold_start,
+        estimate_only, maxit, tol, fixed_idx, fixed_values, optimization_alg,
+        warm_start_fisher_info
+    )
+}
+
 # Helper to generate data
 generate_data = function(n = 150, p = 15, family = "logistic", n_groups = 15) {
     X = matrix(rnorm(n * p), n, p)
@@ -139,7 +151,7 @@ families = list(
     list(name = "Ordinal", fun = fast_ordinal_regression_with_var_cpp, family = "ordinal", alg = "newton_raphson"),
     list(name = "ZINB", fun = fast_zinb_cpp, family = "negbin", extra_data = list(Xzi = matrix(rnorm(150*15), 150, 15))),
     list(name = "ZAP", fun = fast_zero_augmented_poisson_cpp, family = "poisson", extra_data = list(Xzi = matrix(rnorm(150*15), 150, 15)), extra_args = list(is_hurdle = TRUE)),
-    list(name = "Weibull (AFT)", fun = fast_weibull_regression_cpp, family = "weibull"),
+    list(name = "Weibull (AFT)", fun = .fit_weibull_general_right_censored, family = "weibull"),
     list(name = "AdjCatLogit", fun = fast_adjacent_category_logit_cpp, family = "ordinal"),
     list(name = "ContRatio", fun = fast_continuation_ratio_regression_cpp, family = "ordinal"),
     list(name = "Stereotype", fun = fast_stereotype_logit_cpp, family = "ordinal"),

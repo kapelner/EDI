@@ -7,25 +7,55 @@
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}
 
-\item{y}{A numeric vector of the response variable, expected to be counts.}
+\item{y}{A numeric vector of the response variable, expected to be nonnegative-integer counts.}
 
-\item{weights}{A numeric vector of weights for each observation.}
+\item{weights}{A numeric vector of nonnegative weights, one per observation.}
 
-\item{maxit}{Maximum number of iterations for the IRLS algorithm. Defaults to 100.}
+\item{warm_start_beta}{Optional starting values for coefficients \eqn{\beta}. If
+provided, \code{smart_cold_start} is ignored.}
+
+\item{smart_cold_start}{Logical. If \code{TRUE} and no \code{warm_start_beta} is
+supplied, use a Poisson-specific heuristic initial guess rather than a zero cold start.}
+
+\item{maxit}{Maximum number of iterations. Defaults to 100.}
 
 \item{tol}{Convergence tolerance. Defaults to 1e-8.}
 
-\item{optimization_alg}{Optimization algorithm: \code{"irls"} (default), \code{"newton_raphson"} or \code{"lbfgs"}.}
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed rather than estimate.}
+
+\item{fixed_values}{Optional values to fix the parameters named by \code{fixed_idx} at.}
+
+\item{optimization_alg}{Optimization algorithm: \code{"irls"} (default), \code{"lbfgs"}, or \code{"newton_raphson"}.}
+
+\item{warm_start_weights}{Accepted but unused; see \code{\link{fast_poisson_regression_cpp}} Details.}
+
+\item{warm_start_fisher_info}{Optional initial curvature (information) matrix to warm-start the first iteration.}
 }
 \value{
 A list containing the following components:
 \describe{
-\item{b}{A numeric vector of the estimated Poisson regression coefficients.}
-\item{mu}{The fitted values.}
-\item{XtWX}{The XtWX matrix at the final iteration.}
-\item{converged}{A logical value indicating whether the IRLS algorithm converged.}
+\item{b}{A numeric vector of the estimated Poisson regression coefficients \eqn{\hat\beta}.}
+\item{mu}{The fitted means \eqn{\hat\mu_i}.}
+\item{XtWX, fisher_information}{Two aliases for the same (weighted) curvature matrix
+  \eqn{X^\top W X}, \eqn{W = \mathrm{diag}(\code{weights}_i \hat\mu_i)}, at the fitted
+  coefficients.}
+\item{score}{The weighted score vector at the fitted coefficients.}
+\item{neg_ll}{The weighted negative log-likelihood at the fitted coefficients.}
+\item{converged}{A logical value indicating whether the algorithm converged.}
+\item{iterations}{The number of iterations performed.}
+\item{gradient_norm}{The norm of the score vector at convergence.}
 }
 }
 \description{
-Fast Weighted Poisson Regression (C++ Backend)
+Fits the same Poisson log-link model as \code{\link{fast_poisson_regression_cpp}}
+(see that page for the full model and optimizer contract), with each
+observation's contribution to the log-likelihood, score, and IRLS working
+weights multiplied by a row weight \code{weights[i]}. Setting all weights to 1
+recovers \code{\link{fast_poisson_regression_cpp}} exactly. Always fits with
+\code{estimate_only = FALSE} (there is no flag to skip the post-fit \code{mu}/
+\code{XtWX}/\code{score} computation for this variant).
+}
+\seealso{
+\code{\link{fast_poisson_regression_cpp}} for the unweighted variant and full
+  model documentation.
 }

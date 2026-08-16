@@ -527,7 +527,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 						n_units = length(unit_group_id)
 					))
 				}
-				if (is(design_obj, "DesignFixedBlockedCluster")) {
+				if (isTRUE(design_obj$is_a_cluster_capable())) {
 					cluster_ids = as.character(private$des_obj_priv_int$Xraw[seq_len(n), ][[private$des_obj_priv_int$cluster_col]])
 					unit_keys = paste(block_ids, cluster_ids, sep = "::")
 					row_to_unit = match(unit_keys, unique(unit_keys))

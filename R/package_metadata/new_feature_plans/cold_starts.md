@@ -1,5 +1,7 @@
 # Smart Cold Start Strategies in EDI
 
+> **Depends on:** none. (Global ordering: see `_master.md`.)
+
 This report summarizes how the "smart cold start" (initial parameter selection from no prior knowledge) is performed for each likelihood path in the `EDI` package. 
 
 A **Cold Start** occurs when fitting a model on a new dataset with no previous iteration data. **Smart Starts** use optimized heuristics (like OLS) to find a starting point near the MLE, significantly reducing iterations compared to a naive start at zero.

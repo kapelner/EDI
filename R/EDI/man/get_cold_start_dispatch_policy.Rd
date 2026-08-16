@@ -7,18 +7,37 @@
 get_cold_start_dispatch_policy()
 }
 \value{
-A named list with \code{default} (logical) and
-  \code{inference_class_overrides} (named logical vector of regex ->
-  logical).
+A named list with \code{default} (logical, the fallback when no
+  override pattern matches; \code{TRUE} in the built-in policy) and
+  \code{inference_class_overrides} (a named logical vector: regular-expression
+  pattern names to \code{TRUE}/\code{FALSE} values, matched against the
+  inference class name).
 }
 \description{
-Returns EDI's built-in policy for the \code{smart_cold_start} default used
-by each inference class.  A \code{TRUE} entry means the solver initialises
-via an OLS warm-up before IRLS; \code{FALSE} means a plain zero-vector cold
-start.  Benchmarks show the OLS warm-up is net-negative for logistic and
-Poisson IRLS at typical trial sizes (the one extra OLS solve costs more than
-the IRLS iterations it saves), so those families default to \code{FALSE}.
+Returns EDI's built-in policy table, consulted by the internal (non-exported)
+dispatcher \code{edi_cold_start_dispatch_policy()}, for the \code{smart_cold_start}
+default used by each inference class's C++ model-fitting backend. A \code{TRUE}
+entry means the solver initializes via an OLS (or otherwise model-appropriate
+heuristic) warm-up before iterating; \code{FALSE} means a plain zero-vector cold
+start. Benchmarks show the OLS warm-up is net-negative for logistic and Poisson
+IRLS at typical trial sizes (the one extra OLS solve costs more than the IRLS
+iterations it saves), so those families — along with several G-computation-based
+incidence/proportion inference classes — default to \code{FALSE} here.
+}
+\details{
+The dispatcher checks the inference class name against
+  \code{inference_class_overrides}'s named regular-expression patterns in list
+  order, returning the associated logical value at the first match; if none
+  match, it falls back to \code{default} (\code{TRUE}). Unlike
+  \code{\link{get_bootstrap_dispatch_policy}}, there is no separate
+  design-class-scoped override table here — only a single flat pattern list.
 }
 \examples{
 get_cold_start_dispatch_policy()
+}
+\seealso{
+\code{\link{get_bootstrap_dispatch_policy}} and
+  \code{\link{get_optimization_dispatch_policy}} for the analogous policies
+  controlling bootstrap CI type and default optimizer algorithm;
+  \code{\link{set_cold_start_dispatch_policy}} to override this policy at runtime.
 }

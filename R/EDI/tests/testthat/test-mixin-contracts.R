@@ -19,7 +19,8 @@ edi_r_source_files = function() {
 canonical_component_names = function() {
 	c(
 		"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-		"RandomizationBootstrap", "BayesianBootstrap", "Jackknife", "Wald",
+		"RandomizationBootstrap", "RandomizationBootstrapCI",
+		"BayesianBootstrap", "Jackknife", "Wald",
 		"SimpleMeanDifference", "SimpleMeanDifferencePooledVar",
 		"KKMeanDifferenceIVWC", "SimpleWilcox", "KKWilcoxIVWC",
 		"ExactTest", "ExactBinomialIncidence", "ExactFisherIncidence",
@@ -38,14 +39,14 @@ canonical_component_names = function() {
 			"IncidenceLogisticLikelihood", "IncidenceProbitLikelihood",
 			"IncidenceLogBinomialLikelihood", "IncidenceModifiedPoissonLikelihood",
 			"IncidenceBinomialIdentityLikelihood", "IncidenceGComputation",
-			"IncidenceGComputationRiskDiff", "IncidenceGComputationRiskRatio",
 			"SurvivalWeibullLikelihood", "SurvivalDepCensTransform",
 			"SurvivalKKWeibullMarginal", "SurvivalKKClaytonCopulaIVWC",
 			"SurvivalKKClaytonCopulaOneLik", "SurvivalKKWeibullFrailtyIVWC",
 			"SurvivalKKWeibullFrailtyIVWCLeaf", "SurvivalKKWeibullFrailtyOneLik",
 			"SurvivalKKWeibullFrailtyOneLikLeaf",
 					"KKPassThrough", "KKCompound", "KKGEE",
-		"RobustSandwich", "KKGLMM", "OffOptimumLikelihoodEval", "BartlettApproximation"
+		"RobustSandwich", "KKGLMM", "OffOptimumLikelihoodEval",
+		"QuantileRandomizationCI", "BartlettApproximation"
 	)
 }
 
@@ -64,7 +65,7 @@ test_that("every mixin has a documented host contract and is collated after the 
 
 	collate = strsplit(utils::packageDescription("EDI")$Collate, "[[:space:]]+")[[1L]]
 	collate = gsub("'", "", collate, fixed = TRUE)
-	registry_position = match("mixin_contracts.R", collate)
+	registry_position = match("contracts_mixins.R", collate)
 	expect_true(is.finite(registry_position))
 	for (file in vapply(contracts, `[[`, character(1), "file")) {
 		expect_gt(match(file, collate), registry_position)
@@ -107,7 +108,7 @@ test_that("active behavior components are registered with canonical names", {
 	}
 	expect_identical(components$KKPassThrough$source_name, "InferenceMixinKKPassThrough")
 	expect_identical(components$RandomizationTest$source_name, "InferenceRand")
-	expect_identical(components$ExactTest$source_name, "InferenceExact")
+	expect_identical(components$ExactTest$source_name, "ExactTestSource")
 	expect_identical(components$ExactBinomialIncidence$source_name, "ExactBinomialIncidenceSource")
 	expect_identical(components$ExactFisherIncidence$source_name, "ExactFisherIncidenceSource")
 	expect_identical(components$ExactZhangIncidence$source_name, "ExactZhangIncidenceSource")
@@ -118,6 +119,41 @@ test_that("active behavior components are registered with canonical names", {
 	expect_equal(length(components$ParametricLikelihoodBootstrap$public), 0L)
 	expect_equal(length(components$BartlettApproximation$private), 0L)
 	expect_equal(length(components$RandomizationTest$optional_private_methods), 0L)
+})
+
+test_that("lazy component private fields are declared as owned state", {
+	specs = EDI:::EDI_COMPONENT_SPECS
+	ns = asNamespace("EDI")
+	for (component_name in names(specs)) {
+		spec = specs[[component_name]]
+		if (!identical(spec$load_policy, "lazy")) next
+		source = get(spec$source_name, envir = ns, inherits = TRUE)
+		private = EDI:::inference_component_source_parts(source)$private
+		private_fields = as.character(names(private)[!vapply(private, is.function, logical(1L))])
+		declared_state = if (is.null(spec$owns_state)) character() else spec$owns_state
+		expect_setequal(declared_state, private_fields)
+	}
+})
+
+test_that("every lazy component implementation matches its declared contract", {
+	on.exit(EDI:::clear_inference_component_implementation_cache(), add = TRUE)
+	EDI:::clear_inference_component_implementation_cache()
+	components = EDI:::inference_component_registry_as_list()
+	lazy_names = names(Filter(function(component) {
+		identical(component$component_loader$load_policy, "lazy")
+	}, components))
+	errors = character()
+	for (component_name in lazy_names) {
+		tryCatch(
+			EDI:::get_lazy_component_dispatch(component_name, class_name = "InferenceLazyContractProbe"),
+			error = function(e) errors[[component_name]] <<- conditionMessage(e)
+		)
+	}
+	expect_length(
+		errors,
+		0L,
+		info = if (length(errors) == 0L) NULL else paste(names(errors), errors, sep = ": ", collapse = "\n")
+	)
 })
 
 test_that("component provided method metadata matches actual list names", {
@@ -314,6 +350,35 @@ test_that("define_inference_class assembles component public and private members
 	expect_identical(obj$host_public(), "host")
 	expect_true("component_public" %in% names(gen$public_methods))
 	expect_true("component_private" %in% names(gen$private_methods))
+})
+
+test_that("factory NULL state survives assembly, locked subclasses, and duplicate cache reset", {
+	gen = EDI:::define_inference_class(
+		classname = "InferenceTemporaryNullStateHost",
+		inherit = EDI:::Inference,
+		public = list(
+			initialize = function(config) {
+				private$config = config
+				private$cached_values$config = config
+			},
+			persistent_config = function() private$config,
+			cached_config = function() private$cached_values$config
+		),
+		private = list(config = NULL),
+		metadata = list(likelihood_tier = "none")
+	)
+	locked_child = R6::R6Class(
+		"InferenceTemporaryNullStateLockedChild",
+		inherit = gen
+	)
+
+	obj = locked_child$new(config = 0.75)
+	expect_identical(obj$persistent_config(), 0.75)
+	expect_identical(obj$cached_config(), 0.75)
+
+	worker = obj$duplicate()
+	expect_identical(worker$persistent_config(), 0.75)
+	expect_null(worker$cached_config())
 })
 
 test_that("lazy components preserve method presence and load on first use", {

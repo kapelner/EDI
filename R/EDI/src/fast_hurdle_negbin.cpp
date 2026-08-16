@@ -7,6 +7,7 @@
 #include <RcppEigen.h>
 #include <Rmath.h>
 #endif
+#include "internal_fn_decls.h"
 #include <unordered_map>
 #include <stdexcept>
 
@@ -14,22 +15,6 @@
 using namespace Rcpp;
 #endif
 using namespace Eigen;
-
-// Forward declaration from fast_logistic_regression.cpp
-ModelResult fast_logistic_regression_internal(
-	const Eigen::Ref<const Eigen::MatrixXd>& X,
-	const Eigen::Ref<const Eigen::VectorXd>& y,
-	const Eigen::Ref<const Eigen::VectorXd>& weights = Eigen::VectorXd(),
-	std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
-	bool smart_cold_start = true,
-	int maxit = 100,
-	double tol = 1e-8,
-	std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
-	std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
-	std::string optimization_alg = "lbfgs",
-	std::optional<Eigen::VectorXd> warm_start_weights = std::nullopt,
-	std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
-	bool estimate_only = false);
 
 namespace {
 
@@ -847,12 +832,15 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 Eigen::VectorXd get_hurdle_negbin_count_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXd>& params) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 
+	if (X_r.rows() != y_r_vec_coerced.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements",
+		           (int)X_r.rows(), (int)y_r_vec_coerced.size());
+	}
+	if (params.size() != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)",
+		           (int)params.size(), (int)X_r.cols() + 1);
+	}
 
-	
-
-	
-
-	
 	edi::ResultMap pos = build_positive_hurdle_negbin_data(X_r, y_r_vec_coerced);
 	MatrixXd X_pos = *pos.get_if<Eigen::MatrixXd>("X_pos");
 	VectorXi y_pos = pos.get_if<Eigen::VectorXd>("y_pos")->cast<int>();
@@ -866,12 +854,15 @@ Eigen::VectorXd get_hurdle_negbin_count_score_cpp(const Eigen::Map<Eigen::Matrix
 Eigen::MatrixXd get_hurdle_negbin_count_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXd>& params) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 
+	if (X_r.rows() != y_r_vec_coerced.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements",
+		           (int)X_r.rows(), (int)y_r_vec_coerced.size());
+	}
+	if (params.size() != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)",
+		           (int)params.size(), (int)X_r.cols() + 1);
+	}
 
-	
-
-	
-
-	
 	edi::ResultMap pos = build_positive_hurdle_negbin_data(X_r, y_r_vec_coerced);
 	MatrixXd X_pos = *pos.get_if<Eigen::MatrixXd>("X_pos");
 	VectorXi y_pos = pos.get_if<Eigen::VectorXd>("y_pos")->cast<int>();
@@ -910,22 +901,96 @@ List fast_hurdle_negbin_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, co
 	return edi::to_rcpp_list(res);
 }
 
-//' @title Fast Hurdle Negative Binomial Regression with Variance (C++)
-//' @description Hurdle NB regression with full variance-covariance matrix.
-//' @param X_r Matrix of predictors for the count component.
-//' @param y_r Vector of responses.
-//' @param X_hurdle_r Matrix of predictors for the hurdle component.
-//' @param j 1-based index of the parameter for which to return specific variance.
-//' @param warm_start_params Optional starting values for count parameters. If provided, \code{smart_cold_start} is ignored.
+//' Fast Hurdle Negative-Binomial Regression, with Variance (C++ Backend)
+//'
+//' Fits a two-part hurdle negative-binomial model for count data with excess
+//' zeros: (1) a \strong{hurdle part} — logistic regression of the binary
+//' indicator \eqn{I(Y_i > 0)} on \code{X_hurdle} — models whether the hurdle is
+//' crossed at all, and (2) a \strong{count part} — a zero-truncated
+//' negative-binomial regression fit only on the subset of subjects with
+//' \eqn{Y_i > 0}, using \code{X} — models the count \emph{given} the hurdle is
+//' crossed. Unlike a zero-inflated model (which mixes a point mass at zero with
+//' an \emph{untruncated} count distribution that can itself also produce zeros),
+//' the hurdle model's two parts are a clean partition: every zero comes from the
+//' hurdle part, and every positive count's distribution is exactly the
+//' negative-binomial conditional on being positive (left-truncated at 1).
+//'
+//' @details
+//' \strong{Hurdle part.} Fit via \code{\link{fast_logistic_regression_cpp}}'s
+//' internal engine on \code{y_pos_ind = as.numeric(y > 0)} regressed on
+//' \code{X_hurdle}; if \code{y_pos_ind} has no variation (all-zero or
+//' all-positive \code{y}), the hurdle part is skipped (\code{hurdle_b} is all
+//' \code{NA}, \code{hurdle_converged = FALSE}) rather than erroring.
+//'
+//' \strong{Count part.} Fit on the positive-count subset
+//' (\eqn{n_+ = \sum_i I(y_i > 0)} rows) via maximum likelihood on the
+//' zero-truncated negative-binomial density with mean-parameterized dispersion
+//' \eqn{\theta}: parameter vector \code{c(beta, log(theta))} (length
+//' \code{p + 1}), with \eqn{\theta} optimized on the log scale for positivity
+//' and reported back as \code{theta_hat = exp(params[p+1])}. If \eqn{n_+ \le p}
+//' (too few positive observations to identify the count-model coefficients), the
+//' count part returns \code{b} as all \code{NA} and \code{converged = FALSE}
+//' with an explanatory \code{failure_message}, while the hurdle part (which does
+//' not depend on \eqn{n_+}) is still fit and returned normally.
+//'
+//' \strong{Variance.} \code{ssq_b_j}/\code{ssq_b_2} are the variances of the
+//' \code{j}-th and 2nd count-model coefficients (from the count part's observed
+//' information, restricted to free/non-\code{fixed_idx} parameters);
+//' \code{hurdle_ssq_b_j}/\code{hurdle_ssq_b_2} are the analogous variances for
+//' the hurdle-model coefficients (index \code{j} into \emph{that} model's own
+//' coefficient vector, from the hurdle logistic regression's own information
+//' matrix — no \code{fixed_idx} applies to the hurdle part). Both use a targeted
+//' diagonal-entry inversion rather than a full matrix inverse, and are \code{NA}
+//' if the relevant coefficient was fixed, out of range, or its model failed to
+//' converge/produce a finite information matrix.
+//'
+//' @param X_r Numeric matrix of predictors for the count component (the
+//'   zero-truncated negative-binomial part), \eqn{n \times p}.
+//' @param y_r Numeric vector of length \eqn{n}: observed non-negative integer
+//'   counts (zeros are handled by the hurdle part; only the positive subset is
+//'   passed to the truncated count part).
+//' @param X_hurdle_r Numeric matrix of predictors for the hurdle (zero-vs-
+//'   positive) logistic component, \eqn{n \times p_{\mathrm{hurdle}}}; may differ
+//'   from \code{X_r} (a different covariate set for "does an event occur at
+//'   all" vs. "how many, given at least one").
+//' @param j 1-based index (into the count model's \eqn{p} coefficients) of the
+//'   coefficient to report \code{ssq_b_j} for.
+//' @param warm_start_params Optional starting values for the count model's full
+//'   \code{c(beta, log(theta))} parameter vector. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param maxit Maximum number of iterations.
-//' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first iteration.
-//' @param warm_start_hurdle_fisher_info Optional initial Fisher Information matrix for the hurdle iteration.
-//' @return A list containing coefficients, vcov, and convergence status.
+//' @param maxit Maximum number of count-model optimizer iterations.
+//' @param tol Convergence tolerance (count model).
+//' @param fixed_idx Optional integer indices (into the count model's
+//'   \code{c(beta, log(theta))} layout) of parameters to hold fixed rather than
+//'   estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
+//' @param optimization_alg Optimization algorithm for the count model; the
+//'   hurdle logistic part always uses the same algorithm internally.
+//' @param warm_start_fisher_info Optional initial Fisher Information matrix for
+//'   the count model's first optimizer iteration.
+//' @param warm_start_hurdle_fisher_info Optional initial Fisher Information
+//'   matrix for the hurdle logistic model's first optimizer iteration.
+//' @return A list with components \code{b} (count-model coefficients
+//'   \eqn{\hat\beta}), \code{theta_hat} (the zero-truncated NB dispersion),
+//'   \code{converged} (count model), \code{hurdle_b} (hurdle logistic
+//'   coefficients), \code{hurdle_converged}, \code{ssq_b_j}/\code{ssq_b_2}
+//'   (count-model coefficient variances), \code{hurdle_ssq_b_j}/
+//'   \code{hurdle_ssq_b_2} (hurdle-model coefficient variances),
+//'   \code{observed_information}/\code{fisher_information}/\code{information}
+//'   (three aliases for the count model's observed information, over
+//'   \code{c(beta, log(theta))}), \code{information_type = "observed"},
+//'   \code{hessian} (the negative of that information),
+//'   \code{hurdle_fisher_information} (the hurdle model's own information
+//'   matrix), and \code{failure_message} (empty on success, otherwise an
+//'   explanatory string for a degenerate count-part fit).
+//' @seealso \code{\link{fast_logistic_regression_cpp}} for the hurdle
+//'   component's fitting engine.
+//'   \href{https://en.wikipedia.org/wiki/Negative_binomial_distribution}{Negative
+//'   binomial distribution} for orientation. Analogous Python API:
+//'   \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
+//'   discrete models} (\code{HurdleCountModel} with a negative-binomial count
+//'   distribution).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]

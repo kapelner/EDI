@@ -35,10 +35,6 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-Design-is_a_fixed}{\code{Design$is_a_fixed()}}
-    \item \href{#method-Design-is_a_seq_one_by_one}{\code{Design$is_a_seq_one_by_one()}}
-    \item \href{#method-Design-is_a_fixed_custom}{\code{Design$is_a_fixed_custom()}}
-    \item \href{#method-Design-is_a_custom_sequential}{\code{Design$is_a_custom_sequential()}}
     \item \href{#method-Design-is_a_kk_matching_capable}{\code{Design$is_a_kk_matching_capable()}}
     \item \href{#method-Design-is_a_cluster_capable}{\code{Design$is_a_cluster_capable()}}
     \item \href{#method-Design-is_a_bernoulli_capable}{\code{Design$is_a_bernoulli_capable()}}
@@ -53,6 +49,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \item \href{#method-Design-assert_even_allocation}{\code{Design$assert_even_allocation()}}
     \item \href{#method-Design-assert_fixed_sample}{\code{Design$assert_fixed_sample()}}
     \item \href{#method-Design-any_censoring}{\code{Design$any_censoring()}}
+    \item \href{#method-Design-has_general_censoring}{\code{Design$has_general_censoring()}}
     \item \href{#method-Design-get_t}{\code{Design$get_t()}}
     \item \href{#method-Design-get_X_raw}{\code{Design$get_X_raw()}}
     \item \href{#method-Design-get_X_imp}{\code{Design$get_X_imp()}}
@@ -61,13 +58,18 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \item \href{#method-Design-get_y_original}{\code{Design$get_y_original()}}
     \item \href{#method-Design-get_w}{\code{Design$get_w()}}
     \item \href{#method-Design-draw_ws_according_to_design}{\code{Design$draw_ws_according_to_design()}}
+    \item \href{#method-Design-capabilities}{\code{Design$capabilities()}}
+    \item \href{#method-Design-supports}{\code{Design$supports()}}
+    \item \href{#method-Design-randomization_family}{\code{Design$randomization_family()}}
+    \item \href{#method-Design-supports_resampling}{\code{Design$supports_resampling()}}
+    \item \href{#method-Design-supports_randomization_draw}{\code{Design$supports_randomization_draw()}}
+    \item \href{#method-Design-supports_resampling_replay}{\code{Design$supports_resampling_replay()}}
     \item \href{#method-Design-get_n}{\code{Design$get_n()}}
     \item \href{#method-Design-get_y_L}{\code{Design$get_y_L()}}
     \item \href{#method-Design-get_y_R}{\code{Design$get_y_R()}}
     \item \href{#method-Design-get_effective_time}{\code{Design$get_effective_time()}}
     \item \href{#method-Design-get_effective_dead}{\code{Design$get_effective_dead()}}
     \item \href{#method-Design-get_prob_T}{\code{Design$get_prob_T()}}
-    \item \href{#method-Design-has_covariates}{\code{Design$has_covariates()}}
     \item \href{#method-Design-get_response_type}{\code{Design$get_response_type()}}
     \item \href{#method-Design-get_response_type_original}{\code{Design$get_response_type_original()}}
     \item \href{#method-Design-get_ordinal_levels}{\code{Design$get_ordinal_levels()}}
@@ -79,61 +81,6 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \item \href{#method-Design-clone}{\code{Design$clone()}}
   }
 }
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-is_a_fixed"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-is_a_fixed}{}}}
-\subsection{\code{Design$is_a_fixed()}}{
-  Characterization: is this a fixed-sample-size design?
-  Default \code{FALSE}; overridden to \code{TRUE} on \code{DesignFixed}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{Design$is_a_fixed()}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-is_a_seq_one_by_one"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-is_a_seq_one_by_one}{}}}
-\subsection{\code{Design$is_a_seq_one_by_one()}}{
-  Characterization: is this a sequential one-by-one design?
-  Default \code{FALSE}; overridden to \code{TRUE} on
-  \code{DesignSeqOneByOne}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{Design$is_a_seq_one_by_one()}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-is_a_fixed_custom"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-is_a_fixed_custom}{}}}
-\subsection{\code{Design$is_a_fixed_custom()}}{
-  Characterization: is this a custom fixed-design extension?
-  Default \code{FALSE}; overridden to \code{TRUE} on
-  \code{DesignFixedCustom}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{Design$is_a_fixed_custom()}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-is_a_custom_sequential"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-is_a_custom_sequential}{}}}
-\subsection{\code{Design$is_a_custom_sequential()}}{
-  Characterization: is this a custom sequential-design
-  extension? Default \code{FALSE}; overridden to \code{TRUE} on
-  \code{DesignCustomSequential}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{Design$is_a_custom_sequential()}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Design-is_a_kk_matching_capable"></a>}}
 \if{latex}{\out{\hypertarget{method-Design-is_a_kk_matching_capable}{}}}
@@ -253,9 +200,13 @@ and \code{y_R} -- never together, never just one of the two.}
       \item{\code{y_L}}{For a censored survival response, the lower bound of the
 event-time interval. Right-censored: the last known event-free
 time (pair with \code{y_R = Inf}). Left-censored: \code{0},
-which must be stated explicitly rather than defaulted -- and
-note left-censoring is not yet implemented (see \code{y_R}).
-Interval-censored: the interval's lower bound.}
+which must be stated explicitly rather than defaulted.
+Interval-censored: the interval's lower bound. Storage accepts
+any well-formed left-/interval-censored value; whether a given
+\code{Inference} class can actually consume it depends on that
+class (most survival \code{Inference} classes still only accept
+exact/right-censored data and will reject construction with a
+clear error otherwise -- see individual class docs).}
       \item{\code{y_R}}{For a censored survival response, the upper bound of the
 event-time interval. Right-censored: \code{Inf}. Left-/
 interval-censored: the confirmed-by time / interval upper bound.}
@@ -283,9 +234,13 @@ for those instead).}
       \item{\code{y_Ls}}{The censored-response lower bounds, \code{NA} for any
 subject with an exact response in \code{ys}. Right-censored:
 the last known event-free time (pair with \code{y_Rs = Inf}).
-Left-censored: \code{0}, stated explicitly -- left-censoring is
-not yet implemented (see \code{y_Rs}). Interval-censored: the
-interval's lower bound.}
+Left-censored: \code{0}, stated explicitly. Interval-censored:
+the interval's lower bound. Storage accepts any well-formed
+left-/interval-censored value; whether a given \code{Inference}
+class can actually consume it depends on that class (most
+survival \code{Inference} classes still only accept exact/
+right-censored data and will reject construction with a clear
+error otherwise -- see individual class docs).}
       \item{\code{y_Rs}}{The censored-response upper bounds, \code{NA} for any
 subject with an exact response in \code{ys}. Right-censored:
 \code{Inf}. Left-/interval-censored: the confirmed-by time /
@@ -404,6 +359,28 @@ interval upper bound.}
   }
   \subsection{Returns}{
     \code{TRUE} if any censored.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-has_general_censoring"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-has_general_censoring}{}}}
+\subsection{\code{Design$has_general_censoring()}}{
+  Checks if the experiment has any left- or
+  interval-censored survival responses -- i.e. any subject whose
+  \code{y_R} is finite (right-censored subjects have
+  \code{y_R = Inf}, which is excluded). Most survival
+  \code{Inference} classes cannot yet consume this shape of data
+  (see \code{get_effective_time()}/\code{get_effective_dead()});
+  this is the check \code{Inference$initialize()} uses to reject
+  construction cleanly for those classes.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$has_general_censoring()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    \code{TRUE} if any subject is left- or interval-censored.
   }
 }
 
@@ -535,6 +512,171 @@ interval upper bound.}
 }
 
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-capabilities"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-capabilities}{}}}
+\subsection{\code{Design$capabilities()}}{
+  Returns the metadata-backed capabilities this design object
+  exposes (see \code{fix_design_hierarchy.md}, "Capability Model").
+
+  Some concrete design classes have now been rewired to consume
+  \code{BlockingStructure}/\code{MatchingStructure}/\code{ClusterStructure}
+  via \code{define_design_class()} (see the "Timing-Family Split" Phase 1
+  TODO notes), but this still bridges the gap for the remaining ones: it
+  unions whatever the class registry resolves today with a legacy fallback
+  that calls the existing \code{is_blocking_design()}/\code{is_matching_design()}/
+  \code{supports_batch_w_pregeneration()} predicates directly, so callers get
+  correct answers regardless of which path a given class has been migrated
+  through. The fallback is temporary and should be deleted once every
+  concrete class is migrated and the registry alone is authoritative.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$capabilities()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A character vector of capability names.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-supports"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-supports}{}}}
+\subsection{\code{Design$supports()}}{
+  Returns whether this design object supports a metadata-backed
+  capability. See \code{capabilities()} for the current registry/legacy
+  bridging caveat.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$supports(capability)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{capability}}{A capability name, e.g. \code{"blocking"},
+\code{"matching"}, or \code{"batch_w_pregeneration"}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    \code{TRUE} if the capability is present, \code{FALSE} otherwise.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-randomization_family"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-randomization_family}{}}}
+\subsection{\code{Design$randomization_family()}}{
+  Returns this design object's registry-backed randomization
+  family (see \code{fix_design_hierarchy.md}, "Class Metadata"), e.g.
+  \code{"kk14"}, \code{"bernoulli"}, \code{"rerandomization"}. Replaces
+  class-identity (\code{inherits()}/\code{is()}) dispatch at call sites that
+  need to distinguish design variants (see "Class-Identity Dispatch
+  Replacement"). Returns \code{NA_character_} if the class is not registered
+  or is one of the unsplit/timing-root abstract bases.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$randomization_family()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A single character string (or \code{NA_character_}).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-supports_resampling"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-supports_resampling}{}}}
+\subsection{\code{Design$supports_resampling()}}{
+  Check if the design supports resampling at all -- \code{FALSE}
+  only for the abstract timing-family bases themselves (\code{DesignFixed},
+  \code{DesignSeqOneByOne}, and their custom-extension abstract bases)
+  instantiated directly; \code{TRUE} for every concrete subclass,
+  \strong{including} \code{ObservationalDesign}. This is the general check
+  for resampling methods that never need the design's own randomization
+  mechanism -- plain nonparametric bootstrap, Bayesian bootstrap,
+  m-out-of-n bootstrap, PRW subsampling -- which only resample already-observed
+  units/rows and their fixed, observed assignment, so they remain valid and
+  available even for a design with no randomization mechanism at all (see
+  \code{ObservationalDesign}'s class documentation: "resampling subjects with
+  their observed, fixed assignment does not require a known randomization
+  probability"). Contrast with \code{supports_randomization_draw()}/
+  \code{supports_resampling_replay()} below, which gate the narrower set of
+  methods that actually do need to invoke the design's mechanism (a plain
+  randomization test/CI, or a bootstrap randomization test that re-randomizes
+  resampled data) and are therefore \code{FALSE} for \code{ObservationalDesign}
+  specifically -- see \code{fix_design_hierarchy.md}, "Observational Design
+  Migration" for the live bug that split fixes.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$supports_resampling()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    TRUE if supported.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-supports_randomization_draw"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-supports_randomization_draw}{}}}
+\subsection{\code{Design$supports_randomization_draw()}}{
+  Check if this design can draw a fresh treatment assignment
+  from its own randomization mechanism -- the eligibility condition for
+  permutation-style randomization tests/CIs (\code{compute_rand_two_sided_pval()}
+  and friends), which redraw \eqn{w} directly. \code{FALSE} for the abstract
+  timing-family bases themselves (same as \code{supports_resampling()}) and,
+  unlike \code{supports_resampling()}, also \code{FALSE} for
+  \code{ObservationalDesign} (no draw mechanism at all -- \eqn{w} is supplied
+  by the user, so there is nothing to redraw); \code{TRUE} for every other
+  concrete subclass. See \code{supports_resampling()}'s documentation for why
+  this is a narrower, separate capability rather than reusing that one, and
+  "Observational Design Migration" for the live bug this fixes
+  (\code{ObservationalDesign} previously answered the old, unsplit
+  \code{supports_resampling()} \code{TRUE}, silently passing the
+  randomization-test eligibility assert before failing later and deeper,
+  inside \code{draw_ws_raw()}'s throwing stub).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$supports_randomization_draw()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    TRUE if a fresh randomization draw is supported.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-supports_resampling_replay"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-supports_resampling_replay}{}}}
+\subsection{\code{Design$supports_resampling_replay()}}{
+  Check if this design's mechanism can be faithfully replayed
+  against resampled data -- the eligibility condition specifically for the
+  bootstrap \emph{randomization test} (BRT), which resamples units and then
+  re-randomizes each resample using the design's own mechanism (see
+  \code{inference_all_abstract_rand_bootstrap.R}'s repeated
+  \code{draw_ws_according_to_design()} calls). \strong{Not} the eligibility
+  condition for plain nonparametric/Bayesian/m-out-of-n/PRW-subsampling
+  bootstrap -- those never redraw \eqn{w} at all (they resample already-observed
+  units and their fixed, observed assignment) and are gated by the broader
+  \code{supports_resampling()} instead, which stays \code{TRUE} for
+  \code{ObservationalDesign}. \code{FALSE} for the same abstract timing-family
+  bases as \code{supports_randomization_draw()} and for
+  \code{ObservationalDesign} (no randomization mechanism to replay); \code{TRUE}
+  for every other concrete subclass. See \code{supports_randomization_draw()}'s
+  documentation for why this is a separate capability rather than the same flag
+  reused.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$supports_resampling_replay()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    TRUE if bootstrap-randomization-test-style replay is supported.
+  }
+}
+
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Design-get_n"></a>}}
 \if{latex}{\out{\hypertarget{method-Design-get_n}{}}}
 \subsection{\code{Design$get_n()}}{
@@ -638,21 +780,6 @@ interval upper bound.}
   }
   \subsection{Returns}{
     The specified probability.
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-has_covariates"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-has_covariates}{}}}
-\subsection{\code{Design$has_covariates()}}{
-  Checks if the design contains any covariates.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{Design$has_covariates()}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    \code{TRUE} if there are covariates, \code{FALSE} otherwise.
   }
 }
 

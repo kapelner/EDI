@@ -205,8 +205,34 @@ CoxPartialLikelihoodSource = list(
 
 #' Cox Proportional Hazards Regression Inference for Survival Responses
 #'
-#' Fits a Cox proportional hazards regression for survival responses using the
-#' treatment indicator and, optionally, all recorded covariates as predictors.
+#' Fits a Cox proportional hazards model, \eqn{\lambda(t \mid x_i) = \lambda_0(t)
+#' \exp(x_i^\top\beta)}, for survival responses using the treatment indicator
+#' and, optionally, all recorded covariates as predictors, by maximizing the
+#' \strong{Breslow-tie-corrected partial likelihood}. For exact/right-censored
+#' data, fitting uses this package's internal Newton-Raphson C++ solver
+#' (\code{fast_coxph_regression_prebuilt_cpp}) by default (\code{use_rcpp =
+#' TRUE}), falling back to \code{survival::coxph.fit()}/\code{survival::coxph()}
+#' if that fails to converge or \code{use_rcpp = FALSE}. For \strong{left- or
+#' interval-censored} data (a genuinely different likelihood, with no
+#' closed-form partial-likelihood score/information), fitting instead dispatches
+#' to \code{icenReg::ic_sp(model = "ph")}, a semiparametric NPMLE Cox fit whose
+#' standard errors come from \pkg{icenReg}'s own internal bootstrap (not a
+#' closed-form covariance) — only Wald inference (\code{testing_type = "wald"})
+#' is supported on that path; score/gradient/likelihood-ratio/Bartlett testing
+#' types raise an informative error for such data. This is a partial-likelihood
+#' class (\code{likelihood_tier = "partial"}) supporting score, gradient, and
+#' likelihood-ratio tests, plus parametric likelihood-ratio bootstrap
+#' calibration (both only for the exact/right-censored path), in addition to
+#' Wald and resampling-based inference. Fitted coefficients exceeding a fixed
+#' magnitude threshold (20, on the log-hazard-ratio scale) are treated as
+#' non-estimable (a numerical-divergence guard) rather than returned.
+#'
+#' @references Cox, D. R. (1972). "Regression Models and Life-Tables."
+#'   \emph{Journal of the Royal Statistical Society, Series B}, 34(2), 187-220,
+#'   for the proportional hazards model and partial likelihood; Breslow, N. E.
+#'   (1974). "Covariance Analysis of Censored Survival Data." \emph{Biometrics},
+#'   30(1), 89-99, \doi{10.2307/2529620}, for the tied-event partial-likelihood
+#'   approximation used for exact/right-censored data.
 #'
 #' @examples
 #' \donttest{
@@ -218,14 +244,49 @@ CoxPartialLikelihoodSource = list(
 #' inf = InferenceSurvivalCoxPHRegr$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @concept Cox regression
+#' @concept Cox proportional hazards
+#' @concept proportional hazards regression
 #' @export
 InferenceSurvivalCoxPHRegr = define_inference_class(
 	classname = "InferenceSurvivalCoxPHRegr",
 	inherit = Inference,
-	components = "CoxPartialLikelihood",
+	# BayesianBootstrap listed BEFORE CoxPartialLikelihood so CoxPartialLikelihood's
+	# dependency subtree (-> StandardModelCache -> LikelihoodTests -> Wald ->
+	# Jackknife) resolves and merges LAST (see resolve_component_dependencies()'s
+	# post-order DFS in contracts_mixins.R): combine_component_slot() merges
+	# resolved components in order via utils::modifyList(), so a later-resolved
+	# component's method body wins any name collision. This ordering is load-
+	# bearing, not cosmetic -- getting it backwards (as an earlier attempt at
+	# this did, see TODO-13 in interval_censored_survival_response.md) silently
+	# lets InferenceRand's generic compute_treatment_estimate_during_randomization_inference()
+	# win over StandardModelCache's Cox-aware version (which correctly threads
+	# through private$shared()/generate_mod()), breaking every resampling-based
+	# method without erroring anywhere.
+	components = c("BayesianBootstrap", "CoxPartialLikelihood"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}. Deliberately pulled from
+		#'   \code{InferenceRand}, not \code{InferenceRandCI} -- despite
+		#'   \code{InferenceRandCI}'s override having a richer signature
+		#'   (\code{type}/\code{args_for_type}), its body calls \code{super$...()},
+		#'   which resolves against this class's *actual* R6 superclass
+		#'   (\code{Inference}, which has no such method) once the method body is
+		#'   extracted and merged flatly by the component system -- not against
+		#'   \code{InferenceRand} the way it would inside \code{InferenceRandCI}'s
+		#'   own real inheritance chain. \code{InferenceRandCI}'s only other content
+		#'   is an incidence-response special case (Zhang exact test) that never
+		#'   applies to survival data anyway, so the two are behaviorally identical
+		#'   for this class -- confirmed by tracing the body, not assumed. Matches
+		#'   the pattern already used by the sibling migrated classes (LogRank/
+		#'   GehanWilcox/KMDiff/RestrictedMeanDiff).
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 
-		#' @description Initialize a Cox PH inference object.
+		#' @description Initialize a Cox PH inference object for a completed design
+		#'   with a survival response. Unlike most survival inference classes in
+		#'   this package, this one accepts left- and interval-censored data (via
+		#'   an \pkg{icenReg}-backed fallback fit; see class documentation), not
+		#'   only exact/right-censored.
 		#' @param des_obj A completed \code{Design} object with a survival response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -245,7 +306,12 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 			
 			private$use_rcpp = use_rcpp
 		},
-		#' @description Computes the Cox PH estimate of the treatment effect.
+		#' @description Computes the Cox PH treatment coefficient \eqn{\hat\beta_T}
+		#'   (log hazard ratio) — see class documentation for the fitting backend
+		#'   used (partial-likelihood C++/\code{survival} solver for exact/
+		#'   right-censored data; \pkg{icenReg} NPMLE for left-/interval-censored
+		#'   data). \code{NA} if the fit fails or the fitted coefficients are
+		#'   numerically extreme.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
@@ -311,12 +377,20 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
 			)
 		},
-		#' @description Recomputes the Cox PH treatment estimate under
-		#'   Bayesian-bootstrap weights.
+		#' @description Recomputes the Cox PH treatment estimate under subject/block
+		#'   bootstrap weights (via \code{weighted_cox_bootstrap_surrogate_fit()},
+		#'   which assumes ordinary right-censoring semantics), used by the
+		#'   Bayesian bootstrap and related weighted-resampling machinery. If the
+		#'   weights are effectively constant, short-circuits to the unweighted
+		#'   \code{$compute_estimate(estimate_only = TRUE)}. \strong{Not supported}
+		#'   for left- or interval-censored data — raises an error immediately,
+		#'   since the surrogate weighted fit has no extension for that likelihood.
+		#'   Always leaves the standard error unavailable (\code{NA}) regardless of
+		#'   \code{estimate_only} — this weighted path never computes a variance.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
-		#' @param estimate_only If \code{TRUE}, compute only the weighted point
-		#'   estimate.
+		#' @param estimate_only Present for interface parity; this method never
+		#'   computes variance components regardless of its value.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			if (isTRUE(private$has_general_censoring)) {
 				stop(
@@ -682,7 +756,19 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 			"compute_estimate",
 			"compute_asymp_confidence_interval",
 			"compute_asymp_two_sided_pval",
-			"get_supported_testing_types"
+			"get_supported_testing_types",
+			# Cox's own weighted_cox_bootstrap_surrogate_fit()-backed
+			# implementation (already correctly guards general censoring, see
+			# TODO-6) must win over BayesianBootstrap's generic default.
+			"compute_estimate_with_bootstrap_weights",
+			# RandomizationCI (in BayesianBootstrap's dependency chain) legitimately
+			# overrides RandomizationTest's plain version of this method with a
+			# richer signature -- a normal subclass override in the old R6 chain,
+			# but still a name collision the flat component merge must be told is
+			# intentional. RandomizationCI is resolved after RandomizationTest (it
+			# depends on it), so its version wins the merge automatically; no host
+			# entry needed.
+			"compute_rand_two_sided_pval"
 		),
 		private = c(
 			"supports_likelihood_tests",
@@ -701,7 +787,24 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 			"compute_gradient_two_sided_pval_impl",
 			"compute_lik_ratio_two_sided_pval_impl",
 			"get_supported_testing_types_impl",
-			"compute_fast_rand_bootstrap_distr"
+			"compute_fast_rand_bootstrap_distr",
+			# StandardModelCache (via CoxPartialLikelihood's dependency chain)
+			# vs. RandomizationTest (via BayesianBootstrap's chain): both define
+			# this name. StandardModelCache's version -- which calls
+			# private$shared()/generate_mod(), i.e. Cox's own partial-likelihood
+			# fit -- is correct here and wins via the components= ordering above,
+			# not via this declaration (which only permits the collision).
+			"compute_treatment_estimate_during_randomization_inference",
+			# Jackknife (via CoxPartialLikelihood's chain) vs. NonparametricBootstrap
+			# (via BayesianBootstrap's chain): both define these with byte-identical
+			# bodies (confirmed by direct comparison), so the winner is immaterial.
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			# Wald (via CoxPartialLikelihood's chain) vs. NonparametricBootstrap
+			# (via BayesianBootstrap's chain): both return TRUE, so the winner is
+			# immaterial.
+			"supports_reusable_bootstrap_worker"
 		)
 	)
 )

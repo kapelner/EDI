@@ -7,12 +7,45 @@
 get_warm_start_dispatch_policy()
 }
 \value{
-A named list describing the warm start policy configuration.
+A named list with \code{default} (logical, \code{TRUE} in the
+  built-in policy) and one component per operation (\code{jackknife},
+  \code{non_param_boot}, \code{bayesian_boot}, \code{param_boot},
+  \code{rand}), each itself a list containing
+  \code{inference_class_overrides} (a named logical vector: regular-expression
+  pattern names to \code{TRUE}/\code{FALSE} values, matched against the
+  inference class name) — only the first, sample-size-independent layer of
+  the full dispatch policy; see Details.
 }
 \description{
-Returns EDI's built-in policy for choosing whether warm starts are enabled
-during different resampling or simulation operations.
+Returns EDI's built-in policy table for choosing whether \strong{warm starts}
+(reusing a previous fit's parameters/curvature to seed the next fit, e.g.
+across bootstrap or randomization replicates) are enabled for a given
+inference class during a given resampling or simulation \code{operation}
+(one of \code{"jackknife"}, \code{"non_param_boot"}, \code{"bayesian_boot"},
+\code{"param_boot"}, or \code{"rand"}).
+}
+\details{
+\strong{This returned list is not the complete policy.} The internal
+  (non-exported) dispatcher, \code{edi_warm_start_dispatch_policy(inference_class,
+  operation, n)}, consults this table's \code{default} and
+  \code{[[operation]]$inference_class_overrides} for its base per-operation
+  pattern lookups, but also has a substantial number of additional,
+  \strong{hardcoded (not present in this returned list)} empirical
+  disable-rules layered on top — many of them further conditioned on the
+  current sample size \code{n} (e.g. certain inference-class/operation
+  combinations only disable warm starts when \code{n < 200} or \code{n <
+  500}, because the extra bookkeeping only pays off once resampling is
+  expensive enough per replicate). Calling this function therefore does
+  \strong{not} tell you the full set of classes/operations for which warm
+  starts are disabled — for that, the dispatcher function's source is
+  authoritative, not this configuration table.
 }
 \examples{
 get_warm_start_dispatch_policy()
+}
+\seealso{
+\code{\link{get_cold_start_dispatch_policy}} for the analogous
+  (simpler, single-layer) policy governing the initial cold-start heuristic
+  rather than cross-replicate warm-starting; \code{\link{set_warm_start_dispatch_policy}}
+  to override this table at runtime.
 }

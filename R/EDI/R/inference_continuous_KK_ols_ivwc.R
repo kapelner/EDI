@@ -24,16 +24,6 @@ InferenceContinKKOLSIVWC = R6::R6Class("InferenceContinKKOLSIVWC",
 	lock_objects = FALSE,
 	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
 	public = list(
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
-		},
 		#' @description Initialize KK inverse-variance combined OLS inference and
 		#'   prepare the matched/reservoir OLS components used by
 		#'   \code{\link[EDI:InferenceContinKKOLSIVWC]{InferenceContinKKOLSIVWC}}.

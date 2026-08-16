@@ -468,7 +468,7 @@ public:
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-SEXP get_clayton_weibull_aft_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::MatrixXi>& pair_idx, const Eigen::Map<Eigen::VectorXi>& singleton_rows, const Eigen::Map<Eigen::VectorXd>& params) {
+Eigen::VectorXd get_clayton_weibull_aft_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::MatrixXi>& pair_idx, const Eigen::Map<Eigen::VectorXi>& singleton_rows, const Eigen::Map<Eigen::VectorXd>& params) {
 	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
@@ -488,11 +488,11 @@ SEXP get_clayton_weibull_aft_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
     ClaytonWeibullLikelihood fun(y_vec_coerced, dead_vec_coerced, X, pair_idx, singleton_rows);
     Eigen::VectorXd grad(params.size());
     fun(params, grad);
-    return wrap(-grad);
+    return -grad;
 }
 
 // [[Rcpp::export]]
-SEXP get_clayton_weibull_aft_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::MatrixXi>& pair_idx, const Eigen::Map<Eigen::VectorXi>& singleton_rows, const Eigen::Map<Eigen::VectorXd>& params) {
+Eigen::MatrixXd get_clayton_weibull_aft_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::MatrixXi>& pair_idx, const Eigen::Map<Eigen::VectorXi>& singleton_rows, const Eigen::Map<Eigen::VectorXd>& params) {
 	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
@@ -510,11 +510,11 @@ SEXP get_clayton_weibull_aft_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, S
     
 
     ClaytonWeibullLikelihood fun(y_vec_coerced, dead_vec_coerced, X, pair_idx, singleton_rows);
-    return wrap(-fun.hessian(params));
+    return -fun.hessian(params);
 }
 
 // [[Rcpp::export]]
-SEXP get_dep_cens_transform_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::VectorXd>& params) {
+Eigen::VectorXd get_dep_cens_transform_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::VectorXd>& params) {
 	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
@@ -530,11 +530,11 @@ SEXP get_dep_cens_transform_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP
     DepCensTransformLikelihood fun(y_vec_coerced, dead_vec_coerced, X);
     Eigen::VectorXd grad(params.size());
     fun(params, grad);
-    return wrap(-grad);
+    return -grad;
 }
 
 // [[Rcpp::export]]
-SEXP get_dep_cens_transform_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::VectorXd>& params) {
+Eigen::MatrixXd get_dep_cens_transform_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, const Eigen::Map<Eigen::VectorXd>& params) {
 	NumericVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXd> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
@@ -550,7 +550,7 @@ SEXP get_dep_cens_transform_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SE
     DepCensTransformLikelihood fun(y_vec_coerced, dead_vec_coerced, X);
     Eigen::MatrixXd H = -fun.hessian(params);
     Eigen::MatrixXd Hsym = (0.5 * (H + H.transpose())).eval();
-    return wrap(Hsym);
+    return Hsym;
 }
 #endif // EDI_CORE_ONLY
 

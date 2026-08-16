@@ -7,37 +7,57 @@
 set_parallel_dispatch_policy(policy = NULL, reset = FALSE)
 }
 \arguments{
-\item{policy}{Either \code{NULL}, a named list of policy overrides, or a
-custom function. If \code{NULL} and \code{reset = FALSE}, the current}
+\item{policy}{Either \code{NULL} (no change), a named list of policy-section
+overrides, or a custom dispatch function (see Details).}
 
 \item{reset}{If \code{TRUE}, restore the built-in default policy and remove
 any custom function override.}
 }
 \value{
-Invisible \code{NULL} or the current policy configuration.
+Invisible \code{NULL} when \code{policy} is supplied (a mutation), or
+  invisibly the current policy configuration list when called for its
+  side-effect-free query/reset value.
 }
 \description{
 EDI uses an empirical, blocklist-first dispatch policy to decide when an
-inference routine should be forced serial even if multiple cores are
-available. This function lets the user update that default policy without
-editing package internals.
+inference routine's \code{"bootstrap"} or \code{"rand_ci"} resampling should
+be forced serial even if multiple cores are available (see
+\code{\link{get_parallel_dispatch_policy}} for the built-in table and the
+PCRE pattern/response-type matching rules it encodes). This function lets
+the user update that policy at runtime without editing package internals.
 }
 \details{
-The policy can be updated in two ways:
+The policy can be updated in two mutually exclusive ways:
 \itemize{
-  \item Pass a named list to merge with the built-in default policy
-  configuration. Supported top-level keys are \code{bootstrap} and
-  \code{rand_ci}, and each key may contain
-  \code{serial_inference_class_patterns} and
-  \code{serial_response_types}.
+  \item Pass a named list to \code{policy} to merge with the current policy
+  configuration via \code{\link[utils]{modifyList}}, one section at a time.
+  Supported top-level keys are \code{bootstrap} and \code{rand_ci}, and each
+  key's value is itself a list that may contain
+  \code{serial_inference_class_patterns} (character vector of PCRE regular
+  expressions) and/or \code{serial_response_types} (character vector of
+  exact response-type strings); an unrecognized top-level key raises an
+  error rather than being silently ignored.
   \item Pass a custom function with signature
-  \code{function(inference_class, response_type, operation)} that returns a
-  list with at least \code{force_serial} and \code{reason}.
+  \code{function(inference_class, response_type, operation)} to \code{policy}
+  to \strong{replace} the entire pattern-table dispatch logic with your own
+  rule; it must return a list with at least \code{force_serial} (logical)
+  and \code{reason} (character). Supplying a function clears any
+  list-based overrides accumulated so far and is stored separately from the
+  pattern-table configuration.
 }
-
-Use \code{reset = TRUE} to restore the built-in default policy. Do not expect
-a universal "more cores is faster" rule.
+Use \code{reset = TRUE} to discard both the list-based overrides and any
+custom function, restoring the package's built-in default policy exactly as
+returned by \code{\link{get_parallel_dispatch_policy}}. Do not expect a
+universal "more cores is faster" rule — this policy exists because several
+resampling workloads have shown consistent multicore \emph{slowdowns} in
+package benchmarks.
 }
 \examples{
 set_parallel_dispatch_policy(reset = TRUE)
+
+}
+\seealso{
+\code{\link{get_parallel_dispatch_policy}} for the policy schema and
+  built-in defaults; \code{\link{set_num_cores}} for setting the actual
+  worker-count upper bound this policy operates within.
 }

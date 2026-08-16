@@ -102,7 +102,7 @@ test_that("Survival: fast_coxph_regression_cpp on survival::lung", {
 	expect_equal(as.numeric(res_cpp$vcov), as.numeric(stats::vcov(res_r)), tolerance = 1e-7)
 })
 
-test_that("Survival: fast_weibull_regression_cpp on survival::lung", {
+test_that("Survival: fast_weibull_regression_general_cpp on survival::lung", {
 	skip_if_not_installed("survival")
 	lung_full <- survival::lung
 	vars <- c("time", "status", "age", "sex", "ph.ecog")
@@ -112,7 +112,10 @@ test_that("Survival: fast_weibull_regression_cpp on survival::lung", {
 	dead <- lung$status - 1
 	X_mat <- model.matrix(~ age + sex + ph.ecog, data = lung)
 	
-	res_cpp <- fast_weibull_regression_cpp(X_mat, y, dead)
+	res_cpp <- fast_weibull_regression_general_cpp(
+		X_mat, ifelse(dead != 0, y, NA_real_),
+		ifelse(dead == 0, y, NA_real_), ifelse(dead == 0, Inf, NA_real_)
+	)
 	res_r <- survival::survreg(survival::Surv(time, status) ~ age + sex + ph.ecog, data = lung, dist = "weibull")
 	
 	n_coef <- length(stats::coef(res_r))

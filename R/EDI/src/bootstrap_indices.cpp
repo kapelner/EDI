@@ -1,38 +1,34 @@
-#include <Rcpp.h>
-#include <random>
+#ifdef EDI_CORE_ONLY
+#include <Eigen/Dense>
+#else
+#include <RcppEigen.h>
+#endif
+#include "RNG.h"
 #include <cstdint>
 #include <limits>
+
+#ifndef EDI_CORE_ONLY
 using namespace Rcpp;
+#endif
 
 namespace {
 
-inline uint64_t bounded_rand(std::mt19937_64& rng, uint64_t s) {
-	uint64_t x = rng();
-	__uint128_t m = static_cast<__uint128_t>(x) * s;
-	uint64_t l = static_cast<uint64_t>(m);
-	if (l < s) {
-		uint64_t t = (-s) % s;
-		while (l < t) {
-			x = rng();
-			m = static_cast<__uint128_t>(x) * s;
-			l = static_cast<uint64_t>(m);
-		}
-	}
-	return static_cast<uint64_t>(m >> 64);
-}
-
-inline std::mt19937_64 make_local_rng() {
-	return std::mt19937_64(static_cast<uint64_t>(
-		R::unif_rand() * static_cast<double>(std::numeric_limits<uint64_t>::max())));
-}
+// bounded_rand is now defined once in RNG.h (namespace edi_rng); ADL
+// resolves the unqualified calls below since rng is edi_rng::RRng&.
 
 } // namespace
 
-// [[Rcpp::export]]
-IntegerMatrix bootstrap_indices_cpp(int n, int B) {
-	auto rng = make_local_rng();
-	const uint64_t un = static_cast<uint64_t>(n);
-	IntegerMatrix idx(B, n);
+// Portable core (EDI_CORE_ONLY-safe): identical logic to bootstrap_indices_cpp
+// below, but takes the seed as an explicit parameter instead of drawing it
+// from R's RNG internally. The Rcpp wrapper draws one R::unif_rand() value
+// and passes it in, so this function itself has zero R/Rcpp dependency and
+// can be called from a future Python binding with its own seed -- and,
+// since edi_rng::RRng (RNG.h) is a portable re-implementation of R's own
+// generator, a given seed produces identical draws in R and Python alike.
+Eigen::MatrixXi bootstrap_indices_internal(int n, int B, std::uint32_t seed) {
+	edi_rng::RRng rng(seed);
+	const std::uint32_t un = static_cast<std::uint32_t>(n);
+	Eigen::MatrixXi idx(B, n);
 	for (int i = 0; i < B; ++i) {
 		for (int j = 0; j < n; ++j) {
 			idx(i, j) = 1 + static_cast<int>(bounded_rand(rng, un));
@@ -40,3 +36,15 @@ IntegerMatrix bootstrap_indices_cpp(int n, int B) {
 	}
 	return idx;
 }
+
+#ifndef EDI_CORE_ONLY
+//' @note Seeded from one R::unif_rand() draw into edi_rng::RRng (RNG.h), a
+//'   portable re-implementation of R's own Mersenne-Twister generator -- a
+//'   given seed therefore produces identical draws in R and in any future
+//'   binding (e.g. Python) using the same core and the same seed.
+// [[Rcpp::export]]
+Eigen::MatrixXi bootstrap_indices_cpp(int n, int B) {
+	std::uint32_t seed = edi_rng::seed_from_unif01(R::unif_rand());
+	return bootstrap_indices_internal(n, B, seed);
+}
+#endif // EDI_CORE_ONLY

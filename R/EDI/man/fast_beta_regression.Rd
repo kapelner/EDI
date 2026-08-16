@@ -17,32 +17,56 @@ fast_beta_regression(
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}
 
-\item{y}{A numeric vector of the response variable, with values strictly between 0 and 1.}
+\item{y}{A numeric vector of the response variable, with values strictly between 0 and 1.
+See \code{sanitize_beta_response()} (internal) for how boundary values (exact 0s/1s)
+are handled before fitting.}
 
 \item{start_phi}{A numeric value, the starting value for the precision parameter phi.
 Defaults to 10.}
 
-\item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.}
+\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default) or
+\code{"newton_raphson"}; see \code{\link{.normalize_optimizer_algorithm}}.}
 
-\item{warm_start_beta}{Optional starting values for coefficients.}
+\item{warm_start_beta}{Optional starting values for coefficients \eqn{\beta}.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix.}
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix, used to
+warm-start curvature information for the optimizer.}
 }
 \value{
-A list containing the following component:
-\item{b}{A numeric vector of the estimated beta regression coefficients.}
+A list containing the following components:
+\item{b}{A numeric vector of the estimated beta regression coefficients \eqn{\hat\beta}
+  (on the logit-of-mean scale: \code{plogis(X \%*\% b)} gives the fitted mean
+  \eqn{\hat\mu}), from whichever stage of the fallback chain (see Details)
+  ultimately succeeded.}
+\item{phi}{The estimated precision parameter \eqn{\hat\phi} (only present when the
+  C++ backend or the \pkg{betareg} fallback succeeds; absent from the final
+  OLS-on-\code{logit(y)} fallback, which has no precision parameter).}
+\item{fisher_information}{The working-weights Fisher information matrix from the
+  C++ backend (see \code{\link{fast_beta_regression_cpp}}); only present when that
+  backend succeeds.}
 }
 \description{
-This function provides a fast implementation of beta regression by wrapping
-a C++ backend function. It is designed to efficiently estimate regression coefficients
-for response variables that are continuous and restricted to the (0, 1) interval.
+Fits the beta regression model of Ferrari and Cribari-Neto (2004) for a
+continuous response strictly in \eqn{(0, 1)}, with mean linked to the covariates
+via the logit link and a single (constant) precision parameter \eqn{\phi}. See
+\code{\link{fast_beta_regression_cpp}} for the full model equation, parameter
+layout, and optimizer contract implemented by the C++ backend this function
+wraps; this page documents only the R-level fallback chain and response-scale
+conventions.
 }
 \details{
-The primary implementation uses a C++ backend. If that fails, the function falls back
-to \pkg{betareg}, which is listed in Suggests and is not installed automatically
-with \pkg{EDI}. If \pkg{betareg} is also unavailable, a final fallback of OLS on
-\code{logit(y)} is used. Install \pkg{betareg} manually to
-enable the intermediate fallback.
+\strong{Fallback chain.} The primary implementation uses the C++ backend
+(\code{\link{fast_beta_regression_cpp}}). If that fails to converge or errors, the
+function falls back to \pkg{betareg}, which is listed in Suggests and is not
+installed automatically with \pkg{EDI}. If \pkg{betareg} is also unavailable (or
+itself fails), a final fallback of OLS on \code{logit(y)} is used — this last
+resort is always available (no external dependency) but does not respect the beta
+distribution's mean-variance relationship or estimate \eqn{\phi} at all, so its
+coefficients should be treated as an approximate, non-model-based summary rather
+than a true beta-regression fit. Install \pkg{betareg} manually to
+enable the intermediate fallback. A \code{warning()} is issued whenever a fallback
+stage is used, naming which stage and the triggering error, so callers can detect
+when the primary fit failed even though a result was still returned.
 }
 \examples{
 X = matrix(rnorm(500), 100, 5)

@@ -2,17 +2,45 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_trigamma_vec_cpp}
 \alias{fast_trigamma_vec_cpp}
-\title{Fast Trigamma Function (C++)}
+\title{Fast Trigamma Function, Vectorized (C++ Backend)}
 \usage{
 fast_trigamma_vec_cpp(x)
 }
 \arguments{
-\item{x}{Numeric vector of arguments.}
+\item{x}{Numeric vector of arguments (per the trigamma function's domain, should
+not be a non-positive integer, where \eqn{\psi'} has poles; no domain
+validation is performed by this function).}
 }
 \value{
-A numeric vector of trigamma values.
+A numeric vector of \eqn{\psi'(x)} values, the same length as \code{x}.
 }
 \description{
-Vectorized trigamma (psi') function via an asymptotic expansion with recurrence shift, faster than base R's \code{trigamma()}.
+Computes \eqn{\psi'(x)}, the trigamma function (the second derivative of
+\eqn{\log\Gamma(x)}, i.e. the derivative of the digamma function
+\code{\link{fast_digamma_vec_cpp}}), elementwise over \code{x}, via an
+asymptotic series expansion combined with the recurrence relation \eqn{\psi'(x)
+= \psi'(x+1) + 1/x^2} (shifting small arguments up into the expansion's
+accurate range before applying it) — faster than base R's
+\code{\link[base]{trigamma}} while matching it to within the approximation's own
+precision. Used wherever this package's likelihood kernels need the variance of
+a log-Gamma-based sufficient statistic or a Fisher-information second
+derivative involving \eqn{\log\Gamma} (e.g. negative-binomial dispersion-parameter
+curvature), and exported standalone for the same reason as
+\code{\link{fast_digamma_vec_cpp}} and friends. Benchmarked at roughly
+\strong{19.3x} the speed of base R's vectorized \code{trigamma()} on this
+package's benchmark suite; see the
+\href{https://github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_R.html}{"Utility
+/ Math Kernel Performance"} section of the benchmark report for the full
+methodology and current measured multiple.
+}
+\references{
+\href{https://en.wikipedia.org/wiki/Trigamma_function}{Trigamma
+  function} for orientation. Analogous Python API:
+  \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.polygamma.html}{SciPy
+  \code{polygamma(1, x)}}.
+}
+\seealso{
+\code{\link{fast_digamma_vec_cpp}} for the corresponding first-derivative
+  kernel this function's recurrence builds on.
 }
 \keyword{internal}

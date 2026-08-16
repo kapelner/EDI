@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_stereotype_profile_loglik_cpp}
 \alias{fast_stereotype_profile_loglik_cpp}
-\title{Compute Stereotype Profile Log-Likelihood (C++)}
+\title{Stereotype Logit Profile Log-Likelihood for a Fixed Treatment Coefficient (C++)}
 \usage{
 fast_stereotype_profile_loglik_cpp(
   X,
@@ -15,20 +15,47 @@ fast_stereotype_profile_loglik_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors (no intercept column needed; see
+\code{\link{fast_stereotype_logit_cpp}}).}
 
-\item{y}{A numeric vector of responses.}
+\item{y}{A numeric vector of categorical (nominal or ordinal) responses; only
+the set of distinct values matters, not their numeric coding or order.}
 
-\item{beta_fixed}{The fixed value for the first beta parameter.}
+\item{beta_fixed}{The fixed value at which to profile \eqn{\beta_1}.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Accepted but currently unused; see Details.}
 
-\item{tol}{Convergence tolerance.}
+\item{tol}{Accepted but currently unused; see Details.}
+
+\item{warm_start_params}{Optional starting values for the full joint parameter vector
+(used to initialize the nuisance-parameter optimization). Takes precedence over
+\code{warm_start_beta}.}
+
+\item{warm_start_beta}{Optional starting values for \eqn{\beta} alone (ignored if
+\code{warm_start_params} is supplied).}
 }
 \value{
-The profile log-likelihood value.
+The maximized profile log-likelihood at \code{beta_fixed}, a single number.
 }
 \description{
-Calculates the profile log-likelihood for a fixed beta in a stereotype logit model.
+Computes the \strong{profile} log-likelihood of the
+\code{\link{fast_stereotype_logit_cpp}} stereotype logit model (see that page for
+the full model) at a caller-fixed value of \eqn{\beta_1} (the first regression
+coefficient, conventionally the treatment effect): all other parameters
+(intercepts \eqn{\alpha}, the remaining \eqn{\beta} columns if \eqn{p > 1}, and
+the score reparameterization \eqn{\gamma}) are re-optimized by damped Newton's
+method (up to 50 iterations, gradient-norm tolerance \eqn{10^{-8}}, backtracking
+step-halving line search — both hardcoded and \strong{not} controlled by the
+\code{maxit}/\code{tol} arguments below, which are accepted but currently
+unused) to maximize the log-likelihood conditional on \eqn{\beta_1}, and the
+resulting maximized log-likelihood is returned. This is the building block used
+by \code{\link{fast_stereotype_logit_with_var_cpp}}'s profile-likelihood
+variance fallback (finite-differencing this function's output in
+\eqn{\beta_1}), and is exported standalone for constructing profile-likelihood
+confidence intervals or diagnostic profile plots directly.
+}
+\seealso{
+\code{\link{fast_stereotype_logit_with_var_cpp}}, whose profile-likelihood
+  variance fallback calls this function three times per fallback invocation.
 }
 \keyword{internal}

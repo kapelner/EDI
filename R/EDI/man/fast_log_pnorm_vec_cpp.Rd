@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_log_pnorm_vec_cpp}
 \alias{fast_log_pnorm_vec_cpp}
-\title{Fast Log Standard Normal CDF (C++)}
+\title{Fast Log Standard Normal CDF, Vectorized (C++ Backend)}
 \usage{
 fast_log_pnorm_vec_cpp(x)
 }
@@ -10,9 +10,34 @@ fast_log_pnorm_vec_cpp(x)
 \item{x}{Numeric vector of arguments.}
 }
 \value{
-A numeric vector of log CDF values.
+A numeric vector of \eqn{\log \Phi(x)} values, the same length as
+  \code{x}.
 }
 \description{
-Vectorized \code{log(Phi(x))} via \code{fast_erfc}, avoiding R's \code{pnorm} dispatch overhead. Faster than base R's \code{stats::pnorm(x, log.p = TRUE)}.
+Computes \eqn{\log \Phi(x)}, the log of the standard normal cumulative
+distribution function, elementwise over \code{x}, via the complementary
+error function kernel \code{fast_erfc} (\eqn{\Phi(x) = \tfrac{1}{2}
+\mathrm{erfc}(-x/\sqrt{2})}, evaluated in a form stable for large negative
+\code{x}, where \eqn{\Phi(x)} underflows in ordinary (non-log) arithmetic
+long before the true log-probability does), avoiding R's own
+\code{\link[stats]{pnorm}} dispatch overhead. Faster than base R's
+\code{\link[stats]{pnorm}(x, log.p = TRUE)} — measured at 2.49x on a
+length-5000 vector (see the
+\href{https://github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_R.html}{"Utility
+/ Math Kernel Performance" benchmark report}). Used internally inside the
+package's probit regression and other likelihood kernels that need a
+numerically stable normal log-CDF, e.g. for censored/truncated Gaussian
+contributions.
+}
+\references{
+\href{https://en.wikipedia.org/wiki/Normal_distribution}{Normal
+  distribution} for orientation. Analogous Python API:
+  \href{https://docs.scipy.org/doc/scipy/reference/stats.html}{SciPy stats
+  distributions index} (\code{scipy.stats.norm.logcdf}).
+}
+\seealso{
+\code{\link{fast_log_dnorm_vec_cpp}} for the corresponding
+  log-density kernel; \code{\link{fast_qnorm_vec_cpp}} for the standard
+  normal quantile function.
 }
 \keyword{internal}

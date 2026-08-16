@@ -78,8 +78,13 @@ test_that("Cox Asymp paths", {
 	des <- DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
 	des$add_all_subjects_to_experiment(X)
 	des$assign_w_to_all_subjects()
-	des$add_all_subject_responses(y, dead)
-	
+	# (y, dead) positional convention was removed in the y/y_L/y_R migration
+	# (interval_censored_survival_response.md TODO-15).
+	y_exact <- ifelse(dead == 1, y, NA_real_)
+	y_L <- ifelse(dead == 1, NA_real_, y)
+	y_R <- ifelse(dead == 1, NA_real_, Inf)
+	des$add_all_subject_responses(y_exact, y_L, y_R)
+
 	inf <- InferenceSurvivalCoxPHRegr$new(des)
 	test_all_asymp_paths(inf, "Cox")
 })
@@ -168,7 +173,7 @@ test_that("KK Design Asymp paths", {
 	for (i in seq_len(n)) {
 		w_i <- des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 		y_i <- 0.5 * w_i + y_cont[i]
-		des$add_one_subject_response(i, y_i, 1)
+		des$add_one_subject_response(i, y_i)
 	}
 	
 	inf <- InferenceContinKKOLSOneLik$new(des)
@@ -183,7 +188,7 @@ test_that("KK Bai-adjusted inference only advertises Wald support", {
 		x_row <- data.frame(x1 = rnorm(1), x2 = rnorm(1))
 		w_i <- des$add_one_subject_to_experiment_and_assign(x_row)
 		y_i <- 0.4 * w_i + 0.2 * x_row$x1 + rnorm(1)
-		des$add_one_subject_response(i, y_i, 1)
+		des$add_one_subject_response(i, y_i)
 	}
 
 	inf <- InferenceBaiAdjustedTKK21$new(des, verbose = FALSE)
@@ -204,7 +209,7 @@ test_that("KK Design continuous GLMM Asymp paths", {
 	for (i in seq_len(n)) {
 		w_i <- des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 		y_i <- 0.5 * w_i + 0.25 * X$x1[i] + rnorm(1)
-		des$add_one_subject_response(i, y_i, 1)
+		des$add_one_subject_response(i, y_i)
 	}
 	
 	inf <- InferenceContinKKGLMM$new(des)
@@ -221,7 +226,7 @@ test_that("KK Design count GLMM Asymp paths", {
 		w_i <- des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 		mu_i <- exp(0.25 + 0.35 * w_i + 0.2 * X$x1[i])
 		y_i <- rpois(1, mu_i)
-		des$add_one_subject_response(i, y_i, 1)
+		des$add_one_subject_response(i, y_i)
 	}
 	
 	inf <- InferenceCountKKGLMM$new(des)
@@ -238,7 +243,7 @@ test_that("KK Design Incidence Asymp paths", {
 		w_i <- des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 		p_i <- plogis(0.5 * w_i + 0.5 * X$x1[i])
 		y_i <- rbinom(1, 1, p_i)
-		des$add_one_subject_response(i, y_i, 1)
+		des$add_one_subject_response(i, y_i)
 	}
 	
 	inf <- InferenceIncidKKCondLogitOneLik$new(des)

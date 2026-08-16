@@ -2,9 +2,17 @@
 % Please edit documentation in R/design_seq_one_by_one_bernoulli.R
 \name{DesignSeqOneByOneBernoulli}
 \alias{DesignSeqOneByOneBernoulli}
-\title{A completely randomized / Bernoulli Sequential Design}
+\title{A Sequential Bernoulli (Independent-Coin-Flip) Randomized Design}
 \description{
-An R6 Class encapsulating the data and functionality for a sequential experimental design.
+A \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} in which each arriving
+subject's treatment assignment is drawn independently as
+\eqn{w_t \stackrel{iid}{\sim} \mathrm{Bernoulli}(prob\_T)}, with no dependence on
+covariates or on prior assignments — the direct sequential-enrollment analog of
+\code{\link[EDI:DesignFixedBernoulli]{DesignFixedBernoulli}}. As in the fixed-sample
+version, the realized number of treated subjects after \eqn{t} arrivals is random
+(\eqn{\mathrm{Binomial}(t, prob\_T)}), in contrast to sequential designs that
+actively balance assignment counts or covariates (e.g.
+\code{\link[EDI:DesignSeqOneByOneAtkinson]{DesignSeqOneByOneAtkinson}}).
 }
 \examples{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = 'continuous')
@@ -26,9 +34,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 <ul>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject'><code>DesignSeqOneByOne$add_one_subject()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject_to_experiment_and_assign'><code>DesignSeqOneByOne$add_one_subject_to_experiment_and_assign()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-is_a_seq_one_by_one'><code>DesignSeqOneByOne$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-print_current_subject_assignment'><code>DesignSeqOneByOne$print_current_subject_assignment()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-supports_resampling'><code>DesignSeqOneByOne$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -61,6 +67,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -83,14 +90,16 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed'><code>Design$is_a_fixed()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-overwrite_all_subject_assignments'><code>Design$overwrite_all_subject_assignments()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -98,11 +107,16 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 \if{html}{\out{<a id="method-DesignSeqOneByOneBernoulli-is_a_bernoulli_capable"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneBernoulli-is_a_bernoulli_capable}{}}}
 \subsection{\code{DesignSeqOneByOneBernoulli$is_a_bernoulli_capable()}}{
-  Characterization: this is a Bernoulli-randomized design.
+  Characterization: this design draws each subject's treatment
+  assignment as an independent \eqn{\mathrm{Bernoulli}(prob\_T)} coin flip
+  (see class documentation), so it is Bernoulli-capable by construction.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneBernoulli$is_a_bernoulli_capable()}
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Always \code{TRUE} for this class.
   }
 }
 
@@ -110,7 +124,8 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 \if{html}{\out{<a id="method-DesignSeqOneByOneBernoulli-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneBernoulli-initialize}{}}}
 \subsection{\code{DesignSeqOneByOneBernoulli$new()}}{
-  Initialize a Bernoulli sequential experimental design
+  Initialize a Bernoulli (independent-coin-flip) sequential
+  experimental design.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneBernoulli$new(
@@ -155,15 +170,16 @@ should we include another dummy variable for its missingness? The default is \co
 \if{html}{\out{<a id="method-DesignSeqOneByOneBernoulli-assign_wt"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneBernoulli-assign_wt}{}}}
 \subsection{\code{DesignSeqOneByOneBernoulli$assign_wt()}}{
-  Uses this subclass's sequential assignment rule; see
-  \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}.
+  Draw the next subject's treatment assignment as a single
+  independent \eqn{\mathrm{Bernoulli}(prob\_T)} coin flip (see class
+  documentation); does not consult covariates or prior assignments.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneBernoulli$assign_wt()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    The treatment assignment (0 or 1)
+    The treatment assignment (0 or 1) for the next subject.
   }
 }
 

@@ -25,38 +25,79 @@ is handled implicitly by the Cox model and should not be included in \code{X}.}
 \item{dead}{A numeric vector (0 or 1) indicating event status (1 for event, 0 for censored).}
 
 \item{use_rcpp}{Logical. If \code{TRUE} (default), use the optimized Rcpp
-implementation. If \code{FALSE}, use \pkg{glmnet}.}
+implementation (\code{\link{fast_coxph_regression_cpp}}). If \code{FALSE}, use
+\pkg{glmnet}'s Cox path at zero penalty (\code{glmnet(..., family = "cox",
+lambda = 0)}) instead.}
 
 \item{estimate_only}{Logical. If \code{TRUE}, skip variance-covariance
-matrix calculation for speed.}
+matrix calculation for speed. Only affects the \code{use_rcpp = TRUE} path;
+the \pkg{glmnet} fallback path does not compute a variance-covariance matrix
+at all (\code{vcov} is never populated when \code{use_rcpp = FALSE}, regardless
+of \code{estimate_only}).}
 
-\item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.}
+\item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.
+Only affects the \code{use_rcpp = TRUE} path; unused when
+\code{use_rcpp = FALSE}.}
 
-\item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
+\item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
+Only affects the \code{use_rcpp = TRUE} path.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix.}
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix. Only
+affects the \code{use_rcpp = TRUE} path.}
 
-\item{smart_cold_start}{Logical. If \code{TRUE} (default), use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if \code{warm_start_beta} is provided.}
+\item{smart_cold_start}{Logical. If \code{TRUE} (default), use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if \code{warm_start_beta} is provided.
+Only affects the \code{use_rcpp = TRUE} path.}
 }
 \value{
-A list containing the following components:
+A list. When \code{use_rcpp = TRUE} (default), a list with components
 \describe{
-\item{b}{A numeric vector of the estimated regression coefficients.}
-\item{vcov}{The variance-covariance matrix of the estimated coefficients (only if \code{estimate_only = FALSE}).}
+\item{b, coefficients}{A numeric vector of the estimated log-hazard-ratio
+  coefficients \eqn{\hat\beta} (\code{b} and \code{coefficients} are identical;
+  both are populated for interface consistency with the package's other
+  \code{fast_*} wrappers).}
+\item{vcov}{The variance-covariance matrix of \eqn{\hat\beta}, or \code{NULL}
+  when \code{estimate_only = TRUE}.}
+\item{neg_log_lik}{The negative Cox partial log-likelihood at the fitted
+  coefficients.}
+\item{fisher_information}{The Hessian of the negative partial log-likelihood at
+  the fitted coefficients.}
 }
+When \code{use_rcpp = FALSE}, only a single component,
+\code{b} (the \pkg{glmnet}-fitted coefficient vector via \code{coef()}, in
+\pkg{glmnet}'s own sparse-matrix representation rather than a plain numeric
+vector) — none of \code{coefficients}/\code{vcov}/\code{neg_log_lik}/
+\code{fisher_information} are present on this path.
 }
 \description{
-This function performs Cox proportional hazards regression using either
-\pkg{survival::coxph} or an optimized Rcpp implementation.
-It is designed to efficiently estimate regression coefficients for time-to-event data.
+Fits the Cox proportional-hazards partial-likelihood model documented in full at
+\code{\link{build_cox_data_cache_cpp}} (model equation, Breslow tie-handling, and
+input conventions). This R-level wrapper dispatches to either the package's own
+native C++ implementation (\code{\link{fast_coxph_regression_cpp}}, the default
+and recommended path) or, for cross-checking or when the Rcpp path is
+unavailable, an elastic-net-with-zero-penalty Cox fit via \pkg{glmnet}
+(\code{use_rcpp = FALSE}) — \strong{not} \pkg{survival::coxph}, despite that
+being the more commonly used reference implementation for Cox models in R.
 }
 \details{
-When \code{use_rcpp = FALSE}, this function requires the \pkg{glmnet} package,
-which is listed in Suggests and is not installed automatically with \pkg{EDI}.
+\strong{Failure semantics.} If the C++ fit (\code{use_rcpp = TRUE}) errors or
+fails to report \code{converged}, this function stops with an error rather than
+silently falling back to \pkg{glmnet} — the two code paths are alternative
+\emph{caller choices}, not an automatic fallback chain (contrast with, e.g.,
+\code{\link{fast_beta_regression}}'s automatic \pkg{betareg} fallback).
+
+\strong{\pkg{glmnet} dependency.} When \code{use_rcpp = FALSE}, this function requires the \pkg{glmnet} package,
+which is listed in Suggests and is not installed automatically with \pkg{EDI}; it errors immediately if
+\pkg{glmnet} is not installed.
 }
 \examples{
 X = matrix(rnorm(500), 100, 5)
 y = runif(100)
 dead = rbinom(100, 1, 0.5)
 fast_coxph_regression(y, dead, X)
+}
+\seealso{
+\code{\link{build_cox_data_cache_cpp}} for the full Cox partial-likelihood
+  model, Breslow tie-handling, and input conventions;
+  \code{\link{fast_coxph_regression_cpp}} for the native C++ backend this
+  wrapper calls by default.
 }

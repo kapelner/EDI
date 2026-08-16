@@ -1,5 +1,7 @@
 # Quantile Regression C++ Kernel Spec
 
+> **Depends on:** `sexp_removal_rcppeigen_conversion_spec.md` conventions (available). The KK quantile classes it wires depend on `fix_inference_hierarchy.md`'s pending KK-family migration. (Global ordering: see `_master.md`.)
+
 Generated: 2026-07-29
 
 ## Scope
@@ -178,17 +180,17 @@ New file `EDI/src/fast_quantile_regression.cpp`:
 
 ```cpp
 // [[Rcpp::export]]
-List fast_rq_fit_br_cpp(SEXP X_r, SEXP y_r, double tau);
+List fast_rq_fit_br_cpp(const Eigen::Map<const Eigen::MatrixXd>& X, SEXP y_r, double tau);
 // Point estimate only — mirrors rq.fit(x, y, tau, method="br").
 // Returns: list(coefficients, residuals, converged).
 
 // [[Rcpp::export]]
-List fast_rq_fit_br_weighted_cpp(SEXP X_r, SEXP y_r, SEXP weights_r, double tau);
+List fast_rq_fit_br_weighted_cpp(const Eigen::Map<const Eigen::MatrixXd>& X, SEXP y_r, SEXP weights_r, double tau);
 // Weighted point estimate — mirrors rq(y ~ ., data, tau, weights)'s
 // underlying weighted rq.fit call.
 
 // [[Rcpp::export]]
-List fast_rq_with_se_cpp(SEXP X_r, SEXP y_r, double tau, std::string se = "nid", bool hs = true);
+List fast_rq_with_se_cpp(const Eigen::Map<const Eigen::MatrixXd>& X, SEXP y_r, double tau, std::string se = "nid", bool hs = true);
 // Point estimate + standard errors. Internally solves the LP up to 3 times
 // for se="nid" (tau, tau+h, tau-h) or up to 2 times for se="iid" (tau, plus
 // the small sparsity regression). Returns:
@@ -202,10 +204,25 @@ only call again with `se="iid"` if that result is non-finite, non-positive,
 or exceeds `EDI_SEPARATION_THRESHOLD`. This keeps the common case (a usable
 `nid` result) to a single call.
 
+Parameter/return conventions (updated 2026-08-13, per
+`sexp_removal_rcppeigen_conversion_spec.md`): `X` takes the direct zero-copy
+`Eigen::Map` form; `y_r`/`weights_r` stay `SEXP` → coercing `NumericVector` →
+`Eigen::Map`, the permanent response/weights storage-mode exception. If these
+kernels are Python-bound in `edi_kernels` (quantile regression is a natural
+candidate), build them from the start as `EDI_CORE_ONLY`-split
+`edi::ResultMap` cores plus thin Rcpp wrappers; if they stay R-only,
+`Rcpp::List` at the boundary is acceptable per that spec's TODO-14 decision.
+
 ## R Integration
 
 Each affected class gets `use_rcpp = TRUE` (default), following the
-established pattern:
+established pattern (note, 2026-08-13: `InferenceContinQuantileRegr` is
+already migrated to the shallow hierarchy — `Inference` plus
+`BayesianBootstrap`/`Wald` — and stores `tau`/`fit_warm_keep` as
+dynamically-created private fields per `fix_inference_hierarchy.md`'s
+documented pattern; new fit plumbing must keep them there, not move them
+into `cached_values`, which worker clones reset. `InferencePropQuantileRegr`
+is still on the pending-migration list):
 
 - `InferenceContinQuantileRegr` / `InferencePropQuantileRegr`: `fit_quantile_model`'s
   `estimate_only = TRUE` branch calls `fast_rq_fit_br_cpp`; the `FALSE`

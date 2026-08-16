@@ -1,5 +1,7 @@
 # Ordinal GEE C++ Kernel Spec
 
+> **Depends on:** `sexp_removal_rcppeigen_conversion_spec.md` conventions (available); R integration touches `InferenceOrdinalKKGEE`, whose final shape depends on `fix_inference_hierarchy.md`'s KK/GEE migration section. (Global ordering: see `_master.md`.)
+
 Generated: 2026-07-28
 
 ## Scope
@@ -128,7 +130,7 @@ signatures:
 ```cpp
 // [[Rcpp::export]]
 List ordinal_gee_pairs_singletons_cpp(
-    SEXP X_r, SEXP y_r, SEXP group_id_r,
+    const Eigen::Map<const Eigen::MatrixXd>& X, SEXP y_r, SEXP group_id_r,
     Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
     Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
     int maxit = 100, double tol = 1e-8
@@ -136,12 +138,23 @@ List ordinal_gee_pairs_singletons_cpp(
 
 // [[Rcpp::export]]
 List ordinal_gee_pairs_singletons_weighted_cpp(
-    SEXP X_r, SEXP y_r, SEXP group_id_r, SEXP weights_r,
+    const Eigen::Map<const Eigen::MatrixXd>& X, SEXP y_r, SEXP group_id_r, SEXP weights_r,
     Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
     Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
     int maxit = 100, double tol = 1e-8
 );
 ```
+
+Parameter/return conventions (updated 2026-08-13, per
+`sexp_removal_rcppeigen_conversion_spec.md`): the design matrix takes the
+direct zero-copy `Eigen::Map` form; `y_r`/`group_id_r`/`weights_r` stay
+`SEXP` → coercing `IntegerVector`/`NumericVector` → `Eigen::Map`, because
+response/grouping/weight vectors are that spec's permanent
+storage-mode-ambiguity exception (R generators don't honor a consistent
+int/double contract for them). If this kernel is ever Python-bound in
+`edi_kernels`, build it from the start as an `EDI_CORE_ONLY`-split
+`edi::ResultMap` core plus a thin Rcpp wrapper; if it stays R-only,
+`Rcpp::List` at the boundary is acceptable per that spec's TODO-14 decision.
 
 Both return `List(beta, alpha, vcov, fisher_information, converged, niter, K)`
 — the same field names as `gee_pairs_singletons_cpp`'s result plus `K`

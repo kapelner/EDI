@@ -1,5 +1,7 @@
 # Response Types Across Experimental Literatures
 
+> **Depends on:** none (index document; the per-type reports it links carry their own dependencies). (Global ordering: see `_master.md`.)
+
 ## Scope
 
 This report summarizes how common the package's response-type families are
@@ -848,7 +850,7 @@ landscape survey guessed:
   `package_metadata/longitudinal_repeated_measures_response_type_report.md`.
   Verdict: **hard** (every response type, including `Design`'s core `y`
   container, hard-assumes one observation per subject), but with a real
-  mitigant: EDI's KK-GEE (`inference_mixin_kk_gee_shared.R`) and KK-GLMM
+  mitigant: EDI's KK-GEE (the `KKGEE` component, `inference_mixin_kk_gee_shared.R`) and KK-GLMM
   (`inference_continuous_KK_glmm.R`) clustering machinery generalizes to a
   subject-over-time panel index rather than needing new numerics from
   scratch.
@@ -894,7 +896,7 @@ landscape survey guessed:
   `package_metadata/interval_censored_survival_response_type_report.md`
   — **note (fixed stale cross-reference)**: that filename was never
   actually created; the real document is
-  `package_metadata/new_feature_plans/interval_censored_survival_response.md`.
+  `package_metadata/finished_features/interval_censored_survival_response.md`.
   Revised verdict per that document: parametric Weibull interval-censored
   regression is **moderate** (`fast_weibull_regression_cpp` needs a
   `log(S(L)-S(R))` likelihood branch, which also picks up left-censoring

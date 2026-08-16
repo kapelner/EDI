@@ -2,16 +2,55 @@
 % Please edit documentation in R/design_seq_one_by_one_random_block_size.R
 \name{DesignSeqOneByOneRandomBlockSize}
 \alias{DesignSeqOneByOneRandomBlockSize}
-\title{A sequential blocking allocation design with random block sizes}
+\title{A Sequential Permuted-Block Design with Randomly Varying Block Sizes}
 \description{
-An R6 Class encapsulating the data and functionality for a sequential blocking
-experimental design
-where block sizes are randomly chosen from a specified set for each stratum. This design
-is commonly used in clinical trials to prevent predictability of treatment assignments.
+A \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} implementing permuted-block
+randomization with randomly varying block size: subjects are assigned from a queue
+of pre-shuffled treatment labels (a "block"), refilled with a fresh
+\code{\link[base]{sample}}d block whenever it empties. Each new block's size is
+itself drawn uniformly at random from \code{block_sizes} (rather than being fixed),
+and each block internally contains exactly \code{round(block_size * prob_T)} treated
+and \code{block_size - round(block_size * prob_T)} control labels in random order.
+Randomizing the block size (rather than using a single fixed block length, as in
+classical permuted-block designs) is a standard clinical-trials safeguard against
+\strong{selection bias}: with a fixed, known block size, unblinded staff could
+predict the last assignment(s) in a block from the ones already observed, whereas an
+unpredictable block size makes this much harder while still guaranteeing
+near-perfect treatment/control balance throughout enrollment (balance is exact at
+every block boundary and never worse than one full block's imbalance in between). If
+\code{strata_cols} is supplied, a separate independent sequence of blocks is
+maintained per stratum (one queue per distinct combination of \code{strata_cols}
+values), so balance holds within each stratum, not just overall.
+
+
+\strong{Block-size / \code{prob_T} compatibility.} Every entry of \code{block_sizes}
+must yield an integer number of treated subjects when multiplied by \code{prob_T}
+(checked at construction: \code{abs(bs * prob_T - round(bs * prob_T)) <= 1e-10} for
+every \code{bs}); a block size that would require a fractional number of treated
+subjects is rejected.
+
+\strong{Per-stratum queues.} \code{private$strata_states} is a hashed environment
+mapping each stratum key (or the literal key \code{"overall"} when
+\code{strata_cols} is \code{NULL}) to the vector of not-yet-used assignments
+remaining in that stratum's current block; \code{assign_wt()} pops the next
+assignment from the relevant queue, refilling it with a freshly drawn block (random
+size, randomly ordered) whenever it is empty.
+
+\strong{Bootstrap.} \code{draw_bootstrap_indices()} resamples within strata (via
+\code{stratified_bootstrap_indices_cpp()}) when \code{strata_cols} is supplied, or
+performs a plain i.i.d. nonparametric bootstrap over subjects otherwise.
 }
 \examples{
 seq_des = DesignSeqOneByOneRandomBlockSize$new(n = 6, response_type = 'continuous')
 seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+}
+\references{
+Efron, B. (1971). "Forcing a sequential experiment to be balanced."
+  \emph{Biometrika}, 58(3), 403-417, \doi{10.1093/biomet/58.3.403}, for sequential
+  balanced-block randomization background. See also
+  \href{https://en.wikipedia.org/wiki/Block_randomisation}{block randomisation} for
+  orientation on permuted-block designs and the selection-bias rationale for varying
+  block size.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} -> \code{DesignSeqOneByOneRandomBlockSize}
@@ -28,9 +67,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 <ul>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject'><code>DesignSeqOneByOne$add_one_subject()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject_to_experiment_and_assign'><code>DesignSeqOneByOne$add_one_subject_to_experiment_and_assign()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-is_a_seq_one_by_one'><code>DesignSeqOneByOne$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-print_current_subject_assignment'><code>DesignSeqOneByOne$print_current_subject_assignment()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-supports_resampling'><code>DesignSeqOneByOne$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -63,6 +100,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -85,15 +123,17 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed'><code>Design$is_a_fixed()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-overwrite_all_subject_assignments'><code>Design$overwrite_all_subject_assignments()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -101,7 +141,9 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 \if{html}{\out{<a id="method-DesignSeqOneByOneRandomBlockSize-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneRandomBlockSize-initialize}{}}}
 \subsection{\code{DesignSeqOneByOneRandomBlockSize$new()}}{
-  Initialize a random block size sequential experimental design
+  Initialize a sequential permuted-block experimental design
+  with randomly varying block size (see class documentation for the exact
+  block-refill rule and its selection-bias rationale).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneRandomBlockSize$new(
@@ -154,15 +196,16 @@ should we include another dummy variable for its missingness? Default is \code{T
 \if{html}{\out{<a id="method-DesignSeqOneByOneRandomBlockSize-assign_wt"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneRandomBlockSize-assign_wt}{}}}
 \subsection{\code{DesignSeqOneByOneRandomBlockSize$assign_wt()}}{
-  Uses this subclass's sequential assignment rule; see
-  \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}.
+  Pop the next treatment assignment from the current subject's
+  stratum block queue (see class documentation), refilling that queue with
+  a freshly drawn random-size, randomly-ordered block first if it is empty.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneRandomBlockSize$assign_wt()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    The treatment assignment (0 or 1)
+    The treatment assignment (0 or 1) for the next subject.
   }
 }
 

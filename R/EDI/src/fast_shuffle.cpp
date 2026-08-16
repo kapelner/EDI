@@ -1,6 +1,6 @@
 #include <RcppEigen.h>
+#include "RNG.h"
 #include <random>
-#include <chrono>
 using namespace Rcpp;
 using namespace Eigen;
 
@@ -8,8 +8,8 @@ using namespace Eigen;
 NumericVector shuffle_cpp(SEXP w) {
 	NumericVector w_r_coerced(w); Eigen::Map<Eigen::VectorXd> w_vec_coerced(w_r_coerced.begin(), w_r_coerced.size());
 
-        unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-        std::shuffle(w_vec_coerced.data(), w_vec_coerced.data() + w_vec_coerced.size(), std::default_random_engine(seed));
+        edi_rng::RRng rng(edi_rng::seed_from_unif01(R::unif_rand()));
+        std::shuffle(w_vec_coerced.data(), w_vec_coerced.data() + w_vec_coerced.size(), rng);
         return wrap(w_vec_coerced);
 }
 

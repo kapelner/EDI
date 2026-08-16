@@ -2,21 +2,35 @@
 % Please edit documentation in R/RcppExports.R
 \name{gcomp_logistic_point_estimate_cpp}
 \alias{gcomp_logistic_point_estimate_cpp}
-\title{Fast G-Computation Point Estimate for Logistic Regression (C++)}
+\title{Fast G-Computation (Standardization) Point Estimate for Logistic Regression (C++)}
 \usage{
 gcomp_logistic_point_estimate_cpp(X_fit, coef_hat, j_treat)
 }
 \arguments{
-\item{X_fit}{Numeric matrix of predictors including intercept.}
+\item{X_fit}{Numeric matrix of predictors used to fit the model, including an
+intercept column if the model has one.}
 
-\item{coef_hat}{Numeric vector of fitted coefficients.}
+\item{coef_hat}{Numeric vector of fitted logistic regression coefficients
+\eqn{\hat\beta}, same length and column order as \code{X_fit}.}
 
-\item{j_treat}{1-based column index of the treatment indicator in X_fit.}
+\item{j_treat}{1-based column index of the treatment indicator in \code{X_fit}.}
 }
 \value{
-A list with elements \code{mean1}, \code{mean0}, and \code{md} (mean difference).
+A list with elements \code{mean1} (standardized mean risk under
+  \eqn{T=1} for everyone), \code{mean0} (standardized mean risk under \eqn{T=0}
+  for everyone), and \code{md} (\code{mean1 - mean0}, the standardized risk
+  difference).
 }
 \description{
-Computes marginal risk difference and risk ratio under the logistic model using G-computation.
+Computes the standardized (G-computation) marginal risk difference under a
+fitted logistic regression model. This is a thin alias: it delegates directly
+to \code{\link{gcomp_fractional_logit_point_estimate_cpp}} (see that page for
+the full standardization formula and counterfactual-averaging methodology,
+which is identical for logistic and fractional-logit/quasi-binomial models),
+passing its arguments through unchanged.
+}
+\seealso{
+\code{\link{gcomp_fractional_logit_point_estimate_cpp}} for the full
+  documentation of the underlying computation.
 }
 \keyword{internal}

@@ -1,5 +1,7 @@
 # Multi-Arm (K > 2) Designs
 
+> **Depends on:** Phase 1 (design side): `fix_design_hierarchy.md` (capability metadata + `define_design_class` registration). Phase 3 (inference side): `fix_inference_hierarchy.md` (stable root + `Wald` component contract). TODO-6 (CMH guard gap) is independent — do anytime. (Global ordering: see `_master.md`.)
+
 Generated: 2026-08-09
 
 ## Scope
@@ -472,17 +474,20 @@ classes need that most others don't, since most others only ever consume
 - `prob_T` (scalar) needs a `K`-vector sibling, e.g. `prob_T_vec`, that
   defaults to `rep(1/K, K)` and collapses to today's `prob_T`/`1-prob_T`
   pair when `K == 2`.
-- A new characterization method, e.g. `is_a_multi_arm_capable()`, mirroring
-  the existing pattern of `is_a_kk_matching_capable()`
-  (`design_abstract.R:43`), `is_a_cluster_capable()` (`:47`), and
-  `is_a_bernoulli_capable()` (`:51`) — each of which is a `FALSE`-by-default
-  method on `Design` overridden to `TRUE` on the capable subclasses. This
-  gives `Inference*` classes and `SimulationFramework` a single dispatch
-  point to check design capability, the same way `is_a_kk_matching_capable()`
-  already gates KK-only `Inference*` classes (e.g.
-  `InferenceAbstractKKWilcoxBaseIVWC$initialize`,
-  `inference_all_KK_wilcox_ivwc.R:190-192`, stops unless
-  `des_obj$is_a_kk_matching_capable()`).
+- A new design capability, `supports("multi_arm")`, declared in each capable
+  class's `EDI_DESIGN_CLASS_REGISTRY` metadata and registered as a real
+  capability (updated 2026-08-13: the original draft proposed a
+  `FALSE`-by-default overridable method `is_a_multi_arm_capable()` mirroring
+  `is_a_kk_matching_capable()` (`design_abstract.R:43`) — but
+  `fix_design_hierarchy.md` replaces exactly that pattern with registry
+  metadata plus `supports()`/`capabilities()` queries, so new capabilities
+  must not be added as overridable boolean methods). This gives `Inference*`
+  classes and `SimulationFramework` a single dispatch point to check design
+  capability, the same way KK-only `Inference*` classes gate on the design's
+  KK-matching capability (e.g. `InferenceAbstractKKWilcoxBaseIVWC$initialize`,
+  `inference_all_KK_wilcox_ivwc.R:190-192`). New multi-arm-capable designs
+  additionally need a `randomization_family` enum entry and registration via
+  `define_design_class()`.
 
 ### 3d. Internal storage representation for `w`: integer, not factor
 
@@ -718,7 +723,8 @@ distinction that matters is between "stores a `{0,1}` scalar" (mechanical,
 - **`DesignFixedMatchingGreedyPairSwitching`**
   (`design_fixed_matching_greedy_pair_switching.R`) does a greedy swap
   search *within* `DesignFixedBinaryMatch`'s pairs
-  (`InferenceNonParamBootstrap`'s validity table describes it as flipping
+  (the `NonparametricBootstrap` component's validity table — formerly
+  `InferenceNonParamBootstrap` — describes it as flipping
   "assignments only ever... within binary-match pairs, so every pair has
   exactly one treated subject",
   `inference_all_abstract_non_param_boot.R:85-92`) — it inherits
@@ -803,10 +809,15 @@ ratio test across all `K` arms simultaneously, with no single "the
 estimate" to report). Concretely, this would require:
 
 - A parallel base-class contract (`InferenceMultiArm` or similar) rather
-  than modifying `Inference`/`InferenceAsymp` in place — retrofitting the
-  scalar contract that ~100 classes, the roxygen-documented public API, and
-  `extending-edi-r6.md`'s external extension contract all depend on is not
-  a safe in-place change.
+  than modifying `Inference` or the `Wald` component in place — retrofitting
+  the scalar contract that ~100 classes, the roxygen-documented public API,
+  and `extending-edi-r6.md`'s external extension contract all depend on is not
+  a safe in-place change. (Note, 2026-08-13: under `fix_inference_hierarchy.md`
+  a parallel root is legitimate only as a true substitutability family — a
+  vector-contrast estimator is genuinely not substitutable for a
+  scalar-contrast `Inference`, so a parallel root passes that test — and it
+  must be built through `define_inference_class()` with its own metadata,
+  components, and capabilities, never as a hand-rolled deep ladder.)
 - `Inference$initialize()`'s `private$w`/`private$X` construction
   (`inference_all_abstract.R:52-91`) would need a `private$W` `K-1`-column
   dummy-matrix sibling.
@@ -902,6 +913,31 @@ plumbing once §3/§4 land.
   native `K`-arm `Inference` classes for continuous and incidence responses
   only (§6b), gated on demonstrated need beyond what Phase 3a's pairwise
   output provides.
+- [x] TODO-6: **Pre-existing guard gap found by §3's survey, independent of any
+  multi-arm work:** `InferenceIncidCMH`'s non-blocking,
+  `draw_ws_according_to_design()`-based branch has no analogue of the
+  balance checks its blocking branch enforces
+  (`inference_incidence_cmh.R:72-81`) — and no analogue of the unconditional
+  construction-time guard `InferenceIncidExtendedRobins` applies
+  (`inference_incidence_extended_robins.R:48-58`) — so a non-blocking design
+  without exact realized balance (e.g. plain Bernoulli randomization, which
+  doesn't guarantee `n_T = n_C` even at `prob_T = 0.5`) can violate the SE
+  formula's documented "for a balanced design" precondition and report a
+  quietly-miscalibrated SE. Add the missing guard (or a documented,
+  deliberate relaxation with the correct unbalanced SE formula) to the
+  non-blocking branch. This is a two-arm bug in today's code; fix it before
+  (and independently of) any `K > 2` generalization. **Done (2026-08-16):**
+  added a construction-time `stop()` mirroring the blocking branch's
+  `prob_T == 0.5` check (previously absent on the non-blocking path at all),
+  plus a `warning()` when the *realized* allocation isn't exactly balanced
+  even at `prob_T = 0.5` (e.g. plain Bernoulli). A hard error on realized
+  imbalance was rejected — it would make the class unusable with legitimate
+  Bernoulli-style designs, which existing tests exercise and expect to work.
+  Documented in the class's roxygen `@details`. Verified against
+  `tests/testthat/test-design-inference.R`: all CMH-related tests pass (the
+  new warning fires correctly on the pre-existing imbalanced-draw test
+  cases); the file's only failures are a pre-existing, unrelated
+  ordinal-hardening test.
 
 ## 9. Non-goals
 
@@ -930,9 +966,9 @@ plumbing once §3/§4 land.
 - Not proposing an automatic multiplicity correction as part of Phase 1 —
   `arm_treated`/`arm_control` selection is a manual, user-driven operation
   in Phase 1; automatic correction is scoped to Phase 3a only.
-- Not proposing to modify the existing `Inference`/`InferenceAsymp` scalar
-  contract, or `extending-edi-r6.md`'s external extension contract, under
-  any phase of this plan. Phase 3b's native multi-arm classes are additive
+- Not proposing to modify the existing `Inference` (root plus `Wald`
+  component) scalar contract, or `extending-edi-r6.md`'s external extension
+  contract, under any phase of this plan. Phase 3b's native multi-arm classes are additive
   (a new parallel hierarchy), never a retrofit of the existing one.
 - `DesignFixedFactorial`'s `SimulationFramework`-degeneracy encoding bug
   (§2) has already been fixed and is out of scope going forward — the

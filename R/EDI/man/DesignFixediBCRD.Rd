@@ -2,15 +2,49 @@
 % Please edit documentation in R/design_fixed_ibcrd.R
 \name{DesignFixediBCRD}
 \alias{DesignFixediBCRD}
-\title{A balanced completely randomized Fixed Design}
+\title{A Fixed, Individually Balanced Completely Randomized Design (iBCRD)}
 \description{
-An R6 Class encapsulating the data and functionality for a fixed balanced
-completely randomized experimental design.
+A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} implementing the
+individually balanced complete randomized design (iBCRD): the number of treated
+subjects is fixed at exactly \eqn{n_T = \mathrm{round}(n \cdot prob\_T)}, and each
+allocation \eqn{w} with exactly \eqn{n_T} ones is drawn uniformly at random from the
+\eqn{\binom{n}{n_T}} possible such allocations (via a Fisher-Yates shuffle of a base
+vector with \eqn{n_T} ones and \eqn{n - n_T} zeros). This is the classical "complete
+randomization" reference design of randomization inference: unlike
+\code{\link[EDI:DesignFixedBernoulli]{DesignFixedBernoulli}} (independent per-subject
+coin flips, random \eqn{n_T}), \eqn{n_T} is fixed here, which is what makes exact
+permutation/randomization tests over the \eqn{\binom{n}{n_T}} allocations well-defined;
+unlike \code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}/
+\code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}, no covariate information is
+used to select among those allocations — every one of the \eqn{\binom{n}{n_T}}
+allocations is equally likely.
+
+
+\strong{Draw mechanism.} \code{draw_ws_raw(r)} delegates to
+\code{generate_permutations_ibcrd_cpp()}, which builds one base allocation vector
+(\eqn{n_T} ones followed by \eqn{n - n_T} zeros) and independently
+shuffles (Fisher-Yates via \code{std::shuffle}) a fresh copy of it
+per replicate column, seeded from R's own RNG stream (so \code{seed} does govern
+reproducibility here, unlike the A-/D-optimal exchange searches).
+\code{assign_w_to_all_subjects()} draws one such allocation (\code{r = 1}) and applies
+it to all subjects.
+
+\strong{Single implicit block.} The constructor sets \code{private$m} to a constant
+vector of 1s (a single block containing every subject) once \code{n} is known, so that
+shared blocking/matching machinery that expects a block-membership vector treats the
+whole sample as one block by default.
 }
 \examples{
 des = DesignFixediBCRD$new(n = 10, response_type = 'continuous')
 des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10)))
 des$assign_w_to_all_subjects()
+}
+\references{
+Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd,
+  for complete randomization as the canonical reference design of randomization
+  inference. See also
+  \href{https://en.wikipedia.org/wiki/Randomized_experiment}{randomized experiment}
+  for orientation on complete vs. Bernoulli randomization.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixediBCRD}
@@ -27,9 +61,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subject_responses'><code>DesignFixed$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subjects_to_experiment'><code>DesignFixed$add_all_subjects_to_experiment()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-assign_w_to_all_subjects'><code>DesignFixed$assign_w_to_all_subjects()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-is_a_fixed'><code>DesignFixed$is_a_fixed()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-supports_resampling'><code>DesignFixed$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -61,6 +93,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -83,14 +116,16 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_seq_one_by_one'><code>Design$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -98,7 +133,9 @@ des$assign_w_to_all_subjects()
 \if{html}{\out{<a id="method-DesignFixediBCRD-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixediBCRD-initialize}{}}}
 \subsection{\code{DesignFixediBCRD$new()}}{
-  Initialize a fixed balanced completely randomized experimental design
+  Initialize a fixed individually balanced completely randomized
+  experimental design (see class documentation for the exact randomization
+  law).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixediBCRD$new(
@@ -118,7 +155,10 @@ des$assign_w_to_all_subjects()
     \describe{
       \item{\code{response_type}}{"continuous", "incidence", "proportion", "count", "survival", or
 "ordinal".}
-      \item{\code{prob_T}}{Probability of treatment assignment.}
+      \item{\code{prob_T}}{Target probability of treatment assignment; the realized
+number of treated subjects is fixed at \code{round(n * prob_T)} for every
+draw (unlike \code{\link[EDI:DesignFixedBernoulli]{DesignFixedBernoulli}},
+where it is random).}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{verbose}}{A flag for verbosity.}

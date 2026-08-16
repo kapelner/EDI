@@ -1,10 +1,13 @@
 # Fix Documentation TODOs
 
+> **Depends on:** R-side TODOs: none. Python TODOs #758-#816: the corresponding R function's expanded documentation (they copy from it). Snapshot regeneration depends on `fix_inference_hierarchy.md`/`fix_design_hierarchy.md` completing (see header note). (Global ordering: see `_master.md`.)
+
 Generated from the current `EDI/man/*.Rd` public API surface. This file is a work plan, not user documentation.
 
-- Public Rd topics found: `252`
-- Public R6 methods found: `627`
-- Total API entries listed: `879`
+- Public Rd topics found: `255` (includes `ObservationalDesign`, `ObservationalDesignBlocks`, `ObservationalDesignMatching`, added after the original snapshot)
+- Public R6 methods found: `504` (excludes the 128 auto-generated `$clone()` methods, which use R6's standard boilerplate and are out of scope for individualized documentation)
+- Total API entries listed: `754`
+- Snapshot-staleness note (2026-08-13): the completed `fix_inference_hierarchy.md`/`fix_design_hierarchy.md` migrations shrink this surface — `supports_*` hook methods, the dead design characterization flags (`is_a_fixed()`, `is_an_observational_design()`, `supports_batch_w_pregeneration()`, etc.), and the algorithmic base classes' Rd pages (`InferenceRand`, `InferenceAsymp`, `InferenceNonParamBootstrap`, `DesignBlocking`, `DesignMatching`, …) are deleted. Individual TODOs for deleted methods are marked obsolete inline; regenerate this snapshot after the migrations before starting any new documentation batch, rather than working from these counts.
 
 ## General Instructions
 
@@ -28,7 +31,7 @@ For every public API entry below, replace short or generic prose with documentat
 - Computational complexity and practical limits when relevant. State the dominant scaling in subjects, pairs, blocks, clusters, covariates, bootstrap replicates, randomization draws, or outcome levels, and identify known memory or runtime bottlenecks.
 - Contracts for `fast_*` and C++ backend functions. Document indexing conventions, memory layout, unchecked assumptions, domain restrictions, overflow and underflow behavior, NA/NaN handling, convergence flags, and the relationship between low-level backends and safer R wrappers.
 - Links to related parent methods instead of repeating shared bootstrap, randomization, jackknife, exact, or asymptotic contracts.
-- Do not repeat yourself: place shared documentation at the highest possible level in the inheritance chain, then have subclasses link to that parent documentation and document only subclass-specific behavior.
+- Do not repeat yourself: place shared documentation at the highest possible level, then have subclasses link to that shared documentation and document only class-specific behavior. (Updated 2026-08-13: under the shallow component hierarchy "highest possible level" means the component's owning/documenting class page — see `fix_roxygenize_lazy_component_srcrefs.md` — not a deep inheritance ancestor; the algorithmic base classes that used to host shared docs are deleted.)
 - References with stable identifiers, preferably DOI, arXiv, or package/manual citations.
 - References and links for specialized numerical or statistical ingredients, including approximations, optimizers, quadrature rules, transforms, corrections, and named algorithms. For example, document and cite Lanczos approximation, Stirling approximation, saddlepoint approximations, Gauss-Hermite quadrature, Cholesky decompositions, log-sum-exp stabilization, Bartlett corrections, and other esoteric implementation details when they affect formulas, accuracy, or interpretation.
 - HTML links to analogous Python package documentation when it helps users compare APIs or verify model conventions.
@@ -41,7 +44,7 @@ For every public API entry below, replace short or generic prose with documentat
 These are cross-cutting documentation improvements that should be completed alongside the numbered API TODOs.
 
 - Create theory vignettes by method family: `theory-incidence.Rmd`, `theory-count.Rmd`, `theory-survival.Rmd`, `theory-ordinal.Rmd`, `theory-bootstrap-randomization.Rmd`, and any additional family needed for continuous/proportion methods. Individual roxygen entries should link into these vignettes rather than repeating long derivations.
-- Create a notation glossary defining package-wide symbols and conventions, including `W`, `Y`, `X`, `delta`, `beta_T`, matched pairs, reservoir subjects, blocks, clusters, censoring indicators, bootstrap weights, Bayesian-bootstrap weights, randomization permutations, treatment-effect scales, and transformed outcomes.
+- [x] Create a notation glossary defining package-wide symbols and conventions, including `W`, `Y`, `X`, `delta`, `beta_T`, matched pairs, reservoir subjects, blocks, clusters, censoring indicators, bootstrap weights, Bayesian-bootstrap weights, randomization permutations, treatment-effect scales, and transformed outcomes. Done: `vignettes/notation-glossary.Rmd` (added `knitr`/`rmarkdown` to `Suggests` and `VignetteBuilder: knitr` to `DESCRIPTION` since no vignette infrastructure existed yet); test-rendered clean via `rmarkdown::render()`.
 - Create support tables for all inference classes. Each row should include response type, allowed design types, estimand, effect scale, exact/asymptotic/bootstrap/Bayesian-bootstrap/jackknife/randomization support, likelihood-test support, required packages, and known fallback or unsupported behavior.
 - Document return object schemas for every public method or `fast_*` backend that returns a list or structured object. Include field names, dimensions, parameter order, treatment-coefficient index, convergence fields, variance fields, and when fields may be `NA`, `NULL`, or omitted.
 - Add explicit "scale of effect" notes throughout the inference docs. State whether the returned estimate is a mean difference, risk difference, log risk ratio, odds ratio, log odds ratio, log hazard ratio, log-time ratio, RMST difference, quantile shift, rank statistic, or other scale.
@@ -49,11 +52,11 @@ These are cross-cutting documentation improvements that should be completed alon
 - Create a method-selection guide. Include decision tables that help users choose an inference class from the design, outcome type, estimand, treatment-effect scale, sample size, censoring structure, clustering/blocking structure, and desired inference mode.
 - Create an input-conventions page. Define package-wide conventions for `W`, `Y`, covariate matrices, model matrices, treatment coding, factor ordering, block and cluster identifiers, matched-pair order, weights, offsets, missingness, censoring indicators, ties, and boundary values.
 - Create an R6 behavior page. Document which public methods are pure computations, which mutate object state, which cache results, which require a prior call to another method, how cloning behaves, and how users should reason about repeated calls.
-- Create a reproducibility page. Document RNG usage for simulation, bootstrap, Bayesian-bootstrap, and randomization methods; explain seed handling, parallel execution, draw reuse, Monte Carlo error, and how to reproduce published examples.
-- Create a backend-contracts page for `fast_*` and C++ utilities. Document low-level assumptions that are intentionally not checked, argument dimensions and storage order, numeric domains, overflow/underflow safeguards, convergence flags, and wrapper-to-backend equivalence.
+- [x] Create a reproducibility page. Document RNG usage for simulation, bootstrap, Bayesian-bootstrap, and randomization methods; explain seed handling, parallel execution, draw reuse, Monte Carlo error, and how to reproduce published examples. Done: `vignettes/reproducibility.Rmd` — covers `Design$seed`/`maybe_set_seed()`, the portable one-draw-seeded `edi_rng::RRng` pattern vs. `pocock_simon_redraw_w_cpp`'s live-`.Random.seed`-continuation exception, the two non-reproducible designs (`DesignFixedAOptimal`/`DesignFixedDOptimal`, `std::random_device`) vs. `DesignFixedGreedy`'s seed-reproducible-despite-OpenMP pattern, randomization inference's reuse of the design's own draw mechanism (plus permutation caching), non-parametric/Bayesian bootstrap RNG sources, `SimulationFramework`'s per-replication/per-cache-job seed derivation (`seed + i`, `seed + 1000003L + job_idx`) and why that makes parallel runs reproducible regardless of `num_cores`/backend, Monte Carlo error rules of thumb, and a reproduce-a-published-example checklist. Test-rendered clean via `rmarkdown::render()`.
+- [x] Create a backend-contracts page for `fast_*` and C++ utilities. Document low-level assumptions that are intentionally not checked, argument dimensions and storage order, numeric domains, overflow/underflow safeguards, convergence flags, and wrapper-to-backend equivalence. Done: `vignettes/backend-contracts.Rmd` — covers the R6-validates/backend-trusts boundary (with `fixed_idx`/`fixed_values`'s `make_fixed_param_spec()` validation as the one documented exception), column-major/zero-copy `Eigen::Map` storage vs. NumPy's row-major default, the 1-based-R/0-based-Python indexing split, numeric overflow/underflow safeguards (`fast_log1pexp`, `pnorm_fast`/`fast_log_pnorm` clamps, `logit`/`inv_logit` clamps, `EDI_SEPARATION_THRESHOLD`, `fast_erfc`'s Cephes/libm split), the package-wide `converged`/`iterations`/`gradient_norm`/`neg_loglik`-`neg_ll`-`loglik`/`vcov`-`std_err`-`z_vals`/`fisher_information`-`observed_information`-`information` return-field conventions, the `EDI_CORE_ONLY` shared-header and `*_internal()` shared-core patterns that make the R and Python bindings provably the same compiled code, and `NA`/`NaN` handling. Test-rendered clean via `rmarkdown::render()`.
 - Add cross-language analog links for each model family. Use statsmodels, lifelines, scipy, scikit-survival, or other official package documentation where useful, and label these links as analogous APIs or implementation references rather than EDI dependencies.
-- Add stable citation keys and a reference map. Prefer `\doi{...}`, arXiv links, package manuals, or canonical book references. Maintain a central `REFERENCES.md` or package citation map from method family/class to references.
-- Add validation-evidence references. For important methods, link examples, tests, or vignettes to published numerical examples, simulation checks, package-to-package comparisons, or closed-form special cases that demonstrate the implementation matches the documented formulas.
+- [x] Add stable citation keys and a reference map. Prefer `\doi{...}`, arXiv links, package manuals, or canonical book references. Maintain a central `REFERENCES.md` or package citation map from method family/class to references. Done: `R/EDI/REFERENCES.md` — extracted and deduplicated every `@references`/`\doi{}` roxygen entry across `R/EDI/R/*.R` and `R/EDI/src/*.cpp` (verified complete via a `\doi{}`-file cross-check), organized by family (design randomization/matching theory, cross-cutting inference methods, GEE, incidence, ordinal, survival, proportion, backend numerical utilities, simulation framework) with a stable `[Author+Year]` key and a "used by" class/function list per entry. Includes an honest "cited by author-year only" section for two works (Kapelner & Krieger 2021, Morrison & Owen 2025) whose source citations lack a full bibliographic record rather than fabricating one. Follow-up pass: added real `@references` blocks (Kaplan & Meier 1958, Brookmeyer & Crowley 1982, Turnbull 1976, Royston & Parmar 2013, Gehan 1965, Peto & Peto 1972, Mantel 1966, Sun 1996, McCullagh 1980, Peterson & Harrell 1990, Pinheiro & Bates 1995) to `InferenceSurvivalKMDiff`, `InferenceSurvivalRestrictedMeanDiff`, `InferenceSurvivalGehanWilcox`, `InferenceSurvivalLogRank`, `InferenceOrdinalPropOddsRegr`, `InferenceOrdinalPartialProportionalOddsRegr`, and `fast_ordinal_glmm_cpp` (all confirmed safe: not gated by `fix_inference_hierarchy.md`), closing most of the original coverage-gap list. The remaining gap — adjacent-category/continuation-ratio/stereotype ordinal logit and zero-inflated/hurdle count (7 classes) — is confirmed genuinely blocked (still `R6::R6Class` old-ladder, not `define_inference_class`), with the correct citations pre-identified in `REFERENCES.md`'s "Coverage gaps" section for whoever migrates those classes. Added `R/package_tests/check_references_sync.R` (a coverage/staleness checker, not a citation-text diff — verifies every `@references`-bearing file is indexed in `REFERENCES.md` and every `REFERENCES.md` "Used by:" name still exists in the codebase) and wired it into `.githooks/pre-push`, running before `fast_roxygenize.R`; it caught and helped fix 3 real pre-existing `REFERENCES.md` bugs (a wrong class name, a missing R-side function-name alias, and the stale `DesignFixedAOptimal`/`DesignFixedDOptimal` names left over from their merge into `DesignFixedGreedyDOptimal`).
+- [x] Add validation-evidence references. For important methods, link examples, tests, or vignettes to published numerical examples, simulation checks, package-to-package comparisons, or closed-form special cases that demonstrate the implementation matches the documented formulas. Done: `vignettes/validation-evidence.Rmd` — surveyed the `R/EDI/tests/testthat/` suite (verified all 32 cited test files actually exist and their claims match real `test_that()` titles, not inferred) and organized by family (continuous, incidence, count, ordinal, survival, proportion, GEE/GLMM, numerical utilities) into tables mapping each `fast_*`/`Inference*` implementation to the specific test file(s) proving it against a reference R package (`stats::glm`, `survival::coxph`/`survreg`, `MASS::glm.nb`/`rlm`, `betareg`, `VGAM`, `ordinal::clm`, `lme4`, `glmmTMB`, `pscl`, `geepack`/`multgee`, `copula`, `gamlss.dist`), a closed-form/limiting-case reduction, or a `numDeriv`-style analytic-vs-numerical gradient/Hessian check. Documents `SimulationFrameworkReport`'s built-in `coverage_pval`/`size_pval` exact-binomial calibration mechanism as the package's simulation-check category (no pre-computed calibration report is checked into the repo). Includes an honest coverage note for custom combined-kernel estimators (`fast_cpoisson_combined_with_var_cpp`, `fast_clogit_plus_glmm_cpp`) that have no single-package analogue to compare against directly.
 - Improve examples for public classes. Each exported class should have one tiny runnable example, one realistic `\donttest{}` example where appropriate, and one example or note showing the returned estimand scale.
 - Improve pkgdown organization. Group APIs by design family, outcome family, inference mode, and backend utility; add search-friendly aliases for common statistical terms; ensure equations render correctly; and verify that reference pages link to the relevant theory vignettes, support tables, and external references.
 - Add documentation tests. The test should parse generated Rd files and fail on placeholder descriptions such as "TODO", "Compute pval", "Initialize object", missing references for theoretical methods, broken links, repeated boilerplate that should live in a parent, public methods without argument/return documentation, undocumented defaults, unresolved mathematical symbols, malformed equations, misspellings, and exported objects missing from the reference index.
@@ -142,6 +145,35 @@ Good textbook or monograph candidates to map into TODOs:
 - Quantile regression: Koenker, *Quantile Regression*.
 - GEE and mixed models: Liang and Zeger papers for GEE; standard GLMM references for mixed-model likelihood and quadrature.
 
+## Prerequisite: Fix the `roxygenize()` Lazy-Component-Stub Blocker
+
+`Rscript R/fast_roxygenize.R` currently aborts the entire package-wide `roxygenize()`
+run with `Error: ! R6 class <InferenceAllKKWilcoxIVWC> lacks source references.` This
+is a systemic issue (39 of ~41 registered inference mixin components use a
+`load_policy = "lazy"` stub-method mechanism that strips R's `srcref` attribute; 26
+`define_inference_class(...)` call sites across 24 files are potentially affected, not
+just this one class) that blocks regenerating **any** `man/*.Rd` file from source, and
+therefore blocks verifying the numbered TODOs below against the real generator rather
+than by hand. See `package_metadata/new_feature_plans/fix_roxygenize_lazy_component_srcrefs.md`
+for the full root-cause analysis and proposed fix. These three items are prerequisites
+for reliably finishing the rest of this document and must be done first.
+
+- [x] TODO #001: Implement the srcref fix for `lazy_component_public_stub()` /
+  `lazy_component_private_stub()` in `R/mixin_contracts.R` (primary approach: copy the
+  real srcref from each component's actual method implementation onto its lazy stub;
+  fallback: patch `fast_roxygenize.R`'s R6 method-extraction to tolerate tagged
+  srcref-less stubs) — see the plan document's "Proposed fix" section.
+- [x] TODO #002: Run `Rscript R/fast_roxygenize.R` end-to-end and confirm it completes
+  without the `lacks source references` abort or any new error; spot-check generated
+  `.Rd` files for `InferenceAllKKWilcoxIVWC` and at least 2-3 other classes drawn from
+  the 26 `define_inference_class(...)` call sites to confirm lazy-component methods
+  get sensible source attribution (not silently wrong) — see the plan document's
+  "Verification plan" section.
+- [x] TODO #003: Re-run `fast_roxygenize.R` against every roxygen-source edit already
+  made under the "Thinly Described API TODOs" section below during the period this
+  blocker was open, and reconcile any drift between the hand-verified `.Rd` output
+  (via `tools::parse_Rd()`/`Rd2txt()`) and what the real generator now produces.
+
 ## Thinly Described API TODOs
 
 Each numbered item below is an API entry whose generated description is thin or needs review. Edit the roxygen source, apply the General Instructions above, then regenerate Rd. The current description length is included as a triage signal; consult the generated Rd or source file for the existing wording. The `TODO #NNN` identifiers are stable range targets for instructions such as "do 41-50".
@@ -149,1630 +181,1603 @@ Each numbered item below is an API entry whose generated description is thin or 
 
 ### `build_cox_data_cache_cpp.Rd`
 
-- [ ] TODO #001: Topic `build_cox_data_cache_cpp` (current description `95` chars).
+- [x] TODO #004: Topic `build_cox_data_cache_cpp` (current description `95` chars).
 
 ### `build_stratified_cox_data_cache_cpp.Rd`
 
-- [ ] TODO #002: Topic `build_stratified_cox_data_cache_cpp` (current description `117` chars).
+- [x] TODO #005: Topic `build_stratified_cox_data_cache_cpp` (current description `117` chars).
 
 ### `check_package_installed.Rd`
 
-- [ ] TODO #003: Topic `check_package_installed` (current description `105` chars).
+- [x] TODO #006: Topic `check_package_installed` (current description `105` chars).
 
 ### `compute_coxph_rand_bootstrap_cpp.Rd`
 
-- [ ] TODO #004: Topic `compute_coxph_rand_bootstrap_cpp` (current description `392` chars).
+- [x] TODO #007: Topic `compute_coxph_rand_bootstrap_cpp` (current description `392` chars).
 
 ### `create_model_matrix_from_features.Rd`
 
-- [ ] TODO #005: Topic `create_model_matrix_from_features` (current description `203` chars).
+- [x] TODO #008: Topic `create_model_matrix_from_features` (current description `203` chars).
 
 ### `DesignFixedAOptimal.Rd`
 
-- [ ] TODO #006: Method `DesignFixedAOptimal$clone()` (current description `57` chars).
-- [ ] TODO #007: Method `DesignFixedAOptimal$new()` (current description `56` chars).
-- [ ] TODO #008: Topic `DesignFixedAOptimal` (current description `302` chars).
+(Superseded 2026-08-16: class merged into `DesignFixedGreedyDOptimal`, Rd page
+deleted; the expanded documentation content was carried into the merged
+class's roxygen.)
+
+- [x] TODO #009: Method `DesignFixedAOptimal$new()` (current description `56` chars).
+- [x] TODO #010: Topic `DesignFixedAOptimal` (current description `302` chars).
 
 ### `DesignFixedBernoulli.Rd`
 
-- [ ] TODO #009: Method `DesignFixedBernoulli$clone()` (current description `57` chars).
-- [ ] TODO #010: Method `DesignFixedBernoulli$is_a_bernoulli_capable()` (current description `56` chars).
-- [ ] TODO #011: Method `DesignFixedBernoulli$new()` (current description `48` chars).
-- [ ] TODO #012: Topic `DesignFixedBernoulli` (current description `144` chars).
+- [x] TODO #011: Method `DesignFixedBernoulli$is_a_bernoulli_capable()` (current description `56` chars).
+- [x] TODO #012: Method `DesignFixedBernoulli$new()` (current description `48` chars).
+- [x] TODO #013: Topic `DesignFixedBernoulli` (current description `144` chars).
 
 ### `DesignFixedBinaryMatch.Rd`
 
-- [ ] TODO #013: Method `DesignFixedBinaryMatch$assign_w_to_all_subjects()` (current description `72` chars).
-- [ ] TODO #014: Method `DesignFixedBinaryMatch$clone()` (current description `57` chars).
-- [ ] TODO #015: Method `DesignFixedBinaryMatch$is_a_kk_matching_capable()` (current description `66` chars).
-- [ ] TODO #016: Method `DesignFixedBinaryMatch$new()` (current description `51` chars).
-- [ ] TODO #017: Method `DesignFixedBinaryMatch$supports_batch_w_pregeneration()` (current description `57` chars).
-- [ ] TODO #018: Topic `DesignFixedBinaryMatch` (current description `281` chars).
+- [x] TODO #014: Method `DesignFixedBinaryMatch$assign_w_to_all_subjects()` (current description `72` chars).
+- [x] TODO #015: Method `DesignFixedBinaryMatch$is_a_kk_matching_capable()` (current description `66` chars).
+- [x] TODO #016: Method `DesignFixedBinaryMatch$new()` (current description `51` chars).
+- [x] TODO #017: Method `DesignFixedBinaryMatch$supports_batch_w_pregeneration()` (current description `57` chars).
+- [x] TODO #018: Topic `DesignFixedBinaryMatch` (current description `281` chars).
 
 ### `DesignFixedBlockedCluster.Rd`
 
-- [ ] TODO #019: Method `DesignFixedBlockedCluster$clone()` (current description `57` chars).
-- [ ] TODO #020: Method `DesignFixedBlockedCluster$is_a_cluster_capable()` (current description `54` chars).
-- [ ] TODO #021: Method `DesignFixedBlockedCluster$new()` (current description `69` chars).
-- [ ] TODO #022: Topic `DesignFixedBlockedCluster` (current description `247` chars).
+- [x] TODO #019: Method `DesignFixedBlockedCluster$is_a_cluster_capable()` (current description `54` chars).
+- [x] TODO #020: Method `DesignFixedBlockedCluster$new()` (current description `69` chars).
+- [x] TODO #021: Topic `DesignFixedBlockedCluster` (current description `247` chars).
 
 ### `DesignFixedBlocking.Rd`
 
-- [ ] TODO #023: Method `DesignFixedBlocking$clone()` (current description `57` chars).
-- [ ] TODO #024: Method `DesignFixedBlocking$new()` (current description `58` chars).
-- [ ] TODO #025: Topic `DesignFixedBlocking` (current description `140` chars).
+- [x] TODO #022: Method `DesignFixedBlocking$new()` (current description `58` chars).
+- [x] TODO #023: Topic `DesignFixedBlocking` (current description `140` chars).
 
 ### `DesignFixedCluster.Rd`
 
-- [ ] TODO #026: Method `DesignFixedCluster$clone()` (current description `57` chars).
-- [ ] TODO #027: Method `DesignFixedCluster$is_a_cluster_capable()` (current description `54` chars).
-- [ ] TODO #028: Method `DesignFixedCluster$new()` (current description `57` chars).
-- [ ] TODO #029: Topic `DesignFixedCluster` (current description `236` chars).
+- [x] TODO #024: Method `DesignFixedCluster$is_a_cluster_capable()` (current description `54` chars).
+- [x] TODO #025: Method `DesignFixedCluster$new()` (current description `57` chars).
+- [x] TODO #026: Topic `DesignFixedCluster` (current description `236` chars).
 
 ### `DesignFixedDOptimal.Rd`
 
-- [ ] TODO #030: Method `DesignFixedDOptimal$clone()` (current description `57` chars).
-- [ ] TODO #031: Method `DesignFixedDOptimal$new()` (current description `55` chars).
-- [ ] TODO #032: Topic `DesignFixedDOptimal` (current description `291` chars).
+(Superseded 2026-08-16: class merged into `DesignFixedGreedyDOptimal`, Rd page
+deleted; the expanded documentation content was carried into the merged
+class's roxygen. The `reproducibility.Rmd` vignette entry above was updated
+for the merge and the now-seed-reproducible kernels.)
+
+- [x] TODO #027: Method `DesignFixedDOptimal$new()` (current description `55` chars).
+- [x] TODO #028: Topic `DesignFixedDOptimal` (current description `291` chars).
 
 ### `DesignFixedFactorial.Rd`
 
-- [ ] TODO #033: Method `DesignFixedFactorial$assign_w_to_all_subjects()` (current description `54` chars).
-- [ ] TODO #034: Method `DesignFixedFactorial$clone()` (current description `57` chars).
-- [ ] TODO #035: Method `DesignFixedFactorial$draw_ws_according_to_design()` (current description `89` chars).
-- [ ] TODO #036: Method `DesignFixedFactorial$get_w_factorial()` (current description `58` chars).
-- [ ] TODO #037: Method `DesignFixedFactorial$get_w()` (current description `58` chars).
-- [ ] TODO #038: Method `DesignFixedFactorial$new()` (current description `48` chars).
-- [ ] TODO #039: Topic `DesignFixedFactorial` (current description `224` chars).
+- [x] TODO #029: Method `DesignFixedFactorial$get_w_factorial()` (current description `58` chars).
+- [x] TODO #030: Method `DesignFixedFactorial$new()` (current description `48` chars).
+- [x] TODO #031: Topic `DesignFixedFactorial` (current description `224` chars).
 
 ### `DesignFixedGreedy.Rd`
 
-- [ ] TODO #040: Method `DesignFixedGreedy$clone()` (current description `57` chars).
-- [ ] TODO #041: Method `DesignFixedGreedy$new()` (current description `52` chars).
-- [ ] TODO #042: Method `DesignFixedGreedy$supports_batch_w_pregeneration()` (current description `70` chars).
-- [ ] TODO #043: Topic `DesignFixedGreedy` (current description `196` chars).
+- [x] TODO #032: Method `DesignFixedGreedy$new()` (current description `52` chars).
+- [x] TODO #033: Method `DesignFixedGreedy$supports_batch_w_pregeneration()` (current description `70` chars).
+- [x] TODO #034: Topic `DesignFixedGreedy` (current description `196` chars).
 
 ### `DesignFixediBCRD.Rd`
 
-- [ ] TODO #044: Method `DesignFixediBCRD$clone()` (current description `57` chars).
-- [ ] TODO #045: Method `DesignFixediBCRD$new()` (current description `69` chars).
-- [ ] TODO #046: Topic `DesignFixediBCRD` (current description `162` chars).
+- [x] TODO #035: Method `DesignFixediBCRD$new()` (current description `69` chars).
+- [x] TODO #036: Topic `DesignFixediBCRD` (current description `162` chars).
 
 ### `DesignFixedMatchingGreedyPairSwitching.Rd`
 
-- [ ] TODO #047: Method `DesignFixedMatchingGreedyPairSwitching$clone()` (current description `57` chars).
-- [ ] TODO #048: Method `DesignFixedMatchingGreedyPairSwitching$new()` (current description `90` chars).
-- [ ] TODO #049: Method `DesignFixedMatchingGreedyPairSwitching$supports_batch_w_pregeneration()` (current description `70` chars).
-- [ ] TODO #050: Topic `DesignFixedMatchingGreedyPairSwitching` (current description `254` chars).
+- [x] TODO #037: Method `DesignFixedMatchingGreedyPairSwitching$new()` (current description `90` chars).
+- [x] TODO #038: Method `DesignFixedMatchingGreedyPairSwitching$supports_batch_w_pregeneration()` (current description `70` chars).
+- [x] TODO #039: Topic `DesignFixedMatchingGreedyPairSwitching` (current description `254` chars).
 
 ### `DesignFixedOptimalBlocks.Rd`
 
-- [ ] TODO #053: Method `DesignFixedOptimalBlocks$clone()` (current description `57` chars).
-- [ ] TODO #054: Method `DesignFixedOptimalBlocks$new()` (current description `41` chars).
-- [ ] TODO #055: Method `DesignFixedOptimalBlocks$supports_batch_w_pregeneration()` (current description `57` chars).
-- [ ] TODO #056: Topic `DesignFixedOptimalBlocks` (current description `395` chars).
+- [x] TODO #040: Method `DesignFixedOptimalBlocks$new()` (current description `41` chars).
+- [x] TODO #041: Method `DesignFixedOptimalBlocks$supports_batch_w_pregeneration()` (current description `57` chars).
+- [x] TODO #042: Topic `DesignFixedOptimalBlocks` (current description `395` chars).
 
 ### `DesignFixedRerandomization.Rd`
 
-- [ ] TODO #057: Method `DesignFixedRerandomization$clone()` (current description `57` chars).
-- [ ] TODO #058: Method `DesignFixedRerandomization$new()` (current description `54` chars).
-- [ ] TODO #059: Topic `DesignFixedRerandomization` (current description `327` chars).
+- [x] TODO #043: Method `DesignFixedRerandomization$new()` (current description `54` chars).
+- [x] TODO #044: Topic `DesignFixedRerandomization` (current description `327` chars).
 
 ### `DesignSeqOneByOneAtkinson.Rd`
 
-- [ ] TODO #060: Method `DesignSeqOneByOneAtkinson$assign_wt()` (current description `52` chars).
-- [ ] TODO #061: Method `DesignSeqOneByOneAtkinson$clone()` (current description `57` chars).
-- [ ] TODO #062: Method `DesignSeqOneByOneAtkinson$new()` (current description `53` chars).
-- [ ] TODO #063: Topic `DesignSeqOneByOneAtkinson` (current description `230` chars).
+- [x] TODO #045: Method `DesignSeqOneByOneAtkinson$assign_wt()` (current description `52` chars).
+- [x] TODO #046: Method `DesignSeqOneByOneAtkinson$new()` (current description `53` chars).
+- [x] TODO #047: Topic `DesignSeqOneByOneAtkinson` (current description `230` chars).
 
 ### `DesignSeqOneByOneBernoulli.Rd`
 
-- [ ] TODO #064: Method `DesignSeqOneByOneBernoulli$assign_wt()` (current description `52` chars).
-- [ ] TODO #065: Method `DesignSeqOneByOneBernoulli$clone()` (current description `57` chars).
-- [ ] TODO #066: Method `DesignSeqOneByOneBernoulli$is_a_bernoulli_capable()` (current description `56` chars).
-- [ ] TODO #067: Method `DesignSeqOneByOneBernoulli$new()` (current description `53` chars).
-- [ ] TODO #068: Topic `DesignSeqOneByOneBernoulli` (current description `144` chars).
+- [x] TODO #048: Method `DesignSeqOneByOneBernoulli$assign_wt()` (current description `52` chars).
+- [x] TODO #049: Method `DesignSeqOneByOneBernoulli$is_a_bernoulli_capable()` (current description `56` chars).
+- [x] TODO #050: Method `DesignSeqOneByOneBernoulli$new()` (current description `53` chars).
+- [x] TODO #051: Topic `DesignSeqOneByOneBernoulli` (current description `144` chars).
 
 ### `DesignSeqOneByOneEfron.Rd`
 
-- [ ] TODO #069: Method `DesignSeqOneByOneEfron$assign_wt()` (current description `52` chars).
-- [ ] TODO #070: Method `DesignSeqOneByOneEfron$clone()` (current description `57` chars).
-- [ ] TODO #071: Method `DesignSeqOneByOneEfron$new()` (current description `62` chars).
-- [ ] TODO #072: Topic `DesignSeqOneByOneEfron` (current description `153` chars).
+- [x] TODO #052: Method `DesignSeqOneByOneEfron$assign_wt()` (current description `52` chars).
+- [x] TODO #053: Method `DesignSeqOneByOneEfron$new()` (current description `62` chars).
+- [x] TODO #054: Topic `DesignSeqOneByOneEfron` (current description `153` chars).
 
 ### `DesignSeqOneByOneiBCRD.Rd`
 
-- [ ] TODO #073: Method `DesignSeqOneByOneiBCRD$add_one_subject_to_experiment_and_assign()` (current description `37` chars).
-- [ ] TODO #074: Method `DesignSeqOneByOneiBCRD$assign_wt()` (current description `52` chars).
-- [ ] TODO #075: Method `DesignSeqOneByOneiBCRD$clone()` (current description `57` chars).
-- [ ] TODO #076: Method `DesignSeqOneByOneiBCRD$new()` (current description `52` chars).
-- [ ] TODO #077: Topic `DesignSeqOneByOneiBCRD` (current description `228` chars).
+- [x] TODO #055: Method `DesignSeqOneByOneiBCRD$add_one_subject_to_experiment_and_assign()` (current description `37` chars).
+- [x] TODO #056: Method `DesignSeqOneByOneiBCRD$assign_wt()` (current description `52` chars).
+- [x] TODO #057: Method `DesignSeqOneByOneiBCRD$new()` (current description `52` chars).
+- [x] TODO #058: Topic `DesignSeqOneByOneiBCRD` (current description `228` chars).
 
 ### `DesignSeqOneByOneKK14.Rd`
 
-- [ ] TODO #078: Method `DesignSeqOneByOneKK14$assign_wt()` (current description `52` chars).
-- [ ] TODO #079: Method `DesignSeqOneByOneKK14$clone()` (current description `57` chars).
-- [ ] TODO #080: Method `DesignSeqOneByOneKK14$is_a_kk_matching_capable()` (current description `66` chars).
-- [ ] TODO #081: Method `DesignSeqOneByOneKK14$new()` (current description `48` chars).
-- [ ] TODO #082: Topic `DesignSeqOneByOneKK14` (current description `282` chars).
+- [x] TODO #059: Method `DesignSeqOneByOneKK14$assign_wt()` (current description `52` chars).
+- [x] TODO #060: Method `DesignSeqOneByOneKK14$is_a_kk_matching_capable()` (current description `66` chars).
+- [x] TODO #061: Method `DesignSeqOneByOneKK14$new()` (current description `48` chars).
+- [x] TODO #062: Topic `DesignSeqOneByOneKK14` (current description `282` chars).
 
 ### `DesignSeqOneByOneKK21.Rd`
 
-- [ ] TODO #083: Method `DesignSeqOneByOneKK21$assign_wt()` (current description `70` chars).
-- [ ] TODO #084: Method `DesignSeqOneByOneKK21$clone()` (current description `57` chars).
-- [ ] TODO #085: Method `DesignSeqOneByOneKK21$get_covariate_weights()` (current description `62` chars).
-- [ ] TODO #086: Method `DesignSeqOneByOneKK21$get_iteration_weights()` (current description `49` chars).
-- [ ] TODO #087: Method `DesignSeqOneByOneKK21$new()` (current description `119` chars).
-- [ ] TODO #088: Topic `DesignSeqOneByOneKK21` (current description `282` chars).
+- [x] TODO #063: Method `DesignSeqOneByOneKK21$assign_wt()` (current description `70` chars).
+- [x] TODO #064: Method `DesignSeqOneByOneKK21$get_covariate_weights()` (current description `62` chars).
+- [x] TODO #065: Method `DesignSeqOneByOneKK21$get_iteration_weights()` (current description `49` chars).
+- [x] TODO #066: Method `DesignSeqOneByOneKK21$new()` (current description `119` chars).
+- [x] TODO #067: Topic `DesignSeqOneByOneKK21` (current description `282` chars).
 
 ### `DesignSeqOneByOneKK21stepwise.Rd`
 
-- [ ] TODO #089: Method `DesignSeqOneByOneKK21stepwise$clone()` (current description `57` chars).
-- [ ] TODO #090: Method `DesignSeqOneByOneKK21stepwise$new()` (current description `198` chars).
-- [ ] TODO #091: Topic `DesignSeqOneByOneKK21stepwise` (current description `282` chars).
+- [x] TODO #068: Method `DesignSeqOneByOneKK21stepwise$new()` (current description `198` chars).
+- [x] TODO #069: Topic `DesignSeqOneByOneKK21stepwise` (current description `282` chars).
 
 ### `DesignSeqOneByOnePocockSimon.Rd`
 
-- [ ] TODO #092: Method `DesignSeqOneByOnePocockSimon$assign_wt()` (current description `64` chars).
-- [ ] TODO #093: Method `DesignSeqOneByOnePocockSimon$clone()` (current description `57` chars).
-- [ ] TODO #094: Method `DesignSeqOneByOnePocockSimon$new()` (current description `58` chars).
-- [ ] TODO #095: Topic `DesignSeqOneByOnePocockSimon` (current description `232` chars).
+- [x] TODO #070: Method `DesignSeqOneByOnePocockSimon$assign_wt()` (current description `64` chars).
+- [x] TODO #071: Method `DesignSeqOneByOnePocockSimon$new()` (current description `58` chars).
+- [x] TODO #072: Topic `DesignSeqOneByOnePocockSimon` (current description `232` chars).
 
 ### `DesignSeqOneByOneRandomBlockSize.Rd`
 
-- [ ] TODO #096: Method `DesignSeqOneByOneRandomBlockSize$assign_wt()` (current description `52` chars).
-- [ ] TODO #097: Method `DesignSeqOneByOneRandomBlockSize$clone()` (current description `57` chars).
-- [ ] TODO #098: Method `DesignSeqOneByOneRandomBlockSize$new()` (current description `61` chars).
-- [ ] TODO #099: Topic `DesignSeqOneByOneRandomBlockSize` (current description `339` chars).
+- [x] TODO #073: Method `DesignSeqOneByOneRandomBlockSize$assign_wt()` (current description `52` chars).
+- [x] TODO #074: Method `DesignSeqOneByOneRandomBlockSize$new()` (current description `61` chars).
+- [x] TODO #075: Topic `DesignSeqOneByOneRandomBlockSize` (current description `339` chars).
 
 ### `DesignSeqOneByOneSPBR.Rd`
 
-- [ ] TODO #100: Method `DesignSeqOneByOneSPBR$assign_wt()` (current description `52` chars).
-- [ ] TODO #101: Method `DesignSeqOneByOneSPBR$clone()` (current description `57` chars).
-- [ ] TODO #102: Method `DesignSeqOneByOneSPBR$new()` (current description `69` chars).
-- [ ] TODO #103: Topic `DesignSeqOneByOneSPBR` (current description `251` chars).
+- [x] TODO #076: Method `DesignSeqOneByOneSPBR$assign_wt()` (current description `52` chars).
+- [x] TODO #077: Method `DesignSeqOneByOneSPBR$new()` (current description `69` chars).
+- [x] TODO #078: Topic `DesignSeqOneByOneSPBR` (current description `251` chars).
 
 ### `DesignSeqOneByOneUrn.Rd`
 
-- [ ] TODO #104: Method `DesignSeqOneByOneUrn$assign_wt()` (current description `52` chars).
-- [ ] TODO #105: Method `DesignSeqOneByOneUrn$clone()` (current description `57` chars).
-- [ ] TODO #106: Method `DesignSeqOneByOneUrn$new()` (current description `48` chars).
-- [ ] TODO #107: Topic `DesignSeqOneByOneUrn` (current description `273` chars).
+- [x] TODO #079: Method `DesignSeqOneByOneUrn$assign_wt()` (current description `52` chars).
+- [x] TODO #080: Method `DesignSeqOneByOneUrn$new()` (current description `48` chars).
+- [x] TODO #081: Topic `DesignSeqOneByOneUrn` (current description `273` chars).
 
 ### `dot-normalize_optimizer_algorithm.Rd`
 
-- [ ] TODO #108: Topic `.normalize_optimizer_algorithm` (current description `156` chars).
+- [x] TODO #082: Topic `.normalize_optimizer_algorithm` (current description `156` chars).
 
 ### `edi_build_info_cpp.Rd`
 
-- [ ] TODO #109: Topic `edi_build_info_cpp` (current description `247` chars).
+- [x] TODO #083: Topic `edi_build_info_cpp` (current description `247` chars).
 
 ### `exact_jonckheere_terpstra_pval_cpp.Rd`
 
-- [ ] TODO #110: Topic `exact_jonckheere_terpstra_pval_cpp` (current description `115` chars).
+- [x] TODO #084: Topic `exact_jonckheere_terpstra_pval_cpp` (current description `115` chars).
 
 ### `expand_adjacent_category_data_cpp.Rd`
 
-- [ ] TODO #111: Topic `expand_adjacent_category_data_cpp` (current description `106` chars).
+- [x] TODO #085: Topic `expand_adjacent_category_data_cpp` (current description `106` chars).
 
 ### `expand_continuation_ratio_data_cpp.Rd`
 
-- [ ] TODO #112: Topic `expand_continuation_ratio_data_cpp` (current description `102` chars).
+- [x] TODO #086: Topic `expand_continuation_ratio_data_cpp` (current description `102` chars).
 
 ### `fast_adjacent_category_logit_cpp.Rd`
 
-- [ ] TODO #113: Topic `fast_adjacent_category_logit_cpp` (current description `90` chars).
+- [x] TODO #087: Topic `fast_adjacent_category_logit_cpp` (current description `90` chars).
 
 ### `fast_adjacent_category_logit_with_var_cpp.Rd`
 
-- [ ] TODO #114: Topic `fast_adjacent_category_logit_with_var_cpp` (current description `124` chars).
+- [x] TODO #088: Topic `fast_adjacent_category_logit_with_var_cpp` (current description `124` chars).
 
 ### `fast_beta_regression_cpp.Rd`
 
-- [ ] TODO #115: Topic `fast_beta_regression_cpp` (current description `107` chars).
+- [x] TODO #089: Topic `fast_beta_regression_cpp` (current description `107` chars).
 
 ### `fast_beta_regression_weighted_cpp.Rd`
 
-- [ ] TODO #116: Topic `fast_beta_regression_weighted_cpp` (current description `106` chars).
+- [x] TODO #090: Topic `fast_beta_regression_weighted_cpp` (current description `106` chars).
 
 ### `fast_beta_regression_with_var_cpp.Rd`
 
-- [ ] TODO #117: Topic `fast_beta_regression_with_var_cpp` (current description `144` chars).
+- [x] TODO #091: Topic `fast_beta_regression_with_var_cpp` (current description `144` chars).
 
 ### `fast_beta_regression_with_var.Rd`
 
-- [ ] TODO #118: Topic `fast_beta_regression_with_var` (current description `369` chars).
+- [x] TODO #092: Topic `fast_beta_regression_with_var` (current description `369` chars).
 
 ### `fast_beta_regression.Rd`
 
-- [ ] TODO #119: Topic `fast_beta_regression` (current description `277` chars).
+- [x] TODO #093: Topic `fast_beta_regression` (current description `277` chars).
 
 ### `fast_continuation_ratio_regression_cpp.Rd`
 
-- [ ] TODO #120: Topic `fast_continuation_ratio_regression_cpp` (current description `97` chars).
+- [x] TODO #094: Topic `fast_continuation_ratio_regression_cpp` (current description `97` chars).
 
 ### `fast_continuation_ratio_regression_with_var_cpp.Rd`
 
-- [ ] TODO #121: Topic `fast_continuation_ratio_regression_with_var_cpp` (current description `141` chars).
+- [x] TODO #095: Topic `fast_continuation_ratio_regression_with_var_cpp` (current description `141` chars).
 
 ### `fast_coxph_regression_cpp.Rd`
 
-- [ ] TODO #122: Topic `fast_coxph_regression_cpp` (current description `109` chars).
+- [x] TODO #096: Topic `fast_coxph_regression_cpp` (current description `109` chars).
 
 ### `fast_coxph_regression_prebuilt_cpp.Rd`
 
-- [ ] TODO #123: Topic `fast_coxph_regression_prebuilt_cpp` (current description `115` chars).
+- [x] TODO #097: Topic `fast_coxph_regression_prebuilt_cpp` (current description `115` chars).
 
 ### `fast_coxph_regression.Rd`
 
-- [ ] TODO #124: Topic `fast_coxph_regression` (current description `264` chars).
+- [x] TODO #098: Topic `fast_coxph_regression` (current description `264` chars).
 
 ### `fast_cpoisson_combined_with_var_cpp.Rd`
 
-- [ ] TODO #125: Topic `fast_cpoisson_combined_with_var_cpp` (current description `183` chars).
+- [x] TODO #099: Topic `fast_cpoisson_combined_with_var_cpp` (current description `183` chars).
 
 ### `fast_digamma_vec_cpp.Rd`
 
-- [ ] TODO #126: Topic `fast_digamma_vec_cpp` (current description `144` chars).
+- [x] TODO #100: Topic `fast_digamma_vec_cpp` (current description `144` chars).
 
 ### `fast_dnbinom_mu_vec_cpp.Rd`
 
-- [ ] TODO #127: Topic `fast_dnbinom_mu_vec_cpp` (current description `295` chars).
+- [x] TODO #101: Topic `fast_dnbinom_mu_vec_cpp` (current description `295` chars).
 
 ### `fast_hurdle_negbin_with_var_cpp.Rd`
 
-- [ ] TODO #128: Topic `fast_hurdle_negbin_with_var_cpp` (current description `119` chars).
+- [x] TODO #102: Topic `fast_hurdle_negbin_with_var_cpp` (current description `119` chars).
 
 ### `fast_identity_binomial_regression_cpp.Rd`
 
-- [ ] TODO #129: Topic `fast_identity_binomial_regression_cpp` (current description `117` chars).
+- [x] TODO #103: Topic `fast_identity_binomial_regression_cpp` (current description `117` chars).
 
 ### `fast_identity_binomial_regression_weighted_cpp.Rd`
 
-- [ ] TODO #130: Topic `fast_identity_binomial_regression_weighted_cpp` (current description `135` chars).
+- [x] TODO #104: Topic `fast_identity_binomial_regression_weighted_cpp` (current description `135` chars).
 
 ### `fast_identity_binomial_regression_with_var_cpp.Rd`
 
-- [ ] TODO #131: Topic `fast_identity_binomial_regression_with_var_cpp` (current description `151` chars).
+- [x] TODO #105: Topic `fast_identity_binomial_regression_with_var_cpp` (current description `151` chars).
 
 ### `fast_lbeta_vec_cpp.Rd`
 
-- [ ] TODO #132: Topic `fast_lbeta_vec_cpp` (current description `153` chars).
+- [x] TODO #106: Topic `fast_lbeta_vec_cpp` (current description `153` chars).
 
 ### `fast_lgamma_vec_cpp.Rd`
 
-- [ ] TODO #133: Topic `fast_lgamma_vec_cpp` (current description `128` chars).
+- [x] TODO #107: Topic `fast_lgamma_vec_cpp` (current description `128` chars).
 
 ### `fast_log_binomial_regression_cpp.Rd`
 
-- [ ] TODO #134: Topic `fast_log_binomial_regression_cpp` (current description `105` chars).
+- [x] TODO #108: Topic `fast_log_binomial_regression_cpp` (current description `105` chars).
 
 ### `fast_log_binomial_regression_weighted_cpp.Rd`
 
-- [ ] TODO #135: Topic `fast_log_binomial_regression_weighted_cpp` (current description `123` chars).
+- [x] TODO #109: Topic `fast_log_binomial_regression_weighted_cpp` (current description `123` chars).
 
 ### `fast_log_binomial_regression_with_var_cpp.Rd`
 
-- [ ] TODO #136: Topic `fast_log_binomial_regression_with_var_cpp` (current description `125` chars).
+- [x] TODO #110: Topic `fast_log_binomial_regression_with_var_cpp` (current description `125` chars).
 
 ### `fast_log_dnorm_vec_cpp.Rd`
 
-- [ ] TODO #137: Topic `fast_log_dnorm_vec_cpp` (current description `123` chars).
+- [x] TODO #111: Topic `fast_log_dnorm_vec_cpp` (current description `123` chars).
 
 ### `fast_log_pnorm_vec_cpp.Rd`
 
-- [ ] TODO #138: Topic `fast_log_pnorm_vec_cpp` (current description `162` chars).
+- [x] TODO #112: Topic `fast_log_pnorm_vec_cpp` (current description `162` chars).
 
 ### `fast_logistic_regression_cpp.Rd`
 
-- [ ] TODO #139: Topic `fast_logistic_regression_cpp` (current description `77` chars).
+- [x] TODO #113: Topic `fast_logistic_regression_cpp` (current description `77` chars).
 
 ### `fast_logistic_regression_weighted_cpp.Rd`
 
-- [ ] TODO #140: Topic `fast_logistic_regression_weighted_cpp` (current description `95` chars).
+- [x] TODO #114: Topic `fast_logistic_regression_weighted_cpp` (current description `95` chars).
 
 ### `fast_logistic_regression_with_var_cpp.Rd`
 
-- [ ] TODO #141: Topic `fast_logistic_regression_with_var_cpp` (current description `121` chars).
+- [x] TODO #115: Topic `fast_logistic_regression_with_var_cpp` (current description `121` chars).
 
 ### `fast_logistic_regression_with_var.Rd`
 
-- [ ] TODO #142: Topic `fast_logistic_regression_with_var` (current description `315` chars).
+- [x] TODO #116: Topic `fast_logistic_regression_with_var` (current description `315` chars).
 
 ### `fast_logistic_regression.Rd`
 
-- [ ] TODO #143: Topic `fast_logistic_regression` (current description `262` chars).
+- [x] TODO #117: Topic `fast_logistic_regression` (current description `262` chars).
 
 ### `fast_neg_bin_cpp.Rd`
 
-- [ ] TODO #144: Topic `fast_neg_bin_cpp` (current description `102` chars).
+- [x] TODO #118: Topic `fast_neg_bin_cpp` (current description `102` chars).
 
 ### `fast_neg_bin_weighted_cpp.Rd`
 
-- [ ] TODO #145: Topic `fast_neg_bin_weighted_cpp` (current description `132` chars).
+- [x] TODO #119: Topic `fast_neg_bin_weighted_cpp` (current description `132` chars).
 
 ### `fast_neg_bin_with_var_cpp.Rd`
 
-- [ ] TODO #146: Topic `fast_neg_bin_with_var_cpp` (current description `148` chars).
+- [x] TODO #120: Topic `fast_neg_bin_with_var_cpp` (current description `148` chars).
 
 ### `fast_negbin_regression_with_var.Rd`
 
-- [ ] TODO #147: Topic `fast_negbin_regression_with_var` (current description `406` chars).
+- [x] TODO #121: Topic `fast_negbin_regression_with_var` (current description `406` chars).
 
 ### `fast_negbin_regression.Rd`
 
-- [ ] TODO #148: Topic `fast_negbin_regression` (current description `302` chars).
+- [x] TODO #122: Topic `fast_negbin_regression` (current description `302` chars).
 
 ### `fast_ols_cpp.Rd`
 
-- [ ] TODO #149: Topic `fast_ols_cpp` (current description `369` chars).
+- [x] TODO #123: Topic `fast_ols_cpp` (current description `369` chars).
 
 ### `fast_ols_with_var_cpp.Rd`
 
-- [ ] TODO #150: Topic `fast_ols_with_var_cpp` (current description `282` chars).
+- [x] TODO #124: Topic `fast_ols_with_var_cpp` (current description `282` chars).
 
 ### `fast_ordinal_cauchit_regression_cpp.Rd`
 
-- [ ] TODO #151: Topic `fast_ordinal_cauchit_regression_cpp` (current description `111` chars).
+- [x] TODO #125: Topic `fast_ordinal_cauchit_regression_cpp` (current description `111` chars).
 
 ### `fast_ordinal_cauchit_regression_with_var_cpp.Rd`
 
-- [ ] TODO #152: Topic `fast_ordinal_cauchit_regression_with_var_cpp` (current description `124` chars).
+- [x] TODO #126: Topic `fast_ordinal_cauchit_regression_with_var_cpp` (current description `124` chars).
 
 ### `fast_ordinal_cloglog_regression_cpp.Rd`
 
-- [ ] TODO #153: Topic `fast_ordinal_cloglog_regression_cpp` (current description `111` chars).
+- [x] TODO #127: Topic `fast_ordinal_cloglog_regression_cpp` (current description `111` chars).
 
 ### `fast_ordinal_cloglog_regression_with_var_cpp.Rd`
 
-- [ ] TODO #154: Topic `fast_ordinal_cloglog_regression_with_var_cpp` (current description `124` chars).
+- [x] TODO #128: Topic `fast_ordinal_cloglog_regression_with_var_cpp` (current description `124` chars).
 
 ### `fast_ordinal_glmm_cpp.Rd`
 
-- [ ] TODO #155: Topic `fast_ordinal_glmm_cpp` (current description `121` chars).
+- [x] TODO #129: Topic `fast_ordinal_glmm_cpp` (current description `121` chars).
 
 ### `fast_ordinal_probit_regression_cpp.Rd`
 
-- [ ] TODO #156: Topic `fast_ordinal_probit_regression_cpp` (current description `109` chars).
+- [x] TODO #130: Topic `fast_ordinal_probit_regression_cpp` (current description `109` chars).
 
 ### `fast_ordinal_probit_regression_with_var_cpp.Rd`
 
-- [ ] TODO #157: Topic `fast_ordinal_probit_regression_with_var_cpp` (current description `122` chars).
+- [x] TODO #131: Topic `fast_ordinal_probit_regression_with_var_cpp` (current description `122` chars).
 
 ### `fast_ordinal_regression_cpp.Rd`
 
-- [ ] TODO #158: Topic `fast_ordinal_regression_cpp` (current description `95` chars).
+- [x] TODO #132: Topic `fast_ordinal_regression_cpp` (current description `95` chars).
 
 ### `fast_ordinal_regression_weighted_cpp.Rd`
 
-- [ ] TODO #159: Topic `fast_ordinal_regression_weighted_cpp` (current description `113` chars).
+- [x] TODO #133: Topic `fast_ordinal_regression_weighted_cpp` (current description `113` chars).
 
 ### `fast_ordinal_regression_with_var_cpp.Rd`
 
-- [ ] TODO #160: Topic `fast_ordinal_regression_with_var_cpp` (current description `108` chars).
+- [x] TODO #134: Topic `fast_ordinal_regression_with_var_cpp` (current description `108` chars).
 
 ### `fast_poisson_regression_cpp.Rd`
 
-- [ ] TODO #161: Topic `fast_poisson_regression_cpp` (current description `208` chars).
+- [x] TODO #135: Topic `fast_poisson_regression_cpp` (current description `208` chars).
 
 ### `fast_poisson_regression_weighted_cpp.Rd`
 
-- [ ] TODO #162: Topic `fast_poisson_regression_weighted_cpp` (current description `93` chars).
+- [x] TODO #136: Topic `fast_poisson_regression_weighted_cpp` (current description `93` chars).
 
 ### `fast_poisson_regression_with_var_cpp.Rd`
 
-- [ ] TODO #163: Topic `fast_poisson_regression_with_var_cpp` (current description `127` chars).
+- [x] TODO #137: Topic `fast_poisson_regression_with_var_cpp` (current description `127` chars).
 
 ### `fast_probit_regression_cpp.Rd`
 
-- [ ] TODO #164: Topic `fast_probit_regression_cpp` (current description `84` chars).
+- [x] TODO #138: Topic `fast_probit_regression_cpp` (current description `84` chars).
 
 ### `fast_probit_regression_with_var_cpp.Rd`
 
-- [ ] TODO #165: Topic `fast_probit_regression_with_var_cpp` (current description `117` chars).
+- [x] TODO #139: Topic `fast_probit_regression_with_var_cpp` (current description `117` chars).
 
 ### `fast_qnorm_vec_cpp.Rd`
 
-- [ ] TODO #166: Topic `fast_qnorm_vec_cpp` (current description `200` chars).
+- [x] TODO #140: Topic `fast_qnorm_vec_cpp` (current description `200` chars).
 
 ### `fast_quasipoisson_regression_with_var_cpp.Rd`
 
-- [ ] TODO #167: Topic `fast_quasipoisson_regression_with_var_cpp` (current description `139` chars).
+- [x] TODO #141: Topic `fast_quasipoisson_regression_with_var_cpp` (current description `139` chars).
 
 ### `fast_robust_regression_cpp.Rd`
 
-- [ ] TODO #168: Topic `fast_robust_regression_cpp` (current description `83` chars).
+- [x] TODO #142: Topic `fast_robust_regression_cpp` (current description `83` chars).
 
 ### `fast_stereotype_logit_cpp.Rd`
 
-- [ ] TODO #169: Topic `fast_stereotype_logit_cpp` (current description `113` chars).
+- [x] TODO #143: Topic `fast_stereotype_logit_cpp` (current description `113` chars).
 
 ### `fast_stereotype_logit_with_var_cpp.Rd`
 
-- [ ] TODO #170: Topic `fast_stereotype_logit_with_var_cpp` (current description `126` chars).
+- [x] TODO #144: Topic `fast_stereotype_logit_with_var_cpp` (current description `126` chars).
 
 ### `fast_stereotype_profile_loglik_cpp.Rd`
 
-- [ ] TODO #171: Topic `fast_stereotype_profile_loglik_cpp` (current description `131` chars).
+- [x] TODO #145: Topic `fast_stereotype_profile_loglik_cpp` (current description `131` chars).
 
 ### `fast_trigamma_vec_cpp.Rd`
 
-- [ ] TODO #172: Topic `fast_trigamma_vec_cpp` (current description `148` chars).
+- [x] TODO #146: Topic `fast_trigamma_vec_cpp` (current description `148` chars).
 
 ### `fast_weibull_regression_cpp.Rd`
 
-- [ ] TODO #173: Topic `fast_weibull_regression_cpp` (current description `85` chars).
+- [x] TODO #147: Topic `fast_weibull_regression_cpp` (current description `85` chars).
 
 ### `fast_weibull_regression.Rd`
 
-- [ ] TODO #174: Topic `fast_weibull_regression` (current description `167` chars).
+- [x] TODO #148: Topic `fast_weibull_regression` (current description `167` chars).
 
 ### `fast_zero_augmented_poisson_cpp.Rd`
 
-- [ ] TODO #175: Topic `fast_zero_augmented_poisson_cpp` (current description `134` chars).
+- [x] TODO #149: Topic `fast_zero_augmented_poisson_cpp` (current description `134` chars).
 
 ### `fast_zero_one_inflated_beta_cpp.Rd`
 
-- [ ] TODO #176: Topic `fast_zero_one_inflated_beta_cpp` (current description `135` chars).
+- [x] TODO #150: Topic `fast_zero_one_inflated_beta_cpp` (current description `135` chars).
 
 ### `gcomp_fractional_logit_point_estimate_cpp.Rd`
 
-- [ ] TODO #177: Topic `gcomp_fractional_logit_point_estimate_cpp` (current description `165` chars).
+- [x] TODO #151: Topic `gcomp_fractional_logit_point_estimate_cpp` (current description `165` chars).
 
 ### `gcomp_logistic_point_estimate_cpp.Rd`
 
-- [ ] TODO #178: Topic `gcomp_logistic_point_estimate_cpp` (current description `158` chars).
+- [x] TODO #152: Topic `gcomp_logistic_point_estimate_cpp` (current description `158` chars).
 
 ### `gcomp_logistic_post_fit_cpp.Rd`
 
-- [ ] TODO #179: Topic `gcomp_logistic_post_fit_cpp` (current description `101` chars).
+- [x] TODO #153: Topic `gcomp_logistic_post_fit_cpp` (current description `101` chars).
 
 ### `gcomp_ordinal_proportional_odds_post_fit_cpp.Rd`
 
-- [ ] TODO #180: Topic `gcomp_ordinal_proportional_odds_post_fit_cpp` (current description `135` chars).
+- [x] TODO #154: Topic `gcomp_ordinal_proportional_odds_post_fit_cpp` (current description `135` chars).
 
 ### `generate_covariate_dataset.Rd`
 
-- [ ] TODO #181: Topic `generate_covariate_dataset` (current description `330` chars).
+- [x] TODO #155: Topic `generate_covariate_dataset` (current description `330` chars).
 
 ### `get_beta_regression_hessian_cpp.Rd`
 
-- [ ] TODO #182: Topic `get_beta_regression_hessian_cpp` (current description `133` chars).
+- [x] TODO #156: Topic `get_beta_regression_hessian_cpp` (current description `133` chars).
 
 ### `get_bootstrap_dispatch_policy.Rd`
 
-- [ ] TODO #183: Topic `get_bootstrap_dispatch_policy` (current description `205` chars).
+- [x] TODO #157: Topic `get_bootstrap_dispatch_policy` (current description `205` chars).
 
 ### `get_cold_start_dispatch_policy.Rd`
 
-- [ ] TODO #184: Topic `get_cold_start_dispatch_policy` (current description `462` chars).
+- [x] TODO #158: Topic `get_cold_start_dispatch_policy` (current description `462` chars).
 
 ### `get_cpoisson_combined_hessian_cpp.Rd`
 
-- [ ] TODO #185: Topic `get_cpoisson_combined_hessian_cpp` (current description `130` chars).
+- [x] TODO #159: Topic `get_cpoisson_combined_hessian_cpp` (current description `130` chars).
 
 ### `get_cpoisson_combined_score_cpp.Rd`
 
-- [ ] TODO #186: Topic `get_cpoisson_combined_score_cpp` (current description `135` chars).
+- [x] TODO #160: Topic `get_cpoisson_combined_score_cpp` (current description `135` chars).
 
 ### `get_identity_binomial_regression_hessian_cpp.Rd`
 
-- [ ] TODO #187: Topic `get_identity_binomial_regression_hessian_cpp` (current description `129` chars).
+- [x] TODO #161: Topic `get_identity_binomial_regression_hessian_cpp` (current description `129` chars).
 
 ### `get_identity_binomial_regression_score_cpp.Rd`
 
-- [ ] TODO #188: Topic `get_identity_binomial_regression_score_cpp` (current description `125` chars).
+- [x] TODO #162: Topic `get_identity_binomial_regression_score_cpp` (current description `125` chars).
 
 ### `get_identity_binomial_regression_weighted_hessian_cpp.Rd`
 
-- [ ] TODO #189: Topic `get_identity_binomial_regression_weighted_hessian_cpp` (current description `147` chars).
+- [x] TODO #163: Topic `get_identity_binomial_regression_weighted_hessian_cpp` (current description `147` chars).
 
 ### `get_identity_binomial_regression_weighted_score_cpp.Rd`
 
-- [ ] TODO #190: Topic `get_identity_binomial_regression_weighted_score_cpp` (current description `143` chars).
+- [x] TODO #164: Topic `get_identity_binomial_regression_weighted_score_cpp` (current description `143` chars).
 
 ### `get_log_binomial_regression_hessian_cpp.Rd`
 
-- [ ] TODO #191: Topic `get_log_binomial_regression_hessian_cpp` (current description `149` chars).
+- [x] TODO #165: Topic `get_log_binomial_regression_hessian_cpp` (current description `149` chars).
 
 ### `get_log_binomial_regression_score_cpp.Rd`
 
-- [ ] TODO #192: Topic `get_log_binomial_regression_score_cpp` (current description `135` chars).
+- [x] TODO #166: Topic `get_log_binomial_regression_score_cpp` (current description `135` chars).
 
 ### `get_log_binomial_regression_weighted_hessian_cpp.Rd`
 
-- [ ] TODO #193: Topic `get_log_binomial_regression_weighted_hessian_cpp` (current description `124` chars).
+- [x] TODO #167: Topic `get_log_binomial_regression_weighted_hessian_cpp` (current description `124` chars).
 
 ### `get_log_binomial_regression_weighted_score_cpp.Rd`
 
-- [ ] TODO #194: Topic `get_log_binomial_regression_weighted_score_cpp` (current description `120` chars).
+- [x] TODO #168: Topic `get_log_binomial_regression_weighted_score_cpp` (current description `120` chars).
 
 ### `get_negbin_regression_hessian_cpp.Rd`
 
-- [ ] TODO #195: Topic `get_negbin_regression_hessian_cpp` (current description `159` chars).
+- [x] TODO #169: Topic `get_negbin_regression_hessian_cpp` (current description `159` chars).
 
 ### `get_optimization_dispatch_policy.Rd`
 
-- [ ] TODO #196: Topic `get_optimization_dispatch_policy` (current description `121` chars).
+- [x] TODO #170: Topic `get_optimization_dispatch_policy` (current description `121` chars).
 
 ### `get_ordinal_regression_hessian_cpp.Rd`
 
-- [ ] TODO #197: Topic `get_ordinal_regression_hessian_cpp` (current description `140` chars).
+- [x] TODO #171: Topic `get_ordinal_regression_hessian_cpp` (current description `140` chars).
 
 ### `get_ordinal_regression_score_cpp.Rd`
 
-- [ ] TODO #198: Topic `get_ordinal_regression_score_cpp` (current description `126` chars).
+- [x] TODO #172: Topic `get_ordinal_regression_score_cpp` (current description `126` chars).
 
 ### `get_parallel_dispatch_policy.Rd`
 
-- [ ] TODO #199: Topic `get_parallel_dispatch_policy` (current description `115` chars).
+- [x] TODO #173: Topic `get_parallel_dispatch_policy` (current description `115` chars).
 
 ### `get_stereotype_logit_hessian_cpp.Rd`
 
-- [ ] TODO #200: Topic `get_stereotype_logit_hessian_cpp` (current description `135` chars).
+- [x] TODO #174: Topic `get_stereotype_logit_hessian_cpp` (current description `135` chars).
 
 ### `get_warm_start_dispatch_policy.Rd`
 
-- [ ] TODO #201: Topic `get_warm_start_dispatch_policy` (current description `171` chars).
+- [x] TODO #175: Topic `get_warm_start_dispatch_policy` (current description `171` chars).
 
 ### `get_weibull_regression_hessian_cpp.Rd`
 
-- [ ] TODO #202: Topic `get_weibull_regression_hessian_cpp` (current description `143` chars).
+- [x] TODO #176: Topic `get_weibull_regression_hessian_cpp` (current description `143` chars).
 
 ### `get_weibull_regression_score_cpp.Rd`
 
-- [ ] TODO #203: Topic `get_weibull_regression_score_cpp` (current description `129` chars).
+- [x] TODO #177: Topic `get_weibull_regression_score_cpp` (current description `129` chars).
 
 ### `InferenceAllKKMeanDiffIVWC.Rd`
 
-- [ ] TODO #204: Method `InferenceAllKKMeanDiffIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #205: Method `InferenceAllKKMeanDiffIVWC$clone()` (current description `57` chars).
-- [ ] TODO #206: Method `InferenceAllKKMeanDiffIVWC$compute_asymp_confidence_interval()` (current description `198` chars).
-- [ ] TODO #207: Method `InferenceAllKKMeanDiffIVWC$compute_asymp_two_sided_pval()` (current description `144` chars).
-- [ ] TODO #208: Method `InferenceAllKKMeanDiffIVWC$compute_estimate()` (current description `69` chars).
-- [ ] TODO #209: Method `InferenceAllKKMeanDiffIVWC$compute_rand_confidence_interval()` (current description `63` chars).
-- [ ] TODO #210: Method `InferenceAllKKMeanDiffIVWC$get_likelihood_test_spec()` (current description `155` chars).
-- [ ] TODO #211: Method `InferenceAllKKMeanDiffIVWC$simulate_under_lik_null()` (current description `49` chars).
-- [ ] TODO #212: Method `InferenceAllKKMeanDiffIVWC$supports_lik_ratio_param_bootstrap()` (current description `59` chars).
-- [ ] TODO #213: Method `InferenceAllKKMeanDiffIVWC$supports_likelihood_tests()` (current description `45` chars).
-- [ ] TODO #214: Topic `InferenceAllKKMeanDiffIVWC` (current description `385` chars).
+- [x] TODO #178: Method `InferenceAllKKMeanDiffIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #179: Method `InferenceAllKKMeanDiffIVWC$compute_asymp_confidence_interval()` (current description `198` chars).
+- [x] TODO #180: Method `InferenceAllKKMeanDiffIVWC$compute_asymp_two_sided_pval()` (current description `144` chars).
+- [x] TODO #181: Method `InferenceAllKKMeanDiffIVWC$compute_estimate()` (current description `69` chars).
+- [x] TODO #182: Method `InferenceAllKKMeanDiffIVWC$compute_rand_confidence_interval()` (current description `63` chars).
+- [x] TODO #183: Method `InferenceAllKKMeanDiffIVWC$get_likelihood_test_spec()` (current description `155` chars).
+- [ ] TODO #184: Method `InferenceAllKKMeanDiffIVWC$simulate_under_lik_null()` (current description `49` chars).
+- [x] TODO #185 (obsolete, 2026-08-13): Method `InferenceAllKKMeanDiffIVWC$supports_lik_ratio_param_bootstrap()` — `supports_*` hook methods are deleted by `fix_inference_hierarchy.md`'s capability model (`obj$supports(...)` reads metadata instead); do not document.
+- [x] TODO #186 (obsolete, 2026-08-13): Method `InferenceAllKKMeanDiffIVWC$supports_likelihood_tests()` — same `supports_*` deletion as #185; do not document.
+- [x] TODO #187: Topic `InferenceAllKKMeanDiffIVWC` (current description `385` chars).
 
 ### `InferenceAllKKWilcoxIVWC.Rd`
 
-- [ ] TODO #215: Method `InferenceAllKKWilcoxIVWC$clone()` (current description `57` chars).
-- [ ] TODO #216: Method `InferenceAllKKWilcoxIVWC$compute_asymp_confidence_interval()` (current description `48` chars).
-- [ ] TODO #217: Method `InferenceAllKKWilcoxIVWC$compute_asymp_two_sided_pval()` (current description `125` chars).
-- [ ] TODO #218: Method `InferenceAllKKWilcoxIVWC$compute_estimate()` (current description `69` chars).
-- [ ] TODO #219: Method `InferenceAllKKWilcoxIVWC$compute_jackknife_bias_estimate()` (current description `130` chars).
-- [ ] TODO #220: Method `InferenceAllKKWilcoxIVWC$compute_jackknife_estimate()` (current description `45` chars).
-- [ ] TODO #221: Method `InferenceAllKKWilcoxIVWC$compute_jackknife_std_error()` (current description `131` chars).
-- [ ] TODO #222: Method `InferenceAllKKWilcoxIVWC$compute_jackknife_wald_confidence_interval()` (current description `63` chars).
-- [ ] TODO #223: Method `InferenceAllKKWilcoxIVWC$compute_jackknife_wald_two_sided_pval()` (current description `62` chars).
-- [ ] TODO #224: Method `InferenceAllKKWilcoxIVWC$new()` (current description `118` chars).
-- [ ] TODO #225: Topic `InferenceAllKKWilcoxIVWC` (current description `495` chars).
+- [x] TODO #188: Method `InferenceAllKKWilcoxIVWC$compute_asymp_confidence_interval()` (current description `48` chars).
+- [x] TODO #189: Method `InferenceAllKKWilcoxIVWC$compute_asymp_two_sided_pval()` (current description `125` chars).
+- [x] TODO #190: Method `InferenceAllKKWilcoxIVWC$compute_estimate()` (current description `69` chars).
+- [x] TODO #191: Method `InferenceAllKKWilcoxIVWC$compute_jackknife_bias_estimate()` (current description `130` chars).
+- [x] TODO #192: Method `InferenceAllKKWilcoxIVWC$compute_jackknife_estimate()` (current description `45` chars).
+- [x] TODO #193: Method `InferenceAllKKWilcoxIVWC$compute_jackknife_std_error()` (current description `131` chars).
+- [x] TODO #194: Method `InferenceAllKKWilcoxIVWC$compute_jackknife_wald_confidence_interval()` (current description `63` chars).
+- [x] TODO #195: Method `InferenceAllKKWilcoxIVWC$compute_jackknife_wald_two_sided_pval()` (current description `62` chars).
+- [x] TODO #196: Method `InferenceAllKKWilcoxIVWC$new()` (current description `118` chars).
+- [x] TODO #197: Topic `InferenceAllKKWilcoxIVWC` (current description `495` chars).
 
 ### `InferenceAllSimpleMeanDiff.Rd`
 
-- [ ] TODO #226: Method `InferenceAllSimpleMeanDiff$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #227: Method `InferenceAllSimpleMeanDiff$clone()` (current description `57` chars).
-- [ ] TODO #228: Method `InferenceAllSimpleMeanDiff$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #229: Method `InferenceAllSimpleMeanDiff$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #230: Method `InferenceAllSimpleMeanDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #231: Method `InferenceAllSimpleMeanDiff$compute_estimate()` (current description `58` chars).
-- [ ] TODO #232: Method `InferenceAllSimpleMeanDiff$new()` (current description `53` chars).
-- [ ] TODO #233: Topic `InferenceAllSimpleMeanDiff` (current description `285` chars).
+- [x] TODO #198: Method `InferenceAllSimpleMeanDiff$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #199: Method `InferenceAllSimpleMeanDiff$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #200: Method `InferenceAllSimpleMeanDiff$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #201: Method `InferenceAllSimpleMeanDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [x] TODO #202: Method `InferenceAllSimpleMeanDiff$compute_estimate()` (current description `58` chars).
+- [x] TODO #203: Method `InferenceAllSimpleMeanDiff$new()` (current description `53` chars).
+- [x] TODO #204: Topic `InferenceAllSimpleMeanDiff` (current description `285` chars).
 
 ### `InferenceAllSimpleMeanDiffPooledVar.Rd`
 
-- [ ] TODO #234: Method `InferenceAllSimpleMeanDiffPooledVar$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #235: Method `InferenceAllSimpleMeanDiffPooledVar$clone()` (current description `57` chars).
-- [ ] TODO #236: Method `InferenceAllSimpleMeanDiffPooledVar$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #237: Method `InferenceAllSimpleMeanDiffPooledVar$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #238: Method `InferenceAllSimpleMeanDiffPooledVar$compute_estimate()` (current description `58` chars).
-- [ ] TODO #239: Method `InferenceAllSimpleMeanDiffPooledVar$new()` (current description `142` chars).
-- [ ] TODO #240: Topic `InferenceAllSimpleMeanDiffPooledVar` (current description `329` chars).
+- [x] TODO #205: Method `InferenceAllSimpleMeanDiffPooledVar$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #206: Method `InferenceAllSimpleMeanDiffPooledVar$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #207: Method `InferenceAllSimpleMeanDiffPooledVar$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #208: Method `InferenceAllSimpleMeanDiffPooledVar$compute_estimate()` (current description `58` chars).
+- [x] TODO #209: Method `InferenceAllSimpleMeanDiffPooledVar$new()` (current description `142` chars).
+- [x] TODO #210: Topic `InferenceAllSimpleMeanDiffPooledVar` (current description `329` chars).
 
 ### `InferenceAllSimpleWilcox.Rd`
 
-- [ ] TODO #241: Method `InferenceAllSimpleWilcox$clone()` (current description `57` chars).
-- [ ] TODO #242: Method `InferenceAllSimpleWilcox$compute_asymp_confidence_interval()` (current description `56` chars).
-- [ ] TODO #243: Method `InferenceAllSimpleWilcox$compute_asymp_two_sided_pval()` (current description `64` chars).
-- [ ] TODO #244: Method `InferenceAllSimpleWilcox$compute_estimate_with_bootstrap_weights()` (current description `62` chars).
-- [ ] TODO #245: Method `InferenceAllSimpleWilcox$compute_estimate()` (current description `80` chars).
-- [ ] TODO #246: Method `InferenceAllSimpleWilcox$compute_jackknife_bias_estimate()` (current description `128` chars).
-- [ ] TODO #247: Method `InferenceAllSimpleWilcox$compute_jackknife_estimate()` (current description `45` chars).
-- [ ] TODO #248: Method `InferenceAllSimpleWilcox$compute_jackknife_std_error()` (current description `129` chars).
-- [ ] TODO #249: Method `InferenceAllSimpleWilcox$compute_jackknife_wald_confidence_interval()` (current description `63` chars).
-- [ ] TODO #250: Method `InferenceAllSimpleWilcox$compute_jackknife_wald_two_sided_pval()` (current description `62` chars).
-- [ ] TODO #251: Method `InferenceAllSimpleWilcox$new()` (current description `91` chars).
-- [ ] TODO #252: Topic `InferenceAllSimpleWilcox` (current description `135` chars).
+- [x] TODO #211: Method `InferenceAllSimpleWilcox$compute_asymp_confidence_interval()` (current description `56` chars).
+- [x] TODO #212: Method `InferenceAllSimpleWilcox$compute_asymp_two_sided_pval()` (current description `64` chars).
+- [x] TODO #213 (stale, 2026-08-14): Method `InferenceAllSimpleWilcox$compute_estimate_with_bootstrap_weights()` — not a resolvable method on this class: `InferenceAllSimpleWilcox` composes `c("RandomizationBootstrap", "Wald", "SimpleWilcox")`, none of which provide `compute_estimate_with_bootstrap_weights` (it lives only in the `BayesianBootstrap` component, which this class explicitly disables via `supports_bayesian_bootstrap = function() FALSE`); do not document.
+- [x] TODO #214: Method `InferenceAllSimpleWilcox$compute_estimate()` (current description `80` chars).
+- [x] TODO #215: Method `InferenceAllSimpleWilcox$compute_jackknife_bias_estimate()` (current description `128` chars).
+- [x] TODO #216: Method `InferenceAllSimpleWilcox$compute_jackknife_estimate()` (current description `45` chars).
+- [x] TODO #217: Method `InferenceAllSimpleWilcox$compute_jackknife_std_error()` (current description `129` chars).
+- [x] TODO #218: Method `InferenceAllSimpleWilcox$compute_jackknife_wald_confidence_interval()` (current description `63` chars).
+- [x] TODO #219: Method `InferenceAllSimpleWilcox$compute_jackknife_wald_two_sided_pval()` (current description `62` chars).
+- [x] TODO #220: Method `InferenceAllSimpleWilcox$new()` (current description `91` chars).
+- [x] TODO #221: Topic `InferenceAllSimpleWilcox` (current description `135` chars).
 
 ### `InferenceBaiAdjustedTKK14.Rd`
 
-- [ ] TODO #253: Method `InferenceBaiAdjustedTKK14$clone()` (current description `57` chars).
-- [ ] TODO #254: Topic `InferenceBaiAdjustedTKK14` (current description `229` chars).
+- [ ] TODO #222: Topic `InferenceBaiAdjustedTKK14` (current description `229` chars).
 
 ### `InferenceBaiAdjustedTKK21.Rd`
 
-- [ ] TODO #255: Method `InferenceBaiAdjustedTKK21$clone()` (current description `57` chars).
-- [ ] TODO #256: Topic `InferenceBaiAdjustedTKK21` (current description `229` chars).
+- [ ] TODO #223: Topic `InferenceBaiAdjustedTKK21` (current description `229` chars).
 
 ### `InferenceContinKKGLMM.Rd`
 
-- [ ] TODO #257: Method `InferenceContinKKGLMM$clone()` (current description `57` chars).
-- [ ] TODO #258: Method `InferenceContinKKGLMM$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #259: Method `InferenceContinKKGLMM$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #260: Method `InferenceContinKKGLMM$compute_estimate_with_bootstrap_weights()` (current description `62` chars).
-- [ ] TODO #261: Method `InferenceContinKKGLMM$compute_estimate()` (current description `58` chars).
-- [ ] TODO #262: Method `InferenceContinKKGLMM$new()` (current description `38` chars).
-- [ ] TODO #263: Topic `InferenceContinKKGLMM` (current description `456` chars).
+- [ ] TODO #224: Method `InferenceContinKKGLMM$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #225: Method `InferenceContinKKGLMM$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #226: Method `InferenceContinKKGLMM$compute_estimate_with_bootstrap_weights()` (current description `62` chars).
+- [ ] TODO #227: Method `InferenceContinKKGLMM$compute_estimate()` (current description `58` chars).
+- [ ] TODO #228: Method `InferenceContinKKGLMM$new()` (current description `38` chars).
+- [ ] TODO #229: Topic `InferenceContinKKGLMM` (current description `456` chars).
 
 ### `InferenceContinKKOLSIVWC.Rd`
 
-- [ ] TODO #264: Method `InferenceContinKKOLSIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #265: Method `InferenceContinKKOLSIVWC$clone()` (current description `57` chars).
-- [ ] TODO #266: Method `InferenceContinKKOLSIVWC$new()` (current description `110` chars).
-- [ ] TODO #267: Topic `InferenceContinKKOLSIVWC` (current description `432` chars).
+- [ ] TODO #230: Method `InferenceContinKKOLSIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [ ] TODO #231: Method `InferenceContinKKOLSIVWC$new()` (current description `110` chars).
+- [ ] TODO #232: Topic `InferenceContinKKOLSIVWC` (current description `432` chars).
 
 ### `InferenceContinKKOLSOneLik.Rd`
 
-- [ ] TODO #268: Method `InferenceContinKKOLSOneLik$clone()` (current description `57` chars).
-- [ ] TODO #269: Method `InferenceContinKKOLSOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #270: Method `InferenceContinKKOLSOneLik$compute_asymp_two_sided_pval()` (current description `107` chars).
-- [ ] TODO #271: Method `InferenceContinKKOLSOneLik$compute_estimate_with_bootstrap_weights()` (current description `62` chars).
-- [ ] TODO #272: Method `InferenceContinKKOLSOneLik$compute_estimate()` (current description `58` chars).
-- [ ] TODO #273: Method `InferenceContinKKOLSOneLik$get_likelihood_components()` (current description `74` chars).
-- [ ] TODO #274: Method `InferenceContinKKOLSOneLik$new()` (current description `111` chars).
-- [ ] TODO #275: Topic `InferenceContinKKOLSOneLik` (current description `416` chars).
+- [ ] TODO #233: Method `InferenceContinKKOLSOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #234: Method `InferenceContinKKOLSOneLik$compute_asymp_two_sided_pval()` (current description `107` chars).
+- [ ] TODO #235: Method `InferenceContinKKOLSOneLik$compute_estimate_with_bootstrap_weights()` (current description `62` chars).
+- [ ] TODO #236: Method `InferenceContinKKOLSOneLik$compute_estimate()` (current description `58` chars).
+- [ ] TODO #237: Method `InferenceContinKKOLSOneLik$get_likelihood_components()` (current description `74` chars).
+- [ ] TODO #238: Method `InferenceContinKKOLSOneLik$new()` (current description `111` chars).
+- [ ] TODO #239: Topic `InferenceContinKKOLSOneLik` (current description `416` chars).
 
 ### `InferenceContinKKQuantileRegrIVWC.Rd`
 
-- [ ] TODO #276: Method `InferenceContinKKQuantileRegrIVWC$clone()` (current description `57` chars).
-- [ ] TODO #277: Method `InferenceContinKKQuantileRegrIVWC$new()` (current description `73` chars).
-- [ ] TODO #278: Topic `InferenceContinKKQuantileRegrIVWC` (current description `1586` chars).
+- [ ] TODO #240: Method `InferenceContinKKQuantileRegrIVWC$new()` (current description `73` chars).
+- [ ] TODO #241: Topic `InferenceContinKKQuantileRegrIVWC` (current description `1586` chars).
 
 ### `InferenceContinKKQuantileRegrOneLik.Rd`
 
-- [ ] TODO #279: Method `InferenceContinKKQuantileRegrOneLik$clone()` (current description `57` chars).
-- [ ] TODO #280: Method `InferenceContinKKQuantileRegrOneLik$compute_estimate()` (current description `57` chars).
-- [ ] TODO #281: Method `InferenceContinKKQuantileRegrOneLik$new()` (current description `144` chars).
-- [ ] TODO #282: Topic `InferenceContinKKQuantileRegrOneLik` (current description `413` chars).
+- [ ] TODO #242: Method `InferenceContinKKQuantileRegrOneLik$compute_estimate()` (current description `57` chars).
+- [ ] TODO #243: Method `InferenceContinKKQuantileRegrOneLik$new()` (current description `144` chars).
+- [ ] TODO #244: Topic `InferenceContinKKQuantileRegrOneLik` (current description `413` chars).
 
 ### `InferenceContinKKRobustRegrIVWC.Rd`
 
-- [ ] TODO #283: Method `InferenceContinKKRobustRegrIVWC$clone()` (current description `57` chars).
-- [ ] TODO #284: Method `InferenceContinKKRobustRegrIVWC$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #285: Method `InferenceContinKKRobustRegrIVWC$compute_asymp_two_sided_pval()` (current description `106` chars).
-- [ ] TODO #286: Method `InferenceContinKKRobustRegrIVWC$compute_estimate()` (current description `57` chars).
-- [ ] TODO #287: Method `InferenceContinKKRobustRegrIVWC$duplicate()` (current description `164` chars).
-- [ ] TODO #288: Method `InferenceContinKKRobustRegrIVWC$new()` (current description `120` chars).
-- [ ] TODO #289: Topic `InferenceContinKKRobustRegrIVWC` (current description `321` chars).
+- [ ] TODO #245: Method `InferenceContinKKRobustRegrIVWC$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #246: Method `InferenceContinKKRobustRegrIVWC$compute_asymp_two_sided_pval()` (current description `106` chars).
+- [ ] TODO #247: Method `InferenceContinKKRobustRegrIVWC$compute_estimate()` (current description `57` chars).
+- [ ] TODO #248: Method `InferenceContinKKRobustRegrIVWC$duplicate()` (current description `164` chars).
+- [ ] TODO #249: Method `InferenceContinKKRobustRegrIVWC$new()` (current description `120` chars).
+- [ ] TODO #250: Topic `InferenceContinKKRobustRegrIVWC` (current description `321` chars).
 
 ### `InferenceContinKKRobustRegrOneLik.Rd`
 
-- [ ] TODO #290: Method `InferenceContinKKRobustRegrOneLik$clone()` (current description `57` chars).
-- [ ] TODO #291: Method `InferenceContinKKRobustRegrOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #292: Method `InferenceContinKKRobustRegrOneLik$compute_asymp_two_sided_pval()` (current description `121` chars).
-- [ ] TODO #293: Method `InferenceContinKKRobustRegrOneLik$compute_estimate_with_bootstrap_weights()` (current description `56` chars).
-- [ ] TODO #294: Method `InferenceContinKKRobustRegrOneLik$compute_estimate()` (current description `72` chars).
-- [ ] TODO #295: Method `InferenceContinKKRobustRegrOneLik$compute_wald_confidence_interval()` (current description `38` chars).
-- [ ] TODO #296: Method `InferenceContinKKRobustRegrOneLik$compute_wald_two_sided_pval()` (current description `36` chars).
-- [ ] TODO #297: Method `InferenceContinKKRobustRegrOneLik$duplicate()` (current description `172` chars).
-- [ ] TODO #298: Method `InferenceContinKKRobustRegrOneLik$new()` (current description `114` chars).
-- [ ] TODO #299: Topic `InferenceContinKKRobustRegrOneLik` (current description `221` chars).
+- [ ] TODO #251: Method `InferenceContinKKRobustRegrOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #252: Method `InferenceContinKKRobustRegrOneLik$compute_asymp_two_sided_pval()` (current description `121` chars).
+- [ ] TODO #253: Method `InferenceContinKKRobustRegrOneLik$compute_estimate_with_bootstrap_weights()` (current description `56` chars).
+- [ ] TODO #254: Method `InferenceContinKKRobustRegrOneLik$compute_estimate()` (current description `72` chars).
+- [ ] TODO #255: Method `InferenceContinKKRobustRegrOneLik$compute_wald_confidence_interval()` (current description `38` chars).
+- [ ] TODO #256: Method `InferenceContinKKRobustRegrOneLik$compute_wald_two_sided_pval()` (current description `36` chars).
+- [ ] TODO #257: Method `InferenceContinKKRobustRegrOneLik$duplicate()` (current description `172` chars).
+- [ ] TODO #258: Method `InferenceContinKKRobustRegrOneLik$new()` (current description `114` chars).
+- [ ] TODO #259: Topic `InferenceContinKKRobustRegrOneLik` (current description `221` chars).
 
 ### `InferenceContinLin.Rd`
 
-- [ ] TODO #300: Method `InferenceContinLin$clone()` (current description `57` chars).
-- [ ] TODO #301: Method `InferenceContinLin$compute_asymp_confidence_interval()` (current description `73` chars).
-- [ ] TODO #302: Method `InferenceContinLin$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #303: Method `InferenceContinLin$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #304: Method `InferenceContinLin$compute_estimate()` (current description `48` chars).
-- [ ] TODO #305: Method `InferenceContinLin$new()` (current description `41` chars).
-- [ ] TODO #306: Topic `InferenceContinLin` (current description `360` chars).
+- [ ] TODO #260: Method `InferenceContinLin$compute_asymp_confidence_interval()` (current description `73` chars).
+- [ ] TODO #261: Method `InferenceContinLin$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #262: Method `InferenceContinLin$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [ ] TODO #263: Method `InferenceContinLin$compute_estimate()` (current description `48` chars).
+- [ ] TODO #264: Method `InferenceContinLin$new()` (current description `41` chars).
+- [ ] TODO #265: Topic `InferenceContinLin` (current description `360` chars).
 
 ### `InferenceContinOLS.Rd`
 
-- [ ] TODO #307: Method `InferenceContinOLS$clone()` (current description `57` chars).
-- [ ] TODO #308: Method `InferenceContinOLS$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #309: Method `InferenceContinOLS$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #310: Method `InferenceContinOLS$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #311: Method `InferenceContinOLS$compute_estimate()` (current description `50` chars).
-- [ ] TODO #312: Method `InferenceContinOLS$new()` (current description `35` chars).
-- [ ] TODO #313: Topic `InferenceContinOLS` (current description `317` chars).
+- [ ] TODO #266: Method `InferenceContinOLS$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #267: Method `InferenceContinOLS$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #268: Method `InferenceContinOLS$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [ ] TODO #269: Method `InferenceContinOLS$compute_estimate()` (current description `50` chars).
+- [ ] TODO #270: Method `InferenceContinOLS$new()` (current description `35` chars).
+- [ ] TODO #271: Topic `InferenceContinOLS` (current description `317` chars).
 
 ### `InferenceContinQuantileRegr.Rd`
 
-- [ ] TODO #314: Method `InferenceContinQuantileRegr$clone()` (current description `57` chars).
-- [ ] TODO #315: Method `InferenceContinQuantileRegr$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #316: Method `InferenceContinQuantileRegr$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #317: Method `InferenceContinQuantileRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #318: Method `InferenceContinQuantileRegr$compute_estimate()` (current description `66` chars).
-- [ ] TODO #319: Method `InferenceContinQuantileRegr$new()` (current description `72` chars).
-- [ ] TODO #320: Topic `InferenceContinQuantileRegr` (current description `651` chars).
+- [x] TODO #272: Method `InferenceContinQuantileRegr$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #273: Method `InferenceContinQuantileRegr$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #274: Method `InferenceContinQuantileRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [x] TODO #275: Method `InferenceContinQuantileRegr$compute_estimate()` (current description `66` chars).
+- [x] TODO #276: Method `InferenceContinQuantileRegr$new()` (current description `72` chars).
+- [x] TODO #277: Topic `InferenceContinQuantileRegr` (current description `651` chars).
 
 ### `InferenceContinRobustRegr.Rd`
 
-- [ ] TODO #321: Method `InferenceContinRobustRegr$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #322: Method `InferenceContinRobustRegr$clone()` (current description `57` chars).
-- [ ] TODO #323: Method `InferenceContinRobustRegr$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #324: Method `InferenceContinRobustRegr$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #325: Method `InferenceContinRobustRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #326: Method `InferenceContinRobustRegr$compute_estimate()` (current description `64` chars).
-- [ ] TODO #327: Method `InferenceContinRobustRegr$new()` (current description `70` chars).
-- [ ] TODO #328: Topic `InferenceContinRobustRegr` (current description `650` chars).
+- [x] TODO #278: Method `InferenceContinRobustRegr$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #279: Method `InferenceContinRobustRegr$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #280: Method `InferenceContinRobustRegr$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #281: Method `InferenceContinRobustRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [x] TODO #282: Method `InferenceContinRobustRegr$compute_estimate()` (current description `64` chars).
+- [x] TODO #283: Method `InferenceContinRobustRegr$new()` (current description `70` chars).
+- [x] TODO #284: Topic `InferenceContinRobustRegr` (current description `650` chars).
 
 ### `InferenceCountHurdleNegBin.Rd`
 
-- [ ] TODO #329: Method `InferenceCountHurdleNegBin$clone()` (current description `57` chars).
-- [ ] TODO #330: Method `InferenceCountHurdleNegBin$compute_asymp_confidence_interval()` (current description `156` chars).
-- [ ] TODO #331: Method `InferenceCountHurdleNegBin$compute_asymp_two_sided_pval()` (current description `172` chars).
-- [ ] TODO #332: Method `InferenceCountHurdleNegBin$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #333: Method `InferenceCountHurdleNegBin$compute_gradient_confidence_interval()` (current description `145` chars).
-- [ ] TODO #334: Method `InferenceCountHurdleNegBin$compute_gradient_two_sided_pval()` (current description `48` chars).
-- [ ] TODO #335: Method `InferenceCountHurdleNegBin$compute_jackknife_bias_estimate()` (current description `166` chars).
-- [ ] TODO #336: Method `InferenceCountHurdleNegBin$compute_jackknife_estimate()` (current description `59` chars).
-- [ ] TODO #337: Method `InferenceCountHurdleNegBin$compute_jackknife_std_error()` (current description `167` chars).
-- [ ] TODO #338: Method `InferenceCountHurdleNegBin$compute_jackknife_wald_confidence_interval()` (current description `63` chars).
-- [ ] TODO #339: Method `InferenceCountHurdleNegBin$compute_jackknife_wald_two_sided_pval()` (current description `62` chars).
-- [ ] TODO #340: Method `InferenceCountHurdleNegBin$new()` (current description `154` chars).
-- [ ] TODO #341: Topic `InferenceCountHurdleNegBin` (current description `214` chars).
+- [ ] TODO #285: Method `InferenceCountHurdleNegBin$compute_asymp_confidence_interval()` (current description `156` chars).
+- [ ] TODO #286: Method `InferenceCountHurdleNegBin$compute_asymp_two_sided_pval()` (current description `172` chars).
+- [ ] TODO #287: Method `InferenceCountHurdleNegBin$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [ ] TODO #288: Method `InferenceCountHurdleNegBin$compute_gradient_confidence_interval()` (current description `145` chars).
+- [ ] TODO #289: Method `InferenceCountHurdleNegBin$compute_gradient_two_sided_pval()` (current description `48` chars).
+- [ ] TODO #290: Method `InferenceCountHurdleNegBin$compute_jackknife_bias_estimate()` (current description `166` chars).
+- [ ] TODO #291: Method `InferenceCountHurdleNegBin$compute_jackknife_estimate()` (current description `59` chars).
+- [ ] TODO #292: Method `InferenceCountHurdleNegBin$compute_jackknife_std_error()` (current description `167` chars).
+- [ ] TODO #293: Method `InferenceCountHurdleNegBin$compute_jackknife_wald_confidence_interval()` (current description `63` chars).
+- [ ] TODO #294: Method `InferenceCountHurdleNegBin$compute_jackknife_wald_two_sided_pval()` (current description `62` chars).
+- [ ] TODO #295: Method `InferenceCountHurdleNegBin$new()` (current description `154` chars).
+- [ ] TODO #296: Topic `InferenceCountHurdleNegBin` (current description `214` chars).
 
 ### `InferenceCountHurdlePoisson.Rd`
 
-- [ ] TODO #342: Method `InferenceCountHurdlePoisson$clone()` (current description `57` chars).
-- [ ] TODO #343: Method `InferenceCountHurdlePoisson$new()` (current description `45` chars).
-- [ ] TODO #344: Topic `InferenceCountHurdlePoisson` (current description `194` chars).
+- [ ] TODO #297: Method `InferenceCountHurdlePoisson$new()` (current description `45` chars).
+- [ ] TODO #298: Topic `InferenceCountHurdlePoisson` (current description `194` chars).
 
 ### `InferenceCountKKCondPoissonOneLik.Rd`
 
-- [ ] TODO #345: Method `InferenceCountKKCondPoissonOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #346: Method `InferenceCountKKCondPoissonOneLik$clone()` (current description `57` chars).
-- [ ] TODO #347: Method `InferenceCountKKCondPoissonOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #348: Method `InferenceCountKKCondPoissonOneLik$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #349: Method `InferenceCountKKCondPoissonOneLik$compute_estimate_with_bootstrap_weights()` (current description `58` chars).
-- [ ] TODO #350: Method `InferenceCountKKCondPoissonOneLik$compute_estimate()` (current description `130` chars).
-- [ ] TODO #351: Method `InferenceCountKKCondPoissonOneLik$compute_gradient_confidence_interval()` (current description `56` chars).
-- [ ] TODO #352: Method `InferenceCountKKCondPoissonOneLik$compute_gradient_two_sided_pval()` (current description `44` chars).
-- [ ] TODO #353: Method `InferenceCountKKCondPoissonOneLik$compute_lik_ratio_confidence_interval()` (current description `64` chars).
-- [ ] TODO #354: Method `InferenceCountKKCondPoissonOneLik$compute_lik_ratio_two_sided_pval()` (current description `52` chars).
-- [ ] TODO #355: Method `InferenceCountKKCondPoissonOneLik$compute_score_confidence_interval()` (current description `53` chars).
-- [ ] TODO #356: Method `InferenceCountKKCondPoissonOneLik$compute_score_two_sided_pval()` (current description `41` chars).
-- [ ] TODO #357: Method `InferenceCountKKCondPoissonOneLik$compute_wald_confidence_interval()` (current description `54` chars).
-- [ ] TODO #358: Method `InferenceCountKKCondPoissonOneLik$compute_wald_two_sided_pval()` (current description `34` chars).
-- [ ] TODO #359: Method `InferenceCountKKCondPoissonOneLik$new()` (current description `120` chars).
-- [ ] TODO #360: Method `InferenceCountKKCondPoissonOneLik$supports_lik_ratio_param_bootstrap()` (current description `59` chars).
-- [ ] TODO #361: Topic `InferenceCountKKCondPoissonOneLik` (current description `139` chars).
+- [ ] TODO #299: Method `InferenceCountKKCondPoissonOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [ ] TODO #300: Method `InferenceCountKKCondPoissonOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #301: Method `InferenceCountKKCondPoissonOneLik$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #302: Method `InferenceCountKKCondPoissonOneLik$compute_estimate_with_bootstrap_weights()` (current description `58` chars).
+- [ ] TODO #303: Method `InferenceCountKKCondPoissonOneLik$compute_estimate()` (current description `130` chars).
+- [ ] TODO #304: Method `InferenceCountKKCondPoissonOneLik$compute_gradient_confidence_interval()` (current description `56` chars).
+- [ ] TODO #305: Method `InferenceCountKKCondPoissonOneLik$compute_gradient_two_sided_pval()` (current description `44` chars).
+- [ ] TODO #306: Method `InferenceCountKKCondPoissonOneLik$compute_lik_ratio_confidence_interval()` (current description `64` chars).
+- [ ] TODO #307: Method `InferenceCountKKCondPoissonOneLik$compute_lik_ratio_two_sided_pval()` (current description `52` chars).
+- [ ] TODO #308: Method `InferenceCountKKCondPoissonOneLik$compute_score_confidence_interval()` (current description `53` chars).
+- [ ] TODO #309: Method `InferenceCountKKCondPoissonOneLik$compute_score_two_sided_pval()` (current description `41` chars).
+- [ ] TODO #310: Method `InferenceCountKKCondPoissonOneLik$compute_wald_confidence_interval()` (current description `54` chars).
+- [ ] TODO #311: Method `InferenceCountKKCondPoissonOneLik$compute_wald_two_sided_pval()` (current description `34` chars).
+- [ ] TODO #312: Method `InferenceCountKKCondPoissonOneLik$new()` (current description `120` chars).
+- [x] TODO #313 (obsolete, 2026-08-13): Method `InferenceCountKKCondPoissonOneLik$supports_lik_ratio_param_bootstrap()` — `supports_*` hook methods are deleted by `fix_inference_hierarchy.md`'s capability model; do not document.
+- [ ] TODO #314: Topic `InferenceCountKKCondPoissonOneLik` (current description `139` chars).
 
 ### `InferenceCountKKGLMM.Rd`
 
-- [ ] TODO #362: Method `InferenceCountKKGLMM$clone()` (current description `57` chars).
-- [ ] TODO #363: Method `InferenceCountKKGLMM$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #364: Method `InferenceCountKKGLMM$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #365: Method `InferenceCountKKGLMM$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
-- [ ] TODO #366: Method `InferenceCountKKGLMM$compute_estimate()` (current description `58` chars).
-- [ ] TODO #367: Method `InferenceCountKKGLMM$compute_lik_ratio_confidence_interval()` (current description `63` chars).
-- [ ] TODO #368: Method `InferenceCountKKGLMM$compute_lik_ratio_two_sided_pval()` (current description `61` chars).
-- [ ] TODO #369: Method `InferenceCountKKGLMM$compute_wald_confidence_interval()` (current description `54` chars).
-- [ ] TODO #370: Method `InferenceCountKKGLMM$compute_wald_two_sided_pval()` (current description `34` chars).
-- [ ] TODO #371: Method `InferenceCountKKGLMM$new()` (current description `46` chars).
-- [ ] TODO #372: Topic `InferenceCountKKGLMM` (current description `348` chars).
+- [ ] TODO #315: Method `InferenceCountKKGLMM$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #316: Method `InferenceCountKKGLMM$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #317: Method `InferenceCountKKGLMM$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
+- [ ] TODO #318: Method `InferenceCountKKGLMM$compute_estimate()` (current description `58` chars).
+- [ ] TODO #319: Method `InferenceCountKKGLMM$compute_lik_ratio_confidence_interval()` (current description `63` chars).
+- [ ] TODO #320: Method `InferenceCountKKGLMM$compute_lik_ratio_two_sided_pval()` (current description `61` chars).
+- [ ] TODO #321: Method `InferenceCountKKGLMM$compute_wald_confidence_interval()` (current description `54` chars).
+- [ ] TODO #322: Method `InferenceCountKKGLMM$compute_wald_two_sided_pval()` (current description `34` chars).
+- [ ] TODO #323: Method `InferenceCountKKGLMM$new()` (current description `46` chars).
+- [ ] TODO #324: Topic `InferenceCountKKGLMM` (current description `348` chars).
 
 ### `InferenceCountKKHurdlePoissonOneLik.Rd`
 
-- [ ] TODO #373: Method `InferenceCountKKHurdlePoissonOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #374: Method `InferenceCountKKHurdlePoissonOneLik$clone()` (current description `57` chars).
-- [ ] TODO #375: Method `InferenceCountKKHurdlePoissonOneLik$compute_asymp_confidence_interval()` (current description `194` chars).
-- [ ] TODO #376: Method `InferenceCountKKHurdlePoissonOneLik$compute_asymp_two_sided_pval()` (current description `192` chars).
-- [ ] TODO #377: Method `InferenceCountKKHurdlePoissonOneLik$compute_estimate_with_bootstrap_weights()` (current description `53` chars).
-- [ ] TODO #378: Method `InferenceCountKKHurdlePoissonOneLik$compute_estimate()` (current description `124` chars).
-- [ ] TODO #379: Method `InferenceCountKKHurdlePoissonOneLik$compute_gradient_confidence_interval()` (current description `60` chars).
-- [ ] TODO #380: Method `InferenceCountKKHurdlePoissonOneLik$compute_gradient_two_sided_pval()` (current description `48` chars).
-- [ ] TODO #381: Method `InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_confidence_interval()` (current description `68` chars).
-- [ ] TODO #382: Method `InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_two_sided_pval()` (current description `56` chars).
-- [ ] TODO #383: Method `InferenceCountKKHurdlePoissonOneLik$compute_score_confidence_interval()` (current description `57` chars).
-- [ ] TODO #384: Method `InferenceCountKKHurdlePoissonOneLik$compute_score_two_sided_pval()` (current description `45` chars).
-- [ ] TODO #385: Method `InferenceCountKKHurdlePoissonOneLik$compute_wald_confidence_interval()` (current description `173` chars).
-- [ ] TODO #386: Method `InferenceCountKKHurdlePoissonOneLik$compute_wald_two_sided_pval()` (current description `27` chars).
-- [ ] TODO #387: Method `InferenceCountKKHurdlePoissonOneLik$new()` (current description `196` chars).
-- [ ] TODO #388: Method `InferenceCountKKHurdlePoissonOneLik$supports_lik_ratio_param_bootstrap()` (current description `59` chars).
-- [ ] TODO #389: Topic `InferenceCountKKHurdlePoissonOneLik` (current description `135` chars).
+- [ ] TODO #325: Method `InferenceCountKKHurdlePoissonOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [ ] TODO #326: Method `InferenceCountKKHurdlePoissonOneLik$compute_asymp_confidence_interval()` (current description `194` chars).
+- [ ] TODO #327: Method `InferenceCountKKHurdlePoissonOneLik$compute_asymp_two_sided_pval()` (current description `192` chars).
+- [ ] TODO #328: Method `InferenceCountKKHurdlePoissonOneLik$compute_estimate_with_bootstrap_weights()` (current description `53` chars).
+- [ ] TODO #329: Method `InferenceCountKKHurdlePoissonOneLik$compute_estimate()` (current description `124` chars).
+- [ ] TODO #330: Method `InferenceCountKKHurdlePoissonOneLik$compute_gradient_confidence_interval()` (current description `60` chars).
+- [ ] TODO #331: Method `InferenceCountKKHurdlePoissonOneLik$compute_gradient_two_sided_pval()` (current description `48` chars).
+- [ ] TODO #332: Method `InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_confidence_interval()` (current description `68` chars).
+- [ ] TODO #333: Method `InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_two_sided_pval()` (current description `56` chars).
+- [ ] TODO #334: Method `InferenceCountKKHurdlePoissonOneLik$compute_score_confidence_interval()` (current description `57` chars).
+- [ ] TODO #335: Method `InferenceCountKKHurdlePoissonOneLik$compute_score_two_sided_pval()` (current description `45` chars).
+- [ ] TODO #336: Method `InferenceCountKKHurdlePoissonOneLik$compute_wald_confidence_interval()` (current description `173` chars).
+- [ ] TODO #337: Method `InferenceCountKKHurdlePoissonOneLik$compute_wald_two_sided_pval()` (current description `27` chars).
+- [ ] TODO #338: Method `InferenceCountKKHurdlePoissonOneLik$new()` (current description `196` chars).
+- [x] TODO #339 (obsolete, 2026-08-13): Method `InferenceCountKKHurdlePoissonOneLik$supports_lik_ratio_param_bootstrap()` — `supports_*` hook methods are deleted by `fix_inference_hierarchy.md`'s capability model; do not document.
+- [ ] TODO #340: Topic `InferenceCountKKHurdlePoissonOneLik` (current description `135` chars).
 
 ### `InferenceCountNegBin.Rd`
 
-- [ ] TODO #390: Method `InferenceCountNegBin$clone()` (current description `57` chars).
-- [ ] TODO #391: Method `InferenceCountNegBin$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #392: Method `InferenceCountNegBin$compute_jackknife_bias_estimate()` (current description `158` chars).
-- [ ] TODO #393: Method `InferenceCountNegBin$compute_jackknife_estimate()` (current description `52` chars).
-- [ ] TODO #394: Method `InferenceCountNegBin$compute_jackknife_std_error()` (current description `159` chars).
-- [ ] TODO #395: Method `InferenceCountNegBin$compute_jackknife_wald_confidence_interval()` (current description `63` chars).
-- [ ] TODO #396: Method `InferenceCountNegBin$compute_jackknife_wald_two_sided_pval()` (current description `62` chars).
-- [ ] TODO #397: Method `InferenceCountNegBin$new()` (current description `59` chars).
-- [ ] TODO #398: Topic `InferenceCountNegBin` (current description `200` chars).
+- [ ] TODO #341: Method `InferenceCountNegBin$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [ ] TODO #342: Method `InferenceCountNegBin$compute_jackknife_bias_estimate()` (current description `158` chars).
+- [ ] TODO #343: Method `InferenceCountNegBin$compute_jackknife_estimate()` (current description `52` chars).
+- [ ] TODO #344: Method `InferenceCountNegBin$compute_jackknife_std_error()` (current description `159` chars).
+- [ ] TODO #345: Method `InferenceCountNegBin$compute_jackknife_wald_confidence_interval()` (current description `63` chars).
+- [ ] TODO #346: Method `InferenceCountNegBin$compute_jackknife_wald_two_sided_pval()` (current description `62` chars).
+- [ ] TODO #347: Method `InferenceCountNegBin$new()` (current description `59` chars).
+- [ ] TODO #348: Topic `InferenceCountNegBin` (current description `200` chars).
 
 ### `InferenceCountPoisson.Rd`
 
-- [ ] TODO #399: Method `InferenceCountPoisson$clone()` (current description `57` chars).
-- [ ] TODO #400: Method `InferenceCountPoisson$compute_asymp_confidence_interval()` (current description `69` chars).
-- [ ] TODO #401: Method `InferenceCountPoisson$compute_asymp_two_sided_pval()` (current description `67` chars).
-- [ ] TODO #402: Method `InferenceCountPoisson$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #403: Method `InferenceCountPoisson$compute_gradient_confidence_interval()` (current description `60` chars).
-- [ ] TODO #404: Method `InferenceCountPoisson$compute_gradient_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #405: Method `InferenceCountPoisson$compute_lik_ratio_bootstrap_confidence_interval()` (current description `58` chars).
-- [ ] TODO #406: Method `InferenceCountPoisson$compute_lik_ratio_bootstrap_two_sided_pval()` (current description `63` chars).
-- [ ] TODO #407: Method `InferenceCountPoisson$compute_lik_ratio_confidence_interval()` (current description `68` chars).
-- [ ] TODO #408: Method `InferenceCountPoisson$compute_lik_ratio_two_sided_pval()` (current description `66` chars).
-- [ ] TODO #409: Method `InferenceCountPoisson$compute_score_confidence_interval()` (current description `57` chars).
-- [ ] TODO #410: Method `InferenceCountPoisson$compute_score_two_sided_pval()` (current description `55` chars).
-- [ ] TODO #411: Method `InferenceCountPoisson$compute_wald_confidence_interval()` (current description `56` chars).
-- [ ] TODO #412: Method `InferenceCountPoisson$compute_wald_two_sided_pval()` (current description `54` chars).
-- [ ] TODO #413: Method `InferenceCountPoisson$new()` (current description `49` chars).
-- [ ] TODO #414: Topic `InferenceCountPoisson` (current description `189` chars).
+- [ ] TODO #349: Method `InferenceCountPoisson$compute_asymp_confidence_interval()` (current description `69` chars).
+- [ ] TODO #350: Method `InferenceCountPoisson$compute_asymp_two_sided_pval()` (current description `67` chars).
+- [ ] TODO #351: Method `InferenceCountPoisson$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [ ] TODO #352: Method `InferenceCountPoisson$compute_gradient_confidence_interval()` (current description `60` chars).
+- [ ] TODO #353: Method `InferenceCountPoisson$compute_gradient_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #354: Method `InferenceCountPoisson$compute_lik_ratio_bootstrap_confidence_interval()` (current description `58` chars).
+- [ ] TODO #355: Method `InferenceCountPoisson$compute_lik_ratio_bootstrap_two_sided_pval()` (current description `63` chars).
+- [ ] TODO #356: Method `InferenceCountPoisson$compute_lik_ratio_confidence_interval()` (current description `68` chars).
+- [ ] TODO #357: Method `InferenceCountPoisson$compute_lik_ratio_two_sided_pval()` (current description `66` chars).
+- [ ] TODO #358: Method `InferenceCountPoisson$compute_score_confidence_interval()` (current description `57` chars).
+- [ ] TODO #359: Method `InferenceCountPoisson$compute_score_two_sided_pval()` (current description `55` chars).
+- [ ] TODO #360: Method `InferenceCountPoisson$compute_wald_confidence_interval()` (current description `56` chars).
+- [ ] TODO #361: Method `InferenceCountPoisson$compute_wald_two_sided_pval()` (current description `54` chars).
+- [ ] TODO #362: Method `InferenceCountPoisson$new()` (current description `49` chars).
+- [ ] TODO #363: Topic `InferenceCountPoisson` (current description `189` chars).
 
 ### `InferenceCountPoissonKKGEE.Rd`
 
-- [ ] TODO #415: Method `InferenceCountPoissonKKGEE$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #416: Method `InferenceCountPoissonKKGEE$clone()` (current description `57` chars).
-- [ ] TODO #417: Method `InferenceCountPoissonKKGEE$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #418: Method `InferenceCountPoissonKKGEE$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #419: Method `InferenceCountPoissonKKGEE$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #420: Method `InferenceCountPoissonKKGEE$compute_estimate()` (current description `170` chars).
-- [ ] TODO #421: Method `InferenceCountPoissonKKGEE$new()` (current description `128` chars).
-- [ ] TODO #422: Topic `InferenceCountPoissonKKGEE` (current description `297` chars).
+- [x] TODO #364: Method `InferenceCountPoissonKKGEE$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #365: Method `InferenceCountPoissonKKGEE$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #366: Method `InferenceCountPoissonKKGEE$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #367: Method `InferenceCountPoissonKKGEE$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [x] TODO #368: Method `InferenceCountPoissonKKGEE$compute_estimate()` (current description `170` chars).
+- [x] TODO #369: Method `InferenceCountPoissonKKGEE$new()` (current description `128` chars).
+- [x] TODO #370: Topic `InferenceCountPoissonKKGEE` (current description `297` chars).
 
 ### `InferenceCountQuasiPoisson.Rd`
 
-- [ ] TODO #423: Method `InferenceCountQuasiPoisson$clone()` (current description `57` chars).
-- [ ] TODO #424: Method `InferenceCountQuasiPoisson$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #425: Method `InferenceCountQuasiPoisson$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #426: Method `InferenceCountQuasiPoisson$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #427: Method `InferenceCountQuasiPoisson$compute_estimate()` (current description `58` chars).
-- [ ] TODO #428: Method `InferenceCountQuasiPoisson$new()` (current description `55` chars).
-- [ ] TODO #429: Topic `InferenceCountQuasiPoisson` (current description `201` chars).
+- [x] TODO #371: Method `InferenceCountQuasiPoisson$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #372: Method `InferenceCountQuasiPoisson$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #373: Method `InferenceCountQuasiPoisson$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [x] TODO #374: Method `InferenceCountQuasiPoisson$compute_estimate()` (current description `58` chars).
+- [x] TODO #375: Method `InferenceCountQuasiPoisson$new()` (current description `55` chars).
+- [x] TODO #376: Topic `InferenceCountQuasiPoisson` (current description `201` chars).
 
 ### `InferenceCountRobustPoisson.Rd`
 
-- [ ] TODO #430: Method `InferenceCountRobustPoisson$clone()` (current description `57` chars).
-- [ ] TODO #431: Method `InferenceCountRobustPoisson$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #432: Method `InferenceCountRobustPoisson$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #433: Method `InferenceCountRobustPoisson$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #434: Method `InferenceCountRobustPoisson$compute_estimate()` (current description `58` chars).
-- [ ] TODO #435: Method `InferenceCountRobustPoisson$new()` (current description `56` chars).
-- [ ] TODO #436: Topic `InferenceCountRobustPoisson` (current description `244` chars).
+- [x] TODO #377: Method `InferenceCountRobustPoisson$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #378: Method `InferenceCountRobustPoisson$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #379: Method `InferenceCountRobustPoisson$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [x] TODO #380: Method `InferenceCountRobustPoisson$compute_estimate()` (current description `58` chars).
+- [x] TODO #381: Method `InferenceCountRobustPoisson$new()` (current description `56` chars).
+- [x] TODO #382: Topic `InferenceCountRobustPoisson` (current description `244` chars).
 
 ### `InferenceCountZeroInflatedNegBin.Rd`
 
-- [ ] TODO #437: Method `InferenceCountZeroInflatedNegBin$clone()` (current description `57` chars).
-- [ ] TODO #438: Method `InferenceCountZeroInflatedNegBin$new()` (current description `62` chars).
-- [ ] TODO #439: Topic `InferenceCountZeroInflatedNegBin` (current description `228` chars).
+- [ ] TODO #383: Method `InferenceCountZeroInflatedNegBin$new()` (current description `62` chars).
+- [ ] TODO #384: Topic `InferenceCountZeroInflatedNegBin` (current description `228` chars).
 
 ### `InferenceCountZeroInflatedPoisson.Rd`
 
-- [ ] TODO #440: Method `InferenceCountZeroInflatedPoisson$clone()` (current description `57` chars).
-- [ ] TODO #441: Method `InferenceCountZeroInflatedPoisson$new()` (current description `52` chars).
-- [ ] TODO #442: Topic `InferenceCountZeroInflatedPoisson` (current description `208` chars).
+- [ ] TODO #385: Method `InferenceCountZeroInflatedPoisson$new()` (current description `52` chars).
+- [ ] TODO #386: Topic `InferenceCountZeroInflatedPoisson` (current description `208` chars).
 
 ### `InferenceIncidBinomialIdentityRiskDiff.Rd`
 
-- [ ] TODO #443: Method `InferenceIncidBinomialIdentityRiskDiff$clone()` (current description `57` chars).
-- [ ] TODO #444: Method `InferenceIncidBinomialIdentityRiskDiff$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #445: Method `InferenceIncidBinomialIdentityRiskDiff$compute_lik_ratio_confidence_interval()` (current description `68` chars).
-- [ ] TODO #446: Method `InferenceIncidBinomialIdentityRiskDiff$new()` (current description `69` chars).
-- [ ] TODO #447: Topic `InferenceIncidBinomialIdentityRiskDiff` (current description `282` chars).
+- [ ] TODO #387: Method `InferenceIncidBinomialIdentityRiskDiff$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [ ] TODO #388: Method `InferenceIncidBinomialIdentityRiskDiff$compute_lik_ratio_confidence_interval()` (current description `68` chars).
+- [ ] TODO #389: Method `InferenceIncidBinomialIdentityRiskDiff$new()` (current description `69` chars).
+- [ ] TODO #390: Topic `InferenceIncidBinomialIdentityRiskDiff` (current description `282` chars).
 
 ### `InferenceIncidCMH.Rd`
 
-- [ ] TODO #448: Method `InferenceIncidCMH$clone()` (current description `57` chars).
-- [ ] TODO #449: Method `InferenceIncidCMH$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #450: Method `InferenceIncidCMH$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #451: Method `InferenceIncidCMH$new()` (current description `149` chars).
-- [ ] TODO #452: Topic `InferenceIncidCMH` (current description `1121` chars).
+- [ ] TODO #391: Method `InferenceIncidCMH$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #392: Method `InferenceIncidCMH$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #393: Method `InferenceIncidCMH$new()` (current description `149` chars).
+- [ ] TODO #394: Topic `InferenceIncidCMH` (current description `1121` chars).
 
 ### `InferenceIncidenceExactZhang.Rd`
 
-- [ ] TODO #453: Method `InferenceIncidenceExactZhang$clone()` (current description `57` chars).
-- [ ] TODO #454: Method `InferenceIncidenceExactZhang$compute_estimate()` (current description `47` chars).
-- [ ] TODO #455: Method `InferenceIncidenceExactZhang$compute_exact_confidence_interval()` (current description `43` chars).
-- [ ] TODO #456: Method `InferenceIncidenceExactZhang$new()` (current description `43` chars).
-- [ ] TODO #457: Topic `InferenceIncidenceExactZhang` (current description `63` chars).
+- [x] TODO #395: Method `InferenceIncidenceExactZhang$compute_estimate()` (current description `47` chars).
+- [x] TODO #396: Method `InferenceIncidenceExactZhang$compute_exact_confidence_interval()` (current description `43` chars).
+- [x] TODO #397: Method `InferenceIncidenceExactZhang$new()` (current description `43` chars).
+- [x] TODO #398: Topic `InferenceIncidenceExactZhang` (current description `63` chars).
 
 ### `InferenceIncidExactBinomial.Rd`
 
-- [ ] TODO #458: Method `InferenceIncidExactBinomial$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #459: Method `InferenceIncidExactBinomial$clone()` (current description `57` chars).
-- [ ] TODO #460: Method `InferenceIncidExactBinomial$compute_estimate()` (current description `66` chars).
-- [ ] TODO #461: Method `InferenceIncidExactBinomial$new()` (current description `72` chars).
-- [ ] TODO #462: Topic `InferenceIncidExactBinomial` (current description `332` chars).
+- [x] TODO #399: Method `InferenceIncidExactBinomial$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #400: Method `InferenceIncidExactBinomial$compute_estimate()` (current description `66` chars).
+- [x] TODO #401: Method `InferenceIncidExactBinomial$new()` (current description `72` chars).
+- [x] TODO #402: Topic `InferenceIncidExactBinomial` (current description `332` chars).
 
 ### `InferenceIncidExactFisher.Rd`
 
-- [ ] TODO #463: Method `InferenceIncidExactFisher$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #464: Method `InferenceIncidExactFisher$clone()` (current description `57` chars).
-- [ ] TODO #465: Method `InferenceIncidExactFisher$compute_estimate()` (current description `66` chars).
-- [ ] TODO #466: Method `InferenceIncidExactFisher$new()` (current description `57` chars).
-- [ ] TODO #467: Topic `InferenceIncidExactFisher` (current description `65` chars).
+- [x] TODO #403: Method `InferenceIncidExactFisher$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #404: Method `InferenceIncidExactFisher$compute_estimate()` (current description `66` chars).
+- [x] TODO #405: Method `InferenceIncidExactFisher$new()` (current description `57` chars).
+- [x] TODO #406: Topic `InferenceIncidExactFisher` (current description `65` chars).
 
 ### `InferenceIncidExtendedRobins.Rd`
 
-- [ ] TODO #468: Method `InferenceIncidExtendedRobins$clone()` (current description `57` chars).
-- [ ] TODO #469: Method `InferenceIncidExtendedRobins$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #470: Method `InferenceIncidExtendedRobins$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #471: Method `InferenceIncidExtendedRobins$new()` (current description `62` chars).
-- [ ] TODO #472: Topic `InferenceIncidExtendedRobins` (current description `329` chars).
+- [ ] TODO #407: Method `InferenceIncidExtendedRobins$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #408: Method `InferenceIncidExtendedRobins$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #409: Method `InferenceIncidExtendedRobins$new()` (current description `62` chars).
+- [ ] TODO #410: Topic `InferenceIncidExtendedRobins` (current description `329` chars).
 
 ### `InferenceIncidGCompRiskDiff.Rd`
 
-- [ ] TODO #473: Method `InferenceIncidGCompRiskDiff$clone()` (current description `57` chars).
-- [ ] TODO #474: Topic `InferenceIncidGCompRiskDiff` (current description `339` chars).
+- [x] TODO #411: Topic `InferenceIncidGCompRiskDiff` (current description `339` chars).
 
 ### `InferenceIncidGCompRiskRatio.Rd`
 
-- [ ] TODO #475: Method `InferenceIncidGCompRiskRatio$clone()` (current description `57` chars).
-- [ ] TODO #476: Topic `InferenceIncidGCompRiskRatio` (current description `329` chars).
+- [x] TODO #412: Topic `InferenceIncidGCompRiskRatio` (current description `329` chars).
 
 ### `InferenceIncidKKCondLogitIVWC.Rd`
 
-- [ ] TODO #477: Method `InferenceIncidKKCondLogitIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #478: Method `InferenceIncidKKCondLogitIVWC$clone()` (current description `57` chars).
-- [ ] TODO #479: Method `InferenceIncidKKCondLogitIVWC$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #480: Method `InferenceIncidKKCondLogitIVWC$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #481: Method `InferenceIncidKKCondLogitIVWC$compute_estimate()` (current description `58` chars).
-- [ ] TODO #482: Method `InferenceIncidKKCondLogitIVWC$new()` (current description `129` chars).
-- [ ] TODO #483: Topic `InferenceIncidKKCondLogitIVWC` (current description `129` chars).
+- [ ] TODO #413: Method `InferenceIncidKKCondLogitIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [ ] TODO #414: Method `InferenceIncidKKCondLogitIVWC$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #415: Method `InferenceIncidKKCondLogitIVWC$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #416: Method `InferenceIncidKKCondLogitIVWC$compute_estimate()` (current description `58` chars).
+- [ ] TODO #417: Method `InferenceIncidKKCondLogitIVWC$new()` (current description `129` chars).
+- [ ] TODO #418: Topic `InferenceIncidKKCondLogitIVWC` (current description `129` chars).
 
 ### `InferenceIncidKKCondLogitOneLik.Rd`
 
-- [ ] TODO #484: Method `InferenceIncidKKCondLogitOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #485: Method `InferenceIncidKKCondLogitOneLik$clone()` (current description `57` chars).
-- [ ] TODO #486: Method `InferenceIncidKKCondLogitOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #487: Method `InferenceIncidKKCondLogitOneLik$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #488: Method `InferenceIncidKKCondLogitOneLik$compute_estimate_with_bootstrap_weights()` (current description `59` chars).
-- [ ] TODO #489: Method `InferenceIncidKKCondLogitOneLik$compute_estimate()` (current description `58` chars).
-- [ ] TODO #490: Method `InferenceIncidKKCondLogitOneLik$new()` (current description `209` chars).
-- [ ] TODO #491: Topic `InferenceIncidKKCondLogitOneLik` (current description `308` chars).
+- [ ] TODO #419: Method `InferenceIncidKKCondLogitOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [ ] TODO #420: Method `InferenceIncidKKCondLogitOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #421: Method `InferenceIncidKKCondLogitOneLik$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #422: Method `InferenceIncidKKCondLogitOneLik$compute_estimate_with_bootstrap_weights()` (current description `59` chars).
+- [ ] TODO #423: Method `InferenceIncidKKCondLogitOneLik$compute_estimate()` (current description `58` chars).
+- [ ] TODO #424: Method `InferenceIncidKKCondLogitOneLik$new()` (current description `209` chars).
+- [ ] TODO #425: Topic `InferenceIncidKKCondLogitOneLik` (current description `308` chars).
 
 ### `InferenceIncidKKCondLogitGLMMIVWC.Rd`
 
-- [ ] TODO #492: Method `InferenceIncidKKCondLogitGLMMIVWC$clone()` (current description `57` chars).
-- [ ] TODO #493: Topic `InferenceIncidKKCondLogitGLMMIVWC` (current description `368` chars).
+- [ ] TODO #426: Topic `InferenceIncidKKCondLogitGLMMIVWC` (current description `368` chars).
 
 ### `InferenceIncidKKCondLogitGLMMOneLik.Rd`
 
-- [ ] TODO #494: Method `InferenceIncidKKCondLogitGLMMOneLik$clone()` (current description `57` chars).
-- [ ] TODO #495: Method `InferenceIncidKKCondLogitGLMMOneLik$new()` (current description `122` chars).
-- [ ] TODO #496: Topic `InferenceIncidKKCondLogitGLMMOneLik` (current description `383` chars).
+- [ ] TODO #427: Method `InferenceIncidKKCondLogitGLMMOneLik$new()` (current description `122` chars).
+- [ ] TODO #428: Topic `InferenceIncidKKCondLogitGLMMOneLik` (current description `383` chars).
 
 ### `InferenceIncidKKGCompRiskDiff.Rd`
 
-- [ ] TODO #497: Method `InferenceIncidKKGCompRiskDiff$clone()` (current description `57` chars).
-- [ ] TODO #498: Topic `InferenceIncidKKGCompRiskDiff` (current description `497` chars).
+- [ ] TODO #429: Topic `InferenceIncidKKGCompRiskDiff` (current description `497` chars).
 
 ### `InferenceIncidKKGCompRiskRatio.Rd`
 
-- [ ] TODO #499: Method `InferenceIncidKKGCompRiskRatio$clone()` (current description `57` chars).
-- [ ] TODO #500: Topic `InferenceIncidKKGCompRiskRatio` (current description `486` chars).
+- [ ] TODO #430: Topic `InferenceIncidKKGCompRiskRatio` (current description `486` chars).
 
 ### `InferenceIncidKKGEE.Rd`
 
-- [ ] TODO #501: Method `InferenceIncidKKGEE$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #502: Method `InferenceIncidKKGEE$clone()` (current description `57` chars).
-- [ ] TODO #503: Method `InferenceIncidKKGEE$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #504: Method `InferenceIncidKKGEE$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #505: Method `InferenceIncidKKGEE$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #506: Method `InferenceIncidKKGEE$compute_estimate()` (current description `173` chars).
-- [ ] TODO #507: Method `InferenceIncidKKGEE$new()` (current description `129` chars).
-- [ ] TODO #508: Topic `InferenceIncidKKGEE` (current description `274` chars).
+- [x] TODO #431: Method `InferenceIncidKKGEE$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #432: Method `InferenceIncidKKGEE$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #433: Method `InferenceIncidKKGEE$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #434: Method `InferenceIncidKKGEE$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [x] TODO #435: Method `InferenceIncidKKGEE$compute_estimate()` (current description `173` chars).
+- [x] TODO #436: Method `InferenceIncidKKGEE$new()` (current description `129` chars).
+- [x] TODO #437: Topic `InferenceIncidKKGEE` (current description `274` chars).
 
 ### `InferenceIncidKKModifiedPoisson.Rd`
 
-- [ ] TODO #509: Method `InferenceIncidKKModifiedPoisson$clone()` (current description `57` chars).
-- [ ] TODO #510: Topic `InferenceIncidKKModifiedPoisson` (current description `382` chars).
+- [ ] TODO #438: Topic `InferenceIncidKKModifiedPoisson` (current description `382` chars).
 
 ### `InferenceIncidKKNewcombeRiskDiff.Rd`
 
-- [ ] TODO #511: Method `InferenceIncidKKNewcombeRiskDiff$clone()` (current description `57` chars).
-- [ ] TODO #512: Method `InferenceIncidKKNewcombeRiskDiff$compute_estimate()` (current description `58` chars).
-- [ ] TODO #513: Method `InferenceIncidKKNewcombeRiskDiff$new()` (current description `118` chars).
-- [ ] TODO #514: Topic `InferenceIncidKKNewcombeRiskDiff` (current description `586` chars).
+- [ ] TODO #439: Method `InferenceIncidKKNewcombeRiskDiff$compute_estimate()` (current description `58` chars).
+- [ ] TODO #440: Method `InferenceIncidKKNewcombeRiskDiff$new()` (current description `118` chars).
+- [ ] TODO #441: Topic `InferenceIncidKKNewcombeRiskDiff` (current description `586` chars).
 
 ### `InferenceIncidLogBinomial.Rd`
 
-- [ ] TODO #515: Method `InferenceIncidLogBinomial$clone()` (current description `57` chars).
-- [ ] TODO #516: Method `InferenceIncidLogBinomial$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #517: Method `InferenceIncidLogBinomial$compute_gradient_confidence_interval()` (current description `60` chars).
-- [ ] TODO #518: Method `InferenceIncidLogBinomial$compute_score_confidence_interval()` (current description `57` chars).
-- [ ] TODO #519: Method `InferenceIncidLogBinomial$new()` (current description `54` chars).
-- [ ] TODO #520: Topic `InferenceIncidLogBinomial` (current description `207` chars).
+- [ ] TODO #442: Method `InferenceIncidLogBinomial$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [ ] TODO #443: Method `InferenceIncidLogBinomial$compute_gradient_confidence_interval()` (current description `60` chars).
+- [ ] TODO #444: Method `InferenceIncidLogBinomial$compute_score_confidence_interval()` (current description `57` chars).
+- [ ] TODO #445: Method `InferenceIncidLogBinomial$new()` (current description `54` chars).
+- [ ] TODO #446: Topic `InferenceIncidLogBinomial` (current description `207` chars).
 
 ### `InferenceIncidLogRegr.Rd`
 
-- [ ] TODO #521: Method `InferenceIncidLogRegr$clone()` (current description `57` chars).
-- [ ] TODO #522: Method `InferenceIncidLogRegr$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #523: Method `InferenceIncidLogRegr$new()` (current description `50` chars).
-- [ ] TODO #524: Topic `InferenceIncidLogRegr` (current description `199` chars).
+- [ ] TODO #447: Method `InferenceIncidLogRegr$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [ ] TODO #448: Method `InferenceIncidLogRegr$new()` (current description `50` chars).
+- [ ] TODO #449: Topic `InferenceIncidLogRegr` (current description `199` chars).
 
 ### `InferenceIncidMiettinenNurminenRiskDiff.Rd`
 
-- [ ] TODO #525: Method `InferenceIncidMiettinenNurminenRiskDiff$clone()` (current description `57` chars).
-- [ ] TODO #526: Method `InferenceIncidMiettinenNurminenRiskDiff$compute_asymp_confidence_interval()` (current description `66` chars).
-- [ ] TODO #527: Method `InferenceIncidMiettinenNurminenRiskDiff$compute_asymp_two_sided_pval()` (current description `54` chars).
-- [ ] TODO #528: Method `InferenceIncidMiettinenNurminenRiskDiff$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #529: Method `InferenceIncidMiettinenNurminenRiskDiff$compute_estimate()` (current description `47` chars).
-- [ ] TODO #530: Method `InferenceIncidMiettinenNurminenRiskDiff$new()` (current description `70` chars).
-- [ ] TODO #531: Topic `InferenceIncidMiettinenNurminenRiskDiff` (current description `598` chars).
+- [x] TODO #450: Method `InferenceIncidMiettinenNurminenRiskDiff$compute_asymp_confidence_interval()` (current description `66` chars).
+- [x] TODO #451: Method `InferenceIncidMiettinenNurminenRiskDiff$compute_asymp_two_sided_pval()` (current description `54` chars).
+- [x] TODO #452: Method `InferenceIncidMiettinenNurminenRiskDiff$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [x] TODO #453: Method `InferenceIncidMiettinenNurminenRiskDiff$compute_estimate()` (current description `47` chars).
+- [x] TODO #454: Method `InferenceIncidMiettinenNurminenRiskDiff$new()` (current description `70` chars).
+- [x] TODO #455: Topic `InferenceIncidMiettinenNurminenRiskDiff` (current description `598` chars).
 
 ### `InferenceIncidModifiedPoisson.Rd`
 
-- [ ] TODO #532: Method `InferenceIncidModifiedPoisson$clone()` (current description `57` chars).
-- [ ] TODO #533: Method `InferenceIncidModifiedPoisson$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #534: Method `InferenceIncidModifiedPoisson$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #535: Method `InferenceIncidModifiedPoisson$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #536: Method `InferenceIncidModifiedPoisson$compute_estimate()` (current description `58` chars).
-- [ ] TODO #537: Method `InferenceIncidModifiedPoisson$new()` (current description `58` chars).
-- [ ] TODO #538: Topic `InferenceIncidModifiedPoisson` (current description `316` chars).
+- [ ] TODO #456: Method `InferenceIncidModifiedPoisson$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #457: Method `InferenceIncidModifiedPoisson$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #458: Method `InferenceIncidModifiedPoisson$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [ ] TODO #459: Method `InferenceIncidModifiedPoisson$compute_estimate()` (current description `58` chars).
+- [ ] TODO #460: Method `InferenceIncidModifiedPoisson$new()` (current description `58` chars).
+- [ ] TODO #461: Topic `InferenceIncidModifiedPoisson` (current description `316` chars).
 
 ### `InferenceIncidNewcombeRiskDiff.Rd`
 
-- [ ] TODO #539: Method `InferenceIncidNewcombeRiskDiff$clone()` (current description `57` chars).
-- [ ] TODO #540: Method `InferenceIncidNewcombeRiskDiff$compute_asymp_confidence_interval()` (current description `50` chars).
-- [ ] TODO #541: Method `InferenceIncidNewcombeRiskDiff$compute_asymp_two_sided_pval()` (current description `64` chars).
-- [ ] TODO #542: Method `InferenceIncidNewcombeRiskDiff$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #543: Method `InferenceIncidNewcombeRiskDiff$compute_estimate()` (current description `47` chars).
-- [ ] TODO #544: Method `InferenceIncidNewcombeRiskDiff$new()` (current description `55` chars).
-- [ ] TODO #545: Topic `InferenceIncidNewcombeRiskDiff` (current description `496` chars).
+- [x] TODO #462: Method `InferenceIncidNewcombeRiskDiff$compute_asymp_confidence_interval()` (current description `50` chars).
+- [x] TODO #463: Method `InferenceIncidNewcombeRiskDiff$compute_asymp_two_sided_pval()` (current description `64` chars).
+- [x] TODO #464: Method `InferenceIncidNewcombeRiskDiff$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [x] TODO #465: Method `InferenceIncidNewcombeRiskDiff$compute_estimate()` (current description `47` chars).
+- [x] TODO #466: Method `InferenceIncidNewcombeRiskDiff$new()` (current description `55` chars).
+- [x] TODO #467: Topic `InferenceIncidNewcombeRiskDiff` (current description `496` chars).
 
 ### `InferenceIncidProbitRegr.Rd`
 
-- [ ] TODO #546: Method `InferenceIncidProbitRegr$clone()` (current description `57` chars).
-- [ ] TODO #547: Method `InferenceIncidProbitRegr$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #548: Method `InferenceIncidProbitRegr$new()` (current description `48` chars).
-- [ ] TODO #549: Topic `InferenceIncidProbitRegr` (current description `195` chars).
+- [ ] TODO #468: Method `InferenceIncidProbitRegr$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [ ] TODO #469: Method `InferenceIncidProbitRegr$new()` (current description `48` chars).
+- [ ] TODO #470: Topic `InferenceIncidProbitRegr` (current description `195` chars).
 
 ### `InferenceIncidRiskDiff.Rd`
 
-- [ ] TODO #550: Method `InferenceIncidRiskDiff$clone()` (current description `57` chars).
-- [ ] TODO #551: Method `InferenceIncidRiskDiff$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #552: Method `InferenceIncidRiskDiff$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #553: Method `InferenceIncidRiskDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #554: Method `InferenceIncidRiskDiff$compute_estimate()` (current description `58` chars).
-- [ ] TODO #555: Method `InferenceIncidRiskDiff$new()` (current description `46` chars).
-- [ ] TODO #556: Topic `InferenceIncidRiskDiff` (current description `263` chars).
+- [ ] TODO #471: Method `InferenceIncidRiskDiff$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #472: Method `InferenceIncidRiskDiff$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #473: Method `InferenceIncidRiskDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [ ] TODO #474: Method `InferenceIncidRiskDiff$compute_estimate()` (current description `58` chars).
+- [ ] TODO #475: Method `InferenceIncidRiskDiff$new()` (current description `46` chars).
+- [ ] TODO #476: Topic `InferenceIncidRiskDiff` (current description `263` chars).
 
 ### `InferenceIncidWald.Rd`
 
-- [ ] TODO #557: Method `InferenceIncidWald$clone()` (current description `57` chars).
-- [ ] TODO #558: Method `InferenceIncidWald$new()` (current description `166` chars).
-- [ ] TODO #559: Topic `InferenceIncidWald` (current description `211` chars).
+- [ ] TODO #477: Method `InferenceIncidWald$new()` (current description `166` chars).
+- [ ] TODO #478: Topic `InferenceIncidWald` (current description `211` chars).
 
 ### `InferenceOrdinalAdjCatLogitRegr.Rd`
 
-- [ ] TODO #560: Method `InferenceOrdinalAdjCatLogitRegr$clone()` (current description `57` chars).
-- [ ] TODO #561: Method `InferenceOrdinalAdjCatLogitRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
-- [ ] TODO #562: Method `InferenceOrdinalAdjCatLogitRegr$new()` (current description `55` chars).
-- [ ] TODO #563: Topic `InferenceOrdinalAdjCatLogitRegr` (current description `217` chars).
+- [x] TODO #479: Method `InferenceOrdinalAdjCatLogitRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
+- [x] TODO #480: Method `InferenceOrdinalAdjCatLogitRegr$new()` (current description `55` chars).
+- [x] TODO #481: Topic `InferenceOrdinalAdjCatLogitRegr` (current description `217` chars).
 
 ### `InferenceOrdinalCauchitRegr.Rd`
 
-- [ ] TODO #564: Method `InferenceOrdinalCauchitRegr$clone()` (current description `57` chars).
-- [ ] TODO #565: Method `InferenceOrdinalCauchitRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
-- [ ] TODO #566: Method `InferenceOrdinalCauchitRegr$new()` (current description `46` chars).
-- [ ] TODO #567: Topic `InferenceOrdinalCauchitRegr` (current description `193` chars).
+- [ ] TODO #482: Method `InferenceOrdinalCauchitRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
+- [ ] TODO #483: Method `InferenceOrdinalCauchitRegr$new()` (current description `46` chars).
+- [ ] TODO #484: Topic `InferenceOrdinalCauchitRegr` (current description `193` chars).
 
 ### `InferenceOrdinalCloglogRegr.Rd`
 
-- [ ] TODO #568: Method `InferenceOrdinalCloglogRegr$clone()` (current description `57` chars).
-- [ ] TODO #569: Method `InferenceOrdinalCloglogRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
-- [ ] TODO #570: Method `InferenceOrdinalCloglogRegr$new()` (current description `49` chars).
-- [ ] TODO #571: Topic `InferenceOrdinalCloglogRegr` (current description `193` chars).
+- [ ] TODO #485: Method `InferenceOrdinalCloglogRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
+- [ ] TODO #486: Method `InferenceOrdinalCloglogRegr$new()` (current description `49` chars).
+- [ ] TODO #487: Topic `InferenceOrdinalCloglogRegr` (current description `193` chars).
 
 ### `InferenceOrdinalContRatioRegr.Rd`
 
-- [ ] TODO #572: Method `InferenceOrdinalContRatioRegr$clone()` (current description `57` chars).
-- [ ] TODO #573: Method `InferenceOrdinalContRatioRegr$compute_estimate_with_bootstrap_weights()` (current description `58` chars).
-- [ ] TODO #574: Method `InferenceOrdinalContRatioRegr$new()` (current description `49` chars).
-- [ ] TODO #575: Topic `InferenceOrdinalContRatioRegr` (current description `182` chars).
+- [ ] TODO #488: Method `InferenceOrdinalContRatioRegr$compute_estimate_with_bootstrap_weights()` (current description `58` chars).
+- [ ] TODO #489: Method `InferenceOrdinalContRatioRegr$new()` (current description `49` chars).
+- [ ] TODO #490: Topic `InferenceOrdinalContRatioRegr` (current description `182` chars).
 
 ### `InferenceOrdinalGCompMeanDiff.Rd`
 
-- [ ] TODO #576: Method `InferenceOrdinalGCompMeanDiff$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #577: Method `InferenceOrdinalGCompMeanDiff$clone()` (current description `57` chars).
-- [ ] TODO #578: Method `InferenceOrdinalGCompMeanDiff$compute_asymp_confidence_interval()` (current description `72` chars).
-- [ ] TODO #579: Method `InferenceOrdinalGCompMeanDiff$compute_asymp_two_sided_pval()` (current description `65` chars).
-- [ ] TODO #580: Method `InferenceOrdinalGCompMeanDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #581: Method `InferenceOrdinalGCompMeanDiff$compute_estimate()` (current description `80` chars).
-- [ ] TODO #582: Method `InferenceOrdinalGCompMeanDiff$compute_wald_confidence_interval()` (current description `67` chars).
-- [ ] TODO #583: Method `InferenceOrdinalGCompMeanDiff$compute_wald_two_sided_pval()` (current description `65` chars).
-- [ ] TODO #584: Method `InferenceOrdinalGCompMeanDiff$new()` (current description `55` chars).
-- [ ] TODO #585: Topic `InferenceOrdinalGCompMeanDiff` (current description `352` chars).
+- [x] TODO #491: Method `InferenceOrdinalGCompMeanDiff$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #492: Method `InferenceOrdinalGCompMeanDiff$compute_asymp_confidence_interval()` (current description `72` chars).
+- [x] TODO #493: Method `InferenceOrdinalGCompMeanDiff$compute_asymp_two_sided_pval()` (current description `65` chars).
+- [x] TODO #494: Method `InferenceOrdinalGCompMeanDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [x] TODO #495: Method `InferenceOrdinalGCompMeanDiff$compute_estimate()` (current description `80` chars).
+- [x] TODO #496: Method `InferenceOrdinalGCompMeanDiff$compute_wald_confidence_interval()` (current description `67` chars).
+- [x] TODO #497: Method `InferenceOrdinalGCompMeanDiff$compute_wald_two_sided_pval()` (current description `65` chars).
+- [x] TODO #498: Method `InferenceOrdinalGCompMeanDiff$new()` (current description `55` chars).
+- [x] TODO #499: Topic `InferenceOrdinalGCompMeanDiff` (current description `352` chars).
 
 ### `InferenceOrdinalJonckheereTerpstraTest.Rd`
 
-- [ ] TODO #586: Method `InferenceOrdinalJonckheereTerpstraTest$clone()` (current description `57` chars).
-- [ ] TODO #587: Method `InferenceOrdinalJonckheereTerpstraTest$compute_asymp_confidence_interval()` (current description `65` chars).
-- [ ] TODO #588: Method `InferenceOrdinalJonckheereTerpstraTest$compute_asymp_two_sided_pval()` (current description `63` chars).
-- [ ] TODO #589: Method `InferenceOrdinalJonckheereTerpstraTest$compute_estimate_with_bootstrap_weights()` (current description `82` chars).
-- [ ] TODO #590: Method `InferenceOrdinalJonckheereTerpstraTest$compute_estimate()` (current description `64` chars).
-- [ ] TODO #591: Method `InferenceOrdinalJonckheereTerpstraTest$compute_exact_two_sided_pval_for_treatment_effect()` (current description `36` chars).
-- [ ] TODO #592: Method `InferenceOrdinalJonckheereTerpstraTest$new()` (current description `30` chars).
-- [ ] TODO #593: Topic `InferenceOrdinalJonckheereTerpstraTest` (current description `310` chars).
+- [x] TODO #500: Method `InferenceOrdinalJonckheereTerpstraTest$compute_asymp_confidence_interval()` (current description `65` chars).
+- [x] TODO #501: Method `InferenceOrdinalJonckheereTerpstraTest$compute_asymp_two_sided_pval()` (current description `63` chars).
+- [x] TODO #502: Method `InferenceOrdinalJonckheereTerpstraTest$compute_estimate_with_bootstrap_weights()` (current description `82` chars).
+- [x] TODO #503: Method `InferenceOrdinalJonckheereTerpstraTest$compute_estimate()` (current description `64` chars).
+- [x] TODO #504: Method `InferenceOrdinalJonckheereTerpstraTest$compute_exact_two_sided_pval_for_treatment_effect()` (current description `36` chars).
+- [x] TODO #505: Method `InferenceOrdinalJonckheereTerpstraTest$new()` (current description `30` chars).
+- [x] TODO #506: Topic `InferenceOrdinalJonckheereTerpstraTest` (current description `310` chars).
 
 ### `InferenceOrdinalKKCLMM.Rd`
 
-- [ ] TODO #594: Method `InferenceOrdinalKKCLMM$clone()` (current description `57` chars).
-- [ ] TODO #595: Method `InferenceOrdinalKKCLMM$new()` (current description `98` chars).
-- [ ] TODO #596: Topic `InferenceOrdinalKKCLMM` (current description `186` chars).
+- [ ] TODO #507: Method `InferenceOrdinalKKCLMM$new()` (current description `98` chars).
+- [ ] TODO #508: Topic `InferenceOrdinalKKCLMM` (current description `186` chars).
 
 ### `InferenceOrdinalKKCLMMCauchit.Rd`
 
-- [ ] TODO #597: Method `InferenceOrdinalKKCLMMCauchit$clone()` (current description `57` chars).
-- [ ] TODO #598: Method `InferenceOrdinalKKCLMMCauchit$new()` (current description `100` chars).
-- [ ] TODO #599: Topic `InferenceOrdinalKKCLMMCauchit` (current description `85` chars).
+- [ ] TODO #509: Method `InferenceOrdinalKKCLMMCauchit$new()` (current description `100` chars).
+- [ ] TODO #510: Topic `InferenceOrdinalKKCLMMCauchit` (current description `85` chars).
 
 ### `InferenceOrdinalKKCLMMCloglog.Rd`
 
-- [ ] TODO #600: Method `InferenceOrdinalKKCLMMCloglog$clone()` (current description `57` chars).
-- [ ] TODO #601: Method `InferenceOrdinalKKCLMMCloglog$new()` (current description `100` chars).
-- [ ] TODO #602: Topic `InferenceOrdinalKKCLMMCloglog` (current description `113` chars).
+- [ ] TODO #511: Method `InferenceOrdinalKKCLMMCloglog$new()` (current description `100` chars).
+- [ ] TODO #512: Topic `InferenceOrdinalKKCLMMCloglog` (current description `113` chars).
 
 ### `InferenceOrdinalKKCLMMProbit.Rd`
 
-- [ ] TODO #603: Method `InferenceOrdinalKKCLMMProbit$clone()` (current description `57` chars).
-- [ ] TODO #604: Method `InferenceOrdinalKKCLMMProbit$new()` (current description `99` chars).
-- [ ] TODO #605: Topic `InferenceOrdinalKKCLMMProbit` (current description `83` chars).
+- [ ] TODO #513: Method `InferenceOrdinalKKCLMMProbit$new()` (current description `99` chars).
+- [ ] TODO #514: Topic `InferenceOrdinalKKCLMMProbit` (current description `83` chars).
 
 ### `InferenceOrdinalKKCondAdjCatLogitRegr.Rd`
 
-- [ ] TODO #606: Method `InferenceOrdinalKKCondAdjCatLogitRegr$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #607: Method `InferenceOrdinalKKCondAdjCatLogitRegr$clone()` (current description `57` chars).
-- [ ] TODO #608: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_asymp_confidence_interval()` (current description `43` chars).
-- [ ] TODO #609: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_asymp_two_sided_pval()` (current description `128` chars).
-- [ ] TODO #610: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_estimate_with_bootstrap_weights()` (current description `53` chars).
-- [ ] TODO #611: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_estimate()` (current description `38` chars).
-- [ ] TODO #612: Method `InferenceOrdinalKKCondAdjCatLogitRegr$new()` (current description `131` chars).
-- [ ] TODO #613: Topic `InferenceOrdinalKKCondAdjCatLogitRegr` (current description `260` chars).
+- [ ] TODO #515: Method `InferenceOrdinalKKCondAdjCatLogitRegr$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [ ] TODO #516: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_asymp_confidence_interval()` (current description `43` chars).
+- [ ] TODO #517: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_asymp_two_sided_pval()` (current description `128` chars).
+- [ ] TODO #518: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_estimate_with_bootstrap_weights()` (current description `53` chars).
+- [ ] TODO #519: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_estimate()` (current description `38` chars).
+- [ ] TODO #520: Method `InferenceOrdinalKKCondAdjCatLogitRegr$new()` (current description `131` chars).
+- [ ] TODO #521: Topic `InferenceOrdinalKKCondAdjCatLogitRegr` (current description `260` chars).
 
 ### `InferenceOrdinalKKGEE.Rd`
 
-- [ ] TODO #614: Method `InferenceOrdinalKKGEE$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #615: Method `InferenceOrdinalKKGEE$clone()` (current description `57` chars).
-- [ ] TODO #616: Method `InferenceOrdinalKKGEE$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #617: Method `InferenceOrdinalKKGEE$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #618: Method `InferenceOrdinalKKGEE$compute_estimate_with_bootstrap_weights()` (current description `54` chars).
-- [ ] TODO #619: Method `InferenceOrdinalKKGEE$compute_estimate()` (current description `166` chars).
-- [ ] TODO #620: Method `InferenceOrdinalKKGEE$new()` (current description `127` chars).
-- [ ] TODO #621: Topic `InferenceOrdinalKKGEE` (current description `264` chars).
+- [x] TODO #522: Method `InferenceOrdinalKKGEE$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #523: Method `InferenceOrdinalKKGEE$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #524: Method `InferenceOrdinalKKGEE$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #525: Method `InferenceOrdinalKKGEE$compute_estimate_with_bootstrap_weights()` (current description `54` chars).
+- [x] TODO #526: Method `InferenceOrdinalKKGEE$compute_estimate()` (current description `166` chars).
+- [x] TODO #527: Method `InferenceOrdinalKKGEE$new()` (current description `127` chars).
+- [x] TODO #528: Topic `InferenceOrdinalKKGEE` (current description `264` chars).
 
 ### `InferenceOrdinalKKGLMM.Rd`
 
-- [ ] TODO #622: Method `InferenceOrdinalKKGLMM$clone()` (current description `57` chars).
-- [ ] TODO #623: Method `InferenceOrdinalKKGLMM$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #624: Method `InferenceOrdinalKKGLMM$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #625: Method `InferenceOrdinalKKGLMM$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
-- [ ] TODO #626: Method `InferenceOrdinalKKGLMM$compute_estimate()` (current description `58` chars).
-- [ ] TODO #627: Method `InferenceOrdinalKKGLMM$new()` (current description `131` chars).
-- [ ] TODO #628: Topic `InferenceOrdinalKKGLMM` (current description `430` chars).
+- [ ] TODO #529: Method `InferenceOrdinalKKGLMM$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #530: Method `InferenceOrdinalKKGLMM$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #531: Method `InferenceOrdinalKKGLMM$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
+- [ ] TODO #532: Method `InferenceOrdinalKKGLMM$compute_estimate()` (current description `58` chars).
+- [ ] TODO #533: Method `InferenceOrdinalKKGLMM$new()` (current description `131` chars).
+- [ ] TODO #534: Topic `InferenceOrdinalKKGLMM` (current description `430` chars).
 
 ### `InferenceOrdinalOrderedProbitRegr.Rd`
 
-- [ ] TODO #629: Method `InferenceOrdinalOrderedProbitRegr$clone()` (current description `57` chars).
-- [ ] TODO #630: Method `InferenceOrdinalOrderedProbitRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
-- [ ] TODO #631: Method `InferenceOrdinalOrderedProbitRegr$new()` (current description `46` chars).
-- [ ] TODO #632: Topic `InferenceOrdinalOrderedProbitRegr` (current description `199` chars).
+- [ ] TODO #535: Method `InferenceOrdinalOrderedProbitRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
+- [ ] TODO #536: Method `InferenceOrdinalOrderedProbitRegr$new()` (current description `46` chars).
+- [ ] TODO #537: Topic `InferenceOrdinalOrderedProbitRegr` (current description `199` chars).
 
 ### `InferenceOrdinalPairedSignTest.Rd`
 
-- [ ] TODO #633: Method `InferenceOrdinalPairedSignTest$approximate_bootstrap_distribution_beta_hat_T()` (current description `182` chars).
-- [ ] TODO #634: Method `InferenceOrdinalPairedSignTest$approximate_jackknife_distribution_beta_hat_T()` (current description `162` chars).
-- [ ] TODO #635: Method `InferenceOrdinalPairedSignTest$clone()` (current description `57` chars).
-- [ ] TODO #636: Method `InferenceOrdinalPairedSignTest$compute_asymp_confidence_interval()` (current description `62` chars).
-- [ ] TODO #637: Method `InferenceOrdinalPairedSignTest$compute_asymp_two_sided_pval()` (current description `39` chars).
-- [ ] TODO #638: Method `InferenceOrdinalPairedSignTest$compute_estimate_with_bootstrap_weights()` (current description `51` chars).
-- [ ] TODO #639: Method `InferenceOrdinalPairedSignTest$compute_estimate()` (current description `73` chars).
-- [ ] TODO #640: Method `InferenceOrdinalPairedSignTest$new()` (current description `122` chars).
-- [ ] TODO #641: Topic `InferenceOrdinalPairedSignTest` (current description `320` chars).
+- [ ] TODO #538: Method `InferenceOrdinalPairedSignTest$approximate_bootstrap_distribution_beta_hat_T()` (current description `182` chars).
+- [ ] TODO #539: Method `InferenceOrdinalPairedSignTest$approximate_jackknife_distribution_beta_hat_T()` (current description `162` chars).
+- [ ] TODO #540: Method `InferenceOrdinalPairedSignTest$compute_asymp_confidence_interval()` (current description `62` chars).
+- [ ] TODO #541: Method `InferenceOrdinalPairedSignTest$compute_asymp_two_sided_pval()` (current description `39` chars).
+- [ ] TODO #542: Method `InferenceOrdinalPairedSignTest$compute_estimate_with_bootstrap_weights()` (current description `51` chars).
+- [ ] TODO #543: Method `InferenceOrdinalPairedSignTest$compute_estimate()` (current description `73` chars).
+- [ ] TODO #544: Method `InferenceOrdinalPairedSignTest$new()` (current description `122` chars).
+- [ ] TODO #545: Topic `InferenceOrdinalPairedSignTest` (current description `320` chars).
 
 ### `InferenceOrdinalPartialProportionalOddsRegr.Rd`
 
-- [ ] TODO #642: Method `InferenceOrdinalPartialProportionalOddsRegr$benchmark_asymp_two_sided_pval_breakdown()` (current description `134` chars).
-- [ ] TODO #643: Method `InferenceOrdinalPartialProportionalOddsRegr$clone()` (current description `57` chars).
-- [ ] TODO #644: Method `InferenceOrdinalPartialProportionalOddsRegr$compute_asymp_confidence_interval()` (current description `143` chars).
-- [ ] TODO #645: Method `InferenceOrdinalPartialProportionalOddsRegr$compute_asymp_two_sided_pval()` (current description `140` chars).
-- [ ] TODO #646: Method `InferenceOrdinalPartialProportionalOddsRegr$compute_estimate_with_bootstrap_weights()` (current description `59` chars).
-- [ ] TODO #647: Method `InferenceOrdinalPartialProportionalOddsRegr$compute_estimate()` (current description `48` chars).
-- [ ] TODO #648: Method `InferenceOrdinalPartialProportionalOddsRegr$compute_wald_confidence_interval()` (current description `143` chars).
-- [ ] TODO #649: Method `InferenceOrdinalPartialProportionalOddsRegr$compute_wald_two_sided_pval()` (current description `140` chars).
-- [ ] TODO #650: Method `InferenceOrdinalPartialProportionalOddsRegr$new()` (current description `40` chars).
-- [ ] TODO #651: Topic `InferenceOrdinalPartialProportionalOddsRegr` (current description `306` chars).
+- [x] TODO #546: Method `InferenceOrdinalPartialProportionalOddsRegr$benchmark_asymp_two_sided_pval_breakdown()` (current description `134` chars).
+- [x] TODO #547: Method `InferenceOrdinalPartialProportionalOddsRegr$compute_asymp_confidence_interval()` (current description `143` chars).
+- [x] TODO #548: Method `InferenceOrdinalPartialProportionalOddsRegr$compute_asymp_two_sided_pval()` (current description `140` chars).
+- [x] TODO #549: Method `InferenceOrdinalPartialProportionalOddsRegr$compute_estimate_with_bootstrap_weights()` (current description `59` chars).
+- [x] TODO #550: Method `InferenceOrdinalPartialProportionalOddsRegr$compute_estimate()` (current description `48` chars).
+- [x] TODO #551: Method `InferenceOrdinalPartialProportionalOddsRegr$compute_wald_confidence_interval()` (current description `143` chars).
+- [x] TODO #552: Method `InferenceOrdinalPartialProportionalOddsRegr$compute_wald_two_sided_pval()` (current description `140` chars).
+- [x] TODO #553: Method `InferenceOrdinalPartialProportionalOddsRegr$new()` (current description `40` chars).
+- [x] TODO #554: Topic `InferenceOrdinalPartialProportionalOddsRegr` (current description `306` chars).
 
 ### `InferenceOrdinalPropOddsRegr.Rd`
 
-- [ ] TODO #652: Method `InferenceOrdinalPropOddsRegr$clone()` (current description `57` chars).
-- [ ] TODO #653: Method `InferenceOrdinalPropOddsRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #654: Method `InferenceOrdinalPropOddsRegr$new()` (current description `48` chars).
-- [ ] TODO #655: Topic `InferenceOrdinalPropOddsRegr` (current description `204` chars).
+- [x] TODO #555: Method `InferenceOrdinalPropOddsRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [x] TODO #556: Method `InferenceOrdinalPropOddsRegr$new()` (current description `48` chars).
+- [x] TODO #557: Topic `InferenceOrdinalPropOddsRegr` (current description `204` chars).
 
 ### `InferenceOrdinalRidit.Rd`
 
-- [ ] TODO #656: Method `InferenceOrdinalRidit$clone()` (current description `57` chars).
-- [ ] TODO #657: Method `InferenceOrdinalRidit$compute_asymp_confidence_interval()` (current description `69` chars).
-- [ ] TODO #658: Method `InferenceOrdinalRidit$compute_asymp_two_sided_pval()` (current description `67` chars).
-- [ ] TODO #659: Method `InferenceOrdinalRidit$compute_estimate_with_bootstrap_weights()` (current description `45` chars).
-- [ ] TODO #660: Method `InferenceOrdinalRidit$compute_estimate()` (current description `58` chars).
-- [ ] TODO #661: Method `InferenceOrdinalRidit$get_mean_ridit_treatment()` (current description `47` chars).
-- [ ] TODO #662: Method `InferenceOrdinalRidit$get_ridit_scores()` (current description `42` chars).
-- [ ] TODO #663: Method `InferenceOrdinalRidit$new()` (current description `45` chars).
-- [ ] TODO #664: Topic `InferenceOrdinalRidit` (current description `358` chars).
+- [x] TODO #558: Method `InferenceOrdinalRidit$compute_asymp_confidence_interval()` (current description `69` chars).
+- [x] TODO #559: Method `InferenceOrdinalRidit$compute_asymp_two_sided_pval()` (current description `67` chars).
+- [x] TODO #560: Method `InferenceOrdinalRidit$compute_estimate_with_bootstrap_weights()` (current description `45` chars).
+- [x] TODO #561: Method `InferenceOrdinalRidit$compute_estimate()` (current description `58` chars).
+- [x] TODO #562: Method `InferenceOrdinalRidit$get_mean_ridit_treatment()` (current description `47` chars).
+- [x] TODO #563: Method `InferenceOrdinalRidit$get_ridit_scores()` (current description `42` chars).
+- [x] TODO #564: Method `InferenceOrdinalRidit$new()` (current description `45` chars).
+- [x] TODO #565: Topic `InferenceOrdinalRidit` (current description `358` chars).
 
 ### `InferenceOrdinalStereotypeLogitRegr.Rd`
 
-- [ ] TODO #665: Method `InferenceOrdinalStereotypeLogitRegr$clone()` (current description `57` chars).
-- [ ] TODO #666: Method `InferenceOrdinalStereotypeLogitRegr$compute_estimate_with_bootstrap_weights()` (current description `56` chars).
-- [ ] TODO #667: Method `InferenceOrdinalStereotypeLogitRegr$new()` (current description `47` chars).
-- [ ] TODO #668: Topic `InferenceOrdinalStereotypeLogitRegr` (current description `202` chars).
+- [ ] TODO #566: Method `InferenceOrdinalStereotypeLogitRegr$compute_estimate_with_bootstrap_weights()` (current description `56` chars).
+- [ ] TODO #567: Method `InferenceOrdinalStereotypeLogitRegr$new()` (current description `47` chars).
+- [ ] TODO #568: Topic `InferenceOrdinalStereotypeLogitRegr` (current description `202` chars).
 
 ### `InferencePropBetaRegr.Rd`
 
-- [ ] TODO #669: Method `InferencePropBetaRegr$clone()` (current description `57` chars).
-- [ ] TODO #670: Method `InferencePropBetaRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #671: Method `InferencePropBetaRegr$compute_estimate()` (current description `58` chars).
-- [ ] TODO #672: Method `InferencePropBetaRegr$new()` (current description `46` chars).
-- [ ] TODO #673: Topic `InferencePropBetaRegr` (current description `208` chars).
+- [ ] TODO #569: Method `InferencePropBetaRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [ ] TODO #570: Method `InferencePropBetaRegr$compute_estimate()` (current description `58` chars).
+- [ ] TODO #571: Method `InferencePropBetaRegr$new()` (current description `46` chars).
+- [ ] TODO #572: Topic `InferencePropBetaRegr` (current description `208` chars).
 
 ### `InferencePropFractionalLogit.Rd`
 
-- [ ] TODO #674: Method `InferencePropFractionalLogit$clone()` (current description `57` chars).
-- [ ] TODO #675: Method `InferencePropFractionalLogit$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #676: Method `InferencePropFractionalLogit$compute_estimate()` (current description `58` chars).
-- [ ] TODO #677: Method `InferencePropFractionalLogit$new()` (current description `47` chars).
-- [ ] TODO #678: Topic `InferencePropFractionalLogit` (current description `241` chars).
+- [ ] TODO #573: Method `InferencePropFractionalLogit$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [ ] TODO #574: Method `InferencePropFractionalLogit$compute_estimate()` (current description `58` chars).
+- [ ] TODO #575: Method `InferencePropFractionalLogit$new()` (current description `47` chars).
+- [ ] TODO #576: Topic `InferencePropFractionalLogit` (current description `241` chars).
 
 ### `InferencePropGCompMeanDiff.Rd`
 
-- [ ] TODO #679: Method `InferencePropGCompMeanDiff$clone()` (current description `57` chars).
-- [ ] TODO #680: Topic `InferencePropGCompMeanDiff` (current description `362` chars).
+- [x] TODO #577: Topic `InferencePropGCompMeanDiff` (current description `362` chars).
 
 ### `InferencePropKKGEE.Rd`
 
-- [ ] TODO #681: Method `InferencePropKKGEE$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #682: Method `InferencePropKKGEE$clone()` (current description `57` chars).
-- [ ] TODO #683: Method `InferencePropKKGEE$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #684: Method `InferencePropKKGEE$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #685: Method `InferencePropKKGEE$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #686: Method `InferencePropKKGEE$compute_estimate()` (current description `171` chars).
-- [ ] TODO #687: Method `InferencePropKKGEE$new()` (current description `131` chars).
-- [ ] TODO #688: Topic `InferencePropKKGEE` (current description `300` chars).
+- [x] TODO #578: Method `InferencePropKKGEE$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #579: Method `InferencePropKKGEE$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #580: Method `InferencePropKKGEE$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #581: Method `InferencePropKKGEE$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [x] TODO #582: Method `InferencePropKKGEE$compute_estimate()` (current description `171` chars).
+- [x] TODO #583: Method `InferencePropKKGEE$new()` (current description `131` chars).
+- [x] TODO #584: Topic `InferencePropKKGEE` (current description `300` chars).
 
 ### `InferencePropKKGLMM.Rd`
 
-- [ ] TODO #689: Method `InferencePropKKGLMM$clone()` (current description `57` chars).
-- [ ] TODO #690: Method `InferencePropKKGLMM$new()` (current description `95` chars).
-- [ ] TODO #691: Topic `InferencePropKKGLMM` (current description `194` chars).
+- [ ] TODO #585: Method `InferencePropKKGLMM$new()` (current description `95` chars).
+- [ ] TODO #586: Topic `InferencePropKKGLMM` (current description `194` chars).
 
 ### `InferencePropKKQuantileRegrIVWC.Rd`
 
-- [ ] TODO #692: Method `InferencePropKKQuantileRegrIVWC$clone()` (current description `57` chars).
-- [ ] TODO #693: Method `InferencePropKKQuantileRegrIVWC$new()` (current description `101` chars).
-- [ ] TODO #694: Topic `InferencePropKKQuantileRegrIVWC` (current description `1458` chars).
+- [ ] TODO #587: Method `InferencePropKKQuantileRegrIVWC$new()` (current description `101` chars).
+- [ ] TODO #588: Topic `InferencePropKKQuantileRegrIVWC` (current description `1458` chars).
 
 ### `InferencePropKKQuantileRegrOneLik.Rd`
 
-- [ ] TODO #695: Method `InferencePropKKQuantileRegrOneLik$clone()` (current description `57` chars).
-- [ ] TODO #696: Method `InferencePropKKQuantileRegrOneLik$compute_estimate()` (current description `57` chars).
-- [ ] TODO #697: Method `InferencePropKKQuantileRegrOneLik$new()` (current description `185` chars).
-- [ ] TODO #698: Topic `InferencePropKKQuantileRegrOneLik` (current description `542` chars).
+- [ ] TODO #589: Method `InferencePropKKQuantileRegrOneLik$compute_estimate()` (current description `57` chars).
+- [ ] TODO #590: Method `InferencePropKKQuantileRegrOneLik$new()` (current description `185` chars).
+- [ ] TODO #591: Topic `InferencePropKKQuantileRegrOneLik` (current description `542` chars).
 
 ### `InferencePropQuantileRegr.Rd`
 
-- [ ] TODO #699: Method `InferencePropQuantileRegr$clone()` (current description `57` chars).
-- [ ] TODO #700: Method `InferencePropQuantileRegr$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #701: Method `InferencePropQuantileRegr$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #702: Method `InferencePropQuantileRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #703: Method `InferencePropQuantileRegr$compute_estimate()` (current description `66` chars).
-- [ ] TODO #704: Method `InferencePropQuantileRegr$new()` (current description `72` chars).
-- [ ] TODO #705: Topic `InferencePropQuantileRegr` (current description `834` chars).
+- [x] TODO #592: Method `InferencePropQuantileRegr$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #593: Method `InferencePropQuantileRegr$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #594: Method `InferencePropQuantileRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [x] TODO #595: Method `InferencePropQuantileRegr$compute_estimate()` (current description `66` chars).
+- [x] TODO #596: Method `InferencePropQuantileRegr$new()` (current description `72` chars).
+- [x] TODO #597: Topic `InferencePropQuantileRegr` (current description `834` chars).
 
 ### `InferencePropZeroOneInflatedBetaRegr.Rd`
 
-- [ ] TODO #706: Method `InferencePropZeroOneInflatedBetaRegr$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #707: Method `InferencePropZeroOneInflatedBetaRegr$clone()` (current description `57` chars).
-- [ ] TODO #708: Method `InferencePropZeroOneInflatedBetaRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #709: Method `InferencePropZeroOneInflatedBetaRegr$compute_estimate()` (current description `58` chars).
-- [ ] TODO #710: Method `InferencePropZeroOneInflatedBetaRegr$new()` (current description `64` chars).
-- [ ] TODO #711: Topic `InferencePropZeroOneInflatedBetaRegr` (current description `655` chars).
+- [ ] TODO #598: Method `InferencePropZeroOneInflatedBetaRegr$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [ ] TODO #599: Method `InferencePropZeroOneInflatedBetaRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [ ] TODO #600: Method `InferencePropZeroOneInflatedBetaRegr$compute_estimate()` (current description `58` chars).
+- [ ] TODO #601: Method `InferencePropZeroOneInflatedBetaRegr$new()` (current description `64` chars).
+- [ ] TODO #602: Topic `InferencePropZeroOneInflatedBetaRegr` (current description `655` chars).
 
 ### `InferenceSuite.Rd`
 
-- [ ] TODO #712: Method `InferenceSuite$clone()` (current description `57` chars).
-- [ ] TODO #713: Method `InferenceSuite$new()` (current description `164` chars).
-- [ ] TODO #714: Topic `InferenceSuite` (current description `706` chars).
+- [x] TODO #603: Method `InferenceSuite$new()` (current description `164` chars).
+- [x] TODO #604: Topic `InferenceSuite` (current description `706` chars).
 
 ### `InferenceSurvivalCoxPHRegr.Rd`
 
-- [ ] TODO #715: Method `InferenceSurvivalCoxPHRegr$clone()` (current description `57` chars).
-- [ ] TODO #716: Method `InferenceSurvivalCoxPHRegr$compute_estimate_with_bootstrap_weights()` (current description `46` chars).
-- [ ] TODO #717: Method `InferenceSurvivalCoxPHRegr$compute_estimate()` (current description `53` chars).
-- [ ] TODO #718: Method `InferenceSurvivalCoxPHRegr$new()` (current description `37` chars).
-- [ ] TODO #719: Topic `InferenceSurvivalCoxPHRegr` (current description `220` chars).
+- [x] TODO #605: Method `InferenceSurvivalCoxPHRegr$compute_estimate_with_bootstrap_weights()` (current description `46` chars).
+- [x] TODO #606: Method `InferenceSurvivalCoxPHRegr$compute_estimate()` (current description `53` chars).
+- [x] TODO #607: Method `InferenceSurvivalCoxPHRegr$new()` (current description `37` chars).
+- [x] TODO #608: Topic `InferenceSurvivalCoxPHRegr` (current description `220` chars).
 
 ### `InferenceSurvivalDepCensTransformRegr.Rd`
 
-- [ ] TODO #720: Method `InferenceSurvivalDepCensTransformRegr$approximate_randomization_distribution_beta_hat_T()` (current description `69` chars).
-- [ ] TODO #721: Method `InferenceSurvivalDepCensTransformRegr$clone()` (current description `57` chars).
-- [ ] TODO #722: Method `InferenceSurvivalDepCensTransformRegr$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #723: Method `InferenceSurvivalDepCensTransformRegr$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #724: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_basic()` (current description `62` chars).
-- [ ] TODO #725: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_bca()` (current description `60` chars).
-- [ ] TODO #726: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_studentized()` (current description `68` chars).
-- [ ] TODO #727: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval()` (current description `56` chars).
-- [ ] TODO #728: Method `InferenceSurvivalDepCensTransformRegr$compute_estimate_with_bootstrap_weights()` (current description `58` chars).
-- [ ] TODO #729: Method `InferenceSurvivalDepCensTransformRegr$compute_estimate()` (current description `58` chars).
-- [ ] TODO #730: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_bias_estimate()` (current description `62` chars).
-- [ ] TODO #731: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_estimate()` (current description `114` chars).
-- [ ] TODO #732: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_std_error()` (current description `63` chars).
-- [ ] TODO #733: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_wald_confidence_interval()` (current description `73` chars).
-- [ ] TODO #734: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_wald_two_sided_pval()` (current description `71` chars).
-- [ ] TODO #735: Method `InferenceSurvivalDepCensTransformRegr$compute_lik_ratio_confidence_interval()` (current description `58` chars).
-- [ ] TODO #736: Method `InferenceSurvivalDepCensTransformRegr$compute_rand_confidence_interval()` (current description `72` chars).
-- [ ] TODO #737: Method `InferenceSurvivalDepCensTransformRegr$compute_rand_two_sided_pval()` (current description `122` chars).
-- [ ] TODO #738: Method `InferenceSurvivalDepCensTransformRegr$compute_score_two_sided_pval()` (current description `89` chars).
-- [ ] TODO #739: Method `InferenceSurvivalDepCensTransformRegr$new()` (current description `65` chars).
-- [ ] TODO #740: Topic `InferenceSurvivalDepCensTransformRegr` (current description `240` chars).
+- [ ] TODO #609: Method `InferenceSurvivalDepCensTransformRegr$approximate_randomization_distribution_beta_hat_T()` (current description `69` chars).
+- [ ] TODO #610: Method `InferenceSurvivalDepCensTransformRegr$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #611: Method `InferenceSurvivalDepCensTransformRegr$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #612: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_basic()` (current description `62` chars).
+- [ ] TODO #613: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_bca()` (current description `60` chars).
+- [ ] TODO #614: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_studentized()` (current description `68` chars).
+- [ ] TODO #615: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval()` (current description `56` chars).
+- [ ] TODO #616: Method `InferenceSurvivalDepCensTransformRegr$compute_estimate_with_bootstrap_weights()` (current description `58` chars).
+- [ ] TODO #617: Method `InferenceSurvivalDepCensTransformRegr$compute_estimate()` (current description `58` chars).
+- [ ] TODO #618: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_bias_estimate()` (current description `62` chars).
+- [ ] TODO #619: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_estimate()` (current description `114` chars).
+- [ ] TODO #620: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_std_error()` (current description `63` chars).
+- [ ] TODO #621: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_wald_confidence_interval()` (current description `73` chars).
+- [ ] TODO #622: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_wald_two_sided_pval()` (current description `71` chars).
+- [ ] TODO #623: Method `InferenceSurvivalDepCensTransformRegr$compute_lik_ratio_confidence_interval()` (current description `58` chars).
+- [ ] TODO #624: Method `InferenceSurvivalDepCensTransformRegr$compute_rand_confidence_interval()` (current description `72` chars).
+- [ ] TODO #625: Method `InferenceSurvivalDepCensTransformRegr$compute_rand_two_sided_pval()` (current description `122` chars).
+- [ ] TODO #626: Method `InferenceSurvivalDepCensTransformRegr$compute_score_two_sided_pval()` (current description `89` chars).
+- [ ] TODO #627: Method `InferenceSurvivalDepCensTransformRegr$new()` (current description `65` chars).
+- [ ] TODO #628: Topic `InferenceSurvivalDepCensTransformRegr` (current description `240` chars).
 
 ### `InferenceSurvivalGehanWilcox.Rd`
 
-- [ ] TODO #741: Method `InferenceSurvivalGehanWilcox$clone()` (current description `57` chars).
-- [ ] TODO #742: Method `InferenceSurvivalGehanWilcox$compute_asymp_confidence_interval()` (current description `163` chars).
-- [ ] TODO #743: Method `InferenceSurvivalGehanWilcox$compute_asymp_two_sided_pval()` (current description `186` chars).
-- [ ] TODO #744: Method `InferenceSurvivalGehanWilcox$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #745: Method `InferenceSurvivalGehanWilcox$compute_estimate()` (current description `156` chars).
-- [ ] TODO #746: Method `InferenceSurvivalGehanWilcox$compute_rand_confidence_interval()` (current description `154` chars).
-- [ ] TODO #747: Method `InferenceSurvivalGehanWilcox$new()` (current description `99` chars).
-- [ ] TODO #748: Topic `InferenceSurvivalGehanWilcox` (current description `931` chars).
+- [x] TODO #629: Method `InferenceSurvivalGehanWilcox$compute_asymp_confidence_interval()` (current description `163` chars).
+- [x] TODO #630: Method `InferenceSurvivalGehanWilcox$compute_asymp_two_sided_pval()` (current description `186` chars).
+- [x] TODO #631: Method `InferenceSurvivalGehanWilcox$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [x] TODO #632: Method `InferenceSurvivalGehanWilcox$compute_estimate()` (current description `156` chars).
+- [x] TODO #633: Method `InferenceSurvivalGehanWilcox$compute_rand_confidence_interval()` (current description `154` chars).
+- [x] TODO #634: Method `InferenceSurvivalGehanWilcox$new()` (current description `99` chars).
+- [x] TODO #635: Topic `InferenceSurvivalGehanWilcox` (current description `931` chars).
 
 ### `InferenceSurvivalKKClaytonCopulaIVWC.Rd`
 
-- [ ] TODO #749: Method `InferenceSurvivalKKClaytonCopulaIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #750: Method `InferenceSurvivalKKClaytonCopulaIVWC$clone()` (current description `57` chars).
-- [ ] TODO #751: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #752: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_asymp_two_sided_pval()` (current description `160` chars).
-- [ ] TODO #753: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_estimate_with_bootstrap_weights()` (current description `59` chars).
-- [ ] TODO #754: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_estimate()` (current description `65` chars).
-- [ ] TODO #755: Method `InferenceSurvivalKKClaytonCopulaIVWC$duplicate()` (current description `57` chars).
-- [ ] TODO #756: Method `InferenceSurvivalKKClaytonCopulaIVWC$new()` (current description `111` chars).
-- [ ] TODO #757: Topic `InferenceSurvivalKKClaytonCopulaIVWC` (current description `453` chars).
+- [ ] TODO #636: Method `InferenceSurvivalKKClaytonCopulaIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [ ] TODO #637: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #638: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_asymp_two_sided_pval()` (current description `160` chars).
+- [ ] TODO #639: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_estimate_with_bootstrap_weights()` (current description `59` chars).
+- [ ] TODO #640: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_estimate()` (current description `65` chars).
+- [ ] TODO #641: Method `InferenceSurvivalKKClaytonCopulaIVWC$duplicate()` (current description `57` chars).
+- [ ] TODO #642: Method `InferenceSurvivalKKClaytonCopulaIVWC$new()` (current description `111` chars).
+- [ ] TODO #643: Topic `InferenceSurvivalKKClaytonCopulaIVWC` (current description `453` chars).
 
 ### `InferenceSurvivalKKClaytonCopulaOneLik.Rd`
 
-- [ ] TODO #758: Method `InferenceSurvivalKKClaytonCopulaOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #759: Method `InferenceSurvivalKKClaytonCopulaOneLik$clone()` (current description `57` chars).
-- [ ] TODO #760: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #761: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_asymp_two_sided_pval()` (current description `122` chars).
-- [ ] TODO #762: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_estimate()` (current description `65` chars).
-- [ ] TODO #763: Method `InferenceSurvivalKKClaytonCopulaOneLik$duplicate()` (current description `57` chars).
-- [ ] TODO #764: Method `InferenceSurvivalKKClaytonCopulaOneLik$new()` (current description `106` chars).
-- [ ] TODO #765: Topic `InferenceSurvivalKKClaytonCopulaOneLik` (current description `119` chars).
+- [ ] TODO #644: Method `InferenceSurvivalKKClaytonCopulaOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [ ] TODO #645: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #646: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_asymp_two_sided_pval()` (current description `122` chars).
+- [ ] TODO #647: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_estimate()` (current description `65` chars).
+- [ ] TODO #648: Method `InferenceSurvivalKKClaytonCopulaOneLik$duplicate()` (current description `57` chars).
+- [ ] TODO #649: Method `InferenceSurvivalKKClaytonCopulaOneLik$new()` (current description `106` chars).
+- [ ] TODO #650: Topic `InferenceSurvivalKKClaytonCopulaOneLik` (current description `119` chars).
 
 ### `InferenceSurvivalKKLWACoxPHIVWC.Rd`
 
-- [ ] TODO #766: Method `InferenceSurvivalKKLWACoxPHIVWC$clone()` (current description `57` chars).
-- [ ] TODO #767: Method `InferenceSurvivalKKLWACoxPHIVWC$new()` (current description `81` chars).
-- [ ] TODO #768: Topic `InferenceSurvivalKKLWACoxPHIVWC` (current description `292` chars).
+- [ ] TODO #651: Method `InferenceSurvivalKKLWACoxPHIVWC$new()` (current description `81` chars).
+- [ ] TODO #652: Topic `InferenceSurvivalKKLWACoxPHIVWC` (current description `292` chars).
 
 ### `InferenceSurvivalKKLWACoxPHOneLik.Rd`
 
-- [ ] TODO #769: Method `InferenceSurvivalKKLWACoxPHOneLik$clone()` (current description `57` chars).
-- [ ] TODO #770: Method `InferenceSurvivalKKLWACoxPHOneLik$new()` (current description `91` chars).
-- [ ] TODO #771: Topic `InferenceSurvivalKKLWACoxPHOneLik` (current description `208` chars).
+- [ ] TODO #653: Method `InferenceSurvivalKKLWACoxPHOneLik$new()` (current description `91` chars).
+- [ ] TODO #654: Topic `InferenceSurvivalKKLWACoxPHOneLik` (current description `208` chars).
 
 ### `InferenceSurvivalKKRankRegrIVWC.Rd`
 
-- [ ] TODO #772: Method `InferenceSurvivalKKRankRegrIVWC$clone()` (current description `57` chars).
-- [ ] TODO #773: Method `InferenceSurvivalKKRankRegrIVWC$new()` (current description `127` chars).
-- [ ] TODO #774: Topic `InferenceSurvivalKKRankRegrIVWC` (current description `265` chars).
+- [ ] TODO #655: Method `InferenceSurvivalKKRankRegrIVWC$new()` (current description `127` chars).
+- [ ] TODO #656: Topic `InferenceSurvivalKKRankRegrIVWC` (current description `265` chars).
 
 ### `InferenceSurvivalKKStratCoxPHIVWC.Rd`
 
-- [ ] TODO #775: Method `InferenceSurvivalKKStratCoxPHIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #776: Method `InferenceSurvivalKKStratCoxPHIVWC$clone()` (current description `57` chars).
-- [ ] TODO #777: Method `InferenceSurvivalKKStratCoxPHIVWC$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #778: Method `InferenceSurvivalKKStratCoxPHIVWC$compute_asymp_two_sided_pval()` (current description `125` chars).
-- [ ] TODO #779: Method `InferenceSurvivalKKStratCoxPHIVWC$compute_estimate()` (current description `58` chars).
-- [ ] TODO #780: Method `InferenceSurvivalKKStratCoxPHIVWC$new()` (current description `115` chars).
-- [ ] TODO #781: Topic `InferenceSurvivalKKStratCoxPHIVWC` (current description `746` chars).
+- [ ] TODO #657: Method `InferenceSurvivalKKStratCoxPHIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [ ] TODO #658: Method `InferenceSurvivalKKStratCoxPHIVWC$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #659: Method `InferenceSurvivalKKStratCoxPHIVWC$compute_asymp_two_sided_pval()` (current description `125` chars).
+- [ ] TODO #660: Method `InferenceSurvivalKKStratCoxPHIVWC$compute_estimate()` (current description `58` chars).
+- [ ] TODO #661: Method `InferenceSurvivalKKStratCoxPHIVWC$new()` (current description `115` chars).
+- [ ] TODO #662: Topic `InferenceSurvivalKKStratCoxPHIVWC` (current description `746` chars).
 
 ### `InferenceSurvivalKKStratCoxPHOneLik.Rd`
 
-- [ ] TODO #782: Method `InferenceSurvivalKKStratCoxPHOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #783: Method `InferenceSurvivalKKStratCoxPHOneLik$clone()` (current description `57` chars).
-- [ ] TODO #784: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_asymp_confidence_interval()` (current description `68` chars).
-- [ ] TODO #785: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_asymp_two_sided_pval()` (current description `49` chars).
-- [ ] TODO #786: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_estimate_with_bootstrap_weights()` (current description `54` chars).
-- [ ] TODO #787: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_estimate()` (current description `70` chars).
-- [ ] TODO #788: Method `InferenceSurvivalKKStratCoxPHOneLik$new()` (current description `109` chars).
-- [ ] TODO #789: Topic `InferenceSurvivalKKStratCoxPHOneLik` (current description `137` chars).
+- [ ] TODO #663: Method `InferenceSurvivalKKStratCoxPHOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [ ] TODO #664: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_asymp_confidence_interval()` (current description `68` chars).
+- [ ] TODO #665: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_asymp_two_sided_pval()` (current description `49` chars).
+- [ ] TODO #666: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_estimate_with_bootstrap_weights()` (current description `54` chars).
+- [ ] TODO #667: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_estimate()` (current description `70` chars).
+- [ ] TODO #668: Method `InferenceSurvivalKKStratCoxPHOneLik$new()` (current description `109` chars).
+- [ ] TODO #669: Topic `InferenceSurvivalKKStratCoxPHOneLik` (current description `137` chars).
 
 ### `InferenceSurvivalKKWeibullFrailtyIVWC.Rd`
 
-- [ ] TODO #790: Method `InferenceSurvivalKKWeibullFrailtyIVWC$clone()` (current description `57` chars).
-- [ ] TODO #791: Method `InferenceSurvivalKKWeibullFrailtyIVWC$new()` (current description `53` chars).
-- [ ] TODO #792: Topic `InferenceSurvivalKKWeibullFrailtyIVWC` (current description `102` chars).
+- [ ] TODO #670: Method `InferenceSurvivalKKWeibullFrailtyIVWC$new()` (current description `53` chars).
+- [ ] TODO #671: Topic `InferenceSurvivalKKWeibullFrailtyIVWC` (current description `102` chars).
 
 ### `InferenceSurvivalKKWeibullFrailtyOneLik.Rd`
 
-- [ ] TODO #793: Method `InferenceSurvivalKKWeibullFrailtyOneLik$clone()` (current description `57` chars).
-- [ ] TODO #794: Method `InferenceSurvivalKKWeibullFrailtyOneLik$new()` (current description `63` chars).
-- [ ] TODO #795: Topic `InferenceSurvivalKKWeibullFrailtyOneLik` (current description `121` chars).
+- [ ] TODO #672: Method `InferenceSurvivalKKWeibullFrailtyOneLik$new()` (current description `63` chars).
+- [ ] TODO #673: Topic `InferenceSurvivalKKWeibullFrailtyOneLik` (current description `121` chars).
 
 ### `InferenceSurvivalKKWeibullMarginal.Rd`
 
-- [ ] TODO #796: Method `InferenceSurvivalKKWeibullMarginal$approximate_bootstrap_distribution_beta_hat_T()` (current description `68` chars).
-- [ ] TODO #797: Method `InferenceSurvivalKKWeibullMarginal$clone()` (current description `57` chars).
-- [ ] TODO #798: Method `InferenceSurvivalKKWeibullMarginal$compute_asymp_confidence_interval()` (current description `61` chars).
-- [ ] TODO #799: Method `InferenceSurvivalKKWeibullMarginal$compute_asymp_two_sided_pval()` (current description `59` chars).
-- [ ] TODO #800: Method `InferenceSurvivalKKWeibullMarginal$compute_estimate_with_bootstrap_weights()` (current description `67` chars).
-- [ ] TODO #801: Method `InferenceSurvivalKKWeibullMarginal$compute_estimate()` (current description `68` chars).
-- [ ] TODO #802: Method `InferenceSurvivalKKWeibullMarginal$duplicate()` (current description `57` chars).
-- [ ] TODO #803: Method `InferenceSurvivalKKWeibullMarginal$new()` (current description `66` chars).
-- [ ] TODO #804: Topic `InferenceSurvivalKKWeibullMarginal` (current description `1180` chars).
+- [ ] TODO #674: Method `InferenceSurvivalKKWeibullMarginal$approximate_bootstrap_distribution_beta_hat_T()` (current description `68` chars).
+- [ ] TODO #675: Method `InferenceSurvivalKKWeibullMarginal$compute_asymp_confidence_interval()` (current description `61` chars).
+- [ ] TODO #676: Method `InferenceSurvivalKKWeibullMarginal$compute_asymp_two_sided_pval()` (current description `59` chars).
+- [ ] TODO #677: Method `InferenceSurvivalKKWeibullMarginal$compute_estimate_with_bootstrap_weights()` (current description `67` chars).
+- [ ] TODO #678: Method `InferenceSurvivalKKWeibullMarginal$compute_estimate()` (current description `68` chars).
+- [ ] TODO #679: Method `InferenceSurvivalKKWeibullMarginal$duplicate()` (current description `57` chars).
+- [ ] TODO #680: Method `InferenceSurvivalKKWeibullMarginal$new()` (current description `66` chars).
+- [ ] TODO #681: Topic `InferenceSurvivalKKWeibullMarginal` (current description `1180` chars).
 
 ### `InferenceSurvivalKMDiff.Rd`
 
-- [ ] TODO #805: Method `InferenceSurvivalKMDiff$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #806: Method `InferenceSurvivalKMDiff$clone()` (current description `57` chars).
-- [ ] TODO #807: Method `InferenceSurvivalKMDiff$compute_asymp_confidence_interval()` (current description `704` chars).
-- [ ] TODO #808: Method `InferenceSurvivalKMDiff$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()` (current description `48` chars).
-- [ ] TODO #809: Method `InferenceSurvivalKMDiff$compute_asymp_two_sided_pval()` (current description `68` chars).
-- [ ] TODO #810: Method `InferenceSurvivalKMDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #811: Method `InferenceSurvivalKMDiff$compute_estimate()` (current description `58` chars).
-- [ ] TODO #812: Method `InferenceSurvivalKMDiff$compute_rand_confidence_interval()` (current description `63` chars).
-- [ ] TODO #813: Method `InferenceSurvivalKMDiff$new()` (current description `112` chars).
-- [ ] TODO #814: Topic `InferenceSurvivalKMDiff` (current description `296` chars).
+- [x] TODO #682: Method `InferenceSurvivalKMDiff$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #683: Method `InferenceSurvivalKMDiff$compute_asymp_confidence_interval()` (current description `704` chars).
+- [x] TODO #684: Method `InferenceSurvivalKMDiff$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()` (current description `48` chars).
+- [x] TODO #685: Method `InferenceSurvivalKMDiff$compute_asymp_two_sided_pval()` (current description `68` chars).
+- [x] TODO #686: Method `InferenceSurvivalKMDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [x] TODO #687: Method `InferenceSurvivalKMDiff$compute_estimate()` (current description `58` chars).
+- [x] TODO #688: Method `InferenceSurvivalKMDiff$compute_rand_confidence_interval()` (current description `63` chars).
+- [x] TODO #689: Method `InferenceSurvivalKMDiff$new()` (current description `112` chars).
+- [x] TODO #690: Topic `InferenceSurvivalKMDiff` (current description `296` chars).
 
 ### `InferenceSurvivalLogRank.Rd`
 
-- [ ] TODO #815: Method `InferenceSurvivalLogRank$clone()` (current description `57` chars).
-- [ ] TODO #816: Method `InferenceSurvivalLogRank$compute_asymp_confidence_interval()` (current description `135` chars).
-- [ ] TODO #817: Method `InferenceSurvivalLogRank$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()` (current description `77` chars).
-- [ ] TODO #818: Method `InferenceSurvivalLogRank$compute_asymp_two_sided_pval()` (current description `75` chars).
-- [ ] TODO #819: Method `InferenceSurvivalLogRank$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #820: Method `InferenceSurvivalLogRank$compute_estimate()` (current description `88` chars).
-- [ ] TODO #821: Method `InferenceSurvivalLogRank$compute_rand_confidence_interval()` (current description `152` chars).
-- [ ] TODO #822: Method `InferenceSurvivalLogRank$new()` (current description `92` chars).
-- [ ] TODO #823: Topic `InferenceSurvivalLogRank` (current description `435` chars).
+- [x] TODO #691: Method `InferenceSurvivalLogRank$compute_asymp_confidence_interval()` (current description `135` chars).
+- [x] TODO #692: Method `InferenceSurvivalLogRank$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()` (current description `77` chars).
+- [x] TODO #693: Method `InferenceSurvivalLogRank$compute_asymp_two_sided_pval()` (current description `75` chars).
+- [x] TODO #694: Method `InferenceSurvivalLogRank$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
+- [x] TODO #695: Method `InferenceSurvivalLogRank$compute_estimate()` (current description `88` chars).
+- [x] TODO #696: Method `InferenceSurvivalLogRank$compute_rand_confidence_interval()` (current description `152` chars).
+- [x] TODO #697: Method `InferenceSurvivalLogRank$new()` (current description `92` chars).
+- [x] TODO #698: Topic `InferenceSurvivalLogRank` (current description `435` chars).
 
 ### `InferenceSurvivalRestrictedMeanDiff.Rd`
 
-- [ ] TODO #824: Method `InferenceSurvivalRestrictedMeanDiff$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #825: Method `InferenceSurvivalRestrictedMeanDiff$clone()` (current description `57` chars).
-- [ ] TODO #826: Method `InferenceSurvivalRestrictedMeanDiff$compute_asymp_confidence_interval()` (current description `262` chars).
-- [ ] TODO #827: Method `InferenceSurvivalRestrictedMeanDiff$compute_asymp_two_sided_pval()` (current description `48` chars).
-- [ ] TODO #828: Method `InferenceSurvivalRestrictedMeanDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #829: Method `InferenceSurvivalRestrictedMeanDiff$compute_estimate()` (current description `58` chars).
-- [ ] TODO #830: Method `InferenceSurvivalRestrictedMeanDiff$compute_rand_confidence_interval()` (current description `63` chars).
-- [ ] TODO #831: Method `InferenceSurvivalRestrictedMeanDiff$new()` (current description `116` chars).
-- [ ] TODO #832: Topic `InferenceSurvivalRestrictedMeanDiff` (current description `296` chars).
+- [x] TODO #699: Method `InferenceSurvivalRestrictedMeanDiff$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #700: Method `InferenceSurvivalRestrictedMeanDiff$compute_asymp_confidence_interval()` (current description `262` chars).
+- [x] TODO #701: Method `InferenceSurvivalRestrictedMeanDiff$compute_asymp_two_sided_pval()` (current description `48` chars).
+- [x] TODO #702: Method `InferenceSurvivalRestrictedMeanDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [x] TODO #703: Method `InferenceSurvivalRestrictedMeanDiff$compute_estimate()` (current description `58` chars).
+- [x] TODO #704: Method `InferenceSurvivalRestrictedMeanDiff$compute_rand_confidence_interval()` (current description `63` chars).
+- [x] TODO #705: Method `InferenceSurvivalRestrictedMeanDiff$new()` (current description `116` chars).
+- [x] TODO #706: Topic `InferenceSurvivalRestrictedMeanDiff` (current description `296` chars).
 
 ### `InferenceSurvivalStratCoxPHRegr.Rd`
 
-- [ ] TODO #833: Method `InferenceSurvivalStratCoxPHRegr$clone()` (current description `57` chars).
-- [ ] TODO #834: Method `InferenceSurvivalStratCoxPHRegr$compute_estimate_with_bootstrap_weights()` (current description `57` chars).
-- [ ] TODO #835: Method `InferenceSurvivalStratCoxPHRegr$compute_rand_confidence_interval()` (current description `148` chars).
-- [ ] TODO #836: Method `InferenceSurvivalStratCoxPHRegr$new()` (current description `103` chars).
-- [ ] TODO #837: Topic `InferenceSurvivalStratCoxPHRegr` (current description `304` chars).
+- [x] TODO #707: Method `InferenceSurvivalStratCoxPHRegr$compute_estimate_with_bootstrap_weights()` (current description `57` chars).
+- [x] TODO #708: Method `InferenceSurvivalStratCoxPHRegr$compute_rand_confidence_interval()` (current description `148` chars).
+- [x] TODO #709: Method `InferenceSurvivalStratCoxPHRegr$new()` (current description `103` chars).
+- [x] TODO #710: Topic `InferenceSurvivalStratCoxPHRegr` (current description `304` chars).
 
 ### `InferenceSurvivalWeibullRegr.Rd`
 
-- [ ] TODO #838: Method `InferenceSurvivalWeibullRegr$clone()` (current description `57` chars).
-- [ ] TODO #839: Method `InferenceSurvivalWeibullRegr$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #840: Method `InferenceSurvivalWeibullRegr$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #841: Method `InferenceSurvivalWeibullRegr$compute_estimate_with_bootstrap_weights()` (current description `51` chars).
-- [ ] TODO #842: Method `InferenceSurvivalWeibullRegr$compute_estimate()` (current description `58` chars).
-- [ ] TODO #843: Method `InferenceSurvivalWeibullRegr$new()` (current description `49` chars).
-- [ ] TODO #844: Topic `InferenceSurvivalWeibullRegr` (current description `267` chars).
+- [ ] TODO #711: Method `InferenceSurvivalWeibullRegr$compute_asymp_confidence_interval()` (current description `60` chars).
+- [ ] TODO #712: Method `InferenceSurvivalWeibullRegr$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [ ] TODO #713: Method `InferenceSurvivalWeibullRegr$compute_estimate_with_bootstrap_weights()` (current description `51` chars).
+- [ ] TODO #714: Method `InferenceSurvivalWeibullRegr$compute_estimate()` (current description `58` chars).
+- [ ] TODO #715: Method `InferenceSurvivalWeibullRegr$new()` (current description `49` chars).
+- [ ] TODO #716: Topic `InferenceSurvivalWeibullRegr` (current description `267` chars).
+
+### `ObservationalDesign.Rd`
+
+- [x] TODO #717: Method `ObservationalDesign$assert_even_allocation()` (current description `124` chars).
+- [x] TODO #718: Method `ObservationalDesign$is_an_observational_design()` (current description `125` chars).
+- [x] TODO #719: Method `ObservationalDesign$new()` (current description `57` chars).
+- [x] TODO #720: Topic `ObservationalDesign` (current description `551` chars).
+
+### `ObservationalDesignBlocks.Rd`
+
+- [x] TODO #721: Method `ObservationalDesignBlocks$new()` (current description `95` chars).
+- [x] TODO #722: Topic `ObservationalDesignBlocks` (current description `615` chars).
+
+### `ObservationalDesignMatching.Rd`
+
+- [x] TODO #723: Method `ObservationalDesignMatching$new()` (current description `186` chars).
+- [x] TODO #724: Topic `ObservationalDesignMatching` (current description `580` chars).
 
 ### `inv_logit.Rd`
 
-- [ ] TODO #845: Topic `inv_logit` (current description `77` chars).
+- [x] TODO #725: Topic `inv_logit` (current description `77` chars).
 
 ### `logit.Rd`
 
-- [ ] TODO #846: Topic `logit` (current description `49` chars).
+- [x] TODO #726: Topic `logit` (current description `49` chars).
 
 ### `mn_pvalue_cpp.Rd`
 
-- [ ] TODO #847: Topic `mn_pvalue_cpp` (current description `175` chars).
+- [x] TODO #727: Topic `mn_pvalue_cpp` (current description `175` chars).
 
 ### `newcombe_independent_ci_cpp.Rd`
 
-- [ ] TODO #848: Topic `newcombe_independent_ci_cpp` (current description `172` chars).
+- [x] TODO #728: Topic `newcombe_independent_ci_cpp` (current description `172` chars).
 
 ### `ols_hc2_post_fit_cpp.Rd`
 
-- [ ] TODO #849: Topic `ols_hc2_post_fit_cpp` (current description `87` chars).
+- [x] TODO #729: Topic `ols_hc2_post_fit_cpp` (current description `87` chars).
 
 ### `ordinal_gcomp_post_fit_cpp.Rd`
 
-- [ ] TODO #850: Topic `ordinal_gcomp_post_fit_cpp` (current description `115` chars).
+- [x] TODO #730: Topic `ordinal_gcomp_post_fit_cpp` (current description `115` chars).
 
 ### `pocock_simon_assign_and_update_cpp.Rd`
 
-- [ ] TODO #851: Topic `pocock_simon_assign_and_update_cpp` (current description `95` chars).
+- [x] TODO #731: Topic `pocock_simon_assign_and_update_cpp` (current description `95` chars).
 
 ### `pocock_simon_assign_cpp.Rd`
 
-- [ ] TODO #852: Topic `pocock_simon_assign_cpp` (current description `85` chars).
+- [x] TODO #732: Topic `pocock_simon_assign_cpp` (current description `85` chars).
 
 ### `pocock_simon_redraw_w_cpp.Rd`
 
-- [ ] TODO #853: Topic `pocock_simon_redraw_w_cpp` (current description `89` chars).
+- [x] TODO #733: Topic `pocock_simon_redraw_w_cpp` (current description `89` chars).
 
 ### `robust_negbinreg.Rd`
 
-- [ ] TODO #854: Topic `robust_negbinreg` (current description `154` chars).
+- [x] TODO #734: Topic `robust_negbinreg` (current description `154` chars).
 
 ### `robust_survreg_with_surv_object.Rd`
 
-- [ ] TODO #855: Topic `robust_survreg_with_surv_object` (current description `190` chars).
+- [x] TODO #735: Topic `robust_survreg_with_surv_object` (current description `190` chars).
 
 ### `robust_survreg.Rd`
 
-- [ ] TODO #856: Topic `robust_survreg` (current description `210` chars).
+- [x] TODO #736: Topic `robust_survreg` (current description `210` chars).
 
 ### `sample_mode.Rd`
 
-- [ ] TODO #857: Topic `sample_mode` (current description `70` chars).
+- [x] TODO #737: Topic `sample_mode` (current description `70` chars).
 
 ### `set_cold_start_dispatch_policy.Rd`
 
-- [ ] TODO #858: Topic `set_cold_start_dispatch_policy` (current description `75` chars).
+- [x] TODO #738: Topic `set_cold_start_dispatch_policy` (current description `75` chars).
 
 ### `set_num_cores.Rd`
 
-- [ ] TODO #859: Topic `set_num_cores` (current description `279` chars).
+- [x] TODO #739: Topic `set_num_cores` (current description `279` chars).
 
 ### `set_optimization_dispatch_policy.Rd`
 
-- [ ] TODO #860: Topic `set_optimization_dispatch_policy` (current description `79` chars).
+- [x] TODO #740: Topic `set_optimization_dispatch_policy` (current description `79` chars).
 
 ### `set_parallel_dispatch_policy.Rd`
 
-- [ ] TODO #861: Topic `set_parallel_dispatch_policy` (current description `278` chars).
+- [x] TODO #741: Topic `set_parallel_dispatch_policy` (current description `278` chars).
 
 ### `set_warm_start_dispatch_policy.Rd`
 
-- [ ] TODO #862: Topic `set_warm_start_dispatch_policy` (current description `75` chars).
+- [x] TODO #742: Topic `set_warm_start_dispatch_policy` (current description `75` chars).
 
 ### `SimulationFramework.Rd`
 
-- [ ] TODO #863: Method `SimulationFramework$clear_all_intermediate_data_and_gc()` (current description `199` chars).
-- [ ] TODO #864: Method `SimulationFramework$clone()` (current description `57` chars).
-- [ ] TODO #865: Method `SimulationFramework$get_all_intermediate_data()` (current description `143` chars).
-- [ ] TODO #866: Method `SimulationFramework$new()` (current description `99` chars).
-- [ ] TODO #867: Method `SimulationFramework$run()` (current description `151` chars).
-- [ ] TODO #868: Topic `SimulationFramework` (current description `417` chars).
+- [x] TODO #743: Method `SimulationFramework$clear_all_intermediate_data_and_gc()` (current description `199` chars).
+- [x] TODO #744: Method `SimulationFramework$get_all_intermediate_data()` (current description `143` chars).
+- [x] TODO #745: Method `SimulationFramework$new()` (current description `99` chars).
+- [x] TODO #746: Method `SimulationFramework$run()` (current description `151` chars).
+- [x] TODO #747: Topic `SimulationFramework` (current description `417` chars).
 
 ### `SimulationFrameworkReport.Rd`
 
-- [ ] TODO #869: Method `SimulationFrameworkReport$clone()` (current description `57` chars).
-- [ ] TODO #870: Method `SimulationFrameworkReport$get_errors()` (current description `53` chars).
-- [ ] TODO #871: Method `SimulationFrameworkReport$get_results()` (current description `36` chars).
-- [ ] TODO #872: Method `SimulationFrameworkReport$new()` (current description `106` chars).
-- [ ] TODO #873: Method `SimulationFrameworkReport$print()` (current description `38` chars).
-- [ ] TODO #874: Method `SimulationFrameworkReport$summarize()` (current description `43` chars).
-- [ ] TODO #875: Topic `SimulationFrameworkReport` (current description `370` chars).
+- [x] TODO #748: Method `SimulationFrameworkReport$get_errors()` (current description `53` chars).
+- [x] TODO #749: Method `SimulationFrameworkReport$get_results()` (current description `36` chars).
+- [x] TODO #750: Method `SimulationFrameworkReport$new()` (current description `106` chars).
+- [x] TODO #751: Method `SimulationFrameworkReport$print()` (current description `38` chars).
+- [x] TODO #752: Method `SimulationFrameworkReport$summarize()` (current description `43` chars).
+- [x] TODO #753: Topic `SimulationFrameworkReport` (current description `370` chars).
 
 ### `summary_glm_lean.Rd`
 
-- [ ] TODO #876: Topic `summary_glm_lean` (current description `104` chars).
+- [x] TODO #754: Topic `summary_glm_lean` (current description `104` chars).
 
 ### `toggle_asserts.Rd`
 
-- [ ] TODO #877: Topic `toggle_asserts` (current description `731` chars).
+- [x] TODO #755: Topic `toggle_asserts` (current description `731` chars).
 
 ### `transform_cont_y_based_on_response_type.Rd`
 
-- [ ] TODO #878: Topic `transform_cont_y_based_on_response_type` (current description `267` chars).
+- [x] TODO #756: Topic `transform_cont_y_based_on_response_type` (current description `267` chars).
 
 ### `unset_num_cores.Rd`
 
-- [ ] TODO #879: Topic `unset_num_cores` (current description `187` chars).
+- [x] TODO #757: Topic `unset_num_cores` (current description `187` chars).
+
+## Python Package (`edi_kernels`) Public Function Docstrings
+
+Added 2026-08-14. The same documentation-quality pass as the R TODOs above,
+applied to the 59 public functions the `edi_kernels` pybind11 package exports
+(`python/cpp/bindings_*.cpp`). These are deliberately easy tasks: almost every
+function is a direct binding of an R-package kernel whose expanded roxygen
+(written for the TODOs above; the R sibling is usually `<name>_cpp`, e.g.
+`fast_ols` ↔ `fast_ols_cpp`) can be copied and adapted — translate roxygen
+markup to the numpydoc-style plain-text docstrings the bindings already use
+(string literal after the `py::arg(...)` list in `m.def(...)`), keep the
+`fixed_idx`/`fixed_values` and `estimate_only` conventions described in the
+module docstring, and note any binding-level differences from the R signature
+(e.g. `std::optional` args exposed as `None` defaults). Where the R kernel has
+no roxygen of its own, copy from the R6 class method documentation that wraps
+it. After editing, rebuild and spot-check with `help(edi_kernels.<fn>)`, and
+mirror the update into the PyPI README parameter tables if one exists for the
+function.
+
+- [x] TODO #758: Python function `edi_kernels.dnorm_fast()` — expand docstring from its R sibling's documentation.
+- [x] TODO #759: Python function `edi_kernels.fast_adjacent_category_logit()` — expand docstring from its R sibling's documentation.
+- [x] TODO #760: Python function `edi_kernels.fast_atan()` — expand docstring from its R sibling's documentation.
+- [x] TODO #761: Python function `edi_kernels.fast_beta_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #762: Python function `edi_kernels.fast_clayton_weibull_aft_optim()` — expand docstring from its R sibling's documentation.
+- [x] TODO #763: Python function `edi_kernels.fast_clogit_plus_glmm()` — expand docstring from its R sibling's documentation.
+- [x] TODO #764: Python function `edi_kernels.fast_continuation_ratio_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #765: Python function `edi_kernels.fast_coxph_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #766: Python function `edi_kernels.fast_cpoisson_combined()` — expand docstring from its R sibling's documentation.
+- [x] TODO #767: Python function `edi_kernels.fast_dep_cens_transform_optim()` — expand docstring from its R sibling's documentation.
+- [x] TODO #768: Python function `edi_kernels.fast_digamma()` — expand docstring from its R sibling's documentation.
+- [x] TODO #769: Python function `edi_kernels.fast_dnbinom_mu()` — expand docstring from its R sibling's documentation.
+- [x] TODO #770: Python function `edi_kernels.fast_erfc()` — expand docstring from its R sibling's documentation.
+- [x] TODO #771: Python function `edi_kernels.fast_gaussian_lmm()` — expand docstring from its R sibling's documentation.
+- [x] TODO #772: Python function `edi_kernels.fast_gehan_wilcox_stats()` — expand docstring from its R sibling's documentation.
+- [x] TODO #773: Python function `edi_kernels.fast_hurdle_negbin()` — expand docstring from its R sibling's documentation.
+- [x] TODO #774: Python function `edi_kernels.fast_hurdle_poisson_glmm()` — expand docstring from its R sibling's documentation.
+- [x] TODO #775: Python function `edi_kernels.fast_lbeta()` — expand docstring from its R sibling's documentation.
+- [x] TODO #776: Python function `edi_kernels.fast_lgamma()` — expand docstring from its R sibling's documentation.
+- [x] TODO #777: Python function `edi_kernels.fast_log1pexp()` — expand docstring from its R sibling's documentation.
+- [x] TODO #778: Python function `edi_kernels.fast_log_dnorm()` — expand docstring from its R sibling's documentation.
+- [x] TODO #779: Python function `edi_kernels.fast_log_pnorm()` — expand docstring from its R sibling's documentation.
+- [x] TODO #780: Python function `edi_kernels.fast_logistic_glmm()` — expand docstring from its R sibling's documentation.
+- [x] TODO #781: Python function `edi_kernels.fast_logistic_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #782: Python function `edi_kernels.fast_logrank_stats()` — expand docstring from its R sibling's documentation.
+- [x] TODO #783: Python function `edi_kernels.fast_neg_bin()` — expand docstring from its R sibling's documentation.
+- [x] TODO #784: Python function `edi_kernels.fast_ols()` — expand docstring from its R sibling's documentation.
+- [x] TODO #785: Python function `edi_kernels.fast_ordinal_cauchit_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #786: Python function `edi_kernels.fast_ordinal_clmm()` — expand docstring from its R sibling's documentation.
+- [x] TODO #787: Python function `edi_kernels.fast_ordinal_cloglog_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #788: Python function `edi_kernels.fast_ordinal_glmm()` — expand docstring from its R sibling's documentation.
+- [x] TODO #789: Python function `edi_kernels.fast_ordinal_probit_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #790: Python function `edi_kernels.fast_ordinal_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #791: Python function `edi_kernels.fast_pchisq_upper()` — expand docstring from its R sibling's documentation.
+- [x] TODO #792: Python function `edi_kernels.fast_poisson_glmm()` — expand docstring from its R sibling's documentation.
+- [x] TODO #793: Python function `edi_kernels.fast_poisson_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #794: Python function `edi_kernels.fast_probit_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #795: Python function `edi_kernels.fast_qnorm()` — expand docstring from its R sibling's documentation.
+- [x] TODO #796: Python function `edi_kernels.fast_ridit_analysis()` — expand docstring from its R sibling's documentation.
+- [x] TODO #797: Python function `edi_kernels.fast_robust_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #798: Python function `edi_kernels.fast_stereotype_logit()` — expand docstring from its R sibling's documentation.
+- [x] TODO #799: Python function `edi_kernels.fast_stratified_coxph_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #800: Python function `edi_kernels.fast_trigamma()` — expand docstring from its R sibling's documentation.
+- [x] TODO #801: Python function `edi_kernels.fast_truncated_negbin_count()` — expand docstring from its R sibling's documentation.
+- [x] TODO #802: Python function `edi_kernels.fast_weibull_frailty()` — expand docstring from its R sibling's documentation.
+- [x] TODO #803: Python function `edi_kernels.fast_weibull_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #804: Python function `edi_kernels.fast_zero_augmented_poisson()` — expand docstring from its R sibling's documentation.
+- [x] TODO #805: Python function `edi_kernels.fast_zero_augmented_poisson_with_var()` — expand docstring from its R sibling's documentation.
+- [x] TODO #806: Python function `edi_kernels.fast_zero_one_inflated_beta()` — expand docstring from its R sibling's documentation.
+- [x] TODO #807: Python function `edi_kernels.fast_zinb()` — expand docstring from its R sibling's documentation.
+- [x] TODO #808: Python function `edi_kernels.fast_zinb_with_var()` — expand docstring from its R sibling's documentation.
+- [x] TODO #809: Python function `edi_kernels.gee_pairs_singletons()` — expand docstring from its R sibling's documentation.
+- [x] TODO #810: Python function `edi_kernels.get_survival_stat_diff()` — expand docstring from its R sibling's documentation.
+- [x] TODO #811: Python function `edi_kernels.mn_ci()` — expand docstring from its R sibling's documentation.
+- [x] TODO #812: Python function `edi_kernels.mn_pvalue()` — expand docstring from its R sibling's documentation.
+- [x] TODO #813: Python function `edi_kernels.newcombe_independent_ci()` — expand docstring from its R sibling's documentation.
+- [x] TODO #814: Python function `edi_kernels.ols_hc2_post_fit()` — expand docstring from its R sibling's documentation.
+- [x] TODO #815: Python function `edi_kernels.pnorm_fast()` — expand docstring from its R sibling's documentation.
+- [x] TODO #816: Python function `edi_kernels.wilcox_hl_point_estimate()` — expand docstring from its R sibling's documentation.

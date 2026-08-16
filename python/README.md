@@ -45,7 +45,7 @@ below for those.
 | `InferenceIncidGCompRiskRatio` | incidence | 0.30 | statsmodels `GLM(Binomial)+gcomp(RR)` | 3.69 | **12.21x** |
 | `InferenceIncidRiskDiff` | incidence | 0.03 | numpy `linalg.lstsq (LPM)` | 0.11 | **4.12x** |
 | `InferenceIncidLogBinomial` | incidence | 1.63 | statsmodels `GLM(Binomial, log link)` | 5.13 | **3.15x** |
-| `InferenceSurvivalWeibullRegr` | survival | 0.08 | lifelines `WeibullAFTFitter` | 192.55 | **2423.43x** |
+| `InferenceSurvivalWeibullRegr` | survival | 0.08 | lifelines `WeibullAFTFitter.fit()` (right-censored only) | 192.55 | **2423.43x** |
 | `InferenceSurvivalKMDiff` | survival | 0.02 | lifelines `KaplanMeierFitter(median)` | 26.52 | **1647.81x** |
 | `InferenceSurvivalRestrictedMeanDiff` | survival | 0.01 | lifelines `utils.restricted_mean_survival_time` | 19.30 | **1460.28x** |
 | `InferenceSurvivalStratCoxPHRegr` | survival | 0.47 | lifelines `CoxPHFitter(strata=)` | 273.61 | **583.92x** |
@@ -233,7 +233,7 @@ fit = gee_pairs_singletons(X, y_bin_clustered, group_id, "binomial")
 import numpy as np
 from edi_kernels import (
     fast_coxph_regression, fast_stratified_coxph_regression,
-    fast_weibull_regression, fast_weibull_frailty,
+    fast_weibull_regression_general, fast_weibull_frailty,
     fast_clayton_weibull_aft_optim, fast_dep_cens_transform_optim,
 )
 
@@ -246,6 +246,9 @@ event_time = rng.exponential(np.exp(-eta))
 censor_time = rng.exponential(3.0, n)
 dead = (event_time <= censor_time).astype(float)
 y = np.minimum(event_time, censor_time)
+y_exact = np.where(dead != 0, y, np.nan)
+y_L = np.where(dead == 0, y, np.nan)
+y_R = np.where(dead == 0, np.inf, np.nan)
 
 # survival -- Cox proportional-hazards regression (unstratified): point estimate only
 fit = fast_coxph_regression(X, y, dead, estimate_only=True)
@@ -259,9 +262,35 @@ fit = fast_stratified_coxph_regression(X, y, dead, strata, estimate_only=True)
 fit = fast_stratified_coxph_regression(X, y, dead, strata, estimate_only=False)
 
 # survival -- Weibull AFT regression: point estimate only
-fit = fast_weibull_regression(X, y, dead, estimate_only=True)
+fit = fast_weibull_regression_general(X, y_exact, y_L, y_R, estimate_only=True)
 # survival -- Weibull AFT regression: point estimate + variance
-fit = fast_weibull_regression(X, y, dead, estimate_only=False)
+fit = fast_weibull_regression_general(X, y_exact, y_L, y_R, estimate_only=False)
+
+# survival -- Weibull AFT under left-/interval-/right-censoring (periodic-inspection design, e.g. a
+# clinical trial assessed only at scheduled visits -- the event time itself is never observed
+# directly, only which inspection interval it fell in).
+true_event_time = rng.exponential(np.exp(-eta))
+inspection_times = np.array([0.1, 0.3, 0.6, 1.0, 1.5, 2.2])  # scheduled visits
+last_inspection = inspection_times[-1]
+
+y_ic = np.full(n, np.nan)  # exact times are never observed under this design
+y_L_ic = np.empty(n)
+y_R_ic = np.empty(n)
+for i in range(n):
+    t = true_event_time[i]
+    if t > last_inspection:
+        y_L_ic[i], y_R_ic[i] = last_inspection, np.inf                              # right-censored
+    else:
+        idx = np.searchsorted(inspection_times, t)
+        if idx == 0:
+            y_L_ic[i], y_R_ic[i] = 0.0, inspection_times[0]                          # left-censored
+        else:
+            y_L_ic[i], y_R_ic[i] = inspection_times[idx - 1], inspection_times[idx]  # interval-censored
+
+# survival -- Weibull AFT under general left-/interval-/right-censoring: point estimate only
+fit = fast_weibull_regression_general(X, y_ic, y_L_ic, y_R_ic, estimate_only=True)
+# survival -- Weibull AFT under general left-/interval-/right-censoring: point estimate + variance
+fit = fast_weibull_regression_general(X, y_ic, y_L_ic, y_R_ic, estimate_only=False)
 
 # group_id: shared-frailty clusters (any size; uses adaptive Gauss-Hermite quadrature, not the fixed-2 shortcut).
 group_id = np.repeat(np.arange(n // 2), 2).astype(np.int32) + 1

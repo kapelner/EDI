@@ -2,7 +2,84 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{fast_coxph_regression_prebuilt_cpp}
 \alias{fast_coxph_regression_prebuilt_cpp}
-\title{Export of C++ function fast_coxph_regression_prebuilt_cpp}
+\title{Fast Cox Proportional Hazards Regression, Cache-Reusing Fit (C++ Backend)}
+\arguments{
+\item{cox_data_xptr}{An \code{externalptr} to a cached Cox risk-set
+representation, as returned by \code{\link{build_cox_data_cache_cpp}}
+(unstratified) or \code{\link{build_stratified_cox_data_cache_cpp}}
+(stratified).}
+
+\item{warm_start_beta}{Optional starting values for the coefficients \eqn{\beta}.}
+
+\item{smart_cold_start}{Logical. If \code{TRUE} (default) and no
+\code{warm_start_beta} is supplied, use an OLS-based initial guess rather than
+a zero cold start.}
+
+\item{estimate_only}{Logical. If \code{TRUE}, skip variance-covariance
+matrix calculation for speed.}
+
+\item{maxit}{Maximum number of Newton-Raphson/L-BFGS iterations.}
+
+\item{tol}{Convergence tolerance.}
+
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed rather
+than estimate.}
+
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at; must be the same length as \code{fixed_idx}.}
+
+\item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.}
+
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix to
+warm-start curvature information for the optimizer.}
+}
+\value{
+A list containing the following components:
+\describe{
+\item{coefficients}{A numeric vector of the estimated log-hazard-ratio
+  coefficients \eqn{\hat\beta}.}
+\item{vcov}{The variance-covariance matrix of \eqn{\hat\beta}; omitted when
+  \code{estimate_only = TRUE}.}
+\item{neg_ll}{The negative Cox partial log-likelihood at the final iteration.}
+\item{converged}{A logical value indicating whether the algorithm converged.}
+\item{iterations}{The number of optimizer iterations performed.}
+\item{fisher_information}{The Hessian of the negative partial log-likelihood at
+  the fitted coefficients.}
+\item{gradient_norm}{The norm of the score (gradient) vector at convergence.}
+}
+}
 \description{
-Export of C++ function fast_coxph_regression_prebuilt_cpp
+Fits the same unstratified-\emph{or}-stratified Cox partial-likelihood model
+documented at \code{\link{build_cox_data_cache_cpp}} /
+\code{\link{build_stratified_cox_data_cache_cpp}}, but takes a
+\strong{pre-built} risk-set cache (\code{cox_data_xptr}, an \code{externalptr}
+produced by one of those two functions) instead of raw \code{(X, y, dead)}
+data, skipping the sort/tabulation step on every call. This is the entry point
+the package's Cox inference classes (e.g. \code{InferenceCoxPH},
+\code{InferenceStratifiedCoxPH}) use for repeated fits on the same data
+(successive \code{estimate_only} vs. full-variance calls, or bootstrap/
+randomization replicates that only change the treatment column of \code{X},
+rebuilding the cache only when the covariates or assignment actually change).
+\code{\link{fast_coxph_regression_cpp}} is the equivalent one-shot entry point
+that builds and discards the cache internally, for callers that only need a
+single fit.
+}
+\details{
+Because \code{cox_data_xptr} carries a fixed, already-sorted risk-set structure
+(whether unstratified — one risk set — or stratified — one risk set per
+stratum, depending on which cache-building function produced it), the number
+and identity of subjects/strata are entirely determined by the cache; only the
+optimization behavior (warm starts, convergence, algorithm) is configurable
+through this function's own arguments. Passing a stale cache (built from data
+that has since changed) silently fits the model to the \emph{cached} data, not
+the caller's current \code{X}/\code{y}/\code{dead} — callers are responsible for
+invalidating and rebuilding the cache when the underlying data changes; see
+\code{\link{build_cox_data_cache_cpp}} for the exact caching/mutation contract.
+}
+\seealso{
+\code{\link{build_cox_data_cache_cpp}}/
+  \code{\link{build_stratified_cox_data_cache_cpp}} for building the required
+  cache and the full Cox partial-likelihood model documentation;
+  \code{\link{fast_coxph_regression_cpp}} for the one-shot (build-and-discard)
+  variant.
 }

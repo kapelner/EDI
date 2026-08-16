@@ -346,26 +346,80 @@ edi::ResultMap fast_ordinal_glmm_internal(
 }
 
 #ifndef EDI_CORE_ONLY
-//' @title Fast Ordinal GLMM (C++)
-//' @description High-performance ordinal cumulative-logit GLMM fitting using Gauss-Hermite quadrature and L-BFGS.
-//' @param X A numeric matrix of predictors (no intercept).
-//' @param y A numeric vector of ordinal responses (1, 2, ...).
-//' @param group_id A numeric vector of group identifiers.
-//' @param K Number of ordinal levels.
-//' @param j_T 0-based index of the treatment effect in the beta vector.
-//' @param warm_start_params Optional starting values for all parameters [alpha, beta, log_sigma]. If provided, \code{smart_cold_start} is ignored.
-//' @param warm_start_beta Optional starting values for coefficients. If provided (and \code{warm_start_params} is not), \code{smart_cold_start} is ignored. If provided, \code{smart_cold_start} is ignored.
-//' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param estimate_only If TRUE, skip variance component calculations.
-//' @param n_gh Number of Gauss-Hermite nodes.
-//' @param max_abs_log_sigma Maximum allowed value for log(sigma).
-//' @param maxit Maximum number of iterations.
-//' @param eps_g Convergence tolerance.
-//' @param optimization_alg Optimization algorithm.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first iteration.
-//' @return A list containing coefficients, thresholds, log_sigma, and convergence status.
+//' Fast Ordinal Cumulative-Logit Random-Intercept GLMM via Gauss-Hermite Quadrature (C++)
+//'
+//' Fits a cumulative-logit ordinal mixed model with a single Gaussian random intercept
+//' per group (e.g. a matched pair or singleton from a KK-style matched design):
+//' \deqn{\mathrm{logit}\,\Pr(Y_{ij} \le k \mid u_i) = \alpha_k - x_{ij}^\top\beta - u_i,
+//'   \qquad u_i \sim N(0, \sigma^2),}
+//' for group \eqn{i}, member \eqn{j}, ordinal outcome \eqn{y_{ij} \in \{1, \ldots, K\}}, and
+//' increasing cutpoints \eqn{\alpha_1 < \cdots < \alpha_{K-1}} (\code{X} carries no separate
+//' intercept column — the cutpoints serve that role). The marginal likelihood for group
+//' \eqn{i} integrates the random intercept out,
+//' \deqn{L_i(\theta) = \int \prod_{j \in i} \Pr(Y_{ij} = y_{ij} \mid u_i) \, \phi(u_i / \sigma) \, du_i,}
+//' approximated by \code{n_gh}-point Gauss-Hermite quadrature (substituting
+//' \eqn{u = \sqrt{2}\,\sigma\, z} for quadrature node \eqn{z}), and optimized on the
+//' log scale by directly maximizing \eqn{\sum_i \log L_i(\theta)} (via
+//' \code{optimize_fixed_likelihood}, default \code{optimization_alg = "lbfgs"}) over the
+//' reparameterized vector \eqn{[\alpha_1, \log(\alpha_2-\alpha_1), \ldots,
+//' \log(\alpha_{K-1}-\alpha_{K-2}), \beta, \log\sigma]} — cutpoints are recovered as
+//' successive partial sums of \eqn{\alpha_1} and the exponentiated log-differences, which
+//' enforces \eqn{\alpha_1 < \cdots < \alpha_{K-1}} by construction rather than as a fitting
+//' constraint. \code{log_sigma} is hard-clamped to \eqn{[-\code{max\_abs\_log\_sigma},
+//' \code{max\_abs\_log\_sigma}]} during optimization; \code{variance_boundary_hit} in the
+//' return value flags whether the fitted \code{log_sigma} landed at that boundary (a sign
+//' the random-intercept variance is being driven to (near-)zero or is unbounded, and that
+//' \code{ssq_b_T}/\code{fisher_information} should be treated with caution). The Hessian
+//' used for inference is a numerical (central finite-difference, step \eqn{10^{-4}},
+//' symmetrized) second derivative of the analytic gradient, not a closed-form expression.
+//'
+//' @references Pinheiro, J. C., and Bates, D. M. (1995). "Approximations to
+//'   the Log-Likelihood Function in the Nonlinear Mixed-Effects Model."
+//'   \emph{Journal of Computational and Graphical Statistics}, 4(1), 12-35,
+//'   \doi{10.1080/10618600.1995.10474663}, for Gauss-Hermite quadrature as
+//'   an approximation to the random-effect marginal likelihood integral used
+//'   throughout this package's GLMM backends (\code{fast_poisson_glmm_cpp},
+//'   \code{fast_logistic_glmm_cpp}, \code{fast_weibull_frailty_cpp}, and this
+//'   function).
+//' @param X A numeric matrix of predictors, one row per observation (member-level, not
+//'   group-level); no intercept column (see Details).
+//' @param y Integer vector of 1-indexed ordinal outcomes (\eqn{1, \ldots, K}), one per row of \code{X}.
+//' @param group_id Integer vector of group (e.g. matched-pair) identifiers, one per row of \code{X};
+//'   assumed contiguous per group after internal sorting-by-value into blocks.
+//' @param K The number of ordinal levels.
+//' @param j_T 0-based column index of \code{X} whose coefficient's variance (\code{ssq_b_T})
+//'   should be computed — typically the treatment indicator.
+//' @param smart_cold_start Logical. If \code{TRUE} and no warm start is given, initialize
+//'   cutpoints evenly at 0 (all log-differences zero) and \eqn{\beta} via a naive OLS fit
+//'   of \code{y} (treated as numeric) on \code{X}; \code{log_sigma} starts at \eqn{-3}.
+//'   If \code{FALSE}, \eqn{\beta} instead starts at zero.
+//' @param estimate_only If \code{TRUE}, skip the (converged-fit-only) covariance calculation
+//'   for \code{ssq_b_T} — point estimates and the Hessian are still returned regardless.
+//' @param n_gh Number of Gauss-Hermite quadrature nodes used to integrate out the random intercept.
+//' @param max_abs_log_sigma Symmetric clamp bound for \code{log_sigma} during optimization (default 8).
+//' @param maxit Maximum number of optimizer iterations.
+//' @param eps_g Gradient-norm convergence tolerance.
+//' @param warm_start_params Optional starting values for the full reparameterized vector
+//'   \eqn{[\alpha_1, \log\text{-diffs}, \beta, \log\sigma]}; if its length doesn't match, falls
+//'   back to zero cutpoints/\eqn{\beta} and \code{log_sigma = -3}. Takes precedence over
+//'   \code{warm_start_beta} and \code{smart_cold_start}.
+//' @param warm_start_beta Optional starting values either for the full parameter vector (same
+//'   length as \code{warm_start_params} above) or for \eqn{\beta} alone (length \code{p}, with
+//'   cutpoints zeroed and \code{log_sigma = -3}); ignored if \code{warm_start_params} is supplied.
+//' @param optimization_alg Optimization algorithm (default \code{"lbfgs"}).
+//' @param fixed_idx Optional 1-indexed positions (into the reparameterized parameter vector) to hold fixed.
+//' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
+//' @param warm_start_fisher_info Optional initial curvature matrix for the first optimizer iteration.
+//'
+//' @return A list with components \code{b} (\eqn{\hat\beta}), \code{alpha} (the \eqn{K-1}
+//'   cutpoints, recovered from the reparameterization), \code{params} (the full fitted
+//'   reparameterized vector), \code{log_sigma}, \code{ssq_b_T} (variance of \code{b[j_T]},
+//'   \code{NA} unless \code{estimate_only = FALSE} and the fit converged and the resulting
+//'   information matrix inverts successfully), \code{converged}, \code{neg_loglik},
+//'   \code{fisher_information} (the numerical Hessian, always returned), \code{gradient_norm},
+//'   and \code{variance_boundary_hit} (\code{TRUE}/\code{FALSE}, or \code{NA} if the optimizer
+//'   itself threw an exception, in which case \code{converged = FALSE} and all other quantities
+//'   besides \code{b}/\code{alpha}/\code{log_sigma} are \code{NA}).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]

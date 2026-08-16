@@ -1,4 +1,5 @@
 #include <RcppEigen.h>
+#include "zero_one_logit_transform.h"
 #include <algorithm>
 #include <vector>
 #include <cmath>
@@ -14,27 +15,31 @@ using namespace Rcpp;
 
 namespace {
 
-inline double logit_cpp(double x, double clamp) {
-    if (x < clamp) x = clamp;
-    if (x > 1.0 - clamp) x = 1.0 - clamp;
-    return std::log(x / (1.0 - x));
-}
+// logit_cpp/inv_logit_cpp are now the canonical edi_transform:: versions
+// (zero_one_logit_transform.h, included above) -- see that header's comment
+// for why (byte-identical copy previously duplicated in fast_wilcox_hl.cpp).
+using edi_transform::logit_cpp;
+using edi_transform::inv_logit_cpp;
 
-inline double inv_logit_cpp(double x, double clamp) {
-    double p;
-    if (x >= 0.0) {
-        const double z = std::exp(-x);
-        p = 1.0 / (1.0 + z);
-    } else {
-        const double z = std::exp(x);
-        p = z / (1.0 + z);
-    }
-    if (p < clamp) p = clamp;
-    if (p > 1.0 - clamp) p = 1.0 - clamp;
-    return p;
-}
-
-inline double apply_shift(double y_val, double delta, int transform_code, double zero_one_logit_clamp) {
+// Named apply_shift_kk_wilcox (not apply_shift) only to distinguish it from
+// fast_wilcox_hl.cpp's apply_shift_hl (same duplication history -- see
+// zero_one_logit_transform.h). The two are kept as separate functions
+// rather than unified into one shared one (different files, different call
+// sites), but as of 2026-08-16 handle the same set of transform codes:
+// transform_code == 4 was previously missing here (silently falling
+// through to the plain-additive branch below) even though
+// rand_bootstrap_transform_code() in
+// inference_all_abstract_rand_bootstrap.R -- documented there as "the
+// shared C++ shift code used by all BRT batch kernels" -- maps
+// response_type == "count" to this same code 4, and "count" is an
+// explicitly documented supported response_type for
+// InferenceAllKKWilcoxIVWC (inference_all_KK_wilcox_ivwc.R), whose
+// compute_matching_wilcox_distr_parallel_cpp call is the only current
+// caller of this function. Not reachable via any live R call path today
+// (that call site still uses its own local 0..3-only transform_code
+// mapping instead of the shared helper), but silently wrong the moment it
+// is. See unity_build_collision_audit.md for how this was found.
+inline double apply_shift_kk_wilcox(double y_val, double delta, int transform_code, double zero_one_logit_clamp) {
     if (transform_code == 1) { // log
         return y_val * std::exp(delta);
     }
@@ -43,6 +48,11 @@ inline double apply_shift(double y_val, double delta, int transform_code, double
     }
     if (transform_code == 3) { // log1p
         return (y_val + 1.0) * std::exp(delta) - 1.0;
+    }
+    if (transform_code == 4) { // count response: multiplicative shift with rounding
+        // Matches fast_wilcox_hl.cpp's apply_shift_hl and
+        // shift_randomization_responses' as.integer(round(y * exp(delta))).
+        return std::round(y_val * std::exp(delta));
     }
     return y_val + delta;
 }
@@ -84,7 +94,7 @@ NumericVector compute_matching_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen:
   std::vector<double> y_shifted(n);
   if (delta != 0.0) {
       for (int i = 0; i < n; ++i) {
-          if (std::isfinite(y_ptr[i])) y_shifted[i] = apply_shift(y_ptr[i], delta, transform_code, zero_one_logit_clamp);
+          if (std::isfinite(y_ptr[i])) y_shifted[i] = apply_shift_kk_wilcox(y_ptr[i], delta, transform_code, zero_one_logit_clamp);
           else y_shifted[i] = NA_REAL;
       }
   }

@@ -1,8 +1,8 @@
 #include <RcppEigen.h>
+#include "RNG.h"
 #include <vector>
 #include <array>
 #include <algorithm>
-#include <random>
 #include <cstdint>
 #include <limits>
 
@@ -16,54 +16,40 @@ inline bool kk_is_success(double y_i) {
 	return R_finite(y_i) && y_i != 0.0;
 }
 
-inline uint64_t bounded_rand(std::mt19937_64& rng, uint64_t s) {
-	uint64_t x = rng();
-	__uint128_t m = static_cast<__uint128_t>(x) * s;
-	uint64_t l = static_cast<uint64_t>(m);
-	if (l < s) {
-		uint64_t t = (-s) % s;
-		while (l < t) {
-			x = rng();
-			m = static_cast<__uint128_t>(x) * s;
-			l = static_cast<uint64_t>(m);
-		}
-	}
-	return static_cast<uint64_t>(m >> 64);
-}
-
-inline std::mt19937_64 make_local_rng() {
-	return std::mt19937_64(static_cast<uint64_t>(
-		R::unif_rand() * static_cast<double>(std::numeric_limits<uint64_t>::max())));
-}
+// bounded_rand is now defined once in RNG.h (namespace edi_rng); ADL
+// resolves the unqualified calls below since rng is edi_rng::RRng&.
 
 } // namespace
 
-// [[Rcpp::export]]
-IntegerMatrix bootstrap_m_indices_cpp(
-	const IntegerVector& m_vec,
-	const IntegerVector& i_reservoir,
+// Portable core (EDI_CORE_ONLY-safe): identical logic to bootstrap_m_indices_cpp
+// below, but takes the seed as an explicit parameter instead of drawing it
+// from R's RNG internally.
+Eigen::MatrixXi bootstrap_m_indices_internal(
+	const Eigen::Ref<const Eigen::VectorXi>& m_vec,
+	const Eigen::Ref<const Eigen::VectorXi>& i_reservoir,
 	int n_reservoir,
 	int m,
-	int B
+	int B,
+	std::uint32_t seed
 ) {
-	auto rng = make_local_rng();
+	edi_rng::RRng rng(seed);
 	int row_length = n_reservoir + 2 * m;
-	IntegerMatrix result(B, row_length);
+	Eigen::MatrixXi result(B, row_length);
 
-	std::vector< std::array<int, 2> > match_pairs(m);
-	std::vector<int> count(m, 0);
+	std::vector< std::array<int, 2> > match_pairs(static_cast<std::size_t>(m));
+	std::vector<int> count(static_cast<std::size_t>(m), 0);
 	for (int idx = 0; idx < m_vec.size(); ++idx) {
 	int match_id = m_vec[idx];
 	if (match_id > 0 && match_id <= m) {
-		int pos = count[match_id - 1]++;
+		int pos = count[static_cast<std::size_t>(match_id - 1)]++;
 		if (pos < 2) {
-		match_pairs[match_id - 1][pos] = idx + 1;
+		match_pairs[static_cast<std::size_t>(match_id - 1)][static_cast<std::size_t>(pos)] = idx + 1;
 		}
 	}
 	}
 
-	const uint64_t u_res = static_cast<uint64_t>(n_reservoir);
-	const uint64_t u_m   = static_cast<uint64_t>(m);
+	const std::uint32_t u_res = static_cast<std::uint32_t>(n_reservoir);
+	const std::uint32_t u_m   = static_cast<std::uint32_t>(m);
 	for (int row = 0; row < B; ++row) {
 	if (n_reservoir > 0) {
 		for (int j = 0; j < n_reservoir; ++j) {
@@ -73,12 +59,28 @@ IntegerMatrix bootstrap_m_indices_cpp(
 
 	for (int k = 0; k < m; ++k) {
 		int match_id = static_cast<int>(bounded_rand(rng, u_m));
-		auto pair = match_pairs[match_id];
+		auto pair = match_pairs[static_cast<std::size_t>(match_id)];
 		result(row, n_reservoir + 2 * k) = pair[0];
 		result(row, n_reservoir + 2 * k + 1) = pair[1];
 	}
 	}
 	return result;
+}
+
+//' @note Seeded from one R::unif_rand() draw into edi_rng::RRng (RNG.h), a
+//'   portable re-implementation of R's own Mersenne-Twister generator -- a
+//'   given seed therefore produces identical draws in R and in any future
+//'   binding (e.g. Python) using the same core and the same seed.
+// [[Rcpp::export]]
+Eigen::MatrixXi bootstrap_m_indices_cpp(
+	const Eigen::Map<Eigen::VectorXi>& m_vec,
+	const Eigen::Map<Eigen::VectorXi>& i_reservoir,
+	int n_reservoir,
+	int m,
+	int B
+) {
+	std::uint32_t seed = edi_rng::seed_from_unif01(R::unif_rand());
+	return bootstrap_m_indices_internal(m_vec, i_reservoir, n_reservoir, m, B, seed);
 }
 
 List compute_zhang_match_data_cpp(const NumericMatrix& X,

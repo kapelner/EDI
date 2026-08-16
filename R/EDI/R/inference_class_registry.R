@@ -80,7 +80,8 @@ EDI_SIMPLE_ESTIMATOR_TARGETS = list(
 		family = "simple_mean_difference",
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "BayesianBootstrap", "Jackknife", "Wald"
+			"RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "Wald"
 		),
 		intentional_capabilities = c(
 			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
@@ -92,7 +93,8 @@ EDI_SIMPLE_ESTIMATOR_TARGETS = list(
 		family = "simple_mean_difference",
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "BayesianBootstrap", "Jackknife", "Wald"
+			"RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "Wald"
 		),
 		intentional_capabilities = c(
 			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
@@ -104,7 +106,8 @@ EDI_SIMPLE_ESTIMATOR_TARGETS = list(
 		family = "simple_mean_difference",
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "BayesianBootstrap", "Jackknife", "Wald",
+			"RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "Wald",
 			"KKPassThrough", "KKCompound"
 		),
 		intentional_capabilities = c(
@@ -118,7 +121,7 @@ EDI_SIMPLE_ESTIMATOR_TARGETS = list(
 		family = "wilcoxon_rank",
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "Jackknife", "Wald"
+			"RandomizationBootstrap", "RandomizationBootstrapCI", "Jackknife", "Wald"
 		),
 		intentional_capabilities = c(
 			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
@@ -130,7 +133,8 @@ EDI_SIMPLE_ESTIMATOR_TARGETS = list(
 		family = "wilcoxon_rank",
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "Jackknife", "Wald", "KKWilcoxIVWC"
+			"RandomizationBootstrap", "RandomizationBootstrapCI", "Jackknife", "Wald",
+			"KKWilcoxIVWC"
 		),
 		intentional_capabilities = c(
 			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
@@ -164,9 +168,9 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 
 	EDI_QUASI_ROBUST_TARGETS = list(
 	InferenceContinRobustRegr = list(
-		behavior = "robust_sandwich",
+		behavior = "m_estimator_variance",
 		estimator_family = "continuous_robust_regression",
-		notes = "Huber/robust continuous regression path using robust/sandwich standard errors; no normalized likelihood-ratio surface should be implied by the quasi tier."
+		notes = "Huber/Tukey M-estimator continuous regression path using its model-based asymptotic variance; no sandwich component or normalized likelihood-ratio surface should be implied by the quasi tier."
 	),
 	InferenceContinKKRobustRegrIVWC = list(
 		behavior = c("robust_sandwich", "kk_passthrough", "kk_compound"),
@@ -315,7 +319,6 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 	"InferenceRandCI",
 	"InferenceRandBootstrap",
 	"InferenceRandBootstrapCI",
-	"InferenceExact",
 	"InferenceAsympLik",
 	"InferenceParamBootstrap",
 	"InferenceAsympLikStdModCache",
@@ -340,7 +343,6 @@ EDI_INFERENCE_ABSTRACT_CLASS_NAMES = c(
 	"InferenceRandCI",
 	"InferenceRandBootstrap",
 	"InferenceRandBootstrapCI",
-	"InferenceExact",
 	"InferenceAsympLik",
 	"InferenceParamBootstrap",
 	"InferenceKKPassThroughCompound",
@@ -394,6 +396,50 @@ infer_inference_abstract = function(name) {
 		grepl("Abstract", name, fixed = TRUE)
 }
 
+#' Whether a concrete `Inference` generator supports left-/interval-censored
+#' survival data (finite `y_R`), i.e. whether `Inference$initialize()` would
+#' accept construction on a design with `has_general_censoring() == TRUE`.
+#'
+#' Every `supports_interval_or_left_censored_data()` implementation across
+#' the codebase is a trivial, argument-less, `self`/`private`-free literal
+#' (`function() TRUE`/`function() FALSE`) -- confirmed by inspection of all
+#' seven definitions as of 2026-08 -- so it is safe to invoke the nearest
+#' ancestor's copy directly from the generator's own `private_methods` list
+#' without constructing an instance (unlike private-method-name *sniffing*,
+#' which this codebase is banning elsewhere, this reads the method's
+#' *declared return value*, not just whether it exists).
+#'
+#' @keywords internal
+#' @noRd
+infer_inference_supports_general_censoring = function(generator) {
+	current = generator
+	while (!is.null(current)) {
+		fn = current$private_methods$supports_interval_or_left_censored_data
+		if (!is.null(fn)) return(isTRUE(fn()))
+		current = current$get_inherit()
+	}
+	FALSE
+}
+
+#' Whether a concrete `Inference` generator requires a blocking design
+#' (`Design$is_blocking_design()`), i.e. whether its constructor would
+#' unconditionally reject a non-blocking design. Same safe-invoke-without-
+#' construction approach as `infer_inference_supports_general_censoring()`
+#' above (see that function's doc for why this is safe); currently only
+#' `InferenceIncidExtendedRobins` overrides the default `FALSE`.
+#'
+#' @keywords internal
+#' @noRd
+infer_inference_requires_blocking_design = function(generator) {
+	current = generator
+	while (!is.null(current)) {
+		fn = current$private_methods$requires_blocking_design
+		if (!is.null(fn)) return(isTRUE(fn()))
+		current = current$get_inherit()
+	}
+	FALSE
+}
+
 infer_inference_direct_components = function(name) {
 	switch(
 		name,
@@ -401,10 +447,10 @@ infer_inference_direct_components = function(name) {
 		InferenceRandCI = "RandomizationCI",
 		InferenceNonParamBootstrap = "NonparametricBootstrap",
 		InferenceRandBootstrap = "RandomizationBootstrap",
+		InferenceRandBootstrapCI = "RandomizationBootstrapCI",
 		InferenceBayesianBootstrap = "BayesianBootstrap",
 		InferenceJackknife = "Jackknife",
 		InferenceAsymp = "Wald",
-		InferenceExact = "ExactTest",
 		InferenceIncidExactBinomial = "ExactBinomialIncidence",
 		InferenceIncidExactFisher = "ExactFisherIncidence",
 		InferenceIncidenceExactZhang = "ExactZhangIncidence",
@@ -437,8 +483,6 @@ infer_inference_direct_components = function(name) {
 			InferenceIncidModifiedPoisson = "IncidenceModifiedPoissonLikelihood",
 			InferenceIncidBinomialIdentityRiskDiff = "IncidenceBinomialIdentityLikelihood",
 			InferenceIncidGCompAbstract = "IncidenceGComputation",
-			InferenceIncidGCompRiskDiff = "IncidenceGComputationRiskDiff",
-			InferenceIncidGCompRiskRatio = "IncidenceGComputationRiskRatio",
 			InferenceSurvivalWeibullRegr = "SurvivalWeibullLikelihood",
 			InferenceSurvivalDepCensTransformRegr = "SurvivalDepCensTransform",
 			InferenceSurvivalKKWeibullMarginal = "SurvivalKKWeibullMarginal",
@@ -499,7 +543,10 @@ validate_inference_class_metadata = function(metadata) {
 	if (!is.logical(metadata$abstract) || length(metadata$abstract) != 1L || is.na(metadata$abstract)) {
 		stop(sprintf("Inference metadata for %s has invalid `abstract`.", metadata$name), call. = FALSE)
 	}
-	if (!is.logical(metadata$exported) || length(metadata$exported) != 1L || is.na(metadata$exported)) {
+	# NA is a valid, deliberate sentinel here (see design_class_registry.R's identical
+	# note): it means "not yet resolved against the live namespace", resolved lazily by
+	# get_inference_class_metadata()/inference_class_registry_as_list().
+	if (!is.logical(metadata$exported) || length(metadata$exported) != 1L) {
 		stop(sprintf("Inference metadata for %s has invalid `exported`.", metadata$name), call. = FALSE)
 	}
 	if (!is.character(metadata$response_types)) {
@@ -542,7 +589,9 @@ register_inference_class = function(name, parent = NULL, metadata = list(), dire
 			likelihood_tier = "none",
 			direct_components = direct_components,
 			required_packages = character(),
-			capabilities = character()
+			capabilities = character(),
+			supports_general_censoring = FALSE,
+			requires_blocking_design = FALSE
 		),
 		metadata
 	)
@@ -559,7 +608,15 @@ register_inference_class = function(name, parent = NULL, metadata = list(), dire
 }
 
 inference_class_registry_as_list = function() {
-	mget(ls(EDI_INFERENCE_CLASS_REGISTRY), envir = EDI_INFERENCE_CLASS_REGISTRY, inherits = FALSE)
+	records = mget(ls(EDI_INFERENCE_CLASS_REGISTRY), envir = EDI_INFERENCE_CLASS_REGISTRY, inherits = FALSE)
+	unresolved = vapply(records, function(r) is.na(r$exported), logical(1))
+	if (any(unresolved)) {
+		live_exports = tryCatch(getNamespaceExports("EDI"), error = function(e) character())
+		for (name in names(records)[unresolved]) {
+			records[[name]]$exported = name %in% live_exports
+		}
+	}
+	records
 }
 
 validate_inference_class_registry = function(registry = inference_class_registry_as_list()) {
@@ -583,7 +640,16 @@ get_inference_class_metadata = function(name) {
 	if (!exists(name, envir = EDI_INFERENCE_CLASS_REGISTRY, inherits = FALSE)) {
 		stop(sprintf("No inference class metadata registered for %s.", name), call. = FALSE)
 	}
-	get(name, envir = EDI_INFERENCE_CLASS_REGISTRY, inherits = FALSE)
+	record = get(name, envir = EDI_INFERENCE_CLASS_REGISTRY, inherits = FALSE)
+	# `exported = NA` is a populate-time sentinel meaning "not yet resolved against the
+	# live namespace" -- see the identical note on get_design_class_metadata() in
+	# design_class_registry.R for why (confirmed empirically both registries share this
+	# defect and fix). A non-NA value means the record was registered explicitly (e.g. a
+	# test's register_inference_class() call) and is trusted as-is, not overwritten.
+	if (is.na(record$exported)) {
+		record$exported = name %in% tryCatch(getNamespaceExports("EDI"), error = function(e) character())
+	}
+	record
 }
 
 get_direct_components = function(name) {
@@ -1010,7 +1076,7 @@ assert_shallow_inference_hierarchy_complete = function(manifest = inference_hier
 inference_no_likelihood_group = function(record) {
 	capabilities = record$target_capabilities %||% character()
 	ancestors = record$current_ancestors %||% character()
-	if ("exact_test" %in% capabilities || "InferenceExact" %in% ancestors || grepl("Exact", record$name)) {
+	if ("exact_test" %in% capabilities || grepl("Exact", record$name)) {
 		return("exact")
 	}
 	if ("randomization_test" %in% capabilities || "InferenceRand" %in% ancestors) {
@@ -1589,7 +1655,6 @@ clear_inference_class_registry = function() {
 
 populate_inference_class_registry = function(ns = environment(populate_inference_class_registry)) {
 	clear_inference_class_registry()
-	exports = tryCatch(getNamespaceExports("EDI"), error = function(e) character())
 	all_names = sort(ls(ns))
 	for (name in all_names) {
 		obj = get(name, envir = ns)
@@ -1602,13 +1667,18 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 			parent = parent_name,
 			metadata = list(
 				abstract = infer_inference_abstract(name),
-				exported = name %in% exports,
+				# NA sentinel: getNamespaceExports("EDI") is unreliable this early in the
+				# sourcing sequence (see get_inference_class_metadata()'s note); resolved
+				# lazily on read instead of computed here.
+				exported = NA,
 				response_types = infer_inference_response_types(name),
 				design_families = "all",
 				compatibility = always_compatible_inference_metadata,
 				likelihood_tier = infer_inference_likelihood_tier(name),
 				required_packages = character(),
-				capabilities = character()
+				capabilities = character(),
+				supports_general_censoring = infer_inference_supports_general_censoring(obj),
+				requires_blocking_design = infer_inference_requires_blocking_design(obj)
 			),
 			direct_components = infer_inference_direct_components(name)
 		)

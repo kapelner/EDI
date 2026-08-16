@@ -2,15 +2,52 @@
 % Please edit documentation in R/design_seq_one_by_one_pocock_simon.R
 \name{DesignSeqOneByOnePocockSimon}
 \alias{DesignSeqOneByOnePocockSimon}
-\title{Pocock & Simon's Minimization Sequential Design}
+\title{Pocock and Simon's (1975) Minimization Sequential Design}
 \description{
-An R6 Class encapsulating the data and functionality for a Pocock & Simon
-sequential experimental design.
-This design minimizes the imbalance across treatments for multiple covariates.
+A \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} implementing Pocock and
+Simon's minimization method: for each categorical covariate in \code{strata_cols},
+the design tracks a running treated/control count per covariate \emph{level}
+(\code{private$counts}), and for a new subject computes, for each candidate
+treatment arm \eqn{k \in \{0, 1\}}, a weighted total imbalance
+\deqn{G_k = \sum_{j} weights_j \cdot \mathrm{Var}\big(\text{counts at subject's level of covariate } j,
+\text{ after hypothetically assigning arm } k\big),}
+where the variance is taken across the two treatment arms' hypothetical counts at
+that covariate level (so \eqn{G_k} is large when arm \eqn{k} would leave the
+subject's covariate-level counts unbalanced, summed with \code{weights} across
+covariates). The subject is then assigned to whichever arm minimizes \eqn{G_k} with
+probability \code{p_best} (and to the other arm with probability
+\code{1 - p_best}), or — if the two arms are exactly tied — via a plain
+\eqn{\mathrm{Bernoulli}(prob\_T)} draw. Unlike
+\code{\link[EDI:DesignSeqOneByOneAtkinson]{DesignSeqOneByOneAtkinson}}/
+\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}}, which use continuous
+covariate distances, minimization operates on categorical/discretized strata and
+balances marginal covariate-level counts directly rather than a multivariate
+distance or matched-pair structure.
+
+
+\strong{Level bookkeeping.} \code{private$ensure_factor_metadata()} maintains a
+mapping from each observed level of each \code{strata_cols} column to a row index
+in \code{private$counts} (an (total levels across all covariates) x 2 matrix of
+running treated/control counts), growing both the level map and \code{counts} as
+new levels are encountered; missing values are treated as their own level
+(\code{"NA"}).
+
+\strong{Non-resampling bootstrap.} \code{draw_bootstrap_indices()} always performs a
+plain i.i.d. nonparametric bootstrap over subjects (\code{sample_int_replace_cpp()}),
+since minimization's adaptive assignment process has no simple exchangeable
+resampling unit to preserve (each subject's assignment probability depends on the
+full sequence of covariate levels and assignments that preceded it).
 }
 \examples{
 seq_des = DesignSeqOneByOnePocockSimon$new(strata_cols = 'x1', n = 6, response_type = 'continuous')
 seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = factor(1, levels=1:2)))
+}
+\references{
+Pocock, S. J., and Simon, R. (1975). "Sequential treatment assignment
+  with balancing for prognostic factors in the controlled clinical trial."
+  \emph{Biometrics}, 31(1), 103-115, \doi{10.2307/2529712}. See also
+  \href{https://en.wikipedia.org/wiki/Minimisation_(clinical_trials)}{minimisation
+  (clinical trials)} for orientation.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} -> \code{DesignSeqOneByOnePocockSimon}
@@ -27,9 +64,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = factor(1, level
 <ul>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject'><code>DesignSeqOneByOne$add_one_subject()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject_to_experiment_and_assign'><code>DesignSeqOneByOne$add_one_subject_to_experiment_and_assign()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-is_a_seq_one_by_one'><code>DesignSeqOneByOne$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-print_current_subject_assignment'><code>DesignSeqOneByOne$print_current_subject_assignment()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-supports_resampling'><code>DesignSeqOneByOne$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -62,6 +97,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = factor(1, level
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -84,15 +120,17 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = factor(1, level
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed'><code>Design$is_a_fixed()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-overwrite_all_subject_assignments'><code>Design$overwrite_all_subject_assignments()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -100,7 +138,9 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = factor(1, level
 \if{html}{\out{<a id="method-DesignSeqOneByOnePocockSimon-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOnePocockSimon-initialize}{}}}
 \subsection{\code{DesignSeqOneByOnePocockSimon$new()}}{
-  Initialize a Pocock & Simon sequential experimental design
+  Initialize a Pocock and Simon (1975) minimization sequential
+  experimental design (see class documentation for the exact imbalance
+  criterion and assignment rule).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOnePocockSimon$new(
@@ -123,11 +163,18 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = factor(1, level
     \describe{
       \item{\code{strata_cols}}{The names of the covariates to be used for minimization. These
 must be factor or categorical variables.}
-      \item{\code{weights}}{A numeric vector of weights for each covariate. Defaults to 1 for all.}
-      \item{\code{p_best}}{The probability of assigning the treatment that minimizes the
-imbalance. Defaults to 0.8.}
+      \item{\code{weights}}{A numeric vector of per-covariate weights \eqn{weights_j}
+in the imbalance criterion \eqn{G_k} (see class documentation), one per
+entry of \code{strata_cols}, in the same order. Defaults to 1 for all
+(equal-weighted covariates).}
+      \item{\code{p_best}}{The probability of assigning the treatment arm that
+minimizes \eqn{G_k} (see class documentation); the complementary arm is
+assigned with probability \code{1 - p_best}. Defaults to 0.8 (an 80/20
+biased coin favoring the balancing arm, rather than a fully deterministic
+minimization rule).}
       \item{\code{response_type}}{The data type of response values.}
-      \item{\code{prob_T}}{The probability of the treatment assignment.}
+      \item{\code{prob_T}}{The probability of the treatment assignment used only when
+the two arms' imbalance is exactly tied (see class documentation).}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{verbose}}{Flag for verbosity.}
@@ -146,14 +193,18 @@ imbalance. Defaults to 0.8.}
 \if{html}{\out{<a id="method-DesignSeqOneByOnePocockSimon-assign_wt"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOnePocockSimon-assign_wt}{}}}
 \subsection{\code{DesignSeqOneByOnePocockSimon$assign_wt()}}{
-  Assign the next subject to a treatment group using minimization.
+  Draw the next subject's treatment assignment via Pocock and
+  Simon minimization (see class documentation for the exact imbalance
+  criterion \eqn{G_k} and the \code{p_best}/\code{prob_T} assignment rule),
+  and update the running per-covariate-level treated/control counts
+  in-place to reflect this assignment.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOnePocockSimon$assign_wt()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    The treatment assignment (0 or 1)
+    The treatment assignment (0 or 1) for the next subject.
   }
 }
 

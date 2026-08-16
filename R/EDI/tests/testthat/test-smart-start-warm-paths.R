@@ -87,7 +87,12 @@ test_that("gradient testing type is available on representative likelihood famil
 	des_weib$overwrite_all_subject_assignments(w)
 	y_surv <- exp(0.4 + 0.3 * w + 0.15 * x + rnorm(n, sd = 0.2))
 	dead <- rbinom(n, 1, 0.85)
-	des_weib$add_all_subject_responses(y_surv, dead)
+	# (y, dead) positional convention was removed in the y/y_L/y_R migration
+	# (interval_censored_survival_response.md TODO-15).
+	y_surv_exact <- ifelse(dead == 1, y_surv, NA_real_)
+	y_surv_L <- ifelse(dead == 1, NA_real_, y_surv)
+	y_surv_R <- ifelse(dead == 1, NA_real_, Inf)
+	des_weib$add_all_subject_responses(y_surv_exact, y_surv_L, y_surv_R)
 	inf_weib <- InferenceSurvivalWeibullRegr$new(des_weib, verbose = FALSE, smart_cold_start_default = TRUE)
 	expect_true("gradient" %in% inf_weib$get_supported_testing_types())
 	inf_weib$set_testing_type("gradient")

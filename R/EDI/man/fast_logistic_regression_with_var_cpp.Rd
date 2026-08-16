@@ -2,7 +2,75 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{fast_logistic_regression_with_var_cpp}
 \alias{fast_logistic_regression_with_var_cpp}
-\title{Export of C++ function fast_logistic_regression_with_var_cpp}
+\title{Fast Logistic Regression with Targeted Variance (C++ Backend)}
+\arguments{
+\item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
+(e.g., a column of ones) is already included in \code{X} if desired.}
+
+\item{y}{A numeric vector of the response variable, expected to be binary (0 or 1).}
+
+\item{j}{1-based index (into \code{X}'s columns) of the coefficient to
+compute \code{ssq_b_j} for. Defaults to 2.}
+
+\item{warm_start_beta}{Optional starting values for coefficients \eqn{\beta}.
+If provided, \code{smart_cold_start} is ignored.}
+
+\item{smart_cold_start}{Logical. If \code{TRUE} and no \code{warm_start_beta}
+is supplied, use an OLS-based initial guess rather than a zero cold start.}
+
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed
+rather than estimate.}
+
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
+
+\item{optimization_alg}{Optimization algorithm: \code{"irls"} (default),
+\code{"lbfgs"}, or \code{"newton_raphson"}; see
+\code{\link{.normalize_optimizer_algorithm}}.}
+
+\item{warm_start_weights}{Optional initial IRLS working weights for the
+first iteration.}
+
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix to
+warm-start curvature information.}
+}
+\value{
+A list with components \code{b}/\code{params} (estimated
+  coefficients \eqn{\hat\beta}, identical to each other),
+  \code{ssq_b_j}/\code{ssq_b_2} (the two targeted coefficient variances
+  described in Details), \code{score} (the score vector at
+  \eqn{\hat\beta}), \code{observed_information}/\code{fisher_information}/
+  \code{information} (three aliases for the same working-weights curvature
+  matrix, tagged \code{information_type = "fisher"}), \code{hessian} (the
+  negative of that matrix), \code{neg_loglik}/\code{neg_ll} (aliases for the
+  negative log-likelihood), \code{loglik} (its negation), \code{converged}
+  (logical), \code{iterations}, and \code{gradient_norm}.
+}
 \description{
-Export of C++ function fast_logistic_regression_with_var_cpp
+Fits the same logistic regression model as
+\code{\link{fast_logistic_regression_cpp}} (see that page for the full
+model and log-odds-ratio interpretation) and additionally computes the
+variance of two coefficients — the caller-selected \code{j}-th coefficient
+and, separately, the 2nd coefficient (the package's usual treatment-effect
+position) — via a targeted diagonal-entry inversion of the working-weights
+Fisher information, rather than a full matrix inverse. Unlike
+\code{\link{fast_logistic_regression_cpp}}, \code{maxit} and \code{tol} are
+not exposed here: they are fixed internally at 100 iterations and
+\code{1e-8} tolerance.
+}
+\details{
+\strong{Variance computation.} The working-weights Fisher information
+\eqn{X^\top W X} is restricted to the free (non-\code{fixed_idx})
+parameters; \code{ssq_b_j} and \code{ssq_b_2} are each obtained via a
+single targeted diagonal-entry inversion
+(\code{compute_diagonal_inverse_entry()}) at the free-parameter position
+corresponding to \code{j} and to column 2, respectively — \code{NA} if the
+relevant coefficient is out of range or was itself fixed via
+\code{fixed_idx}. \code{ssq_b_2} is always computed (when \code{ncol(X) >= 2})
+regardless of what \code{j} is, so a caller interested in the treatment
+effect's variance does not need to pass \code{j = 2} explicitly.
+}
+\seealso{
+\code{\link{fast_logistic_regression_cpp}} for the estimate-only
+  variant and the full model documentation.
 }

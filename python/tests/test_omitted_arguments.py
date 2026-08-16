@@ -58,7 +58,7 @@ from edi_kernels import (
     fast_stereotype_logit,
     gee_pairs_singletons,
     fast_coxph_regression,
-    fast_weibull_regression,
+    fast_weibull_regression_general,
     fast_weibull_frailty,
     fast_clayton_weibull_aft_optim,
     fast_dep_cens_transform_optim,
@@ -97,7 +97,7 @@ from test_fast_ordinal_glmm import _synthetic_data as _ordinal_glmm_data
 from test_fast_stereotype_logit import _synthetic_data as _stereotype_data
 from test_gee_pairs_singletons import _synthetic_data as _gee_data
 from test_fast_coxph_regression import _synthetic_data as _coxph_data
-from test_fast_weibull_regression import _synthetic_data as _weibull_data
+from test_fast_weibull_regression_general import _synthetic_data as _weibull_data
 from test_fast_weibull_frailty import _synthetic_data as _weibull_frailty_data
 from test_fast_clayton_weibull_aft_optim import _synthetic_data as _clayton_data
 from test_fast_dep_cens_transform_optim import _synthetic_data as _dep_cens_data
@@ -265,9 +265,12 @@ def test_fast_coxph_regression_omitted():
     _assert_valid_result(fast_coxph_regression(X, y_obs, dead))
 
 
-def test_fast_weibull_regression_omitted():
+def test_fast_weibull_regression_general_omitted():
     X, y_obs, dead = _weibull_data()
-    _assert_valid_result(fast_weibull_regression(X, y_obs, dead))
+    y = np.where(dead != 0, y_obs, np.nan)
+    y_L = np.where(dead == 0, y_obs, np.nan)
+    y_R = np.where(dead == 0, np.inf, np.nan)
+    _assert_valid_result(fast_weibull_regression_general(X, y, y_L, y_R))
 
 
 def test_fast_weibull_frailty_omitted():

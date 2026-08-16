@@ -65,12 +65,25 @@ public:
 } // namespace
 
 #ifndef EDI_CORE_ONLY
-//' @title Compute Ordinal Regression Score
-//' @description Calculates the score vector (gradient of the log-likelihood) for an ordinal regression model.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses (ordinal categories 1, 2, ...).
-//' @param params A numeric vector of parameters [alpha, beta].
-//' @return A numeric vector representing the score.
+//' Proportional-Odds Ordinal Regression Score, Standalone (C++)
+//'
+//' Computes the (analytic) score vector (gradient of the log-likelihood) of the
+//' logit-link cumulative (proportional-odds) ordinal regression model documented
+//' in full at \code{\link{fast_ordinal_regression_cpp}}, at arbitrary
+//' caller-supplied \code{params} (not necessarily the MLE). Exported standalone
+//' — independent of any optimizer run — for direct numerical diagnostics (e.g.
+//' verifying convergence) at a specific parameter value.
+//'
+//' @param X A numeric matrix of predictors (no intercept column needed; see
+//'   \code{\link{fast_ordinal_regression_cpp}}).
+//' @param y A numeric vector of ordinal responses; only the rank order of
+//'   distinct values matters, not their numeric coding.
+//' @param params A numeric vector \eqn{[\alpha, \beta]}: the category thresholds
+//'   followed by the regression coefficients, at which to evaluate the score.
+//' @return The score vector (gradient of the log-likelihood) at \code{params}.
+//' @seealso \code{\link{get_ordinal_regression_hessian_cpp}} for the
+//'   corresponding Hessian at the same point; \code{\link{fast_ordinal_regression_cpp}}
+//'   for the full model documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -85,12 +98,25 @@ Eigen::VectorXd get_ordinal_regression_score_cpp(const Rcpp::NumericMatrix& X, c
     return -grad;
 }
 
-//' @title Compute Ordinal Regression Hessian
-//' @description Calculates the Hessian matrix (second derivatives of the log-likelihood) for an ordinal regression model.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param params A numeric vector of parameters [alpha, beta].
-//' @return A numeric matrix representing the Hessian.
+//' Proportional-Odds Ordinal Regression Hessian, Standalone (C++)
+//'
+//' Computes the (analytic) Hessian matrix of the log-likelihood of the logit-link
+//' cumulative (proportional-odds) ordinal regression model documented in full at
+//' \code{\link{fast_ordinal_regression_cpp}}, at arbitrary caller-supplied
+//' \code{params} (not necessarily the MLE). Exported standalone — independent of
+//' any optimizer run — for direct numerical diagnostics at a specific parameter
+//' value.
+//'
+//' @param X A numeric matrix of predictors (no intercept column needed; see
+//'   \code{\link{fast_ordinal_regression_cpp}}).
+//' @param y A numeric vector of ordinal responses; only the rank order of
+//'   distinct values matters, not their numeric coding.
+//' @param params A numeric vector \eqn{[\alpha, \beta]}: the category thresholds
+//'   followed by the regression coefficients, at which to evaluate the Hessian.
+//' @return The Hessian matrix of the log-likelihood at \code{params}.
+//' @seealso \code{\link{get_ordinal_regression_score_cpp}} for the corresponding
+//'   gradient at the same point; \code{\link{fast_ordinal_regression_cpp}} for
+//'   the full model documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -216,19 +242,74 @@ edi::ResultMap fast_ordinal_regression_internal(
 
 #ifndef EDI_CORE_ONLY
 // Simple solver using Newton-Raphson as we have a small number of parameters (usually)
-//' @title Fast Ordinal Regression (C++)
-//' @description High-performance ordinal regression fitting using Newton-Raphson.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param warm_start_params Optional starting values for [alpha, beta]. If provided, \code{smart_cold_start} is ignored.
-//' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param maxit Maximum number of iterations.
+//' Fast Cumulative Ordinal Regression with a Logit Link, i.e. Proportional-Odds
+//' Regression (C++)
+//'
+//' Fits the classical proportional-odds ordinal regression model (a cumulative-link
+//' model with the \strong{logit} link) via direct maximum likelihood, jointly
+//' optimizing the category thresholds and regression coefficients. \code{y}'s
+//' distinct values (in sorted order, whatever their original coding) are treated as
+//' \eqn{K} ordered categories; for observation \eqn{i} in category \eqn{k}
+//' (\eqn{k = 0, \ldots, K-1}),
+//' \deqn{\mathrm{logit}\,\Pr(Y_i \le k \mid x_i) = \alpha_k - x_i^\top \beta,}
+//' with \eqn{\alpha_0 < \alpha_1 < \cdots < \alpha_{K-2}} the (increasing) category
+//' thresholds and \eqn{\beta} the regression coefficients on \code{X} (no separate
+//' intercept column is needed — the thresholds serve that role); the category
+//' probability is the corresponding CDF difference, each clamped below at
+//' \eqn{10^{-12}} before taking logs for numerical safety. The "proportional odds"
+//' name reflects that \eqn{\beta} does not depend on \eqn{k}: the odds ratio
+//' \eqn{\exp(-\beta_j)} for a unit increase in covariate \eqn{j} is the same across
+//' every cumulative cutpoint. If \code{y} has fewer than 2 distinct levels, fitting
+//' still proceeds with \code{K = 1}, \code{n_alpha = 0} (degenerate: no thresholds
+//' to estimate); unlike the cauchit/probit/cloglog variants in this package, this
+//' function does not special-case that as an early return.
+//'
+//' @section Fixed parameters, warm starts, and optimization:
+//' \code{fixed_idx} (1-indexed into the combined \eqn{[\alpha, \beta]} parameter
+//' vector, thresholds first) and \code{fixed_values} optionally hold a subset of
+//' parameters at caller-supplied constant values rather than estimating them.
+//' \code{warm_start_params} supplies starting values for \eqn{[\alpha, \beta]}
+//' directly (skipping \code{smart_cold_start}); otherwise thresholds always start
+//' evenly spaced on \eqn{(-1, 1)} at \eqn{-1 + 2(k+1)/K}, and \eqn{\beta} starts at
+//' either zero, or (when \code{smart_cold_start = TRUE}, the default) an OLS fit of
+//' the rank-rescaled response \eqn{(y - 1)/(K - 1)} on \code{X} — falling back
+//' silently to zero if that OLS solve is not well-posed. When
+//' \code{smart_cold_start = TRUE} and no \code{warm_start_fisher_info} is supplied,
+//' the Hessian at the starting values is additionally used to seed the optimizer's
+//' first-iteration curvature estimate. Optimization runs via \code{optimization_alg}
+//' (default \code{"lbfgs"}) for up to \code{maxit} iterations or until the
+//' parameter/gradient change falls below \code{tol}.
+//'
+//' @param X A numeric matrix of predictors (no intercept column needed; see Details).
+//' @param y A numeric vector of ordinal responses; only the rank order of distinct
+//'   values matters, not their numeric coding.
+//' @param warm_start_params Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.
+//' @param smart_cold_start Logical. If \code{TRUE}, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
+//' @param maxit Maximum number of optimizer iterations.
 //' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients (beta), thresholds (alpha), and convergence status.
+//' @param fixed_idx Optional 1-indexed positions (into \eqn{[\alpha,\beta]}) of parameters to hold fixed.
+//' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
+//' @param optimization_alg Optimization algorithm (default \code{"lbfgs"}).
+//' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
+//' @param estimate_only If \code{TRUE}, skip the post-fit Hessian/variance computation and
+//'   return only point estimates (faster). If \code{FALSE} (the default), also compute and
+//'   return the observed information matrix and (if the resulting free-parameter information
+//'   submatrix is invertible via \code{Eigen::FullPivLU}) the full variance-covariance matrix.
+//'
+//' @return A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
+//'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
+//'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
+//'   when \code{estimate_only = FALSE} (the default), additionally \code{neg_loglik},
+//'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
+//'   observed-information matrix), \code{information_type} (always \code{"observed"}),
+//'   \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first
+//'   column — conventionally the treatment effect, since \code{X} carries no separate
+//'   intercept column here), and \code{vcov} (the full parameter covariance matrix) — the
+//'   latter two are \code{NA}/omitted (\code{vcov} becomes \code{NULL}) if the free-parameter
+//'   information matrix is not invertible.
+//' @seealso \code{\link{fast_ordinal_regression_weighted_cpp}} for the observation-weighted
+//'   variant; \code{\link{fast_ordinal_regression_with_var_cpp}}, which additionally guards
+//'   the non-invertible case with explicit \code{NA} placeholders.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -253,20 +334,41 @@ List fast_ordinal_regression_cpp(const Rcpp::NumericMatrix& X, const Rcpp::Numer
     return edi::to_rcpp_list(res);
 }
 
-//' @title Fast Weighted Ordinal Regression (C++)
-//' @description High-performance weighted ordinal regression fitting using Newton-Raphson.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param weights A numeric vector of nonnegative observation weights.
-//' @param warm_start_params Optional starting values for [alpha, beta].
-//' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch.
-//' @param maxit Maximum number of iterations.
+//' Fast Cumulative Ordinal Regression with a Logit Link, Weighted (C++)
+//'
+//' As \code{\link{fast_ordinal_regression_cpp}} (see that page for the full
+//' proportional-odds model), but each observation's log-likelihood contribution is
+//' multiplied by a nonnegative \code{weights[i]} (negative weights are clamped to
+//' zero internally by the underlying weighted log-likelihood). Always fits with
+//' \code{estimate_only = FALSE} (equivalent to that function's default), so the
+//' observed information and, when invertible, the full variance-covariance matrix
+//' are always computed.
+//'
+//' @inheritSection fast_ordinal_regression_cpp Fixed parameters, warm starts, and optimization
+//'
+//' @param X A numeric matrix of predictors (no intercept column needed; see
+//'   \code{\link{fast_ordinal_regression_cpp}}).
+//' @param y A numeric vector of ordinal responses; only the rank order of distinct
+//'   values matters, not their numeric coding.
+//' @param weights A numeric vector of observation weights, length \code{nrow(X)}
+//'   (negative entries are treated as zero).
+//' @param warm_start_params Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.
+//' @param smart_cold_start Logical. If \code{TRUE}, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
+//' @param maxit Maximum number of optimizer iterations.
 //' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix.
-//' @return A list containing coefficients (beta), thresholds (alpha), and convergence status.
+//' @param fixed_idx Optional 1-indexed positions (into \eqn{[\alpha,\beta]}) of parameters to hold fixed.
+//' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
+//' @param optimization_alg Optimization algorithm (default \code{"lbfgs"}).
+//' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
+//'
+//' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
+//'   \code{converged}, \code{iterations}, \code{neg_loglik},
+//'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
+//'   observed-information matrix), \code{information_type} (\code{"observed"}),
+//'   \code{ssq_b_j} (the variance of \code{b[1]}), and \code{vcov} — the latter two are
+//'   \code{NA}/omitted if the free-parameter information matrix is not invertible.
+//' @seealso \code{\link{fast_ordinal_regression_cpp}} for the unweighted variant and the
+//'   full model documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -296,19 +398,41 @@ List fast_ordinal_regression_weighted_cpp(const Rcpp::NumericMatrix& X, const Rc
     return edi::to_rcpp_list(res);
 }
 
-//' @title Fast Ordinal Regression with Variance (C++)
-//' @description Ordinal regression fitting with full variance-covariance matrix.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param warm_start_params Optional starting values for [alpha, beta]. If provided, \code{smart_cold_start} is ignored.
-//' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param maxit Maximum number of iterations.
+//' Fast Cumulative Ordinal Regression with a Logit Link, with Variance (C++)
+//'
+//' Identical to \code{\link{fast_ordinal_regression_cpp}} (see that page for the full
+//' proportional-odds model) called with \code{estimate_only = FALSE} — this is simply
+//' a convenience export that hardcodes that default rather than exposing the flag, so
+//' the observed information and, when invertible, the full variance-covariance matrix
+//' are always computed. Unlike the cauchit/probit/cloglog families' \verb{_with_var}
+//' variants, this function does \strong{not} add any extra degenerate-case guarding
+//' beyond what \code{\link{fast_ordinal_regression_cpp}} already does.
+//'
+//' @inheritSection fast_ordinal_regression_cpp Fixed parameters, warm starts, and optimization
+//'
+//' @param X A numeric matrix of predictors (no intercept column needed; see
+//'   \code{\link{fast_ordinal_regression_cpp}}).
+//' @param y A numeric vector of ordinal responses; only the rank order of distinct
+//'   values matters, not their numeric coding.
+//' @param warm_start_params Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.
+//' @param smart_cold_start Logical. If \code{TRUE}, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
+//' @param maxit Maximum number of optimizer iterations.
 //' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients, thresholds, vcov, and convergence status.
+//' @param fixed_idx Optional 1-indexed positions (into \eqn{[\alpha,\beta]}) of parameters to hold fixed.
+//' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
+//' @param optimization_alg Optimization algorithm (default \code{"lbfgs"}).
+//' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
+//'
+//' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
+//'   \code{converged}, \code{iterations}, \code{neg_loglik},
+//'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
+//'   observed-information matrix), \code{information_type} (\code{"observed"}),
+//'   \code{ssq_b_j} (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first
+//'   column — conventionally the treatment effect), and \code{vcov} — the latter two are
+//'   \code{NA}/omitted if the free-parameter information matrix is not invertible.
+//' @seealso \code{\link{fast_ordinal_regression_cpp}} for the estimate-only-capable variant
+//'   and the full model documentation; \code{\link{fast_ordinal_regression_weighted_cpp}}
+//'   for the observation-weighted variant.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -335,14 +459,62 @@ List fast_ordinal_regression_with_var_cpp(const Rcpp::NumericMatrix& X, const Rc
     return edi::to_rcpp_list(res);
 }
 
-//' @title Ordinal G-Computation Post-Fit (C++)
-//' @description Performs G-computation for ordinal outcomes using a fitted model's parameters.
-//' @param X_fit Matrix of predictors used in fit.
-//' @param y Vector of responses.
-//' @param coef_hat Estimated coefficients (beta).
-//' @param alpha_hat Estimated thresholds (alpha).
-//' @param j_treat 1-based index of treatment column.
-//' @return A list containing G-computation results (means, difference, SE).
+//' Fast G-Computation (Standardization) Point Estimate and Model-Based Inference
+//' for a Proportional-Odds Ordinal Model (C++)
+//'
+//' Computes the same standardized (G-computation) marginal difference in
+//' \strong{expected ordinal category score} as
+//' \code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}} — under a fitted
+//' proportional-odds (cumulative logit) model \eqn{\mathrm{logit}\,\Pr(Y_i \le k
+//' \mid x_i) = \alpha_k - x_i^\top\beta}, \eqn{k = 1, \ldots, K-1} — but
+//' additionally supplies \strong{model-based} inferential quantities that the
+//' other function omits. The fitted linear predictor for each subject is
+//' recomputed with the treatment column (\code{j_treat}) forced to 1
+//' (\eqn{\eta_{1,i}}) and to 0 (\eqn{\eta_{0,i}}), the standardized expected
+//' scores \code{mean1}, \code{mean0}, and their difference \code{md} are formed
+//' exactly as in \code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}}, and
+//' then:
+//' \itemize{
+//'   \item An \code{\link[=OrdinalRegression]{OrdinalRegression}} log-likelihood
+//'     Hessian is evaluated at \eqn{[\hat\alpha, \hat\beta]} and inverted (with a
+//'     symmetrization step and a finiteness check) to give the
+//'     \strong{model-based} (non-sandwich) variance-covariance matrix of the full
+//'     parameter vector; \code{vcov}/\code{std_err}/\code{z_vals} report the
+//'     \eqn{\hat\beta}-block of this covariance.
+//'   \item The delta-method standard error of \code{md}, \code{se_md}, is obtained
+//'     by numerically differentiating \code{md} (central differences, step
+//'     \eqn{10^{-5}}) with respect to every element of \eqn{[\alpha,\beta]} to get
+//'     a gradient \eqn{g}, then computing \eqn{\sqrt{g^\top V g}} where \eqn{V} is
+//'     the full parameter covariance above; \code{NA} if any perturbed \code{md}
+//'     evaluation is non-finite (e.g. a perturbed \eqn{\alpha} violates
+//'     monotonicity) or the resulting variance is negative/non-finite.
+//' }
+//' Unlike the sandwich-based post-fit helpers elsewhere in this package (e.g.
+//' \code{\link{gcomp_logistic_post_fit_cpp}}), the covariance here comes purely
+//' from the model's observed information and does not attempt to be robust to
+//' misspecification.
+//'
+//' @param X_fit Numeric matrix of predictors used to fit the model.
+//' @param y Numeric vector of the ordinal responses used to fit the model
+//'   (needed to reconstruct the \code{OrdinalRegression} likelihood for the
+//'   Hessian; only categorization, not numeric coding, matters).
+//' @param coef_hat Numeric vector of fitted proportional-odds regression
+//'   coefficients \eqn{\hat\beta}, same length and column order as \code{X_fit}.
+//' @param alpha_hat Numeric vector of the \eqn{K-1} fitted, increasing category
+//'   thresholds \eqn{\hat\alpha_1, \ldots, \hat\alpha_{K-1}}.
+//' @param j_treat 1-based column index of the treatment indicator in \code{X_fit}.
+//' @return A list with elements \code{vcov} (model-based covariance of
+//'   \eqn{\hat\beta}), \code{std_err}, \code{z_vals} (both length \code{p}, one
+//'   per column of \code{X_fit}), \code{mean1}, \code{mean0}, \code{md}
+//'   (\code{mean1 - mean0}), and \code{se_md} (delta-method SE of \code{md}).
+//'   Errors (via \code{stop()}) if \code{j_treat} is out of bounds, the
+//'   dimensions of \code{y}/\code{coef_hat} are inconsistent with \code{X_fit},
+//'   the Hessian is not invertible, or the resulting covariance has any
+//'   non-finite entry.
+//' @seealso \code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}} for the
+//'   point-estimate-only variant (no \code{y}, no Hessian, no inference) that
+//'   this function's point estimates match; \code{\link{fast_ordinal_regression_cpp}}
+//'   for the fitting routine that produces \code{coef_hat}/\code{alpha_hat}.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -499,13 +671,78 @@ List ordinal_gcomp_post_fit_cpp(const Rcpp::NumericMatrix& X_fit,
         .set("se_md", se_md));
 }
 
-//' @title Expand Continuation Ratio Data (C++)
-//' @description Utility to expand ordinal data for continuation ratio regression.
-//' @param y Vector of responses.
-//' @param w Vector of treatment indicators.
-//' @param strata Vector of strata.
-//' @param K Number of categories.
-//' @return A list with expanded y, w, and strata.
+//' Expand Ordinal Data into Stacked Binary Comparisons for Continuation-Ratio
+//' Regression (C++ Backend)
+//'
+//' Reshapes an ordinal response \code{y} (levels \eqn{1, \dots, K}) into the stacked
+//' binary-outcome, per-cut-stratified form required to fit a (forward) continuation-
+//' ratio logit model as a single conditional (stratified) logistic regression —
+//' the discrete-time-hazard analog for ordinal data — so the package's existing
+//' binary/conditional-logit fitting backends can be reused unchanged rather than
+//' needing a bespoke ordinal solver. This is the continuation-ratio counterpart of
+//' \code{expand_adjacent_category_data_cpp()}; the two share the same stacking and
+//' combined-stratum trick but differ in which rows each subject contributes (see
+//' Details).
+//'
+//' @details
+//' \strong{Model.} The continuation-ratio model treats reaching each successive
+//' category as a sequence of conditional "continue past this cut" events, analogous
+//' to a discrete-time survival/hazard model: for cut \eqn{j = 1, \dots, K-1}, among
+//' subjects who have reached at least category \eqn{j} (\eqn{Y \ge j}),
+//' \deqn{\log\frac{\Pr(Y = j \mid Y \ge j)}{\Pr(Y > j \mid Y \ge j)} = \alpha_j + \beta^\top x,}
+//' i.e. the log-odds of "stopping" (being observed) exactly at category \eqn{j}
+//' versus "continuing" past it, given the subject has reached at least \eqn{j}, with
+//' a cut-specific intercept \eqn{\alpha_j} and covariate effects \eqn{\beta}
+//' constrained equal across cuts (the proportional continuation-ratio assumption).
+//' Unlike the adjacent-category model (which only compares the two categories
+//' immediately flanking a cut), every subject contributes to every cut up to and
+//' including the one at which they are observed to stop.
+//'
+//' \strong{Expansion mechanics.} For each subject \eqn{i} with observed category
+//' \code{y[i]}, a stacked row is emitted for every cut
+//' \eqn{j = 1, \dots, \min(\code{y[i]}, K-1)}: the stacked binary outcome is \code{1}
+//' ("stopped here") if \code{y[i] == j}, and \code{0} ("continued past") for every
+//' earlier cut the subject passed through. A subject observed at the top category
+//' (\code{y[i] == K}) contributes a \code{0} at every one of the \code{K - 1} cuts
+//' (having "survived" all of them without stopping); a subject observed at category
+//' \code{j <= K - 1} contributes \code{0}s for cuts \code{1:(j-1)} and a single
+//' \code{1} at cut \code{j}, then no further rows (later cuts are irrelevant once a
+//' subject has already stopped). As in \code{expand_adjacent_category_data_cpp()},
+//' the stacked stratum ID is \code{strata[i] + (j - 1) * num_strata} (with
+//' \code{num_strata = max(strata)}): fitting a conditional logistic regression
+//' stratified on this combined ID and pooling all stacked rows estimates a single
+//' shared treatment coefficient \eqn{\beta} across all cuts, while each (original
+//' stratum, cut) combination absorbs its own nuisance intercept via strata
+//' conditioning.
+//'
+//' \strong{Input conventions.} \code{y} must take integer values in \code{1:K};
+//' \code{w} is passed through unchanged into each stacked row for that subject
+//' (typically the treatment indicator/covariate to estimate a coefficient for);
+//' \code{strata} must be positive integers, with \code{max(strata)} used as the
+//' per-cut stratum-ID offset. No input validation is performed at this layer.
+//'
+//' @param y Integer vector of length \eqn{n}: each subject's ordinal category label,
+//'   in \code{1:K}.
+//' @param w Integer vector of length \eqn{n}: a covariate (typically treatment
+//'   assignment) carried through unchanged into each stacked row for that subject.
+//' @param strata Integer vector of length \eqn{n}: positive-integer stratum/block
+//'   labels; \code{max(strata)} is used as the per-cut stratum-ID offset (see
+//'   Details).
+//' @param K Integer; the number of ordinal categories (so there are \code{K - 1}
+//'   continuation-ratio cuts).
+//' @return A list with components \code{y} (stacked 0/1 "stopped here" outcome),
+//'   \code{w} (stacked covariate, passed through unchanged), and \code{strata}
+//'   (stacked combined stratum-by-cut ID); all three are integer vectors of the
+//'   same, generally-longer-than-\eqn{n} length (each subject contributes between 1
+//'   and \code{K - 1} stacked rows, depending on their observed category).
+//' @seealso \code{expand_adjacent_category_data_cpp()} for the analogous expansion
+//'   used by adjacent-category ordinal models.
+//'   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal regression} for
+//'   orientation; analogous Python API:
+//'   \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels discrete
+//'   models} (no direct continuation-ratio equivalent; the closest analog is fitting
+//'   the expanded data as a conditional/grouped logit, or discrete-time survival
+//'   packages).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -541,13 +778,76 @@ List expand_continuation_ratio_data_cpp(const Rcpp::IntegerVector& y, const Rcpp
     );
 }
 
-//' @title Expand Adjacent Category Data (C++)
-//' @description Utility to expand ordinal data for adjacent category logit regression.
-//' @param y Vector of responses.
-//' @param w Vector of treatment indicators.
-//' @param strata Vector of strata.
-//' @param K Number of categories.
-//' @return A list with expanded y, w, and strata.
+//' Expand Ordinal Data into Stacked Binary Comparisons for Adjacent-Category Logit
+//' Regression (C++ Backend)
+//'
+//' Reshapes an ordinal response \code{y} (levels \eqn{1, \dots, K}) into the stacked
+//' binary-outcome, per-cut-stratified form required to fit an adjacent-category logit
+//' model as a single conditional (stratified) logistic regression, so the package's
+//' existing binary/conditional-logit fitting backends can be reused unchanged for
+//' ordinal adjacent-category models rather than needing a bespoke ordinal solver.
+//'
+//' @details
+//' \strong{Model.} The adjacent-category logit model compares each pair of
+//' consecutive categories \eqn{j} and \eqn{j+1} (\eqn{j = 1, \dots, K-1}) via
+//' \deqn{\log\frac{\Pr(Y = j+1 \mid Y \in \{j, j+1\})}{\Pr(Y = j \mid Y \in \{j, j+1\})} = \alpha_j + \beta^\top x,}
+//' i.e. a logistic model for "category \eqn{j+1} vs. category \eqn{j}" fit using only
+//' the subjects actually observed in one of those two categories, with a
+//' cut-specific intercept \eqn{\alpha_j} and covariate effects \eqn{\beta} constrained
+//' equal across all \eqn{K-1} cuts (the proportional/parallel adjacent-category
+//' assumption). This differs from the cumulative-logit (proportional-odds) model,
+//' which instead compares \eqn{Y \le j} vs. \eqn{Y > j} using \emph{every} subject at
+//' every cut.
+//'
+//' \strong{Expansion mechanics.} For each subject \eqn{i} and each cut
+//' \eqn{j = 1, \dots, K-1} (\code{n_alpha = K - 1}), a stacked row is emitted
+//' \strong{only if} \code{y[i]} equals \eqn{j} or \eqn{j+1}; subjects at any other
+//' level contribute nothing to that cut's comparison (so each subject contributes to
+//' at most 2 of the \eqn{K-1} cuts: the ones immediately adjacent to their observed
+//' level, and exactly 1 cut if at an extreme level). The stacked binary outcome is
+//' \code{1} if \code{y[i] == j + 1} (upper category) and \code{0} if
+//' \code{y[i] == j} (lower category). The stacked stratum ID is
+//' \code{strata[i] + (j - 1) * num_strata} (where \code{num_strata = max(strata)}),
+//' i.e. the original stratum crossed with the cut index \eqn{j}: fitting a
+//' conditional logistic regression stratified on this combined ID and pooling all
+//' stacked rows together estimates a \emph{single shared} treatment coefficient
+//' \eqn{\beta} across all cuts, while allowing each (original stratum, cut)
+//' combination to absorb its own nuisance intercept via strata conditioning (the same
+//' stratified-conditional-logit trick used elsewhere in the package, e.g. for
+//' continuation-ratio models via \code{expand_continuation_ratio_data_cpp()}).
+//'
+//' \strong{Input conventions.} \code{y} must take integer values in
+//' \code{1:K} (1-based category labels); \code{w} is typically the treatment
+//' indicator/covariate to estimate a coefficient for, passed through unchanged per
+//' stacked row (not itself expanded/transformed); \code{strata} must be positive
+//' integers with \code{max(strata) == num_strata} (no gaps assumed beyond that
+//' maximum, since combined stratum IDs are computed by simple integer arithmetic on
+//' \code{num_strata}, not by re-indexing distinct values). No input validation is
+//' performed at this layer (no range/type checks on \code{y}/\code{strata}); passing
+//' out-of-range values silently produces incorrect stratum IDs or drops rows rather
+//' than erroring.
+//'
+//' @param y Integer vector of length \eqn{n}: each subject's ordinal category label,
+//'   in \code{1:K}.
+//' @param w Integer vector of length \eqn{n}: a covariate (typically treatment
+//'   assignment) carried through unchanged into each stacked row for that subject.
+//' @param strata Integer vector of length \eqn{n}: positive-integer stratum/block
+//'   labels; \code{max(strata)} is used as the per-cut stratum-ID offset (see
+//'   Details).
+//' @param K Integer; the number of ordinal categories (so there are \code{K - 1}
+//'   adjacent-category cuts).
+//' @return A list with components \code{y} (stacked 0/1 binary outcome), \code{w}
+//'   (stacked covariate, passed through unchanged), and \code{strata} (stacked
+//'   combined stratum-by-cut ID); all three are integer vectors of the same,
+//'   generally-longer-than-\eqn{n} length (each subject contributes 0, 1, or 2
+//'   stacked rows depending on their observed category).
+//' @seealso \code{expand_continuation_ratio_data_cpp()} for the analogous expansion
+//'   used by continuation-ratio ordinal models.
+//'   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal regression} for
+//'   orientation; analogous Python API:
+//'   \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels discrete
+//'   models} (no direct adjacent-category equivalent; the closest analog is fitting
+//'   the expanded data as a conditional/grouped logit).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]

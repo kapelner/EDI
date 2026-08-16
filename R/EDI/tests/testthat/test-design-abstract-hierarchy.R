@@ -23,6 +23,8 @@ test_that("plain DesignFixed supports analysis but not redraw-based resampling",
 	des$add_all_subject_responses(c(1, 3, 2, 4))
 
 	expect_false(des$supports_resampling())
+	expect_false(des$supports_randomization_draw())
+	expect_false(des$supports_resampling_replay())
 	expect_error(des$assign_w_to_all_subjects(), "draw_ws_raw must be implemented")
 
 	inf = InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
@@ -35,7 +37,7 @@ test_that("plain DesignFixed supports analysis but not redraw-based resampling",
 	)
 	expect_error(
 		inf$compute_rand_two_sided_pval(r = 11),
-		"Randomization inference is not available for plain DesignFixed objects"
+		"Randomization inference is not available for this design"
 	)
 
 	# Test matched pair ID setter

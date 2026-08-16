@@ -8,6 +8,18 @@ InferenceAlwaysFailsPval <- R6::R6Class(
 	)
 )
 
+test_that("unregistered inference subclasses inherit ancestor capabilities", {
+	des = DesignSeqOneByOneBernoulli$new(n = 4L, response_type = "continuous")
+	for (i in seq_len(4L)) {
+		des$add_one_subject_to_experiment_and_assign(data.frame(x = i))
+	}
+	des$add_all_subject_responses(c(0, 2, 1, 3))
+
+	inf = InferenceAlwaysFailsPval$new(des, verbose = FALSE)
+	expect_identical(inf$capabilities(), EDI:::get_effective_capabilities("InferenceAllSimpleMeanDiff"))
+	expect_true(inf$supports("wald")[["wald"]])
+})
+
 test_that("SimulationFramework accepts merged design classes and params", {
 	set.seed(20260429)
 	sim <- SimulationFramework$new(

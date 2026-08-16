@@ -57,18 +57,10 @@ test_that("static cleanup guardrail prevents new eval(body(Inference...)) usage"
 	)
 	matches = static_cleanup_matches("eval\\s*\\(\\s*body\\s*\\(\\s*Inference")
 	expected = c(
-		"R/EDI/R/inference_all_abstract_KK_passthrough_compound.R" = 1L,
-		"R/EDI/R/inference_all_KK_quantile_regr_ivwc_abstract.R" = 1L,
-		"R/EDI/R/inference_continuous_KK_ols_ivwc.R" = 1L,
 		"R/EDI/R/inference_count_KK_cond_poisson.R" = 3L,
 		"R/EDI/R/inference_incidence_KK_cond_logit.R" = 2L,
-		"R/EDI/R/inference_incidence_KK_cond_logit_glmm_abstract.R" = 1L,
-		"R/EDI/R/inference_incidence_KK_marginal_abstract.R" = 1L,
-		"R/EDI/R/inference_ordinal_KK_clmm_abstract.R" = 1L,
-		"R/EDI/R/inference_ordinal_KK_cond_adj_cat_logit.R" = 1L,
 		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 2L,
 		"R/EDI/R/inference_survival_KK_lwa_cox_ivwc_abstract.R" = 1L,
-		"R/EDI/R/inference_survival_KK_lwa_cox_one_lik_abstract.R" = 1L,
 		"R/EDI/R/inference_survival_KK_rank_regr_ivwc_abstract.R" = 1L,
 		"R/EDI/R/inference_survival_KK_strat_cox.R" = 2L,
 		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 2L,
@@ -87,29 +79,21 @@ test_that("static cleanup guardrail prevents new raw component splicing", {
 		"\\b(Inference(?:Ext|Mixin)[A-Za-z0-9_]+\\$(public|private)|inference_[A-Za-z0-9_]+_(?:components\\$(?:public|private)|private))\\b"
 	)
 	expected = c(
-		"R/EDI/R/inference_all_abstract_KK_passthrough_compound.R" = 5L,
+		"R/EDI/R/inference_all_abstract_KK_passthrough_compound.R" = 4L,
 		"R/EDI/R/inference_all_abstract_asymp_lik.R" = 1L,
-		"R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R" = 3L,
-		"R/EDI/R/inference_all_abstract_count_likelihood.R" = 3L,
+		"R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R" = 4L,
+		"R/EDI/R/inference_all_abstract_count_likelihood.R" = 4L,
 		"R/EDI/R/inference_all_abstract_non_param_boot.R" = 7L,
 		"R/EDI/R/inference_all_abstract_param_boot.R" = 1L,
-		"R/EDI/R/inference_all_abstract_quantile_rand_ci.R" = 2L,
 		"R/EDI/R/inference_all_abstract_rand.R" = 1L,
-		"R/EDI/R/inference_all_KK_quantile_regr_ivwc_abstract.R" = 1L,
-		"R/EDI/R/inference_continuous_KK_glmm.R" = 2L,
-		"R/EDI/R/inference_continuous_KK_ols_ivwc.R" = 1L,
-		"R/EDI/R/inference_count_KK_combined.R" = 2L,
+		"R/EDI/R/inference_count_composite_likelihood.R" = 3L,
 		"R/EDI/R/inference_count_KK_cond_poisson.R" = 9L,
 		"R/EDI/R/inference_incidence_KK_cond_logit.R" = 4L,
-		"R/EDI/R/inference_incidence_KK_cond_logit_glmm_abstract.R" = 3L,
-		"R/EDI/R/inference_incidence_KK_marginal_abstract.R" = 3L,
-		"R/EDI/R/inference_ordinal_KK_clmm_abstract.R" = 3L,
+		"R/EDI/R/inference_incidence_KK_marginal_abstract.R" = 2L,
 		"R/EDI/R/inference_ordinal_KK_combined.R" = 2L,
-		"R/EDI/R/inference_ordinal_KK_cond_adj_cat_logit.R" = 3L,
-		"R/EDI/R/inference_ordinal_paired_sign_test.R" = 2L,
 		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 4L,
 		"R/EDI/R/inference_survival_KK_lwa_cox_ivwc_abstract.R" = 1L,
-		"R/EDI/R/inference_survival_KK_lwa_cox_one_lik_abstract.R" = 3L,
+		"R/EDI/R/inference_survival_KK_lwa_cox_one_lik_abstract.R" = 2L,
 		"R/EDI/R/inference_survival_KK_rank_regr_ivwc_abstract.R" = 1L,
 		"R/EDI/R/inference_survival_KK_strat_cox.R" = 4L,
 		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 4L,
@@ -134,4 +118,35 @@ test_that("static cleanup guardrail bans R6 generator private member reads", {
 	)
 
 	expect_equal(nrow(matches), 0L)
+})
+
+test_that("semantic classification through private is_a method probes cannot grow", {
+	skip_if(
+		length(static_cleanup_source_files()) == 0L,
+		"no readable per-file .R source found from this test's working directory"
+	)
+	matches = static_cleanup_matches(
+		"(has_private_method|object_has_private_method)\\s*\\(\\s*\"is_a_[A-Za-z0-9_]+\""
+	)
+	expected = c("R/EDI/R/inference_all_abstract_rand.R" = 2L)
+	expect_identical(static_cleanup_file_counts(matches), expected)
+})
+
+test_that("component redeclarations of root-owned state cannot grow", {
+	root_state = names(EDI:::Inference$private_fields)
+	actual = lapply(EDI:::EDI_COMPONENT_SPECS, function(spec) {
+		sort(intersect(spec$owns_state, root_state))
+	})
+	actual = actual[lengths(actual) > 0L]
+	expected = list(
+		SurvivalKKWeibullMarginal = sort(c("m", "y_temp", "dead", "w", "X", "any_censoring", "optimization_alg")),
+		SurvivalKKClaytonCopulaIVWC = "optimization_alg",
+		SurvivalKKClaytonCopulaOneLik = sort(c("m", "y_temp", "dead", "w", "X", "any_censoring", "optimization_alg")),
+		SurvivalKKWeibullFrailtyIVWC = sort(c("optimization_alg", "any_censoring", "m")),
+		SurvivalKKWeibullFrailtyOneLik = sort(c("m", "y_temp", "dead", "w", "X", "optimization_alg")),
+		KKGEE = "m",
+		KKGLMM = sort(c("m", "optimization_alg")),
+		KKPassThrough = sort(c("m", "y_temp", "dead", "w", "X", "any_censoring", "optimization_alg"))
+	)
+	expect_identical(actual, expected)
 })

@@ -1,9 +1,60 @@
-#' A Fixed Design Combining Binary Matching and Greedy Pair Switching
+#' A Fixed, Matched-Pair Design with Greedy Which-Member-Treated Optimization
 #'
-#' An R6 class encapsulating a fixed experimental design that first computes
-#' binary matches and then improves the matched design with greedy pair switching
-#' using a native C++ implementation.
+#' A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} that combines
+#' \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}'s non-bipartite
+#' matched-pair structure with \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}'s
+#' greedy imbalance-minimization search, restricted so every move respects the pairing:
+#' subjects are first paired by covariate closeness (as in
+#' \code{DesignFixedBinaryMatch}), guaranteeing exactly one treated and one control
+#' subject per pair; then, rather than assigning within-pair treatment status by a coin
+#' flip, the greedy search (\code{greedy_design_search_cpp()}, pair-constrained mode)
+#' chooses \emph{which} member of each pair is treated so as to directly minimize the
+#' same aggregate covariate-imbalance objective as
+#' \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}} (squared Mahalanobis distance
+#' or sum of absolute standardized mean differences between the treated and control
+#' group means) across the \emph{whole} sample, not just within each pair. This targets
+#' both close within-pair matches (from the matching step) and low aggregate covariate
+#' imbalance (from the greedy refinement) simultaneously — a strictly more constrained
+#' search than plain \code{DesignFixedGreedy}, since only the \eqn{2^{n/2}}
+#' which-member-treated assignments consistent with the fixed pairing are considered,
+#' rather than all \eqn{\binom{n}{n/2}} balanced allocations.
 #'
+#' @details
+#' \strong{Search algorithm.} Pairing is computed by
+#' \code{compute_binary_match_structure()} exactly as in
+#' \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}} (Mahalanobis or
+#' Euclidean distance per \code{objective}), lazily on first draw and cached in
+#' \code{private$bms}. Given the pairing, each replicate search initializes with a
+#' random coin flip per pair (which member starts treated), then in exhaustive mode
+#' (\code{n_iter = Inf}, default) repeatedly finds and applies the single pair-flip that
+#' most decreases the imbalance objective, stopping at a strict local optimum (or runs
+#' exactly \code{n_iter} random-pair stochastic flip-if-improving steps otherwise, with
+#' patience-based early stopping) — the same two search modes as
+#' \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}, but with moves restricted to
+#' "flip which side of a given pair is treated" rather than "swap any treated/control
+#' pair of subjects." Random initialization and swap selection are seeded from R's own
+#' RNG (via \code{greedy_design_search_cpp()}'s per-thread seeding), so \code{seed} does
+#' govern reproducibility here.
+#'
+#' \strong{Pair-preserving bootstrap.} \code{draw_bootstrap_indices()} resamples whole
+#' matched pairs (via \code{draw_matching_bootstrap_sample_cpp()}) rather than
+#' individual subjects, since the greedy search only ever flips which member of a pair
+#' is treated (never crosses pairs), so \eqn{w} always has exactly one treated subject
+#' per pair — the pair, not the subject, is the exchangeable resampling unit.
+#'
+#' \strong{Constraints.} Only \code{prob_T = 0.5} is supported (the constructor errors
+#' otherwise), and \code{n} must be divisible by 4 (\code{draw_ws_raw()} errors
+#' otherwise); \code{n/2} matched pairs are formed regardless of parity, but the
+#' additional divisible-by-4 requirement is enforced by this class specifically (unlike
+#' \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}, which only requires
+#' even \code{n}).
+#'
+#' @references Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random
+#'   designs with greatly improved balance." \emph{Biometrika}, 106(3), 695-701,
+#'   \doi{10.1093/biomet/asz026}; Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P.
+#'   (2004). "Optimal multivariate matching before randomization."
+#'   \emph{Biostatistics}, 5(2), 263-275, \doi{10.1093/biostatistics/5.2.263}, for the
+#'   matched-pair design this class refines.
 #' @examples
 #' \dontrun{
 #' des = DesignFixedMatchingGreedyPairSwitching$new(n = 10, response_type = 'continuous')
@@ -12,16 +63,22 @@
 DesignFixedMatchingGreedyPairSwitching = R6::R6Class("DesignFixedMatchingGreedyPairSwitching",
 	inherit = DesignFixed,
 	public = list(
-		#' @description Initialize a fixed design that performs binary matching followed by greedy pair switching.
+		#' @description Initialize a fixed design that performs binary matching followed
+		#'   by greedy which-member-treated optimization (see class documentation).
+		#'   Only \code{prob_T = 0.5} is supported, and \code{n} must be divisible by 4.
 		#'
 		#' @param response_type The data type of response values.
 		#' @param prob_T The probability of treatment assignment. Must be \code{0.5}.
 		#' @param include_is_missing_as_a_new_feature Flag for missingness indicators.
-		#' @param n The sample size.
+		#' @param n The sample size; must be divisible by 4.
 		#' @param verbose A flag for verbosity.
 		#' @param missingness_method How to handle missing values in covariates.
 		#' @param design_formula A formula object.
-		#' @param objective The imbalance objective. Either \code{"mahal_dist"} (default) or \code{"abs_sum_diff"}.
+		#' @param objective The covariate-imbalance objective to minimize when choosing
+		#'   which pair member is treated: either \code{"mahal_dist"} (default, squared
+		#'   Mahalanobis distance between treated/control means, also used as the
+		#'   matching distance) or \code{"abs_sum_diff"} (sum of absolute standardized
+		#'   mean differences); see class documentation for the exact criteria.
 		#' @param n_iter Number of swap iterations. \code{Inf} (default) uses exhaustive
 		#'   best-improvement search guaranteed to reach a strict local optimum. A positive
 		#'   integer runs that many stochastic random-pair iterations with patience-based
@@ -55,9 +112,14 @@ DesignFixedMatchingGreedyPairSwitching = R6::R6Class("DesignFixedMatchingGreedyP
 			private$n_iter    = n_iter
 			private$uses_covariates = TRUE
 		},
-		#' @description Whether this design supports batch pregeneration of treatment vectors.
+		#' @description Returns \code{TRUE} so the calling framework pre-generates all
+		#'   replicate \code{w} vectors for a simulation cell in one batched call to
+		#'   \code{greedy_design_search_cpp()}, paying the one-time \pkg{nbpMatching}
+		#'   pairing cost once per cell (cached in \code{private$bms}) and reusing it
+		#'   across all replicates and the OpenMP-parallelized greedy searches, rather
+		#'   than recomputing the pairing per replicate.
 		#'
-		#' @return \code{TRUE}.
+		#' @return Always \code{TRUE} for this class.
 		supports_batch_w_pregeneration = function() TRUE
 	),
 	private = list(
@@ -110,40 +172,17 @@ DesignFixedMatchingGreedyPairSwitching = R6::R6Class("DesignFixedMatchingGreedyP
 			pairs_mat = private$bms$indicies_pairs
 			storage.mode(pairs_mat) = "integer"
 			cpp_n_iter = if (is.infinite(private$n_iter)) -1L else as.integer(private$n_iter)
-			w_mat = greedy_design_search_cpp(
+			# Trusted unvalidated (fix_design_hierarchy.md, "AllocationMatrixValidation"):
+			# greedy_design_search_cpp always returns exactly n x r valid {0,1} columns
+			# by construction, so the post-search shape/finite/balance checks this class
+			# used to run were dead code that never fired.
+			greedy_design_search_cpp(
 				X_raw          = X,
 				r              = as.integer(r),
 				objective      = private$objective,
 				n_iter         = cpp_n_iter,
 				indicies_pairs = pairs_mat
 			)
-			storage.mode(w_mat) = "numeric"
-			private$validate_allocation_matrix(w_mat, n = n, r = r)
-		},
-		validate_allocation_matrix = function(w_mat, n, r){
-			if (is.vector(w_mat)) {
-				w_mat = matrix(w_mat, nrow = n, ncol = 1)
-			}
-			if (should_run_asserts()) {
-				if (!is.matrix(w_mat) || nrow(w_mat) != n || ncol(w_mat) < r) {
-					stop("DesignFixedMatchingGreedyPairSwitching returned an unexpected allocation matrix shape.")
-				}
-			}
-			w_mat = w_mat[, seq_len(r), drop = FALSE]
-			storage.mode(w_mat) = "numeric"
-			if (should_run_asserts()) {
-				if (any(!is.finite(w_mat)) || any(is.na(w_mat))) {
-					stop("DesignFixedMatchingGreedyPairSwitching returned non-finite treatment assignments.")
-				}
-				if (any(!(w_mat %in% c(0, 1)))) {
-					stop("DesignFixedMatchingGreedyPairSwitching returned an invalid treatment assignment matrix.")
-				}
-				treated_counts = colSums(w_mat)
-				if (any(treated_counts != n / 2)) {
-					stop("DesignFixedMatchingGreedyPairSwitching returned an unbalanced allocation.")
-				}
-			}
-			w_mat
 		}
 	)
 )

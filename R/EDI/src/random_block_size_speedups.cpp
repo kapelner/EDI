@@ -1,4 +1,5 @@
 #include <Rcpp.h>
+#include "RNG.h"
 #include <algorithm>
 #include <random>
 #include <vector>
@@ -12,13 +13,12 @@ NumericVector random_block_size_redraw_w_cpp(SEXP strata_keys_sexp, SEXP block_s
     CharacterVector strata_keys = as<CharacterVector>(strata_keys_sexp);
     IntegerVector block_sizes = as<IntegerVector>(block_sizes_sexp);
     double prob_T = as<double>(prob_T_sexp);
-    
+
     int n = strata_keys.size();
     NumericVector w(n);
     std::map<std::string, std::vector<double>> strata_blocks;
-    
-    static std::random_device rd;
-    static std::mt19937 g(rd());
+
+    edi_rng::RRng g(edi_rng::seed_from_unif01(R::unif_rand()));
     std::uniform_int_distribution<> block_dist(0, block_sizes.size() - 1);
 
     for (int i = 0; i < n; ++i) {

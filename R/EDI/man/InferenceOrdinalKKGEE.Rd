@@ -4,9 +4,21 @@
 \alias{InferenceOrdinalKKGEE}
 \title{GEE Inference for KK Designs with Ordinal Response}
 \description{
-Fits a Generalized Estimating Equations (GEE) model (using \pkg{multgee})
-for ordinal responses under a KK matching-on-the-fly design using the
-treatment indicator and, optionally, all recorded covariates as predictors.
+Fits a \strong{proportional-odds local-odds-ratio} Generalized Estimating
+Equations model, via \code{multgee::ordLORgee}, for ordinal responses under a
+KK matching-on-the-fly design, using the treatment indicator and,
+optionally, all recorded covariates as predictors. Each GEE cluster is
+either a matched pair (2 members) or a reservoir singleton (1 member) — GEE
+is used here purely to fit one marginal cumulative-logit model jointly
+across matched-pair and reservoir subjects while accounting for the
+within-pair correlation the matching induces, not as a
+longitudinal/repeated-measures tool. Unlike the other \verb{Inference*KKGEE}
+classes in this family (continuous/count/incidence/proportion, which use an
+internal Rcpp solver or \code{geepack::geeglm} with an exchangeable working
+correlation), this ordinal class always requires the \pkg{multgee} package
+and has no \code{use_rcpp} option. Inference is quasi-likelihood/
+estimating-equation based (\code{likelihood_tier = "quasi"}): standard
+errors are GEE sandwich (robust) standard errors, not model-likelihood-based.
 }
 \examples{
 \donttest{
@@ -19,89 +31,32 @@ inf = InferenceOrdinalKKGEE$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceOrdinalKKGEE}
+\references{
+Touloumis, A. (2015). "R Package multgee: A Generalized
+  Estimating Equations Solver for Multinomial Responses." \emph{Journal of
+  Statistical Software}, 64(8), 1-14, \doi{10.18637/jss.v064.i08}, for the
+  local-odds-ratio GEE solver used here; Liang, K.-Y., and Zeger, S. L.
+  (1986). "Longitudinal Data Analysis Using Generalized Linear Models."
+  \emph{Biometrika}, 73(1), 13-22, \doi{10.1093/biomet/73.1.13}, for the
+  underlying GEE estimating-equation framework.
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceOrdinalKKGEE}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-InferenceOrdinalKKGEE-initialize}{\code{InferenceOrdinalKKGEE$new()}}
-    \item \href{#method-InferenceOrdinalKKGEE-compute_estimate}{\code{InferenceOrdinalKKGEE$compute_estimate()}}
-    \item \href{#method-InferenceOrdinalKKGEE-compute_asymp_confidence_interval}{\code{InferenceOrdinalKKGEE$compute_asymp_confidence_interval()}}
-    \item \href{#method-InferenceOrdinalKKGEE-compute_asymp_two_sided_pval}{\code{InferenceOrdinalKKGEE$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferenceOrdinalKKGEE-compute_estimate_with_bootstrap_weights}{\code{InferenceOrdinalKKGEE$compute_estimate_with_bootstrap_weights()}}
-    \item \href{#method-InferenceOrdinalKKGEE-approximate_bootstrap_distribution_beta_hat_T}{\code{InferenceOrdinalKKGEE$approximate_bootstrap_distribution_beta_hat_T()}}
     \item \href{#method-InferenceOrdinalKKGEE-clone}{\code{InferenceOrdinalKKGEE$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -126,8 +81,10 @@ inf$compute_estimate()
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGEE-initialize}{}}}
 \subsection{\code{InferenceOrdinalKKGEE$new()}}{
   Initialize KK ordinal GEE inference, validate the ordinal
-  matched/reservoir design, and prepare the working estimating-equation
-  model used by \code{\link[EDI:InferenceOrdinalKKGEE]{InferenceOrdinalKKGEE}}.
+  matched/reservoir design, and prepare the \code{multgee::ordLORgee}
+  proportional-odds local-odds-ratio GEE fitting machinery used by
+  \code{\link[EDI:InferenceOrdinalKKGEE]{InferenceOrdinalKKGEE}}. Requires
+  the \pkg{multgee} package; errors at construction if it is not installed.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKGEE$new(
@@ -154,73 +111,24 @@ design's imputed covariates.}
 }
 
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalKKGEE-compute_estimate"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGEE-compute_estimate}{}}}
-\subsection{\code{InferenceOrdinalKKGEE$compute_estimate()}}{
-  Compute the KK ordinal GEE treatment-effect estimate by
-  fitting the working estimating-equation model and caching the treatment
-  coefficient for related \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}
-  methods.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalKKGEE$compute_estimate(estimate_only = FALSE)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{estimate_only}}{Whether to skip standard-error calculations.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalKKGEE-compute_asymp_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGEE-compute_asymp_confidence_interval}{}}}
-\subsection{\code{InferenceOrdinalKKGEE$compute_asymp_confidence_interval()}}{
-  Uses the shared asymptotic confidence-interval contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalKKGEE$compute_asymp_confidence_interval(alpha = 0.05)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Confidence level.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalKKGEE-compute_asymp_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGEE-compute_asymp_two_sided_pval}{}}}
-\subsection{\code{InferenceOrdinalKKGEE$compute_asymp_two_sided_pval()}}{
-  Uses the shared asymptotic two-sided p-value contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalKKGEE$compute_asymp_two_sided_pval(delta = 0)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Null treatment effect value.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceOrdinalKKGEE-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGEE-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceOrdinalKKGEE$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the KK ordinal GEE treatment estimate under
-  Bayesian-bootstrap weights.
+  Recomputes the KK ordinal treatment estimate under
+  subject/block bootstrap weights, used by the Bayesian bootstrap and
+  related weighted-resampling machinery. If the supplied weights are all
+  (numerically) equal, this short-circuits to the unweighted
+  \code{$compute_estimate(estimate_only = TRUE)} (the \code{multgee}
+  proportional-odds GEE fit) rather than refitting. Otherwise, since
+  \code{multgee::ordLORgee} does not support observation weights, this
+  falls back to a \strong{different, approximating} model: a plain
+  (non-GEE, no matched-pair clustering) weighted proportional-odds
+  ordinal logistic regression via
+  \code{\link{fast_ordinal_regression_weighted_cpp}}, treating the
+  coefficient on the first predictor column as the treatment effect.
+  This always leaves the standard error and degrees of freedom
+  unavailable (\code{s_beta_hat_T = NA}, \code{df = Inf}) regardless of
+  \code{estimate_only}, since it is a point-estimate-only fallback path.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKGEE$compute_estimate_with_bootstrap_weights(
@@ -235,40 +143,10 @@ design's imputed covariates.}
       \item{\code{subject_or_block_weights}}{Subject-, block-, cluster-, or matched-set
 bootstrap weights.}
       \item{\code{estimate_only}}{If \code{TRUE}, compute only the weighted point
-estimate.}
+estimate. Has no effect on the weighted (non-uniform-weight) fallback
+path, which never computes a standard error regardless.}
     }
     \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalKKGEE-approximate_bootstrap_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGEE-approximate_bootstrap_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceOrdinalKKGEE$approximate_bootstrap_distribution_beta_hat_T()}}{
-  Uses the shared nonparametric bootstrap distribution contract; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalKKGEE$approximate_bootstrap_distribution_beta_hat_T(
-  B = 501,
-  show_progress = TRUE,
-  debug = FALSE,
-  bootstrap_type = NULL
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{B}}{Number of bootstrap samples.}
-      \item{\code{show_progress}}{Whether to show a progress bar.}
-      \item{\code{debug}}{Whether to return diagnostics.}
-      \item{\code{bootstrap_type}}{Optional resampling scheme.}
-    }
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    A numeric vector of bootstrap estimates.
   }
 }
 

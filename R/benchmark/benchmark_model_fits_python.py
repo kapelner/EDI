@@ -95,7 +95,12 @@ def _bootstrap_edi_kernels():
     global EDI_PY_AVAILABLE, _edi_core
     import subprocess
     build_dir = "/tmp/edi_py_build_check"
-    python_pkg_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "python")
+    # __file__ is R/benchmark/benchmark_model_fits_python.py; python/ is a
+    # sibling of R/ at the repo root, i.e. two levels up, not one -- a stale
+    # single ".." left over from before this repo's R/ reorganization (see
+    # git history) silently pointed this at a nonexistent R/python and made
+    # every EDI column NA, masked by this function's own except-and-warn.
+    python_pkg_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "python")
     try:
         import pybind11
         pybind11_dir = pybind11.get_cmake_dir()
@@ -518,11 +523,60 @@ def build_weibull_aft():
                         **{f"x{i}": d["X"][:, i] for i in range(d["X"].shape[1])}})
     canonical = lambda: WeibullAFTFitter().fit(df, duration_col="y", event_col="dead")
     edi_closure = None
-    if edi_has("fast_weibull_regression"):
-        fn = edi_fn("fast_weibull_regression")
+    # fast_weibull_regression was renamed/replaced by fast_weibull_regression_general
+    # (interval_censored_survival_response.md TODO-18/19/20/21) -- the old name
+    # no longer exists, which silently disabled this row's EDI-side timing until
+    # fixed here. y_exact/y_L/y_R follow that migration's (y, dead) -> bounds
+    # conversion (dead == 1 -> exact y; dead == 0 -> y_L = y, y_R = inf).
+    if edi_has("fast_weibull_regression_general"):
+        fn = edi_fn("fast_weibull_regression_general")
         Xf = f_order(Xo)
         dead_f = dead.astype(float)
-        edi_closure = lambda: fn(Xf, y, dead_f, estimate_only=True)
+        y_exact = np.where(dead_f != 0, y, np.nan)
+        y_L = np.where(dead_f == 0, y, np.nan)
+        y_R = np.where(dead_f == 0, np.inf, np.nan)
+        edi_closure = lambda: fn(Xf, y_exact, y_L, y_R, estimate_only=True)
+    return canonical, edi_closure
+
+
+def build_weibull_aft_interval():
+    """Genuinely left-/interval-/right-censored comparison (see
+    build_weibull_aft() above for the right-censored-only row) --
+    periodic-inspection-visit design, same shape as python/README_PYPI.md's
+    interval-censoring usage example: the exact event time is never
+    observed, only which scheduled-visit interval it falls in."""
+    d = data_survival()
+    Xo, X = d["Xo"], d["X"]
+    eta = X @ np.array([0.5, -0.3, 0.2, -0.1])[: X.shape[1]]
+    true_event_time = rng.exponential(np.exp(-eta))
+    inspection_times = np.array([0.1, 0.3, 0.6, 1.0, 1.5, 2.2])
+    last_inspection = inspection_times[-1]
+    n = len(true_event_time)
+    y = np.full(n, np.nan)
+    y_L = np.empty(n)
+    y_R = np.empty(n)
+    for i in range(n):
+        t = true_event_time[i]
+        if t > last_inspection:
+            y_L[i], y_R[i] = last_inspection, np.inf
+        else:
+            idx = np.searchsorted(inspection_times, t)
+            if idx == 0:
+                y_L[i], y_R[i] = 0.0, inspection_times[0]
+            else:
+                y_L[i], y_R[i] = inspection_times[idx - 1], inspection_times[idx]
+    lower = np.where(np.isfinite(y), y, y_L)
+    upper = np.where(np.isfinite(y), y, y_R)
+    df = pd.DataFrame({"lower": lower, "upper": upper,
+                        **{f"x{i}": X[:, i] for i in range(X.shape[1])}})
+    canonical = lambda: WeibullAFTFitter().fit_interval_censoring(
+        df, lower_bound_col="lower", upper_bound_col="upper"
+    )
+    edi_closure = None
+    if edi_has("fast_weibull_regression_general"):
+        fn = edi_fn("fast_weibull_regression_general")
+        Xf = f_order(Xo)
+        edi_closure = lambda: fn(Xf, y, y_L, y_R, estimate_only=True)
     return canonical, edi_closure
 
 
@@ -1093,13 +1147,18 @@ def build_weibull_aft_wald():
         return float(row["coef"]), float(row["se(coef)"]), float(row["p"])
 
     edi_closure = None
-    if edi_has("fast_weibull_regression"):
-        fn = edi_fn("fast_weibull_regression")
+    # See build_weibull_aft()'s comment: fast_weibull_regression was renamed/
+    # replaced by fast_weibull_regression_general.
+    if edi_has("fast_weibull_regression_general"):
+        fn = edi_fn("fast_weibull_regression_general")
         Xf = f_order(Xo)
         dead_f = dead.astype(float)
+        y_exact = np.where(dead_f != 0, y, np.nan)
+        y_L = np.where(dead_f == 0, y, np.nan)
+        y_R = np.where(dead_f == 0, np.inf, np.nan)
 
         def edi_closure():
-            res = fn(Xf, y, dead_f, estimate_only=False)
+            res = fn(Xf, y_exact, y_L, y_R, estimate_only=False)
             b0 = float(np.asarray(res["params"])[0])
             se0 = float(np.sqrt(np.asarray(res["vcov"])[0, 0]))
             pval = float(2 * sstats.norm.sf(abs(b0 / se0))) if se0 > 0 else float("nan")
@@ -1408,7 +1467,7 @@ WALD_SPECS = [
     ("count", "InferenceCountZeroInflatedNegBin", "statsmodels", "ZeroInflatedNegativeBinomialP+summary", "fast_zinb_with_var", build_zinb_wald, False),
     ("count", "InferenceCountHurdleNegBin", "statsmodels", "HurdleCountModel(negbin)+summary", "fast_hurdle_negbin_with_var", lambda: build_hurdle_wald("negbin"), False),
     ("count", "InferenceCountQuasiPoisson", "statsmodels", "GLM(Poisson)+summary", "fast_quasipoisson_regression_with_var", build_glm_poisson_wald, False),
-    ("survival", "InferenceSurvivalWeibullRegr", "lifelines", "WeibullAFTFitter+summary", "fast_weibull_regression_with_var", build_weibull_aft_wald, False),
+    ("survival", "InferenceSurvivalWeibullRegr", "lifelines", "WeibullAFTFitter.fit()+summary", "fast_weibull_regression_general", build_weibull_aft_wald, False),
     ("continuous", "InferenceContinRobustRegr", "statsmodels", "RLM+summary", "fast_robust_regression_with_var", build_robust_regr_wald, False),
     ("continuous", "InferenceContinQuantileRegr", "statsmodels", "QuantReg+summary", "(none — EDI's own R class delegates to quantreg::rq; no distinct EDI kernel)", build_quantreg_wald, False),
     ("incidence", "InferenceIncidExactFisher", "scipy", "stats.fisher_exact", "out of python-bindings scope (nonparametric-test kernel)", build_fisher_exact, False),
@@ -1512,7 +1571,8 @@ MODEL_SPECS = [
     ("count", "InferenceCountZeroInflatedNegBin", "statsmodels", "ZeroInflatedNegativeBinomialP", "fast_zinb", build_zinb, False),
     ("count", "InferenceCountHurdleNegBin", "statsmodels", "HurdleCountModel(negbin)", "fast_hurdle_negbin", lambda: build_hurdle("negbin"), False),
     ("count", "InferenceCountQuasiPoisson", "statsmodels", "GLM(Poisson)", "fast_poisson_regression", build_glm_poisson, False),
-    ("survival", "InferenceSurvivalWeibullRegr", "lifelines", "WeibullAFTFitter", "fast_weibull_regression", build_weibull_aft, False),
+    ("survival", "InferenceSurvivalWeibullRegr", "lifelines", "WeibullAFTFitter.fit() (right-censored only)", "fast_weibull_regression_general", build_weibull_aft, False),
+    ("survival", "InferenceSurvivalWeibullRegr", "lifelines", "WeibullAFTFitter.fit_interval_censoring()", "fast_weibull_regression_general (interval-censored)", build_weibull_aft_interval, False),
     ("continuous", "InferenceContinRobustRegr", "statsmodels", "RLM", "fast_robust_regression", build_robust_regr, False),
     ("continuous", "InferenceContinQuantileRegr", "statsmodels", "QuantReg", "(none — EDI's own R class delegates to quantreg::rq.fit; no distinct EDI kernel)", build_quantreg, False),
     ("proportion", "InferencePropFractionalLogit", "statsmodels", "GLM(Binomial, fractional y)", "fast_logistic_regression", build_fractional_logit, False),

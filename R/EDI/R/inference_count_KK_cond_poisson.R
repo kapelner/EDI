@@ -83,9 +83,13 @@ InferenceCountKKHurdlePoissonIVWC = R6::R6Class("InferenceCountKKHurdlePoissonIV
 			}
 			self$set_optimization_alg(optimization_alg, allow_irls = FALSE)
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
-			if (inherits(des_obj, "DesignFixedBinaryMatch")){
-				des_obj$.__enclos_env__$private$ensure_matching_structure_computed()
-			}
+			# Unconditional: ensure_matching_structure_computed() is a no-op by default
+			# (DesignMatching's base implementation) and only DesignFixedBinaryMatch
+			# overrides it with real (lazy) work, so calling it here for every
+			# kk-matching-capable design (already asserted above) is behavior-preserving
+			# and avoids a DesignFixedBinaryMatch class-identity check
+			# (fix_design_hierarchy.md, "Class-Identity Dispatch Replacement").
+			des_obj$.__enclos_env__$private$ensure_matching_structure_computed()
 			private$m = des_obj$.__enclos_env__$private$m
 			private$use_rcpp = use_rcpp
 			if (should_run_asserts()) {
@@ -170,14 +174,10 @@ InferenceCountKKHurdlePoissonIVWC = R6::R6Class("InferenceCountKKHurdlePoissonIV
 		# Extracts the fixed-effect coefficient for "w" directly from the fit.
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			X = private$build_model_matrix()
-			m_vec = private$m
-			if (is.null(m_vec)){
-				m_vec = rep(NA_integer_, nrow(X))
-			}
-			m_vec = as.integer(m_vec)
-			m_vec[is.na(m_vec)] = 0L
-			matched_idx = which(m_vec > 0L)
-			reservoir_idx = which(m_vec <= 0L)
+			split = split_kk_matched_reservoir_idx(private$m, nrow(X))
+			m_vec = split$m_vec
+			matched_idx = split$matched_idx
+			reservoir_idx = split$reservoir_idx
 			beta_m = NA_real_
 			ssq_m = NA_real_
 			if (length(matched_idx) > 0L){
@@ -233,14 +233,10 @@ InferenceCountKKHurdlePoissonIVWC = R6::R6Class("InferenceCountKKHurdlePoissonIV
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
 			X = private$build_model_matrix()
-			m_vec = private$m
-			if (is.null(m_vec)){
-				m_vec = rep(NA_integer_, nrow(X))
-			}
-			m_vec = as.integer(m_vec)
-			m_vec[is.na(m_vec)] = 0L
-			matched_idx = which(m_vec > 0L)
-			reservoir_idx = which(m_vec <= 0L)
+			split = split_kk_matched_reservoir_idx(private$m, nrow(X))
+			m_vec = split$m_vec
+			matched_idx = split$matched_idx
+			reservoir_idx = split$reservoir_idx
 			if (length(matched_idx) > 0L){
 				res_m = private$fit_hurdle_for_matched_pairs(X, matched_idx, m_vec, se = !estimate_only)
 				private$cached_values$beta_T_matched = res_m$beta_hat
@@ -463,9 +459,13 @@ InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoisson
 				}
 			}
 			if (private$has_match_structure) {
-				if (inherits(des_obj, "DesignFixedBinaryMatch")) {
-					des_obj$.__enclos_env__$private$ensure_matching_structure_computed()
-				}
+				# Unconditional: ensure_matching_structure_computed() is a no-op by
+				# default (DesignMatching's base implementation) and only
+				# DesignFixedBinaryMatch overrides it with real (lazy) work, so calling
+				# it here is behavior-preserving and avoids a DesignFixedBinaryMatch
+				# class-identity check (fix_design_hierarchy.md, "Class-Identity
+				# Dispatch Replacement").
+				des_obj$.__enclos_env__$private$ensure_matching_structure_computed()
 				private$m = des_obj$.__enclos_env__$private$m
 				private$compute_basic_match_data()
 			}
@@ -693,12 +693,10 @@ InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoisson
 			as.matrix(X)
 		},
 		build_combined_hurdle_data = function(X_fit, j_treat){
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, nrow(X_fit))
-			m_vec = as.integer(m_vec)
-			m_vec[is.na(m_vec)] = 0L
-			matched_idx = which(m_vec > 0L)
-			reservoir_idx = which(m_vec <= 0L)
+			split = split_kk_matched_reservoir_idx(private$m, nrow(X_fit))
+			m_vec = split$m_vec
+			matched_idx = split$matched_idx
+			reservoir_idx = split$reservoir_idx
 			list(
 				X_fit = X_fit,
 				matched_idx = matched_idx,

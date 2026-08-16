@@ -1,9 +1,25 @@
 #' Jonckheere-Terpstra (JT) Test for Ordinal Responses
 #'
-#' Exact Jonckheere-Terpstra (JT) rank test for a two-arm ordered alternative with an
-#' ordinal response. For treatment versus control, the test statistic is the
-#' sum of Mann-Whitney U counts across groups. This class provides the exact
-#' distribution-based p-value.
+#' Two-arm Jonckheere-Terpstra (JT) rank test for an ordinal response — for two
+#' groups, this reduces to the Mann-Whitney \eqn{U} statistic. The point
+#' estimate is the \strong{stochastic superiority} probability, centered at 0
+#' under the null: \eqn{\hat\beta_T = \widehat{\Pr}(Y_T > Y_C) +
+#' \tfrac{1}{2}\widehat{\Pr}(Y_T = Y_C) - \tfrac{1}{2}}, computed from category
+#' counts as \eqn{U/(n_T n_C) - 1/2}. Asymptotic inference
+#' (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()})
+#' uses the classical null variance of the Mann-Whitney \eqn{U} statistic,
+#' \eqn{\mathrm{Var}(U) = n_T n_C (n_T+n_C+1)/12} (no tie correction), matching
+#' \code{clinfun::jonckheere.test()}'s normal approximation. This class also
+#' provides an \strong{exact}, permutation-distribution-based two-sided p-value
+#' via \code{$compute_exact_two_sided_pval_for_treatment_effect()}
+#' (\code{exact_jonckheere_terpstra_pval_cpp}), which does not rely on the
+#' normal approximation.
+#'
+#' @references Jonckheere, A. R. (1954). "A Distribution-Free k-Sample Test
+#'   Against Ordered Alternatives." \emph{Biometrika}, 41(1-2), 133-145,
+#'   \doi{10.1093/biomet/41.1-2.133}; Terpstra, T. J. (1952). "The Asymptotic
+#'   Normality and Consistency of Kendall's Test Against Trend, When Ties Are
+#'   Present in One Ranking." \emph{Indagationes Mathematicae}, 14, 327-333.
 #'
 #' @export
 #' @examples
@@ -22,12 +38,16 @@
 #'   new(seq_des, verbose = FALSE)
 #' infer
 #'
-InferenceOrdinalJonckheereTerpstraTest = R6::R6Class(
-	"InferenceOrdinalJonckheereTerpstraTest",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceOrdinalJonckheereTerpstraTest = define_inference_class(
+	classname = "InferenceOrdinalJonckheereTerpstraTest",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
-		#' @description Initialize the JT test object.
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		#' @description Initialize the JT test object for a completed design with
+		#'   an ordinal, uncensored response.
 		#' @param des_obj A completed \code{DesignSeqOneByOne} object.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -43,28 +63,44 @@ InferenceOrdinalJonckheereTerpstraTest = R6::R6Class(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Returns the estimated treatment effect (JT superiority measure).
+		#' @description Returns the estimated treatment effect: the stochastic
+		#'   superiority measure \eqn{\widehat{\Pr}(Y_T > Y_C) +
+		#'   \tfrac12\widehat{\Pr}(Y_T=Y_C) - \tfrac12}, computed from the
+		#'   Mann-Whitney \eqn{U} statistic (see class documentation).
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$compute_asymptotic_jt_components(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Returns the weighted JT superiority estimate for Bayesian-bootstrap re-estimation.
+		#' @description Recomputes the JT superiority estimate under subject/block
+		#'   bootstrap weights: the weighted version of the same stochastic
+		#'   superiority quantity, \eqn{\sum_{i,j} w_i w_j\left(\mathbb{1}[y_{T,i} >
+		#'   y_{C,j}] + \tfrac12\mathbb{1}[y_{T,i}=y_{C,j}]\right) \big/ \sum_{i,j}
+		#'   w_i w_j - \tfrac12}, used by the Bayesian bootstrap and related
+		#'   weighted-resampling machinery. Always leaves the standard error
+		#'   unavailable (\code{NA}) regardless of \code{estimate_only} — this
+		#'   weighted path never computes the null-variance approximation.
 		#' @param subject_or_block_weights Bootstrap weights at the subject/block level.
-		#' @param estimate_only If TRUE, skip exact p-value calculations.
+		#' @param estimate_only Present for interface parity; this method never
+		#'   computes variance components regardless of its value.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			private$cached_values$beta_hat_T = private$weighted_superiority(private$y, private$w, row_weights) - 0.5
 			private$cached_values$s_beta_hat_T = NA_real_
 			private$cached_values$beta_hat_T
 		},
-		#' @description Returns the exact two-sided p-value.
+		#' @description Returns the \strong{exact}, permutation-distribution-based
+		#'   two-sided p-value (\code{exact_jonckheere_terpstra_pval_cpp}) — unlike
+		#'   \code{$compute_asymp_two_sided_pval()}, this does not rely on the
+		#'   normal approximation to the Mann-Whitney \eqn{U} null distribution.
 		compute_exact_two_sided_pval_for_treatment_effect = function(){
 			private$compute_exact_jt_components()
 			private$cached_values$p_exact
 		},
-		#' @description Computes the asymptotic normal confidence interval using the same
-		#' null-variance approximation as \code{clinfun::jonckheere.test()}.
+		#' @description Computes the asymptotic normal confidence interval, using the
+		#'   same Mann-Whitney \eqn{U} null-variance approximation
+		#'   (\eqn{n_T n_C(n_T+n_C+1)/12}, no tie correction) as
+		#'   \code{clinfun::jonckheere.test()}; see class documentation.
 		#' @param alpha The significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -74,8 +110,10 @@ InferenceOrdinalJonckheereTerpstraTest = R6::R6Class(
 			if (!is.finite(private$cached_values$s_beta_hat_T)) return(c(NA_real_, NA_real_))
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Computes the asymptotic normal two-sided p-value using the same
-		#' \eqn{Z}-approximation as \code{clinfun::jonckheere.test()}.
+		#' @description Computes the asymptotic normal two-sided p-value, using the
+		#'   same \eqn{Z}-approximation as \code{clinfun::jonckheere.test()}; see
+		#'   class documentation and \code{$compute_exact_two_sided_pval_for_treatment_effect()}
+		#'   for the exact (non-approximate) alternative.
 		#' @param delta The null treatment effect (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -165,5 +203,19 @@ InferenceOrdinalJonckheereTerpstraTest = R6::R6Class(
 			private$cached_values$jt_stat2 = res$stat2
 			invisible(NULL)
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval"
+		),
+		private = c(
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

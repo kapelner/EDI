@@ -1,8 +1,17 @@
 #' Proportional Odds Regression Inference for Ordinal Responses
 #'
-#' Fits a proportional odds regression for ordinal responses using the treatment
-#' indicator and, optionally, all recorded covariates as predictors.
+#' Fits a proportional-odds (cumulative-logit) regression, via
+#' \code{\link{fast_ordinal_regression_with_var_cpp}} (see that page for the
+#' full model), for ordinal responses using the treatment indicator and,
+#' optionally, all recorded covariates as predictors. This is a full-likelihood
+#' class (\code{likelihood_tier = "full"}) supporting score, gradient, and
+#' likelihood-ratio tests, plus parametric likelihood-ratio bootstrap
+#' calibration, in addition to Wald and resampling-based inference.
 #'
+#' @references McCullagh, P. (1980). "Regression Models for Ordinal Data."
+#'   \emph{Journal of the Royal Statistical Society, Series B}, 42(2),
+#'   109-142, \doi{10.1111/j.2517-6161.1980.tb01109.x}, for the
+#'   proportional-odds cumulative-logit model fit here.
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'ordinal')
@@ -17,12 +26,16 @@
 #' inf$set_seed(1)
 #' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
 #' }
+#' @concept proportional odds
+#' @concept ordinal logistic regression
+#' @concept cumulative logit model
 #' @export
 InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 	lock_objects = FALSE,
 	inherit = InferenceAsympLikStdModCache,
 	public = list(
-		#' @description Initialize a proportional-odds inference object.
+		#' @description Initialize a proportional-odds inference object for a
+		#'   completed design with an ordinal, uncensored response.
 		#' @param des_obj A completed \code{Design} object with an ordinal response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -41,7 +54,10 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 			}
 		}
 		,
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
+		#' @description Recomputes the proportional-odds treatment estimate under
+		#'   subject/block bootstrap weights (via
+		#'   \code{\link{fast_ordinal_regression_weighted_cpp}}), used by the
+		#'   Bayesian bootstrap and related weighted-resampling machinery; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.

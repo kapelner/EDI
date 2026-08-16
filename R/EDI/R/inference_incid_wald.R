@@ -15,10 +15,14 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceIncidWald = R6::R6Class("InferenceIncidWald",
-	lock_objects = FALSE,
-	inherit = InferenceAllSimpleMeanDiff,
+InferenceIncidWald = define_inference_class(
+	classname = "InferenceIncidWald",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize Wald risk-difference incidence inference and
 		#'   prepare the treatment/control binomial summaries used by
 		#'   \code{\link[EDI:InferenceIncidWald]{InferenceIncidWald}} and related
@@ -70,5 +74,38 @@ InferenceIncidWald = R6::R6Class("InferenceIncidWald",
 				if (is.finite(var_hat) && var_hat >= 0) sqrt(var_hat) else NA_real_
 			invisible(NULL)
 		}
+	),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"initialize"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"compute_fast_bootstrap_distr",
+			"compute_fast_randomization_distr",
+			"compute_fast_rand_bootstrap_distr",
+			"compute_rand_bootstrap_ci_affine_coefs",
+			"shared",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_likelihood_tests",
+			"get_supported_testing_types_impl",
+			"simulate_under_lik_null",
+			"compute_brt_null_statistics_with_se",
+			"get_likelihood_test_spec"
+		)
 	)
 )

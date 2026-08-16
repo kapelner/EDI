@@ -9,6 +9,18 @@ library(data.table)
 
 set.seed(42)
 
+.fit_weibull_general_right_censored = function(X, y, dead, warm_start_params = NULL,
+        smart_cold_start = TRUE, estimate_only = FALSE, maxit = 100, tol = 1e-8,
+        fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs",
+        warm_start_fisher_info = NULL) {
+    fast_weibull_regression_general_cpp(
+        X, ifelse(dead != 0, y, NA_real_), ifelse(dead == 0, y, NA_real_),
+        ifelse(dead == 0, Inf, NA_real_), warm_start_params, smart_cold_start,
+        estimate_only, maxit, tol, fixed_idx, fixed_values, optimization_alg,
+        warm_start_fisher_info
+    )
+}
+
 # Helper to generate data
 generate_data = function(n = 500, p = 5, family = "logistic", n_groups = 20) {
     X = matrix(rnorm(n * p), n, p)
@@ -192,7 +204,7 @@ families = list(
     list(name = "NegBin", fun = fast_neg_bin_with_var_cpp, family = "negbin", alg = "newton_raphson"),
     list(name = "Log-Binomial", fun = fast_log_binomial_regression_with_var_cpp, family = "logistic"),
     list(name = "Robust", fun = fast_robust_regression_cpp, family = "logistic"), 
-    list(name = "Weibull", fun = fast_weibull_regression_cpp, family = "weibull", alg = "newton_raphson"),
+    list(name = "Weibull", fun = .fit_weibull_general_right_censored, family = "weibull", alg = "newton_raphson"),
     list(name = "Ordinal", fun = fast_ordinal_regression_with_var_cpp, family = "ordinal", alg = "newton_raphson"),
     list(name = "Stereotype", fun = fast_stereotype_logit_with_var_cpp, family = "ordinal")
 )

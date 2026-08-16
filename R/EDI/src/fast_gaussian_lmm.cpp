@@ -529,7 +529,10 @@ List fast_gaussian_lmm_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, con
 // [[Rcpp::export]]
 Rcpp::NumericVector fast_gaussian_lmm_gls_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, double log_sigma_e, double log_sigma_b, Rcpp::Nullable<Rcpp::NumericVector> weights = R_NilValue) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
+	}
 
     const int n = y_r_vec_coerced.size(), p = X_r.cols();
 
@@ -596,6 +599,10 @@ Rcpp::NumericVector fast_gaussian_lmm_gls_cpp(const Eigen::Map<Eigen::MatrixXd>&
 // [[Rcpp::export]]
 NumericVector get_gaussian_lmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& par) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
+	}
 
 
     
@@ -639,6 +646,10 @@ NumericVector get_gaussian_lmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r,
 // [[Rcpp::export]]
 NumericMatrix get_gaussian_lmm_fisher_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& par, double h_rel = 1e-4) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
+	}
 
 
     

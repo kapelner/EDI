@@ -2,7 +2,7 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{fast_logistic_regression}
 \alias{fast_logistic_regression}
-\title{Fast Logistic Regression (R Wrapper)}
+\title{Fast Logistic Regression, Estimate Only (R Wrapper)}
 \usage{
 fast_logistic_regression(
   X,
@@ -18,7 +18,7 @@ fast_logistic_regression(
 
 \item{y}{A numeric vector of the response variable, expected to be binary (0 or 1).}
 
-\item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default), \code{"lbfgs"}, or \code{"irls"}.}
+\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default), \code{"newton_raphson"}, or \code{"irls"}.}
 
 \item{warm_start_beta}{Optional starting values for the coefficients.}
 
@@ -27,16 +27,31 @@ fast_logistic_regression(
 \value{
 A list containing the following component:
 \describe{
-\item{b}{A numeric vector of the estimated logistic regression coefficients.}
+\item{b}{A numeric vector of the estimated logistic regression coefficients
+  \eqn{\hat\beta}, or a vector of \code{NA_real_} (length \code{ncol(X)})
+  if the underlying fit errored.}
 }
 }
 \description{
-This function provides a fast implementation of logistic regression by wrapping
-a C++ backend function. It is designed to efficiently estimate regression coefficients
-for binary outcomes without computing variance components.
+Fits the logistic regression model documented in full at
+\code{\link{fast_logistic_regression_cpp}} (log-odds-ratio interpretation,
+IRLS/L-BFGS/Newton-Raphson optimization) via that C++ backend, returning
+only the point estimate \eqn{\hat\beta} — no variance-covariance matrix or
+per-coefficient standard errors are computed. Unlike
+\code{\link{fast_logistic_regression_with_var}}, this function does
+\strong{not} attempt to detect or retry on (quasi-)complete separation; if
+the underlying C++ fit errors for any reason, this function silently
+returns \code{b} as a vector of \code{NA}s (of length \code{ncol(X)})
+rather than raising an error or retrying with fewer covariates.
 }
 \examples{
 X = matrix(rnorm(500), 100, 5)
 y = rbinom(100, 1, 0.5)
 fast_logistic_regression(X, y)
+}
+\seealso{
+\code{\link{fast_logistic_regression_cpp}} for the underlying
+  backend and full model documentation;
+  \code{\link{fast_logistic_regression_with_var}} for the variance-
+  augmented, separation-retrying variant.
 }

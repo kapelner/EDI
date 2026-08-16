@@ -1,8 +1,23 @@
 #' GEE Inference for KK Designs with Binary Response
 #'
-#' Fits a Generalized Estimating Equations (GEE) model (using \pkg{geepack})
-#' for binary (incidence) responses under a KK matching-on-the-fly design using
-#' the treatment indicator and, optionally, all recorded covariates as predictors.
+#' Fits a Generalized Estimating Equations (GEE) model with a binomial family
+#' and logit link, \eqn{\mathrm{logit}\,\Pr(Y_i = 1 \mid x_i) = x_i^\top\beta},
+#' for binary (incidence) responses under a KK matching-on-the-fly design, using
+#' an \strong{exchangeable} working correlation structure where each cluster is
+#' either a matched pair (2 members) or a reservoir singleton (1 member) — see
+#' \code{$compute_estimate()}'s method-level documentation for the full fitting
+#' contract (internal Rcpp solver vs. \pkg{geepack} fallback, hardening/retry
+#' behavior). GEE is used here purely to fit one marginal model jointly across
+#' matched-pair and reservoir subjects while accounting for the within-pair
+#' correlation the matching induces, not as a longitudinal/repeated-measures
+#' tool. Inference is quasi-likelihood/estimating-equation based
+#' (\code{likelihood_tier = "quasi"}): standard errors are GEE sandwich (robust)
+#' standard errors, not model-likelihood-based.
+#'
+#' @references Liang, K.-Y., and Zeger, S. L. (1986). "Longitudinal Data
+#'   Analysis Using Generalized Linear Models." \emph{Biometrika}, 73(1),
+#'   13-22, \doi{10.1093/biomet/73.1.13}, for the GEE estimating-equation
+#'   framework and sandwich variance estimator used here.
 #'
 #' @examples
 #' \donttest{
@@ -20,13 +35,16 @@ InferenceIncidKKGEE = define_inference_class(
 	inherit = Inference,
 	components = "KKGEE",
 	public = list(
-		#' @description Initialize KK combined binary-response inference, validate the
-		#'   matched/reservoir design, and prepare the component models used by
+		#' @description Initialize KK binary-response GEE inference, validate the
+		#'   matched/reservoir design, and prepare the exchangeable-working-correlation
+		#'   binomial (logit-link) GEE fitting machinery used by
 		#'   \code{\link[EDI:InferenceIncidKKGEE]{InferenceIncidKKGEE}}.
 		#' @param des_obj A completed \code{Design} object with an incidence response.
 		#' @param model_formula   Optional formula for covariate adjustment.
 		#' @param verbose Whether to print progress messages.
-		#' @param use_rcpp Whether to use the internal Rcpp solver.
+		#' @param use_rcpp Whether to use the internal Rcpp GEE solver (\code{TRUE},
+		#'   default) with automatic fallback to \code{geepack::geeglm} on failure,
+		#'   or always use \code{geepack::geeglm} directly (\code{FALSE}).
 		#' @param smart_cold_start_default Whether to use smart cold start values.
 		initialize = function(des_obj, model_formula = NULL, use_rcpp = TRUE, verbose = FALSE, smart_cold_start_default = NULL){
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)

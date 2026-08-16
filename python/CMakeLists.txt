@@ -120,11 +120,9 @@ endif()
 # _helper_functions_core.h pulls in LBFGSpp's <optimization/LBFGS.h>.
 # LBFGSpp (github.com/yixuan/LBFGSpp, MIT license) is itself a standalone,
 # header-only C++ library with zero R/Rcpp dependency -- RcppNumerical just
-# vendors a copy of it for R's use. A Python-only user has no R installed,
-# so this fetches LBFGSpp directly from its own upstream instead of relying
-# on RcppNumerical's copy (which is what an earlier version of this file
-# did, and which only worked on machines that happened to have R + that
-# package installed). Pin to a tagged release for reproducibility.
+# vendors a copy of it for R's use. Prefer a system installation when one is
+# available; otherwise fetch LBFGSpp directly from its own upstream. Pin the
+# fallback to a tagged release for reproducibility.
 #
 # LBFGSpp's own CMakeLists.txt unconditionally does add_subdirectory(examples)
 # -- confirmed upstream, no BUILD_EXAMPLES-style cache variable exists to
@@ -141,23 +139,31 @@ endif()
 # examples) never runs -- lbfgspp_SOURCE_DIR is still set exactly as it
 # would be by FetchContent_MakeAvailable, and this form remains fully
 # supported (not deprecated) per CMP0169's own docs.
-FetchContent_Populate(
-    lbfgspp
-    GIT_REPOSITORY https://github.com/yixuan/LBFGSpp.git
-    GIT_TAG v0.4.0
-    GIT_SHALLOW TRUE
+find_path(EDI_LBFGSPP_INCLUDE_DIR
+    NAMES LBFGS.h
+    PATH_SUFFIXES LBFGSpp
+    DOC "Directory containing LBFGSpp headers"
 )
+if(NOT EDI_LBFGSPP_INCLUDE_DIR)
+    FetchContent_Populate(
+        lbfgspp
+        GIT_REPOSITORY https://github.com/yixuan/LBFGSpp.git
+        GIT_TAG v0.4.0
+        GIT_SHALLOW TRUE
+    )
+    set(EDI_LBFGSPP_INCLUDE_DIR ${lbfgspp_SOURCE_DIR}/include)
+endif()
 
 # R/EDI/src/_helper_functions_core.h does #include <optimization/LBFGS.h> --
 # that "optimization/" prefix is RcppNumerical's own vendoring convention
 # (inst/include/optimization/LBFGS.h), not upstream LBFGSpp's layout (which
 # is just include/LBFGS.h). Rather than touch R/EDI/src to special-case the
 # Python build's directory layout, shim it here: a symlink so the same
-# #include line resolves against the fetched upstream copy too.
+# #include line resolves against either the system or fetched copy.
 set(EDI_LBFGSPP_SHIM_DIR ${CMAKE_BINARY_DIR}/lbfgspp_shim)
 file(MAKE_DIRECTORY ${EDI_LBFGSPP_SHIM_DIR})
 if(NOT EXISTS ${EDI_LBFGSPP_SHIM_DIR}/optimization)
-    file(CREATE_LINK ${lbfgspp_SOURCE_DIR}/include ${EDI_LBFGSPP_SHIM_DIR}/optimization SYMBOLIC)
+    file(CREATE_LINK ${EDI_LBFGSPP_INCLUDE_DIR} ${EDI_LBFGSPP_SHIM_DIR}/optimization SYMBOLIC)
 endif()
 
 option(EDI_PY_PORTABLE "Drop -march=native for portable/cross-compiled wheels" OFF)
@@ -170,7 +176,7 @@ option(EDI_PY_PORTABLE "Drop -march=native for portable/cross-compiled wheels" O
 add_compile_definitions(EDI_CORE_ONLY)
 
 # R/EDI/src/*.cpp sources compiled directly into this extension (not copied).
-# Add one line here per R/EDI/src file whose *_internal function gets a
+# Add one line here per R/EDI/src file whose general *_internal function gets a
 # Python binding, in step with the corresponding python/cpp/bindings_*.cpp
 # file that declares/calls it.
 set(EDI_KERNEL_SOURCES
@@ -216,6 +222,19 @@ set(EDI_KERNEL_SOURCES
     ${EDI_SRC_DIR}/robust_post_fit_speedups.cpp
 )
 
+# R/EDI/src's unity-build collision audit and fix pass are complete
+# (R/package_metadata/finished_features/unity_build_collision_audit.md) --
+# the file-scope helper collisions that would break merging these sources
+# into fewer translation units are fixed, verified via a full mega-TU
+# -fsyntax-only compile, and the R-side build (R/EDI/configure, EDI_UNITY=1)
+# has been wired, built end-to-end (real compile+link+load), and shown to
+# produce bit-identical numeric output against the non-unity build (see
+# release_v1_0_0.md -> TODO-6). Enabled below (CMake's native UNITY_BUILD,
+# available since 3.16) -- a pure build-time win with zero change to the
+# compiled kernels' behavior or this module's public API. set_target_
+# properties must come after pybind11_add_module creates the _core target,
+# not before.
+
 pybind11_add_module(_core
     cpp/bindings_module.cpp
     cpp/bindings_fast_math.cpp
@@ -229,6 +248,8 @@ pybind11_add_module(_core
     cpp/bindings_survival.cpp
     ${EDI_KERNEL_SOURCES}
 )
+
+set_target_properties(_core PROPERTIES UNITY_BUILD ON UNITY_BUILD_BATCH_SIZE 10)
 
 target_include_directories(_core PRIVATE ${EDI_SRC_DIR} cpp ${EDI_LBFGSPP_SHIM_DIR} ${lbfgspp_SOURCE_DIR}/include)
 if(Eigen3_FOUND)

@@ -279,6 +279,9 @@ test_that("SimulationFramework survival responses respect censoring", {
 	inter <- sim_high_data$get_all_intermediate_data()
 	des <- inter[[1]]$designs[[1]]
 	
-	# With prob_censoring=1.0, we expect some censored observations (dead=0)
-	expect_true(any(des$.__enclos_env__$private$dead == 0))
+	# With prob_censoring=1.0, we expect some censored observations (dead=0).
+	# Design no longer stores a raw `dead` field (y/y_L/y_R migration,
+	# interval_censored_survival_response.md TODO-14); get_effective_dead()
+	# reconstructs the same 0/1 semantics from y.
+	expect_true(any(des$get_effective_dead() == 0))
 })

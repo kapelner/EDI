@@ -430,8 +430,22 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 				}
 				coef_hat = as.numeric(mod$b)
 				if (private$coefficients_are_usable(coef_hat)) {
-					private$set_fit_warm_start(coef_hat, "beta", fisher = mod$fisher_information)
-					private$gcomp_boot_beta = coef_hat
+					# Only cache this fit as the next replicate's warm start when it
+					# used the FULL (undropped) design -- a column-dropped fit's
+					# shorter coefficient vector is a legitimate answer for THIS
+					# replicate's ill-conditioned weights, but caching it here would
+					# silently bias the next (differently-weighted, generally
+					# full-rank-again) replicate's starting point toward the same
+					# reduced model rather than letting it warm-start from the last
+					# genuinely full-model fit. The length-mismatch guards in
+					# get_fit_warm_start_for_length()/get_fit_warm_start_fisher()
+					# already fall back to a cold start on a length mismatch, but
+					# skipping the cache write here keeps that fallback from ever
+					# being needed for this reason in the first place.
+					if (ncol(X_curr) == ncol(X_full)) {
+						private$set_fit_warm_start(coef_hat, "beta", fisher = mod$fisher_information)
+						private$gcomp_boot_beta = coef_hat
+					}
 					names(coef_hat) = colnames(X_fit)
 					return(list(X = X_fit, j_treat = j_treat, coefficients = coef_hat, estimate_only = TRUE))
 				}

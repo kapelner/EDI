@@ -59,17 +59,33 @@ Inference = R6::R6Class("Inference",
 			}
 			private$des_obj = des_obj
 			private$des_obj_priv_int = des_obj$.__enclos_env__$private
-			private$y = des_obj$get_effective_time()
+			private$y = if (private$has_general_censoring) des_obj$get_y() else des_obj$get_effective_time()
 			private$y_temp = private$y
 			private$w = private$des_obj_priv_int$w
 			private$dead = des_obj$get_effective_dead()
 			private$y_L = des_obj$get_y_L()
 			private$y_R = des_obj$get_y_R()
-			private$is_KK = inherits(des_obj, "DesignSeqOneByOneKK14")
+			# KK14/KK21/KK21stepwise share the on-the-fly reservoir-plus-matched-pair
+			# structure (as opposed to e.g. DesignFixedBinaryMatch's fully-paired, no-
+			# reservoir structure), so private$is_KK distinguishes "matched_set" (with a
+			# reservoir) from "pair" resampling semantics downstream -- a randomization-
+			# family read, not a DesignFixedBinaryMatch-style capability, since it's
+			# about the KK on-the-fly *family* specifically (fix_design_hierarchy.md,
+			# "Class-Identity Dispatch Replacement").
+			private$is_KK = isTRUE(des_obj$randomization_family() %in% c("kk14", "kk21", "kk21_stepwise"))
 			private$has_match_structure = des_obj$is_a_kk_matching_capable()
 			private$n = des_obj$get_n()
 			private$prob_T = des_obj$get_prob_T()
 			private$supports_design_resampling = isTRUE(des_obj$supports_resampling())
+			# Narrower than supports_design_resampling above: these two gate only the
+			# methods that actually invoke the design's own randomization mechanism (a
+			# plain randomization draw, or a bootstrap randomization test that
+			# re-randomizes resampled data) -- see Design$supports_randomization_draw()/
+			# supports_resampling_replay()'s documentation for why they're split from
+			# the general resampling check (fix_design_hierarchy.md, "Observational
+			# Design Migration").
+			private$supports_design_randomization_draw = isTRUE(des_obj$supports_randomization_draw())
+			private$supports_design_resampling_replay = isTRUE(des_obj$supports_resampling_replay())
 			# Handle model_formula and X matrix construction
 			if (is.null(model_formula)) {
 				private$model_formula = des_obj$get_design_formula()
@@ -113,9 +129,16 @@ Inference = R6::R6Class("Inference",
 		#' @description Returns the effective metadata-backed capabilities for this inference object.
 		#' @return A character vector of capability names.
 		capabilities = function(){
-			class_name = class(self)[1L]
 			if (!exists("get_effective_capabilities", mode = "function")) return(character())
-			get_effective_capabilities(class_name)
+			# External and test subclasses are not populated into the package registry.
+			# R6 includes ancestors in class(self), so inherit metadata from the nearest
+			# registered generator instead of failing closed on the unregistered leaf.
+			for (class_name in class(self)) {
+				if (exists(class_name, envir = EDI_INFERENCE_CLASS_REGISTRY, inherits = FALSE)) {
+					return(get_effective_capabilities(class_name))
+				}
+			}
+			character()
 		},
 		#' @description Returns whether this inference object supports a metadata-backed capability.
 		#' @param capability Capability name or names.
@@ -195,6 +218,7 @@ Inference = R6::R6Class("Inference",
 		#' @return 			A new \code{Inference} object with the same data
 		duplicate = function(verbose = FALSE, make_fork_cluster = FALSE){
 			i = self$clone()
+			edi_rebind_lazy_components_after_clone(i)
 			i$.__enclos_env__$private$verbose = verbose
 			i$.__enclos_env__$private$fork_cluster = NULL
 			i$.__enclos_env__$private$cached_values = list()
@@ -374,6 +398,19 @@ Inference = R6::R6Class("Inference",
 		supports_interval_or_left_censored_data = function(){
 			FALSE
 		},
+		# Capability check: does this concrete Inference class require a
+		# blocking design (Design$is_blocking_design())? Default FALSE -- most
+		# classes work on any design; a class whose initialize() unconditionally
+		# rejects non-blocking designs (e.g. InferenceIncidExtendedRobins)
+		# overrides this to TRUE. Mirrors supports_interval_or_left_censored_
+		# data() above: a trivial, argument-less, self/private-free literal so
+		# infer_inference_requires_blocking_design() (inference_class_
+		# registry.R) can invoke the nearest ancestor's copy directly from the
+		# generator's own private_methods list, without constructing an
+		# instance, to populate InferenceSuite discovery metadata.
+		requires_blocking_design = function(){
+			FALSE
+		},
 		seed = NULL,
 		harden = TRUE,
 		des_obj = NULL,		des_obj_priv_int = NULL,
@@ -381,6 +418,8 @@ Inference = R6::R6Class("Inference",
 		is_KK = NULL,
 		has_match_structure = NULL,
 		supports_design_resampling = FALSE,
+		supports_design_randomization_draw = FALSE,
+		supports_design_resampling_replay = FALSE,
 		any_censoring = NULL,
 		has_general_censoring = FALSE,
 		warned_no_parallel = FALSE,
@@ -812,6 +851,22 @@ Inference = R6::R6Class("Inference",
 				if (isTRUE(private$supports_design_resampling)) return(invisible(NULL))
 				if (should_run_asserts()) {
 					stop(method_family, " is not available for plain DesignFixed objects. Use asymptotic inference or a concrete design subclass.")
+				}
+			},
+			# Narrower than assert_design_supports_resampling above: for methods that
+			# actually invoke the design's own randomization mechanism (see
+			# Design$supports_randomization_draw()/supports_resampling_replay()'s
+			# documentation, fix_design_hierarchy.md "Observational Design Migration").
+			assert_design_supports_randomization_draw = function(method_family){
+				if (isTRUE(private$supports_design_randomization_draw)) return(invisible(NULL))
+				if (should_run_asserts()) {
+					stop(method_family, " is not available for this design (no randomization mechanism to draw a fresh assignment from). Use asymptotic inference, plain nonparametric/Bayesian bootstrap, or a concrete design subclass with a randomization mechanism.")
+				}
+			},
+			assert_design_supports_resampling_replay = function(method_family){
+				if (isTRUE(private$supports_design_resampling_replay)) return(invisible(NULL))
+				if (should_run_asserts()) {
+					stop(method_family, " is not available for this design (no randomization mechanism to replay against resampled data). Use asymptotic inference, plain nonparametric/Bayesian bootstrap, or a concrete design subclass with a randomization mechanism.")
 				}
 			},
 		create_design_matrix = function(){

@@ -13,7 +13,7 @@
 #' term, it fits an ordinary (working-independence) Weibull AFT model and
 #' corrects the treatment-effect standard error post hoc for the within-pair
 #' dependence. The model is fit via the package's fast C++ Weibull AFT backend
-#' (\code{fast_weibull_regression_cpp}) and the cluster-robust sandwich is
+#' (\code{fast_weibull_regression_general_cpp}) and the cluster-robust sandwich is
 #' assembled from per-subject dfbeta contributions collapsed within clusters,
 #' which is numerically equivalent to
 #' \code{survival::survreg(..., cluster = ..., robust = TRUE)} (retained as a
@@ -156,7 +156,7 @@ InferenceSurvivalKKWeibullMarginal = R6::R6Class("InferenceSurvivalKKWeibullMarg
 			}
 			cluster_id
 		},
-		# Fits the pooled Weibull AFT model via fast_weibull_regression_cpp (X_fit must
+		# Fits the pooled Weibull AFT model via fast_weibull_regression_general_cpp (X_fit must
 		# carry an explicit "(Intercept)" column plus "treatment"). When robust=TRUE the
 		# cluster-robust sandwich is built from per-subject dfbeta rows (score %*% vcov)
 		# summed within clusters and crossprod'ed -- the same estimator survreg computes
@@ -173,8 +173,10 @@ InferenceSurvivalKKWeibullMarginal = R6::R6Class("InferenceSurvivalKKWeibullMarg
 			p = ncol(X_ok)
 			n_params = p + 1L
 			res = tryCatch(
-				fast_weibull_regression_cpp(
-					y = as.numeric(y[ok]), dead = as.numeric(dead[ok]), X = X_ok,
+				fast_weibull_regression_general_cpp(
+					y = ifelse(dead[ok] != 0, y[ok], NA_real_),
+					y_L = ifelse(dead[ok] == 0, y[ok], NA_real_),
+					y_R = ifelse(dead[ok] == 0, Inf, NA_real_), X = X_ok,
 					warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
 					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
 					estimate_only = !robust
@@ -347,9 +349,10 @@ InferenceSurvivalKKWeibullMarginal = R6::R6Class("InferenceSurvivalKKWeibullMarg
 				X_ok = as.matrix(X_fit[ok, , drop = FALSE])
 				n_params = ncol(X_ok) + 1L
 				res_fast = tryCatch(
-					fast_weibull_regression_cpp(
-						y    = as.numeric(private$y[ok]),
-						dead = as.numeric(private$dead[ok]),
+					fast_weibull_regression_general_cpp(
+						y   = ifelse(private$dead[ok] != 0, private$y[ok], NA_real_),
+						y_L = ifelse(private$dead[ok] == 0, private$y[ok], NA_real_),
+						y_R = ifelse(private$dead[ok] == 0, Inf, NA_real_),
 						X    = X_ok,
 						warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
 						estimate_only = TRUE,

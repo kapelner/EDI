@@ -7,11 +7,10 @@ conditional_logit_prepare_combined_design = function(private_env, KKstats) {
 	X_comb = NULL
 	y_comb = NULL
 	j_beta_T = 2L
-	m_vec = private_env$m
-	if (is.null(m_vec)) m_vec = rep(NA_integer_, private_env$n)
-	m_vec[is.na(m_vec)] = 0L
+	split = split_kk_matched_reservoir_idx(private_env$m, private_env$n)
+	m_vec = split$m_vec
 	if (m > 0) {
-		i_matched = which(m_vec > 0L)
+		i_matched = split$matched_idx
 		y_m = private_env$y[i_matched]
 		w_m = private_env$w[i_matched]
 		strata_m = m_vec[i_matched]

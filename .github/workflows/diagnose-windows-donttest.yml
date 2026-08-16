@@ -1,0 +1,157 @@
+# Diagnostic workflow for the Windows-only --run-donttest hang (see
+# R-CMD-check.yaml's _R_CHECK_DONTTEST_EXAMPLES_ comment: a 2026-08-09 run
+# sat in "checking examples with --run-donttest" for 5.5+ hours on
+# windows-latest, and the main matrix has skipped donttest on Windows ever
+# since). CRAN's Windows machine will NOT skip that pass, so the hang is a
+# hard CRAN blocker (release_v1_0_0.md -> Release Gate) and needs a culprit.
+#
+# Manually dispatched only -- this is a debugging tool, not a gate.
+#
+# Two complementary jobs:
+#   - combined-session: reproduces the exact failing configuration (one
+#     combined EDI-Ex.R session via R CMD check --as-cran --run-donttest)
+#     under a step-level timeout, then ALWAYS dumps the tail of
+#     EDI-Ex.Rout -- the last example header printed there is the one that
+#     hung. One run = one culprit (or proof it no longer reproduces).
+#   - per-rd-isolation: extracts every Rd file's examples with
+#     tools::Rd2ex(commentDonttest = FALSE) and runs each in a fresh
+#     Rscript child under a 5-minute kill switch (base system2 timeout).
+#     If the combined session hangs but every file passes here, the bug is
+#     an interaction/state-accumulation problem between examples, not a
+#     single example -- which is what the earlier isolation attempt
+#     suspected ("no single culprit example isolatable").
+
+on:
+  workflow_dispatch:
+
+name: diagnose-windows-donttest
+
+jobs:
+  combined-session:
+    runs-on: windows-latest
+    name: combined --run-donttest session (windows-latest)
+    timeout-minutes: 150
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      EDI_PORTABLE: 1
+      _R_CHECK_DONTTEST_EXAMPLES_: 'true'
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - name: Build tarball
+        working-directory: R/EDI
+        shell: bash
+        run: R CMD build --no-manual .
+
+      # --no-tests: the hang is in the examples pass; skipping the test
+      # suite keeps the signal clean and the run short. Step-level timeout
+      # (not just job-level) so the dump steps below still run after a hang.
+      - name: Check with --run-donttest (examples only)
+        working-directory: R/EDI
+        shell: bash
+        timeout-minutes: 90
+        run: R CMD check --as-cran --no-manual --no-tests EDI_*.tar.gz
+
+      # The last "> ### Name: <topic>" / "> ### ** Examples" block in the
+      # Rout tail is the example that was running when the timeout hit.
+      - name: Dump examples output tail (culprit = last example started)
+        if: always()
+        working-directory: R/EDI
+        shell: bash
+        run: |
+          echo "===== last 300 lines of EDI-Ex.Rout ====="
+          tail -n 300 EDI.Rcheck/EDI-Ex.Rout 2>/dev/null || echo "no EDI-Ex.Rout found"
+          echo "===== last example headers reached ====="
+          grep -n "^> ### Name:" EDI.Rcheck/EDI-Ex.Rout 2>/dev/null | tail -n 10 || true
+
+      - name: Dump per-example timings (slowest first, if the run finished)
+        if: always()
+        working-directory: R/EDI
+        shell: bash
+        run: |
+          if [ -f EDI.Rcheck/EDI-Ex.timings ]; then
+            sort -t$'\t' -k4 -nr EDI.Rcheck/EDI-Ex.timings | head -n 30
+          else
+            echo "no EDI-Ex.timings (run did not complete)"
+          fi
+
+  per-rd-isolation:
+    runs-on: windows-latest
+    name: per-Rd isolation (windows-latest)
+    timeout-minutes: 150
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      EDI_PORTABLE: 1
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - name: Install EDI
+        working-directory: R/EDI
+        shell: bash
+        run: R CMD INSTALL .
+
+      # Runs every Rd file's examples (donttest included, dontrun excluded,
+      # matching what --run-donttest executes) in its own fresh Rscript
+      # child with a 300s kill switch. A row printed as TIMEOUT is a
+      # self-contained culprit; all-PASS here + a hang in combined-session
+      # means the bug is cross-example state, and the combined job's Rout
+      # tail says where it stops.
+      - name: Run each Rd's examples in isolation (300s timeout each)
+        working-directory: R/EDI
+        shell: Rscript {0}
+        run: |
+          db = tools::Rd_db("EDI")
+          dir.create("rd_ex", showWarnings = FALSE)
+          rscript = file.path(R.home("bin"), "Rscript")
+          results = data.frame(rd = character(), secs = numeric(), status = character())
+          for (nm in names(db)) {
+            f = file.path("rd_ex", paste0(gsub("[^A-Za-z0-9_.-]", "_", nm), ".R"))
+            tools::Rd2ex(db[[nm]], f, commentDontrun = TRUE, commentDonttest = FALSE)
+            if (!file.exists(f) || file.size(f) == 0) next
+            writeLines(c("suppressMessages(library(EDI))", readLines(f)), f)
+            t0 = Sys.time()
+            status = tryCatch({
+              rc = suppressWarnings(system2(rscript, shQuote(f), stdout = FALSE, stderr = FALSE, timeout = 300))
+              if (identical(rc, 124L)) "TIMEOUT" else if (rc == 0L) "PASS" else paste0("FAIL(", rc, ")")
+            }, error = function(e) "TIMEOUT")
+            secs = round(as.numeric(difftime(Sys.time(), t0, units = "secs")), 1)
+            results = rbind(results, data.frame(rd = nm, secs = secs, status = status))
+            cat(sprintf("%-60s %8.1fs  %s\n", nm, secs, status))
+          }
+          cat("\n===== slowest 20 =====\n")
+          print(head(results[order(-results$secs), ], 20), row.names = FALSE)
+          cat("\n===== non-PASS =====\n")
+          bad = results[results$status != "PASS", ]
+          print(bad, row.names = FALSE)
+          if (any(results$status == "TIMEOUT")) quit(status = 1) else quit(status = 0)

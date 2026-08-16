@@ -2,12 +2,22 @@
 % Please edit documentation in R/inference_survival_rmst.R
 \name{InferenceSurvivalRestrictedMeanDiff}
 \alias{InferenceSurvivalRestrictedMeanDiff}
-\title{Simple Mean Difference Inference based on Maximum Likelihood}
+\title{Restricted Mean Survival Time (RMST) Difference Inference for Survival Responses}
 \description{
-The methods that support confidence intervals and testing for the mean difference
-in all response types (except Weibull with censoring)
-sequential experimental design estimation and test object
-after the sequential design is completed.
+Fits a non-parametric treatment-effect estimator for censored survival
+responses: the difference in \strong{restricted mean survival time} (RMST)
+between the treated and control arms, \eqn{\hat\mu_T(\tau) - \hat\mu_C(\tau)},
+where each arm's RMST is the area under its Kaplan-Meier survival curve up to
+a truncation horizon \eqn{\tau} (\eqn{\hat\mu(\tau) = \int_0^\tau \hat S(t)\,dt}),
+computed by trapezoidal integration of the step-function KM curve. The
+standard error of the difference comes from the Greenwood-type variance of
+each arm's RMST, combined across the two (independent) arms via
+\code{get_restricted_mean_se_diff()}. When that standard error is
+unavailable or non-finite, \code{$compute_asymp_confidence_interval()} falls
+back to a nonparametric bootstrap interval rather than returning \code{NA}.
+Randomization confidence intervals are not supported (the RMST-difference
+units are not commensurate with the randomization CI bisection algorithm's
+transformed-scale null search).
 }
 \examples{
 \donttest{
@@ -20,14 +30,26 @@ inf = InferenceSurvivalRestrictedMeanDiff$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceSurvivalRestrictedMeanDiff}
+\references{
+Royston, P., and Parmar, M. K. B. (2013). "Restricted mean
+  survival time: an alternative to the hazard ratio for the design and
+  analysis of randomized trials with a time-to-event outcome." \emph{BMC
+  Medical Research Methodology}, 13, 152, \doi{10.1186/1471-2288-13-152},
+  for RMST as a treatment-effect summary. Kaplan, E. L., and Meier, P.
+  (1958). "Nonparametric Estimation from Incomplete Observations."
+  \emph{Journal of the American Statistical Association}, 53(282),
+  457-481, \doi{10.2307/2281868}, for the underlying survival curve
+  estimator each arm's RMST is integrated from.
+}
+\concept{RMST}
+\concept{restricted mean survival time}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceSurvivalRestrictedMeanDiff}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-InferenceSurvivalRestrictedMeanDiff-initialize}{\code{InferenceSurvivalRestrictedMeanDiff$new()}}
-    \item \href{#method-InferenceSurvivalRestrictedMeanDiff-approximate_bootstrap_distribution_beta_hat_T}{\code{InferenceSurvivalRestrictedMeanDiff$approximate_bootstrap_distribution_beta_hat_T()}}
     \item \href{#method-InferenceSurvivalRestrictedMeanDiff-compute_estimate}{\code{InferenceSurvivalRestrictedMeanDiff$compute_estimate()}}
     \item \href{#method-InferenceSurvivalRestrictedMeanDiff-compute_estimate_with_bootstrap_weights}{\code{InferenceSurvivalRestrictedMeanDiff$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferenceSurvivalRestrictedMeanDiff-compute_asymp_confidence_interval}{\code{InferenceSurvivalRestrictedMeanDiff$compute_asymp_confidence_interval()}}
@@ -36,71 +58,7 @@ inf$compute_estimate()
     \item \href{#method-InferenceSurvivalRestrictedMeanDiff-clone}{\code{InferenceSurvivalRestrictedMeanDiff$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -126,6 +84,10 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceSurvivalRestrictedMeanDiff-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalRestrictedMeanDiff-initialize}{}}}
 \subsection{\code{InferenceSurvivalRestrictedMeanDiff$new()}}{
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+
+
   Initialize restricted-mean-survival-time difference
   inference and prepare treatment-group survival summaries used by
   \code{\link[EDI:InferenceSurvivalRestrictedMeanDiff]{InferenceSurvivalRestrictedMeanDiff}}.
@@ -151,37 +113,6 @@ design's imputed covariates.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default.}
     }
     \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalRestrictedMeanDiff-approximate_bootstrap_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalRestrictedMeanDiff-approximate_bootstrap_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceSurvivalRestrictedMeanDiff$approximate_bootstrap_distribution_beta_hat_T()}}{
-  Uses the shared nonparametric bootstrap distribution contract; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalRestrictedMeanDiff$approximate_bootstrap_distribution_beta_hat_T(
-  B = 501,
-  show_progress = TRUE,
-  debug = FALSE,
-  bootstrap_type = NULL
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{B}}{Number of bootstrap samples.}
-      \item{\code{show_progress}}{Whether to show a progress bar.}
-      \item{\code{debug}}{Whether to return diagnostics.}
-      \item{\code{bootstrap_type}}{Optional resampling scheme.}
-    }
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    A numeric vector of bootstrap estimates.
   }
 }
 
@@ -236,13 +167,11 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceSurvivalRestrictedMeanDiff-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalRestrictedMeanDiff-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceSurvivalRestrictedMeanDiff$compute_asymp_confidence_interval()}}{
-  Computes a 1-alpha level frequentist confidence interval
-differently for all response types, estimate types, and
-test types.
-
-Here we use the theory that MLE's computed for GLM's are asymptotically normal.
-Hence these confidence intervals are asymptotically valid
-and thus approximate for any sample size.
+  Computes a \eqn{1-\alpha} level Wald confidence interval for
+  the RMST-difference treatment effect \eqn{\hat\mu_T(\tau) -
+  \hat\mu_C(\tau)}, using its Greenwood-based standard error (see class
+  documentation). Falls back to a nonparametric bootstrap interval if
+  that standard error is unavailable or non-finite.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalRestrictedMeanDiff$compute_asymp_confidence_interval(
@@ -267,7 +196,12 @@ interval is 1 - \code{alpha}. The default is 0.05.}
 \if{html}{\out{<a id="method-InferenceSurvivalRestrictedMeanDiff-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalRestrictedMeanDiff-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceSurvivalRestrictedMeanDiff$compute_asymp_two_sided_pval()}}{
-  Computes a 2-sided p-value via the log rank test
+  Computes a two-sided Wald p-value testing \eqn{H_0:
+  \mu_T(\tau) - \mu_C(\tau) = 0} (only \code{delta = 0} is currently
+  supported; a non-zero null raises an error), using the RMST-difference
+  estimate and its Greenwood-based standard error — see class
+  documentation. Falls back to a nonparametric bootstrap p-value if that
+  standard error is unavailable.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalRestrictedMeanDiff$compute_asymp_two_sided_pval(delta = 0)}

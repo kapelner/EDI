@@ -5,10 +5,11 @@
 #' matched pairs and reservoir subjects.
 #'
 #' @keywords internal
-InferenceAbstractKKCondLogitGLMM = R6::R6Class("InferenceAbstractKKCondLogitGLMM",
-	lock_objects = FALSE,
+InferenceAbstractKKCondLogitGLMM = define_inference_class(
+	classname = "InferenceAbstractKKCondLogitGLMM",
 	inherit = InferenceParamBootstrap,
-	public = as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(
+	components = "KKPassThrough",
+	public = list(
 		#' @description Initialize KK conditional-logit GLMM incidence
 		#'   inference, validate the binary response, and prepare the matched-pair
 		#'   conditional likelihood and reservoir mixed-model components. See
@@ -115,19 +116,9 @@ InferenceAbstractKKCondLogitGLMM = R6::R6Class("InferenceAbstractKKCondLogitGLMM
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B Integer. Number of bootstrap samples (default 501).
-		#' @param show_progress Logical. Whether to show a progress bar.
-		#' @param debug Logical. Whether to return diagnostics.
-		#' @param bootstrap_type Character. Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
 		}
-	))),
-	private = as.list(modifyList(as.list(InferenceMixinKKPassThrough$private), list(
+	),
+	private = list(
 		is_a_kk_cond_logit_glmm = function() TRUE,
 		max_abs_reasonable_coef = 50,
 		max_abs_reasonable_se = 10,
@@ -329,5 +320,11 @@ InferenceAbstractKKCondLogitGLMM = R6::R6Class("InferenceAbstractKKCondLogitGLMM
 		log1pexp = function(x){
 			ifelse(x > 0, x + log1p(exp(-x)), log1p(exp(x)))
 		}
-	)))
+	),
+	overrides = list(
+		public = "compute_estimate_with_bootstrap_weights",
+		private = "compute_basic_match_data",
+		public_private = "get_standard_error"
+	),
+	metadata = list(likelihood_tier = "partial")
 )

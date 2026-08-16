@@ -19,10 +19,11 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceContinKKGLMM = R6::R6Class("InferenceContinKKGLMM",
-	lock_objects = FALSE,
+InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 	inherit = InferenceParamBootstrap,
-	public = utils::modifyList(as.list(InferenceMixinKKGLMMShared$public), list(
+	components = "KKGLMM",
+	metadata = list(likelihood_tier = "full"),
+	public = list(
 		#' @description Initialize a KK GLMM inference object.
 		#' @param des_obj A completed \code{Design} object with a continuous response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
@@ -126,8 +127,8 @@ InferenceContinKKGLMM = R6::R6Class("InferenceContinKKGLMM",
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
-	)),
-	private = utils::modifyList(as.list(InferenceMixinKKGLMMShared$private), list(
+	),
+	private = list(
 		use_rcpp = TRUE,
 		use_gls_fast_path = TRUE,
 		use_gls_fast_path_bootstrap = FALSE,
@@ -399,5 +400,11 @@ InferenceContinKKGLMM = R6::R6Class("InferenceContinKKGLMM",
 				neg_loglik = function(fit){ as.numeric(fit$neg_loglik %||% fit$neg_ll) }
 			)
 		}
+	),
+	overrides = list(public = c(
+		"compute_estimate",
+		"compute_estimate_with_bootstrap_weights",
+		"compute_asymp_confidence_interval",
+		"compute_asymp_two_sided_pval"
 	))
 )

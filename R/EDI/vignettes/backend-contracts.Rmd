@@ -1,0 +1,197 @@
+---
+title: "Backend Contracts: fast_* and C++ Utilities"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Backend Contracts: fast_* and C++ Utilities}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+EDI's statistical model-fitting is implemented once, in C++, under
+`R/EDI/src/`, and exposed twice: to R via Rcpp (`fast_*_cpp` exports) and to
+Python via pybind11 (`edi_kernels`, same argument names minus the `_cpp`
+suffix, and 0-based instead of 1-based indices — see below). This page
+documents the conventions and guarantees (and, just as importantly, the
+non-guarantees) that hold across essentially every one of those backend
+functions, so individual function docs can link here rather than repeating
+"not validated by this function" verbatim on every page. See
+`vignette("notation-glossary")` for symbol meanings and
+`vignette("reproducibility")` for RNG/seed conventions specifically.
+
+## The validation boundary: R6 wrapper vs. raw backend
+
+**Validation happens in the R6 `Design`/`Inference` layer, not in the `_cpp`
+backend it calls.** A public method like
+`InferenceContinOLS$compute_estimate()` runs `checkmate` assertions (gated by
+`should_run_asserts()`/`toggle_asserts()`) on its own arguments *before*
+calling into a `fast_*_cpp` function — dimension checks, type checks, range
+checks, NA checks. The backend function itself then does essentially none of
+that: it trusts the shapes and values it receives. This means:
+
+- **Calling a raw `fast_*_cpp`/`edi_kernels.fast_*` function directly**
+  (bypassing the R6 class layer entirely — legitimate for performance-
+  sensitive code, and the whole point of the Python bindings) **skips the
+  R6 layer's validation.** Malformed input (wrong dimensions, non-finite
+  values where they're not expected, an unsorted or malformed censoring
+  structure) will not be caught with a clear error message; the most likely
+  outcomes are silently wrong results, an opaque linear-algebra failure
+  (e.g. a Cholesky/LDLT decomposition throwing on a non-positive-definite
+  matrix), or, in the worst case, a segfault. Individual function docs that
+  say "not validated by this function" are describing exactly this boundary,
+  not an oversight.
+- **One documented, deliberate exception:** `fixed_idx`/`fixed_values` (the
+  optional-parameter-fixing mechanism shared by nearly every iterative
+  fitting backend) *is* validated at the C++ level, by
+  `make_fixed_param_spec()` (`_helper_functions_core.h`): it checks
+  `fixed_idx` entries are in-range one-based indices, rejects duplicates,
+  and requires `fixed_values` to be finite and the same length as
+  `fixed_idx` — throwing `std::invalid_argument` (surfaced as an R/Python
+  error) rather than silently misbehaving. This one mechanism is
+  validated everywhere specifically because a silently-wrong fixed-parameter
+  index would corrupt every downstream coefficient, not just one.
+
+## Argument dimensions and storage order
+
+- **Design matrices** are passed as `Eigen::Map<const Eigen::MatrixXd>` or
+  `Eigen::Ref<const Eigen::MatrixXd>`, $n$ rows $\times$ $p$ columns.
+  Whether an intercept column is expected to already be included in $X$ is
+  **function-specific, not a package-wide rule** — e.g. Cox regression
+  (`fast_coxph_regression`) never takes one (the partial likelihood has no
+  intercept), while most GLM-style fitters (`fast_ols`, `fast_logistic_regression`,
+  `fast_poisson_regression`, ...) expect the caller to add one if wanted; the
+  function's own parameter doc states which.
+- **Column-major storage.** Eigen's default matrix storage is column-major,
+  which matches R's native matrix storage exactly — this is why so many
+  `_cpp` exports take `Eigen::Map<const Eigen::MatrixXd>` directly on an R
+  `REALSXP`'s data pointer: it is a genuine zero-copy view, not a conversion.
+  NumPy's default array order is row-major (C order); passing a row-major
+  NumPy array across the pybind11/Eigen boundary to a parameter typed
+  `Eigen::Ref<const Eigen::MatrixXd>` can therefore incur a silent copy
+  (pybind11/Eigen handles the conversion transparently, but not for free) —
+  pass a Fortran-ordered (`order="F"`) array if avoiding that copy matters
+  for a hot path.
+- **1-based vs. 0-based indexing.** Every index-valued argument that
+  identifies a *column of a coefficient/design matrix* (`j_treat`, `j_T`,
+  `fixed_idx`) is **1-based on the R/Rcpp side** (matching R's own
+  1-based vector/matrix indexing) and **0-based on the Python-binding side**
+  (matching Python/NumPy convention) — this is a deliberate per-language
+  adaptation, not an inconsistency, and is stated explicitly on every such
+  parameter. Ordinal-response category coding (`y` values $1,\dots,K$) is
+  always 1-based in *both* languages, since it labels categories rather than
+  array positions.
+- **Vector length agreement is generally assumed, not checked.** Most
+  backends do not verify that `y` has length $n$ matching `X`'s row count,
+  that `weights`/`fixed_values` match their paired index vector's length (the
+  one exception being `fixed_idx`/`fixed_values`, checked as above), or that
+  a `group_id`/`strata` vector's length matches `X`. Passing mismatched
+  lengths typically reads out-of-bounds or silently truncates rather than
+  erroring cleanly.
+
+## Numeric domains, overflow, and underflow safeguards
+
+Domain assumptions are almost never checked at the backend level (see
+"Validation boundary" above) but the numeric *kernels themselves* do guard
+against the specific overflow/underflow failure modes their own formulas are
+prone to:
+
+- **`fast_log1pexp(x)`** (softplus): for $|x| \le 37$, uses a numerically
+  stable atanh-series identity rather than the naive `log(1+exp(x))`, which
+  would overflow `exp(x)` for large positive $x$ long before the true
+  (finite) log-sum-exp value does; outside that range it returns the exact
+  asymptotic value (`x` itself, or `exp(x)`) directly.
+- **`pnorm_fast(x)`/`fast_log_pnorm(x)`**: clamped to $[6\times10^{-16},
+  1-6\times10^{-16}]$ (respectively $[-35.05, -6.6\times10^{-16}]$ on the log
+  scale) for $|x| \ge 8$, so an extreme linear predictor cannot produce an
+  exact $0$ or $1$ probability that would later become a `-Inf`/`NaN` when
+  log-transformed or divided by downstream.
+- **`logit()`/`inv_logit()`** (`other_helpers.R`): both clamp their
+  probability argument/result to
+  $[\texttt{zero\_one\_logit\_clamp}, 1-\texttt{zero\_one\_logit\_clamp}]$
+  (default `.Machine$double.eps`) before/after transforming, for the same
+  reason.
+- **`EDI_SEPARATION_THRESHOLD` (`globals.R`, $10^6$).** A coefficient
+  magnitude beyond this is treated package-wide as evidence of complete/
+  quasi-complete separation (the MLE does not exist, or a bootstrap/
+  likelihood-ratio replicate has diverged) rather than a genuine large
+  estimate — `is_separated_coefficient_magnitude()` centralizes a check that
+  used to be copy-pasted independently across several files. (One documented
+  exception: `inference_mixin_kk_gee_shared.R`'s GEE family uses its own,
+  deliberately tighter, threshold of $10^4$ for the same purpose.)
+- **`fast_erfc(x)`**: uses a Cephes piecewise rational approximation for
+  $|x| \le 5.6$ and falls back to the platform `libm` `erfc` beyond that,
+  specifically to preserve accuracy in the extreme tail outside the range the
+  rational approximation was fit against.
+
+None of these are "input validation" in the sense of rejecting bad input —
+they are numerical *safety nets* that keep a function returning a finite,
+sane value under the extreme arguments its own optimizer or a diverging
+model fit can legitimately produce, as distinct from the (mostly absent)
+checking of whether the input made statistical sense in the first place.
+
+## Convergence flags and return-object conventions
+
+Nearly every iterative-fitting backend returns some variant of the same
+small set of fields — `edi::ResultMap`'s `to_rcpp_list()`/`to_py_dict()`
+converts whatever fields a given backend `.set()`s into an R `list()` or
+Python `dict`, so the *available* fields differ by function, but their
+*meaning*, where present, is package-wide:
+
+| Field | Meaning |
+| --- | --- |
+| `converged` | Logical; whether the optimizer's stopping criterion was met before `maxit` was reached. `FALSE` does not necessarily mean the returned coefficients are useless — it means the convergence tolerance was not certified met, so downstream code should decide whether to trust, retry (e.g. `robust_survreg`'s random-restart loop), or reject the fit. |
+| `iterations` | Integer count of optimizer iterations actually taken. |
+| `gradient_norm` | The norm of the score/gradient at the returned parameter vector — a continuous convergence diagnostic independent of the boolean `converged` flag; useful for distinguishing "essentially converged, tolerance was just slightly too tight" from "genuinely still moving." |
+| `neg_loglik` / `neg_ll` / `loglik` | The negative log-likelihood at the fit (`neg_loglik`/`neg_ll` are aliases for the same quantity — both are populated so callers used to either naming convention find it) and, where included, `loglik = -neg_loglik` computed only when finite (`NA`/omitted otherwise) as a convenience so callers don't need to negate it themselves. |
+| `vcov`, `std_err`, `z_vals` | The parameter covariance matrix, per-parameter standard errors (`sqrt(diag(vcov))`), and Wald z-statistics (`coef / std_err`) — present only on backends that were called in variance-computing mode (see `estimate_only` below). |
+| `fisher_information` / `observed_information` / `information` | Three names for the **same** matrix on backends that expose it (e.g. `fast_ordinal_regression_with_var_cpp`, `fast_cpoisson_combined_with_var`, `fast_hurdle_negbin_with_var`) — populated once, aliased under all three names, since different call sites in the codebase historically settled on different names for the identical quantity. |
+| `estimate_only` (an argument, not a return field) | When `TRUE`, skips computing the Hessian/Fisher-information-derived quantities above entirely (not just omitting them from the return value) — a real performance path, used e.g. inside bootstrap/randomization inner loops that only need a point estimate per replicate, not a full covariance matrix. |
+
+## Shared cores and wrapper-to-backend equivalence
+
+Two structural patterns guarantee that "the R version" and "the Python
+version" of a given kernel are not just similar but the *exact same compiled
+logic*:
+
+- **`EDI_CORE_ONLY` portable headers.** Files like `fast_erfc.h`,
+  `_helper_functions_core.h`, `ordinal_fixed_link_helpers.h`, and
+  `fast_gamma_functions.h` are written to compile with **or** without Rcpp,
+  guarded by `#ifdef EDI_CORE_ONLY` (a plain `constexpr double NA_REAL = ...`
+  substitute for R's `NA_REAL` when compiled standalone). The Python
+  bindings (`python/cpp/`) compile directly against these same header files
+  from `R/EDI/src` — nothing under `python/` is a copy of package logic; it
+  is the identical source, recompiled into a different extension module.
+- **`*_internal()` shared-core functions.** Where a scalar/vector algorithm
+  needs both an R-facing `Rcpp::NumericVector`-typed export *and* a
+  Python-facing plain-struct-returning version, the actual logic lives once
+  in a `..._internal()` function operating on plain doubles/structs (e.g.
+  `wilson_score_interval_internal()`, `newcombe_independent_ci_internal()`,
+  `mn_ci_internal()`), and both the `[[Rcpp::export]]` wrapper and the
+  pybind11 binding call that same internal function — so an R user and a
+  Python user calling the "same" function with the same inputs are
+  provably calling the same compiled code path, not two independently
+  maintained reimplementations that merely intend to agree.
+- **The portable RNG.** `edi_rng::RRng` (see `vignette("reproducibility")`)
+  is the same pattern applied to random-number generation specifically: a
+  from-scratch, dependency-free reimplementation of R's own Mersenne-Twister
+  generator, so a seed produces bit-identical draws whether the call
+  originates in R or in Python.
+
+## `NA`/`NaN` handling
+
+There is no single package-wide rule for what a backend does when it
+receives `NA`/`NaN` in a numeric argument it does not explicitly document
+handling for — behavior ranges from "propagates cleanly to a non-finite
+result field" to "undefined/reads garbage," and is a direct consequence of
+the "domains are not checked" rule above. Where a function *does* have
+documented `NA`/`NaN` handling, it is because that function's job requires
+it (e.g. `sample_mode_cpp()` treats `NA` — and, for doubles, `NaN` as a
+category distinct from `NA` — as a first-class value that can itself be
+"the mode," because computing a mode over data that may contain missingness
+is exactly the use case that function exists for). Do not assume a
+`fast_*_cpp` fitting backend will produce a clean `NA` in its output merely
+because its input contained one; check the specific function's own
+documentation.

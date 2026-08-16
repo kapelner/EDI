@@ -1,8 +1,23 @@
-#' Mean Difference Inference for Continuous Responses
+#' Simple Mean-Difference Inference for Continuous Responses
 #'
-#' Fits a simple mean difference for continuous responses using the treatment
-#' indicator. Note that warm starts are disabled for this class as the simple
-#' mean difference is a closed-form estimator and does not benefit from initialization.
+#' Fits the simplest possible treatment-effect estimator for a continuous
+#' response: the unadjusted difference in sample means between the treated and
+#' control arms, \eqn{\hat\beta_T = \bar y_T - \bar y_C}, with no covariate
+#' adjustment. Inference is by \strong{Welch's unequal-variance t-test}: standard
+#' error \eqn{\sqrt{s_T^2/n_T + s_C^2/n_C}} (per-arm sample variances, not
+#' pooled) with Satterthwaite-Welch degrees of freedom — see
+#' \code{$compute_asymp_confidence_interval()} for the exact formula. This class
+#' has no likelihood tier (\code{likelihood_tier = "none"}) and provides
+#' asymptotic Wald, randomization, and bootstrap (including Bayesian bootstrap)
+#' confidence intervals and p-values. Warm starts are disabled for this class,
+#' since the simple mean difference is a closed-form estimator (no iterative fit
+#' to warm-start).
+#'
+#' @references Welch, B. L. (1947). "The Generalization of 'Student's' Problem
+#'   when Several Different Population Variances are Involved." \emph{Biometrika},
+#'   34(1-2), 28-35, \doi{10.1093/biomet/34.1-2.28}, for the unequal-variance
+#'   t-test and its Satterthwaite-Welch degrees-of-freedom approximation used
+#'   here.
 #'
 #' @examples
 #' \dontrun{
@@ -20,6 +35,7 @@
 #' seq_des_inf$compute_asymp_confidence_interval()
 #' seq_des_inf$compute_asymp_two_sided_pval()
 #' }
+#' @name InferenceAllSimpleMeanDiff
 #' @export
 SimpleMeanDifferenceSource = list(
 	public = list(
@@ -44,22 +60,43 @@ SimpleMeanDifferenceSource = list(
 			private$fit_warm_start_enabled = FALSE
 			private$max_resample_attempts = max_resample_attempts
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Computes a \eqn{1-\alpha} level confidence interval for the
+		#'   simple (unadjusted) mean-difference treatment effect
+		#'   \eqn{\hat\beta_T = \bar y_T - \bar y_C}, using \strong{Welch's
+		#'   unequal-variance} formula: standard error
+		#'   \eqn{\widehat{\mathrm{SE}}(\hat\beta_T) = \sqrt{s_T^2/n_T + s_C^2/n_C}}
+		#'   (sample variances \eqn{s_T^2}, \eqn{s_C^2} computed separately per arm,
+		#'   not pooled) with Satterthwaite-Welch degrees of freedom
+		#'   \eqn{\mathrm{df} = (s_T^2/n_T + s_C^2/n_C)^2 \big/ \left(\frac{(s_T^2/n_T)^2}{n_T-1}
+		#'   + \frac{(s_C^2/n_C)^2}{n_C-1}\right)}; the interval is
+		#'   \eqn{\hat\beta_T \pm t_{\mathrm{df}, 1-\alpha/2}\,\widehat{\mathrm{SE}}(\hat\beta_T)}.
+		#'   Requires at least 2 observations per arm; otherwise the standard error
+		#'   and interval are \code{NA}. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   asymptotic confidence-interval contract this delegates to.
 		#' @param alpha Confidence level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Computes a two-sided Welch's t-test p-value testing
+		#'   \eqn{H_0: \beta_T = \code{delta}}, from the same Welch
+		#'   unequal-variance standard error and Satterthwaite-Welch degrees of
+		#'   freedom used by \code{$compute_asymp_confidence_interval()} — see that
+		#'   method's documentation for the full formula. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   asymptotic two-sided p-value contract this delegates to.
 		#' @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared()
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Computes the class-specific mean or survival contrast; see
-		#'   \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}}.
+		#' @description Computes the simple (unadjusted) mean-difference point
+		#'   estimate \eqn{\hat\beta_T = \bar y_T - \bar y_C}, the difference in
+		#'   sample means between the treated and control arms. \code{NA} if
+		#'   either arm has zero observations. See
+		#'   \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}}
+		#'   for the shared estimate-contract this participates in.
 		#'
 		#' @return    The setting-appropriate (see description) numeric estimate of the treatment effect
 		#'
@@ -78,8 +115,23 @@ SimpleMeanDifferenceSource = list(
 			}
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate for a bootstrap sample; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+		#' @description Recomputes the simple mean-difference estimate under
+		#'   subject/block bootstrap weights (used by the Bayesian bootstrap and
+		#'   related weighted-resampling machinery — see
+		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}).
+		#'   The weighted point estimate is \eqn{\hat\beta_T = \bar y_T^w - \bar
+		#'   y_C^w}, weighted arm means \eqn{\bar y_T^w = \sum_i r_i y_i \mathbb{1}[w_i=1]
+		#'   / \sum_i r_i \mathbb{1}[w_i=1]} (and analogously for control), where
+		#'   \eqn{r_i} are the expanded row weights. Unless \code{estimate_only =
+		#'   TRUE}, the standard error uses a \strong{weighted, effective-sample-size}
+		#'   Welch formula: \eqn{n_{\mathrm{eff}} = (\sum r_i)^2 / \sum r_i^2}
+		#'   (the usual Kish effective-sample-size correction for unequal weights)
+		#'   in place of the raw \eqn{n} in both the per-arm weighted variance
+		#'   denominator and the Satterthwaite-Welch degrees-of-freedom formula (see
+		#'   \code{$compute_asymp_confidence_interval()} for the unweighted version
+		#'   of the same formula). Rows with non-finite or non-positive weight, or a
+		#'   non-finite response, are dropped before computing; if no rows survive,
+		#'   returns \code{NA} with all cached variance components set to \code{NA}.
 		#' @param subject_or_block_weights Row weights for the bootstrap sample.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){

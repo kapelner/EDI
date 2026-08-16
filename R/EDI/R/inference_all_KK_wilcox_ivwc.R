@@ -19,6 +19,16 @@ KKWilcoxIVWCSource = list(
 		#' @description Initialize KK inverse-variance combined Wilcoxon inference
 		#'   and prepare matched/reservoir rank-based components used by
 		#'   \code{\link[EDI:InferenceAllKKWilcoxIVWC]{InferenceAllKKWilcoxIVWC}}.
+		#'   Requires \code{des_obj} to be a KK matching-on-the-fly-capable design
+		#'   (\code{des_obj$is_a_kk_matching_capable()}); errors otherwise. Also
+		#'   rejects \code{response_type = "incidence"} (a message-and-error
+		#'   recommends a compound mean-difference or conditional-logistic estimator
+		#'   instead — rank-based methods are not well suited to binary outcomes)
+		#'   and rejects censored survival data (recommends a restricted-mean or
+		#'   Cox-based method instead, since this estimator has no censoring
+		#'   handling). Legal \code{response_type} values are \code{"continuous"},
+		#'   \code{"count"}, \code{"proportion"}, \code{"survival"} (uncensored
+		#'   only), and \code{"ordinal"}.
 		#' @param des_obj A DesignSeqOneByOne object (must be a KK design).
 		#' @param verbose Whether to print progress messages.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
@@ -55,13 +65,47 @@ KKWilcoxIVWCSource = list(
 				}
 			}
 		},
-		#' @description Returns the estimated treatment effect (Hodges-Lehmann median shift).
+		#' @description Returns the estimated treatment effect: an inverse-variance-weighted
+		#'   compound (IVWC) of two Hodges-Lehmann median-shift estimates.
+		#'
+		#' @details For matched pairs, \eqn{\hat\beta_m} is the Hodges-Lehmann
+		#'   estimate from a Wilcoxon \strong{signed-rank} test on the within-pair
+		#'   differences (\code{stats::wilcox.test(diffs, conf.int = TRUE)}'s
+		#'   \code{estimate}, the median of the Walsh averages
+		#'   \eqn{(d_i + d_j)/2}), with variance estimated as the sample variance of
+		#'   those Walsh averages divided by the number of pairs \eqn{m}. For
+		#'   reservoir (unmatched) subjects, \eqn{\hat\beta_r} is the
+		#'   Hodges-Lehmann estimate from a Wilcoxon \strong{rank-sum} test between
+		#'   treated and control reservoir responses (median of all pairwise
+		#'   differences \eqn{y_{T,i} - y_{C,j}}), with an analogous
+		#'   pairwise-difference-variance-based estimate. When both sub-estimates
+		#'   are usable, the compound estimate is the inverse-variance-weighted
+		#'   combination
+		#'   \deqn{\hat\beta_T = w^* \hat\beta_m + (1-w^*)\, \hat\beta_r, \qquad
+		#'   w^* = \frac{\widehat{\mathrm{Var}}(\hat\beta_r)}{\widehat{\mathrm{Var}}(\hat\beta_r)
+		#'   + \widehat{\mathrm{Var}}(\hat\beta_m)},}
+		#'   with combined variance \eqn{\widehat{\mathrm{Var}}(\hat\beta_r)\,
+		#'   \widehat{\mathrm{Var}}(\hat\beta_m) / (\widehat{\mathrm{Var}}(\hat\beta_r) +
+		#'   \widehat{\mathrm{Var}}(\hat\beta_m))} — the same combination scheme as
+		#'   \code{\link[EDI:InferenceAllKKMeanDiffIVWC]{InferenceAllKKMeanDiffIVWC}},
+		#'   but applied to rank-based rather than mean-based sub-estimates. If
+		#'   only one sub-estimate is usable (e.g. no matched pairs, or a degenerate
+		#'   reservoir), \eqn{\hat\beta_T} falls back to that sub-estimate alone.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes the non-parametric confidence interval.
+		#' @description Computes a \eqn{1-\alpha} level confidence interval for the
+		#'   compound Hodges-Lehmann treatment effect estimator. Although each
+		#'   sub-estimate is itself derived from a non-parametric rank test, the
+		#'   inverse-variance-weighted \strong{combination} \eqn{\hat\beta_T} (see
+		#'   \code{$compute_estimate()} for the full formula) is treated as
+		#'   asymptotically normal, so the interval is
+		#'   \eqn{\hat\beta_T \pm z_{1-\alpha/2}\sqrt{\widehat{\mathrm{Var}}(\hat\beta_T)}}
+		#'   (or a \eqn{t}-based critical value, depending on
+		#'   \code{private$compute_z_or_t_ci_from_s_and_df}'s degrees-of-freedom
+		#'   resolution).
 		#' @param alpha The confidence level in the computed confidence
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
@@ -75,9 +119,19 @@ KKWilcoxIVWCSource = list(
 			# Even though estimates are non-parametric, the combined estimator is asymptotically normal
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Compute the KK Wilcoxon non-parametric two-sided p-value
-		#'   from the rank-based treatment statistic. See related simple Wilcoxon
-		#'   behavior in \code{\link[EDI:InferenceAllSimpleWilcox]{InferenceAllSimpleWilcox}}.
+		#' @description Compute the KK Wilcoxon compound two-sided p-value testing
+		#'   \eqn{H_0: \beta_T = \code{delta}}, from the same asymptotically-normal
+		#'   compound estimate/variance (\eqn{z = (\hat\beta_T -
+		#'   \code{delta})/\widehat{\mathrm{SE}}(\hat\beta_T)}) that
+		#'   \code{$compute_asymp_confidence_interval()} inverts to form its
+		#'   interval — see that method's documentation, and
+		#'   \code{$compute_estimate()}, for the compound Hodges-Lehmann estimator's
+		#'   full formula. Only \code{delta = 0} is currently supported: a non-zero
+		#'   null shift raises an error (when assertions are enabled) rather than
+		#'   testing it, because the underlying Wilcoxon tests' null-shift handling
+		#'   has not been extended to the compound combined estimator. See related
+		#'   simple Wilcoxon behavior in
+		#'   \code{\link[EDI:InferenceAllSimpleWilcox]{InferenceAllSimpleWilcox}}.
 		#' @param delta The null difference to test against. For any
 		#'   treatment effect at all this is set to zero (the default).
 		compute_asymp_two_sided_pval = function(delta = 0){
@@ -97,15 +151,28 @@ KKWilcoxIVWCSource = list(
 				NA_real_
 			}
 		},
-		#' @description Jackknife bias correction is unstable for the
-		#'   Hodges-Lehmann rank estimator; report explicit non-estimability.
+		#' @description Reports the jackknife point-estimate as explicitly
+		#'   non-estimable for this compound Hodges-Lehmann estimator, rather than
+		#'   computing a leave-one-out jackknife. Deletion-based (jackknife)
+		#'   resampling of a Hodges-Lehmann/Wilcoxon-derived statistic is known to
+		#'   behave poorly — the median-of-Walsh-averages functional is not smooth
+		#'   enough for the delete-1 jackknife's linear-approximation machinery to
+		#'   be reliable at the small matched-pair/reservoir sample sizes typical of
+		#'   KK designs, and combining two already-jackknife-unstable sub-estimates
+		#'   compounds the problem. This method exists purely to record that
+		#'   unavailability (via \code{private$cache_nonestimable_estimate()}) rather
+		#'   than silently returning a misleading number; see
+		#'   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
+		#'   jackknife contract this method participates in.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_estimate = function(unit = "auto"){
 			private$cache_nonestimable_estimate("kk_wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
-		#' @description Report that the jackknife bias estimate is unavailable for
-		#'   this Wilcoxon combined estimator; see
+		#' @description Reports the jackknife bias-correction estimate as
+		#'   non-estimable for this Wilcoxon compound estimator, for the same
+		#'   reason as \code{$compute_jackknife_estimate()} (the Hodges-Lehmann
+		#'   functional is not smooth enough for the delete-1 jackknife); see
 		#'   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
 		#'   jackknife contract.
 		#' @param unit Deletion unit. Default \code{"auto"}.
@@ -113,8 +180,9 @@ KKWilcoxIVWCSource = list(
 			private$cache_nonestimable_estimate("kk_wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
-		#' @description Report that the jackknife standard error is unavailable for
-		#'   this Wilcoxon combined estimator; see
+		#' @description Reports the jackknife standard error as non-estimable for
+		#'   this Wilcoxon compound estimator, for the same reason as
+		#'   \code{$compute_jackknife_estimate()}; see
 		#'   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
 		#'   jackknife contract.
 		#' @param unit Deletion unit. Default \code{"auto"}.
@@ -122,7 +190,8 @@ KKWilcoxIVWCSource = list(
 			private$cache_nonestimable_se("kk_wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
-		#' @description Reports that jackknife-Wald p-values are unavailable here; see
+		#' @description Reports the jackknife-Wald p-value as non-estimable here,
+		#'   for the same reason as \code{$compute_jackknife_estimate()}; see
 		#'   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 		#' @param delta Null treatment-effect value. Default 0.
 		#' @param unit Deletion unit. Default \code{"auto"}.
@@ -130,7 +199,9 @@ KKWilcoxIVWCSource = list(
 			private$cache_nonestimable_se("kk_wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
-		#' @description Reports that jackknife-Wald intervals are unavailable here; see
+		#' @description Reports the jackknife-Wald confidence interval as
+		#'   non-estimable here, for the same reason as
+		#'   \code{$compute_jackknife_estimate()}; see
 		#'   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 		#' @param alpha Significance level. Default 0.05.
 		#' @param unit Deletion unit. Default \code{"auto"}.
@@ -383,14 +454,42 @@ KKWilcoxIVWCSource$private = kk_wilcox_source_private[
 	!duplicated(names(kk_wilcox_source_private), fromLast = TRUE)
 ]
 
-#' Non-parametric Wilcoxon-based Compound Inference for KK Designs
+#' Non-parametric Wilcoxon-based Compound Inference for KK Matching-on-the-Fly Designs
 #'
-#' Fits a non-parametric compound estimator for KK matching-on-the-fly designs.
-#' For matched pairs, it uses the Wilcoxon Signed-Rank Hodges-Lehmann estimate.
-#' For reservoir subjects, it uses the Wilcoxon Rank-Sum (Mann-Whitney U) Hodges-Lehmann
-#' estimate. The two estimates are combined via a variance-weighted linear combination.
-#' This method is robust to outliers and does not assume a specific parametric
-#' distribution for the response.
+#' Fits a non-parametric, rank-based compound (inverse-variance-weighted, IVWC)
+#' estimator of the treatment effect under a
+#' \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}-family KK
+#' matching-on-the-fly design (see
+#' \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}}). For matched
+#' pairs, the sub-estimate \eqn{\hat\beta_m} is the \strong{Hodges-Lehmann}
+#' estimate from a Wilcoxon signed-rank test on the within-pair differences (the
+#' median of the Walsh averages \eqn{(d_i+d_j)/2}); for reservoir (unmatched)
+#' subjects, \eqn{\hat\beta_r} is the Hodges-Lehmann estimate from a Wilcoxon
+#' rank-sum (Mann-Whitney \eqn{U}) test on treated-vs-control reservoir responses
+#' (the median of all pairwise differences). The two are combined by classical
+#' inverse-variance weighting,
+#' \deqn{\hat\beta_T = w^* \hat\beta_m + (1-w^*)\, \hat\beta_r, \qquad
+#'   w^* = \frac{\widehat{\mathrm{Var}}(\hat\beta_r)}{\widehat{\mathrm{Var}}(\hat\beta_r)
+#'   + \widehat{\mathrm{Var}}(\hat\beta_m)},}
+#' with variance the standard inverse-variance-pooled form (see
+#' \code{$compute_estimate()}'s method-level documentation for the full formula
+#' and fallback behavior when only one sub-estimate is usable). Because it is
+#' built from Hodges-Lehmann/Wilcoxon estimators rather than sample means, this
+#' method is robust to outliers and does not assume a specific parametric
+#' distribution for the response — but it does not currently support censored
+#' survival data or incidence (binary) responses (see \code{$initialize()}), and
+#' its jackknife methods all report explicit non-estimability rather than
+#' computing a (statistically unreliable) delete-1 jackknife of the
+#' Hodges-Lehmann functional.
+#'
+#' @references Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
+#'   Based on Rank Tests." \emph{The Annals of Mathematical Statistics}, 34(2),
+#'   598-611, \doi{10.1214/aoms/1177704172}, for the Hodges-Lehmann estimator
+#'   underlying both sub-estimates; Kapelner, A., and Krieger, A. M. (2014).
+#'   "Matching on-the-fly: Sequential allocation with higher power and
+#'   efficiency." \emph{Biometrics}, 70(2), 378-388, \doi{10.1111/biom.12148},
+#'   for the KK matching-on-the-fly design and the inverse-variance combination
+#'   of matched-pair and reservoir estimates.
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #'
@@ -408,7 +507,7 @@ KKWilcoxIVWCSource$private = kk_wilcox_source_private[
 InferenceAllKKWilcoxIVWC = define_inference_class(
 	classname = "InferenceAllKKWilcoxIVWC",
 	inherit = Inference,
-	components = c("RandomizationBootstrap", "Wald", "KKWilcoxIVWC"),
+	components = c("RandomizationBootstrapCI", "Wald", "KKWilcoxIVWC"),
 	public = list(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),

@@ -7,11 +7,45 @@
 get_parallel_dispatch_policy()
 }
 \value{
-A named list describing the built-in dispatch policy.
+A named list with two components, \code{bootstrap} and \code{rand_ci},
+  each itself a list with \code{serial_inference_class_patterns} (a character
+  vector of PCRE-flavored regular expressions matched against the inference
+  class name) and \code{serial_response_types} (a character vector of exact
+  response-type strings) — any match in either forces that operation to run
+  serially rather than in parallel.
 }
 \description{
-Returns EDI's built-in blocklist-first dispatch policy. This is the policy
+Returns EDI's built-in \strong{blocklist-first} policy table, consulted by an
+internal (non-exported) dispatcher, for deciding whether a given
+\code{"bootstrap"} or \code{"rand_ci"} (randomization confidence interval)
+operation is forced to run \strong{serially} rather than in parallel, for a
+given inference class and response type. "Blocklist-first" means every
+operation is parallel-eligible by default; only combinations explicitly
+matched below are forced serial.
+}
+\details{
+For a given \code{operation} (\code{"bootstrap"} or
+  \code{"rand_ci"}), the dispatcher looks up that operation's sub-list (e.g.
+  \code{bootstrap}) and forces serial execution if either the inference class
+  name matches any of \code{serial_inference_class_patterns} (regular
+  expressions, PCRE-flavored — \code{serial_inference_class_patterns} supports
+  lookahead, e.g. the built-in
+  \verb{"^InferenceSurvival(?!.*KK)"} pattern matches non-KK survival inference
+  classes but excludes matched-design (KK) survival variants) or the response
+  type matches any of \code{serial_response_types} exactly. In the built-in
+  policy, incidence-response inference generally runs serially for both
+  operations (its bootstrap/randomization resampling is not currently
+  parallel-safe or not worth parallelizing at typical trial sizes), and
+  non-KK survival inference and \code{InferenceAllKKWilcoxIVWC} are
+  additionally forced serial for bootstrapping specifically.
 }
 \examples{
-get_bootstrap_dispatch_policy()
+get_parallel_dispatch_policy()
+}
+\seealso{
+\code{\link{get_bootstrap_dispatch_policy}},
+  \code{\link{get_cold_start_dispatch_policy}}, and
+  \code{\link{get_optimization_dispatch_policy}} for the analogous policies
+  controlling bootstrap CI type, cold-start behavior, and default optimizer
+  algorithm (none of which control parallel-vs-serial dispatch).
 }

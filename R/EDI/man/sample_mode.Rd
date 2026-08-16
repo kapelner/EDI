@@ -2,18 +2,28 @@
 % Please edit documentation in R/other_helpers.R
 \name{sample_mode}
 \alias{sample_mode}
-\title{Sample Mode from an array}
+\title{Sample Mode}
 \usage{
 sample_mode(data)
 }
 \arguments{
-\item{data}{The array of numbers}
+\item{data}{A vector (integer, logical, double, character, or factor) to compute the mode of.}
 }
 \value{
-The sample mode
+A length-1 vector (same type as \code{data}) holding the most frequently occurring
+  value, with ties broken in favor of whichever tied value occurs earliest in \code{data}.
 }
 \description{
-Compute sample mode from an array of numbers
+Thin R wrapper around \code{sample_mode_cpp()}, which returns the most
+frequently occurring value in \code{data}. Integer, logical, double,
+character, and factor vectors are all supported (dispatched internally on
+\code{TYPEOF(data)}; factors preserve their \code{class}/\code{levels}
+attributes on the returned value). \code{NA} (and, for doubles, \code{NaN}
+as a category distinct from \code{NA}) is counted like any other value and
+can itself be returned as "the mode" if it is the most frequent entry.
+Ties are broken by \strong{first occurrence}: among values tied for the
+highest count, the one that appears earliest in \code{data} is returned —
+this is a positional, not a numeric/lexicographic, tie-break rule.
 }
 \examples{
 sample_mode(c(1, 2, 2, 3))

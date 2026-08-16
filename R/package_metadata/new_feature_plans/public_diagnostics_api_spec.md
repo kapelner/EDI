@@ -1,5 +1,7 @@
 # Public Diagnostics API Implementation Spec
 
+> **Depends on:** `optimizer_diagnostics_report.md` (TODO-9..12 consume its layer); `fix_inference_hierarchy.md` (core-path phases run across migrated families). Hosts the re-homed diagnostics TODOs of the finished m-out-of-n spec and `prw_subsampling_implementation_spec.md`. (Global ordering: see `_master.md`.)
+
 Generated: 2026-07-27
 
 ## Scope
@@ -414,8 +416,12 @@ field to `NULL` or `NA`, not by doing expensive substitute computation.
 - [ ] TODO-2: Add print and summary methods:
    - `print.EDIInferenceDebugResult`
    - `as.data.frame.EDIInferenceDebugResult`
-- [ ] TODO-3: Add base public methods in the highest shared inference class that can
-   safely expose them.
+- [ ] TODO-3: Add the base public methods on the root `Inference` class (they
+   are universal wrappers around methods every class has). Any diagnostics
+   method that only applies to an optional inference algorithm must instead be
+   registered under that algorithm's capability in
+   `public_methods_for_capability` — the shallow hierarchy's rule is that a
+   public optional method exists iff the matching capability exists.
 - [ ] TODO-4: The default implementations should call existing public methods and wrap
    their results with minimal diagnostics. This makes the API available
    package-wide without changing class internals.
@@ -438,10 +444,27 @@ classes.
 
 Priority targets:
 
-- [ ] TODO-5: Move likelihood-backed `InferenceAsympLik` classes to shared core-path diagnostics.
-- [ ] TODO-6: Move `InferenceParamBootstrap` and bootstrap-calibrated LR paths to shared core-path diagnostics.
+- [ ] TODO-5: Move likelihood-backed classes (`likelihood_tier` `"full"`/`"partial"`,
+   composing the `LikelihoodTests`/`StandardModelCache` components — formerly the
+   `InferenceAsympLik` family) to shared core-path diagnostics.
+- [ ] TODO-6: Move the `ParametricLikelihoodBootstrap` component (formerly
+   `InferenceParamBootstrap`) and bootstrap-calibrated LR paths to shared core-path diagnostics.
 - [ ] TODO-7: Move nonparametric bootstrap and Bayesian bootstrap methods to shared core-path diagnostics.
 - [ ] TODO-8: Move randomization and jackknife paths to shared core-path diagnostics.
+- [ ] TODO-17 (re-homed 2026-08-14 from `m_out_of_n_bootstrap_implementation_spec.md`'s
+   Phase 4, which is otherwise complete and moved to `finished_features/`): wire
+   m-out-of-n bootstrap and PRW subsampling diagnostics into this spec's public
+   debug API once it exists. Both implementations already expose rich
+   per-distribution diagnostics via their `debug = TRUE` mode
+   (`inference_ext_m_out_of_n_bootstrap.R`, `inference_ext_prw_subsampling.R` —
+   resolved size, finite fraction, failure reasons), so this is a wiring task,
+   not new instrumentation. Covers `prw_subsampling_implementation_spec.md`'s
+   open TODO-14/16/17 as well.
+- [ ] TODO-18 (re-homed 2026-08-14, same source): preserve optimizer diagnostics
+   for failed m-out-of-n/subsampling refits in debug mode when available —
+   depends on this spec's Phase 3 optimizer-diagnostics layer, which is why it
+   cannot land in the resampling specs themselves. Covers
+   `prw_subsampling_implementation_spec.md`'s open TODO-15 as well.
 
 ### Phase 3: Optimizer diagnostics integration
 

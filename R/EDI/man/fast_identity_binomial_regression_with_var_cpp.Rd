@@ -2,10 +2,10 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_identity_binomial_regression_with_var_cpp}
 \alias{fast_identity_binomial_regression_with_var_cpp}
-\title{Fast Identity-Binomial Regression with Variance (C++)}
+\title{Fast Identity-Link Binomial Regression with Targeted Variance (C++ Backend)}
 \usage{
 fast_identity_binomial_regression_with_var_cpp(
-  X_r,
+  X,
   y_r,
   j = 2L,
   maxit = 100L,
@@ -19,30 +19,68 @@ fast_identity_binomial_regression_with_var_cpp(
 )
 }
 \arguments{
-\item{X_r}{A numeric matrix of predictors.}
+\item{y_r}{A binary (0/1) numeric vector of responses, length \eqn{n}.}
 
-\item{y_r}{A binary numeric vector of responses.}
+\item{j}{1-based index (into \code{X}'s columns) of the coefficient to
+compute \code{ssq_b_j} for.}
 
-\item{j}{1-based index of the parameter for which to return specific variance.}
-
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of Fisher-scoring iterations.}
 
 \item{tol}{Convergence tolerance.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed
+rather than estimate.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
 
 \item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
 
 \item{warm_start_weights}{Optional initial working weights for the first IRLS iteration.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+
+\item{X_r}{A numeric matrix of predictors, \eqn{n \times p}.}
 }
 \value{
-A list containing coefficients, vcov, and standard errors.
+A list with components \code{b} (estimated coefficients
+  \eqn{\hat\beta}), \code{ssq_b_j} (the variance of \eqn{\hat\beta_j}, or
+  \code{NA} on failure), \code{converged} (logical), \code{fisher_information}
+  (the working-weights curvature matrix used for \code{ssq_b_j}, present only
+  on the success path), \code{neg_ll}/\code{logLik} (the negative/positive
+  log-likelihood at \eqn{\hat\beta}, present only on the success path), and
+  the always-empty \code{vcov}/\code{std_err}/\code{z_vals} placeholders
+  described in Details.
 }
 \description{
-Binomial regression with identity link, providing variance-covariance matrix and standard errors.
+Fits the same identity-link (risk-difference) binomial regression as
+\code{\link{fast_identity_binomial_regression_cpp}} (see that page for the
+full model and boundary-constrained IRLS line search) and additionally
+computes the variance of a single caller-selected coefficient, via a targeted
+diagonal-entry inversion of the working-weights Fisher information — this
+entry point does \strong{not} compute or return a full variance-covariance
+matrix or a vector of standard errors for every coefficient, despite its
+name; only the one coefficient named by \code{j} gets a variance
+(\code{ssq_b_j}).
+}
+\details{
+\strong{Variance computation.} The IRLS working-weights Fisher information
+\eqn{X^\top W X} (reused from the underlying fit if finite and correctly
+sized, else recomputed from the final working weights) is restricted to the
+free (non-\code{fixed_idx}) parameters and factorized via LDLT; \code{ssq_b_j}
+is then obtained from a single targeted diagonal-entry inversion
+(\code{compute_diagonal_inverse_entry()}) at the free-parameter position
+corresponding to \code{j}, not a full matrix inverse. If the underlying fit
+did not converge, or the LDLT factorization fails (e.g. a rank-deficient
+free-parameter information matrix), the function returns early with
+\code{converged = FALSE}, \code{ssq_b_j = NA}, and empty
+(zero-length/zero-dimension) \code{vcov}/\code{std_err}/\code{z_vals}
+placeholders — these three fields are \strong{only ever populated as empty
+placeholders}, on both the success and failure paths; no caller should rely
+on them containing actual values.
+}
+\seealso{
+\code{\link{fast_identity_binomial_regression_cpp}} for the
+  estimate-only variant and the full model documentation.
 }
 \keyword{internal}

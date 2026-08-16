@@ -4,12 +4,34 @@
 \alias{DesignSeqOneByOneEfron}
 \title{Efron's (1971) Biased Coin Sequential Design}
 \description{
-An R6 Class encapsulating the data and functionality for Efron's biased coin
-sequential experimental design.
+A \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} implementing Efron's (1971)
+biased coin: no covariates are used, only the running counts of treated
+(\eqn{n_T}) and control (\eqn{n_C}) subjects assigned so far. If the counts are
+currently equal, the next subject is assigned by a fair \eqn{\mathrm{Bernoulli}(0.5)}
+coin; otherwise, the next subject is assigned to the currently
+\strong{under-represented} group with probability \code{weighted_coin_prob}
+(\eqn{> 0.5}, e.g. the classical \eqn{2/3}) and to the over-represented group with
+probability \code{1 - weighted_coin_prob}. This keeps the running treatment/control
+counts close to balanced throughout enrollment (unlike
+\code{\link[EDI:DesignSeqOneByOneBernoulli]{DesignSeqOneByOneBernoulli}}, whose
+running counts can drift arbitrarily far from balanced) while remaining strictly
+randomized at every step (the coin is always strictly between
+\code{1 - weighted_coin_prob} and \code{weighted_coin_prob}, never fully
+deterministic), unlike a purely deterministic alternating allocation. This is a
+count-balancing design only — it does not use covariates at all, in contrast to
+\code{\link[EDI:DesignSeqOneByOneAtkinson]{DesignSeqOneByOneAtkinson}}/
+\code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}, which bias the coin
+toward covariate balance rather than (or in addition to) count balance.
 }
 \examples{
 seq_des = DesignSeqOneByOneEfron$new(n = 6, response_type = 'continuous')
 seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+}
+\references{
+Efron, B. (1971). "Forcing a sequential experiment to be balanced."
+  \emph{Biometrika}, 58(3), 403-417, \doi{10.1093/biomet/58.3.403}. See also
+  \href{https://en.wikipedia.org/wiki/Randomized_experiment}{randomized experiment}
+  for orientation on biased-coin sequential designs.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} -> \code{DesignSeqOneByOneEfron}
@@ -26,9 +48,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 <ul>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject'><code>DesignSeqOneByOne$add_one_subject()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject_to_experiment_and_assign'><code>DesignSeqOneByOne$add_one_subject_to_experiment_and_assign()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-is_a_seq_one_by_one'><code>DesignSeqOneByOne$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-print_current_subject_assignment'><code>DesignSeqOneByOne$print_current_subject_assignment()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-supports_resampling'><code>DesignSeqOneByOne$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -61,6 +81,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -83,15 +104,17 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed'><code>Design$is_a_fixed()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-overwrite_all_subject_assignments'><code>Design$overwrite_all_subject_assignments()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -99,7 +122,8 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 \if{html}{\out{<a id="method-DesignSeqOneByOneEfron-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneEfron-initialize}{}}}
 \subsection{\code{DesignSeqOneByOneEfron$new()}}{
-  Initialize an Efron biased coin sequential experimental design
+  Initialize an Efron (1971) biased coin sequential experimental
+  design (see class documentation for the exact assignment rule).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneEfron$new(
@@ -120,11 +144,16 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \describe{
       \item{\code{response_type}}{"continuous", "incidence", "proportion", "count", "survival", or
 "ordinal".}
-      \item{\code{prob_T}}{Probability of treatment assignment.}
+      \item{\code{prob_T}}{Nominal probability of treatment assignment; used only as
+the fair-coin probability when the running treated/control counts are
+exactly equal (see \code{assign_wt()}).}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{verbose}}{A flag for verbosity.}
-      \item{\code{weighted_coin_prob}}{The probability of assigning to the under-represented group.}
+      \item{\code{weighted_coin_prob}}{The probability (\eqn{> 0.5}) of assigning the next
+subject to whichever of treatment/control currently has fewer subjects,
+when the running counts are unequal. Default \eqn{2/3}, the value from
+Efron (1971).}
       \item{\code{missingness_method}}{How to handle missing values in covariates.}
       \item{\code{design_formula}}{A formula object.}
       \item{\code{seed}}{Integer seed for reproducibility.}
@@ -140,15 +169,17 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 \if{html}{\out{<a id="method-DesignSeqOneByOneEfron-assign_wt"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneEfron-assign_wt}{}}}
 \subsection{\code{DesignSeqOneByOneEfron$assign_wt()}}{
-  Uses this subclass's sequential assignment rule; see
-  \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}.
+  Draw the next subject's treatment assignment via Efron's
+  (1971) biased coin (see class documentation): a fair coin if the running
+  treated/control counts are equal, otherwise a coin biased toward the
+  currently under-represented group at probability \code{weighted_coin_prob}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneEfron$assign_wt()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    The treatment assignment (0 or 1)
+    The treatment assignment (0 or 1) for the next subject.
   }
 }
 

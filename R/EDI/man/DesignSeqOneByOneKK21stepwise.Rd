@@ -2,11 +2,43 @@
 % Please edit documentation in R/design_seq_one_by_one_KK21_stepwise.R
 \name{DesignSeqOneByOneKK21stepwise}
 \alias{DesignSeqOneByOneKK21stepwise}
-\title{A Sequential Design}
+\title{Stepwise Variant of the KK21 Outcome-Weighted Sequential Matching Design}
 \description{
-An R6 Class encapsulating the data and functionality for a sequential experimental design.
-This class takes care of data initialization and sequential assignments. The class object
-should be saved securely after each assignment e.g. on an encrypted cloud server.
+A \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}} variant that
+computes its per-covariate matching weights via \strong{forward stepwise selection}
+(\code{compute_weights_KK21stepwise()}) instead of KK21's independent
+marginal-association regressions: covariates are added to a growing "selected" set
+one at a time, at each step choosing whichever remaining covariate has the largest
+absolute association statistic \emph{conditional on} (i.e. in a model that also
+includes) the covariates already selected and the treatment-assignment column,
+rather than each covariate's association with the response considered in isolation.
+This targets the case where covariates are mutually correlated: KK21's marginal
+weights can assign similar high weight to several collinear prognostic covariates
+(effectively double-counting the same information), whereas the stepwise conditional
+weights down-weight a covariate once its explanatory content is already captured by
+previously selected covariates.
+
+
+\strong{Weight computation.} For each response type, a family-appropriate model
+(OLS/logistic/negative-binomial/beta/AFT survival/proportional-odds, matching the
+same response-type dispatch and \code{*_use_speedup} fast-path conventions as
+\code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}) is repeatedly refit,
+each time regressing the response on one candidate remaining covariate plus all
+previously selected covariates plus the treatment column \code{ws}; the candidate
+with the largest absolute association statistic is selected next and assigned that
+statistic as its weight, then removed from the candidate pool, and the process
+repeats until every covariate has been assigned a weight (an \eqn{O(p^2)} number of
+model fits per assignment call, for \eqn{p} covariates). If a candidate's model fit
+fails to converge (e.g. perfect separation or rank deficiency) partway through, the
+remaining not-yet-selected covariates' weights are left \code{NA} internally and then
+replaced with 0 (excluding them from the weighted matching distance) rather than
+propagating the failure.
+
+\strong{Everything else is inherited from KK21.} Burn-in fallback to KK14, the
+bootstrapped acceptance-threshold test, matched-pair assignment, and the
+\code{morrison}/\code{lambda}/\code{t_0_pct} matching-schedule options are all
+unchanged from \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}; only
+\emph{how} the covariate weight vector is computed differs.
 }
 \examples{
 seq_des = DesignSeqOneByOneKK21stepwise$new(n = 6, response_type = 'continuous')
@@ -20,6 +52,15 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 seq_des = DesignSeqOneByOneKK21stepwise$new(n = 6, response_type = "continuous")
 }
 
+}
+\references{
+Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
+  allocation with higher power and efficiency." \emph{Biometrics}, 70(2), 378-388,
+  \doi{10.1111/biom.12148}, for the base matching-on-the-fly algorithm; the
+  outcome-weighted extension follows Kapelner and Krieger (2021), with this class
+  using a forward-stepwise (rather than marginal) weight-estimation scheme. See also
+  Morrison, T., and Owen, A. B. (2025) for the alternative \code{morrison = TRUE}
+  threshold calibration referenced by the \code{morrison} argument.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} -> \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} -> \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}} -> \code{DesignSeqOneByOneKK21stepwise}
@@ -40,37 +81,27 @@ seq_des = DesignSeqOneByOneKK21stepwise$new(n = 6, response_type = "continuous")
 </details>
 <details><summary>+ inherited public methods from DesignSeqOneByOneKK14</summary>
 <ul>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-add_all_subject_matched_pair_ids'><code>DesignSeqOneByOneKK14$add_all_subject_matched_pair_ids()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-assert_blocking_design'><code>DesignSeqOneByOneKK14$assert_blocking_design()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-assert_equal_block_sizes'><code>DesignSeqOneByOneKK14$assert_equal_block_sizes()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-assert_matching_design'><code>DesignSeqOneByOneKK14$assert_matching_design()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-get_block_ids'><code>DesignSeqOneByOneKK14$get_block_ids()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-get_cmh_se_w_mat'><code>DesignSeqOneByOneKK14$get_cmh_se_w_mat()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-get_matching_cluster_ids'><code>DesignSeqOneByOneKK14$get_matching_cluster_ids()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-inject_cmh_se_w_mat'><code>DesignSeqOneByOneKK14$inject_cmh_se_w_mat()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-is_a_kk_matching_capable'><code>DesignSeqOneByOneKK14$is_a_kk_matching_capable()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-is_blocking_design'><code>DesignSeqOneByOneKK14$is_blocking_design()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-is_complete_blocking_design'><code>DesignSeqOneByOneKK14$is_complete_blocking_design()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-is_matching_design'><code>DesignSeqOneByOneKK14$is_matching_design()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-set_m'><code>DesignSeqOneByOneKK14$set_m()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-summarize_blocks'><code>DesignSeqOneByOneKK14$summarize_blocks()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignSeqOneByOne</summary>
 <ul>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject'><code>DesignSeqOneByOne$add_one_subject()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject_to_experiment_and_assign'><code>DesignSeqOneByOne$add_one_subject_to_experiment_and_assign()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-is_a_seq_one_by_one'><code>DesignSeqOneByOne$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-print_current_subject_assignment'><code>DesignSeqOneByOne$print_current_subject_assignment()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-supports_resampling'><code>DesignSeqOneByOne$supports_resampling()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from DesignMatching</summary>
-<ul>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-assert_matching_design'><code>DesignMatching$assert_matching_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-get_matching_cluster_ids'><code>DesignMatching$get_matching_cluster_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-is_matching_design'><code>DesignMatching$is_matching_design()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from DesignBlocking</summary>
-<ul>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-add_all_subject_matched_pair_ids'><code>DesignBlocking$add_all_subject_matched_pair_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-assert_blocking_design'><code>DesignBlocking$assert_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-assert_equal_block_sizes'><code>DesignBlocking$assert_equal_block_sizes()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-get_block_ids'><code>DesignBlocking$get_block_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-get_cmh_se_w_mat'><code>DesignBlocking$get_cmh_se_w_mat()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-inject_cmh_se_w_mat'><code>DesignBlocking$inject_cmh_se_w_mat()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-is_blocking_design'><code>DesignBlocking$is_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-is_complete_blocking_design'><code>DesignBlocking$is_complete_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-set_m'><code>DesignBlocking$set_m()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-summarize_blocks'><code>DesignBlocking$summarize_blocks()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from Design</summary>
@@ -82,6 +113,7 @@ seq_des = DesignSeqOneByOneKK21stepwise$new(n = 6, response_type = "continuous")
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -104,14 +136,16 @@ seq_des = DesignSeqOneByOneKK21stepwise$new(n = 6, response_type = "continuous")
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed'><code>Design$is_a_fixed()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-overwrite_all_subject_assignments'><code>Design$overwrite_all_subject_assignments()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -119,8 +153,9 @@ seq_des = DesignSeqOneByOneKK21stepwise$new(n = 6, response_type = "continuous")
 \if{html}{\out{<a id="method-DesignSeqOneByOneKK21stepwise-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneKK21stepwise-initialize}{}}}
 \subsection{\code{DesignSeqOneByOneKK21stepwise$new()}}{
-  Initialize a matching-on-the-fly sequential experimental design which matches based on the
-stepwise version of
+  Initialize a matching-on-the-fly sequential experimental design
+whose covariate matching weights are computed via forward stepwise
+selection (see class documentation), based on the stepwise version of
 Kapelner and Krieger (2021) with option to use matching parameters of Morrison and Owen
 (2025)
   \subsection{Usage}{

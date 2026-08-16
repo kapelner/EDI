@@ -4,10 +4,22 @@
 \alias{InferenceOrdinalGCompMeanDiff}
 \title{G-Computation Mean-Difference Inference for Ordinal Responses}
 \description{
-Fits a proportional-odds working model for an ordinal outcome using treatment
-and, optionally, all recorded covariates, then estimates the marginal mean
-difference by standardizing predicted mean ranks under all-treated and
-all-control assignments over the empirical covariate distribution.
+Fits a proportional-odds working model for an ordinal outcome using
+treatment and, optionally, all recorded covariates
+(\code{\link{fast_ordinal_regression_with_var_cpp}}), then estimates the
+marginal difference in \strong{expected ordinal category score} by
+G-computation — see \code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}}
+for the exact standardization formula (\code{mean1 - mean0}). Standard
+errors are obtained by the \strong{delta method}: a central finite-difference
+gradient of the mean-difference functional with respect to the fitted
+\eqn{[\alpha, \beta]} parameters, propagated through the model's fitted
+variance-covariance matrix, \eqn{\widehat{\mathrm{Var}}(\widehat{\mathrm{md}}) =
+\nabla^\top \widehat{\mathrm{Var}}(\hat\theta) \nabla}. If that delta-method
+standard error is unavailable or non-finite, the Wald-style methods
+(\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()},
+\code{$compute_wald_confidence_interval()}, \code{$compute_wald_two_sided_pval()})
+all silently fall back to a nonparametric bootstrap interval/p-value instead
+(with a warning), rather than returning \code{NA}.
 }
 \examples{
 \donttest{
@@ -20,14 +32,13 @@ inf = InferenceOrdinalGCompMeanDiff$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceOrdinalGCompMeanDiff}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceOrdinalGCompMeanDiff}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-InferenceOrdinalGCompMeanDiff-initialize}{\code{InferenceOrdinalGCompMeanDiff$new()}}
-    \item \href{#method-InferenceOrdinalGCompMeanDiff-approximate_bootstrap_distribution_beta_hat_T}{\code{InferenceOrdinalGCompMeanDiff$approximate_bootstrap_distribution_beta_hat_T()}}
     \item \href{#method-InferenceOrdinalGCompMeanDiff-compute_estimate}{\code{InferenceOrdinalGCompMeanDiff$compute_estimate()}}
     \item \href{#method-InferenceOrdinalGCompMeanDiff-compute_estimate_with_bootstrap_weights}{\code{InferenceOrdinalGCompMeanDiff$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferenceOrdinalGCompMeanDiff-compute_asymp_confidence_interval}{\code{InferenceOrdinalGCompMeanDiff$compute_asymp_confidence_interval()}}
@@ -37,70 +48,7 @@ inf$compute_estimate()
     \item \href{#method-InferenceOrdinalGCompMeanDiff-clone}{\code{InferenceOrdinalGCompMeanDiff$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -126,7 +74,12 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceOrdinalGCompMeanDiff-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalGCompMeanDiff-initialize}{}}}
 \subsection{\code{InferenceOrdinalGCompMeanDiff$new()}}{
-  Initialize the g-computation (G-Comp) inference object.
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+
+
+  Initialize the ordinal g-computation (G-Comp) inference
+  object for a completed design with an ordinal, uncensored response.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalGCompMeanDiff$new(
@@ -153,41 +106,12 @@ the design's imputed covariates.}
 }
 
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalGCompMeanDiff-approximate_bootstrap_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalGCompMeanDiff-approximate_bootstrap_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceOrdinalGCompMeanDiff$approximate_bootstrap_distribution_beta_hat_T()}}{
-  Uses the shared nonparametric bootstrap distribution contract; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalGCompMeanDiff$approximate_bootstrap_distribution_beta_hat_T(
-  B = 501,
-  show_progress = TRUE,
-  debug = FALSE,
-  bootstrap_type = NULL
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{B}}{Number of bootstrap samples.}
-      \item{\code{show_progress}}{Whether to show a progress bar.}
-      \item{\code{debug}}{Whether to return diagnostics.}
-      \item{\code{bootstrap_type}}{Optional resampling scheme.}
-    }
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    A numeric vector of bootstrap estimates.
-  }
-}
-
-\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceOrdinalGCompMeanDiff-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalGCompMeanDiff-compute_estimate}{}}}
 \subsection{\code{InferenceOrdinalGCompMeanDiff$compute_estimate()}}{
-  Computes the g-computation (G-Comp) treatment-effect estimate (mean difference).
+  Computes the G-computation standardized mean-difference
+  treatment-effect estimate (see class documentation for the full
+  proportional-odds-based standardization).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalGCompMeanDiff$compute_estimate(estimate_only = FALSE)}
@@ -206,8 +130,17 @@ the design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalGCompMeanDiff-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalGCompMeanDiff-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceOrdinalGCompMeanDiff$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the class-specific treatment estimate for a bootstrap sample; see
+  Recomputes the G-computation mean-difference estimate under
+  subject/block bootstrap weights (via
+  \code{\link{fast_ordinal_regression_weighted_cpp}} plus
+  \code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}}), used by
+  the Bayesian bootstrap and related weighted-resampling machinery; see
   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+  Runs side-effect free: the ordinary (unweighted) cached fit, warm-start
+  state, and rank-reduced column selection are saved before the weighted
+  refit and restored afterward (\code{on.exit}), so a weighted bootstrap
+  replicate cannot corrupt the class's own point estimate or subsequent
+  fits.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalGCompMeanDiff$compute_estimate_with_bootstrap_weights(
@@ -230,7 +163,11 @@ the design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalGCompMeanDiff-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalGCompMeanDiff-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceOrdinalGCompMeanDiff$compute_asymp_confidence_interval()}}{
-  Computes a 1 - \code{alpha} confidence interval for the G-Comp mean difference.
+  Computes a \eqn{1-\alpha} confidence interval for the
+  G-Comp mean difference using the delta-method standard error (see
+  class documentation), or falls back (with a warning) to a
+  nonparametric bootstrap interval if that standard error is
+  unavailable. Identical to \code{$compute_wald_confidence_interval()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalGCompMeanDiff$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -249,7 +186,11 @@ the design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalGCompMeanDiff-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalGCompMeanDiff-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceOrdinalGCompMeanDiff$compute_asymp_two_sided_pval()}}{
-  Computes a two-sided Wald p-value for the G-Comp mean difference.
+  Computes a two-sided Wald p-value testing \eqn{H_0:
+  \mathrm{md} = \code{delta}} using the delta-method standard error (see
+  class documentation), or falls back (with a warning) to a
+  nonparametric bootstrap p-value if that standard error is
+  unavailable. Identical to \code{$compute_wald_two_sided_pval()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalGCompMeanDiff$compute_asymp_two_sided_pval(delta = 0)}
@@ -268,7 +209,11 @@ the design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalGCompMeanDiff-compute_wald_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalGCompMeanDiff-compute_wald_confidence_interval}{}}}
 \subsection{\code{InferenceOrdinalGCompMeanDiff$compute_wald_confidence_interval()}}{
-  Computes a Wald confidence interval for the G-Comp mean difference.
+  Identical to \code{$compute_asymp_confidence_interval()}
+  (both compute the same delta-method-based Wald interval, with the
+  same bootstrap fallback); provided as an explicit alias for callers
+  that want to name the Wald method directly rather than via the
+  generic "asymptotic" dispatch.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalGCompMeanDiff$compute_wald_confidence_interval(alpha = 0.05)}
@@ -287,7 +232,11 @@ the design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalGCompMeanDiff-compute_wald_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalGCompMeanDiff-compute_wald_two_sided_pval}{}}}
 \subsection{\code{InferenceOrdinalGCompMeanDiff$compute_wald_two_sided_pval()}}{
-  Computes a Wald two-sided p-value for the G-Comp mean difference.
+  Identical to \code{$compute_asymp_two_sided_pval()} (both
+  compute the same delta-method-based Wald p-value, with the same
+  bootstrap fallback); provided as an explicit alias for callers that
+  want to name the Wald method directly rather than via the generic
+  "asymptotic" dispatch.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalGCompMeanDiff$compute_wald_two_sided_pval(delta = 0)}

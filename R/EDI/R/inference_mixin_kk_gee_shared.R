@@ -17,10 +17,45 @@
 #' @noRd
 InferenceMixinKKGEEShared = list(
 	public = list(
+		#' @description Computes the GEE treatment-effect estimate
+		#'   \eqn{\hat\beta_T}. Fits a Generalized Estimating Equations model in
+		#'   which each \strong{cluster} is either a matched pair (2 members) or a
+		#'   reservoir singleton (1 member) — i.e. GEE is used here purely as a way
+		#'   to fit one marginal model jointly across matched-pair and reservoir
+		#'   subjects while accounting for the within-pair correlation the matching
+		#'   induces, not as a longitudinal/repeated-measures tool. For continuous,
+		#'   count, incidence, and proportion responses, this uses an
+		#'   \strong{exchangeable} working correlation structure; by default
+		#'   (\code{use_rcpp = TRUE}), fitting uses an internal Rcpp GEE solver
+		#'   (\code{gee_pairs_singletons_cpp}), falling back to \code{geepack::geeglm(...,
+		#'   corstr = "exchangeable")} if that fails to converge or
+		#'   \code{use_rcpp = FALSE}. \strong{Ordinal responses are the exception}:
+		#'   \code{\link[EDI:InferenceOrdinalKKGEE]{InferenceOrdinalKKGEE}} overrides
+		#'   this shared dispatch entirely and instead fits a proportional-odds
+		#'   local-odds-ratio GEE via \code{multgee::ordLORgee} (there is no
+		#'   internal Rcpp solver or \code{use_rcpp} choice for that class). Under
+		#'   \code{harden = TRUE} (non-ordinal path only), multivariate fits
+		#'   preserve the treatment column and retry on reduced covariate sets
+		#'   (QR-based rank reduction and correlation-based pruning) if the full
+		#'   model fails; a fit whose coefficient or standard error comes out
+		#'   non-finite or implausibly extreme is treated as non-estimable rather
+		#'   than returned.
+		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
+		#' @description Recomputes the GEE treatment estimate under subject/block
+		#'   bootstrap weights (passed through to the underlying GEE fit as
+		#'   observation weights), used by the Bayesian bootstrap and related
+		#'   weighted-resampling machinery; see
+		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#'   Always estimate-only in effect: \code{s_beta_hat_T} is left \code{NA}
+		#'   and \code{df} is left \code{Inf} regardless of the \code{estimate_only}
+		#'   argument, since this weighted-refit path does not compute a variance.
+		#' @param subject_or_block_weights Row weights for the bootstrap sample.
+		#' @param estimate_only Present for interface parity; this method never
+		#'   computes variance components regardless of its value.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			beta_hat_T = private$fit_weighted_gee_with_fallback(row_weights)
@@ -33,6 +68,18 @@ InferenceMixinKKGEEShared = list(
 			private$cached_values$nonestimable_stage = if (is.finite(private$cached_values$beta_hat_T)) NULL else "estimate"
 			private$cached_values$beta_hat_T
 		},
+		#' @description Computes a \eqn{1-\alpha} level confidence interval for the
+		#'   GEE treatment-effect estimate \eqn{\hat\beta_T} (see
+		#'   \code{$compute_estimate()} for the full model). The standard error is
+		#'   the GEE sandwich (robust) standard error — from \code{geepack}'s
+		#'   \code{"san.se"} when the \code{geepack} fallback path is used, or the
+		#'   internal Rcpp solver's own robust covariance otherwise — with
+		#'   \code{df = Inf} (a normal, not \eqn{t}, critical value), unless
+		#'   jackknife-based Wald calibration is in effect for this class (see
+		#'   \code{private$use_kk_gee_jackknife_wald_calibration()}), in which case
+		#'   the interval is computed from the jackknife variance estimate instead.
+		#' @param alpha The confidence level in the computed confidence
+		#'   interval is 1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
@@ -46,6 +93,16 @@ InferenceMixinKKGEEShared = list(
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
+		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
+		#'   \beta_T = \code{delta} = 0}, from the same GEE sandwich standard error
+		#'   used by \code{$compute_asymp_confidence_interval()} (or jackknife-based
+		#'   calibration, if in effect for this class — see that method's
+		#'   documentation). \strong{Only \code{delta = 0} is currently supported}:
+		#'   a non-zero null shift is not yet implemented and raises an error (when
+		#'   assertions are enabled) rather than testing it.
+		#' @param delta The null difference to test against. For any treatment
+		#'   effect at all this is set to zero (the default); non-zero values are
+		#'   not yet supported.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta)
@@ -68,7 +125,7 @@ InferenceMixinKKGEEShared = list(
 		},
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps){
 			if (should_run_asserts()) {
-				private$assert_design_supports_resampling("Randomization inference")
+				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertLogical(na.rm)
 			}
 			if (should_run_asserts() && private$should_use_zhang_incidence_randomization()){
@@ -217,9 +274,13 @@ InferenceMixinKKGEEShared = list(
 					stop(class(self)[1], " requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.")
 				}
 			}
-			if (inherits(des_obj, "DesignFixedBinaryMatch")){
-				des_obj$.__enclos_env__$private$ensure_matching_structure_computed()
-			}
+			# Unconditional: ensure_matching_structure_computed() is a no-op by default
+			# (DesignMatching's base implementation) and only DesignFixedBinaryMatch
+			# overrides it with real (lazy) work, so calling it here for every
+			# kk-matching-capable design (already asserted above) is behavior-preserving
+			# and avoids a DesignFixedBinaryMatch class-identity check
+			# (fix_design_hierarchy.md, "Class-Identity Dispatch Replacement").
+			des_obj$.__enclos_env__$private$ensure_matching_structure_computed()
 			private$m = des_obj$.__enclos_env__$private$m
 			if (identical(private$gee_response_type(), "proportion")) {
 				private$y = .sanitize_proportion_response(private$y, interior = FALSE)

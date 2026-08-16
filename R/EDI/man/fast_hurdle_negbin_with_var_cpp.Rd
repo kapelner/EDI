@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_hurdle_negbin_with_var_cpp}
 \alias{fast_hurdle_negbin_with_var_cpp}
-\title{Fast Hurdle Negative Binomial Regression with Variance (C++)}
+\title{Fast Hurdle Negative-Binomial Regression, with Variance (C++ Backend)}
 \usage{
 fast_hurdle_negbin_with_var_cpp(
   X_r,
@@ -21,36 +21,110 @@ fast_hurdle_negbin_with_var_cpp(
 )
 }
 \arguments{
-\item{X_r}{Matrix of predictors for the count component.}
+\item{X_r}{Numeric matrix of predictors for the count component (the
+zero-truncated negative-binomial part), \eqn{n \times p}.}
 
-\item{y_r}{Vector of responses.}
+\item{y_r}{Numeric vector of length \eqn{n}: observed non-negative integer
+counts (zeros are handled by the hurdle part; only the positive subset is
+passed to the truncated count part).}
 
-\item{X_hurdle_r}{Matrix of predictors for the hurdle component.}
+\item{X_hurdle_r}{Numeric matrix of predictors for the hurdle (zero-vs-
+positive) logistic component, \eqn{n \times p_{\mathrm{hurdle}}}; may differ
+from \code{X_r} (a different covariate set for "does an event occur at
+all" vs. "how many, given at least one").}
 
-\item{j}{1-based index of the parameter for which to return specific variance.}
+\item{j}{1-based index (into the count model's \eqn{p} coefficients) of the
+coefficient to report \code{ssq_b_j} for.}
 
-\item{warm_start_params}{Optional starting values for count parameters. If provided, \code{smart_cold_start} is ignored.}
+\item{warm_start_params}{Optional starting values for the count model's full
+\code{c(beta, log(theta))} parameter vector. If provided, \code{smart_cold_start} is ignored.}
 
 \item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of count-model optimizer iterations.}
 
-\item{tol}{Convergence tolerance.}
+\item{tol}{Convergence tolerance (count model).}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional integer indices (into the count model's
+\code{c(beta, log(theta))} layout) of parameters to hold fixed rather than
+estimate.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm for the count model; the
+hurdle logistic part always uses the same algorithm internally.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first iteration.}
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix for
+the count model's first optimizer iteration.}
 
-\item{warm_start_hurdle_fisher_info}{Optional initial Fisher Information matrix for the hurdle iteration.}
+\item{warm_start_hurdle_fisher_info}{Optional initial Fisher Information
+matrix for the hurdle logistic model's first optimizer iteration.}
 }
 \value{
-A list containing coefficients, vcov, and convergence status.
+A list with components \code{b} (count-model coefficients
+  \eqn{\hat\beta}), \code{theta_hat} (the zero-truncated NB dispersion),
+  \code{converged} (count model), \code{hurdle_b} (hurdle logistic
+  coefficients), \code{hurdle_converged}, \code{ssq_b_j}/\code{ssq_b_2}
+  (count-model coefficient variances), \code{hurdle_ssq_b_j}/
+  \code{hurdle_ssq_b_2} (hurdle-model coefficient variances),
+  \code{observed_information}/\code{fisher_information}/\code{information}
+  (three aliases for the count model's observed information, over
+  \code{c(beta, log(theta))}), \code{information_type = "observed"},
+  \code{hessian} (the negative of that information),
+  \code{hurdle_fisher_information} (the hurdle model's own information
+  matrix), and \code{failure_message} (empty on success, otherwise an
+  explanatory string for a degenerate count-part fit).
 }
 \description{
-Hurdle NB regression with full variance-covariance matrix.
+Fits a two-part hurdle negative-binomial model for count data with excess
+zeros: (1) a \strong{hurdle part} — logistic regression of the binary
+indicator \eqn{I(Y_i > 0)} on \code{X_hurdle} — models whether the hurdle is
+crossed at all, and (2) a \strong{count part} — a zero-truncated
+negative-binomial regression fit only on the subset of subjects with
+\eqn{Y_i > 0}, using \code{X} — models the count \emph{given} the hurdle is
+crossed. Unlike a zero-inflated model (which mixes a point mass at zero with
+an \emph{untruncated} count distribution that can itself also produce zeros),
+the hurdle model's two parts are a clean partition: every zero comes from the
+hurdle part, and every positive count's distribution is exactly the
+negative-binomial conditional on being positive (left-truncated at 1).
+}
+\details{
+\strong{Hurdle part.} Fit via \code{\link{fast_logistic_regression_cpp}}'s
+internal engine on \code{y_pos_ind = as.numeric(y > 0)} regressed on
+\code{X_hurdle}; if \code{y_pos_ind} has no variation (all-zero or
+all-positive \code{y}), the hurdle part is skipped (\code{hurdle_b} is all
+\code{NA}, \code{hurdle_converged = FALSE}) rather than erroring.
+
+\strong{Count part.} Fit on the positive-count subset
+(\eqn{n_+ = \sum_i I(y_i > 0)} rows) via maximum likelihood on the
+zero-truncated negative-binomial density with mean-parameterized dispersion
+\eqn{\theta}: parameter vector \code{c(beta, log(theta))} (length
+\code{p + 1}), with \eqn{\theta} optimized on the log scale for positivity
+and reported back as \code{theta_hat = exp(params[p+1])}. If \eqn{n_+ \le p}
+(too few positive observations to identify the count-model coefficients), the
+count part returns \code{b} as all \code{NA} and \code{converged = FALSE}
+with an explanatory \code{failure_message}, while the hurdle part (which does
+not depend on \eqn{n_+}) is still fit and returned normally.
+
+\strong{Variance.} \code{ssq_b_j}/\code{ssq_b_2} are the variances of the
+\code{j}-th and 2nd count-model coefficients (from the count part's observed
+information, restricted to free/non-\code{fixed_idx} parameters);
+\code{hurdle_ssq_b_j}/\code{hurdle_ssq_b_2} are the analogous variances for
+the hurdle-model coefficients (index \code{j} into \emph{that} model's own
+coefficient vector, from the hurdle logistic regression's own information
+matrix — no \code{fixed_idx} applies to the hurdle part). Both use a targeted
+diagonal-entry inversion rather than a full matrix inverse, and are \code{NA}
+if the relevant coefficient was fixed, out of range, or its model failed to
+converge/produce a finite information matrix.
+}
+\seealso{
+\code{\link{fast_logistic_regression_cpp}} for the hurdle
+  component's fitting engine.
+  \href{https://en.wikipedia.org/wiki/Negative_binomial_distribution}{Negative
+  binomial distribution} for orientation. Analogous Python API:
+  \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
+  discrete models} (\code{HurdleCountModel} with a negative-binomial count
+  distribution).
 }
 \keyword{internal}

@@ -2,21 +2,34 @@
 % Please edit documentation in R/RcppExports.R
 \name{get_ordinal_regression_score_cpp}
 \alias{get_ordinal_regression_score_cpp}
-\title{Compute Ordinal Regression Score}
+\title{Proportional-Odds Ordinal Regression Score, Standalone (C++)}
 \usage{
 get_ordinal_regression_score_cpp(X, y, params)
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors (no intercept column needed; see
+\code{\link{fast_ordinal_regression_cpp}}).}
 
-\item{y}{A numeric vector of responses (ordinal categories 1, 2, ...).}
+\item{y}{A numeric vector of ordinal responses; only the rank order of
+distinct values matters, not their numeric coding.}
 
-\item{params}{A numeric vector of parameters [alpha, beta].}
+\item{params}{A numeric vector \eqn{[\alpha, \beta]}: the category thresholds
+followed by the regression coefficients, at which to evaluate the score.}
 }
 \value{
-A numeric vector representing the score.
+The score vector (gradient of the log-likelihood) at \code{params}.
 }
 \description{
-Calculates the score vector (gradient of the log-likelihood) for an ordinal regression model.
+Computes the (analytic) score vector (gradient of the log-likelihood) of the
+logit-link cumulative (proportional-odds) ordinal regression model documented
+in full at \code{\link{fast_ordinal_regression_cpp}}, at arbitrary
+caller-supplied \code{params} (not necessarily the MLE). Exported standalone
+— independent of any optimizer run — for direct numerical diagnostics (e.g.
+verifying convergence) at a specific parameter value.
+}
+\seealso{
+\code{\link{get_ordinal_regression_hessian_cpp}} for the
+  corresponding Hessian at the same point; \code{\link{fast_ordinal_regression_cpp}}
+  for the full model documentation.
 }
 \keyword{internal}

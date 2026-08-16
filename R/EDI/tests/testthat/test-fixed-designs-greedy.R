@@ -265,10 +265,10 @@ test_that("DesignFixedFactorial works correctly with Inference objects", {
 	expect_equal(est_ols, true_effect, tolerance = 1.5)
 })
 
-test_that("DesignFixedDOptimal works", {
+test_that("DesignFixedGreedyDOptimal (objective D, default) works", {
 	n = 20
 	X = data.frame(x1 = rnorm(n), x2 = rnorm(n))
-	des = DesignFixedDOptimal$new(response_type = "continuous", n = n, verbose = FALSE)
+	des = DesignFixedGreedyDOptimal$new(response_type = "continuous", n = n, verbose = FALSE)
 	des$add_all_subjects_to_experiment(X)
 	
 	des$assign_w_to_all_subjects()
@@ -282,10 +282,11 @@ test_that("DesignFixedDOptimal works", {
 	expect_true(all(colSums(W) == n / 2))
 })
 
-test_that("DesignFixedAOptimal works", {
+test_that("DesignFixedGreedyDOptimal (objective A, all parameters) works", {
 	n = 20
 	X = data.frame(x1 = rnorm(n), x2 = rnorm(n))
-	des = DesignFixedAOptimal$new(response_type = "continuous", n = n, verbose = FALSE)
+	des = DesignFixedGreedyDOptimal$new(response_type = "continuous", n = n, verbose = FALSE,
+		objective = "A", interest = "all")
 	des$add_all_subjects_to_experiment(X)
 	
 	des$assign_w_to_all_subjects()

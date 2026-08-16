@@ -6,9 +6,30 @@
 #' for each group.
 #'
 #' @details
-#' This class is unadjusted and assumes independent samples (e.g. from a Bernoulli). It
-#' ignores any matched-pair structure if present. For matched data, use
-#' \code{InferenceIncidKKNewcombeRiskDiff}.
+#' This class is unadjusted and assumes independent samples (e.g. from a
+#' Bernoulli design). It ignores any matched-pair structure if present; for
+#' matched data, use \code{InferenceIncidKKNewcombeRiskDiff}. The point
+#' estimate is the plain risk difference \eqn{\hat p_T - \hat p_C}. The
+#' confidence interval (\code{newcombe_independent_ci_cpp}) is Newcombe's
+#' "Method 10" hybrid score interval: separate Wilson score intervals
+#' \eqn{[\ell_T, u_T]} and \eqn{[\ell_C, u_C]} are computed for each arm's
+#' proportion individually, then combined into a difference interval via
+#' \eqn{[\hat p_T - \hat p_C - \sqrt{(\hat p_T - \ell_T)^2 + (u_C - \hat
+#' p_C)^2},\ \hat p_T - \hat p_C + \sqrt{(u_T - \hat p_T)^2 + (\hat p_C -
+#' \ell_C)^2}]} — this avoids the boundary/coverage problems of the naive
+#' Wald interval on a risk difference while remaining closed-form (no
+#' iterative score-test inversion, unlike the Miettinen-Nurminen method in
+#' \code{\link[EDI:InferenceIncidMiettinenNurminenRiskDiff]{InferenceIncidMiettinenNurminenRiskDiff}}).
+#' The two-sided p-value has no closed form here: it is obtained by
+#' numerically inverting the confidence interval (bisection via
+#' \code{stats::uniroot}) to find the significance level at which \code{delta}
+#' falls exactly on the interval boundary.
+#'
+#' @references Newcombe, R. G. (1998). "Interval Estimation for the Difference
+#'   Between Independent Proportions: Comparison of Eleven Methods."
+#'   \emph{Statistics in Medicine}, 17(8), 873-890,
+#'   \doi{10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I},
+#'   for "Method 10", the hybrid Wilson-score interval used here.
 #'
 #' @examples
 #' \donttest{
@@ -20,12 +41,19 @@
 #' inf = InferenceIncidNewcombeRiskDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @concept risk difference
+#' @concept Wilson score interval
 #' @export
-InferenceIncidNewcombeRiskDiff = R6::R6Class("InferenceIncidNewcombeRiskDiff",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceIncidNewcombeRiskDiff = define_inference_class(
+	classname = "InferenceIncidNewcombeRiskDiff",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
-		#' @description Initialize a Newcombe risk-difference inference object.
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		#' @description Initialize a Newcombe risk-difference inference object for a
+		#'   completed design with an uncensored incidence response.
 		#' @param des_obj A completed \code{DesignSeqOneByOne} object with an incidence response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -41,16 +69,26 @@ InferenceIncidNewcombeRiskDiff = R6::R6Class("InferenceIncidNewcombeRiskDiff",
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Computes the observed risk-difference estimate.
+		#' @description Computes the observed (unadjusted) risk-difference estimate
+		#'   \eqn{\hat p_T - \hat p_C} (see class documentation for the full
+		#'   Newcombe interval method).
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
+		#' @description Recomputes the risk-difference estimate under subject/block
+		#'   bootstrap weights: the weighted event proportions \eqn{\hat p_T^w =
+		#'   \sum_i r_i y_i \mathbb{1}[w_i=1] / \sum_i r_i \mathbb{1}[w_i=1]} (and
+		#'   analogously for control), differenced. Used by the Bayesian bootstrap
+		#'   and related weighted-resampling machinery; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#'   Always leaves the standard error and degrees of freedom unavailable
+		#'   (\code{NA}) regardless of \code{estimate_only} — the Newcombe interval
+		#'   method has no separate variance quantity to compute on this path.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
-		#' @param estimate_only If TRUE, skip variance calculations.
+		#' @param estimate_only Present for interface parity; this method never
+		#'   computes variance components regardless of its value.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			i_t = private$w == 1
@@ -76,7 +114,9 @@ InferenceIncidNewcombeRiskDiff = R6::R6Class("InferenceIncidNewcombeRiskDiff",
 			private$cached_values$df = NA_real_
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes a 1 - \code{alpha} Newcombe confidence interval.
+		#' @description Computes a \eqn{1-\alpha} Newcombe hybrid Wilson-score
+		#'   confidence interval for the risk difference (see class documentation
+		#'   for the full formula), via \code{newcombe_independent_ci_cpp}.
 		#' @param alpha The significance level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -90,7 +130,14 @@ InferenceIncidNewcombeRiskDiff = R6::R6Class("InferenceIncidNewcombeRiskDiff",
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
 		},
-		#' @description Computes a two-sided p-value by inverting the Newcombe interval.
+		#' @description Computes a two-sided p-value testing \eqn{H_0: p_T - p_C =
+		#'   \code{delta}} by numerically finding (\code{stats::uniroot}) the
+		#'   significance level \eqn{\alpha} at which \code{delta} falls exactly on
+		#'   the boundary of the Newcombe confidence interval (see class
+		#'   documentation) — there is no closed-form p-value for this method.
+		#'   Returns \eqn{1} if no root is found in \eqn{(10^{-10}, 1-10^{-10})}
+		#'   (interpreted as \code{delta} being far inside the interval at every
+		#'   plausible \eqn{\alpha}).
 		#' @param delta The null risk difference.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -142,5 +189,21 @@ InferenceIncidNewcombeRiskDiff = R6::R6Class("InferenceIncidNewcombeRiskDiff",
 		get_supported_testing_types_impl = function(){
 			character(0)
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval"
+		),
+		private = c(
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

@@ -189,6 +189,29 @@ def _weibull_aft(X: np.ndarray, time: np.ndarray, event: np.ndarray, **kw):
     return WeibullAFTFitter(**kw).fit(df, duration_col="__time", event_col="__event")
 
 
+def _weibull_aft_interval(X: np.ndarray, y: np.ndarray, y_L: np.ndarray, y_R: np.ndarray, **kw):
+    """Same DataFrame-construction overhead as _weibull_aft (see its
+    docstring), plus the lower/upper-bound assembly below -- also real,
+    unavoidable overhead relative to EDI's (y, y_L, y_R) array-native call.
+
+    lifelines.WeibullAFTFitter.fit_interval_censoring() uses the same
+    (lower_bound, upper_bound) convention as EDI's (y_L, y_R): an exact row
+    is lower==upper, a right-censored row has upper=np.inf, confirmed
+    directly against the installed lifelines' own fit_interval_censoring()
+    docstring. EDI instead splits exact rows into a separate `y` array
+    (y_L/y_R both NaN for those rows) -- this just re-merges the two
+    conventions, it is not a different censoring assumption."""
+    p = X.shape[1]
+    lower = np.where(np.isfinite(y), y, y_L)
+    upper = np.where(np.isfinite(y), y, y_R)
+    df = pd.DataFrame(X, columns=[f"x{i}" for i in range(p)])
+    df["__lower"] = lower
+    df["__upper"] = upper
+    return WeibullAFTFitter(**kw).fit_interval_censoring(
+        df, lower_bound_col="__lower", upper_bound_col="__upper"
+    )
+
+
 # ── Ordinal ──────────────────────────────────────────────────────────────
 def _ordered(distr):
     def fit(X: np.ndarray, y: np.ndarray, **kw):
@@ -274,11 +297,25 @@ BASELINES: dict[str, Baseline] = {
         "Preferred over lifelines.CoxPHFitter -- takes raw NumPy arrays, "
         "no DataFrame construction overhead.",
     ),
-    "fast_weibull_regression": Baseline(
-        "lifelines", "WeibullAFTFitter", _weibull_aft,
-        "Requires a pandas.DataFrame; fit() builds it from raw arrays "
-        "inside the timed region -- that construction is real overhead, "
-        "not padding to strip out.",
+    "fast_weibull_regression_general": Baseline(
+        "lifelines", "WeibullAFTFitter.fit()", _weibull_aft,
+        "Right-censored data only. Requires a pandas.DataFrame; fit() "
+        "builds it from raw arrays inside the timed region -- that "
+        "construction is real overhead, not padding to strip out. See "
+        "'fast_weibull_regression_general (interval-censored)' below for "
+        "the general left-/interval-/right-censoring comparison.",
+    ),
+    "fast_weibull_regression_general (interval-censored)": Baseline(
+        "lifelines", "WeibullAFTFitter.fit_interval_censoring()",
+        _weibull_aft_interval,
+        "Same kernel as the row above, timed on genuinely left-/interval-"
+        "censored data instead of right-censored-only -- lifelines "
+        "supports this via fit_interval_censoring() (confirmed against "
+        "the installed package's own docstring: lower_bound_col/"
+        "upper_bound_col, upper=np.inf for right-censored, "
+        "lower==upper for exact), the same (lower, upper) convention as "
+        "EDI's (y_L, y_R). Same DataFrame-construction overhead caveat "
+        "as the row above.",
     ),
     "fast_ordinal_regression": Baseline(
         "statsmodels", "OrderedModel(distr='logit')", _ordered("logit")

@@ -10,9 +10,24 @@ difference between two independent proportions by combining Wilson score interva
 for each group.
 
 
-This class is unadjusted and assumes independent samples (e.g. from a Bernoulli). It
-ignores any matched-pair structure if present. For matched data, use
-\code{InferenceIncidKKNewcombeRiskDiff}.
+This class is unadjusted and assumes independent samples (e.g. from a
+Bernoulli design). It ignores any matched-pair structure if present; for
+matched data, use \code{InferenceIncidKKNewcombeRiskDiff}. The point
+estimate is the plain risk difference \eqn{\hat p_T - \hat p_C}. The
+confidence interval (\code{newcombe_independent_ci_cpp}) is Newcombe's
+"Method 10" hybrid score interval: separate Wilson score intervals
+\eqn{[\ell_T, u_T]} and \eqn{[\ell_C, u_C]} are computed for each arm's
+proportion individually, then combined into a difference interval via
+\eqn{[\hat p_T - \hat p_C - \sqrt{(\hat p_T - \ell_T)^2 + (u_C - \hat
+p_C)^2},\ \hat p_T - \hat p_C + \sqrt{(u_T - \hat p_T)^2 + (\hat p_C -
+\ell_C)^2}]} — this avoids the boundary/coverage problems of the naive
+Wald interval on a risk difference while remaining closed-form (no
+iterative score-test inversion, unlike the Miettinen-Nurminen method in
+\code{\link[EDI:InferenceIncidMiettinenNurminenRiskDiff]{InferenceIncidMiettinenNurminenRiskDiff}}).
+The two-sided p-value has no closed form here: it is obtained by
+numerically inverting the confidence interval (bisection via
+\code{stats::uniroot}) to find the significance level at which \code{delta}
+falls exactly on the interval boundary.
 }
 \examples{
 \donttest{
@@ -25,8 +40,17 @@ inf = InferenceIncidNewcombeRiskDiff$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceIncidNewcombeRiskDiff}
+\references{
+Newcombe, R. G. (1998). "Interval Estimation for the Difference
+  Between Independent Proportions: Comparison of Eleven Methods."
+  \emph{Statistics in Medicine}, 17(8), 873-890,
+  \doi{10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I},
+  for "Method 10", the hybrid Wilson-score interval used here.
+}
+\concept{Wilson score interval}
+\concept{risk difference}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceIncidNewcombeRiskDiff}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -39,73 +63,7 @@ inf$compute_estimate()
     \item \href{#method-InferenceIncidNewcombeRiskDiff-clone}{\code{InferenceIncidNewcombeRiskDiff$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -131,7 +89,12 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceIncidNewcombeRiskDiff-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidNewcombeRiskDiff-initialize}{}}}
 \subsection{\code{InferenceIncidNewcombeRiskDiff$new()}}{
-  Initialize a Newcombe risk-difference inference object.
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+
+
+  Initialize a Newcombe risk-difference inference object for a
+  completed design with an uncensored incidence response.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidNewcombeRiskDiff$new(
@@ -159,7 +122,9 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceIncidNewcombeRiskDiff-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidNewcombeRiskDiff-compute_estimate}{}}}
 \subsection{\code{InferenceIncidNewcombeRiskDiff$compute_estimate()}}{
-  Computes the observed risk-difference estimate.
+  Computes the observed (unadjusted) risk-difference estimate
+  \eqn{\hat p_T - \hat p_C} (see class documentation for the full
+  Newcombe interval method).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidNewcombeRiskDiff$compute_estimate(estimate_only = FALSE)}
@@ -178,8 +143,15 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceIncidNewcombeRiskDiff-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidNewcombeRiskDiff-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceIncidNewcombeRiskDiff$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the class-specific treatment estimate under bootstrap weights; see
+  Recomputes the risk-difference estimate under subject/block
+  bootstrap weights: the weighted event proportions \eqn{\hat p_T^w =
+  \sum_i r_i y_i \mathbb{1}[w_i=1] / \sum_i r_i \mathbb{1}[w_i=1]} (and
+  analogously for control), differenced. Used by the Bayesian bootstrap
+  and related weighted-resampling machinery; see
   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+  Always leaves the standard error and degrees of freedom unavailable
+  (\code{NA}) regardless of \code{estimate_only} — the Newcombe interval
+  method has no separate variance quantity to compute on this path.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidNewcombeRiskDiff$compute_estimate_with_bootstrap_weights(
@@ -192,7 +164,8 @@ design's imputed covariates.}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{subject_or_block_weights}}{Bootstrap weights at the subject or block level.}
-      \item{\code{estimate_only}}{If TRUE, skip variance calculations.}
+      \item{\code{estimate_only}}{Present for interface parity; this method never
+computes variance components regardless of its value.}
     }
     \if{html}{\out{</div>}}
   }
@@ -202,7 +175,9 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceIncidNewcombeRiskDiff-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidNewcombeRiskDiff-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceIncidNewcombeRiskDiff$compute_asymp_confidence_interval()}}{
-  Computes a 1 - \code{alpha} Newcombe confidence interval.
+  Computes a \eqn{1-\alpha} Newcombe hybrid Wilson-score
+  confidence interval for the risk difference (see class documentation
+  for the full formula), via \code{newcombe_independent_ci_cpp}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidNewcombeRiskDiff$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -221,7 +196,14 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceIncidNewcombeRiskDiff-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidNewcombeRiskDiff-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceIncidNewcombeRiskDiff$compute_asymp_two_sided_pval()}}{
-  Computes a two-sided p-value by inverting the Newcombe interval.
+  Computes a two-sided p-value testing \eqn{H_0: p_T - p_C =
+  \code{delta}} by numerically finding (\code{stats::uniroot}) the
+  significance level \eqn{\alpha} at which \code{delta} falls exactly on
+  the boundary of the Newcombe confidence interval (see class
+  documentation) — there is no closed-form p-value for this method.
+  Returns \eqn{1} if no root is found in \eqn{(10^{-10}, 1-10^{-10})}
+  (interpreted as \code{delta} being far inside the interval at every
+  plausible \eqn{\alpha}).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidNewcombeRiskDiff$compute_asymp_two_sided_pval(delta = 0)}

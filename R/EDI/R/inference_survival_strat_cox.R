@@ -116,10 +116,24 @@ StratifiedCoxPartialLikelihoodSource = list(
 
 #' Stratified Cox PH Inference for Survival Responses
 #'
-#' Fits an auto-stratified Cox PH regression. Stratification variables are chosen
-#' automatically from the recorded low-cardinality covariates. If no suitable
-#' stratification covariates are found, the fit falls back to the corresponding
-#' standard Cox PH model.
+#' Fits an \strong{auto-stratified} Cox proportional hazards regression: rather
+#' than the plain single-baseline-hazard model of
+#' \code{\link[EDI:InferenceSurvivalCoxPHRegr]{InferenceSurvivalCoxPHRegr}},
+#' this class allows a separate baseline hazard per stratum,
+#' \eqn{\lambda(t \mid x_i, s_i) = \lambda_{0,s_i}(t) \exp(x_i^\top\beta)},
+#' relaxing the proportional-hazards assumption across strata while keeping it
+#' within each. Stratification variables are chosen \strong{automatically} from
+#' the recorded low-cardinality (categorical-like) covariates
+#' (\code{compute_survival_strata_ids_cpp}) — no stratification variables are
+#' specified explicitly by the caller. If no suitable stratification covariates
+#' are found, the fit falls back to the corresponding standard (unstratified)
+#' Cox PH model. Fitting uses \code{survival::coxph.fit()}/\code{survival::coxph()}
+#' with \code{strata} passed through when applicable. This is a partial-likelihood
+#' class (\code{likelihood_tier = "partial"}) supporting Wald, score, gradient,
+#' and likelihood-ratio tests, plus parametric likelihood-ratio bootstrap
+#' calibration. Randomization confidence intervals are not supported (the
+#' log-hazard-ratio estimator units are not commensurate with the randomization
+#' CI bisection algorithm's log-time-ratio/AFT-effect null search).
 #'
 #' @examples
 #' \dontrun{

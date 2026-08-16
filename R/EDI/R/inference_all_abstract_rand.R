@@ -42,10 +42,19 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#' Pass \code{NULL} to clear the custom statistic. This cannot be used at
 		#' the same time as \code{set_custom_randomization_statistic_function()}.
 		#'
-		#' @param fn Either a C++ source code string, a pre-compiled Rcpp function, or
-		#'   \code{NULL}. The compiled function must return a scalar \code{double}
-		#'   and accept either \code{(NumericVector y, IntegerVector w)} or
-		#'   \code{(NumericVector y, IntegerVector w, IntegerVector dead)}.
+		#' @param fn Either a C++ source code string, a pre-compiled Rcpp function,
+		#'   an \code{RcppXPtrUtils::cppXPtr()} external pointer, or
+		#'   \code{NULL}. A source string or Rcpp function must return a scalar
+		#'   \code{double} and accept either \code{(NumericVector y, IntegerVector w)}
+		#'   or \code{(NumericVector y, IntegerVector w, IntegerVector dead)}. An
+		#'   external pointer follows the package-wide \code{user_compiled_fns.h}
+		#'   calling convention shared with \code{DesignFixedOptimal}'s
+		#'   \code{custom_objective} -- Eigen types:
+		#'   \code{double f(const Eigen::VectorXd& y, const Eigen::VectorXd& w)}, or
+		#'   the 3-argument form appending \code{const Eigen::VectorXd& dead} --
+		#'   and, like a pre-compiled Rcpp function, is valid in the main process
+		#'   only (external pointers do not survive serialization to parallel
+		#'   workers; use a source string for parallel paths).
 		set_custom_randomization_statistic_cpp = function(fn){
 			if (!is.null(fn) && !is.null(private[["custom_randomization_statistic_function"]])) {
 				stop("Cannot specify both custom_randomization_statistic_function and custom_randomization_statistic_cpp.")
@@ -57,8 +66,37 @@ InferenceRand = R6::R6Class("InferenceRand",
 					if (!arity %in% c(2L, 3L)) stop("custom_randomization_statistic_cpp source must define a function with 2 arguments (y, w) or 3 arguments (y, w, dead); got ", arity, ".")
 					private[["compiled_cpp_stat_src"]] = fn
 					private[["compiled_cpp_stat_fn"]] = compiled
+				} else if (typeof(fn) == "externalptr") {
+					# Uniform XPtr handling with DesignFixedOptimal's custom_objective:
+					# shared signature check (normalize_user_cpp_fn), shared eval shims.
+					# Normalized into the compiled_cpp_stat_fn slot as an R-callable
+					# closure over the shim, so every downstream consultation site
+					# (fast-path guards, the lightweight evaluator, arity checks)
+					# behaves exactly as with a pre-compiled Rcpp function.
+					recorded = attr(fn, "args")
+					if (is.null(recorded)) {
+						stop(paste0(
+							"custom_randomization_statistic_cpp external pointers must carry ",
+							"RcppXPtrUtils::cppXPtr()'s recorded signature (a bare externalptr's ",
+							"argument count cannot be determined); build the pointer with ",
+							"RcppXPtrUtils::cppXPtr()."
+						))
+					}
+					arity = length(recorded)
+					if (!arity %in% c(2L, 3L)) stop("custom_randomization_statistic_cpp must accept 2 arguments (y, w) or 3 arguments (y, w, dead); got ", arity, ".")
+					normalized = normalize_user_cpp_fn(
+						fn, "custom_randomization_statistic_cpp",
+						if (arity == 3L) "rand_stat_dead" else "rand_stat"
+					)
+					xptr = normalized$xptr
+					private[["compiled_cpp_stat_src"]] = NULL
+					private[["compiled_cpp_stat_fn"]] = if (arity == 3L) {
+						function(y, w, dead) eval_custom_rand_stat_dead_xptr_cpp(xptr, as.numeric(y), as.numeric(w), as.numeric(dead))
+					} else {
+						function(y, w) eval_custom_rand_stat_xptr_cpp(xptr, as.numeric(y), as.numeric(w))
+					}
 				} else {
-					if (!is.function(fn)) stop("custom_randomization_statistic_cpp must be a C++ source string or compiled Rcpp function, not a ", class(fn)[1], ".")
+					if (!is.function(fn)) stop("custom_randomization_statistic_cpp must be a C++ source string, a compiled Rcpp function, or an RcppXPtrUtils::cppXPtr() external pointer, not a ", class(fn)[1], ".")
 					arity = length(formals(fn))
 					if (!arity %in% c(2L, 3L)) stop("custom_randomization_statistic_cpp must accept 2 arguments (y, w) or 3 arguments (y, w, dead); got ", arity, ".")
 					private[["compiled_cpp_stat_src"]] = NULL
@@ -94,7 +132,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			private$active_resampling_operation = "rand"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
 			if (should_run_asserts()) {
-				private$assert_design_supports_resampling("Randomization inference")
+				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertNumeric(delta); assertCount(r, positive = TRUE); assertFlag(debug)
 			}
 			mc_control_for_perms = private$randomization_mc_control
@@ -310,7 +348,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#' @return 	Randomization p-value.
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps){
 			if (should_run_asserts()) {
-				private$assert_design_supports_resampling("Randomization inference")
+				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertLogical(na.rm)
 				if (private$des_obj_priv_int$response_type == "incidence" &&
 						is.null(private$custom_randomization_statistic_function) &&
@@ -448,7 +486,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 				(private$is_bernoulli_design() || isTRUE(private$has_match_structure))
 		},
 		should_use_design_randomization_for_incidence = function(){
-			inherits(private$des_obj, "DesignFixedRerandomization")
+			isTRUE(private$des_obj$randomization_family() == "rerandomization")
 		},
 		normalize_delta_for_cache = function(delta, resolution = NULL){
 			if (!is.finite(delta)) return("NA")
@@ -590,7 +628,6 @@ InferenceRand = R6::R6Class("InferenceRand",
 				w_priv$y_temp = w_priv$y
 				if (!is.null(worker_des_priv)) {
 					worker_des_priv$y = w_priv$y
-					worker_des_priv$dead = w_priv$dead
 					if (!is.null(base_m)) worker_des_priv$m = base_m
 					private$sync_randomization_worker_state(worker_des, worker)
 				}
@@ -616,7 +653,6 @@ InferenceRand = R6::R6Class("InferenceRand",
 							}
 						}
 						worker_des_priv$y = y_sim
-						worker_des_priv$dead = w_priv$dead
 						private$sync_randomization_worker_state(worker_des, worker)
 					} else {
 						w_priv$w = as.integer(perm_data$w)
@@ -879,6 +915,13 @@ InferenceRand = R6::R6Class("InferenceRand",
 			if (delta != 0){
 				if (should_run_asserts()) {
 					if (private$des_obj_priv_int$response_type == "incidence" && is.null(private$custom_randomization_statistic_function)) stop("randomization tests with delta nonzero not supported for incidence")
+					# shift_randomization_responses() below only shifts the plain
+					# y vector; for a censored subject y is NA (the value lives in
+					# y_L/y_R instead), so a nonzero-delta null shift would
+					# silently be a no-op for every censored row rather than an
+					# error. Block it explicitly instead of returning a quietly
+					# wrong null-shifted statistic.
+					if (isTRUE(private$has_general_censoring)) stop("randomization tests with delta nonzero are not yet supported for left-/interval-censored survival data.")
 				}
 				template$.__enclos_env__$private$y = private$shift_randomization_responses(
 					y = template$.__enclos_env__$private$y,
@@ -961,7 +1004,20 @@ InferenceRand = R6::R6Class("InferenceRand",
 			inf_priv$w = des_priv$w
 			inf_priv$y = des_priv$y
 			inf_priv$y_temp = des_priv$y
-			inf_priv$dead = des_priv$dead
+			# Design no longer stores a raw dead field (y/y_L/y_R migration,
+			# interval_censored_survival_response.md TODO-1) -- des_priv$dead is always
+			# NULL now, so this used to silently null out inf_priv$dead on every sync.
+			# dead never changes during randomization/permutation (only w, and y under a
+			# nonzero delta shift), so simply leave whatever inf_priv$dead already holds
+			# (inherited correctly at worker construction/duplication time) untouched.
+			# Design$resample_assignment() already resamples y_L/y_R in
+			# lockstep with y/w (see TODO-2 in
+			# interval_censored_survival_response.md); this call site was the
+			# one place that copy never reached the Inference worker's own
+			# private$y_L/y_R, leaving them stale post-resample for any class
+			# consuming them (TODO-4's Weibull general-censoring dispatch).
+			inf_priv$y_L = des_priv$y_L
+			inf_priv$y_R = des_priv$y_R
 			if (private$has_match_structure) inf_priv$m = des_priv$m
 			if (!is.null(inf_priv$compute_basic_match_data)) inf_priv$compute_basic_match_data()
 			

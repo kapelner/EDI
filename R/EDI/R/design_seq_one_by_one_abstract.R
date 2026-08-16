@@ -13,8 +13,6 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 	lock_objects = FALSE,
 	inherit = DesignMatching,
 	public = list(
-		#' @description Characterization: this is a sequential one-by-one design.
-		is_a_seq_one_by_one = function() TRUE,
 		#' @description Initialize a sequential one-by-one design.
 		#' @param response_type The data type of response values.
 		#' @param prob_T The probability of the treatment assignment.
@@ -40,11 +38,6 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed, ...)
 			private$maybe_set_seed()
 			private$equal_block_sizes = FALSE
-		},
-		#' @description Checks if the design supports resampling.
-		#' @return Always TRUE for sequential designs.
-		supports_resampling = function(){
-			TRUE
 		},
 		#' @description Add subject-specific measurements for the next subject entrant.
 		#'

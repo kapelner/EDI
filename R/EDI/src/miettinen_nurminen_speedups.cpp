@@ -1,6 +1,5 @@
 #ifdef EDI_CORE_ONLY
-#include <limits>
-constexpr double NA_REAL = std::numeric_limits<double>::quiet_NaN();
+#include "na_real_core.h"
 #else
 #include <Rcpp.h>
 using namespace Rcpp;
@@ -96,8 +95,21 @@ double mn_z_statistic_cpp(double x_t, double n_t, double x_c, double n_c, double
 
 //' Miettinen-Nurminen Two-Sided P Value for Risk Difference
 //'
-//' Evaluates the two-sided asymptotic p-value for the Miettinen-Nurminen score
-//' test of \code{p_T - p_C = delta} in two independent binomial samples.
+//' Evaluates the two-sided asymptotic p-value for the Miettinen-Nurminen
+//' restricted-maximum-likelihood score test of \eqn{H_0: p_T - p_C = \delta} in
+//' two independent binomial samples (see
+//' \code{\link[EDI:InferenceIncidMiettinenNurminenRiskDiff]{InferenceIncidMiettinenNurminenRiskDiff}}
+//' for the class that consumes this function). Internally: \code{\link{mn_z_statistic_cpp}}
+//' computes the score \eqn{z} statistic using the constrained MLEs
+//' \eqn{\tilde p_C, \tilde p_T = \tilde p_C + \delta}
+//' (\code{\link{mn_constrained_mle_pc_cpp}}, found by bisecting the constrained
+//' score equation to zero) in place of the unconstrained sample proportions in
+//' the variance formula, with a small-sample correction factor \eqn{(n_T+n_C)/(n_T+n_C-1)}
+//' applied to the naive binomial variance; this function then returns
+//' \eqn{2\,\Phi(-|z|)}, the two-sided normal-tail p-value. Returns \code{NA} if
+//' either arm is empty, \eqn{\delta} is outside \eqn{(-1, 1)}, or the resulting
+//' \eqn{z} is not finite (e.g. the constrained variance estimate is
+//' non-positive).
 //'
 //' @param x_t Number of events in treatment.
 //' @param n_t Number of subjects in treatment.

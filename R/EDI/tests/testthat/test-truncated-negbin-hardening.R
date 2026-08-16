@@ -87,3 +87,41 @@ test_that("fast_truncated_negbin_count_cpp survives repeated stale bootstrap-sty
 	expect_true(any(statuses == "ok"))
 	expect_true(any(statuses == "error"))
 })
+
+test_that("get_hurdle_negbin_count_score_cpp/_hessian_cpp reject mismatched X/y/params instead of reading out of bounds", {
+	# TODO-1 (bootstrap_calibrated_lr_report.md): unlike fast_truncated_negbin_count_cpp's
+	# own entry point, these getter-style siblings never validated their inputs -- a
+	# too-short `params` made TruncatedNegBinCount::operator() read past the end of the
+	# Eigen::Map'd params buffer (params.head(m_p)), a heap-buffer-overflow confirmed via
+	# a standalone ASan build of this exact call path. Same bug class as TODO-16's
+	# get_poisson_glmm_score_cpp/_hessian_cpp fix.
+	set.seed(303)
+	X_cov <- matrix(rnorm(80), ncol = 2)
+	X <- cbind(1, X_cov)
+	lambda <- exp(0.3 + X_cov[, 1] * 0.2)
+	y <- pmax(rnbinom(nrow(X), mu = lambda, size = 3), 1)
+	params_ok <- c(0.3, 0.2, -0.1, log(3))
+
+	expect_error(
+		EDI:::get_hurdle_negbin_count_score_cpp(X, y[-1], params_ok),
+		"Dimension mismatch"
+	)
+	expect_error(
+		EDI:::get_hurdle_negbin_count_score_cpp(X, y, params_ok[1:2]),
+		"params must have length"
+	)
+	expect_error(
+		EDI:::get_hurdle_negbin_count_hessian_cpp(X, y[-1], params_ok),
+		"Dimension mismatch"
+	)
+	expect_error(
+		EDI:::get_hurdle_negbin_count_hessian_cpp(X, y, params_ok[1:2]),
+		"params must have length"
+	)
+
+	# Valid, dimension-consistent calls still work.
+	score <- EDI:::get_hurdle_negbin_count_score_cpp(X, y, params_ok)
+	hess <- EDI:::get_hurdle_negbin_count_hessian_cpp(X, y, params_ok)
+	expect_length(score, ncol(X) + 1)
+	expect_equal(dim(hess), c(ncol(X) + 1, ncol(X) + 1))
+})

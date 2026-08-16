@@ -33,13 +33,19 @@ new_brt_inference = function(des, seed = 42L){
 	inf
 }
 
-test_that("all concrete inference classes inherit the BRT layer in the right order", {
+test_that("all concrete inference classes compose the BRT layer's capabilities", {
+	# Classes migrated to define_inference_class() (flat component composition,
+	# inherit = Inference directly) no longer literally is()-inherit these old
+	# R6 base classes even when they compose the equivalent functionality --
+	# checked via the capability registry and representative methods instead
+	# (interval_censored_survival_response.md TODO-15).
 	des = build_brt_design(function() DesignFixedBernoulli$new(response_type = "continuous", n = n_brt), 0)
 	inf = new_brt_inference(des)
-	expect_true(is(inf, "InferenceNonParamBootstrap"))
-	expect_true(is(inf, "InferenceRandBootstrap"))
-	expect_true(is(inf, "InferenceRandBootstrapCI"))
-	expect_true(is(inf, "InferenceBayesianBootstrap"))
+	expect_true(inf$supports("nonparametric_bootstrap"))
+	expect_true(inf$supports("randomization_bootstrap"))
+	expect_true(inf$supports("bayesian_bootstrap"))
+	expect_true(is.function(inf$approximate_bootstrap_distribution_beta_hat_T))
+	expect_true(is.function(inf$compute_bayesian_bootstrap_two_sided_pval))
 	expect_true(is.function(inf$compute_rand_bootstrap_two_sided_pval))
 	expect_true(is.function(inf$compute_rand_bootstrap_confidence_interval))
 	expect_true(is.function(inf$approximate_rand_bootstrap_distribution_beta_hat_T))
@@ -219,8 +225,20 @@ test_that("BRT batch kernels match the per-iteration reference path across stati
 		des$assign_w_to_all_subjects()
 		w = des$get_w()
 		for (t in 1 : n_k) {
-			if (is.null(dead)) des$add_one_subject_response(t, y_fun(t, w[t]))
-			else des$add_one_subject_response(t, y_fun(t, w[t]), dead[t])
+			if (is.null(dead)) {
+				des$add_one_subject_response(t, y_fun(t, w[t]))
+			} else {
+				# survival response: exact time when dead[t] == 1, otherwise
+				# right-censored at that time (y_R = Inf) -- the (y, dead)
+				# positional convention was removed in the y/y_L/y_R migration
+				# (interval_censored_survival_response.md TODO-15).
+				time_t = y_fun(t, w[t])
+				if (dead[t] == 1) {
+					des$add_one_subject_response(t, y = time_t)
+				} else {
+					des$add_one_subject_response(t, y_L = time_t, y_R = Inf)
+				}
+			}
 		}
 		des
 	}

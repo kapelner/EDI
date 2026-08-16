@@ -60,6 +60,13 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
 				if (is.finite(beta_hat_T)) return(beta_hat_T)
 			}
+			if (isTRUE(private$has_general_censoring)) {
+				stop(
+					"Bayesian-bootstrap weighted re-estimation is not yet supported for left-/",
+					"interval-censored survival data (weighted_weibull_bootstrap_surrogate_fit() ",
+					"assumes ordinary right-censoring semantics, which does not apply here)."
+				)
+			}
 			X_fit = private$build_design_matrix()[, -1, drop = FALSE]
 			colnames(X_fit)[1L] = "treatment"
 			fit = weighted_weibull_bootstrap_surrogate_fit(private$y, private$dead, X_fit, row_weights)
@@ -80,11 +87,105 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+		},
+		#' @description Bayesian-bootstrap two-sided p-value; see
+		#'   \code{\link[EDI:Inference]{Inference}}. Blocked outright (rather than
+		#'   letting the underlying weighted re-estimate fail once per replicate,
+		#'   inside a per-iteration \code{tryCatch} that silently converts the
+		#'   \code{stop()} in \code{compute_estimate_with_bootstrap_weights()} into an
+		#'   all-\code{NA} bootstrap distribution) under left-/interval-censored data.
+		#' @param delta Null treatment effect value.
+		#' @param B Number of Bayesian-bootstrap replicates.
+		#' @param type Bootstrap p-value type.
+		#' @param na.rm Whether to drop non-finite replicate estimates.
+		#' @param show_progress Whether to print a progress bar.
+		#' @param min_number_usable_samples Minimum number of finite replicates required.
+		#' @param weighting_unit_type Resampling unit type for the bootstrap weights.
+		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+			if (isTRUE(private$has_general_censoring)) {
+				stop(
+					"Bayesian bootstrap is not yet supported for left-/interval-censored survival data ",
+					"(weighted_weibull_bootstrap_surrogate_fit() assumes ordinary right-censoring semantics, ",
+					"which does not apply here)."
+				)
+			}
+			super$compute_bayesian_bootstrap_two_sided_pval(
+				delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress,
+				min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type
+			)
+		},
+		#' @description Bartlett-corrected likelihood-ratio two-sided p-value; see
+		#'   \code{\link[EDI:Inference]{Inference}}. Blocked outright under left-/
+		#'   interval-censored data for the same reason as
+		#'   \code{compute_bayesian_bootstrap_two_sided_pval()}: the underlying
+		#'   \code{simulate_under_lik_null()} guard would otherwise only surface as a
+		#'   silently all-\code{NA} calibration distribution.
+		#' @param delta Null treatment effect value.
+		#' @param B Number of parametric-bootstrap replicates used for the correction.
+		compute_lik_ratio_bartlett_approx_two_sided_pval = function(delta = 0, B = 99){
+			if (isTRUE(private$has_general_censoring)) {
+				stop(
+					"Parametric-bootstrap likelihood-ratio calibration (Bartlett correction) is not yet ",
+					"supported for left-/interval-censored survival data: simulate_param_boot_weibull_observed() ",
+					"only knows how to re-censor a simulated exact time against a single right-censoring ",
+					"threshold, not against an arbitrary observation window."
+				)
+			}
+			super$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = delta, B = B)
+		},
+		#' @description Randomization-test two-sided p-value; see
+		#'   \code{\link[EDI:Inference]{Inference}}. A nonzero null shift
+		#'   (\code{delta != 0}) is blocked outright under left-/interval-censored
+		#'   data for the same reason as the other bootstrap guards in this class:
+		#'   the underlying shift-template guard in
+		#'   \code{setup_randomization_template_and_shifts()} would otherwise only
+		#'   surface as a silently all-\code{NA} randomization distribution.
+		#' @param r Number of randomization replicates.
+		#' @param delta Null treatment effect shift.
+		#' @param transform_responses Response transform used for the randomization statistic.
+		#' @param na.rm Whether to drop non-finite replicate statistics.
+		#' @param show_progress Whether to print a progress bar.
+		#' @param permutations Optional pre-generated permutation matrix.
+		#' @param zero_one_logit_clamp Clamp used for logit-transformed responses.
+		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps){
+			if (isTRUE(private$has_general_censoring) && delta != 0) {
+				stop(
+					"Randomization tests with a nonzero null shift (delta != 0) are not yet supported for ",
+					"left-/interval-censored survival data."
+				)
+			}
+			super$compute_rand_two_sided_pval(
+				r = r, delta = delta, transform_responses = transform_responses, na.rm = na.rm,
+				show_progress = show_progress, permutations = permutations, zero_one_logit_clamp = zero_one_logit_clamp
+			)
 		}
 	),
 	private = list(
 		best_X_colnames = NULL,
 		get_complexity_tier = function() "light",
+		supports_interval_or_left_censored_data = function() TRUE,
+		# private$y_L/private$y_R are always
+		# row-aligned with whatever y/dead this file passes in (no row
+		# reordering happens anywhere in this class), so they're safe to
+		# reference directly regardless of which local snapshot of y/dead a
+		# given call site is using.
+		weibull_kernel_fit = function(X, y, dead, warm_start_params = NULL, warm_start_fisher_info = NULL,
+		                               fixed_idx = NULL, fixed_values = NULL, estimate_only = FALSE,
+		                               smart_cold_start = TRUE, optimization_alg = "lbfgs") {
+			fast_weibull_regression_general_cpp(
+				X = X, y = y, y_L = private$y_L, y_R = private$y_R,
+				warm_start_params = warm_start_params, warm_start_fisher_info = warm_start_fisher_info,
+				fixed_idx = fixed_idx, fixed_values = fixed_values,
+				smart_cold_start = smart_cold_start, estimate_only = estimate_only,
+				optimization_alg = optimization_alg
+			)
+		},
+		weibull_kernel_score = function(X, y, dead, params) {
+			get_weibull_regression_general_score_cpp(X, y, private$y_L, private$y_R, params)
+		},
+		weibull_kernel_hessian = function(X, y, dead, params) {
+			get_weibull_regression_general_hessian_cpp(X, y, private$y_L, private$y_R, params)
+		},
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (is.null(private$best_X_colnames)){
 				private$shared(estimate_only = TRUE)
@@ -103,8 +204,8 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 			n_params = ncol(X) + 1L
 			ws_args = private$get_backend_warm_start_args(n_params)
 			
-			res = fast_weibull_regression_cpp(
-				y = private$y, dead = private$dead, X = X,
+			res = private$weibull_kernel_fit(
+				X = X, y = private$y, dead = private$dead,
 				warm_start_params = ws_args$start_params,
 				warm_start_fisher_info = ws_args$warm_start_fisher_info,
 				smart_cold_start = private$smart_cold_start_default,
@@ -126,6 +227,15 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 			TRUE
 		},
 		simulate_under_lik_null = function(spec, delta, null_fit){
+			if (isTRUE(private$has_general_censoring)) {
+				stop(
+					"Parametric-bootstrap likelihood-ratio calibration (Bartlett correction) is not ",
+					"yet supported for left-/interval-censored survival data: simulate_param_boot_weibull_observed() ",
+					"only knows how to re-censor a simulated exact time against a single right-censoring ",
+					"threshold, not against an arbitrary observation window -- extending it is a modeling ",
+					"decision (how to re-derive a simulated interval), not a mechanical one."
+				)
+			}
 			b_null    = as.numeric(null_fit$b)
 			log_sigma = as.numeric(null_fit$log_sigma)
 			X_fit    = spec$X
@@ -140,9 +250,12 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 			if (is.null(sim_data)) return(NULL)
 			y_sim = sim_data$y
 			dead_sim = sim_data$dead
+			y_exact_sim = ifelse(dead_sim != 0, y_sim, NA_real_)
+			y_L_sim = ifelse(dead_sim == 0, y_sim, NA_real_)
+			y_R_sim = ifelse(dead_sim == 0, Inf, NA_real_)
 			full_res = tryCatch(
-				fast_weibull_regression_cpp(
-					y = y_sim, dead = dead_sim, X = X_fit,
+				fast_weibull_regression_general_cpp(
+					y = y_exact_sim, y_L = y_L_sim, y_R = y_R_sim, X = X_fit,
 					smart_cold_start = private$smart_cold_start_default,
 					estimate_only = FALSE, optimization_alg = private$optimization_alg
 				),
@@ -160,8 +273,8 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 				full_fit = full_fit_boot,
 				fit_null = function(d, start = NULL){
 					res = tryCatch(
-						fast_weibull_regression_cpp(
-							y = y_sim, dead = dead_sim, X = X_fit,
+						fast_weibull_regression_general_cpp(
+							y = y_exact_sim, y_L = y_L_sim, y_R = y_R_sim, X = X_fit,
 							warm_start_params = start %||% as.numeric(full_res$params),
 							fixed_idx = j, fixed_values = d,
 							smart_cold_start = TRUE,
@@ -189,8 +302,8 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 				fit_null = function(delta, start = NULL){
 					ws_args = private$get_backend_warm_start_args(ncol(X_fit) + 1L)
 					res = tryCatch(
-						fast_weibull_regression_cpp(
-							y = y, dead = dead, X = X_fit,
+						private$weibull_kernel_fit(
+							X = X_fit, y = y, dead = dead,
 							warm_start_params = start %||% ws_args$start_params,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info,
 							fixed_idx = j_treat, fixed_values = delta,
@@ -207,19 +320,19 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 				},
 				score = function(fit){
 					params = c(as.numeric(fit$b), as.numeric(fit$log_sigma))
-					get_weibull_regression_score_cpp(X_fit, y, dead, params)
+					private$weibull_kernel_score(X_fit, y, dead, params)
 				},
 				observed_information = function(fit){
 					params = c(as.numeric(fit$b), as.numeric(fit$log_sigma))
-					-get_weibull_regression_hessian_cpp(X_fit, y, dead, params)
+					-private$weibull_kernel_hessian(X_fit, y, dead, params)
 				},
 				fisher_information = function(fit){
 					params = c(as.numeric(fit$b), as.numeric(fit$log_sigma))
-					-get_weibull_regression_hessian_cpp(X_fit, y, dead, params)
+					-private$weibull_kernel_hessian(X_fit, y, dead, params)
 				},
 				information = function(fit){
 					params = c(as.numeric(fit$b), as.numeric(fit$log_sigma))
-					-get_weibull_regression_hessian_cpp(X_fit, y, dead, params)
+					-private$weibull_kernel_hessian(X_fit, y, dead, params)
 				},
 				neg_loglik = function(fit){ as.numeric(fit$neg_loglik) }
 			)
@@ -232,8 +345,8 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 				fit_fun = function(X_fit){
 					n_params = ncol(X_fit) + 1L
 					ws_args = private$get_backend_warm_start_args(n_params)
-					res = fast_weibull_regression_cpp(
-						y = private$y, dead = private$dead, X = X_fit,
+					res = private$weibull_kernel_fit(
+						X = X_fit, y = private$y, dead = private$dead,
 						warm_start_params = ws_args$start_params,
 						warm_start_fisher_info = ws_args$warm_start_fisher_info,
 						smart_cold_start = private$smart_cold_start_default,

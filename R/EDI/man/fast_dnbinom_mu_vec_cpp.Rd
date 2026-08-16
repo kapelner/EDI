@@ -2,23 +2,58 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_dnbinom_mu_vec_cpp}
 \alias{fast_dnbinom_mu_vec_cpp}
-\title{Fast Mu-Parameterized Negative-Binomial Density (C++)}
+\title{Fast Mean-Parameterized Negative-Binomial Density, Vectorized (C++ Backend)}
 \usage{
 fast_dnbinom_mu_vec_cpp(x, size, mu, return_log)
 }
 \arguments{
-\item{x}{Numeric vector of non-negative integer counts.}
+\item{x}{Numeric vector of non-negative integer counts (non-integer or
+negative values are not validated by this function and will produce
+incorrect or non-finite results, matching \code{R::dnbinom_mu}'s own lack
+of input validation at the C level).}
 
-\item{size}{Dispersion parameter (single value).}
+\item{size}{Dispersion (shape) parameter \eqn{> 0} (single value, recycled
+against every element of \code{x}).}
 
-\item{mu}{Mean parameter (single value).}
+\item{mu}{Mean parameter \eqn{> 0} (single value, recycled against every
+element of \code{x}).}
 
-\item{return_log}{Logical. If \code{TRUE}, return the log-density.}
+\item{return_log}{Logical. If \code{TRUE}, return the log-density instead of
+the density.}
 }
 \value{
-A numeric vector of (log-)density values.
+A numeric vector of (log-)density values, the same length as
+  \code{x}.
 }
 \description{
-Vectorized negative-binomial density parameterized by mean \code{mu}, matching \code{R::dnbinom_mu(x, size, mu, give_log)} semantics via \code{fast_lgamma} in place of R's three \code{lgamma} dispatches. Faster than base R's \code{stats::dnbinom(x, size, mu = mu, log = ...)}.
+Computes the negative-binomial probability mass function, in its
+mean/dispersion parameterization,
+\deqn{f(x; \mathrm{size}, \mu) = \binom{x + \mathrm{size} - 1}{x} \left(\frac{\mathrm{size}}{\mathrm{size} + \mu}\right)^{\mathrm{size}} \left(\frac{\mu}{\mathrm{size} + \mu}\right)^{x},}
+elementwise over \code{x}, with \eqn{E[X] = \mu} and
+\eqn{\mathrm{Var}(X) = \mu + \mu^2/\mathrm{size}} (\code{size} is the
+dispersion/shape parameter; smaller \code{size} means more overdispersion
+relative to Poisson). This matches \code{R::dnbinom_mu(x, size, mu, give_log)}
+semantics exactly, but evaluates the three required \code{lgamma} calls per
+observation via \code{\link{fast_lgamma_vec_cpp}}'s kernel instead of R's own
+\code{lgamma} dispatch, making it faster than base R's
+\code{stats::dnbinom(x, size, mu = mu, log = ...)} — measured at 1.35x on
+a length-5000 vector (see the
+\href{https://github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_R.html}{"Utility
+/ Math Kernel Performance" benchmark report}) — while returning
+numerically identical values. Used internally inside the package's
+negative-binomial regression likelihood, score, and Hessian kernels.
+}
+\references{
+\href{https://en.wikipedia.org/wiki/Negative_binomial_distribution}{Negative
+  binomial distribution} for the mean/dispersion parameterization used here.
+  Analogous Python API:
+  \href{https://docs.scipy.org/doc/scipy/reference/stats.html}{SciPy stats
+  distributions index} (\code{scipy.stats.nbinom}, in its
+  number-of-successes/probability parameterization — convert via
+  \eqn{p = \mathrm{size}/(\mathrm{size}+\mu)}).
+}
+\seealso{
+\code{\link{fast_lgamma_vec_cpp}}, whose kernel this function calls
+  three times per observation.
 }
 \keyword{internal}

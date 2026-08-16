@@ -1,16 +1,26 @@
-#' Robust Regression Inference for Continuous Responses
+#' Robust (M/MM-Estimator) Regression Inference for Continuous Responses
 #'
-#' Fits a robust linear regression via \code{MASS::rlm} for continuous responses
-#' using the treatment indicator and, optionally, all recorded covariates as
-#' predictors. This provides a Huber/MM-style robustness upgrade over ordinary
-#' least squares when outcomes are heavy-tailed or outlier-prone. Inference is
-#' based on the coefficient table returned by \code{summary.rlm()}.
+#' Fits a robust linear regression — by default via this package's
+#' \code{\link{fast_robust_regression_cpp}} C++ backend (\code{use_rcpp = TRUE};
+#' see that page for the full M/MM-estimator model, weight functions, and
+#' asymptotic variance formula), or via \code{MASS::rlm} when \code{use_rcpp =
+#' FALSE} — for a continuous response using the treatment indicator and,
+#' optionally, all recorded covariates as predictors. This provides a
+#' Huber/MM-style robustness upgrade over ordinary least squares when outcomes
+#' are heavy-tailed or outlier-prone, down-weighting large residuals rather
+#' than letting them dominate the fit the way squared-error loss does.
 #'
 #' @details
-#' The \code{method} argument is passed to \code{MASS::rlm} and may be either
-#' \code{"M"} or \code{"MM"}. For \code{"M"}, the fit uses Huber's psi
-#' function. Approximate confidence intervals and p-values use the reported
-#' robust standard error with residual degrees of freedom \eqn{n - p}.
+#' The \code{method} argument is passed through to either backend and may be
+#' either \code{"M"} (Huber's psi function) or \code{"MM"} (Tukey's bisquare
+#' weight, the default — higher breakdown point than \code{"M"} at some cost
+#' in asymptotic efficiency under normality). When \code{use_rcpp = TRUE}
+#' (the default), coefficient standard errors come from the C++ backend's own
+#' M-estimator asymptotic variance (\code{ssq_b_j}); when \code{FALSE}, they
+#' come from the coefficient table returned by \code{summary.rlm()}. Either
+#' way, confidence intervals and p-values use that standard error with
+#' residual degrees of freedom \eqn{n - p} in a normal-theory Wald
+#' approximation (not an exact finite-sample distribution).
 #'
 #' @examples
 #' \donttest{
@@ -23,21 +33,27 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceContinRobustRegr = R6::R6Class("InferenceContinRobustRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceContinRobustRegr = define_inference_class(
+	classname = "InferenceContinRobustRegr",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 				
-		#' @description Initialize a robust-regression inference object for a completed design
-		#' with a continuous response.
+		#' @description Initialize a robust-regression inference object for a
+		#'   completed design with a continuous, uncensored response.
 		#' @param des_obj A completed \code{Design} object with a continuous response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
 		#'   design's imputed covariates.
-		#' @param method The estimation method.. Default "MM".
-		#' @param use_rcpp Whether to use C++ speedup.. Default TRUE.
-		#' @param verbose Whether to print progress messages.. Default FALSE.
+		#' @param method Robust estimation method, \code{"M"} (Huber) or \code{"MM"}
+		#'   (Tukey bisquare, higher breakdown point). Default \code{"MM"}.
+		#' @param use_rcpp Whether to use the \code{\link{fast_robust_regression_cpp}}
+		#'   C++ backend (\code{TRUE}, default) instead of \code{MASS::rlm} (\code{FALSE}).
+		#' @param verbose Whether to print progress messages. Default \code{FALSE}.
 		#' @param smart_cold_start_default Whether to use smart starting values for the optimizer.
 		initialize = function(des_obj, model_formula = NULL, method = "MM", use_rcpp = TRUE, verbose = FALSE, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
@@ -55,14 +71,30 @@ InferenceContinRobustRegr = R6::R6Class("InferenceContinRobustRegr",
 			private$rlm_method = method
 			private$use_rcpp = use_rcpp
 		},
-		#' @description Computes the robust-regression estimate of the treatment effect.
+		#' @description Computes the robust-regression treatment coefficient
+		#'   \eqn{\hat\beta_T} from an M/MM-estimator fit (see class documentation
+		#'   for the full model and \code{use_rcpp} backend choice). Rank-deficient
+		#'   covariate columns are dropped before fitting via
+		#'   \code{private$fit_with_hardened_qr_column_dropping()}.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
+		#' @description Recomputes the robust-regression treatment estimate under
+		#'   subject/block bootstrap weights, used by the Bayesian bootstrap and
+		#'   related weighted-resampling machinery; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#'   When \code{use_rcpp = TRUE}, reproduces \code{MASS::rlm}'s default
+		#'   \code{wt.method = "inv.var"} weighting exactly by pre-multiplying
+		#'   \code{X} and \code{y} by \eqn{\sqrt{\text{weight}}} and running
+		#'   unweighted M-estimation on the transformed data via the C++ backend
+		#'   (rather than adding native weight support to that backend); when
+		#'   \code{use_rcpp = FALSE}, passes \code{weights} directly to
+		#'   \code{MASS::rlm}. This variant never populates a standard error or
+		#'   degrees of freedom (both left \code{NA}) — it is estimate-only by
+		#'   construction, matching the \code{estimate_only} default of the fast
+		#'   path it always uses internally.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -117,8 +149,13 @@ InferenceContinRobustRegr = R6::R6Class("InferenceContinRobustRegr",
 			private$cached_values$df = NA_real_
 			private$cached_values$beta_hat_T
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Computes a \eqn{1-\alpha} level confidence interval for the
+		#'   robust-regression treatment coefficient \eqn{\hat\beta_T}, using the
+		#'   M/MM-estimator's asymptotic standard error (see class documentation
+		#'   for its source depending on \code{use_rcpp}) and residual degrees of
+		#'   freedom \eqn{n - p} in a normal-theory Wald approximation. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   asymptotic confidence-interval contract this delegates to.
 		#' @param alpha The confidence level in the computed confidence
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
@@ -128,8 +165,12 @@ InferenceContinRobustRegr = R6::R6Class("InferenceContinRobustRegr",
 			private$shared()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
+		#'   \beta_T = \code{delta}}, from the same M/MM-estimator standard error
+		#'   and residual degrees of freedom used by
+		#'   \code{$compute_asymp_confidence_interval()}. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   asymptotic two-sided p-value contract this delegates to.
 		#' @param delta The null difference to test against. Default is zero.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -137,22 +178,10 @@ InferenceContinRobustRegr = R6::R6Class("InferenceContinRobustRegr",
 			}
 			private$shared()
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
 		}
 	),
 	private = list(
-		rlm_method = NULL,
 		use_rcpp = TRUE,
-		best_X_colnames = NULL,
 		get_complexity_tier = function() "medium",
 		get_backend_warm_start_args = function(expected_length, expected_fisher_dim = expected_length) {
 			private$get_optimal_warm_start_config(expected_length, expected_fisher_dim)
@@ -350,5 +379,22 @@ InferenceContinRobustRegr = R6::R6Class("InferenceContinRobustRegr",
 				as.numeric(delta), private$rlm_method, mats$noise_mat, private$n_cpp_threads(ncol(mats$w_mat))
 			)
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval"
+		),
+		private = c(
+			"get_standard_error", "get_degrees_of_freedom",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"compute_fast_randomization_distr",
+			"compute_treatment_estimate_during_randomization_inference",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported", "get_complexity_tier"
+		)
+	),
+	metadata = list(likelihood_tier = "quasi")
 )

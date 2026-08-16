@@ -3,6 +3,22 @@
 #' Abstract class for randomization-based confidence interval inference.
 #'
 #' @keywords internal
+
+inference_uses_model_scale_randomization_transform = function(inf_obj) {
+	model_scale_capabilities = c(
+		"standard_model_cache",
+		"count_likelihood_plumbing",
+		"kk_gee",
+		"kk_glmm",
+		"kk_passthrough"
+	)
+	capabilities = tryCatch(inf_obj$capabilities(), error = function(e) character())
+	any(model_scale_capabilities %in% capabilities) ||
+		inherits(inf_obj, "InferencePropQuantileRegr") ||
+		inherits(inf_obj, "InferencePropGCompMeanDiff") ||
+		inherits(inf_obj, "InferenceCountHurdleNegBin")
+}
+
 InferenceRandCI = R6::R6Class("InferenceRandCI",
 	lock_objects = FALSE,
 	inherit = InferenceRand,
@@ -26,7 +42,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			# message("In InferenceRandCI$compute_rand_two_sided_pval")
 			# message("Class: ", class(self)[1])
 			if (should_run_asserts()) {
-				private$assert_design_supports_resampling("Randomization inference")
+				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertLogical(na.rm)
 			}
 			if (should_run_asserts()) {
@@ -83,7 +99,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   \code{ci_search_control} for details.
 		compute_rand_confidence_interval = function(alpha = 0.05, r = 501, pval_epsilon = 0.005, show_progress = TRUE, type = NULL, args_for_type = NULL, ci_search_control = NULL){
 			if (should_run_asserts()) {
-				private$assert_design_supports_resampling("Randomization inference")
+				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 				assertCount(r, positive = TRUE); assertNumeric(pval_epsilon, lower = .Machine$double.xmin, upper = 1)
 				assertLogical(show_progress); show_progress = isTRUE(show_progress) && self$num_cores == 1
@@ -124,16 +140,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			if (should_run_asserts()) {
 				private$assert_no_incidence_only_randomization_args(resp_type, type, args_for_type)
 			}
-			is_glm = private$has_private_method("is_a_asymp_lik_std_mod_cache") ||
-			         private$has_private_method("is_a_asymp_lik_std_mod_cache_no_param_bootstrap") ||
-			         private$has_private_method("is_a_count_likelihood_no_param_bootstrap") ||
-			         private$has_private_method("is_a_gee_family") ||
-			         private$has_private_method("is_a_glmm_family") ||
-			         private$has_private_method("is_a_kk_passthrough_design") ||
-			         inherits(self, "InferencePropQuantileRegr") ||
-			         private$has_private_method("is_a_prop_gcomp") ||
-			         private$has_private_method("is_a_count_zero_augmented_poisson") ||
-			         inherits(self, "InferenceCountHurdleNegBin")
+			is_glm = inference_uses_model_scale_randomization_transform(self)
 			temp_inf = if (resp_type %in% c("count", "proportion", "survival")) self$duplicate() else self
 			transform_arg = "none"
 			
@@ -313,7 +320,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		},
 		compute_exact_confidence_interval_rand = function(type, alpha, args_for_type){
 			if (should_run_asserts()) {
-				private$assert_design_supports_resampling("Randomization inference")
+				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
@@ -328,7 +335,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		},
 		compute_exact_two_sided_pval_rand = function(type, delta, args_for_type){
 			if (should_run_asserts()) {
-				private$assert_design_supports_resampling("Randomization inference")
+				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertNumeric(delta)
 				private$assert_exact_inference_params(type, args_for_type)
 			}

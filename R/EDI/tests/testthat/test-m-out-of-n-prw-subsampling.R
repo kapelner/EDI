@@ -165,3 +165,30 @@ test_that("debug distributions include centered scaled diagnostics", {
 	expect_length(b_dbg$values, 7)
 	expect_length(b_dbg$centered_scaled_values, 7)
 })
+
+test_that("replacement semantics are explicit: m-out-of-n draws with replacement, PRW subsampling without", {
+	inf = build_resampling_smoke_inference()
+	priv = inf$.__enclos_env__$private
+	priv$shared()
+
+	# m-out-of-n: with replacement. Drawing m = n = 20 units, the probability of
+	# seeing NO duplicate unit is 20!/20^20 (~2e-8) per draw -- across 5 draws,
+	# a duplicate is a statistical certainty for a with-replacement sampler and
+	# impossible for a without-replacement one.
+	set.seed(20260814)
+	saw_duplicate = FALSE
+	for (r in 1:5) {
+		m_draw = priv$m_out_of_n_bootstrap_sample_indices(m = 20L)
+		expect_length(m_draw$i_b, 20L)
+		if (any(duplicated(m_draw$i_b))) saw_duplicate = TRUE
+	}
+	expect_true(saw_duplicate)
+
+	# PRW subsampling: without replacement. No draw may ever repeat a unit, and
+	# each draw has exactly b rows for this observation-level design.
+	for (r in 1:20) {
+		b_draw = priv$subsampling_sample_indices(b = 12L)
+		expect_length(b_draw$i_b, 12L)
+		expect_false(any(duplicated(b_draw$i_b)))
+	}
+})

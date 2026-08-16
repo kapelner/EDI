@@ -29,7 +29,7 @@ build_seq_proportion_design <- function(design_name, X, y, beta_T = 0, sd_noise 
 		eps = stats::rnorm(1, 0, sd_noise)
 		bt = ifelse(w_t == 1, beta_T, 0)
 		y_t = pmin(1, pmax(0, y[i] + bt + eps))
-		des$add_one_subject_response(i, y_t, 1)
+		des$add_one_subject_response(i, y_t)
 	}
 
 	des

@@ -2,20 +2,77 @@
 % Please edit documentation in R/other_helpers.R
 \name{create_model_matrix_from_features}
 \alias{create_model_matrix_from_features}
-\title{Create a numeric design matrix from a formula and data frame}
+\title{Build an Intercept-Free, Full-Rank Covariate Design Matrix from a Formula}
 \usage{
 create_model_matrix_from_features(formula, data)
 }
 \arguments{
-\item{formula}{A formula object.}
+\item{formula}{A formula object giving the covariate specification to expand (e.g.
+\code{~ age + sex + age:sex}); should not include the response.}
 
-\item{data}{A data frame or data table.}
+\item{data}{A data frame or data table supplying the variables referenced in
+\code{formula}, with one row per subject.}
 }
 \value{
-A numeric matrix.
+A numeric matrix with \code{nrow(data)} rows and one column per retained,
+  full-rank expanded covariate term (no intercept column). Has zero columns if
+  \code{data} has zero columns.
 }
 \description{
-This helper handles formula-based expansion (e.g. factors, interactions),
-optionally drops the intercept, and ensures rank-deficiency cleanup.
+Expands \code{formula} against \code{data} (via \code{\link[stats]{model.matrix}}) into
+a purely numeric covariate design matrix suitable for the package's own \code{fast_*}
+GLM/survival/ordinal fitting routines, which manage their own intercept and treatment
+columns separately rather than relying on the formula/model-matrix machinery for them.
+This is the standard covariate-matrix builder used throughout EDI's inference classes
+(e.g. \code{Inference$private$X}) whenever adjustment covariates need to go from a
+user-facing formula/data-frame representation to a numeric matrix the C++ backends can
+consume.
+}
+\details{
+\strong{What it does.} (1) If \code{data} has zero columns, returns a numeric
+\code{nrow(data) x 0} matrix immediately (no covariates to expand). (2) Otherwise calls
+\code{\link[stats]{model.matrix}(formula, data = data)}, which performs standard
+formula expansion: factor variables are dummy-coded against their reference level (the
+first level of \code{\link[base]{levels}}, or the level ordering already present in
+\code{data}), interactions (\code{a:b}, \code{a*b}) are expanded to product columns, and
+any \code{model.matrix} contrasts option in effect at call time applies. (3) If the
+first resulting column is named \code{"(Intercept)"} (i.e. the formula was not given
+\code{- 1} / \code{+ 0}), that column is dropped — this function always returns a
+covariate-only matrix with no intercept column, since EDI's design and inference classes
+add their own intercept/treatment columns at a fixed position. (4) The result is passed
+through \code{\link{drop_linearly_dependent_cols}}, which detects the numeric rank of
+the matrix (via \code{matrix_rank_cpp()} at tolerance \code{1e-7}) and, if the matrix is
+rank-deficient, greedily retains a full-rank subset of columns using the pivot order
+from \code{\link[base]{qr}(M, tol = 1e-7)} (dropping the same tolerance's worth of
+redundant/aliased columns, e.g. from collinear dummy expansions or an over-specified
+interaction structure); this rank-reduction step is silent — no warning is issued when
+columns are dropped, and the dropped columns' identity/names are not returned to the
+caller, only the reduced matrix.
+
+\strong{Input conventions.} \code{data} is expected to already be free of missing
+values at call time (imputation, when configured, happens upstream in the design/
+inference class before this function is called); this function does not impute or warn
+about \code{NA}s, and \code{model.matrix} will drop incomplete rows or error, per its
+own \code{na.action} default, if \code{NA}s remain. Column order and names in the
+returned matrix follow \code{model.matrix}'s expansion order (all factor/interaction
+columns for a term before the next term), possibly reduced by the rank-deficiency step;
+callers relying on stable column identity (e.g. warm-starting coefficients across calls)
+should not assume the set or order of columns is invariant if \code{data}'s factor
+levels or rank change between calls.
+
+\strong{Failure semantics.} If \code{drop_linearly_dependent_cols} detects the matrix is
+non-numeric or contains non-finite values, it returns the matrix unchanged (rank
+reduction is skipped rather than erroring); a downstream fitting routine operating on a
+rank-deficient or non-finite design matrix may then fail to converge or report
+non-finite coefficients/standard errors, which is where such problems will actually
+surface to the user.
+}
+\seealso{
+\code{\link[stats]{model.matrix}}, which performs the formula expansion this
+  function wraps; \code{drop_linearly_dependent_cols} (internal, same file) for the
+  rank-deficiency cleanup step. Analogous Python API:
+  \href{https://patsy.readthedocs.io/en/latest/}{patsy}/
+  \href{https://www.statsmodels.org/stable/gettingstarted.html}{statsmodels formula API}
+  for formula-based design matrix construction.
 }
 \keyword{internal}

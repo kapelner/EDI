@@ -510,7 +510,11 @@ make_edi_wald_bm = function(cls_name, d) {
         }),
 
         InferenceSurvivalWeibullRegr = quote({
-            res = fast_weibull_regression_cpp(X_ord, y_bm, dead_bm, estimate_only = FALSE)
+            res = fast_weibull_regression_general_cpp(
+                X_ord, ifelse(dead_bm != 0, y_bm, NA_real_),
+                ifelse(dead_bm == 0, y_bm, NA_real_), ifelse(dead_bm == 0, Inf, NA_real_),
+                estimate_only = FALSE
+            )
             est = res$params[2]
             se = sqrt(res$vcov[2, 2])
             crit = stats::qnorm(0.975)

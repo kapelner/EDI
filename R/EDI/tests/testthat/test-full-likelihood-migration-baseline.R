@@ -210,10 +210,15 @@ full_likelihood_expected_incidence_components = list(
 	InferenceIncidBinomialIdentityRiskDiff = "IncidenceBinomialIdentityLikelihood"
 )
 
+# InferenceIncidGCompRiskDiff/RiskRatio are deliberately not listed here: once
+# migrated to define_inference_class() (fix_inference_hierarchy.md, "Simple
+# No-Likelihood Estimators"), they compose the shared IncidenceGComputation
+# component directly plus a literal build_design_matrix/get_estimand_type pair
+# in their own class bodies -- they are no longer sourced via a dedicated
+# IncidenceGComputationRiskDiff/RiskRatio harvested component, so this
+# pre-migration "component extraction" invariant no longer applies to them.
 incidence_gcomputation_expected_components = list(
-	InferenceIncidGCompAbstract = "IncidenceGComputation",
-	InferenceIncidGCompRiskDiff = "IncidenceGComputationRiskDiff",
-	InferenceIncidGCompRiskRatio = "IncidenceGComputationRiskRatio"
+	InferenceIncidGCompAbstract = "IncidenceGComputation"
 )
 
 full_likelihood_expected_survival_components = list(

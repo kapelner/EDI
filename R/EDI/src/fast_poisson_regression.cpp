@@ -5,6 +5,7 @@
 #include "result_map_rcpp.h"
 #include <RcppEigen.h>
 #endif
+#include "internal_fn_decls.h"
 #include <cmath>
 #include <vector>
 
@@ -139,7 +140,7 @@ ModelResult fast_poisson_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
             if (use_weights) diff.array() *= weights.array();
             res.score = X.transpose() * diff;
         }
-        res.iterations = fit.niter;
+        res.num_iter = fit.niter;
         res.converged = fit.converged;
         res.gradient_norm = fit.gradient_norm;
         return res;
@@ -208,7 +209,7 @@ ModelResult fast_poisson_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
 
     for (int iter = 0; iter < maxit; ++iter) {
         edi_check_R_user_interrupt_every(iter);
-        res.iterations = iter + 1;
+        res.num_iter = iter + 1;
         
         eta.noalias() = eta_fixed;
         eta.noalias() += X_f * beta_free;
@@ -302,19 +303,21 @@ ModelResult fast_poisson_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
 
 } // namespace
 
+// Defaults are declared once in internal_fn_decls.h (included above) --
+// repeating them here would be an error.
 ModelResult fast_poisson_regression_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
                                              const Eigen::Ref<const Eigen::VectorXd>& y,
                                              const Eigen::Ref<const Eigen::VectorXd>& weights,
-                                             std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
-                                             bool smart_cold_start = false,
-                                             int maxit = 100,
-                                             double tol = 1e-8,
-                                             std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
-                                             std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
-                                             std::string optimization_alg = "irls",
-                                             std::optional<Eigen::VectorXd> warm_start_weights = std::nullopt,
-                                             std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
-                                             bool estimate_only = false) {
+                                             std::optional<Eigen::VectorXd> warm_start_beta,
+                                             bool smart_cold_start,
+                                             int maxit,
+                                             double tol,
+                                             std::optional<Eigen::VectorXi> fixed_idx,
+                                             std::optional<Eigen::VectorXd> fixed_values,
+                                             std::string optimization_alg,
+                                             std::optional<Eigen::VectorXd> warm_start_weights,
+                                             std::optional<Eigen::MatrixXd> warm_start_fisher_info,
+                                             bool estimate_only) {
     return fast_poisson_internal(X, y, weights, warm_start_beta, smart_cold_start, maxit, tol, fixed_idx, fixed_values, optimization_alg, warm_start_weights, warm_start_fisher_info, estimate_only);
 }
 
@@ -393,7 +396,7 @@ List fast_poisson_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, R
 		return edi::to_rcpp_list(edi::ResultMap()
 			.set("b", res.b)
 			.set("converged", res.converged)
-			.set("iterations", res.iterations)
+			.set("iterations", res.num_iter)
 			.set("gradient_norm", res.gradient_norm));
 	}
 	return edi::to_rcpp_list(edi::ResultMap()
@@ -404,7 +407,7 @@ List fast_poisson_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, R
 		.set("score", res.score)
 		.set("neg_ll", res.neg_ll)
 		.set("converged", res.converged)
-		.set("iterations", res.iterations)
+		.set("iterations", res.num_iter)
 		.set("gradient_norm", res.gradient_norm));
 }
 
@@ -434,7 +437,7 @@ List fast_poisson_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, 
 		.set("score", res.score)
 		.set("neg_ll", res.neg_ll)
 		.set("converged", res.converged)
-		.set("iterations", res.iterations)
+		.set("iterations", res.num_iter)
 		.set("gradient_norm", res.gradient_norm));
 }
 
@@ -489,7 +492,7 @@ List fast_poisson_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 		.set("ssq_b_2", res.ssq_b_2)
 		.set("mu", res.mu)
 		.set("converged", res.converged)
-		.set("iterations", res.iterations)
+		.set("iterations", res.num_iter)
 		.set("score", res.score)
 		.set("observed_information", res.XtWX)
 		.set("fisher_information", res.XtWX)
@@ -567,7 +570,7 @@ List fast_quasipoisson_regression_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>
 		.set("dispersion", res.dispersion)
 		.set("mu", res.mu)
 		.set("converged", res.converged)
-		.set("iterations", res.iterations)
+		.set("iterations", res.num_iter)
 		.set("gradient_norm", res.gradient_norm));
 }
 #endif // EDI_CORE_ONLY

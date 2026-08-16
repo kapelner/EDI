@@ -1,5 +1,7 @@
 # Sequential Inference for `DesignSeqOneByOne*` Designs
 
+> **Depends on:** `fix_design_hierarchy.md` (public accessors must replace the `des_obj_priv_int` channel this doc's architecture describes); `fix_inference_hierarchy.md` (BayesianBootstrap component). (Global ordering: see `_master.md`.)
+
 Generated: 2026-08-09
 
 ## Scope
@@ -141,6 +143,13 @@ into `private$cached_values`) is frozen at construction time. If the
 built, that `Inference` object does **not** see the new subjects — it just
 keeps answering questions about the `t` it was built at.
 
+(Note, 2026-08-13: `fix_design_hierarchy.md`'s source invariants ban
+`.__enclos_env__$private` reads of a `Design` instance from outside
+`design_*.R`; the `des_obj_priv_int` channel described above is exactly that
+pattern and is slated for replacement by public accessors. Any
+sequential-inference work specced from this document must target the
+public-accessor form, not `des_obj_priv_int`.)
+
 ## 4. Statistical approaches to sequential testing / CI construction
 
 These are not mutually exclusive; different `Inference*` families in this
@@ -157,8 +166,8 @@ package are better suited to different approaches.
 2. **Bayesian sequential monitoring** (posterior probability boundaries,
    e.g. stop for efficacy when `P(effect > 0 | data_t) > 0.99`). This is
    arguably the most natural fit for the package's existing
-   `InferenceBayesianBootstrap` family
-   (`EDI/R/inference_all_abstract_bayesian_bootstrap.R:7`) since a posterior
+   `BayesianBootstrap` component family (formerly `InferenceBayesianBootstrap`;
+   source `EDI/R/inference_all_abstract_bayesian_bootstrap.R:7`) since a posterior
    (or posterior-like bootstrap) distribution can be recomputed at each `t`
    with no formal alpha-spending correction — the well-known cost is that
    frequentist operating characteristics (type-I error under repeated

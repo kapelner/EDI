@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_stereotype_logit_cpp}
 \alias{fast_stereotype_logit_cpp}
-\title{Fast Stereotype Logit Regression (C++)}
+\title{Fast Stereotype (Reduced-Rank Multinomial) Logistic Regression (C++)}
 \usage{
 fast_stereotype_logit_cpp(
   X,
@@ -20,24 +20,80 @@ fast_stereotype_logit_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors (no intercept column needed; the
+category intercepts \code{alpha} serve that role).}
 
-\item{y}{A numeric vector of responses.}
+\item{y}{A numeric vector of categorical (nominal or ordinal) responses; only
+the set of distinct values matters (mapped to \eqn{1, \ldots, K} by sorted
+rank), not their numeric coding or order.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of optimizer iterations.}
 
 \item{tol}{Convergence tolerance.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{smart_cold_start}{Present for interface parity with sibling functions but
+currently has \strong{no effect}: starting values always come from
+\code{initialize_params()} (log empirical category-count ratios for
+\code{alpha}, zero for \code{beta}/\code{gamma}) unless overridden by
+\code{warm_start_params}/\code{warm_start_beta}.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_idx}{Optional 1-indexed positions (into the joint parameter vector,
+\code{alpha} first) of parameters to hold fixed.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{fixed_values}{Optional values, parallel to \code{fixed_idx}, of the fixed parameters.}
+
+\item{optimization_alg}{Optimization algorithm (default \code{"newton_raphson"}).}
+
+\item{warm_start_fisher_info}{Optional initial curvature matrix for the first optimizer iteration.}
+
+\item{warm_start_params}{Optional starting values for the full joint parameter vector.
+Takes precedence over \code{warm_start_beta}.}
+
+\item{warm_start_beta}{Optional starting values for \eqn{\beta} alone (ignored if
+\code{warm_start_params} is supplied).}
+
+\item{estimate_only}{If \code{TRUE}, skip computing the observed-information matrix
+and return only point estimates.}
 }
 \value{
-A list containing coefficients, thresholds, scores, and convergence status.
+A list with components \code{b} (\eqn{\hat\beta}), \code{alpha} (the \eqn{K-1}
+  free intercepts), \code{scores_raw} (the raw \eqn{\hat\gamma} reparameterization
+  parameters, length \eqn{\max(0, K-2)}; recover \eqn{\hat\phi} from these via the
+  cumulative-softmax formula above), \code{params} (the full fitted joint parameter
+  vector), \code{neg_loglik}, \code{converged}, and, unless \code{estimate_only = TRUE},
+  \code{fisher_information} (the negative Hessian of the log-likelihood at the fitted
+  parameters — despite the name, this is the \strong{observed}, not expected,
+  information).
 }
 \description{
-High-performance stereotype logit regression fitting using Newton-Raphson.
+Fits Anderson's \strong{stereotype logit} model — a reduced-rank multinomial
+logit for a categorical (nominal or ordinal) response with \eqn{K} distinct
+observed levels, using a \strong{single} linear predictor \eqn{\eta_i =
+x_i^\top\beta} scaled by a category-specific "score" \eqn{\phi_k \in [0, 1]}:
+\deqn{\Pr(Y_i = k \mid x_i) = \frac{\exp(\alpha_k + \phi_k \eta_i)}
+  {\sum_{l=1}^K \exp(\alpha_l + \phi_l \eta_i)}, \qquad \alpha_1 := 0,\ \phi_1 := 0,\ \phi_K := 1,}
+with free intercepts \eqn{\alpha_2, \ldots, \alpha_K} and free interior scores
+\eqn{\phi_2, \ldots, \phi_{K-1}} reparameterized via unconstrained
+\eqn{\gamma_1, \ldots, \gamma_{K-2}} as cumulative softmax-style partial sums,
+\eqn{\phi_{j} = \left(\sum_{r \le j-2} e^{\gamma_r}\right) \big/ \left(1 +
+\sum_r e^{\gamma_r}\right)} for \eqn{j = 2, \ldots, K-1}, which guarantees
+\eqn{0 = \phi_1 \le \phi_2 \le \cdots \le \phi_{K-1} \le \phi_K = 1} without an
+explicit constraint. A single \eqn{\hat\beta} therefore governs the covariate
+effect for every category, with the fitted \eqn{\hat\phi_k} determining how much
+of that effect applies to category \eqn{k} — collapsing categories with similar
+fitted scores are "stereotyped" together, which is the model's namesake use case
+(a parsimony-inducing alternative to full multinomial or ordinal cumulative-link
+models when categories are not clearly ordered but the covariate effect is
+plausibly one-dimensional). \code{K = 2} reduces exactly to ordinary binary
+logistic regression (\eqn{\phi_2 = 1} by construction, no \eqn{\gamma}
+parameters). At least 2 distinct observed outcome categories are required; fewer
+throws an error. Fitting optimizes the joint parameter vector \eqn{[\alpha_2,
+\ldots, \alpha_K, \beta, \gamma_1, \ldots, \gamma_{K-2}]} via
+\code{optimization_alg} (default \code{"newton_raphson"}), using this model's
+analytic gradient and Hessian.
+}
+\seealso{
+\code{\link{fast_stereotype_logit_with_var_cpp}} for the variance-computing
+  variant.
 }
 \keyword{internal}

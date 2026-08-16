@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_robust_regression_cpp}
 \alias{fast_robust_regression_cpp}
-\title{Fast Robust Regression (C++)}
+\title{Fast Robust (M/MM-Estimator) Linear Regression (C++)}
 \usage{
 fast_robust_regression_cpp(
   X,
@@ -28,15 +28,19 @@ fast_robust_regression_cpp(
 
 \item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
 
-\item{method}{Robust estimation method ("M" or "MM").}
+\item{smart_cold_start}{Logical. If \code{TRUE} (the default) and no \code{warm_start_beta}
+is supplied, use an OLS (QR) initial guess; see Details.}
 
-\item{j}{1-based index of the parameter for which to return specific variance.}
+\item{method}{Robust estimation method: \code{"M"} for Huber weighting, anything else
+(default \code{"MM"}) for Tukey bisquare weighting; see Details.}
 
-\item{c}{Huber constant.}
+\item{j}{1-based index of the coefficient whose asymptotic variance to return in \code{ssq_b_j}.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{c}{Huber tuning constant (default 1.345; only used when \code{method = "M"}).}
 
-\item{tol}{Convergence tolerance.}
+\item{maxit}{Maximum number of IRLS iterations.}
+
+\item{tol}{Relative parameter-change convergence tolerance.}
 
 \item{fixed_idx}{Optional indices of fixed parameters.}
 
@@ -44,12 +48,56 @@ fast_robust_regression_cpp(
 
 \item{warm_start_weights}{Optional initial working weights for the first IRLS iteration.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+\item{warm_start_fisher_info}{Optional initial curvature (\eqn{X^\top W X}) matrix for the first IRLS iteration.}
+
+\item{estimate_only}{If \code{TRUE}, skip the post-fit asymptotic-variance computation
+and return only \code{coefficients}, \code{scale}, \code{converged}, and \code{iterations}.}
 }
 \value{
-A list containing coefficients, weights, and scale estimate.
+If \code{estimate_only = TRUE}: a list with \code{coefficients}, \code{scale}
+  (the fixed MAD-based robustness scale \eqn{\hat\sigma}), \code{converged}, \code{iterations}.
+  Otherwise, additionally: \code{ssq_b_j} and \code{fisher_information} (the final IRLS
+  \eqn{X^\top W X} curvature matrix). \code{ssq_b_j} is computed only if the fit converged
+  or ran the full \code{maxit} iterations, as the standard M-estimator asymptotic variance
+  \eqn{\widehat{\mathrm{Var}}(\hat\beta_j) = \left(\frac{n}{n-p}\right) \frac{\sum_i
+  \psi(r_i)^2}{n\,\bar\psi'^2} \, [(X^\top X)^{-1}]_{jj}}, where \eqn{\psi} is the
+  derivative of \eqn{\rho} (i.e. \eqn{\psi(r) = w(r/\hat\sigma)\,r}) and \eqn{\bar\psi'} is
+  the mean of \eqn{\psi'} across observations, matching the classical Huber (1981)
+  sandwich-free M-estimator variance formula; \code{NA} if \code{j} indexes a fixed
+  coefficient or the fit neither converged nor exhausted \code{maxit}.
 }
 \description{
-High-performance robust regression fitting using IRLS.
+Fits a robust linear regression by iteratively reweighted least squares (IRLS),
+minimizing \eqn{\sum_i \rho(r_i / \hat\sigma)} for residuals \eqn{r_i = y_i -
+x_i^\top\beta} and a fixed robustness scale \eqn{\hat\sigma}, rather than
+ordinary least squares' \eqn{\sum_i r_i^2}. \code{method = "M"} uses \strong{Huber's}
+weight function \eqn{w(u) = 1} for \eqn{|u| \le c} and \eqn{w(u) = c/|u|}
+otherwise (\code{c}, default 1.345, tuned for 95\% efficiency under normality);
+any other value of \code{method} (including the default, \code{"MM"}) uses
+\strong{Tukey's bisquare} weight \eqn{w(u) = (1 - (u/c_b)^2)^2} for \eqn{|u| \le c_b}
+and \eqn{0} otherwise, with \eqn{c_b = 4.685} hardcoded (not settable through
+this exported wrapper, though the internal fitter accepts it). The scale
+\eqn{\hat\sigma} is fixed once at the start as the normalized median absolute
+deviation of the OLS residuals, \eqn{\hat\sigma = \mathrm{median}(|r_i|) /
+0.6745} (the internal fitter also accepts a caller-supplied fixed scale, but
+this wrapper always estimates it). Each IRLS iteration re-weights and re-solves
+the weighted normal equations \eqn{X^\top W X\, \beta = X^\top W y} via
+\code{Eigen::LDLT}; convergence is declared when the relative change in
+\eqn{\beta} falls below \code{tol}. Column 1 of a real design typically holds
+the intercept, but no columns are treated specially except via \code{fixed_idx}.
 }
+\section{Fixed parameters, warm starts}{
+
+\code{fixed_idx} and \code{fixed_values} optionally hold a subset of coefficients
+fixed at caller-supplied constant values (subtracted out of \code{y} as an
+offset) rather than estimated. \code{warm_start_beta} supplies a starting
+coefficient vector directly; otherwise, if \code{smart_cold_start = TRUE} (the
+default), an ordinary QR least-squares fit seeds the start (and, when variance
+will later be requested via \code{j}, also caches the QR-based \eqn{[(X^\top
+X)^{-1}]_{jj}} entry for reuse in the variance formula below). \code{warm_start_weights}
+seeds the IRLS weights for the first iteration only (skipping that iteration's
+Huber/bisquare weight computation); \code{warm_start_fisher_info} similarly seeds
+the first iteration's \eqn{X^\top W X} curvature matrix.
+}
+
 \keyword{internal}

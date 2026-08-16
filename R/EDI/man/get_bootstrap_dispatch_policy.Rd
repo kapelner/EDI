@@ -7,16 +7,50 @@
 get_bootstrap_dispatch_policy()
 }
 \value{
-A named list describing the default bootstrap type configuration.
+A named list describing the default bootstrap type configuration, with
+  components \code{default_type} (the fallback type, \code{"bca"}),
+  \code{inference_class_overrides} (a named character vector: regular-expression
+  pattern names to bootstrap-type values, matched against the inference class
+  name), and \code{design_class_overrides} (a named list keyed by experimental
+  design class name, each value itself a named character vector of
+  pattern-to-type overrides scoped to that design).
 }
 \description{
-Returns EDI's built-in policy for choosing a default bootstrap type. Each
-inference class can override the standard \code{"bca"} default via a regular
-expression pattern.
+Returns EDI's built-in policy table, consulted by the internal (non-exported)
+dispatcher \code{edi_bootstrap_dispatch_policy()}, for choosing which bootstrap
+confidence-interval type — \code{"bca"} (bias-corrected and accelerated) or
+\code{"percentile"} — an inference class uses by default.
 }
 \details{
-The built-in overrides are empirical. Inference classes with repeated
+The dispatcher resolves a type for a given inference-class name (and, if
+available, the fitted inference object) in this precedence order, returning the
+first match:
+\enumerate{
+\item If the object's experimental design class matches a key of
+  \code{design_class_overrides} (via \code{\link[methods]{is}}), and the
+  inference class name matches one of that design's named regular-expression
+  patterns, use the associated type.
+\item Otherwise, if the inference class name matches one of
+  \code{inference_class_overrides}'s named regular-expression patterns (checked
+  in list order, first match wins), use the associated type.
+\item Otherwise, fall back to \code{default_type} (\code{"bca"}).
+}
+Whichever type is resolved by that process, a final safety check applies: if the
+resolved type is \code{"bca"} and the fitted object reports (via its private
+\code{jackknife_block_size_gt_one_unsupported()} method) that BCa's required
+jackknife computation is unsupported for its current data (e.g. a block size
+greater than 1), the type is silently downgraded to \code{"percentile"} instead.
+This override table exists because BCa is the generally preferred default (it
+corrects for both bias and skewness in the bootstrap distribution), but is
+empirically unreliable or computationally unsupported for specific inference/
+design class combinations — the \code{"percentile"} overrides listed here were
+added as those cases were identified, not derived from a general rule.
 }
 \examples{
 get_bootstrap_dispatch_policy()
+}
+\seealso{
+\code{\link{get_parallel_dispatch_policy}} for the analogous policy
+  controlling forced-serial dispatch; \code{\link{get_optimization_dispatch_policy}}
+  for the analogous policy controlling default optimizer algorithm choice.
 }

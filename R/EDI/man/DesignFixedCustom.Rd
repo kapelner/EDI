@@ -16,7 +16,6 @@ matrix. EDI handles subject storage, responses, and validation through
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-DesignFixedCustom-is_a_fixed_custom}{\code{DesignFixedCustom$is_a_fixed_custom()}}
     \item \href{#method-DesignFixedCustom-draw_assignments}{\code{DesignFixedCustom$draw_assignments()}}
     \item \href{#method-DesignFixedCustom-clone}{\code{DesignFixedCustom$clone()}}
   }
@@ -27,9 +26,7 @@ matrix. EDI handles subject storage, responses, and validation through
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subjects_to_experiment'><code>DesignFixed$add_all_subjects_to_experiment()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-assign_w_to_all_subjects'><code>DesignFixed$assign_w_to_all_subjects()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-initialize'><code>DesignFixed$initialize()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-is_a_fixed'><code>DesignFixed$is_a_fixed()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-supports_resampling'><code>DesignFixed$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -61,6 +58,7 @@ matrix. EDI handles subject storage, responses, and validation through
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -83,28 +81,19 @@ matrix. EDI handles subject storage, responses, and validation through
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_seq_one_by_one'><code>Design$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-DesignFixedCustom-is_a_fixed_custom"></a>}}
-\if{latex}{\out{\hypertarget{method-DesignFixedCustom-is_a_fixed_custom}{}}}
-\subsection{\code{DesignFixedCustom$is_a_fixed_custom()}}{
-  Characterization: this is a custom fixed-design extension.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{DesignFixedCustom$is_a_fixed_custom()}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-DesignFixedCustom-draw_assignments"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedCustom-draw_assignments}{}}}

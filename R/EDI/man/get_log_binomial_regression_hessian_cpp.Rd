@@ -2,21 +2,34 @@
 % Please edit documentation in R/RcppExports.R
 \name{get_log_binomial_regression_hessian_cpp}
 \alias{get_log_binomial_regression_hessian_cpp}
-\title{Compute Log-Binomial Regression Hessian}
+\title{Log-Link (Relative-Risk) Binomial Regression Hessian, Standalone (C++)}
 \usage{
-get_log_binomial_regression_hessian_cpp(X_r, y_r, beta)
+get_log_binomial_regression_hessian_cpp(X, y_r, beta)
 }
 \arguments{
+\item{y_r}{A binary (0/1) numeric vector of responses.}
+
+\item{beta}{A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.}
+
 \item{X_r}{A numeric matrix of predictors.}
-
-\item{y_r}{A binary numeric vector of responses.}
-
-\item{beta}{A numeric vector of coefficients.}
 }
 \value{
-A numeric matrix representing the Hessian.
+The finite-difference-approximated Hessian matrix of the log-likelihood at \code{beta}.
 }
 \description{
-Calculates the Hessian matrix (second derivatives of the log-likelihood) for a log-binomial regression model.
+Computes a \strong{numerical} (central finite-difference 4-point stencil, step
+\eqn{h = 10^{-4}}) approximation of the Hessian matrix of the log-likelihood of
+the constrained log-link binomial regression model documented in full at
+\code{\link{fast_log_binomial_regression_cpp}}, at arbitrary caller-supplied
+\code{beta} (not necessarily the MLE) — not an analytic second derivative.
+Exported standalone — independent of any optimizer run — for direct numerical
+diagnostics at a specific parameter value.
+}
+\seealso{
+\code{\link{get_log_binomial_regression_score_cpp}} for the
+  corresponding (also finite-difference) gradient at the same point;
+  \code{\link{fast_log_binomial_regression_cpp}} for the full model
+  documentation, including the probability-boundary constraint this Hessian is
+  evaluated without enforcing.
 }
 \keyword{internal}

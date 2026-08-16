@@ -24,7 +24,7 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress =
 }
 }
 \section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}} -> \code{InferenceAsympLikStdModCache} -> \code{InferenceSurvivalWeibullRegr}
+\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}} -> \code{InferenceAsympLikStdModCache} -> \code{InferenceSurvivalWeibullRegr}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -34,6 +34,9 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress =
     \item \href{#method-InferenceSurvivalWeibullRegr-compute_estimate_with_bootstrap_weights}{\code{InferenceSurvivalWeibullRegr$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferenceSurvivalWeibullRegr-compute_asymp_confidence_interval}{\code{InferenceSurvivalWeibullRegr$compute_asymp_confidence_interval()}}
     \item \href{#method-InferenceSurvivalWeibullRegr-compute_asymp_two_sided_pval}{\code{InferenceSurvivalWeibullRegr$compute_asymp_two_sided_pval()}}
+    \item \href{#method-InferenceSurvivalWeibullRegr-compute_bayesian_bootstrap_two_sided_pval}{\code{InferenceSurvivalWeibullRegr$compute_bayesian_bootstrap_two_sided_pval()}}
+    \item \href{#method-InferenceSurvivalWeibullRegr-compute_lik_ratio_bartlett_approx_two_sided_pval}{\code{InferenceSurvivalWeibullRegr$compute_lik_ratio_bartlett_approx_two_sided_pval()}}
+    \item \href{#method-InferenceSurvivalWeibullRegr-compute_rand_two_sided_pval}{\code{InferenceSurvivalWeibullRegr$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceSurvivalWeibullRegr-clone}{\code{InferenceSurvivalWeibullRegr$clone()}}
   }
 }
@@ -53,7 +56,6 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress =
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_confidence_interval'><code>InferenceAsympLik$compute_gradient_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_two_sided_pval'><code>InferenceAsympLik$compute_gradient_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
@@ -93,7 +95,6 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress =
 <ul>
   <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
@@ -125,8 +126,7 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress =
 </details>
 <details><summary>+ inherited public methods from InferenceRandCI</summary>
 <ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
+  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceRand</summary>
@@ -272,6 +272,111 @@ estimate.}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{delta}}{Null treatment effect value.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-compute_bayesian_bootstrap_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-compute_bayesian_bootstrap_two_sided_pval}{}}}
+\subsection{\code{InferenceSurvivalWeibullRegr$compute_bayesian_bootstrap_two_sided_pval()}}{
+  Bayesian-bootstrap two-sided p-value; see
+  \code{\link[EDI:Inference]{Inference}}. Blocked outright (rather than
+  letting the underlying weighted re-estimate fail once per replicate,
+  inside a per-iteration \code{tryCatch} that silently converts the
+  \code{stop()} in \code{compute_estimate_with_bootstrap_weights()} into an
+  all-\code{NA} bootstrap distribution) under left-/interval-censored data.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalWeibullRegr$compute_bayesian_bootstrap_two_sided_pval(
+  delta = 0,
+  B = 501,
+  type = NULL,
+  na.rm = FALSE,
+  show_progress = TRUE,
+  min_number_usable_samples = 5L,
+  weighting_unit_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{B}}{Number of Bayesian-bootstrap replicates.}
+      \item{\code{type}}{Bootstrap p-value type.}
+      \item{\code{na.rm}}{Whether to drop non-finite replicate estimates.}
+      \item{\code{show_progress}}{Whether to print a progress bar.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite replicates required.}
+      \item{\code{weighting_unit_type}}{Resampling unit type for the bootstrap weights.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-compute_lik_ratio_bartlett_approx_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-compute_lik_ratio_bartlett_approx_two_sided_pval}{}}}
+\subsection{\code{InferenceSurvivalWeibullRegr$compute_lik_ratio_bartlett_approx_two_sided_pval()}}{
+  Bartlett-corrected likelihood-ratio two-sided p-value; see
+  \code{\link[EDI:Inference]{Inference}}. Blocked outright under left-/
+  interval-censored data for the same reason as
+  \code{compute_bayesian_bootstrap_two_sided_pval()}: the underlying
+  \code{simulate_under_lik_null()} guard would otherwise only surface as a
+  silently all-\code{NA} calibration distribution.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalWeibullRegr$compute_lik_ratio_bartlett_approx_two_sided_pval(
+  delta = 0,
+  B = 99
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{B}}{Number of parametric-bootstrap replicates used for the correction.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceSurvivalWeibullRegr$compute_rand_two_sided_pval()}}{
+  Randomization-test two-sided p-value; see
+  \code{\link[EDI:Inference]{Inference}}. A nonzero null shift
+  (\code{delta != 0}) is blocked outright under left-/interval-censored
+  data for the same reason as the other bootstrap guards in this class:
+  the underlying shift-template guard in
+  \code{setup_randomization_template_and_shifts()} would otherwise only
+  surface as a silently all-\code{NA} randomization distribution.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalWeibullRegr$compute_rand_two_sided_pval(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  na.rm = TRUE,
+  show_progress = TRUE,
+  permutations = NULL,
+  zero_one_logit_clamp = .Machine$double.eps
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization replicates.}
+      \item{\code{delta}}{Null treatment effect shift.}
+      \item{\code{transform_responses}}{Response transform used for the randomization statistic.}
+      \item{\code{na.rm}}{Whether to drop non-finite replicate statistics.}
+      \item{\code{show_progress}}{Whether to print a progress bar.}
+      \item{\code{permutations}}{Optional pre-generated permutation matrix.}
+      \item{\code{zero_one_logit_clamp}}{Clamp used for logit-transformed responses.}
     }
     \if{html}{\out{</div>}}
   }

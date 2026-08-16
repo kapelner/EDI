@@ -1,11 +1,75 @@
-#' A Rerandomization Fixed Design
+#' A Fixed Rerandomization Design (Rejection-Sampled on Covariate Balance)
 #'
-#' An R6 Class encapsulating the data and functionality for a fixed rerandomization
-#' experimental design.
-#' This design generates random allocations and only accepts those that meet a
-#' covariate balance criterion.
-#' For balanced designs (prob_T = 0.5, even n) uses a native C++ parallel rejection sampler.
+#' A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} implementing
+#' rerandomization (Morgan and Rubin, 2012): candidate allocations \eqn{w} are drawn
+#' from the design's base randomization law (balanced complete randomization when
+#' \code{prob_T = 0.5}, i.i.d. \eqn{\mathrm{Bernoulli}(prob\_T)} draws otherwise — see
+#' \code{generate_one_rerandomized_w()}) and only \strong{accepted} if a covariate
+#' imbalance criterion \eqn{M(w)} between the treated and control groups falls below a
+#' threshold \code{a} (\code{obj_val_cutoff}), i.e. the accepted allocations are drawn
+#' from the base randomization distribution truncated to \eqn{\{w : M(w) \le a\}}.
+#' Unlike \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}/
+#' \code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}, which \emph{search} for a
+#' single well-balanced allocation, rerandomization instead \emph{filters} the design's
+#' own randomization distribution, which is what makes it directly compatible with
+#' Fisherian/randomization-based inference (the accepted allocations remain a
+#' well-defined — if truncated — randomization distribution, valid for randomization
+#' tests/CIs restricted to that truncated support).
 #'
+#' Two mutually exclusive acceptance modes are supported (specifying both errors):
+#' \code{obj_val_cutoff} accepts/rejects each draw against a fixed threshold \code{a};
+#' \code{prop_acceptable} instead draws \eqn{r / prop\_acceptable} candidates and keeps
+#' the \eqn{r} with the \emph{lowest} \eqn{M(w)} (an empirical top-quantile acceptance
+#' region, equivalent in the large-draw limit to an implied cutoff at the
+#' \code{prop_acceptable} quantile of \eqn{M(w)}'s distribution under the base
+#' randomization law).
+#'
+#' @details
+#' \strong{Objective \eqn{M(w)}.} \code{objective = "mahal_dist"} (default) uses the
+#' squared Mahalanobis distance between treated and control covariate means,
+#' \eqn{M(w) = (\bar X_T - \bar X_C)^\top S^{-1} (\bar X_T - \bar X_C)}, where \eqn{S} is
+#' the sample covariance of all covariates (ridge-regularized by \eqn{10^{-6}I} if
+#' \eqn{|\det S| < 10^{-10}}), computed once and cached in \code{private$S_inv}.
+#' \code{objective = "abs_sum_diff"} instead uses the sum of absolute mean differences,
+#' \eqn{M(w) = \sum_j |\bar X_{T,j} - \bar X_{C,j}|}, with no correlation adjustment.
+#' Only these two objectives are supported; any other value errors at draw time.
+#'
+#' \strong{Fast path (native C++).} When \code{prob_T = 0.5} and \eqn{n} is even,
+#' candidate generation and filtering run via a parallel C++ rejection sampler
+#' (\code{rerandomization_search_cpp()}), which internally works with a rescaled
+#' objective \eqn{f_{\mathrm{cpp}}}: \eqn{f_{\mathrm{cpp}} = M(w)/4} for
+#' \code{"mahal_dist"} and \eqn{f_{\mathrm{cpp}} = M(w)/2} (on a GED-standardized scale)
+#' for \code{"abs_sum_diff"}; the user-facing \code{obj_val_cutoff} is converted to this
+#' internal scale before being passed to C++, so the accepted-allocation semantics are
+#' unaffected, but this rescaling is a backend implementation detail worth knowing when
+#' comparing C++-path and pure-R-path acceptance rates for the same nominal cutoff. The
+#' sampler draws up to \code{max(r * 1000, 100000)} candidates internally; if fewer than
+#' \code{r} allocations are accepted within that budget (an overly tight cutoff), the
+#' accepted set is recycled (\code{rep(..., length.out = r)}) rather than erroring or
+#' looping further.
+#'
+#' \strong{\code{prop_acceptable} path.} Uses
+#' \code{complete_randomization_forced_balanced_cpp()} (balanced case) or
+#' \code{complete_randomization_imbalanced_cpp()} (\code{prob_T != 0.5}) to draw
+#' \eqn{n_{\mathrm{draw}} = \mathrm{round}(r / prop\_acceptable)} candidate allocations
+#' in one batched call, computes \eqn{M(w)} for all of them via
+#' \code{compute_objective_vals_cpp()}, and keeps the \eqn{r} with smallest \eqn{M(w)}.
+#'
+#' \strong{Pure-R fallback (unbalanced or odd \eqn{n}, \code{obj_val_cutoff} mode
+#' only).} Draws one candidate at a time via \code{generate_one_rerandomized_w()} in an
+#' unbounded \code{repeat} loop that accepts the first candidate with
+#' \eqn{M(w) \le a}. \strong{Unlike the C++ fast path, this fallback has no draw-count
+#' safety limit}: if \code{obj_val_cutoff} is set tight enough that acceptance
+#' probability under the base randomization law is extremely small for this \eqn{n}/
+#' covariate structure, this loop can run for a very long time (in principle
+#' indefinitely) before finding an acceptable draw.
+#'
+#' @references Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve
+#'   covariate balance in experiments." \emph{The Annals of Statistics}, 40(2),
+#'   1263-1282, \doi{10.1214/12-AOS1008}, for the rerandomization framework and its
+#'   randomization-inference validity. See also
+#'   \href{https://en.wikipedia.org/wiki/Mahalanobis_distance}{Mahalanobis distance} for
+#'   the default objective.
 #' @examples
 #' \dontrun{
 #' des = DesignFixedRerandomization$new(n = 10, response_type = 'continuous')
@@ -14,13 +78,21 @@
 DesignFixedRerandomization = R6::R6Class("DesignFixedRerandomization",
 	inherit = DesignFixed,
 	public = list(
-		#' @description Initialize a rerandomization fixed experimental design
+		#' @description Initialize a rerandomization fixed experimental design.
+		#'   Exactly one of \code{obj_val_cutoff}/\code{prop_acceptable} may be
+		#'   specified (or neither, which accepts every candidate, i.e. no filtering);
+		#'   supplying both raises an error. See class documentation for the exact
+		#'   acceptance semantics of each mode and the covariate-imbalance objective.
 		#'
 		#' @param response_type 	The data type of response values.
 		#' @param prob_T  The probability of the treatment assignment.
-		#' @param obj_val_cutoff 	The maximum allowable objective value. Cannot be specified together with prop_acceptable.
+		#' @param obj_val_cutoff 	The maximum allowable objective value \eqn{a}; a candidate
+		#'   allocation is accepted iff \eqn{M(w) \le a}. Cannot be specified together with prop_acceptable.
 		#' @param prop_acceptable	The proportion of randomizations to accept (draws r/prop_acceptable total, returns r lowest). Cannot be specified together with obj_val_cutoff.
-		#' @param objective 	The objective function to use. Default is "mahal_dist".
+		#' @param objective 	The covariate-imbalance objective \eqn{M(w)} to filter on:
+		#'   either \code{"mahal_dist"} (default, squared Mahalanobis distance) or
+		#'   \code{"abs_sum_diff"} (sum of absolute mean differences); see class
+		#'   documentation for the exact formulas.
 		#' @param include_is_missing_as_a_new_feature  Flag for missingness indicators.
 		#' @param n  		The sample size.
 		#' @param verbose  Flag for verbosity.
@@ -107,6 +179,15 @@ DesignFixedRerandomization = R6::R6Class("DesignFixedRerandomization",
 				cutoff_scale = if (private$objective == "mahal_dist") 4.0 else 2.0
 				cutoff_cpp   = if (is.infinite(cutoff_user)) Inf else cutoff_user / cutoff_scale
 				max_draws = max(r * 1000L, 100000L)
+				# Trusted unvalidated (fix_design_hierarchy.md, "AllocationMatrixValidation"):
+				# rerandomization_search_cpp only ever generates balanced allocations by
+				# construction and returns exactly n x k valid {0,1} columns (k <= r), so
+				# the shape/finite/balance checks this class used to run were dead code
+				# that never fired. The one real failure mode -- a cutoff tight enough
+				# (or max_draws small enough) that fewer than r acceptable draws were
+				# found -- now errors instead of silently recycling already-found columns
+				# to pad out to r (which would have meant some "independent" replicates
+				# were literal duplicates).
 				w_mat = rerandomization_search_cpp(
 					X_raw     = X,
 					r         = as.integer(r),
@@ -114,10 +195,12 @@ DesignFixedRerandomization = R6::R6Class("DesignFixedRerandomization",
 					cutoff    = as.double(cutoff_cpp),
 					max_draws = as.integer(max_draws)
 				)
-				w_mat = private$validate_allocation_matrix(w_mat, n = n, r = ncol(w_mat), require_balanced = TRUE)
-				# Recycle if fewer were found than requested (tight cutoff)
 				if (ncol(w_mat) < r) {
-					w_mat = w_mat[, rep(seq_len(ncol(w_mat)), length.out = r), drop = FALSE]
+					stop(
+						"DesignFixedRerandomization could not find ", r, " acceptable allocation(s) ",
+						"within max_draws = ", max_draws, " draws (only ", ncol(w_mat), " found). ",
+						"Loosen obj_val_cutoff or increase r's underlying search budget."
+					)
 				}
 				storage.mode(w_mat) = "numeric"
 				return(w_mat[, seq_len(r), drop = FALSE])
@@ -136,32 +219,6 @@ DesignFixedRerandomization = R6::R6Class("DesignFixedRerandomization",
 				w_mat[, j] = private$generate_one_rerandomized_w()
 			}
 			w_mat
-		},
-		validate_allocation_matrix = function(w_mat, n, r, require_balanced = FALSE){
-			if (is.vector(w_mat)) {
-				w_mat = matrix(w_mat, nrow = n, ncol = 1)
-			}
-			if (should_run_asserts()) {
-				if (!is.matrix(w_mat) || nrow(w_mat) != n || ncol(w_mat) < 1L) {
-					stop("DesignFixedRerandomization returned an unexpected allocation matrix shape.")
-				}
-			}
-			storage.mode(w_mat) = "numeric"
-			if (should_run_asserts()) {
-				if (any(!is.finite(w_mat)) || any(is.na(w_mat))) {
-					stop("DesignFixedRerandomization returned non-finite treatment assignments.")
-				}
-				if (any(!(w_mat %in% c(0, 1)))) {
-					stop("DesignFixedRerandomization returned an invalid treatment assignment matrix.")
-				}
-				if (isTRUE(require_balanced)) {
-					treated_counts = colSums(w_mat)
-					if (any(treated_counts != n / 2)) {
-						stop("DesignFixedRerandomization returned an unbalanced allocation.")
-					}
-				}
-			}
-			w_mat[, seq_len(min(r, ncol(w_mat))), drop = FALSE]
 		},
 		generate_one_rerandomized_w = function(){
 			n = self$get_n()

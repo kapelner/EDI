@@ -1,6 +1,6 @@
 #ifdef EDI_CORE_ONLY
 #include <Eigen/Dense>
-constexpr double NA_REAL = std::numeric_limits<double>::quiet_NaN();
+#include "na_real_core.h"
 inline bool R_IsNA(double x) { return std::isnan(x); }
 #else
 #include <RcppEigen.h>

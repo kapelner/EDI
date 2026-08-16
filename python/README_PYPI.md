@@ -51,7 +51,8 @@ below for those instead.
 | **21.3x** | incidence | `fast_probit_regression` | statsmodels `GLM(Binomial, probit link)` | 0.44 | 9.38 |
 | **17.0x** | incidence | `fast_logistic_regression` | statsmodels `GLM(Binomial)` | 0.24 | 4.03 |
 | **3.15x** | incidence | `fast_log_binomial_regression` | statsmodels `GLM(Binomial, log link)` | 1.63 | 5.13 |
-| **2420x** | survival | `fast_weibull_regression` | lifelines `WeibullAFTFitter` | 0.08 | 192.55 |
+| **694x** | survival | `fast_weibull_regression_general` | lifelines `WeibullAFTFitter.fit()` (right-censored only) | 0.15 | 104.46 |
+| **534x** | survival | `fast_weibull_regression_general` (interval-censored) | lifelines `WeibullAFTFitter.fit_interval_censoring()` | 0.28 | 151.66 |
 | **1650x** | survival | `get_survival_stat_diff` (median) | lifelines `KaplanMeierFitter(median)` | 0.02 | 26.52 |
 | **1460x** | survival | `get_survival_stat_diff` (restricted_mean) | lifelines `utils.restricted_mean_survival_time` | 0.01 | 19.30 |
 | **584x** | survival | `fast_stratified_coxph_regression` | lifelines `CoxPHFitter(strata=)` | 0.47 | 273.61 |
@@ -93,7 +94,7 @@ baseline, so there's no separate "no baseline" table for this group.
 
 | Speed<br>Up | Function | Canonical package<br>and function | EDI<br>(ms) | Canonical<br>(ms) |
 |---:|---|---|---:|---:|
-| **85.6x** | `fast_log_dnorm` | scipy `stats.norm.logpdf` | 0.00269 | 0.23 |
+| **85.6x** | `fast_log_dnorm` | scipy `stats.norm.logpdf` | 0.0027 | 0.23 |
 | **63.5x** | `fast_trigamma` | scipy `special.polygamma(1,.)` | 0.03 | 1.90 |
 | **9.70x** | `fast_qnorm` | scipy `stats.norm.ppf` | 0.04 | 0.38 |
 | **4.79x** | `dnorm_fast` | scipy `stats.norm.pdf` | 0.05 | 0.25 |
@@ -235,7 +236,7 @@ fit = fast_logistic_glmm(X, y_bin_clustered, group_id, j_T=1, estimate_only=True
 # incidence -- logistic GLMM: point estimate + variance
 fit = fast_logistic_glmm(X, y_bin_clustered, group_id, j_T=1, estimate_only=False)
 
-# KK combined estimator: discordant pairs -> conditional logit, concordant pairs -> random-intercept GLMM.
+# matched pairs estimator: discordant pairs -> conditional logit, concordant pairs -> random-intercept GLMM.
 n_disc = 80
 X_disc = rng.normal(size=(n_disc, 2))
 y_disc = rng.binomial(1, 1 / (1 + np.exp(-(X_disc @ [0.6, -0.4])))).astype(float)
@@ -245,9 +246,9 @@ group_conc = np.repeat(np.arange(n_conc // 2), 2).astype(np.int32) + 1  # concor
 b_conc = rng.normal(scale=0.5, size=n_conc // 2).repeat(2)
 y_conc = rng.binomial(1, 1 / (1 + np.exp(-(X_conc @ [0.6, -0.4] + b_conc)))).astype(float)
 
-# incidence -- KK combined conditional-logit + random-intercept-GLMM (matched pairs): point estimate only
+# incidence -- matched pairs conditional-logit + random-intercept-GLMM estimator: point estimate only
 fit = fast_clogit_plus_glmm(X_disc, y_disc, X_conc, y_conc, group_conc, True, True, estimate_only=True)
-# incidence -- KK combined conditional-logit + GLMM: point estimate + variance
+# incidence -- matched pairs conditional-logit + GLMM estimator: point estimate + variance
 fit = fast_clogit_plus_glmm(X_disc, y_disc, X_conc, y_conc, group_conc, True, True, estimate_only=False)
 
 # incidence -- matched-pair/singleton GEE (family can be "gaussian"/"binomial"/"poisson"; always returns vcov)
@@ -260,7 +261,7 @@ fit = gee_pairs_singletons(X, y_bin_clustered, group_id, "binomial")
 import numpy as np
 from edi_kernels import (
     fast_coxph_regression, fast_stratified_coxph_regression,
-    fast_weibull_regression, fast_weibull_frailty,
+    fast_weibull_regression_general, fast_weibull_frailty,
     fast_clayton_weibull_aft_optim, fast_dep_cens_transform_optim,
 )
 
@@ -273,6 +274,9 @@ event_time = rng.exponential(np.exp(-eta))
 censor_time = rng.exponential(3.0, n)
 dead = (event_time <= censor_time).astype(float)
 y = np.minimum(event_time, censor_time)
+y_exact = np.where(dead != 0, y, np.nan)
+y_L = np.where(dead == 0, y, np.nan)
+y_R = np.where(dead == 0, np.inf, np.nan)
 
 # survival -- Cox proportional-hazards regression (unstratified): point estimate only
 fit = fast_coxph_regression(X, y, dead, estimate_only=True)
@@ -286,9 +290,35 @@ fit = fast_stratified_coxph_regression(X, y, dead, strata, estimate_only=True)
 fit = fast_stratified_coxph_regression(X, y, dead, strata, estimate_only=False)
 
 # survival -- Weibull AFT regression: point estimate only
-fit = fast_weibull_regression(X, y, dead, estimate_only=True)
+fit = fast_weibull_regression_general(X, y_exact, y_L, y_R, estimate_only=True)
 # survival -- Weibull AFT regression: point estimate + variance
-fit = fast_weibull_regression(X, y, dead, estimate_only=False)
+fit = fast_weibull_regression_general(X, y_exact, y_L, y_R, estimate_only=False)
+
+# survival -- Weibull AFT under left-/interval-/right-censoring (periodic-inspection design, e.g. a
+# clinical trial assessed only at scheduled visits -- the event time itself is never observed
+# directly, only which inspection interval it fell in).
+true_event_time = rng.exponential(np.exp(-eta))
+inspection_times = np.array([0.1, 0.3, 0.6, 1.0, 1.5, 2.2])  # scheduled visits
+last_inspection = inspection_times[-1]
+
+y_ic = np.full(n, np.nan)  # exact times are never observed under this design
+y_L_ic = np.empty(n)
+y_R_ic = np.empty(n)
+for i in range(n):
+    t = true_event_time[i]
+    if t > last_inspection:
+        y_L_ic[i], y_R_ic[i] = last_inspection, np.inf                              # right-censored
+    else:
+        idx = np.searchsorted(inspection_times, t)
+        if idx == 0:
+            y_L_ic[i], y_R_ic[i] = 0.0, inspection_times[0]                          # left-censored
+        else:
+            y_L_ic[i], y_R_ic[i] = inspection_times[idx - 1], inspection_times[idx]  # interval-censored
+
+# survival -- Weibull AFT under general left-/interval-/right-censoring: point estimate only
+fit = fast_weibull_regression_general(X, y_ic, y_L_ic, y_R_ic, estimate_only=True)
+# survival -- Weibull AFT under general left-/interval-/right-censoring: point estimate + variance
+fit = fast_weibull_regression_general(X, y_ic, y_L_ic, y_R_ic, estimate_only=False)
 
 # group_id: shared-frailty clusters (any size; uses adaptive Gauss-Hermite quadrature, not the fixed-2 shortcut).
 group_id = np.repeat(np.arange(n // 2), 2).astype(np.int32) + 1

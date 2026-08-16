@@ -18,23 +18,27 @@ fast_beta_regression_with_var_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors, \eqn{n \times p}.}
 
-\item{y}{A numeric vector of responses (in (0, 1)).}
+\item{y}{A numeric vector of responses, strictly in \eqn{(0, 1)}.}
 
 \item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
 
 \item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
 
-\item{start_phi}{Optional starting value for precision parameter phi.}
+\item{start_phi}{Starting value for the precision parameter \eqn{\phi} (natural scale).}
 
-\item{compute_std_errs}{Deprecated.}
+\item{compute_std_errs}{Deprecated; standard errors are always computed by this
+entry point regardless of this argument's value.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional integer indices (into the \code{c(beta, log(phi))}
+parameter layout) of parameters to hold fixed rather than estimate.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm; see
+\code{\link{fast_beta_regression_cpp}}.}
 }
 \value{
 A list containing the following components:
@@ -46,14 +50,43 @@ A list containing the following components:
 \item{converged}{A logical value indicating whether the algorithm converged.}
 }
 
-A list containing coefficients, phi, vcov, standard errors, and convergence status.
+A list with components \code{coefficients} (\eqn{\hat\beta}),
+  \code{phi} (\eqn{\hat\phi}), \code{neg_loglik}, \code{vcov} (the full
+  \code{(p + 1) x (p + 1)} parameter variance-covariance matrix), \code{std_errs}
+  (\code{sqrt(diag(vcov))}), \code{converged} (logical), and
+  \code{fisher_information} (the working-weights curvature matrix \code{vcov} was
+  inverted from).
 }
 \description{
-Beta regression with full variance-covariance matrix and standard error estimation.
+Fits the same beta regression model as \code{\link{fast_beta_regression_cpp}}
+(see that page for the full model, parameterization, and optimizer contract) and
+additionally computes the variance-covariance matrix and standard errors of the
+fitted parameters, via the same working-weights (\eqn{X^\top W X}) curvature
+matrix documented there.
+}
+\details{
+\strong{Variance computation.} The fit's working-information matrix
+(\code{fit.XtWX}, over all \code{p + 1} parameters \code{c(beta, log(phi))}) is
+restricted to the free (non-\code{fixed_idx}) parameters and inverted via a
+\strong{plain matrix inverse} (\code{.inverse()}, not a rank-aware pseudo-inverse
+as used by, e.g., \code{\link{fast_adjacent_category_logit_with_var_cpp}}) before
+being expanded back to the full \code{(p + 1) x (p + 1)} size as \code{vcov};
+\code{std_errs} is \code{sqrt(diag(vcov))}. Because this uses a plain inverse, a
+rank-deficient or near-singular \code{X} (after restricting to free parameters)
+will produce numerically unstable or \code{NaN} standard errors rather than a
+graceful fallback — callers should ensure \code{X} is full rank on the free
+parameters (e.g. via the package's shared \code{drop_linearly_dependent_cols()}
+preprocessing) before calling this function if that is not already guaranteed.
 }
 \examples{
 X = matrix(rnorm(100), 10, 10)
 y = runif(10)
 fast_beta_regression_with_var_cpp(X, y)
+}
+\seealso{
+\code{\link{fast_beta_regression_cpp}} for the estimate-only variant and
+  the full model/parameterization documentation;
+  \code{\link{fast_beta_regression_weighted_cpp}} for the row-weighted
+  estimate-only variant.
 }
 \keyword{internal}

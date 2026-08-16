@@ -15,12 +15,16 @@
 //                  f(d+Δ) = f + 2 d·Δ + ‖Δ‖²  (incremental — avoids forming d+Δ)
 //
 // Parallelism: outer loop over r designs is embarrassingly parallel (OMP).
-//   Per-thread std::mt19937 RNGs are seeded from R's RNG before the parallel
-//   region so set.seed() governs reproducibility at the R level.
+//   Per-thread edi_rng::RRng (RNG.h) generators -- a portable
+//   re-implementation of R's own Mersenne-Twister, so a given seed produces
+//   identical draws in R and any future binding using the same core -- are
+//   seeded from R's RNG before the parallel region so set.seed() governs
+//   reproducibility at the R level.
 //   Thread count follows whatever omp_set_num_threads() was last called with
 //   (EDI sets this via set_num_cores() → set_omp_num_threads_cpp()).
 
 #include <RcppEigen.h>
+#include "RNG.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -41,7 +45,7 @@ using Eigen::LLT;
 using Eigen::Success;
 
 // [[Rcpp::export]]
-Rcpp::IntegerMatrix greedy_design_search_cpp(
+Rcpp::NumericMatrix greedy_design_search_cpp(
     const Eigen::Map<Eigen::MatrixXd>       X_raw,
     const int                               r,
     const std::string&                      objective,
@@ -66,7 +70,7 @@ Rcpp::IntegerMatrix greedy_design_search_cpp(
         }
     }
 
-    Rcpp::IntegerMatrix result(n, r);
+    Rcpp::NumericMatrix result(n, r);
 
     // ── Seed per-thread RNGs from R's RNG (single-threaded, before parallel) ─
     int nthreads = 1;
@@ -76,8 +80,7 @@ Rcpp::IntegerMatrix greedy_design_search_cpp(
     std::vector<uint32_t> seeds(static_cast<std::size_t>(nthreads));
     GetRNGstate();
     for (int t = 0; t < nthreads; t++)
-        seeds[static_cast<std::size_t>(t)] =
-            static_cast<uint32_t>(::unif_rand() * 4294967295.0);
+        seeds[static_cast<std::size_t>(t)] = edi_rng::seed_from_unif01(::unif_rand());
     PutRNGstate();
 
     // ── No covariates: pure balanced randomisation ───────────────────────────
@@ -88,7 +91,7 @@ Rcpp::IntegerMatrix greedy_design_search_cpp(
 #ifdef _OPENMP
             tid = omp_get_thread_num();
 #endif
-            std::mt19937 rng(seeds[static_cast<std::size_t>(tid)]);
+            edi_rng::RRng rng(seeds[static_cast<std::size_t>(tid)]);
             std::vector<int> idx(n);
 #pragma omp for schedule(static)
             for (int d = 0; d < r; d++) {
@@ -138,7 +141,7 @@ Rcpp::IntegerMatrix greedy_design_search_cpp(
 #ifdef _OPENMP
         tid = omp_get_thread_num();
 #endif
-        std::mt19937                       rng(seeds[static_cast<std::size_t>(tid)]);
+        edi_rng::RRng                      rng(seeds[static_cast<std::size_t>(tid)]);
         std::uniform_int_distribution<int> pick_nt(0, nt - 1);
         std::uniform_int_distribution<int> pick_pair_dist(0, np > 0 ? np - 1 : 0);
         std::bernoulli_distribution        coin(0.5);

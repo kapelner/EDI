@@ -45,8 +45,54 @@ unlockBinding("object_defaults.r6class", s3_methods_table)
 assign("object_defaults.r6class", patched_object_defaults_r6class, envir = s3_methods_table)
 lockBinding("object_defaults.r6class", s3_methods_table)
 
+# Lazy-loaded inference mixin components (see `combine_component_slot()` /
+# `lazy_component_public_stub()` / `lazy_component_private_stub()` in
+# R/mixin_contracts.R) install placeholder dispatch functions in place of a
+# component's real methods when that component's `load_policy` is "lazy" (the
+# overwhelming majority of them). Building the stub reassigns its body via
+# `body(fn) <- substitute(...)`, which R silently strips the function's `srcref`
+# attribute for (verified: `body<-` clears `srcref` whenever the body no longer
+# matches the parsed source text). roxygen2's own (unpatched)
+# `extract_r6_methods()` calls `utils::getSrcref()` on every public method of
+# every R6 class it documents and `cli_abort()`s the ENTIRE `roxygenize()` run --
+# not just that one class -- the moment any single method lacks a srcref. Since
+# most inference mixin components are lazy, this aborts on the first
+# `define_inference_class(...)`-built class roxygen2 happens to process that
+# both (a) composes a lazy component and (b) doesn't override every one of that
+# component's methods.
+#
+# The real implementation each stub dispatches to already has its own srcref
+# and gets documented wherever it is genuinely (literally) defined -- the
+# component's owning class (e.g. `InferenceRandBootstrap` for the
+# `RandomizationBootstrap` component). The stub itself carries no documentation
+# content of its own to lose, so it is correct -- not just a workaround -- to
+# drop it from the method list roxygen2 sees for the *composing* class, rather
+# than trying to force the component to load eagerly just to borrow a srcref
+# (which would defeat the entire point of lazy loading: `combine_component_slot()`
+# runs at class-definition time, i.e. package load time, so eagerly resolving a
+# real srcref there would load every lazy component for every class that uses it
+# on every package load, not just during documentation builds).
+strip_lazy_component_stubs = function(x) {
+	if (is.null(x$public_methods) || length(x$public_methods) == 0L) {
+		return(NULL)
+	}
+	lazy_stub_names = names(x$public_methods)[vapply(x$public_methods, function(m) {
+		is.function(m) && !is.null(attr(m, "inference_lazy_component_stub", exact = TRUE))
+	}, logical(1))]
+	if (length(lazy_stub_names) == 0L) {
+		return(NULL)
+	}
+	original_public_methods = x$public_methods
+	x$public_methods = original_public_methods[setdiff(names(original_public_methods), lazy_stub_names)]
+	original_public_methods
+}
+
 original_extract_r6_methods = roxygen2:::extract_r6_methods
 patched_extract_r6_methods = function(x) {
+	restore_public_methods = strip_lazy_component_stubs(x)
+	if (!is.null(restore_public_methods)) {
+		on.exit(x$public_methods <- restore_public_methods, add = TRUE)
+	}
 	methods = original_extract_r6_methods(x)
 	block_file = if (exists("file", envir = .fast_roxygenize_current_block_file, inherits = FALSE)) {
 		get("file", envir = .fast_roxygenize_current_block_file, inherits = FALSE)

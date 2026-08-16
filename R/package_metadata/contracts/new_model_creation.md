@@ -20,7 +20,7 @@ them):
 - `package_metadata/new_feature_plans/python_bindings_package_spec.md` —
   Python bindings design, kernel scope, and baseline-benchmark methodology.
 - `package_metadata/new_feature_plans/cold_starts.md` and
-  `package_metadata/new_feature_plans/warm_starts.html` — smart-start
+  `package_metadata/audits/warm_starts.html` — smart-start
   heuristics and their benchmarks.
 
 ---

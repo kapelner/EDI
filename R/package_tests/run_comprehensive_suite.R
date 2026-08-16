@@ -92,6 +92,23 @@ status_from_command = function(status, failures_written = 0L) {
 	"ok"
 }
 
+# Defensive belt-and-suspenders check, independent of the numeric exit
+# status: a subprocess that never got past its own startup (e.g.
+# `library(EDI)` failing because the package isn't installed for whatever
+# R session actually runs the subprocess) must not be recorded as "ok"
+# even if its exit code was somehow captured as 0. Found during TODO-11
+# (2026-08-13): a `comprehensive_harness` step recorded `status = "ok"`
+# despite completing in 0.19s -- traced to a real, transient environment
+# race (EDI momentarily installed, then not, via concurrent tooling), not
+# a bug in the exit-status capture itself (confirmed by directly
+# reproducing both a genuine subprocess failure, captured correctly as
+# status 1, and the harness's own tryCatch/status_from_command logic
+# working as designed) -- but this check stays cheap insurance against the
+# next environment problem doing the same thing a different way.
+subprocess_output_has_fatal_marker = function(output) {
+	any(grepl("^Error in |^Execution halted$|there is no package called", output, perl = TRUE))
+}
+
 existing_results = read_optional_csv(paths$results)
 
 step_completed = function(step) {
@@ -203,10 +220,11 @@ run_command_step = function(step, runner, command, command_args, output_file = "
 	})
 	end = Sys.time()
 	failures_written = csv_nrow(failure_file)
+	effective_status = if (identical(as.integer(status), 0L) && subprocess_output_has_fatal_marker(output)) 1L else as.integer(status)
 	row = result_row(
 		step = step,
 		runner = runner,
-		status = status_from_command(as.integer(status), failures_written),
+		status = status_from_command(effective_status, failures_written),
 		start_time = start,
 		end_time = end,
 		output_file = output_file,
@@ -214,7 +232,7 @@ run_command_step = function(step, runner, command, command_args, output_file = "
 		rows_written = csv_nrow(output_file),
 		failures_written = failures_written,
 		command = paste(c(command, command_args), collapse = " "),
-		error_message = if (!identical(as.integer(status), 0L)) paste(tail(output, 8L), collapse = " | ") else ""
+		error_message = if (!identical(effective_status, 0L)) paste(tail(output, 8L), collapse = " | ") else ""
 	)
 	append_result(row)
 	if (!identical(row$status, "ok")) stop("Comprehensive suite step failed: ", step, call. = FALSE)

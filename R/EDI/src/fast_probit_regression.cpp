@@ -33,36 +33,9 @@ inline double probit_gen_residual_optimized(double y, double phi, double Phi, do
     }
 }
 
-template<typename RDerived, typename WDerived>
-inline void score_weighted_crossprod_colwise_assign(const Eigen::MatrixXd& X,
-                                                    const Eigen::MatrixBase<RDerived>& residual,
-                                                    const Eigen::MatrixBase<WDerived>& w,
-                                                    Eigen::VectorXd& score,
-                                                    Eigen::MatrixXd& out) {
-    const int n = X.rows();
-    const int p = X.cols();
-    score.setZero();
-    out.setZero();
-    for (int j = 0; j < p; ++j) {
-        const double* xj = X.col(j).data();
-        for (int k = j; k < p; ++k) {
-            const double* xk = X.col(k).data();
-            double acc = 0.0;
-            if (k == j) {
-                double score_acc = 0.0;
-                for (int i = 0; i < n; ++i) {
-                    acc += xj[i] * w[i] * xj[i];
-                    score_acc += xj[i] * residual[i];
-                }
-                score[j] = score_acc;
-            } else {
-                for (int i = 0; i < n; ++i) acc += xj[i] * w[i] * xk[i];
-            }
-            out(j, k) = acc;
-            if (k != j) out(k, j) = acc;
-        }
-    }
-}
+// score_weighted_crossprod_colwise_assign is now the canonical version in
+// _helper_functions_core.h (already in this file's include chain) -- see
+// its comment for why.
 
 class ProbitLbfgsObjective {
 private:
@@ -153,7 +126,7 @@ ModelResult fast_probit_regression_internal(
     Eigen::VectorXd beta_free = subset_vector(beta_start, fixed_spec.free_idx);
 
     ModelResult res;
-    res.iterations = 0;
+    res.num_iter = 0;
     res.converged = false;
 
     if (optimization_alg == "lbfgs") {
@@ -167,7 +140,7 @@ ModelResult fast_probit_regression_internal(
         LikelihoodFitResult fit = optimize_likelihood_lbfgs(obj, beta_free, maxit, tol);
         beta_free = fit.params;
         res.converged = fit.converged;
-        res.iterations = std::numeric_limits<int>::min();
+        res.num_iter = std::numeric_limits<int>::min();
         res.neg_ll = fit.value;
     } else {
         Eigen::VectorXd mu(n);
@@ -177,7 +150,7 @@ ModelResult fast_probit_regression_internal(
         Eigen::VectorXd score_free(p_free);
 
         for (int iter = 0; iter < maxit; ++iter) {
-            res.iterations++;
+            res.num_iter++;
             const Eigen::VectorXd eta = X_free * beta_free + eta_fixed;
 
             for (int i = 0; i < n; ++i) {
@@ -302,21 +275,65 @@ Eigen::MatrixXd get_probit_regression_hessian_cpp( const Eigen::Map<Eigen::Matri
     return -weighted_crossprod(X, w);
 }
 
-//' @title Fast Probit Regression (C++)
-//' @description High-performance probit GLM fitting via IRLS or L-BFGS.
-//' @param X A numeric matrix of predictors (including intercept column).
+//' Fast Probit Regression, Estimate-Capable (C++)
+//'
+//' Fits binary probit regression, \eqn{Y_i \sim \mathrm{Bernoulli}(\Phi(\eta_i))},
+//' \eqn{\eta_i = x_i^\top\beta}, by maximum likelihood, using a numerically stable
+//' log-scale evaluation of \eqn{\Phi} (\code{log_pnorm_lower}/\code{log_pnorm_upper},
+//' matching \code{\link[base]{pnorm}}'s \code{log.p = TRUE} for \eqn{|\eta| < 6} via a
+//' \code{erfc}-based identity, and falling back to a wider-range series approximation
+//' beyond that). By default (\code{optimization_alg = "irls"}), fitting uses
+//' iteratively reweighted least squares with working weights \eqn{w_i =
+//' \phi(\eta_i)^2 / \max(\Phi(\eta_i)(1-\Phi(\eta_i)), 10^{-15})} (the standard probit
+//' Fisher-scoring weight) and generalized residual \eqn{r_i = y_i\,\phi(\eta_i)/\Phi(\eta_i)
+//' - (1-y_i)\,\phi(\eta_i)/(1-\Phi(\eta_i))}: each iteration solves \eqn{X^\top W X\,
+//' \delta = X^\top r} via \code{Eigen::LDLT} and takes the full Newton step (no
+//' step-halving line search), declaring convergence when either the score norm or the
+//' step norm falls below \code{tol}. Any \code{optimization_alg} value other than
+//' \code{"lbfgs"} runs this IRLS path; \code{optimization_alg = "lbfgs"} instead
+//' minimizes the exact negative log-likelihood directly via a bespoke L-BFGS driver
+//' with backtracking strong-Wolfe line search (mirroring \pkg{RcppNumerical}'s
+//' \code{optim_lbfgs} defaults), bypassing IRLS entirely — in that path,
+//' \code{warm_start_fisher_info} is \strong{not consulted}.
+//'
+//' @section Fixed parameters, warm starts:
+//' \code{fixed_idx} and \code{fixed_values} optionally hold a subset of coefficients
+//' fixed at caller-supplied constant values (folded into the linear predictor as an
+//' offset) rather than estimated. \code{warm_start_beta} supplies starting
+//' coefficients directly; otherwise, if \code{smart_cold_start = TRUE} (the default),
+//' an OLS fit of the probit-transformed response \eqn{\Phi^{-1}((y+0.5)/2)} on
+//' \code{X} seeds the start. \code{warm_start_fisher_info}, if supplied, seeds the
+//' curvature matrix used for the IRLS path's very first iteration only (see above for
+//' the \code{"lbfgs"} exception). \code{warm_start_weights} is accepted for interface
+//' parity with sibling functions but is \strong{not consulted anywhere} in this
+//' function's fitting logic.
+//'
+//' @param X A numeric matrix of predictors (including an intercept column, if desired).
 //' @param y A numeric vector of binary responses (0/1).
-//' @param warm_start_beta Optional starting values for coefficients.
-//' @param smart_cold_start Logical. If TRUE, use an OLS-based initial guess when no warm start is provided.
-//' @param maxit Maximum number of iterations.
+//' @param warm_start_beta Optional starting values for coefficients \eqn{\beta}. If
+//'   provided, \code{smart_cold_start} is ignored.
+//' @param smart_cold_start Logical. If \code{TRUE} (the default) and no
+//'   \code{warm_start_beta} is supplied, use an OLS-based initial guess (see Details).
+//' @param maxit Maximum number of iterations (IRLS path only).
 //' @param tol Convergence tolerance.
 //' @param fixed_idx Optional indices of fixed parameters.
 //' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm ("irls" or "lbfgs"). Default "irls".
-//' @param warm_start_weights Optional initial IRLS working weights.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix.
-//' @param estimate_only Logical. If TRUE, skip variance computation and return only coefficients.
-//' @return A list containing coefficients and convergence status.
+//' @param optimization_alg Optimization algorithm: any value other than
+//'   \code{"lbfgs"} runs IRLS (default \code{"irls"}); \code{"lbfgs"} runs direct
+//'   likelihood minimization.
+//' @param warm_start_weights Accepted but unused; see Details.
+//' @param warm_start_fisher_info Optional initial curvature matrix for the first
+//'   IRLS iteration (IRLS path only).
+//' @param estimate_only If \code{TRUE}, skip the post-fit weight/curvature computation
+//'   and return only \code{b}, \code{converged}, and \code{iterations}.
+//' @return If \code{estimate_only = TRUE}: a list with \code{b}, \code{converged},
+//'   \code{iterations}. Otherwise: a list additionally containing \code{w} (the final
+//'   probit IRLS working weights, evaluated at the fitted \eqn{\hat\beta} regardless of
+//'   which \code{optimization_alg} was used), \code{fisher_information} (\eqn{X^\top W X}
+//'   at those weights), \code{score}, and \code{neg_ll} (the negative log-likelihood).
+//' @seealso \code{\link{fast_probit_regression_weighted_cpp}} for the observation-weighted
+//'   variant; \code{\link{fast_probit_regression_with_var_cpp}} for the variance-computing
+//'   variant.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -342,7 +359,7 @@ List fast_probit_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Rc
         return edi::to_rcpp_list(edi::ResultMap()
             .set("b", res.b)
             .set("converged", res.converged)
-            .set("iterations", res.iterations));
+            .set("iterations", res.num_iter));
     }
     const int n = X.rows();
     const Eigen::VectorXd eta = X * res.b;
@@ -357,7 +374,7 @@ List fast_probit_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Rc
     return edi::to_rcpp_list(edi::ResultMap()
         .set("b", res.b)
         .set("w", weights_vec)
-        .set("iterations", res.iterations)
+        .set("iterations", res.num_iter)
         .set("fisher_information", res.XtWX)
         .set("score", res.score)
         .set("neg_ll", res.neg_ll)
@@ -393,9 +410,49 @@ List fast_probit_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, S
         .set("score", res.score)
         .set("neg_ll", res.neg_ll)
         .set("converged", res.converged)
-        .set("iterations", res.iterations));
+        .set("iterations", res.num_iter));
 }
 
+//' Fast Probit Regression with Variance Calculation (C++)
+//'
+//' Fits the same probit model as \code{\link{fast_probit_regression_cpp}} (see that
+//' page for the full model and optimizer contract; always with \code{estimate_only =
+//' FALSE}, and \code{maxit}/\code{tol} hardcoded to 100/\eqn{10^{-8}} — no override
+//' arguments here), and additionally inverts the fitted Fisher information matrix
+//' (\code{compute_diagonal_inverse_entry} on the free-coefficient submatrix) to
+//' report the variance of two coefficients.
+//'
+//' @param X A numeric matrix of predictors (including an intercept column, if desired).
+//' @param y A numeric vector of binary responses (0/1).
+//' @param j The 1-indexed coefficient whose variance to compute in \code{ssq_b_j}. Defaults to 2.
+//' @param warm_start_beta Optional starting values for coefficients \eqn{\beta}. If
+//'   provided, \code{smart_cold_start} is ignored.
+//' @param smart_cold_start Logical. If \code{TRUE} (the default) and no
+//'   \code{warm_start_beta} is supplied, use an OLS-based initial guess; see
+//'   \code{\link{fast_probit_regression_cpp}} Details.
+//' @param fixed_idx Optional indices of fixed parameters.
+//' @param fixed_values Optional values for fixed parameters.
+//' @param optimization_alg Optimization algorithm: any value other than
+//'   \code{"lbfgs"} runs IRLS (default \code{"irls"}); \code{"lbfgs"} runs direct
+//'   likelihood minimization; see \code{\link{fast_probit_regression_cpp}} Details.
+//' @param warm_start_weights Accepted but unused; see \code{\link{fast_probit_regression_cpp}} Details.
+//' @param warm_start_fisher_info Optional initial curvature matrix for the first
+//'   IRLS iteration (IRLS path only).
+//'
+//' @return A list with components \code{b, params} (the fitted coefficients \eqn{\hat\beta},
+//'   two aliases of the same vector), \code{ssq_b_j} (the variance of the \eqn{j}-th
+//'   coefficient, \code{NA} if \code{j} indexes a fixed coefficient), \code{ssq_b_2} (the
+//'   variance of the second coefficient specifically, regardless of \code{j}; \code{NA} if
+//'   the second column is fixed), \code{score}, \code{observed_information} /
+//'   \code{fisher_information} / \code{information} (three aliases for the same \eqn{X^\top
+//'   W X} curvature matrix; \code{information_type} is always \code{"fisher"}),
+//'   \code{hessian} (the negative of that same matrix), \code{neg_loglik}/\code{neg_ll}
+//'   (two aliases for the negative log-likelihood), \code{loglik} (\code{-neg_ll}, or
+//'   \code{NA} if non-finite), \code{converged}, and \code{iterations}.
+//' @seealso \code{\link{fast_probit_regression_cpp}} for the estimate-only-capable variant
+//'   and full model documentation.
+//' @export
+//' @keywords internal
 // [[Rcpp::export]]
 List fast_probit_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 		SEXP y,
@@ -457,6 +514,6 @@ List fast_probit_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
         .set("neg_ll", res.neg_ll)
         .set("loglik", R_finite(res.neg_ll) ? -res.neg_ll : NA_REAL)
         .set("converged", res.converged)
-        .set("iterations", res.iterations));
+        .set("iterations", res.num_iter));
 }
 #endif // EDI_CORE_ONLY

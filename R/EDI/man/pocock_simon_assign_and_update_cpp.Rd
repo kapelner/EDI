@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{pocock_simon_assign_and_update_cpp}
 \alias{pocock_simon_assign_and_update_cpp}
-\title{Pocock-Simon Minimization Assignment and Update}
+\title{Pocock-Simon Covariate-Adaptive Minimization: Assign and Update Counts (C++)}
 \usage{
 pocock_simon_assign_and_update_cpp(
   counts,
@@ -13,22 +13,47 @@ pocock_simon_assign_and_update_cpp(
 )
 }
 \arguments{
-\item{counts}{A matrix of dimensions (sum of levels) x (number of treatments).
-Modified in place.}
+\item{counts}{A numeric matrix, one row per stratification-covariate level
+and one column per treatment arm (2 columns); modified in place to record
+the new assignment.}
 
-\item{subject_levels_idx}{An integer vector of indices indicating which rows 
-of the counts matrix the current subject belongs to.}
+\item{subject_levels_idx}{An integer vector (1-indexed) giving, for the
+subject being assigned, which row of \code{counts} each covariate's
+current level corresponds to.}
 
-\item{weights}{A numeric vector of weights for each covariate.}
+\item{weights}{A numeric vector, parallel to \code{subject_levels_idx}, of
+the relative weight placed on each covariate's imbalance.}
 
-\item{p_best}{The probability of assigning the treatment that minimizes the imbalance.}
+\item{p_best}{The probability of assigning the arm that minimizes the
+combined imbalance score (the biased coin).}
 
-\item{prob_T}{Target probability for treatment (usually 0.5).}
+\item{prob_T}{The Bernoulli probability used to break an exact imbalance tie.}
 }
 \value{
-The assigned treatment (0 or 1).
+The assigned treatment arm, \code{0} or \code{1}. As a side effect,
+  \code{counts} is incremented at row \code{subject_levels_idx[j]}, column
+  \code{w} (the returned assignment) for every covariate \code{j}.
 }
 \description{
-Pocock-Simon Minimization Assignment and Update
+The stateful wrapper around \code{\link{pocock_simon_assign_cpp}} actually
+used to drive a one-subject-at-a-time Pocock-Simon minimization design: it
+computes the next assignment using the identical imbalance-score/biased-coin
+logic documented on \code{\link{pocock_simon_assign_cpp}} (see that page for
+the full model), then \strong{mutates \code{counts} in place}, incrementing,
+for every covariate in \code{subject_levels_idx}, the count of the assigned
+arm at that covariate's level — so the running covariate-by-arm counts stay
+correct for the next subject's assignment.
+}
+\note{
+Reproducibility notes: see \code{\link{pocock_simon_assign_cpp}}.
+}
+\references{
+Pocock, S. J. and Simon, R. (1975). "Sequential Treatment
+  Assignment with Balancing for Prognostic Factors in the Controlled
+  Clinical Trial." \emph{Biometrics}, 31(1), 103-115.
+}
+\seealso{
+\code{\link{pocock_simon_assign_cpp}} for the underlying
+  non-mutating decision logic and the full imbalance-score model.
 }
 \keyword{internal}

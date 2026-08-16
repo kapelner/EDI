@@ -1,9 +1,50 @@
-#' A Blocked and Cluster Randomized Fixed Design
+#' A Fixed, Blocked-and-Clustered Randomized Design
 #'
-#' An R6 Class encapsulating the data and functionality for a fixed blocked and
-#' cluster randomized experimental design.
-#' This design randomizes clusters within specified blocks using the \pkg{randomizr} package.
+#' A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} in which the unit of
+#' randomization is the \strong{cluster}, not the individual subject: within each block
+#' (stratum, formed from \code{strata_cols}), whole clusters (identified by
+#' \code{cluster_col}) are jointly randomized to treatment or control, so all subjects in
+#' the same cluster always receive the same assignment. This is the design used when
+#' individual-level randomization is infeasible or invalid (e.g. clusters are classrooms,
+#' clinics, or households where within-cluster interference/spillover would violate
+#' SUTVA under individual randomization), combined with blocking to improve precision by
+#' comparing clusters only to other clusters in the same stratum.
 #'
+#' @details
+#' \strong{Randomization mechanism.} Blocking keys are computed per subject via
+#' \code{private$get_strata_keys()} (shared with other
+#' \code{\link[EDI:DesignBlocking]{DesignBlocking}} subclasses): categorical columns in
+#' \code{strata_cols} are used as-is, continuous columns are discretized into
+#' \code{preferred_num_bins_for_continuous_covariate} quantile-based bins, and multiple
+#' \code{strata_cols} are combined into a single composite block key. Within each
+#' resulting block, whole clusters (by \code{cluster_col}) are randomized to treatment
+#' with probability \code{prob_T} via \code{\link[randomizr]{block_and_cluster_ra}}
+#' (\pkg{randomizr}), which performs blocked-and-clustered complete random assignment:
+#' within each block, clusters (not subjects) are permuted so that, subject to rounding,
+#' the target proportion \code{prob_T} of clusters in that block is treated, and every
+#' subject in a treated cluster receives \eqn{w = 1}. \code{r} independent replicate
+#' allocation columns are generated via \code{replicate()} (one \pkg{randomizr} call per
+#' replicate; there is no batch/vectorized draw path for this design, unlike
+#' \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}).
+#'
+#' \strong{Cluster-aware bootstrap.} \code{draw_bootstrap_indices()} overrides the default
+#' subject-level bootstrap to resample at the cluster level via
+#' \code{resample_group_rows_cpp()}: with \code{bootstrap_type = "within_blocks"}
+#' (the default when \code{bootstrap_type} is \code{NULL}), clusters are resampled with
+#' replacement \emph{within} each block, preserving the block structure; otherwise, whole
+#' blocks (strata) are themselves resampled with replacement. This mirrors the standard
+#' cluster-robust bootstrap principle that resampling must occur at the level of the
+#' randomization unit (clusters), not individual subjects, to yield a valid
+#' variance/interval estimate under cluster-correlated outcomes.
+#'
+#' @references Middleton, J. A., and Aronow, P. M. (2015). "Unbiased estimation of the
+#'   average treatment effect in cluster-randomized experiments." \emph{Statistics,
+#'   Politics and Policy}, 6(1-2), 39-75, \doi{10.1515/spp-2013-0002}, for
+#'   blocked/clustered randomized-assignment inference; see also the \pkg{randomizr}
+#'   \href{https://declaredesign.org/r/randomizr/articles/randomizr_vignette.html}{package
+#'   vignette} for the assignment-generation conventions this design relies on, and
+#'   \href{https://en.wikipedia.org/wiki/Cluster_randomised_controlled_trial}{cluster
+#'   randomized controlled trial} for orientation.
 #' @examples
 #' des = DesignFixedBlockedCluster$new(n = 20, response_type = 'continuous',
 #'   strata_cols = 'x2', cluster_col = 'cl')
@@ -11,17 +52,27 @@
 #' des$add_all_subjects_to_experiment(X)
 #' des$assign_w_to_all_subjects()
 #' @export
-DesignFixedBlockedCluster = R6::R6Class("DesignFixedBlockedCluster",
+DesignFixedBlockedCluster = define_design_class(
+	classname = "DesignFixedBlockedCluster",
 	inherit = DesignFixed,
+	components = c("BlockingStructure", "ClusterStructure"),
+	# ClusterStructure's strata-aware draw_bootstrap_indices must win over
+	# BlockingStructure's plain block-based one; both provide the method since
+	# BlockingStructure gained its own generalization alongside ClusterStructure's.
+	overrides = list(private = "draw_bootstrap_indices"),
 	public = list(
-		#' @description Characterization: this is a cluster-structured design.
+		#' @description Characterization: this design randomizes whole clusters (see
+		#'   class documentation), so it is cluster-structured by construction.
+		#' @return Always \code{TRUE} for this class.
 		is_a_cluster_capable = function() TRUE,
-		#' @description Initialize a blocked and cluster randomized fixed experimental design
+		#' @description Initialize a blocked and cluster randomized fixed experimental
+		#'   design.
 		#'
 		#' @param strata_cols 	A character vector of column names to use for stratification (blocks).
 		#' @param cluster_col 	The column name in the data that identifies the cluster for each subject.
 		#' @param response_type 	The data type of response values.
-		#' @param prob_T  The probability of the treatment assignment for each cluster.
+		#' @param prob_T  The target probability that a given cluster within a block is
+		#'   assigned to treatment (subjects inherit their cluster's assignment).
 		#' @param include_is_missing_as_a_new_feature  Flag for missingness indicators.
 		#' @param n  		The sample size.
 		#' @param preferred_num_bins_for_continuous_covariate The number of quantile bins to use for continuous strata. Default is 2.
@@ -70,7 +121,6 @@ DesignFixedBlockedCluster = R6::R6Class("DesignFixedBlockedCluster",
 		}
 	),
 	private = list(
-		cluster_col = NULL,
 		draw_ws_raw = function(r = 100){
 			private$maybe_set_seed()
 			if (should_run_asserts()) {
@@ -89,25 +139,9 @@ DesignFixedBlockedCluster = R6::R6Class("DesignFixedBlockedCluster",
 			))))
 			storage.mode(w_mat) = "numeric"
 			w_mat
-		},
-		draw_bootstrap_indices = function(bootstrap_type = NULL){
-			n = private$t
-			strata_keys = private$get_strata_keys()
-			cluster_ids = as.character(private$Xraw[1:n, ][[private$cluster_col]])
-			if (is.null(bootstrap_type) || bootstrap_type == "within_blocks") {
-				# Resample clusters within each stratum
-				unique_strata = unique(strata_keys)
-				i_b = unlist(lapply(unique_strata, function(stratum) {
-					stratum_idx = which(strata_keys == stratum)
-					stratum_group_id = match(cluster_ids[stratum_idx], unique(cluster_ids[stratum_idx]))
-					stratum_idx[resample_group_rows_cpp(as.integer(stratum_group_id), length(unique(stratum_group_id)))]
-				}), use.names = FALSE)
-			} else {
-				# Resample blocks (strata) themselves
-				strata_group_id = match(strata_keys, unique(strata_keys))
-				i_b = resample_group_rows_cpp(as.integer(strata_group_id), length(unique(strata_group_id)))
-			}
-			list(i_b = as.integer(i_b), m_vec_b = NULL)
 		}
+		# draw_bootstrap_indices is provided by the ClusterStructure component (see
+		# `components`/`overrides` above); proven byte-identical to this class's former
+		# hand-rolled version via test-design-cluster-structure-golden.R before removal.
 	)
 )

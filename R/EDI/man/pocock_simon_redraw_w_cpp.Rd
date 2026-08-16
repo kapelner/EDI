@@ -2,7 +2,8 @@
 % Please edit documentation in R/RcppExports.R
 \name{pocock_simon_redraw_w_cpp}
 \alias{pocock_simon_redraw_w_cpp}
-\title{Pocock-Simon Minimization Redraw Assignments}
+\title{Pocock-Simon Covariate-Adaptive Minimization: Batch Redraw of a Whole
+Assignment Sequence (C++)}
 \usage{
 pocock_simon_redraw_w_cpp(
   x_levels_matrix,
@@ -13,21 +14,46 @@ pocock_simon_redraw_w_cpp(
 )
 }
 \arguments{
-\item{x_levels_matrix}{A matrix where each row is a subject and each column is the row 
-index in counts for that covariate.}
+\item{x_levels_matrix}{An integer matrix with one row per subject and one
+column per stratification covariate; entry \code{(i, j)} is the 1-indexed
+level (row of the internal counts table) of covariate \code{j} for subject
+\code{i}.}
 
-\item{num_levels_total}{Total number of levels across all covariates.}
+\item{num_levels_total}{The total number of distinct covariate levels across
+all covariates (i.e. the number of rows the internal counts table has).}
 
-\item{weights}{A numeric vector of weights for each covariate.}
+\item{weights}{A numeric vector, one per covariate column of
+\code{x_levels_matrix}, of the relative weight placed on each covariate's
+imbalance in the combined score.}
 
-\item{p_best}{The probability of assigning the treatment that minimizes the imbalance.}
+\item{p_best}{The probability of assigning the arm that minimizes the
+combined imbalance score (the biased coin).}
 
-\item{prob_T}{Target probability for treatment (usually 0.5).}
+\item{prob_T}{The Bernoulli probability used to break an exact imbalance tie.}
 }
 \value{
-An integer vector of treatment assignments.
+An integer vector of length \code{n}, the treatment arm (\code{0} or
+  \code{1}) assigned to each subject in row order of \code{x_levels_matrix}.
 }
 \description{
-Pocock-Simon Minimization Redraw Assignments
+Replays the same Pocock-Simon minimization decision logic as
+\code{\link{pocock_simon_assign_cpp}} (see that page for the imbalance-score
+and biased-coin model) over an entire sequence of \code{n} subjects in one
+call, starting from empty covariate-by-arm counts (all zero) and updating
+them internally after each subject, rather than being called once per
+subject with externally-maintained \code{counts}. This is used to
+\strong{re-derive} (\dQuote{redraw}) a full sequence of assignments in a
+single vectorized pass — e.g. for simulation, or for reconstructing what a
+one-at-a-time run would have produced — while consuming R's uniform random
+stream in exactly the same order a subject-by-subject loop calling
+\code{\link{pocock_simon_assign_cpp}} would have.
+}
+\note{
+Continues R's actual live .Random.seed stream via edi_rng::RRng
+  (RNG.h) rather than seeding independently -- output is bit-identical
+  to what calling R's own unif_rand() directly, in this same loop, would
+  have produced (verified against a pure-R reference implementation in
+  test-pocock-simon-redraw-buffers.R). Requires RNGkind
+  ("Mersenne-Twister", "Inversion"), R's default.
 }
 \keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/other_helpers.R
 \name{robust_survreg_with_surv_object}
 \alias{robust_survreg_with_surv_object}
-\title{Robust Survival Regression}
+\title{Robust Parametric Survival Regression (AFT) with Warm-Start and Random-Restart Fallback}
 \usage{
 robust_survreg_with_surv_object(
   surv_object,
@@ -13,21 +13,51 @@ robust_survreg_with_surv_object(
 }
 \arguments{
 \item{surv_object}{The survival object (built from the response vector
-and censoring vector)}
+and censoring vector via \code{\link[survival]{Surv}}).}
 
-\item{cov_matrix_or_vector}{The model matrix}
+\item{cov_matrix_or_vector}{The design matrix (or a single covariate vector) of predictors,
+\strong{excluding} the intercept (one is added by the internal \code{~ .} formula).}
 
-\item{dist}{The parametric distribution form (default is Weibull)}
+\item{dist}{The parametric AFT distribution family passed to
+\code{\link[survival]{survreg}} (default \code{"weibull"}); only \code{"weibull"} triggers
+the closed-form warm start.}
 
-\item{num_max_iter}{Maximum # of iterations to repeat (default is 50)}
+\item{num_max_iter}{Maximum number of random-restart attempts if the (possibly
+warm-started) direct fit fails or does not converge (default 50).}
 }
 \value{
-The Survival regression model object
+The fitted \code{\link[survival]{survreg}} model object, or \code{NULL} if no
+  attempt converged to a fit with no \code{NA} coefficients within \code{num_max_iter} tries.
 }
 \description{
-Performs Survival regression from a survival::Surv object
-that if it fails, keeps trying with a different initialization point until a maximum number
-of iterations
+Fits a parametric accelerated-failure-time (AFT) survival regression via
+\code{\link[survival]{survreg}} on \code{surv_object ~ .} over the columns of
+\code{cov_matrix_or_vector}, with two layers of robustness against
+\code{survreg}'s well-known sensitivity to starting values and
+near-collinear design matrices:
+\enumerate{
+  \item \strong{Preprocessing}: near-collinear columns of the design matrix
+    are dropped first via \code{\link{drop_highly_correlated_cols}} then
+    \code{\link{drop_linearly_dependent_cols}}, before any fitting is attempted.
+  \item \strong{Warm start (Weibull only)}: when \code{dist = "weibull"}, a
+    fast closed-form-gradient Weibull fit (\code{\link{fast_weibull_regression}})
+    is attempted first; if it succeeds and returns a finite log-likelihood, its
+    coefficients and \eqn{\log(\hat\sigma)} are passed to \code{survreg} as the
+    \code{init} vector, which typically converges the true MLE in a single
+    \code{survreg} call. If this warm-started fit is unavailable, fails, or
+    produces \code{NA} coefficients, fitting falls through to the general
+    random-restart loop below (for all other \code{dist} values, this warm
+    start is skipped entirely).
+  \item \strong{Random-restart loop}: starting from an all-zero \code{init}
+    vector, \code{survreg} is called repeatedly (perturbing \code{init} by an
+    independent standard-normal jitter, \code{init + rnorm(length(init))},
+    after every failed attempt) until a fit with no \code{NA} coefficients is
+    obtained or \code{num_max_iter} attempts are exhausted, at which point
+    \code{NULL} is returned.
+}
+\code{survreg.control(maxiter = 100, rel.tolerance = 1e-9, outer.max = 10)} is
+used throughout (tighter than \code{survreg}'s own defaults) to reduce the
+chance of a spuriously "converged" fit at a poor optimum.
 }
 \examples{
 X = matrix(rnorm(500), 100, 5)

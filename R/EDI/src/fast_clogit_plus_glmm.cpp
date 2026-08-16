@@ -6,6 +6,7 @@
 #include "result_map_rcpp.h"
 #include <RcppEigen.h>
 #endif
+#include "_glmm_engine.h"
 #include <cmath>
 #include <limits>
 #include <optional>
@@ -25,10 +26,16 @@ inline double log_sum_exp_cpp(const Eigen::Ref<const Eigen::VectorXd>& x) {
 	return m + std::log((x.array() - m).exp().sum());
 }
 
-struct GHRule {
-	Eigen::VectorXd nodes;
-	Eigen::VectorXd log_norm_weights;
-};
+// GHRule is now the canonical glmm::GHRule from _glmm_engine.h (included
+// above) -- this file's own copy of the struct was byte-identical and a
+// hard redefinition error if this file and fast_logistic_glmm.cpp (which
+// had its own identical copy) were ever merged into one unity translation
+// unit (see unity_build_collision_audit.md). gauss_hermite_rule itself is
+// left as this file's own function (not deduplicated against
+// glmm::gauss_hermite_rule, which computes the same values) since only the
+// struct actually collided; consolidating the near-duplicate functions is a
+// separate, out-of-scope cleanup.
+using GHRule = glmm::GHRule;
 
 GHRule gauss_hermite_rule(int n) {
 	Eigen::MatrixXd J = Eigen::MatrixXd::Zero(n, n);
@@ -425,7 +432,7 @@ public:
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-SEXP get_clogit_plus_glmm_score_cpp(
+Eigen::VectorXd get_clogit_plus_glmm_score_cpp(
 	const NumericMatrix& X_disc_r,
 	const NumericVector& y_disc_r,
 	const NumericMatrix& X_conc_r,
@@ -449,11 +456,11 @@ SEXP get_clogit_plus_glmm_score_cpp(
 	);
 	Eigen::VectorXd grad(params.size());
 	obj(params, grad);
-	return wrap(-grad);
+	return -grad;
 }
 
 // [[Rcpp::export]]
-SEXP get_clogit_plus_glmm_hessian_cpp(
+Eigen::MatrixXd get_clogit_plus_glmm_hessian_cpp(
 	const NumericMatrix& X_disc_r,
 	const NumericVector& y_disc_r,
 	const NumericMatrix& X_conc_r,
@@ -475,7 +482,7 @@ SEXP get_clogit_plus_glmm_hessian_cpp(
 		X_disc, y_disc, X_conc, y_conc, group_conc,
 		has_discordant, has_concordant, 20, max_abs_log_sigma
 	);
-	return wrap(-obj.hessian(params));
+	return -obj.hessian(params);
 }
 #endif // EDI_CORE_ONLY
 
@@ -620,7 +627,7 @@ edi::ResultMap fast_clogit_plus_glmm_internal(
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-SEXP fast_clogit_plus_glmm_cpp(
+List fast_clogit_plus_glmm_cpp(
 	const NumericMatrix& X_disc_r,
 	const NumericVector& y_disc_r,
 	const NumericMatrix& X_conc_r,

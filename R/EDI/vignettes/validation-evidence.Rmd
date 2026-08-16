@@ -1,0 +1,174 @@
+---
+title: "Validation Evidence"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Validation Evidence}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+This page answers, for each important model family, "how do I know this
+implementation actually computes what its documentation claims?" It is an
+index into the test suite (`R/EDI/tests/testthat/`), not a restatement of it
+— every row below names the specific test file(s) that check the
+corresponding `fast_*`/`Inference*` implementation against independent
+evidence, so a reader auditing correctness (or a maintainer touching a
+kernel) knows exactly which test to run or extend. All file paths are
+relative to `R/EDI/tests/testthat/`.
+
+Four kinds of evidence appear throughout the suite, matching
+`fix_documentation.md`'s validation-evidence categories:
+
+1. **Package-to-package comparisons** — the coefficient/variance estimate
+   from EDI's own C++ kernel is checked against an independent R package's
+   implementation of the same model (`stats::glm`, `survival::coxph`,
+   `MASS::glm.nb`, `betareg::betareg`, `VGAM::vglm`, `ordinal::clm`,
+   `lme4::glmer`, `glmmTMB`, `pscl::hurdle`, `geepack`/`multgee`, `copula`,
+   `gamlss.dist`) on the same simulated or real data, usually to a tight
+   numerical tolerance.
+2. **Closed-form/limiting-case reductions** — a general kernel is checked
+   against a simpler model it must mathematically reduce to in a special
+   case (e.g. a frailty variance of zero, a single mixture component, an
+   uncensored subset).
+3. **Numerical-derivative checks** — an analytic score/gradient/Hessian is
+   checked against a finite-difference (`numDeriv`) approximation at the
+   same parameter vector, independent of any reference package.
+4. **Simulation/calibration checks** — Monte Carlo simulation confirming an
+   inference procedure's operating characteristics (type-I error, coverage)
+   are near their nominal targets, using `SimulationFramework`'s own
+   built-in exact-binomial calibration test (see below), not just a single
+   point comparison.
+
+## Continuous
+
+| EDI implementation | Validated against | Test file |
+| --- | --- | --- |
+| `fast_ols_with_var_cpp` | `stats::lm` | `test-rcpp-fitting-equivalence.R` |
+| `fast_ols_with_var_cpp` (real data) | `stats::lm` on `MASS::Boston` | `test-rcpp-fitting-real-data.R` |
+| `fast_robust_regression_cpp` (M/MM) | `MASS::rlm` | `test-rcpp-fitting-equivalence.R`, `test-rcpp-fitting-real-data.R` (`mtcars`) |
+| `InferenceContinKKRobustRegrOneLik`/`IVWC` (`use_rcpp` path) | `MASS::rlm` fallback, and Rcpp-vs.-fallback bootstrap-weighted-estimate agreement | `test-kk-robust-regr-use-rcpp.R` |
+
+## Incidence / binary
+
+| EDI implementation | Validated against | Test file |
+| --- | --- | --- |
+| `fast_logistic_regression_with_var_cpp` | `stats::glm(family=binomial)` | `test-rcpp-fitting-equivalence.R`, `test-fast_glm_outputs.R` |
+| `fast_probit_regression_with_var_cpp` | `stats::glm(family=binomial(link="probit"))` | `test-rcpp-fitting-equivalence.R`; `InferenceIncidProbitRegr` vs. `stats::glm` in `test-incidence-probit.R` |
+| `fast_log_binomial_regression_with_var_cpp` | `stats::glm(family=binomial(link="log"))` | `test-rcpp-fitting-equivalence.R` |
+| `fast_identity_binomial_regression_with_var_cpp` | `stats::glm(family=binomial(link="identity"))` | `test-rcpp-fitting-equivalence.R` |
+| Real-data check | `stats::glm` on `MASS::birthwt` | `test-rcpp-fitting-real-data.R` |
+
+## Count
+
+| EDI implementation | Validated against | Test file |
+| --- | --- | --- |
+| `fast_poisson_regression_with_var_cpp` | `stats::glm(family=poisson)` | `test-rcpp-fitting-equivalence.R`, `test-poisson-delta-eta-step-halving.R` (IRLS internals incl. step-halving) |
+| `fast_quasipoisson_regression_with_var_cpp` | `stats::glm(family=quasipoisson)` | `test-rcpp-fitting-equivalence.R` |
+| `fast_neg_bin_with_var_cpp` | `MASS::glm.nb` | `test-rcpp-fitting-equivalence.R`, `test-negbin-gemv-gradient.R` (fit + analytic-vs.-numerical gradient), `test-negbin-weighted.R` |
+| `fast_neg_bin_weighted_cpp` | `MASS::glm.nb` with case weights | `test-negbin-weighted.R` |
+| `fast_truncated_negbin_count_cpp` | `glmmTMB`'s `truncated_nbinom2` | `test-custom-implementation-canonical-reductions.R` |
+| `fast_zinb_cpp` | `glmmTMB` zero-inflated NB | `test-rcpp-fitting-equivalence.R`, real-data check on `glmmTMB::Salamanders` in `test-rcpp-fitting-real-data.R` |
+| `fast_zero_augmented_poisson_cpp` (hurdle/ZIP) | `glmmTMB` | `test-rcpp-fitting-equivalence.R`, real-data check on `glmmTMB::Salamanders` |
+| `fast_hurdle_negbin_with_var_cpp` | `pscl::hurdle(dist="negbin")` | `test-rcpp-fitting-equivalence.R` |
+| Real-data check | `stats::glm(family=poisson)`/`MASS::glm.nb` on `MASS::quine` | `test-rcpp-fitting-real-data.R` |
+| `fast_cpoisson_combined_with_var_cpp` (matched-pair + reservoir) | reduces to canonical GLM fits in single-component cases | `test-custom-implementation-canonical-reductions.R` |
+
+## Ordinal
+
+| EDI implementation | Validated against | Test file |
+| --- | --- | --- |
+| `fast_ordinal_regression_with_var_cpp` (proportional odds) | `ordinal::clm` | `test-rcpp-fitting-equivalence.R`; real-data check on `ordinal::wine` in `test-rcpp-fitting-real-data.R` |
+| `fast_ordinal_probit_regression_with_var_cpp` | `ordinal::clm(link="probit")` | `test-rcpp-fitting-equivalence.R` |
+| `fast_ordinal_cloglog_regression_with_var_cpp` | `ordinal::clm(link="cloglog")` | `test-rcpp-fitting-equivalence.R` |
+| `fast_ordinal_cauchit_regression_with_var_cpp` | `ordinal::clm(link="cauchit")` | `test-rcpp-fitting-equivalence.R` |
+| `fast_adjacent_category_logit_with_var_cpp` | `VGAM::vglm(family=acat)` | `test-rcpp-fitting-equivalence.R` |
+| `fast_continuation_ratio_regression_with_var_cpp` | `VGAM::vglm(family=cratio)` | `test-rcpp-fitting-equivalence.R` |
+| `fast_stereotype_logit_with_var_cpp` | K=2 reduces to `stats::glm(binomial)`; K=3 checked against score-at-MLE and finite-difference Hessian | `test-rcpp-fitting-equivalence.R` |
+| `fast_ordinal_clmm`/`fast_ordinal_glmm_cpp` | buffer-reuse/equivalence checks | `test-ordinal-glmm-alpha-buf.R` |
+
+## Survival
+
+| EDI implementation | Validated against | Test file |
+| --- | --- | --- |
+| `fast_coxph_regression_cpp` | `survival::coxph` | `test-rcpp-fitting-equivalence.R`; real-data check on `survival::lung` in `test-rcpp-fitting-real-data.R`; component-composition regression in `test-cox-component-composition.R` |
+| `fast_stratified_coxph_regression_cpp` | `survival::coxph` with `strata()` | `test-rcpp-fitting-equivalence.R` |
+| Cluster-robust Cox covariance | `survival::coxph`'s cluster-robust vcov | `test-coxph-robust-vcov.R` |
+| `fast_weibull_regression_general_cpp` | `survival::survreg` | `test-rcpp-fitting-equivalence.R`, `test-weibull-general-censoring.R`; real-data check on `survival::lung` in `test-rcpp-fitting-real-data.R` |
+| `compute_weibull_rand_bootstrap_parallel_cpp` | reproduces `survreg` on the same bootstrap resamples | `test-brt-weibull-kernel-matches-reference.R` |
+| `InferenceSurvivalKKWeibullMarginal` | `survreg` with cluster-robust / no-covariate fits | `test-weibull-marginal.R` |
+| Weibull frailty | analytic score vs. numerical gradient; log-likelihood collapses to plain `survreg` Weibull log-likelihood as the frailty SD -> 0 | `test-weibull-frailty.R` |
+| `fast_gehan_wilcox_stats`/martingale-residual kernel | `survival::survdiff(rho=1)`; canonical Peto-Prentice weighted martingale residuals | `test-gehan-wilcox-fused-martingale.R`; end-to-end `InferenceSurvivalGehanWilcox` check in the same file |
+| `fast_logrank_stats`/martingale-residual kernel | `survival::survdiff`; `coxph` martingale residuals | `test-logrank-fused-martingale.R` |
+| Log-rank/Gehan-Wilcoxon under general censoring | consistency checks across censoring patterns | `test-logrank-gehan-wilcox-general-censoring.R` |
+| `get_survival_stat_for_group`/`get_survival_stat_diff` (KM median) | canonical `survfit` median, including exact-crossing, tie, and non-estimable (returns `NA`, not `Inf`) edge cases | `test-km-median-canonical.R` |
+| KM/RMST under general censoring | `test-km-rmst-general-censoring.R` |
+| `fast_dep_cens_transform_optim_cpp` | rho=0 score matches two independent lognormal `survreg` fits | `test-custom-implementation-canonical-reductions.R` |
+| `fast_clayton_weibull_aft_optim_cpp` | singleton-only case matches plain `survreg` Weibull; pair score matches the `copula` package's reference likelihood | `test-custom-implementation-canonical-reductions.R` |
+
+## Proportion
+
+| EDI implementation | Validated against | Test file |
+| --- | --- | --- |
+| `fast_beta_regression_with_var_cpp`/`fast_beta_regression_mle` | `betareg::betareg` | `test-rcpp-fitting-equivalence.R`; real-data check on `betareg::ReadingSkills` in `test-rcpp-fitting-real-data.R` |
+| `fast_zero_one_inflated_beta_cpp` | factors into a `betareg` continuous submodel plus a `nnet::multinom` inflation submodel; likelihood matches `gamlss.dist::dBEINF` | `test-custom-implementation-canonical-reductions.R` |
+
+## GEE / GLMM (matched-design, correlated data)
+
+| EDI implementation | Validated against | Test file |
+| --- | --- | --- |
+| KK GEE direct solver (binomial, Poisson) | `geepack` | `test-kk-gee-parity.R` |
+| Ordinal KK GEE | direct `multgee` backend fit | `test-kk-gee-parity.R` |
+| Incidence/count/proportion KK GEE R6 wrappers | their own backend fits | `test-kk-gee-parity.R` |
+| `fast_poisson_glmm_cpp` | `lme4::glmer` (Poisson, matched quadrature order) | `test-glmm-cpp-equivalence.R` |
+| `fast_logistic_glmm_cpp` | `lme4::glmer` (binomial, matched quadrature order) | `test-glmm-cpp-equivalence.R` |
+| `fast_hurdle_poisson_glmm_cpp` | `glmmTMB`'s `truncated_poisson` | `test-glmm-cpp-equivalence.R` |
+| `fast_gaussian_lmm_cpp` | `lme4::lmer` fixed effects and variance components | `test-rcpp-fitting-equivalence.R` |
+| `fast_clogit_plus_glmm_cpp` (matched-pair + reservoir binary) | dedicated equivalence suite | `test-clogit-plus-glmm-cpp-equivalence.R` |
+
+## Numerical/backend utilities
+
+| EDI implementation | Validated against | Test file |
+| --- | --- | --- |
+| `fast_log1pexp` | closed-form/limiting behavior, precision at extreme arguments | `test-fast-log1pexp.R` |
+| Bartlett likelihood-ratio approximation | smoke-tested across families (`InferenceCountPoisson`, `InferenceCountNegBin`, `InferenceContinKKOLSOneLik`, `InferenceSurvivalWeibullRegr`, `InferenceOrdinalPropOddsRegr`, `InferenceCountZeroInflatedNegBin`/`Poisson`, `InferenceCountHurdlePoisson`) | `test-bartlett-lr-approx-smoke-families.R`, `test-bartlett-lr-plumbing.R`, `test-bartlett-lr-logit.R`, `test-bartlett-lr-ols-exact.R` |
+| Design-side `BlockingStructure`/`ClusterStructure` bootstrap-index generalization | byte-identical (`identical()`, matched seeds) against each real class's pre-generalization output | `test-design-blocking-structure-bootstrap-golden.R`, `test-design-cluster-structure-golden.R` |
+| Merged `DesignFixedGreedyDOptimal` | behavior-preservation against the pre-merge `DesignFixedAOptimal`/`DesignFixedDOptimal` classes | `test-greedy-d-optimal-merged.R` |
+
+## Simulation/calibration checks
+
+Point-estimate-vs-reference-package equivalence (above) confirms a single
+fit is numerically correct; it does not by itself confirm an inference
+procedure's **coverage** or **type-I error** are correct, since a subtly
+wrong standard-error formula can still pass an equivalence test on the point
+estimate alone. `SimulationFrameworkReport$summarize()` closes that gap: for
+any `(design, inference)` pair it reports `coverage_pval`/`size_pval` — the
+exact two-sided binomial-test p-value of "true coverage = 1 - alpha"
+(respectively "true size = alpha") over `Nrep_W * Nrep_Y_w` Monte Carlo
+replications — so a calibration claim is itself a hypothesis test with a
+controlled false-alarm rate, not an eyeballed point estimate (see
+`vignette("reproducibility")`'s "Monte Carlo error" section for why a single
+observed coverage rate near but not exactly at the nominal level is
+expected, and how many replications are enough to distinguish that from
+genuine miscalibration). Running
+`SimulationFramework$new(...)$run()` followed by
+`SimulationFrameworkReport$new(sim)$summarize()` for a given
+`(design_classes_and_params, inference_classes_and_params, response_type)`
+combination is the package's built-in mechanism for producing this evidence
+for a specific method on demand; no single pre-computed report is checked
+into the repository as of this writing (unlike the point-estimate
+equivalence tests above, which run on every `R CMD check`).
+
+## Coverage note
+
+This page indexes what the test suite already demonstrates; it is not a
+claim that every documented method has independent package-to-package
+validation evidence. Custom/composite estimators without an external
+single-package analogue (e.g. the matched-pair-plus-reservoir combined
+kernels, `fast_cpoisson_combined_with_var_cpp` and `fast_clogit_plus_glmm_cpp`)
+are instead validated by the closed-form-reduction and numerical-derivative
+methods described above, since no independent reference package implements
+the exact combined model to compare against directly.

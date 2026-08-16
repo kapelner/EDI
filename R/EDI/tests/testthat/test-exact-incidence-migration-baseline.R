@@ -57,13 +57,28 @@ exact_incidence_baseline_public_methods = c(
 	"supports"
 )
 
+# `resolve_exact_type`/`compute_exact_confidence_interval_by_type`/
+# `compute_exact_two_sided_pval_for_treatment_effect_by_type`/
+# `default_exact_type` used to also appear here (4 more names), back when the
+# legacy generators below inherited `exact_test_private` from the standalone
+# `InferenceExact` R6 class instead of having it merged directly into their
+# own `private` list (see "Base Deletion" > `InferenceExact` in
+# fix_inference_hierarchy.md, deleted 2026-08-16): those 4 names were
+# defined at both the legacy generator's own level (via
+# `ExactXXXIncidenceSource$private`) and `InferenceExact`'s level (via
+# `exact_test_private`) -- two separate ancestor levels. Now that both live
+# on the SAME (legacy generator's own) level, `inference_migration_
+# duplicate_private_owners()`'s ancestor-chain walk correctly no longer
+# counts them as duplicated -- they are still shadowed by
+# `utils::modifyList()` at generator-construction time exactly as before,
+# just no longer detectable as a *structural* R6 ancestor-chain duplication.
+# The remaining 5 names below are genuine collisions with a still-separate,
+# deeper ancestor (`InferenceRandCI`'s own Zhang-exact-CI private methods,
+# `InferenceNonParamBootstrap`'s jackknife triplet) and are unaffected by
+# the `InferenceExact` deletion.
 exact_incidence_baseline_duplicate_private_owners = c(
-	"resolve_exact_type",
 	"normalize_exact_inference_args",
 	"assert_exact_inference_params",
-	"compute_exact_confidence_interval_by_type",
-	"compute_exact_two_sided_pval_for_treatment_effect_by_type",
-	"default_exact_type",
 	"resolve_jackknife_unit",
 	"jackknife_block_size_gt_one_unsupported",
 	"mark_jackknife_nonestimable_if_block_unsupported"
@@ -107,16 +122,22 @@ make_exact_binomial_legacy_generator = function() {
 		"InferenceIncidExactBinomialLegacy",
 		lock_objects = FALSE,
 		parent_env = asNamespace("EDI"),
-		inherit = EDI:::InferenceExact,
-		public = c(
-			with_edi_env(EDI:::ExactBinomialIncidenceSource$public),
-			list(
-				approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-					super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
-				}
+		inherit = EDI:::InferenceJackknife,
+		public = utils::modifyList(
+			with_edi_env(EDI:::exact_test_public),
+			c(
+				with_edi_env(EDI:::ExactBinomialIncidenceSource$public),
+				list(
+					approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
+						super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
+					}
+				)
 			)
 		),
-		private = with_edi_env(EDI:::ExactBinomialIncidenceSource$private)
+		private = utils::modifyList(
+			with_edi_env(EDI:::exact_test_private),
+			with_edi_env(EDI:::ExactBinomialIncidenceSource$private)
+		)
 	)
 }
 
@@ -131,16 +152,22 @@ make_exact_fisher_legacy_generator = function() {
 		"InferenceIncidExactFisherLegacy",
 		lock_objects = FALSE,
 		parent_env = asNamespace("EDI"),
-		inherit = EDI:::InferenceExact,
-		public = c(
-			with_edi_env(EDI:::ExactFisherIncidenceSource$public),
-			list(
-				approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-					super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
-				}
+		inherit = EDI:::InferenceJackknife,
+		public = utils::modifyList(
+			with_edi_env(EDI:::exact_test_public),
+			c(
+				with_edi_env(EDI:::ExactFisherIncidenceSource$public),
+				list(
+					approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
+						super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
+					}
+				)
 			)
 		),
-		private = with_edi_env(EDI:::ExactFisherIncidenceSource$private)
+		private = utils::modifyList(
+			with_edi_env(EDI:::exact_test_private),
+			with_edi_env(EDI:::ExactFisherIncidenceSource$private)
+		)
 	)
 }
 
@@ -155,9 +182,15 @@ make_exact_zhang_legacy_generator = function() {
 		"InferenceIncidenceExactZhangLegacy",
 		lock_objects = FALSE,
 		parent_env = asNamespace("EDI"),
-		inherit = EDI:::InferenceExact,
-		public = with_edi_env(EDI:::ExactZhangIncidenceSource$public),
-		private = with_edi_env(EDI:::ExactZhangIncidenceSource$private)
+		inherit = EDI:::InferenceJackknife,
+		public = utils::modifyList(
+			with_edi_env(EDI:::exact_test_public),
+			with_edi_env(EDI:::ExactZhangIncidenceSource$public)
+		),
+		private = utils::modifyList(
+			with_edi_env(EDI:::exact_test_private),
+			with_edi_env(EDI:::ExactZhangIncidenceSource$private)
+		)
 	)
 }
 
@@ -247,7 +280,11 @@ expect_exact_incidence_current_snapshot = function(class_name, extra_duplicate_p
 	duplicate_private_owner_names = names(inference_migration_duplicate_private_owners(class_name))
 
 	expect_identical(method_snapshot$public_methods, exact_incidence_baseline_public_methods)
-	expect_identical(
+	# setequal, not identical: the ancestor-chain walk order in
+	# inference_migration_private_owners() is an insertion-order byproduct of
+	# traversal, not a meaningful contract -- the invariant that matters is
+	# which names are duplicated, not the order they're discovered in.
+	expect_setequal(
 		duplicate_private_owner_names,
 		c(extra_duplicate_private_owners, exact_incidence_baseline_duplicate_private_owners)
 	)
@@ -460,7 +497,7 @@ test_that("exact incidence migration baseline pins method and private-state snap
 		inference_migration_public_methods(InferenceIncidExactBinomialLegacy),
 		exact_incidence_baseline_public_methods
 	)
-	expect_identical(
+	expect_setequal(
 		names(inference_migration_duplicate_private_owners(InferenceIncidExactBinomialLegacy)),
 		exact_incidence_baseline_duplicate_private_owners
 	)
@@ -480,7 +517,7 @@ test_that("exact incidence migration baseline pins method and private-state snap
 		inference_migration_public_methods(InferenceIncidExactFisherLegacy),
 		exact_incidence_baseline_public_methods
 	)
-	expect_identical(
+	expect_setequal(
 		names(inference_migration_duplicate_private_owners(InferenceIncidExactFisherLegacy)),
 		exact_incidence_baseline_duplicate_private_owners
 	)
@@ -500,7 +537,7 @@ test_that("exact incidence migration baseline pins method and private-state snap
 		inference_migration_public_methods(InferenceIncidenceExactZhangLegacy),
 		exact_incidence_baseline_public_methods
 	)
-	expect_identical(
+	expect_setequal(
 		names(inference_migration_duplicate_private_owners(InferenceIncidenceExactZhangLegacy)),
 		c("supports_bayesian_bootstrap", exact_incidence_baseline_duplicate_private_owners)
 	)

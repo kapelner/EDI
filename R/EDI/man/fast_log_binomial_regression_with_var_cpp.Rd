@@ -2,10 +2,10 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_log_binomial_regression_with_var_cpp}
 \alias{fast_log_binomial_regression_with_var_cpp}
-\title{Fast Log-Binomial Regression with Variance (C++)}
+\title{Fast Log-Link Binomial Regression with Targeted Variance (C++ Backend)}
 \usage{
 fast_log_binomial_regression_with_var_cpp(
-  X_r,
+  X,
   y_r,
   j = 2L,
   maxit = 100L,
@@ -19,30 +19,55 @@ fast_log_binomial_regression_with_var_cpp(
 )
 }
 \arguments{
-\item{X_r}{A numeric matrix of predictors.}
+\item{y_r}{A binary (0/1) numeric vector of responses, length \eqn{n}.}
 
-\item{y_r}{A binary numeric vector of responses.}
+\item{j}{1-based index (into \code{X}'s columns) of the coefficient to
+compute \code{ssq_b_j} for.}
 
-\item{j}{1-based index of the parameter for which to return specific variance.}
-
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of Fisher-scoring iterations.}
 
 \item{tol}{Convergence tolerance.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed
+rather than estimate.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
 
 \item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
 
 \item{warm_start_weights}{Optional initial working weights for the first IRLS iteration.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+
+\item{X_r}{A numeric matrix of predictors, \eqn{n \times p}.}
 }
 \value{
-A list containing coefficients, vcov, and standard errors.
+A list with components \code{b}, \code{ssq_b_j}, \code{converged},
+  \code{fisher_information}, \code{neg_ll}/\code{logLik} (present only on
+  the success path), and the always-empty \code{vcov}/\code{std_err}/
+  \code{z_vals} placeholders; see
+  \code{\link{fast_identity_binomial_regression_with_var_cpp}} for the exact
+  field semantics (shared verbatim here).
 }
 \description{
-Log-binomial regression with variance-covariance matrix and standard errors.
+Fits the same log-link (relative-risk) binomial regression as
+\code{\link{fast_log_binomial_regression_cpp}} (see that page for the full
+model) and additionally computes the variance of a single caller-selected
+coefficient — the log-link analog of
+\code{\link{fast_identity_binomial_regression_with_var_cpp}}, sharing
+exactly the same targeted-diagonal-entry variance mechanism and the same
+caveat: this entry point does \strong{not} compute or return a full
+variance-covariance matrix or per-coefficient standard errors, despite its
+name; only the coefficient named by \code{j} gets a variance
+(\code{ssq_b_j}), and the returned \code{vcov}/\code{std_err}/\code{z_vals}
+fields are always empty placeholders (see
+\code{\link{fast_identity_binomial_regression_with_var_cpp}}'s Details for
+the exact mechanics, identical here up to the link function).
+}
+\seealso{
+\code{\link{fast_log_binomial_regression_cpp}} for the
+  estimate-only variant; \code{\link{fast_identity_binomial_regression_with_var_cpp}}
+  for the identity-link analog with the same targeted-variance mechanism.
 }
 \keyword{internal}

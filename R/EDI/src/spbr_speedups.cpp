@@ -1,4 +1,5 @@
 #include <Rcpp.h>
+#include "RNG.h"
 #include <algorithm>
 #include <random>
 #include <vector>
@@ -12,16 +13,15 @@ NumericVector spbr_redraw_w_cpp(SEXP strata_keys_sexp, SEXP block_size_sexp, SEX
     CharacterVector strata_keys = as<CharacterVector>(strata_keys_sexp);
     int block_size = as<int>(block_size_sexp);
     double prob_T = as<double>(prob_T_sexp);
-    
+
     int n = strata_keys.size();
     NumericVector w(n);
     std::map<std::string, std::vector<double>> strata_blocks;
-    
+
     int n_T_per_block = (int)std::round((double)block_size * prob_T);
     int n_C_per_block = block_size - n_T_per_block;
 
-    static std::random_device rd;
-    static std::mt19937 g(rd());
+    edi_rng::RRng g(edi_rng::seed_from_unif01(R::unif_rand()));
 
     for (int i = 0; i < n; ++i) {
         std::string key = as<std::string>(strata_keys[i]);
@@ -45,8 +45,7 @@ NumericVector spbr_redraw_w_cpp(SEXP strata_keys_sexp, SEXP block_size_sexp, SEX
 
 // [[Rcpp::export]]
 IntegerVector stratified_bootstrap_indices_cpp(SEXP strata_keys_sexp) {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
+    edi_rng::RRng gen(edi_rng::seed_from_unif01(R::unif_rand()));
     const int n = Rf_xlength(strata_keys_sexp);
     IntegerVector indices(n);
     int current_idx = 0;

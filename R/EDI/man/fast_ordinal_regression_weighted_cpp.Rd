@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_ordinal_regression_weighted_cpp}
 \alias{fast_ordinal_regression_weighted_cpp}
-\title{Fast Weighted Ordinal Regression (C++)}
+\title{Fast Cumulative Ordinal Regression with a Logit Link, Weighted (C++)}
 \usage{
 fast_ordinal_regression_weighted_cpp(
   X,
@@ -19,32 +19,68 @@ fast_ordinal_regression_weighted_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors (no intercept column needed; see
+\code{\link{fast_ordinal_regression_cpp}}).}
 
-\item{y}{A numeric vector of responses.}
+\item{y}{A numeric vector of ordinal responses; only the rank order of distinct
+values matters, not their numeric coding.}
 
-\item{weights}{A numeric vector of nonnegative observation weights.}
+\item{weights}{A numeric vector of observation weights, length \code{nrow(X)}
+(negative entries are treated as zero).}
 
-\item{warm_start_params}{Optional starting values for [alpha, beta].}
+\item{warm_start_params}{Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.}
 
-\item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when starting from scratch.}
+\item{smart_cold_start}{Logical. If \code{TRUE}, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of optimizer iterations.}
 
 \item{tol}{Convergence tolerance.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional 1-indexed positions (into \eqn{[\alpha,\beta]}) of parameters to hold fixed.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values, parallel to \code{fixed_idx}, of the fixed parameters.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm (default \code{"lbfgs"}).}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix.}
+\item{warm_start_fisher_info}{Optional initial curvature (Fisher/observed information) matrix.}
 }
 \value{
-A list containing coefficients (beta), thresholds (alpha), and convergence status.
+A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
+  \code{converged}, \code{iterations}, \code{neg_loglik},
+  \code{observed_information}/\code{fisher_information}/\code{information} (all the same
+  observed-information matrix), \code{information_type} (\code{"observed"}),
+  \code{ssq_b_j} (the variance of \code{b[1]}), and \code{vcov} — the latter two are
+  \code{NA}/omitted if the free-parameter information matrix is not invertible.
 }
 \description{
-High-performance weighted ordinal regression fitting using Newton-Raphson.
+As \code{\link{fast_ordinal_regression_cpp}} (see that page for the full
+proportional-odds model), but each observation's log-likelihood contribution is
+multiplied by a nonnegative \code{weights[i]} (negative weights are clamped to
+zero internally by the underlying weighted log-likelihood). Always fits with
+\code{estimate_only = FALSE} (equivalent to that function's default), so the
+observed information and, when invertible, the full variance-covariance matrix
+are always computed.
+}
+\section{Fixed parameters, warm starts, and optimization}{
+
+\code{fixed_idx} (1-indexed into the combined \eqn{[\alpha, \beta]} parameter
+vector, thresholds first) and \code{fixed_values} optionally hold a subset of
+parameters at caller-supplied constant values rather than estimating them.
+\code{warm_start_params} supplies starting values for \eqn{[\alpha, \beta]}
+directly (skipping \code{smart_cold_start}); otherwise thresholds always start
+evenly spaced on \eqn{(-1, 1)} at \eqn{-1 + 2(k+1)/K}, and \eqn{\beta} starts at
+either zero, or (when \code{smart_cold_start = TRUE}, the default) an OLS fit of
+the rank-rescaled response \eqn{(y - 1)/(K - 1)} on \code{X} — falling back
+silently to zero if that OLS solve is not well-posed. When
+\code{smart_cold_start = TRUE} and no \code{warm_start_fisher_info} is supplied,
+the Hessian at the starting values is additionally used to seed the optimizer's
+first-iteration curvature estimate. Optimization runs via \code{optimization_alg}
+(default \code{"lbfgs"}) for up to \code{maxit} iterations or until the
+parameter/gradient change falls below \code{tol}.
+}
+
+\seealso{
+\code{\link{fast_ordinal_regression_cpp}} for the unweighted variant and the
+  full model documentation.
 }
 \keyword{internal}

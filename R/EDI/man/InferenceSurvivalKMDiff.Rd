@@ -2,12 +2,31 @@
 % Please edit documentation in R/inference_survival_km_diff.R
 \name{InferenceSurvivalKMDiff}
 \alias{InferenceSurvivalKMDiff}
-\title{Simple Mean Difference Inference based on Maximum Likelihood}
+\title{Kaplan-Meier Median-Difference Inference for Survival Responses}
 \description{
-The methods that support confidence intervals and testing for the mean difference
-in all response types (except Weibull with censoring)
-sequential experimental design estimation and test object
-after the sequential design is completed.
+Fits a non-parametric treatment-effect estimator for censored survival
+responses: the difference in Kaplan-Meier \strong{median} survival times
+between the treated and control arms, \eqn{\hat m_T - \hat m_C}. Standard
+errors are obtained by \strong{back-calculating} from each arm's separate
+Brookmeyer-Crowley confidence interval for its own median (via
+\code{survival::survfit}'s default log-log-transformed interval):
+\eqn{\hat\sigma_i = (\mathrm{upper}_i - \mathrm{lower}_i) / (2 z_{\alpha/2})},
+combined (the two arms are independent by design) as \eqn{\sqrt{\hat\sigma_T^2 +
+\hat\sigma_C^2}}. When either arm's median is inestimable (its Kaplan-Meier
+curve never reaches 0.5) or the back-calculated bounds are non-finite, the
+Wald-style confidence interval and p-value methods
+(\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()})
+silently fall back to a nonparametric bootstrap instead of returning
+\code{NA}. A convenience method,
+\code{$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()}, is also
+provided for the log-rank p-value on the same fitted survival curves. For
+\strong{left- or interval-censored} data, the point estimate instead comes
+from a Turnbull NPMLE median contrast (\code{interval::icfit()}, via
+\code{turnbull_npmle_stat_diff()}), which has no closed-form standard error —
+inference on that path relies entirely on the bootstrap fallback described
+above. Randomization confidence intervals are not supported (the median
+difference's units are not commensurate with the randomization CI bisection
+algorithm's transformed-scale null search).
 }
 \examples{
 \donttest{
@@ -32,22 +51,38 @@ seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[4, 2 : 10])
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 seq_des$add_all_subject_responses(
-  ys = c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43),
-  deads = c(1L, 0L, 1L, 1L, 0L, 1L)
+  ys = c(4.71, NA, 4.78, 6.11, NA, 8.43),
+  y_Ls = c(NA, 1.23, NA, NA, 5.95, NA),
+  y_Rs = c(NA, Inf, NA, NA, Inf, NA)
 )
 
 seq_des_inf = InferenceSurvivalKMDiff$new(seq_des)
 seq_des_inf$compute_estimate()
 
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceSurvivalKMDiff}
+\references{
+Kaplan, E. L., and Meier, P. (1958). "Nonparametric Estimation
+  from Incomplete Observations." \emph{Journal of the American Statistical
+  Association}, 53(282), 457-481, \doi{10.2307/2281868}, for the
+  Kaplan-Meier survival curve estimator each arm's median is read from.
+  Brookmeyer, R., and Crowley, J. (1982). "A Confidence Interval for the
+  Median Survival Time." \emph{Biometrics}, 38(1), 29-41,
+  \doi{10.2307/2530286}, for the per-arm median confidence interval this
+  class's standard error is back-calculated from. Turnbull, B. W. (1976).
+  "The Empirical Distribution Function with Arbitrarily Grouped, Censored
+  and Truncated Data." \emph{Journal of the Royal Statistical Society,
+  Series B}, 38(3), 290-295, \doi{10.1111/j.2517-6161.1976.tb01597.x}, for
+  the NPMLE used on the left-/interval-censored path.
+}
+\concept{Kaplan-Meier}
+\concept{median survival time}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceSurvivalKMDiff}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-InferenceSurvivalKMDiff-initialize}{\code{InferenceSurvivalKMDiff$new()}}
-    \item \href{#method-InferenceSurvivalKMDiff-approximate_bootstrap_distribution_beta_hat_T}{\code{InferenceSurvivalKMDiff$approximate_bootstrap_distribution_beta_hat_T()}}
     \item \href{#method-InferenceSurvivalKMDiff-compute_estimate}{\code{InferenceSurvivalKMDiff$compute_estimate()}}
     \item \href{#method-InferenceSurvivalKMDiff-compute_estimate_with_bootstrap_weights}{\code{InferenceSurvivalKMDiff$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferenceSurvivalKMDiff-compute_asymp_confidence_interval}{\code{InferenceSurvivalKMDiff$compute_asymp_confidence_interval()}}
@@ -57,71 +92,7 @@ seq_des_inf$compute_estimate()
     \item \href{#method-InferenceSurvivalKMDiff-clone}{\code{InferenceSurvivalKMDiff$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -147,6 +118,10 @@ seq_des_inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceSurvivalKMDiff-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalKMDiff-initialize}{}}}
 \subsection{\code{InferenceSurvivalKMDiff$new()}}{
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+
+
   Initialize Kaplan-Meier median-difference survival inference
   and prepare treatment-group survival curves used by
   \code{\link[EDI:InferenceSurvivalKMDiff]{InferenceSurvivalKMDiff}}.
@@ -172,37 +147,6 @@ design's imputed covariates.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default.}
     }
     \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalKMDiff-approximate_bootstrap_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalKMDiff-approximate_bootstrap_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceSurvivalKMDiff$approximate_bootstrap_distribution_beta_hat_T()}}{
-  Uses the shared nonparametric bootstrap distribution contract; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalKMDiff$approximate_bootstrap_distribution_beta_hat_T(
-  B = 501,
-  show_progress = TRUE,
-  debug = FALSE,
-  bootstrap_type = NULL
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{B}}{Number of bootstrap samples.}
-      \item{\code{show_progress}}{Whether to show a progress bar.}
-      \item{\code{debug}}{Whether to return diagnostics.}
-      \item{\code{bootstrap_type}}{Optional resampling scheme.}
-    }
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    A numeric vector of bootstrap estimates.
   }
 }
 
@@ -237,8 +181,9 @@ seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[4, 2 : 10])
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 seq_des$add_all_subject_responses(
-  ys = c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43),
-  deads = c(1L, 0L, 1L, 1L, 0L, 1L)
+  ys = c(4.71, NA, 4.78, 6.11, NA, 8.43),
+  y_Ls = c(NA, 1.23, NA, NA, 5.95, NA),
+  y_Rs = c(NA, Inf, NA, NA, Inf, NA)
 )
 
 seq_des_inf = InferenceSurvivalKMDiff$new(seq_des)

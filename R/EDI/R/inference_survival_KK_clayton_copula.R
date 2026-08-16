@@ -160,13 +160,12 @@ InferenceSurvivalKKClaytonCopulaIVWC = R6::R6Class("InferenceSurvivalKKClaytonCo
 			nRT = KKstats$nRT
 			nRC = KKstats$nRC
 			X_data = private$get_X()
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
+			split = split_kk_matched_reservoir_idx(private$m, private$n)
+			m_vec = split$m_vec
 			# Matched component
 			beta_m = NA_real_
 			if (m > 0 && !is.null(private$best_X_colnames_matched)) {
-				i_matched = which(m_vec > 0L)
+				i_matched = split$matched_idx
 				cov_cols_m = setdiff(private$best_X_colnames_matched, "w")
 				X_cand_m = cbind(w = private$w[i_matched], X_data[i_matched, intersect(cov_cols_m, colnames(X_data)), drop = FALSE])
 				if (!is.null(private$cached_vc_params_matched) && all(is.finite(private$cached_vc_params_matched))) {
@@ -206,7 +205,7 @@ InferenceSurvivalKKClaytonCopulaIVWC = R6::R6Class("InferenceSurvivalKKClaytonCo
 			# Reservoir component
 			beta_r = NA_real_
 			if (nRT > 0 && nRC > 0 && !is.null(private$best_X_colnames_reservoir)) {
-				i_reservoir = which(m_vec == 0L)
+				i_reservoir = split$reservoir_idx
 				y_r = private$y[i_reservoir]
 				w_r = private$w[i_reservoir]
 				dead_r = private$dead[i_reservoir]
@@ -217,8 +216,10 @@ InferenceSurvivalKKClaytonCopulaIVWC = R6::R6Class("InferenceSurvivalKKClaytonCo
 					X_r_int = cbind("(Intercept)" = 1, as.matrix(X_r))
 					p_r = ncol(X_r_int)
 					fit_fast_r = tryCatch(
-						fast_weibull_regression_cpp(
-							y = as.numeric(y_r), dead = as.numeric(dead_r), X = X_r_int,
+						fast_weibull_regression_general_cpp(
+							y = ifelse(dead_r != 0, y_r, NA_real_),
+							y_L = ifelse(dead_r == 0, y_r, NA_real_),
+							y_R = ifelse(dead_r == 0, Inf, NA_real_), X = X_r_int,
 							estimate_only = TRUE,
 							fixed_idx = as.integer(p_r),
 							fixed_values = as.numeric(private$cached_vc_params_reservoir[1L])
@@ -356,10 +357,9 @@ InferenceSurvivalKKClaytonCopulaIVWC = R6::R6Class("InferenceSurvivalKKClaytonCo
 			}
 		},
 		clayton_copula_for_matched_pairs = function(estimate_only = FALSE){
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			i_matched = which(m_vec > 0L)
+			split = split_kk_matched_reservoir_idx(private$m, private$n)
+			m_vec = split$m_vec
+			i_matched = split$matched_idx
 			if (length(i_matched) == 0L) return(invisible(NULL))
 			X_data = private$get_X()
 			X_matched = X_data[i_matched, , drop = FALSE]
@@ -436,9 +436,10 @@ InferenceSurvivalKKClaytonCopulaIVWC = R6::R6Class("InferenceSurvivalKKClaytonCo
 					private$best_X_colnames_reservoir = colnames(Xcand)
 					X_r_int = cbind("(Intercept)" = 1, as.matrix(Xcand))
 					res_log_s = tryCatch(
-						fast_weibull_regression_cpp(
-							y    = as.numeric(y_r),
-							dead = as.numeric(dead_r),
+							fast_weibull_regression_general_cpp(
+								y   = ifelse(dead_r != 0, y_r, NA_real_),
+								y_L = ifelse(dead_r == 0, y_r, NA_real_),
+								y_R = ifelse(dead_r == 0, Inf, NA_real_),
 							X    = X_r_int,
 							estimate_only = TRUE
 						),

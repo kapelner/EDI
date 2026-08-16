@@ -151,14 +151,13 @@ InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullF
 			nRT = KKstats$nRT
 			nRC = KKstats$nRC
 			X_data = private$get_X()
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
+			split = split_kk_matched_reservoir_idx(private$m, private$n)
+			m_vec = split$m_vec
 			# Matched pairs component
 			beta_m = NA_real_
 			ssq_m = NA_real_
 			if (m > 0 && !is.null(private$best_X_colnames_matched)){
-				i_matched = which(m_vec > 0L)
+				i_matched = split$matched_idx
 				X_cov = X_data[i_matched, intersect(private$best_X_colnames_matched, colnames(X_data)), drop = FALSE]
 				X_m = cbind(w = private$w[i_matched], X_cov)
 				# Fixed-VC fast path
@@ -200,7 +199,7 @@ InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullF
 			beta_r = NA_real_
 			ssq_r = NA_real_
 			if (nRT > 0 && nRC > 0 && !is.null(private$best_X_colnames_reservoir)){
-				i_reservoir = which(m_vec == 0L)
+				i_reservoir = split$reservoir_idx
 				X_cov_r = X_data[i_reservoir, intersect(private$best_X_colnames_reservoir, colnames(X_data)), drop = FALSE]
 				X_r = cbind(w = private$w[i_reservoir], X_cov_r)
 				# Fixed-VC fast path (Weibull regression, X must include intercept)
@@ -208,9 +207,10 @@ InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullF
 					X_r_int = cbind("(Intercept)" = 1, as.matrix(X_r))
 					p_r = ncol(X_r_int)
 					fit_fast_r = tryCatch(
-						fast_weibull_regression_cpp(
-							y    = as.numeric(private$y[i_reservoir]),
-							dead = as.numeric(private$dead[i_reservoir]),
+						fast_weibull_regression_general_cpp(
+							y   = ifelse(private$dead[i_reservoir] != 0, private$y[i_reservoir], NA_real_),
+							y_L = ifelse(private$dead[i_reservoir] == 0, private$y[i_reservoir], NA_real_),
+							y_R = ifelse(private$dead[i_reservoir] == 0, Inf, NA_real_),
 							X    = X_r_int,
 							estimate_only = TRUE,
 							fixed_idx    = as.integer(p_r),
@@ -260,10 +260,9 @@ InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullF
 		cached_vc_params_matched = NULL,
 		cached_vc_params_reservoir = NULL,
 		frailty_for_matched_pairs = function(estimate_only = FALSE){
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			i_matched = which(m_vec > 0L)
+			split = split_kk_matched_reservoir_idx(private$m, private$n)
+			m_vec = split$m_vec
+			i_matched = split$matched_idx
 			if (length(i_matched) == 0L) return(invisible(NULL))
 			X_full = if (ncol(as.matrix(private$X)) == 0L){
 				matrix(private$w[i_matched], ncol = 1L, dimnames = list(NULL, "w"))
@@ -301,10 +300,8 @@ InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullF
 			}
 		},
 		weibull_for_reservoir = function(estimate_only = FALSE){
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			i_reservoir = which(m_vec == 0L)
+			split = split_kk_matched_reservoir_idx(private$m, private$n)
+			i_reservoir = split$reservoir_idx
 			if (length(i_reservoir) == 0L) return(invisible(NULL))
 			X_full = if (ncol(as.matrix(private$X)) == 0L){
 				matrix(private$w[i_reservoir], ncol = 1L, dimnames = list(NULL, "w"))
@@ -337,9 +334,10 @@ InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullF
 				private$best_X_colnames_reservoir = best_cols_r
 				X_r_int = cbind("(Intercept)" = 1, as.matrix(attempt$X))
 				res_log_s = tryCatch(
-					fast_weibull_regression_cpp(
-						y    = as.numeric(private$y[i_reservoir]),
-						dead = as.numeric(private$dead[i_reservoir]),
+					fast_weibull_regression_general_cpp(
+						y   = ifelse(private$dead[i_reservoir] != 0, private$y[i_reservoir], NA_real_),
+						y_L = ifelse(private$dead[i_reservoir] == 0, private$y[i_reservoir], NA_real_),
+						y_R = ifelse(private$dead[i_reservoir] == 0, Inf, NA_real_),
 						X    = X_r_int,
 						estimate_only = TRUE
 					),

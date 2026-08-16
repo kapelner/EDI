@@ -265,7 +265,10 @@ test_that("InferenceSurvivalCoxPHRegr: model_formula = ~.", {
 	des  = make_design("survival", seed = 241L)
 	w    = des$get_w(); X = as.matrix(des$get_X())
 	time = rexp(60L, exp(-0.5 + 0.3 * w + 0.2 * X[, 1L]))
-	des$add_all_subject_responses(time, rep(1L, 60L))
+	# (time, dead) positional convention was removed in the y/y_L/y_R
+	# migration (interval_censored_survival_response.md TODO-14); all-exact
+	# here (dead always 1), so just pass the times.
+	des$add_all_subject_responses(time)
 	inf = InferenceSurvivalCoxPHRegr$new(des, model_formula = ~., verbose = FALSE)
 	expect_valid_ci(inf$compute_asymp_confidence_interval())
 	expect_no_error(suppressWarnings(inf$get_summary()))
@@ -276,7 +279,10 @@ test_that("InferenceSurvivalWeibullRegr: model_formula = ~.", {
 	des  = make_design("survival", seed = 242L)
 	w    = des$get_w(); X = as.matrix(des$get_X())
 	time = rexp(60L, exp(-0.5 + 0.3 * w + 0.2 * X[, 1L]))
-	des$add_all_subject_responses(time, rep(1L, 60L))
+	# (time, dead) positional convention was removed in the y/y_L/y_R
+	# migration (interval_censored_survival_response.md TODO-14); all-exact
+	# here (dead always 1), so just pass the times.
+	des$add_all_subject_responses(time)
 	inf = InferenceSurvivalWeibullRegr$new(des, model_formula = ~., verbose = FALSE)
 	expect_valid_ci(inf$compute_asymp_confidence_interval())
 	expect_no_error(suppressWarnings(inf$get_summary()))
@@ -288,7 +294,7 @@ test_that("InferenceCountPoisson (KK design): model_formula = ~.", {
 	des = kk$des; X = as.matrix(kk$X)
 	for (i in seq_len(40L)){
 		w_i = des$get_w()[i]
-		des$add_one_subject_response(i, rpois(1L, exp(0.25 * w_i + 0.2 * X[i, 1L])), 1L)
+		des$add_one_subject_response(i, rpois(1L, exp(0.25 * w_i + 0.2 * X[i, 1L])))
 	}
 	inf = InferenceCountPoisson$new(des, model_formula = ~., verbose = FALSE)
 	expect_valid_ci(inf$compute_asymp_confidence_interval())
@@ -301,7 +307,7 @@ test_that("InferenceIncidLogRegr (KK design): model_formula = ~.", {
 	des = kk$des; X = as.matrix(kk$X)
 	for (i in seq_len(40L)){
 		w_i = des$get_w()[i]
-		des$add_one_subject_response(i, rbinom(1L, 1L, plogis(0.3 * w_i + 0.2 * X[i, 1L])), 1L)
+		des$add_one_subject_response(i, rbinom(1L, 1L, plogis(0.3 * w_i + 0.2 * X[i, 1L])))
 	}
 	inf = InferenceIncidLogRegr$new(des, model_formula = ~., verbose = FALSE)
 	expect_valid_ci(inf$compute_asymp_confidence_interval())

@@ -1,11 +1,29 @@
-#' Simple Mean Difference Inference based on Maximum Likelihood
+#' Restricted Mean Survival Time (RMST) Difference Inference for Survival Responses
 #'
-#' The methods that support confidence intervals and testing for the mean difference
-#' in all response types (except Weibull with censoring)
-#' sequential experimental design estimation and test object
-#' after the sequential design is completed.
+#' Fits a non-parametric treatment-effect estimator for censored survival
+#' responses: the difference in \strong{restricted mean survival time} (RMST)
+#' between the treated and control arms, \eqn{\hat\mu_T(\tau) - \hat\mu_C(\tau)},
+#' where each arm's RMST is the area under its Kaplan-Meier survival curve up to
+#' a truncation horizon \eqn{\tau} (\eqn{\hat\mu(\tau) = \int_0^\tau \hat S(t)\,dt}),
+#' computed by trapezoidal integration of the step-function KM curve. The
+#' standard error of the difference comes from the Greenwood-type variance of
+#' each arm's RMST, combined across the two (independent) arms via
+#' \code{get_restricted_mean_se_diff()}. When that standard error is
+#' unavailable or non-finite, \code{$compute_asymp_confidence_interval()} falls
+#' back to a nonparametric bootstrap interval rather than returning \code{NA}.
+#' Randomization confidence intervals are not supported (the RMST-difference
+#' units are not commensurate with the randomization CI bisection algorithm's
+#' transformed-scale null search).
 #'
-#'
+#' @references Royston, P., and Parmar, M. K. B. (2013). "Restricted mean
+#'   survival time: an alternative to the hazard ratio for the design and
+#'   analysis of randomized trials with a time-to-event outcome." \emph{BMC
+#'   Medical Research Methodology}, 13, 152, \doi{10.1186/1471-2288-13-152},
+#'   for RMST as a treatment-effect summary. Kaplan, E. L., and Meier, P.
+#'   (1958). "Nonparametric Estimation from Incomplete Observations."
+#'   \emph{Journal of the American Statistical Association}, 53(282),
+#'   457-481, \doi{10.2307/2281868}, for the underlying survival curve
+#'   estimator each arm's RMST is integrated from.
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'survival')
@@ -16,11 +34,17 @@
 #' inf = InferenceSurvivalRestrictedMeanDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @concept restricted mean survival time
+#' @concept RMST
 #' @export
-InferenceSurvivalRestrictedMeanDiff = R6::R6Class("InferenceSurvivalRestrictedMeanDiff",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceSurvivalRestrictedMeanDiff = define_inference_class(
+	classname = "InferenceSurvivalRestrictedMeanDiff",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize restricted-mean-survival-time difference
 		#'   inference and prepare treatment-group survival summaries used by
 		#'   \code{\link[EDI:InferenceSurvivalRestrictedMeanDiff]{InferenceSurvivalRestrictedMeanDiff}}.
@@ -38,16 +62,6 @@ InferenceSurvivalRestrictedMeanDiff = R6::R6Class("InferenceSurvivalRestrictedMe
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
-		},
 		#' @description Computes the class-specific mean or survival contrast; see
 		#'   \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}}.
 		#'
@@ -55,12 +69,24 @@ InferenceSurvivalRestrictedMeanDiff = R6::R6Class("InferenceSurvivalRestrictedMe
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			if (is.null(private$cached_values$beta_hat_T)){
-				private$cached_values$beta_hat_T = get_survival_stat_diff(
-					private$y,
-					private$dead,
-					private$w,
-					"restricted_mean"
-				)
+				if (isTRUE(private$has_general_censoring)) {
+					# Turnbull-NPMLE restricted-mean contrast (TODO-8,
+					# interval_censored_survival_response.md) via
+					# interval::icfit() -- see
+					# inference_survival_turnbull_helpers.R for the
+					# interval-identifiability convention.
+					assert_interval_installed(class(self)[1L])
+					private$cached_values$beta_hat_T = turnbull_npmle_stat_diff(
+						private$y_L, private$y_R, private$w, "restricted_mean"
+					)
+				} else {
+					private$cached_values$beta_hat_T = get_survival_stat_diff(
+						private$y,
+						private$dead,
+						private$w,
+						"restricted_mean"
+					)
+				}
 			}
 			private$cached_values$beta_hat_T
 		},
@@ -69,6 +95,13 @@ InferenceSurvivalRestrictedMeanDiff = R6::R6Class("InferenceSurvivalRestrictedMe
 		#' @param subject_or_block_weights Row weights for the bootstrap sample.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
+			if (isTRUE(private$has_general_censoring)) {
+				stop(
+					"Bayesian bootstrap is not yet supported for left-/interval-censored survival data ",
+					"(interval::icfit() has no weights argument, so weighted_survival_stat_diff() cannot ",
+					"be generalized to this case)."
+				)
+			}
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			private$cached_values$beta_hat_T = private$weighted_survival_stat_diff(
 				row_weights,
@@ -77,13 +110,11 @@ InferenceSurvivalRestrictedMeanDiff = R6::R6Class("InferenceSurvivalRestrictedMe
 			private$cached_values$s_beta_hat_T = NA_real_
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes a 1-alpha level frequentist confidence interval
-		#' differently for all response types, estimate types, and
-		#' test types.
-		#'
-		#' Here we use the theory that MLE's computed for GLM's are asymptotically normal.
-		#' Hence these confidence intervals are asymptotically valid
-		#' and thus approximate for any sample size.
+		#' @description Computes a \eqn{1-\alpha} level Wald confidence interval for
+		#'   the RMST-difference treatment effect \eqn{\hat\mu_T(\tau) -
+		#'   \hat\mu_C(\tau)}, using its Greenwood-based standard error (see class
+		#'   documentation). Falls back to a nonparametric bootstrap interval if
+		#'   that standard error is unavailable or non-finite.
 		#'
 		#' @param alpha The confidence level in the computed confidence
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
@@ -104,7 +135,12 @@ InferenceSurvivalRestrictedMeanDiff = R6::R6Class("InferenceSurvivalRestrictedMe
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Computes a 2-sided p-value via the log rank test
+		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
+		#'   \mu_T(\tau) - \mu_C(\tau) = 0} (only \code{delta = 0} is currently
+		#'   supported; a non-zero null raises an error), using the RMST-difference
+		#'   estimate and its Greenwood-based standard error — see class
+		#'   documentation. Falls back to a nonparametric bootstrap p-value if that
+		#'   standard error is unavailable.
 		#'
 		#' @param delta The null difference to test against. For any
 		#'   treatment effect at all this is set to zero (the default).
@@ -145,7 +181,14 @@ InferenceSurvivalRestrictedMeanDiff = R6::R6Class("InferenceSurvivalRestrictedMe
 		}
 	),
 	private = list(
+		supports_interval_or_left_censored_data = function() TRUE,
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
+			# compute_survival_stat_diff_rand_bootstrap_parallel_cpp() assumes
+			# ordinary right-censoring; under general censoring there is no
+			# fast path -- NULL is this codebase's established "no fast path"
+			# signal, falling back to the generic randomization loop that
+			# re-dispatches through compute_estimate() per replicate.
+			if (isTRUE(private$has_general_censoring)) return(NULL)
 			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			if (delta != 0 && !identical(transform_responses, "log")) return(NULL)
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)
@@ -203,6 +246,16 @@ InferenceSurvivalRestrictedMeanDiff = R6::R6Class("InferenceSurvivalRestrictedMe
 			as.numeric(stat_t - stat_c)
 		},
 		compute_s_beta_hat_T = function(){
+			if (isTRUE(private$has_general_censoring)) {
+				# No closed-form SE for a Turnbull-NPMLE restricted-mean contrast
+				# is available from interval::icfit() -- leaving s_beta_hat_T NA
+				# here makes compute_asymp_confidence_interval()/
+				# compute_asymp_two_sided_pval() (unchanged above) fall back to
+				# the nonparametric bootstrap automatically, which is the
+				# "bootstrap fallback" variance strategy TODO-8 asks for.
+				private$cached_values$s_beta_hat_T = NA_real_
+				return(invisible(NULL))
+			}
 			se_val = get_restricted_mean_se_diff(
 				private$y,
 				private$dead,
@@ -215,5 +268,19 @@ InferenceSurvivalRestrictedMeanDiff = R6::R6Class("InferenceSurvivalRestrictedMe
 			}
 			private$cached_values$s_beta_hat_T = se_val
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_confidence_interval", "compute_rand_two_sided_pval"
+		),
+		private = c(
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

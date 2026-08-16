@@ -10,7 +10,7 @@ extension links fetched Eigen + LBFGSpp, not the R build's RcppEigen/
 RcppNumerical).
 
 X, y (event time), dead (event indicator) follow the same convention as
-test_fast_weibull_regression.py; group_id adds the random-intercept
+test_fast_weibull_regression_general.py; group_id adds the random-intercept
 (frailty) grouping.
 
 *** group_id must partition observations into groups of size EXACTLY 1 or

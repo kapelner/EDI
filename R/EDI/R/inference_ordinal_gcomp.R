@@ -1,9 +1,21 @@
 #' G-Computation Mean-Difference Inference for Ordinal Responses
 #'
-#' Fits a proportional-odds working model for an ordinal outcome using treatment
-#' and, optionally, all recorded covariates, then estimates the marginal mean
-#' difference by standardizing predicted mean ranks under all-treated and
-#' all-control assignments over the empirical covariate distribution.
+#' Fits a proportional-odds working model for an ordinal outcome using
+#' treatment and, optionally, all recorded covariates
+#' (\code{\link{fast_ordinal_regression_with_var_cpp}}), then estimates the
+#' marginal difference in \strong{expected ordinal category score} by
+#' G-computation — see \code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}}
+#' for the exact standardization formula (\code{mean1 - mean0}). Standard
+#' errors are obtained by the \strong{delta method}: a central finite-difference
+#' gradient of the mean-difference functional with respect to the fitted
+#' \eqn{[\alpha, \beta]} parameters, propagated through the model's fitted
+#' variance-covariance matrix, \eqn{\widehat{\mathrm{Var}}(\widehat{\mathrm{md}}) =
+#' \nabla^\top \widehat{\mathrm{Var}}(\hat\theta) \nabla}. If that delta-method
+#' standard error is unavailable or non-finite, the Wald-style methods
+#' (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()},
+#' \code{$compute_wald_confidence_interval()}, \code{$compute_wald_two_sided_pval()})
+#' all silently fall back to a nonparametric bootstrap interval/p-value instead
+#' (with a warning), rather than returning \code{NA}.
 #'
 #' @examples
 #' \donttest{
@@ -16,11 +28,16 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceOrdinalGCompMeanDiff = R6::R6Class("InferenceOrdinalGCompMeanDiff",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceOrdinalGCompMeanDiff = define_inference_class(
+	classname = "InferenceOrdinalGCompMeanDiff",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
-		#' @description Initialize the g-computation (G-Comp) inference object.
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		#' @description Initialize the ordinal g-computation (G-Comp) inference
+		#'   object for a completed design with an ordinal, uncensored response.
 		#' @param des_obj A completed \code{DesignSeqOneByOne} object with an ordinal response.
 		#' @param model_formula Optional formula for covariate adjustment. If \code{NULL}
 		#' (default), the formula from the design object is used and its pre-computed design
@@ -37,24 +54,25 @@ InferenceOrdinalGCompMeanDiff = R6::R6Class("InferenceOrdinalGCompMeanDiff",
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
-		},
-		#' @description Computes the g-computation (G-Comp) treatment-effect estimate (mean difference).
+		#' @description Computes the G-computation standardized mean-difference
+		#'   treatment-effect estimate (see class documentation for the full
+		#'   proportional-odds-based standardization).
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$md
 		},
-		#' @description Recomputes the class-specific treatment estimate for a bootstrap sample; see
+		#' @description Recomputes the G-computation mean-difference estimate under
+		#'   subject/block bootstrap weights (via
+		#'   \code{\link{fast_ordinal_regression_weighted_cpp}} plus
+		#'   \code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}}), used by
+		#'   the Bayesian bootstrap and related weighted-resampling machinery; see
 		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+		#'   Runs side-effect free: the ordinary (unweighted) cached fit, warm-start
+		#'   state, and rank-reduced column selection are saved before the weighted
+		#'   refit and restored afterward (\code{on.exit}), so a weighted bootstrap
+		#'   replicate cannot corrupt the class's own point estimate or subsequent
+		#'   fits.
 		#' @param subject_or_block_weights Row weights for the bootstrap sample.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -75,7 +93,11 @@ InferenceOrdinalGCompMeanDiff = R6::R6Class("InferenceOrdinalGCompMeanDiff",
 			}, add = TRUE)
 			as.numeric(private$weighted_gcomp_md_from_row_weights(row_weights))[1L]
 		},
-		#' @description Computes a 1 - \code{alpha} confidence interval for the G-Comp mean difference.
+		#' @description Computes a \eqn{1-\alpha} confidence interval for the
+		#'   G-Comp mean difference using the delta-method standard error (see
+		#'   class documentation), or falls back (with a warning) to a
+		#'   nonparametric bootstrap interval if that standard error is
+		#'   unavailable. Identical to \code{$compute_wald_confidence_interval()}.
 		#' @param alpha The significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -94,7 +116,11 @@ InferenceOrdinalGCompMeanDiff = R6::R6Class("InferenceOrdinalGCompMeanDiff",
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
 		},
-		#' @description Computes a two-sided Wald p-value for the G-Comp mean difference.
+		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
+		#'   \mathrm{md} = \code{delta}} using the delta-method standard error (see
+		#'   class documentation), or falls back (with a warning) to a
+		#'   nonparametric bootstrap p-value if that standard error is
+		#'   unavailable. Identical to \code{$compute_wald_two_sided_pval()}.
 		#' @param delta The null treatment effect (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -111,7 +137,11 @@ InferenceOrdinalGCompMeanDiff = R6::R6Class("InferenceOrdinalGCompMeanDiff",
 			z_val = (private$cached_values$md - delta) / private$cached_values$se_md
 			2 * stats::pnorm(-abs(z_val))
 		},
-		#' @description Computes a Wald confidence interval for the G-Comp mean difference.
+		#' @description Identical to \code{$compute_asymp_confidence_interval()}
+		#'   (both compute the same delta-method-based Wald interval, with the
+		#'   same bootstrap fallback); provided as an explicit alias for callers
+		#'   that want to name the Wald method directly rather than via the
+		#'   generic "asymptotic" dispatch.
 		#' @param alpha The significance level (default 0.05).
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -130,7 +160,11 @@ InferenceOrdinalGCompMeanDiff = R6::R6Class("InferenceOrdinalGCompMeanDiff",
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
 		},
-		#' @description Computes a Wald two-sided p-value for the G-Comp mean difference.
+		#' @description Identical to \code{$compute_asymp_two_sided_pval()} (both
+		#'   compute the same delta-method-based Wald p-value, with the same
+		#'   bootstrap fallback); provided as an explicit alias for callers that
+		#'   want to name the Wald method directly rather than via the generic
+		#'   "asymptotic" dispatch.
 		#' @param delta The null treatment effect (default 0).
 		compute_wald_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -149,7 +183,6 @@ InferenceOrdinalGCompMeanDiff = R6::R6Class("InferenceOrdinalGCompMeanDiff",
 		}
 	),
 	private = list(
-		best_X_colnames = NULL,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (is.null(private$best_X_colnames)){
 				private$shared(estimate_only = TRUE)
@@ -376,5 +409,22 @@ InferenceOrdinalGCompMeanDiff = R6::R6Class("InferenceOrdinalGCompMeanDiff",
 			private$shared(estimate_only = FALSE)
 			private$cached_values$df %||% NA_real_
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_wald_confidence_interval", "compute_wald_two_sided_pval",
+			"compute_rand_two_sided_pval"
+		),
+		private = c(
+			"get_standard_error", "get_degrees_of_freedom",
+			"compute_treatment_estimate_during_randomization_inference",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

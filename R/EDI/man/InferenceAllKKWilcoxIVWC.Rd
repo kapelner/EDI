@@ -2,16 +2,33 @@
 % Please edit documentation in R/inference_all_KK_wilcox_ivwc.R
 \name{InferenceAllKKWilcoxIVWC}
 \alias{InferenceAllKKWilcoxIVWC}
-\title{Non-parametric Wilcoxon-based Compound Inference for KK Designs}
+\title{Non-parametric Wilcoxon-based Compound Inference for KK Matching-on-the-Fly Designs}
 \description{
-Fits a non-parametric compound estimator for KK matching-on-the-fly designs.
-For matched pairs, it uses the Wilcoxon Signed-Rank Hodges-Lehmann estimate.
-For reservoir subjects, it uses the Wilcoxon Rank-Sum (Mann-Whitney U) Hodges-Lehmann
-estimate. The two estimates are combined via a variance-weighted linear combination.
-This method is robust to outliers and does not assume a specific parametric
-distribution for the response.
-
-\strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+Fits a non-parametric, rank-based compound (inverse-variance-weighted, IVWC)
+estimator of the treatment effect under a
+\code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}-family KK
+matching-on-the-fly design (see
+\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}}). For matched
+pairs, the sub-estimate \eqn{\hat\beta_m} is the \strong{Hodges-Lehmann}
+estimate from a Wilcoxon signed-rank test on the within-pair differences (the
+median of the Walsh averages \eqn{(d_i+d_j)/2}); for reservoir (unmatched)
+subjects, \eqn{\hat\beta_r} is the Hodges-Lehmann estimate from a Wilcoxon
+rank-sum (Mann-Whitney \eqn{U}) test on treated-vs-control reservoir responses
+(the median of all pairwise differences). The two are combined by classical
+inverse-variance weighting,
+\deqn{\hat\beta_T = w^* \hat\beta_m + (1-w^*)\, \hat\beta_r, \qquad
+  w^* = \frac{\widehat{\mathrm{Var}}(\hat\beta_r)}{\widehat{\mathrm{Var}}(\hat\beta_r)
+  + \widehat{\mathrm{Var}}(\hat\beta_m)},}
+with variance the standard inverse-variance-pooled form (see
+\code{$compute_estimate()}'s method-level documentation for the full formula
+and fallback behavior when only one sub-estimate is usable). Because it is
+built from Hodges-Lehmann/Wilcoxon estimators rather than sample means, this
+method is robust to outliers and does not assume a specific parametric
+distribution for the response — but it does not currently support censored
+survival data or incidence (binary) responses (see \code{$initialize()}), and
+its jackknife methods all report explicit non-estimability rather than
+computing a (statistically unreliable) delete-1 jackknife of the
+Hodges-Lehmann functional.
 }
 \examples{
 \donttest{
@@ -24,12 +41,25 @@ inf = InferenceAllKKWilcoxIVWC$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{InferenceKKPassThroughCompoundNoParamBootstrap} -> \code{\link[EDI:InferenceAbstractKKWilcoxBaseIVWC]{InferenceAbstractKKWilcoxBaseIVWC}} -> \code{InferenceAllKKWilcoxIVWC}
+\references{
+Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
+  Based on Rank Tests." \emph{The Annals of Mathematical Statistics}, 34(2),
+  598-611, \doi{10.1214/aoms/1177704172}, for the Hodges-Lehmann estimator
+  underlying both sub-estimates; Kapelner, A., and Krieger, A. M. (2014).
+  "Matching on-the-fly: Sequential allocation with higher power and
+  efficiency." \emph{Biometrics}, 70(2), 378-388, \doi{10.1111/biom.12148},
+  for the KK matching-on-the-fly design and the inverse-variance combination
+  of matched-pair and reservoir estimates.
+
+\strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceAllKKWilcoxIVWC}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceAllKKWilcoxIVWC-compute_bootstrap_confidence_interval}{\code{InferenceAllKKWilcoxIVWC$compute_bootstrap_confidence_interval()}}
     \item \href{#method-InferenceAllKKWilcoxIVWC-initialize}{\code{InferenceAllKKWilcoxIVWC$new()}}
     \item \href{#method-InferenceAllKKWilcoxIVWC-compute_estimate}{\code{InferenceAllKKWilcoxIVWC$compute_estimate()}}
     \item \href{#method-InferenceAllKKWilcoxIVWC-compute_asymp_confidence_interval}{\code{InferenceAllKKWilcoxIVWC$compute_asymp_confidence_interval()}}
@@ -42,99 +72,7 @@ inf$compute_estimate()
     \item \href{#method-InferenceAllKKWilcoxIVWC-clone}{\code{InferenceAllKKWilcoxIVWC$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAbstractKKWilcoxBaseIVWC</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAbstractKKWilcoxBaseIVWC.html#method-InferenceAbstractKKWilcoxBaseIVWC-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceAbstractKKWilcoxBaseIVWC$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAbstractKKWilcoxBaseIVWC.html#method-InferenceAbstractKKWilcoxBaseIVWC-compute_bootstrap_confidence_interval'><code>InferenceAbstractKKWilcoxBaseIVWC$compute_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceKKPassThroughCompoundNoParamBootstrap</summary>
-<ul>
-  <li><code>InferenceKKPassThroughCompoundNoParamBootstrap$compute_estimate_with_bootstrap_weights()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsympLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_confidence_interval'><code>InferenceAsympLik$compute_gradient_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_two_sided_pval'><code>InferenceAsympLik$compute_gradient_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_confidence_interval'><code>InferenceAsympLik$compute_score_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_two_sided_pval'><code>InferenceAsympLik$compute_score_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -157,12 +95,23 @@ inf$compute_estimate()
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllKKWilcoxIVWC-compute_bootstrap_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllKKWilcoxIVWC-compute_bootstrap_confidence_interval}{}}}
+\subsection{\code{InferenceAllKKWilcoxIVWC$compute_bootstrap_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllKKWilcoxIVWC$compute_bootstrap_confidence_interval(
+  alpha = 0.05,
+  ...
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceAllKKWilcoxIVWC-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAllKKWilcoxIVWC-initialize}{}}}
 \subsection{\code{InferenceAllKKWilcoxIVWC$new()}}{
-  Initialize KK inverse-variance combined Wilcoxon inference
-  and prepare matched/reservoir rank-based components used by
-  \code{\link[EDI:InferenceAllKKWilcoxIVWC]{InferenceAllKKWilcoxIVWC}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllKKWilcoxIVWC$new(
@@ -176,13 +125,16 @@ inf$compute_estimate()
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{des_obj}}{A DesignSeqOneByOne object (must be a KK design).}
+      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
+assigned and response y is recorded within.}
       \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
 the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
       \item{\code{verbose}}{Whether to print progress messages.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
+likelihood-based models. Explicit starts always override this object-level policy.
+\code{NULL} (default) consults the global cold-start dispatch policy.}
     }
     \if{html}{\out{</div>}}
   }
@@ -192,7 +144,6 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceAllKKWilcoxIVWC-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAllKKWilcoxIVWC-compute_estimate}{}}}
 \subsection{\code{InferenceAllKKWilcoxIVWC$compute_estimate()}}{
-  Returns the estimated treatment effect (Hodges-Lehmann median shift).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllKKWilcoxIVWC$compute_estimate(estimate_only = FALSE)}
@@ -211,7 +162,6 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceAllKKWilcoxIVWC-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAllKKWilcoxIVWC-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceAllKKWilcoxIVWC$compute_asymp_confidence_interval()}}{
-  Computes the non-parametric confidence interval.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllKKWilcoxIVWC$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -220,8 +170,7 @@ design's imputed covariates.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{The confidence level in the computed confidence
-interval is 1 - \code{alpha}. The default is 0.05.}
+      \item{\code{alpha}}{Significance level.}
     }
     \if{html}{\out{</div>}}
   }
@@ -231,9 +180,6 @@ interval is 1 - \code{alpha}. The default is 0.05.}
 \if{html}{\out{<a id="method-InferenceAllKKWilcoxIVWC-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAllKKWilcoxIVWC-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceAllKKWilcoxIVWC$compute_asymp_two_sided_pval()}}{
-  Compute the KK Wilcoxon non-parametric two-sided p-value
-  from the rank-based treatment statistic. See related simple Wilcoxon
-  behavior in \code{\link[EDI:InferenceAllSimpleWilcox]{InferenceAllSimpleWilcox}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllKKWilcoxIVWC$compute_asymp_two_sided_pval(delta = 0)}
@@ -242,8 +188,7 @@ interval is 1 - \code{alpha}. The default is 0.05.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{The null difference to test against. For any
-treatment effect at all this is set to zero (the default).}
+      \item{\code{delta}}{Null treatment effect.}
     }
     \if{html}{\out{</div>}}
   }
@@ -253,18 +198,9 @@ treatment effect at all this is set to zero (the default).}
 \if{html}{\out{<a id="method-InferenceAllKKWilcoxIVWC-compute_jackknife_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAllKKWilcoxIVWC-compute_jackknife_estimate}{}}}
 \subsection{\code{InferenceAllKKWilcoxIVWC$compute_jackknife_estimate()}}{
-  Jackknife bias correction is unstable for the
-  Hodges-Lehmann rank estimator; report explicit non-estimability.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllKKWilcoxIVWC$compute_jackknife_estimate(unit = "auto")}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
-    }
     \if{html}{\out{</div>}}
   }
 }
@@ -273,20 +209,9 @@ treatment effect at all this is set to zero (the default).}
 \if{html}{\out{<a id="method-InferenceAllKKWilcoxIVWC-compute_jackknife_bias_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAllKKWilcoxIVWC-compute_jackknife_bias_estimate}{}}}
 \subsection{\code{InferenceAllKKWilcoxIVWC$compute_jackknife_bias_estimate()}}{
-  Report that the jackknife bias estimate is unavailable for
-  this Wilcoxon combined estimator; see
-  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
-  jackknife contract.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllKKWilcoxIVWC$compute_jackknife_bias_estimate(unit = "auto")}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
-    }
     \if{html}{\out{</div>}}
   }
 }
@@ -295,20 +220,9 @@ treatment effect at all this is set to zero (the default).}
 \if{html}{\out{<a id="method-InferenceAllKKWilcoxIVWC-compute_jackknife_std_error"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAllKKWilcoxIVWC-compute_jackknife_std_error}{}}}
 \subsection{\code{InferenceAllKKWilcoxIVWC$compute_jackknife_std_error()}}{
-  Report that the jackknife standard error is unavailable for
-  this Wilcoxon combined estimator; see
-  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
-  jackknife contract.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllKKWilcoxIVWC$compute_jackknife_std_error(unit = "auto")}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
-    }
     \if{html}{\out{</div>}}
   }
 }
@@ -317,8 +231,6 @@ treatment effect at all this is set to zero (the default).}
 \if{html}{\out{<a id="method-InferenceAllKKWilcoxIVWC-compute_jackknife_wald_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAllKKWilcoxIVWC-compute_jackknife_wald_two_sided_pval}{}}}
 \subsection{\code{InferenceAllKKWilcoxIVWC$compute_jackknife_wald_two_sided_pval()}}{
-  Reports that jackknife-Wald p-values are unavailable here; see
-  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllKKWilcoxIVWC$compute_jackknife_wald_two_sided_pval(
@@ -327,36 +239,18 @@ treatment effect at all this is set to zero (the default).}
 )}
     \if{html}{\out{</div>}}
   }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Null treatment-effect value. Default 0.}
-      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
-    }
-    \if{html}{\out{</div>}}
-  }
 }
 
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceAllKKWilcoxIVWC-compute_jackknife_wald_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAllKKWilcoxIVWC-compute_jackknife_wald_confidence_interval}{}}}
 \subsection{\code{InferenceAllKKWilcoxIVWC$compute_jackknife_wald_confidence_interval()}}{
-  Reports that jackknife-Wald intervals are unavailable here; see
-  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllKKWilcoxIVWC$compute_jackknife_wald_confidence_interval(
   alpha = 0.05,
   unit = "auto"
 )}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Significance level. Default 0.05.}
-      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
-    }
     \if{html}{\out{</div>}}
   }
 }

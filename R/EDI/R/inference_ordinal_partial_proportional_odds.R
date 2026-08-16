@@ -1,21 +1,51 @@
-#' Internal Base Class for Ordinal Partial Proportional-Odds Inference
+#' Partial Proportional-Odds Regression Inference for Ordinal Responses
 #'
 #' @name InferenceOrdinalPartialProportionalOddsRegr
-#' @description Shared implementation for ordinal partial proportional-odds estimators. When
-#' the requested model has no nonparallel covariates, this class uses the
-#' package's fast Rcpp proportional-odds solver before falling back to the
-#' general R fitters.
+#' @description Fits a \strong{partial} proportional-odds cumulative-logit model
+#' for an ordinal response: a subset of covariates named in \code{nonparallel}
+#' are allowed a separate coefficient at each cumulative threshold (relaxing the
+#' proportional-odds/parallel-lines assumption for exactly those covariates),
+#' while every other covariate — including the \strong{treatment} indicator,
+#' which is \emph{always} fit as a parallel (proportional) term regardless of
+#' \code{nonparallel} — keeps one shared coefficient across all thresholds. The
+#' reported treatment effect is therefore always a single proportional
+#' (threshold-invariant) log-odds shift, even when other covariates' effects
+#' are allowed to vary by threshold. When \code{nonparallel} is empty, fitting
+#' uses this package's fast Rcpp full-proportional-odds solver
+#' (\code{\link{fast_ordinal_regression_with_var_cpp}}); otherwise it falls back,
+#' in order, to \code{VGAM::vglm(family = VGAM::cumulative(parallel = ...))},
+#' \code{ordinal::clm(nominal = ...)}, and (only when \code{nonparallel} is
+#' empty and the earlier fast/VGAM/clm attempts failed) \code{MASS::polr}. Each
+#' fallback requires its corresponding package to be installed; unavailable
+#' packages are silently skipped in favor of the next fallback.
 #'
+#' @references Peterson, B., and Harrell, F. E. (1990). "Partial Proportional
+#'   Odds Models for Ordinal Response Variables." \emph{Journal of the Royal
+#'   Statistical Society, Series C (Applied Statistics)}, 39(2), 205-217,
+#'   \doi{10.2307/2347760}, for the partial (non-parallel-covariate)
+#'   proportional-odds model fit here. McCullagh, P. (1980). "Regression
+#'   Models for Ordinal Data." \emph{Journal of the Royal Statistical
+#'   Society, Series B}, 42(2), 109-142,
+#'   \doi{10.1111/j.2517-6161.1980.tb01109.x}, for the full proportional-odds
+#'   model this generalizes (see
+#'   \code{\link[EDI:InferenceOrdinalPropOddsRegr]{InferenceOrdinalPropOddsRegr}}).
 #' @export
-InferenceOrdinalPartialProportionalOddsRegr = R6::R6Class(
-	"InferenceOrdinalPartialProportionalOddsRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
+	classname = "InferenceOrdinalPartialProportionalOddsRegr",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
-		#' @description Initialize the internal PPO base object.
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		#' @description Initialize partial proportional-odds ordinal regression
+		#'   inference for a completed design with an ordinal, uncensored response.
 		#' @param des_obj A completed \code{DesignSeqOneByOne} object with an ordinal
 		#'   response.
-		#' @param nonparallel Covariate names that may vary across thresholds.
+		#' @param nonparallel Names of covariates (not including \code{"treatment"},
+		#'   which is always fit as a parallel/proportional term) allowed a separate
+		#'   coefficient at each cumulative threshold, relaxing the proportional-odds
+		#'   assumption for those covariates specifically.
 		#' @param model_formula Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
@@ -35,7 +65,9 @@ InferenceOrdinalPartialProportionalOddsRegr = R6::R6Class(
 			private$nonparallel = unique(nonparallel)
 		},
 
-		#' @description Retrieve the estimated treatment log-odds shift.
+		#' @description Retrieves the estimated (always-parallel) treatment
+		#'   log-odds shift from the partial proportional-odds fit (see class
+		#'   documentation for the fitting backend cascade).
 		#'
 		#' @return The estimated treatment effect.
 		#' @param estimate_only If TRUE, skip variance component calculations.
@@ -44,11 +76,22 @@ InferenceOrdinalPartialProportionalOddsRegr = R6::R6Class(
 			private$cached_values$beta_hat_T
 		},
 		#' @description Recomputes the partial-proportional-odds treatment estimate
-		#'   under Bayesian-bootstrap weights.
+		#'   under subject/block bootstrap weights, used by the Bayesian bootstrap
+		#'   and related weighted-resampling machinery. If the weights are
+		#'   effectively constant, short-circuits to the unweighted
+		#'   \code{$compute_estimate(estimate_only = TRUE)}. Otherwise refits with
+		#'   weights via the same backend cascade as the unweighted fit
+		#'   (\code{VGAM}/\code{ordinal}/\code{MASS::polr}, each weighted), and if
+		#'   \strong{all} of those fail, falls back further to a plain weighted
+		#'   binary-logistic surrogate fit
+		#'   (\code{weighted_ordinal_bootstrap_surrogate_fit(..., method =
+		#'   "logistic")}) that does not model the ordinal structure at all. Never
+		#'   computes a standard error on any weighted path (\code{s_beta_hat_T} is
+		#'   always \code{NA}), regardless of \code{estimate_only}.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
-		#' @param estimate_only If \code{TRUE}, compute only the weighted point
-		#'   estimate.
+		#' @param estimate_only Present for interface parity; this method never
+		#'   computes variance components regardless of its value.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			if (weights_are_effectively_constant(row_weights)) {
@@ -66,9 +109,17 @@ InferenceOrdinalPartialProportionalOddsRegr = R6::R6Class(
 			private$cached_values$beta_hat_T
 		},
 
-			#' @description Compute a Wald-style confidence interval for the treatment effect.
-			#' If the model-based standard error is unavailable, the interval is explicitly
-			#' marked non-estimable.
+			#' @description Computes a Wald-style confidence interval for the
+			#'   treatment log-odds shift, using the model-based standard error
+			#'   from whichever backend (fast Rcpp solver, \code{VGAM},
+			#'   \code{ordinal}, or \code{MASS::polr}) successfully fit the
+			#'   unweighted model (see class documentation). If that standard
+			#'   error is unavailable (\code{NA}, non-finite, or 0) — e.g. because
+			#'   the fit succeeded via a fallback path that doesn't report one —
+			#'   the interval is explicitly marked non-estimable
+			#'   (\code{c(NA, NA)}) when \code{private$harden} is \code{TRUE}, or
+			#'   raises an error otherwise, rather than silently returning a
+			#'   misleading result. Identical to \code{$compute_wald_confidence_interval()}.
 			#' @param alpha Significance level for the interval.
 			#'
 			#' @return A confidence interval for the treatment effect.
@@ -87,9 +138,12 @@ InferenceOrdinalPartialProportionalOddsRegr = R6::R6Class(
 				private$compute_z_or_t_ci_from_s_and_df(alpha)
 			},
 
-			#' @description Compute a Wald-style two-sided p-value for the treatment effect.
-			#' If the model-based standard error is unavailable, the p-value is explicitly
-			#' marked non-estimable.
+			#' @description Computes a Wald-style two-sided p-value testing
+			#'   \eqn{H_0: \beta_T = \code{delta}}, using the same model-based
+			#'   standard error as \code{$compute_asymp_confidence_interval()}; if
+			#'   unavailable, marked non-estimable (\code{NA}) or an error is
+			#'   raised, per \code{private$harden} — see that method's
+			#'   documentation. Identical to \code{$compute_wald_two_sided_pval()}.
 			#' @param delta Null treatment effect to test.
 			#'
 			#' @return A two-sided p-value.
@@ -103,9 +157,10 @@ InferenceOrdinalPartialProportionalOddsRegr = R6::R6Class(
 				}
 				private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 			},
-			#' @description Compute a Wald-style confidence interval for the treatment effect.
-			#' If the model-based standard error is unavailable, the interval is explicitly
-			#' marked non-estimable.
+			#' @description Identical to \code{$compute_asymp_confidence_interval()};
+			#'   provided as an explicit alias for callers that want to name the
+			#'   Wald method directly rather than via the generic "asymptotic"
+			#'   dispatch.
 			#' @param alpha Significance level for the interval.
 			#'
 			#' @return A confidence interval for the treatment effect.
@@ -124,9 +179,10 @@ InferenceOrdinalPartialProportionalOddsRegr = R6::R6Class(
 				private$compute_z_or_t_ci_from_s_and_df(alpha)
 			},
 
-			#' @description Compute a Wald-style two-sided p-value for the treatment effect.
-			#' If the model-based standard error is unavailable, the p-value is explicitly
-			#' marked non-estimable.
+			#' @description Identical to \code{$compute_asymp_two_sided_pval()};
+			#'   provided as an explicit alias for callers that want to name the
+			#'   Wald method directly rather than via the generic "asymptotic"
+			#'   dispatch.
 			#' @param delta Null treatment effect to test.
 			#'
 			#' @return A two-sided p-value.
@@ -141,14 +197,21 @@ InferenceOrdinalPartialProportionalOddsRegr = R6::R6Class(
 				private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 			},
 
-		#' @description Benchmark the asymptotic p-value path with a timing breakdown.
-		#'
-		#' This is a diagnostic helper for performance investigation. It separates
-		#' the model fit, cache/SE materialization, and final p-value arithmetic.
+		#' @description Diagnostic helper for performance investigation: runs the
+		#'   same computation as \code{$compute_asymp_two_sided_pval()} (fit the
+		#'   partial proportional-odds model requiring a standard error, cache the
+		#'   estimate/SE/df, compute the two-sided Wald p-value) but separately
+		#'   times each of the three stages — model fit, cache materialization, and
+		#'   final p-value arithmetic — via \code{proc.time()}. If the fit fails or
+		#'   has no usable standard error, returns immediately with only
+		#'   \code{fit_time} populated and every other timing/result field
+		#'   \code{NA}.
 		#'
 		#' @param delta Null treatment effect to test.
 		#'
-		#' @return A named list with timing and result details.
+		#' @return A named list: \code{fit_time}, \code{cache_time},
+		#'   \code{pval_math_time}, \code{total_time} (all in seconds), \code{pval},
+		#'   \code{beta_hat_T}, and \code{s_beta_hat_T}.
 		benchmark_asymp_two_sided_pval_breakdown = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta)
@@ -193,7 +256,6 @@ InferenceOrdinalPartialProportionalOddsRegr = R6::R6Class(
 	),
 	private = list(
 		nonparallel = character(0),
-		best_X_colnames = NULL,
 
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (is.null(private$best_X_colnames)){
@@ -610,5 +672,22 @@ InferenceOrdinalPartialProportionalOddsRegr = R6::R6Class(
 			out$se = NA_real_
 			out
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_wald_confidence_interval", "compute_wald_two_sided_pval",
+			"compute_rand_two_sided_pval"
+		),
+		private = c(
+			"get_standard_error", "get_degrees_of_freedom",
+			"compute_treatment_estimate_during_randomization_inference",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

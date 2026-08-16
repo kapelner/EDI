@@ -5,6 +5,7 @@
 #include "result_map_rcpp.h"
 #include <RcppEigen.h>
 #endif
+#include "internal_fn_decls.h"
 #include <cmath>
 #include <vector>
 #include <string>
@@ -14,33 +15,6 @@
 using namespace Rcpp;
 #endif
 using namespace Eigen;
-
-ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
-                                              const Eigen::Ref<const Eigen::VectorXd>& y,
-                                              const Eigen::Ref<const Eigen::VectorXd>& weights = Eigen::VectorXd(),
-                                              std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
-                                              bool smart_cold_start = true,
-                                              int maxit = 100,
-                                              double tol = 1e-8,
-                                              std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
-                                              std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
-                                              std::string optimization_alg = "irls",
-                                              std::optional<Eigen::VectorXd> warm_start_weights = std::nullopt,
-                                              std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
-                                              bool estimate_only = false);
-ModelResult fast_poisson_regression_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
-                                             const Eigen::Ref<const Eigen::VectorXd>& y,
-                                             const Eigen::Ref<const Eigen::VectorXd>& weights = Eigen::VectorXd(),
-                                             std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
-                                             bool smart_cold_start = true,
-                                             int maxit = 100,
-                                             double tol = 1e-8,
-                                             std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
-                                             std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
-                                             std::string optimization_alg = "lbfgs",
-                                             std::optional<Eigen::VectorXd> warm_start_weights = std::nullopt,
-                                             std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
-                                             bool estimate_only = false);
 
 enum class GEEFamily { GAUSSIAN, BINOMIAL, POISSON };
 
@@ -284,15 +258,13 @@ GEEResult gee_pairs_singletons_cpp_impl(const Eigen::Ref<const MatrixXd>& X,
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-List gee_pairs_singletons_weighted_cpp(SEXP X_r, SEXP y_r, SEXP group_id_r, std::string family_str,
+List gee_pairs_singletons_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y_r, SEXP group_id_r, std::string family_str,
                                        SEXP weights_r,
                                        Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
                                        Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
                                        int maxit = 100, double tol = 1e-8) {
-    NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
     IntegerVector group_id_int(group_id_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
     NumericVector weights_vec(weights_r);
@@ -331,14 +303,12 @@ List gee_pairs_singletons_weighted_cpp(SEXP X_r, SEXP y_r, SEXP group_id_r, std:
 }
 
 // [[Rcpp::export]]
-List gee_pairs_singletons_cpp(SEXP X_r, SEXP y_r, SEXP group_id_r, std::string family_str, 
+List gee_pairs_singletons_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y_r, SEXP group_id_r, std::string family_str,
                                Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
                                Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
                                int maxit = 100, double tol = 1e-8) {
-    NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
     IntegerVector group_id_int(group_id_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
 

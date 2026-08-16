@@ -102,7 +102,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			private$active_resampling_operation = "rand_bootstrap"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
 			if (should_run_asserts()) {
-				private$assert_design_supports_resampling("Bootstrap randomization inference")
+				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
 				private$assert_valid_bootstrap_type(bootstrap_type)
 				assertNumeric(delta); assertCount(B, positive = TRUE); assertFlag(debug)
 			}
@@ -137,7 +137,14 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				}
 				# The C++ batch kernel consumes pre-drawn assignment vectors, so materialize
 				# them at generation time when a fast kernel is available.
-				rand_bootstrap_draws = private$generate_rand_bootstrap_draws(B, bootstrap_type = bootstrap_type, materialize_w = has_fast_kernel)
+				# Reusable and standard workers must evaluate the same fresh assignments.
+				# Materialize them whenever the estimator supports worker reuse; otherwise
+				# worker construction can consume RNG differently before drawing w.
+				rand_bootstrap_draws = private$generate_rand_bootstrap_draws(
+					B,
+					bootstrap_type = bootstrap_type,
+					materialize_w = has_fast_kernel || private$supports_reusable_bootstrap_worker()
+				)
 			}
 			# Under the sharp null with effect delta, the control potential outcomes are the
 			# observed responses with the delta shift removed from the treated subjects.
@@ -332,7 +339,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#' @return 	A two-sided p-value.
 		compute_rand_bootstrap_two_sided_pval = function(B = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, bootstrap_type = NULL, rand_bootstrap_draws = NULL, zero_one_logit_clamp = .Machine$double.eps, type = "percentile"){
 			if (should_run_asserts()) {
-				private$assert_design_supports_resampling("Bootstrap randomization inference")
+				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
 				assertNumeric(delta); assertCount(B, positive = TRUE); assertLogical(na.rm)
 				assertChoice(tolower(type), c("percentile", "studentized", "symmetric-percentile-t", "smoothed"))
 			}
@@ -615,13 +622,29 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 					zero_one_logit_clamp = zero_one_logit_clamp
 				)
 			}
+			dead_sim = NULL
 			if (!is.null(des_priv)) {
 				des_priv$w = w_new
 				des_priv$y = y_sim
+				if (identical(des_priv$response_type, "survival")) {
+					# Design no longer stores a raw dead field (y/y_L/y_R migration,
+					# interval_censored_survival_response.md TODO-1) -- des_priv$dead can't
+					# be assigned. dead_sim is propagated to inf_priv$dead directly below.
+					dead_sim = as.numeric(private$dead[draw$i_b])
+					if (!isTRUE(private$has_general_censoring)) {
+						des_priv$y_L = ifelse(dead_sim == 0, y_sim, NA_real_)
+						des_priv$y_R = ifelse(dead_sim == 0, Inf, NA_real_)
+					}
+				}
 			}
 			inf_priv$w = w_new
 			inf_priv$y = y_sim
 			inf_priv$y_temp = y_sim
+			if (!is.null(des_priv) && identical(des_priv$response_type, "survival")) {
+				inf_priv$dead = dead_sim
+				inf_priv$y_L = des_priv$y_L
+				inf_priv$y_R = des_priv$y_R
+			}
 			inf_priv$cached_values$KKstats = NULL
 			inf_priv$cached_values$beta_hat_T = NULL
 			inf_priv$cached_values$s_beta_hat_T = NULL
@@ -764,6 +787,18 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				)
 			}
 			sub_des_priv$y = y_sim
+			if (identical(sub_des_priv$response_type, "survival")) {
+				# sub_priv$dead is already correct here (bootstrap_subset_inference()
+				# subsets it from the original Inference object's own private$dead);
+				# Design no longer stores a raw dead field to round-trip through
+				# (interval_censored_survival_response.md TODO-1), so dead_sim is only
+				# needed locally for the y_L/y_R construction below.
+				dead_sim = as.numeric(private$dead[draw$i_b])
+				if (!isTRUE(private$has_general_censoring)) {
+					sub_des_priv$y_L = ifelse(dead_sim == 0, y_sim, NA_real_)
+					sub_des_priv$y_R = ifelse(dead_sim == 0, Inf, NA_real_)
+				}
+			}
 			private$sync_randomization_worker_state(sub_des, sub_inf)
 			estimate = tryCatch(
 				sub_inf$compute_estimate(estimate_only = FALSE),
@@ -886,6 +921,18 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				)
 			}
 			sub_des_priv$y = y_sim
+			if (identical(sub_des_priv$response_type, "survival")) {
+				# sub_priv$dead is already correct here (bootstrap_subset_inference()
+				# subsets it from the original Inference object's own private$dead);
+				# Design no longer stores a raw dead field to round-trip through
+				# (interval_censored_survival_response.md TODO-1), so dead_sim is only
+				# needed locally for the y_L/y_R construction below.
+				dead_sim = as.numeric(private$dead[draw$i_b])
+				if (!isTRUE(private$has_general_censoring)) {
+					sub_des_priv$y_L = ifelse(dead_sim == 0, y_sim, NA_real_)
+					sub_des_priv$y_R = ifelse(dead_sim == 0, Inf, NA_real_)
+				}
+			}
 			private$sync_randomization_worker_state(sub_des, sub_inf)
 			estimate = tryCatch(
 				sub_priv$compute_treatment_estimate_during_randomization_inference(estimate_only = TRUE),

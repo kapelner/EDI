@@ -2,10 +2,10 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_log_binomial_regression_cpp}
 \alias{fast_log_binomial_regression_cpp}
-\title{Fast Log-Binomial Regression (C++)}
+\title{Fast Log-Link Binomial Regression, Estimate Only (C++ Backend)}
 \usage{
 fast_log_binomial_regression_cpp(
-  X_r,
+  X,
   y_r,
   maxit = 100L,
   tol = 1e-06,
@@ -19,28 +19,65 @@ fast_log_binomial_regression_cpp(
 )
 }
 \arguments{
-\item{X_r}{A numeric matrix of predictors.}
+\item{y_r}{A binary (0/1) numeric vector of responses, length \eqn{n}.}
 
-\item{y_r}{A binary numeric vector of responses.}
+\item{maxit}{Maximum number of Fisher-scoring iterations.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{tol}{Convergence tolerance, on the relative norm of the coefficient
+update step.}
 
-\item{tol}{Convergence tolerance.}
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed
+rather than estimate.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
-
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
 
 \item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
 
 \item{warm_start_weights}{Optional initial working weights for the first IRLS iteration.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+
+\item{X_r}{A numeric matrix of predictors, \eqn{n \times p}; include an
+explicit intercept column if desired (no implicit intercept).}
 }
 \value{
-A list containing coefficients and fitted values.
+A list with components \code{b} (estimated coefficients
+  \eqn{\hat\beta}, on the log-relative-risk scale), \code{mu_hat} (fitted
+  probabilities, length \eqn{n}), \code{working_weights} (final IRLS
+  weights), \code{iterations}, \code{converged} (logical), and
+  \code{fisher_information} (the working-weights curvature matrix
+  \eqn{X^\top W X}).
 }
 \description{
-High-performance log-binomial regression fitting using Fisher scoring.
+Fits a binary-response GLM with the \strong{log} link (a relative-risk
+model), \eqn{\log \mu_i = \log \Pr(Y_i = 1) = x_i^\top \beta} (equivalently
+\eqn{\mu_i = e^{x_i^\top \beta}}, constrained to stay below
+\eqn{1 - 10^{-8}} so it remains a valid probability), via Fisher scoring
+(IRLS) with a step-halving line search that rejects any Newton step whose
+resulting \eqn{\eta_i = x_i^\top \beta} would push \eqn{\mu_i} out of range
+or decrease the log-likelihood — the same boundary-constrained-line-search
+mechanism documented in full at
+\code{\link{fast_identity_binomial_regression_cpp}} (see that page for the
+IRLS/line-search mechanics, which are shared verbatim between the log and
+identity links here; only the link function itself, and hence the
+coefficient scale, differs). Regression coefficients are directly
+interpretable as \strong{log relative risks}: \eqn{e^{\beta_j}} is the
+multiplicative change in \eqn{\Pr(Y = 1)} per unit change in covariate
+\eqn{j} — in contrast to
+\code{\link{fast_identity_binomial_regression_cpp}}'s risk-difference scale,
+or a logit-link model's odds-ratio scale.
+}
+\seealso{
+\code{\link{fast_identity_binomial_regression_cpp}} for the
+  identity-link (risk-difference) analog and the full IRLS/line-search
+  mechanics; \code{\link{fast_log_binomial_regression_with_var_cpp}} for the
+  variance-augmented variant; \code{\link{fast_log_binomial_regression_weighted_cpp}}
+  for the row-weighted variant.
+  \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson
+  regression}'s log link is the closest common orientation point for a
+  log-link GLM. Analogous Python API:
+  \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM}
+  (\code{families.Binomial(link=log())}).
 }
 \keyword{internal}

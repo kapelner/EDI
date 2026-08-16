@@ -1,9 +1,9 @@
 #include <Rcpp.h>
+#include "RNG.h"
 #include <algorithm>
 #include <cstdint>
 #include <limits>
 #include <numeric>
-#include <random>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -13,24 +13,11 @@ using namespace Rcpp;
 
 namespace {
 
-inline uint64_t bounded_rand(std::mt19937_64& rng, uint64_t s) {
-	uint64_t x = rng();
-	__uint128_t m = static_cast<__uint128_t>(x) * s;
-	uint64_t l = static_cast<uint64_t>(m);
-	if (l < s) {
-		uint64_t t = (-s) % s;
-		while (l < t) {
-			x = rng();
-			m = static_cast<__uint128_t>(x) * s;
-			l = static_cast<uint64_t>(m);
-		}
-	}
-	return static_cast<uint64_t>(m >> 64);
-}
+// bounded_rand is now defined once in RNG.h (namespace edi_rng); ADL
+// resolves the unqualified calls below since rng is edi_rng::RRng&.
 
-inline std::mt19937_64 make_local_rng() {
-	return std::mt19937_64(static_cast<uint64_t>(
-		R::unif_rand() * static_cast<double>(std::numeric_limits<uint64_t>::max())));
+inline edi_rng::RRng make_local_rng() {
+	return edi_rng::RRng(edi_rng::seed_from_unif01(R::unif_rand()));
 }
 
 std::string char_at_or_na(const CharacterVector& x, int i) {
@@ -75,7 +62,7 @@ void sample_group_units(
 	const std::vector<int>& ids,
 	int k,
 	bool replace,
-	std::mt19937_64& rng,
+	edi_rng::RRng& rng,
 	std::vector<int>& selected
 ) {
 	if (k <= 0) return;
@@ -84,7 +71,7 @@ void sample_group_units(
 	if (!replace && k > n) stop("Subsampling group is too small for the requested subsample size.");
 
 	if (replace) {
-		const uint64_t un = static_cast<uint64_t>(n);
+		const std::uint32_t un = static_cast<std::uint32_t>(n);
 		for (int i = 0; i < k; ++i) {
 			selected.push_back(ids[static_cast<int>(bounded_rand(rng, un))]);
 		}
@@ -93,7 +80,7 @@ void sample_group_units(
 
 	std::unordered_set<int> seen;
 	seen.reserve(static_cast<size_t>(k) * 2U + 1U);
-	const uint64_t un = static_cast<uint64_t>(n);
+	const std::uint32_t un = static_cast<std::uint32_t>(n);
 	const int target_size = static_cast<int>(selected.size()) + k;
 	while (static_cast<int>(selected.size()) < target_size) {
 		int pos = static_cast<int>(bounded_rand(rng, un));
@@ -238,6 +225,10 @@ List build_draw(
 
 } // namespace
 
+//' @note Seeded from one R::unif_rand() draw into edi_rng::RRng (RNG.h), a
+//'   portable re-implementation of R's own Mersenne-Twister generator -- a
+//'   given seed therefore produces identical draws in R and in any future
+//'   binding (e.g. Python) using the same core and the same seed.
 // [[Rcpp::export]]
 List exchangeable_resampling_draws_cpp(
 	List units,

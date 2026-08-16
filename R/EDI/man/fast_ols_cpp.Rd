@@ -2,24 +2,48 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{fast_ols_cpp}
 \alias{fast_ols_cpp}
-\title{Fast Ordinary Least Squares (OLS) Regression (C++ Backend)}
+\title{Fast Ordinary Least Squares (OLS) Regression, Estimate-Only (C++ Backend)}
 \arguments{
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}
 
-\item{y}{A numeric vector of the response variable, expected to be binary (0 or 1).}
+\item{y}{A numeric vector of the (continuous) response variable.}
 
-\item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default), \code{"lbfgs"} or \code{"irls"}.}
+\item{fixed_idx}{Optional integer vector of 1-indexed columns of \code{X} whose
+coefficients should be held fixed at \code{fixed_values} rather than estimated.}
+
+\item{fixed_values}{Optional numeric vector, parallel to \code{fixed_idx}, of the
+fixed coefficient values.}
 }
 \value{
 A list containing the following component:
 \describe{
-\item{b}{A numeric vector of the estimated regression coefficients.}
+\item{b}{A numeric vector of the estimated regression coefficients \eqn{\hat\beta}
+  (with any \code{fixed_idx} entries set to \code{fixed_values}); if the solve
+  produces non-finite values, this is instead a vector of \code{NaN}.}
 }
 }
 \description{
-This function provides a highly optimized implementation of Ordinary Least Squares (OLS)
-regression using the Eigen C++ library for numerical computations. It is designed for speed
-when only the regression coefficients are needed, without variance-covariance matrices
-or other statistical inference components.
+Solves the ordinary least squares normal equations
+\eqn{\hat\beta = (X^\top X)^{-1} X^\top y} via Eigen's \code{LDLT} Cholesky
+decomposition of \eqn{X^\top X}; if that decomposition fails (e.g. \eqn{X}
+is rank-deficient), it falls back to a column-pivoted QR decomposition of
+\eqn{X} directly (\code{Eigen::ColPivHouseholderQR}), which returns a
+minimum-norm least-squares solution even when \eqn{X} is not full rank.
+Estimate-only: no standard errors or covariance matrix are computed, only
+the coefficient vector \eqn{\hat\beta}.
+}
+\section{Fixed (offset) coefficients}{
+
+\code{fixed_idx} (1-indexed columns
+  of \code{X}) and \code{fixed_values} optionally hold a subset of coefficients at
+  caller-supplied constant values rather than estimating them: those columns'
+  contribution \eqn{X_{\mathrm{fixed}} \beta_{\mathrm{fixed}}} is subtracted out of
+  \code{y} first, and only the remaining ("free") columns are fit by least squares;
+  the fixed coefficients are then copied back into \eqn{\hat\beta} unchanged. This is
+  used, e.g., to fit a model with a known/offset intercept without re-estimating it.
+}
+
+\seealso{
+\code{\link{fast_ols_with_var_cpp}} for the variance-computing counterpart.
 }

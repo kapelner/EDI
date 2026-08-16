@@ -11,12 +11,6 @@
 using namespace Rcpp;
 #endif
 
-struct DigammaFunctor {
-	double operator()(double x) const {
-		return fast_digamma(x);
-	}
-};
-
 struct LgammaFunctor {
 	double operator()(double x) const {
 		return std::lgamma(x);
@@ -508,19 +502,71 @@ Eigen::MatrixXd get_zero_one_inflated_beta_hessian_cpp(const Eigen::Map<Eigen::M
 	return -fun.hessian(params);
 }
 
-//' @title Fast Zero/One-Inflated Beta Regression (C++)
-//' @description High-performance zero/one-inflated beta regression fitting using Newton-Raphson or L-BFGS.
-//' @param X Matrix of predictors for the beta component.
-//' @param X_zero_one Matrix of predictors for the zero and one inflation components.
-//' @param y Vector of responses in [0, 1].
-//' @param warm_start_params Optional starting values for all parameters. If provided, \code{smart_cold_start} is ignored.
-//' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first iteration.
-//' @param estimate_only Logical. If TRUE, skip variance-related output where supported.
-//' @return A list containing coefficients, vcov, and convergence status.
+//' Fast Zero/One-Inflated Beta Regression (C++)
+//'
+//' Fits, by direct maximum likelihood, a three-component mixture model for a
+//' response \eqn{Y_i \in [0, 1]} (e.g. a bounded proportion with excess exact 0s
+//' and 1s): with probability \eqn{\pi_{0,i}} the response is exactly 0, with
+//' probability \eqn{\pi_{1,i}} it is exactly 1, and with probability
+//' \eqn{\pi_{b,i} = 1 - \pi_{0,i} - \pi_{1,i}} it falls strictly inside
+//' \eqn{(0, 1)} and follows a mean-precision Beta distribution. The three
+//' category probabilities come from a multinomial-logit-style softmax over two
+//' linear predictors on \code{X_zero_one}, with the "interior" (Beta) category as
+//' the implicit zero baseline:
+//' \deqn{\pi_{0,i} = \frac{e^{\eta_{0,i}}}{e^{\eta_{0,i}} + e^{\eta_{1,i}} + 1},
+//'   \quad \pi_{1,i} = \frac{e^{\eta_{1,i}}}{e^{\eta_{0,i}} + e^{\eta_{1,i}} + 1},
+//'   \quad \eta_{0,i} = x_{\mathrm{zo},i}^\top\gamma_0,\ \ \eta_{1,i} = x_{\mathrm{zo},i}^\top\gamma_1,}
+//' and, conditional on \eqn{0 < Y_i < 1}, \eqn{Y_i \sim \mathrm{Beta}(\mu_i\phi,
+//' (1-\mu_i)\phi)} with \eqn{\mu_i = \mathrm{logit}^{-1}(x_i^\top\beta)} (clamped
+//' to \eqn{[10^{-8}, 1-10^{-8}]}) and precision \eqn{\phi = e^{\log\phi}} —
+//' matching the mean-precision Beta regression parameterization documented at
+//' \code{\link{fast_beta_regression_cpp}}. Optimizes the joint parameter vector
+//' \eqn{[\beta, \log\phi, \gamma_0, \gamma_1]} via \code{optimization_alg}
+//' (default \code{"lbfgs"}), for up to 1500 iterations at gradient-norm tolerance
+//' \eqn{10^{-6}} — both hardcoded, with no \code{maxit}/\code{tol} arguments
+//' exposed by this function.
+//'
+//' @section Fixed parameters, warm starts:
+//' \code{fixed_idx} (1-indexed into \eqn{[\beta, \log\phi, \gamma_0, \gamma_1]})
+//' and \code{fixed_values} optionally hold a subset of parameters fixed at
+//' caller-supplied constant values rather than estimated. \code{warm_start_params}
+//' supplies the full starting vector directly; otherwise, if \code{smart_cold_start
+//' = TRUE} (the default): \eqn{\beta} starts from an OLS fit of
+//' \eqn{\mathrm{logit}(y_i)} on \code{X} restricted to interior observations
+//' (\eqn{0 < y_i < 1}), falling back to zero if fewer such observations than
+//' \code{ncol(X)} are available; \eqn{\log\phi} starts at 2; and \eqn{\gamma_0}/
+//' \eqn{\gamma_1} each start from a separate OLS fit of \code{X_zero_one} on the
+//' corresponding 0/1 indicator (\eqn{\mathbb{1}[y_i = 0]}, \eqn{\mathbb{1}[y_i =
+//' 1]}). If \code{smart_cold_start = FALSE}, all parameters start at zero except
+//' \eqn{\log\phi}, which still starts at 2. \code{warm_start_fisher_info}, if
+//' supplied, seeds the curvature estimate used for the optimizer's first
+//' iteration.
+//'
+//' @param X Matrix of predictors for the interior Beta (mean) component.
+//' @param X_zero_one Matrix of predictors for the zero- and one-inflation
+//'   (mixture-probability) components; shared between \eqn{\gamma_0} and \eqn{\gamma_1}.
+//' @param y Vector of responses in \verb{[0, 1]}.
+//' @param warm_start_params Optional starting values for the joint \eqn{[\beta,
+//'   \log\phi, \gamma_0, \gamma_1]} vector. If provided, \code{smart_cold_start} is ignored.
+//' @param smart_cold_start Logical. If \code{TRUE} (the default) and no
+//'   \code{warm_start_params} is supplied, use an OLS-based initial guess; see Details.
+//' @param fixed_idx Optional 1-indexed positions of parameters to hold fixed.
+//' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
+//' @param optimization_alg Optimization algorithm (default \code{"lbfgs"}).
+//' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
+//' @param estimate_only If \code{TRUE}, skip the post-fit Hessian/variance computation and
+//'   return only \code{b}, \code{log_phi}, \code{zero_one_b0}, \code{zero_one_b1},
+//'   \code{params}, \code{neg_loglik}, and \code{converged}.
+//'
+//' @return A list with components \code{b} (\eqn{\hat\beta}), \code{log_phi},
+//'   \code{zero_one_b0}/\code{zero_one_b1} (\eqn{\hat\gamma_0}/\eqn{\hat\gamma_1}),
+//'   \code{params} (the full fitted joint vector), \code{neg_loglik}, \code{converged};
+//'   unless \code{estimate_only = TRUE}, additionally \code{vcov} (the joint
+//'   variance-covariance matrix — an all-\code{NA} matrix if the observed information
+//'   is non-finite or its free-parameter submatrix is not invertible, rather than an
+//'   error), \code{observed_information}/\code{fisher_information}/\code{information}
+//'   (three aliases for the same observed-information matrix; \code{information_type}
+//'   is always \code{"observed"}), and \code{hessian} (the negative of that same matrix).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]

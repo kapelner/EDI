@@ -424,7 +424,10 @@ make_edi_bm = function(cls_name, d) {
             }
             fast_coxph_regression_prebuilt_cpp(cache, estimate_only = TRUE)
         }),
-        InferenceSurvivalWeibullRegr    = quote(fast_weibull_regression_cpp(X_ord, y_bm, dead_bm, estimate_only = TRUE)),
+        InferenceSurvivalWeibullRegr    = quote(fast_weibull_regression_general_cpp(
+            X_ord, ifelse(dead_bm != 0, y_bm, NA_real_),
+            ifelse(dead_bm == 0, y_bm, NA_real_), ifelse(dead_bm == 0, Inf, NA_real_),
+            estimate_only = TRUE)),
         InferenceSurvivalLogRank        = quote(EDI:::fast_logrank_stats_cpp(w_bm, y_bm, dead_bm)),
         InferenceSurvivalKMDiff         = quote(EDI:::get_survival_stat_diff(y_bm, dead_bm, w_bm, "median")),
         InferenceSurvivalRestrictedMeanDiff = quote(EDI:::get_survival_stat_diff(y_bm, dead_bm, w_bm, "restricted_mean")),
@@ -1098,7 +1101,11 @@ make_edi_wald_bm = function(cls_name, d) {
             se = sqrt(res$vcov[1, 1]); 2 * stats::pnorm(-abs(res$coefficients[1] / se))
         }),
         InferenceSurvivalWeibullRegr = quote({
-            res = fast_weibull_regression_cpp(X_ord, y_bm, dead_bm, estimate_only = FALSE)
+            res = fast_weibull_regression_general_cpp(
+                X_ord, ifelse(dead_bm != 0, y_bm, NA_real_),
+                ifelse(dead_bm == 0, y_bm, NA_real_), ifelse(dead_bm == 0, Inf, NA_real_),
+                estimate_only = FALSE
+            )
             se = sqrt(res$vcov[2, 2]); 2 * stats::pnorm(-abs(res$params[2] / se))
         }),
         InferenceSurvivalLogRank = quote({

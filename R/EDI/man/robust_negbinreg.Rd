@@ -2,21 +2,34 @@
 % Please edit documentation in R/other_helpers.R
 \name{robust_negbinreg}
 \alias{robust_negbinreg}
-\title{Robust Negative Binomial Regression}
+\title{Robust Negative Binomial Regression with Backward Column-Dropping Fallback}
 \usage{
 robust_negbinreg(form_obj, data_obj)
 }
 \arguments{
-\item{form_obj}{The formula}
+\item{form_obj}{The model formula, typically \code{y ~ .} so its right-hand side
+automatically tracks \code{data_obj}'s shrinking column set across retries.}
 
-\item{data_obj}{The data frame to run Negative Binomial regression on}
+\item{data_obj}{The data frame to run negative-binomial regression on; its \strong{last}
+column is dropped on each retry, in order, until a fit converges or no columns remain.}
 }
 \value{
-The Negative Binomial regression model object
+The fitted \code{\link[MASS]{glm.nb}} model object, or \code{NA} if no column subset
+  (down to and including the response alone) produced a successful fit.
 }
 \description{
-Performs Negative Binomial regression that if it fails, keeps dropping one column from the
-model matrix until it works
+Fits a negative-binomial GLM via \code{\link[MASS]{glm.nb}} (log link, joint
+ML estimation of the regression coefficients and the dispersion parameter
+\eqn{\theta}), falling back to a smaller model when the fit throws an error
+(typically non-convergence of \eqn{\theta}, or a singular design). On each
+failure, the \strong{last} column of \code{data_obj} is dropped and the fit is
+retried against the same \code{form_obj} (which must resolve to \code{y ~ .}
+or similar so that its right-hand side tracks the shrinking column set); this
+repeats until a fit succeeds or every predictor column has been removed, at
+which point \code{NA} is returned. Because columns are dropped strictly from
+the right, callers should order \code{data_obj}'s columns from most to least
+important \emph{a priori}, or accept that this is a best-effort robustness
+measure rather than a principled model-selection procedure.
 }
 \examples{
 dat = data.frame(y = rpois(10, 2), x1 = rnorm(10), x2 = rnorm(10))

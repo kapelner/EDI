@@ -2,7 +2,8 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_cpoisson_combined_with_var_cpp}
 \alias{fast_cpoisson_combined_with_var_cpp}
-\title{Fast Combined Conditional-Poisson Regression (C++)}
+\title{Fast Combined Conditional-Poisson + Poisson Regression for KK Matched-Pair/
+Reservoir Designs, with Variance (C++ Backend)}
 \usage{
 fast_cpoisson_combined_with_var_cpp(
   yT_v_r,
@@ -22,30 +23,123 @@ fast_cpoisson_combined_with_var_cpp(
 )
 }
 \arguments{
-\item{yT_v_r}{Treated counts per pair.}
+\item{yT_v_r}{Numeric vector of length \eqn{n_{\mathrm{pairs}}}: the treated
+member's count for each matched pair.}
 
-\item{n_k_v_r}{Total counts per pair.}
+\item{n_k_v_r}{Numeric vector of length \eqn{n_{\mathrm{pairs}}}: the total
+(treated + control) count for each matched pair.}
 
-\item{X_diff_v_r}{Covariate differences.}
+\item{X_diff_v_r}{Numeric matrix, \eqn{n_{\mathrm{pairs}} \times p}: each
+pair's covariate difference (treated minus control); \eqn{p = 0} (zero
+columns) is valid (no covariate adjustment).}
 
-\item{y_r_r}{Reservoir outcomes.}
+\item{y_r_r}{Numeric vector of length \eqn{n_R}: reservoir subjects' counts.}
 
-\item{w_r_r}{Reservoir treatment indicators.}
+\item{w_r_r}{Numeric vector of length \eqn{n_R} with values in \code{{0, 1}}:
+reservoir subjects' treatment indicators.}
 
-\item{X_r_r}{Reservoir covariates.}
+\item{X_r_r}{Numeric matrix, \eqn{n_R \times p}: reservoir subjects'
+covariates (same \eqn{p} as \code{X_diff_v_r}).}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of Newton iterations.}
 
-\item{tol}{Convergence tolerance.}
+\item{tol}{Convergence tolerance (on the norm of the parameter update step).}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional integer indices (into the
+\code{c(beta_0, beta_T, beta_xs)} parameter layout) of parameters to hold
+fixed rather than estimate.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
+
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix (over
+the full \code{p + 2} parameters) to warm-start the first Newton iteration.}
+
+\item{warm_start_params}{Optional starting values for the full parameter
+vector \code{c(beta_0, beta_T, beta_xs)}.}
+
+\item{warm_start_beta}{Optional starting values for just
+\code{c(beta_T, beta_xs)} (length \code{p + 1}); \code{beta_0} is still
+initialized separately. Ignored if \code{warm_start_params} is supplied.}
+
+\item{estimate_only}{Logical; if \code{TRUE}, skip score/information/variance
+computation after optimization (see Details).}
 }
 \value{
-A list containing coefficients, variance estimates, and likelihood statistics.
+A list with components \code{b}/\code{params} (the fitted
+  \code{c(beta_0, beta_T, beta_xs)} vector), \code{converged} (logical), and,
+  unless \code{estimate_only = TRUE}: \code{ssq_b_j} (the variance of
+  \eqn{\hat\beta_T}), \code{score} (the score vector at the fitted
+  parameters), \code{observed_information}/\code{fisher_information}/
+  \code{information} (three aliases for the same Fisher information matrix,
+  also tagged by \code{information_type = "fisher"}), \code{hessian} (the
+  Hessian of the negative log-likelihood, i.e. \code{-information}),
+  \code{neg_loglik}/\code{neg_ll} (aliases for the combined negative
+  log-likelihood at the fitted parameters), and \code{loglik} (its negation).
 }
 \description{
-High-performance fitting of a model combining conditional Poisson (for matched pairs) and marginal Poisson (for reservoir subjects).
+Jointly fits a single treatment-effect coefficient \eqn{\beta_T} (and shared
+covariate effects \eqn{\beta_{xs}}) across two structurally different count
+likelihoods at once — the matched-pair (conditional Poisson) component from
+subjects paired on-the-fly by a KK matching design (e.g.
+\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}}) and the
+marginal Poisson component from unmatched "reservoir" subjects — rather than
+fitting the two subsets separately and combining estimates afterward (as an
+inverse-variance-weighted combination does elsewhere in the package). This
+one-likelihood joint fit is what backs
+\code{InferenceCountKKCondPoissonOneLik}-style estimators.
+}
+\details{
+\strong{Matched-pair component (conditional Poisson).} For pair \eqn{k} with
+total count \eqn{n_k} (sum of both members' counts) and treated-member count
+\eqn{y_{T,k}}, conditioning on \eqn{n_k} (the sufficient statistic that
+eliminates the pair's nuisance baseline rate) reduces the joint Poisson
+likelihood of the pair to a Binomial: \eqn{y_{T,k} \mid n_k \sim
+\mathrm{Binomial}(n_k, p_k)}, \eqn{p_k = \mathrm{logit}^{-1}(\beta_T +
+x_{\Delta,k}^\top \beta_{xs})}, where \eqn{x_{\Delta,k}} is the pair's
+covariate \emph{difference} (treated minus control). This is exactly the
+count-response analog of conditional logistic regression for matched pairs —
+no per-pair intercept is estimated (it is conditioned out entirely), so only
+\eqn{\beta_T} and \eqn{\beta_{xs}} appear in this component.
+
+\strong{Reservoir component (marginal Poisson).} Unmatched reservoir subjects
+contribute an ordinary Poisson log-linear likelihood,
+\eqn{y_i \sim \mathrm{Poisson}(\mu_i)}, \eqn{\log \mu_i = \beta_0 + w_i \beta_T +
+x_i^\top \beta_{xs}}, sharing the \emph{same} \eqn{\beta_T} and
+\eqn{\beta_{xs}} as the pair component but additionally estimating an
+intercept \eqn{\beta_0} (which the conditional pair likelihood has no use
+for).
+
+\strong{Combined likelihood and optimization.} The total log-likelihood is the
+simple sum of the pair (conditional Poisson/Binomial) and reservoir (Poisson)
+log-likelihoods, jointly maximized over \code{c(beta_0, beta_T, beta_xs)}
+(length \code{p + 2}) via Newton's method using the analytic Fisher
+information as the Hessian (quadratic convergence near the optimum, typically
+very few iterations). \code{fixed_idx}/\code{fixed_values} hold specific
+parameters fixed rather than estimated; \code{warm_start_params} (full vector)
+or \code{warm_start_beta} (either the full vector, or just
+\code{c(beta_T, beta_xs)} when of length \code{p + 1}, in which case
+\code{beta_0} is initialized separately) seed the optimizer, with a
+log-mean-based default cold start for \code{beta_0} when neither is supplied.
+
+\strong{Variance.} \code{ssq_b_j} is the variance of \eqn{\hat\beta_T}
+specifically (index 1, 0-based, in the parameter layout — the package's usual
+single-treatment-coefficient convention), obtained via a targeted diagonal
+inverse of the observed/Fisher information restricted to free parameters;
+\code{NA} if \eqn{\beta_T} was itself fixed via \code{fixed_idx}.
+
+\strong{Estimate-only mode.} If \code{estimate_only = TRUE}, optimization
+still runs to convergence but the score/information/variance computation is
+skipped entirely, returning only \code{b}, \code{params}, and
+\code{converged}.
+}
+\seealso{
+\href{https://en.wikipedia.org/wiki/Conditional_logistic_regression}{Conditional
+  logistic regression} for the matched-pair likelihood's structural analog;
+  \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson regression}
+  for the reservoir component; analogous Python API:
+  \href{https://www.statsmodels.org/dev/generated/statsmodels.discrete.conditional_models.ConditionalPoisson.html}{statsmodels
+  ConditionalPoisson} for the conditional-Poisson matched-set likelihood alone
+  (not the combined pair+reservoir model implemented here).
 }
 \keyword{internal}

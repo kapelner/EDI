@@ -2,19 +2,29 @@
 % Please edit documentation in R/inference_continuous_robust_regr.R
 \name{InferenceContinRobustRegr}
 \alias{InferenceContinRobustRegr}
-\title{Robust Regression Inference for Continuous Responses}
+\title{Robust (M/MM-Estimator) Regression Inference for Continuous Responses}
 \description{
-Fits a robust linear regression via \code{MASS::rlm} for continuous responses
-using the treatment indicator and, optionally, all recorded covariates as
-predictors. This provides a Huber/MM-style robustness upgrade over ordinary
-least squares when outcomes are heavy-tailed or outlier-prone. Inference is
-based on the coefficient table returned by \code{summary.rlm()}.
+Fits a robust linear regression — by default via this package's
+\code{\link{fast_robust_regression_cpp}} C++ backend (\code{use_rcpp = TRUE};
+see that page for the full M/MM-estimator model, weight functions, and
+asymptotic variance formula), or via \code{MASS::rlm} when \code{use_rcpp =
+FALSE} — for a continuous response using the treatment indicator and,
+optionally, all recorded covariates as predictors. This provides a
+Huber/MM-style robustness upgrade over ordinary least squares when outcomes
+are heavy-tailed or outlier-prone, down-weighting large residuals rather
+than letting them dominate the fit the way squared-error loss does.
 
 
-The \code{method} argument is passed to \code{MASS::rlm} and may be either
-\code{"M"} or \code{"MM"}. For \code{"M"}, the fit uses Huber's psi
-function. Approximate confidence intervals and p-values use the reported
-robust standard error with residual degrees of freedom \eqn{n - p}.
+The \code{method} argument is passed through to either backend and may be
+either \code{"M"} (Huber's psi function) or \code{"MM"} (Tukey's bisquare
+weight, the default — higher breakdown point than \code{"M"} at some cost
+in asymptotic efficiency under normality). When \code{use_rcpp = TRUE}
+(the default), coefficient standard errors come from the C++ backend's own
+M-estimator asymptotic variance (\code{ssq_b_j}); when \code{FALSE}, they
+come from the coefficient table returned by \code{summary.rlm()}. Either
+way, confidence intervals and p-values use that standard error with
+residual degrees of freedom \eqn{n - p} in a normal-theory Wald
+approximation (not an exact finite-sample distribution).
 }
 \examples{
 \donttest{
@@ -27,8 +37,8 @@ inf = InferenceContinRobustRegr$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceContinRobustRegr}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceContinRobustRegr}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -38,76 +48,10 @@ inf$compute_estimate()
     \item \href{#method-InferenceContinRobustRegr-compute_estimate_with_bootstrap_weights}{\code{InferenceContinRobustRegr$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferenceContinRobustRegr-compute_asymp_confidence_interval}{\code{InferenceContinRobustRegr$compute_asymp_confidence_interval()}}
     \item \href{#method-InferenceContinRobustRegr-compute_asymp_two_sided_pval}{\code{InferenceContinRobustRegr$compute_asymp_two_sided_pval()}}
-    \item \href{#method-InferenceContinRobustRegr-approximate_bootstrap_distribution_beta_hat_T}{\code{InferenceContinRobustRegr$approximate_bootstrap_distribution_beta_hat_T()}}
     \item \href{#method-InferenceContinRobustRegr-clone}{\code{InferenceContinRobustRegr$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -133,8 +77,12 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceContinRobustRegr-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinRobustRegr-initialize}{}}}
 \subsection{\code{InferenceContinRobustRegr$new()}}{
-  Initialize a robust-regression inference object for a completed design
-with a continuous response.
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+
+
+  Initialize a robust-regression inference object for a
+  completed design with a continuous, uncensored response.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinRobustRegr$new(
@@ -155,9 +103,11 @@ with a continuous response.
 the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
-      \item{\code{method}}{The estimation method.. Default "MM".}
-      \item{\code{use_rcpp}}{Whether to use C++ speedup.. Default TRUE.}
-      \item{\code{verbose}}{Whether to print progress messages.. Default FALSE.}
+      \item{\code{method}}{Robust estimation method, \code{"M"} (Huber) or \code{"MM"}
+(Tukey bisquare, higher breakdown point). Default \code{"MM"}.}
+      \item{\code{use_rcpp}}{Whether to use the \code{\link{fast_robust_regression_cpp}}
+C++ backend (\code{TRUE}, default) instead of \code{MASS::rlm} (\code{FALSE}).}
+      \item{\code{verbose}}{Whether to print progress messages. Default \code{FALSE}.}
       \item{\code{smart_cold_start_default}}{Whether to use smart starting values for the optimizer.}
     }
     \if{html}{\out{</div>}}
@@ -168,7 +118,11 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceContinRobustRegr-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinRobustRegr-compute_estimate}{}}}
 \subsection{\code{InferenceContinRobustRegr$compute_estimate()}}{
-  Computes the robust-regression estimate of the treatment effect.
+  Computes the robust-regression treatment coefficient
+  \eqn{\hat\beta_T} from an M/MM-estimator fit (see class documentation
+  for the full model and \code{use_rcpp} backend choice). Rank-deficient
+  covariate columns are dropped before fitting via
+  \code{private$fit_with_hardened_qr_column_dropping()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinRobustRegr$compute_estimate(estimate_only = FALSE)}
@@ -187,8 +141,20 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceContinRobustRegr-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinRobustRegr-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceContinRobustRegr$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the class-specific treatment estimate under bootstrap weights; see
+  Recomputes the robust-regression treatment estimate under
+  subject/block bootstrap weights, used by the Bayesian bootstrap and
+  related weighted-resampling machinery; see
   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+  When \code{use_rcpp = TRUE}, reproduces \code{MASS::rlm}'s default
+  \code{wt.method = "inv.var"} weighting exactly by pre-multiplying
+  \code{X} and \code{y} by \eqn{\sqrt{\text{weight}}} and running
+  unweighted M-estimation on the transformed data via the C++ backend
+  (rather than adding native weight support to that backend); when
+  \code{use_rcpp = FALSE}, passes \code{weights} directly to
+  \code{MASS::rlm}. This variant never populates a standard error or
+  degrees of freedom (both left \code{NA}) — it is estimate-only by
+  construction, matching the \code{estimate_only} default of the fast
+  path it always uses internally.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinRobustRegr$compute_estimate_with_bootstrap_weights(
@@ -211,8 +177,13 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceContinRobustRegr-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinRobustRegr-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceContinRobustRegr$compute_asymp_confidence_interval()}}{
-  Uses the shared asymptotic confidence-interval contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Computes a \eqn{1-\alpha} level confidence interval for the
+  robust-regression treatment coefficient \eqn{\hat\beta_T}, using the
+  M/MM-estimator's asymptotic standard error (see class documentation
+  for its source depending on \code{use_rcpp}) and residual degrees of
+  freedom \eqn{n - p} in a normal-theory Wald approximation. See
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  asymptotic confidence-interval contract this delegates to.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinRobustRegr$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -232,8 +203,12 @@ interval is 1 - \code{alpha}. The default is 0.05.}
 \if{html}{\out{<a id="method-InferenceContinRobustRegr-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinRobustRegr-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceContinRobustRegr$compute_asymp_two_sided_pval()}}{
-  Uses the shared asymptotic two-sided p-value contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Computes a two-sided Wald p-value testing \eqn{H_0:
+  \beta_T = \code{delta}}, from the same M/MM-estimator standard error
+  and residual degrees of freedom used by
+  \code{$compute_asymp_confidence_interval()}. See
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  asymptotic two-sided p-value contract this delegates to.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinRobustRegr$compute_asymp_two_sided_pval(delta = 0)}
@@ -245,37 +220,6 @@ interval is 1 - \code{alpha}. The default is 0.05.}
       \item{\code{delta}}{The null difference to test against. Default is zero.}
     }
     \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceContinRobustRegr-approximate_bootstrap_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceContinRobustRegr-approximate_bootstrap_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceContinRobustRegr$approximate_bootstrap_distribution_beta_hat_T()}}{
-  Uses the shared nonparametric bootstrap distribution contract; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceContinRobustRegr$approximate_bootstrap_distribution_beta_hat_T(
-  B = 501,
-  show_progress = TRUE,
-  debug = FALSE,
-  bootstrap_type = NULL
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{B}}{Number of bootstrap samples.}
-      \item{\code{show_progress}}{Whether to show a progress bar.}
-      \item{\code{debug}}{Whether to return diagnostics.}
-      \item{\code{bootstrap_type}}{Optional resampling scheme.}
-    }
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    A numeric vector of bootstrap estimates.
   }
 }
 

@@ -2,21 +2,34 @@
 % Please edit documentation in R/RcppExports.R
 \name{get_ordinal_regression_hessian_cpp}
 \alias{get_ordinal_regression_hessian_cpp}
-\title{Compute Ordinal Regression Hessian}
+\title{Proportional-Odds Ordinal Regression Hessian, Standalone (C++)}
 \usage{
 get_ordinal_regression_hessian_cpp(X, y, params)
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors (no intercept column needed; see
+\code{\link{fast_ordinal_regression_cpp}}).}
 
-\item{y}{A numeric vector of responses.}
+\item{y}{A numeric vector of ordinal responses; only the rank order of
+distinct values matters, not their numeric coding.}
 
-\item{params}{A numeric vector of parameters [alpha, beta].}
+\item{params}{A numeric vector \eqn{[\alpha, \beta]}: the category thresholds
+followed by the regression coefficients, at which to evaluate the Hessian.}
 }
 \value{
-A numeric matrix representing the Hessian.
+The Hessian matrix of the log-likelihood at \code{params}.
 }
 \description{
-Calculates the Hessian matrix (second derivatives of the log-likelihood) for an ordinal regression model.
+Computes the (analytic) Hessian matrix of the log-likelihood of the logit-link
+cumulative (proportional-odds) ordinal regression model documented in full at
+\code{\link{fast_ordinal_regression_cpp}}, at arbitrary caller-supplied
+\code{params} (not necessarily the MLE). Exported standalone — independent of
+any optimizer run — for direct numerical diagnostics at a specific parameter
+value.
+}
+\seealso{
+\code{\link{get_ordinal_regression_score_cpp}} for the corresponding
+  gradient at the same point; \code{\link{fast_ordinal_regression_cpp}} for
+  the full model documentation.
 }
 \keyword{internal}

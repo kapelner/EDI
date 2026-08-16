@@ -4,12 +4,55 @@
 \alias{DesignSeqOneByOneAtkinson}
 \title{Atkinson's (1982) Covariate-Adjusted Biased Coin Sequential Design}
 \description{
-An R6 Class encapsulating the data and functionality for a sequential experimental design.
-This class takes care of data initialization and sequential assignments.
+A \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} that assigns each newly
+arriving subject's treatment via Atkinson's (1982) \eqn{D_A}-optimum biased coin: a
+coin whose treatment probability is skewed away from \code{prob_T} toward whichever
+assignment would most improve the current design's efficiency for estimating the
+treatment effect \eqn{D_A}-optimally, given the covariates observed so far. Compared
+to a fixed-probability coin (e.g.
+\code{\link[EDI:DesignSeqOneByOneBernoulli]{DesignSeqOneByOneBernoulli}}), this
+improves covariate balance/estimation efficiency online without ever fully
+determinizing the assignment (the coin is always strictly between 0 and 1, so
+randomization-based inference remains valid), at the cost of requiring a numerically
+well-conditioned design matrix to compute the bias.
+
+
+\strong{Assignment rule.} For subject \eqn{t}, let \eqn{Z_{t-1} = [w_{1:t-1}, 1,
+X_{1:t-1}]} be the (treatment, intercept, covariates) design matrix accumulated from
+the first \eqn{t-1} subjects, and let \eqn{M = (t-1)(Z_{t-1}^\top Z_{t-1})^{-1}}.
+Writing \eqn{x_t} for the new subject's covariate vector (with a leading 1 for the
+intercept) and \eqn{A = M_{[1, 2:]} \cdot x_t} (the treatment row of \eqn{M},
+projected onto \eqn{x_t}), the treatment probability is
+\deqn{\pi_t = \frac{\big(M_{11}/A + 1\big)^2}{\big(M_{11}/A + 1\big)^2 + 1},}
+clamped to \eqn{[0, 1]}, and subject \eqn{t} is assigned to treatment with
+probability \eqn{\pi_t}. This is Atkinson's biased-coin formula for
+\eqn{D_A}-optimal sequential design: the coin biases toward the assignment that
+would most reduce the variance of the treatment-effect estimate under the linear
+model implied by \eqn{Z_t}, converging toward more extreme (but never
+fully deterministic) probabilities as the current covariate imbalance grows in
+directions that matter for that estimate.
+
+\strong{Fallback to a fair(-ish) coin.} For the first
+\code{ncol(private$Xraw) + 3} subjects (too few observations for
+\eqn{Z_{t-1}^\top Z_{t-1}} to be reliably invertible), and whenever the C++
+computation encounters a non-invertible design matrix, a non-finite bias term, or any
+other numerical failure (caught via \code{tryCatch()}), assignment falls back to an
+unbiased \eqn{\mathrm{Bernoulli}(prob\_T)} draw instead of Atkinson's rule.
+
+\strong{Reproducibility.} The per-subject C++ draw (\code{atkinson_assign_weight_cpp()})
+seeds its own generator from R's RNG stream per call, so \code{seed} governs
+reproducibility of the resulting assignment sequence in the usual way.
 }
 \examples{
 seq_des = DesignSeqOneByOneAtkinson$new(n = 6, response_type = 'continuous')
 seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+}
+\references{
+Atkinson, A. C. (1982). "Optimum biased coin designs for sequential
+  clinical trials with prognostic factors." \emph{Biometrika}, 69(1), 61-67,
+  \doi{10.1093/biomet/69.1.61}. See also
+  \href{https://en.wikipedia.org/wiki/Randomized_experiment}{randomized experiment}
+  for orientation on biased-coin sequential designs.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} -> \code{DesignSeqOneByOneAtkinson}
@@ -26,9 +69,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 <ul>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject'><code>DesignSeqOneByOne$add_one_subject()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject_to_experiment_and_assign'><code>DesignSeqOneByOne$add_one_subject_to_experiment_and_assign()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-is_a_seq_one_by_one'><code>DesignSeqOneByOne$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-print_current_subject_assignment'><code>DesignSeqOneByOne$print_current_subject_assignment()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-supports_resampling'><code>DesignSeqOneByOne$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -61,6 +102,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -83,15 +125,17 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed'><code>Design$is_a_fixed()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-overwrite_all_subject_assignments'><code>Design$overwrite_all_subject_assignments()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -99,7 +143,8 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 \if{html}{\out{<a id="method-DesignSeqOneByOneAtkinson-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneAtkinson-initialize}{}}}
 \subsection{\code{DesignSeqOneByOneAtkinson$new()}}{
-  Initialize an Atkinson sequential experimental design
+  Initialize an Atkinson (1982) biased-coin sequential
+  experimental design (see class documentation for the assignment rule).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneAtkinson$new(
@@ -118,7 +163,10 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{response_type}}{The data type of response values.}
-      \item{\code{prob_T}}{The probability of the treatment assignment.}
+      \item{\code{prob_T}}{The nominal probability of treatment assignment; used as
+the fallback coin probability early in the trial and whenever Atkinson's
+rule cannot be computed (see class documentation), and as the reference
+probability the biased coin is skewed away from otherwise.}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{verbose}}{A flag for verbosity.}
@@ -137,15 +185,18 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 \if{html}{\out{<a id="method-DesignSeqOneByOneAtkinson-assign_wt"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneAtkinson-assign_wt}{}}}
 \subsection{\code{DesignSeqOneByOneAtkinson$assign_wt()}}{
-  Uses this subclass's sequential assignment rule; see
-  \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}.
+  Draw the next subject's treatment assignment via Atkinson's
+  (1982) \eqn{D_A}-optimum biased coin (see class documentation for the
+  exact probability formula), falling back to an unbiased
+  \eqn{\mathrm{Bernoulli}(prob\_T)} draw early in the trial or on numerical
+  failure of the biased-coin computation.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneAtkinson$assign_wt()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    The treatment assignment (0 or 1)
+    The treatment assignment (0 or 1) for the next subject.
   }
 }
 

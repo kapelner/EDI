@@ -44,7 +44,7 @@ from ._core import (
     # survival
     fast_coxph_regression,
     fast_stratified_coxph_regression,
-    fast_weibull_regression,
+    fast_weibull_regression_general,
     fast_weibull_frailty,
     fast_clayton_weibull_aft_optim,
     fast_dep_cens_transform_optim,
@@ -117,7 +117,7 @@ __all__ = [
     "newcombe_independent_ci",
     "fast_coxph_regression",
     "fast_stratified_coxph_regression",
-    "fast_weibull_regression",
+    "fast_weibull_regression_general",
     "fast_weibull_frailty",
     "fast_clayton_weibull_aft_optim",
     "fast_dep_cens_transform_optim",

@@ -13,29 +13,9 @@
 using namespace Rcpp;
 #endif
 
-namespace {
-
-bool all_finite_mat(const Eigen::MatrixXd& M) {
-  for (int j = 0; j < M.cols(); ++j) {
-    for (int i = 0; i < M.rows(); ++i) {
-      if (!std::isfinite(M(i, j))) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-bool all_finite_vec(const Eigen::VectorXd& x) {
-  for (int i = 0; i < x.size(); ++i) {
-    if (!std::isfinite(x[i])) {
-      return false;
-    }
-  }
-  return true;
-}
-
-}  // namespace
+// all_finite_mat/all_finite_vec are now the canonical versions in
+// _helper_functions_core.h (already in this file's include chain) -- see
+// their comment for why.
 
 struct SummarizeWithVcovResult {
   double beta_hat;
@@ -148,7 +128,13 @@ edi::ResultMap summarize_with_vcov(const Eigen::VectorXd& coef_hat,
     .set("z_vals", res.z_vals);
 }
 
-Eigen::MatrixXd cluster_meat(const Eigen::MatrixXd& X_fit,
+// Named cluster_meat_robust (not cluster_meat) because gcomp_speedups.cpp's
+// same-named function computes the same result via a different
+// implementation strategy (map keyed directly by cluster id, instead of a
+// lookup-table + vector of accumulators) -- not unified, since picking one
+// strategy for both call sites is a separate, out-of-scope performance
+// decision. See unity_build_collision_audit.md.
+Eigen::MatrixXd cluster_meat_robust(const Eigen::MatrixXd& X_fit,
                              const Eigen::VectorXd& resid,
                              const IntegerVector& cluster_id) {
   const int n = X_fit.rows();
@@ -250,6 +236,42 @@ List ols_hc2_post_fit_precomputed_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, 
   return edi::to_rcpp_list(summarize_with_vcov(coef_hat, vcov, j_treat));
 }
 
+//' HC2 Heteroskedasticity-Robust Post-Fit Inference for OLS (C++)
+//'
+//' Given an already-fitted ordinary least squares model, computes the
+//' \strong{HC2} heteroskedasticity-consistent sandwich covariance matrix
+//' (MacKinnon-White) for the coefficients: \eqn{\widehat{\mathrm{Var}}(\hat\beta)
+//' = B\,M\,B}, with "bread" \eqn{B = (X^\top X)^{-1}} and "meat" \eqn{M =
+//' X^\top \mathrm{diag}(\omega_i) X}, where \eqn{\omega_i = r_i^2 / (1 - h_{ii})}
+//' — the squared OLS residual \eqn{r_i} \strong{leverage-corrected} by dividing
+//' by \eqn{1 - h_{ii}} (\eqn{h_{ii}} the \eqn{i}-th diagonal of the OLS hat
+//' matrix \eqn{X(X^\top X)^{-1}X^\top}), unlike the plain HC0 sandwich
+//' (\code{\link{gcomp_logistic_post_fit_cpp}}'s logistic analogue, or this
+//' function's own uncorrected \eqn{r_i^2} meat) which does not correct for
+//' leverage. HC2 is unbiased under homoskedasticity for balanced designs and
+//' generally has better small-sample properties than HC0/HC1 when leverage is
+//' uneven. Internally, this function first computes the (design-only) "setup"
+//' quantities \code{bread}/\code{hat} via \code{ols_hc2_setup_cpp}, then calls
+//' \code{ols_hc2_post_fit_precomputed_cpp}; callers who already have those
+//' precomputed (e.g. across repeated resampling on the same fixed design) can
+//' call the precomputed variant directly instead to skip recomputing the
+//' \eqn{(X^\top X)^{-1}} bread and leverage each time.
+//'
+//' @param X_fit A numeric matrix of predictors, as used to fit the model.
+//' @param y A numeric vector of responses.
+//' @param coef_hat A numeric vector of fitted OLS coefficients \eqn{\hat\beta},
+//'   same length and column order as \code{X_fit}.
+//' @param j_treat 1-based column index of the treatment indicator in \code{X_fit}.
+//' @return A list with components \code{beta_hat} (\eqn{\hat\beta_{j_{\mathrm{treat}}}}),
+//'   \code{ssq_hat} (its HC2 variance), \code{se} (its HC2 standard error),
+//'   \code{vcov} (the full \eqn{p \times p} HC2 covariance matrix), \code{std_err}
+//'   (per-coefficient HC2 standard errors), and \code{z_vals} (per-coefficient
+//'   Wald z-statistics, \eqn{\hat\beta_j / \widehat{\mathrm{SE}}(\hat\beta_j)}).
+//' @references MacKinnon, J. G., and White, H. (1985). "Some Heteroskedasticity-Consistent
+//'   Covariance Matrix Estimators with Improved Finite Sample Properties."
+//'   \emph{Journal of Econometrics}, 29(3), 305-325,
+//'   \doi{10.1016/0304-4076(85)90158-7}, for the HC2 estimator used here.
+//' @keywords internal
 // [[Rcpp::export]]
 List ols_hc2_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, const Eigen::Map<Eigen::VectorXd>& coef_hat, int j_treat) {
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
@@ -358,7 +380,7 @@ List glm_cluster_sandwich_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit,
   }
 
   const Eigen::VectorXd resid = y_vec_coerced - mu_hat;
-  Eigen::MatrixXd meat = cluster_meat(X_fit, resid, cluster_id);
+  Eigen::MatrixXd meat = cluster_meat_robust(X_fit, resid, cluster_id);
   Eigen::MatrixXd vcov = bread * meat * bread;
   vcov = 0.5 * (vcov + vcov.transpose());
   return edi::to_rcpp_list(summarize_with_vcov(coef_hat, vcov, j_treat));

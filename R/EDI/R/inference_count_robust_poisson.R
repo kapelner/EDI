@@ -1,8 +1,22 @@
-#' Robust Poisson Regression Inference for Count Responses
+#' Robust (Sandwich-Variance) Poisson Regression Inference for Count Responses
 #'
-#' Fits a Poisson log-link regression for count responses using the treatment
-#' indicator and, optionally, all recorded covariates as predictors. Inference
-#' uses a Huber-White sandwich variance.
+#' Fits the same Poisson log-link mean model as
+#' \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} (point
+#' estimate via \code{\link{fast_poisson_regression_cpp}}, maximum likelihood),
+#' but computes standard errors via a \strong{Huber-White (Eicker-Huber-White)
+#' sandwich} estimator instead of the model-based Poisson Fisher information or
+#' the quasi-Poisson dispersion scaling used by
+#' \code{\link[EDI:InferenceCountQuasiPoisson]{InferenceCountQuasiPoisson}}:
+#' \eqn{\widehat{\mathrm{Var}}(\hat\beta) = B\,M\,B}, with "bread" \eqn{B =
+#' (X^\top \hat W X)^{-1}} (the Poisson Fisher information at \eqn{\hat\beta})
+#' and "meat" \eqn{M = X^\top \mathrm{diag}((y_i-\hat\mu_i)^2) X} (the empirical
+#' score outer product), via \code{robust_sandwich_variance_from_xtwx()}. This
+#' is robust to arbitrary mean-variance misspecification (not just
+#' proportional overdispersion), at the cost of somewhat higher variance in the
+#' SE estimate itself for small samples. This class has no likelihood-ratio/
+#' score/gradient testing capability (\code{likelihood_tier = "quasi"}): only
+#' Wald inference is available. Rank-deficient covariate columns are dropped
+#' automatically before fitting.
 #'
 #' @examples
 #' \donttest{
@@ -18,10 +32,15 @@
 InferenceCountRobustPoisson = define_inference_class(
 	classname = "InferenceCountRobustPoisson",
 	inherit = Inference,
-	components = c("Wald", "CountCompositeLikelihood", "RobustSandwich"),
+	components = c("CountCompositeLikelihood", "RobustSandwich", "BayesianBootstrap", "Wald"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 				
-		#' @description Initialize a robust Poisson regression inference object.
+		#' @description Initialize a robust (sandwich-variance) Poisson regression
+		#'   inference object for a completed design with a count, uncensored
+		#'   response.
 		#' @param des_obj A completed \code{Design} object with a count response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -38,17 +57,26 @@ InferenceCountRobustPoisson = define_inference_class(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Computes the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
+		#' @description Computes the Poisson treatment coefficient \eqn{\hat\beta_T}
+		#'   via \code{\link{fast_poisson_regression_cpp}} (see class documentation
+		#'   for the sandwich-variance model). Rank-deficient covariate columns are
+		#'   dropped before fitting.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
+		#' @description Recomputes the Poisson-mean-model treatment estimate under
+		#'   subject/block bootstrap weights (via
+		#'   \code{\link{fast_poisson_regression_weighted_cpp}}), used by the
+		#'   Bayesian bootstrap and related weighted-resampling machinery; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#'   Always leaves the standard error and degrees of freedom unavailable
+		#'   (\code{NA}) regardless of \code{estimate_only} — this weighted-refit
+		#'   path never computes the sandwich variance.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
-		#' @param estimate_only If TRUE, skip variance calculations.
+		#' @param estimate_only Present for interface parity; this method never
+		#'   computes variance components regardless of its value.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			attempt = private$fit_with_hardened_qr_column_dropping(
@@ -89,15 +117,21 @@ InferenceCountRobustPoisson = define_inference_class(
 			private$set_fit_warm_start(as.numeric(attempt$fit$b), "beta", fisher = attempt$fit$XtWX)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Computes a \eqn{1-\alpha} level confidence interval for the
+		#'   robust Poisson treatment coefficient \eqn{\hat\beta_T}, using the
+		#'   Huber-White sandwich standard error (see class documentation). See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   asymptotic confidence-interval contract this delegates to.
 		#' @param alpha Confidence level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
+		#'   \beta_T = \code{delta}}, from the same Huber-White sandwich standard
+		#'   error used by \code{$compute_asymp_confidence_interval()}. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   asymptotic two-sided p-value contract this delegates to.
 		#' @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared(estimate_only = FALSE)
@@ -212,7 +246,8 @@ InferenceCountRobustPoisson = define_inference_class(
 		overrides = list(
 			public = c(
 				"compute_estimate", "compute_estimate_with_bootstrap_weights",
-				"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
+				"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+				"compute_rand_two_sided_pval"
 			),
 			private = c(
 				"best_X_colnames",
@@ -220,7 +255,11 @@ InferenceCountRobustPoisson = define_inference_class(
 				"supports_reusable_bootstrap_worker", "build_design_matrix",
 				"fit_count_model_with_var", "generate_mod",
 				"get_standard_error", "get_degrees_of_freedom",
-				"get_supported_testing_types_impl"
+				"get_supported_testing_types_impl",
+				"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+				"mark_jackknife_nonestimable_if_block_unsupported",
+				"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+				"compute_bootstrap_worker_estimate"
 			)
 		)
 	)

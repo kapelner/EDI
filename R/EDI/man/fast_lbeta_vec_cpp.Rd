@@ -2,19 +2,45 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_lbeta_vec_cpp}
 \alias{fast_lbeta_vec_cpp}
-\title{Fast Log-Beta Function (C++)}
+\title{Fast Log-Beta Function, Vectorized (C++ Backend)}
 \usage{
 fast_lbeta_vec_cpp(a, b)
 }
 \arguments{
-\item{a}{Numeric vector of first shape arguments.}
+\item{a}{Numeric vector of first shape arguments (should be positive; not
+validated by this function).}
 
-\item{b}{Numeric vector of second shape arguments (recycled against \code{a} elementwise; must be the same length).}
+\item{b}{Numeric vector of second shape arguments (should be positive; not
+validated), recycled against \code{a} elementwise — \strong{must be the
+same length as \code{a}}; unlike R's own vectorized arithmetic, this
+function does not perform R-style shorter-vector recycling.}
 }
 \value{
-A numeric vector of log-beta values.
+A numeric vector of \eqn{\log B(a, b)} values, the same length as
+  \code{a}/\code{b}.
 }
 \description{
-Vectorized log-beta function, \code{lgamma(a) + lgamma(b) - lgamma(a + b)}, computed via \code{fast_lgamma}. Faster than base R's \code{lbeta()}.
+Computes the log of the Beta function,
+\eqn{\log B(a, b) = \log\Gamma(a) + \log\Gamma(b) - \log\Gamma(a+b)},
+elementwise, via three calls into \code{\link{fast_lgamma_vec_cpp}}'s kernel
+rather than R's own \code{lgamma} dispatch — faster than base R's
+\code{\link[base]{lbeta}} — measured at 2.43x on a length-5000 vector (see
+the
+\href{https://github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_R.html}{"Utility
+/ Math Kernel Performance" benchmark report}) — while returning numerically
+identical values (up to the Lanczos/Stirling approximation's own
+precision). Used internally inside the
+package's beta-regression and beta-distribution-based (zero-one-inflated
+beta) likelihood, score, and Hessian kernels, wherever a Beta-density
+normalizing constant is required.
+}
+\references{
+\href{https://en.wikipedia.org/wiki/Beta_function}{Beta
+  function} for orientation. Analogous Python API:
+  \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.betaln.html}{SciPy
+  \code{betaln}}.
+}
+\seealso{
+\code{\link{fast_lgamma_vec_cpp}}, whose kernel this function calls.
 }
 \keyword{internal}

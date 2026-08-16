@@ -1,10 +1,47 @@
-#' A sequential blocking allocation design with random block sizes
+#' A Sequential Permuted-Block Design with Randomly Varying Block Sizes
 #'
-#' An R6 Class encapsulating the data and functionality for a sequential blocking
-#' experimental design
-#' where block sizes are randomly chosen from a specified set for each stratum. This design
-#' is commonly used in clinical trials to prevent predictability of treatment assignments.
+#' A \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} implementing permuted-block
+#' randomization with randomly varying block size: subjects are assigned from a queue
+#' of pre-shuffled treatment labels (a "block"), refilled with a fresh
+#' \code{\link[base]{sample}}d block whenever it empties. Each new block's size is
+#' itself drawn uniformly at random from \code{block_sizes} (rather than being fixed),
+#' and each block internally contains exactly \code{round(block_size * prob_T)} treated
+#' and \code{block_size - round(block_size * prob_T)} control labels in random order.
+#' Randomizing the block size (rather than using a single fixed block length, as in
+#' classical permuted-block designs) is a standard clinical-trials safeguard against
+#' \strong{selection bias}: with a fixed, known block size, unblinded staff could
+#' predict the last assignment(s) in a block from the ones already observed, whereas an
+#' unpredictable block size makes this much harder while still guaranteeing
+#' near-perfect treatment/control balance throughout enrollment (balance is exact at
+#' every block boundary and never worse than one full block's imbalance in between). If
+#' \code{strata_cols} is supplied, a separate independent sequence of blocks is
+#' maintained per stratum (one queue per distinct combination of \code{strata_cols}
+#' values), so balance holds within each stratum, not just overall.
 #'
+#' @details
+#' \strong{Block-size / \code{prob_T} compatibility.} Every entry of \code{block_sizes}
+#' must yield an integer number of treated subjects when multiplied by \code{prob_T}
+#' (checked at construction: \code{abs(bs * prob_T - round(bs * prob_T)) <= 1e-10} for
+#' every \code{bs}); a block size that would require a fractional number of treated
+#' subjects is rejected.
+#'
+#' \strong{Per-stratum queues.} \code{private$strata_states} is a hashed environment
+#' mapping each stratum key (or the literal key \code{"overall"} when
+#' \code{strata_cols} is \code{NULL}) to the vector of not-yet-used assignments
+#' remaining in that stratum's current block; \code{assign_wt()} pops the next
+#' assignment from the relevant queue, refilling it with a freshly drawn block (random
+#' size, randomly ordered) whenever it is empty.
+#'
+#' \strong{Bootstrap.} \code{draw_bootstrap_indices()} resamples within strata (via
+#' \code{stratified_bootstrap_indices_cpp()}) when \code{strata_cols} is supplied, or
+#' performs a plain i.i.d. nonparametric bootstrap over subjects otherwise.
+#'
+#' @references Efron, B. (1971). "Forcing a sequential experiment to be balanced."
+#'   \emph{Biometrika}, 58(3), 403-417, \doi{10.1093/biomet/58.3.403}, for sequential
+#'   balanced-block randomization background. See also
+#'   \href{https://en.wikipedia.org/wiki/Block_randomisation}{block randomisation} for
+#'   orientation on permuted-block designs and the selection-bias rationale for varying
+#'   block size.
 #' @examples
 #' seq_des = DesignSeqOneByOneRandomBlockSize$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
@@ -13,7 +50,9 @@ DesignSeqOneByOneRandomBlockSize = R6::R6Class("DesignSeqOneByOneRandomBlockSize
 	inherit = DesignSeqOneByOne,
 	public = list(
 		#'
-		#' @description Initialize a random block size sequential experimental design
+		#' @description Initialize a sequential permuted-block experimental design
+		#'   with randomly varying block size (see class documentation for the exact
+		#'   block-refill rule and its selection-bias rationale).
 		#'
 		#' @param strata_cols A character vector of column names to use for stratification. If
 		#'   NULL, simple blocking is used.
@@ -70,10 +109,11 @@ DesignSeqOneByOneRandomBlockSize = R6::R6Class("DesignSeqOneByOneRandomBlockSize
 				}
 			}
 		},
-		#' @description Uses this subclass's sequential assignment rule; see
-		#'   \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}.
+		#' @description Pop the next treatment assignment from the current subject's
+		#'   stratum block queue (see class documentation), refilling that queue with
+		#'   a freshly drawn random-size, randomly-ordered block first if it is empty.
 		#'
-		#' @return 	The treatment assignment (0 or 1)
+		#' @return 	The treatment assignment (0 or 1) for the next subject.
 		assign_wt = function(){
 			key = "overall"
 			if (private$uses_covariates) {

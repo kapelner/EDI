@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_ordinal_probit_regression_cpp}
 \alias{fast_ordinal_probit_regression_cpp}
-\title{Fast Ordinal Probit Regression (C++)}
+\title{Fast Cumulative Ordinal Regression with a Probit Link (C++)}
 \usage{
 fast_ordinal_probit_regression_cpp(
   X,
@@ -19,30 +19,87 @@ fast_ordinal_probit_regression_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors (no intercept column needed; see Details).}
 
-\item{y}{A numeric vector of responses.}
+\item{y}{A numeric vector of ordinal responses; only the rank order of distinct
+values matters, not their numeric coding.}
 
-\item{warm_start_params}{Optional starting values for [alpha, beta]. If provided, \code{smart_cold_start} is ignored.}
+\item{warm_start_params}{Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.}
 
-\item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
+\item{smart_cold_start}{Logical. If \code{TRUE}, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of optimizer iterations.}
 
 \item{tol}{Convergence tolerance.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm (default \code{"lbfgs"}).}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional 1-indexed positions (into \eqn{[\alpha,\beta]}) of parameters to hold fixed.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values, parallel to \code{fixed_idx}, of the fixed parameters.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+\item{warm_start_fisher_info}{Optional initial curvature (Fisher/observed information) matrix.}
+
+\item{estimate_only}{If \code{TRUE}, skip the post-fit Hessian/variance computation and
+return only point estimates (faster). If \code{FALSE} (the default), also compute and
+return the observed information matrix and, when the fit converged, the full
+variance-covariance matrix (identical to what
+\code{\link{fast_ordinal_probit_regression_with_var_cpp}} always computes).}
 }
 \value{
-A list containing coefficients, thresholds, and convergence status.
+A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
+  (the \eqn{K-1} category thresholds), \code{params} (the concatenated
+  \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
+  when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
+  \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
+  (all the same observed-information matrix), \code{information_type} (always
+  \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
+  (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
+  conventionally the treatment effect, since \code{X} carries no separate intercept
+  column here; the thresholds \code{alpha} play that role — set to \code{NA} if it comes
+  out non-finite or non-positive). Empty if \code{y} has fewer than 2 distinct levels.
 }
 \description{
-High-performance ordinal probit regression fitting using Newton-Raphson.
+Fits a cumulative-link ordinal regression model with the \strong{probit} link
+(the standard normal CDF) via direct maximum likelihood, jointly optimizing the
+category thresholds and regression coefficients. \code{y}'s distinct values (in
+sorted order, whatever their original coding) are treated as \eqn{K} ordered
+categories; for observation \eqn{i} in category \eqn{k} (\eqn{k = 0, \ldots, K-1}),
+\deqn{\Pr(Y_i \le k \mid x_i) = \Phi(\alpha_k - x_i^\top \beta),}
+with \eqn{\alpha_0 < \alpha_1 < \cdots < \alpha_{K-2}} the (increasing) category
+thresholds and \eqn{\beta} the regression coefficients on \code{X} (no separate
+intercept column is needed — the thresholds serve that role); the category
+probability is the corresponding CDF difference,
+\eqn{\Pr(Y_i = k \mid x_i) = \Phi(\alpha_k - x_i^\top\beta) - \Phi(\alpha_{k-1} - x_i^\top\beta)}
+(with \eqn{\Phi(\alpha_{-1} - \cdot) := 0} and \eqn{\Phi(\alpha_{K-1} - \cdot) := 1}
+at the boundaries), each clamped below at \eqn{10^{-12}} before taking logs for
+numerical safety. This is the ordinal generalization of probit regression, and
+the thin-tailed counterpart to
+\code{\link{fast_ordinal_cauchit_regression_cpp}} and the standard-logit ordinal
+model. If \code{y} has fewer than 2 distinct levels, an empty result list is
+returned (the model is degenerate).
+}
+\section{Fixed parameters, warm starts, and optimization}{
+
+\code{fixed_idx} (1-indexed into the combined \eqn{[\alpha, \beta]} parameter
+vector, thresholds first) and \code{fixed_values} optionally hold a subset of
+parameters at caller-supplied constant values rather than estimating them.
+\code{warm_start_params} supplies starting values for \eqn{[\alpha, \beta]}
+directly (skipping \code{smart_cold_start}); otherwise, when
+\code{smart_cold_start = TRUE} (the default), starting values come from an
+OLS-based heuristic, and when \code{FALSE}, thresholds start at
+\eqn{\Phi^{-1}(k/K)} (inverse-normal spacing of the empirical marginal category
+proportions) with \eqn{\beta} at zero. Optimization runs via
+\code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
+iterations or until the parameter/gradient change falls below \code{tol};
+\code{warm_start_fisher_info}, if supplied, seeds the first iteration's
+curvature estimate.
+}
+
+\seealso{
+\code{\link{fast_ordinal_probit_regression_with_var_cpp}}, which always computes
+  the variance quantities (equivalent to calling this function with
+  \code{estimate_only = FALSE}) and additionally guards against the degenerate/non-converged
+  case by returning \code{NA} placeholders instead of an empty list.
 }
 \keyword{internal}

@@ -2,17 +2,39 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_qnorm_vec_cpp}
 \alias{fast_qnorm_vec_cpp}
-\title{Fast Standard Normal Quantile Function (C++)}
+\title{Fast Standard Normal Quantile Function, Vectorized (C++ Backend)}
 \usage{
 fast_qnorm_vec_cpp(p)
 }
 \arguments{
-\item{p}{Numeric vector of probabilities in \verb{(0, 1)}.}
+\item{p}{Numeric vector of probabilities in \verb{(0, 1)}; behavior at exactly
+0, 1, or outside that range follows the underlying Acklam approximation's
+boundary handling, not necessarily \code{-Inf}/\code{Inf}/\code{NaN} exactly
+as base R's \code{qnorm} would return.}
 }
 \value{
-A numeric vector of quantiles.
+A numeric vector of standard normal quantiles, the same length as \code{p}.
 }
 \description{
-Vectorized standard normal inverse CDF via Peter Acklam's rational approximation (accurate to ~1.2e-9 relative error). Faster than base R's \code{stats::qnorm()}.
+Computes \eqn{\Phi^{-1}(p)}, the standard normal quantile (inverse CDF),
+elementwise over \code{p}, via Peter Acklam's rational (minimax) approximation,
+accurate to within roughly \eqn{1.2 \times 10^{-9}} relative error over the
+representable range of \code{p} — faster than base R's
+\code{\link[stats]{qnorm}} while matching it to that approximation precision.
+Used as the cold-start heuristic in several of this package's ordinal- and
+binary-response regression fitters (e.g. probit-family threshold
+initialization) wherever an approximate normal quantile is needed on a hot
+path, and exported standalone for the same reason as
+\code{\link{fast_digamma_vec_cpp}} and friends: to let performance-sensitive R
+or Python callers bypass \code{qnorm}'s per-call dispatch overhead when
+evaluating many quantiles at once. Benchmarked at roughly \strong{2.33x} the
+speed of base R's vectorized \code{qnorm()} on this package's benchmark suite;
+see the \href{https://github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_R.html}{"Utility
+/ Math Kernel Performance"} section of the benchmark report for the full
+methodology and current measured multiple.
+}
+\seealso{
+\code{\link{fast_log_pnorm_vec_cpp}} and \code{\link{fast_log_dnorm_vec_cpp}}
+  for the corresponding forward (CDF/density) kernels.
 }
 \keyword{internal}

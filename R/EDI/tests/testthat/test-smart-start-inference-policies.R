@@ -5,7 +5,12 @@ make_completed_fixed_design <- function(response_type, x, w, y, dead = NULL) {
 	if (is.null(dead)) {
 		des$add_all_subject_responses(y)
 	} else {
-		des$add_all_subject_responses(y, dead)
+		# (y, dead) positional convention was removed in the y/y_L/y_R
+		# migration (interval_censored_survival_response.md TODO-15).
+		y_exact = ifelse(dead == 1, y, NA_real_)
+		y_L = ifelse(dead == 1, NA_real_, y)
+		y_R = ifelse(dead == 1, NA_real_, Inf)
+		des$add_all_subject_responses(y_exact, y_L, y_R)
 	}
 	des
 }

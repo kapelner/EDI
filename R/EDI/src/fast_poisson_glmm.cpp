@@ -506,6 +506,13 @@ Eigen::VectorXd get_poisson_glmm_score_cpp(
 	const NumericVector& par_r,
 	int n_gh = 20
 ) {
+	if (X_r.rows() != y_r.size() || X_r.rows() != group_id_r.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
+		           X_r.rows(), y_r.size(), group_id_r.size());
+	}
+	if (par_r.size() != X_r.cols() + 1) {
+		Rcpp::stop("par must have length ncol(X_r) + 1 (got %d, expected %d)", par_r.size(), X_r.cols() + 1);
+	}
 	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.rows(), X_r.cols());
 	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
 	Eigen::Map<const Eigen::VectorXi> group_id(group_id_r.begin(), group_id_r.size());
@@ -529,6 +536,13 @@ Eigen::MatrixXd get_poisson_glmm_hessian_cpp(
 	const NumericVector& par_r,
 	int n_gh = 20
 ) {
+	if (X_r.rows() != y_r.size() || X_r.rows() != group_id_r.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
+		           X_r.rows(), y_r.size(), group_id_r.size());
+	}
+	if (par_r.size() != X_r.cols() + 1) {
+		Rcpp::stop("par must have length ncol(X_r) + 1 (got %d, expected %d)", par_r.size(), X_r.cols() + 1);
+	}
 	Eigen::Map<const Eigen::MatrixXd> X(X_r.begin(), X_r.rows(), X_r.cols());
 	Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
 	Eigen::Map<const Eigen::VectorXi> group_id(group_id_r.begin(), group_id_r.size());

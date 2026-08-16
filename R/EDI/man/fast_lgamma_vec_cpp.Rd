@@ -2,17 +2,45 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_lgamma_vec_cpp}
 \alias{fast_lgamma_vec_cpp}
-\title{Fast Log-Gamma Function (C++)}
+\title{Fast Log-Gamma Function, Vectorized (C++ Backend)}
 \usage{
 fast_lgamma_vec_cpp(x)
 }
 \arguments{
-\item{x}{Numeric vector of arguments.}
+\item{x}{Numeric vector of arguments (should be positive, or a non-positive
+non-integer if the reflection formula is supported by the underlying
+kernel; not validated by this function — see the package's C++ source for
+the exact domain the Lanczos kernel handles).}
 }
 \value{
-A numeric vector of log-gamma values.
+A numeric vector of \eqn{\log \Gamma(x)} values, the same length as
+  \code{x}.
 }
 \description{
-Vectorized log-gamma function via a Lanczos/Stirling approximation, faster than base R's \code{lgamma()}.
+Computes \eqn{\log \Gamma(x)} elementwise over \code{x}, via a Lanczos
+approximation (with a Stirling-series tail for large arguments) — faster
+than base R's \code{\link[base]{lgamma}} while matching it to within
+the approximation's own precision. Used pervasively throughout the package's
+likelihood kernels (beta, negative-binomial, Poisson/count, and other
+Gamma-function-based densities) wherever a log-factorial-like normalizing
+term is required, and exported standalone for the same reason as
+\code{\link{fast_digamma_vec_cpp}} — measured at 2.18x over
+\code{\link[base]{lgamma}} on a length-5000 vector (see the
+\href{https://github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_R.html}{"Utility
+/ Math Kernel Performance" benchmark report} for the full methodology and
+per-kernel results).
+}
+\references{
+\href{https://en.wikipedia.org/wiki/Lanczos_approximation}{Lanczos
+  approximation} and \href{https://en.wikipedia.org/wiki/Stirling\%27s_approximation}{Stirling's
+  approximation} for the numerical techniques used; see also
+  \href{https://en.wikipedia.org/wiki/Gamma_function}{Gamma function} for
+  orientation. Analogous Python API:
+  \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.gammaln.html}{SciPy
+  \code{gammaln}}.
+}
+\seealso{
+\code{\link{fast_digamma_vec_cpp}}, \code{\link{fast_trigamma_vec_cpp}},
+  \code{\link{fast_lbeta_vec_cpp}} (built on this function's kernel).
 }
 \keyword{internal}

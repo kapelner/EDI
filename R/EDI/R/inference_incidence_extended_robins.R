@@ -67,6 +67,7 @@ InferenceIncidExtendedRobins = R6::R6Class("InferenceIncidExtendedRobins",
 		}
 	),
 	private = list(
+		requires_blocking_design = function() TRUE,
 		supports_lik_ratio_param_bootstrap = function() FALSE,
 		supports_likelihood_tests = function() FALSE,
 		get_supported_testing_types_impl = function(){

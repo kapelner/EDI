@@ -2,7 +2,93 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{build_cox_data_cache_cpp}
 \alias{build_cox_data_cache_cpp}
-\title{Export of C++ function build_cox_data_cache_cpp}
+\title{Build a Reusable Unstratified Cox Data Cache (C++ Backend)}
+\arguments{
+\item{X}{A numeric matrix of predictor variables (no intercept column);
+\eqn{n} rows, one per subject.}
+
+\item{y}{A numeric vector of length \eqn{n} giving the observed
+(event or censoring) time for each subject.}
+
+\item{dead}{A numeric vector of length \eqn{n} with values in \code{{0, 1}}
+indicating event status (1 = event/death, 0 = right-censored).}
+}
+\value{
+An \code{externalptr} to a cached, sorted Cox risk-set
+  representation of \code{(X, y, dead)}, for use as the \code{cox_data_xptr}
+  argument of \code{\link{fast_coxph_regression_prebuilt_cpp}}.
+}
 \description{
-Export of C++ function build_cox_data_cache_cpp
+Precomputes and caches the sorted risk-set structure needed to evaluate the
+Cox partial-likelihood, score, and Hessian, so that repeated Newton-Raphson
+or L-BFGS fits on the same \code{(X, y, dead)} data (e.g. across
+bootstrap/randomization replicates of the treatment column, or successive
+\code{estimate_only} vs. full-variance calls) do not repeat the
+\eqn{O(n \log n)} sort and event-time tabulation on every call. This is the
+unstratified counterpart of \code{\link{build_stratified_cox_data_cache_cpp}};
+the returned cache is consumed by \code{\link{fast_coxph_regression_prebuilt_cpp}},
+which implements the same Cox partial-likelihood as
+\code{\link{fast_coxph_regression}} and \code{\link{fast_coxph_regression_cpp}}.
+}
+\details{
+\strong{Model.} No fitting happens here; this function only prepares the
+single risk set (stratum) used by the Breslow-tied Cox partial likelihood
+ \deqn{\ell(\beta) = \sum_{k} \Big[ \big(\textstyle\sum_{i \in D_k} x_i\big)^\top \beta - d_k \log\!\big(\textstyle\sum_{j \in R_k} e^{x_j^\top \beta}\big) \Big],}
+where \eqn{D_k} is the set of subjects with an event at the \eqn{k}-th
+unique event time and \eqn{R_k} is the risk set (all subjects with
+\code{y >= } that event time). See
+\code{\link{fast_coxph_regression}} for the full model, scale, and
+optimizer contract; this page documents only the cache construction.
+
+\strong{What is cached.} Internally builds a single \code{CoxData} record
+that: (1) sorts subjects by ascending \code{y} (observed/censoring time),
+breaking ties by placing events (\code{dead == 1}) before censored
+observations at the same time; (2) stores the sort-permuted \code{y},
+\code{dead}, and row-major copy of \code{X}; and (3) tabulates the vector
+of unique event times and, for each, the number of tied events
+(\code{event_counts}), which drives the Breslow tie-handling correction in
+the partial-likelihood, score, and Hessian.
+
+\strong{Input conventions.} \code{X} is an \eqn{n \times p} design matrix
+with one row per subject and \strong{no intercept column} (Cox models are
+fit on the partial likelihood, which has no intercept). \code{y} is the
+observed time (event or censoring time), and \code{dead} is a 0/1 event
+indicator (1 = event, 0 = right-censored); both must have length \eqn{n}
+matching \code{nrow(X)}. Tied event times are handled via the Breslow
+approximation (via \code{event_counts}), not the exact (Cox) or Efron
+method. There is no support for left- or interval-censored data at this
+layer; classes with more general censoring (see
+\code{supports_interval_or_left_censored_data()} in
+\code{InferenceEngine}) bypass this cache and dispatch to
+\pkg{icenReg} instead. \code{NA}/non-finite values in \code{X}, \code{y},
+or \code{dead} and negative values of \code{y} are not checked or handled
+at this layer; callers are responsible for filtering or imputing upstream.
+
+\strong{Return value and object lifetime.} Returns an \code{externalptr}
+(\code{Rcpp::XPtr}) wrapping a heap-allocated \code{std::vector<CoxData>}
+of length 1 (a single unstratified stratum), so that
+\code{fast_coxph_regression_prebuilt_cpp} can share the same stratified
+interface as the stratified cache. The pointer owns its memory (finalizer
+registered via \code{XPtr(..., true)}) and is freed automatically by R's
+garbage collector; it must not be serialized (e.g. via \code{saveRDS})
+or reused after the R session that created it exits. The cache is
+immutable once built and safe to reuse across many calls to
+\code{fast_coxph_regression_prebuilt_cpp} as long as \code{X}, \code{y},
+and \code{dead} have not changed; callers (e.g.
+\code{InferenceCoxPH$private$cox_data_cache}) are responsible for
+invalidating and rebuilding the cache when the treatment assignment or
+covariates change.
+
+\strong{Complexity.} \eqn{O(n \log n)} for the sort plus \eqn{O(n)} for
+the tabulation pass, where \eqn{n} is the number of subjects; memory use
+is \eqn{O(np)} for the row-major copy of \code{X} plus \eqn{O(n)} for the
+sorted \code{y}/\code{dead} and event-time tables.
+}
+\seealso{
+\code{\link{build_stratified_cox_data_cache_cpp}} for the
+  stratified (multiple risk-set) analog, \code{\link{fast_coxph_regression_prebuilt_cpp}}
+  for the fitting routine that consumes this cache, and
+  \code{\link{fast_coxph_regression}} for the full Cox model documentation,
+  including the partial-likelihood derivation, tie-handling, and references.
+  Analogous Python API: \href{https://lifelines.readthedocs.io/en/latest/fitters/regression/CoxPHFitter.html}{lifelines CoxPHFitter}.
 }

@@ -1,4 +1,5 @@
 #include <RcppEigen.h>
+#include "RNG.h"
 #include <algorithm>
 #include <vector>
 #include <random>
@@ -24,8 +25,7 @@ IntegerMatrix d_optimal_search_cpp( const Eigen::Map<Eigen::MatrixXd>& P,
     std::vector<int> indices(n);
     for (int i = 0; i < n; ++i) indices[i] = i;
 
-    std::random_device rd;
-    std::mt19937 g(rd());
+    edi_rng::RRng g(edi_rng::seed_from_unif01(R::unif_rand()));
 
     // Hoist per-simulation heap allocations outside the nsim loop.
     Eigen::VectorXd w(n), Pw(n);
@@ -137,8 +137,7 @@ IntegerMatrix a_optimal_search_cpp( const Eigen::Map<Eigen::MatrixXd>& P,
     std::vector<int> indices(n);
     for (int i = 0; i < n; ++i) indices[i] = i;
 
-    std::random_device rd;
-    std::mt19937 g(rd());
+    edi_rng::RRng g(edi_rng::seed_from_unif01(R::unif_rand()));
 
     // Hoist per-simulation heap allocations outside the nsim loop.
     Eigen::VectorXd w(n), Pw(n), Hw(n);

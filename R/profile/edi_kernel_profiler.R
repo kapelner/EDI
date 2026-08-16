@@ -10,7 +10,7 @@
 #   logbin_est, probit_est, identbin_est, hurdle_p_est, zip_est, zinb_est,
 #   hurdle_nb_est, prop_odds_est, adj_cat_est, cont_ratio_est, ord_probit_est,
 #   ord_cloglog_est, ord_cauchit_est, coxph_est, strat_coxph_est, weibull_est,
-#   logrank_est, km_diff_est, rmean_diff_est, wilcox_est,
+#   weibull_general_est, logrank_est, km_diff_est, rmean_diff_est, wilcox_est,
 #   gcomp_logistic_rd_est, gcomp_logistic_rr_est, gcomp_frac_logit_est, gcomp_ordinal_est
 #
 # Variance/full-inference kernels (Wald benchmark paths):
@@ -324,12 +324,31 @@ get_kernel = function(name) {
     }),
 
     weibull_est = local({
-        # fast_weibull_regression_cpp(X_ord, y_bm, dead_bm, estimate_only=TRUE)
+        # fast_weibull_regression_general_cpp(X_ord, y, y_L, y_R, estimate_only=TRUE)
         # Class: InferenceSurvivalWeibullRegr
         d = make_data(500L, "cox")
-        list(desc = "fast_weibull_regression_cpp(X_ord, y_bm, dead_bm, estimate_only=TRUE)",
+        list(desc = "fast_weibull_regression_general_cpp(X_ord, y, y_L, y_R, estimate_only=TRUE)",
              REPS = 150000L,
-             fn   = function() fast_weibull_regression_cpp(d$X_ord, d$y_bm, d$dead_bm, estimate_only = TRUE))
+             fn   = function() fast_weibull_regression_general_cpp(
+                 d$X_ord, ifelse(d$dead_bm != 0, d$y_bm, NA_real_),
+                 ifelse(d$dead_bm == 0, d$y_bm, NA_real_), ifelse(d$dead_bm == 0, Inf, NA_real_),
+                 estimate_only = TRUE))
+    }),
+
+    weibull_general_est = local({
+        # fast_weibull_regression_general_cpp(X_ord, y, y_L, y_R, estimate_only=TRUE)
+        # Class: InferenceSurvivalWeibullRegr under left-/interval-censored data
+        # (interval_censored_survival_response.md TODO-4/TODO-5 -- confirms the
+        # general-censoring dispatch branch isn't a meaningfully slower path than
+        # the exact/right-censored weibull_est kernel above).
+        d = make_data(500L, "cox")
+        g = as.numeric(stats::quantile(d$y_bm, 0.5))
+        y_L = floor(d$y_bm / g) * g
+        y_R = y_L + g
+        y_na = rep(NA_real_, length(d$y_bm))
+        list(desc = "fast_weibull_regression_general_cpp(X_ord, y, y_L, y_R, estimate_only=TRUE)",
+             REPS = 150000L,
+             fn   = function() fast_weibull_regression_general_cpp(d$X_ord, y_na, y_L, y_R, estimate_only = TRUE))
     }),
 
     logrank_est = local({
@@ -713,13 +732,16 @@ get_kernel = function(name) {
     }),
 
     weibull_var = local({
-        # fast_weibull_regression_cpp(X_ord, y_bm, dead_bm, estimate_only=FALSE)
+        # fast_weibull_regression_general_cpp(X_ord, y, y_L, y_R, estimate_only=FALSE)
         # Class: InferenceSurvivalWeibullRegr (Wald)
         d = make_data(200L, "cox")
-        list(desc = "fast_weibull_regression_cpp(X_ord, y_bm, dead_bm, estimate_only=FALSE)",
+        list(desc = "fast_weibull_regression_general_cpp(X_ord, y, y_L, y_R, estimate_only=FALSE)",
              REPS = 94000L,
              fn   = function() {
-                 res = fast_weibull_regression_cpp(d$X_ord, d$y_bm, d$dead_bm, estimate_only = FALSE)
+                 res = fast_weibull_regression_general_cpp(
+                     d$X_ord, ifelse(d$dead_bm != 0, d$y_bm, NA_real_),
+                     ifelse(d$dead_bm == 0, d$y_bm, NA_real_), ifelse(d$dead_bm == 0, Inf, NA_real_),
+                     estimate_only = FALSE)
                  sqrt(res$vcov[2L, 2L])
              })
     }),
@@ -1194,12 +1216,6 @@ get_kernel = function(name) {
              fn   = function() EDI:::shuffle_cpp(w))
     }),
 
-    efron_redraw = local({
-        list(desc = "efron_redraw_cpp(t=500L, prob_T=0.5, weighted_coin_prob=2/3)",
-             REPS = 200000L,
-             fn   = function() EDI:::efron_redraw_cpp(500L, 0.5, 2/3))
-    }),
-
     spbr_redraw = local({
         set.seed(SEED)
         strata_keys = as.character(rep(c("A","B","C","D"), each = 4L))
@@ -1215,25 +1231,6 @@ get_kernel = function(name) {
         list(desc = "random_block_size_redraw_w_cpp(strata_keys_block, block_sizes, prob_T=0.5)",
              REPS = 500000L,
              fn   = function() EDI:::random_block_size_redraw_w_cpp(strata_keys, block_sizes, 0.5))
-    }),
-
-    redraw_w_kk14 = local({
-        set.seed(SEED)
-        n_pairs = 250L; n = 500L
-        m_vec = as.integer(rep(seq_len(n_pairs), each = 2L))
-        w_cur = as.numeric(c(rep(1, n_pairs), rep(0, n - n_pairs)))
-        list(desc = "redraw_w_kk14_cpp(m_vec, w) [250 pairs]",
-             REPS = 200000L,
-             fn   = function() EDI:::redraw_w_kk14_cpp(m_vec, w_cur))
-    }),
-
-    atkinson_redraw = local({
-        set.seed(SEED)
-        n = 100L; p_raw = 4L
-        X_raw = matrix(rnorm(n * p_raw), n, p_raw)
-        list(desc = "atkinson_redraw_batch_cpp(X_raw, n=100L, p_raw=4L, prob_T=0.5)",
-             REPS = 4000L,
-             fn   = function() EDI:::atkinson_redraw_batch_cpp(X_raw, n, p_raw, 0.5))
     }),
 
     pocock_simon_assign = local({

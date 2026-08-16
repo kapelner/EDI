@@ -1,5 +1,7 @@
 # TODO: Vargas-Ferrari-Lemonte Bartlett-Type Gradient-Test Correction
 
+> **Depends on:** `score_correction_cordeiro_ferrari.md` (read first; reuses its shared polynomial helper and overlapping cumulant machinery; no mdscore-style reference exists here, so score-modified's validated machinery is the safety net). (Global ordering: see `_master.md`.)
+
 ## Scope
 
 This is an implementation plan for adding a higher-order-corrected version of the
@@ -95,7 +97,10 @@ usable by *both* `score_modified_exact` and `gradient_modified_exact` (see Phase
 ## Proposed API surface (mirrors Bartlett and Cordeiro-Ferrari exactly)
 
 - Testing types: `"gradient_modified_approx"`, `"gradient_modified_exact"`
-- Public methods on `InferenceAsympLik`:
+- Public methods, provided through the `LikelihoodTests` component and listed
+  in `public_methods_for_capability` (updated 2026-08-13: the shallow hierarchy
+  has no `InferenceAsympLik`; a public optional method exists iff the matching
+  capability exists):
   - `compute_gradient_modified_approx_two_sided_pval(delta = 0, B = 99)`
   - `compute_gradient_modified_approx_confidence_interval(alpha = 0.05, B = 99)`
   - `compute_gradient_modified_exact_two_sided_pval(delta = 0)`
@@ -104,8 +109,12 @@ usable by *both* `score_modified_exact` and `gradient_modified_exact` (see Phase
     `compute_gradient_modified_confidence_interval(alpha = 0.05, B = 99)` — "best
     available" smart wrapper, identical exact-wins/errors-if-neither/`B`-ignored-warning
     logic as the other two corrections
-- Private hooks:
-  - `supports_gradient_modified_ratio_approx()` / `supports_gradient_modified_ratio_exact()`
+- Capabilities and private hooks (updated 2026-08-13: no `supports_*` hook
+  methods — `fix_inference_hierarchy.md` bans duplicated `supports_*` hooks;
+  instead register `gradient_modified_approx` / `gradient_modified_exact`
+  capabilities in `capability_requires`, gated on `likelihood_tier`
+  `"partial"`/`"full"` plus the private hooks below, and query them via
+  `obj$supports(...)`):
   - `get_gradient_modified_correction_approx(spec, delta, full_fit, null_fit, B = 99)`
   - `get_gradient_modified_correction_exact(spec, delta, full_fit, null_fit)`
   - Same Phase-0 open question as the other two docs: return `(a,b,c)` or the corrected
@@ -123,7 +132,7 @@ usable by *both* `score_modified_exact` and `gradient_modified_exact` (see Phase
       whoever implements Cordeiro-Ferrari first (whichever of the two correction types
       lands first should build this helper; the second should reuse it, not duplicate it)
 
-### Phase 1: Shared base-class plumbing (`InferenceAsympLik`)
+### Phase 1: Shared plumbing (`LikelihoodTests` component)
 - [ ] Add `gradient_modified_approx`/`gradient_modified_exact` to `normalize_testing_type`,
       `set_testing_type` docs, the two dispatch switches, and the
       `get_supported_testing_types_with_bartlett()`-style wrapper (by this point that
@@ -137,14 +146,18 @@ usable by *both* `score_modified_exact` and `gradient_modified_exact` (see Phase
       shared polynomial correction
 - [ ] Thread `B` through exactly like the other two corrections, **including the same
       shadowed-override fix** already needed twice now
-      (`InferenceAsympLikStdModCache`, `InferenceContinKKOLSOneLik` both override
-      `compute_likelihood_test_two_sided_pval()` directly)
+      (the `StandardModelCache` component — formerly `InferenceAsympLikStdModCache`
+      — and `InferenceContinKKOLSOneLik` both override
+      `compute_likelihood_test_two_sided_pval()` directly; post-migration such
+      collisions are declared in `define_inference_class()`'s `overrides`, so
+      the factory flags the spot at class-definition time)
 - [ ] CI: extend `invert_test_pval_confidence_interval()`'s eligible-testing-types set —
       no new root-finding logic, fully generic already
 - [ ] Smart wrapper: copy the exact-wins-over-approx pattern verbatim
 
 ### Phase 2: Approx (Monte-Carlo) path — same cost tier as Bartlett-approx, *not* score-approx
-- [ ] Implement `get_gradient_modified_correction_approx()` in `InferenceParamBootstrap`
+- [ ] Implement `get_gradient_modified_correction_approx()` in the
+      `ParametricLikelihoodBootstrap` component
       as a bootstrap-calibrated gradient test: simulate `B` datasets under H0 at `delta`
       (reuse `simulate_under_lik_null()`), compute the raw gradient statistic `S_b` for
       each replicate, empirical tail probability against the observed `S`
@@ -153,8 +166,10 @@ usable by *both* `score_modified_exact` and `gradient_modified_exact` (see Phase
       `θ̂`, to form the estimate gap) — same two-refits-per-replicate cost as
       Bartlett-approx, unlike score-modified-approx which only needs the null refit. Do
       not assume gradient-approx is as cheap as score-approx.
-- [ ] `supports_gradient_modified_ratio_approx()` delegates to
-      `supports_lik_ratio_param_bootstrap()` by default, same auto-opt-in pattern, same
+- [ ] The `gradient_modified_approx` capability defaults on for every class with
+      the `parametric_likelihood_bootstrap` capability (a metadata-level default
+      in `capability_requires`, replacing the old
+      `supports_lik_ratio_param_bootstrap()` delegation), same auto-opt-in pattern, same
       need to check whether the Zero-Inflated-Poisson/Hurdle-Poisson raw-statistic
       miscalibration carve-out applies here too (check the raw gradient statistic
       specifically, don't assume it transfers from the LR/score carve-out reasoning

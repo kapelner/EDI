@@ -1,10 +1,51 @@
 # Package installation cache
 package_cache = new.env(parent = emptyenv())
 
-#' Check if a package is installed and cache the result
+#' Check Whether a Suggested Package Is Installed (Memoized)
 #'
-#' @param package_name Character scalar. The name of the package.
-#' @return Logical scalar. TRUE if installed, FALSE otherwise.
+#' Tests whether \code{package_name} is installed via
+#' \code{\link[base]{requireNamespace}} and memoizes the result in a
+#' package-level environment (\code{package_cache}), so that repeated checks
+#' for the same package within an R session pay the namespace-lookup cost
+#' only once. EDI uses this to guard optional code paths that depend on
+#' Suggests-only packages (e.g. \pkg{quantreg}, \pkg{betareg},
+#' \pkg{nbpMatching}, \pkg{geepack}, \pkg{icenReg}) that are not installed
+#' automatically with the package, issuing an informative
+#' \code{stop()}/\code{warning()} and falling back to an internal
+#' implementation when the dependency is absent, rather than failing with an
+#' opaque "could not find function" error.
+#'
+#' @details
+#' \strong{Caching / mutation semantics.} This function has a side effect:
+#' on the first call for a given \code{package_name} in the current R
+#' session, it assigns the boolean result of \code{requireNamespace()} into
+#' the package-global environment \code{package_cache}, keyed by
+#' \code{package_name}. All subsequent calls for the same
+#' \code{package_name} (from anywhere in the package, or from user code)
+#' read the cached value directly and do not re-query the namespace
+#' registry. This means the result reflects whether the package was
+#' installed \emph{at the time of the first call}; installing or removing
+#' \code{package_name} later in the same R session will not be picked up.
+#' The cache is a plain environment (not an R6 object) shared by all
+#' callers within the process and is not reset between calls; it is,
+#' however, re-initialized fresh in each new R session.
+#'
+#' \strong{Determinism.} For a fixed installed-package state,
+#' \code{check_package_installed()} is deterministic and side-effect-free
+#' beyond the memoization described above; it does not consume random
+#' number generator state and involves no numerical computation.
+#'
+#' \strong{Lifecycle.} Internal utility (exported for reuse within the
+#' package's own R6 classes across files, not intended as a general-purpose
+#' user-facing API); prefer \code{requireNamespace()} directly for
+#' one-off checks in user code.
+#'
+#' @param package_name Character scalar. The name of the package to check
+#'   (as passed to \code{requireNamespace()}).
+#' @return Logical scalar. \code{TRUE} if the package is installed and its
+#'   namespace can be loaded, \code{FALSE} otherwise.
+#' @seealso \code{\link[base]{requireNamespace}}, on which this function is
+#'   a thin memoizing wrapper.
 #' @keywords internal
 #' @export
 check_package_installed = function(package_name) {
@@ -128,13 +169,26 @@ assert_interval_installed = function(caller) {
 	}
 }
 
-#' Logit
+#' Logit (Log-Odds) Transform
 #'
-#' Calculates the logit i.e., log(p / (1 - p))
+#' Computes the logit (log-odds) function \eqn{\mathrm{logit}(p) = \log\left(p /
+#' (1-p)\right)}, the canonical link function for binomial/logistic-family
+#' models throughout this package. \code{p} is first clamped to
+#' \eqn{[\code{zero\_one\_logit\_clamp}, 1 - \code{zero\_one\_logit\_clamp}]}
+#' before transforming, so exact \code{0} or \code{1} inputs (which would
+#' otherwise map to \eqn{-\infty}/\eqn{\infty}) instead return a large but
+#' finite value; this is what lets proportion/fractional responses with mass
+#' exactly at the boundary be used as pseudo-continuous inputs to logit-scale
+#' machinery elsewhere in the package (e.g. \code{\link{fast_ols_cpp}}-backed
+#' logit-transform-then-OLS shortcuts) without producing non-finite values.
 #'
-#' @param p The value between 0 and 1 non inclusive
-#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values
-#' @return Its corresponding logit value as a real number
+#' @param p The value(s) to transform, nominally in \verb{(0, 1)} (values
+#'   outside that range, or exactly 0/1, are clamped rather than rejected).
+#' @param zero_one_logit_clamp The clamping distance from the 0/1 boundaries
+#'   applied to \code{p} before transforming. Default \code{.Machine$double.eps}.
+#' @return The logit-transformed value(s) as a real number (or vector), the same
+#'   length as \code{p}.
+#' @seealso \code{\link{inv_logit}} for the inverse transform.
 #' @examples
 #' logit(0.25)
 #' @export
@@ -143,13 +197,25 @@ logit = function(p, zero_one_logit_clamp = .Machine$double.eps){
 	log(p / (1 - p))
 }
 
-#' Inverse Logit Function
+#' Inverse Logit (Logistic) Function
 #'
-#' Computes the inverse logit of a real number or vector.
+#' Computes the inverse logit (standard logistic sigmoid) function,
+#' \eqn{\mathrm{logit}^{-1}(x) = 1/(1 + e^{-x})}, the canonical mean function
+#' for binomial/logistic-family models throughout this package (mapping a
+#' linear predictor on the log-odds scale back to a probability). The result is
+#' clamped to \eqn{[\code{zero\_one\_logit\_clamp}, 1 -
+#' \code{zero\_one\_logit\_clamp}]} before being returned, so an extreme
+#' \code{x} (e.g. from a poorly identified or diverging fit) cannot produce an
+#' exact \code{0} or \code{1} probability that would later cause a \code{-Inf}/
+#' \code{NaN} when log-transformed downstream (e.g. in a log-likelihood).
 #'
-#' @param x Any real number
-#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values
-#' @return Its corresponding inverse logit value between 0 and 1 non inclusive
+#' @param x Any real number (or vector), typically a fitted linear predictor
+#'   \eqn{\eta = x_i^\top\beta} on the log-odds scale.
+#' @param zero_one_logit_clamp The clamping distance from the 0/1 boundaries
+#'   applied to the result. Default \code{.Machine$double.eps}.
+#' @return The inverse-logit-transformed value(s), in \verb{(0, 1)}, the same
+#'   length as \code{x}.
+#' @seealso \code{\link{logit}} for the forward transform.
 #' @examples
 #' inv_logit(0)
 #' @export
@@ -159,14 +225,69 @@ inv_logit = function(x, zero_one_logit_clamp = .Machine$double.eps){
 }
 
 
-#' Create a numeric design matrix from a formula and data frame
+#' Build an Intercept-Free, Full-Rank Covariate Design Matrix from a Formula
 #'
-#' This helper handles formula-based expansion (e.g. factors, interactions),
-#' optionally drops the intercept, and ensures rank-deficiency cleanup.
+#' Expands \code{formula} against \code{data} (via \code{\link[stats]{model.matrix}}) into
+#' a purely numeric covariate design matrix suitable for the package's own \code{fast_*}
+#' GLM/survival/ordinal fitting routines, which manage their own intercept and treatment
+#' columns separately rather than relying on the formula/model-matrix machinery for them.
+#' This is the standard covariate-matrix builder used throughout EDI's inference classes
+#' (e.g. \code{Inference$private$X}) whenever adjustment covariates need to go from a
+#' user-facing formula/data-frame representation to a numeric matrix the C++ backends can
+#' consume.
 #'
-#' @param formula A formula object.
-#' @param data A data frame or data table.
-#' @return A numeric matrix.
+#' @details
+#' \strong{What it does.} (1) If \code{data} has zero columns, returns a numeric
+#' \code{nrow(data) x 0} matrix immediately (no covariates to expand). (2) Otherwise calls
+#' \code{\link[stats]{model.matrix}(formula, data = data)}, which performs standard
+#' formula expansion: factor variables are dummy-coded against their reference level (the
+#' first level of \code{\link[base]{levels}}, or the level ordering already present in
+#' \code{data}), interactions (\code{a:b}, \code{a*b}) are expanded to product columns, and
+#' any \code{model.matrix} contrasts option in effect at call time applies. (3) If the
+#' first resulting column is named \code{"(Intercept)"} (i.e. the formula was not given
+#' \code{- 1} / \code{+ 0}), that column is dropped — this function always returns a
+#' covariate-only matrix with no intercept column, since EDI's design and inference classes
+#' add their own intercept/treatment columns at a fixed position. (4) The result is passed
+#' through \code{\link{drop_linearly_dependent_cols}}, which detects the numeric rank of
+#' the matrix (via \code{matrix_rank_cpp()} at tolerance \code{1e-7}) and, if the matrix is
+#' rank-deficient, greedily retains a full-rank subset of columns using the pivot order
+#' from \code{\link[base]{qr}(M, tol = 1e-7)} (dropping the same tolerance's worth of
+#' redundant/aliased columns, e.g. from collinear dummy expansions or an over-specified
+#' interaction structure); this rank-reduction step is silent — no warning is issued when
+#' columns are dropped, and the dropped columns' identity/names are not returned to the
+#' caller, only the reduced matrix.
+#'
+#' \strong{Input conventions.} \code{data} is expected to already be free of missing
+#' values at call time (imputation, when configured, happens upstream in the design/
+#' inference class before this function is called); this function does not impute or warn
+#' about \code{NA}s, and \code{model.matrix} will drop incomplete rows or error, per its
+#' own \code{na.action} default, if \code{NA}s remain. Column order and names in the
+#' returned matrix follow \code{model.matrix}'s expansion order (all factor/interaction
+#' columns for a term before the next term), possibly reduced by the rank-deficiency step;
+#' callers relying on stable column identity (e.g. warm-starting coefficients across calls)
+#' should not assume the set or order of columns is invariant if \code{data}'s factor
+#' levels or rank change between calls.
+#'
+#' \strong{Failure semantics.} If \code{drop_linearly_dependent_cols} detects the matrix is
+#' non-numeric or contains non-finite values, it returns the matrix unchanged (rank
+#' reduction is skipped rather than erroring); a downstream fitting routine operating on a
+#' rank-deficient or non-finite design matrix may then fail to converge or report
+#' non-finite coefficients/standard errors, which is where such problems will actually
+#' surface to the user.
+#'
+#' @param formula A formula object giving the covariate specification to expand (e.g.
+#'   \code{~ age + sex + age:sex}); should not include the response.
+#' @param data A data frame or data table supplying the variables referenced in
+#'   \code{formula}, with one row per subject.
+#' @return A numeric matrix with \code{nrow(data)} rows and one column per retained,
+#'   full-rank expanded covariate term (no intercept column). Has zero columns if
+#'   \code{data} has zero columns.
+#' @seealso \code{\link[stats]{model.matrix}}, which performs the formula expansion this
+#'   function wraps; \code{drop_linearly_dependent_cols} (internal, same file) for the
+#'   rank-deficiency cleanup step. Analogous Python API:
+#'   \href{https://patsy.readthedocs.io/en/latest/}{patsy}/
+#'   \href{https://www.statsmodels.org/stable/gettingstarted.html}{statsmodels formula API}
+#'   for formula-based design matrix construction.
 #' @keywords internal
 #' @export
 create_model_matrix_from_features = function(formula, data){
@@ -251,18 +372,27 @@ assertNoCensoring = function(any_censoring){
 	}
 }
 
-#' Robust Survival Regression
+#' Robust Parametric Survival Regression from Response/Censoring Vectors
 #'
-#' Performs Survival regression from the original response and censoring vectors
-#' that if it fails, keeps trying with a different initialization point until a maximum number
-#' of iterations
+#' Convenience wrapper around \code{\link{robust_survreg_with_surv_object}} that
+#' builds the \code{\link[survival]{Surv}} object from separate response and
+#' censoring vectors first. See that function for the full description of the
+#' warm-start-then-random-restart fitting strategy used to make
+#' \code{\link[survival]{survreg}} converge reliably even from poor or
+#' near-singular starting points.
 #'
-#' @param  y  					The response vector
-#' @param  dead  				The censoring vector (1 if dead/uncensored and 0 if censored)
-#' @param  cov_matrix_or_vector  The model matrix
-#' @param  dist  				The parametric distribution form (default is Weibull)
-#' @param  num_max_iter  		Maximum # of iterations to repeat (default is 50)
-#' @return  The Survival regression model object
+#' @param  y  					The (possibly right-censored) response vector (event/censoring time).
+#' @param  dead  				The event indicator (1 if the event was observed/uncensored, 0 if
+#'   right-censored at \code{y}).
+#' @param  cov_matrix_or_vector  The design matrix (or a single covariate vector) of predictors,
+#'   \strong{excluding} the intercept (one is added by the internal \code{~ .} formula).
+#' @param  dist  				The parametric AFT distribution family passed to
+#'   \code{\link[survival]{survreg}} (default \code{"weibull"}); see that function's
+#'   \code{dist} argument for the full list of supported families.
+#' @param  num_max_iter  		Maximum number of random-restart attempts if the direct fit fails
+#'   or does not converge (default 50); see \code{\link{robust_survreg_with_surv_object}}.
+#' @return  The fitted \code{\link[survival]{survreg}} model object, or \code{NULL} if no
+#'   attempt converged to a fit with no \code{NA} coefficients within \code{num_max_iter} tries.
 #' @examples
 #' X = matrix(rnorm(500), 100, 5)
 #' y = runif(100)
@@ -273,18 +403,48 @@ robust_survreg = function(y, dead, cov_matrix_or_vector, dist = "weibull", num_m
 	robust_survreg_with_surv_object(survival::Surv(y, dead), cov_matrix_or_vector, dist = dist, num_max_iter = num_max_iter)
 }
 
-#' Robust Survival Regression
+#' Robust Parametric Survival Regression (AFT) with Warm-Start and Random-Restart Fallback
 #'
-#' Performs Survival regression from a survival::Surv object
-#' that if it fails, keeps trying with a different initialization point until a maximum number
-#' of iterations
+#' Fits a parametric accelerated-failure-time (AFT) survival regression via
+#' \code{\link[survival]{survreg}} on \code{surv_object ~ .} over the columns of
+#' \code{cov_matrix_or_vector}, with two layers of robustness against
+#' \code{survreg}'s well-known sensitivity to starting values and
+#' near-collinear design matrices:
+#' \enumerate{
+#'   \item \strong{Preprocessing}: near-collinear columns of the design matrix
+#'     are dropped first via \code{\link{drop_highly_correlated_cols}} then
+#'     \code{\link{drop_linearly_dependent_cols}}, before any fitting is attempted.
+#'   \item \strong{Warm start (Weibull only)}: when \code{dist = "weibull"}, a
+#'     fast closed-form-gradient Weibull fit (\code{\link{fast_weibull_regression}})
+#'     is attempted first; if it succeeds and returns a finite log-likelihood, its
+#'     coefficients and \eqn{\log(\hat\sigma)} are passed to \code{survreg} as the
+#'     \code{init} vector, which typically converges the true MLE in a single
+#'     \code{survreg} call. If this warm-started fit is unavailable, fails, or
+#'     produces \code{NA} coefficients, fitting falls through to the general
+#'     random-restart loop below (for all other \code{dist} values, this warm
+#'     start is skipped entirely).
+#'   \item \strong{Random-restart loop}: starting from an all-zero \code{init}
+#'     vector, \code{survreg} is called repeatedly (perturbing \code{init} by an
+#'     independent standard-normal jitter, \code{init + rnorm(length(init))},
+#'     after every failed attempt) until a fit with no \code{NA} coefficients is
+#'     obtained or \code{num_max_iter} attempts are exhausted, at which point
+#'     \code{NULL} is returned.
+#' }
+#' \code{survreg.control(maxiter = 100, rel.tolerance = 1e-9, outer.max = 10)} is
+#' used throughout (tighter than \code{survreg}'s own defaults) to reduce the
+#' chance of a spuriously "converged" fit at a poor optimum.
 #'
 #' @param surv_object                     The survival object (built from the response vector
-#'   and censoring vector)
-#' @param  cov_matrix_or_vector  The model matrix
-#' @param  dist  				The parametric distribution form (default is Weibull)
-#' @param  num_max_iter  		Maximum # of iterations to repeat (default is 50)
-#' @return  The Survival regression model object
+#'   and censoring vector via \code{\link[survival]{Surv}}).
+#' @param  cov_matrix_or_vector  The design matrix (or a single covariate vector) of predictors,
+#'   \strong{excluding} the intercept (one is added by the internal \code{~ .} formula).
+#' @param  dist  				The parametric AFT distribution family passed to
+#'   \code{\link[survival]{survreg}} (default \code{"weibull"}); only \code{"weibull"} triggers
+#'   the closed-form warm start.
+#' @param  num_max_iter  		Maximum number of random-restart attempts if the (possibly
+#'   warm-started) direct fit fails or does not converge (default 50).
+#' @return  The fitted \code{\link[survival]{survreg}} model object, or \code{NULL} if no
+#'   attempt converged to a fit with no \code{NA} coefficients within \code{num_max_iter} tries.
 #' @examples
 #' X = matrix(rnorm(500), 100, 5)
 #' y = runif(100)
@@ -361,14 +521,27 @@ robust_survreg_with_surv_object = function(surv_object, cov_matrix_or_vector, di
 	return(NULL)
 }
 
-#' Robust Negative Binomial Regression
+#' Robust Negative Binomial Regression with Backward Column-Dropping Fallback
 #'
-#' Performs Negative Binomial regression that if it fails, keeps dropping one column from the
-#' model matrix until it works
+#' Fits a negative-binomial GLM via \code{\link[MASS]{glm.nb}} (log link, joint
+#' ML estimation of the regression coefficients and the dispersion parameter
+#' \eqn{\theta}), falling back to a smaller model when the fit throws an error
+#' (typically non-convergence of \eqn{\theta}, or a singular design). On each
+#' failure, the \strong{last} column of \code{data_obj} is dropped and the fit is
+#' retried against the same \code{form_obj} (which must resolve to \code{y ~ .}
+#' or similar so that its right-hand side tracks the shrinking column set); this
+#' repeats until a fit succeeds or every predictor column has been removed, at
+#' which point \code{NA} is returned. Because columns are dropped strictly from
+#' the right, callers should order \code{data_obj}'s columns from most to least
+#' important \emph{a priori}, or accept that this is a best-effort robustness
+#' measure rather than a principled model-selection procedure.
 #'
-#' @param  form_obj  The formula
-#' @param  data_obj  The data frame to run Negative Binomial regression on
-#' @return  The Negative Binomial regression model object
+#' @param  form_obj  The model formula, typically \code{y ~ .} so its right-hand side
+#'   automatically tracks \code{data_obj}'s shrinking column set across retries.
+#' @param  data_obj  The data frame to run negative-binomial regression on; its \strong{last}
+#'   column is dropped on each retry, in order, until a fit converges or no columns remain.
+#' @return  The fitted \code{\link[MASS]{glm.nb}} model object, or \code{NA} if no column subset
+#'   (down to and including the response alone) produced a successful fit.
 #' @examples
 #' dat = data.frame(y = rpois(10, 2), x1 = rnorm(10), x2 = rnorm(10))
 #' robust_negbinreg(y ~ ., dat)
@@ -387,12 +560,22 @@ robust_negbinreg = function(form_obj, data_obj){
 	NA
 }
 
-#' Sample Mode from an array
+#' Sample Mode
 #'
-#' Compute sample mode from an array of numbers
+#' Thin R wrapper around \code{sample_mode_cpp()}, which returns the most
+#' frequently occurring value in \code{data}. Integer, logical, double,
+#' character, and factor vectors are all supported (dispatched internally on
+#' \code{TYPEOF(data)}; factors preserve their \code{class}/\code{levels}
+#' attributes on the returned value). \code{NA} (and, for doubles, \code{NaN}
+#' as a category distinct from \code{NA}) is counted like any other value and
+#' can itself be returned as "the mode" if it is the most frequent entry.
+#' Ties are broken by \strong{first occurrence}: among values tied for the
+#' highest count, the one that appears earliest in \code{data} is returned —
+#' this is a positional, not a numeric/lexicographic, tie-break rule.
 #'
-#' @param  data  The array of numbers
-#' @return  The sample mode
+#' @param  data  A vector (integer, logical, double, character, or factor) to compute the mode of.
+#' @return  A length-1 vector (same type as \code{data}) holding the most frequently occurring
+#'   value, with ties broken in favor of whichever tied value occurs earliest in \code{data}.
 #' @examples
 #' sample_mode(c(1, 2, 2, 3))
 #' @export
@@ -400,16 +583,42 @@ sample_mode = function(data){
 	sample_mode_cpp(data)
 }
 
-#' Lean GLM Summary
+#' Lean GLM Summary (Skips Deviance Residual Quantiles)
 #'
-#' Same as summary.glm except it doesn't calculate the residuals as this takes a long time
+#' A drop-in replacement for \code{\link[stats]{summary.glm}} that produces the
+#' identical coefficient table, dispersion estimate, and (optionally)
+#' correlation matrix, but \strong{omits the five-number summary of the
+#' deviance residuals} (\code{summary(object$deviance.resid)}) that
+#' \code{summary.glm()} always computes and stores in its \code{deviance.resid}
+#' component. That residual summary is cheap for a single fit but adds up when
+#' summarizing thousands of GLM fits in a resampling loop (e.g. bootstrap or
+#' randomization replicates elsewhere in this package), so this function skips
+#' it entirely; the returned object's \code{deviance.resid} component is simply
+#' absent rather than populated, which will matter to code that calls
+#' \code{print.summary.glm()} on the result or otherwise inspects that field.
+#' Every other computation — dispersion estimation (Pearson \eqn{X^2/\mathrm{df}}
+#' for Gaussian/Gamma/inverse-Gaussian families, fixed at 1 for
+#' Poisson/binomial, unless \code{dispersion} is supplied explicitly), the
+#' coefficient table (Wald \code{z} tests when dispersion is fixed/known,
+#' \code{t} tests with \code{df.residual} degrees of freedom when dispersion is
+#' estimated), and the optional \code{correlation}/\code{symbolic.cor} outputs,
+#' is identical to \code{\link[stats]{summary.glm}}.
 #'
-#' @param  object  	The GLM object
-#' @param  dispersion  See GLM documentation
-#' @param  correlation  See GLM documentation
-#' @param  symbolic.cor  See GLM documentation
-#' @param  ...  		Other parameters (currently unused)
-#' @return  The summary of the GLM
+#' @param  object  	A fitted \code{\link[stats]{glm}} object.
+#' @param  dispersion  The dispersion parameter for the fitting family; if \code{NULL}
+#'   (default), estimated as in \code{\link[stats]{summary.glm}} (fixed at 1 for
+#'   \code{poisson}/\code{binomial}, else the Pearson-residual-based moment estimate).
+#' @param  correlation  Logical; if \code{TRUE}, the estimated correlation matrix of the
+#'   coefficients is returned and printed. Default \code{FALSE}.
+#' @param  symbolic.cor  Logical; if \code{TRUE} and \code{correlation = TRUE}, the correlation
+#'   matrix is printed in symbolic form (see \code{\link[stats]{symnum}}) rather than as
+#'   numbers. Default \code{FALSE}.
+#' @param  ...  		Currently unused; present only for signature compatibility with
+#'   \code{\link[stats]{summary.glm}}.
+#' @return  An object of class \code{c("summary.glm")} with the same components as
+#'   \code{\link[stats]{summary.glm}}'s return value \strong{except} \code{deviance.resid},
+#'   which is not computed and is absent from the result.
+#' @seealso \code{\link[stats]{summary.glm}}, of which this is a residual-summary-skipping variant.
 #' @examples
 #' fit = glm(rbinom(10, 1, 0.5) ~ rnorm(10), family = binomial)
 #' summary_glm_lean(fit)
@@ -521,6 +730,27 @@ NULL
 	}
 	m_vec[is.na(m_vec)] = 0
 	compute_zhang_match_data_cpp(X, y, w, m_vec)
+}
+
+# Normalizes a raw KK matching-on-the-fly pair-id vector (possibly NULL, possibly
+# containing NAs for unmatched subjects) and splits it into matched vs. reservoir
+# subject indices. This is the boilerplate every IVWC-style KK inference class
+# repeats before fitting a matched-pairs component and a separate reservoir
+# component (interval_censored_survival_response.md TODO-25): normalize m_vec,
+# then matched_idx/i_matched = which(m_vec > 0L), reservoir_idx/i_reservoir =
+# which(m_vec == 0L). Deliberately does NOT also subset y/dead/w/X — call sites
+# need those sliced into different shapes (some build a KKstats-style list, some
+# call straight into a fit_cox_model()-style helper, some need bare X[idx, ]), so
+# only the index computation itself is centralized here.
+split_kk_matched_reservoir_idx = function(m_vec, n){
+	if (is.null(m_vec)) m_vec = rep(NA_integer_, n)
+	m_vec = as.integer(m_vec)
+	m_vec[is.na(m_vec)] = 0L
+	list(
+		m_vec = m_vec,
+		matched_idx = which(m_vec > 0L),
+		reservoir_idx = which(m_vec == 0L)
+	)
 }
 
 # Cached variant: the X/m structural part (X_matched_diffs, X_matched_diffs_full,

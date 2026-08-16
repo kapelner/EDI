@@ -17,7 +17,13 @@ make_fixed_design <- function(response_type, X, y_fun, dead_fun = NULL){
 	if (is.null(dead_fun)) {
 		des$add_all_subject_responses(y)
 	} else {
-		des$add_all_subject_responses(y, deads = dead_fun(w, X, y))
+		# (y, deads) positional convention was removed in the y/y_L/y_R
+		# migration (interval_censored_survival_response.md TODO-15).
+		dead = dead_fun(w, X, y)
+		y_exact = ifelse(dead == 1, y, NA_real_)
+		y_L = ifelse(dead == 1, NA_real_, y)
+		y_R = ifelse(dead == 1, NA_real_, Inf)
+		des$add_all_subject_responses(y_exact, y_L, y_R)
 	}
 	des
 }
@@ -54,31 +60,37 @@ test_that("incidence and ordinal g-computation reusable workers match generic bo
 	SlowInferenceIncidGCompRiskDiff = R6::R6Class(
 		"SlowInferenceIncidGCompRiskDiff",
 		inherit = InferenceIncidGCompRiskDiff,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceIncidGCompRiskDiff = R6::R6Class(
 		"SlowInferenceIncidGCompRiskDiff",
 		inherit = InferenceIncidGCompRiskDiff,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceIncidGCompRiskRatio = R6::R6Class(
 		"SlowInferenceIncidGCompRiskRatio",
 		inherit = InferenceIncidGCompRiskRatio,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceIncidGCompRiskRatio = R6::R6Class(
 		"SlowInferenceIncidGCompRiskRatio",
 		inherit = InferenceIncidGCompRiskRatio,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceOrdinalGCompMeanDiff = R6::R6Class(
 		"SlowInferenceOrdinalGCompMeanDiff",
 		inherit = InferenceOrdinalGCompMeanDiff,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceOrdinalGCompMeanDiff = R6::R6Class(
 		"SlowInferenceOrdinalGCompMeanDiff",
 		inherit = InferenceOrdinalGCompMeanDiff,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 
@@ -140,41 +152,49 @@ test_that("continuous lin, count negbin, and classical incidence estimators matc
 	SlowInferenceContinLin = R6::R6Class(
 		"SlowInferenceContinLin",
 		inherit = InferenceContinLin,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceCountNegBin = R6::R6Class(
 		"SlowInferenceCountNegBin",
 		inherit = InferenceCountNegBin,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceCountNegBin = R6::R6Class(
 		"SlowInferenceCountNegBin",
 		inherit = InferenceCountNegBin,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceCountHurdleNegBin = R6::R6Class(
 		"SlowInferenceCountHurdleNegBin",
 		inherit = InferenceCountHurdleNegBin,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceCountHurdleNegBin = R6::R6Class(
 		"SlowInferenceCountHurdleNegBin",
 		inherit = InferenceCountHurdleNegBin,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceIncidRiskDiff = R6::R6Class(
 		"SlowInferenceIncidRiskDiff",
 		inherit = InferenceIncidRiskDiff,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceIncidNewcombeRiskDiff = R6::R6Class(
 		"SlowInferenceIncidNewcombeRiskDiff",
 		inherit = InferenceIncidNewcombeRiskDiff,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceIncidMiettinenNurminenRiskDiff = R6::R6Class(
 		"SlowInferenceIncidMiettinenNurminenRiskDiff",
 		inherit = InferenceIncidMiettinenNurminenRiskDiff,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 
@@ -305,31 +325,37 @@ test_that("MLE and proportion families picked up through InferenceAsymp match ge
 	SlowInferenceOrdinalPropOddsRegr = R6::R6Class(
 		"SlowInferenceOrdinalPropOddsRegr",
 		inherit = InferenceOrdinalPropOddsRegr,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferencePropBetaRegr = R6::R6Class(
 		"SlowInferencePropBetaRegr",
 		inherit = InferencePropBetaRegr,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferencePropFractionalLogit = R6::R6Class(
 		"SlowInferencePropFractionalLogit",
 		inherit = InferencePropFractionalLogit,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferencePropFractionalLogit = R6::R6Class(
 		"SlowInferencePropFractionalLogit",
 		inherit = InferencePropFractionalLogit,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferencePropZeroOneInflatedBetaRegr = R6::R6Class(
 		"SlowInferencePropZeroOneInflatedBetaRegr",
 		inherit = InferencePropZeroOneInflatedBetaRegr,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferencePropZeroOneInflatedBetaRegr = R6::R6Class(
 		"SlowInferencePropZeroOneInflatedBetaRegr",
 		inherit = InferencePropZeroOneInflatedBetaRegr,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 
@@ -404,41 +430,49 @@ test_that("survival reusable workers match generic bootstrap", {
 	SlowInferenceSurvivalCoxPHRegr = R6::R6Class(
 		"SlowInferenceSurvivalCoxPHRegr",
 		inherit = InferenceSurvivalCoxPHRegr,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceSurvivalCoxPHRegr = R6::R6Class(
 		"SlowInferenceSurvivalCoxPHRegr",
 		inherit = InferenceSurvivalCoxPHRegr,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceSurvivalStratCoxPHRegr = R6::R6Class(
 		"SlowInferenceSurvivalStratCoxPHRegr",
 		inherit = InferenceSurvivalStratCoxPHRegr,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceSurvivalStratCoxPHRegr = R6::R6Class(
 		"SlowInferenceSurvivalStratCoxPHRegr",
 		inherit = InferenceSurvivalStratCoxPHRegr,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceSurvivalKMDiff = R6::R6Class(
 		"SlowInferenceSurvivalKMDiff",
 		inherit = InferenceSurvivalKMDiff,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceSurvivalLogRank = R6::R6Class(
 		"SlowInferenceSurvivalLogRank",
 		inherit = InferenceSurvivalLogRank,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceSurvivalRestrictedMeanDiff = R6::R6Class(
 		"SlowInferenceSurvivalRestrictedMeanDiff",
 		inherit = InferenceSurvivalRestrictedMeanDiff,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceSurvivalGehanWilcox = R6::R6Class(
 		"SlowInferenceSurvivalGehanWilcox",
 		inherit = InferenceSurvivalGehanWilcox,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 
@@ -505,31 +539,37 @@ test_that("zero-augmented count reusable workers match generic bootstrap", {
 	SlowInferenceCountZeroInflatedPoisson = R6::R6Class(
 		"SlowInferenceCountZeroInflatedPoisson",
 		inherit = InferenceCountZeroInflatedPoisson,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceCountZeroInflatedPoisson = R6::R6Class(
 		"SlowInferenceCountZeroInflatedPoisson",
 		inherit = InferenceCountZeroInflatedPoisson,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceCountZeroInflatedNegBin = R6::R6Class(
 		"SlowInferenceCountZeroInflatedNegBin",
 		inherit = InferenceCountZeroInflatedNegBin,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceCountZeroInflatedNegBin = R6::R6Class(
 		"SlowInferenceCountZeroInflatedNegBin",
 		inherit = InferenceCountZeroInflatedNegBin,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceCountHurdlePoisson = R6::R6Class(
 		"SlowInferenceCountHurdlePoisson",
 		inherit = InferenceCountHurdlePoisson,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceCountHurdlePoisson = R6::R6Class(
 		"SlowInferenceCountHurdlePoisson",
 		inherit = InferenceCountHurdlePoisson,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 

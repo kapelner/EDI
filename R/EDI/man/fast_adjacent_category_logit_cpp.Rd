@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_adjacent_category_logit_cpp}
 \alias{fast_adjacent_category_logit_cpp}
-\title{Fast Adjacent-Category Logit (C++)}
+\title{Fast Adjacent-Category Logit Regression, Direct MLE (C++ Backend)}
 \usage{
 fast_adjacent_category_logit_cpp(
   X,
@@ -19,32 +19,103 @@ fast_adjacent_category_logit_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors, \eqn{n \times p}, with \strong{no}
+intercept column (the model's cut-specific intercepts \eqn{\alpha_k} serve that
+role).}
 
-\item{y}{A numeric vector of responses (categorical).}
+\item{y}{A numeric vector of length \eqn{n} giving each subject's ordinal
+category; need not be pre-coded \code{1:K} (see Details for the rank-based
+remapping).}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of optimizer iterations.}
 
 \item{tol}{Convergence tolerance.}
 
 \item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional integer indices (into the
+\code{c(alpha, beta)} parameter layout described in Details) of parameters to
+hold fixed rather than estimate.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at; must be the same length as \code{fixed_idx}.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm; see Details.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix.}
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix (over
+the full \code{c(alpha, beta)} parameter vector) to warm-start curvature
+information.}
 
-\item{warm_start_params}{Optional starting values for all parameters. If provided, \code{smart_cold_start} is ignored.}
+\item{warm_start_params}{Optional starting values for the full parameter vector
+\code{c(alpha, beta)}. If provided, \code{smart_cold_start} is ignored.}
 
-\item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
+\item{warm_start_beta}{Optional starting values for just the covariate
+coefficients \eqn{\beta} (cut intercepts \eqn{\alpha} are still initialized
+separately). If provided, \code{smart_cold_start} is ignored.}
 }
 \value{
-A list containing coefficients, alpha, and convergence status.
+A list with components \code{b} (the shared covariate coefficients
+  \eqn{\hat\beta}, length \code{p}), \code{alpha} (the \code{K - 1} estimated
+  cut intercepts \eqn{\hat\alpha_k}), \code{params} (the full
+  \code{c(alpha, b)} parameter vector, as optimized), \code{neg_loglik} (the
+  multinomial negative log-likelihood at convergence), and \code{converged}
+  (logical).
 }
 \description{
-High-performance adjacent-category logit model fitting.
+Fits the adjacent-category logit ordinal regression model
+\deqn{\log\frac{\Pr(Y = k+1)}{\Pr(Y = k)} = \alpha_k + \beta^\top x, \quad k = 1, \dots, K-1,}
+by direct maximum likelihood on the full multinomial likelihood of \code{y},
+rather than via the stacked-binary / stratified-conditional-logit reduction
+implemented by \code{expand_adjacent_category_data_cpp()} elsewhere in the
+package. \eqn{\beta} (the covariate effects, shared across all \code{K - 1} cuts)
+and the \code{K - 1} cut-specific intercepts \eqn{\alpha_k} are estimated jointly
+by numerically optimizing the exact multinomial log-likelihood, which is
+generally more accurate and can be faster than fitting the row-stacked expansion
+as a stratified logistic regression, at the cost of a custom (rather than reused)
+optimizer implementation.
+}
+\details{
+\strong{Category coding.} \code{y} need not already be coded \code{1:K}: the
+distinct values of \code{y} are extracted and sorted (\code{get_levels()}), and
+each observation is remapped to its 1-based \strong{rank} among those sorted
+distinct values (\code{map_y_to_1K()}) — e.g. \code{y = c(10, 30, 20, 10)} is
+treated identically to \code{y = c(1, 3, 2, 1)}, with \code{K = 3}. \code{K} is
+therefore the number of \emph{distinct observed} values, not any externally
+supplied category count, and requires at least 2 (an error is raised otherwise).
+
+\strong{Parameterization and likelihood.} Internally, category probabilities are
+computed from a numerically stable right-to-left product recurrence in terms of
+\eqn{u = e^{-\eta}} (\eqn{\eta = x^\top \beta}) and \eqn{e^{\alpha_k}}, avoiding
+repeated exponentiation and keeping partial products bounded; the returned
+\code{neg_loglik} is the resulting exact multinomial negative log-likelihood
+(\eqn{-\sum_i \log \Pr(Y_i = y_i)}), with the analytic gradient computed in the
+same pass and used internally for optimization. See
+\code{\link{fast_adjacent_category_logit_with_var_cpp}} for the variant that
+additionally returns the variance-covariance matrix of the estimates.
+
+\strong{Parameter vector layout.} The optimizer's parameter vector (returned as
+\code{params}) is \code{c(alpha_1, ..., alpha_{K-1}, beta_1, ..., beta_p)} — the
+\code{K - 1} cut intercepts first, then the \code{p} shared covariate
+coefficients (\code{p = ncol(X)}).
+
+\strong{Optimization.} Optimized via \code{optimization_alg} (\code{"lbfgs"}
+default; see \code{\link{.normalize_optimizer_algorithm}} for the supported set),
+for at most \code{maxit} iterations at tolerance \code{tol}. When no warm start is
+supplied, \code{smart_cold_start = TRUE} (default) seeds the optimizer from an
+OLS-based initial guess rather than a naive zero/arbitrary start; supplying
+\code{warm_start_params} (the full parameter vector) or \code{warm_start_beta}
+(just the covariate coefficients, with cut intercepts initialized separately)
+overrides \code{smart_cold_start} entirely. \code{fixed_idx}/\code{fixed_values}
+allow holding specific parameters (by index into the layout above) fixed at
+supplied values during optimization rather than estimating them, and
+\code{warm_start_fisher_info} allows reusing a previously computed Fisher
+information matrix to warm-start curvature information for faster convergence.
+}
+\seealso{
+\code{\link{fast_adjacent_category_logit_with_var_cpp}} for the
+  variance-augmented variant; \code{expand_adjacent_category_data_cpp()} for the
+  alternative stacked-binary reduction of the same model.
+  \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal regression} for
+  orientation.
 }
 \keyword{internal}

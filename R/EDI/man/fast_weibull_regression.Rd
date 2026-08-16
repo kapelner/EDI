@@ -2,7 +2,7 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{fast_weibull_regression}
 \alias{fast_weibull_regression}
-\title{Weibull Regression using survival package internals or Rcpp (fast)}
+\title{Fast Weibull AFT Regression (R Wrapper: Rcpp Backend or \pkg{survival})}
 \usage{
 fast_weibull_regression(
   y,
@@ -16,41 +16,81 @@ fast_weibull_regression(
 )
 }
 \arguments{
-\item{y}{Survival times.}
+\item{y}{Observed survival/censoring times (must be positive).}
 
-\item{dead}{Event indicator (1 = event, 0 = censored).}
+\item{dead}{Event indicator: 1 for an exactly observed event, 0 for
+right-censored (survival known only to exceed \code{y[i]}).}
 
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}
 
 \item{use_rcpp}{Logical. If \code{TRUE} (default), use the optimized Rcpp
-implementation. If \code{FALSE}, use \pkg{survival::survreg}.}
+implementation. If \code{FALSE}, use \code{\link[survival]{survreg}}.}
 
 \item{estimate_only}{Logical. If \code{TRUE}, skip variance-covariance
-matrix calculation for speed.}
+matrix calculation for speed. Only has an effect when \code{use_rcpp = TRUE}.}
 
-\item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.}
+\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default) or
+\code{"newton_raphson"}. Only has an effect when \code{use_rcpp = TRUE}.}
 
-\item{warm_start_params}{Optional starting values for [beta, log_sigma].}
+\item{warm_start_params}{Optional starting values for \eqn{[\beta,
+\log\sigma]}. Only has an effect when \code{use_rcpp = TRUE}.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix.}
+\item{warm_start_fisher_info}{Optional initial curvature (Fisher/observed
+information) matrix. Only has an effect when \code{use_rcpp = TRUE}.}
 }
 \value{
 A list containing the following components:
 \describe{
-\item{coefficients}{A numeric vector of the estimated Weibull regression coefficients,
-including the intercept.}
-\item{log_sigma}{The logarithm of the scale parameter from the Weibull distribution.}
-\item{vcov}{The variance-covariance matrix of the estimated coefficients.}
+\item{coefficients}{A numeric vector of the estimated Weibull regression coefficients
+\eqn{\hat\beta}, including the intercept.}
+\item{log_sigma}{The logarithm of the fitted scale parameter \eqn{\hat\sigma} of the
+  Weibull AFT distribution.}
+\item{vcov}{The variance-covariance matrix of the estimated coefficients, or \code{NULL}
+  if \code{estimate_only = TRUE} (Rcpp path only).}
+\item{neg_log_lik}{(Rcpp path only) The negative log-likelihood at the fitted parameters.}
+\item{fisher_information}{(Rcpp path only) The observed information matrix, or \code{NULL}
+  if \code{estimate_only = TRUE}.}
+\item{std_errs}{(\pkg{survival} path only) The coefficient standard errors,
+  \code{sqrt(diag(vcov))}.}
 }
 }
 \description{
-This function performs Weibull regression using either \pkg{survival} or an
-optimized Rcpp implementation.
+Fits the Weibull accelerated failure time model documented in full at
+\code{\link{fast_weibull_regression_general_cpp}} (\eqn{\log T_i = \eta_i +
+\sigma W_i}, \eqn{\eta_i = x_i^\top\beta}, right-censoring only), via either
+that C++ backend (\code{use_rcpp = TRUE}, the default) or
+\code{\link[survival]{survreg}} with \code{dist = "weibull"}
+(\code{use_rcpp = FALSE}) as a fallback/cross-check implementation.
+}
+\details{
+When \code{use_rcpp = TRUE}, an intercept column is prepended to
+  \code{X} automatically if not already present (detected as a first column
+  of all 1s), fitting always starts from a zero cold start
+  (\code{smart_cold_start = FALSE} is hardcoded, regardless of whether
+  \code{warm_start_params} is supplied), and a non-\code{converged} C++ fit is
+  escalated to an R-level \code{stop()} rather than returned silently.
+
+  When \code{use_rcpp = FALSE}, any existing intercept column is stripped and
+  \code{survreg} is left to add its own; remaining covariate columns are first
+  passed through \code{\link{drop_linearly_dependent_cols}} to remove
+  collinear columns before fitting (silently — no error or warning is raised
+  for dropped columns). \code{estimate_only}, \code{optimization_alg},
+  \code{warm_start_params}, and \code{warm_start_fisher_info} have \strong{no
+  effect} on this path — \code{survreg} always computes the full
+  variance-covariance matrix, and \code{std_errs} (from \code{sqrt(diag(vcov))})
+  is included only in this path's return value, not the Rcpp path's. Both
+  non-finite coefficients and (unless \code{estimate_only = TRUE}, which is
+  ignored on this path regardless) non-finite variance-covariance entries from
+  \code{survreg} are escalated to an R-level \code{stop()}.
 }
 \examples{
 X = matrix(rnorm(500), 100, 5)
 y = runif(100)
 dead = rbinom(100, 1, 0.5)
 fast_weibull_regression(y, dead, X)
+}
+\seealso{
+\code{\link{fast_weibull_regression_general_cpp}} for the full model documentation
+  and Rcpp backend contract.
 }

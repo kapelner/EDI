@@ -15,7 +15,7 @@ make_kk_ols_inference <- function(seed = 1, n = 40){
 	for (i in seq_len(n)) {
 		w_i <- des$add_one_subject_to_experiment_and_assign(data.frame(x1 = x1[i]))
 		y_i <- 0.5 + 0.8 * w_i + 0.4 * x1[i] + rnorm(1, sd = 1.3)
-		des$add_one_subject_response(i, y_i, 1L)
+		des$add_one_subject_response(i, y_i)
 	}
 	InferenceContinKKOLSOneLik$new(des, verbose = FALSE)
 }

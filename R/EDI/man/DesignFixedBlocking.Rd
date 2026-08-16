@@ -2,10 +2,51 @@
 % Please edit documentation in R/design_fixed_blocking.R
 \name{DesignFixedBlocking}
 \alias{DesignFixedBlocking}
-\title{A stratified blocking Fixed Design}
+\title{A Fixed, Stratified-Block Randomized Design}
 \description{
-An R6 Class encapsulating the data and functionality for a fixed stratified
-blocking experimental design.
+A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} that first partitions
+subjects into blocks (strata) formed from covariates, then randomizes treatment
+\strong{independently within each block} at probability \code{prob_T} (via
+\code{\link[randomizr]{block_ra}} when \pkg{randomizr} is installed, else an internal
+\code{generate_permutations_blocking_cpp()} fallback). Blocking on a covariate removes
+its between-block variation from the treatment-effect comparison (comparisons are
+always within-block), improving precision relative to unblocked randomization whenever
+the blocking covariate(s) are prognostic of the outcome, at the cost of requiring the
+analysis to account for the blocking structure (e.g. via a block/stratum fixed effect
+or a CMH-type test). This differs from
+\code{\link[EDI:DesignFixedBlockedCluster]{DesignFixedBlockedCluster}}, which
+randomizes whole \emph{clusters} of subjects together within each block rather than
+subjects individually.
+
+
+\strong{Block construction.} Blocking keys are computed by
+\code{private$get_strata_keys()} (shared across
+\code{\link[EDI:DesignBlocking]{DesignBlocking}} subclasses): each column in
+\code{strata_cols} contributes a categorical key (continuous columns are discretized
+into \code{preferred_num_bins_for_continuous_covariate} quantile bins), and multiple
+columns are combined into one composite block key per subject; if \code{strata_cols}
+is \code{NULL}, all available covariate columns are used. \code{B_target} caps the
+number of resulting blocks by greedily adding \code{strata_cols} in order only while
+the running block count stays at or below the target (earlier columns take priority);
+\code{exact_num_blocks = TRUE} instead hard-fails if the greedy construction does not
+land on exactly \code{B_target} blocks. \code{equal_block_sizes = TRUE} (the default)
+additionally requires every block to have the same subject count, checked once at
+construction (via \code{n \%\% B_target}) if \code{n} and \code{B_target} are both
+already known, and again once covariates arrive; some downstream inference classes
+(\code{InferenceIncidCMH}, \code{InferenceIncidExtendedRobins}) require equal block
+sizes unconditionally, regardless of this flag. An explicit \code{m} (one block ID per
+subject) bypasses covariate-derived block construction entirely.
+
+\strong{Within-block randomization and bootstrap.} Within each block, treatment is
+assigned independently via \code{\link[randomizr]{block_ra}}'s complete random
+assignment (subject to rounding, \code{prob_T} of each block's subjects are treated);
+the internal C++ fallback (\code{generate_permutations_blocking_cpp()}) is used only
+if \pkg{randomizr} is not installed. \code{draw_bootstrap_indices()} resamples
+\emph{within} each block by default (\code{bootstrap_type = "within_blocks"} or
+\code{NULL}, via \code{stratified_bootstrap_indices_cpp()}), or resamples whole blocks
+with replacement otherwise (via \code{resample_group_rows_cpp()}) — mirroring the
+block structure in the resampling scheme, analogous to the cluster-level bootstrap in
+\code{DesignFixedBlockedCluster}.
 }
 \examples{
 des = DesignFixedBlocking$new(n = 20, response_type = 'continuous',
@@ -13,6 +54,14 @@ des = DesignFixedBlocking$new(n = 20, response_type = 'continuous',
 X = data.frame(x1 = rnorm(20), x2 = factor(rep(1:2, 10)))
 des$add_all_subjects_to_experiment(X)
 des$assign_w_to_all_subjects()
+}
+\references{
+Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd,
+  for the original rationale for blocking in randomized experiments; Cochran, W. G.,
+  and Cox, G. M. (1957). \emph{Experimental Designs} (2nd ed.), Wiley, for stratified
+  (randomized block) design theory. See also
+  \href{https://en.wikipedia.org/wiki/Randomized_block_design}{randomized block
+  design} for orientation.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixedBlocking}
@@ -29,9 +78,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subject_responses'><code>DesignFixed$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subjects_to_experiment'><code>DesignFixed$add_all_subjects_to_experiment()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-assign_w_to_all_subjects'><code>DesignFixed$assign_w_to_all_subjects()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-is_a_fixed'><code>DesignFixed$is_a_fixed()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-supports_resampling'><code>DesignFixed$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -63,6 +110,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -85,14 +133,16 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_seq_one_by_one'><code>Design$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -100,7 +150,11 @@ des$assign_w_to_all_subjects()
 \if{html}{\out{<a id="method-DesignFixedBlocking-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedBlocking-initialize}{}}}
 \subsection{\code{DesignFixedBlocking$new()}}{
-  Initialize a fixed stratified blocking experimental design
+  Initialize a fixed stratified-block randomized experimental
+  design. Block construction and validation follow the rules described in
+  the class documentation; see the parameter descriptions below for the
+  greedy \code{B_target}/\code{exact_num_blocks}/\code{equal_block_sizes}
+  contract.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedBlocking$new(

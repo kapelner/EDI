@@ -2349,8 +2349,8 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 		FixedGreedy =    DesignFixedGreedy$new(    response_type = response_type, n = n, design_formula = design_formula),
 		FixedRerandomization = DesignFixedRerandomization$new( response_type = response_type, n = n, design_formula = design_formula),
 		FixedMatchingGreedy = DesignFixedMatchingGreedyPairSwitching$new( response_type = response_type, n = n, design_formula = design_formula),
-		FixedDOptimal =  DesignFixedDOptimal$new(  response_type = response_type, n = n, design_formula = design_formula),
-		FixedAOptimal =  DesignFixedAOptimal$new(  response_type = response_type, n = n, design_formula = design_formula),
+		FixedGreedyDOptimalD =  DesignFixedGreedyDOptimal$new(  response_type = response_type, n = n, design_formula = design_formula),
+		FixedGreedyDOptimalA =  DesignFixedGreedyDOptimal$new(  response_type = response_type, n = n, design_formula = design_formula, objective = "A", interest = "all"),
 		stop("Unsupported design_type: ", design_type)
 	), error = function(e){ message("    Skipping design (creation error): ", e$message); NULL })
 	if (is.null(des_obj)) return(invisible(NULL))

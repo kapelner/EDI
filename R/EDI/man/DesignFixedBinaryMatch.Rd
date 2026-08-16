@@ -2,17 +2,77 @@
 % Please edit documentation in R/design_fixed_binary_match.R
 \name{DesignFixedBinaryMatch}
 \alias{DesignFixedBinaryMatch}
-\title{A Binary Match Fixed Design}
+\title{A Fixed, Non-Bipartite-Matched-Pair Design with Within-Pair Randomization}
 \description{
-An R6 Class encapsulating the data and functionality for a fixed binary match
-experimental design.
-This design pairs subjects based on covariate distances and randomizes within pairs.
-Uses non-bipartite matching via \pkg{nbpMatching} for distance computation.
+A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} that (1) partitions the
+\eqn{n} subjects into \eqn{n/2} disjoint matched pairs by solving a non-bipartite
+(optimal) pairwise-matching problem on a covariate distance matrix, minimizing the
+total within-pair distance across all pairs, then (2) randomizes treatment
+\strong{within} each pair independently: for pair \eqn{k}, one of its two members is
+assigned to treatment and the other to control with probability \eqn{1/2} each,
+independently across pairs. This is the classical matched-pair randomized design (a
+special case of blocking with block size 2), which guarantees exact covariate balance
+within every pair (up to the matching algorithm's distance metric) while preserving
+randomization-based inference validity, in contrast to
+\code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}, which balance the
+covariates in aggregate via an optimality criterion but do not guarantee pairwise
+closeness of any two subjects.
+
+
+\strong{Matching algorithm.} Pairing is computed once (lazily, on first call to
+\code{draw_ws_raw()}/\code{assign_w_to_all_subjects()}, via
+\code{private$ensure_matching_structure_computed()}) by
+\code{compute_binary_match_structure()}, which forms an \eqn{n \times n} pairwise
+distance matrix — squared Mahalanobis distance if \code{mahal_match = TRUE} (the
+default; using the sample covariance of the covariates, ridge-regularized if singular),
+or squared Euclidean distance otherwise — and solves the minimum-weight non-bipartite
+perfect matching on that distance matrix via \code{\link[nbpMatching]{nonbimatch}}
+(\pkg{nbpMatching}, a Suggests-only dependency; loading is deferred until matching is
+actually needed, so pre-computed \code{w} vectors injected via \code{m} never require
+it). For a single covariate (\eqn{p = 1}), pairing instead reduces to simply sorting
+subjects by that covariate and pairing consecutive subjects, since the non-bipartite
+matching problem is trivial in one dimension. The resulting pairing is cached in
+\code{private$bms}/\code{private$m} for the lifetime of the design object (or until
+explicitly reset via \code{set_m()}) and is not recomputed per draw.
+
+\strong{Within-pair randomization.} Given the fixed pairing, each replicate allocation
+(see \code{draw_binary_match_assignments_cpp()}) independently flips, for every pair,
+which of its two members is treated (an independent fair coin flip per pair per
+replicate, using a splitmix64-seeded Mersenne Twister per replicate column for
+reproducible parallel draws); this guarantees exactly \eqn{n/2} treated subjects
+overall (only \code{prob_T = 0.5} is supported; the constructor errors otherwise).
+Passing a pre-computed \code{m} to the constructor supplies the matched-pair structure
+directly (each pair ID occurring in exactly 2 rows), bypassing the matching
+computation entirely while keeping the same within-pair randomization.
+
+\strong{No-covariate fallback.} If no covariates are available at draw time
+(\code{private$m} is \code{NULL}, e.g. matching hasn't run and no explicit \code{m} was
+supplied), \code{draw_ws_raw()} falls back to an unmatched balanced complete
+randomization (a uniformly random permutation of \eqn{n/2} ones and \eqn{n/2} zeros),
+since there is no covariate information to match on.
+
+\strong{Validation and batch pregeneration.} Every drawn allocation matrix is checked
+(\code{private$validate_allocation_matrix()}) to have the expected shape, contain only
+finite \eqn{\{0,1\}} entries, and have exactly \eqn{n/2} treated subjects per replicate
+column; violations raise an error rather than silently returning a malformed
+allocation. \code{supports_batch_w_pregeneration()} returns \code{TRUE} so that the
+calling framework generates all replicate \code{w} vectors for a simulation cell in one
+batch (amortizing the one-time \pkg{nbpMatching} matching cost across all replicates
+of that cell) rather than recomputing the matching structure per replicate.
 }
 \examples{
 des = DesignFixedBinaryMatch$new(n = 10, response_type = 'continuous')
 des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10)))
 des$assign_w_to_all_subjects()
+}
+\references{
+Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P. (2004). "Optimal
+  multivariate matching before randomization." \emph{Biostatistics}, 5(2), 263-275,
+  \doi{10.1093/biostatistics/5.2.263}, for optimal non-bipartite matched-pair designs
+  prior to randomization. See also
+  \href{https://en.wikipedia.org/wiki/Matched_pair}{matched pair} and
+  \href{https://en.wikipedia.org/wiki/Mahalanobis_distance}{Mahalanobis distance} for
+  orientation.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixedBinaryMatch}
@@ -31,9 +91,7 @@ des$assign_w_to_all_subjects()
 <ul>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subject_responses'><code>DesignFixed$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subjects_to_experiment'><code>DesignFixed$add_all_subjects_to_experiment()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-is_a_fixed'><code>DesignFixed$is_a_fixed()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-supports_resampling'><code>DesignFixed$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -65,6 +123,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -87,13 +146,15 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_seq_one_by_one'><code>Design$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -101,11 +162,16 @@ des$assign_w_to_all_subjects()
 \if{html}{\out{<a id="method-DesignFixedBinaryMatch-is_a_kk_matching_capable"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedBinaryMatch-is_a_kk_matching_capable}{}}}
 \subsection{\code{DesignFixedBinaryMatch$is_a_kk_matching_capable()}}{
-  Characterization: this is a KK matching-on-the-fly-capable design.
+  Characterization: this design computes its matched-pair
+  structure on the fly from covariates (see class documentation), so it is
+  KK matching-capable by construction.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedBinaryMatch$is_a_kk_matching_capable()}
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Always \code{TRUE} for this class.
   }
 }
 
@@ -113,12 +179,18 @@ des$assign_w_to_all_subjects()
 \if{html}{\out{<a id="method-DesignFixedBinaryMatch-supports_batch_w_pregeneration"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedBinaryMatch-supports_batch_w_pregeneration}{}}}
 \subsection{\code{DesignFixedBinaryMatch$supports_batch_w_pregeneration()}}{
-  Returns TRUE so the framework pre-generates all w vectors
-  once per cell (paying the nbpMatching cost once, reusing across reps).
+  Returns \code{TRUE} so the calling framework pre-generates all
+  replicate \code{w} vectors for a simulation cell in one batch, paying the
+  one-time \pkg{nbpMatching} non-bipartite matching cost once per cell and
+  reusing the resulting pairing across all replicates, rather than
+  recomputing it per replicate.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedBinaryMatch$supports_batch_w_pregeneration()}
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Always \code{TRUE} for this class.
   }
 }
 
@@ -126,7 +198,10 @@ des$assign_w_to_all_subjects()
 \if{html}{\out{<a id="method-DesignFixedBinaryMatch-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedBinaryMatch-initialize}{}}}
 \subsection{\code{DesignFixedBinaryMatch$new()}}{
-  Initialize a binary match fixed experimental design
+  Initialize a binary (non-bipartite) matched-pair fixed
+  experimental design. Matching itself is deferred until the first draw (see
+  class documentation); this constructor only records configuration and,
+  if \code{m} is supplied, installs the explicit pairing immediately.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedBinaryMatch$new(
@@ -147,8 +222,12 @@ des$assign_w_to_all_subjects()
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{response_type}}{The data type of response values.}
-      \item{\code{prob_T}}{The probability of the treatment assignment. Must be 0.5.}
-      \item{\code{mahal_match}}{Match using Mahalanobis distance (else use Euclidean). Default is \code{TRUE}.}
+      \item{\code{prob_T}}{The probability of the treatment assignment. Must be 0.5,
+since within-pair randomization only supports an even 1-treated/1-control
+split per pair.}
+      \item{\code{mahal_match}}{Match using squared Mahalanobis distance (accounting for
+covariate correlation/scale) if \code{TRUE} (default), else squared
+Euclidean distance on the raw covariate matrix.}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{m}}{Optional integer vector of explicit matched-pair identifiers, one per
@@ -171,8 +250,14 @@ This bypasses the package-computed matching step.}
 \if{html}{\out{<a id="method-DesignFixedBinaryMatch-assign_w_to_all_subjects"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedBinaryMatch-assign_w_to_all_subjects}{}}}
 \subsection{\code{DesignFixedBinaryMatch$assign_w_to_all_subjects()}}{
-  Assign treatment to all subjects. Ensures matching structure is computed
-  even when a pre-computed w vector is injected (bypassing draw_ws_according_to_design).
+  Assign treatment to all subjects (see
+  \code{\link[EDI:DesignFixed]{DesignFixed$assign_w_to_all_subjects()}} for the
+  general contract). Before delegating, this override ensures the matched-pair
+  structure is computed (\code{private$ensure_matching_structure_computed()})
+  even when \code{w_precomputed} is supplied and
+  \code{draw_ws_according_to_design()} is therefore never called — downstream
+  code (e.g. blocked/matched-pair inference) still needs \code{private$m} to be
+  populated regardless of how \code{w} was obtained.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedBinaryMatch$assign_w_to_all_subjects(w_precomputed = NULL)}
@@ -181,7 +266,9 @@ This bypasses the package-computed matching step.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{w_precomputed}}{Optional numeric vector of length n.}
+      \item{\code{w_precomputed}}{Optional \{0,1\} numeric vector of length \code{n}. If
+supplied, it is used directly as the treatment allocation instead of drawing
+a fresh within-pair-randomized allocation.}
     }
     \if{html}{\out{</div>}}
   }

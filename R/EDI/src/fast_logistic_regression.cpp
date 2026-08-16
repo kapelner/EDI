@@ -5,6 +5,7 @@
 #include "result_map_rcpp.h"
 #include <RcppEigen.h>
 #endif
+#include "internal_fn_decls.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -25,36 +26,9 @@ inline double log1pexp_stable(double x) {
     return (x > 0.0) ? x + std::log1p(std::exp(-x)) : std::log1p(std::exp(x));
 }
 
-template<typename RDerived, typename WDerived>
-inline void score_weighted_crossprod_colwise_assign(const Eigen::MatrixXd& X,
-                                                    const Eigen::MatrixBase<RDerived>& residual,
-                                                    const Eigen::MatrixBase<WDerived>& w,
-                                                    Eigen::VectorXd& score,
-                                                    Eigen::MatrixXd& out) {
-    const int n = X.rows();
-    const int p = X.cols();
-    score.setZero();
-    out.setZero();
-    for (int j = 0; j < p; ++j) {
-        const double* xj = X.col(j).data();
-        for (int k = j; k < p; ++k) {
-            const double* xk = X.col(k).data();
-            double acc = 0.0;
-            if (k == j) {
-                double score_acc = 0.0;
-                for (int i = 0; i < n; ++i) {
-                    acc += xj[i] * w[i] * xj[i];
-                    score_acc += xj[i] * residual[i];
-                }
-                score[j] = score_acc;
-            } else {
-                for (int i = 0; i < n; ++i) acc += xj[i] * w[i] * xk[i];
-            }
-            out(j, k) = acc;
-            if (k != j) out(k, j) = acc;
-        }
-    }
-}
+// score_weighted_crossprod_colwise_assign is now the canonical version in
+// _helper_functions_core.h (already in this file's include chain) -- see
+// its comment for why.
 
 class LogisticLbfgsObjective {
 private:
@@ -91,20 +65,21 @@ public:
 
 } // namespace
 
-// Internal pure C++ logic
+// Internal pure C++ logic. Defaults are declared once in internal_fn_decls.h
+// (included above) -- repeating them here would be an error.
 ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
                                               const Eigen::Ref<const Eigen::VectorXd>& y,
                                               const Eigen::Ref<const Eigen::VectorXd>& weights,
-                                              std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
-                                              bool smart_cold_start = false,
-                                              int maxit = 100,
-                                              double tol = 1e-8,
-                                              std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
-                                              std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
-                                              std::string optimization_alg = "irls",
-                                              std::optional<Eigen::VectorXd> warm_start_weights = std::nullopt,
-                                              std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
-                                              bool estimate_only = false) {
+                                              std::optional<Eigen::VectorXd> warm_start_beta,
+                                              bool smart_cold_start,
+                                              int maxit,
+                                              double tol,
+                                              std::optional<Eigen::VectorXi> fixed_idx,
+                                              std::optional<Eigen::VectorXd> fixed_values,
+                                              std::string optimization_alg,
+                                              std::optional<Eigen::VectorXd> warm_start_weights,
+                                              std::optional<Eigen::MatrixXd> warm_start_fisher_info,
+                                              bool estimate_only) {
     const int n = X.rows();
     const int p = X.cols();
     const bool use_weights = (weights.size() == n);
@@ -129,9 +104,19 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
         Eigen::MatrixXd X_free(n, p_free);
         for (int j = 0; j < p_free; ++j) X_free.col(j) = X.col(fixed_spec.free_idx[j]);
 
+        // Diagnostic fields below are uniform across the LBFGS/IRLS paths of
+        // this fitter (optimizer_diagnostics_report.md TODO-4): `converged`
+        // is purely last-gradient-norm-vs-tol, recomputed here rather than
+        // trusted from the optimizer's own (partly function-value-based)
+        // stopping check, and `hit_iteration_cap` separately reports whether
+        // the iteration budget, not the gradient, is why the fitter stopped.
+        // p_free == 0 (no free parameters) is a degenerate case with nothing
+        // to optimize -- trivially converged, no iterations run.
         bool converged = true;
+        bool hit_iteration_cap = false;
         double fopt = std::numeric_limits<double>::quiet_NaN();
         double grad_norm = std::numeric_limits<double>::quiet_NaN();
+        int niter = 0;
         if (p_free > 0) {
             LogisticLbfgsObjective nll(X_free, y, weights, eta_fixed, use_weights);
             // Same solver/parameter setup as RcppNumerical's optim_lbfgs
@@ -144,7 +129,15 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
             beta_free = fit.params;
             fopt = fit.value;
             grad_norm = fit.gradient_norm;
-            converged = fit.converged && beta_free.allFinite();
+            niter = fit.niter;
+            // LBFGSpp's own `fit.converged` also fires on a relative
+            // function-value-decrease criterion (params.delta/past), not
+            // gradient norm alone -- do not trust it for this field.
+            converged = (grad_norm < tol) && beta_free.allFinite();
+            // Mutually exclusive with `converged`: a fit that happens to
+            // reach gradient tolerance on the very last allowed iteration
+            // succeeded within budget, not because of it.
+            hit_iteration_cap = (niter >= maxit) && !converged;
         }
 
         ModelResult res;
@@ -159,8 +152,9 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
             w_diag.array() = w_diag.array().max(1e-10);
             res.XtWX = expand_free_covariance(p, fixed_spec, weighted_crossprod(X_free, w_diag), false);
         }
-        res.iterations = std::numeric_limits<int>::min();
+        res.num_iter = niter;
         res.converged = converged;
+        res.hit_iteration_cap = hit_iteration_cap;
         return res;
     }
 
@@ -174,7 +168,6 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
     Eigen::MatrixXd XtWX(p_free, p_free);
     Eigen::VectorXd score_free(p_free);
     Eigen::VectorXd diff(n);
-    bool converged = false;
     int iterations = 0;
     double last_grad_norm = std::numeric_limits<double>::quiet_NaN();
 
@@ -213,7 +206,7 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
         }
 
         last_grad_norm = score_free.norm();
-        if (last_grad_norm < tol) { converged = true; break; }
+        if (last_grad_norm < tol) break;
 
         Eigen::LDLT<Eigen::MatrixXd> ldlt(XtWX);
         if (ldlt.info() != Eigen::Success) break;
@@ -221,8 +214,35 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
         if (!delta.allFinite()) break;
 
         beta_free += delta;
-        if (delta.norm() < tol) { converged = true; break; }
+        if (delta.norm() < tol) {
+            // Step-size convergence: recompute the gradient norm at the
+            // post-step point so the uniform `converged = grad_norm < tol`
+            // rule below classifies this exit by its actual gradient, not by
+            // this (different) stopping criterion having fired.
+            eta.noalias() = eta_fixed;
+            eta.noalias() += X_free * beta_free;
+            mu.array() = 1.0 / (1.0 + (-eta.array()).exp());
+            Eigen::VectorXd w_final(n);
+            w_final.array() = mu.array() * (1.0 - mu.array());
+            if (use_weights) w_final.array() *= weights.array();
+            Eigen::VectorXd diff_final(n);
+            diff_final.array() = y.array() - mu.array();
+            if (use_weights) diff_final.array() *= weights.array();
+            last_grad_norm = (X_free.transpose() * diff_final).norm();
+            break;
+        }
     }
+
+    // Uniform gradient-norm-based convergence (optimizer_diagnostics_report.md
+    // TODO-4): `converged` no longer also fires on the step-size (delta.norm())
+    // criterion above. `hit_iteration_cap` is TRUE iff the loop ran to `maxit`
+    // without any of the above break conditions firing; every other exit
+    // (singular Hessian, non-finite step) already implies `last_grad_norm >=
+    // tol` -- the gradient-tol break above would have fired first otherwise --
+    // so the blanket rule classifies those as `converged = false,
+    // hit_iteration_cap = false` correctly with no special-casing needed.
+    bool converged = (last_grad_norm < tol);
+    bool hit_iteration_cap = (iterations >= maxit) && !converged;
 
     ModelResult res;
     res.b = expand_free_params(beta_free, beta, fixed_spec);
@@ -240,8 +260,9 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
         if (use_weights) final_diff.array() *= weights.array();
         res.score = X.transpose() * final_diff;
     }
-    res.iterations = iterations;
+    res.num_iter = iterations;
     res.converged = converged;
+    res.hit_iteration_cap = hit_iteration_cap;
     res.gradient_norm = last_grad_norm;
     return res;
 }
@@ -347,14 +368,16 @@ List fast_logistic_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, 
         return edi::to_rcpp_list(edi::ResultMap()
             .set("b", res.b)
             .set("converged", res.converged)
-            .set("iterations", res.iterations)
+            .set("num_iter", res.num_iter)
+            .set("hit_iteration_cap", res.hit_iteration_cap)
             .set("gradient_norm", res.gradient_norm));
     }
     Eigen::VectorXd weights_vec = res.mu.array() * (1.0 - res.mu.array());
     return edi::to_rcpp_list(edi::ResultMap()
         .set("b", res.b)
         .set("w", weights_vec)
-        .set("iterations", res.iterations)
+        .set("num_iter", res.num_iter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
         .set("fisher_information", res.XtWX)
         .set("score", res.score)
         .set("neg_ll", res.neg_ll)
@@ -390,7 +413,8 @@ List fast_logistic_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
         .set("score", res.score)
         .set("neg_ll", res.neg_ll)
         .set("converged", res.converged)
-        .set("iterations", res.iterations)
+        .set("num_iter", res.num_iter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
         .set("gradient_norm", res.gradient_norm));
 }
 
@@ -456,7 +480,8 @@ List fast_logistic_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X
         .set("neg_ll", res.neg_ll)
         .set("loglik", R_finite(res.neg_ll) ? -res.neg_ll : NA_REAL)
         .set("converged", res.converged)
-        .set("iterations", res.iterations)
+        .set("num_iter", res.num_iter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
         .set("gradient_norm", res.gradient_norm));
 }
 #endif // EDI_CORE_ONLY

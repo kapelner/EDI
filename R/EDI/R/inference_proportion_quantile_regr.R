@@ -8,14 +8,32 @@
 #' shift} at quantile \code{tau}; by default \code{tau = 0.5}, so this is a median
 #' log-odds-ratio shift.
 #'
-#' Standard errors use \pkg{quantreg}'s Powell-style \code{"nid"} estimator when
-#' available, with fallback to \code{"iid"} if needed. Inference is based on the
-#' resulting asymptotic normal approximation.
+#' Fitting is via \code{\link[quantreg]{rq}} (method \code{"br"}, the Barrodale-Roberts
+#' simplex algorithm, for the point estimate; the default Frisch-Newton-adjacent
+#' interior-point path for the variance-computing fit) on \code{logit(y) ~ w + covariates}
+#' with no intercept column (the design matrix already carries one). Standard errors use
+#' \pkg{quantreg}'s Powell (1991) kernel sandwich \code{"nid"} estimator (heteroskedasticity-
+#' and design-robust, valid under non-i.i.d. errors) when available, falling back to the
+#' i.i.d.-errors \code{"iid"} estimator if \code{"nid"} extraction fails; inference on the
+#' resulting standard error uses the asymptotic normal (Wald) approximation, not a
+#' resampling-based reference distribution, for the asymptotic CI/p-value paths.
+#' \code{compute_asymp_confidence_interval}/\code{compute_asymp_two_sided_pval} use the
+#' fit's residual degrees of freedom \eqn{n - p} in a \eqn{t}-reference (via
+#' \code{compute_z_or_t_ci_from_s_and_df}) rather than a plain normal reference, so the
+#' interval/test remain slightly conservative in small samples relative to a bare Wald z.
 #'
 #' This class requires the \pkg{quantreg} package, which is listed under
 #' \code{Suggests} and is not installed automatically with \pkg{EDI}.
-#' Install \pkg{quantreg} manually before use.
+#' Install \pkg{quantreg} manually before use. Only uncensored proportion responses are
+#' supported (checked via \code{assertNoCensoring} at construction).
 #'
+#' @references Koenker, R. and Bassett, G. (1978). "Regression Quantiles."
+#'   \emph{Econometrica}, 46(1), 33-50, \doi{10.2307/1913643}, for quantile regression itself.
+#'   Powell, J. L. (1991). "Estimation of Monotonic Regression Models under Quantile
+#'   Restrictions," in \emph{Nonparametric and Semiparametric Methods in Econometrics and
+#'   Statistics}, Cambridge University Press, for the \code{"nid"} sandwich standard error.
+#' @seealso \code{\link[EDI:InferenceContinQuantileRegr]{InferenceContinQuantileRegr}} for the
+#'   untransformed (continuous-scale) analogue of this class.
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'proportion')
@@ -26,11 +44,16 @@
 #' inf = InferencePropQuantileRegr$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @concept quantile regression
 #' @export
-InferencePropQuantileRegr = R6::R6Class("InferencePropQuantileRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferencePropQuantileRegr = define_inference_class(
+	classname = "InferencePropQuantileRegr",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 
 		#' @description Initialize a quantile-regression inference object for a completed design
 		#' with a proportion response.
@@ -60,14 +83,32 @@ InferencePropQuantileRegr = R6::R6Class("InferencePropQuantileRegr",
 
 			private$tau = tau
 		},
-		#' @description Computes the quantile-regression estimate of the treatment effect.
+		#' @description Computes the fitted treatment coefficient of the \code{tau}-quantile
+		#'   regression of \code{logit(y)} on the treatment indicator (plus any adjustment
+		#'   covariates) — a \strong{log-odds-ratio shift at quantile \code{tau}} of the
+		#'   proportion response, not a difference in means or in the raw-scale quantile.
+		#'   Caches \code{beta_hat_T} (and, unless \code{estimate_only}, the standard error
+		#'   and residual degrees of freedom) so repeated calls are cheap; returns
+		#'   \code{NA_real_} if the reduced design matrix is degenerate (fewer usable rows
+		#'   than columns) or the \pkg{quantreg} fit fails/errors.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#' @description Recomputes \code{compute_estimate}'s treatment log-odds-ratio-shift
+		#'   coefficient with each subject's (or block's) contribution to the \code{tau}-quantile
+		#'   fit reweighted by \code{subject_or_block_weights} (expanded to per-row weights and
+		#'   passed as \code{quantreg::rq(..., weights = ...)}), for the Bayesian bootstrap
+		#'   contract; see \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#'   \strong{Writes into the same \code{beta_hat_T}/\code{s_beta_hat_T}/\code{df} cache
+		#'   fields that \code{compute_estimate} reads from} — a call to this method overwrites
+		#'   the cached original-data estimate with the bootstrap-reweighted one, so a subsequent
+		#'   \code{compute_estimate()} call will return the \emph{bootstrap replicate's} value
+		#'   from cache rather than recomputing on the original data, until the cache is reset by
+		#'   whatever higher-level bootstrap driver owns this object's lifecycle. Returns
+		#'   \code{NA_real_} under the same degenerate-design/fit-failure conditions as
+		#'   \code{compute_estimate}.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -131,8 +172,8 @@ InferencePropQuantileRegr = R6::R6Class("InferencePropQuantileRegr",
 		}
 	),
 	private = list(
-		tau = NULL,
-		fit_warm_keep = NULL,
+		tau = 0.5,
+		fit_warm_keep = integer(0),
 		get_standard_error = function(){
 			if (is.null(private$cached_values$s_beta_hat_T)) private$shared()
 			private$cached_values$s_beta_hat_T
@@ -251,5 +292,21 @@ InferencePropQuantileRegr = R6::R6Class("InferencePropQuantileRegr",
 			private$cached_values$s_beta_hat_T = if (is.finite(se) && se > 0) se else NA_real_
 			private$cached_values$df = nrow(X_fit) - ncol(X_fit)
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval"
+		),
+		private = c(
+			"get_standard_error", "get_degrees_of_freedom",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"compute_fast_randomization_distr",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

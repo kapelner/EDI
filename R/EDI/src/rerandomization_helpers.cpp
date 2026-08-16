@@ -9,6 +9,7 @@
 //   OpenMP for parallel draw generation.
 
 #include <RcppEigen.h>
+#include "RNG.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -30,15 +31,22 @@ using Eigen::Success;
 
 // ── Helpers shared by the simple randomization functions ────────────────────
 
-static std::default_random_engine make_rng(int seed) {
-    unsigned int s = (seed == NA_INTEGER)
-        ? static_cast<unsigned int>(
+// edi_rng::RRng (RNG.h), not std::default_random_engine: the C++ standard
+// leaves default_random_engine's actual algorithm implementation-defined,
+// so it isn't even guaranteed to produce the same sequence for the same
+// seed across different compilers/standard libraries -- RRng is a fixed,
+// portable re-implementation of R's own Mersenne-Twister, giving both a
+// real cross-platform guarantee and cross-language matching with any
+// future binding using the same core and the same seed.
+static edi_rng::RRng make_rng(int seed) {
+    std::uint32_t s = (seed == NA_INTEGER)
+        ? static_cast<std::uint32_t>(
               std::chrono::system_clock::now().time_since_epoch().count())
-        : static_cast<unsigned int>(seed);
-    return std::default_random_engine(s);
+        : static_cast<std::uint32_t>(seed);
+    return edi_rng::RRng(s);
 }
 
-static void shuffle_vec(std::vector<int>& v, std::default_random_engine& rng) {
+static void shuffle_vec(std::vector<int>& v, edi_rng::RRng& rng) {
     for (int i = static_cast<int>(v.size()) - 1; i > 0; i--) {
         std::uniform_int_distribution<int> d(0, i);
         std::swap(v[i], v[d(rng)]);
@@ -47,7 +55,7 @@ static void shuffle_vec(std::vector<int>& v, std::default_random_engine& rng) {
 
 // [[Rcpp::export]]
 Rcpp::IntegerMatrix complete_randomization_forced_balanced_cpp(int n, int r, int seed) {
-    std::default_random_engine rng = make_rng(seed);
+    edi_rng::RRng rng = make_rng(seed);
     Rcpp::IntegerMatrix out(r, n);
     std::vector<int> v(n, 0);
     int nT = n / 2;
@@ -61,7 +69,7 @@ Rcpp::IntegerMatrix complete_randomization_forced_balanced_cpp(int n, int r, int
 
 // [[Rcpp::export]]
 Rcpp::IntegerMatrix complete_randomization_imbalanced_cpp(int n, int nT, int r, int seed) {
-    std::default_random_engine rng = make_rng(seed);
+    edi_rng::RRng rng = make_rng(seed);
     Rcpp::IntegerMatrix out(r, n);
     std::vector<int> v(n, 0);
     for (int i = 0; i < nT; i++) v[i] = 1;
@@ -164,7 +172,8 @@ Rcpp::NumericVector compute_objective_vals_cpp(
 // and collects those whose objective value <= cutoff until r are found or
 // max_draws is exhausted.
 //
-// Returns an n×k IntegerMatrix (k <= r).  The caller handles recycling when k < r.
+// Returns an n×k IntegerMatrix (k <= r).  The caller errors when k < r (too few
+// acceptable draws found within max_draws).
 
 // [[Rcpp::export]]
 Rcpp::IntegerMatrix rerandomization_search_cpp(
@@ -212,8 +221,7 @@ Rcpp::IntegerMatrix rerandomization_search_cpp(
     std::vector<uint32_t> seeds(static_cast<std::size_t>(nthreads));
     GetRNGstate();
     for (int t = 0; t < nthreads; t++)
-        seeds[static_cast<std::size_t>(t)] =
-            static_cast<uint32_t>(::unif_rand() * 4294967295.0);
+        seeds[static_cast<std::size_t>(t)] = edi_rng::seed_from_unif01(::unif_rand());
     PutRNGstate();
 
     // ── Shared result storage ────────────────────────────────────────────────
@@ -222,7 +230,7 @@ Rcpp::IntegerMatrix rerandomization_search_cpp(
     const bool use_sequential = (nthreads <= 1);
 
     if (use_sequential) {
-        std::mt19937 rng(seeds[0]);
+        edi_rng::RRng rng(seeds[0]);
         std::vector<int> w(n), order(n);
         VectorXd dbl_w(n), d(p);
         int found = 0;
@@ -264,7 +272,7 @@ Rcpp::IntegerMatrix rerandomization_search_cpp(
 #ifdef _OPENMP
         tid = omp_get_thread_num();
 #endif
-        std::mt19937 rng(seeds[static_cast<std::size_t>(tid)]);
+        edi_rng::RRng rng(seeds[static_cast<std::size_t>(tid)]);
 
         // thread-local buffers
         std::vector<int> w(n), order(n);

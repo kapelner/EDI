@@ -2,7 +2,7 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{fast_negbin_regression}
 \alias{fast_negbin_regression}
-\title{Fast Negative Binomial Regression (R Wrapper)}
+\title{Fast Negative Binomial Regression, Estimate-Only (R Wrapper)}
 \usage{
 fast_negbin_regression(
   X,
@@ -18,23 +18,49 @@ fast_negbin_regression(
 
 \item{y}{A numeric vector of the response variable, representing count data.}
 
-\item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.}
+\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.}
 
-\item{warm_start_params}{Optional starting values for coefficients and log_theta.}
+\item{warm_start_params}{Optional starting values for coefficients and \code{log_theta}, passed
+straight through to the C++ backend for a single warm-started fit attempt (bypassing the
+QR-dropping retry sequence).}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix.}
+\item{warm_start_fisher_info}{Optional initial Fisher information matrix, used only together
+with \code{warm_start_params}.}
 }
 \value{
-A list containing the following component:
-\item{b}{A numeric vector of the estimated negative binomial regression coefficients.}
+A list containing the following components:
+\item{b}{A numeric vector of the estimated negative binomial regression coefficients
+  \eqn{\hat\beta} (and \code{log_theta}), from whichever (possibly covariate-reduced)
+  fit in the retry sequence ultimately succeeded.}
+\item{fisher_information}{The C++ backend's returned Fisher information matrix for the
+  successful fit.}
 }
 \description{
-This function provides a fast implementation of negative binomial regression by wrapping
-a C++ backend function. It is designed to efficiently estimate regression coefficients
-for count data, assuming all observations are "not censored" (i.e., `dead = 1`).
+This function provides a fast implementation of mean/dispersion-parameterized
+negative binomial regression, wrapping a C++ backend
+(\code{\link{fast_neg_bin_cpp}}; see that page, and
+\code{\link{fast_dnbinom_mu_vec_cpp}}, for the full model). It returns point
+estimates only (no standard errors) — see \code{\link{fast_negbin_regression_with_var}}
+for the variance-computing counterpart. Columns 1 and 2 of \code{X} (conventionally
+the intercept and treatment indicator) are always kept; this wrapper adds automatic,
+silent handling of \strong{rank-deficient or numerically unstable covariate sets}
+beyond those first two columns: (1) if \code{warm_start_params} is supplied, a single
+fit is attempted on the full matrix using the warm start, and its result is returned
+if successful; (2) otherwise, upfront, any covariate columns (3 onward) found
+rank-deficient by \code{\link[base]{qr}} are dropped before the first fit attempt;
+(3) if the C++ fit still fails (e.g. an L-BFGS line-search failure), covariates are
+dropped one at a time, in reverse QR-pivot order (most redundant first), retrying
+after each drop, until the fit succeeds or only the intercept and treatment columns
+remain — at which point, if it still fails, this function \code{stop()}s with an
+explicit error rather than returning a corrupted fit.
 }
 \examples{
 X = matrix(rnorm(100), 10, 10)
 y = rpois(10, 2)
 fast_negbin_regression(X, y)
+}
+\seealso{
+\code{\link{fast_negbin_regression_with_var}} for the variance-computing,
+  similarly retry-hardened wrapper; \code{\link{fast_neg_bin_cpp}} for the underlying
+  backend and full model documentation.
 }

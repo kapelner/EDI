@@ -1,11 +1,21 @@
-#' Marginal Standardization / G-Computation for Proportion Responses
+#' G-Computation Mean-Difference Inference for Proportion Responses
 #'
-#' Internal base class for proportion-outcome g-computation estimators. A
-#' fractional logit working model is fit, then potential-outcome mean
-#' proportions under all-treated and all-control assignments are standardized
-#' over the empirical covariate distribution. Inference uses a sandwich-robust
-#' covariance for the regression coefficients and the delta method for the
-#' marginal mean-difference estimand.
+#' Fits a fractional-logit working model, \eqn{\mathrm{logit}\,E[Y_i \mid x_i] =
+#' x_i^\top\hat\beta} (via \code{\link{fast_logistic_regression_cpp}}, treating
+#' the continuous-in-\eqn{(0,1)} proportion as a quasi-binomial mean model —
+#' the same mean-model idea as
+#' \code{\link[EDI:InferencePropFractionalLogit]{InferencePropFractionalLogit}}),
+#' for a proportion outcome using treatment and, optionally, all recorded
+#' covariates, then estimates the marginal mean difference by G-computation:
+#' standardizing predicted mean proportions under all-treated and all-control
+#' assignments over the empirical covariate distribution (see
+#' \code{\link{gcomp_fractional_logit_point_estimate_cpp}} for the exact
+#' standardization formula). Inference uses a Huber-White sandwich-robust
+#' covariance for the regression coefficients and the \strong{delta method}
+#' (analytic gradient of the standardized mean-difference functional with
+#' respect to \eqn{\hat\beta}, by default) to propagate that covariance onto
+#' the mean-difference scale, \eqn{\widehat{\mathrm{Var}}(\widehat{\mathrm{md}})
+#' = \nabla^\top \widehat{\mathrm{Var}}(\hat\beta) \nabla}.
 #'
 #' @details
 #' The implementation is optimized for resampling-based inference. It utilizes a
@@ -14,12 +24,42 @@
 #' matrix and delta-method standard errors, providing a significant speedup when
 #' computing bootstrap or randomization distributions.
 #'
-#' @keywords internal
-#' @noRd
-InferencePropGCompAbstract = R6::R6Class("InferencePropGCompAbstract",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+#' \strong{Variance fallback cascade.} If the primary analytic-gradient/sandwich-covariance
+#' variance is non-finite (e.g. near-boundary fitted probabilities), up to eight
+#' progressively more conservative fallback strategies are tried in order (see
+#' the \code{variance_fallback_methods} constructor argument for the full list
+#' and their individual definitions): stabilized (PSD-projected) sandwich
+#' covariance, model-based (Fisher information) covariance, finite-difference
+#' gradients in place of the analytic delta-method gradient, and combinations
+#' with progressively stronger probability clipping. The first strategy in the
+#' ordered list that yields a finite, positive variance is used; an empty
+#' \code{variance_fallback_methods} vector always returns \code{NA} variance
+#' rather than erroring.
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'proportion')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(runif(10))
+#' inf = InferencePropGCompMeanDiff$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' @export
+InferencePropGCompMeanDiff = define_inference_class(
+	classname = "InferencePropGCompMeanDiff",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Jackknife"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		# `Wald` is deliberately not composed: the public `get_standard_error`
+		# below would collide with `Wald`'s private `get_standard_error`, and
+		# R6 forbids the same name in both slots. Only the specific
+		# `InferenceAsymp`-sourced piece this class actually needs
+		# (`get_supported_testing_types`) is aliased directly instead.
+		get_supported_testing_types = InferenceAsymp$public_methods$get_supported_testing_types,
 		#' @description Initialize the g-computation inference object.
 		#' @param des_obj A completed \code{DesignSeqOneByOne} object with a proportion response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
@@ -208,8 +248,14 @@ InferencePropGCompAbstract = R6::R6Class("InferencePropGCompAbstract",
 				min_group_n = as.integer(min_group_n)
 			)
 			on.exit({private$bootstrap_screening_control = old_bootstrap_screening}, add = TRUE)
-			super$compute_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
+			self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
 		},
+		#' @description Generic (non-screening-modified) bootstrap two-sided
+		#'   p-value, aliased directly from `InferenceNonParamBootstrap` so
+		#'   `compute_bootstrap_two_sided_pval()` can dispatch to it without
+		#'   relying on `super$`, which does not resolve under flat component
+		#'   composition.
+		compute_bootstrap_two_sided_pval_generic = InferenceNonParamBootstrap$public_methods$compute_bootstrap_two_sided_pval,
 		#' @description Computes a bootstrap confidence interval.
 		#' @param alpha The confidence level 1 - \code{alpha}.
 		#' @param B Number of bootstrap samples.
@@ -232,11 +278,14 @@ InferencePropGCompAbstract = R6::R6Class("InferencePropGCompAbstract",
 				min_group_n = as.integer(min_group_n)
 			)
 			on.exit({private$bootstrap_screening_control = old_bootstrap_screening}, add = TRUE)
-			super$compute_bootstrap_confidence_interval(
+			self$compute_bootstrap_confidence_interval_generic(
 				alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress,
 				min_number_usable_samples = min_number_usable_samples
 			)
 		},
+		#' @description Generic (non-screening-modified) bootstrap confidence
+		#'   interval; see `compute_bootstrap_two_sided_pval_generic`.
+		compute_bootstrap_confidence_interval_generic = InferenceNonParamBootstrap$public_methods$compute_bootstrap_confidence_interval,
 		#' @description Abbreviated bootstrap sampler that reuses a bootstrap worker.
 		#' @param B The number of bootstrap samples (default 501).
 		#' @param show_progress Whether to show a progress bar.
@@ -348,13 +397,14 @@ InferencePropGCompAbstract = R6::R6Class("InferencePropGCompAbstract",
 	),
 	private = list(
 		is_a_prop_gcomp = function() TRUE,
+		get_supported_testing_types_impl = function() "wald",
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$md
 		},
-		gcomp_design_colnames = NULL,
-		gcomp_design_j_treat = NULL,
-		bootstrap_screening_control = NULL,
+		build_design_matrix = function(){
+			private$create_design_matrix()
+		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE
 		},
@@ -408,7 +458,6 @@ InferencePropGCompAbstract = R6::R6Class("InferencePropGCompAbstract",
 			"stabilized_robust_strong_clip", "model_based_strong_clip",
 			"model_based_fd_strong_clip"
 		),
-		build_design_matrix = function() stop(class(self)[1], " must implement build_design_matrix()."),
 		build_named_design_matrix = function(){
 			gcomp_normalize_treatment_design_matrix(
 				private$build_design_matrix(),
@@ -766,7 +815,12 @@ InferencePropGCompAbstract = R6::R6Class("InferencePropGCompAbstract",
 					if (is.null(mod)) return(NULL)
 					coef_hat = as.numeric(mod$b)
 					if (all(is.finite(coef_hat))) {
-						private$set_fit_warm_start(coef_hat, "beta", fisher = mod$fisher_information)
+						# Only cache this fit as the next replicate's warm start when
+						# it used the FULL (undropped) design -- see the matching note
+						# in inference_incidence_gcomp_abstract.R's weighted_gcomp_fit().
+						if (ncol(X_curr) == ncol(X_full)) {
+							private$set_fit_warm_start(coef_hat, "beta", fisher = mod$fisher_information)
+						}
 						coef_names = colnames(X_fit)
 						names(coef_hat) = coef_names
 						return(list(X = X_fit, j_treat = j_treat, coefficients = coef_hat, estimate_only = TRUE))
@@ -893,34 +947,21 @@ InferencePropGCompAbstract = R6::R6Class("InferencePropGCompAbstract",
 			private$cached_values$md = effects$md
 			private$cached_values$se_md = effects$se_md
 		}
-	)
-)
-#' G-Computation Mean-Difference Inference for Proportion Responses
-#'
-#' Fits a fractional-logit working model for a proportion outcome using treatment
-#' and, optionally, all recorded covariates, then estimates the marginal mean
-#' difference by standardizing predicted mean proportions under all-treated and
-#' all-control assignments over the empirical covariate distribution.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'proportion')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(runif(10))
-#' inf = InferencePropGCompMeanDiff$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' @export
-InferencePropGCompMeanDiff = R6::R6Class("InferencePropGCompMeanDiff",
-	lock_objects = FALSE,
-	inherit = InferencePropGCompAbstract,
-	public = list(
 	),
-	private = list(
-		build_design_matrix = function(){
-			private$create_design_matrix()
-		}
-	)
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_bootstrap_two_sided_pval", "compute_bootstrap_confidence_interval",
+			"approximate_bootstrap_distribution_beta_hat_T"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

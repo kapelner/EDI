@@ -20,27 +20,31 @@ fast_neg_bin_with_var_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors, \eqn{n \times p}.}
 
-\item{y}{A numeric vector of responses (non-negative integers).}
+\item{y}{A numeric (integer-valued) vector of non-negative observed
+counts, length \eqn{n}.}
 
 \item{warm_start_params}{Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.}
 
 \item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of optimizer iterations.}
 
-\item{eps_f}{Convergence tolerance for function value.}
+\item{eps_f}{Convergence tolerance on the objective (log-likelihood) value.}
 
-\item{eps_g}{Convergence tolerance for gradient.}
+\item{eps_g}{Convergence tolerance on the gradient norm.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional integer indices (into the \code{c(beta, log(theta))}
+parameter layout) of parameters to hold fixed rather than estimate.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix to
+warm-start curvature information.}
 }
 \value{
 A list containing the following components:
@@ -51,14 +55,37 @@ A list containing the following components:
 \item{converged}{A logical value indicating whether the algorithm converged.}
 }
 
-A list containing coefficients, theta, vcov, and convergence status.
+A list with components \code{b} (\eqn{\hat\beta}),
+  \code{theta_hat} (\eqn{\hat\theta}), \code{logLik}, \code{vcov} (the full
+  \code{(p + 1) x (p + 1)} parameter variance-covariance matrix),
+  \code{converged}, \code{iterations}, and \code{hess_fisher_info_matrix}
+  (the working-weights curvature matrix \code{vcov} was inverted from).
 }
 \description{
-Negative binomial regression fitting with full variance-covariance matrix.
+Fits the same mean/dispersion-parameterized negative-binomial regression as
+\code{\link{fast_neg_bin_cpp}} (see that page, and
+\code{\link{fast_dnbinom_mu_vec_cpp}}, for the full model) and additionally
+computes the full variance-covariance matrix of \code{c(beta, log(theta))}.
+}
+\details{
+\strong{Variance computation.} The working-weights curvature matrix
+\code{res.XtWX} (over all \code{p + 1} parameters) is restricted to the
+free (non-\code{fixed_idx}) parameters and inverted via a \strong{plain
+matrix inverse} (\code{.inverse()}, not a rank-aware pseudo-inverse as used
+by, e.g., \code{\link{fast_adjacent_category_logit_with_var_cpp}}) before
+being expanded back to the full \code{(p + 1) x (p + 1)} size as
+\code{vcov}. A rank-deficient or near-singular design (after restricting to
+free parameters) will therefore produce numerically unstable or \code{NaN}
+variances rather than a graceful fallback.
 }
 \examples{
 X = matrix(rnorm(100), 10, 10)
 y = rpois(10, 2)
 fast_neg_bin_with_var_cpp(X, y)
+}
+\seealso{
+\code{\link{fast_neg_bin_cpp}} for the estimate-only variant and
+  full model documentation; \code{\link{fast_neg_bin_weighted_cpp}} for the
+  row-weighted estimate-only variant.
 }
 \keyword{internal}

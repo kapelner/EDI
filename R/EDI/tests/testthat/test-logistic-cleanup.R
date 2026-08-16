@@ -13,7 +13,7 @@ test_that("fast_logistic_regression_cpp works without smart_cold_start", {
   # This should now work without smart_cold_start argument
   res <- fast_logistic_regression_cpp(X, y)
   expect_equal(length(res$b), p)
-  expect_true(res$iterations > 0)
+  expect_true(res$num_iter > 0)
 })
 
 test_that("fast_logistic_regression_with_var_cpp works without smart_cold_start", {

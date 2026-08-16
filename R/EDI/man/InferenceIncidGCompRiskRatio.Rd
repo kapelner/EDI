@@ -4,10 +4,25 @@
 \alias{InferenceIncidGCompRiskRatio}
 \title{G-Computation Risk-Ratio Inference for Binary Responses}
 \description{
-Fits a logistic working model for an incidence outcome using treatment and,
-optionally, all recorded covariates, then estimates the marginal risk ratio
-by standardizing predicted risks under all-treated and all-control assignments
-over the empirical covariate distribution.
+Fits a logistic working model, \eqn{\mathrm{logit}\,\Pr(Y_i=1\mid x_i) =
+x_i^\top\hat\beta}, for an incidence outcome using treatment and, optionally,
+all recorded covariates, then estimates the marginal (standardized) risk
+ratio \eqn{\mathrm{RR} = \overline{\mathrm{risk}}_1 / \overline{\mathrm{risk}}_0}
+by G-computation: setting every subject's treatment indicator to 1
+(respectively 0) while holding their other observed covariates fixed,
+averaging the model-implied risk over the empirical covariate distribution
+under each counterfactual, and taking the ratio — see
+\code{\link{gcomp_logistic_point_estimate_cpp}} for the exact standardization
+formula (\code{mean1}/\code{mean0}). Bootstrap/jackknife inference on this
+estimand is generally done on the \strong{log} risk-ratio scale internally
+(see \code{$compute_bootstrap_confidence_interval()},
+\code{$compute_bayesian_bootstrap_confidence_interval()}, and the
+jackknife-Wald methods, whose \code{"basic"}/\code{"wald"} interval types
+route through log-scale-specific helpers for this estimand), then
+back-transformed, since ratio estimators are typically closer to normally
+distributed on the log scale. Inference is nonparametric-bootstrap/
+randomization/jackknife-based (\code{likelihood_tier = "none"}): no
+closed-form asymptotic standard error is used.
 }
 \examples{
 \donttest{
@@ -20,94 +35,32 @@ inf = InferenceIncidGCompRiskRatio$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceIncidGCompAbstract} -> \code{InferenceIncidGCompRiskRatio}
+\seealso{
+\code{\link[EDI:InferenceIncidGCompRiskDiff]{InferenceIncidGCompRiskDiff}}
+  for the risk-difference version of this same standardized logistic working model.
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceIncidGCompRiskRatio}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceIncidGCompRiskRatio-approximate_bootstrap_distribution_beta_hat_T}{\code{InferenceIncidGCompRiskRatio$approximate_bootstrap_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceIncidGCompRiskRatio-compute_bootstrap_confidence_interval}{\code{InferenceIncidGCompRiskRatio$compute_bootstrap_confidence_interval()}}
+    \item \href{#method-InferenceIncidGCompRiskRatio-compute_bootstrap_two_sided_pval}{\code{InferenceIncidGCompRiskRatio$compute_bootstrap_two_sided_pval()}}
+    \item \href{#method-InferenceIncidGCompRiskRatio-compute_bayesian_bootstrap_two_sided_pval}{\code{InferenceIncidGCompRiskRatio$compute_bayesian_bootstrap_two_sided_pval()}}
+    \item \href{#method-InferenceIncidGCompRiskRatio-compute_bayesian_bootstrap_confidence_interval}{\code{InferenceIncidGCompRiskRatio$compute_bayesian_bootstrap_confidence_interval()}}
+    \item \href{#method-InferenceIncidGCompRiskRatio-compute_jackknife_wald_two_sided_pval}{\code{InferenceIncidGCompRiskRatio$compute_jackknife_wald_two_sided_pval()}}
+    \item \href{#method-InferenceIncidGCompRiskRatio-compute_jackknife_wald_confidence_interval}{\code{InferenceIncidGCompRiskRatio$compute_jackknife_wald_confidence_interval()}}
     \item \href{#method-InferenceIncidGCompRiskRatio-clone}{\code{InferenceIncidGCompRiskRatio$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceIncidGCompAbstract</summary>
-<ul>
-  <li><code>InferenceIncidGCompAbstract$approximate_bootstrap_distribution_beta_hat_T()</code></li>
-  <li><code>InferenceIncidGCompAbstract$compute_asymp_confidence_interval()</code></li>
-  <li><code>InferenceIncidGCompAbstract$compute_asymp_two_sided_pval()</code></li>
-  <li><code>InferenceIncidGCompAbstract$compute_bayesian_bootstrap_confidence_interval()</code></li>
-  <li><code>InferenceIncidGCompAbstract$compute_bayesian_bootstrap_two_sided_pval()</code></li>
-  <li><code>InferenceIncidGCompAbstract$compute_bootstrap_confidence_interval()</code></li>
-  <li><code>InferenceIncidGCompAbstract$compute_bootstrap_two_sided_pval()</code></li>
-  <li><code>InferenceIncidGCompAbstract$compute_estimate()</code></li>
-  <li><code>InferenceIncidGCompAbstract$compute_estimate_with_bootstrap_weights()</code></li>
-  <li><code>InferenceIncidGCompAbstract$compute_jackknife_wald_confidence_interval()</code></li>
-  <li><code>InferenceIncidGCompAbstract$compute_jackknife_wald_two_sided_pval()</code></li>
-  <li><code>InferenceIncidGCompAbstract$compute_wald_confidence_interval()</code></li>
-  <li><code>InferenceIncidGCompAbstract$compute_wald_two_sided_pval()</code></li>
-  <li><code>InferenceIncidGCompAbstract$get_standard_error()</code></li>
-  <li><code>InferenceIncidGCompAbstract$initialize()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -121,12 +74,131 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskRatio-approximate_bootstrap_distribution_beta_hat_T"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskRatio-approximate_bootstrap_distribution_beta_hat_T}{}}}
+\subsection{\code{InferenceIncidGCompRiskRatio$approximate_bootstrap_distribution_beta_hat_T()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskRatio$approximate_bootstrap_distribution_beta_hat_T(
+  B = 501,
+  show_progress = TRUE,
+  debug = FALSE,
+  bootstrap_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskRatio-compute_bootstrap_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskRatio-compute_bootstrap_confidence_interval}{}}}
+\subsection{\code{InferenceIncidGCompRiskRatio$compute_bootstrap_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskRatio$compute_bootstrap_confidence_interval(
+  alpha = 0.05,
+  B = 501,
+  type = NULL,
+  na.rm = TRUE,
+  show_progress = TRUE,
+  min_number_usable_samples = 5L
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskRatio-compute_bootstrap_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskRatio-compute_bootstrap_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidGCompRiskRatio$compute_bootstrap_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskRatio$compute_bootstrap_two_sided_pval(
+  delta = NULL,
+  B = 501,
+  type = "symmetric",
+  na.rm = FALSE,
+  show_progress = TRUE,
+  min_number_usable_samples = 5L
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskRatio-compute_bayesian_bootstrap_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskRatio-compute_bayesian_bootstrap_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidGCompRiskRatio$compute_bayesian_bootstrap_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskRatio$compute_bayesian_bootstrap_two_sided_pval(
+  delta = NULL,
+  B = 501,
+  type = NULL,
+  na.rm = FALSE,
+  show_progress = TRUE,
+  min_number_usable_samples = 5L,
+  weighting_unit_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskRatio-compute_bayesian_bootstrap_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskRatio-compute_bayesian_bootstrap_confidence_interval}{}}}
+\subsection{\code{InferenceIncidGCompRiskRatio$compute_bayesian_bootstrap_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskRatio$compute_bayesian_bootstrap_confidence_interval(
+  alpha = 0.05,
+  B = 501,
+  type = NULL,
+  na.rm = TRUE,
+  show_progress = TRUE,
+  min_number_usable_samples = 5L,
+  weighting_unit_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskRatio-compute_jackknife_wald_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskRatio-compute_jackknife_wald_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidGCompRiskRatio$compute_jackknife_wald_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskRatio$compute_jackknife_wald_two_sided_pval(
+  delta = NULL,
+  unit = "auto"
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskRatio-compute_jackknife_wald_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskRatio-compute_jackknife_wald_confidence_interval}{}}}
+\subsection{\code{InferenceIncidGCompRiskRatio$compute_jackknife_wald_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskRatio$compute_jackknife_wald_confidence_interval(
+  alpha = 0.05,
+  unit = "auto"
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceIncidGCompRiskRatio-clone"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskRatio-clone}{}}}

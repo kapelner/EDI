@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_beta_regression_weighted_cpp}
 \alias{fast_beta_regression_weighted_cpp}
-\title{Fast Weighted Beta Regression (C++)}
+\title{Fast Weighted Beta Regression, Estimate Only (C++ Backend)}
 \usage{
 fast_beta_regression_weighted_cpp(
   X,
@@ -20,34 +20,63 @@ fast_beta_regression_weighted_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors, \eqn{n \times p}.}
 
-\item{y}{A numeric vector of responses (in (0, 1)).}
+\item{y}{A numeric vector of responses, strictly in \eqn{(0, 1)}.}
 
-\item{weights}{A nonnegative numeric vector of row weights.}
+\item{weights}{A nonnegative, finite numeric vector of length \code{nrow(X)}
+giving each row's weight; must sum to a positive value (see Details).}
 
-\item{warm_start_beta}{Optional starting values for coefficients.}
+\item{warm_start_beta}{Optional starting values for coefficients \eqn{\beta}. If provided, \code{smart_cold_start} is ignored.}
 
 \item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when no warm start is provided.}
 
-\item{start_phi}{Optional starting value for precision parameter phi.}
+\item{start_phi}{Starting value for the precision parameter \eqn{\phi} (natural scale).}
 
-\item{compute_std_errs}{Deprecated.}
+\item{compute_std_errs}{Deprecated; has no effect on this estimate-only entry
+point.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional integer indices (into the \code{c(beta, log(phi))}
+parameter layout) of parameters to hold fixed rather than estimate.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm; see
+\code{\link{fast_beta_regression_cpp}}.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix.}
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix to
+warm-start curvature information.}
 
 \item{estimate_only}{If TRUE, skip Fisher information calculation.}
 }
 \value{
-A list containing coefficients, phi, negative log-likelihood, convergence status, and Fisher information.
+A list with the same components as
+  \code{\link{fast_beta_regression_cpp}}: \code{coefficients}, \code{phi},
+  \code{neg_loglik} (the weighted negative log-likelihood), \code{converged}, and
+  \code{fisher_information}.
 }
 \description{
-High-performance beta regression fitting with nonnegative row weights.
+Fits the same beta regression model as
+\code{\link{fast_beta_regression_cpp}} (see that page for the full model,
+parameterization, and optimizer contract), with each observation's contribution
+to the log-likelihood, score, and Hessian multiplied by a nonnegative row weight
+\code{weights[i]}. Setting all weights to 1 recovers
+\code{\link{fast_beta_regression_cpp}} exactly; this is the backend the package's
+\code{Inference} classes use whenever the beta regression must be fit on
+bootstrap-reweighted or otherwise weighted data (e.g. Bayesian bootstrap weights)
+without physically resampling rows.
+}
+\details{
+\strong{Input validation.} \code{weights} must have length \code{nrow(X)}, be
+finite and non-negative, and sum to a strictly positive value; violating any of
+these raises an error immediately rather than producing a degenerate fit. A
+weight of 0 for a given row contributes nothing to the likelihood (effectively
+excludes that row) without changing \eqn{n} in downstream index bookkeeping.
+}
+\seealso{
+\code{\link{fast_beta_regression_cpp}} for the unweighted model and full
+  parameterization documentation; \code{\link{fast_beta_regression_with_var_cpp}}
+  for the (unweighted) variance-augmented variant.
 }
 \keyword{internal}

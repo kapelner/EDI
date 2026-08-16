@@ -1,5 +1,7 @@
 # PRW Subsampling Implementation Spec
 
+> **Depends on:** implemented except Phase 4, which depends on `public_diagnostics_api_spec.md` (TODO-17/18 there). (Global ordering: see `_master.md`.)
+
 Generated: 2026-07-27
 
 ## Scope
@@ -47,8 +49,10 @@ as a silent repair for failed bootstrap draws.
 
 ## Public API
 
-Add explicit public methods on inference objects that inherit the shared
-resampling stack:
+Add explicit public methods on inference objects that compose the new
+`Subsampling` component (see Internal Architecture; the methods are registered
+under the `subsampling` capability in `public_methods_for_capability`, so they
+exist exactly on the classes that declare the capability):
 
 ```r
 approximate_subsampling_distribution_beta_hat_T(
@@ -503,26 +507,31 @@ subsampling = list(
 Do not reuse `"non_param_boot"` because loaders, cache keys, draw metadata, and
 distribution scaling differ.
 
-Add a new abstract mixin/class in the resampling stack:
+Add a new registered inference component (updated 2026-08-13: the original
+draft proposed an `InferenceSubsampling` abstract mixin inserted into the old
+`InferenceNonParamBootstrap -> InferenceRandBootstrap -> InferenceRandBootstrapCI
+-> InferenceBayesianBootstrap -> InferenceJackknife` inheritance ladder; that
+ladder is deleted by `fix_inference_hierarchy.md`, and a base class whose main
+purpose is to add an optional algorithm is exactly what that plan disallows):
 
 ```r
-InferenceSubsampling
+InferenceComponent(
+  name = "Subsampling",
+  status = "active",
+  provides_capabilities = "subsampling",
+  ...
+)
 ```
 
-Recommended inheritance placement:
-
-```text
-InferenceNonParamBootstrap
-  -> InferenceRandBootstrap
-  -> InferenceRandBootstrapCI
-  -> InferenceBayesianBootstrap
-  -> InferenceJackknife
-```
-
-The cleanest insertion point is alongside `InferenceNonParamBootstrap`, not
-inside it. If the current inheritance chain makes that disruptive, implement
-the first pass as private methods inside `InferenceNonParamBootstrap` but keep
-the operation name, cache, and public methods explicitly subsampling-specific.
+Register it in `EDI_INFERENCE_COMPONENTS` alongside `NonparametricBootstrap`,
+with `load_policy = "lazy"` (simulation-heavy optional methods), the public
+methods above listed in `public_methods_for_capability$subsampling`, and the
+worker/loader hooks declared through the component contract
+(`provides_private_methods` / `requires_private_methods` /
+`optional_private_methods`), mirroring how `NonparametricBootstrap` declares
+its own loader/estimator hooks. Classes opt in by listing `"Subsampling"` in
+`components = c(...)` via `define_inference_class()`; do not add subsampling
+methods to any shared base class.
 
 ## Draw Representation
 
@@ -780,30 +789,53 @@ Required documentation caveats:
 
 ## Implementation Phases
 
+Audit note (2026-08-14): this checklist was found entirely unchecked while the
+feature is in fact implemented — `R/inference_ext_prw_subsampling.R` (impl
+methods), public wrappers on the nonparametric-bootstrap surface
+(`inference_all_abstract_non_param_boot.R:316-372+`), the shared exchangeable-unit
+resolver (`inference_ext_exchangeable_resampling_units.R`), operation-contract
+entries in `resampling_draw_contracts.R`, and tests
+(`test-m-out-of-n-prw-subsampling.R`, `test-resampling-draw-contracts.R`).
+Checkboxes below updated to match verified code; Phase 4 remains genuinely open.
+
 ### Phase 1: Core Generic Subsampling
 
-- [ ] TODO-1: Add operation contract and private cache.
-- [ ] TODO-2: Add ordinary observation-level without-replacement draw generator.
-- [ ] TODO-3: Add public distribution, p-value, and CI methods.
-- [ ] TODO-4: Support only `scaling = "sqrt_n"`.
-- [ ] TODO-5: Support explicit integer `b` and deterministic `b = NULL`.
-- [ ] TODO-6: Add simple mean-difference tests.
+- [x] TODO-1: Add operation contract and private cache. (`resampling_draw_contracts.R`;
+  `subsampling_cache_key()` in `inference_ext_prw_subsampling.R`.)
+- [x] TODO-2: Add ordinary observation-level without-replacement draw generator.
+  (`subsampling_sample_indices()`, `inference_ext_prw_subsampling.R:372`.)
+- [x] TODO-3: Add public distribution, p-value, and CI methods.
+  (`approximate_subsampling_distribution_beta_hat_T`,
+  `compute_subsampling_two_sided_pval`, `compute_subsampling_confidence_interval`.)
+- [x] TODO-4: Support only `scaling = "sqrt_n"`. (Sole implemented value; default in
+  every signature.)
+- [x] TODO-5: Support explicit integer `b` and deterministic `b = NULL`.
+- [x] TODO-6: Add simple mean-difference tests. (`test-m-out-of-n-prw-subsampling.R`.)
 
 ### Phase 2: Minimum-Volatility `b` Selection
 
-- [ ] TODO-7: Add `select_optimal_b_subsampling()`.
-- [ ] TODO-8: Adapt the minimum-volatility grid logic from
-  `../PTE/PTE/R/select_optimal_m_prop.R`.
-- [ ] TODO-9: Add `compute_subsampling_sensitivity()`.
-- [ ] TODO-10: Add selector tests before using selection inside inference methods.
+- [x] TODO-7: Add `select_optimal_b_subsampling()`.
+- [x] TODO-8: Adapt the minimum-volatility grid logic from
+  `../PTE/PTE/R/select_optimal_m_prop.R`. (Landed as the shared
+  `select_optimal_resample_size()` engine with `volatility_window`.)
+- [x] TODO-9: Add `compute_subsampling_sensitivity()`.
+- [x] TODO-10: Add selector tests before using selection inside inference methods.
+  (`test-m-out-of-n-prw-subsampling.R` exercises both selectors.)
 
 ### Phase 3: Design-Aware Units
 
-- [ ] TODO-11: Add unit resolver.
-- [ ] TODO-12: Add blocking, cluster, matching, and KK matched/reservoir draw support.
-- [ ] TODO-13: Add draw-contract tests for each design family.
+- [x] TODO-11: Add unit resolver. (`get_exchangeable_units()` in
+  `inference_ext_exchangeable_resampling_units.R`, shared with m-out-of-n.)
+- [x] TODO-12: Add blocking, cluster, matching, and KK matched/reservoir draw support.
+  (Via the shared resolver's unit types incl. KK14 pair/reservoir handling;
+  `subsampling_type = "resample_blocks"` vs stratified within-block.)
+- [x] TODO-13: Add draw-contract tests for each design family.
+  (`test-resampling-draw-contracts.R`.)
 
 ### Phase 4: Diagnostics And Debug API
+
+Still open — the public debug API (`compute_pval_debug()`/`compute_ci_debug()`)
+itself does not exist yet (`public_diagnostics_api_spec.md` is unimplemented).
 
 - [ ] TODO-14: Wire subsampling diagnostics into `compute_pval_debug()` and
   `compute_ci_debug()`.
@@ -813,9 +845,13 @@ Required documentation caveats:
 
 ### Phase 5: Path Audit Integration
 
-- [ ] TODO-18: Add path-audit columns for subsampling p-values and CIs.
-- [ ] TODO-19: Keep cells light green until class-specific empirical stability is measured.
+- [x] TODO-18: Add path-audit columns for subsampling p-values and CIs.
+  (`path_audits_source.R`: `slow_prw_subsampling_methods` + comprehensive-tests wiring.)
+- [x] TODO-19: Keep cells light green until class-specific empirical stability is measured.
+  (`path_audits_source.R` documents subsampling as "intentionally not gated as SLOW"
+  pending comprehensive results.)
 - [ ] TODO-20: Add low-estimability summaries for subsampling separately from bootstrap.
+  (Not found in the audit; verify against `comprehensive_tests.R` before implementing.)
 
 ## Acceptance Criteria
 

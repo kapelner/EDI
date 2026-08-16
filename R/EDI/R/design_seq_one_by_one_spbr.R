@@ -1,9 +1,40 @@
-#' A stratified permuted block Sequential Design (SPBR)
+#' A Stratified Permuted-Block Sequential Design (SPBR) with Fixed Block Size
 #'
-#' An R6 Class encapsulating the data and functionality for a stratified permuted
-#' block sequential experimental design.
-#' This design ensures balance within specified strata using blocks of a fixed size.
+#' A \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} implementing classical
+#' stratified permuted-block randomization: subjects are assigned from a per-stratum
+#' queue of pre-shuffled treatment labels (a "block" of \code{block_size} labels,
+#' containing exactly \code{round(block_size * prob_T)} treated and the remainder
+#' control, in random order), refilled with a fresh randomly-ordered block of the
+#' \strong{same fixed size} whenever a stratum's queue empties. This is the
+#' fixed-block-size, mandatory-stratification counterpart of
+#' \code{\link[EDI:DesignSeqOneByOneRandomBlockSize]{DesignSeqOneByOneRandomBlockSize}}
+#' (which varies block size across draws and makes stratification optional): here,
+#' \code{strata_cols} is required, and a single fixed \code{block_size} is used for
+#' every stratum and every block, guaranteeing exact treatment/control balance within
+#' each stratum at every block boundary.
 #'
+#' @details
+#' \strong{Block-size / \code{prob_T} compatibility.} \code{block_size} must yield an
+#' integer number of treated subjects: the constructor errors unless
+#' \code{abs(block_size * prob_T - round(block_size * prob_T)) <= 1e-10}.
+#'
+#' \strong{Per-stratum queues.} As in
+#' \code{\link[EDI:DesignSeqOneByOneRandomBlockSize]{DesignSeqOneByOneRandomBlockSize}},
+#' \code{private$strata_states} is a hashed environment mapping each stratum key
+#' (concatenated \code{strata_cols} values, \code{"NA"} for missing) to the vector of
+#' not-yet-used assignments remaining in that stratum's current block;
+#' \code{assign_wt()} pops the next assignment, refilling with a fresh block when
+#' empty. \code{draw_bootstrap_indices()} resamples within strata by default
+#' (\code{bootstrap_type = "within_blocks"} or \code{NULL}) or resamples whole strata
+#' otherwise.
+#'
+#' @references Zelen, M. (1974). "The randomization and stratification of patients to
+#'   clinical trials." \emph{Journal of Chronic Diseases}, 27(7-8), 365-375,
+#'   \doi{10.1016/0021-9681(74)90015-0}, for stratified permuted-block randomization.
+#'   See also \href{https://en.wikipedia.org/wiki/Block_randomisation}{block
+#'   randomisation} for orientation, and
+#'   \code{\link[EDI:DesignSeqOneByOneRandomBlockSize]{DesignSeqOneByOneRandomBlockSize}}
+#'   for the randomly-varying-block-size variant.
 #' @examples
 #' seq_des = DesignSeqOneByOneSPBR$new(strata_cols = 'x1', n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = factor(1, levels=1:2)))
@@ -11,10 +42,13 @@
 DesignSeqOneByOneSPBR = R6::R6Class("DesignSeqOneByOneSPBR",
 	inherit = DesignSeqOneByOne,
 	public = list(
-		#' @description Initialize a stratified permuted block sequential experimental design
+		#' @description Initialize a stratified permuted-block sequential experimental
+		#'   design with fixed block size (see class documentation for the exact
+		#'   block-refill rule).
 		#'
 		#' @param strata_cols A character vector of column names to use for stratification.
-		#' @param block_size The size of the permuted blocks.
+		#' @param block_size The size of the permuted blocks (fixed; see class
+		#'   documentation for its compatibility requirement with \code{prob_T}).
 		#' @param response_type   "continuous", "incidence", "proportion", "count", "survival", or
 		#'   "ordinal".
 		#' @param  prob_T  Probability of treatment assignment.
@@ -52,10 +86,11 @@ DesignSeqOneByOneSPBR = R6::R6Class("DesignSeqOneByOneSPBR",
 				}
 			}
 		},
-		#' @description Uses this subclass's sequential assignment rule; see
-		#'   \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}.
+		#' @description Pop the next treatment assignment from the current subject's
+		#'   stratum block queue (see class documentation), refilling that queue with
+		#'   a freshly drawn fixed-size, randomly-ordered block first if it is empty.
 		#'
-		#' @return 	The treatment assignment (0 or 1)
+		#' @return 	The treatment assignment (0 or 1) for the next subject.
 		assign_wt = function(){
 			x_new = private$Xraw[private$t, ]
 			key = private$get_strata_key(x_row = x_new)

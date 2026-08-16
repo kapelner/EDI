@@ -2,21 +2,36 @@
 % Please edit documentation in R/RcppExports.R
 \name{get_beta_regression_hessian_cpp}
 \alias{get_beta_regression_hessian_cpp}
-\title{Compute Beta Regression Hessian}
+\title{Beta Regression Hessian, Standalone (C++)}
 \usage{
 get_beta_regression_hessian_cpp(X, y, params)
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors, as used to fit the model.}
 
-\item{y}{A numeric vector of responses.}
+\item{y}{A numeric vector of responses in \verb{(0, 1)}.}
 
-\item{params}{A numeric vector of parameters [beta, log_phi].}
+\item{params}{A numeric vector \eqn{[\beta, \log\phi]}: the mean-model
+coefficients followed by the log-precision parameter.}
 }
 \value{
-A numeric matrix representing the Hessian.
+The \eqn{(p+1) \times (p+1)} Hessian matrix of the log-likelihood
+  (i.e. the negative of the observed information) at \code{params}.
 }
 \description{
-Calculates the Hessian matrix (second derivatives of the log-likelihood) for a beta regression model.
+Computes the Hessian matrix (second derivatives with respect to
+\eqn{[\beta, \log\phi]}) of the log-likelihood of the mean-precision Beta
+regression model documented in full at \code{\link{fast_beta_regression_cpp}},
+at arbitrary caller-supplied parameters \code{params} (not necessarily the
+MLE). Exported standalone — independent of any optimizer run — for direct
+numerical diagnostics (e.g. checking curvature or building a custom variance
+estimate at a specific parameter value) and for use by
+\code{\link{get_beta_regression_score_cpp}}'s sibling relationship in
+optimizer/inference code that needs both quantities at the same point.
+}
+\seealso{
+\code{\link{get_beta_regression_score_cpp}} for the corresponding
+  gradient at the same point; \code{\link{fast_beta_regression_cpp}} for the
+  full mean-precision Beta regression model documentation.
 }
 \keyword{internal}

@@ -1,14 +1,13 @@
 #' Exact Inference API
 #'
-#' @name InferenceExact
-#' @description Internal method.
-#' Thin interface for exact inference methods.
+#' Thin interface for exact inference methods, shared verbatim by the
+#' `ExactTest` component (`ExactTestSource`, spliced into migrated exact-tier
+#' classes via `define_inference_class()`) and by test-only legacy generators
+#' that reconstruct the pre-migration shape for baseline comparison.
 #'
 #' @keywords internal
-InferenceExact = R6::R6Class("InferenceExact",
-	lock_objects = FALSE,
-	inherit = InferenceJackknife,
-	public = list(
+#' @noRd
+exact_test_public = list(
 		#' @description Recomputes the exact treatment estimate under bootstrap weights.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
@@ -51,8 +50,9 @@ InferenceExact = R6::R6Class("InferenceExact",
 			exact_args = private$normalize_exact_inference_args(exact_type, args_for_type = args_for_type)
 			private$compute_exact_two_sided_pval_for_treatment_effect_by_type(exact_type, delta, exact_args)
 		}
-	),
-	private = list(
+	)
+
+exact_test_private = list(
 		is_a_exact = function() TRUE,
 		default_exact_type = NULL,
 		resolve_exact_type = function(type){
@@ -97,4 +97,6 @@ InferenceExact = R6::R6Class("InferenceExact",
 			stop("Exact p-values are not implemented for this exact inference class.")
 		}
 	)
-)
+
+# Explicit production component source.
+ExactTestSource = list(public = exact_test_public, private = exact_test_private)

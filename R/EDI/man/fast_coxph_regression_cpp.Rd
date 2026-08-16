@@ -2,36 +2,79 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{fast_coxph_regression_cpp}
 \alias{fast_coxph_regression_cpp}
-\title{Fast Cox Proportional Hazards Regression (C++ Backend)}
+\title{Fast Cox Proportional Hazards Regression, One-Shot Fit (C++ Backend)}
 \arguments{
-\item{y}{Survival times.}
+\item{X}{A numeric matrix of predictor variables (no intercept column; see
+\code{\link{build_cox_data_cache_cpp}}).}
 
-\item{dead}{Event indicator (1 = event, 0 = censored).}
+\item{y}{Numeric vector of observed (event or censoring) times.}
 
-\item{X}{A numeric matrix of predictor variables.}
+\item{dead}{Numeric vector with values in \code{{0, 1}}: event indicator
+(1 = event, 0 = right-censored).}
 
-\item{warm_start_beta}{Optional starting values for the coefficients.}
+\item{warm_start_beta}{Optional starting values for the coefficients \eqn{\beta}.}
+
+\item{smart_cold_start}{Logical. If \code{TRUE} (default) and no
+\code{warm_start_beta} is supplied, use an OLS-based initial guess rather than
+a zero cold start.}
 
 \item{estimate_only}{Logical. If \code{TRUE}, skip variance-covariance
 matrix calculation for speed.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of Newton-Raphson/L-BFGS iterations.}
 
 \item{tol}{Convergence tolerance.}
 
-\item{cluster}{Optional clustering variable.}
+\item{cluster}{Optional clustering variable; when supplied, the returned
+variance-covariance matrix uses a cluster-robust (grouped) sandwich correction
+instead of the naive model-based inverse-information variance, i.e. one that
+remains asymptotically valid under within-cluster correlation of the
+martingale residuals.}
+
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed rather
+than estimate.}
+
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at; must be the same length as \code{fixed_idx}.}
 
 \item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.}
+
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix to
+warm-start curvature information for the optimizer.}
 }
 \value{
 A list containing the following components:
 \describe{
-\item{coefficients}{A numeric vector of the estimated regression coefficients.}
-\item{vcov}{The variance-covariance matrix of the estimated coefficients.}
-\item{neg_ll}{The negative log-likelihood at the final iteration.}
+\item{coefficients}{A numeric vector of the estimated log-hazard-ratio
+  coefficients \eqn{\hat\beta}.}
+\item{vcov}{The variance-covariance matrix of \eqn{\hat\beta} (naive
+  inverse-information, or cluster-robust sandwich if \code{cluster} is supplied);
+  omitted/not computed when \code{estimate_only = TRUE}.}
+\item{neg_ll}{The negative Cox partial log-likelihood at the final iteration.}
 \item{converged}{A logical value indicating whether the algorithm converged.}
+\item{iterations}{The number of optimizer iterations performed.}
+\item{fisher_information}{The Hessian of the negative partial log-likelihood at
+  the fitted coefficients (the observed information matrix).}
+\item{gradient_norm}{The norm of the score (gradient) vector at convergence, a
+  diagnostic of how tightly the convergence criterion was met.}
 }
 }
 \description{
-Fast Cox Proportional Hazards Regression (C++ Backend)
+Fits the unstratified Cox proportional-hazards partial-likelihood model
+documented in full at \code{\link{build_cox_data_cache_cpp}} — the same model,
+Breslow tie-handling, and input conventions — in a single call that internally
+builds the sorted risk-set cache, runs the optimizer, and discards the cache
+afterward. Use this entry point for a one-off fit; use
+\code{\link{build_cox_data_cache_cpp}} plus
+\code{\link{fast_coxph_regression_prebuilt_cpp}} instead when fitting the same
+\code{(X, y, dead)} repeatedly (e.g. across bootstrap/randomization replicates),
+to avoid rebuilding the risk-set cache on every call. \code{\link{fast_coxph_regression}}
+is the R-level wrapper around this backend (with an \pkg{survival}-free-of-Rcpp
+fallback path via \pkg{glmnet}).
+}
+\seealso{
+\code{\link{build_cox_data_cache_cpp}} for the full Cox partial-likelihood
+  model, Breslow tie-handling, and input conventions this function implements;
+  \code{\link{fast_coxph_regression_prebuilt_cpp}} for the cache-reusing variant;
+  \code{\link{fast_coxph_regression}} for the R-level wrapper.
 }

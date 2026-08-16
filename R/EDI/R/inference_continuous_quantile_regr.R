@@ -1,17 +1,33 @@
 #' Quantile Regression Inference for Continuous Responses
 #'
-#' Fits a quantile regression for continuous responses using the treatment
-#' indicator and, optionally, all recorded covariates as predictors. The treatment
-#' effect is reported on the response scale at quantile \code{tau}; by default
-#' \code{tau = 0.5}, so this is median regression.
+#' Fits a linear quantile regression, \eqn{Q_\tau(Y_i \mid x_i) = x_i^\top\beta_\tau},
+#' for a continuous response, estimating \eqn{\beta_\tau} by minimizing the
+#' asymmetric ("pinball" / "check") loss
+#' \deqn{\hat\beta_\tau = \operatorname*{arg\,min}_\beta \sum_{i=1}^n \rho_\tau(y_i -
+#'   x_i^\top\beta), \qquad \rho_\tau(u) = u\left(\tau - \mathbb{1}[u < 0]\right),}
+#' via \pkg{quantreg}'s simplex method (\code{quantreg::rq}/\code{rq.fit(...,
+#' method = "br")}). The treatment coefficient is the estimated shift in the
+#' \eqn{\tau}-th conditional quantile of the response attributable to treatment,
+#' holding any other covariates in \code{model_formula} fixed; by default
+#' \code{tau = 0.5}, so this is median regression (robust to outliers and
+#' distributional skew relative to mean-based estimators, at the cost of losing
+#' the mean-shift interpretation away from \eqn{\tau = 0.5}).
 #'
-#' Standard errors use \pkg{quantreg}'s Powell-style \code{"nid"} estimator when
-#' available, with fallback to \code{"iid"} if needed. Inference is based on the
-#' resulting asymptotic normal approximation.
+#' Standard errors use \pkg{quantreg}'s Powell-style \code{"nid"} (non-i.i.d.,
+#' kernel-based sparsity/local-density estimator) sandwich covariance when
+#' available, with fallback to the simpler \code{"iid"} estimator if needed.
+#' Inference (confidence intervals, p-values) is based on the resulting
+#' asymptotic normal approximation, not an exact finite-sample distribution.
 #'
 #' This class requires the \pkg{quantreg} package, which is listed under
 #' \code{Suggests} and is not installed automatically with \pkg{EDI}.
 #' Install \pkg{quantreg} manually before use.
+#'
+#' @references Koenker, R., and Bassett, G. (1978). "Regression Quantiles."
+#'   \emph{Econometrica}, 46(1), 33-50, \doi{10.2307/1913643}, for the
+#'   check-loss quantile regression estimator; Koenker, R. (2005).
+#'   \emph{Quantile Regression}, Cambridge University Press, for the
+#'   Powell-style sandwich standard error estimators used here.
 #'
 #' @examples
 #' \donttest{
@@ -23,21 +39,28 @@
 #' inf = InferenceContinQuantileRegr$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @concept quantile regression
+#' @concept median regression
 #' @export
-InferenceContinQuantileRegr = R6::R6Class("InferenceContinQuantileRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceContinQuantileRegr = define_inference_class(
+	classname = "InferenceContinQuantileRegr",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 				
-		#' @description Initialize a quantile-regression inference object for a completed design
-		#' with a continuous response.
+		#' @description Initialize a quantile-regression inference object for a
+		#'   completed design with a continuous, uncensored response. Requires the
+		#'   \pkg{quantreg} package to be installed.
 		#' @param des_obj A completed \code{Design} object with a continuous response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
 		#'   design's imputed covariates.
-		#' @param tau The quantile to estimate (default 0.5).. Default 0.5.
-		#' @param verbose Whether to print progress messages.. Default FALSE.
+		#' @param tau The quantile \eqn{\tau \in (0, 1)} to estimate (default 0.5, i.e. median regression).
+		#' @param verbose Whether to print progress messages. Default \code{FALSE}.
 		initialize = function(des_obj, model_formula = NULL, tau = 0.5,  verbose = FALSE){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "continuous")
@@ -57,14 +80,26 @@ InferenceContinQuantileRegr = R6::R6Class("InferenceContinQuantileRegr",
 			
 			private$tau = tau
 		},
-		#' @description Computes the quantile-regression estimate of the treatment effect.
+		#' @description Computes the treatment coefficient \eqn{\hat\beta_{T,\tau}}
+		#'   from a check-loss quantile regression fit at quantile \code{tau} (see
+		#'   class documentation for the full model). Rank-deficient covariate
+		#'   columns are dropped before fitting (see
+		#'   \code{private$reduce_design_matrix_for_quantile()}); returns \code{NA}
+		#'   if the reduced design has no usable treatment column or too few
+		#'   residual degrees of freedom.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
+		#' @description Recomputes the quantile-regression treatment estimate under
+		#'   subject/block bootstrap weights (\code{quantreg::rq(..., weights =
+		#'   row_weights)}), used by the Bayesian bootstrap and related
+		#'   weighted-resampling machinery; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#'   Unlike \code{$compute_estimate()}, this always reduces the design
+		#'   matrix from scratch (\code{reuse_factorizations = FALSE}) rather than
+		#'   reusing a cached rank-reduction from a prior warm-started fit.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -105,8 +140,13 @@ InferenceContinQuantileRegr = R6::R6Class("InferenceContinQuantileRegr",
 			}
 			private$cached_values$beta_hat_T
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Computes a \eqn{1-\alpha} level confidence interval for the
+		#'   quantile-regression treatment coefficient \eqn{\hat\beta_{T,\tau}},
+		#'   using \pkg{quantreg}'s Powell-style \code{"nid"} asymptotic standard
+		#'   error (falling back to \code{"iid"} if unavailable — see class
+		#'   documentation) and residual degrees of freedom \eqn{n - p}. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   asymptotic confidence-interval contract this delegates to.
 		#' @param alpha The confidence level in the computed confidence
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
@@ -116,8 +156,12 @@ InferenceContinQuantileRegr = R6::R6Class("InferenceContinQuantileRegr",
 			private$shared()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
+		#'   \beta_{T,\tau} = \code{delta}}, from the same \pkg{quantreg} sandwich
+		#'   standard error and degrees of freedom used by
+		#'   \code{$compute_asymp_confidence_interval()}. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   asymptotic two-sided p-value contract this delegates to.
 		#' @param delta The null difference to test against. Default is zero.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -128,8 +172,8 @@ InferenceContinQuantileRegr = R6::R6Class("InferenceContinQuantileRegr",
 		}
 	),
 	private = list(
-		tau = NULL,
-		fit_warm_keep = NULL,
+		tau = 0.5,
+		fit_warm_keep = integer(0),
 		get_standard_error = function(){
 			if (is.null(private$cached_values$s_beta_hat_T)) private$shared()
 			private$cached_values$s_beta_hat_T
@@ -247,5 +291,21 @@ InferenceContinQuantileRegr = R6::R6Class("InferenceContinQuantileRegr",
 			private$cached_values$s_beta_hat_T = if (is.finite(se) && se > 0) se else NA_real_
 			private$cached_values$df = nrow(X_fit) - ncol(X_fit)
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval"
+		),
+		private = c(
+			"get_standard_error", "get_degrees_of_freedom",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"compute_fast_randomization_distr",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

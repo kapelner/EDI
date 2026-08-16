@@ -2,21 +2,36 @@
 % Please edit documentation in R/other_helpers.R
 \name{logit}
 \alias{logit}
-\title{Logit}
+\title{Logit (Log-Odds) Transform}
 \usage{
 logit(p, zero_one_logit_clamp = .Machine$double.eps)
 }
 \arguments{
-\item{p}{The value between 0 and 1 non inclusive}
+\item{p}{The value(s) to transform, nominally in \verb{(0, 1)} (values
+outside that range, or exactly 0/1, are clamped rather than rejected).}
 
-\item{zero_one_logit_clamp}{The clamping amount for exact 0 and 1 values}
+\item{zero_one_logit_clamp}{The clamping distance from the 0/1 boundaries
+applied to \code{p} before transforming. Default \code{.Machine$double.eps}.}
 }
 \value{
-Its corresponding logit value as a real number
+The logit-transformed value(s) as a real number (or vector), the same
+  length as \code{p}.
 }
 \description{
-Calculates the logit i.e., log(p / (1 - p))
+Computes the logit (log-odds) function \eqn{\mathrm{logit}(p) = \log\left(p /
+(1-p)\right)}, the canonical link function for binomial/logistic-family
+models throughout this package. \code{p} is first clamped to
+\eqn{[\code{zero\_one\_logit\_clamp}, 1 - \code{zero\_one\_logit\_clamp}]}
+before transforming, so exact \code{0} or \code{1} inputs (which would
+otherwise map to \eqn{-\infty}/\eqn{\infty}) instead return a large but
+finite value; this is what lets proportion/fractional responses with mass
+exactly at the boundary be used as pseudo-continuous inputs to logit-scale
+machinery elsewhere in the package (e.g. \code{\link{fast_ols_cpp}}-backed
+logit-transform-then-OLS shortcuts) without producing non-finite values.
 }
 \examples{
 logit(0.25)
+}
+\seealso{
+\code{\link{inv_logit}} for the inverse transform.
 }

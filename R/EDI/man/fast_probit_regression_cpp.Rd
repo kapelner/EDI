@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_probit_regression_cpp}
 \alias{fast_probit_regression_cpp}
-\title{Fast Probit Regression (C++)}
+\title{Fast Probit Regression, Estimate-Capable (C++)}
 \usage{
 fast_probit_regression_cpp(
   X,
@@ -20,15 +20,17 @@ fast_probit_regression_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors (including intercept column).}
+\item{X}{A numeric matrix of predictors (including an intercept column, if desired).}
 
 \item{y}{A numeric vector of binary responses (0/1).}
 
-\item{warm_start_beta}{Optional starting values for coefficients.}
+\item{warm_start_beta}{Optional starting values for coefficients \eqn{\beta}. If
+provided, \code{smart_cold_start} is ignored.}
 
-\item{smart_cold_start}{Logical. If TRUE, use an OLS-based initial guess when no warm start is provided.}
+\item{smart_cold_start}{Logical. If \code{TRUE} (the default) and no
+\code{warm_start_beta} is supplied, use an OLS-based initial guess (see Details).}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of iterations (IRLS path only).}
 
 \item{tol}{Convergence tolerance.}
 
@@ -36,18 +38,62 @@ fast_probit_regression_cpp(
 
 \item{fixed_values}{Optional values for fixed parameters.}
 
-\item{optimization_alg}{Optimization algorithm ("irls" or "lbfgs"). Default "irls".}
+\item{optimization_alg}{Optimization algorithm: any value other than
+\code{"lbfgs"} runs IRLS (default \code{"irls"}); \code{"lbfgs"} runs direct
+likelihood minimization.}
 
-\item{warm_start_weights}{Optional initial IRLS working weights.}
+\item{warm_start_weights}{Accepted but unused; see Details.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix.}
+\item{warm_start_fisher_info}{Optional initial curvature matrix for the first
+IRLS iteration (IRLS path only).}
 
-\item{estimate_only}{Logical. If TRUE, skip variance computation and return only coefficients.}
+\item{estimate_only}{If \code{TRUE}, skip the post-fit weight/curvature computation
+and return only \code{b}, \code{converged}, and \code{iterations}.}
 }
 \value{
-A list containing coefficients and convergence status.
+If \code{estimate_only = TRUE}: a list with \code{b}, \code{converged},
+  \code{iterations}. Otherwise: a list additionally containing \code{w} (the final
+  probit IRLS working weights, evaluated at the fitted \eqn{\hat\beta} regardless of
+  which \code{optimization_alg} was used), \code{fisher_information} (\eqn{X^\top W X}
+  at those weights), \code{score}, and \code{neg_ll} (the negative log-likelihood).
 }
 \description{
-High-performance probit GLM fitting via IRLS or L-BFGS.
+Fits binary probit regression, \eqn{Y_i \sim \mathrm{Bernoulli}(\Phi(\eta_i))},
+\eqn{\eta_i = x_i^\top\beta}, by maximum likelihood, using a numerically stable
+log-scale evaluation of \eqn{\Phi} (\code{log_pnorm_lower}/\code{log_pnorm_upper},
+matching \code{\link[base]{pnorm}}'s \code{log.p = TRUE} for \eqn{|\eta| < 6} via a
+\code{erfc}-based identity, and falling back to a wider-range series approximation
+beyond that). By default (\code{optimization_alg = "irls"}), fitting uses
+iteratively reweighted least squares with working weights \eqn{w_i =
+\phi(\eta_i)^2 / \max(\Phi(\eta_i)(1-\Phi(\eta_i)), 10^{-15})} (the standard probit
+Fisher-scoring weight) and generalized residual \eqn{r_i = y_i\,\phi(\eta_i)/\Phi(\eta_i)
+- (1-y_i)\,\phi(\eta_i)/(1-\Phi(\eta_i))}: each iteration solves \eqn{X^\top W X\,
+\delta = X^\top r} via \code{Eigen::LDLT} and takes the full Newton step (no
+step-halving line search), declaring convergence when either the score norm or the
+step norm falls below \code{tol}. Any \code{optimization_alg} value other than
+\code{"lbfgs"} runs this IRLS path; \code{optimization_alg = "lbfgs"} instead
+minimizes the exact negative log-likelihood directly via a bespoke L-BFGS driver
+with backtracking strong-Wolfe line search (mirroring \pkg{RcppNumerical}'s
+\code{optim_lbfgs} defaults), bypassing IRLS entirely — in that path,
+\code{warm_start_fisher_info} is \strong{not consulted}.
+}
+\section{Fixed parameters, warm starts}{
+
+\code{fixed_idx} and \code{fixed_values} optionally hold a subset of coefficients
+fixed at caller-supplied constant values (folded into the linear predictor as an
+offset) rather than estimated. \code{warm_start_beta} supplies starting
+coefficients directly; otherwise, if \code{smart_cold_start = TRUE} (the default),
+an OLS fit of the probit-transformed response \eqn{\Phi^{-1}((y+0.5)/2)} on
+\code{X} seeds the start. \code{warm_start_fisher_info}, if supplied, seeds the
+curvature matrix used for the IRLS path's very first iteration only (see above for
+the \code{"lbfgs"} exception). \code{warm_start_weights} is accepted for interface
+parity with sibling functions but is \strong{not consulted anywhere} in this
+function's fitting logic.
+}
+
+\seealso{
+\code{\link{fast_probit_regression_weighted_cpp}} for the observation-weighted
+  variant; \code{\link{fast_probit_regression_with_var_cpp}} for the variance-computing
+  variant.
 }
 \keyword{internal}

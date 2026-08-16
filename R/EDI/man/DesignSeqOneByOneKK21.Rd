@@ -2,11 +2,58 @@
 % Please edit documentation in R/design_seq_one_by_one_KK21.R
 \name{DesignSeqOneByOneKK21}
 \alias{DesignSeqOneByOneKK21}
-\title{A Sequential Design}
+\title{Kapelner and Krieger's (2021) Outcome-Weighted Sequential Matching-on-the-Fly Design}
 \description{
-An R6 Class encapsulating the data and functionality for a sequential experimental design.
-This class takes care of data initialization and sequential assignments. The class object
-should be saved securely after each assignment e.g. on an encrypted cloud server.
+A \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} extension that
+replaces KK14's unweighted Mahalanobis matching distance with a
+\strong{response-weighted} squared distance: at each assignment, a per-covariate
+weight vector is re-estimated from the responses observed so far (weighting each
+covariate by the estimated strength of its association with the response, e.g. an
+absolute standardized regression coefficient), and the new subject is matched to its
+nearest reservoir subject under that weighted distance rather than the raw
+(unweighted) Mahalanobis distance KK14 uses. Weighting the match by outcome
+association means matching effort is spent preferentially on \emph{prognostic}
+covariates (those that actually explain outcome variance) rather than equally on
+every covariate, which is intended to improve estimator efficiency beyond what
+outcome-agnostic matching achieves. \code{morrison = TRUE} additionally switches to
+Morrison and Owen's (2025) alternative calibration of the matching-acceptance
+threshold (differing in the fixed- vs. variable-\eqn{n} settings) and removes KK14's
+burn-in wait before matching begins.
+
+
+\strong{Weight estimation.} \code{compute_weights()} dispatches on
+\code{response_type} to a corresponding \code{kk21_*_weights_cpp()} backend that fits
+a per-covariate simple regression of the response on that covariate (given all
+responses observed so far) and returns the absolute t-statistic (coefficient over its
+standard error) as that covariate's weight: OLS for \code{"continuous"}, logistic for
+\code{"incidence"}, negative-binomial (or, if \code{count_use_speedup = TRUE}, OLS on
+\code{log(y + 1)}) for \code{"count"}, beta regression (or OLS on the logit scale if
+\code{proportion_use_speedup = TRUE}) for \code{"proportion"}, Weibull/lognormal/
+log-logistic AFT (or OLS on \code{log(y)} if
+\code{survival_use_speedup_for_no_censoring = TRUE} and there is no censoring yet)
+for \code{"survival"}, and proportional-odds (or OLS on the numeric-coerced level if
+\code{ordinal_use_speedup = TRUE}) for \code{"ordinal"}. Weights are normalized to
+sum to 1 and cached per-iteration in \code{private$iteration_weights} (retrievable
+via \code{get_iteration_weights()}); the \code{*_use_speedup} flags trade weight
+accuracy for speed by substituting a fast continuous-regression proxy for the
+response-type-appropriate GLM/AFT/ordinal fit on every single assignment call.
+
+\strong{Weighted matching test.} The weighted squared distance from the new subject
+to every reservoir subject is computed
+(\code{compute_weighted_sqd_distances_cpp()}), and the match is accepted only if the
+minimum weighted distance falls below the \code{private$compute_lambda()} quantile of
+a \emph{bootstrapped} reference distribution of weighted pairwise distances among
+subjects enrolled so far (\code{compute_bootstrapped_weighted_sqd_distances_cpp()},
+\code{num_boot} resamples) — a nonparametric, simulation-based acceptance threshold,
+in contrast to KK14's closed-form F-distribution threshold. As in KK14, an accepted
+match receives the opposite treatment of its match; a rejected (or empty-reservoir)
+draw is randomized and added to the reservoir.
+
+\strong{Fallback to KK14.} Before enough responses have accumulated to fit the
+weight-estimation regressions reliably (fewer than \code{2 * (ncol(X) + 2)}
+non-missing responses — two observations per regression parameter, at minimum
+\code{ncol(X) + 2}), \code{assign_wt()} falls back to the inherited (unweighted) KK14
+assignment rule entirely, via \code{super$assign_wt()}.
 }
 \examples{
 seq_des = DesignSeqOneByOneKK21$new(n = 6, response_type = 'continuous')
@@ -21,6 +68,14 @@ seq_des = DesignSeqOneByOneKK21$new(n = 6, response_type = "continuous")
 seq_des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 }
 
+}
+\references{
+Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
+  allocation with higher power and efficiency." \emph{Biometrics}, 70(2), 378-388,
+  \doi{10.1111/biom.12148}, for the base matching-on-the-fly algorithm this class
+  extends with outcome-weighted distances (Kapelner and Krieger, 2021); see also
+  Morrison, T., and Owen, A. B. (2025) for the alternative \code{morrison = TRUE}
+  threshold calibration referenced by the \code{morrison} argument.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} -> \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} -> \code{DesignSeqOneByOneKK21}
@@ -37,37 +92,27 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 }
 \if{html}{\out{<details><summary>+ inherited public methods from DesignSeqOneByOneKK14</summary>
 <ul>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-add_all_subject_matched_pair_ids'><code>DesignSeqOneByOneKK14$add_all_subject_matched_pair_ids()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-assert_blocking_design'><code>DesignSeqOneByOneKK14$assert_blocking_design()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-assert_equal_block_sizes'><code>DesignSeqOneByOneKK14$assert_equal_block_sizes()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-assert_matching_design'><code>DesignSeqOneByOneKK14$assert_matching_design()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-get_block_ids'><code>DesignSeqOneByOneKK14$get_block_ids()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-get_cmh_se_w_mat'><code>DesignSeqOneByOneKK14$get_cmh_se_w_mat()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-get_matching_cluster_ids'><code>DesignSeqOneByOneKK14$get_matching_cluster_ids()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-inject_cmh_se_w_mat'><code>DesignSeqOneByOneKK14$inject_cmh_se_w_mat()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-is_a_kk_matching_capable'><code>DesignSeqOneByOneKK14$is_a_kk_matching_capable()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-is_blocking_design'><code>DesignSeqOneByOneKK14$is_blocking_design()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-is_complete_blocking_design'><code>DesignSeqOneByOneKK14$is_complete_blocking_design()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-is_matching_design'><code>DesignSeqOneByOneKK14$is_matching_design()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-set_m'><code>DesignSeqOneByOneKK14$set_m()</code></a></li>
+  <li><a href='../../EDI/html/DesignSeqOneByOneKK14.html#method-DesignSeqOneByOneKK14-summarize_blocks'><code>DesignSeqOneByOneKK14$summarize_blocks()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignSeqOneByOne</summary>
 <ul>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject'><code>DesignSeqOneByOne$add_one_subject()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject_to_experiment_and_assign'><code>DesignSeqOneByOne$add_one_subject_to_experiment_and_assign()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-is_a_seq_one_by_one'><code>DesignSeqOneByOne$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-print_current_subject_assignment'><code>DesignSeqOneByOne$print_current_subject_assignment()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-supports_resampling'><code>DesignSeqOneByOne$supports_resampling()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from DesignMatching</summary>
-<ul>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-assert_matching_design'><code>DesignMatching$assert_matching_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-get_matching_cluster_ids'><code>DesignMatching$get_matching_cluster_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-is_matching_design'><code>DesignMatching$is_matching_design()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from DesignBlocking</summary>
-<ul>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-add_all_subject_matched_pair_ids'><code>DesignBlocking$add_all_subject_matched_pair_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-assert_blocking_design'><code>DesignBlocking$assert_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-assert_equal_block_sizes'><code>DesignBlocking$assert_equal_block_sizes()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-get_block_ids'><code>DesignBlocking$get_block_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-get_cmh_se_w_mat'><code>DesignBlocking$get_cmh_se_w_mat()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-inject_cmh_se_w_mat'><code>DesignBlocking$inject_cmh_se_w_mat()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-is_blocking_design'><code>DesignBlocking$is_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-is_complete_blocking_design'><code>DesignBlocking$is_complete_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-set_m'><code>DesignBlocking$set_m()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-summarize_blocks'><code>DesignBlocking$summarize_blocks()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from Design</summary>
@@ -79,6 +124,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -101,14 +147,16 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed'><code>Design$is_a_fixed()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-overwrite_all_subject_assignments'><code>Design$overwrite_all_subject_assignments()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -222,14 +270,18 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 \if{html}{\out{<a id="method-DesignSeqOneByOneKK21-get_iteration_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneKK21-get_iteration_weights}{}}}
 \subsection{\code{DesignSeqOneByOneKK21$get_iteration_weights()}}{
-  Returns the weights calculated at each iteration.
+  Retrieve the full history of normalized covariate weight
+  vectors computed by \code{compute_weights()} across every assignment call
+  so far (see class documentation), keyed by subject index \code{t}, for
+  inspecting how the outcome-informed weighting evolved as data accrued.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneKK21$get_iteration_weights()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A list of weights.
+    A list of numeric weight vectors (one per assignment call at which
+  weights were computed), each summing to 1 and named by covariate.
   }
 }
 
@@ -237,14 +289,18 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 \if{html}{\out{<a id="method-DesignSeqOneByOneKK21-get_covariate_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneKK21-get_covariate_weights}{}}}
 \subsection{\code{DesignSeqOneByOneKK21$get_covariate_weights()}}{
-  Get the covariate weights calculated at the current iteration.
+  Retrieve the normalized covariate weight vector from the most
+  recent assignment call (see class documentation for how weights are
+  estimated).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneKK21$get_covariate_weights()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A numeric vector of weights.
+    A numeric vector of weights, one per covariate, summing to 1 and
+  named by covariate; \code{NULL} if weights have not yet been computed
+  (e.g. still in the KK14 fallback regime).
   }
 }
 
@@ -252,14 +308,20 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 \if{html}{\out{<a id="method-DesignSeqOneByOneKK21-assign_wt"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneKK21-assign_wt}{}}}
 \subsection{\code{DesignSeqOneByOneKK21$assign_wt()}}{
-  Assign the next subject to a treatment group using the KK21 algorithm.
+  Draw the next subject's treatment assignment via the KK21
+  outcome-weighted matching-on-the-fly rule (see class documentation):
+  falls back to unweighted KK14 matching if too few responses have
+  accumulated to estimate covariate weights, otherwise re-estimates weights,
+  matches to the nearest reservoir subject under the weighted distance if it
+  clears the bootstrapped acceptance threshold (assigning the opposite
+  treatment), or randomizes into the reservoir otherwise.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneKK21$assign_wt()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    The treatment assignment (0 or 1)
+    The treatment assignment (0 or 1) for the next subject.
   }
 }
 

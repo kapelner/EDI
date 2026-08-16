@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{get_cpoisson_combined_score_cpp}
 \alias{get_cpoisson_combined_score_cpp}
-\title{Compute Combined Conditional-Poisson Score}
+\title{Combined Conditional-Poisson/Poisson Score, Standalone (C++)}
 \usage{
 get_cpoisson_combined_score_cpp(
   yT_v_r,
@@ -15,24 +15,37 @@ get_cpoisson_combined_score_cpp(
 )
 }
 \arguments{
-\item{yT_v_r}{Treated counts per pair.}
+\item{yT_v_r}{Treated-subject outcome count per matched pair.}
 
-\item{n_k_v_r}{Total counts per pair.}
+\item{n_k_v_r}{Total (treated + control) outcome count per matched pair.}
 
-\item{X_diff_v_r}{Covariate differences between pairs.}
+\item{X_diff_v_r}{Covariate differences (treated minus control) between the
+members of each matched pair.}
 
-\item{y_r_r}{Reservoir outcomes.}
+\item{y_r_r}{Reservoir (unmatched) subjects' outcomes.}
 
-\item{w_r_r}{Reservoir treatment indicators.}
+\item{w_r_r}{Reservoir subjects' treatment indicators.}
 
-\item{X_r_r}{Reservoir covariates.}
+\item{X_r_r}{Reservoir subjects' covariates.}
 
-\item{params_r}{Current parameter estimates.}
+\item{params_r}{A numeric vector of model parameters at which to evaluate the score.}
 }
 \value{
-A numeric vector representing the score.
+The score vector (gradient of the log-likelihood) at \code{params_r}.
 }
 \description{
-Calculates the score vector for the combined conditional-Poisson and Poisson log-likelihood.
+Computes the score vector (gradient of the log-likelihood) of the combined KK
+matched-pair conditional-Poisson (conditional-Binomial) plus reservoir
+marginal-Poisson model documented in full at
+\code{\link{fast_cpoisson_combined_with_var_cpp}}, at arbitrary
+caller-supplied \code{params_r} (not necessarily the MLE). Exported standalone
+— independent of any optimizer run — for direct numerical diagnostics (e.g.
+verifying convergence, or building a custom estimating-equation solver) at a
+specific parameter value.
+}
+\seealso{
+\code{\link{get_cpoisson_combined_hessian_cpp}} for the corresponding
+  Hessian at the same point; \code{\link{fast_cpoisson_combined_with_var_cpp}}
+  for the full model documentation.
 }
 \keyword{internal}

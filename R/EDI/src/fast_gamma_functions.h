@@ -41,6 +41,18 @@ inline double fast_digamma(double x) {
     return r;
 }
 
+// Eigen unaryExpr adaptor for fast_digamma -- shared canonical definition.
+// Previously duplicated at file scope (external linkage) in both
+// fast_beta_regression.cpp and fast_zero_one_inflated_beta.cpp, which was an
+// ODR violation (two distinct externally-linked definitions of the same
+// class) that only a merged translation unit (e.g. a unity build) would ever
+// surface as a hard error; hoisted here so there is exactly one definition.
+struct DigammaFunctor {
+    double operator()(double x) const {
+        return fast_digamma(x);
+    }
+};
+
 // Fast trigamma (psi') via A&S 6.4.12 asymptotic expansion + recurrence shift.
 // Accurate to ≤ 3e-12 relative error for x > 0; falls back to R::trigamma for
 // x <= 0 (unreachable in practice, see fast_digamma above).

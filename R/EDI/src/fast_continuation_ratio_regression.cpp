@@ -204,19 +204,83 @@ Eigen::MatrixXd get_continuation_ratio_regression_hessian_cpp(const Eigen::Map<E
 	return -weighted_crossprod(X_aug, w);
 }
 
-//' @title Fast Continuation-Ratio Regression (C++)
-//' @description High-performance continuation-ratio logit model fitting.
-//' @param X A numeric matrix of predictors (no intercept column; threshold intercepts are estimated internally).
-//' @param y A numeric vector of ordinal responses.
-//' @param maxit Maximum number of iterations.
+//' Fast Continuation-Ratio Regression, Direct MLE via Row Augmentation (C++ Backend)
+//'
+//' Fits the (forward) continuation-ratio logit ordinal regression model — the same
+//' model documented in full at \code{expand_continuation_ratio_data_cpp()}: for cut
+//' \eqn{j = 1, \dots, K-1}, \eqn{\log \Pr(Y = j \mid Y \ge j) / \Pr(Y > j \mid Y \ge j)
+//' = \alpha_j + \beta^\top x}. Unlike the R-level stratified-conditional-logit path
+//' built on \code{expand_continuation_ratio_data_cpp()}'s row expansion (used
+//' elsewhere in the package when cut effects must be conditioned out alongside
+//' matched-pair or block nuisance effects), this backend fits the model as a single
+//' \strong{unconditional} logistic regression MLE on an internally-built augmented
+//' design: \code{build_continuation_ratio_augmented_data()} constructs an augmented
+//' matrix \code{X_aug} with one dummy column per cut (\code{n_alpha = K - 1}
+//' columns) followed by the original \code{p} covariate columns, and an augmented
+//' binary response \code{z} (1 = "stopped at this cut"), exactly as described in
+//' \code{expand_continuation_ratio_data_cpp()}. Because the cut effects
+//' \eqn{\alpha_j} are simply \code{K - 1} ordinary coefficients on dummy columns
+//' (not nuisance parameters requiring conditioning), an unconditional logistic fit
+//' on the augmented data is exactly equivalent to the continuation-ratio likelihood
+//' — no stratification/conditioning machinery is needed for this standalone use
+//' case.
+//'
+//' @details
+//' \strong{Category coding.} As in \code{expand_continuation_ratio_data_cpp()},
+//' distinct values of \code{y} are extracted and sorted; \code{K} is the number of
+//' distinct observed values (not an externally supplied count), and each
+//' observation contributes \code{min(observed_level + 1, K - 1)} augmented rows.
+//'
+//' \strong{Parameter vector layout.} The optimizer's parameter vector (returned as
+//' \code{params}/\code{beta_full}) is \code{c(alpha_1, ..., alpha_{K-1}, beta_1,
+//' ..., beta_p)}. Optimized via \code{optimization_alg} (\code{"lbfgs"} default),
+//' for at most \code{maxit} iterations at tolerance \code{tol}; when no warm start
+//' is supplied, \code{smart_cold_start = TRUE} seeds the optimizer via OLS on the
+//' augmented binary response \code{z}. \code{fixed_idx}/\code{fixed_values} hold
+//' specific parameters (by index into this layout) fixed rather than estimated, and
+//' \code{warm_start_fisher_info} warm-starts curvature information.
+//'
+//' \strong{Degenerate case.} If \code{y} has fewer than 2 distinct observed values
+//' (\code{K < 2}), no model can be fit: the function returns early with \code{b}
+//' zeroed (length \code{p}) and an empty \code{alpha}, without attempting
+//' optimization or setting \code{converged}/\code{neg_loglik}/etc.
+//'
+//' @param X A numeric matrix of predictors, \eqn{n \times p} (no intercept column; threshold intercepts are estimated internally).
+//' @param y A numeric vector of length \eqn{n} giving each subject's ordinal
+//'   category; need not be pre-coded \code{1:K} (see Details).
+//' @param maxit Maximum number of optimizer iterations.
 //' @param tol Convergence tolerance.
-//' @param warm_start_beta Optional starting values for coefficients.
+//' @param warm_start_beta Optional starting values for the full
+//'   \code{c(alpha, beta)} parameter vector.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when no warm start is provided.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix.
-//' @return A list containing coefficients, alpha, and convergence status.
+//' @param fixed_idx Optional integer indices (into the \code{c(alpha, beta)}
+//'   parameter layout) of parameters to hold fixed rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
+//' @param optimization_alg Optimization algorithm; see Details.
+//' @param warm_start_fisher_info Optional initial Fisher Information matrix (over
+//'   the full \code{c(alpha, beta)} parameter vector) to warm-start curvature
+//'   information.
+//' @return A list with components \code{b} (the shared covariate coefficients
+//'   \eqn{\hat\beta}, length \code{p}), \code{alpha} (the \code{K - 1} estimated
+//'   cut intercepts), \code{params}/\code{beta_full} (the full
+//'   \code{c(alpha, b)} parameter vector, identical to each other),
+//'   \code{neg_loglik} (the augmented-data logistic negative log-likelihood, which
+//'   equals the continuation-ratio model's negative log-likelihood), \code{X_aug}/
+//'   \code{z} (the augmented design matrix and binary response actually fit, exposed
+//'   for reuse, e.g. by
+//'   \code{\link{get_continuation_ratio_regression_hessian_cpp}}), \code{converged}
+//'   (logical), and \code{fisher_information} (the exact observed information
+//'   Hessian at the fitted parameters). See Details for the degenerate
+//'   fewer-than-2-categories case, which returns a reduced subset of these fields.
+//' @seealso \code{expand_continuation_ratio_data_cpp()} for the full continuation-
+//'   ratio model equation and the shared row-augmentation logic;
+//'   \code{\link{fast_continuation_ratio_regression_with_var_cpp}} for the
+//'   variance-augmented variant; \code{\link{fast_adjacent_category_logit_cpp}} for
+//'   the analogous direct-MLE fit of the adjacent-category (rather than
+//'   continuation-ratio) ordinal model.
+//'   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal regression} for
+//'   orientation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -258,6 +322,50 @@ List fast_continuation_ratio_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X
         .set("fisher_information", fun.hessian(fit.params)));
 }
 
+//' Fast Continuation-Ratio Regression with Variance, Direct MLE (C++ Backend)
+//'
+//' Fits the same continuation-ratio model as
+//' \code{\link{fast_continuation_ratio_regression_cpp}} (see that page for the full
+//' model, row-augmentation mechanics, category coding, and parameter layout) and
+//' additionally computes the variance of the first covariate coefficient and (when
+//' converged) the full parameter variance-covariance matrix, from the same observed
+//' information Hessian.
+//'
+//' @details
+//' \strong{Variance computation.} The observed information (Hessian of the
+//' augmented-data logistic negative log-likelihood, evaluated at the fitted
+//' parameters over all \code{n_alpha + p} parameters) is restricted to the free
+//' (non-\code{fixed_idx}) parameters. \code{ssq_b_j} — the variance of
+//' \eqn{\hat\beta_1} (the coefficient on the \strong{first} covariate column of
+//' \code{X}, the package's usual treatment-effect position) — is obtained via a
+//' single targeted diagonal-entry inversion (\code{compute_diagonal_inverse_entry()}),
+//' not a full matrix inverse, and is \code{NA} if that coefficient is fixed via
+//' \code{fixed_idx}. The full \code{vcov} (over all \code{n_alpha + p} parameters,
+//' expanded back from the free-parameter block) is computed only when
+//' \code{converged} is \code{TRUE} (via \code{covariance_from_information()});
+//' otherwise \code{vcov} is \code{NULL}.
+//'
+//' \strong{Degenerate case.} As in \code{\link{fast_continuation_ratio_regression_cpp}},
+//' if \code{y} has fewer than 2 distinct observed values, the function returns early
+//' with \code{b = NA_real_}, \code{ssq_b_j = NA_real_}, and \code{converged = FALSE},
+//' without \code{vcov}/\code{params}/\code{fisher_information}.
+//'
+//' @inheritParams fast_continuation_ratio_regression_cpp
+//' @return A list with components \code{b} (the shared covariate coefficients
+//'   \eqn{\hat\beta}), \code{ssq_b_j} (the variance of the first covariate's
+//'   coefficient), \code{neg_loglik}, \code{vcov} (the full parameter
+//'   variance-covariance matrix, or \code{NULL} if not converged), \code{converged}
+//'   (logical), \code{params} (the full \code{c(alpha, b)} parameter vector — cut
+//'   intercepts are recoverable as \code{params[1:n_alpha]} but are not returned as
+//'   a separate \code{alpha} field, unlike
+//'   \code{\link{fast_continuation_ratio_regression_cpp}}), and
+//'   \code{fisher_information} (the full observed information Hessian). See Details
+//'   for the degenerate fewer-than-2-categories case, which returns a reduced subset
+//'   of these fields.
+//' @seealso \code{\link{fast_continuation_ratio_regression_cpp}} for the
+//'   estimate-only variant and the full model/row-augmentation documentation.
+//' @export
+//' @keywords internal
 // [[Rcpp::export]]
 List fast_continuation_ratio_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 		SEXP y,

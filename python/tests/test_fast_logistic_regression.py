@@ -41,7 +41,15 @@ def _synthetic_data():
 #   EDI:::fast_logistic_regression_cpp(X, y, estimate_only = FALSE)
 R_B = np.array([0.200514443588922, 0.997149366410844, -0.398899774793554])
 R_NEG_LOGLIK = 120.612751517688
-R_ITERATIONS = 5
+R_NUM_ITER = 5
+
+# NOTE (2026-08-17): num_iter (renamed from "iterations") should be unchanged
+# by the optimizer_diagnostics_report.md TODO-4 convergence-field rework --
+# that rework only changes how `converged`/`hit_iteration_cap` classify a
+# given exit, not which iteration the IRLS loop actually exits on. Re-verify
+# this fixture (and that `converged` is still True here) against a fresh R
+# run after the C++ change is compiled, since a step-size-tol exit is now
+# reclassified by its recomputed gradient norm rather than assumed converged.
 
 
 def test_matches_r_fixture():
@@ -51,7 +59,8 @@ def test_matches_r_fixture():
     assert res["converged"] is True
     assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)
     assert res["neg_loglik"] == pytest.approx(R_NEG_LOGLIK, abs=ATOL, rel=RTOL)
-    assert res["iterations"] == R_ITERATIONS
+    assert res["num_iter"] == R_NUM_ITER
+    assert res["hit_iteration_cap"] is False
 
 
 def test_result_shape_and_types():

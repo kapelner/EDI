@@ -13,12 +13,6 @@ using namespace Rcpp;
 
 namespace {
 
-struct DigammaFunctor {
-	double operator()(double x) const {
-		return fast_digamma(x);
-	}
-};
-
 class BetaRegression {
 private:
 	const Eigen::Ref<const Eigen::VectorXd> m_y;
@@ -299,12 +293,27 @@ Eigen::VectorXd get_beta_regression_score_cpp(const Eigen::Map<Eigen::MatrixXd>&
     return -grad; // Return the actual score (gradient of log-likelihood)
 }
 
-//' @title Compute Beta Regression Hessian
-//' @description Calculates the Hessian matrix (second derivatives of the log-likelihood) for a beta regression model.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param params A numeric vector of parameters [beta, log_phi].
-//' @return A numeric matrix representing the Hessian.
+//' Beta Regression Hessian, Standalone (C++)
+//'
+//' Computes the Hessian matrix (second derivatives with respect to
+//' \eqn{[\beta, \log\phi]}) of the log-likelihood of the mean-precision Beta
+//' regression model documented in full at \code{\link{fast_beta_regression_cpp}},
+//' at arbitrary caller-supplied parameters \code{params} (not necessarily the
+//' MLE). Exported standalone — independent of any optimizer run — for direct
+//' numerical diagnostics (e.g. checking curvature or building a custom variance
+//' estimate at a specific parameter value) and for use by
+//' \code{\link{get_beta_regression_score_cpp}}'s sibling relationship in
+//' optimizer/inference code that needs both quantities at the same point.
+//'
+//' @param X A numeric matrix of predictors, as used to fit the model.
+//' @param y A numeric vector of responses in \verb{(0, 1)}.
+//' @param params A numeric vector \eqn{[\beta, \log\phi]}: the mean-model
+//'   coefficients followed by the log-precision parameter.
+//' @return The \eqn{(p+1) \times (p+1)} Hessian matrix of the log-likelihood
+//'   (i.e. the negative of the observed information) at \code{params}.
+//' @seealso \code{\link{get_beta_regression_score_cpp}} for the corresponding
+//'   gradient at the same point; \code{\link{fast_beta_regression_cpp}} for the
+//'   full mean-precision Beta regression model documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -322,19 +331,87 @@ Eigen::MatrixXd get_beta_regression_hessian_cpp(const Eigen::Map<Eigen::MatrixXd
     return -fun.hessian(params); // Return the actual Hessian of log-likelihood (Fisher Information is -Hessian)
 }
 
-//' @title Fast Beta Regression (C++)
-//' @description High-performance beta regression fitting using Newton-Raphson or L-BFGS.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses (in (0, 1)).
-//' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
+//' Fast Beta Regression, Estimate Only (C++ Backend)
+//'
+//' Fits the beta regression model of Ferrari and Cribari-Neto (2004) for a
+//' continuous response strictly between 0 and 1 (proportions, rates, and similar
+//' bounded outcomes), via direct maximum likelihood on the reparameterized beta
+//' density
+//' \deqn{f(y_i; \mu_i, \phi) = \frac{\Gamma(\phi)}{\Gamma(\mu_i \phi)\Gamma((1-\mu_i)\phi)} y_i^{\mu_i \phi - 1} (1 - y_i)^{(1-\mu_i)\phi - 1}, \quad 0 < y_i < 1,}
+//' with mean \eqn{E[Y_i] = \mu_i} and variance
+//' \eqn{\mathrm{Var}(Y_i) = \mu_i(1-\mu_i) / (1 + \phi)}, where \eqn{\phi > 0} is a
+//' single (constant-across-observations) precision parameter and the mean is linked
+//' to the covariates via the logit link \eqn{\mathrm{logit}(\mu_i) = x_i^\top \beta}
+//' (fixed; no alternative link functions are supported by this backend).
+//'
+//' @details
+//' \strong{Parameterization and optimization.} The optimizer's parameter vector is
+//' \code{c(beta, log(phi))} — \eqn{\phi} is optimized on the log scale to keep it
+//' unconstrained (\eqn{\phi > 0} enforced automatically by exponentiating back),
+//' initialized from \code{start_phi} (or a value derived from it via
+//' \code{smart_cold_start}). \eqn{\mu_i} is clipped to \eqn{[10^{-8}, 1 - 10^{-8}]}
+//' internally during likelihood/gradient/Hessian evaluation to avoid boundary blowup
+//' when \eqn{x_i^\top \beta} is extreme; this affects only numerical evaluation, not
+//' the returned \eqn{\hat\beta} itself. Optimized via \code{optimization_alg}
+//' (\code{"lbfgs"} default; see \code{\link{.normalize_optimizer_algorithm}}); when
+//' no \code{warm_start_beta} is supplied, \code{smart_cold_start = TRUE} (default)
+//' seeds \eqn{\beta} from an OLS-based initial guess.
+//' \code{fixed_idx}/\code{fixed_values} allow holding specific parameters (by index
+//' into the \code{c(beta, log(phi))} layout) fixed rather than estimated.
+//' \code{compute_std_errs} is a legacy/deprecated argument with no effect in this
+//' estimate-only entry point; use \code{\link{fast_beta_regression_with_var_cpp}} to
+//' obtain standard errors.
+//'
+//' \strong{Reported likelihood and information.} \code{neg_loglik} is the exact beta
+//' negative log-likelihood re-evaluated at the fitted parameters (not merely the
+//' optimizer's internal objective trace); \code{fisher_information} is the
+//' \eqn{X^\top W X}-style working-weights curvature matrix from the fit
+//' (\code{fit.XtWX}) — the same expected-information approximation classical IRLS
+//' uses for GLM standard errors, and exactly what
+//' \code{\link{fast_beta_regression_with_var_cpp}} inverts to produce \code{vcov} —
+//' rather than a fresh evaluation of the exact observed-information Hessian from
+//' \code{\link{get_beta_regression_hessian_cpp}}. It is also suitable for
+//' warm-starting a subsequent fit via \code{warm_start_fisher_info}.
+//'
+//' @param X A numeric matrix of predictors, \eqn{n \times p}; include an explicit
+//'   intercept column if desired (the model has no implicit intercept).
+//' @param y A numeric vector of responses, strictly in \eqn{(0, 1)} (values at or
+//'   beyond the boundary are not valid beta-distributed outcomes; see
+//'   \code{\link{fast_beta_regression}} for boundary-handling guidance at the R
+//'   wrapper level).
+//' @param warm_start_beta Optional starting values for coefficients \eqn{\beta}. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param start_phi Optional starting value for precision parameter phi.
-//' @param compute_std_errs Deprecated.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients, phi, and convergence status.
+//' @param start_phi Starting value for the precision parameter \eqn{\phi} (on its
+//'   natural, not log, scale).
+//' @param compute_std_errs Deprecated; has no effect on this estimate-only entry
+//'   point. Use \code{\link{fast_beta_regression_with_var_cpp}} for standard errors.
+//' @param fixed_idx Optional integer indices (into the \code{c(beta, log(phi))}
+//'   parameter layout) of parameters to hold fixed rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at; must be the same length as \code{fixed_idx}.
+//' @param optimization_alg Optimization algorithm; see Details.
+//' @param warm_start_fisher_info Optional initial Fisher Information matrix (over
+//'   \code{c(beta, log(phi))}) to warm-start curvature information for the first
+//'   optimizer iteration.
+//' @param estimate_only Logical; if \code{TRUE}, may skip work not needed to produce
+//'   point estimates (kept in sync with the package's other \code{fast_*} estimate-
+//'   vs-inference split).
+//' @return A list with components \code{coefficients} (\eqn{\hat\beta}, length
+//'   \code{p}), \code{phi} (\eqn{\hat\phi}, on its natural scale), \code{neg_loglik}
+//'   (the exact beta negative log-likelihood at the fitted parameters),
+//'   \code{converged} (logical), and \code{fisher_information} (an approximate
+//'   working curvature matrix; see Details).
+//' @seealso \code{\link{fast_beta_regression_weighted_cpp}} for the row-weighted
+//'   variant; \code{\link{fast_beta_regression_with_var_cpp}} for the
+//'   variance-augmented variant; \code{\link{fast_beta_regression}} for the R-level
+//'   wrapper with \pkg{betareg} fallback; \code{\link{get_beta_regression_score_cpp}}/
+//'   \code{\link{get_beta_regression_hessian_cpp}} for standalone score/Hessian
+//'   evaluation at arbitrary parameter values.
+//' @references Ferrari, S., and Cribari-Neto, F. (2004). "Beta regression for
+//'   modelling rates and proportions." \emph{Journal of Applied Statistics}, 31(7),
+//'   799-815, \doi{10.1080/0266476042000214501}. Analogous Python API:
+//'   \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM} (via the
+//'   \code{Beta} family, \code{statsmodels.othermod.betareg}).
 //' @export
 //' @keywords internal
 //' @examples
@@ -381,21 +458,50 @@ List fast_beta_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Null
 		.set("fisher_information", fit.XtWX));
 }
 
-//' @title Fast Weighted Beta Regression (C++)
-//' @description High-performance beta regression fitting with nonnegative row weights.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses (in (0, 1)).
-//' @param weights A nonnegative numeric vector of row weights.
-//' @param warm_start_beta Optional starting values for coefficients.
+//' Fast Weighted Beta Regression, Estimate Only (C++ Backend)
+//'
+//' Fits the same beta regression model as
+//' \code{\link{fast_beta_regression_cpp}} (see that page for the full model,
+//' parameterization, and optimizer contract), with each observation's contribution
+//' to the log-likelihood, score, and Hessian multiplied by a nonnegative row weight
+//' \code{weights[i]}. Setting all weights to 1 recovers
+//' \code{\link{fast_beta_regression_cpp}} exactly; this is the backend the package's
+//' \code{Inference} classes use whenever the beta regression must be fit on
+//' bootstrap-reweighted or otherwise weighted data (e.g. Bayesian bootstrap weights)
+//' without physically resampling rows.
+//'
+//' @details
+//' \strong{Input validation.} \code{weights} must have length \code{nrow(X)}, be
+//' finite and non-negative, and sum to a strictly positive value; violating any of
+//' these raises an error immediately rather than producing a degenerate fit. A
+//' weight of 0 for a given row contributes nothing to the likelihood (effectively
+//' excludes that row) without changing \eqn{n} in downstream index bookkeeping.
+//'
+//' @param X A numeric matrix of predictors, \eqn{n \times p}.
+//' @param y A numeric vector of responses, strictly in \eqn{(0, 1)}.
+//' @param weights A nonnegative, finite numeric vector of length \code{nrow(X)}
+//'   giving each row's weight; must sum to a positive value (see Details).
+//' @param warm_start_beta Optional starting values for coefficients \eqn{\beta}. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when no warm start is provided.
-//' @param start_phi Optional starting value for precision parameter phi.
-//' @param compute_std_errs Deprecated.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix.
+//' @param start_phi Starting value for the precision parameter \eqn{\phi} (natural scale).
+//' @param compute_std_errs Deprecated; has no effect on this estimate-only entry
+//'   point.
+//' @param fixed_idx Optional integer indices (into the \code{c(beta, log(phi))}
+//'   parameter layout) of parameters to hold fixed rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
+//' @param optimization_alg Optimization algorithm; see
+//'   \code{\link{fast_beta_regression_cpp}}.
+//' @param warm_start_fisher_info Optional initial Fisher Information matrix to
+//'   warm-start curvature information.
 //' @param estimate_only If TRUE, skip Fisher information calculation.
-//' @return A list containing coefficients, phi, negative log-likelihood, convergence status, and Fisher information.
+//' @return A list with the same components as
+//'   \code{\link{fast_beta_regression_cpp}}: \code{coefficients}, \code{phi},
+//'   \code{neg_loglik} (the weighted negative log-likelihood), \code{converged}, and
+//'   \code{fisher_information}.
+//' @seealso \code{\link{fast_beta_regression_cpp}} for the unweighted model and full
+//'   parameterization documentation; \code{\link{fast_beta_regression_with_var_cpp}}
+//'   for the (unweighted) variance-augmented variant.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -443,18 +549,51 @@ List fast_beta_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
 		.set("fisher_information", fit.XtWX));
 }
 
-//' @title Fast Beta Regression with Variance (C++)
-//' @description Beta regression with full variance-covariance matrix and standard error estimation.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses (in (0, 1)).
+//' Fast Beta Regression with Variance (C++ Backend)
+//'
+//' Fits the same beta regression model as \code{\link{fast_beta_regression_cpp}}
+//' (see that page for the full model, parameterization, and optimizer contract) and
+//' additionally computes the variance-covariance matrix and standard errors of the
+//' fitted parameters, via the same working-weights (\eqn{X^\top W X}) curvature
+//' matrix documented there.
+//'
+//' @details
+//' \strong{Variance computation.} The fit's working-information matrix
+//' (\code{fit.XtWX}, over all \code{p + 1} parameters \code{c(beta, log(phi))}) is
+//' restricted to the free (non-\code{fixed_idx}) parameters and inverted via a
+//' \strong{plain matrix inverse} (\code{.inverse()}, not a rank-aware pseudo-inverse
+//' as used by, e.g., \code{\link{fast_adjacent_category_logit_with_var_cpp}}) before
+//' being expanded back to the full \code{(p + 1) x (p + 1)} size as \code{vcov};
+//' \code{std_errs} is \code{sqrt(diag(vcov))}. Because this uses a plain inverse, a
+//' rank-deficient or near-singular \code{X} (after restricting to free parameters)
+//' will produce numerically unstable or \code{NaN} standard errors rather than a
+//' graceful fallback — callers should ensure \code{X} is full rank on the free
+//' parameters (e.g. via the package's shared \code{drop_linearly_dependent_cols()}
+//' preprocessing) before calling this function if that is not already guaranteed.
+//'
+//' @param X A numeric matrix of predictors, \eqn{n \times p}.
+//' @param y A numeric vector of responses, strictly in \eqn{(0, 1)}.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param start_phi Optional starting value for precision parameter phi.
-//' @param compute_std_errs Deprecated.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @return A list containing coefficients, phi, vcov, standard errors, and convergence status.
+//' @param start_phi Starting value for the precision parameter \eqn{\phi} (natural scale).
+//' @param compute_std_errs Deprecated; standard errors are always computed by this
+//'   entry point regardless of this argument's value.
+//' @param fixed_idx Optional integer indices (into the \code{c(beta, log(phi))}
+//'   parameter layout) of parameters to hold fixed rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
+//' @param optimization_alg Optimization algorithm; see
+//'   \code{\link{fast_beta_regression_cpp}}.
+//' @return A list with components \code{coefficients} (\eqn{\hat\beta}),
+//'   \code{phi} (\eqn{\hat\phi}), \code{neg_loglik}, \code{vcov} (the full
+//'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix), \code{std_errs}
+//'   (\code{sqrt(diag(vcov))}), \code{converged} (logical), and
+//'   \code{fisher_information} (the working-weights curvature matrix \code{vcov} was
+//'   inverted from).
+//' @seealso \code{\link{fast_beta_regression_cpp}} for the estimate-only variant and
+//'   the full model/parameterization documentation;
+//'   \code{\link{fast_beta_regression_weighted_cpp}} for the row-weighted
+//'   estimate-only variant.
 //' @export
 //' @keywords internal
 //' @examples

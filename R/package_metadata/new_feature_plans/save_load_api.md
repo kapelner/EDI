@@ -1,5 +1,7 @@
 # Save/Load API for `Design` Objects
 
+> **Depends on:** `fix_design_hierarchy.md` (the serialization audit is driven off `EDI_DESIGN_COMPONENTS`' `owns_state` once components own design state). (Global ordering: see `_master.md`.)
+
 Generated: 2026-08-09
 
 Related: [sequential_inference.md](sequential_inference.md) (the
@@ -132,14 +134,22 @@ grouped by concern.
   C++ kernels (`compute_all_subject_data_cpp()` and friends) — trace the
   actual `Rcpp::` return types, don't just infer from call-site usage.
 
-- [ ] **Extend the audit to `DesignMatching`/`DesignSeqOneByOne` subclass
-  private fields**, not just base `Design`. In particular
+- [ ] **Extend the audit to component-owned and `DesignSeqOneByOne`-subclass
+  private fields**, not just base `Design`. (Updated 2026-08-13:
+  `DesignMatching` no longer exists as a generator once
+  `fix_design_hierarchy.md` completes — its state is component-owned:
+  `m`/`strata_cols`/`cmh_se_w_mat` etc. by `BlockingStructure`,
+  `xm_structural`/`boot_pair_rows`/`boot_i_reservoir` etc. by
+  `MatchingStructure`, `cluster_col` by `ClusterStructure` — all enumerable
+  mechanically from `EDI_DESIGN_COMPONENTS`' `owns_state` declarations, which
+  turns this audit from per-class archaeology into a scriptable sweep of the
+  component registry plus each concrete class's own extras.) In particular
   `private$m` (match/reservoir index, `DesignSeqOneByOneKK14`:
   `EDI/R/design_seq_one_by_one_KK14.R`), and any per-subclass caches in
   Atkinson/SPBR/PocockSimon (e.g. `strata_cols`-keyed caches). Same failure
-  mode as above, different files — this needs to be per-subclass because
-  each concrete `DesignSeqOneByOne*` class adds its own private state on
-  top of the shared abstract class.
+  mode as above, different files — the per-subclass part remains necessary
+  because each concrete `DesignSeqOneByOne*` class adds its own private state
+  on top of the shared component/root state.
 
 - [ ] **Document (and verify) RNG/reproducibility semantics across a
   save/reload cycle.** `private$seed` is only consumed once, inside

@@ -1,6 +1,5 @@
 #ifdef EDI_CORE_ONLY
-#include <limits>
-constexpr double NA_REAL = std::numeric_limits<double>::quiet_NaN();
+#include "na_real_core.h"
 #else
 #include <Rcpp.h>
 using namespace Rcpp;
@@ -71,6 +70,34 @@ NewcombeCIBounds newcombe_independent_ci_internal(double x1, double n1, double x
 
 #ifndef EDI_CORE_ONLY
 //' Newcombe Hybrid Score Interval for Independent Proportions (Method 10)
+//'
+//' Computes Newcombe's "Method 10" hybrid confidence interval for the
+//' difference between two \strong{independent} proportions \eqn{p_1 - p_2}
+//' (see
+//' \code{\link[EDI:InferenceIncidNewcombeRiskDiff]{InferenceIncidNewcombeRiskDiff}}
+//' for the class that consumes this function). Separate Wilson score intervals
+//' \eqn{[\ell_1, u_1]} and \eqn{[\ell_2, u_2]} are computed for each proportion
+//' individually (via \code{\link{wilson_score_interval_cpp}}), then combined as
+//' \deqn{\left[\,(p_1-p_2) - \sqrt{(p_1-\ell_1)^2 + (u_2-p_2)^2},\ \ (p_1-p_2) +
+//'   \sqrt{(u_1-p_1)^2 + (p_2-\ell_2)^2}\,\right],}
+//' clamped to \eqn{[-1, 1]}. This avoids the boundary/coverage problems of the
+//' naive normal-approximation (Wald) interval on a risk difference while
+//' remaining closed-form (no iterative score-test inversion). Returns
+//' \code{c(NA, NA)} if either sample size is non-positive.
+//'
+//' @param x1 Number of events in group 1.
+//' @param n1 Number of subjects in group 1.
+//' @param x2 Number of events in group 2.
+//' @param n2 Number of subjects in group 2.
+//' @param alpha The confidence level is \eqn{1-\alpha}.
+//' @return A length-2 numeric vector containing the lower and upper CI bounds
+//'   for \eqn{p_1 - p_2}.
+//' @references Newcombe, R. G. (1998). "Interval Estimation for the Difference
+//'   Between Independent Proportions: Comparison of Eleven Methods."
+//'   \emph{Statistics in Medicine}, 17(8), 873-890,
+//'   \doi{10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I}.
+//' @seealso \code{\link{newcombe_paired_ci_cpp}} for the matched-pair
+//'   generalization of this same hybrid-score method.
 //' @keywords internal
 // [[Rcpp::export]]
 NumericVector newcombe_independent_ci_cpp(double x1, double n1, double x2, double n2, double alpha) {

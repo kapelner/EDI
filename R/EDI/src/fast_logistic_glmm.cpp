@@ -19,6 +19,7 @@
 #include "result_map_rcpp.h"
 #include <RcppEigen.h>
 #endif
+#include "_glmm_engine.h"
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -31,10 +32,9 @@ using namespace Rcpp;
 
 namespace {
 
-struct GHRule {
-	Eigen::VectorXd nodes;
-	Eigen::VectorXd log_norm_weights;
-};
+// GHRule is now the canonical glmm::GHRule from _glmm_engine.h (included
+// above) -- see fast_clogit_plus_glmm.cpp's identical comment for why.
+using GHRule = glmm::GHRule;
 
 GHRule gauss_hermite_rule_log(int n) {
 	Eigen::MatrixXd J = Eigen::MatrixXd::Zero(n, n);
@@ -373,6 +373,13 @@ public:
 // [[Rcpp::export]]
 Eigen::VectorXd get_logistic_glmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
+		Rcpp::stop("Dimension mismatch: X has %d rows, y has %d elements, group_id has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
+	}
+	if (params.size() != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
+	}
 
 
 	
@@ -396,6 +403,13 @@ Eigen::VectorXd get_logistic_glmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X
 // [[Rcpp::export]]
 Eigen::MatrixXd get_logistic_glmm_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
+		Rcpp::stop("Dimension mismatch: X has %d rows, y has %d elements, group_id has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
+	}
+	if (params.size() != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
+	}
 
 
 	
@@ -418,6 +432,13 @@ Eigen::MatrixXd get_logistic_glmm_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>&
 // [[Rcpp::export]]
 double get_logistic_glmm_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
+		Rcpp::stop("Dimension mismatch: X has %d rows, y has %d elements, group_id has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
+	}
+	if (params.size() != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
+	}
 
 
 	

@@ -2,16 +2,69 @@
 % Please edit documentation in R/design_fixed_matching_greedy_pair_switching.R
 \name{DesignFixedMatchingGreedyPairSwitching}
 \alias{DesignFixedMatchingGreedyPairSwitching}
-\title{A Fixed Design Combining Binary Matching and Greedy Pair Switching}
+\title{A Fixed, Matched-Pair Design with Greedy Which-Member-Treated Optimization}
 \description{
-An R6 class encapsulating a fixed experimental design that first computes
-binary matches and then improves the matched design with greedy pair switching
-using a native C++ implementation.
+A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} that combines
+\code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}'s non-bipartite
+matched-pair structure with \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}'s
+greedy imbalance-minimization search, restricted so every move respects the pairing:
+subjects are first paired by covariate closeness (as in
+\code{DesignFixedBinaryMatch}), guaranteeing exactly one treated and one control
+subject per pair; then, rather than assigning within-pair treatment status by a coin
+flip, the greedy search (\code{greedy_design_search_cpp()}, pair-constrained mode)
+chooses \emph{which} member of each pair is treated so as to directly minimize the
+same aggregate covariate-imbalance objective as
+\code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}} (squared Mahalanobis distance
+or sum of absolute standardized mean differences between the treated and control
+group means) across the \emph{whole} sample, not just within each pair. This targets
+both close within-pair matches (from the matching step) and low aggregate covariate
+imbalance (from the greedy refinement) simultaneously — a strictly more constrained
+search than plain \code{DesignFixedGreedy}, since only the \eqn{2^{n/2}}
+which-member-treated assignments consistent with the fixed pairing are considered,
+rather than all \eqn{\binom{n}{n/2}} balanced allocations.
+
+
+\strong{Search algorithm.} Pairing is computed by
+\code{compute_binary_match_structure()} exactly as in
+\code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}} (Mahalanobis or
+Euclidean distance per \code{objective}), lazily on first draw and cached in
+\code{private$bms}. Given the pairing, each replicate search initializes with a
+random coin flip per pair (which member starts treated), then in exhaustive mode
+(\code{n_iter = Inf}, default) repeatedly finds and applies the single pair-flip that
+most decreases the imbalance objective, stopping at a strict local optimum (or runs
+exactly \code{n_iter} random-pair stochastic flip-if-improving steps otherwise, with
+patience-based early stopping) — the same two search modes as
+\code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}, but with moves restricted to
+"flip which side of a given pair is treated" rather than "swap any treated/control
+pair of subjects." Random initialization and swap selection are seeded from R's own
+RNG (via \code{greedy_design_search_cpp()}'s per-thread seeding), so \code{seed} does
+govern reproducibility here.
+
+\strong{Pair-preserving bootstrap.} \code{draw_bootstrap_indices()} resamples whole
+matched pairs (via \code{draw_matching_bootstrap_sample_cpp()}) rather than
+individual subjects, since the greedy search only ever flips which member of a pair
+is treated (never crosses pairs), so \eqn{w} always has exactly one treated subject
+per pair — the pair, not the subject, is the exchangeable resampling unit.
+
+\strong{Constraints.} Only \code{prob_T = 0.5} is supported (the constructor errors
+otherwise), and \code{n} must be divisible by 4 (\code{draw_ws_raw()} errors
+otherwise); \code{n/2} matched pairs are formed regardless of parity, but the
+additional divisible-by-4 requirement is enforced by this class specifically (unlike
+\code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}, which only requires
+even \code{n}).
 }
 \examples{
 \dontrun{
 des = DesignFixedMatchingGreedyPairSwitching$new(n = 10, response_type = 'continuous')
 }
+}
+\references{
+Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random
+  designs with greatly improved balance." \emph{Biometrika}, 106(3), 695-701,
+  \doi{10.1093/biomet/asz026}; Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P.
+  (2004). "Optimal multivariate matching before randomization."
+  \emph{Biostatistics}, 5(2), 263-275, \doi{10.1093/biostatistics/5.2.263}, for the
+  matched-pair design this class refines.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixedMatchingGreedyPairSwitching}
@@ -29,9 +82,7 @@ des = DesignFixedMatchingGreedyPairSwitching$new(n = 10, response_type = 'contin
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subject_responses'><code>DesignFixed$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subjects_to_experiment'><code>DesignFixed$add_all_subjects_to_experiment()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-assign_w_to_all_subjects'><code>DesignFixed$assign_w_to_all_subjects()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-is_a_fixed'><code>DesignFixed$is_a_fixed()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-supports_resampling'><code>DesignFixed$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -63,6 +114,7 @@ des = DesignFixedMatchingGreedyPairSwitching$new(n = 10, response_type = 'contin
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -85,14 +137,16 @@ des = DesignFixedMatchingGreedyPairSwitching$new(n = 10, response_type = 'contin
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_seq_one_by_one'><code>Design$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -100,7 +154,9 @@ des = DesignFixedMatchingGreedyPairSwitching$new(n = 10, response_type = 'contin
 \if{html}{\out{<a id="method-DesignFixedMatchingGreedyPairSwitching-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedMatchingGreedyPairSwitching-initialize}{}}}
 \subsection{\code{DesignFixedMatchingGreedyPairSwitching$new()}}{
-  Initialize a fixed design that performs binary matching followed by greedy pair switching.
+  Initialize a fixed design that performs binary matching followed
+  by greedy which-member-treated optimization (see class documentation).
+  Only \code{prob_T = 0.5} is supported, and \code{n} must be divisible by 4.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedMatchingGreedyPairSwitching$new(
@@ -123,9 +179,13 @@ des = DesignFixedMatchingGreedyPairSwitching$new(n = 10, response_type = 'contin
       \item{\code{response_type}}{The data type of response values.}
       \item{\code{prob_T}}{The probability of treatment assignment. Must be \code{0.5}.}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
-      \item{\code{n}}{The sample size.}
+      \item{\code{n}}{The sample size; must be divisible by 4.}
       \item{\code{verbose}}{A flag for verbosity.}
-      \item{\code{objective}}{The imbalance objective. Either \code{"mahal_dist"} (default) or \code{"abs_sum_diff"}.}
+      \item{\code{objective}}{The covariate-imbalance objective to minimize when choosing
+which pair member is treated: either \code{"mahal_dist"} (default, squared
+Mahalanobis distance between treated/control means, also used as the
+matching distance) or \code{"abs_sum_diff"} (sum of absolute standardized
+mean differences); see class documentation for the exact criteria.}
       \item{\code{n_iter}}{Number of swap iterations. \code{Inf} (default) uses exhaustive
 best-improvement search guaranteed to reach a strict local optimum. A positive
 integer runs that many stochastic random-pair iterations with patience-based
@@ -145,14 +205,19 @@ early stopping.}
 \if{html}{\out{<a id="method-DesignFixedMatchingGreedyPairSwitching-supports_batch_w_pregeneration"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedMatchingGreedyPairSwitching-supports_batch_w_pregeneration}{}}}
 \subsection{\code{DesignFixedMatchingGreedyPairSwitching$supports_batch_w_pregeneration()}}{
-  Whether this design supports batch pregeneration of treatment vectors.
+  Returns \code{TRUE} so the calling framework pre-generates all
+  replicate \code{w} vectors for a simulation cell in one batched call to
+  \code{greedy_design_search_cpp()}, paying the one-time \pkg{nbpMatching}
+  pairing cost once per cell (cached in \code{private$bms}) and reusing it
+  across all replicates and the OpenMP-parallelized greedy searches, rather
+  than recomputing the pairing per replicate.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedMatchingGreedyPairSwitching$supports_batch_w_pregeneration()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    \code{TRUE}.
+    Always \code{TRUE} for this class.
   }
 }
 

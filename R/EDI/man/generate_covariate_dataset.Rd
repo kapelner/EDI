@@ -52,6 +52,40 @@ identical to the logic used within \code{SimulationFramework}.  Covariates may b
 supplied directly via \code{X_mat} or drawn randomly via \code{cov_draw_method};
 exactly one of the two must be non-\code{NULL}.
 }
+\details{
+Two conditional-expectation models are supported, both rescaled so that
+  the latent response \code{y_cont} has a controlled signal magnitude:
+  \describe{
+  \item{\code{"linear"}}{\eqn{y_i = x_i^\top \beta}, with \eqn{\beta} a fixed
+    evenly spaced sequence from \eqn{1} to \eqn{-1} across the \eqn{p} covariates
+    (\code{seq(1, -1, length.out = p)}) — i.e. the first covariate gets the
+    strongest positive effect, the last the strongest negative effect, and (for
+    even \eqn{p}) covariates near the middle get effects near zero — rescaled so
+    that \eqn{\|\beta\|_2^2 = \code{norm\_sq\_beta\_vec}}.}
+  \item{\code{"nonlinear"}}{The Friedman (1991) MARS benchmark function applied to
+    the first five covariates (requires \eqn{p \ge 5}; covariates beyond the
+    fifth do not enter the response at all),
+    \deqn{y_i = c \left(10 \sin(\pi x_{i1} x_{i2}) + 20 (x_{i3} - 0.5)^2 + 10
+    x_{i4} + 5 x_{i5}\right),}
+    with the overall scale \eqn{c} chosen so that \eqn{c^2 \sum_k
+    \beta_{\mathrm{friedman},k}^2 = \code{norm\_sq\_beta\_vec}} for the nominal
+    term coefficients \eqn{\beta_{\mathrm{friedman}} = (10, 20, 10, 5)} (the
+    \eqn{\sin} term's coefficient is not part of this nominal vector, so the
+    realized \eqn{\|c \cdot (10,20,10,5)\|_2^2} may not exactly equal
+    \code{norm_sq_beta_vec} once the \eqn{\sin} term's own variance is accounted
+    for — \code{norm_sq_beta_vec} calibrates the linear-in-covariate part of the
+    scale, not the full response variance). This function assumes each covariate
+    lies roughly in \eqn{[-1, 1]}, matching Friedman's original specification;
+    covariates drawn or supplied on a very different scale will not reproduce the
+    intended signal shape.}
+  }
+}
 \examples{
 generate_covariate_dataset(n = 10, p = 5)
+}
+\references{
+Friedman, J. H. (1991). "Multivariate Adaptive Regression Splines."
+  \emph{The Annals of Statistics}, 19(1), 1-67, \doi{10.1214/aos/1176347963}, for
+  the nonlinear benchmark function used when \code{cond_exp_func_model =
+  "nonlinear"}.
 }

@@ -14,26 +14,48 @@ fast_negbin_regression_with_var(X, y, j = 2, optimization_alg = "lbfgs")
 
 \item{j}{The index of the coefficient to compute the variance for. Defaults to 2.}
 
-\item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.}
+\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.}
 }
 \value{
 A list containing the following components:
 \describe{
-\item{b}{A numeric vector of the estimated negative binomial regression coefficients.}
-\item{ssq_b_j}{The squared standard error (variance) of the j-th estimated coefficient.}
-\item{ssq_b_2}{The squared standard error (variance) of the second estimated coefficient,
-  which typically corresponds to the treatment effect.}
+\item{b}{A numeric vector of the estimated negative binomial regression
+  coefficients \eqn{\hat\beta}, from whichever (possibly covariate-reduced)
+  fit in the retry sequence ultimately succeeded.}
+\item{ssq_b_j}{The variance of the j-th estimated coefficient, computed by
+  inverting the C++ backend's returned Hessian/Fisher-information matrix
+  directly (via \code{\link[base]{solve}}, not the backend's own
+  \code{vcov}); \code{NA} if that inversion fails or \code{j} exceeds the
+  number of columns remaining after covariate-dropping.}
+\item{ssq_b_2}{The variance of the second estimated coefficient
+  specifically (typically the treatment effect), computed the same way,
+  regardless of what \code{j} is.}
 }
 }
 \description{
 This function provides a fast implementation of negative binomial regression, wrapping
-a C++ backend. It is designed to efficiently estimate regression coefficients for count
-data and computes the variance of the second coefficient (assumed to be the treatment
-effect),
-assuming all observations are "not censored" (i.e., `dead = 1`).
+a C++ backend (\code{\link{fast_neg_bin_with_var_cpp}}; see that page, and
+\code{\link{fast_dnbinom_mu_vec_cpp}}, for the full mean/dispersion
+negative-binomial model). Columns 1 and 2 of \code{X} (conventionally the
+intercept and treatment indicator) are always kept; this wrapper adds
+automatic, silent handling of \strong{rank-deficient or numerically
+unstable covariate sets} beyond those first two columns: (1) upfront, any
+covariate columns (3 onward) found rank-deficient by \code{\link[base]{qr}}
+are dropped before the first fit attempt; (2) if the C++ fit still fails
+(e.g. an L-BFGS line-search failure), covariates are dropped one at a time,
+in reverse QR-pivot order (most redundant first), retrying after each drop,
+until the fit succeeds or only the intercept and treatment columns remain —
+at which point, if it still fails, this function \code{stop()}s with an
+explicit error rather than returning a corrupted fit.
 }
 \examples{
 X = matrix(rnorm(100), 10, 10)
 y = rpois(10, 2)
 fast_negbin_regression_with_var(X, y)
+}
+\seealso{
+\code{\link{fast_neg_bin_with_var_cpp}} for the underlying
+  backend (no automatic rank-deficiency retry) and full model
+  documentation; \code{\link{fast_negbin_regression}} for the
+  estimate-only, similarly retry-hardened wrapper.
 }

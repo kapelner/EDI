@@ -2,21 +2,34 @@
 % Please edit documentation in R/RcppExports.R
 \name{get_stereotype_logit_hessian_cpp}
 \alias{get_stereotype_logit_hessian_cpp}
-\title{Compute Stereotype Logit Hessian}
+\title{Stereotype Logit Regression Hessian, Standalone (C++)}
 \usage{
 get_stereotype_logit_hessian_cpp(X, y, params)
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors (no intercept column needed; see
+\code{\link{fast_stereotype_logit_cpp}}).}
 
-\item{y}{A numeric vector of responses.}
+\item{y}{A numeric vector of categorical (nominal or ordinal) responses; only
+the set of distinct values matters, not their numeric coding or order.}
 
-\item{params}{A numeric vector of parameters.}
+\item{params}{A numeric vector of the full joint parameter vector \eqn{[\alpha,
+\beta, \gamma]}, at which to evaluate the Hessian.}
 }
 \value{
-A numeric matrix representing the Hessian.
+The Hessian matrix of the log-likelihood at \code{params}.
 }
 \description{
-Calculates the Hessian matrix (second derivatives of the log-likelihood) for a stereotype logit model.
+Computes the (analytic) Hessian matrix of the log-likelihood of the
+stereotype (reduced-rank multinomial) logistic regression model documented
+in full at \code{\link{fast_stereotype_logit_cpp}}, at arbitrary
+caller-supplied \code{params} (not necessarily the MLE). Exported standalone
+— independent of any optimizer run — for direct numerical diagnostics at a
+specific parameter value.
+}
+\seealso{
+\code{\link{get_stereotype_logit_score_cpp}} for the corresponding
+  gradient at the same point; \code{\link{fast_stereotype_logit_cpp}} for the
+  full model documentation.
 }
 \keyword{internal}

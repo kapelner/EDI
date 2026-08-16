@@ -2,7 +2,7 @@
 % Please edit documentation in R/other_helpers.R
 \name{summary_glm_lean}
 \alias{summary_glm_lean}
-\title{Lean GLM Summary}
+\title{Lean GLM Summary (Skips Deviance Residual Quantiles)}
 \usage{
 summary_glm_lean(
   object,
@@ -13,23 +13,51 @@ summary_glm_lean(
 )
 }
 \arguments{
-\item{object}{The GLM object}
+\item{object}{A fitted \code{\link[stats]{glm}} object.}
 
-\item{dispersion}{See GLM documentation}
+\item{dispersion}{The dispersion parameter for the fitting family; if \code{NULL}
+(default), estimated as in \code{\link[stats]{summary.glm}} (fixed at 1 for
+\code{poisson}/\code{binomial}, else the Pearson-residual-based moment estimate).}
 
-\item{correlation}{See GLM documentation}
+\item{correlation}{Logical; if \code{TRUE}, the estimated correlation matrix of the
+coefficients is returned and printed. Default \code{FALSE}.}
 
-\item{symbolic.cor}{See GLM documentation}
+\item{symbolic.cor}{Logical; if \code{TRUE} and \code{correlation = TRUE}, the correlation
+matrix is printed in symbolic form (see \code{\link[stats]{symnum}}) rather than as
+numbers. Default \code{FALSE}.}
 
-\item{...}{Other parameters (currently unused)}
+\item{...}{Currently unused; present only for signature compatibility with
+\code{\link[stats]{summary.glm}}.}
 }
 \value{
-The summary of the GLM
+An object of class \code{c("summary.glm")} with the same components as
+  \code{\link[stats]{summary.glm}}'s return value \strong{except} \code{deviance.resid},
+  which is not computed and is absent from the result.
 }
 \description{
-Same as summary.glm except it doesn't calculate the residuals as this takes a long time
+A drop-in replacement for \code{\link[stats]{summary.glm}} that produces the
+identical coefficient table, dispersion estimate, and (optionally)
+correlation matrix, but \strong{omits the five-number summary of the
+deviance residuals} (\code{summary(object$deviance.resid)}) that
+\code{summary.glm()} always computes and stores in its \code{deviance.resid}
+component. That residual summary is cheap for a single fit but adds up when
+summarizing thousands of GLM fits in a resampling loop (e.g. bootstrap or
+randomization replicates elsewhere in this package), so this function skips
+it entirely; the returned object's \code{deviance.resid} component is simply
+absent rather than populated, which will matter to code that calls
+\code{print.summary.glm()} on the result or otherwise inspects that field.
+Every other computation — dispersion estimation (Pearson \eqn{X^2/\mathrm{df}}
+for Gaussian/Gamma/inverse-Gaussian families, fixed at 1 for
+Poisson/binomial, unless \code{dispersion} is supplied explicitly), the
+coefficient table (Wald \code{z} tests when dispersion is fixed/known,
+\code{t} tests with \code{df.residual} degrees of freedom when dispersion is
+estimated), and the optional \code{correlation}/\code{symbolic.cor} outputs,
+is identical to \code{\link[stats]{summary.glm}}.
 }
 \examples{
 fit = glm(rbinom(10, 1, 0.5) ~ rnorm(10), family = binomial)
 summary_glm_lean(fit)
+}
+\seealso{
+\code{\link[stats]{summary.glm}}, of which this is a residual-summary-skipping variant.
 }

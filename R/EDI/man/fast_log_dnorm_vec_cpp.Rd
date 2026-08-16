@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_log_dnorm_vec_cpp}
 \alias{fast_log_dnorm_vec_cpp}
-\title{Fast Log Standard Normal PDF (C++)}
+\title{Fast Log Standard Normal Density, Vectorized (C++ Backend)}
 \usage{
 fast_log_dnorm_vec_cpp(x)
 }
@@ -10,9 +10,32 @@ fast_log_dnorm_vec_cpp(x)
 \item{x}{Numeric vector of arguments.}
 }
 \value{
-A numeric vector of log density values.
+A numeric vector of \eqn{\log \phi(x)} values, the same length as
+  \code{x}.
 }
 \description{
-Vectorized \code{log(phi(x))} in closed form. Faster than base R's \code{stats::dnorm(x, log = TRUE)}.
+Computes \eqn{\log \phi(x) = -\tfrac{1}{2}\log(2\pi) - x^2/2}, the log-density
+of the standard normal distribution, elementwise over \code{x}, via a
+direct closed-form evaluation — no series expansion or special-function
+dispatch is needed since the standard normal log-density has an exact
+elementary closed form. Faster than base R's
+\code{\link[stats]{dnorm}(x, log = TRUE)} — measured at 5x on a
+length-5000 vector (see the
+\href{https://github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_R.html}{"Utility
+/ Math Kernel Performance" benchmark report}) — while returning
+numerically identical values. Used internally inside the package's probit
+regression and other Gaussian-likelihood kernels wherever a standard normal
+log-density is required.
+}
+\references{
+\href{https://en.wikipedia.org/wiki/Normal_distribution}{Normal
+  distribution} for orientation. Analogous Python API:
+  \href{https://docs.scipy.org/doc/scipy/reference/stats.html}{SciPy stats
+  distributions index} (\code{scipy.stats.norm.logpdf}).
+}
+\seealso{
+\code{\link{fast_log_pnorm_vec_cpp}} for the corresponding log-CDF
+  kernel; \code{\link{fast_qnorm_vec_cpp}} for the standard normal quantile
+  function.
 }
 \keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_ordinal_probit_regression_with_var_cpp}
 \alias{fast_ordinal_probit_regression_with_var_cpp}
-\title{Fast Ordinal Probit Regression with Variance (C++)}
+\title{Fast Cumulative Ordinal Regression with a Probit Link, with Variance (C++)}
 \usage{
 fast_ordinal_probit_regression_with_var_cpp(
   X,
@@ -16,26 +16,63 @@ fast_ordinal_probit_regression_with_var_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors (no intercept column needed; see
+\code{\link{fast_ordinal_probit_regression_cpp}}).}
 
-\item{y}{A numeric vector of responses.}
+\item{y}{A numeric vector of ordinal responses; only the rank order of distinct
+values matters, not their numeric coding.}
 
-\item{warm_start_params}{Optional starting values for [alpha, beta]. If provided, \code{smart_cold_start} is ignored.}
+\item{warm_start_params}{Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.}
 
-\item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
+\item{smart_cold_start}{Logical. If \code{TRUE}, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm (default \code{"lbfgs"}).}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional 1-indexed positions (into \eqn{[\alpha,\beta]}) of parameters to hold fixed.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values, parallel to \code{fixed_idx}, of the fixed parameters.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+\item{warm_start_fisher_info}{Optional initial curvature (Fisher/observed information) matrix.}
 }
 \value{
-A list containing coefficients, thresholds, vcov, and convergence status.
+A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
+  \code{neg_loglik}, \code{converged}, \code{iterations},
+  \code{observed_information}/\code{fisher_information}/\code{information} (all the same
+  observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
+  and \code{ssq_b_2} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
+  — conventionally the treatment effect; \code{NA} if it comes out non-finite or
+  non-positive). \code{vcov} is omitted (and \code{ssq_b_2} is \code{NA}) if the fit did
+  not converge; \code{list(b = NA, ssq_b_2 = NA)} if \code{y} has fewer than 2 distinct levels.
 }
 \description{
-Ordinal probit regression fitting with full variance-covariance matrix.
+As \code{\link{fast_ordinal_probit_regression_cpp}} (see that page for the full
+cumulative probit-link model, \eqn{\Pr(Y_i \le k \mid x_i) = \Phi(\alpha_k -
+x_i^\top\beta)}), but always fits with \code{estimate_only = FALSE} (equivalent
+to calling that function with its default), so the observed information matrix
+and variance-covariance matrix are always computed. It additionally guards the
+degenerate case: if \code{y} has fewer than 2 distinct levels (so the underlying
+fit is empty), this function returns \code{list(b = NA, ssq_b_2 = NA)} instead of
+an empty list.
+}
+\section{Fixed parameters, warm starts, and optimization}{
+
+\code{fixed_idx} (1-indexed into the combined \eqn{[\alpha, \beta]} parameter
+vector, thresholds first) and \code{fixed_values} optionally hold a subset of
+parameters at caller-supplied constant values rather than estimating them.
+\code{warm_start_params} supplies starting values for \eqn{[\alpha, \beta]}
+directly (skipping \code{smart_cold_start}); otherwise, when
+\code{smart_cold_start = TRUE} (the default), starting values come from an
+OLS-based heuristic, and when \code{FALSE}, thresholds start at
+\eqn{\Phi^{-1}(k/K)} (inverse-normal spacing of the empirical marginal category
+proportions) with \eqn{\beta} at zero. Optimization runs via
+\code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
+iterations or until the parameter/gradient change falls below \code{tol};
+\code{warm_start_fisher_info}, if supplied, seeds the first iteration's
+curvature estimate.
+}
+
+\seealso{
+\code{\link{fast_ordinal_probit_regression_cpp}} for the estimate-only-capable
+  variant and the full model documentation.
 }
 \keyword{internal}

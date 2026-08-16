@@ -6,9 +6,96 @@ number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
 "Versioning" checklist item) — a `.postN` suffix is used for
 Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
-## [1.0.0.post3] - 2026-08-12
+## [1.0.0.post3] - 2026-08-16
 
-Packaging/CI-only release — none of this touches `R/EDI/src/*.cpp`.
+Note this one is not packaging-only despite the `.postN` suffix — in
+addition to the CI/packaging and documentation fixes below, it touches
+`R/EDI/src/fast_weibull_regression.cpp` directly (`R/EDI/DESCRIPTION`'s
+`Version` remains `1.0.0`, unbumped). Prepared in anticipation of release;
+still gated behind the same project note throughout this file: the R
+side's broader `y`/`y_L`/`y_R` interval-censoring survival rework is a
+still-evolving, multi-class effort (only Weibull AFT has a migrated fast
+C++ kernel so far; `fast_coxph_regression.cpp`, `fast_weibull_frailty.cpp`,
+and the KK-combined Clayton-copula/dep-censoring kernels are all still
+`(y, dead)`-only, unchanged, confirmed directly) — hold off shipping until
+that settles, rather than publish a version whose interval-censoring
+support is Weibull-only with no indication of what else is still to come.
+
+### Changed (breaking)
+
+- `fast_weibull_regression(X, y, dead, ...)` is gone. In its place:
+  `fast_weibull_regression_general(X, y, y_L, y_R, ...)`, which fits exact
+  (`y` finite, `y_L`/`y_R` `NaN`), left-censored (`y_L = 0`),
+  right-censored (`y_R = inf`), and interval-censored (`y_L`/`y_R` both
+  finite) responses through one kernel — right-censored data (the only
+  case the old kernel handled) is the `y_L = y, y_R = inf` special case of
+  the same likelihood, verified byte-identical to the old kernel's output
+  before this switch (see `R/package_metadata/audits/
+  fast_weibull_regression_cpp_deprecation.md`: `0` difference in
+  coefficients/vcov/neg-loglik at `n=200/1000/5000`, no measurable
+  performance regression at `n>=1000`). This follows
+  `interval_censored_survival_response.md`'s TODO-18 through TODO-21: the
+  R side gave the general kernel a portable `EDI_CORE_ONLY`-safe core
+  (TODO-19), migrated every remaining R call site off the old kernel —
+  the KK-combined Clayton-copula/frailty/marginal classes,
+  `InferenceSurvivalWeibullRegr`'s own exact/right-censored fast path,
+  benchmarks, and tests (TODO-20) — and only then was the legacy kernel
+  and its score/Hessian siblings actually deleted, together with this new
+  Python binding (TODO-21).
+- Verified end-to-end, not just at the signature level: R's full relevant
+  test suite (`test-weibull-*.R`, `test-brt-smoothed-weibull-kernel.R`,
+  `test-rcpp-fitting-equivalence.R`, `test-rcpp-fitting-real-data.R`) — 8
+  of 9 files pass outright; the 9th
+  (`test-brt-weibull-kernel-matches-reference.R`) has the same 4 pre-
+  existing failures TODO-3 already documented as unrelated to this
+  migration (`compute_fast_rand_bootstrap_distr` vs. its own generic
+  fallback on an unrelated KK-matched-design path). All 181 Python tests
+  pass, including a new `test_fast_weibull_regression_general.py`
+  (R-fixture parity + omitted-argument coverage). `README.md`'s and
+  `README_PYPI.md`'s Survival examples both call the new function with
+  real `y_L`/`y_R` arrays and were re-run against the freshly built
+  package, not just read.
+- `compute_weibull_rand_bootstrap_parallel_cpp` deliberately still takes
+  `(y0, dead)`, not `y_L`/`y_R` — its bootstrap replicates are
+  right-censored/exact by construction (the open decision point TODO-20
+  flagged), so it does its own local exact/right-censored-bounds
+  conversion inline rather than needing general interval-censoring
+  support. Not bound in Python (out of scope, R-internal bootstrap
+  helper).
+- Minor, unrelated staleness noticed while verifying: `src/edi_kernels/
+  _core.pyi`'s docstrings (not signatures — those match exactly) lag
+  behind the current `bindings_*.cpp` docstring text for several
+  functions, `fast_weibull_regression_general`/`fast_weibull_frailty`
+  included, confirmed via a fresh `pybind11-stubgen` regeneration. Cosmetic
+  only (signatures/types are correct), but a stub regeneration is owed
+  before the next release regardless of this migration.
+
+### Internal (no behavior change, build performance only)
+
+- `R/EDI/src`'s unity-build collision audit and fix pass are complete (see
+  `R/package_metadata/new_feature_plans/unity_build_collision_audit.md`
+  and `release_v1_0_0.md`'s TODO-6) — a handful of duplicated file-scope
+  helpers (`bounded_rand`, `DigammaFunctor`, `all_finite_mat`/`_vec`, etc.)
+  across ~22 files were hoisted into shared headers or renamed apart, and
+  one pre-existing ODR violation (`DigammaFunctor` defined at file scope
+  in two files) was fixed regardless of unity. The full 105-file mega
+  translation unit now compiles with zero errors. **None of this changes
+  any kernel's numerical behavior or Python-visible API** — it only
+  removes obstacles to merging `.cpp` files into fewer translation units
+  for faster compiles.
+- **Not yet wired up on either side** — this audit only proves unity
+  builds are *possible*; nothing actually builds unified yet. Remaining,
+  not done: (R side) the `configure`-emitted `Makevars` `OBJECTS` switch
+  and `EDI_UNITY=0` dev escape hatch; (Python side) flipping CMake's
+  native `UNITY_BUILD ON`/`UNITY_BUILD_BATCH_SIZE` in
+  `python/CMakeLists.txt` — explicitly sequenced in
+  `unity_build_collision_audit.md` as its own commit *after* wheel CI has
+  cycled green on the post-audit per-file build, so unity-specific
+  breakage stays distinguishable from audit-introduced breakage. Noted
+  here in anticipation of that wiring landing: expect a wheel-build CI
+  time reduction (source estimates ~6-7x on the R side, `~67 CPU-min` ->
+  `~8-12 CPU-min`) with no change to `edi_kernels`' public API, install
+  behavior, or numerical output — a CI-minutes win, not a user-facing one.
 
 ### Changed
 
@@ -29,6 +116,33 @@ Packaging/CI-only release — none of this touches `R/EDI/src/*.cpp`.
   setting `HOMEBREW_NO_REQUIRE_TAP_TRUST=1`, which Homebrew's own message
   says is unsupported and slated for removal) is harmless since nothing
   here uses `aws/tap`.
+
+### Documentation
+
+- Since the initial `1.0.0` release, package documentation has been vastly
+  expanded and clarified, not just incrementally patched (`git diff
+  py-v1.0.0 HEAD` across the doc-bearing files: +4,256/-84 lines net).
+  Concretely: every one of the 8 `python/cpp/bindings_*.cpp` files gained
+  full NumPy-style docstrings (`Parameters` sections) for every bound
+  function, sourced from the R package's own Roxygen docs where a direct
+  match exists and from the C++ implementation directly where it doesn't;
+  a brand-new 1,616-line `src/edi_kernels/_core.pyi` type stub (plus a
+  `py.typed` PEP 561 marker) was generated from that newly-documented
+  module so types and docstrings can't drift apart; a brand-new, from-
+  scratch `README_PYPI.md` (627 lines) replaced relying on `README.md`'s
+  GitHub-relative links, with a runnable usage example and a benchmarked
+  comparison-table entry for every one of the 63 public functions,
+  verified end-to-end against the real installed package rather than
+  assumed; and `README.md` itself grew by roughly 500 lines over the same
+  span. `help(edi_kernels.<function>)` now works standalone, without an
+  external doc site, for the first time.
+- `python_bindings_package_spec.md` moved from `R/package_metadata/
+  new_feature_plans/` to `R/package_metadata/finished_features/` now that
+  all 14 of its TODOs are implemented and `1.0.0.post2` has shipped to
+  PyPI. Fixed the 4 stale links this broke -- `python/README_PYPI.md`,
+  `python/README.md`, this file's own versioning-policy pointer above, and
+  a code comment in `.github/workflows/build-wheels.yml` -- all of which
+  still pointed at the old `new_feature_plans/` path.
 
 ## [1.0.0.post2] - 2026-08-12
 

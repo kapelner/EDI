@@ -1,11 +1,13 @@
 #ifdef EDI_CORE_ONLY
 #include "_helper_functions_core.h"
-#include <limits>
-constexpr double NA_REAL = std::numeric_limits<double>::quiet_NaN();
+#include "result_map.h"
+#include "na_real_core.h"
 #else
 #include "_helper_functions.h"
+#include "result_map_rcpp.h"
 #include <RcppEigen.h>
 #endif
+#include "survival_rank_record.h"
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -16,19 +18,11 @@ using namespace Rcpp;
 
 namespace {
 
-struct SubjectRecord {
-  double time;
-  int dead;
-  int w;
-};
-
-inline bool record_less(const SubjectRecord& a, const SubjectRecord& b) {
-  if (a.time < b.time) return true;
-  if (a.time > b.time) return false;
-  if (a.dead > b.dead) return true;
-  if (a.dead < b.dead) return false;
-  return a.w < b.w;
-}
+// SubjectRecord/record_less are now the canonical edi_survival:: versions
+// (survival_rank_record.h, included above) -- see that header's comment for
+// why (byte-identical copy previously duplicated in fast_logrank.cpp).
+using edi_survival::SubjectRecord;
+using edi_survival::record_less;
 
 // Peto-Prentice (Gehan-Wilcoxon, rho=1) generalization of fast_logrank_internal:
 // each risk-set time point is weighted by S_hat(t^-), the pooled Kaplan-Meier
@@ -152,7 +146,7 @@ ModelResult fast_gehan_wilcox_result(const Eigen::Ref<const Eigen::VectorXd>& ti
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-SEXP fast_gehan_wilcox_stats_cpp(const IntegerVector& w,
+List fast_gehan_wilcox_stats_cpp(const IntegerVector& w,
                             const NumericVector& y_r,
                             const IntegerVector& dead) {
   Eigen::Map<const Eigen::VectorXd> y(y_r.begin(), y_r.size());
@@ -164,13 +158,12 @@ SEXP fast_gehan_wilcox_stats_cpp(const IntegerVector& w,
   int n_treat = 0;
   for(int val : w_std) if (val == 1) n_treat++;
 
-  return wrap(List::create(
-    _["score"] = res.dispersion,
-    _["var_score"] = (res.sigma2_hat > 0.0) ? res.sigma2_hat : NA_REAL,
-    _["beta_hat"] = res.b[0],
-    _["se_beta_hat"] = res.ssq_b_2,
-    _["n_treat"] = n_treat,
-    _["n_control"] = n - n_treat
-  ));
+  return edi::to_rcpp_list(edi::ResultMap()
+    .set("score", res.dispersion)
+    .set("var_score", (res.sigma2_hat > 0.0) ? res.sigma2_hat : NA_REAL)
+    .set("beta_hat", res.b[0])
+    .set("se_beta_hat", res.ssq_b_2)
+    .set("n_treat", n_treat)
+    .set("n_control", n - n_treat));
 }
 #endif // EDI_CORE_ONLY

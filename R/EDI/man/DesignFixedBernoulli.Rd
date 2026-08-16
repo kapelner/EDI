@@ -2,14 +2,49 @@
 % Please edit documentation in R/design_fixed_bernoulli.R
 \name{DesignFixedBernoulli}
 \alias{DesignFixedBernoulli}
-\title{A completely randomized / Bernoulli Fixed Design}
+\title{A Fixed-Sample-Size Bernoulli (Independent-Coin-Flip) Randomized Design}
 \description{
-An R6 Class encapsulating the data and functionality for a fixed Bernoulli experimental design.
+A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} in which each subject's
+treatment assignment \eqn{w_i} is drawn independently as
+\eqn{w_i \stackrel{iid}{\sim} \mathrm{Bernoulli}(p)}, \eqn{i = 1, \dots, n}, where
+\eqn{p} is \code{prob_T}. This is the classical Bernoulli (independent-coin-flip)
+randomized design: unlike
+\code{\link[EDI:DesignFixediBCRD]{DesignFixediBCRD}} (complete randomization), which
+fixes the number of treated subjects at exactly \eqn{\mathrm{round}(np)}, a Bernoulli
+design leaves the realized number of treated subjects
+\eqn{n_T = \sum_i w_i \sim \mathrm{Binomial}(n, p)} random; the trade-off is
+independence across subjects (useful for some asymptotic/martingale arguments) at the
+cost of not guaranteeing exact balance, which can matter for small \eqn{n} or for
+inference procedures (e.g. exact permutation tests over a fixed number of treated) that
+assume a fixed \eqn{n_T}.
+
+
+\strong{Draw mechanism.} \code{draw_ws_raw(r)} delegates to
+\code{generate_permutations_bernoulli_cpp()}, which fills an \eqn{n \times r} matrix of
+independent \eqn{\mathrm{Bernoulli}(p)} draws (one column per requested replicate,
+via a Mersenne Twister RNG seeded once per call from R's RNG state), so
+\code{r} replicate allocation vectors are generated with a single C++ call rather than
+\code{r} separate calls into R's own random-number generation.
+\code{assign_w_to_all_subjects()} draws a single such allocation
+(\code{r = 1}) and applies it to all subjects at once.
+
+\strong{No exchange/balance search.} Because subjects are treated independently, there
+is no optimization step analogous to
+\code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}: covariates, if supplied, do
+not influence the assignment probabilities or realized allocation at all.
 }
 \examples{
 des = DesignFixedBernoulli$new(n = 10, response_type = 'continuous')
 des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10)))
 des$assign_w_to_all_subjects()
+}
+\references{
+Neyman, J. (1923, transl. 1990). "On the Application of Probability
+  Theory to Agricultural Experiments." \emph{Statistical Science}, 5(4), 465-472, for
+  the potential-outcomes framework under which Bernoulli and complete randomization are
+  compared; see also
+  \href{https://en.wikipedia.org/wiki/Randomized_experiment}{randomized experiment} for
+  orientation on Bernoulli vs. complete (restricted) randomization.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixedBernoulli}
@@ -27,9 +62,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subject_responses'><code>DesignFixed$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subjects_to_experiment'><code>DesignFixed$add_all_subjects_to_experiment()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-assign_w_to_all_subjects'><code>DesignFixed$assign_w_to_all_subjects()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-is_a_fixed'><code>DesignFixed$is_a_fixed()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-supports_resampling'><code>DesignFixed$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -61,6 +94,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -83,13 +117,15 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_seq_one_by_one'><code>Design$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -97,11 +133,16 @@ des$assign_w_to_all_subjects()
 \if{html}{\out{<a id="method-DesignFixedBernoulli-is_a_bernoulli_capable"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedBernoulli-is_a_bernoulli_capable}{}}}
 \subsection{\code{DesignFixedBernoulli$is_a_bernoulli_capable()}}{
-  Characterization: this is a Bernoulli-randomized design.
+  Characterization: this design draws each subject's treatment
+  assignment as an independent \eqn{\mathrm{Bernoulli}(p)} coin flip (see class
+  documentation), so it is Bernoulli-capable by construction.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedBernoulli$is_a_bernoulli_capable()}
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Always \code{TRUE} for this class.
   }
 }
 
@@ -109,7 +150,11 @@ des$assign_w_to_all_subjects()
 \if{html}{\out{<a id="method-DesignFixedBernoulli-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedBernoulli-initialize}{}}}
 \subsection{\code{DesignFixedBernoulli$new()}}{
-  Initialize a fixed Bernoulli experimental design
+  Initialize a fixed Bernoulli (independent-coin-flip) experimental
+  design. Unlike \code{\link[EDI:DesignFixediBCRD]{DesignFixediBCRD}}, the
+  realized number of treated subjects is not fixed at \code{n * prob_T}; it is
+  random (\eqn{\mathrm{Binomial}(n, prob\_T)}) because each subject's assignment
+  is an independent coin flip (see class documentation).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedBernoulli$new(
@@ -129,7 +174,9 @@ des$assign_w_to_all_subjects()
     \describe{
       \item{\code{response_type}}{"continuous", "incidence", "proportion", "count", "survival", or
 "ordinal".}
-      \item{\code{prob_T}}{Probability of treatment assignment.}
+      \item{\code{prob_T}}{Per-subject probability \eqn{p} that a given subject is
+assigned to treatment; need not be \code{0.5} (unlike
+\code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}).}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{verbose}}{A flag for verbosity.}

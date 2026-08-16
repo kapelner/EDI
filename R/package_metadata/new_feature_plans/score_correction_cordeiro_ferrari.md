@@ -1,18 +1,24 @@
 # TODO: Cordeiro & Ferrari Modified Score Test
 
+> **Depends on:** `fix_inference_hierarchy.md` components (`LikelihoodTests`, `ParametricLikelihoodBootstrap` — already available); Bartlett precedent (shipped). Builds the shared `apply_bartlett_type_polynomial_correction()` helper that `gradient_correction_lemonte.md` reuses — implement before (or with) it. (Global ordering: see `_master.md`.)
+
 ## Scope
 
 This is an implementation plan for adding Cordeiro & Ferrari's (1991, *Biometrika*)
 modified score test — the score-test analog of the Bartlett-corrected likelihood-ratio
 test already implemented for `lik_ratio_bartlett_approx`/`lik_ratio_bartlett_exact` — to
-the package's likelihood-backed inference paths (`InferenceAsympLik` and its
-descendants), plus a confidence interval obtained by inverting the corrected test.
+the package's likelihood-backed inference paths (classes with `likelihood_tier`
+`"full"`/`"partial"` composing the `LikelihoodTests` component — formerly
+`InferenceAsympLik` and its descendants, a base deleted by
+`fix_inference_hierarchy.md`'s shallow-hierarchy migration), plus a confidence
+interval obtained by inverting the corrected test.
 
 It mirrors the existing Bartlett work in `package_metadata/likrat_correction_bartlett.md`
 and reuses as much of its plumbing as possible. Read that report first; this document
-assumes familiarity with the `approx`/`exact` split, the `InferenceParamBootstrap`
-`simulate_under_lik_null()` machinery, and the generic `invert_test_pval_confidence_interval()`
-root-finder.
+assumes familiarity with the `approx`/`exact` split, the
+`ParametricLikelihoodBootstrap` component's `simulate_under_lik_null()`
+machinery (formerly `InferenceParamBootstrap`), and the generic
+`invert_test_pval_confidence_interval()` root-finder.
 
 ## Background (short version)
 
@@ -48,7 +54,10 @@ have nothing to do with formula-transcription risk.
 
 - Testing types: `"score_modified_approx"`, `"score_modified_exact"` (aliases:
   `score_modified`, `modified_score`, etc. — finalize during Phase 1)
-- Public methods on `InferenceAsympLik`:
+- Public methods, provided through the `LikelihoodTests` component and listed
+  in `public_methods_for_capability` (updated 2026-08-13: the shallow hierarchy
+  has no `InferenceAsympLik`; a public optional method exists iff the matching
+  capability exists):
   - `compute_score_modified_approx_two_sided_pval(delta = 0, B = 99)`
   - `compute_score_modified_approx_confidence_interval(alpha = 0.05, B = 99)`
   - `compute_score_modified_exact_two_sided_pval(delta = 0)`
@@ -57,8 +66,11 @@ have nothing to do with formula-transcription risk.
     — "best available" smart wrapper (exact wins over approx, errors if neither),
     exactly like `compute_lik_ratio_bartlett_two_sided_pval()`. Same `B`-ignored-warning
     behavior when `B` is explicitly supplied but the exact path is used.
-- Private hooks:
-  - `supports_score_modified_ratio_approx()` / `supports_score_modified_ratio_exact()`
+- Capabilities and private hooks (updated 2026-08-13: no `supports_*` hook
+  methods — `fix_inference_hierarchy.md` bans duplicated `supports_*` hooks;
+  instead register `score_modified_approx` / `score_modified_exact` capabilities
+  in `capability_requires`, gated on `likelihood_tier` `"partial"`/`"full"` plus
+  the private hooks below, and query them via `obj$supports(...)`):
   - `get_score_modified_correction_approx(spec, delta, full_fit, null_fit, B = 99)`
   - `get_score_modified_correction_exact(spec, delta, full_fit, null_fit)`
   - Open question (Phase 1): should these hooks return the corrected **statistic**
@@ -74,7 +86,7 @@ have nothing to do with formula-transcription risk.
       settled `lik_ratio_bartlett_approx`/`_exact`)
 - [ ] Decide hook return shape: `(a, b, c)` triple vs. corrected statistic directly
 
-### Phase 1: Shared base-class plumbing (`InferenceAsympLik`)
+### Phase 1: Shared plumbing (`LikelihoodTests` component)
 - [ ] Add the two new testing types to `normalize_testing_type`, `set_testing_type` docs,
       `compute_asymp_two_sided_pval`/`compute_asymp_confidence_interval` switches,
       `get_supported_testing_types_with_bartlett()` → generalize/rename to also cover
@@ -89,9 +101,12 @@ have nothing to do with formula-transcription risk.
       `(a,b,c)` from the appropriate hook, then `pchisq(S*, df=1, lower.tail=FALSE)`
 - [ ] Thread `B` through exactly like Bartlett (`bartlett_B` param pattern →
       `score_modified_B` or similar; **watch for the same shadowing bug** found during
-      Bartlett work — `InferenceAsympLikStdModCache` and `InferenceContinKKOLSOneLik`
-      both override `compute_likelihood_test_two_sided_pval()` directly and will need the
-      same parameter threaded through again)
+      Bartlett work — the `StandardModelCache` component (formerly
+      `InferenceAsympLikStdModCache`) and `InferenceContinKKOLSOneLik` both
+      override `compute_likelihood_test_two_sided_pval()` directly and will need
+      the same parameter threaded through again; post-migration such collisions
+      must be declared in `define_inference_class()`'s `overrides`, so the
+      factory flags the spot at class-definition time)
 - [ ] CI: extend `invert_test_pval_confidence_interval()`'s eligible-testing-types set,
       same as Bartlett — no new root-finding logic needed, it's fully generic already
 - [ ] Base-class default hooks return `FALSE`/`NULL` (unimplemented), matching Bartlett's
@@ -101,7 +116,8 @@ have nothing to do with formula-transcription risk.
       from the Bartlett smart wrapper
 
 ### Phase 2: Approx (Monte-Carlo) path — cheaper than Bartlett's approx
-- [ ] Implement `get_score_modified_correction_approx()` in `InferenceParamBootstrap`
+- [ ] Implement `get_score_modified_correction_approx()` in the
+      `ParametricLikelihoodBootstrap` component
       as a **bootstrap-calibrated score test**, not a literal Cordeiro-Ferrari polynomial
       fit: simulate `B` datasets under H0 at `delta` (reuse `simulate_under_lik_null()`),
       compute the **null-refit-only** score statistic `S_b` for each replicate (reuse
@@ -116,9 +132,11 @@ have nothing to do with formula-transcription risk.
       reuse `compute_param_bootstrap_lr_impl()` as-is (it always computes both fits) —
       write a leaner `compute_param_bootstrap_score_impl()` that skips the unrestricted
       refit entirely
-- [ ] `supports_score_modified_ratio_approx()` delegates to
-      `supports_lik_ratio_param_bootstrap()` by default, same auto-opt-in-for-everyone
-      pattern as Bartlett-approx, with the same carve-out mechanism for families whose
+- [ ] The `score_modified_approx` capability defaults on for every class with
+      the `parametric_likelihood_bootstrap` capability (a metadata-level default
+      in `capability_requires`, replacing the old
+      `supports_lik_ratio_param_bootstrap()` delegation), same
+      auto-opt-in-for-everyone pattern as Bartlett-approx, with the same carve-out mechanism for families whose
       raw score statistic is independently known to be miscalibrated (check whether the
       Zero-Inflated-Poisson/Hurdle-Poisson carve-out reason — raw LR miscalibration —
       also taints their raw score statistic; if so, carve them out here too)
@@ -149,7 +167,8 @@ have nothing to do with formula-transcription risk.
       *first*, even before logistic, as a warm-up with essentially zero derivation risk
 
 ### Phase 4: Broader rollout decision
-- [ ] Revisit the "opt in all `InferenceParamBootstrap` families to approx" question
+- [ ] Revisit the "opt in all `ParametricLikelihoodBootstrap`-composing families
+      to approx" question
       (same one asked and answered "yes" for Bartlett) — likely yes again, same reasoning
 - [ ] Decide whether exact rollout follows the difficulty table below strictly
       (Easy → Borderline → Difficult, stop and reassess between tiers) per the original

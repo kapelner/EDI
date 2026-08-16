@@ -2,7 +2,116 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{build_stratified_cox_data_cache_cpp}
 \alias{build_stratified_cox_data_cache_cpp}
-\title{Export of C++ function build_stratified_cox_data_cache_cpp}
+\title{Build a Reusable Stratified Cox Data Cache (C++ Backend)}
+\arguments{
+\item{X}{A numeric matrix of predictor variables (no intercept column);
+\eqn{n} rows, one per subject.}
+
+\item{y}{A numeric vector of length \eqn{n} giving the observed
+(event or censoring) time for each subject.}
+
+\item{dead}{A numeric vector of length \eqn{n} with values in \code{{0, 1}}
+indicating event status (1 = event/death, 0 = right-censored).}
+
+\item{strata}{An integer vector of length \eqn{n} giving the stratum
+(block/cluster) label of each subject. Risk sets are formed
+separately within each distinct label.}
+}
+\value{
+An \code{externalptr} to a cached, per-stratum sorted Cox
+  risk-set representation of \code{(X, y, dead, strata)}, for use as the
+  \code{cox_data_xptr} argument of
+  \code{\link{fast_coxph_regression_prebuilt_cpp}}.
+}
 \description{
-Export of C++ function build_stratified_cox_data_cache_cpp
+Precomputes and caches, per stratum, the sorted risk-set structure needed
+to evaluate the stratified Cox partial-likelihood, score, and Hessian, so
+that repeated Newton-Raphson or L-BFGS fits on the same
+\code{(X, y, dead, strata)} data (e.g. across bootstrap/randomization
+replicates of the treatment column) do not repeat the per-stratum sort and
+event-time tabulation on every call. This is the stratified counterpart of
+\code{\link{build_cox_data_cache_cpp}}; the returned cache is consumed by
+\code{\link{fast_coxph_regression_prebuilt_cpp}}, which implements the
+same partial-likelihood family as \code{\link{fast_coxph_regression}} and
+\code{\link{fast_coxph_regression_cpp}}, extended to sum the log-partial-
+likelihood, score, and Hessian across independent strata-specific risk
+sets while sharing a single regression coefficient vector \eqn{\beta}
+across all strata (a shared-\eqn{\beta}, per-stratum-baseline-hazard
+stratified Cox model).
+}
+\details{
+\strong{Model.} No fitting happens here; this function only partitions
+subjects into per-stratum risk sets and prepares each one for the
+Breslow-tied stratified Cox partial likelihood
+\deqn{\ell(\beta) = \sum_{s} \sum_{k \in s} \Big[ \big(\textstyle\sum_{i \in D_{sk}} x_i\big)^\top \beta - d_{sk} \log\!\big(\textstyle\sum_{j \in R_{sk}} e^{x_j^\top \beta}\big) \Big],}
+where the outer sum runs over strata \eqn{s} (distinct baseline hazards),
+\eqn{D_{sk}} is the set of subjects with an event at the \eqn{k}-th unique
+event time within stratum \eqn{s}, and \eqn{R_{sk}} is the corresponding
+within-stratum risk set (subjects in stratum \eqn{s} with \code{y >= }
+that event time). Risk sets never cross strata, so subjects are only ever
+compared to other subjects in the same stratum; \eqn{\beta} is shared
+across strata while the baseline hazard is allowed to differ arbitrarily
+by stratum. See \code{\link{fast_coxph_regression}} for the unstratified
+model, scale, and optimizer contract; this page documents only the
+per-stratum cache construction.
+
+\strong{What is cached.} Subjects are grouped into strata by their
+integer \code{strata} label (via an ordered \code{std::map<int, ...>},
+so strata are processed and stored in ascending label order). Within each
+stratum, a \code{CoxData} record is built exactly as in
+\code{\link{build_cox_data_cache_cpp}}: subjects are sorted by ascending
+\code{y}, ties broken by placing events before censored observations,
+and the per-stratum unique event times and tied-event counts
+(\code{event_counts}) are tabulated to drive the within-stratum Breslow
+tie-handling correction.
+
+\strong{Input conventions.} \code{X} is an \eqn{n \times p} design matrix
+with one row per subject and \strong{no intercept column}. \code{y} is
+the observed time (event or censoring time) and \code{dead} is a 0/1
+event indicator (1 = event, 0 = right-censored); both have length
+\eqn{n} matching \code{nrow(X)}. \code{strata} is a length-\eqn{n}
+integer vector of stratum (block/cluster) labels; labels need not be
+contiguous or start at 1, and a stratum with a single subject or with no
+observed events contributes an empty or degenerate risk set that carries
+no information to the partial likelihood, score, or Hessian (its rows
+are still stored, but they will not affect the fit). Callers are
+expected to have already dropped uninformative strata upstream (see
+\code{get_informative_rows()} in the stratified-Cox inference class) when
+that matters for numerical stability; this function does not filter
+strata itself. As with \code{\link{build_cox_data_cache_cpp}}, tied
+event times use the Breslow approximation, there is no support for left-
+or interval-censored data at this layer, and \code{NA}/non-finite values
+in \code{X}, \code{y}, \code{dead}, or \code{strata} are not checked or
+handled here.
+
+\strong{Return value and object lifetime.} Returns an \code{externalptr}
+(\code{Rcpp::XPtr}) wrapping a heap-allocated
+\code{std::vector<CoxData>} with one element per distinct stratum label
+(ordered ascending by label), consumed by
+\code{fast_coxph_regression_prebuilt_cpp} exactly like the length-1
+vector returned by \code{\link{build_cox_data_cache_cpp}}. Lifetime,
+garbage-collection, and non-serializability semantics are identical to
+\code{\link{build_cox_data_cache_cpp}}: the cache is immutable once
+built and safe to reuse across repeated fits as long as \code{X},
+\code{y}, \code{dead}, and \code{strata} have not changed; callers (e.g.
+\code{InferenceStratifiedCoxPH$private$strat_cox_data_cache}) are
+responsible for invalidating and rebuilding it when the treatment
+assignment, covariates, or stratification changes.
+
+\strong{Complexity.} \eqn{O(n \log(n/S))} for the per-stratum sorts plus
+\eqn{O(n)} for the tabulation passes, where \eqn{n} is the number of
+subjects and \eqn{S} is the number of distinct strata; memory use is
+\eqn{O(np)} for the per-stratum row-major copies of \code{X} plus
+\eqn{O(n)} for the sorted \code{y}/\code{dead} and event-time tables.
+}
+\seealso{
+\code{\link{build_cox_data_cache_cpp}} for the unstratified
+  (single risk-set) analog, \code{\link{fast_coxph_regression_prebuilt_cpp}}
+  for the fitting routine that consumes this cache, and
+  \code{\link{fast_coxph_regression}} for the full Cox model documentation,
+  including the partial-likelihood derivation, tie-handling, and references.
+  Analogous Python API:
+  \href{https://lifelines.readthedocs.io/en/latest/fitters/regression/CoxPHFitter.html}{lifelines CoxPHFitter}
+  (stratified fits via the \code{strata} argument) and
+  \href{https://www.statsmodels.org/dev/duration.html}{statsmodels duration models}.
 }

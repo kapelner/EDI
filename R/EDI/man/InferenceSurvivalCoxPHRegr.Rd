@@ -4,8 +4,27 @@
 \alias{InferenceSurvivalCoxPHRegr}
 \title{Cox Proportional Hazards Regression Inference for Survival Responses}
 \description{
-Fits a Cox proportional hazards regression for survival responses using the
-treatment indicator and, optionally, all recorded covariates as predictors.
+Fits a Cox proportional hazards model, \eqn{\lambda(t \mid x_i) = \lambda_0(t)
+\exp(x_i^\top\beta)}, for survival responses using the treatment indicator
+and, optionally, all recorded covariates as predictors, by maximizing the
+\strong{Breslow-tie-corrected partial likelihood}. For exact/right-censored
+data, fitting uses this package's internal Newton-Raphson C++ solver
+(\code{fast_coxph_regression_prebuilt_cpp}) by default (\code{use_rcpp =
+TRUE}), falling back to \code{survival::coxph.fit()}/\code{survival::coxph()}
+if that fails to converge or \code{use_rcpp = FALSE}. For \strong{left- or
+interval-censored} data (a genuinely different likelihood, with no
+closed-form partial-likelihood score/information), fitting instead dispatches
+to \code{icenReg::ic_sp(model = "ph")}, a semiparametric NPMLE Cox fit whose
+standard errors come from \pkg{icenReg}'s own internal bootstrap (not a
+closed-form covariance) — only Wald inference (\code{testing_type = "wald"})
+is supported on that path; score/gradient/likelihood-ratio/Bartlett testing
+types raise an informative error for such data. This is a partial-likelihood
+class (\code{likelihood_tier = "partial"}) supporting score, gradient, and
+likelihood-ratio tests, plus parametric likelihood-ratio bootstrap
+calibration (both only for the exact/right-censored path), in addition to
+Wald and resampling-based inference. Fitted coefficients exceeding a fixed
+magnitude threshold (20, on the log-hazard-ratio scale) are treated as
+non-estimable (a numerical-divergence guard) rather than returned.
 }
 \examples{
 \donttest{
@@ -18,124 +37,32 @@ inf = InferenceSurvivalCoxPHRegr$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}} -> \code{InferenceAsympLikStdModCache} -> \code{InferenceSurvivalCoxPHRegr}
+\references{
+Cox, D. R. (1972). "Regression Models and Life-Tables."
+  \emph{Journal of the Royal Statistical Society, Series B}, 34(2), 187-220,
+  for the proportional hazards model and partial likelihood; Breslow, N. E.
+  (1974). "Covariance Analysis of Censored Survival Data." \emph{Biometrics},
+  30(1), 89-99, \doi{10.2307/2529620}, for the tied-event partial-likelihood
+  approximation used for exact/right-censored data.
+}
+\concept{Cox proportional hazards}
+\concept{Cox regression}
+\concept{proportional hazards regression}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceSurvivalCoxPHRegr}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-InferenceSurvivalCoxPHRegr-initialize}{\code{InferenceSurvivalCoxPHRegr$new()}}
     \item \href{#method-InferenceSurvivalCoxPHRegr-compute_estimate}{\code{InferenceSurvivalCoxPHRegr$compute_estimate()}}
+    \item \href{#method-InferenceSurvivalCoxPHRegr-compute_asymp_confidence_interval}{\code{InferenceSurvivalCoxPHRegr$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferenceSurvivalCoxPHRegr-compute_asymp_two_sided_pval}{\code{InferenceSurvivalCoxPHRegr$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferenceSurvivalCoxPHRegr-compute_estimate_with_bootstrap_weights}{\code{InferenceSurvivalCoxPHRegr$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferenceSurvivalCoxPHRegr-clone}{\code{InferenceSurvivalCoxPHRegr$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsympLikStdModCache</summary>
-<ul>
-  <li><code>InferenceAsympLikStdModCache$compute_asymp_confidence_interval()</code></li>
-  <li><code>InferenceAsympLikStdModCache$compute_asymp_two_sided_pval()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_lik_ratio_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_lik_ratio_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_lik_ratio_bootstrap_two_sided_pval'><code>InferenceParamBootstrap$compute_lik_ratio_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_param_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_estimate'><code>InferenceParamBootstrap$compute_param_bootstrap_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_pval'><code>InferenceParamBootstrap$compute_param_bootstrap_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_diagnostics()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_estimate_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_estimate_diagnostics()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsympLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_confidence_interval'><code>InferenceAsympLik$compute_gradient_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_two_sided_pval'><code>InferenceAsympLik$compute_gradient_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_confidence_interval'><code>InferenceAsympLik$compute_score_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_two_sided_pval'><code>InferenceAsympLik$compute_score_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -161,7 +88,28 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceSurvivalCoxPHRegr-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalCoxPHRegr-initialize}{}}}
 \subsection{\code{InferenceSurvivalCoxPHRegr$new()}}{
-  Initialize a Cox PH inference object.
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}. Deliberately pulled from
+  \code{InferenceRand}, not \code{InferenceRandCI} -- despite
+  \code{InferenceRandCI}'s override having a richer signature
+  (\code{type}/\code{args_for_type}), its body calls \code{super$...()},
+  which resolves against this class's *actual* R6 superclass
+  (\code{Inference}, which has no such method) once the method body is
+  extracted and merged flatly by the component system -- not against
+  \code{InferenceRand} the way it would inside \code{InferenceRandCI}'s
+  own real inheritance chain. \code{InferenceRandCI}'s only other content
+  is an incidence-response special case (Zhang exact test) that never
+  applies to survival data anyway, so the two are behaviorally identical
+  for this class -- confirmed by tracing the body, not assumed. Matches
+  the pattern already used by the sibling migrated classes (LogRank/
+  GehanWilcox/KMDiff/RestrictedMeanDiff).
+
+
+  Initialize a Cox PH inference object for a completed design
+  with a survival response. Unlike most survival inference classes in
+  this package, this one accepts left- and interval-censored data (via
+  an \pkg{icenReg}-backed fallback fit; see class documentation), not
+  only exact/right-censored.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalCoxPHRegr$new(
@@ -193,7 +141,12 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceSurvivalCoxPHRegr-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalCoxPHRegr-compute_estimate}{}}}
 \subsection{\code{InferenceSurvivalCoxPHRegr$compute_estimate()}}{
-  Computes the Cox PH estimate of the treatment effect.
+  Computes the Cox PH treatment coefficient \eqn{\hat\beta_T}
+  (log hazard ratio) — see class documentation for the fitting backend
+  used (partial-likelihood C++/\code{survival} solver for exact/
+  right-censored data; \pkg{icenReg} NPMLE for left-/interval-censored
+  data). \code{NA} if the fit fails or the fitted coefficients are
+  numerically extreme.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalCoxPHRegr$compute_estimate(estimate_only = FALSE)}
@@ -209,11 +162,57 @@ design's imputed covariates.}
 }
 
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalCoxPHRegr-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalCoxPHRegr-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferenceSurvivalCoxPHRegr$compute_asymp_confidence_interval()}}{
+  Computes an asymptotic confidence interval using the configured likelihood-backed test.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalCoxPHRegr$compute_asymp_confidence_interval(alpha = 0.05)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level 1 - \code{alpha}. Default 0.05.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalCoxPHRegr-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalCoxPHRegr-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferenceSurvivalCoxPHRegr$compute_asymp_two_sided_pval()}}{
+  Computes an asymptotic two-sided p-value using the configured likelihood-backed test.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalCoxPHRegr$compute_asymp_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect to test against. Default 0.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceSurvivalCoxPHRegr-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalCoxPHRegr-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceSurvivalCoxPHRegr$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the Cox PH treatment estimate under
-  Bayesian-bootstrap weights.
+  Recomputes the Cox PH treatment estimate under subject/block
+  bootstrap weights (via \code{weighted_cox_bootstrap_surrogate_fit()},
+  which assumes ordinary right-censoring semantics), used by the
+  Bayesian bootstrap and related weighted-resampling machinery. If the
+  weights are effectively constant, short-circuits to the unweighted
+  \code{$compute_estimate(estimate_only = TRUE)}. \strong{Not supported}
+  for left- or interval-censored data — raises an error immediately,
+  since the surrogate weighted fit has no extension for that likelihood.
+  Always leaves the standard error unavailable (\code{NA}) regardless of
+  \code{estimate_only} — this weighted path never computes a variance.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalCoxPHRegr$compute_estimate_with_bootstrap_weights(
@@ -227,8 +226,8 @@ design's imputed covariates.}
     \describe{
       \item{\code{subject_or_block_weights}}{Subject-, block-, cluster-, or matched-set
 bootstrap weights.}
-      \item{\code{estimate_only}}{If \code{TRUE}, compute only the weighted point
-estimate.}
+      \item{\code{estimate_only}}{Present for interface parity; this method never
+computes variance components regardless of its value.}
     }
     \if{html}{\out{</div>}}
   }

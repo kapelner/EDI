@@ -24,6 +24,15 @@
 #' \eqn{2\sqrt{V_{\rm CMH}}} where \eqn{V_{\rm CMH}} is the CMH variance from
 #' Azriel et al. (2026), Equation 3.
 #'
+#' For non-blocking designs, the "balanced design" precondition above requires
+#' the observed treatment allocation to be \emph{exactly} balanced
+#' (\eqn{n_T = n_C}), not merely drawn from a \eqn{prob\_T = 0.5} mechanism --
+#' e.g. plain Bernoulli randomization has \eqn{prob\_T = 0.5} but does not
+#' guarantee an exactly balanced realized allocation. The constructor issues a
+#' warning (not an error) when this is violated, since erroring would make
+#' this class unusable with Bernoulli-style non-blocking designs entirely; the
+#' warning tells the caller the reported standard error may be miscalibrated.
+#'
 #' @examples
 #' \dontrun{
 #' \donttest{
@@ -79,6 +88,8 @@ InferenceIncidCMH = R6::R6Class("InferenceIncidCMH",
 				if (length(block_sizes) > 1L && any(block_sizes != block_sizes[1L])) {
 					stop("InferenceIncidCMH requires equal block sizes for blocking designs.")
 				}
+			} else if (des_obj$get_prob_T() != 0.5) {
+				stop("InferenceIncidCMH requires even treatment allocation (prob_T = 0.5) for non-blocking designs.")
 			}
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "incidence")
@@ -87,6 +98,23 @@ InferenceIncidCMH = R6::R6Class("InferenceIncidCMH",
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula)
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
+			}
+			if (!des_obj$is_blocking_design()) {
+				n_T = sum(private$w)
+				n_C = private$n - n_T
+				if (n_T != n_C) {
+					# The SE formula's "for a balanced design" precondition (see @details) requires
+					# E_w[y'w] = 0, which needs the *realized* observed allocation to be exactly
+					# balanced -- prob_T = 0.5 alone only guarantees this in expectation (e.g. plain
+					# Bernoulli randomization). Under realized imbalance, compute_estimate()'s group
+					# mean-difference and get_standard_error()'s (2/n)*y'w-based SE describe different
+					# estimators, so warn rather than silently reporting a miscalibrated SE.
+					warning(
+						"InferenceIncidCMH: this non-blocking design's realized treatment allocation ",
+						"is not exactly balanced (n_T = ", n_T, ", n_C = ", n_C, "); the standard error ",
+						"formula assumes exact balance and may be miscalibrated."
+					)
+				}
 			}
 			private$se_est_num_vectors = as.integer(se_est_num_vectors)
 		}

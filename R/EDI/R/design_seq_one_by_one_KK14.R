@@ -1,30 +1,96 @@
-#' A Sequential Design
+#' Kapelner and Krieger's (2014) Sequential "Matching-on-the-Fly" Design
 #'
-#' An R6 Class encapsulating the data and functionality for a sequential experimental design.
-#' This class takes care of data initialization and sequential assignments. The class object
-#' should be saved securely after each assignment e.g. on an encrypted cloud server.
+#' A \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} that matches subjects to
+#' each other \strong{as they arrive}, rather than requiring all subjects up front (as
+#' \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}} does): each new
+#' subject is either matched to its nearest (Mahalanobis-distance) unmatched prior
+#' subject in the "reservoir" — if that distance is small enough to pass a
+#' statistical closeness test — and assigned the \strong{opposite} treatment from its
+#' match, or, if no sufficiently close match exists (or matching hasn't started yet),
+#' randomized and added to the reservoir for future subjects to potentially match
+#' against.
 #'
+#' @details
+#' \strong{Burn-in.} For the first \code{t_0_pct * n} subjects (default 35\%), or
+#' whenever no covariates are yet available, subjects are simply randomized
+#' (\eqn{\mathrm{Bernoulli}(prob\_T)}) and placed in the reservoir (\code{private$m}
+#' set to 0 for that subject) — matching does not begin until enough subjects have
+#' accumulated to estimate a stable covariate covariance structure.
+#'
+#' \strong{Matching test.} Once past burn-in, for new subject \eqn{t} with covariate
+#' vector \eqn{x_t}, the squared Mahalanobis distance (via
+#' \code{compute_proportional_mahal_distances_cpp()}, using the sample covariance of
+#' all prior subjects' covariates, ridge-regularized by \code{.Machine$double.eps}) to
+#' every subject currently in the reservoir is computed, and the closest one is a
+#' candidate match. The match is \strong{accepted} only if that squared distance falls
+#' below a threshold \eqn{T^2_{\mathrm{cutoff}}} derived from an F critical value,
+#' \deqn{T^2_{\mathrm{cutoff}} = \frac{p(n-1)}{n-p} \, F_{p,\, t-p}(\lambda),}
+#' where \eqn{p} is the rank of the covariate matrix so far, \eqn{n} is the design's
+#' target (planned) sample size, \eqn{t} is the number of subjects enrolled so far, and
+#' \eqn{\lambda} (\code{lambda}, default 0.1) is the F-distribution quantile level —
+#' i.e. this is a
+#' Hotelling's \eqn{T^2}-type test of whether the candidate pair's covariate
+#' difference is small enough to plausibly be exchangeable "noise" rather than a
+#' meaningful covariate mismatch; \code{lambda} controls how strict that test is
+#' (smaller \code{lambda} accepts fewer, closer matches). If accepted, both subjects
+#' are recorded as a new match (\code{private$m}), and the new subject receives the
+#' \strong{opposite} treatment of its match, guaranteeing exactly one treated and one
+#' control per matched pair — the same guarantee
+#' \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}} provides, but
+#' formed incrementally rather than all at once. If rejected (or the reservoir is
+#' empty), the subject is randomized and added to the reservoir instead.
+#'
+#' \strong{Lifecycle note.} The \code{morrison} and \code{p} constructor arguments are
+#' currently recorded on the object but not consulted anywhere in the matching or
+#' assignment logic in this version of the class; treat them as reserved for future use
+#' rather than as active configuration.
+#'
+#' @references Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
+#'   allocation with higher power and efficiency." \emph{Biometrics}, 70(2), 378-388,
+#'   \doi{10.1111/biom.12148}. See also
+#'   \href{https://en.wikipedia.org/wiki/Hotelling\%27s_T-squared_distribution}{Hotelling's
+#'   T-squared distribution} for the matching-test statistic, and
+#'   \href{https://en.wikipedia.org/wiki/Mahalanobis_distance}{Mahalanobis distance}.
 #' @examples
 #' seq_des = DesignSeqOneByOneKK14$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' @export
-DesignSeqOneByOneKK14 = R6::R6Class("DesignSeqOneByOneKK14",
+DesignSeqOneByOneKK14 = define_design_class(
+	classname = "DesignSeqOneByOneKK14",
 	inherit = DesignSeqOneByOne,
+	components = "MatchingStructure",
+	# MatchingStructure auto-expands to include its BlockingStructure dependency; both
+	# provide draw_bootstrap_indices, and the pair-preserving MatchingStructure version
+	# (processed after its dependency) must win -- this class had no override of its
+	# own, so it was already using this exact function via inheritance from
+	# DesignMatching (reference-identity, not just behavioral equivalence).
+	overrides = list(private = "draw_bootstrap_indices"),
 	public = list(
-		#' @description Characterization: this is a KK matching-on-the-fly-capable design.
+		#' @description Characterization: this design matches subjects to each other
+		#'   incrementally as they arrive (see class documentation), so it is
+		#'   KK matching-on-the-fly-capable by construction.
+		#' @return Always \code{TRUE} for this class.
 		is_a_kk_matching_capable = function() TRUE,
-		#' @description Initialize a KK14 sequential experimental design
+		#' @description Initialize a KK14 sequential matching-on-the-fly experimental
+		#'   design (see class documentation for the burn-in and matching-test rules).
 		#'
 		#' @param response_type   "continuous", "incidence", "proportion", "count", "survival", or
 		#'   "ordinal".
-		#' @param  prob_T  Probability of treatment assignment.
+		#' @param  prob_T  Probability of treatment assignment used for burn-in/
+		#'   unmatched (reservoir) subjects; matched subjects instead always receive
+		#'   the opposite assignment of their match (see class documentation).
 		#' @param include_is_missing_as_a_new_feature     Flag for missingness indicators.
 		#' @param  n  		The sample size.
 		#' @param verbose A flag for verbosity.
-		#' @param lambda The penalty parameter for covariate imbalance.
-		#' @param t_0_pct The percentage of subjects to allocate before matching begins.
-		#' @param morrison If TRUE, use Morrison's method for matching.
-		#' @param p The number of covariates to use for matching.
+		#' @param lambda The F-distribution quantile level controlling how strict the
+		#'   matching-acceptance test is (default 0.1; smaller values accept fewer,
+		#'   closer matches). See class documentation for the exact threshold formula.
+		#' @param t_0_pct The fraction of \code{n} subjects to randomize into the
+		#'   reservoir before matching begins (default 0.35).
+		#' @param morrison Currently unused by this class's matching/assignment logic;
+		#'   reserved for future use.
+		#' @param p Currently unused by this class's matching/assignment logic;
+		#'   reserved for future use.
 		#' @param missingness_method How to handle missing values in covariates.
 		#' @param design_formula A formula object.
 		#' @param seed Integer seed for reproducibility.
@@ -54,10 +120,13 @@ DesignSeqOneByOneKK14 = R6::R6Class("DesignSeqOneByOneKK14",
 			private$morrison = morrison
 			private$p = p
 		},
-		#' @description Uses this subclass's sequential assignment rule; see
-		#'   \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}.
+		#' @description Draw the next subject's treatment assignment via KK14
+		#'   matching-on-the-fly (see class documentation): during burn-in, or if no
+		#'   sufficiently close reservoir match exists, randomize and add the subject
+		#'   to the reservoir; otherwise match to the nearest reservoir subject and
+		#'   assign the opposite treatment.
 		#'
-		#' @return 	The treatment assignment (0 or 1)
+		#' @return 	The treatment assignment (0 or 1) for the next subject.
 		assign_wt = function(){
 			wt = 	if (private$too_early_to_match()){
 						#we're early, so randomize

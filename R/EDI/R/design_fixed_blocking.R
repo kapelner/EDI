@@ -1,8 +1,55 @@
-#' A stratified blocking Fixed Design
+#' A Fixed, Stratified-Block Randomized Design
 #'
-#' An R6 Class encapsulating the data and functionality for a fixed stratified
-#' blocking experimental design.
+#' A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} that first partitions
+#' subjects into blocks (strata) formed from covariates, then randomizes treatment
+#' \strong{independently within each block} at probability \code{prob_T} (via
+#' \code{\link[randomizr]{block_ra}} when \pkg{randomizr} is installed, else an internal
+#' \code{generate_permutations_blocking_cpp()} fallback). Blocking on a covariate removes
+#' its between-block variation from the treatment-effect comparison (comparisons are
+#' always within-block), improving precision relative to unblocked randomization whenever
+#' the blocking covariate(s) are prognostic of the outcome, at the cost of requiring the
+#' analysis to account for the blocking structure (e.g. via a block/stratum fixed effect
+#' or a CMH-type test). This differs from
+#' \code{\link[EDI:DesignFixedBlockedCluster]{DesignFixedBlockedCluster}}, which
+#' randomizes whole \emph{clusters} of subjects together within each block rather than
+#' subjects individually.
 #'
+#' @details
+#' \strong{Block construction.} Blocking keys are computed by
+#' \code{private$get_strata_keys()} (shared across
+#' \code{\link[EDI:DesignBlocking]{DesignBlocking}} subclasses): each column in
+#' \code{strata_cols} contributes a categorical key (continuous columns are discretized
+#' into \code{preferred_num_bins_for_continuous_covariate} quantile bins), and multiple
+#' columns are combined into one composite block key per subject; if \code{strata_cols}
+#' is \code{NULL}, all available covariate columns are used. \code{B_target} caps the
+#' number of resulting blocks by greedily adding \code{strata_cols} in order only while
+#' the running block count stays at or below the target (earlier columns take priority);
+#' \code{exact_num_blocks = TRUE} instead hard-fails if the greedy construction does not
+#' land on exactly \code{B_target} blocks. \code{equal_block_sizes = TRUE} (the default)
+#' additionally requires every block to have the same subject count, checked once at
+#' construction (via \code{n \%\% B_target}) if \code{n} and \code{B_target} are both
+#' already known, and again once covariates arrive; some downstream inference classes
+#' (\code{InferenceIncidCMH}, \code{InferenceIncidExtendedRobins}) require equal block
+#' sizes unconditionally, regardless of this flag. An explicit \code{m} (one block ID per
+#' subject) bypasses covariate-derived block construction entirely.
+#'
+#' \strong{Within-block randomization and bootstrap.} Within each block, treatment is
+#' assigned independently via \code{\link[randomizr]{block_ra}}'s complete random
+#' assignment (subject to rounding, \code{prob_T} of each block's subjects are treated);
+#' the internal C++ fallback (\code{generate_permutations_blocking_cpp()}) is used only
+#' if \pkg{randomizr} is not installed. \code{draw_bootstrap_indices()} resamples
+#' \emph{within} each block by default (\code{bootstrap_type = "within_blocks"} or
+#' \code{NULL}, via \code{stratified_bootstrap_indices_cpp()}), or resamples whole blocks
+#' with replacement otherwise (via \code{resample_group_rows_cpp()}) — mirroring the
+#' block structure in the resampling scheme, analogous to the cluster-level bootstrap in
+#' \code{DesignFixedBlockedCluster}.
+#'
+#' @references Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd,
+#'   for the original rationale for blocking in randomized experiments; Cochran, W. G.,
+#'   and Cox, G. M. (1957). \emph{Experimental Designs} (2nd ed.), Wiley, for stratified
+#'   (randomized block) design theory. See also
+#'   \href{https://en.wikipedia.org/wiki/Randomized_block_design}{randomized block
+#'   design} for orientation.
 #' @examples
 #' des = DesignFixedBlocking$new(n = 20, response_type = 'continuous',
 #'   strata_cols = 'x2', equal_block_sizes = FALSE)
@@ -10,10 +57,16 @@
 #' des$add_all_subjects_to_experiment(X)
 #' des$assign_w_to_all_subjects()
 #' @export
-DesignFixedBlocking = R6::R6Class("DesignFixedBlocking",
+DesignFixedBlocking = define_design_class(
+	classname = "DesignFixedBlocking",
 	inherit = DesignFixed,
+	components = "BlockingStructure",
 	public = list(
-		#' @description Initialize a fixed stratified blocking experimental design
+		#' @description Initialize a fixed stratified-block randomized experimental
+		#'   design. Block construction and validation follow the rules described in
+		#'   the class documentation; see the parameter descriptions below for the
+		#'   greedy \code{B_target}/\code{exact_num_blocks}/\code{equal_block_sizes}
+		#'   contract.
 		#'
 		#' @param strata_cols A character vector of column names to use for stratification.
 		#'   If `NULL` (the default), all available covariate columns are used.
@@ -131,17 +184,9 @@ DesignFixedBlocking = R6::R6Class("DesignFixedBlocking",
 			w_mat = res$w_mat
 			storage.mode(w_mat) = "numeric"
 			w_mat
-		},
-		draw_bootstrap_indices = function(bootstrap_type = NULL){
-			strata_keys = private$get_strata_keys()
-			if (is.null(bootstrap_type) || bootstrap_type == "within_blocks") {
-				strata_ids = match(strata_keys, unique(strata_keys))
-				list(i_b = stratified_bootstrap_indices_cpp(as.integer(strata_ids)), m_vec_b = NULL)
-			} else {
-				group_id = match(strata_keys, unique(strata_keys))
-				i_b = resample_group_rows_cpp(as.integer(group_id), length(unique(group_id)))
-				list(i_b = as.integer(i_b), m_vec_b = NULL)
-			}
 		}
+		# draw_bootstrap_indices is provided by the BlockingStructure component (see
+		# `components` above); proven byte-identical to this class's former hand-rolled
+		# version via test-design-blocking-structure-bootstrap-golden.R before removal.
 	)
 )

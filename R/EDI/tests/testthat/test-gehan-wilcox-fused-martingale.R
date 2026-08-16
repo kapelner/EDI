@@ -82,7 +82,12 @@ test_that("InferenceSurvivalGehanWilcox estimate/pval match canonical survival::
     w    <- as.integer((seq_des$get_w() + 1L) / 2L) # get_w() is {-1,+1}; Inference classes use {0,1}
     y    <- rexp(n, rate = exp(0.3 * w))
     dead <- as.integer(rbinom(n, 1, 0.8))
-    seq_des$add_all_subject_responses(y, dead)
+    # (y, dead) positional convention was removed in the y/y_L/y_R migration
+    # (interval_censored_survival_response.md TODO-15).
+    y_exact <- ifelse(dead == 1, y, NA_real_)
+    y_L <- ifelse(dead == 1, NA_real_, y)
+    y_R <- ifelse(dead == 1, NA_real_, Inf)
+    seq_des$add_all_subject_responses(y_exact, y_L, y_R)
 
     inf <- InferenceSurvivalGehanWilcox$new(seq_des)
     est <- inf$compute_estimate()

@@ -12,13 +12,13 @@ test_that("fast_logistic_regression_cpp supports warm_start_weights", {
   
   # 1. Initial fit
   fit1 <- fast_logistic_regression_cpp(X, y)
-  expect_true(fit1$iterations > 1)
-  
+  expect_true(fit1$num_iter > 1)
+
   # 2. Warm-start with converged weights and beta
   fit2 <- fast_logistic_regression_cpp(X, y, warm_start_beta = fit1$b, warm_start_weights = fit1$w)
-  
+
   # Should converge very quickly
-  expect_true(fit2$iterations <= 2)
+  expect_true(fit2$num_iter <= 2)
   expect_equal(fit1$b, fit2$b, tolerance = 1e-7)
 })
 

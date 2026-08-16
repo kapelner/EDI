@@ -7,20 +7,59 @@
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}
 
-\item{y}{A numeric vector of the response variable.}
+\item{y}{A numeric vector of the (continuous) response variable.}
 
-\item{j}{This function will compute the variance of the jth coefficient estimator. Default is
-2.}
+\item{j}{This function will compute the variance of the jth (1-indexed) coefficient
+estimator. Default is 2 (conventionally the treatment effect).}
+
+\item{fixed_idx}{Optional integer vector of 1-indexed columns of \code{X} whose
+coefficients should be held fixed at \code{fixed_values} rather than estimated.}
+
+\item{fixed_values}{Optional numeric vector, parallel to \code{fixed_idx}, of the
+fixed coefficient values.}
 }
 \value{
-A list containing the following components:
+A list containing the following components (the last four only present
+  when the \code{LDLT} solve succeeds):
 \describe{
-\item{b}{A numeric vector of the estimated regression coefficients.}
-\item{ssq_b_j}{The variance of the jth coefficient estimator.}
+\item{b}{A numeric vector of the estimated regression coefficients \eqn{\hat\beta}.}
+\item{converged}{\code{TRUE} if the \code{LDLT} solve succeeded, \code{FALSE} if the
+  QR fallback was used.}
+\item{sigma2_hat}{The estimated residual variance \eqn{\hat\sigma^2}.}
+\item{XtX}{The (free-coefficient) \eqn{X^\top X} matrix, expanded back to full
+  \eqn{p \times p} shape with zeros in the fixed-coefficient rows/columns.}
+\item{ssq_b_j}{The variance of the \eqn{j}-th coefficient estimator, \code{NA} if
+  \code{j} indexes a fixed coefficient.}
+\item{ssq_b_2}{The variance of the second coefficient estimator specifically
+  (typically the treatment effect), regardless of what \code{j} is; equal to
+  \code{ssq_b_j} when \code{j = 2}. \code{NA} if the second column is a fixed
+  coefficient.}
 }
 }
 \description{
-This function provides a highly optimized implementation of Ordinary Least Squares (OLS)
-regression using the Eigen C++ library, including the calculation of the
-variance-covariance matrix of the coefficients.
+As \code{\link{fast_ols_cpp}}, but additionally computes the classical OLS
+variance estimate \eqn{\hat\sigma^2 = \mathrm{SSE} / (n - p)} (with
+\eqn{\mathrm{SSE} = y^\top y - \hat\beta^\top X^\top y} on the fixed-parameter-adjusted
+response, and \eqn{p} the number of \strong{free} — non-fixed — columns) and the
+sampling variance of two coefficients, \eqn{\widehat{\mathrm{Var}}(\hat\beta_k) =
+\hat\sigma^2 \, [(X^\top X)^{-1}]_{kk}}, obtained from the same Cholesky (\code{LDLT})
+factorization used to solve for \eqn{\hat\beta}, without forming the full inverse
+matrix. If the \code{LDLT} decomposition fails (rank-deficient \eqn{X}), this function
+falls back to a QR solve exactly as \code{\link{fast_ols_cpp}} does, but in that case
+\strong{no variance quantities are computed}: \code{ssq_b_j}, \code{ssq_b_2}, and
+\code{XtX} are omitted from the result and \code{converged} is \code{FALSE}.
+}
+\section{Fixed (offset) coefficients}{
+
+\code{fixed_idx} (1-indexed columns
+  of \code{X}) and \code{fixed_values} optionally hold a subset of coefficients at
+  caller-supplied constant values rather than estimating them: those columns'
+  contribution \eqn{X_{\mathrm{fixed}} \beta_{\mathrm{fixed}}} is subtracted out of
+  \code{y} first, and only the remaining ("free") columns are fit by least squares;
+  the fixed coefficients are then copied back into \eqn{\hat\beta} unchanged. This is
+  used, e.g., to fit a model with a known/offset intercept without re-estimating it.
+}
+
+\seealso{
+\code{\link{fast_ols_cpp}} for the estimate-only counterpart.
 }

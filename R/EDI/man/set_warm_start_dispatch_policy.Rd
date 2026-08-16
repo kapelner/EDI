@@ -7,16 +7,48 @@
 set_warm_start_dispatch_policy(policy = NULL, reset = FALSE)
 }
 \arguments{
-\item{policy}{Either \code{NULL} or a named list of policy overrides.}
+\item{policy}{Either \code{NULL} (no change) or a named list of per-operation
+policy overrides merged into the current configuration (see Details).}
 
-\item{reset}{If \code{TRUE}, restore the built-in default policy.}
+\item{reset}{If \code{TRUE}, discard all overrides and restore the built-in
+default policy.}
 }
 \value{
-Invisible \code{NULL} or the current policy configuration.
+Invisible \code{NULL} when \code{policy} is supplied (a mutation), or
+  invisibly the current policy configuration list when called for its
+  side-effect-free query/reset value.
 }
 \description{
-Update the warm-start dispatch policy
+Overrides, queries, or resets the runtime policy consulted (as one layer of
+several — see Details) by \code{edi_warm_start_dispatch_policy()} for
+whether an inference class reuses a previous fit's parameters/curvature to
+seed the next fit during resampling; see
+\code{\link{get_warm_start_dispatch_policy}} for the built-in default table
+and its \code{jackknife}/\code{non_param_boot}/\code{bayesian_boot}/
+\code{param_boot}/\code{rand} operation schema.
+}
+\details{
+Call with no arguments (\code{policy = NULL}, \code{reset = FALSE})
+  to retrieve the current configuration without changing it. Pass a named
+  list to \code{policy} to merge new/overriding entries into the current
+  configuration via \code{\link[utils]{modifyList}} (per-operation
+  sub-lists, e.g. \code{list(rand = list(inference_class_overrides = ...))},
+  are merged rather than replaced wholesale). Pass \code{reset = TRUE} to
+  discard any accumulated overrides and restore the package's built-in
+  default policy exactly as returned by
+  \code{\link{get_warm_start_dispatch_policy}}. \strong{This function only
+  controls the sample-size-independent pattern-table layer} of the warm-start
+  dispatcher; the additional hardcoded, sample-size-conditioned disable rules
+  documented on \code{\link{get_warm_start_dispatch_policy}} are not
+  affected by any override passed here.
 }
 \examples{
 set_warm_start_dispatch_policy(reset = TRUE)
+}
+\seealso{
+\code{\link{get_warm_start_dispatch_policy}} for the policy schema,
+  built-in defaults, and the additional sample-size-conditioned rules this
+  setter cannot override; \code{\link{set_cold_start_dispatch_policy}} for
+  the analogous, simpler single-layer setter governing the initial
+  cold-start heuristic.
 }

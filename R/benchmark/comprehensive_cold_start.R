@@ -7,6 +7,18 @@ library(data.table)
 
 set.seed(42)
 
+.fit_weibull_general_right_censored = function(X, y, dead, warm_start_params = NULL,
+        smart_cold_start = TRUE, estimate_only = FALSE, maxit = 100, tol = 1e-8,
+        fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs",
+        warm_start_fisher_info = NULL) {
+    fast_weibull_regression_general_cpp(
+        X, ifelse(dead != 0, y, NA_real_), ifelse(dead == 0, y, NA_real_),
+        ifelse(dead == 0, Inf, NA_real_), warm_start_params, smart_cold_start,
+        estimate_only, maxit, tol, fixed_idx, fixed_values, optimization_alg,
+        warm_start_fisher_info
+    )
+}
+
 # Clinical trial scale data generation
 generate_data = function(n = 100, p = 7, family = "logistic", n_groups = 10) {
     X = matrix(rnorm(n * p), n, p)
@@ -110,7 +122,7 @@ models = list(
     list(name = "Poisson", fun = fast_poisson_regression_with_var_cpp, family = "poisson", args = list(optimization_alg = "irls")),
     list(name = "NegBin", fun = fast_neg_bin_with_var_cpp, family = "negbin"),
     list(name = "Beta", fun = fast_beta_regression_with_var_cpp, family = "beta"),
-    list(name = "Weibull", fun = fast_weibull_regression_cpp, family = "weibull"),
+    list(name = "Weibull", fun = .fit_weibull_general_right_censored, family = "weibull"),
     list(name = "CoxPH", fun = fast_coxph_regression_cpp, family = "cox"),
     list(name = "Stratified Cox", fun = fast_stratified_coxph_regression_cpp, family = "strat_cox"),
     list(name = "Ordinal (Logit)", fun = fast_ordinal_regression_with_var_cpp, family = "ordinal"),

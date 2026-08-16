@@ -7,26 +7,60 @@
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}
 
-\item{y}{A numeric vector of the response variable, expected to be counts.}
+\item{y}{A numeric vector of the response variable, expected to be nonnegative-integer counts.}
 
-\item{j}{The index of the coefficient to compute the variance for. Defaults to 2.}
+\item{j}{The 1-indexed coefficient whose variance to compute in \code{ssq_b_j}. Defaults to 2.}
 
-\item{maxit}{Maximum number of iterations for the IRLS algorithm. Defaults to 100.}
+\item{warm_start_beta}{Optional starting values for coefficients \eqn{\beta}. If
+provided, \code{smart_cold_start} is ignored.}
+
+\item{smart_cold_start}{Logical. If \code{TRUE} and no \code{warm_start_beta} is
+supplied, use a Poisson-specific heuristic initial guess rather than a zero cold start.}
+
+\item{maxit}{Maximum number of iterations. Defaults to 100.}
 
 \item{tol}{Convergence tolerance. Defaults to 1e-8.}
 
-\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default), \code{"irls"}, or \code{"newton_raphson"}.}
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed rather than estimate.}
+
+\item{fixed_values}{Optional values to fix the parameters named by \code{fixed_idx} at.}
+
+\item{optimization_alg}{Optimization algorithm: \code{"irls"} (default), \code{"lbfgs"}, or \code{"newton_raphson"}.}
+
+\item{warm_start_weights}{Accepted but unused; see \code{\link{fast_poisson_regression_cpp}} Details.}
+
+\item{warm_start_fisher_info}{Optional initial curvature (information) matrix to warm-start the first iteration.}
 }
 \value{
 A list containing the following components:
 \describe{
-\item{b}{A numeric vector of the obtained Poisson regression coefficients.}
-\item{ssq_b_j}{The squared standard error (variance) of the j-th estimated coefficient.}
-\item{ssq_b_2}{The squared standard error (variance) of the second estimated coefficient.}
-\item{mu}{The fitted values.}
-\item{converged}{A logical value indicating whether the IRLS algorithm converged.}
+\item{b, params}{A numeric vector of the estimated Poisson regression coefficients \eqn{\hat\beta} (both aliases of the same vector).}
+\item{ssq_b_j}{The variance of the \eqn{j}-th coefficient estimator; \code{NA} if \code{j} indexes a fixed coefficient.}
+\item{ssq_b_2}{The variance of the second coefficient estimator specifically (typically the
+  treatment effect), regardless of what \code{j} is; equal to \code{ssq_b_j} when \code{j = 2}.
+  \code{NA} if the second column is a fixed coefficient.}
+\item{mu}{The fitted means \eqn{\hat\mu_i}.}
+\item{converged}{A logical value indicating whether the algorithm converged.}
+\item{iterations}{The number of iterations performed.}
+\item{score}{The score vector at the fitted coefficients.}
+\item{observed_information, fisher_information, information}{Three aliases for the same
+  \eqn{X^\top W X} curvature matrix (\code{information_type} is always \code{"fisher"}).}
+\item{hessian}{The negative of that same matrix (the actual Hessian of the log-likelihood).}
+\item{neg_loglik, neg_ll}{The negative log-likelihood at the fitted coefficients (two aliases).}
+\item{loglik}{The log-likelihood (\code{-neg_ll}), or \code{NA} if \code{neg_ll} is non-finite.}
+\item{gradient_norm}{The norm of the score vector at convergence.}
 }
 }
 \description{
-Fast Poisson Regression with Variance Calculation (C++ Backend)
+Fits the same Poisson log-link model as \code{\link{fast_poisson_regression_cpp}}
+(see that page for the full model and optimizer contract; always with
+\code{estimate_only = FALSE}), and additionally inverts the fitted Fisher
+information matrix (\code{Eigen::LDLT} on the free-coefficient submatrix, via
+\code{compute_diagonal_inverse_entry}) to report the variance of two
+coefficients.
+}
+\seealso{
+\code{\link{fast_poisson_regression_cpp}} for the estimate-only variant and full
+  model documentation; \code{\link{fast_quasipoisson_regression_with_var_cpp}} for the
+  overdispersion-corrected variant.
 }

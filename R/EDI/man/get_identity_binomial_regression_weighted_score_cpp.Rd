@@ -2,23 +2,38 @@
 % Please edit documentation in R/RcppExports.R
 \name{get_identity_binomial_regression_weighted_score_cpp}
 \alias{get_identity_binomial_regression_weighted_score_cpp}
-\title{Compute Weighted Identity-Binomial Regression Score}
+\title{Weighted Identity-Link (Risk-Difference) Binomial Regression Score, Standalone (C++)}
 \usage{
-get_identity_binomial_regression_weighted_score_cpp(X_r, y_r, weights_r, beta)
+get_identity_binomial_regression_weighted_score_cpp(X, y_r, weights_r, beta)
 }
 \arguments{
-\item{X_r}{A numeric matrix of predictors.}
-
-\item{y_r}{A binary numeric vector of responses.}
+\item{y_r}{A binary (0/1) numeric vector of responses.}
 
 \item{weights_r}{A nonnegative numeric vector of observation weights.}
 
-\item{beta}{A numeric vector of coefficients.}
+\item{beta}{A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.}
+
+\item{X_r}{A numeric matrix of predictors.}
 }
 \value{
-A numeric vector representing the weighted score.
+The finite-difference-approximated weighted score vector at \code{beta}.
 }
 \description{
-Calculates the weighted score vector for a binomial regression model with an identity link.
+Computes the observation-weighted score vector (gradient of the weighted
+log-likelihood) of the constrained identity-link binomial regression model
+documented in full at \code{\link{fast_identity_binomial_regression_cpp}}, at
+arbitrary caller-supplied \code{beta} (not necessarily the MLE), with each
+observation's contribution multiplied by \code{weights_r[i]}, via a
+\strong{numerical} (central finite-difference, step \eqn{h = 10^{-6}})
+approximation — not an analytic derivative. Exported standalone — independent
+of any optimizer run — for direct numerical diagnostics at a specific
+parameter value.
+}
+\seealso{
+\code{\link{get_identity_binomial_regression_weighted_hessian_cpp}} for
+  the corresponding weighted Hessian at the same point;
+  \code{\link{get_identity_binomial_regression_score_cpp}} for the unweighted
+  version; \code{\link{fast_identity_binomial_regression_cpp}} for the full model
+  documentation.
 }
 \keyword{internal}

@@ -2,27 +2,82 @@
 % Please edit documentation in R/RcppExports.R
 \name{pocock_simon_assign_cpp}
 \alias{pocock_simon_assign_cpp}
-\title{Pocock-Simon Minimization Allocation Logic}
+\title{Pocock-Simon Covariate-Adaptive Minimization: Assignment Decision (C++)}
 \usage{
 pocock_simon_assign_cpp(counts, subject_levels_idx, weights, p_best, prob_T)
 }
 \arguments{
-\item{counts}{A matrix of dimensions (sum of levels) x (number of treatments).
-Each row corresponds to a specific level of a specific covariate.}
+\item{counts}{A numeric matrix, one row per stratification-covariate level
+(across all covariates, stacked) and one column per treatment arm (2
+columns), of counts of subjects previously assigned to that level/arm
+combination.}
 
-\item{subject_levels_idx}{An integer vector of indices indicating which rows 
-of the counts matrix the current subject belongs to.}
+\item{subject_levels_idx}{An integer vector (1-indexed, length = number of
+stratification covariates) giving, for the subject being assigned, which
+row of \code{counts} each covariate's current level corresponds to.}
 
-\item{weights}{A numeric vector of weights for each covariate.}
+\item{weights}{A numeric vector, parallel to \code{subject_levels_idx}, of
+the relative weight \eqn{w_j} placed on each covariate's imbalance in the
+combined score \eqn{G_k}.}
 
-\item{p_best}{The probability of assigning the treatment that minimizes the imbalance.}
+\item{p_best}{The probability of assigning the arm that minimizes \eqn{G_k}
+(the biased coin); \code{1} is deterministic minimization, values near
+\code{0.5} approach simple randomization.}
 
-\item{prob_T}{Target probability for treatment (usually 0.5).}
+\item{prob_T}{The Bernoulli probability used to break an exact tie in
+\eqn{G_0 = G_1} (assigns arm 1 with this probability); typically \code{0.5}.}
 }
 \value{
-The assigned treatment (0 or 1).
+The assigned treatment arm, \code{0} or \code{1}.
 }
 \description{
-Pocock-Simon Minimization Allocation Logic
+Decides the next subject's treatment assignment under Pocock and Simon's
+(1975) covariate-adaptive minimization algorithm, without modifying any
+state (see \code{\link{pocock_simon_assign_and_update_cpp}} for the
+state-updating wrapper actually used by the stepwise design). \code{counts}
+stacks, for every level of every stratification covariate, the number of
+previously-assigned subjects at that level currently in each treatment arm
+(one row per covariate level, one column per arm — the design supports
+exactly 2 arms). The subject to be assigned belongs to one level per
+covariate, given by \code{subject_levels_idx} (1-indexed rows into
+\code{counts}).
+}
+\details{
+For each candidate arm \eqn{k \in \{0,1\}}, a marginal imbalance score is
+computed as the weighted sum, over the subject's covariates \eqn{j}, of the
+\strong{variance across arms} of the level's counts \emph{if} the subject
+were assigned to arm \eqn{k}:
+\deqn{G_k = \sum_j w_j \, \mathrm{Var}_t\big(n_{j,t} + \mathbb{1}\{t=k\}\big),}
+where \eqn{n_{j,t}} is the current count for the subject's level of
+covariate \eqn{j} in arm \eqn{t}, and the variance is taken over the (here,
+2) arms with the usual \eqn{n-1} divisor — so \eqn{G_k} is smallest for the
+arm that would leave covariate margins most balanced. The arm with the
+smaller \eqn{G_k} (\code{best_trt}) is then assigned with a biased-coin
+probability \code{p_best} (and the other arm with probability
+\code{1 - p_best}); if \eqn{G_0 = G_1} exactly (perfect tie), the assignment
+is instead a single Bernoulli(\code{prob_T}) draw for arm 1. Setting
+\code{p_best = 1} recovers Taves' deterministic minimization; \code{p_best}
+strictly between 0.5 and 1 (Pocock and Simon's recommendation, e.g. 0.75-0.85)
+retains most of minimization's balancing power while preserving some
+unpredictability of the next assignment.
+}
+\note{
+Seeded from one R::unif_rand() draw into edi_rng::RRng (RNG.h), a
+  portable re-implementation of R's own Mersenne-Twister generator -- a
+  given seed therefore produces identical draws in R and in any future
+  binding (e.g. Python) using the same core and the same seed, even
+  though this call does not continue R's own live session stream bit-
+  for-bit (see pocock_simon_redraw_w_cpp for the one function in this
+  file where that distinction matters and is handled).
+}
+\references{
+Pocock, S. J. and Simon, R. (1975). "Sequential Treatment
+  Assignment with Balancing for Prognostic Factors in the Controlled
+  Clinical Trial." \emph{Biometrics}, 31(1), 103-115.
+}
+\seealso{
+\code{\link{pocock_simon_assign_and_update_cpp}} for the
+  assign-and-mutate-\code{counts} wrapper; \code{\link{pocock_simon_redraw_w_cpp}}
+  for the batch re-derivation of a whole assignment sequence from scratch.
 }
 \keyword{internal}

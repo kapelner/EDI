@@ -12,22 +12,47 @@
 #' @noRd
 InferenceMixinKKPassThrough = list(
 	public = list(
-		#' @description Creates the bootstrap distribution of the estimate for the treatment effect
+		#' @description Draws a KK-matching-design-aware nonparametric bootstrap
+		#'   distribution of the point estimate \eqn{\hat\beta_T}. If the design has
+		#'   \strong{no} match structure yet (\code{private$has_match_structure} is
+		#'   \code{FALSE} — e.g. a KK-capable design run in a mode where no subjects
+		#'   ended up matched), this delegates entirely to the composing class's own
+		#'   (non-KK) \code{super$approximate_bootstrap_distribution_beta_hat_T()}.
+		#'   Otherwise, it uses a resampling scheme that respects the design's
+		#'   matched-pair-plus-reservoir structure: in each of the \code{B}
+		#'   replicates, reservoir (unmatched) subjects are resampled with
+		#'   replacement individually, while matched pairs are resampled with
+		#'   replacement \strong{as intact pairs} (both members of a sampled pair are
+		#'   included together, never split) — this preserves the within-pair
+		#'   correlation induced by matching, which an ordinary row-wise bootstrap
+		#'   would destroy. The actual index-drawing is delegated to the design
+		#'   object's own \code{draw_bootstrap_indices()} (via
+		#'   \code{init_matching_bootstrap_structure()}), so the exact resampling
+		#'   contract is determined by the specific \code{DesignSeqOneByOne*}
+		#'   subclass in use. If the composing class provides a private
+		#'   \code{compute_fast_bootstrap_distr()} method (a C++/OpenMP dispatcher),
+		#'   that fast path is used instead of the generic R replicate loop whenever
+		#'   \code{debug = FALSE}.
 		#'
 		#' @param B  					Number of bootstrap samples. The default is 501.
 		#'
 		#' @return A vector of length \code{B} with the bootstrap values of the estimates of the
-		#'   treatment effect
+		#'   treatment effect (or, if \code{debug = TRUE}, a list with those values plus
+		#'   per-iteration diagnostics — see \code{debug} below).
 		#'
 		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         If \code{TRUE}, return a list with the distribution values and
-		#'   per-iteration diagnostics. Default \code{FALSE}.
+		#' @param debug         If \code{TRUE}, bypass the fast C++ dispatch path (even if
+		#'   available) and return a list with the distribution values and
+		#'   per-iteration diagnostics instead of a plain numeric vector. Default \code{FALSE}.
 		#' @param bootstrap_type Optional bootstrap-resampling scheme. Legal public values are:
 		#'   \describe{
-		#'     \item{\code{NULL}}{Use the design's default row-resampling bootstrap.}
+		#'     \item{\code{NULL}}{Use the design's default matched-pair-plus-reservoir
+		#'       resampling scheme described above.}
 		#'     \item{\code{"within_blocks"}}{Only legal for blocking-style designs.}
 		#'     \item{\code{"resample_blocks"}}{Only legal for the same blocking-style designs.}
 		#'   }
+		#'   Passing a blocking-only value for a non-blocking KK design triggers an
+		#'   assertion failure via \code{private$assert_valid_bootstrap_type()}.
 		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
 				if (should_run_asserts()) {
 					private$assert_valid_bootstrap_type(bootstrap_type)
@@ -291,9 +316,13 @@ InferenceMixinKKPassThrough = list(
 				}
 			}
 			if (private$has_match_structure){
-				if (inherits(des_obj, "DesignFixedBinaryMatch")){
-					des_obj$.__enclos_env__$private$ensure_matching_structure_computed()
-				}
+				# Unconditional: ensure_matching_structure_computed() is a no-op by default
+				# (DesignMatching's base implementation) and only DesignFixedBinaryMatch
+				# overrides it with real (lazy) work, so calling it here for every
+				# kk-matching-capable design (already asserted above) is behavior-preserving
+				# and avoids a DesignFixedBinaryMatch class-identity check
+				# (fix_design_hierarchy.md, "Class-Identity Dispatch Replacement").
+				des_obj$.__enclos_env__$private$ensure_matching_structure_computed()
 				private$m = des_obj$.__enclos_env__$private$m
 				private$compute_basic_match_data()
 			}

@@ -2,18 +2,71 @@
 % Please edit documentation in R/design_fixed_optimal_blocks.R
 \name{DesignFixedOptimalBlocks}
 \alias{DesignFixedOptimalBlocks}
-\title{An Optimal-Blocks Fixed Design}
+\title{A Fixed, Covariate-Homogeneous-Block Randomized Design}
 \description{
-An R6 Class encapsulating the data and functionality for a fixed experimental
-design that first partitions subjects into \code{B} covariate-homogeneous blocks
-by solving a balanced clustering problem with \pkg{ompr} and \pkg{glpk}, then randomizes
-treatment within those blocks. When \code{B} is omitted and \code{n} is known
-at initialization, the default is \code{floor(sqrt(n))}, truncated below at 1.
+A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} that first partitions
+subjects into \code{B} approximately equal-sized, covariate-homogeneous blocks by
+(approximately or exactly) minimizing total within-block pairwise covariate distance
+\eqn{\sum_{k=1}^{B} \sum_{i, j \in \text{block } k, i < j} D(x_i, x_j)}, then
+randomizes treatment independently within each resulting block at probability
+\code{prob_T} (via \code{\link[randomizr]{block_ra}}, the same mechanism as
+\code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}). Unlike
+\code{DesignFixedBlocking}, which forms blocks from user-specified column-wise
+strata (categorical levels / quantile bins), here blocks are formed directly from a
+multivariate distance/clustering criterion over all covariates jointly, so this
+design generalizes matched-pair designs
+(\code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}) from block size 2
+to arbitrary block size \eqn{B}. When \code{B} is omitted and \code{n} is known
+at initialization, the default is \code{floor(sqrt(n))}, truncated below at 1 (the
+usual heuristic block count for balancing within-block homogeneity against
+within-block sample size).
+
+
+\strong{Block-formation algorithms.} \code{method} selects among three block
+construction strategies with different exactness/scalability trade-offs (see the
+\code{new()} argument documentation for details): \code{"K-way"} (default, balanced
+k-means-style anticlustering via \pkg{anticlust}, fast and empirically close to
+optimal), \code{"greedy"} (nearest-neighbor greedy matching via \pkg{blockTools},
+fast even for large \eqn{n}), and \code{"ompr"} (an exact mixed-integer program
+solved with GLPK via \pkg{ompr}/\pkg{ompr.roi}, globally optimal but scaling as
+\eqn{O(n^2 B)} in the number of decision variables — practical only for small
+\eqn{n}). Block membership is computed lazily (on first draw, via
+\code{get_or_compute_block_ids()}) and cached in \code{private$block_ids} for reuse
+across replicates.
+
+\strong{Distance specification (\code{"ompr"} only).} \code{dist} selects the
+pairwise distance \eqn{D(x_i, x_j)} the exact solver minimizes:
+\code{"euclidean"}, \code{"sum_abs_diff"} (sum of absolute coordinate differences),
+\code{"mahal"} (default, Mahalanobis distance accounting for covariate
+correlation/scale), or a user-supplied distance function. The \code{"K-way"} and
+\code{"greedy"} methods use their own respective packages' built-in distance
+conventions and do not consult \code{dist}.
+
+\strong{No-covariate fallback.} If the covariate matrix has zero columns, block
+membership is assigned by simple round-robin (\code{rep(seq_len(B), length.out = n)})
+rather than by any of the three clustering algorithms, since there is no covariate
+information to cluster on.
+
+\strong{Bootstrap.} \code{draw_bootstrap_indices()} resamples within blocks by
+default (\code{bootstrap_type = "within_blocks"} or \code{NULL}, via
+\code{stratified_bootstrap_indices_cpp()}) or resamples whole blocks otherwise (via
+\code{resample_group_rows_cpp()}), mirroring the block structure in the resampling
+scheme, as in \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}.
 }
 \examples{
 des = DesignFixedOptimalBlocks$new(n = 9, response_type = 'continuous')
 des$add_all_subjects_to_experiment(data.frame(x = rnorm(9)))
 des$assign_w_to_all_subjects()
+}
+\references{
+Higgins, M. J., Sävje, F., and Sekhon, J. S. (2016). "Improving massive
+  experiments with threshold blocking." \emph{Proceedings of the National Academy of
+  Sciences}, 113(27), 7369-7376, \doi{10.1073/pnas.1510504113}, for optimal/near-optimal
+  covariate-based blocking prior to randomization. See also
+  \href{https://en.wikipedia.org/wiki/Randomized_block_design}{randomized block
+  design} for orientation and
+  \href{https://en.wikipedia.org/wiki/Mahalanobis_distance}{Mahalanobis distance} for
+  the default \code{"ompr"} distance.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixedOptimalBlocks}
@@ -31,9 +84,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subject_responses'><code>DesignFixed$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subjects_to_experiment'><code>DesignFixed$add_all_subjects_to_experiment()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-assign_w_to_all_subjects'><code>DesignFixed$assign_w_to_all_subjects()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-is_a_fixed'><code>DesignFixed$is_a_fixed()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-supports_resampling'><code>DesignFixed$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -65,6 +116,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -87,14 +139,16 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_seq_one_by_one'><code>Design$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -102,12 +156,19 @@ des$assign_w_to_all_subjects()
 \if{html}{\out{<a id="method-DesignFixedOptimalBlocks-supports_batch_w_pregeneration"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedOptimalBlocks-supports_batch_w_pregeneration}{}}}
 \subsection{\code{DesignFixedOptimalBlocks$supports_batch_w_pregeneration()}}{
-  Returns TRUE so the framework pre-generates all w vectors
-  once per cell (paying the clustering cost once, reusing across reps).
+  Returns \code{TRUE} so the calling framework pre-generates
+  all replicate \code{w} vectors for a simulation cell in one batch,
+  paying the one-time block-formation cost (K-way anticlustering,
+  greedy matching, or the exact \pkg{ompr}/GLPK solve) once per cell and
+  reusing the resulting block assignment across replicates, rather than
+  recomputing it per replicate.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedOptimalBlocks$supports_batch_w_pregeneration()}
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Always \code{TRUE} for this class.
   }
 }
 
@@ -115,7 +176,12 @@ des$assign_w_to_all_subjects()
 \if{html}{\out{<a id="method-DesignFixedOptimalBlocks-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedOptimalBlocks-initialize}{}}}
 \subsection{\code{DesignFixedOptimalBlocks$new()}}{
-  Initialize a fixed optimal-blocks design.
+  Initialize a fixed optimal-blocks design. Block formation
+  itself is deferred until the first draw (see class documentation);
+  this constructor only validates and records configuration, including
+  checking that \code{B} (or its \code{floor(sqrt(n))} default) admits a
+  feasible block-size partition of \code{n} when \code{n} is already
+  known.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedOptimalBlocks$new(

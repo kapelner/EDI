@@ -2,11 +2,44 @@
 % Please edit documentation in R/design_fixed_blocked_cluster.R
 \name{DesignFixedBlockedCluster}
 \alias{DesignFixedBlockedCluster}
-\title{A Blocked and Cluster Randomized Fixed Design}
+\title{A Fixed, Blocked-and-Clustered Randomized Design}
 \description{
-An R6 Class encapsulating the data and functionality for a fixed blocked and
-cluster randomized experimental design.
-This design randomizes clusters within specified blocks using the \pkg{randomizr} package.
+A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} in which the unit of
+randomization is the \strong{cluster}, not the individual subject: within each block
+(stratum, formed from \code{strata_cols}), whole clusters (identified by
+\code{cluster_col}) are jointly randomized to treatment or control, so all subjects in
+the same cluster always receive the same assignment. This is the design used when
+individual-level randomization is infeasible or invalid (e.g. clusters are classrooms,
+clinics, or households where within-cluster interference/spillover would violate
+SUTVA under individual randomization), combined with blocking to improve precision by
+comparing clusters only to other clusters in the same stratum.
+
+
+\strong{Randomization mechanism.} Blocking keys are computed per subject via
+\code{private$get_strata_keys()} (shared with other
+\code{\link[EDI:DesignBlocking]{DesignBlocking}} subclasses): categorical columns in
+\code{strata_cols} are used as-is, continuous columns are discretized into
+\code{preferred_num_bins_for_continuous_covariate} quantile-based bins, and multiple
+\code{strata_cols} are combined into a single composite block key. Within each
+resulting block, whole clusters (by \code{cluster_col}) are randomized to treatment
+with probability \code{prob_T} via \code{\link[randomizr]{block_and_cluster_ra}}
+(\pkg{randomizr}), which performs blocked-and-clustered complete random assignment:
+within each block, clusters (not subjects) are permuted so that, subject to rounding,
+the target proportion \code{prob_T} of clusters in that block is treated, and every
+subject in a treated cluster receives \eqn{w = 1}. \code{r} independent replicate
+allocation columns are generated via \code{replicate()} (one \pkg{randomizr} call per
+replicate; there is no batch/vectorized draw path for this design, unlike
+\code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}).
+
+\strong{Cluster-aware bootstrap.} \code{draw_bootstrap_indices()} overrides the default
+subject-level bootstrap to resample at the cluster level via
+\code{resample_group_rows_cpp()}: with \code{bootstrap_type = "within_blocks"}
+(the default when \code{bootstrap_type} is \code{NULL}), clusters are resampled with
+replacement \emph{within} each block, preserving the block structure; otherwise, whole
+blocks (strata) are themselves resampled with replacement. This mirrors the standard
+cluster-robust bootstrap principle that resampling must occur at the level of the
+randomization unit (clusters), not individual subjects, to yield a valid
+variance/interval estimate under cluster-correlated outcomes.
 }
 \examples{
 des = DesignFixedBlockedCluster$new(n = 20, response_type = 'continuous',
@@ -14,6 +47,16 @@ des = DesignFixedBlockedCluster$new(n = 20, response_type = 'continuous',
 X = data.frame(x1 = rnorm(20), x2 = factor(rep(1:2, each = 10)), cl = factor(rep(1:10, each = 2)))
 des$add_all_subjects_to_experiment(X)
 des$assign_w_to_all_subjects()
+}
+\references{
+Middleton, J. A., and Aronow, P. M. (2015). "Unbiased estimation of the
+  average treatment effect in cluster-randomized experiments." \emph{Statistics,
+  Politics and Policy}, 6(1-2), 39-75, \doi{10.1515/spp-2013-0002}, for
+  blocked/clustered randomized-assignment inference; see also the \pkg{randomizr}
+  \href{https://declaredesign.org/r/randomizr/articles/randomizr_vignette.html}{package
+  vignette} for the assignment-generation conventions this design relies on, and
+  \href{https://en.wikipedia.org/wiki/Cluster_randomised_controlled_trial}{cluster
+  randomized controlled trial} for orientation.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixedBlockedCluster}
@@ -31,9 +74,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subject_responses'><code>DesignFixed$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subjects_to_experiment'><code>DesignFixed$add_all_subjects_to_experiment()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-assign_w_to_all_subjects'><code>DesignFixed$assign_w_to_all_subjects()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-is_a_fixed'><code>DesignFixed$is_a_fixed()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-supports_resampling'><code>DesignFixed$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -65,6 +106,7 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -87,13 +129,15 @@ des$assign_w_to_all_subjects()
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_seq_one_by_one'><code>Design$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -101,11 +145,15 @@ des$assign_w_to_all_subjects()
 \if{html}{\out{<a id="method-DesignFixedBlockedCluster-is_a_cluster_capable"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedBlockedCluster-is_a_cluster_capable}{}}}
 \subsection{\code{DesignFixedBlockedCluster$is_a_cluster_capable()}}{
-  Characterization: this is a cluster-structured design.
+  Characterization: this design randomizes whole clusters (see
+  class documentation), so it is cluster-structured by construction.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedBlockedCluster$is_a_cluster_capable()}
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Always \code{TRUE} for this class.
   }
 }
 
@@ -113,7 +161,8 @@ des$assign_w_to_all_subjects()
 \if{html}{\out{<a id="method-DesignFixedBlockedCluster-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedBlockedCluster-initialize}{}}}
 \subsection{\code{DesignFixedBlockedCluster$new()}}{
-  Initialize a blocked and cluster randomized fixed experimental design
+  Initialize a blocked and cluster randomized fixed experimental
+  design.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedBlockedCluster$new(
@@ -138,7 +187,8 @@ des$assign_w_to_all_subjects()
       \item{\code{strata_cols}}{A character vector of column names to use for stratification (blocks).}
       \item{\code{cluster_col}}{The column name in the data that identifies the cluster for each subject.}
       \item{\code{response_type}}{The data type of response values.}
-      \item{\code{prob_T}}{The probability of the treatment assignment for each cluster.}
+      \item{\code{prob_T}}{The target probability that a given cluster within a block is
+assigned to treatment (subjects inherit their cluster's assignment).}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{preferred_num_bins_for_continuous_covariate}}{The number of quantile bins to use for continuous strata. Default is 2.}

@@ -87,21 +87,9 @@ double weighted_loglik_constrained_binomial(const Eigen::Ref<const Eigen::Matrix
   return ll;
 }
 
-bool all_finite_vec(const Eigen::Ref<const Eigen::VectorXd>& x) {
-  for (int i = 0; i < x.size(); ++i) {
-    if (!std::isfinite(x[i])) return false;
-  }
-  return true;
-}
-
-bool all_finite_mat(const Eigen::Ref<const Eigen::MatrixXd>& X) {
-  for (int j = 0; j < X.cols(); ++j) {
-    for (int i = 0; i < X.rows(); ++i) {
-      if (!std::isfinite(X(i, j))) return false;
-    }
-  }
-  return true;
-}
+// all_finite_vec/all_finite_mat are now the canonical versions in
+// _helper_functions_core.h (already in this file's include chain) -- see
+// their comment for why.
 
 // Evaluate log-likelihood directly from precomputed eta (avoids X*beta GEMV).
 inline double loglik_from_eta(const Eigen::VectorXd& eta,
@@ -650,206 +638,322 @@ Eigen::MatrixXd constrained_binomial_weighted_hessian_cpp_impl(const Eigen::Ref<
 }  // namespace
 
 #ifndef EDI_CORE_ONLY
-//' @title Compute Log-Binomial Regression Score
-//' @description Calculates the score vector (gradient of the log-likelihood) for a log-binomial regression model.
+//' Log-Link (Relative-Risk) Binomial Regression Score, Standalone (C++)
+//'
+//' Computes a \strong{numerical} (central finite-difference, step \eqn{h =
+//' 10^{-6}}) approximation of the score vector (gradient of the log-likelihood)
+//' of the constrained log-link binomial regression model documented in full at
+//' \code{\link{fast_log_binomial_regression_cpp}}, at arbitrary caller-supplied
+//' \code{beta} (not necessarily the MLE) — not an analytic derivative. Exported
+//' standalone — independent of any optimizer run — for direct numerical
+//' diagnostics (e.g. verifying convergence) at a specific parameter value.
+//'
 //' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
-//' @param beta A numeric vector of coefficients.
-//' @return A numeric vector representing the score.
+//' @param y_r A binary (0/1) numeric vector of responses.
+//' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
+//' @return The finite-difference-approximated score vector at \code{beta}.
+//' @seealso \code{\link{get_log_binomial_regression_hessian_cpp}} for the
+//'   corresponding (also finite-difference) Hessian at the same point;
+//'   \code{\link{fast_log_binomial_regression_cpp}} for the full model
+//'   documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-Eigen::VectorXd get_log_binomial_regression_score_cpp(SEXP X_r,
+Eigen::VectorXd get_log_binomial_regression_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
 													  SEXP y_r,
-													  SEXP beta) {
-    NumericMatrix X_mat(X_r);
+													  const Eigen::Map<Eigen::VectorXd>& beta) {
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    NumericVector beta_r(beta);
-    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
-	return constrained_binomial_score_cpp_impl(X, y, beta_vec, BinomialConstrainedLink::kLog);
+	return constrained_binomial_score_cpp_impl(X, y, beta, BinomialConstrainedLink::kLog);
 }
 
-//' @title Compute Log-Binomial Regression Hessian
-//' @description Calculates the Hessian matrix (second derivatives of the log-likelihood) for a log-binomial regression model.
+//' Log-Link (Relative-Risk) Binomial Regression Hessian, Standalone (C++)
+//'
+//' Computes a \strong{numerical} (central finite-difference 4-point stencil, step
+//' \eqn{h = 10^{-4}}) approximation of the Hessian matrix of the log-likelihood of
+//' the constrained log-link binomial regression model documented in full at
+//' \code{\link{fast_log_binomial_regression_cpp}}, at arbitrary caller-supplied
+//' \code{beta} (not necessarily the MLE) — not an analytic second derivative.
+//' Exported standalone — independent of any optimizer run — for direct numerical
+//' diagnostics at a specific parameter value.
+//'
 //' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
-//' @param beta A numeric vector of coefficients.
-//' @return A numeric matrix representing the Hessian.
+//' @param y_r A binary (0/1) numeric vector of responses.
+//' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
+//' @return The finite-difference-approximated Hessian matrix of the log-likelihood at \code{beta}.
+//' @seealso \code{\link{get_log_binomial_regression_score_cpp}} for the
+//'   corresponding (also finite-difference) gradient at the same point;
+//'   \code{\link{fast_log_binomial_regression_cpp}} for the full model
+//'   documentation, including the probability-boundary constraint this Hessian is
+//'   evaluated without enforcing.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-Eigen::MatrixXd get_log_binomial_regression_hessian_cpp(SEXP X_r,
+Eigen::MatrixXd get_log_binomial_regression_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
 														SEXP y_r,
-														SEXP beta) {
-    NumericMatrix X_mat(X_r);
+														const Eigen::Map<Eigen::VectorXd>& beta) {
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    NumericVector beta_r(beta);
-    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
-	return constrained_binomial_hessian_cpp_impl(X, y, beta_vec, BinomialConstrainedLink::kLog);
+	return constrained_binomial_hessian_cpp_impl(X, y, beta, BinomialConstrainedLink::kLog);
 }
 
-//' @title Compute Weighted Log-Binomial Regression Score
-//' @description Calculates the weighted score vector for a log-binomial regression model.
+//' Weighted Log-Link (Relative-Risk) Binomial Regression Score, Standalone (C++)
+//'
+//' Computes the observation-weighted score vector (gradient of the weighted
+//' log-likelihood) of the constrained log-link binomial regression model
+//' documented in full at \code{\link{fast_log_binomial_regression_cpp}}, at
+//' arbitrary caller-supplied \code{beta} (not necessarily the MLE), with each
+//' observation's contribution multiplied by \code{weights_r[i]}, via a
+//' \strong{numerical} (central finite-difference, step \eqn{h = 10^{-6}})
+//' approximation — not an analytic derivative. Exported standalone — independent
+//' of any optimizer run — for direct numerical diagnostics at a specific
+//' parameter value.
+//'
 //' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
+//' @param y_r A binary (0/1) numeric vector of responses.
 //' @param weights_r A nonnegative numeric vector of observation weights.
-//' @param beta A numeric vector of coefficients.
-//' @return A numeric vector representing the weighted score.
+//' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
+//' @return The finite-difference-approximated weighted score vector at \code{beta}.
+//' @seealso \code{\link{get_log_binomial_regression_weighted_hessian_cpp}} for
+//'   the corresponding weighted Hessian at the same point;
+//'   \code{\link{get_log_binomial_regression_score_cpp}} for the unweighted
+//'   version; \code{\link{fast_log_binomial_regression_cpp}} for the full model
+//'   documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-Eigen::VectorXd get_log_binomial_regression_weighted_score_cpp(SEXP X_r,
+Eigen::VectorXd get_log_binomial_regression_weighted_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
                                                                SEXP y_r,
                                                                SEXP weights_r,
-                                                               SEXP beta) {
-    NumericMatrix X_mat(X_r);
+                                                               const Eigen::Map<Eigen::VectorXd>& beta) {
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     NumericVector weights_vec(weights_r);
     Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());
-    NumericVector beta_r(beta);
-    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
-  return constrained_binomial_weighted_score_cpp_impl(X, y, weights, beta_vec, BinomialConstrainedLink::kLog);
+  return constrained_binomial_weighted_score_cpp_impl(X, y, weights, beta, BinomialConstrainedLink::kLog);
 }
 
-//' @title Compute Weighted Log-Binomial Regression Hessian
-//' @description Calculates the weighted Hessian matrix for a log-binomial regression model.
+//' Weighted Log-Link (Relative-Risk) Binomial Regression Hessian, Standalone (C++)
+//'
+//' Computes the observation-weighted Hessian matrix of the weighted log-likelihood
+//' of the constrained log-link binomial regression model documented in full at
+//' \code{\link{fast_log_binomial_regression_cpp}}, at arbitrary caller-supplied
+//' \code{beta} (not necessarily the MLE), with each observation's contribution
+//' multiplied by \code{weights_r[i]}, via a \strong{numerical} (central
+//' finite-difference 4-point stencil, step \eqn{h = 10^{-4}}) approximation —
+//' not an analytic second derivative. Exported standalone — independent of any
+//' optimizer run — for direct numerical diagnostics at a specific parameter value.
+//'
 //' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
+//' @param y_r A binary (0/1) numeric vector of responses.
 //' @param weights_r A nonnegative numeric vector of observation weights.
-//' @param beta A numeric vector of coefficients.
+//' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
+//' @return The finite-difference-approximated weighted Hessian matrix at \code{beta}.
+//' @seealso \code{\link{get_log_binomial_regression_weighted_score_cpp}} for
+//'   the corresponding weighted gradient at the same point;
+//'   \code{\link{get_log_binomial_regression_hessian_cpp}} for the unweighted
+//'   version; \code{\link{fast_log_binomial_regression_cpp}} for the full model
+//'   documentation.
 //' @return A numeric matrix representing the weighted Hessian.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-Eigen::MatrixXd get_log_binomial_regression_weighted_hessian_cpp(SEXP X_r,
+Eigen::MatrixXd get_log_binomial_regression_weighted_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
                                                                  SEXP y_r,
                                                                  SEXP weights_r,
-                                                                 SEXP beta) {
-    NumericMatrix X_mat(X_r);
+                                                                 const Eigen::Map<Eigen::VectorXd>& beta) {
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     NumericVector weights_vec(weights_r);
     Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());
-    NumericVector beta_r(beta);
-    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
-  return constrained_binomial_weighted_hessian_cpp_impl(X, y, weights, beta_vec, BinomialConstrainedLink::kLog);
+  return constrained_binomial_weighted_hessian_cpp_impl(X, y, weights, beta, BinomialConstrainedLink::kLog);
 }
 
-//' @title Compute Identity-Binomial Regression Score
-//' @description Calculates the score vector for a binomial regression model with an identity link.
+//' Identity-Link (Risk-Difference) Binomial Regression Score, Standalone (C++)
+//'
+//' Computes a \strong{numerical} (central finite-difference, step \eqn{h =
+//' 10^{-6}}) approximation of the score vector (gradient of the log-likelihood)
+//' of the constrained identity-link binomial regression model documented in full
+//' at \code{\link{fast_identity_binomial_regression_cpp}}, at arbitrary
+//' caller-supplied \code{beta} (not necessarily the MLE) — not an analytic
+//' derivative. Exported standalone — independent of any optimizer run — for
+//' direct numerical diagnostics (e.g. verifying convergence, or cross-checking an
+//' analytic gradient elsewhere) at a specific parameter value.
+//'
 //' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
-//' @param beta A numeric vector of coefficients.
-//' @return A numeric vector representing the score.
+//' @param y_r A binary (0/1) numeric vector of responses.
+//' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
+//' @return The finite-difference-approximated score vector at \code{beta}.
+//' @seealso \code{\link{get_identity_binomial_regression_hessian_cpp}} for the
+//'   corresponding (also finite-difference) Hessian at the same point;
+//'   \code{\link{fast_identity_binomial_regression_cpp}} for the full model
+//'   documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-Eigen::VectorXd get_identity_binomial_regression_score_cpp(SEXP X_r,
+Eigen::VectorXd get_identity_binomial_regression_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
 														   SEXP y_r,
-														   SEXP beta) {
-    NumericMatrix X_mat(X_r);
+														   const Eigen::Map<Eigen::VectorXd>& beta) {
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    NumericVector beta_r(beta);
-    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
-	return constrained_binomial_score_cpp_impl(X, y, beta_vec, BinomialConstrainedLink::kIdentity);
+	return constrained_binomial_score_cpp_impl(X, y, beta, BinomialConstrainedLink::kIdentity);
 }
 
-//' @title Compute Identity-Binomial Regression Hessian
-//' @description Calculates the Hessian matrix for a binomial regression model with an identity link.
+//' Identity-Link (Risk-Difference) Binomial Regression Hessian, Standalone (C++)
+//'
+//' Computes a \strong{numerical} (central finite-difference 4-point stencil, step
+//' \eqn{h = 10^{-4}}) approximation of the Hessian matrix of the log-likelihood of
+//' the constrained identity-link binomial regression model documented in full at
+//' \code{\link{fast_identity_binomial_regression_cpp}}, at arbitrary
+//' caller-supplied \code{beta} (not necessarily the MLE) — not an analytic
+//' second derivative. Exported standalone — independent of any optimizer run —
+//' for direct numerical diagnostics at a specific parameter value.
+//'
 //' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
-//' @param beta A numeric vector of coefficients.
-//' @return A numeric matrix representing the Hessian.
+//' @param y_r A binary (0/1) numeric vector of responses.
+//' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
+//' @return The finite-difference-approximated Hessian matrix of the log-likelihood at \code{beta}.
+//' @seealso \code{\link{get_identity_binomial_regression_score_cpp}} for the
+//'   corresponding (also finite-difference) gradient at the same point;
+//'   \code{\link{fast_identity_binomial_regression_cpp}} for the full model
+//'   documentation, including the probability-boundary constraint this Hessian is
+//'   evaluated without enforcing.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-Eigen::MatrixXd get_identity_binomial_regression_hessian_cpp(SEXP X_r,
+Eigen::MatrixXd get_identity_binomial_regression_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
 															 SEXP y_r,
-															 SEXP beta) {
-    NumericMatrix X_mat(X_r);
+															 const Eigen::Map<Eigen::VectorXd>& beta) {
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
-    NumericVector beta_r(beta);
-    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
-	return constrained_binomial_hessian_cpp_impl(X, y, beta_vec, BinomialConstrainedLink::kIdentity);
+	return constrained_binomial_hessian_cpp_impl(X, y, beta, BinomialConstrainedLink::kIdentity);
 }
 
-//' @title Compute Weighted Identity-Binomial Regression Score
-//' @description Calculates the weighted score vector for a binomial regression model with an identity link.
+//' Weighted Identity-Link (Risk-Difference) Binomial Regression Score, Standalone (C++)
+//'
+//' Computes the observation-weighted score vector (gradient of the weighted
+//' log-likelihood) of the constrained identity-link binomial regression model
+//' documented in full at \code{\link{fast_identity_binomial_regression_cpp}}, at
+//' arbitrary caller-supplied \code{beta} (not necessarily the MLE), with each
+//' observation's contribution multiplied by \code{weights_r[i]}, via a
+//' \strong{numerical} (central finite-difference, step \eqn{h = 10^{-6}})
+//' approximation — not an analytic derivative. Exported standalone — independent
+//' of any optimizer run — for direct numerical diagnostics at a specific
+//' parameter value.
+//'
 //' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
+//' @param y_r A binary (0/1) numeric vector of responses.
 //' @param weights_r A nonnegative numeric vector of observation weights.
-//' @param beta A numeric vector of coefficients.
-//' @return A numeric vector representing the weighted score.
+//' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
+//' @return The finite-difference-approximated weighted score vector at \code{beta}.
+//' @seealso \code{\link{get_identity_binomial_regression_weighted_hessian_cpp}} for
+//'   the corresponding weighted Hessian at the same point;
+//'   \code{\link{get_identity_binomial_regression_score_cpp}} for the unweighted
+//'   version; \code{\link{fast_identity_binomial_regression_cpp}} for the full model
+//'   documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-Eigen::VectorXd get_identity_binomial_regression_weighted_score_cpp(SEXP X_r,
+Eigen::VectorXd get_identity_binomial_regression_weighted_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
                                                                     SEXP y_r,
                                                                     SEXP weights_r,
-                                                                    SEXP beta) {
-    NumericMatrix X_mat(X_r);
+                                                                    const Eigen::Map<Eigen::VectorXd>& beta) {
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     NumericVector weights_vec(weights_r);
     Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());
-    NumericVector beta_r(beta);
-    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
-  return constrained_binomial_weighted_score_cpp_impl(X, y, weights, beta_vec, BinomialConstrainedLink::kIdentity);
+  return constrained_binomial_weighted_score_cpp_impl(X, y, weights, beta, BinomialConstrainedLink::kIdentity);
 }
 
-//' @title Compute Weighted Identity-Binomial Regression Hessian
-//' @description Calculates the weighted Hessian matrix for a binomial regression model with an identity link.
+//' Weighted Identity-Link (Risk-Difference) Binomial Regression Hessian, Standalone (C++)
+//'
+//' Computes the observation-weighted Hessian matrix of the weighted log-likelihood
+//' of the constrained identity-link binomial regression model documented in full
+//' at \code{\link{fast_identity_binomial_regression_cpp}}, at arbitrary
+//' caller-supplied \code{beta} (not necessarily the MLE), with each observation's
+//' contribution multiplied by \code{weights_r[i]}, via a \strong{numerical}
+//' (central finite-difference 4-point stencil, step \eqn{h = 10^{-4}})
+//' approximation — not an analytic second derivative. Exported standalone —
+//' independent of any optimizer run — for direct numerical diagnostics at a
+//' specific parameter value.
+//'
 //' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
+//' @param y_r A binary (0/1) numeric vector of responses.
 //' @param weights_r A nonnegative numeric vector of observation weights.
-//' @param beta A numeric vector of coefficients.
-//' @return A numeric matrix representing the weighted Hessian.
+//' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
+//' @return The finite-difference-approximated weighted Hessian matrix at \code{beta}.
+//' @seealso \code{\link{get_identity_binomial_regression_weighted_score_cpp}} for
+//'   the corresponding weighted gradient at the same point;
+//'   \code{\link{get_identity_binomial_regression_hessian_cpp}} for the unweighted
+//'   version; \code{\link{fast_identity_binomial_regression_cpp}} for the full model
+//'   documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-Eigen::MatrixXd get_identity_binomial_regression_weighted_hessian_cpp(SEXP X_r,
+Eigen::MatrixXd get_identity_binomial_regression_weighted_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
                                                                       SEXP y_r,
                                                                       SEXP weights_r,
-                                                                      SEXP beta) {
-    NumericMatrix X_mat(X_r);
+                                                                      const Eigen::Map<Eigen::VectorXd>& beta) {
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     NumericVector weights_vec(weights_r);
     Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());
-    NumericVector beta_r(beta);
-    Eigen::Map<const Eigen::VectorXd> beta_vec(beta_r.begin(), beta_r.size());
-  return constrained_binomial_weighted_hessian_cpp_impl(X, y, weights, beta_vec, BinomialConstrainedLink::kIdentity);
+  return constrained_binomial_weighted_hessian_cpp_impl(X, y, weights, beta, BinomialConstrainedLink::kIdentity);
 }
 
-//' @title Fast Log-Binomial Regression (C++)
-//' @description High-performance log-binomial regression fitting using Fisher scoring.
-//' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
-//' @param maxit Maximum number of iterations.
-//' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
+//' Fast Log-Link Binomial Regression, Estimate Only (C++ Backend)
+//'
+//' Fits a binary-response GLM with the \strong{log} link (a relative-risk
+//' model), \eqn{\log \mu_i = \log \Pr(Y_i = 1) = x_i^\top \beta} (equivalently
+//' \eqn{\mu_i = e^{x_i^\top \beta}}, constrained to stay below
+//' \eqn{1 - 10^{-8}} so it remains a valid probability), via Fisher scoring
+//' (IRLS) with a step-halving line search that rejects any Newton step whose
+//' resulting \eqn{\eta_i = x_i^\top \beta} would push \eqn{\mu_i} out of range
+//' or decrease the log-likelihood — the same boundary-constrained-line-search
+//' mechanism documented in full at
+//' \code{\link{fast_identity_binomial_regression_cpp}} (see that page for the
+//' IRLS/line-search mechanics, which are shared verbatim between the log and
+//' identity links here; only the link function itself, and hence the
+//' coefficient scale, differs). Regression coefficients are directly
+//' interpretable as \strong{log relative risks}: \eqn{e^{\beta_j}} is the
+//' multiplicative change in \eqn{\Pr(Y = 1)} per unit change in covariate
+//' \eqn{j} — in contrast to
+//' \code{\link{fast_identity_binomial_regression_cpp}}'s risk-difference scale,
+//' or a logit-link model's odds-ratio scale.
+//'
+//' @param X_r A numeric matrix of predictors, \eqn{n \times p}; include an
+//'   explicit intercept column if desired (no implicit intercept).
+//' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
+//' @param maxit Maximum number of Fisher-scoring iterations.
+//' @param tol Convergence tolerance, on the relative norm of the coefficient
+//'   update step.
+//' @param fixed_idx Optional integer indices of coefficients to hold fixed
+//'   rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients and fitted values.
+//' @return A list with components \code{b} (estimated coefficients
+//'   \eqn{\hat\beta}, on the log-relative-risk scale), \code{mu_hat} (fitted
+//'   probabilities, length \eqn{n}), \code{working_weights} (final IRLS
+//'   weights), \code{iterations}, \code{converged} (logical), and
+//'   \code{fisher_information} (the working-weights curvature matrix
+//'   \eqn{X^\top W X}).
+//' @seealso \code{\link{fast_identity_binomial_regression_cpp}} for the
+//'   identity-link (risk-difference) analog and the full IRLS/line-search
+//'   mechanics; \code{\link{fast_log_binomial_regression_with_var_cpp}} for the
+//'   variance-augmented variant; \code{\link{fast_log_binomial_regression_weighted_cpp}}
+//'   for the row-weighted variant.
+//'   \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson
+//'   regression}'s log link is the closest common orientation point for a
+//'   log-link GLM. Analogous Python API:
+//'   \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM}
+//'   (\code{families.Binomial(link=log())}).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_log_binomial_regression_cpp(SEXP X_r,
+List fast_log_binomial_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
                                       SEXP y_r,
                                       int maxit = 100,
                                       double tol = 1e-6,
@@ -860,30 +964,53 @@ List fast_log_binomial_regression_cpp(SEXP X_r,
                                       Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
                                       Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
                                       bool estimate_only = false) {
-    NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
   return edi::to_rcpp_list(fit_constrained_binomial_cpp_impl(X, y, BinomialConstrainedLink::kLog, maxit, tol, nullable_to_optional<Eigen::VectorXi>(fixed_idx), nullable_to_optional<Eigen::VectorXd>(fixed_values), nullable_to_optional<Eigen::VectorXd>(warm_start_beta), smart_cold_start, nullable_to_optional<Eigen::VectorXd>(warm_start_weights), nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info), estimate_only));
 }
 
-//' @title Fast Log-Binomial Regression with Variance (C++)
-//' @description Log-binomial regression with variance-covariance matrix and standard errors.
-//' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
-//' @param j 1-based index of the parameter for which to return specific variance.
-//' @param maxit Maximum number of iterations.
+//' Fast Log-Link Binomial Regression with Targeted Variance (C++ Backend)
+//'
+//' Fits the same log-link (relative-risk) binomial regression as
+//' \code{\link{fast_log_binomial_regression_cpp}} (see that page for the full
+//' model) and additionally computes the variance of a single caller-selected
+//' coefficient — the log-link analog of
+//' \code{\link{fast_identity_binomial_regression_with_var_cpp}}, sharing
+//' exactly the same targeted-diagonal-entry variance mechanism and the same
+//' caveat: this entry point does \strong{not} compute or return a full
+//' variance-covariance matrix or per-coefficient standard errors, despite its
+//' name; only the coefficient named by \code{j} gets a variance
+//' (\code{ssq_b_j}), and the returned \code{vcov}/\code{std_err}/\code{z_vals}
+//' fields are always empty placeholders (see
+//' \code{\link{fast_identity_binomial_regression_with_var_cpp}}'s Details for
+//' the exact mechanics, identical here up to the link function).
+//'
+//' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+//' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
+//' @param j 1-based index (into \code{X}'s columns) of the coefficient to
+//'   compute \code{ssq_b_j} for.
+//' @param maxit Maximum number of Fisher-scoring iterations.
 //' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
+//' @param fixed_idx Optional integer indices of coefficients to hold fixed
+//'   rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients, vcov, and standard errors.
+//' @return A list with components \code{b}, \code{ssq_b_j}, \code{converged},
+//'   \code{fisher_information}, \code{neg_ll}/\code{logLik} (present only on
+//'   the success path), and the always-empty \code{vcov}/\code{std_err}/
+//'   \code{z_vals} placeholders; see
+//'   \code{\link{fast_identity_binomial_regression_with_var_cpp}} for the exact
+//'   field semantics (shared verbatim here).
+//' @seealso \code{\link{fast_log_binomial_regression_cpp}} for the
+//'   estimate-only variant; \code{\link{fast_identity_binomial_regression_with_var_cpp}}
+//'   for the identity-link analog with the same targeted-variance mechanism.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_log_binomial_regression_with_var_cpp(SEXP X_r,
+List fast_log_binomial_regression_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
                                                SEXP y_r,
                                                int j = 2,
                                                int maxit = 100,
@@ -894,30 +1021,43 @@ List fast_log_binomial_regression_with_var_cpp(SEXP X_r,
                                                bool smart_cold_start = true,
                                                Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
                                                Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
   return edi::to_rcpp_list(fit_constrained_binomial_with_var_cpp_impl(X, y, BinomialConstrainedLink::kLog, j, maxit, tol, nullable_to_optional<Eigen::VectorXi>(fixed_idx), nullable_to_optional<Eigen::VectorXd>(fixed_values), nullable_to_optional<Eigen::VectorXd>(warm_start_beta), smart_cold_start, nullable_to_optional<Eigen::VectorXd>(warm_start_weights), nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info)));
 }
 
-//' @title Fast Weighted Log-Binomial Regression (C++)
-//' @description High-performance weighted log-binomial regression fitting using Fisher scoring.
-//' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
-//' @param weights_r A nonnegative numeric vector of observation weights.
-//' @param maxit Maximum number of iterations.
+//' Fast Weighted Log-Link Binomial Regression, Estimate Only (C++ Backend)
+//'
+//' Fits the same log-link (relative-risk) binomial regression as
+//' \code{\link{fast_log_binomial_regression_cpp}} (see that page for the full
+//' model and boundary-constrained IRLS line search), with each observation's
+//' contribution to the log-likelihood and IRLS working weights multiplied by a
+//' nonnegative row weight \code{weights_r[i]}. Setting all weights to 1
+//' recovers \code{\link{fast_log_binomial_regression_cpp}} exactly.
+//'
+//' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+//' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
+//' @param weights_r A nonnegative numeric vector of length \eqn{n} giving each
+//'   row's weight.
+//' @param maxit Maximum number of Fisher-scoring iterations.
 //' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
+//' @param fixed_idx Optional integer indices of coefficients to hold fixed
+//'   rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients and fitted values.
+//' @return A list with the same components as
+//'   \code{\link{fast_log_binomial_regression_cpp}}: \code{b}, \code{mu_hat},
+//'   \code{working_weights}, \code{iterations}, \code{converged}, and
+//'   \code{fisher_information} (all reflecting the weighted log-likelihood).
+//' @seealso \code{\link{fast_log_binomial_regression_cpp}} for the unweighted
+//'   model and full documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_log_binomial_regression_weighted_cpp(SEXP X_r,
+List fast_log_binomial_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
                                                SEXP y_r,
                                                SEXP weights_r,
                                                int maxit = 100,
@@ -929,31 +1069,87 @@ List fast_log_binomial_regression_weighted_cpp(SEXP X_r,
                                                Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
                                                Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
                                                bool estimate_only = false) {
-    NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     NumericVector weights_vec(weights_r);
     Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());
   return edi::to_rcpp_list(fit_constrained_binomial_weighted_cpp_impl(X, y, weights, BinomialConstrainedLink::kLog, maxit, tol, nullable_to_optional<Eigen::VectorXi>(fixed_idx), nullable_to_optional<Eigen::VectorXd>(fixed_values), nullable_to_optional<Eigen::VectorXd>(warm_start_beta), smart_cold_start, nullable_to_optional<Eigen::VectorXd>(warm_start_weights), nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info), estimate_only));
 }
 
-//' @title Fast Identity-Binomial Regression (C++)
-//' @description High-performance binomial regression with identity link using Fisher scoring.
-//' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
-//' @param maxit Maximum number of iterations.
-//' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
+//' Fast Identity-Link Binomial Regression, Estimate Only (C++ Backend)
+//'
+//' Fits a binary-response GLM with the \strong{identity} link (a linear
+//' probability / risk-difference model), \eqn{\mu_i = \Pr(Y_i = 1) = x_i^\top \beta}
+//' (constrained to \eqn{(10^{-8}, 1 - 10^{-8})}; no other link transformation is
+//' applied), via Fisher scoring (IRLS) with a step-halving line search that
+//' rejects any Newton step whose resulting \eqn{\eta_i = x_i^\top \beta} would
+//' leave the valid probability range or decrease the log-likelihood — this
+//' boundary-constrained line search, not a link-function transform, is what
+//' keeps fitted probabilities in \eqn{(0, 1)} for this otherwise-unconstrained
+//' linear-in-\eqn{\beta} model. Regression coefficients on the identity-link
+//' scale are directly interpretable as \strong{risk differences}: \eqn{\beta_j}
+//' is the change in \eqn{\Pr(Y = 1)} per unit change in covariate \eqn{j}, in
+//' contrast to \code{fast_log_binomial_regression_cpp}'s log-link coefficients
+//' (interpretable as log relative risks) or a standard logit-link model's
+//' log-odds-ratio coefficients.
+//'
+//' @details
+//' \strong{Optimization.} Each Fisher-scoring iteration solves a weighted
+//' least-squares step using working weights
+//' \eqn{w_i = 1 / \max(\mu_i(1-\mu_i), 10^{-8})} (the inverse Bernoulli variance,
+//' clamped away from 0 for stability near the boundary), then backtracks
+//' (halving the step size, down to a minimum step of \eqn{10^{-8}}) until the
+//' resulting \eqn{\eta} stays within \eqn{(10^{-8}, 1-10^{-8})} for every
+//' observation \emph{and} the log-likelihood does not decrease; a step that
+//' cannot be accepted at any halving depth terminates iteration without
+//' \code{converged = TRUE}. \code{fixed_idx}/\code{fixed_values} hold specific
+//' coefficients fixed rather than estimated; \code{warm_start_beta} (or, when
+//' absent, an OLS-based guess if \code{smart_cold_start = TRUE}) seeds the
+//' first iteration, and \code{warm_start_weights}/\code{warm_start_fisher_info}
+//' warm-start the first IRLS working-weights/curvature computation.
+//'
+//' \strong{No guarantee of a feasible solution.} Because the identity link has
+//' no inherent boundary protection, some \eqn{(X, y)} configurations (e.g.
+//' extreme covariate values, near-perfect separation, or an ill-conditioned
+//' \code{X}) may have no interior maximum-likelihood solution reachable by this
+//' constrained line search; such cases surface as \code{converged = FALSE}
+//' rather than a silently invalid (out-of-range) fitted probability.
+//'
+//' @param X_r A numeric matrix of predictors, \eqn{n \times p}; include an
+//'   explicit intercept column if desired (no implicit intercept).
+//' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
+//' @param maxit Maximum number of Fisher-scoring iterations.
+//' @param tol Convergence tolerance, on the relative norm of the coefficient
+//'   update step.
+//' @param fixed_idx Optional integer indices of coefficients to hold fixed
+//'   rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
+//' @param smart_cold_start Logical. If \code{TRUE} (default) and no
+//'   \code{warm_start_beta} is supplied, use an OLS-based initial guess.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients and fitted values.
+//' @return A list with components \code{b} (estimated coefficients
+//'   \eqn{\hat\beta}, on the risk-difference/identity scale), \code{mu_hat}
+//'   (fitted probabilities \eqn{\hat\mu_i}, length \eqn{n}), \code{working_weights}
+//'   (the final IRLS weights \eqn{w_i}), \code{iterations} (number of Fisher-
+//'   scoring iterations performed), \code{converged} (logical; also requires all
+//'   of \code{b}, \code{mu_hat}, \code{working_weights} to be finite), and
+//'   \code{fisher_information} (the working-weights curvature matrix
+//'   \eqn{X^\top W X}).
+//' @seealso \code{\link{fast_identity_binomial_regression_with_var_cpp}} for the
+//'   variance-augmented variant; \code{\link{fast_identity_binomial_regression_weighted_cpp}}
+//'   for the row-weighted variant; \code{fast_log_binomial_regression_cpp} for
+//'   the log-link (relative-risk) analog of this model.
+//'   \href{https://en.wikipedia.org/wiki/Generalized_linear_model}{Generalized
+//'   linear model} for orientation. Analogous Python API:
+//'   \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM}
+//'   (\code{families.Binomial(link=identity())}).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_identity_binomial_regression_cpp(SEXP X_r,
+List fast_identity_binomial_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
                                            SEXP y_r,
                                            int maxit = 100,
                                            double tol = 1e-6,
@@ -963,30 +1159,66 @@ List fast_identity_binomial_regression_cpp(SEXP X_r,
                                            bool smart_cold_start = true,
                                            Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
                                            Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
   return edi::to_rcpp_list(fit_constrained_binomial_cpp_impl(X, y, BinomialConstrainedLink::kIdentity, maxit, tol, nullable_to_optional<Eigen::VectorXi>(fixed_idx), nullable_to_optional<Eigen::VectorXd>(fixed_values), nullable_to_optional<Eigen::VectorXd>(warm_start_beta), smart_cold_start, nullable_to_optional<Eigen::VectorXd>(warm_start_weights), nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info)));
 }
 
-//' @title Fast Identity-Binomial Regression with Variance (C++)
-//' @description Binomial regression with identity link, providing variance-covariance matrix and standard errors.
-//' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
-//' @param j 1-based index of the parameter for which to return specific variance.
-//' @param maxit Maximum number of iterations.
+//' Fast Identity-Link Binomial Regression with Targeted Variance (C++ Backend)
+//'
+//' Fits the same identity-link (risk-difference) binomial regression as
+//' \code{\link{fast_identity_binomial_regression_cpp}} (see that page for the
+//' full model and boundary-constrained IRLS line search) and additionally
+//' computes the variance of a single caller-selected coefficient, via a targeted
+//' diagonal-entry inversion of the working-weights Fisher information — this
+//' entry point does \strong{not} compute or return a full variance-covariance
+//' matrix or a vector of standard errors for every coefficient, despite its
+//' name; only the one coefficient named by \code{j} gets a variance
+//' (\code{ssq_b_j}).
+//'
+//' @details
+//' \strong{Variance computation.} The IRLS working-weights Fisher information
+//' \eqn{X^\top W X} (reused from the underlying fit if finite and correctly
+//' sized, else recomputed from the final working weights) is restricted to the
+//' free (non-\code{fixed_idx}) parameters and factorized via LDLT; \code{ssq_b_j}
+//' is then obtained from a single targeted diagonal-entry inversion
+//' (\code{compute_diagonal_inverse_entry()}) at the free-parameter position
+//' corresponding to \code{j}, not a full matrix inverse. If the underlying fit
+//' did not converge, or the LDLT factorization fails (e.g. a rank-deficient
+//' free-parameter information matrix), the function returns early with
+//' \code{converged = FALSE}, \code{ssq_b_j = NA}, and empty
+//' (zero-length/zero-dimension) \code{vcov}/\code{std_err}/\code{z_vals}
+//' placeholders — these three fields are \strong{only ever populated as empty
+//' placeholders}, on both the success and failure paths; no caller should rely
+//' on them containing actual values.
+//'
+//' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+//' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
+//' @param j 1-based index (into \code{X}'s columns) of the coefficient to
+//'   compute \code{ssq_b_j} for.
+//' @param maxit Maximum number of Fisher-scoring iterations.
 //' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
+//' @param fixed_idx Optional integer indices of coefficients to hold fixed
+//'   rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients, vcov, and standard errors.
+//' @return A list with components \code{b} (estimated coefficients
+//'   \eqn{\hat\beta}), \code{ssq_b_j} (the variance of \eqn{\hat\beta_j}, or
+//'   \code{NA} on failure), \code{converged} (logical), \code{fisher_information}
+//'   (the working-weights curvature matrix used for \code{ssq_b_j}, present only
+//'   on the success path), \code{neg_ll}/\code{logLik} (the negative/positive
+//'   log-likelihood at \eqn{\hat\beta}, present only on the success path), and
+//'   the always-empty \code{vcov}/\code{std_err}/\code{z_vals} placeholders
+//'   described in Details.
+//' @seealso \code{\link{fast_identity_binomial_regression_cpp}} for the
+//'   estimate-only variant and the full model documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_identity_binomial_regression_with_var_cpp(SEXP X_r,
+List fast_identity_binomial_regression_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
                                                     SEXP y_r,
                                                     int j = 2,
                                                     int maxit = 100,
@@ -997,30 +1229,47 @@ List fast_identity_binomial_regression_with_var_cpp(SEXP X_r,
                                                     bool smart_cold_start = true,
                                                     Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
                                                     Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-    NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
   return edi::to_rcpp_list(fit_constrained_binomial_with_var_cpp_impl(X, y, BinomialConstrainedLink::kIdentity, j, maxit, tol, nullable_to_optional<Eigen::VectorXi>(fixed_idx), nullable_to_optional<Eigen::VectorXd>(fixed_values), nullable_to_optional<Eigen::VectorXd>(warm_start_beta), smart_cold_start, nullable_to_optional<Eigen::VectorXd>(warm_start_weights), nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info)));
 }
 
-//' @title Fast Weighted Identity-Binomial Regression (C++)
-//' @description High-performance weighted binomial regression with identity link using Fisher scoring.
-//' @param X_r A numeric matrix of predictors.
-//' @param y_r A binary numeric vector of responses.
-//' @param weights_r A nonnegative numeric vector of observation weights.
-//' @param maxit Maximum number of iterations.
+//' Fast Weighted Identity-Link Binomial Regression, Estimate Only (C++ Backend)
+//'
+//' Fits the same identity-link (risk-difference) binomial regression as
+//' \code{\link{fast_identity_binomial_regression_cpp}} (see that page for the
+//' full model, boundary-constrained IRLS line search, and interpretation), with
+//' each observation's contribution to the log-likelihood and IRLS working
+//' weights multiplied by a nonnegative row weight \code{weights_r[i]}. Setting
+//' all weights to 1 recovers \code{\link{fast_identity_binomial_regression_cpp}}
+//' exactly; this is the backend used when the identity-link model must be fit on
+//' bootstrap-reweighted or otherwise weighted data.
+//'
+//' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+//' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
+//' @param weights_r A nonnegative numeric vector of length \eqn{n} giving each
+//'   row's weight.
+//' @param maxit Maximum number of Fisher-scoring iterations.
 //' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
+//' @param fixed_idx Optional integer indices of coefficients to hold fixed
+//'   rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients and fitted values.
+//' @return A list with the same components as
+//'   \code{\link{fast_identity_binomial_regression_cpp}}: \code{b},
+//'   \code{mu_hat}, \code{working_weights}, \code{iterations}, \code{converged},
+//'   and \code{fisher_information} (all reflecting the weighted log-likelihood).
+//' @seealso \code{\link{fast_identity_binomial_regression_cpp}} for the
+//'   unweighted model and full documentation;
+//'   \code{\link{fast_identity_binomial_regression_with_var_cpp}} for the
+//'   (unweighted) variance-augmented variant.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_identity_binomial_regression_weighted_cpp(SEXP X_r,
+List fast_identity_binomial_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
                                                     SEXP y_r,
                                                     SEXP weights_r,
                                                     int maxit = 100,
@@ -1032,9 +1281,7 @@ List fast_identity_binomial_regression_weighted_cpp(SEXP X_r,
                                                     Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
                                                     Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
                                                     bool estimate_only = false) {
-    NumericMatrix X_mat(X_r);
     NumericVector y_vec(y_r);
-    Eigen::Map<const Eigen::MatrixXd> X(X_mat.begin(), X_mat.nrow(), X_mat.ncol());
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     NumericVector weights_vec(weights_r);
     Eigen::Map<const Eigen::VectorXd> weights(weights_vec.begin(), weights_vec.size());

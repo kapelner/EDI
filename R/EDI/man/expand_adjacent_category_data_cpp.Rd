@@ -2,23 +2,86 @@
 % Please edit documentation in R/RcppExports.R
 \name{expand_adjacent_category_data_cpp}
 \alias{expand_adjacent_category_data_cpp}
-\title{Expand Adjacent Category Data (C++)}
+\title{Expand Ordinal Data into Stacked Binary Comparisons for Adjacent-Category Logit
+Regression (C++ Backend)}
 \usage{
 expand_adjacent_category_data_cpp(y, w, strata, K)
 }
 \arguments{
-\item{y}{Vector of responses.}
+\item{y}{Integer vector of length \eqn{n}: each subject's ordinal category label,
+in \code{1:K}.}
 
-\item{w}{Vector of treatment indicators.}
+\item{w}{Integer vector of length \eqn{n}: a covariate (typically treatment
+assignment) carried through unchanged into each stacked row for that subject.}
 
-\item{strata}{Vector of strata.}
+\item{strata}{Integer vector of length \eqn{n}: positive-integer stratum/block
+labels; \code{max(strata)} is used as the per-cut stratum-ID offset (see
+Details).}
 
-\item{K}{Number of categories.}
+\item{K}{Integer; the number of ordinal categories (so there are \code{K - 1}
+adjacent-category cuts).}
 }
 \value{
-A list with expanded y, w, and strata.
+A list with components \code{y} (stacked 0/1 binary outcome), \code{w}
+  (stacked covariate, passed through unchanged), and \code{strata} (stacked
+  combined stratum-by-cut ID); all three are integer vectors of the same,
+  generally-longer-than-\eqn{n} length (each subject contributes 0, 1, or 2
+  stacked rows depending on their observed category).
 }
 \description{
-Utility to expand ordinal data for adjacent category logit regression.
+Reshapes an ordinal response \code{y} (levels \eqn{1, \dots, K}) into the stacked
+binary-outcome, per-cut-stratified form required to fit an adjacent-category logit
+model as a single conditional (stratified) logistic regression, so the package's
+existing binary/conditional-logit fitting backends can be reused unchanged for
+ordinal adjacent-category models rather than needing a bespoke ordinal solver.
+}
+\details{
+\strong{Model.} The adjacent-category logit model compares each pair of
+consecutive categories \eqn{j} and \eqn{j+1} (\eqn{j = 1, \dots, K-1}) via
+\deqn{\log\frac{\Pr(Y = j+1 \mid Y \in \{j, j+1\})}{\Pr(Y = j \mid Y \in \{j, j+1\})} = \alpha_j + \beta^\top x,}
+i.e. a logistic model for "category \eqn{j+1} vs. category \eqn{j}" fit using only
+the subjects actually observed in one of those two categories, with a
+cut-specific intercept \eqn{\alpha_j} and covariate effects \eqn{\beta} constrained
+equal across all \eqn{K-1} cuts (the proportional/parallel adjacent-category
+assumption). This differs from the cumulative-logit (proportional-odds) model,
+which instead compares \eqn{Y \le j} vs. \eqn{Y > j} using \emph{every} subject at
+every cut.
+
+\strong{Expansion mechanics.} For each subject \eqn{i} and each cut
+\eqn{j = 1, \dots, K-1} (\code{n_alpha = K - 1}), a stacked row is emitted
+\strong{only if} \code{y[i]} equals \eqn{j} or \eqn{j+1}; subjects at any other
+level contribute nothing to that cut's comparison (so each subject contributes to
+at most 2 of the \eqn{K-1} cuts: the ones immediately adjacent to their observed
+level, and exactly 1 cut if at an extreme level). The stacked binary outcome is
+\code{1} if \code{y[i] == j + 1} (upper category) and \code{0} if
+\code{y[i] == j} (lower category). The stacked stratum ID is
+\code{strata[i] + (j - 1) * num_strata} (where \code{num_strata = max(strata)}),
+i.e. the original stratum crossed with the cut index \eqn{j}: fitting a
+conditional logistic regression stratified on this combined ID and pooling all
+stacked rows together estimates a \emph{single shared} treatment coefficient
+\eqn{\beta} across all cuts, while allowing each (original stratum, cut)
+combination to absorb its own nuisance intercept via strata conditioning (the same
+stratified-conditional-logit trick used elsewhere in the package, e.g. for
+continuation-ratio models via \code{expand_continuation_ratio_data_cpp()}).
+
+\strong{Input conventions.} \code{y} must take integer values in
+\code{1:K} (1-based category labels); \code{w} is typically the treatment
+indicator/covariate to estimate a coefficient for, passed through unchanged per
+stacked row (not itself expanded/transformed); \code{strata} must be positive
+integers with \code{max(strata) == num_strata} (no gaps assumed beyond that
+maximum, since combined stratum IDs are computed by simple integer arithmetic on
+\code{num_strata}, not by re-indexing distinct values). No input validation is
+performed at this layer (no range/type checks on \code{y}/\code{strata}); passing
+out-of-range values silently produces incorrect stratum IDs or drops rows rather
+than erroring.
+}
+\seealso{
+\code{expand_continuation_ratio_data_cpp()} for the analogous expansion
+  used by continuation-ratio ordinal models.
+  \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal regression} for
+  orientation; analogous Python API:
+  \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels discrete
+  models} (no direct adjacent-category equivalent; the closest analog is fitting
+  the expanded data as a conditional/grouped logit).
 }
 \keyword{internal}

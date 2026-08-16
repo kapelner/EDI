@@ -155,8 +155,8 @@ init_report <- do.call(rbind, list(
 	summarize_fit_policy("poisson", "legacy", bench_reps(function() EDI:::fast_poisson_regression_cpp(X_fit, y_pois, smart_cold_start = FALSE), 5L)),
 	summarize_fit_policy("negbin", "smart", bench_reps(function() EDI:::fast_neg_bin_cpp(X_fit, as.integer(y_nb), smart_cold_start = TRUE), 5L)),
 	summarize_fit_policy("negbin", "legacy", bench_reps(function() EDI:::fast_neg_bin_cpp(X_fit, as.integer(y_nb), smart_cold_start = FALSE), 5L)),
-	summarize_fit_policy("weibull", "smart", bench_reps(function() EDI:::fast_weibull_regression_cpp(X_fit, y_surv, dead, smart_cold_start = TRUE, estimate_only = TRUE), 5L)),
-	summarize_fit_policy("weibull", "legacy", bench_reps(function() EDI:::fast_weibull_regression_cpp(X_fit, y_surv, dead, smart_cold_start = FALSE, estimate_only = TRUE), 5L)),
+	summarize_fit_policy("weibull", "smart", bench_reps(function() EDI:::fast_weibull_regression_general_cpp(X_fit, ifelse(dead != 0, y_surv, NA_real_), ifelse(dead == 0, y_surv, NA_real_), ifelse(dead == 0, Inf, NA_real_), smart_cold_start = TRUE, estimate_only = TRUE), 5L)),
+	summarize_fit_policy("weibull", "legacy", bench_reps(function() EDI:::fast_weibull_regression_general_cpp(X_fit, ifelse(dead != 0, y_surv, NA_real_), ifelse(dead == 0, y_surv, NA_real_), ifelse(dead == 0, Inf, NA_real_), smart_cold_start = FALSE, estimate_only = TRUE), 5L)),
 	summarize_fit_policy("ordinal_logit", "smart", bench_reps(function() EDI:::fast_ordinal_regression_cpp(X_fit[, -1, drop = FALSE], y_ord, smart_cold_start = TRUE), 5L)),
 	summarize_fit_policy("ordinal_logit", "legacy", bench_reps(function() EDI:::fast_ordinal_regression_cpp(X_fit[, -1, drop = FALSE], y_ord, smart_cold_start = FALSE), 5L))
 ))

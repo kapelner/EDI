@@ -25,9 +25,10 @@
 #' rather than EDI private fields.
 #'
 #' @keywords internal
-InferenceCustomAsymp = R6::R6Class("InferenceCustomAsymp",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceCustomAsymp = define_inference_class(
+	classname = "InferenceCustomAsymp",
+	inherit = Inference,
+	components = c("Wald", "NonparametricBootstrap"),
 	public = list(
 		#' @description Calls the user-defined fit callback for this custom inference path; see
 		#'   \code{\link[EDI:InferenceCustomAsymp]{InferenceCustomAsymp}}.
@@ -67,7 +68,13 @@ InferenceCustomAsymp = R6::R6Class("InferenceCustomAsymp",
 			}
 			private$run_custom_fit(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-		}
+		},
+		#' @description Computes a randomization two-sided p-value. Delegates to
+		#'   the `RandomizationCI`-provided dispatch (Zhang incidence support,
+		#'   type/args_for_type) since `NonparametricBootstrap` pulls in both
+		#'   `RandomizationTest` and `RandomizationCI`, and the two provide
+		#'   conflicting `compute_rand_two_sided_pval` implementations.
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
 	),
 	private = list(
 		is_a_custom_asymp = function() TRUE,
@@ -113,7 +120,21 @@ InferenceCustomAsymp = R6::R6Class("InferenceCustomAsymp",
 			private$run_custom_fit(estimate_only = FALSE)
 			private$cached_values$df
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval", "compute_rand_two_sided_pval"
+		),
+		private = c(
+			"get_standard_error", "get_degrees_of_freedom",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )
 #' Internal base for user-defined randomization inference extensions
 #'
@@ -166,9 +187,10 @@ InferenceCustomRand = define_inference_class(
 #' \code{InferenceCustomAsymp}, but only promises estimate/bootstrap behavior.
 #'
 #' @keywords internal
-InferenceCustomBoot = R6::R6Class("InferenceCustomBoot",
-	lock_objects = FALSE,
-	inherit = InferenceJackknife,
+InferenceCustomBoot = define_inference_class(
+	classname = "InferenceCustomBoot",
+	inherit = Inference,
+	components = "NonparametricBootstrap",
 	public = list(
 		#' @description Calls the user-defined fit callback for this custom inference path; see
 		#'   \code{\link[EDI:InferenceCustomAsymp]{InferenceCustomAsymp}}.
@@ -196,9 +218,19 @@ InferenceCustomBoot = R6::R6Class("InferenceCustomBoot",
 				private$cache_nonestimable_estimate(reason)
 			}
 			private$cached_values$beta_hat_T
-		}
+		},
+		#' @description Computes a randomization two-sided p-value. Delegates to
+		#'   the `RandomizationCI`-provided dispatch (Zhang incidence support,
+		#'   type/args_for_type) since `NonparametricBootstrap` pulls in both
+		#'   `RandomizationTest` and `RandomizationCI`, and the two provide
+		#'   conflicting `compute_rand_two_sided_pval` implementations.
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
 	),
 	private = list(
 		is_a_custom_boot = function() TRUE
-	)
+	),
+	overrides = list(
+		public = "compute_rand_two_sided_pval"
+	),
+	metadata = list(likelihood_tier = "none")
 )

@@ -4,10 +4,20 @@
 \alias{InferenceOrdinalJonckheereTerpstraTest}
 \title{Jonckheere-Terpstra (JT) Test for Ordinal Responses}
 \description{
-Exact Jonckheere-Terpstra (JT) rank test for a two-arm ordered alternative with an
-ordinal response. For treatment versus control, the test statistic is the
-sum of Mann-Whitney U counts across groups. This class provides the exact
-distribution-based p-value.
+Two-arm Jonckheere-Terpstra (JT) rank test for an ordinal response — for two
+groups, this reduces to the Mann-Whitney \eqn{U} statistic. The point
+estimate is the \strong{stochastic superiority} probability, centered at 0
+under the null: \eqn{\hat\beta_T = \widehat{\Pr}(Y_T > Y_C) +
+\tfrac{1}{2}\widehat{\Pr}(Y_T = Y_C) - \tfrac{1}{2}}, computed from category
+counts as \eqn{U/(n_T n_C) - 1/2}. Asymptotic inference
+(\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()})
+uses the classical null variance of the Mann-Whitney \eqn{U} statistic,
+\eqn{\mathrm{Var}(U) = n_T n_C (n_T+n_C+1)/12} (no tie correction), matching
+\code{clinfun::jonckheere.test()}'s normal approximation. This class also
+provides an \strong{exact}, permutation-distribution-based two-sided p-value
+via \code{$compute_exact_two_sided_pval_for_treatment_effect()}
+(\code{exact_jonckheere_terpstra_pval_cpp}), which does not rely on the
+normal approximation.
 }
 \examples{
 set.seed(1)
@@ -26,8 +36,15 @@ infer <- InferenceOrdinalJonckheereTerpstraTest$
 infer
 
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceOrdinalJonckheereTerpstraTest}
+\references{
+Jonckheere, A. R. (1954). "A Distribution-Free k-Sample Test
+  Against Ordered Alternatives." \emph{Biometrika}, 41(1-2), 133-145,
+  \doi{10.1093/biomet/41.1-2.133}; Terpstra, T. J. (1952). "The Asymptotic
+  Normality and Consistency of Kendall's Test Against Trend, When Ties Are
+  Present in One Ranking." \emph{Indagationes Mathematicae}, 14, 327-333.
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceOrdinalJonckheereTerpstraTest}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -41,73 +58,7 @@ infer
     \item \href{#method-InferenceOrdinalJonckheereTerpstraTest-clone}{\code{InferenceOrdinalJonckheereTerpstraTest$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -132,7 +83,12 @@ infer
 \if{html}{\out{<a id="method-InferenceOrdinalJonckheereTerpstraTest-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalJonckheereTerpstraTest-initialize}{}}}
 \subsection{\code{InferenceOrdinalJonckheereTerpstraTest$new()}}{
-  Initialize the JT test object.
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+
+
+  Initialize the JT test object for a completed design with
+  an ordinal, uncensored response.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalJonckheereTerpstraTest$new(
@@ -160,7 +116,10 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalJonckheereTerpstraTest-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalJonckheereTerpstraTest-compute_estimate}{}}}
 \subsection{\code{InferenceOrdinalJonckheereTerpstraTest$compute_estimate()}}{
-  Returns the estimated treatment effect (JT superiority measure).
+  Returns the estimated treatment effect: the stochastic
+  superiority measure \eqn{\widehat{\Pr}(Y_T > Y_C) +
+  \tfrac12\widehat{\Pr}(Y_T=Y_C) - \tfrac12}, computed from the
+  Mann-Whitney \eqn{U} statistic (see class documentation).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalJonckheereTerpstraTest$compute_estimate(estimate_only = FALSE)}
@@ -179,7 +138,14 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalJonckheereTerpstraTest-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalJonckheereTerpstraTest-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceOrdinalJonckheereTerpstraTest$compute_estimate_with_bootstrap_weights()}}{
-  Returns the weighted JT superiority estimate for Bayesian-bootstrap re-estimation.
+  Recomputes the JT superiority estimate under subject/block
+  bootstrap weights: the weighted version of the same stochastic
+  superiority quantity, \eqn{\sum_{i,j} w_i w_j\left(\mathbb{1}[y_{T,i} >
+  y_{C,j}] + \tfrac12\mathbb{1}[y_{T,i}=y_{C,j}]\right) \big/ \sum_{i,j}
+  w_i w_j - \tfrac12}, used by the Bayesian bootstrap and related
+  weighted-resampling machinery. Always leaves the standard error
+  unavailable (\code{NA}) regardless of \code{estimate_only} — this
+  weighted path never computes the null-variance approximation.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalJonckheereTerpstraTest$compute_estimate_with_bootstrap_weights(
@@ -192,7 +158,8 @@ design's imputed covariates.}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{subject_or_block_weights}}{Bootstrap weights at the subject/block level.}
-      \item{\code{estimate_only}}{If TRUE, skip exact p-value calculations.}
+      \item{\code{estimate_only}}{Present for interface parity; this method never
+computes variance components regardless of its value.}
     }
     \if{html}{\out{</div>}}
   }
@@ -202,7 +169,10 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalJonckheereTerpstraTest-compute_exact_two_sided_pval_for_treatment_effect"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalJonckheereTerpstraTest-compute_exact_two_sided_pval_for_treatment_effect}{}}}
 \subsection{\code{InferenceOrdinalJonckheereTerpstraTest$compute_exact_two_sided_pval_for_treatment_effect()}}{
-  Returns the exact two-sided p-value.
+  Returns the \strong{exact}, permutation-distribution-based
+  two-sided p-value (\code{exact_jonckheere_terpstra_pval_cpp}) — unlike
+  \code{$compute_asymp_two_sided_pval()}, this does not rely on the
+  normal approximation to the Mann-Whitney \eqn{U} null distribution.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalJonckheereTerpstraTest$compute_exact_two_sided_pval_for_treatment_effect(
@@ -216,8 +186,10 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalJonckheereTerpstraTest-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalJonckheereTerpstraTest-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceOrdinalJonckheereTerpstraTest$compute_asymp_confidence_interval()}}{
-  Computes the asymptotic normal confidence interval using the same
-null-variance approximation as \code{clinfun::jonckheere.test()}.
+  Computes the asymptotic normal confidence interval, using the
+  same Mann-Whitney \eqn{U} null-variance approximation
+  (\eqn{n_T n_C(n_T+n_C+1)/12}, no tie correction) as
+  \code{clinfun::jonckheere.test()}; see class documentation.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalJonckheereTerpstraTest$compute_asymp_confidence_interval(
@@ -238,8 +210,10 @@ null-variance approximation as \code{clinfun::jonckheere.test()}.
 \if{html}{\out{<a id="method-InferenceOrdinalJonckheereTerpstraTest-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalJonckheereTerpstraTest-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceOrdinalJonckheereTerpstraTest$compute_asymp_two_sided_pval()}}{
-  Computes the asymptotic normal two-sided p-value using the same
-\eqn{Z}-approximation as \code{clinfun::jonckheere.test()}.
+  Computes the asymptotic normal two-sided p-value, using the
+  same \eqn{Z}-approximation as \code{clinfun::jonckheere.test()}; see
+  class documentation and \code{$compute_exact_two_sided_pval_for_treatment_effect()}
+  for the exact (non-approximate) alternative.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalJonckheereTerpstraTest$compute_asymp_two_sided_pval(delta = 0)}

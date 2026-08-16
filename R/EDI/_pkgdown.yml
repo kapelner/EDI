@@ -1,0 +1,304 @@
+url: https://kapelner.github.io/EDI/
+
+template:
+  bootstrap: 5
+  math-rendering: mathjax
+
+home:
+  title: "EDI: Experimental Design and Inference"
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [search, github]
+
+articles:
+- title: Package Concepts
+  navbar: Articles
+  desc: >
+    Cross-cutting reference material that individual class/function
+    documentation links back into, rather than repeating inline.
+  contents:
+  - notation-glossary
+  - reproducibility
+  - backend-contracts
+  - validation-evidence
+
+reference:
+
+- title: "Package Overview"
+  contents:
+  - EDI
+
+- title: "Experimental Designs: Fixed-Sample"
+  desc: >
+    Designs where the sample size n is fixed at construction and treatment
+    assignment is drawn for all n subjects at once, either up front or via
+    assign_w_to_all_subjects() once covariates are recorded.
+  contents:
+  - DesignFixed
+  - DesignFixedBernoulli
+  - DesignFixediBCRD
+  - DesignFixedFactorial
+  - DesignFixedBlocking
+  - DesignFixedCluster
+  - DesignFixedBlockedCluster
+  - DesignFixedBinaryMatch
+  - DesignFixedMatchingGreedyPairSwitching
+  - DesignFixedGreedy
+  - DesignFixedGreedyDOptimal
+  - DesignFixedOptimalBlocks
+  - DesignFixedRerandomization
+
+- title: "Experimental Designs: Sequential (One-by-One)"
+  desc: >
+    Designs where subjects arrive one at a time and treatment is assigned on
+    arrival via add_one_subject_to_experiment_and_assign(), before the next
+    subject's covariates are known. This includes the KK "matching-on-the-fly"
+    family, which builds matched pairs from the accruing subject stream.
+  contents:
+  - DesignSeqOneByOne
+  - DesignSeqOneByOneBernoulli
+  - DesignSeqOneByOneiBCRD
+  - DesignSeqOneByOneUrn
+  - DesignSeqOneByOneEfron
+  - DesignSeqOneByOneAtkinson
+  - DesignSeqOneByOnePocockSimon
+  - DesignSeqOneByOneRandomBlockSize
+  - DesignSeqOneByOneSPBR
+  - DesignSeqOneByOneKK14
+  - DesignSeqOneByOneKK21
+  - DesignSeqOneByOneKK21stepwise
+
+- title: "Experimental Designs: Observational"
+  desc: >
+    Designs for already-observed (non-randomized) treatment assignments --
+    the design object acts as a data container with matched-pair/blocking
+    structure, but does not itself draw any randomization.
+  contents:
+  - ObservationalDesign
+  - ObservationalDesignBlocks
+  - ObservationalDesignMatching
+
+- title: "Design: Custom Extensions"
+  desc: Base classes for plugging in a user-defined assignment/drawing rule.
+  contents:
+  - DesignFixedCustom
+  - DesignCustomSequential
+
+- title: "Design: Infrastructure"
+  desc: >
+    Abstract bases, capability components, and shared machinery -- not
+    typically constructed directly. See vignette("backend-contracts") and
+    fix_design_hierarchy.md for the capability/component model these
+    implement.
+  contents:
+  - Design
+  - DesignBlocking
+  - DesignMatching
+
+- title: "Inference: Continuous Outcomes"
+  contents:
+  - matches("^InferenceContin")
+  - InferenceBaiAdjustedT
+  - InferenceBaiAdjustedTKK14
+  - InferenceBaiAdjustedTKK21
+
+- title: "Inference: Incidence (Binary) Outcomes"
+  contents:
+  - matches("^InferenceIncid")
+
+- title: "Inference: Count Outcomes"
+  contents:
+  - matches("^InferenceCount")
+
+- title: "Inference: Proportion Outcomes"
+  contents:
+  - matches("^InferenceProp")
+
+- title: "Inference: Ordinal Outcomes"
+  contents:
+  - matches("^InferenceOrdinal")
+
+- title: "Inference: Survival Outcomes"
+  contents:
+  - matches("^InferenceSurvival")
+
+- title: "Inference: Cross-Cutting / General"
+  desc: >
+    Estimators and coordinators that work across more than one response
+    type, rather than being tied to a single outcome family.
+  contents:
+  - InferenceAllKKMeanDiffIVWC
+  - InferenceAllKKWilcoxIVWC
+  - InferenceAllSimpleMeanDiff
+  - InferenceAllSimpleMeanDiffPooledVar
+  - InferenceAllSimpleWilcox
+  - InferenceSuite
+
+- title: "Inference: Custom Extensions"
+  desc: Base classes for plugging in a user-defined asymptotic/bootstrap/randomization estimator.
+  contents:
+  - InferenceCustomAsymp
+  - InferenceCustomBoot
+  - InferenceCustomRand
+
+- title: "Inference: Infrastructure"
+  desc: >
+    Abstract bases, resampling/likelihood mixins, and matched-design (KK)
+    family bases -- not typically constructed directly. See
+    vignette("reproducibility") for the resampling mixins' RNG/seed
+    conventions and vignette("notation-glossary") for shared symbols.
+  contents:
+  - Inference
+  - InferenceAsymp
+  - InferenceAsympLik
+  - InferenceRand
+  - InferenceRandBootstrap
+  - InferenceRandBootstrapCI
+  - InferenceNonParamBootstrap
+  - InferenceParamBootstrap
+  - InferenceBayesianBootstrap
+  - InferenceJackknife
+  - InferenceCountLikelihood
+  - InferenceKKPassThroughCompound
+  - InferenceMLEorKMSummaryTable
+  - InferenceAbstractQuantileRandCI
+  - InferenceAbstractKKCondLogitGLMM
+  - InferenceAbstractKKCondLogitGLMMOneLik
+  - InferenceAbstractKKLWACoxIVWC
+  - InferenceAbstractKKLWACoxOneLik
+  - InferenceAbstractKKMarginalIncid
+  - InferenceAbstractKKModifiedPoisson
+  - InferenceAbstractKKOrdinalCLMM
+  - InferenceAbstractKKQuantileRegrIVWC
+  - InferenceAbstractKKQuantileRegrOneLik
+  - InferenceAbstractKKSurvivalRankRegrIVWC
+  - InferenceAbstractKKWeibullFrailtyIVWC
+  - InferenceAbstractKKWeibullFrailtyOneLik
+
+- title: "Simulation Framework"
+  desc: >
+    Monte Carlo simulation for comparing designs and inference methods, and
+    for computing the coverage_pval/size_pval calibration diagnostics
+    documented in vignette("validation-evidence").
+  contents:
+  - SimulationFramework
+  - SimulationFrameworkReport
+  - generate_covariate_dataset
+  - transform_cont_y_based_on_response_type
+
+- title: "Backend: Continuous & Robust Regression Kernels"
+  desc: See vignette("backend-contracts") for the shared conventions these C++ kernels follow.
+  contents:
+  - starts_with("fast_ols")
+  - starts_with("fast_robust_regression")
+  - ols_hc2_post_fit_cpp
+
+- title: "Backend: Binary/Incidence Regression Kernels"
+  contents:
+  - starts_with("fast_logistic_regression")
+  - starts_with("fast_probit_regression")
+  - starts_with("fast_log_binomial_regression")
+  - starts_with("fast_identity_binomial_regression")
+  - get_identity_binomial_regression_hessian_cpp
+  - get_identity_binomial_regression_score_cpp
+  - get_identity_binomial_regression_weighted_hessian_cpp
+  - get_identity_binomial_regression_weighted_score_cpp
+  - get_log_binomial_regression_hessian_cpp
+  - get_log_binomial_regression_score_cpp
+  - get_log_binomial_regression_weighted_hessian_cpp
+  - get_log_binomial_regression_weighted_score_cpp
+  - gcomp_logistic_point_estimate_cpp
+  - gcomp_logistic_post_fit_cpp
+  - gcomp_fractional_logit_point_estimate_cpp
+  - mn_pvalue_cpp
+  - newcombe_independent_ci_cpp
+
+- title: "Backend: Count Regression Kernels"
+  contents:
+  - starts_with("fast_poisson_regression")
+  - starts_with("fast_quasipoisson_regression")
+  - starts_with("fast_neg_bin")
+  - starts_with("fast_negbin_regression")
+  - starts_with("fast_hurdle_negbin")
+  - starts_with("fast_zero_augmented_poisson")
+  - fast_cpoisson_combined_with_var_cpp
+  - get_cpoisson_combined_hessian_cpp
+  - get_cpoisson_combined_score_cpp
+  - get_negbin_regression_hessian_cpp
+  - get_negbin_regression_score_cpp
+
+- title: "Backend: Ordinal Regression Kernels"
+  contents:
+  - starts_with("fast_ordinal")
+  - starts_with("fast_adjacent_category_logit")
+  - starts_with("fast_continuation_ratio_regression")
+  - starts_with("fast_stereotype")
+  - expand_adjacent_category_data_cpp
+  - expand_continuation_ratio_data_cpp
+  - exact_jonckheere_terpstra_pval_cpp
+  - gcomp_ordinal_proportional_odds_post_fit_cpp
+  - ordinal_gcomp_post_fit_cpp
+  - get_ordinal_regression_hessian_cpp
+  - get_ordinal_regression_score_cpp
+  - get_stereotype_logit_hessian_cpp
+  - get_stereotype_logit_score_cpp
+
+- title: "Backend: Survival Regression Kernels"
+  contents:
+  - starts_with("fast_coxph_regression")
+  - starts_with("fast_weibull_regression")
+  - build_cox_data_cache_cpp
+  - build_stratified_cox_data_cache_cpp
+  - compute_coxph_rand_bootstrap_cpp
+  - get_weibull_regression_general_hessian_cpp
+  - get_weibull_regression_general_score_cpp
+
+- title: "Backend: Proportion/Beta Regression Kernels"
+  contents:
+  - starts_with("fast_beta_regression")
+  - starts_with("fast_zero_one_inflated_beta")
+  - get_beta_regression_hessian_cpp
+  - get_beta_regression_score_cpp
+
+- title: "Backend: Matched-Design (Pocock-Simon) Assignment"
+  contents:
+  - starts_with("pocock_simon")
+
+- title: "Backend: Math/Numeric Utilities"
+  desc: Scalar/vectorized special-function kernels used throughout the package's likelihoods; see vignette("backend-contracts").
+  contents:
+  - starts_with("fast_digamma")
+  - starts_with("fast_trigamma")
+  - starts_with("fast_lgamma")
+  - starts_with("fast_lbeta")
+  - starts_with("fast_dnbinom")
+  - starts_with("fast_qnorm")
+  - starts_with("fast_log_dnorm")
+  - starts_with("fast_log_pnorm")
+  - logit
+  - inv_logit
+  - sample_mode
+  - summary_glm_lean
+
+- title: "Dispatch Policy Configuration"
+  desc: >
+    Runtime-tunable policies governing optimizer choice, cold/warm-start
+    heuristics, and parallel/serial dispatch across inference classes. See
+    each get_*/set_* pair's own documentation for the built-in defaults and
+    override mechanism.
+  contents:
+  - matches("_dispatch_policy$")
+  - set_num_cores
+  - unset_num_cores
+
+- title: "Miscellaneous Utilities"
+  contents:
+  - check_package_installed
+  - create_model_matrix_from_features
+  - edi_build_info_cpp
+  - robust_negbinreg
+  - robust_survreg
+  - robust_survreg_with_surv_object
+  - toggle_asserts

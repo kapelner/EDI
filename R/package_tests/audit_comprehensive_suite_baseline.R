@@ -89,8 +89,8 @@ design_label_to_class = function(x) {
 		FixedGreedy = "DesignFixedGreedy",
 		FixedRerandomization = "DesignFixedRerandomization",
 		FixedMatchingGreedy = "DesignFixedMatchingGreedyPairSwitching",
-		FixedDOptimal = "DesignFixedDOptimal",
-		FixedAOptimal = "DesignFixedAOptimal"
+		FixedGreedyDOptimalD = "DesignFixedGreedyDOptimal",
+		FixedGreedyDOptimalA = "DesignFixedGreedyDOptimal"
 	)
 	unname(map[as.character(x)] %||% NA_character_)
 }

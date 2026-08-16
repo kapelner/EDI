@@ -92,7 +92,7 @@ test_that("compute_survival_stat_diff_rand_bootstrap_parallel_cpp's inline KM ke
 test_that("weighted_km_median (R fallback) matches canonical survfit median, unweighted", {
 	des = DesignSeqOneByOneBernoulli$new(n = 4, response_type = "survival")
 	for (i in 1:4) des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
-	des$add_all_subject_responses(ys = c(1, 2, 3, 4), deads = c(1L, 1L, 1L, 1L))
+	des$add_all_subject_responses(ys = c(1, 2, 3, 4))
 	inf = InferenceSurvivalKMDiff$new(des, verbose = FALSE)
 	priv = inf$.__enclos_env__$private
 
@@ -105,7 +105,7 @@ test_that("weighted_km_median (R fallback) matches canonical survfit median, unw
 test_that("weighted_km_median (R fallback) matches canonical weighted survfit median", {
 	des = DesignSeqOneByOneBernoulli$new(n = 4, response_type = "survival")
 	for (i in 1:4) des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
-	des$add_all_subject_responses(ys = c(1, 2, 3, 4), deads = c(1L, 1L, 1L, 1L))
+	des$add_all_subject_responses(ys = c(1, 2, 3, 4))
 	inf = InferenceSurvivalKMDiff$new(des, verbose = FALSE)
 	priv = inf$.__enclos_env__$private
 
@@ -119,7 +119,7 @@ test_that("weighted_km_median (R fallback) matches canonical weighted survfit me
 test_that("weighted_km_median (R fallback) returns NA (not Inf) when the curve never reaches 0.5", {
 	des = DesignSeqOneByOneBernoulli$new(n = 4, response_type = "survival")
 	for (i in 1:4) des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
-	des$add_all_subject_responses(ys = c(1, 2, 3, 4), deads = c(1L, 1L, 1L, 1L))
+	des$add_all_subject_responses(ys = c(1, 2, 3, 4))
 	inf = InferenceSurvivalKMDiff$new(des, verbose = FALSE)
 	priv = inf$.__enclos_env__$private
 

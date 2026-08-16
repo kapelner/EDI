@@ -1,7 +1,6 @@
 #ifdef EDI_CORE_ONLY
 #include <Eigen/Dense>
-#include <limits>
-constexpr double NA_REAL = std::numeric_limits<double>::quiet_NaN();
+#include "na_real_core.h"
 #else
 #include <RcppEigen.h>
 #include "result_map_rcpp.h"

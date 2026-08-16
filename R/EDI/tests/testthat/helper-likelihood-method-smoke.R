@@ -226,7 +226,7 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 		for (i in seq_len(n)){
 			w_i = des$add_one_subject_to_experiment_and_assign(data.frame(x1 = x1[i], x2 = x2[i]))
 			y_i = rbinom(1, 1, plogis(-0.15 + 0.5 * w_i + 0.25 * x1[i] - 0.1 * x2[i]))
-			des$add_one_subject_response(i, y_i, 1L)
+			des$add_one_subject_response(i, y_i)
 		}
 		des
 	}
@@ -238,7 +238,7 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 		for (i in seq_len(n)){
 			w_i = des$add_one_subject_to_experiment_and_assign(data.frame(x1 = x1[i], x2 = x2[i]))
 			y_i = rexp(1, rate = exp(-0.1 + 0.2 * w_i + 0.15 * x1[i] - 0.05 * x2[i]))
-			des$add_one_subject_response(i, y_i, 1L)
+			des$add_one_subject_response(i, y_i)
 		}
 		des
 	}
@@ -255,7 +255,7 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 				0.2,
 				0.4
 			))
-			des$add_one_subject_response(i, y_i, 1L)
+			des$add_one_subject_response(i, y_i)
 		}
 		des
 	}

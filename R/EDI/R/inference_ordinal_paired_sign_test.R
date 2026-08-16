@@ -22,10 +22,10 @@
 #'   new(seq_des, verbose = FALSE)
 #' infer
 #'
-InferenceOrdinalPairedSignTest = R6::R6Class("InferenceOrdinalPairedSignTest",
-	lock_objects = FALSE,
+InferenceOrdinalPairedSignTest = define_inference_class("InferenceOrdinalPairedSignTest",
 	inherit = InferenceAsympLik,
-	public = utils::modifyList(as.list(InferenceMixinKKPassThrough$public), list(
+	components = "KKPassThrough",
+	public = list(
 		#' @description Initialize the paired sign-test inference object for ordinal
 		#'   matched responses and prepare the sign-test statistic used by
 		#'   \code{\link[EDI:InferenceOrdinalPairedSignTest]{InferenceOrdinalPairedSignTest}}.
@@ -136,8 +136,8 @@ InferenceOrdinalPairedSignTest = R6::R6Class("InferenceOrdinalPairedSignTest",
 		approximate_jackknife_distribution_beta_hat_T = function(unit = "auto"){
 			stop("Jackknife inference is not supported for InferenceOrdinalPairedSignTest because subject-level deletion violates the matched-pair design constraint.")
 		}
-	)),
-	private = utils::modifyList(as.list(InferenceMixinKKPassThrough$private), list(
+	),
+	private = list(
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		supports_likelihood_tests = function() FALSE,
 		shared = function(estimate_only = FALSE){
@@ -176,5 +176,12 @@ InferenceOrdinalPairedSignTest = R6::R6Class("InferenceOrdinalPairedSignTest",
 			
 			private$cached_values$s_beta_hat_T = if (is.finite(se) && se > 0) se else NA_real_
 		}
-	))
+	),
+	overrides = list(
+		public = c(
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = "compute_basic_match_data"
+	)
 )

@@ -122,8 +122,15 @@ struct ModelResult {
     double ssq_b_2;
     double dispersion;
     double sigma2_hat;
-    int iterations;
+    int num_iter;
     bool converged;
+    // TRUE iff the fitter exited by exhausting maxit rather than via its own
+    // stopping criterion (gradient tol, singular Hessian, non-finite step,
+    // etc.) -- distinct from and complementary to `converged`, which prior to
+    // this field being introduced was conflated with "did not hit maxit" on
+    // some fitters. Not yet populated by every ModelResult producer; only
+    // trust it where the call site is documented as setting it.
+    bool hit_iteration_cap;
     // Gradient/score norm at the returned b, populated from values already
     // computed as part of the fitter's own convergence check (never a new
     // evaluation, except where noted at the call site). NaN if unavailable.
@@ -134,7 +141,7 @@ struct ModelResult {
         ssq_b_2(std::numeric_limits<double>::quiet_NaN()),
         dispersion(std::numeric_limits<double>::quiet_NaN()),
         sigma2_hat(std::numeric_limits<double>::quiet_NaN()),
-        iterations(0), converged(false),
+        num_iter(0), converged(false), hit_iteration_cap(false),
         gradient_norm(std::numeric_limits<double>::quiet_NaN()) {}
 };
 
@@ -464,6 +471,48 @@ inline Eigen::VectorXd subset_vector(const Eigen::VectorXd& x, const Eigen::Vect
     return out;
 }
 
+// IRLS-style weighted score vector + symmetric weighted crossproduct
+// (X'WX-shaped) matrix, computed column-by-column in one fused pass.
+// Templated on the residual/weight expression types so callers can pass
+// either an owned Eigen::VectorXd or an unevaluated Eigen expression
+// (e.g. an .array() result) without a materializing copy.
+//
+// Canonical shared definition: previously copy-pasted byte-for-byte into
+// the anonymous namespace of both fast_logistic_regression.cpp and
+// fast_probit_regression.cpp, which is harmless per-TU but a hard
+// redefinition error if those files are ever merged into one translation
+// unit (see unity_build_collision_audit.md).
+template<typename RDerived, typename WDerived>
+inline void score_weighted_crossprod_colwise_assign(const Eigen::MatrixXd& X,
+                                                    const Eigen::MatrixBase<RDerived>& residual,
+                                                    const Eigen::MatrixBase<WDerived>& w,
+                                                    Eigen::VectorXd& score,
+                                                    Eigen::MatrixXd& out) {
+    const int n = X.rows();
+    const int p = X.cols();
+    score.setZero();
+    out.setZero();
+    for (int j = 0; j < p; ++j) {
+        const double* xj = X.col(j).data();
+        for (int k = j; k < p; ++k) {
+            const double* xk = X.col(k).data();
+            double acc = 0.0;
+            if (k == j) {
+                double score_acc = 0.0;
+                for (int i = 0; i < n; ++i) {
+                    acc += xj[i] * w[i] * xj[i];
+                    score_acc += xj[i] * residual[i];
+                }
+                score[j] = score_acc;
+            } else {
+                for (int i = 0; i < n; ++i) acc += xj[i] * w[i] * xk[i];
+            }
+            out(j, k) = acc;
+            if (k != j) out(k, j) = acc;
+        }
+    }
+}
+
 inline Eigen::MatrixXd subset_matrix(const Eigen::MatrixXd& M, const Eigen::VectorXi& row_idx, const Eigen::VectorXi& col_idx) {
     for (int i = 0; i < row_idx.size(); ++i) {
         if (row_idx[i] < 0 || row_idx[i] >= M.rows()) {
@@ -561,9 +610,60 @@ inline Eigen::ArrayXd plogis_array_safe(const Eigen::ArrayXd& x) {
     return res;
 }
 
+// Vectorized (Eigen select, not a scalar loop) equivalent of
+// plogis_array_safe above -- previously copy-pasted byte-for-byte into the
+// anonymous namespace of both fast_cpoisson_combined.cpp and
+// gcomp_speedups.cpp, which is harmless per-TU but a hard redefinition
+// error if those files are ever merged into one translation unit (see
+// unity_build_collision_audit.md). Kept as a separate function from
+// plogis_array_safe (not consolidated into it) since it's a different
+// implementation strategy, not just a duplicate -- consolidating them is a
+// separate, out-of-scope performance decision.
+inline Eigen::ArrayXd plogis_array(const Eigen::ArrayXd& eta) {
+    const Eigen::Array<bool, Eigen::Dynamic, 1> nonnegative = (eta >= 0.0);
+    const Eigen::ArrayXd pos = 1.0 / (1.0 + (-eta).exp());
+    const Eigen::ArrayXd neg_exp = eta.exp();
+    const Eigen::ArrayXd neg = neg_exp / (1.0 + neg_exp);
+    return nonnegative.select(pos, neg);
+}
+
 inline double log1pexp_safe(double x) {
     if (x > 0.0) return x + std::log1p(std::exp(-x));
     return std::log1p(std::exp(x));
+}
+
+// Element-wise finiteness check, equivalent to Eigen's own x.allFinite()
+// (both exclude NaN and +/-Inf) -- kept as a free function rather than
+// switched to .allFinite() at every call site, since this exists purely to
+// deduplicate two previously-diverging call-site conventions (see below),
+// not to introduce a new one. Eigen::Ref parameters (not plain
+// const Eigen::MatrixXd&/VectorXd&) so this also accepts blocks/maps, a
+// strict generalization of both prior copies' signatures -- every existing
+// call site passing a plain Eigen::MatrixXd/VectorXd object still binds via
+// Ref's converting constructor.
+//
+// Canonical shared definitions: previously copy-pasted into the anonymous
+// namespace of both fast_log_binomial_regression.cpp and
+// robust_post_fit_speedups.cpp with different parameter-passing
+// conventions (Eigen::Ref here vs. plain const-ref there), which made them
+// overloads rather than exact redefinitions -- so merging those two files
+// into one translation unit didn't error with "redefinition" but with
+// "call ... is ambiguous" at every call site (see
+// unity_build_collision_audit.md).
+inline bool all_finite_vec(const Eigen::Ref<const Eigen::VectorXd>& x) {
+    for (int i = 0; i < x.size(); ++i) {
+        if (!std::isfinite(x[i])) return false;
+    }
+    return true;
+}
+
+inline bool all_finite_mat(const Eigen::Ref<const Eigen::MatrixXd>& X) {
+    for (int j = 0; j < X.cols(); ++j) {
+        for (int i = 0; i < X.rows(); ++i) {
+            if (!std::isfinite(X(i, j))) return false;
+        }
+    }
+    return true;
 }
 
 // Vectorizable accurate log1p for z > -1: built from Eigen's packet .log() so it

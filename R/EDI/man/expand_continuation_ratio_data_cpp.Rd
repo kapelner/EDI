@@ -2,23 +2,88 @@
 % Please edit documentation in R/RcppExports.R
 \name{expand_continuation_ratio_data_cpp}
 \alias{expand_continuation_ratio_data_cpp}
-\title{Expand Continuation Ratio Data (C++)}
+\title{Expand Ordinal Data into Stacked Binary Comparisons for Continuation-Ratio
+Regression (C++ Backend)}
 \usage{
 expand_continuation_ratio_data_cpp(y, w, strata, K)
 }
 \arguments{
-\item{y}{Vector of responses.}
+\item{y}{Integer vector of length \eqn{n}: each subject's ordinal category label,
+in \code{1:K}.}
 
-\item{w}{Vector of treatment indicators.}
+\item{w}{Integer vector of length \eqn{n}: a covariate (typically treatment
+assignment) carried through unchanged into each stacked row for that subject.}
 
-\item{strata}{Vector of strata.}
+\item{strata}{Integer vector of length \eqn{n}: positive-integer stratum/block
+labels; \code{max(strata)} is used as the per-cut stratum-ID offset (see
+Details).}
 
-\item{K}{Number of categories.}
+\item{K}{Integer; the number of ordinal categories (so there are \code{K - 1}
+continuation-ratio cuts).}
 }
 \value{
-A list with expanded y, w, and strata.
+A list with components \code{y} (stacked 0/1 "stopped here" outcome),
+  \code{w} (stacked covariate, passed through unchanged), and \code{strata}
+  (stacked combined stratum-by-cut ID); all three are integer vectors of the
+  same, generally-longer-than-\eqn{n} length (each subject contributes between 1
+  and \code{K - 1} stacked rows, depending on their observed category).
 }
 \description{
-Utility to expand ordinal data for continuation ratio regression.
+Reshapes an ordinal response \code{y} (levels \eqn{1, \dots, K}) into the stacked
+binary-outcome, per-cut-stratified form required to fit a (forward) continuation-
+ratio logit model as a single conditional (stratified) logistic regression —
+the discrete-time-hazard analog for ordinal data — so the package's existing
+binary/conditional-logit fitting backends can be reused unchanged rather than
+needing a bespoke ordinal solver. This is the continuation-ratio counterpart of
+\code{expand_adjacent_category_data_cpp()}; the two share the same stacking and
+combined-stratum trick but differ in which rows each subject contributes (see
+Details).
+}
+\details{
+\strong{Model.} The continuation-ratio model treats reaching each successive
+category as a sequence of conditional "continue past this cut" events, analogous
+to a discrete-time survival/hazard model: for cut \eqn{j = 1, \dots, K-1}, among
+subjects who have reached at least category \eqn{j} (\eqn{Y \ge j}),
+\deqn{\log\frac{\Pr(Y = j \mid Y \ge j)}{\Pr(Y > j \mid Y \ge j)} = \alpha_j + \beta^\top x,}
+i.e. the log-odds of "stopping" (being observed) exactly at category \eqn{j}
+versus "continuing" past it, given the subject has reached at least \eqn{j}, with
+a cut-specific intercept \eqn{\alpha_j} and covariate effects \eqn{\beta}
+constrained equal across cuts (the proportional continuation-ratio assumption).
+Unlike the adjacent-category model (which only compares the two categories
+immediately flanking a cut), every subject contributes to every cut up to and
+including the one at which they are observed to stop.
+
+\strong{Expansion mechanics.} For each subject \eqn{i} with observed category
+\code{y[i]}, a stacked row is emitted for every cut
+\eqn{j = 1, \dots, \min(\code{y[i]}, K-1)}: the stacked binary outcome is \code{1}
+("stopped here") if \code{y[i] == j}, and \code{0} ("continued past") for every
+earlier cut the subject passed through. A subject observed at the top category
+(\code{y[i] == K}) contributes a \code{0} at every one of the \code{K - 1} cuts
+(having "survived" all of them without stopping); a subject observed at category
+\code{j <= K - 1} contributes \code{0}s for cuts \code{1:(j-1)} and a single
+\code{1} at cut \code{j}, then no further rows (later cuts are irrelevant once a
+subject has already stopped). As in \code{expand_adjacent_category_data_cpp()},
+the stacked stratum ID is \code{strata[i] + (j - 1) * num_strata} (with
+\code{num_strata = max(strata)}): fitting a conditional logistic regression
+stratified on this combined ID and pooling all stacked rows estimates a single
+shared treatment coefficient \eqn{\beta} across all cuts, while each (original
+stratum, cut) combination absorbs its own nuisance intercept via strata
+conditioning.
+
+\strong{Input conventions.} \code{y} must take integer values in \code{1:K};
+\code{w} is passed through unchanged into each stacked row for that subject
+(typically the treatment indicator/covariate to estimate a coefficient for);
+\code{strata} must be positive integers, with \code{max(strata)} used as the
+per-cut stratum-ID offset. No input validation is performed at this layer.
+}
+\seealso{
+\code{expand_adjacent_category_data_cpp()} for the analogous expansion
+  used by adjacent-category ordinal models.
+  \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal regression} for
+  orientation; analogous Python API:
+  \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels discrete
+  models} (no direct continuation-ratio equivalent; the closest analog is fitting
+  the expanded data as a conditional/grouped logit, or discrete-time survival
+  packages).
 }
 \keyword{internal}

@@ -78,7 +78,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 		#'   necessary) when the p-value inversion cannot be completed within the search radius.
 		compute_rand_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, pval_epsilon = 0.005, show_progress = TRUE, max_expansions = 7L, bootstrap_type = NULL, zero_one_logit_clamp = .Machine$double.eps, type = "percentile"){
 			if (should_run_asserts()) {
-				private$assert_design_supports_resampling("Bootstrap randomization inference")
+				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 				assertCount(B, positive = TRUE)
 				assertNumeric(pval_epsilon, lower = .Machine$double.xmin, upper = 1)

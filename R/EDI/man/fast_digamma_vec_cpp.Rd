@@ -2,17 +2,40 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_digamma_vec_cpp}
 \alias{fast_digamma_vec_cpp}
-\title{Fast Digamma Function (C++)}
+\title{Fast Digamma Function, Vectorized (C++ Backend)}
 \usage{
 fast_digamma_vec_cpp(x)
 }
 \arguments{
-\item{x}{Numeric vector of arguments.}
+\item{x}{Numeric vector of arguments (should be finite and, per the digamma
+function's domain, not a non-positive integer, where \eqn{\psi} has poles;
+no domain validation is performed by this function).}
 }
 \value{
-A numeric vector of digamma values.
+A numeric vector of \eqn{\psi(x)} values, the same length as \code{x}.
 }
 \description{
-Vectorized digamma (psi) function via an asymptotic expansion with recurrence shift, faster than base R's \code{digamma()}.
+Computes the digamma function \eqn{\psi(x) = d/dx \log \Gamma(x)} elementwise
+over \code{x}, via an asymptotic expansion with a recurrence (reflection)
+shift for small arguments to keep the expansion accurate — the standard
+technique for evaluating digamma/trigamma to double precision without a
+lookup table. Used internally inside the package's negative-binomial, beta,
+zero-inflated/hurdle, and KK21 count-response likelihood, score, and Hessian
+kernels (wherever a Poisson/NegBin/Beta log-likelihood derivative requires
+\eqn{\psi}), and exported standalone because it is consistently faster than
+base R's \code{\link[base]{digamma}} — measured at 6.78x on a length-5000
+vector (see the
+\href{https://github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_R.html}{"Utility
+/ Math Kernel Performance" benchmark report} for the full methodology and
+per-kernel results).
+}
+\references{
+Abramowitz, M., and Stegun, I. A. (1972). \emph{Handbook of
+  Mathematical Functions}, Section 6.3, for the asymptotic expansion and
+  recurrence relation used. See also
+  \href{https://en.wikipedia.org/wiki/Digamma_function}{digamma function} for
+  orientation. Analogous Python API:
+  \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.digamma.html}{SciPy
+  \code{digamma}}.
 }
 \keyword{internal}

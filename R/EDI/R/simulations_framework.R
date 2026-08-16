@@ -31,6 +31,33 @@
 #' supplied directly via \code{X_mat} or drawn randomly via \code{cov_draw_method};
 #' exactly one of the two must be non-\code{NULL}.
 #'
+#' @details Two conditional-expectation models are supported, both rescaled so that
+#'   the latent response \code{y_cont} has a controlled signal magnitude:
+#'   \describe{
+#'   \item{\code{"linear"}}{\eqn{y_i = x_i^\top \beta}, with \eqn{\beta} a fixed
+#'     evenly spaced sequence from \eqn{1} to \eqn{-1} across the \eqn{p} covariates
+#'     (\code{seq(1, -1, length.out = p)}) — i.e. the first covariate gets the
+#'     strongest positive effect, the last the strongest negative effect, and (for
+#'     even \eqn{p}) covariates near the middle get effects near zero — rescaled so
+#'     that \eqn{\|\beta\|_2^2 = \code{norm\_sq\_beta\_vec}}.}
+#'   \item{\code{"nonlinear"}}{The Friedman (1991) MARS benchmark function applied to
+#'     the first five covariates (requires \eqn{p \ge 5}; covariates beyond the
+#'     fifth do not enter the response at all),
+#'     \deqn{y_i = c \left(10 \sin(\pi x_{i1} x_{i2}) + 20 (x_{i3} - 0.5)^2 + 10
+#'     x_{i4} + 5 x_{i5}\right),}
+#'     with the overall scale \eqn{c} chosen so that \eqn{c^2 \sum_k
+#'     \beta_{\mathrm{friedman},k}^2 = \code{norm\_sq\_beta\_vec}} for the nominal
+#'     term coefficients \eqn{\beta_{\mathrm{friedman}} = (10, 20, 10, 5)} (the
+#'     \eqn{\sin} term's coefficient is not part of this nominal vector, so the
+#'     realized \eqn{\|c \cdot (10,20,10,5)\|_2^2} may not exactly equal
+#'     \code{norm_sq_beta_vec} once the \eqn{\sin} term's own variance is accounted
+#'     for — \code{norm_sq_beta_vec} calibrates the linear-in-covariate part of the
+#'     scale, not the full response variance). This function assumes each covariate
+#'     lies roughly in \eqn{[-1, 1]}, matching Friedman's original specification;
+#'     covariates drawn or supplied on a very different scale will not reproduce the
+#'     intended signal shape.}
+#'   }
+#'
 #' @param n Integer. Sample size (number of rows).
 #' @param p Integer. Number of covariates (number of columns).
 #' @param cond_exp_func_model Character scalar. Either \code{"linear"} (latent response is a
@@ -55,6 +82,10 @@
 #' @return A list with two elements: \code{X} (a data frame of covariates) and
 #'   \code{y_cont} (a numeric vector of the latent continuous response).
 #'
+#' @references Friedman, J. H. (1991). "Multivariate Adaptive Regression Splines."
+#'   \emph{The Annals of Statistics}, 19(1), 1-67, \doi{10.1214/aos/1176347963}, for
+#'   the nonlinear benchmark function used when \code{cond_exp_func_model =
+#'   "nonlinear"}.
 #' @examples
 #' generate_covariate_dataset(n = 10, p = 5)
 #' @export
@@ -841,8 +872,8 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         }
         assign("num_cores_override", prev_override, envir = ns$edi_env)
       }, add = TRUE)
-      has_pregen_designs = any(vapply(private$design_classes, function(dc)
-        !is.null(dc$public_methods$supports_batch_w_pregeneration), logical(1L)))
+      has_pregen_designs = any(vapply(private$design_classes,
+        design_class_generator_supports_batch_w_pregeneration, logical(1L)))
       has_cmh_inference = "InferenceIncidCMH" %in% private$inference_labels
       # force_serial was previously tied to has_pregen_designs to avoid JVM fork
       # issues; Java/GED is gone so parallelism is always safe.
@@ -1236,7 +1267,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
             dc = private$design_classes[[di]]
             dl = private$design_labels[[di]]
             dp = private$design_params[[di]]
-            is_pregen = !is.null(dc$public_methods$supports_batch_w_pregeneration)
+            is_pregen = design_class_generator_supports_batch_w_pregeneration(dc)
             if (!is_pregen && !has_cmh_inference) next
             des_combos = Filter(function(co) co$design == dl, cell_combos_ci)
             if (length(des_combos) == 0L) next
@@ -2717,9 +2748,15 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     .supports_exact_inference = function(inf_obj) {
       private$.supports_inference_capability(inf_obj, "exact_test", "InferenceExact")
     },
+    .supports_asymp_inference = function(inf_obj) {
+      private$.supports_inference_capability(inf_obj, "wald", "InferenceAsymp")
+    },
+    .supports_nonparam_bootstrap_inference = function(inf_obj) {
+      private$.supports_inference_capability(inf_obj, "nonparametric_bootstrap", "InferenceNonParamBootstrap")
+    },
     .valid_inference_types = function(inf_obj) {
       valid_inference_types = character(0L)
-      if (is(inf_obj, "InferenceAsymp")) {
+      if (private$.supports_asymp_inference(inf_obj)) {
         valid_inference_types = c(
           valid_inference_types,
           intersect(private$inf_types, c("asymp_ci", "asymp_pval"))
@@ -2731,7 +2768,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           intersect(private$inf_types, c("exact_ci", "exact_pval"))
         )
       }
-      if (is(inf_obj, "InferenceNonParamBootstrap")) {
+      if (private$.supports_nonparam_bootstrap_inference(inf_obj)) {
         valid_inference_types = c(
           valid_inference_types,
           intersect(private$inf_types, c("boot_ci", "boot_pval"))
@@ -2879,6 +2916,12 @@ SimulationFramework = R6::R6Class("SimulationFramework",
       }
       supports_exact_inference = function(inf_obj) {
         supports_inference_capability(inf_obj, "exact_test", "InferenceExact")
+      }
+      supports_asymp_inference = function(inf_obj) {
+        supports_inference_capability(inf_obj, "wald", "InferenceAsymp")
+      }
+      supports_nonparam_bootstrap_inference = function(inf_obj) {
+        supports_inference_capability(inf_obj, "nonparametric_bootstrap", "InferenceNonParamBootstrap")
       }
       state_for_rep = function() {
         state$rep = current_rep_i
@@ -3059,11 +3102,18 @@ SimulationFramework = R6::R6Class("SimulationFramework",
               priv$Ximp = data.table::copy(priv$Xraw)
               priv$X    = as.matrix(X)
               priv$t    = as.integer(state$n)
-              # Block / strata IDs needed by CMH, ExtendedRobins, etc.
-              if (inherits(d, "DesignFixedBinaryMatch") &&
+              # Block / strata IDs needed by CMH, ExtendedRobins, etc. Dispatches on
+              # randomization_family() rather than class identity or an existence
+              # check against ensure_matching_structure_computed()/get_or_compute_block_ids()
+              # (fix_design_hierarchy.md, "Class-Identity Dispatch Replacement") --
+              # existence alone isn't discriminating here since
+              # ensure_matching_structure_computed() is present (as a no-op) on every
+              # current design via inherited DesignMatching ancestry, which would make
+              # this branch fire for every design and starve the other two.
+              if (identical(d$randomization_family(), "binary_match") &&
                   exists("ensure_matching_structure_computed", envir = priv, inherits = FALSE)) {
                 priv$ensure_matching_structure_computed()
-              } else if (inherits(d, "DesignFixedOptimalBlocks") &&
+              } else if (identical(d$randomization_family(), "optimal_blocks") &&
                          exists("get_or_compute_block_ids", envir = priv, inherits = FALSE)) {
                 priv$m = as.integer(priv$get_or_compute_block_ids())
               } else if (!is.null(priv$strata_cols) && length(priv$strata_cols) > 0L &&
@@ -3186,11 +3236,11 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           }
           # .valid_inference_types logic (extracted)
           valid_inference_types = character(0)
-          if (is(inf_obj, "InferenceAsymp")) 
+          if (supports_asymp_inference(inf_obj))
             valid_inference_types = c(valid_inference_types, intersect(state$inf_types, c("asymp_ci", "asymp_pval")))
           if (supports_exact_inference(inf_obj))
             valid_inference_types = c(valid_inference_types, intersect(state$inf_types, c("exact_ci", "exact_pval")))
-          if (is(inf_obj, "InferenceNonParamBootstrap"))
+          if (supports_nonparam_bootstrap_inference(inf_obj))
             valid_inference_types = c(valid_inference_types, intersect(state$inf_types, c("boot_ci", "boot_pval")))
           if (supports_inference_capability(inf_obj, "randomization_test")) {
             valid_inference_types = c(valid_inference_types, intersect(state$inf_types, "rand_pval"))
@@ -3280,7 +3330,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
              for (k in seq_len(already_done)) progress_cb()
           }
           # Inference execution logic
-          if (is(inf_obj, "InferenceAsymp") && any(c("asymp_ci", "asymp_pval") %in% pending_inference_types)) {
+          if (supports_asymp_inference(inf_obj) && any(c("asymp_ci", "asymp_pval") %in% pending_inference_types)) {
             if ("asymp_pval" %in% pending_inference_types) {
               args = get_args("asymp_pval")
               pval_a = tryCatch(do.call(inf_obj$compute_asymp_two_sided_pval, args), error = function(e) {
@@ -3386,7 +3436,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
             }
           }
           
-          if (is(inf_obj, "InferenceNonParamBootstrap") && any(c("boot_ci", "boot_pval") %in% pending_inference_types)) {
+          if (supports_nonparam_bootstrap_inference(inf_obj) && any(c("boot_ci", "boot_pval") %in% pending_inference_types)) {
             if ("boot_pval" %in% pending_inference_types) {
               args = get_args("boot_pval", list(B = state$B_boot, na.rm = TRUE))
               pval_b = tryCatch(do.call(inf_obj$compute_bootstrap_two_sided_pval, args), error = function(e) {
@@ -4032,10 +4082,16 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         # covariates. Build that structure here so validation-time assertions
         # (e.g. CMH / Extended Robins) see the same metadata as a fully
         # realized design.
-        if (inherits(des_obj, "DesignFixedBinaryMatch") &&
+        # Dispatches on randomization_family() rather than class identity or an
+        # existence check alone (fix_design_hierarchy.md, "Class-Identity Dispatch
+        # Replacement") -- existence alone isn't discriminating here since
+        # ensure_matching_structure_computed() is present (as a no-op) on every
+        # current design via inherited DesignMatching ancestry, which would make this
+        # branch fire for every design and starve the other two.
+        if (identical(des_obj$randomization_family(), "binary_match") &&
             private$.has_private_method_on_object(des_obj, "ensure_matching_structure_computed")) {
           priv$ensure_matching_structure_computed()
-        } else if (inherits(des_obj, "DesignFixedOptimalBlocks") &&
+        } else if (identical(des_obj$randomization_family(), "optimal_blocks") &&
                    private$.has_private_method_on_object(des_obj, "get_or_compute_block_ids")) {
           priv$m = as.integer(priv$get_or_compute_block_ids())
         } else if (!is.null(priv$strata_cols) &&
@@ -4147,8 +4203,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         DesignFixedOptimalBlocks,
         DesignFixedCluster,                 # cluster_col auto-injected if absent
         DesignFixedBlockedCluster,          # strata_cols + cluster_col auto-injected if absent
-        DesignFixedDOptimal,
-        DesignFixedAOptimal,
+        DesignFixedGreedyDOptimal,
         DesignFixedFactorial,               # factors auto-injected if absent
         # ── Sequential one-by-one ──────────────────────────────────────────────
         DesignSeqOneByOneBernoulli,

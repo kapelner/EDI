@@ -264,7 +264,7 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
 //' @return A list containing coefficients and convergence status.
 //' @keywords internal
 // [[Rcpp::export]]
-List fast_zinb_cpp(SEXP X, SEXP Xzi, SEXP y,
+List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen::MatrixXd>& Xzi, SEXP y,
                    Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue,
                    int maxit = 1000, double tol = 1e-8,
                    Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
@@ -273,15 +273,11 @@ List fast_zinb_cpp(SEXP X, SEXP Xzi, SEXP y,
                    bool smart_cold_start = true,
                    Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
                    bool estimate_only = false) {
-    NumericMatrix Xc_r(X);
-    NumericMatrix Xz_r(Xzi);
     NumericVector y_r(y);
-    Eigen::Map<const Eigen::MatrixXd> Xc(Xc_r.begin(), Xc_r.nrow(), Xc_r.ncol());
-    Eigen::Map<const Eigen::MatrixXd> Xz(Xz_r.begin(), Xz_r.nrow(), Xz_r.ncol());
     Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
 
     LikelihoodFitResult fit = fast_zinb_internal(
-        Xc, Xz, y_vec,
+        X, Xzi, y_vec,
         nullable_to_optional<Eigen::VectorXd>(warm_start_params),
         maxit, tol,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -289,9 +285,9 @@ List fast_zinb_cpp(SEXP X, SEXP Xzi, SEXP y,
         optimization_alg, smart_cold_start,
         nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info));
 
-    ZeroInflatedNegBin obj(y_vec, Xc, Xz);
-    const int p_cond = Xc.cols();
-    const int p_zi = Xz.cols();
+    ZeroInflatedNegBin obj(y_vec, X, Xzi);
+    const int p_cond = X.cols();
+    const int p_zi = Xzi.cols();
     if (estimate_only) {
         List out = edi::to_rcpp_list(edi::ResultMap()
             .set("params", fit.params)

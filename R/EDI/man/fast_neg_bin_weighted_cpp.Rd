@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_neg_bin_weighted_cpp}
 \alias{fast_neg_bin_weighted_cpp}
-\title{Fast Weighted Negative Binomial Regression (C++)}
+\title{Fast Weighted Negative Binomial Regression, Estimate Only (C++ Backend)}
 \usage{
 fast_neg_bin_weighted_cpp(
   X,
@@ -21,41 +21,58 @@ fast_neg_bin_weighted_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors, \eqn{n \times p}.}
 
-\item{y}{A numeric vector of responses.}
+\item{y}{A numeric (integer-valued) vector of non-negative observed
+counts, length \eqn{n}.}
 
-\item{weights}{A nonnegative numeric vector of row weights.}
+\item{weights}{A nonnegative numeric vector of length \eqn{n} giving each
+row's weight.}
 
 \item{warm_start_params}{Optional starting values for coefficients and dispersion. If provided, \code{smart_cold_start} is ignored.}
 
 \item{smart_cold_start}{Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of optimizer iterations.}
 
-\item{eps_f}{Convergence tolerance for function value.}
+\item{eps_f}{Convergence tolerance on the objective (log-likelihood) value.}
 
-\item{eps_g}{Convergence tolerance for gradient.}
+\item{eps_g}{Convergence tolerance on the gradient norm.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{fixed_idx}{Optional integer indices (into the \code{c(beta, log(theta))}
+parameter layout) of parameters to hold fixed rather than estimate.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default) or \code{"newton_raphson"}.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix to
+warm-start curvature information.}
 
 \item{estimate_only}{If TRUE, skip Fisher information calculation.}
 }
 \value{
-A list containing coefficients, theta, and convergence status.
+A list with the same components as \code{\link{fast_neg_bin_cpp}}:
+  \code{b}, \code{theta_hat}, \code{logLik}, \code{converged},
+  \code{iterations}, and \code{fisher_information} (all reflecting the
+  weighted log-likelihood).
 }
 \description{
-High-performance negative binomial regression fitting with nonnegative row weights.
+Fits the same mean/dispersion-parameterized negative-binomial regression as
+\code{\link{fast_neg_bin_cpp}} (see that page, and
+\code{\link{fast_dnbinom_mu_vec_cpp}}, for the full model), with each
+observation's contribution to the log-likelihood multiplied by a
+nonnegative row weight \code{weights[i]}. Setting all weights to 1 recovers
+\code{\link{fast_neg_bin_cpp}} exactly.
 }
 \examples{
 X = matrix(rnorm(100), 10, 10)
 y = rpois(10, 2)
 fast_neg_bin_weighted_cpp(X, y, weights = rep(1, 10))
+}
+\seealso{
+\code{\link{fast_neg_bin_cpp}} for the unweighted model and full
+  documentation.
 }
 \keyword{internal}

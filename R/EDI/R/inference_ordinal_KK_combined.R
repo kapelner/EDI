@@ -1,8 +1,28 @@
 #' GEE Inference for KK Designs with Ordinal Response
 #'
-#' Fits a Generalized Estimating Equations (GEE) model (using \pkg{multgee})
-#' for ordinal responses under a KK matching-on-the-fly design using the
-#' treatment indicator and, optionally, all recorded covariates as predictors.
+#' Fits a \strong{proportional-odds local-odds-ratio} Generalized Estimating
+#' Equations model, via \code{multgee::ordLORgee}, for ordinal responses under a
+#' KK matching-on-the-fly design, using the treatment indicator and,
+#' optionally, all recorded covariates as predictors. Each GEE cluster is
+#' either a matched pair (2 members) or a reservoir singleton (1 member) — GEE
+#' is used here purely to fit one marginal cumulative-logit model jointly
+#' across matched-pair and reservoir subjects while accounting for the
+#' within-pair correlation the matching induces, not as a
+#' longitudinal/repeated-measures tool. Unlike the other \verb{Inference*KKGEE}
+#' classes in this family (continuous/count/incidence/proportion, which use an
+#' internal Rcpp solver or \code{geepack::geeglm} with an exchangeable working
+#' correlation), this ordinal class always requires the \pkg{multgee} package
+#' and has no \code{use_rcpp} option. Inference is quasi-likelihood/
+#' estimating-equation based (\code{likelihood_tier = "quasi"}): standard
+#' errors are GEE sandwich (robust) standard errors, not model-likelihood-based.
+#'
+#' @references Touloumis, A. (2015). "R Package multgee: A Generalized
+#'   Estimating Equations Solver for Multinomial Responses." \emph{Journal of
+#'   Statistical Software}, 64(8), 1-14, \doi{10.18637/jss.v064.i08}, for the
+#'   local-odds-ratio GEE solver used here; Liang, K.-Y., and Zeger, S. L.
+#'   (1986). "Longitudinal Data Analysis Using Generalized Linear Models."
+#'   \emph{Biometrika}, 73(1), 13-22, \doi{10.1093/biomet/73.1.13}, for the
+#'   underlying GEE estimating-equation framework.
 #'
 #' @examples
 #' \donttest{
@@ -21,8 +41,10 @@ InferenceOrdinalKKGEE = define_inference_class(
 	components = "KKGEE",
 	public = list(
 		#' @description Initialize KK ordinal GEE inference, validate the ordinal
-		#'   matched/reservoir design, and prepare the working estimating-equation
-		#'   model used by \code{\link[EDI:InferenceOrdinalKKGEE]{InferenceOrdinalKKGEE}}.
+		#'   matched/reservoir design, and prepare the \code{multgee::ordLORgee}
+		#'   proportional-odds local-odds-ratio GEE fitting machinery used by
+		#'   \code{\link[EDI:InferenceOrdinalKKGEE]{InferenceOrdinalKKGEE}}. Requires
+		#'   the \pkg{multgee} package; errors at construction if it is not installed.
 		#' @param des_obj A completed \code{Design} object with an ordinal response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -39,12 +61,26 @@ InferenceOrdinalKKGEE = define_inference_class(
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			private$init_kk_gee_shared(des_obj, use_rcpp = FALSE)
 		},
-		#' @description Recomputes the KK ordinal GEE treatment estimate under
-		#'   Bayesian-bootstrap weights.
+		#' @description Recomputes the KK ordinal treatment estimate under
+		#'   subject/block bootstrap weights, used by the Bayesian bootstrap and
+		#'   related weighted-resampling machinery. If the supplied weights are all
+		#'   (numerically) equal, this short-circuits to the unweighted
+		#'   \code{$compute_estimate(estimate_only = TRUE)} (the \code{multgee}
+		#'   proportional-odds GEE fit) rather than refitting. Otherwise, since
+		#'   \code{multgee::ordLORgee} does not support observation weights, this
+		#'   falls back to a \strong{different, approximating} model: a plain
+		#'   (non-GEE, no matched-pair clustering) weighted proportional-odds
+		#'   ordinal logistic regression via
+		#'   \code{\link{fast_ordinal_regression_weighted_cpp}}, treating the
+		#'   coefficient on the first predictor column as the treatment effect.
+		#'   This always leaves the standard error and degrees of freedom
+		#'   unavailable (\code{s_beta_hat_T = NA}, \code{df = Inf}) regardless of
+		#'   \code{estimate_only}, since it is a point-estimate-only fallback path.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
 		#' @param estimate_only If \code{TRUE}, compute only the weighted point
-		#'   estimate.
+		#'   estimate. Has no effect on the weighted (non-uniform-weight) fallback
+		#'   path, which never computes a standard error regardless.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			if (length(row_weights) > 0L && all(is.finite(row_weights)) &&

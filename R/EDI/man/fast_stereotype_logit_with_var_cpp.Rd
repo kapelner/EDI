@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_stereotype_logit_with_var_cpp}
 \alias{fast_stereotype_logit_with_var_cpp}
-\title{Fast Stereotype Logit Regression with Variance (C++)}
+\title{Fast Stereotype (Reduced-Rank Multinomial) Logistic Regression with Variance (C++)}
 \usage{
 fast_stereotype_logit_with_var_cpp(
   X,
@@ -20,30 +20,67 @@ fast_stereotype_logit_with_var_cpp(
 )
 }
 \arguments{
-\item{X}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors (no intercept column needed; see
+\code{\link{fast_stereotype_logit_cpp}}).}
 
-\item{y}{A numeric vector of responses.}
+\item{y}{A numeric vector of categorical (nominal or ordinal) responses; only
+the set of distinct values matters, not their numeric coding or order.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{maxit}{Maximum number of optimizer iterations.}
 
 \item{tol}{Convergence tolerance.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
+\item{smart_cold_start}{Present for interface parity but currently has no effect;
+see \code{\link{fast_stereotype_logit_cpp}} Details.}
 
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_idx}{Optional 1-indexed positions (into the joint parameter vector,
+\code{alpha} first) of parameters to hold fixed.}
 
-\item{optimization_alg}{Optimization algorithm.}
+\item{fixed_values}{Optional values, parallel to \code{fixed_idx}, of the fixed parameters.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+\item{optimization_alg}{Optimization algorithm (default \code{"newton_raphson"}).}
 
-\item{warm_start_params}{Optional starting values for all parameters. If provided, \code{smart_cold_start} is ignored.}
+\item{warm_start_fisher_info}{Optional initial curvature matrix for the first optimizer iteration.}
 
-\item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
+\item{warm_start_params}{Optional starting values for the full joint parameter vector.
+Takes precedence over \code{warm_start_beta}.}
+
+\item{warm_start_beta}{Optional starting values for \eqn{\beta} alone (ignored if
+\code{warm_start_params} is supplied).}
+
+\item{estimate_only}{Accepted for interface parity but \strong{ignored}: this function
+always computes the observed information and \code{ssq_b_1}/\code{ssq_b_j} regardless
+of its value.}
 }
 \value{
-A list containing coefficients, variance estimates, vcov, and convergence status.
+A list with components \code{b} (\eqn{\hat\beta}), \code{alpha} (the \eqn{K-1}
+  free intercepts), \code{params} (the full fitted joint parameter vector),
+  \code{ssq_b_1} and \code{ssq_b_j} (identical aliases for the variance of
+  \eqn{\hat\beta_1}, computed as described above; \code{NA} if unavailable),
+  \code{vcov} (always missing/\code{NULL}), \code{converged}, and
+  \code{fisher_information} (the observed information, i.e. negative Hessian, at the
+  fitted parameters).
 }
 \description{
-Stereotype logit regression fitting with full variance-covariance matrix.
+As \code{\link{fast_stereotype_logit_cpp}} (see that page for the full stereotype
+logit model), but always computes the observed information and the variance of
+\eqn{\hat\beta_1} (the first, and typically only meaningfully identified,
+regression coefficient — conventionally the treatment effect). The primary
+variance estimate is \eqn{[(-H)^{-1}]_{\beta_1\beta_1}} from the observed
+information (negative Hessian) at the fitted parameters. If \eqn{\beta_1} is not
+held fixed (via \code{fixed_idx}) and that entry comes out non-finite (e.g. the
+information matrix is singular), this function falls back to a
+\strong{profile-likelihood} variance: it re-optimizes all nuisance parameters
+(everything except \eqn{\beta_1}) at \eqn{\hat\beta_1}, \eqn{\hat\beta_1 \pm h}
+(\eqn{h = \max(10^{-4}, 10^{-3}(|\hat\beta_1| + 1))}), takes the central
+second-difference of the resulting profile log-likelihood to approximate the
+profile information \eqn{I(\hat\beta_1)}, and reports \eqn{1/I(\hat\beta_1)} if
+that comes out finite and positive (otherwise the variance remains \code{NA}).
+\code{vcov} is never populated (always \code{NULL}/missing) — only the single
+\eqn{\beta_1} variance is available from this function.
+}
+\seealso{
+\code{\link{fast_stereotype_logit_cpp}} for the estimate-only-capable variant
+  and the full model documentation.
 }
 \keyword{internal}

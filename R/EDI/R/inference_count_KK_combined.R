@@ -17,10 +17,11 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceCountKKGLMM = R6::R6Class("InferenceCountKKGLMM",
-	lock_objects = FALSE,
+InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 	inherit = InferenceParamBootstrap,
-	public = utils::modifyList(as.list(InferenceMixinKKGLMMShared$public), list(
+	components = "KKGLMM",
+	metadata = list(likelihood_tier = "full"),
+	public = list(
 		#' @description Initialize a KK Poisson GLMM inference object.
 		#' @param des_obj A completed \code{Design} object with a count response.
 		#' @param model_formula Optional formula for covariate adjustment.
@@ -122,8 +123,8 @@ InferenceCountKKGLMM = R6::R6Class("InferenceCountKKGLMM",
 				self$compute_wald_two_sided_pval(delta = delta)
 			)
 		}
-	)),
-	private = utils::modifyList(as.list(InferenceMixinKKGLMMShared$private), list(
+	),
+	private = list(
 		use_rcpp = TRUE,
 		cached_vc_params = NULL,
 		glmm_response_type = function() "count",
@@ -404,5 +405,14 @@ InferenceCountKKGLMM = R6::R6Class("InferenceCountKKGLMM",
 				neg_loglik = function(fit){ as.numeric(fit$neg_loglik %||% fit$neg_ll) }
 			)
 		}
-	))
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval"
+		),
+		private = "compute_weighted_glmm_bootstrap_estimate"
+	)
 )

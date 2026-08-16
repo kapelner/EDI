@@ -4,8 +4,27 @@
 #' censoring, based on the standard two-sample log-rank test. The treatment effect
 #' estimate is the difference in mean martingale residuals between the treatment and
 #' control groups under the pooled null hazard. The p-value uses the classic
-#' log-rank score statistic with its hypergeometric tie-adjusted variance.
+#' log-rank score statistic with its hypergeometric tie-adjusted variance. For
+#' left- or interval-censored data, this class dispatches instead to
+#' \code{interval::ictest(..., scores = "logrank1")} (Sun's-scores interval-censored
+#' generalization of the log-rank test) for both the point estimate and testing.
 #'
+#' @references Mantel, N. (1966). "Evaluation of survival data and two new
+#'   rank order statistics arising in its consideration." \emph{Cancer
+#'   Chemotherapy Reports}, 50(3), 163-170, for the log-rank test. Peto, R.,
+#'   and Peto, J. (1972). "Asymptotically Efficient Rank Invariant Test
+#'   Procedures." \emph{Journal of the Royal Statistical Society, Series A},
+#'   135(2), 185-207, \doi{10.2307/2344317}, for its asymptotic-efficiency
+#'   properties and the \eqn{\rho=0} case of the Fleming-Harrington family
+#'   this class corresponds to (see also
+#'   \code{\link[EDI:InferenceSurvivalGehanWilcox]{InferenceSurvivalGehanWilcox}}
+#'   for the \eqn{\rho=1} member of the same family). Sun, J. (1996). "A
+#'   non-parametric test for interval-censored failure time data with
+#'   application to AIDS studies." \emph{Statistics in Medicine}, 15(13),
+#'   1387-1395, for the interval-censored generalization used on the
+#'   left-/interval-censored path.
+#' @concept log-rank test
+#' @concept survival analysis
 #' @export
 #' @examples
 #' set.seed(1)
@@ -25,8 +44,9 @@
 #' }
 #' seq_des$
 #'   add_all_subject_responses(
-#'   c(1.2, 2.4, 1.8, 3.1, 2.7, 4.0, 3.3, 4.5),
-#'   c(1, 1, 0, 1, 0, 1, 1, 0)
+#'   ys = c(1.2, 2.4, NA, 3.1, NA, 4.0, 3.3, NA),
+#'   y_Ls = c(NA, NA, 1.8, NA, 2.7, NA, NA, 4.5),
+#'   y_Rs = c(NA, NA, Inf, NA, Inf, NA, NA, Inf)
 #' )
 #' infer <- InferenceSurvivalLogRank$
 #'   new(
@@ -35,10 +55,14 @@
 #' )
 #' infer
 #'
-InferenceSurvivalLogRank = R6::R6Class("InferenceSurvivalLogRank",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceSurvivalLogRank = define_inference_class(
+	classname = "InferenceSurvivalLogRank",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize log-rank survival inference and prepare the
 		#'   treatment-group survival data used by
 		#'   \code{\link[EDI:InferenceSurvivalLogRank]{InferenceSurvivalLogRank}}.
@@ -56,6 +80,12 @@ InferenceSurvivalLogRank = R6::R6Class("InferenceSurvivalLogRank",
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula)
 		},
 		#' @description Computes the treatment-effect estimate on the martingale-residual mean-difference scale.
+		#'   Under left-/interval-censored data, dispatched instead through
+		#'   \code{interval::ictest()}'s Sun's-scores log-rank test (TODO-7,
+		#'   interval_censored_survival_response.md); its \code{estimate} field
+		#'   (mean score difference between groups) is on the same "difference of
+		#'   group-mean scores" scale as the right-censored martingale-residual
+		#'   difference this method otherwise returns.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$compute_shared(estimate_only = estimate_only)
@@ -66,6 +96,13 @@ InferenceSurvivalLogRank = R6::R6Class("InferenceSurvivalLogRank",
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
+			if (isTRUE(private$has_general_censoring)) {
+				stop(
+					"Bayesian bootstrap is not yet supported for left-/interval-censored survival data ",
+					"(weighted_logrank_mean_difference() assumes ordinary right-censoring semantics via ",
+					"coxph()/Surv(), which does not apply here)."
+				)
+			}
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			private$cached_values$beta_hat_T = private$weighted_logrank_mean_difference(row_weights)
 			private$cached_values$s_beta_hat_T = NA_real_
@@ -99,6 +136,8 @@ InferenceSurvivalLogRank = R6::R6Class("InferenceSurvivalLogRank",
 			private$invert_ci_to_find_two_sided_pval_for_treatment_effect(delta = delta)
 		},
 		#' @description Computes the standard two-sided log-rank p-value for a zero treatment effect.
+		#'   Under left-/interval-censored data, this is \code{interval::ictest()}'s
+		#'   own p-value (TODO-7) rather than a re-derived chi-squared statistic.
 		#' @param delta Null treatment effect to test against. Only \code{0} is supported.
 		compute_asymp_log_rank_two_sided_pval_for_treatment_effect = function(delta = 0){
 			if (should_run_asserts()) {
@@ -109,6 +148,11 @@ InferenceSurvivalLogRank = R6::R6Class("InferenceSurvivalLogRank",
 				if (delta != 0){
 					stop("Testing non-zero delta is not yet implemented for InferenceSurvivalLogRank.")
 				}
+			}
+			if (isTRUE(private$has_general_censoring)) {
+				pv = private$cached_values$icen_pval
+				if (!is.finite(pv)) return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+				return(pv)
 			}
 			if (!is.finite(private$cached_values$logrank_var) || private$cached_values$logrank_var <= 0){
 				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
@@ -129,7 +173,16 @@ InferenceSurvivalLogRank = R6::R6Class("InferenceSurvivalLogRank",
 		}
 	),
 	private = list(
+		supports_interval_or_left_censored_data = function() TRUE,
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
+			# compute_logrank_rand_bootstrap_parallel_cpp() assumes ordinary
+			# right-censoring (dead in {0,1} against a single y); under general
+			# censoring there is no fast path -- NULL is this codebase's
+			# established "no fast path available" signal, which falls back to
+			# the generic randomization loop that re-dispatches through
+			# compute_estimate()/compute_shared() (and so through ictest()) per
+			# replicate.
+			if (isTRUE(private$has_general_censoring)) return(NULL)
 			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			# survival sharp-null shift is multiplicative (delta on the log scale)
 			if (delta != 0 && !identical(transform_responses, "log")) return(NULL)
@@ -168,7 +221,48 @@ InferenceSurvivalLogRank = R6::R6Class("InferenceSurvivalLogRank",
 			mean_c = sum(wt_c * M[idx_c]) / sum(wt_c)
 			as.numeric(mean_t - mean_c)
 		},
+		# interval::ictest() dispatch for left-/interval-censored data (TODO-7,
+		# interval_censored_survival_response.md). Sun's-scores log-rank test
+		# (scores = "logrank1"), the interval-censored generalization of the
+		# right-censored log-rank test above. Exact rows (private$y non-NA)
+		# become a zero-width [y, y] interval; censored rows use y_L/y_R
+		# directly -- right-censored (y_R = Inf) and left-censored (y_L = 0)
+		# both fall out of the same (L, R) shape ictest() expects, confirmed
+		# empirically against a live ictest() call mixing all three shapes
+		# before writing this dispatch (same check TODO-6 did for icenReg).
+		compute_shared_icen = function(estimate_only = FALSE){
+			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
+			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+			assert_interval_installed(class(self)[1L])
+			L = ifelse(is.na(private$y), private$y_L, private$y)
+			R = ifelse(is.na(private$y), private$y_R, private$y)
+			fit = tryCatch(
+				suppressWarnings(interval::ictest(L, R, private$w, scores = "logrank1")),
+				error = function(e) NULL
+			)
+			if (is.null(fit)) {
+				private$cached_values$beta_hat_T = NA_real_
+				if (estimate_only) return(invisible(NULL))
+				private$cached_values$s_beta_hat_T = NA_real_
+				private$cached_values$logrank_score = NA_real_
+				private$cached_values$logrank_var = NA_real_
+				private$cached_values$icen_pval = NA_real_
+				return(invisible(NULL))
+			}
+			beta_hat = as.numeric(fit$estimate)
+			private$cached_values$beta_hat_T = beta_hat
+			if (estimate_only) return(invisible(NULL))
+			z_stat = as.numeric(fit$statistic)
+			private$cached_values$s_beta_hat_T = if (is.finite(z_stat) && z_stat != 0) abs(beta_hat / z_stat) else NA_real_
+			private$cached_values$logrank_score = z_stat
+			private$cached_values$logrank_var = 1
+			private$cached_values$icen_pval = as.numeric(fit$p.value)
+		},
 		compute_shared = function(estimate_only = FALSE){
+			if (isTRUE(private$has_general_censoring)) {
+				return(private$compute_shared_icen(estimate_only = estimate_only))
+			}
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
 			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
@@ -193,5 +287,19 @@ InferenceSurvivalLogRank = R6::R6Class("InferenceSurvivalLogRank",
 			private$cached_values$logrank_score = as.numeric(logrank_stats$score)
 			private$cached_values$logrank_var = as.numeric(logrank_stats$var_score)
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_confidence_interval", "compute_rand_two_sided_pval"
+		),
+		private = c(
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

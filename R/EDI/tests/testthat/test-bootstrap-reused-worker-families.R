@@ -96,21 +96,25 @@ test_that("count reusable bootstrap workers match generic paths", {
 	SlowInferenceCountRobustPoisson = R6::R6Class(
 		"SlowInferenceCountRobustPoisson",
 		inherit = InferenceCountRobustPoisson,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceCountRobustPoisson = R6::R6Class(
 		"SlowInferenceCountRobustPoisson",
 		inherit = InferenceCountRobustPoisson,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceCountQuasiPoisson = R6::R6Class(
 		"SlowInferenceCountQuasiPoisson",
 		inherit = InferenceCountQuasiPoisson,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceCountQuasiPoisson = R6::R6Class(
 		"SlowInferenceCountQuasiPoisson",
 		inherit = InferenceCountQuasiPoisson,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 
@@ -158,11 +162,13 @@ test_that("continuous robust reusable bootstrap worker matches generic path", {
 	SlowInferenceContinRobustRegr = R6::R6Class(
 		"SlowInferenceContinRobustRegr",
 		inherit = InferenceContinRobustRegr,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceContinRobustRegr = R6::R6Class(
 		"SlowInferenceContinRobustRegr",
 		inherit = InferenceContinRobustRegr,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 
@@ -186,11 +192,13 @@ test_that("continuous quantile reusable bootstrap worker matches generic path", 
 	SlowInferenceContinQuantileRegr = R6::R6Class(
 		"SlowInferenceContinQuantileRegr",
 		inherit = InferenceContinQuantileRegr,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	SlowInferenceContinQuantileRegr = R6::R6Class(
 		"SlowInferenceContinQuantileRegr",
 		inherit = InferenceContinQuantileRegr,
+		lock_objects = FALSE,
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 

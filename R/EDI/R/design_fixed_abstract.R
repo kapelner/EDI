@@ -14,8 +14,6 @@ DesignFixed = R6::R6Class("DesignFixed",
 	lock_objects = FALSE,
 	inherit = DesignMatching,
 	public = list(
-		#' @description Characterization: this is a fixed-sample-size design.
-		is_a_fixed = function() TRUE,
 		#' @description Initialize a fixed experimental design
 		#'
 		#' @param response_type   "continuous", "incidence", "proportion", "count", "survival", or
@@ -175,12 +173,6 @@ DesignFixed = R6::R6Class("DesignFixed",
 				}
 			}
 			private$w = as.numeric(w)
-		},
-		#' @description Check if the design supports resampling.
-		#'
-		#' @return 	TRUE if supported.
-		supports_resampling = function(){
-			class(self)[1] != "DesignFixed"
 		}
 	),
 	private = list()

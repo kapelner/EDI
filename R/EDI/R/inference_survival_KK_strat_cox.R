@@ -89,7 +89,47 @@ InferenceSurvivalKKStratCoxPHIVWC = R6::R6Class("InferenceSurvivalKKStratCoxPHIV
 		}
 	),
 	private = list(
-		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
+		# Overrides the generic KK pass-through delegation to
+		# private$compute_basic_kk_match_data_impl(): that shared helper delegates
+		# to compute_zhang_match_data_cpp(), which only ever produces
+		# paired-difference match data for binary/incidence outcomes (X_matched_diffs,
+		# yTs_matched/yCs_matched, X_reservoir/y_reservoir/w_reservoir, nRT/nRC, ...)
+		# and has no notion of censoring. shared() below needs per-subject long-format
+		# data (one row per matched subject, grouped by pair id as a stratum, plus a
+		# censoring indicator) to feed fast_stratified_coxph_regression_cpp() /
+		# fast_coxph_regression_cpp(); the shared kernel never produced those fields,
+		# so KKstats$*_matched_long silently came back empty for every caller of this
+		# class (interval_censored_survival_response.md TODO-16). Built directly from
+		# this object's own private fields instead of the shared Zhang-style kernel.
+		compute_basic_match_data = function(){
+			if (!isTRUE(private$has_match_structure)) {
+				private$cache_nonestimable_estimate("kk_design_required")
+				return(invisible(NULL))
+			}
+			split = split_kk_matched_reservoir_idx(private$m, private$n)
+			m_vec = split$m_vec
+			matched_idx = split$matched_idx
+			reservoir_idx = split$reservoir_idx
+			X_full = private$get_X()
+			if (is.null(X_full)) X_full = matrix(numeric(0), nrow = private$n, ncol = 0L)
+			X_full = as.matrix(X_full)
+
+			private$cached_values$KKstats = list(
+				m = length(unique(m_vec[matched_idx])),
+				nRT = sum(private$w[reservoir_idx] == 1L),
+				nRC = sum(private$w[reservoir_idx] == 0L),
+				y_matched_long = private$y[matched_idx],
+				dead_matched_long = private$dead[matched_idx],
+				w_matched_long = private$w[matched_idx],
+				m_matched_long = m_vec[matched_idx],
+				X_matched_long = X_full[matched_idx, , drop = FALSE],
+				y_reservoir = private$y[reservoir_idx],
+				dead_reservoir = private$dead[reservoir_idx],
+				w_reservoir = private$w[reservoir_idx],
+				X_reservoir = X_full[reservoir_idx, , drop = FALSE]
+			)
+			private$cached_values$KKstats
+		},
 		max_abs_reasonable_coef = 1e4,
 		# Abstract: subclasses return TRUE (multivariate) or FALSE (univariate).
 		cox_design_candidates = function(w, X){
@@ -229,6 +269,17 @@ InferenceSurvivalKKStratCoxPHIVWC = R6::R6Class("InferenceSurvivalKKStratCoxPHIV
 				if (!estimate_only) private$cached_values$s_beta_hat_T = sqrt(ssq_r)
 			} else {
 				private$cache_nonestimable_estimate("kk_strat_cox_ivwc_both_failed")
+			}
+		},
+		# InferenceAsymp's compute_asymp_confidence_interval()/compute_asymp_two_sided_pval()
+		# contract requires a concrete assert_finite_se() hook (no default exists on the base
+		# class); this class had none, so those two methods crashed with "attempt to apply
+		# non-function" as soon as shared() could actually produce an estimate (TODO-16).
+		# Matches the same no-op-both-ways stub already used by sibling classes, e.g.
+		# inference_survival_KK_lwa_cox_ivwc_abstract.R's assert_finite_se().
+		assert_finite_se = function(){
+			if (!is.finite(private$cached_values$s_beta_hat_T)){
+				return(invisible(NULL))
 			}
 		}
 		)

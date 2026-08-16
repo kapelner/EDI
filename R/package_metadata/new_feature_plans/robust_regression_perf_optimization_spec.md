@@ -1,5 +1,7 @@
 # Robust-Regression Bootstrap-Loop Perf Optimization Spec
 
+> **Depends on:** none. (Global ordering: see `_master.md`.)
+
 Generated: 2026-07-29
 
 ## Scope

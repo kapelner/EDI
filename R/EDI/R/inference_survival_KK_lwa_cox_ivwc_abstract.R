@@ -210,10 +210,9 @@ InferenceAbstractKKLWACoxIVWC = R6::R6Class("InferenceAbstractKKLWACoxIVWC",
 			NULL
 		},
 		lwa_cox_for_matched_pairs = function(){
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			i_matched = which(m_vec > 0)
+			split = split_kk_matched_reservoir_idx(private$m, private$n)
+			m_vec = split$m_vec
+			i_matched = split$matched_idx
 			if (length(i_matched) == 0L) return(invisible(NULL))
 			fit = private$fit_cox_model(
 				y = private$y[i_matched],
@@ -227,10 +226,8 @@ InferenceAbstractKKLWACoxIVWC = R6::R6Class("InferenceAbstractKKLWACoxIVWC",
 			private$cached_values$ssq_beta_T_matched = fit$ssq
 		},
 		cox_for_reservoir = function(){
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			i_reservoir = which(m_vec == 0L)
+			split = split_kk_matched_reservoir_idx(private$m, private$n)
+			i_reservoir = split$reservoir_idx
 			if (length(i_reservoir) == 0L) return(invisible(NULL))
 			fit = private$fit_cox_model(
 				y = private$y[i_reservoir],

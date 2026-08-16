@@ -45,11 +45,11 @@ struct RobustModelResult {
     Eigen::MatrixXd X_free;
     double XtX_inv_diag_j;
     double scale;
-    int iterations;
+    int num_iter;
     bool converged;
     double ssq_b_j;
 
-    RobustModelResult() : XtX_inv_diag_j(std::numeric_limits<double>::quiet_NaN()), scale(std::numeric_limits<double>::quiet_NaN()), iterations(0), converged(false), ssq_b_j(std::numeric_limits<double>::quiet_NaN()) {}
+    RobustModelResult() : XtX_inv_diag_j(std::numeric_limits<double>::quiet_NaN()), scale(std::numeric_limits<double>::quiet_NaN()), num_iter(0), converged(false), ssq_b_j(std::numeric_limits<double>::quiet_NaN()) {}
 };
 
 RobustModelResult fast_robust_regression_internal(
@@ -156,7 +156,7 @@ RobustModelResult fast_robust_regression_internal(
     
     for (int iter = 1; iter <= maxit; ++iter) {
         edi_check_R_user_interrupt_every(iter);
-        res.iterations = iter;
+        res.num_iter = iter;
         
         // Update weights
         if (iter == 1 && warm_start_weights.has_value()) {
@@ -206,27 +206,74 @@ RobustModelResult fast_robust_regression_internal(
 }
 
 #ifndef EDI_CORE_ONLY
-//' @title Fast Robust Regression (C++)
-//' @description High-performance robust regression fitting using IRLS.
+//' Fast Robust (M/MM-Estimator) Linear Regression (C++)
+//'
+//' Fits a robust linear regression by iteratively reweighted least squares (IRLS),
+//' minimizing \eqn{\sum_i \rho(r_i / \hat\sigma)} for residuals \eqn{r_i = y_i -
+//' x_i^\top\beta} and a fixed robustness scale \eqn{\hat\sigma}, rather than
+//' ordinary least squares' \eqn{\sum_i r_i^2}. \code{method = "M"} uses \strong{Huber's}
+//' weight function \eqn{w(u) = 1} for \eqn{|u| \le c} and \eqn{w(u) = c/|u|}
+//' otherwise (\code{c}, default 1.345, tuned for 95\% efficiency under normality);
+//' any other value of \code{method} (including the default, \code{"MM"}) uses
+//' \strong{Tukey's bisquare} weight \eqn{w(u) = (1 - (u/c_b)^2)^2} for \eqn{|u| \le c_b}
+//' and \eqn{0} otherwise, with \eqn{c_b = 4.685} hardcoded (not settable through
+//' this exported wrapper, though the internal fitter accepts it). The scale
+//' \eqn{\hat\sigma} is fixed once at the start as the normalized median absolute
+//' deviation of the OLS residuals, \eqn{\hat\sigma = \mathrm{median}(|r_i|) /
+//' 0.6745} (the internal fitter also accepts a caller-supplied fixed scale, but
+//' this wrapper always estimates it). Each IRLS iteration re-weights and re-solves
+//' the weighted normal equations \eqn{X^\top W X\, \beta = X^\top W y} via
+//' \code{Eigen::LDLT}; convergence is declared when the relative change in
+//' \eqn{\beta} falls below \code{tol}. Column 1 of a real design typically holds
+//' the intercept, but no columns are treated specially except via \code{fixed_idx}.
+//'
+//' @section Fixed parameters, warm starts:
+//' \code{fixed_idx} and \code{fixed_values} optionally hold a subset of coefficients
+//' fixed at caller-supplied constant values (subtracted out of \code{y} as an
+//' offset) rather than estimated. \code{warm_start_beta} supplies a starting
+//' coefficient vector directly; otherwise, if \code{smart_cold_start = TRUE} (the
+//' default), an ordinary QR least-squares fit seeds the start (and, when variance
+//' will later be requested via \code{j}, also caches the QR-based \eqn{[(X^\top
+//' X)^{-1}]_{jj}} entry for reuse in the variance formula below). \code{warm_start_weights}
+//' seeds the IRLS weights for the first iteration only (skipping that iteration's
+//' Huber/bisquare weight computation); \code{warm_start_fisher_info} similarly seeds
+//' the first iteration's \eqn{X^\top W X} curvature matrix.
+//'
 //' @param X A numeric matrix of predictors.
 //' @param y A numeric vector of responses.
 //' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
-//' @param method Robust estimation method ("M" or "MM").
-//' @param j 1-based index of the parameter for which to return specific variance.
-//' @param c Huber constant.
-//' @param maxit Maximum number of iterations.
-//' @param tol Convergence tolerance.
+//' @param smart_cold_start Logical. If \code{TRUE} (the default) and no \code{warm_start_beta}
+//'   is supplied, use an OLS (QR) initial guess; see Details.
+//' @param method Robust estimation method: \code{"M"} for Huber weighting, anything else
+//'   (default \code{"MM"}) for Tukey bisquare weighting; see Details.
+//' @param j 1-based index of the coefficient whose asymptotic variance to return in \code{ssq_b_j}.
+//' @param c Huber tuning constant (default 1.345; only used when \code{method = "M"}).
+//' @param maxit Maximum number of IRLS iterations.
+//' @param tol Relative parameter-change convergence tolerance.
 //' @param fixed_idx Optional indices of fixed parameters.
 //' @param fixed_values Optional values for fixed parameters.
 //' @param warm_start_weights Optional initial working weights for the first IRLS iteration.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients, weights, and scale estimate.
+//' @param warm_start_fisher_info Optional initial curvature (\eqn{X^\top W X}) matrix for the first IRLS iteration.
+//' @param estimate_only If \code{TRUE}, skip the post-fit asymptotic-variance computation
+//'   and return only \code{coefficients}, \code{scale}, \code{converged}, and \code{iterations}.
+//'
+//' @return If \code{estimate_only = TRUE}: a list with \code{coefficients}, \code{scale}
+//'   (the fixed MAD-based robustness scale \eqn{\hat\sigma}), \code{converged}, \code{iterations}.
+//'   Otherwise, additionally: \code{ssq_b_j} and \code{fisher_information} (the final IRLS
+//'   \eqn{X^\top W X} curvature matrix). \code{ssq_b_j} is computed only if the fit converged
+//'   or ran the full \code{maxit} iterations, as the standard M-estimator asymptotic variance
+//'   \eqn{\widehat{\mathrm{Var}}(\hat\beta_j) = \left(\frac{n}{n-p}\right) \frac{\sum_i
+//'   \psi(r_i)^2}{n\,\bar\psi'^2} \, [(X^\top X)^{-1}]_{jj}}, where \eqn{\psi} is the
+//'   derivative of \eqn{\rho} (i.e. \eqn{\psi(r) = w(r/\hat\sigma)\,r}) and \eqn{\bar\psi'} is
+//'   the mean of \eqn{\psi'} across observations, matching the classical Huber (1981)
+//'   sandwich-free M-estimator variance formula; \code{NA} if \code{j} indexes a fixed
+//'   coefficient or the fit neither converged nor exhausted \code{maxit}.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
 List fast_robust_regression_cpp(
-    SEXP X, 
-    SEXP y, 
+    const Eigen::Map<Eigen::MatrixXd>& X,
+    SEXP y,
     Nullable<NumericVector> warm_start_beta = R_NilValue,
     bool smart_cold_start = true,
     std::string method = "MM",
@@ -240,13 +287,11 @@ List fast_robust_regression_cpp(
     Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
     bool estimate_only = false
 ) {
-    NumericMatrix X_r(X);
     NumericVector y_r(y);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
     Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
 
     RobustModelResult res = fast_robust_regression_internal(
-        X_mat, y_vec,
+        X, y_vec,
         nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
         smart_cold_start, method, c, 4.685, maxit, tol, -1.0,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -255,7 +300,7 @@ List fast_robust_regression_cpp(
         nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
         estimate_only, j);
     FixedParamSpec fixed_spec = make_fixed_param_spec(
-        X_mat.cols(),
+        X.cols(),
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values));
 
@@ -264,20 +309,20 @@ List fast_robust_regression_cpp(
             .set("coefficients", res.b)
             .set("scale", res.scale)
             .set("converged", res.converged)
-            .set("iterations", res.iterations));
+            .set("iterations", res.num_iter));
     }
 
     if (!res.converged && res.XtWX.rows() == 0) {
         Eigen::MatrixXd XtWX_free = weighted_crossprod(res.X_free, res.w);
-        res.XtWX = expand_free_covariance(X_mat.cols(), fixed_spec, XtWX_free, false);
+        res.XtWX = expand_free_covariance(X.cols(), fixed_spec, XtWX_free, false);
     }
 
-    int n = X_mat.rows();
-    int p = X_mat.cols();
-    Eigen::VectorXd r = y_vec - X_mat * res.b;
+    int n = X.rows();
+    int p = X.cols();
+    Eigen::VectorXd r = y_vec - X * res.b;
     
     double ssq_j = NA_REAL;
-    if (res.converged || res.iterations == maxit) {
+    if (res.converged || res.num_iter == maxit) {
         Eigen::VectorXd psi_r(n);
         double sum_psi_prime = 0;
         const Eigen::ArrayXd u = r.array() / res.scale;
@@ -328,7 +373,7 @@ List fast_robust_regression_cpp(
         .set("coefficients", res.b)
         .set("scale", res.scale)
         .set("converged", res.converged)
-        .set("iterations", res.iterations)
+        .set("iterations", res.num_iter)
         .set("ssq_b_j", ssq_j)
         .set("fisher_information", res.XtWX));
 }

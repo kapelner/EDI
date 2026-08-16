@@ -1,7 +1,13 @@
 #' Adjacent Category Logit Regression Inference for Ordinal Responses
 #'
-#' Fits an adjacent category logit regression for ordinal responses using the
-#' treatment indicator and, optionally, all recorded covariates as predictors.
+#' Fits an adjacent-category logit regression for ordinal responses (via
+#' \code{\link{fast_adjacent_category_logit_cpp}} — see that page for the full
+#' model, an alternative ordinal parameterization to the cumulative-logit
+#' proportional-odds model) using the treatment indicator and, optionally, all
+#' recorded covariates as predictors. This is a full-likelihood class
+#' (\code{likelihood_tier = "full"}) supporting score, gradient, and
+#' likelihood-ratio tests, plus parametric likelihood-ratio bootstrap
+#' calibration, in addition to Wald and resampling-based inference.
 #'
 #' @examples
 #' \donttest{
@@ -18,7 +24,8 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 	lock_objects = FALSE,
 	inherit = InferenceAsympLikStdModCache,
 	public = list(
-		#' @description Initialize an adjacent-category-logit inference object.
+		#' @description Initialize an adjacent-category-logit inference object for a
+		#'   completed design with an ordinal, uncensored response.
 		#' @param des_obj A completed \code{Design} object with an ordinal response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -37,10 +44,21 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the ordinal weighted treatment estimate; see
+		#' @description Recomputes the ordinal treatment estimate under
+		#'   subject/block bootstrap weights, used by the Bayesian bootstrap and
+		#'   related weighted-resampling machinery; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#'   Rather than refitting the full adjacent-category logit model with
+		#'   weights, this uses a cheaper \strong{surrogate} fit
+		#'   (\code{weighted_ordinal_bootstrap_surrogate_fit(..., method =
+		#'   "logistic")}) on the (possibly rank-reduced, reusing
+		#'   \code{private$best_Xmm_colnames} from a prior full fit if available)
+		#'   design matrix. Always leaves the standard error and degrees of freedom
+		#'   unavailable (\code{NA}) regardless of \code{estimate_only} — this
+		#'   surrogate path never computes a variance.
 		#' @param subject_or_block_weights Numeric vector. Row weights for bootstrap.
-		#' @param estimate_only Logical. If TRUE, skip variance component calculations.
+		#' @param estimate_only Present for interface parity; this method never
+		#'   computes variance components regardless of its value.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			X_fit = private$build_design_matrix()

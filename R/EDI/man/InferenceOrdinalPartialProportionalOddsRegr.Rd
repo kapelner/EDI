@@ -2,15 +2,40 @@
 % Please edit documentation in R/inference_ordinal_partial_proportional_odds.R
 \name{InferenceOrdinalPartialProportionalOddsRegr}
 \alias{InferenceOrdinalPartialProportionalOddsRegr}
-\title{Internal Base Class for Ordinal Partial Proportional-Odds Inference}
+\title{Partial Proportional-Odds Regression Inference for Ordinal Responses}
 \description{
-Shared implementation for ordinal partial proportional-odds estimators. When
-the requested model has no nonparallel covariates, this class uses the
-package's fast Rcpp proportional-odds solver before falling back to the
-general R fitters.
+Fits a \strong{partial} proportional-odds cumulative-logit model
+for an ordinal response: a subset of covariates named in \code{nonparallel}
+are allowed a separate coefficient at each cumulative threshold (relaxing the
+proportional-odds/parallel-lines assumption for exactly those covariates),
+while every other covariate — including the \strong{treatment} indicator,
+which is \emph{always} fit as a parallel (proportional) term regardless of
+\code{nonparallel} — keeps one shared coefficient across all thresholds. The
+reported treatment effect is therefore always a single proportional
+(threshold-invariant) log-odds shift, even when other covariates' effects
+are allowed to vary by threshold. When \code{nonparallel} is empty, fitting
+uses this package's fast Rcpp full-proportional-odds solver
+(\code{\link{fast_ordinal_regression_with_var_cpp}}); otherwise it falls back,
+in order, to \code{VGAM::vglm(family = VGAM::cumulative(parallel = ...))},
+\code{ordinal::clm(nominal = ...)}, and (only when \code{nonparallel} is
+empty and the earlier fast/VGAM/clm attempts failed) \code{MASS::polr}. Each
+fallback requires its corresponding package to be installed; unavailable
+packages are silently skipped in favor of the next fallback.
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceOrdinalPartialProportionalOddsRegr}
+\references{
+Peterson, B., and Harrell, F. E. (1990). "Partial Proportional
+  Odds Models for Ordinal Response Variables." \emph{Journal of the Royal
+  Statistical Society, Series C (Applied Statistics)}, 39(2), 205-217,
+  \doi{10.2307/2347760}, for the partial (non-parallel-covariate)
+  proportional-odds model fit here. McCullagh, P. (1980). "Regression
+  Models for Ordinal Data." \emph{Journal of the Royal Statistical
+  Society, Series B}, 42(2), 109-142,
+  \doi{10.1111/j.2517-6161.1980.tb01109.x}, for the full proportional-odds
+  model this generalizes (see
+  \code{\link[EDI:InferenceOrdinalPropOddsRegr]{InferenceOrdinalPropOddsRegr}}).
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceOrdinalPartialProportionalOddsRegr}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -26,71 +51,7 @@ general R fitters.
     \item \href{#method-InferenceOrdinalPartialProportionalOddsRegr-clone}{\code{InferenceOrdinalPartialProportionalOddsRegr$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -116,7 +77,12 @@ general R fitters.
 \if{html}{\out{<a id="method-InferenceOrdinalPartialProportionalOddsRegr-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPartialProportionalOddsRegr-initialize}{}}}
 \subsection{\code{InferenceOrdinalPartialProportionalOddsRegr$new()}}{
-  Initialize the internal PPO base object.
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+
+
+  Initialize partial proportional-odds ordinal regression
+  inference for a completed design with an ordinal, uncensored response.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPartialProportionalOddsRegr$new(
@@ -140,7 +106,10 @@ response.}
 the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
-      \item{\code{nonparallel}}{Covariate names that may vary across thresholds.}
+      \item{\code{nonparallel}}{Names of covariates (not including \code{"treatment"},
+which is always fit as a parallel/proportional term) allowed a separate
+coefficient at each cumulative threshold, relaxing the proportional-odds
+assumption for those covariates specifically.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default.}
     }
     \if{html}{\out{</div>}}
@@ -151,7 +120,9 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalPartialProportionalOddsRegr-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPartialProportionalOddsRegr-compute_estimate}{}}}
 \subsection{\code{InferenceOrdinalPartialProportionalOddsRegr$compute_estimate()}}{
-  Retrieve the estimated treatment log-odds shift.
+  Retrieves the estimated (always-parallel) treatment
+  log-odds shift from the partial proportional-odds fit (see class
+  documentation for the fitting backend cascade).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPartialProportionalOddsRegr$compute_estimate(
@@ -176,7 +147,18 @@ design's imputed covariates.}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPartialProportionalOddsRegr-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceOrdinalPartialProportionalOddsRegr$compute_estimate_with_bootstrap_weights()}}{
   Recomputes the partial-proportional-odds treatment estimate
-  under Bayesian-bootstrap weights.
+  under subject/block bootstrap weights, used by the Bayesian bootstrap
+  and related weighted-resampling machinery. If the weights are
+  effectively constant, short-circuits to the unweighted
+  \code{$compute_estimate(estimate_only = TRUE)}. Otherwise refits with
+  weights via the same backend cascade as the unweighted fit
+  (\code{VGAM}/\code{ordinal}/\code{MASS::polr}, each weighted), and if
+  \strong{all} of those fail, falls back further to a plain weighted
+  binary-logistic surrogate fit
+  (\code{weighted_ordinal_bootstrap_surrogate_fit(..., method =
+  "logistic")}) that does not model the ordinal structure at all. Never
+  computes a standard error on any weighted path (\code{s_beta_hat_T} is
+  always \code{NA}), regardless of \code{estimate_only}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPartialProportionalOddsRegr$compute_estimate_with_bootstrap_weights(
@@ -190,8 +172,8 @@ design's imputed covariates.}
     \describe{
       \item{\code{subject_or_block_weights}}{Subject-, block-, cluster-, or matched-set
 bootstrap weights.}
-      \item{\code{estimate_only}}{If \code{TRUE}, compute only the weighted point
-estimate.}
+      \item{\code{estimate_only}}{Present for interface parity; this method never
+computes variance components regardless of its value.}
     }
     \if{html}{\out{</div>}}
   }
@@ -201,9 +183,17 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceOrdinalPartialProportionalOddsRegr-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPartialProportionalOddsRegr-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceOrdinalPartialProportionalOddsRegr$compute_asymp_confidence_interval()}}{
-  Compute a Wald-style confidence interval for the treatment effect.
-If the model-based standard error is unavailable, the interval is explicitly
-marked non-estimable.
+  Computes a Wald-style confidence interval for the
+  treatment log-odds shift, using the model-based standard error
+  from whichever backend (fast Rcpp solver, \code{VGAM},
+  \code{ordinal}, or \code{MASS::polr}) successfully fit the
+  unweighted model (see class documentation). If that standard
+  error is unavailable (\code{NA}, non-finite, or 0) — e.g. because
+  the fit succeeded via a fallback path that doesn't report one —
+  the interval is explicitly marked non-estimable
+  (\code{c(NA, NA)}) when \code{private$harden} is \code{TRUE}, or
+  raises an error otherwise, rather than silently returning a
+  misleading result. Identical to \code{$compute_wald_confidence_interval()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPartialProportionalOddsRegr$compute_asymp_confidence_interval(
@@ -227,9 +217,12 @@ marked non-estimable.
 \if{html}{\out{<a id="method-InferenceOrdinalPartialProportionalOddsRegr-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPartialProportionalOddsRegr-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceOrdinalPartialProportionalOddsRegr$compute_asymp_two_sided_pval()}}{
-  Compute a Wald-style two-sided p-value for the treatment effect.
-If the model-based standard error is unavailable, the p-value is explicitly
-marked non-estimable.
+  Computes a Wald-style two-sided p-value testing
+  \eqn{H_0: \beta_T = \code{delta}}, using the same model-based
+  standard error as \code{$compute_asymp_confidence_interval()}; if
+  unavailable, marked non-estimable (\code{NA}) or an error is
+  raised, per \code{private$harden} — see that method's
+  documentation. Identical to \code{$compute_wald_two_sided_pval()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPartialProportionalOddsRegr$compute_asymp_two_sided_pval(
@@ -253,9 +246,10 @@ marked non-estimable.
 \if{html}{\out{<a id="method-InferenceOrdinalPartialProportionalOddsRegr-compute_wald_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPartialProportionalOddsRegr-compute_wald_confidence_interval}{}}}
 \subsection{\code{InferenceOrdinalPartialProportionalOddsRegr$compute_wald_confidence_interval()}}{
-  Compute a Wald-style confidence interval for the treatment effect.
-If the model-based standard error is unavailable, the interval is explicitly
-marked non-estimable.
+  Identical to \code{$compute_asymp_confidence_interval()};
+  provided as an explicit alias for callers that want to name the
+  Wald method directly rather than via the generic "asymptotic"
+  dispatch.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPartialProportionalOddsRegr$compute_wald_confidence_interval(
@@ -279,9 +273,10 @@ marked non-estimable.
 \if{html}{\out{<a id="method-InferenceOrdinalPartialProportionalOddsRegr-compute_wald_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPartialProportionalOddsRegr-compute_wald_two_sided_pval}{}}}
 \subsection{\code{InferenceOrdinalPartialProportionalOddsRegr$compute_wald_two_sided_pval()}}{
-  Compute a Wald-style two-sided p-value for the treatment effect.
-If the model-based standard error is unavailable, the p-value is explicitly
-marked non-estimable.
+  Identical to \code{$compute_asymp_two_sided_pval()};
+  provided as an explicit alias for callers that want to name the
+  Wald method directly rather than via the generic "asymptotic"
+  dispatch.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPartialProportionalOddsRegr$compute_wald_two_sided_pval(
@@ -305,10 +300,15 @@ marked non-estimable.
 \if{html}{\out{<a id="method-InferenceOrdinalPartialProportionalOddsRegr-benchmark_asymp_two_sided_pval_breakdown"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPartialProportionalOddsRegr-benchmark_asymp_two_sided_pval_breakdown}{}}}
 \subsection{\code{InferenceOrdinalPartialProportionalOddsRegr$benchmark_asymp_two_sided_pval_breakdown()}}{
-  Benchmark the asymptotic p-value path with a timing breakdown.
-
-This is a diagnostic helper for performance investigation. It separates
-the model fit, cache/SE materialization, and final p-value arithmetic.
+  Diagnostic helper for performance investigation: runs the
+  same computation as \code{$compute_asymp_two_sided_pval()} (fit the
+  partial proportional-odds model requiring a standard error, cache the
+  estimate/SE/df, compute the two-sided Wald p-value) but separately
+  times each of the three stages — model fit, cache materialization, and
+  final p-value arithmetic — via \code{proc.time()}. If the fit fails or
+  has no usable standard error, returns immediately with only
+  \code{fit_time} populated and every other timing/result field
+  \code{NA}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPartialProportionalOddsRegr$benchmark_asymp_two_sided_pval_breakdown(
@@ -324,7 +324,9 @@ the model fit, cache/SE materialization, and final p-value arithmetic.
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A named list with timing and result details.
+    A named list: \code{fit_time}, \code{cache_time},
+  \code{pval_math_time}, \code{total_time} (all in seconds), \code{pval},
+  \code{beta_hat_T}, and \code{s_beta_hat_T}.
   }
 }
 

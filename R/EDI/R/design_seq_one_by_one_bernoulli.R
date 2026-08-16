@@ -1,6 +1,14 @@
-#' A completely randomized / Bernoulli Sequential Design
+#' A Sequential Bernoulli (Independent-Coin-Flip) Randomized Design
 #'
-#' An R6 Class encapsulating the data and functionality for a sequential experimental design.
+#' A \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} in which each arriving
+#' subject's treatment assignment is drawn independently as
+#' \eqn{w_t \stackrel{iid}{\sim} \mathrm{Bernoulli}(prob\_T)}, with no dependence on
+#' covariates or on prior assignments — the direct sequential-enrollment analog of
+#' \code{\link[EDI:DesignFixedBernoulli]{DesignFixedBernoulli}}. As in the fixed-sample
+#' version, the realized number of treated subjects after \eqn{t} arrivals is random
+#' (\eqn{\mathrm{Binomial}(t, prob\_T)}), in contrast to sequential designs that
+#' actively balance assignment counts or covariates (e.g.
+#' \code{\link[EDI:DesignSeqOneByOneAtkinson]{DesignSeqOneByOneAtkinson}}).
 #'
 #' @examples
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = 'continuous')
@@ -9,9 +17,13 @@
 DesignSeqOneByOneBernoulli = R6::R6Class("DesignSeqOneByOneBernoulli",
 	inherit = DesignSeqOneByOne,
 	public = list(
-		#' @description Characterization: this is a Bernoulli-randomized design.
+		#' @description Characterization: this design draws each subject's treatment
+		#'   assignment as an independent \eqn{\mathrm{Bernoulli}(prob\_T)} coin flip
+		#'   (see class documentation), so it is Bernoulli-capable by construction.
+		#' @return Always \code{TRUE} for this class.
 		is_a_bernoulli_capable = function() TRUE,
-		#' @description Initialize a Bernoulli sequential experimental design
+		#' @description Initialize a Bernoulli (independent-coin-flip) sequential
+		#'   experimental design.
 		#'
 		#' @param  response_type 	The data type of response values which must be one of the following:
 		#' 								"continuous",
@@ -43,10 +55,11 @@ DesignSeqOneByOneBernoulli = R6::R6Class("DesignSeqOneByOneBernoulli",
 			) {
 			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 		},
-		#' @description Uses this subclass's sequential assignment rule; see
-		#'   \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}.
+		#' @description Draw the next subject's treatment assignment as a single
+		#'   independent \eqn{\mathrm{Bernoulli}(prob\_T)} coin flip (see class
+		#'   documentation); does not consult covariates or prior assignments.
 		#'
-		#' @return 	The treatment assignment (0 or 1)
+		#' @return 	The treatment assignment (0 or 1) for the next subject.
 		assign_wt = function(){
 			rbinom(1, 1, private$prob_T)
 		}

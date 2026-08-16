@@ -2,14 +2,50 @@
 % Please edit documentation in R/design_seq_one_by_one_ibcrd.R
 \name{DesignSeqOneByOneiBCRD}
 \alias{DesignSeqOneByOneiBCRD}
-\title{An incomplete / balanced completely randomized Sequential Design}
+\title{A Sequential Design Guaranteeing Exact Terminal Balance (Random Allocation Rule)}
 \description{
-An R6 Class encapsulating the data and functionality for a sequential experimental design.
-This class takes care of data initialization and sequential assignments.
+A \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} implementing the "random
+allocation rule" (a sequential realization of complete randomization): treatment is
+assigned to each arriving subject with probability equal to the fraction of
+\strong{remaining treatment slots} among all remaining slots,
+\eqn{\Pr(w_t = 1) = n_{T,\mathrm{rem}} / (n_{T,\mathrm{rem}} + n_{C,\mathrm{rem}})},
+where \eqn{n_{T,\mathrm{rem}} = \mathrm{round}(n \cdot prob\_T) - n_T} and
+\eqn{n_{C,\mathrm{rem}} = (n - \mathrm{round}(n \cdot prob\_T)) - n_C} are the
+treatment/control slots not yet used, given the running counts \eqn{n_T}, \eqn{n_C}.
+This guarantees the realized sequence, once all \eqn{n} subjects have arrived, has
+\emph{exactly} \eqn{\mathrm{round}(n \cdot prob\_T)} treated subjects — the same
+terminal allocation-count guarantee as
+\code{\link[EDI:DesignFixediBCRD]{DesignFixediBCRD}}'s complete randomization, but
+realized online as subjects arrive one at a time rather than all at once, and with
+every prefix of the sequence itself drawn from the correct conditional (hypergeometric)
+distribution given the slots used so far. If a slot type is exhausted
+(\eqn{n_{T,\mathrm{rem}} \le 0} or \eqn{n_{C,\mathrm{rem}} \le 0}), the remaining
+subjects are deterministically assigned to whichever type still has open slots.
+
+
+\strong{No target \eqn{n}: falls back to Bernoulli.} If \code{n} was not supplied at
+construction (\code{private$n} is \code{NULL}), there is no terminal target to
+balance toward, so \code{assign_wt()} falls back to an unbiased
+\eqn{\mathrm{Bernoulli}(prob\_T)} draw for every subject instead (equivalent to
+\code{\link[EDI:DesignSeqOneByOneBernoulli]{DesignSeqOneByOneBernoulli}}).
+
+\strong{Single implicit block.} \code{add_one_subject_to_experiment_and_assign()}
+overrides the inherited method only to additionally set \code{private$m} to a
+constant vector of 1s (a single block containing every subject enrolled so far)
+after each assignment, mirroring the fixed-sample
+\code{\link[EDI:DesignFixediBCRD]{DesignFixediBCRD}}'s single-block convention for
+shared blocking/matching machinery.
 }
 \examples{
 seq_des = DesignSeqOneByOneiBCRD$new(n = 6, response_type = 'continuous')
 seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+}
+\references{
+Rosenberger, W. F., and Lachin, J. M. (2016). \emph{Randomization in
+  Clinical Trials: Theory and Practice} (2nd ed.), Wiley, for the random allocation
+  rule as a sequential implementation of complete randomization. See also
+  \code{\link[EDI:DesignFixediBCRD]{DesignFixediBCRD}} for the fixed-sample (all-at-once)
+  version of the same terminal randomization law.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} -> \code{DesignSeqOneByOneiBCRD}
@@ -26,9 +62,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 \if{html}{\out{<details><summary>+ inherited public methods from DesignSeqOneByOne</summary>
 <ul>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-add_one_subject'><code>DesignSeqOneByOne$add_one_subject()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-is_a_seq_one_by_one'><code>DesignSeqOneByOne$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-print_current_subject_assignment'><code>DesignSeqOneByOne$print_current_subject_assignment()</code></a></li>
-  <li><a href='../../EDI/html/DesignSeqOneByOne.html#method-DesignSeqOneByOne-supports_resampling'><code>DesignSeqOneByOne$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -61,6 +95,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -83,15 +118,17 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed'><code>Design$is_a_fixed()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-overwrite_all_subject_assignments'><code>Design$overwrite_all_subject_assignments()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -99,7 +136,9 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 \if{html}{\out{<a id="method-DesignSeqOneByOneiBCRD-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneiBCRD-initialize}{}}}
 \subsection{\code{DesignSeqOneByOneiBCRD$new()}}{
-  Initialize a balanced sequential experimental design
+  Initialize a sequential design targeting exact terminal
+  treatment/control balance (see class documentation for the assignment
+  rule and the no-fixed-\code{n} fallback).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneiBCRD$new(
@@ -119,9 +158,13 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \describe{
       \item{\code{response_type}}{"continuous", "incidence", "proportion", "count", "survival", or
 "ordinal".}
-      \item{\code{prob_T}}{Probability of treatment assignment.}
+      \item{\code{prob_T}}{Target probability of treatment assignment; the terminal
+number of treated subjects is fixed at \code{round(n * prob_T)} when
+\code{n} is known (see class documentation).}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
-      \item{\code{n}}{The sample size.}
+      \item{\code{n}}{The planned (target) sample size; if \code{NULL}, there is no
+terminal balance target and assignment falls back to an unbiased
+Bernoulli coin (see class documentation).}
       \item{\code{verbose}}{A flag for verbosity.}
       \item{\code{missingness_method}}{How to handle missing values in covariates.}
       \item{\code{design_formula}}{A formula object.}
@@ -138,8 +181,12 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 \if{html}{\out{<a id="method-DesignSeqOneByOneiBCRD-add_one_subject_to_experiment_and_assign"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneiBCRD-add_one_subject_to_experiment_and_assign}{}}}
 \subsection{\code{DesignSeqOneByOneiBCRD$add_one_subject_to_experiment_and_assign()}}{
-  Adds a subject and assigns treatment.
-Sets a single-block match vector once all subjects have arrived.
+  Add one subject to the experiment and assign treatment via
+  \code{assign_wt()} (delegating to the inherited
+  \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne$add_one_subject_to_experiment_and_assign()}}),
+  then set \code{private$m} to a single-block vector of 1s covering every
+  subject enrolled so far (see class documentation), overwritten on every
+  call rather than only once all subjects have arrived.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneiBCRD$add_one_subject_to_experiment_and_assign(x_new)}
@@ -153,7 +200,7 @@ Sets a single-block match vector once all subjects have arrived.
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    The treatment assignment (0 or 1).
+    The treatment assignment (0 or 1) for the newly added subject.
   }
 }
 
@@ -161,15 +208,18 @@ Sets a single-block match vector once all subjects have arrived.
 \if{html}{\out{<a id="method-DesignSeqOneByOneiBCRD-assign_wt"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignSeqOneByOneiBCRD-assign_wt}{}}}
 \subsection{\code{DesignSeqOneByOneiBCRD$assign_wt()}}{
-  Uses this subclass's sequential assignment rule; see
-  \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}.
+  Draw the next subject's treatment assignment via the random
+  allocation rule (see class documentation): with probability equal to the
+  fraction of remaining treatment slots among all remaining slots, or a
+  deterministic assignment if one slot type is exhausted; falls back to an
+  unbiased Bernoulli coin if no fixed \code{n} was supplied.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneiBCRD$assign_wt()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    The treatment assignment (0 or 1)
+    The treatment assignment (0 or 1) for the next subject.
   }
 }
 

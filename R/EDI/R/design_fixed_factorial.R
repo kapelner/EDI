@@ -1,14 +1,35 @@
-#' A Factorial Fixed Design
+#' A Fixed, Balanced Two-Arm Factorial Design
 #'
-#' An R6 Class encapsulating the data and functionality for a fixed factorial experimental design.
-#' This design handles one or more treatment factors and balances assignments across
-#' all factor combinations.
+#' A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} for factorial
+#' treatment structures: subjects are assigned to one of the cells of a factorial
+#' combination of one or more named factors (e.g. \code{list(treatment = 2)},
+#' or, once multi-arm support lands, \code{list(drug = 2, dose = 2)} for a
+#' \eqn{2 \times 2} design), with assignment counts balanced as evenly as possible
+#' across cells within each replicate draw.
 #'
-#' Currently restricted to exactly two total factor-level combinations (i.e. two arms),
-#' e.g. a single two-level factor. \code{w} follows the same \{0,1\} internal /
-#' \{-1,+1\} public convention as every other \code{Design} subclass, so this design
-#' works unmodified with every \code{Inference} class. Support for more than two
-#' combinations is tracked separately (see \code{package_metadata/new_feature_plans/multi_arm_designs.md}).
+#' \strong{Currently restricted to exactly two total factor-level combinations} (i.e.
+#' two arms), e.g. a single two-level factor — the product of levels across all
+#' \code{factors} entries must equal exactly 2; the constructor errors otherwise. In this
+#' two-arm regime, the design reduces to a balanced complete randomization between cell 1
+#' (\eqn{w = 0}) and cell 2 (\eqn{w = 1}), and \code{w} follows the same \{0,1\}
+#' internal / \{-1,+1\} public convention as every other \code{Design} subclass, so
+#' \code{DesignFixedFactorial} inherits \code{assign_w_to_all_subjects()},
+#' \code{draw_ws_according_to_design()}, and \code{get_w()} unmodified from
+#' \code{\link[EDI:DesignFixed]{DesignFixed}}/\code{\link[EDI:Design]{Design}} and works
+#' unmodified with every \code{\link[EDI:Inference]{Inference}} class; only
+#' \code{draw_ws_raw()} (the low-level allocation-vector generator) and
+#' \code{get_w_factorial()} (an additional factor-level accessor, see below) are
+#' specific to this class. Support for more than two combinations (true multi-factor,
+#' multi-arm designs) is tracked separately — see
+#' \code{package_metadata/new_feature_plans/multi_arm_designs.md}.
+#'
+#' @details
+#' \strong{Allocation generation.} \code{draw_ws_raw(r)} builds a base allocation vector
+#' by repeating the sequence of cell indices \code{0:(num_combinations - 1)} out to
+#' length \eqn{n} (so cells are as close to equally represented as possible, off by at
+#' most one subject when \eqn{n} is not a multiple of the number of cells), then
+#' independently permutes ( \code{\link[base]{sample}}) that base vector once per
+#' replicate column to produce \code{r} balanced-but-randomized allocations.
 #'
 #' @examples
 #' des = DesignFixedFactorial$new(n = 12, response_type = 'continuous', factors = list(treatment = 2))
@@ -18,7 +39,9 @@
 DesignFixedFactorial = R6::R6Class("DesignFixedFactorial",
 	inherit = DesignFixed,
 	public = list(
-		#' @description Initialize a factorial fixed experimental design
+		#' @description Initialize a factorial fixed experimental design. The product
+		#'   of levels implied by \code{factors} must currently equal exactly 2 (see
+		#'   class documentation); any other total raises an error.
 		#'
 		#' @param factors         A list where names are factor names and values are number of
 		#'   levels (e.g. list(treatment = 2)). The product of levels across all factors must
@@ -64,9 +87,20 @@ DesignFixedFactorial = R6::R6Class("DesignFixedFactorial",
 				}
 			}
 		},
-		#' @description Get the data frame of factor assignments for each subject.
+		#' @description Decode each subject's scalar cell index (\code{private$w}, in
+		#'   \code{0:(num_combinations - 1)}) back into its per-factor level
+		#'   assignments, using the same \code{\link[base]{expand.grid}} enumeration
+		#'   (\code{private$combinations}) established at construction. This is the
+		#'   inverse of the encoding \code{draw_ws_raw()} produces, and is the only way
+		#'   to recover individual factor levels once support for more than two total
+		#'   combinations lands, since \code{get_w()} (inherited, see class
+		#'   documentation) only ever returns the scalar 0/1 (or -1/+1) cell index.
 		#'
-		#' @return A data frame with n rows and columns corresponding to factors.
+		#' @return A data frame with \code{n} rows and one column per entry of
+		#'   \code{factors}, giving each subject's level (an integer in
+		#'   \code{1:levels}) for that factor; \code{NULL} if treatment has not yet
+		#'   been assigned to all subjects (i.e. \code{private$w} is empty or contains
+		#'   \code{NA}).
 		get_w_factorial = function(){
 			w_idx = private$w
 			if (length(w_idx) == 0 || any(is.na(w_idx))) return(NULL)

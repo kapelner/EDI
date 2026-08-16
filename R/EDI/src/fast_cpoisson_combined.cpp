@@ -18,13 +18,8 @@ using namespace Eigen;
 
 namespace {
 
-inline Eigen::ArrayXd plogis_array(const Eigen::ArrayXd& eta) {
-	const Eigen::Array<bool, Eigen::Dynamic, 1> nonnegative = (eta >= 0.0);
-	const Eigen::ArrayXd pos = 1.0 / (1.0 + (-eta).exp());
-	const Eigen::ArrayXd neg_exp = eta.exp();
-	const Eigen::ArrayXd neg = neg_exp / (1.0 + neg_exp);
-	return nonnegative.select(pos, neg);
-}
+// plogis_array is now the canonical version in _helper_functions_core.h
+// (already in this file's include chain) -- see its comment for why.
 
 inline Eigen::ArrayXd log1pexp_array(const Eigen::ArrayXd& eta) {
 	const Eigen::Array<bool, Eigen::Dynamic, 1> nonnegative = (eta >= 0.0);
@@ -165,20 +160,33 @@ static double cpoisson_combined_neg_loglik_cpp_impl(
 }
 
 #ifndef EDI_CORE_ONLY
-//' @title Compute Combined Conditional-Poisson Score
-//' @description Calculates the score vector for the combined conditional-Poisson and Poisson log-likelihood.
-//' @param yT_v_r Treated counts per pair.
-//' @param n_k_v_r Total counts per pair.
-//' @param X_diff_v_r Covariate differences between pairs.
-//' @param y_r_r Reservoir outcomes.
-//' @param w_r_r Reservoir treatment indicators.
-//' @param X_r_r Reservoir covariates.
-//' @param params_r Current parameter estimates.
-//' @return A numeric vector representing the score.
+//' Combined Conditional-Poisson/Poisson Score, Standalone (C++)
+//'
+//' Computes the score vector (gradient of the log-likelihood) of the combined KK
+//' matched-pair conditional-Poisson (conditional-Binomial) plus reservoir
+//' marginal-Poisson model documented in full at
+//' \code{\link{fast_cpoisson_combined_with_var_cpp}}, at arbitrary
+//' caller-supplied \code{params_r} (not necessarily the MLE). Exported standalone
+//' — independent of any optimizer run — for direct numerical diagnostics (e.g.
+//' verifying convergence, or building a custom estimating-equation solver) at a
+//' specific parameter value.
+//'
+//' @param yT_v_r Treated-subject outcome count per matched pair.
+//' @param n_k_v_r Total (treated + control) outcome count per matched pair.
+//' @param X_diff_v_r Covariate differences (treated minus control) between the
+//'   members of each matched pair.
+//' @param y_r_r Reservoir (unmatched) subjects' outcomes.
+//' @param w_r_r Reservoir subjects' treatment indicators.
+//' @param X_r_r Reservoir subjects' covariates.
+//' @param params_r A numeric vector of model parameters at which to evaluate the score.
+//' @return The score vector (gradient of the log-likelihood) at \code{params_r}.
+//' @seealso \code{\link{get_cpoisson_combined_hessian_cpp}} for the corresponding
+//'   Hessian at the same point; \code{\link{fast_cpoisson_combined_with_var_cpp}}
+//'   for the full model documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-SEXP get_cpoisson_combined_score_cpp(
+Eigen::VectorXd get_cpoisson_combined_score_cpp(
 	const NumericVector& yT_v_r,
 	const NumericVector& n_k_v_r,
 	const NumericMatrix& X_diff_v_r,
@@ -196,23 +204,40 @@ SEXP get_cpoisson_combined_score_cpp(
 	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
 
 	ScoreInfoResult out = cpoisson_combined_score_info_cpp_impl(yT_v, n_k_v, X_diff_v, y_r, w_r, X_r, params);
-	return wrap(out.score);
+	return out.score;
 }
 
-//' @title Compute Combined Conditional-Poisson Hessian
-//' @description Calculates the Hessian matrix for the combined conditional-Poisson and Poisson model.
-//' @param yT_v_r Treated counts per pair.
-//' @param n_k_v_r Total counts per pair.
-//' @param X_diff_v_r Covariate differences between pairs.
-//' @param y_r_r Reservoir outcomes.
-//' @param w_r_r Reservoir treatment indicators.
-//' @param X_r_r Reservoir covariates.
-//' @param params_r Current parameter estimates.
-//' @return A numeric matrix representing the Hessian.
+//' Combined Conditional-Poisson/Poisson Hessian, Standalone (C++)
+//'
+//' Computes the Hessian matrix of the log-likelihood of the combined KK
+//' matched-pair conditional-Poisson (conditional-Binomial) plus reservoir
+//' marginal-Poisson model documented in full at
+//' \code{\link{fast_cpoisson_combined_with_var_cpp}}, at arbitrary
+//' caller-supplied \code{params_r} (not necessarily the MLE). Internally reuses
+//' the same score-and-information computation as
+//' \code{\link{get_cpoisson_combined_score_cpp}} (a single shared routine
+//' computes both at once) and returns the negative of the resulting information
+//' matrix, i.e. the actual Hessian of the log-likelihood. Exported standalone —
+//' independent of any optimizer run — for direct numerical diagnostics at a
+//' specific parameter value.
+//'
+//' @param yT_v_r Treated-subject outcome count per matched pair.
+//' @param n_k_v_r Total (treated + control) outcome count per matched pair.
+//' @param X_diff_v_r Covariate differences (treated minus control) between the
+//'   members of each matched pair.
+//' @param y_r_r Reservoir (unmatched) subjects' outcomes.
+//' @param w_r_r Reservoir subjects' treatment indicators.
+//' @param X_r_r Reservoir subjects' covariates.
+//' @param params_r A numeric vector of model parameters at which to evaluate the Hessian.
+//' @return The Hessian matrix of the log-likelihood (the negative of the
+//'   information matrix) at \code{params_r}.
+//' @seealso \code{\link{get_cpoisson_combined_score_cpp}} for the corresponding
+//'   gradient at the same point; \code{\link{fast_cpoisson_combined_with_var_cpp}}
+//'   for the full model documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-SEXP get_cpoisson_combined_hessian_cpp(
+Eigen::MatrixXd get_cpoisson_combined_hessian_cpp(
 	const NumericVector& yT_v_r,
 	const NumericVector& n_k_v_r,
 	const NumericMatrix& X_diff_v_r,
@@ -230,7 +255,7 @@ SEXP get_cpoisson_combined_hessian_cpp(
 	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
 
 	ScoreInfoResult out = cpoisson_combined_score_info_cpp_impl(yT_v, n_k_v, X_diff_v, y_r, w_r, X_r, params);
-	return wrap(-out.info);
+	return -out.info;
 }
 #endif // EDI_CORE_ONLY
 
@@ -425,23 +450,113 @@ edi::ResultMap fast_cpoisson_combined_internal(
 }
 
 #ifndef EDI_CORE_ONLY
-//' @title Fast Combined Conditional-Poisson Regression (C++)
-//' @description High-performance fitting of a model combining conditional Poisson (for matched pairs) and marginal Poisson (for reservoir subjects).
-//' @param yT_v_r Treated counts per pair.
-//' @param n_k_v_r Total counts per pair.
-//' @param X_diff_v_r Covariate differences.
-//' @param y_r_r Reservoir outcomes.
-//' @param w_r_r Reservoir treatment indicators.
-//' @param X_r_r Reservoir covariates.
-//' @param maxit Maximum number of iterations.
-//' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @return A list containing coefficients, variance estimates, and likelihood statistics.
+//' Fast Combined Conditional-Poisson + Poisson Regression for KK Matched-Pair/
+//' Reservoir Designs, with Variance (C++ Backend)
+//'
+//' Jointly fits a single treatment-effect coefficient \eqn{\beta_T} (and shared
+//' covariate effects \eqn{\beta_{xs}}) across two structurally different count
+//' likelihoods at once — the matched-pair (conditional Poisson) component from
+//' subjects paired on-the-fly by a KK matching design (e.g.
+//' \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}}) and the
+//' marginal Poisson component from unmatched "reservoir" subjects — rather than
+//' fitting the two subsets separately and combining estimates afterward (as an
+//' inverse-variance-weighted combination does elsewhere in the package). This
+//' one-likelihood joint fit is what backs
+//' \code{InferenceCountKKCondPoissonOneLik}-style estimators.
+//'
+//' @details
+//' \strong{Matched-pair component (conditional Poisson).} For pair \eqn{k} with
+//' total count \eqn{n_k} (sum of both members' counts) and treated-member count
+//' \eqn{y_{T,k}}, conditioning on \eqn{n_k} (the sufficient statistic that
+//' eliminates the pair's nuisance baseline rate) reduces the joint Poisson
+//' likelihood of the pair to a Binomial: \eqn{y_{T,k} \mid n_k \sim
+//' \mathrm{Binomial}(n_k, p_k)}, \eqn{p_k = \mathrm{logit}^{-1}(\beta_T +
+//' x_{\Delta,k}^\top \beta_{xs})}, where \eqn{x_{\Delta,k}} is the pair's
+//' covariate \emph{difference} (treated minus control). This is exactly the
+//' count-response analog of conditional logistic regression for matched pairs —
+//' no per-pair intercept is estimated (it is conditioned out entirely), so only
+//' \eqn{\beta_T} and \eqn{\beta_{xs}} appear in this component.
+//'
+//' \strong{Reservoir component (marginal Poisson).} Unmatched reservoir subjects
+//' contribute an ordinary Poisson log-linear likelihood,
+//' \eqn{y_i \sim \mathrm{Poisson}(\mu_i)}, \eqn{\log \mu_i = \beta_0 + w_i \beta_T +
+//' x_i^\top \beta_{xs}}, sharing the \emph{same} \eqn{\beta_T} and
+//' \eqn{\beta_{xs}} as the pair component but additionally estimating an
+//' intercept \eqn{\beta_0} (which the conditional pair likelihood has no use
+//' for).
+//'
+//' \strong{Combined likelihood and optimization.} The total log-likelihood is the
+//' simple sum of the pair (conditional Poisson/Binomial) and reservoir (Poisson)
+//' log-likelihoods, jointly maximized over \code{c(beta_0, beta_T, beta_xs)}
+//' (length \code{p + 2}) via Newton's method using the analytic Fisher
+//' information as the Hessian (quadratic convergence near the optimum, typically
+//' very few iterations). \code{fixed_idx}/\code{fixed_values} hold specific
+//' parameters fixed rather than estimated; \code{warm_start_params} (full vector)
+//' or \code{warm_start_beta} (either the full vector, or just
+//' \code{c(beta_T, beta_xs)} when of length \code{p + 1}, in which case
+//' \code{beta_0} is initialized separately) seed the optimizer, with a
+//' log-mean-based default cold start for \code{beta_0} when neither is supplied.
+//'
+//' \strong{Variance.} \code{ssq_b_j} is the variance of \eqn{\hat\beta_T}
+//' specifically (index 1, 0-based, in the parameter layout — the package's usual
+//' single-treatment-coefficient convention), obtained via a targeted diagonal
+//' inverse of the observed/Fisher information restricted to free parameters;
+//' \code{NA} if \eqn{\beta_T} was itself fixed via \code{fixed_idx}.
+//'
+//' \strong{Estimate-only mode.} If \code{estimate_only = TRUE}, optimization
+//' still runs to convergence but the score/information/variance computation is
+//' skipped entirely, returning only \code{b}, \code{params}, and
+//' \code{converged}.
+//'
+//' @param yT_v_r Numeric vector of length \eqn{n_{\mathrm{pairs}}}: the treated
+//'   member's count for each matched pair.
+//' @param n_k_v_r Numeric vector of length \eqn{n_{\mathrm{pairs}}}: the total
+//'   (treated + control) count for each matched pair.
+//' @param X_diff_v_r Numeric matrix, \eqn{n_{\mathrm{pairs}} \times p}: each
+//'   pair's covariate difference (treated minus control); \eqn{p = 0} (zero
+//'   columns) is valid (no covariate adjustment).
+//' @param y_r_r Numeric vector of length \eqn{n_R}: reservoir subjects' counts.
+//' @param w_r_r Numeric vector of length \eqn{n_R} with values in \code{{0, 1}}:
+//'   reservoir subjects' treatment indicators.
+//' @param X_r_r Numeric matrix, \eqn{n_R \times p}: reservoir subjects'
+//'   covariates (same \eqn{p} as \code{X_diff_v_r}).
+//' @param maxit Maximum number of Newton iterations.
+//' @param tol Convergence tolerance (on the norm of the parameter update step).
+//' @param fixed_idx Optional integer indices (into the
+//'   \code{c(beta_0, beta_T, beta_xs)} parameter layout) of parameters to hold
+//'   fixed rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at.
+//' @param warm_start_fisher_info Optional initial Fisher Information matrix (over
+//'   the full \code{p + 2} parameters) to warm-start the first Newton iteration.
+//' @param warm_start_params Optional starting values for the full parameter
+//'   vector \code{c(beta_0, beta_T, beta_xs)}.
+//' @param warm_start_beta Optional starting values for just
+//'   \code{c(beta_T, beta_xs)} (length \code{p + 1}); \code{beta_0} is still
+//'   initialized separately. Ignored if \code{warm_start_params} is supplied.
+//' @param estimate_only Logical; if \code{TRUE}, skip score/information/variance
+//'   computation after optimization (see Details).
+//' @return A list with components \code{b}/\code{params} (the fitted
+//'   \code{c(beta_0, beta_T, beta_xs)} vector), \code{converged} (logical), and,
+//'   unless \code{estimate_only = TRUE}: \code{ssq_b_j} (the variance of
+//'   \eqn{\hat\beta_T}), \code{score} (the score vector at the fitted
+//'   parameters), \code{observed_information}/\code{fisher_information}/
+//'   \code{information} (three aliases for the same Fisher information matrix,
+//'   also tagged by \code{information_type = "fisher"}), \code{hessian} (the
+//'   Hessian of the negative log-likelihood, i.e. \code{-information}),
+//'   \code{neg_loglik}/\code{neg_ll} (aliases for the combined negative
+//'   log-likelihood at the fitted parameters), and \code{loglik} (its negation).
+//' @seealso \href{https://en.wikipedia.org/wiki/Conditional_logistic_regression}{Conditional
+//'   logistic regression} for the matched-pair likelihood's structural analog;
+//'   \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson regression}
+//'   for the reservoir component; analogous Python API:
+//'   \href{https://www.statsmodels.org/dev/generated/statsmodels.discrete.conditional_models.ConditionalPoisson.html}{statsmodels
+//'   ConditionalPoisson} for the conditional-Poisson matched-set likelihood alone
+//'   (not the combined pair+reservoir model implemented here).
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
-SEXP fast_cpoisson_combined_with_var_cpp(
+List fast_cpoisson_combined_with_var_cpp(
 	const NumericVector& yT_v_r,       // treated count per valid pair (nd)
 	const NumericVector& n_k_v_r,      // total count per valid pair (nd)
 	const NumericMatrix& X_diff_v_r,   // covariate diffs (nd x p; p=0 valid)

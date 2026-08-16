@@ -108,7 +108,7 @@ DesignBlocking = R6::R6Class("DesignBlocking",
 			block_ids = private$m
 			Xraw = private$Xraw
 			strata_cols = private$strata_cols
-			if (is.null(block_ids) && is(self, "DesignFixedOptimalBlocks")) {
+			if (is.null(block_ids) && private$has_private_method("get_or_compute_block_ids")) {
 				block_ids = private$get_or_compute_block_ids()
 			}
 			if (is.null(block_ids) &&

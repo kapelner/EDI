@@ -1,15 +1,74 @@
-#' A Sequential Design
+#' Kapelner and Krieger's (2021) Outcome-Weighted Sequential Matching-on-the-Fly Design
 #'
-#' An R6 Class encapsulating the data and functionality for a sequential experimental design.
-#' This class takes care of data initialization and sequential assignments. The class object
-#' should be saved securely after each assignment e.g. on an encrypted cloud server.
+#' A \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} extension that
+#' replaces KK14's unweighted Mahalanobis matching distance with a
+#' \strong{response-weighted} squared distance: at each assignment, a per-covariate
+#' weight vector is re-estimated from the responses observed so far (weighting each
+#' covariate by the estimated strength of its association with the response, e.g. an
+#' absolute standardized regression coefficient), and the new subject is matched to its
+#' nearest reservoir subject under that weighted distance rather than the raw
+#' (unweighted) Mahalanobis distance KK14 uses. Weighting the match by outcome
+#' association means matching effort is spent preferentially on \emph{prognostic}
+#' covariates (those that actually explain outcome variance) rather than equally on
+#' every covariate, which is intended to improve estimator efficiency beyond what
+#' outcome-agnostic matching achieves. \code{morrison = TRUE} additionally switches to
+#' Morrison and Owen's (2025) alternative calibration of the matching-acceptance
+#' threshold (differing in the fixed- vs. variable-\eqn{n} settings) and removes KK14's
+#' burn-in wait before matching begins.
 #'
+#' @details
+#' \strong{Weight estimation.} \code{compute_weights()} dispatches on
+#' \code{response_type} to a corresponding \code{kk21_*_weights_cpp()} backend that fits
+#' a per-covariate simple regression of the response on that covariate (given all
+#' responses observed so far) and returns the absolute t-statistic (coefficient over its
+#' standard error) as that covariate's weight: OLS for \code{"continuous"}, logistic for
+#' \code{"incidence"}, negative-binomial (or, if \code{count_use_speedup = TRUE}, OLS on
+#' \code{log(y + 1)}) for \code{"count"}, beta regression (or OLS on the logit scale if
+#' \code{proportion_use_speedup = TRUE}) for \code{"proportion"}, Weibull/lognormal/
+#' log-logistic AFT (or OLS on \code{log(y)} if
+#' \code{survival_use_speedup_for_no_censoring = TRUE} and there is no censoring yet)
+#' for \code{"survival"}, and proportional-odds (or OLS on the numeric-coerced level if
+#' \code{ordinal_use_speedup = TRUE}) for \code{"ordinal"}. Weights are normalized to
+#' sum to 1 and cached per-iteration in \code{private$iteration_weights} (retrievable
+#' via \code{get_iteration_weights()}); the \code{*_use_speedup} flags trade weight
+#' accuracy for speed by substituting a fast continuous-regression proxy for the
+#' response-type-appropriate GLM/AFT/ordinal fit on every single assignment call.
+#'
+#' \strong{Weighted matching test.} The weighted squared distance from the new subject
+#' to every reservoir subject is computed
+#' (\code{compute_weighted_sqd_distances_cpp()}), and the match is accepted only if the
+#' minimum weighted distance falls below the \code{private$compute_lambda()} quantile of
+#' a \emph{bootstrapped} reference distribution of weighted pairwise distances among
+#' subjects enrolled so far (\code{compute_bootstrapped_weighted_sqd_distances_cpp()},
+#' \code{num_boot} resamples) — a nonparametric, simulation-based acceptance threshold,
+#' in contrast to KK14's closed-form F-distribution threshold. As in KK14, an accepted
+#' match receives the opposite treatment of its match; a rejected (or empty-reservoir)
+#' draw is randomized and added to the reservoir.
+#'
+#' \strong{Fallback to KK14.} Before enough responses have accumulated to fit the
+#' weight-estimation regressions reliably (fewer than \code{2 * (ncol(X) + 2)}
+#' non-missing responses — two observations per regression parameter, at minimum
+#' \code{ncol(X) + 2}), \code{assign_wt()} falls back to the inherited (unweighted) KK14
+#' assignment rule entirely, via \code{super$assign_wt()}.
+#'
+#' @references Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
+#'   allocation with higher power and efficiency." \emph{Biometrics}, 70(2), 378-388,
+#'   \doi{10.1111/biom.12148}, for the base matching-on-the-fly algorithm this class
+#'   extends with outcome-weighted distances (Kapelner and Krieger, 2021); see also
+#'   Morrison, T., and Owen, A. B. (2025) for the alternative \code{morrison = TRUE}
+#'   threshold calibration referenced by the \code{morrison} argument.
 #' @examples
 #' seq_des = DesignSeqOneByOneKK21$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' @export
 DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 	inherit = DesignSeqOneByOneKK14,
+	# DesignSeqOneByOneKK14 is built via define_design_class(), which requires
+	# lock_objects = FALSE; R6 resolves lock_objects from the leaf class actually
+	# instantiated, not inherited from a parent generator, so this subclass must repeat
+	# it explicitly or super$initialize() fails trying to set fields KK14 itself owns
+	# ("cannot add bindings to a locked environment" -- confirmed empirically).
+	lock_objects = FALSE,
 	public = list(
 		#'
 		#' @description Initialize a matching-on-the-fly sequential experimental design which matches based on
@@ -125,21 +184,35 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 			private$uses_covariates = TRUE
 			private$iteration_weights = list()
 		},
-		#' @description Returns the weights calculated at each iteration.
+		#' @description Retrieve the full history of normalized covariate weight
+		#'   vectors computed by \code{compute_weights()} across every assignment call
+		#'   so far (see class documentation), keyed by subject index \code{t}, for
+		#'   inspecting how the outcome-informed weighting evolved as data accrued.
 		#'
-		#' @return  A list of weights.
+		#' @return A list of numeric weight vectors (one per assignment call at which
+		#'   weights were computed), each summing to 1 and named by covariate.
 		get_iteration_weights = function(){
 			private$iteration_weights
 		},
-		#' @description Get the covariate weights calculated at the current iteration.
+		#' @description Retrieve the normalized covariate weight vector from the most
+		#'   recent assignment call (see class documentation for how weights are
+		#'   estimated).
 		#'
-		#' @return  A numeric vector of weights.
+		#' @return  A numeric vector of weights, one per covariate, summing to 1 and
+		#'   named by covariate; \code{NULL} if weights have not yet been computed
+		#'   (e.g. still in the KK14 fallback regime).
 		get_covariate_weights = function(){
 			private$covariate_weights
 		},
-		#' @description Assign the next subject to a treatment group using the KK21 algorithm.
+		#' @description Draw the next subject's treatment assignment via the KK21
+		#'   outcome-weighted matching-on-the-fly rule (see class documentation):
+		#'   falls back to unweighted KK14 matching if too few responses have
+		#'   accumulated to estimate covariate weights, otherwise re-estimates weights,
+		#'   matches to the nearest reservoir subject under the weighted distance if it
+		#'   clears the bootstrapped acceptance threshold (assigning the opposite
+		#'   treatment), or randomizes into the reservoir otherwise.
 		#'
-		#' @return 	The treatment assignment (0 or 1)
+		#' @return 	The treatment assignment (0 or 1) for the next subject.
 		assign_wt = function(){
 			wt = 	if (private$too_early_to_match()){
 						#we're early or the reservoir is empty, so randomize

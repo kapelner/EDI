@@ -7,16 +7,44 @@
 set_optimization_dispatch_policy(policy = NULL, reset = FALSE)
 }
 \arguments{
-\item{policy}{Either \code{NULL} or a named list of policy overrides.}
+\item{policy}{Either \code{NULL} (no change) or a named list of policy
+overrides merged into the current configuration (see Details).}
 
-\item{reset}{If \code{TRUE}, restore the built-in default policy.}
+\item{reset}{If \code{TRUE}, discard all overrides and restore the built-in
+default policy.}
 }
 \value{
-Invisible \code{NULL} or the current policy configuration.
+Invisible \code{NULL} when \code{policy} is supplied (a mutation), or
+  invisibly the current policy configuration list when called for its
+  side-effect-free query/reset value.
 }
 \description{
-Update the optimization dispatch policy
+Overrides, queries, or resets the runtime policy consulted by
+\code{edi_optimization_dispatch_policy()} for which optimization algorithm
+(\code{"newton_raphson"}, \code{"lbfgs"}, or \code{"irls"}) an inference
+class's C++ model-fitting backend uses by default; see
+\code{\link{get_optimization_dispatch_policy}} for the built-in default
+table and the empirical rationale behind its per-family choices.
+}
+\details{
+Call with no arguments (\code{policy = NULL}, \code{reset = FALSE})
+  to retrieve the current configuration without changing it. Pass a named
+  list to \code{policy} to merge new/overriding entries into the current
+  configuration via \code{\link[utils]{modifyList}} (\code{default_alg}
+  and/or \code{inference_class_overrides} can each be supplied
+  independently). Pass \code{reset = TRUE} to discard any accumulated
+  overrides and restore the package's built-in default policy exactly as
+  returned by \code{\link{get_optimization_dispatch_policy}}. Note that this
+  only changes the \emph{default} algorithm consulted when a fitting call
+  does not itself specify \code{optimization_alg} explicitly; an explicit
+  per-call argument still takes precedence.
 }
 \examples{
 set_optimization_dispatch_policy(reset = TRUE)
+}
+\seealso{
+\code{\link{get_optimization_dispatch_policy}} for the policy
+  schema and built-in defaults; \code{\link{set_cold_start_dispatch_policy}}
+  and \code{\link{set_warm_start_dispatch_policy}} for the analogous setters
+  governing cold-start and warm-start behavior.
 }

@@ -1,12 +1,13 @@
 #ifdef EDI_CORE_ONLY
 #include <Eigen/Dense>
-constexpr double NA_REAL = std::numeric_limits<double>::quiet_NaN();
+#include "na_real_core.h"
 #else
 #include <RcppEigen.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 #endif
+#include "zero_one_logit_transform.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -54,25 +55,12 @@ double median_in_place(std::vector<double>& values) {
     return 0.5 * (lower + upper);
 }
 
-inline double logit_cpp(double x, double clamp) {
-    if (x < clamp) x = clamp;
-    if (x > 1.0 - clamp) x = 1.0 - clamp;
-    return std::log(x / (1.0 - x));
-}
-
-inline double inv_logit_cpp(double x, double clamp) {
-    double p;
-    if (x >= 0.0) {
-        const double z = std::exp(-x);
-        p = 1.0 / (1.0 + z);
-    } else {
-        const double z = std::exp(x);
-        p = z / (1.0 + z);
-    }
-    if (p < clamp) p = clamp;
-    if (p > 1.0 - clamp) p = 1.0 - clamp;
-    return p;
-}
+// logit_cpp/inv_logit_cpp are now the canonical edi_transform:: versions
+// (zero_one_logit_transform.h, included above) -- see that header's comment
+// for why (byte-identical copy previously duplicated in
+// fast_kk_wilcox_parallel.cpp).
+using edi_transform::logit_cpp;
+using edi_transform::inv_logit_cpp;
 
 size_t count_pairwise_diffs_leq(const std::vector<double>& y_t,
                                 const std::vector<double>& y_c,
@@ -290,11 +278,17 @@ double estimate_hl_ssq_signed_rank(const std::vector<double>& pair_diffs) {
     return var_walsh / m;
 }
 
-// apply_shift is only called by the Rcpp-export bootstrap functions further
-// down (none of which this portable build needs), so it's guarded out here
-// too rather than compiled unconditionally.
+// apply_shift_hl is only called by the Rcpp-export bootstrap functions
+// further down (none of which this portable build needs), so it's guarded
+// out here too rather than compiled unconditionally. Named apply_shift_hl
+// (not apply_shift) simply to distinguish it from
+// fast_kk_wilcox_parallel.cpp's same-named function -- not unified into one
+// shared function since they're called from different files. As of
+// 2026-08-16 both handle the same transform codes (0..4); see that file's
+// apply_shift_kk_wilcox for the fixed transform_code == 4 gap this one
+// already handled correctly.
 #ifndef EDI_CORE_ONLY
-double apply_shift(double y_val, double delta, int transform_code, double zero_one_logit_clamp) {
+double apply_shift_hl(double y_val, double delta, int transform_code, double zero_one_logit_clamp) {
     if (transform_code == 1) {
         return y_val * std::exp(delta);
     }
@@ -467,7 +461,7 @@ NumericVector compute_wilcox_hl_distr_parallel_cpp(const Eigen::Map<Eigen::Matri
     std::vector<double> y_shifted(n);
     if (delta != 0.0) {
         for (int i = 0; i < n; ++i) {
-            if (std::isfinite(y_ptr[i])) y_shifted[i] = apply_shift(y_ptr[i], delta, transform_code, zero_one_logit_clamp);
+            if (std::isfinite(y_ptr[i])) y_shifted[i] = apply_shift_hl(y_ptr[i], delta, transform_code, zero_one_logit_clamp);
             else y_shifted[i] = NA_REAL;
         }
     }
@@ -638,7 +632,7 @@ NumericVector compute_wilcox_hl_rand_bootstrap_parallel_cpp( const Eigen::Map<Ei
             if (has_noise) yv += noise_ptr[(size_t)b * n + i];
             if (!std::isfinite(yv)) continue;
             if (w_col[i] == 1) {
-                y_t.push_back(delta != 0.0 ? apply_shift(yv, delta, transform_code, zero_one_logit_clamp) : yv);
+                y_t.push_back(delta != 0.0 ? apply_shift_hl(yv, delta, transform_code, zero_one_logit_clamp) : yv);
             } else if (w_col[i] == 0) {
                 y_c.push_back(yv);
             }

@@ -8,17 +8,11 @@
 \usage{
 inference_kk_passthrough_compound_components
 }
-\value{
-A numeric vector of bootstrap estimates.
-}
 \description{
 Internal method.
 An abstract R6 class that provides relevant methods when the designs are KK matching-on-the-fly.
 
 Initialize
-
-Uses the shared nonparametric bootstrap distribution contract; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
 
 Recomputes the class-specific treatment estimate under bootstrap weights; see
   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.

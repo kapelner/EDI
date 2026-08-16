@@ -1,45 +1,38 @@
-#include <Rcpp.h>
-#include <random>
+#ifdef EDI_CORE_ONLY
+#include <Eigen/Dense>
+#else
+#include <RcppEigen.h>
+#endif
+#include "RNG.h"
 #include <cstdint>
 #include <limits>
+
+#ifndef EDI_CORE_ONLY
 using namespace Rcpp;
+#endif
 
 namespace {
 
-inline uint64_t bounded_rand(std::mt19937_64& rng, uint64_t s) {
-	uint64_t x = rng();
-	__uint128_t m = static_cast<__uint128_t>(x) * s;
-	uint64_t l = static_cast<uint64_t>(m);
-	if (l < s) {
-		uint64_t t = (-s) % s;
-		while (l < t) {
-			x = rng();
-			m = static_cast<__uint128_t>(x) * s;
-			l = static_cast<uint64_t>(m);
-		}
-	}
-	return static_cast<uint64_t>(m >> 64);
-}
-
-inline std::mt19937_64 make_local_rng() {
-	return std::mt19937_64(static_cast<uint64_t>(
-		R::unif_rand() * static_cast<double>(std::numeric_limits<uint64_t>::max())));
-}
+// bounded_rand is now defined once in RNG.h (namespace edi_rng); ADL
+// resolves the unqualified calls below since rng is edi_rng::RRng&.
 
 } // namespace
 
-// [[Rcpp::export]]
-NumericVector compute_bootstrapped_weighted_sqd_distances_cpp(
-	NumericMatrix X_all_scaled_col_subset,
-	NumericVector covariate_weights,
-	int t, // self$t
-	int B) { // private$other_params$num_boot
+// Portable core (EDI_CORE_ONLY-safe): identical logic to
+// compute_bootstrapped_weighted_sqd_distances_cpp below, but takes the seed
+// as an explicit parameter instead of drawing it from R's RNG internally.
+Eigen::VectorXd compute_bootstrapped_weighted_sqd_distances_internal(
+	const Eigen::Ref<const Eigen::MatrixXd>& X_all_scaled_col_subset,
+	const Eigen::Ref<const Eigen::VectorXd>& covariate_weights,
+	int t,
+	int B,
+	std::uint32_t seed) {
 
-	int d = covariate_weights.size();
-	NumericVector bootstrapped_weighted_sqd_distances(B);
+	int d = static_cast<int>(covariate_weights.size());
+	Eigen::VectorXd bootstrapped_weighted_sqd_distances(B);
 
-	auto rng = make_local_rng();
-	const uint64_t ut = static_cast<uint64_t>(t);
+	edi_rng::RRng rng(seed);
+	const std::uint32_t ut = static_cast<std::uint32_t>(t);
 
 	for (int b = 0; b < B; ++b) {
 		int i1 = static_cast<int>(bounded_rand(rng, ut));
@@ -61,3 +54,20 @@ NumericVector compute_bootstrapped_weighted_sqd_distances_cpp(
 
 	return bootstrapped_weighted_sqd_distances;
 }
+
+#ifndef EDI_CORE_ONLY
+//' @note Seeded from one R::unif_rand() draw into edi_rng::RRng (RNG.h), a
+//'   portable re-implementation of R's own Mersenne-Twister generator -- a
+//'   given seed therefore produces identical draws in R and in any future
+//'   binding (e.g. Python) using the same core and the same seed.
+// [[Rcpp::export]]
+Eigen::VectorXd compute_bootstrapped_weighted_sqd_distances_cpp(
+	const Eigen::Map<Eigen::MatrixXd>& X_all_scaled_col_subset,
+	const Eigen::Map<Eigen::VectorXd>& covariate_weights,
+	int t, // self$t
+	int B) { // private$other_params$num_boot
+	std::uint32_t seed = edi_rng::seed_from_unif01(R::unif_rand());
+	return compute_bootstrapped_weighted_sqd_distances_internal(
+		X_all_scaled_col_subset, covariate_weights, t, B, seed);
+}
+#endif // EDI_CORE_ONLY

@@ -6,9 +6,44 @@
 \usage{
 newcombe_independent_ci_cpp(x1, n1, x2, n2, alpha)
 }
-\description{
-Export of C++ function newcombe_independent_ci_cpp
+\arguments{
+\item{x1}{Number of events in group 1.}
 
-Newcombe Hybrid Score Interval for Independent Proportions (Method 10)
+\item{n1}{Number of subjects in group 1.}
+
+\item{x2}{Number of events in group 2.}
+
+\item{n2}{Number of subjects in group 2.}
+
+\item{alpha}{The confidence level is \eqn{1-\alpha}.}
+}
+\value{
+A length-2 numeric vector containing the lower and upper CI bounds
+  for \eqn{p_1 - p_2}.
+}
+\description{
+Computes Newcombe's "Method 10" hybrid confidence interval for the
+difference between two \strong{independent} proportions \eqn{p_1 - p_2}
+(see
+\code{\link[EDI:InferenceIncidNewcombeRiskDiff]{InferenceIncidNewcombeRiskDiff}}
+for the class that consumes this function). Separate Wilson score intervals
+\eqn{[\ell_1, u_1]} and \eqn{[\ell_2, u_2]} are computed for each proportion
+individually (via \code{\link{wilson_score_interval_cpp}}), then combined as
+\deqn{\left[\,(p_1-p_2) - \sqrt{(p_1-\ell_1)^2 + (u_2-p_2)^2},\ \ (p_1-p_2) +
+  \sqrt{(u_1-p_1)^2 + (p_2-\ell_2)^2}\,\right],}
+clamped to \eqn{[-1, 1]}. This avoids the boundary/coverage problems of the
+naive normal-approximation (Wald) interval on a risk difference while
+remaining closed-form (no iterative score-test inversion). Returns
+\code{c(NA, NA)} if either sample size is non-positive.
+}
+\references{
+Newcombe, R. G. (1998). "Interval Estimation for the Difference
+  Between Independent Proportions: Comparison of Eleven Methods."
+  \emph{Statistics in Medicine}, 17(8), 873-890,
+  \doi{10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I}.
+}
+\seealso{
+\code{\link{newcombe_paired_ci_cpp}} for the matched-pair
+  generalization of this same hybrid-score method.
 }
 \keyword{internal}

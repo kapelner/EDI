@@ -2,25 +2,73 @@
 % Please edit documentation in R/RcppExports.R
 \name{ordinal_gcomp_post_fit_cpp}
 \alias{ordinal_gcomp_post_fit_cpp}
-\title{Ordinal G-Computation Post-Fit (C++)}
+\title{Fast G-Computation (Standardization) Point Estimate and Model-Based Inference
+for a Proportional-Odds Ordinal Model (C++)}
 \usage{
 ordinal_gcomp_post_fit_cpp(X_fit, y, coef_hat, alpha_hat, j_treat)
 }
 \arguments{
-\item{X_fit}{Matrix of predictors used in fit.}
+\item{X_fit}{Numeric matrix of predictors used to fit the model.}
 
-\item{y}{Vector of responses.}
+\item{y}{Numeric vector of the ordinal responses used to fit the model
+(needed to reconstruct the \code{OrdinalRegression} likelihood for the
+Hessian; only categorization, not numeric coding, matters).}
 
-\item{coef_hat}{Estimated coefficients (beta).}
+\item{coef_hat}{Numeric vector of fitted proportional-odds regression
+coefficients \eqn{\hat\beta}, same length and column order as \code{X_fit}.}
 
-\item{alpha_hat}{Estimated thresholds (alpha).}
+\item{alpha_hat}{Numeric vector of the \eqn{K-1} fitted, increasing category
+thresholds \eqn{\hat\alpha_1, \ldots, \hat\alpha_{K-1}}.}
 
-\item{j_treat}{1-based index of treatment column.}
+\item{j_treat}{1-based column index of the treatment indicator in \code{X_fit}.}
 }
 \value{
-A list containing G-computation results (means, difference, SE).
+A list with elements \code{vcov} (model-based covariance of
+  \eqn{\hat\beta}), \code{std_err}, \code{z_vals} (both length \code{p}, one
+  per column of \code{X_fit}), \code{mean1}, \code{mean0}, \code{md}
+  (\code{mean1 - mean0}), and \code{se_md} (delta-method SE of \code{md}).
+  Errors (via \code{stop()}) if \code{j_treat} is out of bounds, the
+  dimensions of \code{y}/\code{coef_hat} are inconsistent with \code{X_fit},
+  the Hessian is not invertible, or the resulting covariance has any
+  non-finite entry.
 }
 \description{
-Performs G-computation for ordinal outcomes using a fitted model's parameters.
+Computes the same standardized (G-computation) marginal difference in
+\strong{expected ordinal category score} as
+\code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}} — under a fitted
+proportional-odds (cumulative logit) model \eqn{\mathrm{logit}\,\Pr(Y_i \le k
+\mid x_i) = \alpha_k - x_i^\top\beta}, \eqn{k = 1, \ldots, K-1} — but
+additionally supplies \strong{model-based} inferential quantities that the
+other function omits. The fitted linear predictor for each subject is
+recomputed with the treatment column (\code{j_treat}) forced to 1
+(\eqn{\eta_{1,i}}) and to 0 (\eqn{\eta_{0,i}}), the standardized expected
+scores \code{mean1}, \code{mean0}, and their difference \code{md} are formed
+exactly as in \code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}}, and
+then:
+\itemize{
+  \item An \code{\link[=OrdinalRegression]{OrdinalRegression}} log-likelihood
+    Hessian is evaluated at \eqn{[\hat\alpha, \hat\beta]} and inverted (with a
+    symmetrization step and a finiteness check) to give the
+    \strong{model-based} (non-sandwich) variance-covariance matrix of the full
+    parameter vector; \code{vcov}/\code{std_err}/\code{z_vals} report the
+    \eqn{\hat\beta}-block of this covariance.
+  \item The delta-method standard error of \code{md}, \code{se_md}, is obtained
+    by numerically differentiating \code{md} (central differences, step
+    \eqn{10^{-5}}) with respect to every element of \eqn{[\alpha,\beta]} to get
+    a gradient \eqn{g}, then computing \eqn{\sqrt{g^\top V g}} where \eqn{V} is
+    the full parameter covariance above; \code{NA} if any perturbed \code{md}
+    evaluation is non-finite (e.g. a perturbed \eqn{\alpha} violates
+    monotonicity) or the resulting variance is negative/non-finite.
+}
+Unlike the sandwich-based post-fit helpers elsewhere in this package (e.g.
+\code{\link{gcomp_logistic_post_fit_cpp}}), the covariance here comes purely
+from the model's observed information and does not attempt to be robust to
+misspecification.
+}
+\seealso{
+\code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}} for the
+  point-estimate-only variant (no \code{y}, no Hessian, no inference) that
+  this function's point estimates match; \code{\link{fast_ordinal_regression_cpp}}
+  for the fitting routine that produces \code{coef_hat}/\code{alpha_hat}.
 }
 \keyword{internal}

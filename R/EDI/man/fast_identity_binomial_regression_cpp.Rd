@@ -2,10 +2,10 @@
 % Please edit documentation in R/RcppExports.R
 \name{fast_identity_binomial_regression_cpp}
 \alias{fast_identity_binomial_regression_cpp}
-\title{Fast Identity-Binomial Regression (C++)}
+\title{Fast Identity-Link Binomial Regression, Estimate Only (C++ Backend)}
 \usage{
 fast_identity_binomial_regression_cpp(
-  X_r,
+  X,
   y_r,
   maxit = 100L,
   tol = 1e-06,
@@ -18,28 +18,87 @@ fast_identity_binomial_regression_cpp(
 )
 }
 \arguments{
-\item{X_r}{A numeric matrix of predictors.}
+\item{y_r}{A binary (0/1) numeric vector of responses, length \eqn{n}.}
 
-\item{y_r}{A binary numeric vector of responses.}
+\item{maxit}{Maximum number of Fisher-scoring iterations.}
 
-\item{maxit}{Maximum number of iterations.}
+\item{tol}{Convergence tolerance, on the relative norm of the coefficient
+update step.}
 
-\item{tol}{Convergence tolerance.}
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed
+rather than estimate.}
 
-\item{fixed_idx}{Optional indices of fixed parameters.}
-
-\item{fixed_values}{Optional values for fixed parameters.}
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
 
 \item{warm_start_beta}{Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.}
+
+\item{smart_cold_start}{Logical. If \code{TRUE} (default) and no
+\code{warm_start_beta} is supplied, use an OLS-based initial guess.}
 
 \item{warm_start_weights}{Optional initial working weights for the first IRLS iteration.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+
+\item{X_r}{A numeric matrix of predictors, \eqn{n \times p}; include an
+explicit intercept column if desired (no implicit intercept).}
 }
 \value{
-A list containing coefficients and fitted values.
+A list with components \code{b} (estimated coefficients
+  \eqn{\hat\beta}, on the risk-difference/identity scale), \code{mu_hat}
+  (fitted probabilities \eqn{\hat\mu_i}, length \eqn{n}), \code{working_weights}
+  (the final IRLS weights \eqn{w_i}), \code{iterations} (number of Fisher-
+  scoring iterations performed), \code{converged} (logical; also requires all
+  of \code{b}, \code{mu_hat}, \code{working_weights} to be finite), and
+  \code{fisher_information} (the working-weights curvature matrix
+  \eqn{X^\top W X}).
 }
 \description{
-High-performance binomial regression with identity link using Fisher scoring.
+Fits a binary-response GLM with the \strong{identity} link (a linear
+probability / risk-difference model), \eqn{\mu_i = \Pr(Y_i = 1) = x_i^\top \beta}
+(constrained to \eqn{(10^{-8}, 1 - 10^{-8})}; no other link transformation is
+applied), via Fisher scoring (IRLS) with a step-halving line search that
+rejects any Newton step whose resulting \eqn{\eta_i = x_i^\top \beta} would
+leave the valid probability range or decrease the log-likelihood — this
+boundary-constrained line search, not a link-function transform, is what
+keeps fitted probabilities in \eqn{(0, 1)} for this otherwise-unconstrained
+linear-in-\eqn{\beta} model. Regression coefficients on the identity-link
+scale are directly interpretable as \strong{risk differences}: \eqn{\beta_j}
+is the change in \eqn{\Pr(Y = 1)} per unit change in covariate \eqn{j}, in
+contrast to \code{fast_log_binomial_regression_cpp}'s log-link coefficients
+(interpretable as log relative risks) or a standard logit-link model's
+log-odds-ratio coefficients.
+}
+\details{
+\strong{Optimization.} Each Fisher-scoring iteration solves a weighted
+least-squares step using working weights
+\eqn{w_i = 1 / \max(\mu_i(1-\mu_i), 10^{-8})} (the inverse Bernoulli variance,
+clamped away from 0 for stability near the boundary), then backtracks
+(halving the step size, down to a minimum step of \eqn{10^{-8}}) until the
+resulting \eqn{\eta} stays within \eqn{(10^{-8}, 1-10^{-8})} for every
+observation \emph{and} the log-likelihood does not decrease; a step that
+cannot be accepted at any halving depth terminates iteration without
+\code{converged = TRUE}. \code{fixed_idx}/\code{fixed_values} hold specific
+coefficients fixed rather than estimated; \code{warm_start_beta} (or, when
+absent, an OLS-based guess if \code{smart_cold_start = TRUE}) seeds the
+first iteration, and \code{warm_start_weights}/\code{warm_start_fisher_info}
+warm-start the first IRLS working-weights/curvature computation.
+
+\strong{No guarantee of a feasible solution.} Because the identity link has
+no inherent boundary protection, some \eqn{(X, y)} configurations (e.g.
+extreme covariate values, near-perfect separation, or an ill-conditioned
+\code{X}) may have no interior maximum-likelihood solution reachable by this
+constrained line search; such cases surface as \code{converged = FALSE}
+rather than a silently invalid (out-of-range) fitted probability.
+}
+\seealso{
+\code{\link{fast_identity_binomial_regression_with_var_cpp}} for the
+  variance-augmented variant; \code{\link{fast_identity_binomial_regression_weighted_cpp}}
+  for the row-weighted variant; \code{fast_log_binomial_regression_cpp} for
+  the log-link (relative-risk) analog of this model.
+  \href{https://en.wikipedia.org/wiki/Generalized_linear_model}{Generalized
+  linear model} for orientation. Analogous Python API:
+  \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM}
+  (\code{families.Binomial(link=identity())}).
 }
 \keyword{internal}

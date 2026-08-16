@@ -917,12 +917,25 @@ Eigen::VectorXd get_stereotype_logit_score_cpp(const Rcpp::NumericMatrix& X,
 	return grad;
 }
 
-//' @title Compute Stereotype Logit Hessian
-//' @description Calculates the Hessian matrix (second derivatives of the log-likelihood) for a stereotype logit model.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param params A numeric vector of parameters.
-//' @return A numeric matrix representing the Hessian.
+//' Stereotype Logit Regression Hessian, Standalone (C++)
+//'
+//' Computes the (analytic) Hessian matrix of the log-likelihood of the
+//' stereotype (reduced-rank multinomial) logistic regression model documented
+//' in full at \code{\link{fast_stereotype_logit_cpp}}, at arbitrary
+//' caller-supplied \code{params} (not necessarily the MLE). Exported standalone
+//' — independent of any optimizer run — for direct numerical diagnostics at a
+//' specific parameter value.
+//'
+//' @param X A numeric matrix of predictors (no intercept column needed; see
+//'   \code{\link{fast_stereotype_logit_cpp}}).
+//' @param y A numeric vector of categorical (nominal or ordinal) responses; only
+//'   the set of distinct values matters, not their numeric coding or order.
+//' @param params A numeric vector of the full joint parameter vector \eqn{[\alpha,
+//'   \beta, \gamma]}, at which to evaluate the Hessian.
+//' @return The Hessian matrix of the log-likelihood at \code{params}.
+//' @seealso \code{\link{get_stereotype_logit_score_cpp}} for the corresponding
+//'   gradient at the same point; \code{\link{fast_stereotype_logit_cpp}} for the
+//'   full model documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -937,16 +950,68 @@ Eigen::MatrixXd get_stereotype_logit_hessian_cpp(const Rcpp::NumericMatrix& X,
 	return model.loglik_hessian(map_params);
 }
 
-//' @title Fast Stereotype Logit Regression (C++)
-//' @description High-performance stereotype logit regression fitting using Newton-Raphson.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param maxit Maximum number of iterations.
+//' Fast Stereotype (Reduced-Rank Multinomial) Logistic Regression (C++)
+//'
+//' Fits Anderson's \strong{stereotype logit} model — a reduced-rank multinomial
+//' logit for a categorical (nominal or ordinal) response with \eqn{K} distinct
+//' observed levels, using a \strong{single} linear predictor \eqn{\eta_i =
+//' x_i^\top\beta} scaled by a category-specific "score" \eqn{\phi_k \in [0, 1]}:
+//' \deqn{\Pr(Y_i = k \mid x_i) = \frac{\exp(\alpha_k + \phi_k \eta_i)}
+//'   {\sum_{l=1}^K \exp(\alpha_l + \phi_l \eta_i)}, \qquad \alpha_1 := 0,\ \phi_1 := 0,\ \phi_K := 1,}
+//' with free intercepts \eqn{\alpha_2, \ldots, \alpha_K} and free interior scores
+//' \eqn{\phi_2, \ldots, \phi_{K-1}} reparameterized via unconstrained
+//' \eqn{\gamma_1, \ldots, \gamma_{K-2}} as cumulative softmax-style partial sums,
+//' \eqn{\phi_{j} = \left(\sum_{r \le j-2} e^{\gamma_r}\right) \big/ \left(1 +
+//' \sum_r e^{\gamma_r}\right)} for \eqn{j = 2, \ldots, K-1}, which guarantees
+//' \eqn{0 = \phi_1 \le \phi_2 \le \cdots \le \phi_{K-1} \le \phi_K = 1} without an
+//' explicit constraint. A single \eqn{\hat\beta} therefore governs the covariate
+//' effect for every category, with the fitted \eqn{\hat\phi_k} determining how much
+//' of that effect applies to category \eqn{k} — collapsing categories with similar
+//' fitted scores are "stereotyped" together, which is the model's namesake use case
+//' (a parsimony-inducing alternative to full multinomial or ordinal cumulative-link
+//' models when categories are not clearly ordered but the covariate effect is
+//' plausibly one-dimensional). \code{K = 2} reduces exactly to ordinary binary
+//' logistic regression (\eqn{\phi_2 = 1} by construction, no \eqn{\gamma}
+//' parameters). At least 2 distinct observed outcome categories are required; fewer
+//' throws an error. Fitting optimizes the joint parameter vector \eqn{[\alpha_2,
+//' \ldots, \alpha_K, \beta, \gamma_1, \ldots, \gamma_{K-2}]} via
+//' \code{optimization_alg} (default \code{"newton_raphson"}), using this model's
+//' analytic gradient and Hessian.
+//'
+//' @param X A numeric matrix of predictors (no intercept column needed; the
+//'   category intercepts \code{alpha} serve that role).
+//' @param y A numeric vector of categorical (nominal or ordinal) responses; only
+//'   the set of distinct values matters (mapped to \eqn{1, \ldots, K} by sorted
+//'   rank), not their numeric coding or order.
+//' @param maxit Maximum number of optimizer iterations.
 //' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @return A list containing coefficients, thresholds, scores, and convergence status.
+//' @param smart_cold_start Present for interface parity with sibling functions but
+//'   currently has \strong{no effect}: starting values always come from
+//'   \code{initialize_params()} (log empirical category-count ratios for
+//'   \code{alpha}, zero for \code{beta}/\code{gamma}) unless overridden by
+//'   \code{warm_start_params}/\code{warm_start_beta}.
+//' @param fixed_idx Optional 1-indexed positions (into the joint parameter vector,
+//'   \code{alpha} first) of parameters to hold fixed.
+//' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
+//' @param optimization_alg Optimization algorithm (default \code{"newton_raphson"}).
+//' @param warm_start_fisher_info Optional initial curvature matrix for the first optimizer iteration.
+//' @param warm_start_params Optional starting values for the full joint parameter vector.
+//'   Takes precedence over \code{warm_start_beta}.
+//' @param warm_start_beta Optional starting values for \eqn{\beta} alone (ignored if
+//'   \code{warm_start_params} is supplied).
+//' @param estimate_only If \code{TRUE}, skip computing the observed-information matrix
+//'   and return only point estimates.
+//'
+//' @return A list with components \code{b} (\eqn{\hat\beta}), \code{alpha} (the \eqn{K-1}
+//'   free intercepts), \code{scores_raw} (the raw \eqn{\hat\gamma} reparameterization
+//'   parameters, length \eqn{\max(0, K-2)}; recover \eqn{\hat\phi} from these via the
+//'   cumulative-softmax formula above), \code{params} (the full fitted joint parameter
+//'   vector), \code{neg_loglik}, \code{converged}, and, unless \code{estimate_only = TRUE},
+//'   \code{fisher_information} (the negative Hessian of the log-likelihood at the fitted
+//'   parameters — despite the name, this is the \strong{observed}, not expected,
+//'   information).
+//' @seealso \code{\link{fast_stereotype_logit_with_var_cpp}} for the variance-computing
+//'   variant.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -1000,19 +1065,55 @@ List fast_stereotype_logit_cpp(const Rcpp::NumericMatrix& X, const Rcpp::Numeric
         .set("fisher_information", neg_hess));
 }
 
-//' @title Fast Stereotype Logit Regression with Variance (C++)
-//' @description Stereotype logit regression fitting with full variance-covariance matrix.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param maxit Maximum number of iterations.
+//' Fast Stereotype (Reduced-Rank Multinomial) Logistic Regression with Variance (C++)
+//'
+//' As \code{\link{fast_stereotype_logit_cpp}} (see that page for the full stereotype
+//' logit model), but always computes the observed information and the variance of
+//' \eqn{\hat\beta_1} (the first, and typically only meaningfully identified,
+//' regression coefficient — conventionally the treatment effect). The primary
+//' variance estimate is \eqn{[(-H)^{-1}]_{\beta_1\beta_1}} from the observed
+//' information (negative Hessian) at the fitted parameters. If \eqn{\beta_1} is not
+//' held fixed (via \code{fixed_idx}) and that entry comes out non-finite (e.g. the
+//' information matrix is singular), this function falls back to a
+//' \strong{profile-likelihood} variance: it re-optimizes all nuisance parameters
+//' (everything except \eqn{\beta_1}) at \eqn{\hat\beta_1}, \eqn{\hat\beta_1 \pm h}
+//' (\eqn{h = \max(10^{-4}, 10^{-3}(|\hat\beta_1| + 1))}), takes the central
+//' second-difference of the resulting profile log-likelihood to approximate the
+//' profile information \eqn{I(\hat\beta_1)}, and reports \eqn{1/I(\hat\beta_1)} if
+//' that comes out finite and positive (otherwise the variance remains \code{NA}).
+//' \code{vcov} is never populated (always \code{NULL}/missing) — only the single
+//' \eqn{\beta_1} variance is available from this function.
+//'
+//' @param X A numeric matrix of predictors (no intercept column needed; see
+//'   \code{\link{fast_stereotype_logit_cpp}}).
+//' @param y A numeric vector of categorical (nominal or ordinal) responses; only
+//'   the set of distinct values matters, not their numeric coding or order.
+//' @param maxit Maximum number of optimizer iterations.
 //' @param tol Convergence tolerance.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @param warm_start_params Optional starting values for all parameters. If provided, \code{smart_cold_start} is ignored.
-//' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
-//' @return A list containing coefficients, variance estimates, vcov, and convergence status.
+//' @param smart_cold_start Present for interface parity but currently has no effect;
+//'   see \code{\link{fast_stereotype_logit_cpp}} Details.
+//' @param fixed_idx Optional 1-indexed positions (into the joint parameter vector,
+//'   \code{alpha} first) of parameters to hold fixed.
+//' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
+//' @param optimization_alg Optimization algorithm (default \code{"newton_raphson"}).
+//' @param warm_start_fisher_info Optional initial curvature matrix for the first optimizer iteration.
+//' @param warm_start_params Optional starting values for the full joint parameter vector.
+//'   Takes precedence over \code{warm_start_beta}.
+//' @param warm_start_beta Optional starting values for \eqn{\beta} alone (ignored if
+//'   \code{warm_start_params} is supplied).
+//' @param estimate_only Accepted for interface parity but \strong{ignored}: this function
+//'   always computes the observed information and \code{ssq_b_1}/\code{ssq_b_j} regardless
+//'   of its value.
+//'
+//' @return A list with components \code{b} (\eqn{\hat\beta}), \code{alpha} (the \eqn{K-1}
+//'   free intercepts), \code{params} (the full fitted joint parameter vector),
+//'   \code{ssq_b_1} and \code{ssq_b_j} (identical aliases for the variance of
+//'   \eqn{\hat\beta_1}, computed as described above; \code{NA} if unavailable),
+//'   \code{vcov} (always missing/\code{NULL}), \code{converged}, and
+//'   \code{fisher_information} (the observed information, i.e. negative Hessian, at the
+//'   fitted parameters).
+//' @seealso \code{\link{fast_stereotype_logit_cpp}} for the estimate-only-capable variant
+//'   and the full model documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -1085,14 +1186,39 @@ List fast_stereotype_logit_with_var_cpp(const Rcpp::NumericMatrix& X, const Rcpp
         .set("fisher_information", info));
 }
 
-//' @title Compute Stereotype Profile Log-Likelihood (C++)
-//' @description Calculates the profile log-likelihood for a fixed beta in a stereotype logit model.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param beta_fixed The fixed value for the first beta parameter.
-//' @param maxit Maximum number of iterations.
-//' @param tol Convergence tolerance.
-//' @return The profile log-likelihood value.
+//' Stereotype Logit Profile Log-Likelihood for a Fixed Treatment Coefficient (C++)
+//'
+//' Computes the \strong{profile} log-likelihood of the
+//' \code{\link{fast_stereotype_logit_cpp}} stereotype logit model (see that page for
+//' the full model) at a caller-fixed value of \eqn{\beta_1} (the first regression
+//' coefficient, conventionally the treatment effect): all other parameters
+//' (intercepts \eqn{\alpha}, the remaining \eqn{\beta} columns if \eqn{p > 1}, and
+//' the score reparameterization \eqn{\gamma}) are re-optimized by damped Newton's
+//' method (up to 50 iterations, gradient-norm tolerance \eqn{10^{-8}}, backtracking
+//' step-halving line search — both hardcoded and \strong{not} controlled by the
+//' \code{maxit}/\code{tol} arguments below, which are accepted but currently
+//' unused) to maximize the log-likelihood conditional on \eqn{\beta_1}, and the
+//' resulting maximized log-likelihood is returned. This is the building block used
+//' by \code{\link{fast_stereotype_logit_with_var_cpp}}'s profile-likelihood
+//' variance fallback (finite-differencing this function's output in
+//' \eqn{\beta_1}), and is exported standalone for constructing profile-likelihood
+//' confidence intervals or diagnostic profile plots directly.
+//'
+//' @param X A numeric matrix of predictors (no intercept column needed; see
+//'   \code{\link{fast_stereotype_logit_cpp}}).
+//' @param y A numeric vector of categorical (nominal or ordinal) responses; only
+//'   the set of distinct values matters, not their numeric coding or order.
+//' @param beta_fixed The fixed value at which to profile \eqn{\beta_1}.
+//' @param maxit Accepted but currently unused; see Details.
+//' @param tol Accepted but currently unused; see Details.
+//' @param warm_start_params Optional starting values for the full joint parameter vector
+//'   (used to initialize the nuisance-parameter optimization). Takes precedence over
+//'   \code{warm_start_beta}.
+//' @param warm_start_beta Optional starting values for \eqn{\beta} alone (ignored if
+//'   \code{warm_start_params} is supplied).
+//' @return The maximized profile log-likelihood at \code{beta_fixed}, a single number.
+//' @seealso \code{\link{fast_stereotype_logit_with_var_cpp}}, whose profile-likelihood
+//'   variance fallback calls this function three times per fallback invocation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]

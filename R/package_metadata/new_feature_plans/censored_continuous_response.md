@@ -1,5 +1,7 @@
 # Censoring Support for the `continuous` Response Type
 
+> **Depends on:** `interval_censored_survival_response.md` (generalizes its Design-layer bounds schema); `sexp_removal_rcppeigen_conversion_spec.md` conventions for kernel changes. (Global ordering: see `_master.md`.)
+
 ## Scope
 
 Every `continuous`-response `Inference*` class currently refuses censored
@@ -335,7 +337,8 @@ There are 14 concrete continuous `Inference*` classes across 7 families.
   moment-based estimator built on raw observed values rather than a
   likelihood). Flag as a second-wave project.
 - **`InferenceContinKKGLMM`** (`R/EDI/R/inference_continuous_KK_glmm.R`,
-  via `InferenceMixinKKGLMMShared`, Gaussian family) — integrates the
+  via the `KKGLMM` component — source `inference_mixin_kk_glmm_shared.R`,
+  formerly the `InferenceMixinKKGLMMShared` mixin — Gaussian family) — integrates the
   exact-value likelihood over a random effect via Gauss-Hermite
   quadrature/Laplace, same shared machinery the count plan's
   `InferenceCountKKGLMM` uses. This is comparatively more tractable than

@@ -15,10 +15,11 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceOrdinalKKCondAdjCatLogitRegr = R6::R6Class("InferenceOrdinalKKCondAdjCatLogitRegr",
-	lock_objects = FALSE,
+InferenceOrdinalKKCondAdjCatLogitRegr = define_inference_class(
+	classname = "InferenceOrdinalKKCondAdjCatLogitRegr",
 	inherit = InferenceAsympLik,
-	public = utils::modifyList(as.list(InferenceMixinKKPassThrough$public), list(
+	components = c("OrdinalConditionalLogitPartialLikelihood", "KKPassThrough"),
+	public = list(
 		#' @description Initialize KK adjacent-category conditional-logit inference
 		#'   for ordinal responses and prepare the fitted ordinal likelihood used by
 		#'   \code{\link[EDI:InferenceOrdinalKKCondAdjCatLogitRegr]{InferenceOrdinalKKCondAdjCatLogitRegr}}.
@@ -74,19 +75,9 @@ InferenceOrdinalKKCondAdjCatLogitRegr = R6::R6Class("InferenceOrdinalKKCondAdjCa
 			private$shared()
 			ordinal_cond_clogit_assert_finite_se(private, class(self)[1])
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
 		}
-	)),
-	private = utils::modifyList(as.list(InferenceMixinKKPassThrough$private), list(
+	),
+	private = list(
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		supports_likelihood_tests = function() FALSE,
 		shared = function(estimate_only = FALSE){
@@ -97,5 +88,10 @@ InferenceOrdinalKKCondAdjCatLogitRegr = R6::R6Class("InferenceOrdinalKKCondAdjCa
 				sort(unique(trials))
 			})
 		}
-	))
+	),
+	overrides = list(
+		public = "compute_estimate_with_bootstrap_weights",
+		private = "compute_basic_match_data"
+	),
+	metadata = list(likelihood_tier = "partial")
 )

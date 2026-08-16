@@ -2,7 +2,7 @@
 % Please edit documentation in R/glm_fit_helpers.R
 \name{fast_logistic_regression_weighted_cpp}
 \alias{fast_logistic_regression_weighted_cpp}
-\title{Fast Weighted Logistic Regression (C++ Backend)}
+\title{Fast Weighted Logistic Regression, Estimate Only (C++ Backend)}
 \arguments{
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}
@@ -11,21 +11,57 @@
 
 \item{weights}{A numeric vector of weights for each observation.}
 
+\item{warm_start_beta}{Optional starting values for coefficients \eqn{\beta}.
+If provided, \code{smart_cold_start} is ignored.}
+
+\item{smart_cold_start}{Logical. If \code{TRUE} and no \code{warm_start_beta}
+is supplied, use an OLS-based initial guess rather than a zero cold start.}
+
 \item{maxit}{Maximum number of iterations for the IRLS algorithm. Defaults to 100.}
 
 \item{tol}{Convergence tolerance. Defaults to 1e-8.}
 
-\item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default), \code{"lbfgs"}, or \code{"irls"}.}
+\item{fixed_idx}{Optional integer indices of coefficients to hold fixed
+rather than estimate.}
+
+\item{fixed_values}{Optional values to fix the parameters named by
+\code{fixed_idx} at.}
+
+\item{optimization_alg}{Optimization algorithm: \code{"irls"} (default),
+\code{"lbfgs"}, or \code{"newton_raphson"}; see
+\code{\link{.normalize_optimizer_algorithm}}.}
+
+\item{warm_start_weights}{Optional initial IRLS working weights for the
+first iteration.}
+
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix to
+warm-start curvature information.}
 }
 \value{
 A list containing the following components:
 \describe{
-\item{b}{A numeric vector of the estimated logistic regression coefficients.}
-\item{mu}{The fitted values.}
-\item{XtWX}{The XtWX matrix at the final iteration.}
+\item{b}{A numeric vector of the estimated logistic regression coefficients \eqn{\hat\beta}.}
+\item{mu}{The fitted probabilities \eqn{\hat\mu_i}.}
+\item{XtWX, fisher_information}{Two aliases for the same working-weights
+  curvature matrix \eqn{X^\top W X} at the final iteration.}
+\item{score}{The (weighted) score vector at the fitted coefficients.}
+\item{neg_ll}{The weighted negative log-likelihood at the fitted coefficients.}
 \item{converged}{A logical value indicating whether the IRLS algorithm converged.}
+\item{iterations}{The number of optimizer iterations performed.}
+\item{gradient_norm}{The norm of the score vector at convergence.}
 }
 }
 \description{
-Fast Weighted Logistic Regression (C++ Backend)
+Fits the same logistic regression model as
+\code{\link{fast_logistic_regression_cpp}} (see that page for the full
+model, log-odds-ratio interpretation, and optimizer contract), with each
+observation's contribution to the log-likelihood and IRLS working weights
+multiplied by a row weight \code{weights[i]}. Setting all weights to 1
+recovers \code{\link{fast_logistic_regression_cpp}} exactly; this is the
+backend used when the logistic model must be fit on bootstrap-reweighted or
+otherwise weighted data.
+}
+\seealso{
+\code{\link{fast_logistic_regression_cpp}} for the unweighted model
+  and full documentation.
 }

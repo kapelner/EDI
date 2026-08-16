@@ -2,11 +2,11 @@
 #'
 #' Provides \code{compute_rand_confidence_interval()} via Zhang's combined
 #' test-inversion method for both Bernoulli (\eqn{m = 0}) and KK
-#' matching-on-the-fly designs (\eqn{m > 0}). Spliced into exactly one class
-#' (\code{InferenceAbstractQuantileRandCI}) -- not a reusable mixin.
+#' matching-on-the-fly designs (\eqn{m > 0}). Composed into exactly one class
+#' (\code{InferenceAbstractQuantileRandCI}) as a factory component.
 #'
-#' Splice into \code{InferenceAbstractQuantileRandCI} (the only host) via
-#' \code{public = c(InferenceExtQuantileRandCI$public, list(...))}.
+#' Registered as the \code{QuantileRandomizationCI} component and composed into
+#' \code{InferenceAbstractQuantileRandCI}, its only host.
 #' The capability flag \code{private$quantile_rand_ci} is set to \code{TRUE}.
 #'
 #' @keywords internal

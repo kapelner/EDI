@@ -72,7 +72,7 @@ make_bartlett_smoke_ols_kk_design <- function(seed = 41003L, n = 60L){
 	for (i in seq_len(n)) {
 		w_i <- des$add_one_subject_to_experiment_and_assign(data.frame(x1 = x1[i]))
 		y_i <- 0.5 + 0.4 * w_i + 0.3 * x1[i] + rnorm(1, sd = 0.6)
-		des$add_one_subject_response(i, y_i, 1L)
+		des$add_one_subject_response(i, y_i)
 	}
 	des
 }
@@ -90,7 +90,12 @@ make_bartlett_smoke_weibull_design <- function(seed = 41004L, n = 90L){
 	des <- DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x1 = x1))
 	des$overwrite_all_subject_assignments(w)
-	des$add_all_subject_responses(y, dead)
+	# (y, dead) positional convention was removed in the y/y_L/y_R migration
+	# (interval_censored_survival_response.md TODO-15).
+	y_exact <- ifelse(dead == 1, y, NA_real_)
+	y_L <- ifelse(dead == 1, NA_real_, y)
+	y_R <- ifelse(dead == 1, NA_real_, Inf)
+	des$add_all_subject_responses(y_exact, y_L, y_R)
 	des
 }
 

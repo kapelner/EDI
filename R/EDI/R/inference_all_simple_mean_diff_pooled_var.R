@@ -1,9 +1,27 @@
-#' Simple Mean Difference Inference with Pooled Variance
+#' Simple Mean-Difference Inference with Pooled Variance
 #'
-#' Unadjusted mean-difference inference using the simple treated-minus-control
-#' difference with pooled equal-variance t inference. Note that warm starts are
-#' disabled for this class as the simple mean difference is a closed-form
-#' estimator and does not benefit from initialization.
+#' Fits the same unadjusted mean-difference point estimate as
+#' \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}},
+#' \eqn{\hat\beta_T = \bar y_T - \bar y_C}, but performs inference via the
+#' classical \strong{pooled equal-variance} Student's t-test instead of
+#' Welch's unequal-variance version: pooled variance \eqn{s_p^2 =
+#' \left((n_T-1)s_T^2 + (n_C-1)s_C^2\right)/(n_T+n_C-2)}, standard error
+#' \eqn{s_p\sqrt{1/n_T + 1/n_C}}, and exact degrees of freedom \eqn{n_T+n_C-2}
+#' — see \code{$compute_asymp_confidence_interval()} for the full formula.
+#' This assumes the two arms have equal population variance; prefer
+#' \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}}
+#' when that assumption is doubtful, since the pooled estimator's nominal
+#' coverage degrades under heteroskedasticity with unequal arm sizes. This
+#' class does not support censored survival data (enforced at construction).
+#' This class has no likelihood tier (\code{likelihood_tier = "none"}) and
+#' provides asymptotic Wald, randomization, and bootstrap (including Bayesian
+#' bootstrap) confidence intervals and p-values. Warm starts are disabled for
+#' this class, since the simple mean difference is a closed-form estimator
+#' (no iterative fit to warm-start).
+#'
+#' @references Student [Gosset, W. S.] (1908). "The Probable Error of a Mean."
+#'   \emph{Biometrika}, 6(1), 1-25, \doi{10.1093/biomet/6.1.1}, for the
+#'   pooled-variance two-sample t-test used here.
 #'
 #' @examples
 #' \donttest{
@@ -15,6 +33,7 @@
 #' inf = InferenceAllSimpleMeanDiffPooledVar$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @name InferenceAllSimpleMeanDiffPooledVar
 #' @export
 SimpleMeanDifferencePooledVarSource = list(
 	public = list(
@@ -22,6 +41,9 @@ SimpleMeanDifferencePooledVarSource = list(
 		#'   for continuous responses and prepare the pooled standard-error
 		#'   calculation used by
 		#'   \code{\link[EDI:InferenceAllSimpleMeanDiffPooledVar]{InferenceAllSimpleMeanDiffPooledVar}}.
+		#'   Disables warm starts (closed-form estimator) and asserts
+		#'   \code{des_obj} has no censored observations (unsupported by this
+		#'   class).
 		#' @param des_obj A completed design object.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -43,8 +65,23 @@ SimpleMeanDifferencePooledVarSource = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Computes a \eqn{1-\alpha} level confidence interval for the
+		#'   simple (unadjusted) mean-difference treatment effect
+		#'   \eqn{\hat\beta_T = \bar y_T - \bar y_C}, using the classical
+		#'   \strong{pooled equal-variance} Student's t-test formula (unlike
+		#'   \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}}'s
+		#'   Welch unequal-variance version): the pooled variance estimate
+		#'   \eqn{s_p^2 = \left((n_T-1)s_T^2 + (n_C-1)s_C^2\right) / (n_T+n_C-2)}
+		#'   gives standard error \eqn{\widehat{\mathrm{SE}}(\hat\beta_T) =
+		#'   s_p\sqrt{1/n_T + 1/n_C}} with exact degrees of freedom \eqn{n_T + n_C -
+		#'   2}; the interval is \eqn{\hat\beta_T \pm t_{\mathrm{df}, 1-\alpha/2}\,
+		#'   \widehat{\mathrm{SE}}(\hat\beta_T)}. Assumes equal population
+		#'   variances in the two arms — use
+		#'   \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}}
+		#'   instead when that assumption is doubtful. Requires at least 2
+		#'   observations per arm; otherwise returns \code{c(NA, NA)}. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   asymptotic confidence-interval contract this participates in.
 		#' @param alpha Confidence level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -57,8 +94,13 @@ SimpleMeanDifferencePooledVarSource = list(
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Computes a two-sided pooled-variance Student's t-test
+		#'   p-value testing \eqn{H_0: \beta_T = \code{delta}}, from the same
+		#'   pooled standard error and exact \eqn{n_T+n_C-2} degrees of freedom
+		#'   used by \code{$compute_asymp_confidence_interval()} — see that
+		#'   method's documentation for the full formula. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   asymptotic two-sided p-value contract this participates in.
 		#' @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {

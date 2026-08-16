@@ -2,7 +2,7 @@
 % Please edit documentation in R/other_helpers.R
 \name{robust_survreg}
 \alias{robust_survreg}
-\title{Robust Survival Regression}
+\title{Robust Parametric Survival Regression from Response/Censoring Vectors}
 \usage{
 robust_survreg(
   y,
@@ -13,23 +13,32 @@ robust_survreg(
 )
 }
 \arguments{
-\item{y}{The response vector}
+\item{y}{The (possibly right-censored) response vector (event/censoring time).}
 
-\item{dead}{The censoring vector (1 if dead/uncensored and 0 if censored)}
+\item{dead}{The event indicator (1 if the event was observed/uncensored, 0 if
+right-censored at \code{y}).}
 
-\item{cov_matrix_or_vector}{The model matrix}
+\item{cov_matrix_or_vector}{The design matrix (or a single covariate vector) of predictors,
+\strong{excluding} the intercept (one is added by the internal \code{~ .} formula).}
 
-\item{dist}{The parametric distribution form (default is Weibull)}
+\item{dist}{The parametric AFT distribution family passed to
+\code{\link[survival]{survreg}} (default \code{"weibull"}); see that function's
+\code{dist} argument for the full list of supported families.}
 
-\item{num_max_iter}{Maximum # of iterations to repeat (default is 50)}
+\item{num_max_iter}{Maximum number of random-restart attempts if the direct fit fails
+or does not converge (default 50); see \code{\link{robust_survreg_with_surv_object}}.}
 }
 \value{
-The Survival regression model object
+The fitted \code{\link[survival]{survreg}} model object, or \code{NULL} if no
+  attempt converged to a fit with no \code{NA} coefficients within \code{num_max_iter} tries.
 }
 \description{
-Performs Survival regression from the original response and censoring vectors
-that if it fails, keeps trying with a different initialization point until a maximum number
-of iterations
+Convenience wrapper around \code{\link{robust_survreg_with_surv_object}} that
+builds the \code{\link[survival]{Surv}} object from separate response and
+censoring vectors first. See that function for the full description of the
+warm-start-then-random-restart fitting strategy used to make
+\code{\link[survival]{survreg}} converge reliably even from poor or
+near-singular starting points.
 }
 \examples{
 X = matrix(rnorm(500), 100, 5)

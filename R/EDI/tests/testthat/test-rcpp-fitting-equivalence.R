@@ -132,7 +132,7 @@ test_that("fast_coxph_regression_cpp is equivalent to survival::coxph", {
 	expect_equal(as.numeric(res_cpp$vcov), as.numeric(stats::vcov(res_r)), tolerance = 1e-7)
 })
 
-test_that("fast_weibull_regression_cpp is equivalent to survival::survreg", {
+test_that("fast_weibull_regression_general_cpp is equivalent to survival::survreg", {
 	skip_if_not_installed("survival")
 	set.seed(8)
 	n <- 200
@@ -144,7 +144,10 @@ test_that("fast_weibull_regression_cpp is equivalent to survival::survreg", {
 	
 	X_fit <- cbind(`(Intercept)` = 1, X)
 	
-	res_cpp <- fast_weibull_regression_cpp(X_fit, y, dead)
+	res_cpp <- fast_weibull_regression_general_cpp(
+		X_fit, ifelse(dead != 0, y, NA_real_),
+		ifelse(dead == 0, y, NA_real_), ifelse(dead == 0, Inf, NA_real_)
+	)
 	res_r <- survival::survreg(survival::Surv(y, dead) ~ X, dist = "weibull")
 	
 	n_coef <- length(stats::coef(res_r))

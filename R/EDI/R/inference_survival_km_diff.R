@@ -1,11 +1,41 @@
-#' Simple Mean Difference Inference based on Maximum Likelihood
+#' Kaplan-Meier Median-Difference Inference for Survival Responses
 #'
-#' The methods that support confidence intervals and testing for the mean difference
-#' in all response types (except Weibull with censoring)
-#' sequential experimental design estimation and test object
-#' after the sequential design is completed.
+#' Fits a non-parametric treatment-effect estimator for censored survival
+#' responses: the difference in Kaplan-Meier \strong{median} survival times
+#' between the treated and control arms, \eqn{\hat m_T - \hat m_C}. Standard
+#' errors are obtained by \strong{back-calculating} from each arm's separate
+#' Brookmeyer-Crowley confidence interval for its own median (via
+#' \code{survival::survfit}'s default log-log-transformed interval):
+#' \eqn{\hat\sigma_i = (\mathrm{upper}_i - \mathrm{lower}_i) / (2 z_{\alpha/2})},
+#' combined (the two arms are independent by design) as \eqn{\sqrt{\hat\sigma_T^2 +
+#' \hat\sigma_C^2}}. When either arm's median is inestimable (its Kaplan-Meier
+#' curve never reaches 0.5) or the back-calculated bounds are non-finite, the
+#' Wald-style confidence interval and p-value methods
+#' (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()})
+#' silently fall back to a nonparametric bootstrap instead of returning
+#' \code{NA}. A convenience method,
+#' \code{$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()}, is also
+#' provided for the log-rank p-value on the same fitted survival curves. For
+#' \strong{left- or interval-censored} data, the point estimate instead comes
+#' from a Turnbull NPMLE median contrast (\code{interval::icfit()}, via
+#' \code{turnbull_npmle_stat_diff()}), which has no closed-form standard error —
+#' inference on that path relies entirely on the bootstrap fallback described
+#' above. Randomization confidence intervals are not supported (the median
+#' difference's units are not commensurate with the randomization CI bisection
+#' algorithm's transformed-scale null search).
 #'
-#'
+#' @references Kaplan, E. L., and Meier, P. (1958). "Nonparametric Estimation
+#'   from Incomplete Observations." \emph{Journal of the American Statistical
+#'   Association}, 53(282), 457-481, \doi{10.2307/2281868}, for the
+#'   Kaplan-Meier survival curve estimator each arm's median is read from.
+#'   Brookmeyer, R., and Crowley, J. (1982). "A Confidence Interval for the
+#'   Median Survival Time." \emph{Biometrics}, 38(1), 29-41,
+#'   \doi{10.2307/2530286}, for the per-arm median confidence interval this
+#'   class's standard error is back-calculated from. Turnbull, B. W. (1976).
+#'   "The Empirical Distribution Function with Arbitrarily Grouped, Censored
+#'   and Truncated Data." \emph{Journal of the Royal Statistical Society,
+#'   Series B}, 38(3), 290-295, \doi{10.1111/j.2517-6161.1976.tb01597.x}, for
+#'   the NPMLE used on the left-/interval-censored path.
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'survival')
@@ -16,11 +46,17 @@
 #' inf = InferenceSurvivalKMDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @concept Kaplan-Meier
+#' @concept median survival time
 #' @export
-InferenceSurvivalKMDiff = R6::R6Class("InferenceSurvivalKMDiff",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceSurvivalKMDiff = define_inference_class(
+	classname = "InferenceSurvivalKMDiff",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize Kaplan-Meier median-difference survival inference
 		#'   and prepare treatment-group survival curves used by
 		#'   \code{\link[EDI:InferenceSurvivalKMDiff]{InferenceSurvivalKMDiff}}.
@@ -38,16 +74,6 @@ InferenceSurvivalKMDiff = R6::R6Class("InferenceSurvivalKMDiff",
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
-		},
 		#' @description Computes the class-specific mean or survival contrast; see
 		#'   \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}}.
 		#'
@@ -62,8 +88,9 @@ InferenceSurvivalKMDiff = R6::R6Class("InferenceSurvivalKMDiff",
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 		#' seq_des$add_all_subject_responses(
-		#'   ys = c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43),
-		#'   deads = c(1L, 0L, 1L, 1L, 0L, 1L)
+		#'   ys = c(4.71, NA, 4.78, 6.11, NA, 8.43),
+		#'   y_Ls = c(NA, 1.23, NA, NA, 5.95, NA),
+		#'   y_Rs = c(NA, Inf, NA, NA, Inf, NA)
 		#' )
 		#'
 		#' seq_des_inf = InferenceSurvivalKMDiff$new(seq_des)
@@ -79,6 +106,13 @@ InferenceSurvivalKMDiff = R6::R6Class("InferenceSurvivalKMDiff",
 		#' @param subject_or_block_weights Row weights for the bootstrap sample.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
+			if (isTRUE(private$has_general_censoring)) {
+				stop(
+					"Bayesian bootstrap is not yet supported for left-/interval-censored survival data ",
+					"(interval::icfit() has no weights argument, so weighted_survival_stat_diff() cannot ",
+					"be generalized to this case)."
+				)
+			}
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			private$cached_values$beta_hat_T = private$weighted_survival_stat_diff(row_weights, requested_stat = "median")
 			private$cached_values$s_beta_hat_T = NA_real_
@@ -144,6 +178,14 @@ InferenceSurvivalKMDiff = R6::R6Class("InferenceSurvivalKMDiff",
 					stop("Log-rank p-value for non-zero delta is not yet implemented.")
 				}
 			}
+			if (isTRUE(private$has_general_censoring)) {
+				stop(
+					"The log-rank p-value convenience method is not supported for left-/interval-censored ",
+					"survival data on InferenceSurvivalKMDiff (survival::survdiff() assumes ordinary ",
+					"right-censoring); use InferenceSurvivalLogRank instead, which dispatches through ",
+					"interval::ictest() for this case."
+				)
+			}
 			survival_obj = survival::Surv(private$y, private$dead)
 			surv_diff = survival::survdiff(survival_obj ~ private$w)
 			surv_diff$pvalue
@@ -163,7 +205,14 @@ InferenceSurvivalKMDiff = R6::R6Class("InferenceSurvivalKMDiff",
 		}
 	),
 	private = list(
+		supports_interval_or_left_censored_data = function() TRUE,
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
+			# compute_survival_stat_diff_rand_bootstrap_parallel_cpp() assumes
+			# ordinary right-censoring; under general censoring there is no
+			# fast path -- NULL is this codebase's established "no fast path"
+			# signal, falling back to the generic randomization loop that
+			# re-dispatches through compute_estimate()/shared() per replicate.
+			if (isTRUE(private$has_general_censoring)) return(NULL)
 			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			if (delta != 0 && !identical(transform_responses, "log")) return(NULL)
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)
@@ -176,7 +225,24 @@ InferenceSurvivalKMDiff = R6::R6Class("InferenceSurvivalKMDiff",
 		shared = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			
+
+			if (isTRUE(private$has_general_censoring)) {
+				# Turnbull-NPMLE median contrast (TODO-8,
+				# interval_censored_survival_response.md) via interval::icfit()
+				# -- see inference_survival_turnbull_helpers.R for the
+				# interval-identifiability convention. No analytic SE exists for
+				# this derived quantity (icfit() gives no closed-form variance
+				# for a median contrast), so s_beta_hat_T is left NA here --
+				# compute_asymp_confidence_interval()/compute_asymp_two_sided_pval()
+				# already fall back to the nonparametric bootstrap whenever
+				# s_beta_hat_T is unavailable, which is the "bootstrap fallback"
+				# variance strategy TODO-8 asks for.
+				assert_interval_installed(class(self)[1L])
+				private$cached_values$beta_hat_T = turnbull_npmle_stat_diff(private$y_L, private$y_R, private$w, "median")
+				private$cached_values$s_beta_hat_T = NA_real_
+				return(invisible(NULL))
+			}
+
 			# Point estimate via fast Rcpp
 			private$cached_values$beta_hat_T = get_survival_stat_diff(
 				private$y,
@@ -185,7 +251,7 @@ InferenceSurvivalKMDiff = R6::R6Class("InferenceSurvivalKMDiff",
 				"median"
 			)
 			if (estimate_only) return(invisible(NULL))
-			
+
 			# Variance components via survfit (Brookmeyer-Crowley back-calculation)
 			y    = private$y
 			dead = private$dead
@@ -309,5 +375,19 @@ InferenceSurvivalKMDiff = R6::R6Class("InferenceSurvivalKMDiff",
 			}
 			NA_real_
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_confidence_interval", "compute_rand_two_sided_pval"
+		),
+		private = c(
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

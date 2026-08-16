@@ -4,14 +4,24 @@
 \alias{InferenceContinQuantileRegr}
 \title{Quantile Regression Inference for Continuous Responses}
 \description{
-Fits a quantile regression for continuous responses using the treatment
-indicator and, optionally, all recorded covariates as predictors. The treatment
-effect is reported on the response scale at quantile \code{tau}; by default
-\code{tau = 0.5}, so this is median regression.
+Fits a linear quantile regression, \eqn{Q_\tau(Y_i \mid x_i) = x_i^\top\beta_\tau},
+for a continuous response, estimating \eqn{\beta_\tau} by minimizing the
+asymmetric ("pinball" / "check") loss
+\deqn{\hat\beta_\tau = \operatorname*{arg\,min}_\beta \sum_{i=1}^n \rho_\tau(y_i -
+  x_i^\top\beta), \qquad \rho_\tau(u) = u\left(\tau - \mathbb{1}[u < 0]\right),}
+via \pkg{quantreg}'s simplex method (\code{quantreg::rq}/\code{rq.fit(...,
+method = "br")}). The treatment coefficient is the estimated shift in the
+\eqn{\tau}-th conditional quantile of the response attributable to treatment,
+holding any other covariates in \code{model_formula} fixed; by default
+\code{tau = 0.5}, so this is median regression (robust to outliers and
+distributional skew relative to mean-based estimators, at the cost of losing
+the mean-shift interpretation away from \eqn{\tau = 0.5}).
 
-Standard errors use \pkg{quantreg}'s Powell-style \code{"nid"} estimator when
-available, with fallback to \code{"iid"} if needed. Inference is based on the
-resulting asymptotic normal approximation.
+Standard errors use \pkg{quantreg}'s Powell-style \code{"nid"} (non-i.i.d.,
+kernel-based sparsity/local-density estimator) sandwich covariance when
+available, with fallback to the simpler \code{"iid"} estimator if needed.
+Inference (confidence intervals, p-values) is based on the resulting
+asymptotic normal approximation, not an exact finite-sample distribution.
 
 This class requires the \pkg{quantreg} package, which is listed under
 \code{Suggests} and is not installed automatically with \pkg{EDI}.
@@ -28,8 +38,17 @@ inf = InferenceContinQuantileRegr$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceContinQuantileRegr}
+\references{
+Koenker, R., and Bassett, G. (1978). "Regression Quantiles."
+  \emph{Econometrica}, 46(1), 33-50, \doi{10.2307/1913643}, for the
+  check-loss quantile regression estimator; Koenker, R. (2005).
+  \emph{Quantile Regression}, Cambridge University Press, for the
+  Powell-style sandwich standard error estimators used here.
+}
+\concept{median regression}
+\concept{quantile regression}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceContinQuantileRegr}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -42,73 +61,7 @@ inf$compute_estimate()
     \item \href{#method-InferenceContinQuantileRegr-clone}{\code{InferenceContinQuantileRegr$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -134,8 +87,13 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceContinQuantileRegr-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinQuantileRegr-initialize}{}}}
 \subsection{\code{InferenceContinQuantileRegr$new()}}{
-  Initialize a quantile-regression inference object for a completed design
-with a continuous response.
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+
+
+  Initialize a quantile-regression inference object for a
+  completed design with a continuous, uncensored response. Requires the
+  \pkg{quantreg} package to be installed.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinQuantileRegr$new(
@@ -154,8 +112,8 @@ with a continuous response.
 the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
-      \item{\code{tau}}{The quantile to estimate (default 0.5).. Default 0.5.}
-      \item{\code{verbose}}{Whether to print progress messages.. Default FALSE.}
+      \item{\code{tau}}{The quantile \eqn{\tau \in (0, 1)} to estimate (default 0.5, i.e. median regression).}
+      \item{\code{verbose}}{Whether to print progress messages. Default \code{FALSE}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -165,7 +123,13 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceContinQuantileRegr-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinQuantileRegr-compute_estimate}{}}}
 \subsection{\code{InferenceContinQuantileRegr$compute_estimate()}}{
-  Computes the quantile-regression estimate of the treatment effect.
+  Computes the treatment coefficient \eqn{\hat\beta_{T,\tau}}
+  from a check-loss quantile regression fit at quantile \code{tau} (see
+  class documentation for the full model). Rank-deficient covariate
+  columns are dropped before fitting (see
+  \code{private$reduce_design_matrix_for_quantile()}); returns \code{NA}
+  if the reduced design has no usable treatment column or too few
+  residual degrees of freedom.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinQuantileRegr$compute_estimate(estimate_only = FALSE)}
@@ -184,8 +148,14 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceContinQuantileRegr-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinQuantileRegr-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceContinQuantileRegr$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the class-specific treatment estimate under bootstrap weights; see
+  Recomputes the quantile-regression treatment estimate under
+  subject/block bootstrap weights (\code{quantreg::rq(..., weights =
+  row_weights)}), used by the Bayesian bootstrap and related
+  weighted-resampling machinery; see
   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+  Unlike \code{$compute_estimate()}, this always reduces the design
+  matrix from scratch (\code{reuse_factorizations = FALSE}) rather than
+  reusing a cached rank-reduction from a prior warm-started fit.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinQuantileRegr$compute_estimate_with_bootstrap_weights(
@@ -208,8 +178,13 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceContinQuantileRegr-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinQuantileRegr-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceContinQuantileRegr$compute_asymp_confidence_interval()}}{
-  Uses the shared asymptotic confidence-interval contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Computes a \eqn{1-\alpha} level confidence interval for the
+  quantile-regression treatment coefficient \eqn{\hat\beta_{T,\tau}},
+  using \pkg{quantreg}'s Powell-style \code{"nid"} asymptotic standard
+  error (falling back to \code{"iid"} if unavailable — see class
+  documentation) and residual degrees of freedom \eqn{n - p}. See
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  asymptotic confidence-interval contract this delegates to.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinQuantileRegr$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -229,8 +204,12 @@ interval is 1 - \code{alpha}. The default is 0.05.}
 \if{html}{\out{<a id="method-InferenceContinQuantileRegr-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinQuantileRegr-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceContinQuantileRegr$compute_asymp_two_sided_pval()}}{
-  Uses the shared asymptotic two-sided p-value contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Computes a two-sided Wald p-value testing \eqn{H_0:
+  \beta_{T,\tau} = \code{delta}}, from the same \pkg{quantreg} sandwich
+  standard error and degrees of freedom used by
+  \code{$compute_asymp_confidence_interval()}. See
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  asymptotic two-sided p-value contract this delegates to.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinQuantileRegr$compute_asymp_two_sided_pval(delta = 0)}

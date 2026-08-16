@@ -13,36 +13,39 @@ simple_estimator_expected_current = list(
 	InferenceAllSimpleMeanDiff = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 57L,
-		private_owner_count = 273L,
+		public_count = 58L,
+		private_owner_count = 283L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "BayesianBootstrap", "Jackknife", "Wald"
+			"RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "Wald"
 		),
 		dropped_capabilities = c("likelihood_tests", "parametric_likelihood_bootstrap")
 	),
 	InferenceAllSimpleMeanDiffPooledVar = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 57L,
-		private_owner_count = 275L,
+		public_count = 58L,
+		private_owner_count = 285L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "BayesianBootstrap", "Jackknife", "Wald"
+			"RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "Wald"
 		),
 		dropped_capabilities = c("likelihood_tests", "parametric_likelihood_bootstrap")
 	),
 	InferenceAllKKMeanDiffIVWC = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 57L,
-		private_owner_count = 290L,
+		public_count = 58L,
+		private_owner_count = 300L,
 		duplicate_private_owner_count = 1L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "BayesianBootstrap", "Jackknife", "Wald",
+			"RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "Wald",
 			"KKPassThrough", "KKCompound"
 		),
 		dropped_capabilities = "likelihood_tests"
@@ -50,24 +53,25 @@ simple_estimator_expected_current = list(
 	InferenceAllSimpleWilcox = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
-		public_count = 53L,
-		private_owner_count = 261L,
+		public_count = 54L,
+		private_owner_count = 278L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "Jackknife", "Wald"
+			"RandomizationBootstrap", "RandomizationBootstrapCI", "Jackknife", "Wald"
 		),
 		dropped_capabilities = c("bayesian_bootstrap", "likelihood_tests", "parametric_likelihood_bootstrap")
 	),
 	InferenceAllKKWilcoxIVWC = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
-		public_count = 53L,
-		private_owner_count = 281L,
+		public_count = 54L,
+		private_owner_count = 298L,
 		duplicate_private_owner_count = 1L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "Jackknife", "Wald", "KKWilcoxIVWC"
+			"RandomizationBootstrap", "RandomizationBootstrapCI", "Jackknife", "Wald",
+			"KKWilcoxIVWC"
 		),
 		dropped_capabilities = c("bayesian_bootstrap", "likelihood_tests", "parametric_likelihood_bootstrap")
 	)
@@ -128,6 +132,9 @@ test_that("simple estimator migration manifest records current structure", {
 		expect_true("compute_estimate" %in% record$current_public_methods, info = class_name)
 		expect_true("compute_asymp_confidence_interval" %in% record$current_public_methods, info = class_name)
 		expect_true("compute_asymp_two_sided_pval" %in% record$current_public_methods, info = class_name)
+		if (identical(record$family, "wilcoxon_rank")) {
+			expect_true("compute_rand_bootstrap_confidence_interval" %in% record$current_public_methods, info = class_name)
+		}
 	}
 })
 

@@ -5,10 +5,26 @@
 \title{Ridit Analysis for Ordinal Responses}
 \description{
 Performs Ridit analysis (Relative to an Identified Distribution unit) for
-comparing two groups on an ordinal scale. Ridit analysis provides a
-distribution-free way to estimate the probability that a randomly selected
-member of the treatment group has a better outcome than a randomly selected
-member of the control group.
+comparing two groups on an ordinal scale. Every subject's category \eqn{k} is
+converted to a \strong{ridit score} — its relative rank position within the
+\strong{reference} distribution's empirical CDF: \eqn{r_k = F_{\mathrm{ref}}(k{-}1)
++ \tfrac12 f_{\mathrm{ref}}(k)}, where \eqn{F_{\mathrm{ref}}} and
+\eqn{f_{\mathrm{ref}}} are the reference group's empirical cumulative and
+point probabilities. The \code{reference} distribution — controlled by the
+\code{reference} constructor argument — may be the \strong{control} arm
+(default), the \strong{treatment} arm, or the \strong{pooled} sample. The
+treatment effect is the mean ridit score among treated subjects minus
+\eqn{0.5} (the value it would take under the null of no group difference,
+since a group's own ridit scores against itself as reference always average
+to 0.5); this mean ridit score also has a direct interpretation as (an
+estimate of) the probability that a randomly selected treated subject's
+outcome exceeds a randomly selected reference-distribution subject's outcome
+(a Mann-Whitney-type stochastic superiority probability), similar in spirit
+to \code{\link[EDI:InferenceOrdinalJonckheereTerpstraTest]{InferenceOrdinalJonckheereTerpstraTest}}'s
+superiority measure but referenced against a chosen distribution rather than
+always symmetric between the two arms. Standard errors and p-values come
+from \code{fast_ridit_analysis_cpp}'s asymptotic formula, not a resampling
+approximation.
 }
 \examples{
 set.seed(1)
@@ -27,8 +43,14 @@ infer <- InferenceOrdinalRidit$
 infer
 
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceOrdinalRidit}
+\references{
+Bross, I. D. J. (1958). "How to Use Ridit Analysis."
+  \emph{Biometrics}, 14(1), 18-38, \doi{10.2307/2527727}, for the ridit
+  transformation and its interpretation used here.
+}
+\concept{ridit analysis}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceOrdinalRidit}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -43,73 +65,7 @@ infer
     \item \href{#method-InferenceOrdinalRidit-clone}{\code{InferenceOrdinalRidit$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -135,7 +91,12 @@ infer
 \if{html}{\out{<a id="method-InferenceOrdinalRidit-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalRidit-initialize}{}}}
 \subsection{\code{InferenceOrdinalRidit$new()}}{
-  Initialize a Ridit analysis inference object.
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+
+
+  Initialize a Ridit analysis inference object for a
+  completed design with an ordinal, uncensored response.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalRidit$new(
@@ -172,7 +133,9 @@ Must be a positive integer. Default \code{50L}.}
 \if{html}{\out{<a id="method-InferenceOrdinalRidit-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalRidit-compute_estimate}{}}}
 \subsection{\code{InferenceOrdinalRidit$compute_estimate()}}{
-  Returns the estimated treatment effect (Mean Ridit - 0.5).
+  Returns the estimated treatment effect: the mean ridit
+  score among treated subjects minus 0.5 (see class documentation for
+  the full ridit-score definition and reference-distribution choice).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalRidit$compute_estimate(estimate_only = FALSE)}
@@ -194,8 +157,15 @@ Must be a positive integer. Default \code{50L}.}
 \if{html}{\out{<a id="method-InferenceOrdinalRidit-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalRidit-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceOrdinalRidit$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the ridit treatment estimate under
-  Bayesian-bootstrap weights.
+  Recomputes the ridit treatment estimate under subject/block
+  bootstrap weights: the reference distribution's category proportions
+  and every subject's ridit score are recomputed using the weights, then
+  the weighted mean ridit score among treated subjects (minus 0.5) is
+  returned. Used by the Bayesian bootstrap and related
+  weighted-resampling machinery. Always leaves the standard error and
+  degrees of freedom unavailable (\code{NA}) regardless of
+  \code{estimate_only} — this weighted path never computes the
+  asymptotic variance.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalRidit$compute_estimate_with_bootstrap_weights(
@@ -209,8 +179,8 @@ Must be a positive integer. Default \code{50L}.}
     \describe{
       \item{\code{subject_or_block_weights}}{Subject-, block-, cluster-, or matched-set
 bootstrap weights.}
-      \item{\code{estimate_only}}{If \code{TRUE}, compute only the weighted point
-estimate.}
+      \item{\code{estimate_only}}{Present for interface parity; this method never
+computes variance components regardless of its value.}
     }
     \if{html}{\out{</div>}}
   }
@@ -220,7 +190,9 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceOrdinalRidit-get_mean_ridit_treatment"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalRidit-get_mean_ridit_treatment}{}}}
 \subsection{\code{InferenceOrdinalRidit$get_mean_ridit_treatment()}}{
-  Returns the Mean Ridit for the treatment group.
+  Returns the mean ridit score among treated subjects (not
+  centered — this is the raw mean, unlike \code{$compute_estimate()}
+  which subtracts 0.5).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalRidit$get_mean_ridit_treatment()}
@@ -235,7 +207,8 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceOrdinalRidit-get_ridit_scores"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalRidit-get_ridit_scores}{}}}
 \subsection{\code{InferenceOrdinalRidit$get_ridit_scores()}}{
-  Returns the ridit scores for all subjects.
+  Returns each subject's individual ridit score (see class
+  documentation for the ridit-score formula), in subject order.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalRidit$get_ridit_scores()}
@@ -250,7 +223,9 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceOrdinalRidit-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalRidit-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceOrdinalRidit$compute_asymp_confidence_interval()}}{
-  Computes the asymptotic confidence interval for the treatment effect.
+  Computes the asymptotic confidence interval for the
+  treatment effect (mean ridit \eqn{- 0.5}), using
+  \code{fast_ridit_analysis_cpp}'s asymptotic standard error.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalRidit$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -272,7 +247,10 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceOrdinalRidit-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalRidit-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceOrdinalRidit$compute_asymp_two_sided_pval()}}{
-  Computes the p-value for the null hypothesis that Mean Ridit = 0.5.
+  Computes a two-sided Wald p-value testing \eqn{H_0:
+  \text{mean ridit} - 0.5 = \code{delta}} (i.e. \code{delta = 0} tests
+  the null of no group difference, mean ridit \eqn{= 0.5}), using
+  \code{fast_ridit_analysis_cpp}'s asymptotic standard error.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalRidit$compute_asymp_two_sided_pval(delta = 0)}

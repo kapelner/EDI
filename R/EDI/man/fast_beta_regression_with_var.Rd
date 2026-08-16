@@ -18,31 +18,46 @@ fast_beta_regression_with_var(
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}
 
-\item{y}{A numeric vector of the response variable, with values strictly between 0 and 1.}
+\item{y}{A numeric vector of the response variable, with values strictly between 0 and 1.
+See \code{sanitize_beta_response()} (internal) for boundary-value handling.}
 
 \item{start_phi}{A numeric value, the starting value for the precision parameter phi.
 Defaults to 10.}
 
-\item{j}{The index of the coefficient to compute the variance for. Defaults to 2.}
+\item{j}{The 1-based index (into \code{X}'s columns, i.e. into \eqn{\beta}) of
+the coefficient to report the variance of as \code{ssq_b_j}. Defaults to 2
+(the package's usual convention for the treatment-effect column when an
+intercept occupies column 1).}
 
-\item{optimization_alg}{Optimization algorithm: \code{"newton_raphson"} (default) or \code{"lbfgs"}.}
+\item{optimization_alg}{Optimization algorithm: \code{"lbfgs"} (default) or
+\code{"newton_raphson"}; see \code{\link{.normalize_optimizer_algorithm}}.}
 
-\item{warm_start_beta}{Optional starting values for coefficients.}
+\item{warm_start_beta}{Optional starting values for coefficients \eqn{\beta}.}
 
-\item{warm_start_fisher_info}{Optional initial Fisher Information matrix.}
+\item{warm_start_fisher_info}{Optional initial Fisher Information matrix, used to
+warm-start curvature information for the optimizer.}
 }
 \value{
 A list containing the following components:
-\item{b}{A numeric vector of the estimated beta regression coefficients.}
-\item{ssq_b_j}{The squared standard error (variance) of the j-th estimated coefficient.}
-\item{ssq_b_2}{The squared standard error (variance) of the second estimated coefficient,
-  which typically corresponds to the treatment effect.}
+\item{b}{A numeric vector of the estimated beta regression coefficients \eqn{\hat\beta}
+  (logit-of-mean scale).}
+\item{ssq_b_j}{The estimated variance (squared standard error) of the \code{j}-th
+  coefficient, \eqn{\widehat{\mathrm{Var}}(\hat\beta_j)}, i.e. the \code{j}-th
+  diagonal entry of \code{vcov}. \code{NA} if the primary C++ fit failed and a
+  fallback stage without a variance estimate was used (see Details).}
+\item{ssq_b_2}{The estimated variance of the second coefficient specifically
+  (\eqn{\widehat{\mathrm{Var}}(\hat\beta_2)}), regardless of the \code{j} argument
+  — provided as a convenience since column 2 is the package's usual
+  treatment-effect position. Identical to \code{ssq_b_j} when \code{j = 2}.}
 }
 \description{
-This function provides a fast implementation of beta regression, wrapping a C++ backend.
-It estimates regression coefficients for response variables that are continuous and
-restricted to the (0, 1) interval, and specifically computes the variance
-of the second coefficient (assumed to be the treatment effect).
+Fits the same beta regression model as \code{\link{fast_beta_regression}} (see
+\code{\link{fast_beta_regression_cpp}} for the full model equation and
+parameterization) and additionally reports the estimated variance of a
+caller-selected coefficient, extracted from the fitted parameter
+variance-covariance matrix (see
+\code{\link{fast_beta_regression_with_var_cpp}} for how that matrix is computed
+and its plain-inverse numerical caveat on rank-deficient designs).
 }
 \details{
 The primary implementation uses a C++ backend. If that fails, the function falls back

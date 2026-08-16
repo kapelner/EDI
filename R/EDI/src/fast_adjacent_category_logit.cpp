@@ -269,20 +269,91 @@ Eigen::MatrixXd get_adjacent_category_logit_hessian_cpp(const Eigen::Map<Eigen::
     return -fun.hessian(params);
 }
 
-//' @title Fast Adjacent-Category Logit (C++)
-//' @description High-performance adjacent-category logit model fitting.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses (categorical).
-//' @param maxit Maximum number of iterations.
+//' Fast Adjacent-Category Logit Regression, Direct MLE (C++ Backend)
+//'
+//' Fits the adjacent-category logit ordinal regression model
+//' \deqn{\log\frac{\Pr(Y = k+1)}{\Pr(Y = k)} = \alpha_k + \beta^\top x, \quad k = 1, \dots, K-1,}
+//' by direct maximum likelihood on the full multinomial likelihood of \code{y},
+//' rather than via the stacked-binary / stratified-conditional-logit reduction
+//' implemented by \code{expand_adjacent_category_data_cpp()} elsewhere in the
+//' package. \eqn{\beta} (the covariate effects, shared across all \code{K - 1} cuts)
+//' and the \code{K - 1} cut-specific intercepts \eqn{\alpha_k} are estimated jointly
+//' by numerically optimizing the exact multinomial log-likelihood, which is
+//' generally more accurate and can be faster than fitting the row-stacked expansion
+//' as a stratified logistic regression, at the cost of a custom (rather than reused)
+//' optimizer implementation.
+//'
+//' @details
+//' \strong{Category coding.} \code{y} need not already be coded \code{1:K}: the
+//' distinct values of \code{y} are extracted and sorted (\code{get_levels()}), and
+//' each observation is remapped to its 1-based \strong{rank} among those sorted
+//' distinct values (\code{map_y_to_1K()}) — e.g. \code{y = c(10, 30, 20, 10)} is
+//' treated identically to \code{y = c(1, 3, 2, 1)}, with \code{K = 3}. \code{K} is
+//' therefore the number of \emph{distinct observed} values, not any externally
+//' supplied category count, and requires at least 2 (an error is raised otherwise).
+//'
+//' \strong{Parameterization and likelihood.} Internally, category probabilities are
+//' computed from a numerically stable right-to-left product recurrence in terms of
+//' \eqn{u = e^{-\eta}} (\eqn{\eta = x^\top \beta}) and \eqn{e^{\alpha_k}}, avoiding
+//' repeated exponentiation and keeping partial products bounded; the returned
+//' \code{neg_loglik} is the resulting exact multinomial negative log-likelihood
+//' (\eqn{-\sum_i \log \Pr(Y_i = y_i)}), with the analytic gradient computed in the
+//' same pass and used internally for optimization. See
+//' \code{\link{fast_adjacent_category_logit_with_var_cpp}} for the variant that
+//' additionally returns the variance-covariance matrix of the estimates.
+//'
+//' \strong{Parameter vector layout.} The optimizer's parameter vector (returned as
+//' \code{params}) is \code{c(alpha_1, ..., alpha_{K-1}, beta_1, ..., beta_p)} — the
+//' \code{K - 1} cut intercepts first, then the \code{p} shared covariate
+//' coefficients (\code{p = ncol(X)}).
+//'
+//' \strong{Optimization.} Optimized via \code{optimization_alg} (\code{"lbfgs"}
+//' default; see \code{\link{.normalize_optimizer_algorithm}} for the supported set),
+//' for at most \code{maxit} iterations at tolerance \code{tol}. When no warm start is
+//' supplied, \code{smart_cold_start = TRUE} (default) seeds the optimizer from an
+//' OLS-based initial guess rather than a naive zero/arbitrary start; supplying
+//' \code{warm_start_params} (the full parameter vector) or \code{warm_start_beta}
+//' (just the covariate coefficients, with cut intercepts initialized separately)
+//' overrides \code{smart_cold_start} entirely. \code{fixed_idx}/\code{fixed_values}
+//' allow holding specific parameters (by index into the layout above) fixed at
+//' supplied values during optimization rather than estimating them, and
+//' \code{warm_start_fisher_info} allows reusing a previously computed Fisher
+//' information matrix to warm-start curvature information for faster convergence.
+//'
+//' @param X A numeric matrix of predictors, \eqn{n \times p}, with \strong{no}
+//'   intercept column (the model's cut-specific intercepts \eqn{\alpha_k} serve that
+//'   role).
+//' @param y A numeric vector of length \eqn{n} giving each subject's ordinal
+//'   category; need not be pre-coded \code{1:K} (see Details for the rank-based
+//'   remapping).
+//' @param maxit Maximum number of optimizer iterations.
 //' @param tol Convergence tolerance.
 //' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix.
-//' @param warm_start_params Optional starting values for all parameters. If provided, \code{smart_cold_start} is ignored.
-//' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
-//' @return A list containing coefficients, alpha, and convergence status.
+//' @param fixed_idx Optional integer indices (into the
+//'   \code{c(alpha, beta)} parameter layout described in Details) of parameters to
+//'   hold fixed rather than estimate.
+//' @param fixed_values Optional values to fix the parameters named by
+//'   \code{fixed_idx} at; must be the same length as \code{fixed_idx}.
+//' @param optimization_alg Optimization algorithm; see Details.
+//' @param warm_start_fisher_info Optional initial Fisher Information matrix (over
+//'   the full \code{c(alpha, beta)} parameter vector) to warm-start curvature
+//'   information.
+//' @param warm_start_params Optional starting values for the full parameter vector
+//'   \code{c(alpha, beta)}. If provided, \code{smart_cold_start} is ignored.
+//' @param warm_start_beta Optional starting values for just the covariate
+//'   coefficients \eqn{\beta} (cut intercepts \eqn{\alpha} are still initialized
+//'   separately). If provided, \code{smart_cold_start} is ignored.
+//' @return A list with components \code{b} (the shared covariate coefficients
+//'   \eqn{\hat\beta}, length \code{p}), \code{alpha} (the \code{K - 1} estimated
+//'   cut intercepts \eqn{\hat\alpha_k}), \code{params} (the full
+//'   \code{c(alpha, b)} parameter vector, as optimized), \code{neg_loglik} (the
+//'   multinomial negative log-likelihood at convergence), and \code{converged}
+//'   (logical).
+//' @seealso \code{\link{fast_adjacent_category_logit_with_var_cpp}} for the
+//'   variance-augmented variant; \code{expand_adjacent_category_data_cpp()} for the
+//'   alternative stacked-binary reduction of the same model.
+//'   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal regression} for
+//'   orientation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -323,15 +394,49 @@ List fast_adjacent_category_logit_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP
 //' @param X A numeric matrix of predictors.
 //' @param y A numeric vector of responses (categorical).
 //' @param maxit Maximum number of iterations.
-//' @param tol Convergence tolerance.
-//' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param optimization_alg Optimization algorithm.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix.
-//' @param warm_start_params Optional starting values for all parameters. If provided, \code{smart_cold_start} is ignored.
-//' @param warm_start_beta Optional starting values for coefficients. If provided, \code{smart_cold_start} is ignored.
-//' @return A list containing coefficients, vcov, and convergence status.
+//' Fast Adjacent-Category Logit Regression with Variance, Direct MLE (C++ Backend)
+//'
+//' Fits the same adjacent-category logit model as
+//' \code{\link{fast_adjacent_category_logit_cpp}} (see that page for the model,
+//' category-coding/remapping, parameter layout, and optimizer contract, all shared
+//' unchanged here) and additionally computes the observed-information-based
+//' variance-covariance matrix of the fitted parameters.
+//'
+//' @details
+//' \strong{Variance computation.} The observed Fisher information (the Hessian of the
+//' negative log-likelihood, via \code{AdjacentCategoryLogitNegLogLik::hessian()}) is
+//' evaluated at the fitted parameter vector over \emph{all} \code{n_alpha + p}
+//' parameters (returned in full as \code{fisher_information}), then restricted to the
+//' free (non-\code{fixed_idx}) parameters and inverted via a rank-aware
+//' (\code{symmetric_pseudo_inverse()}, not a plain Cholesky/LDLT solve) inverse
+//' before being expanded back to full \code{(n_alpha + p) x (n_alpha + p)} size as
+//' \code{vcov}. The pseudo-inverse is used deliberately: adjacent-category fits can
+//' have an estimable treatment effect even when nuisance columns make the full
+//' information matrix rank-deficient, a case where a standard Cholesky/LDLT solve
+//' can report spurious success with an invalid (sometimes negative) variance rather
+//' than failing cleanly. \code{vcov} is only populated when \code{converged} is
+//' \code{TRUE}; otherwise it is \code{NULL}.
+//'
+//' \strong{First-covariate variance shortcut.} \code{ssq_b_1} (aliased as
+//' \code{ssq_b_j} for interface consistency with the package's other
+//' \code{fast_*_with_var_cpp} functions) is the variance of \eqn{\hat\beta_1}, the
+//' coefficient on the \strong{first} column of \code{X} — by the package's usual
+//' convention, the treatment-effect column — extracted directly from the free-parameter
+//' covariance block rather than requiring the caller to index into the full
+//' \code{vcov} matrix; it is \code{NA} if that coefficient was fixed
+//' (via \code{fixed_idx}) or if its estimated variance is non-finite or non-positive.
+//'
+//' @inheritParams fast_adjacent_category_logit_cpp
+//' @return A list with all the components of
+//'   \code{\link{fast_adjacent_category_logit_cpp}} (\code{b}, \code{alpha},
+//'   \code{params}, \code{neg_loglik}, \code{converged}), plus \code{ssq_b_1}
+//'   (equivalently \code{ssq_b_j}, the variance of the first covariate's
+//'   coefficient), \code{vcov} (the full parameter variance-covariance matrix, or
+//'   \code{NULL} if not converged), and \code{fisher_information} (the full observed
+//'   information matrix at the fitted parameters, over all parameters regardless of
+//'   \code{fixed_idx}).
+//' @seealso \code{\link{fast_adjacent_category_logit_cpp}} for the estimate-only
+//'   variant and the full model/parameterization documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]

@@ -15,6 +15,14 @@
 #' p=1, q=0), which is distinct from the log-rank test (\code{rho = 0}) used in
 #' \code{InferenceSurvivalKMDiff}.
 #'
+#' @references Gehan, E. A. (1965). "A generalized Wilcoxon test for
+#'   comparing arbitrarily singly-censored samples." \emph{Biometrika},
+#'   52(1-2), 203-223, \doi{10.1093/biomet/52.1-2.203}, for the original
+#'   generalized (Gehan) Wilcoxon test for censored data. Peto, R., and Peto,
+#'   J. (1972). "Asymptotically Efficient Rank Invariant Test Procedures."
+#'   \emph{Journal of the Royal Statistical Society, Series A}, 135(2),
+#'   185-207, \doi{10.2307/2344317}, for the survival-weighted (Peto-Prentice)
+#'   modification this class implements via \eqn{\rho=1}.
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'survival')
@@ -25,11 +33,17 @@
 #' inf = InferenceSurvivalGehanWilcox$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @concept Gehan-Wilcoxon test
+#' @concept Peto-Prentice test
 #' @export
-InferenceSurvivalGehanWilcox = R6::R6Class("InferenceSurvivalGehanWilcox",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
+InferenceSurvivalGehanWilcox = define_inference_class(
+	classname = "InferenceSurvivalGehanWilcox",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize Gehan-Wilcoxon survival inference and prepare the
 		#'   rank-based treatment statistic used by
 		#'   \code{\link[EDI:InferenceSurvivalGehanWilcox]{InferenceSurvivalGehanWilcox}}.
@@ -48,7 +62,10 @@ InferenceSurvivalGehanWilcox = R6::R6Class("InferenceSurvivalGehanWilcox",
 		},
 		#' @description Returns the mean difference in Peto-Prentice weighted martingale residuals
 		#' between the treatment and control groups. Positive values indicate that treatment
-		#' subjects experienced fewer early events than expected.
+		#' subjects experienced fewer early events than expected. For left- or
+		#' interval-censored data, dispatches instead to \code{interval::ictest(...,
+		#' scores = "wmw")} (the Wilcoxon-Mann-Whitney interval-censored
+		#' generalization of the Peto-Prentice test) and returns its estimate.
 		#'
 		#' @return  A numeric scalar (the Peto-Prentice weighted score treatment effect estimate).
 		#'
@@ -61,8 +78,9 @@ InferenceSurvivalGehanWilcox = R6::R6Class("InferenceSurvivalGehanWilcox",
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2:10])
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2:10])
 		#' seq_des$add_all_subject_responses(
-		#'   ys = c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43),
-		#'   deads = c(1L, 0L, 1L, 1L, 0L, 1L)
+		#'   ys = c(4.71, NA, 4.78, 6.11, NA, 8.43),
+		#'   y_Ls = c(NA, 1.23, NA, NA, 5.95, NA),
+		#'   y_Rs = c(NA, Inf, NA, NA, Inf, NA)
 		#' )
 		#'
 		#' seq_des_inf = InferenceSurvivalGehanWilcox$new(seq_des)
@@ -77,6 +95,13 @@ InferenceSurvivalGehanWilcox = R6::R6Class("InferenceSurvivalGehanWilcox",
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
+			if (isTRUE(private$has_general_censoring)) {
+				stop(
+					"Bayesian bootstrap is not yet supported for left-/interval-censored survival data ",
+					"(weighted_peto_prentice_mean_difference() assumes ordinary right-censoring semantics ",
+					"via coxph()/survfit()/Surv(), which does not apply here)."
+				)
+			}
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			private$cached_values$beta_hat_T = private$weighted_peto_prentice_mean_difference(row_weights)
 			private$cached_values$s_beta_hat_T = NA_real_
@@ -100,8 +125,9 @@ InferenceSurvivalGehanWilcox = R6::R6Class("InferenceSurvivalGehanWilcox",
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2:10])
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2:10])
 		#' seq_des$add_all_subject_responses(
-		#'   ys = c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43),
-		#'   deads = c(1L, 0L, 1L, 1L, 0L, 1L)
+		#'   ys = c(4.71, NA, 4.78, 6.11, NA, 8.43),
+		#'   y_Ls = c(NA, 1.23, NA, NA, 5.95, NA),
+		#'   y_Rs = c(NA, Inf, NA, NA, Inf, NA)
 		#' )
 		#'
 		#' seq_des_inf = InferenceSurvivalGehanWilcox$new(seq_des)
@@ -136,8 +162,9 @@ InferenceSurvivalGehanWilcox = R6::R6Class("InferenceSurvivalGehanWilcox",
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2:10])
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2:10])
 		#' seq_des$add_all_subject_responses(
-		#'   ys = c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43),
-		#'   deads = c(1L, 0L, 1L, 1L, 0L, 1L)
+		#'   ys = c(4.71, NA, 4.78, 6.11, NA, 8.43),
+		#'   y_Ls = c(NA, 1.23, NA, NA, 5.95, NA),
+		#'   y_Rs = c(NA, Inf, NA, NA, Inf, NA)
 		#' )
 		#'
 		#' seq_des_inf = InferenceSurvivalGehanWilcox$new(seq_des)
@@ -151,6 +178,11 @@ InferenceSurvivalGehanWilcox = R6::R6Class("InferenceSurvivalGehanWilcox",
 				}
 			}
 			private$compute_shared()
+			if (isTRUE(private$has_general_censoring)) {
+				pv = private$cached_values$icen_pval
+				if (!is.finite(pv)) return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+				return(pv)
+			}
 			if (!is.finite(private$cached_values$gw_var) || private$cached_values$gw_var <= 0){
 				surv_obj  = survival::Surv(private$y, private$dead)
 				surv_diff = survival::survdiff(surv_obj ~ private$w, rho = 1)
@@ -173,6 +205,7 @@ InferenceSurvivalGehanWilcox = R6::R6Class("InferenceSurvivalGehanWilcox",
 		}
 	),
 	private = list(
+		supports_interval_or_left_censored_data = function() TRUE,
 		weighted_peto_prentice_mean_difference = function(row_weights){
 			keep = is.finite(private$y) & is.finite(private$dead) & is.finite(row_weights) & row_weights > 0
 			if (!any(keep)) return(NA_real_)
@@ -209,11 +242,49 @@ InferenceSurvivalGehanWilcox = R6::R6Class("InferenceSurvivalGehanWilcox",
 			mean_c = sum(wt_c * M_w[idx_c]) / sum(wt_c)
 			as.numeric(mean_t - mean_c)
 		},
+		# interval::ictest() dispatch for left-/interval-censored data (TODO-7,
+		# interval_censored_survival_response.md). Wilcoxon-Mann-Whitney scores
+		# (scores = "wmw"), the interval-censored generalization of the
+		# right-censored Peto-Prentice (Gehan-Wilcoxon) test above. Same
+		# (L, R)/y_L/y_R encoding as InferenceSurvivalLogRank's
+		# compute_shared_icen() -- see its comment for the empirical check.
+		compute_shared_icen = function(estimate_only = FALSE){
+			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
+			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+			assert_interval_installed(class(self)[1L])
+			L = ifelse(is.na(private$y), private$y_L, private$y)
+			R = ifelse(is.na(private$y), private$y_R, private$y)
+			fit = tryCatch(
+				suppressWarnings(interval::ictest(L, R, private$w, scores = "wmw")),
+				error = function(e) NULL
+			)
+			if (is.null(fit)) {
+				private$cached_values$beta_hat_T = NA_real_
+				if (estimate_only) return(invisible(NULL))
+				private$cached_values$s_beta_hat_T = NA_real_
+				private$cached_values$gw_score = NA_real_
+				private$cached_values$gw_var = NA_real_
+				private$cached_values$icen_pval = NA_real_
+				return(invisible(NULL))
+			}
+			beta_hat = as.numeric(fit$estimate)
+			private$cached_values$beta_hat_T = beta_hat
+			if (estimate_only) return(invisible(NULL))
+			z_stat = as.numeric(fit$statistic)
+			private$cached_values$s_beta_hat_T = if (is.finite(z_stat) && z_stat != 0) abs(beta_hat / z_stat) else NA_real_
+			private$cached_values$gw_score = z_stat
+			private$cached_values$gw_var = 1
+			private$cached_values$icen_pval = as.numeric(fit$p.value)
+		},
 		# Computes the Peto-Prentice weighted martingale residual estimate, its SE, and
 		# the survdiff(rho=1) score/variance, via a single fused C++ sweep equivalent to
 		# coxph(~1) martingale residuals + survfit(~1) KM weights + survdiff(rho=1).
 		# Results are cached in private$cached_values.
 		compute_shared = function(estimate_only = FALSE){
+			if (isTRUE(private$has_general_censoring)) {
+				return(private$compute_shared_icen(estimate_only = estimate_only))
+			}
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
 			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
@@ -238,5 +309,19 @@ InferenceSurvivalGehanWilcox = R6::R6Class("InferenceSurvivalGehanWilcox",
 			private$cached_values$gw_score = as.numeric(gw_stats$score)
 			private$cached_values$gw_var = as.numeric(gw_stats$var_score)
 		}
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_confidence_interval", "compute_rand_two_sided_pval"
+		),
+		private = c(
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )

@@ -240,10 +240,9 @@ InferenceAbstractKKSurvivalRankRegrIVWC = R6::R6Class("InferenceAbstractKKSurviv
 			}
 		},
 		aftsrr_for_matched_pairs = function(estimate_only = FALSE){
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			i_matched = which(m_vec > 0)
+			split = split_kk_matched_reservoir_idx(private$m, private$n)
+			m_vec = split$m_vec
+			i_matched = split$matched_idx
 			y_m       = private$y[i_matched]
 			dead_m    = private$dead[i_matched]
 			w_m       = private$w[i_matched]

@@ -1,23 +1,87 @@
-#' An Optimal-Blocks Fixed Design
+#' A Fixed, Covariate-Homogeneous-Block Randomized Design
 #'
-#' An R6 Class encapsulating the data and functionality for a fixed experimental
-#' design that first partitions subjects into \code{B} covariate-homogeneous blocks
-#' by solving a balanced clustering problem with \pkg{ompr} and \pkg{glpk}, then randomizes
-#' treatment within those blocks. When \code{B} is omitted and \code{n} is known
-#' at initialization, the default is \code{floor(sqrt(n))}, truncated below at 1.
+#' A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} that first partitions
+#' subjects into \code{B} approximately equal-sized, covariate-homogeneous blocks by
+#' (approximately or exactly) minimizing total within-block pairwise covariate distance
+#' \eqn{\sum_{k=1}^{B} \sum_{i, j \in \text{block } k, i < j} D(x_i, x_j)}, then
+#' randomizes treatment independently within each resulting block at probability
+#' \code{prob_T} (via \code{\link[randomizr]{block_ra}}, the same mechanism as
+#' \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}). Unlike
+#' \code{DesignFixedBlocking}, which forms blocks from user-specified column-wise
+#' strata (categorical levels / quantile bins), here blocks are formed directly from a
+#' multivariate distance/clustering criterion over all covariates jointly, so this
+#' design generalizes matched-pair designs
+#' (\code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}) from block size 2
+#' to arbitrary block size \eqn{B}. When \code{B} is omitted and \code{n} is known
+#' at initialization, the default is \code{floor(sqrt(n))}, truncated below at 1 (the
+#' usual heuristic block count for balancing within-block homogeneity against
+#' within-block sample size).
 #'
+#' @details
+#' \strong{Block-formation algorithms.} \code{method} selects among three block
+#' construction strategies with different exactness/scalability trade-offs (see the
+#' \code{new()} argument documentation for details): \code{"K-way"} (default, balanced
+#' k-means-style anticlustering via \pkg{anticlust}, fast and empirically close to
+#' optimal), \code{"greedy"} (nearest-neighbor greedy matching via \pkg{blockTools},
+#' fast even for large \eqn{n}), and \code{"ompr"} (an exact mixed-integer program
+#' solved with GLPK via \pkg{ompr}/\pkg{ompr.roi}, globally optimal but scaling as
+#' \eqn{O(n^2 B)} in the number of decision variables — practical only for small
+#' \eqn{n}). Block membership is computed lazily (on first draw, via
+#' \code{get_or_compute_block_ids()}) and cached in \code{private$block_ids} for reuse
+#' across replicates.
+#'
+#' \strong{Distance specification (\code{"ompr"} only).} \code{dist} selects the
+#' pairwise distance \eqn{D(x_i, x_j)} the exact solver minimizes:
+#' \code{"euclidean"}, \code{"sum_abs_diff"} (sum of absolute coordinate differences),
+#' \code{"mahal"} (default, Mahalanobis distance accounting for covariate
+#' correlation/scale), or a user-supplied distance function. The \code{"K-way"} and
+#' \code{"greedy"} methods use their own respective packages' built-in distance
+#' conventions and do not consult \code{dist}.
+#'
+#' \strong{No-covariate fallback.} If the covariate matrix has zero columns, block
+#' membership is assigned by simple round-robin (\code{rep(seq_len(B), length.out = n)})
+#' rather than by any of the three clustering algorithms, since there is no covariate
+#' information to cluster on.
+#'
+#' \strong{Bootstrap.} \code{draw_bootstrap_indices()} resamples within blocks by
+#' default (\code{bootstrap_type = "within_blocks"} or \code{NULL}, via
+#' \code{stratified_bootstrap_indices_cpp()}) or resamples whole blocks otherwise (via
+#' \code{resample_group_rows_cpp()}), mirroring the block structure in the resampling
+#' scheme, as in \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}.
+#'
+#' @references Higgins, M. J., Sävje, F., and Sekhon, J. S. (2016). "Improving massive
+#'   experiments with threshold blocking." \emph{Proceedings of the National Academy of
+#'   Sciences}, 113(27), 7369-7376, \doi{10.1073/pnas.1510504113}, for optimal/near-optimal
+#'   covariate-based blocking prior to randomization. See also
+#'   \href{https://en.wikipedia.org/wiki/Randomized_block_design}{randomized block
+#'   design} for orientation and
+#'   \href{https://en.wikipedia.org/wiki/Mahalanobis_distance}{Mahalanobis distance} for
+#'   the default \code{"ompr"} distance.
 #' @examples
 #' des = DesignFixedOptimalBlocks$new(n = 9, response_type = 'continuous')
 #' des$add_all_subjects_to_experiment(data.frame(x = rnorm(9)))
 #' des$assign_w_to_all_subjects()
 #' @export
-DesignFixedOptimalBlocks = R6::R6Class("DesignFixedOptimalBlocks",
+DesignFixedOptimalBlocks = define_design_class(
+	classname = "DesignFixedOptimalBlocks",
 	inherit = DesignFixed,
+	components = "BlockingStructure",
 	public = list(
-			#' @description Returns TRUE so the framework pre-generates all w vectors
-			#'   once per cell (paying the clustering cost once, reusing across reps).
+			#' @description Returns \code{TRUE} so the calling framework pre-generates
+			#'   all replicate \code{w} vectors for a simulation cell in one batch,
+			#'   paying the one-time block-formation cost (K-way anticlustering,
+			#'   greedy matching, or the exact \pkg{ompr}/GLPK solve) once per cell and
+			#'   reusing the resulting block assignment across replicates, rather than
+			#'   recomputing it per replicate.
+			#'
+			#' @return Always \code{TRUE} for this class.
 			supports_batch_w_pregeneration = function() TRUE,
-			#' @description Initialize a fixed optimal-blocks design.
+			#' @description Initialize a fixed optimal-blocks design. Block formation
+			#'   itself is deferred until the first draw (see class documentation);
+			#'   this constructor only validates and records configuration, including
+			#'   checking that \code{B} (or its \code{floor(sqrt(n))} default) admits a
+			#'   feasible block-size partition of \code{n} when \code{n} is already
+			#'   known.
 			#' @param B Number of blocks to form. If omitted and \code{n} is supplied,
 			#'   defaults to \code{floor(sqrt(n))}, with a minimum of 1.
 			#' @param method Algorithm used to partition subjects into blocks.
@@ -116,17 +180,9 @@ DesignFixedOptimalBlocks = R6::R6Class("DesignFixedOptimalBlocks",
 			storage.mode(w_mat) = "numeric"
 			w_mat
 		},
-		draw_bootstrap_indices = function(bootstrap_type = NULL){
-			block_ids = private$get_or_compute_block_ids()
-			if (is.null(bootstrap_type) || bootstrap_type == "within_blocks") {
-				group_id = match(block_ids, unique(block_ids))
-				list(i_b = stratified_bootstrap_indices_cpp(as.integer(group_id)), m_vec_b = NULL)
-			} else {
-				group_id = match(block_ids, unique(block_ids))
-				i_b = resample_group_rows_cpp(as.integer(group_id), length(unique(group_id)))
-				list(i_b = as.integer(i_b), m_vec_b = NULL)
-			}
-		},
+		# draw_bootstrap_indices is provided by the BlockingStructure component (see
+		# `components` above); proven byte-identical to this class's former hand-rolled
+		# version via test-design-blocking-structure-bootstrap-golden.R before removal.
 		assert_feasible_block_sizes = function(n){
 			private$assert_min_block_size(n, private$B)
 			invisible(NULL)

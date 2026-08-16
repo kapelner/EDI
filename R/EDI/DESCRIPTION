@@ -47,6 +47,7 @@ Suggests:
     glmnet,
     icenReg,
     interval,
+    knitr,
     lme4,
     multgee,
     nbpMatching,
@@ -56,30 +57,40 @@ Suggests:
     pscl,
     quantreg,
     Rfit,
+    rmarkdown,
     testthat,
     VGAM,
     ompr,
     ompr.roi,
     ROI.plugin.glpk
+VignetteBuilder: knitr
 Collate:
     'design_abstract.R'
     'design_blocking_abstract.R'
-    'design_custom_extensions.R'
-    'design_fixed_a_optimal.R'
+    'design_matching_abstract.R'
     'design_fixed_abstract.R'
+    'design_fixed_greedy.R'
+    'design_component_registry.R'
+    'design_class_factory.R'
+    'design_custom_extensions.R'
+    'helper_optimal_shared.R'
+    'helper_optimal_milp_solvers.R'
+    'helper_user_compiled_fn.R'
+    'helper_optimal_annealing.R'
+    'design_fixed_greedy_d_optimal.R'
     'design_fixed_bernoulli.R'
     'design_fixed_binary_match.R'
     'design_fixed_blocked_cluster.R'
     'design_fixed_blocking.R'
     'design_fixed_cluster.R'
-    'design_fixed_d_optimal.R'
     'design_fixed_factorial.R'
-    'design_fixed_greedy.R'
     'design_fixed_ibcrd.R'
     'design_fixed_matching_greedy_pair_switching.R'
     'design_fixed_optimal_blocks.R'
     'design_fixed_rerandomization.R'
-    'design_matching_abstract.R'
+    'design_observational.R'
+    'design_observational_blocks.R'
+    'design_observational_matching.R'
     'design_seq_one_by_one_abstract.R'
     'design_seq_one_by_one_atkinson.R'
     'design_seq_one_by_one_bernoulli.R'
@@ -92,12 +103,13 @@ Collate:
     'design_seq_one_by_one_random_block_size.R'
     'design_seq_one_by_one_spbr.R'
     'design_seq_one_by_one_urn.R'
+    'design_class_registry.R'
     'EDI.R'
-    'glm_fit_helpers.R'
+    'helper_glm_fit.R'
     'globals.R'
-    'additional_asserts.R'
-    'mixin_contracts.R'
-    'robust_sandwich_helpers.R'
+    'helper_additional_asserts.R'
+    'contracts_mixins.R'
+    'helper_robust_sandwich.R'
     'inference_all_abstract_mle_or_KM_summary_table.R'
     'inference_ext_ci_inversion.R'
     'inference_ext_information_matrix.R'
@@ -112,8 +124,8 @@ Collate:
     'inference_mixin_kk_passthrough.R'
     'inference_mixin_kk_passthrough_compound.R'
     'inference_all_abstract_KK_passthrough_compound.R'
-    'bootstrap_ci_helpers.R'
-    'resampling_draw_contracts.R'
+    'helper_bootstrap_ci.R'
+    'contracts_resampling_draws.R'
     'inference_ext_bca_bootstrap_ci.R'
     'inference_ext_exchangeable_resampling_units.R'
     'inference_ext_minimum_volatility_selector.R'
@@ -176,7 +188,7 @@ Collate:
     'inference_incidence_exact_binomial.R'
     'inference_incidence_exact_zhang.R'
     'inference_incidence_extended_robins.R'
-    'gcomp_helpers.R'
+    'helper_gcomp.R'
     'inference_incidence_gcomp_abstract.R'
     'inference_incidence_gcomp.R'
     'inference_incidence_KK_cond_logit_glmm_abstract.R'
@@ -236,6 +248,7 @@ Collate:
     'inference_survival_log_rank.R'
     'inference_survival_rmst.R'
     'inference_survival_strat_cox.R'
+    'inference_survival_turnbull_helpers.R'
     'inference_survival_weibull.R'
     'inference_class_registry.R'
     'other_helpers.R'

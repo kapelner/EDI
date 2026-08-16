@@ -215,19 +215,75 @@ edi::ResultMap fast_ordinal_cloglog_regression_internal(
 }
 
 #ifndef EDI_CORE_ONLY
-//' @title Fast Ordinal Cloglog Regression (C++)
-//' @description High-performance ordinal cloglog regression fitting using Newton-Raphson.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param warm_start_params Optional starting values for [alpha, beta]. If provided, \code{smart_cold_start} is ignored.
-//' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param maxit Maximum number of iterations.
+//' Fast Cumulative Ordinal Regression with a Complementary Log-Log Link (C++)
+//'
+//' Fits a cumulative-link ordinal regression model with the \strong{complementary
+//' log-log ("cloglog")} link via direct maximum likelihood, jointly optimizing the
+//' category thresholds and regression coefficients. \code{y}'s distinct values (in
+//' sorted order, whatever their original coding) are treated as \eqn{K} ordered
+//' categories; for observation \eqn{i} in category \eqn{k} (\eqn{k = 0, \ldots, K-1}),
+//' \deqn{\Pr(Y_i \le k \mid x_i) = F(\alpha_k + x_i^\top \beta), \qquad
+//'   F(z) = 1 - \exp(-\exp(z)),}
+//' with \eqn{\alpha_0 < \alpha_1 < \cdots < \alpha_{K-2}} the (increasing) category
+//' thresholds and \eqn{\beta} the regression coefficients on \code{X} (no separate
+//' intercept column is needed — the thresholds serve that role); the category
+//' probability is the corresponding CDF difference,
+//' \eqn{\Pr(Y_i = k \mid x_i) = F(\alpha_k + x_i^\top\beta) - F(\alpha_{k-1} + x_i^\top\beta)}
+//' (with \eqn{F(\alpha_{-1} + \cdot) := 0} and \eqn{F(\alpha_{K-1} + \cdot) := 1} at the
+//' boundaries), each clamped below at \eqn{10^{-12}} before taking logs for numerical
+//' safety. Unlike the symmetric logit/probit/cauchit links, cloglog is
+//' \strong{asymmetric}: it is the natural link for a grouped/discretized
+//' proportional-hazards (continuation-ratio-free) survival model, appropriate when
+//' category probabilities are skewed toward the lower categories. If \code{y} has
+//' fewer than 2 distinct levels, an empty result list is returned (the model is
+//' degenerate).
+//'
+//' @section Fixed parameters, warm starts, and optimization:
+//' \code{fixed_idx} (1-indexed into the combined \eqn{[\alpha, \beta]} parameter
+//' vector, thresholds first) and \code{fixed_values} optionally hold a subset of
+//' parameters at caller-supplied constant values rather than estimating them.
+//' \code{warm_start_params} supplies starting values for \eqn{[\alpha, \beta]}
+//' directly (skipping \code{smart_cold_start}); otherwise, when
+//' \code{smart_cold_start = TRUE} (the default), starting values come from an
+//' OLS-based heuristic, and when \code{FALSE}, thresholds start evenly spaced on
+//' \eqn{(-1, 1)} at \eqn{-1 + 2(k+1)/K} with \eqn{\beta} at zero. Optimization runs
+//' via \code{optimization_alg} (default \code{"lbfgs"}) for up to \code{maxit}
+//' iterations or until the parameter/gradient change falls below \code{tol};
+//' \code{warm_start_fisher_info}, if supplied, seeds the first iteration's
+//' curvature estimate.
+//'
+//' @param X A numeric matrix of predictors (no intercept column needed; see Details).
+//' @param y A numeric vector of ordinal responses; only the rank order of distinct
+//'   values matters, not their numeric coding.
+//' @param warm_start_params Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.
+//' @param smart_cold_start Logical. If \code{TRUE}, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
+//' @param maxit Maximum number of optimizer iterations.
 //' @param tol Convergence tolerance.
-//' @param optimization_alg Optimization algorithm.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients, thresholds, and convergence status.
+//' @param optimization_alg Optimization algorithm (default \code{"lbfgs"}).
+//' @param fixed_idx Optional 1-indexed positions (into \eqn{[\alpha,\beta]}) of parameters to hold fixed.
+//' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
+//' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
+//' @param estimate_only If \code{TRUE}, skip the post-fit Hessian/variance computation and
+//'   return only point estimates (faster). If \code{FALSE} (the default), also compute and
+//'   return the observed information matrix and, when the fit converged, the full
+//'   variance-covariance matrix (identical to what
+//'   \code{\link{fast_ordinal_cloglog_regression_with_var_cpp}} always computes).
+//'
+//' @return A list with components \code{b} (the \eqn{\beta} coefficients), \code{alpha}
+//'   (the \eqn{K-1} category thresholds), \code{params} (the concatenated
+//'   \eqn{[\alpha, \beta]} vector), \code{n_params}, \code{converged}, and \code{iterations};
+//'   when \code{estimate_only = FALSE} (the default) and the fit converged, additionally
+//'   \code{neg_loglik}, \code{observed_information}/\code{fisher_information}/\code{information}
+//'   (all the same observed-information matrix), \code{information_type} (always
+//'   \code{"observed"}), \code{vcov} (the parameter covariance matrix), and \code{ssq_b_j}
+//'   (the variance of \code{b[1]}, i.e. the coefficient on \code{X}'s first column —
+//'   conventionally the treatment effect, since \code{X} carries no separate intercept
+//'   column here; the thresholds \code{alpha} play that role). Empty if \code{y} has
+//'   fewer than 2 distinct levels.
+//' @seealso \code{\link{fast_ordinal_cloglog_regression_with_var_cpp}}, which always computes
+//'   the variance quantities (equivalent to calling this function with
+//'   \code{estimate_only = FALSE}) and additionally guards against the degenerate/non-converged
+//'   case by returning \code{NA} placeholders instead of an empty list.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -256,17 +312,40 @@ List fast_ordinal_cloglog_regression_cpp(const Rcpp::NumericMatrix& X,
     return edi::to_rcpp_list(res);
 }
 
-//' @title Fast Ordinal Cloglog Regression with Variance (C++)
-//' @description Ordinal cloglog regression fitting with full variance-covariance matrix.
-//' @param X A numeric matrix of predictors.
-//' @param y A numeric vector of responses.
-//' @param warm_start_params Optional starting values for [alpha, beta]. If provided, \code{smart_cold_start} is ignored.
-//' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
-//' @param optimization_alg Optimization algorithm.
-//' @param fixed_idx Optional indices of fixed parameters.
-//' @param fixed_values Optional values for fixed parameters.
-//' @param warm_start_fisher_info Optional initial Fisher Information matrix for the first IRLS iteration.
-//' @return A list containing coefficients, thresholds, vcov, and convergence status.
+//' Fast Cumulative Ordinal Regression with a Complementary Log-Log Link, with Variance (C++)
+//'
+//' As \code{\link{fast_ordinal_cloglog_regression_cpp}} (see that page for the full
+//' cumulative cloglog-link model, \eqn{\Pr(Y_i \le k \mid x_i) = F(\alpha_k +
+//' x_i^\top\beta)}, \eqn{F(z) = 1 - \exp(-\exp(z))}), but always fits with
+//' \code{estimate_only = FALSE} (equivalent to calling that function with its
+//' default), so the observed information matrix and variance-covariance matrix are
+//' always computed. It additionally guards the degenerate case: if \code{y} has
+//' fewer than 2 distinct levels (so the underlying fit is empty), this function
+//' returns \code{list(b = NA, ssq_b_2 = NA)} instead of an empty list.
+//'
+//' @inheritSection fast_ordinal_cloglog_regression_cpp Fixed parameters, warm starts, and optimization
+//'
+//' @param X A numeric matrix of predictors (no intercept column needed; see
+//'   \code{\link{fast_ordinal_cloglog_regression_cpp}}).
+//' @param y A numeric vector of ordinal responses; only the rank order of distinct
+//'   values matters, not their numeric coding.
+//' @param warm_start_params Optional starting values for \eqn{[\alpha, \beta]}. If provided, \code{smart_cold_start} is ignored.
+//' @param smart_cold_start Logical. If \code{TRUE}, use an initial OLS-based guess when starting from scratch (a "cold start") with no prior knowledge. This is ignored if a warm start is provided.
+//' @param optimization_alg Optimization algorithm (default \code{"lbfgs"}).
+//' @param fixed_idx Optional 1-indexed positions (into \eqn{[\alpha,\beta]}) of parameters to hold fixed.
+//' @param fixed_values Optional values, parallel to \code{fixed_idx}, of the fixed parameters.
+//' @param warm_start_fisher_info Optional initial curvature (Fisher/observed information) matrix.
+//'
+//' @return A list with components \code{b}, \code{alpha}, \code{params}, \code{n_params},
+//'   \code{neg_loglik}, \code{converged}, \code{iterations},
+//'   \code{observed_information}/\code{fisher_information}/\code{information} (all the same
+//'   observed-information matrix), \code{information_type} (\code{"observed"}), \code{vcov},
+//'   and \code{ssq_b_2} (the variance of \code{b[1]}, i.e. \code{X}'s first-column coefficient
+//'   — conventionally the treatment effect). \code{vcov} is omitted (and \code{ssq_b_2} is
+//'   \code{NA}) if the fit did not converge; \code{list(b = NA, ssq_b_2 = NA)} if \code{y} has
+//'   fewer than 2 distinct levels.
+//' @seealso \code{\link{fast_ordinal_cloglog_regression_cpp}} for the estimate-only-capable
+//'   variant and the full model documentation.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]

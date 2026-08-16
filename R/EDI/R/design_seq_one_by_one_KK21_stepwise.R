@@ -1,19 +1,63 @@
-#' A Sequential Design
+#' Stepwise Variant of the KK21 Outcome-Weighted Sequential Matching Design
 #'
-#' An R6 Class encapsulating the data and functionality for a sequential experimental design.
-#' This class takes care of data initialization and sequential assignments. The class object
-#' should be saved securely after each assignment e.g. on an encrypted cloud server.
+#' A \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}} variant that
+#' computes its per-covariate matching weights via \strong{forward stepwise selection}
+#' (\code{compute_weights_KK21stepwise()}) instead of KK21's independent
+#' marginal-association regressions: covariates are added to a growing "selected" set
+#' one at a time, at each step choosing whichever remaining covariate has the largest
+#' absolute association statistic \emph{conditional on} (i.e. in a model that also
+#' includes) the covariates already selected and the treatment-assignment column,
+#' rather than each covariate's association with the response considered in isolation.
+#' This targets the case where covariates are mutually correlated: KK21's marginal
+#' weights can assign similar high weight to several collinear prognostic covariates
+#' (effectively double-counting the same information), whereas the stepwise conditional
+#' weights down-weight a covariate once its explanatory content is already captured by
+#' previously selected covariates.
 #'
+#' @details
+#' \strong{Weight computation.} For each response type, a family-appropriate model
+#' (OLS/logistic/negative-binomial/beta/AFT survival/proportional-odds, matching the
+#' same response-type dispatch and \code{*_use_speedup} fast-path conventions as
+#' \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}) is repeatedly refit,
+#' each time regressing the response on one candidate remaining covariate plus all
+#' previously selected covariates plus the treatment column \code{ws}; the candidate
+#' with the largest absolute association statistic is selected next and assigned that
+#' statistic as its weight, then removed from the candidate pool, and the process
+#' repeats until every covariate has been assigned a weight (an \eqn{O(p^2)} number of
+#' model fits per assignment call, for \eqn{p} covariates). If a candidate's model fit
+#' fails to converge (e.g. perfect separation or rank deficiency) partway through, the
+#' remaining not-yet-selected covariates' weights are left \code{NA} internally and then
+#' replaced with 0 (excluding them from the weighted matching distance) rather than
+#' propagating the failure.
+#'
+#' \strong{Everything else is inherited from KK21.} Burn-in fallback to KK14, the
+#' bootstrapped acceptance-threshold test, matched-pair assignment, and the
+#' \code{morrison}/\code{lambda}/\code{t_0_pct} matching-schedule options are all
+#' unchanged from \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}; only
+#' \emph{how} the covariate weight vector is computed differs.
+#'
+#' @references Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
+#'   allocation with higher power and efficiency." \emph{Biometrics}, 70(2), 378-388,
+#'   \doi{10.1111/biom.12148}, for the base matching-on-the-fly algorithm; the
+#'   outcome-weighted extension follows Kapelner and Krieger (2021), with this class
+#'   using a forward-stepwise (rather than marginal) weight-estimation scheme. See also
+#'   Morrison, T., and Owen, A. B. (2025) for the alternative \code{morrison = TRUE}
+#'   threshold calibration referenced by the \code{morrison} argument.
 #' @examples
 #' seq_des = DesignSeqOneByOneKK21stepwise$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' @export
 DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 	inherit = DesignSeqOneByOneKK21,
+	# See DesignSeqOneByOneKK21's identical note: DesignSeqOneByOneKK14 (further up this
+	# chain) is built via define_design_class(), which requires lock_objects = FALSE;
+	# every subclass down the chain must repeat it explicitly.
+	lock_objects = FALSE,
 	public = list(
 		#'
-		#' @description Initialize a matching-on-the-fly sequential experimental design which matches based on the
-		#' stepwise version of
+		#' @description Initialize a matching-on-the-fly sequential experimental design
+		#' whose covariate matching weights are computed via forward stepwise
+		#' selection (see class documentation), based on the stepwise version of
 		#' Kapelner and Krieger (2021) with option to use matching parameters of Morrison and Owen
 		#' (2025)
 		#' @param  response_type 	The data type of response values which must be one of the following:

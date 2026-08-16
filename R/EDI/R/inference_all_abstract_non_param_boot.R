@@ -73,7 +73,7 @@
 #'     makes \eqn{w_i} depend on the full covariate and assignment history, and
 #'     conditional assignment probabilities differ from 1/2. Row-level resampling does
 #'     not replicate the covariate balance the rule enforces. Conservative, moderate.}
-#'   \item{\code{DesignFixedAOptimal}, \code{DesignFixedDOptimal},
+#'   \item{\code{DesignFixedGreedyDOptimal},
 #'     \code{DesignFixedGreedy}, \code{DesignFixedRerandomization}}{The observed
 #'     \eqn{w} vector is one draw from a tightly constrained (optimized or
 #'     acceptance-sampled) set of allocations. Resampled replicates carry per-row
@@ -1151,8 +1151,30 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				base_Ximp = if (!is.null(source_des_priv$Ximp)) bootstrap_subset_source(source_des_priv$Ximp) else NULL,
 				base_X = if (!is.null(private$X)) private$X else private$get_X(),
 				base_w = if (!is.null(source_des_priv$w)) as.numeric(source_des_priv$w) else NULL,
-				base_y = if (!is.null(source_des_priv$y)) source_des_priv$y else NULL,
-				base_dead = if (!is.null(source_des_priv$dead)) as.numeric(source_des_priv$dead) else NULL,
+				base_y = if (is.null(source_des_priv$y)) {
+					NULL
+				} else if (isTRUE(private$has_general_censoring)) {
+					source_des_priv$y
+				} else {
+					# Legacy (y, dead) kernels expect y to always be a finite time (event
+					# or censoring time), with `dead` alone distinguishing them -- Design
+					# itself only stores the raw, NA-for-censored value now (y/y_L/y_R
+					# migration), so reconstruct the effective time here, matching
+					# Design$get_effective_time().
+					ifelse(is.na(source_des_priv$y), source_des_priv$y_L, source_des_priv$y)
+				},
+				base_dead = if (!is.null(source_des_priv$dead)) {
+					as.numeric(source_des_priv$dead)
+				} else if (!is.null(source_des_priv$y)) {
+					# Design no longer stores a raw `dead` field (y/y_L/y_R migration) --
+					# derive the legacy exact/right-censored event indicator from `y`
+					# directly, matching Design$get_effective_dead().
+					as.numeric(!is.na(source_des_priv$y))
+				} else {
+					NULL
+				},
+				base_y_L = if (!is.null(source_des_priv$y_L)) as.numeric(source_des_priv$y_L) else NULL,
+				base_y_R = if (!is.null(source_des_priv$y_R)) as.numeric(source_des_priv$y_R) else NULL,
 				base_m = if (!is.null(source_des_priv$m)) source_des_priv$m else NULL,
 				base_y_i_t_i = if (!is.null(source_des_priv$y_i_t_i)) source_des_priv$y_i_t_i else NULL,
 				base_za_X_cov_all = if (!is.null(private$za_X_cov_all)) private$za_X_cov_all else NULL,
@@ -1180,6 +1202,8 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			w_priv$w = if (!is.null(worker_state$base_w)) as.numeric(worker_state$base_w[indices]) else NULL
 			w_priv$y = if (!is.null(worker_state$base_y)) as.numeric(worker_state$base_y[indices]) else NULL
 			w_priv$dead = if (!is.null(worker_state$base_dead)) as.numeric(worker_state$base_dead[indices]) else NULL
+			w_priv$y_L = if (!is.null(worker_state$base_y_L)) as.numeric(worker_state$base_y_L[indices]) else NULL
+			w_priv$y_R = if (!is.null(worker_state$base_y_R)) as.numeric(worker_state$base_y_R[indices]) else NULL
 			w_priv$any_censoring = !is.null(w_priv$dead) && any(w_priv$dead == 0)
 			w_priv$y_temp = w_priv$y
 			if (!is.null(worker_state$base_m)) {
@@ -1224,9 +1248,11 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				des_priv$n = length(indices)
 				des_priv$w = w_priv$w
 				des_priv$y = w_priv$y
-				if (!is.null(w_priv$dead) || exists("dead", envir = des_priv, inherits = FALSE)) {
+				if (exists("dead", envir = des_priv, inherits = FALSE)) {
 					des_priv$dead = w_priv$dead
 				}
+				if (exists("y_L", envir = des_priv, inherits = FALSE)) des_priv$y_L = w_priv$y_L
+				if (exists("y_R", envir = des_priv, inherits = FALSE)) des_priv$y_R = w_priv$y_R
 				if (!is.null(worker_state$base_m)) des_priv$m = w_priv$m
 				
 				# Subset Xraw, Ximp, and y_i_t_i in the worker's design
@@ -1462,7 +1488,6 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			if (!is.null(orig_des_priv$X)) sub_des_priv$X = subset_field(orig_des_priv$X)
 			if (!is.null(orig_des_priv$w)) sub_des_priv$w = as.numeric(orig_des_priv$w[indices])
 			if (!is.null(orig_des_priv$y)) sub_des_priv$y = as.numeric(orig_des_priv$y[indices])
-			if (!is.null(orig_des_priv$dead)) sub_des_priv$dead = as.numeric(orig_des_priv$dead[indices])
 			# Use Design-provided m_vec_b (pair-aware) if available; otherwise subset original m
 			if (!is.null(orig_des_priv$m)) {
 				sub_des_priv$m = if (!is.null(m_vec_b)) as.integer(m_vec_b) else as.integer(orig_des_priv$m[indices])
@@ -1495,7 +1520,11 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			sub_inf_priv$y = sub_des_priv$y
 			sub_inf_priv$y_temp = sub_des_priv$y
 			sub_inf_priv$w = sub_des_priv$w
-			sub_inf_priv$dead = sub_des_priv$dead
+			# Design no longer stores a raw dead field (y/y_L/y_R migration,
+			# interval_censored_survival_response.md TODO-1); dead lives only on
+			# Inference objects, so subset it from the source Inference's own
+			# already-correct private$dead rather than round-tripping through Design.
+			sub_inf_priv$dead = if (!is.null(private$dead)) as.numeric(private$dead[indices]) else NULL
 			sub_inf_priv$n = length(indices)
 			sub_inf_priv$cached_values = list()
 			sub_inf_priv$cached_values$rand_distr_cache = list()

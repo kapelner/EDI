@@ -11,9 +11,23 @@ score test under the null \eqn{p_T - p_C = \delta}.
 
 
 This class is intentionally unadjusted. It operates on the \eqn{2 \times 2}
-table induced by treatment assignment and incidence response, and is therefore
-the natural classical binary-endpoint complement to the regression-based
-incidence methods already in the package.
+table induced by treatment assignment and incidence response (counts
+\eqn{x_T, x_C} of events among \eqn{n_T, n_C} treated/control subjects), and
+is therefore the natural classical binary-endpoint complement to the
+regression-based incidence methods already in the package. The point
+estimate is the plain risk difference \eqn{\hat p_T - \hat p_C}; the
+Miettinen-Nurminen confidence interval and p-value invert a
+\strong{restricted-maximum-likelihood score test} of \eqn{H_0: p_T - p_C =
+\delta} (via \code{mn_ci_cpp}/\code{mn_pvalue_cpp}) — under the null, the two
+arms' event probabilities are re-estimated subject to the constraint
+\eqn{\hat p_T - \hat p_C = \delta}, and the resulting score statistic is
+compared to its asymptotic normal distribution, with a small-sample bias
+correction factor \eqn{(n_T+n_C)/(n_T+n_C-1)} applied to the naive Wald
+variance used elsewhere (e.g. in \code{$compute_estimate_with_bootstrap_weights()},
+which never gets this correction since it skips the score-test path
+entirely). This score-based interval generally has better small-sample
+coverage than the naive normal-approximation Wald interval on the risk
+difference.
 }
 \examples{
 \donttest{
@@ -42,8 +56,16 @@ seq_des_inf = InferenceIncidMiettinenNurminenRiskDiff$new(seq_des)
 seq_des_inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceIncidMiettinenNurminenRiskDiff}
+\references{
+Miettinen, O., and Nurminen, M. (1985). "Comparative Analysis of
+  Two Rates." \emph{Statistics in Medicine}, 4(2), 213-226,
+  \doi{10.1002/sim.4780040211}, for the restricted-maximum-likelihood score
+  method used here.
+}
+\concept{Miettinen-Nurminen}
+\concept{risk difference}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceIncidMiettinenNurminenRiskDiff}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -56,73 +78,7 @@ seq_des_inf$compute_estimate()
     \item \href{#method-InferenceIncidMiettinenNurminenRiskDiff-clone}{\code{InferenceIncidMiettinenNurminenRiskDiff$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -148,6 +104,10 @@ seq_des_inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceIncidMiettinenNurminenRiskDiff-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidMiettinenNurminenRiskDiff-initialize}{}}}
 \subsection{\code{InferenceIncidMiettinenNurminenRiskDiff$new()}}{
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+
+
   Initialize a Miettinen-Nurminen risk-difference inference object for a
 completed design with an incidence response.
   \subsection{Usage}{
@@ -191,7 +151,9 @@ seq_des_inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceIncidMiettinenNurminenRiskDiff-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidMiettinenNurminenRiskDiff-compute_estimate}{}}}
 \subsection{\code{InferenceIncidMiettinenNurminenRiskDiff$compute_estimate()}}{
-  Computes the observed risk-difference estimate.
+  Computes the observed (unadjusted) risk-difference estimate
+  \eqn{\hat p_T - \hat p_C} (see class documentation for the full
+  Miettinen-Nurminen inference model). \code{NA} if either arm is empty.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidMiettinenNurminenRiskDiff$compute_estimate(estimate_only = FALSE)}
@@ -210,8 +172,15 @@ seq_des_inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceIncidMiettinenNurminenRiskDiff-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidMiettinenNurminenRiskDiff-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceIncidMiettinenNurminenRiskDiff$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the class-specific treatment estimate under bootstrap weights; see
+  Recomputes the risk-difference estimate under subject/block
+  bootstrap weights: the weighted event proportions \eqn{\hat p_T^w =
+  \sum_i r_i y_i \mathbb{1}[w_i=1] / \sum_i r_i \mathbb{1}[w_i=1]} (and
+  analogously for control), differenced. Used by the Bayesian bootstrap
+  and related weighted-resampling machinery; see
   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+  Always leaves the standard error and degrees of freedom unavailable
+  (\code{NA}) regardless of \code{estimate_only} — this weighted path
+  never computes the Miettinen-Nurminen score-based variance.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidMiettinenNurminenRiskDiff$compute_estimate_with_bootstrap_weights(
@@ -224,7 +193,8 @@ seq_des_inf$compute_estimate()
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{subject_or_block_weights}}{Bootstrap weights at the subject or block level.}
-      \item{\code{estimate_only}}{If TRUE, skip variance calculations.}
+      \item{\code{estimate_only}}{Present for interface parity; this method never
+computes variance components regardless of its value.}
     }
     \if{html}{\out{</div>}}
   }
@@ -234,7 +204,10 @@ seq_des_inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceIncidMiettinenNurminenRiskDiff-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidMiettinenNurminenRiskDiff-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceIncidMiettinenNurminenRiskDiff$compute_asymp_confidence_interval()}}{
-  Computes a 1 - \code{alpha} Miettinen-Nurminen score confidence interval.
+  Computes a \eqn{1-\alpha} Miettinen-Nurminen restricted-MLE
+  score confidence interval for the risk difference (see class
+  documentation for the full method), by bisection-inverting the score
+  test (\code{mn_ci_cpp}) to \code{pval_epsilon} tolerance.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidMiettinenNurminenRiskDiff$compute_asymp_confidence_interval(
@@ -258,7 +231,9 @@ interval is 1 - \code{alpha}. The default is 0.05.}
 \if{html}{\out{<a id="method-InferenceIncidMiettinenNurminenRiskDiff-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidMiettinenNurminenRiskDiff-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceIncidMiettinenNurminenRiskDiff$compute_asymp_two_sided_pval()}}{
-  Computes a two-sided Miettinen-Nurminen score p-value.
+  Computes a two-sided Miettinen-Nurminen restricted-MLE
+  score p-value (\code{mn_pvalue_cpp}) testing \eqn{H_0: p_T - p_C =
+  \code{delta}} (see class documentation for the full method).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidMiettinenNurminenRiskDiff$compute_asymp_two_sided_pval(delta = 0)}

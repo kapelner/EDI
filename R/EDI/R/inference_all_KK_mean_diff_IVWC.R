@@ -1,13 +1,38 @@
-#' Mean-Difference IVWC Inference for KK Designs
+#' Mean-Difference IVWC Inference for KK Matching-on-the-Fly Designs
 #'
-#' Fits a compound mean-difference estimator for KK matching-on-the-fly designs.
-#' For matched pairs, it uses the average within-pair difference. For reservoir
-#' subjects, it uses the treated-minus-control difference in means. The two
-#' estimates are combined via inverse-variance weighting.
+#' Fits a compound (inverse-variance-weighted combination, "IVWC") mean-difference
+#' estimator of the treatment effect for continuous responses under a
+#' \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}-family KK matching-on-the-fly
+#' design (see \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} and
+#' \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}). Such a design
+#' produces two structurally different kinds of subjects: subjects successfully
+#' matched into pairs during the sequential design, and unmatched "reservoir"
+#' subjects randomized independently. This estimator combines both:
+#' \deqn{\hat\beta_T = w^* \bar d + (1 - w^*)\, \bar r, \qquad
+#'   w^* = \frac{\widehat{\mathrm{Var}}(\bar r)}{\widehat{\mathrm{Var}}(\bar r) +
+#'   \widehat{\mathrm{Var}}(\bar d)},}
+#' where \eqn{\bar d} is the mean within-pair (treated minus control) difference
+#' among matched subjects and \eqn{\bar r} is the treated-minus-control difference
+#' in means among reservoir subjects, weighted inversely by their estimated
+#' variances (see \code{$compute_asymp_confidence_interval()} for the full
+#' variance formula and the fallback behavior when only one of the two
+#' sub-estimates is usable). Inference is Wald-only: this class has no
+#' likelihood tier (\code{likelihood_tier = "none"}) and provides asymptotic
+#' Wald, randomization, and bootstrap (including Bayesian bootstrap) confidence
+#' intervals and p-values, but no score/likelihood-ratio/gradient tests.
 #'
+#' @references Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly:
+#'   Sequential allocation with higher power and efficiency." \emph{Biometrics},
+#'   70(2), 378-388, \doi{10.1111/biom.12148}, for the KK matching-on-the-fly
+#'   design this estimator targets, and for the inverse-variance combination of
+#'   matched-pair and reservoir estimates.
 #'
-#'
-#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+#' @section Legacy status: \strong{Legacy class.} Not fully tested in
+#'   \code{comprehensive_tests.R}; prefer a more actively maintained KK
+#'   continuous-response inference class (e.g.
+#'   \code{\link[EDI:InferenceContinKKOLSIVWC]{InferenceContinKKOLSIVWC}}) for new
+#'   analyses unless this specific unadjusted mean-difference estimator is
+#'   required.
 #' @export
 #' @examples
 #' \dontrun{
@@ -26,6 +51,7 @@
 #' seq_des_inf$compute_asymp_confidence_interval()
 #' seq_des_inf$compute_asymp_two_sided_pval()
 #' }
+#' @name InferenceAllKKMeanDiffIVWC
 KKMeanDifferenceIVWCSource = list(
 	public = list(
 		#' @description Initialize KK IVWC mean-difference inference.
@@ -45,20 +71,55 @@ KKMeanDifferenceIVWCSource = list(
 			private$init_kk_passthrough(des_obj)
 		},
 		#'
-		#' @description Computes the IVWC mean-difference estimate across pairs and reservoir
+		#' @description Computes the compound IVWC (inverse-variance-weighted
+		#' compound) mean-difference point estimate \eqn{\hat\beta_T}: the
+		#' inverse-variance-weighted combination \eqn{w^* \bar d + (1-w^*)\, \bar
+		#' r} of the matched-pair mean within-pair difference \eqn{\bar d} and the
+		#' reservoir treated-minus-control mean difference \eqn{\bar r}, falling
+		#' back to whichever of the two is usable if the other is not (see
+		#' \code{$compute_asymp_confidence_interval()} for the full weighting
+		#' formula and usability conditions).
 		#'
 		#' @return  The setting-appropriate (see description) numeric estimate of the treatment effect
 		#'
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @param estimate_only If \code{TRUE}, compute only the point estimate
+		#'   \eqn{\hat\beta_T} and skip the variance-component computations needed
+		#'   for confidence intervals or p-values (faster when only the point
+		#'   estimate is needed).
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes a 1-alpha level frequentist confidence interval
+		#' @description Computes a \eqn{1-\alpha} level frequentist confidence interval
+		#' for the compound IVWC (inverse-variance-weighted compound) mean-difference
+		#' estimator \eqn{\hat\beta_T}.
 		#'
-		#' The compound estimator is treated as asymptotically normal, so this
-		#' interval is based on the estimated standard error of the inverse-variance
-		#' weighted combination.
+		#' @details
+		#' The point estimate combines two sub-estimates depending on which are
+		#' usable: the mean within-pair difference among matched subjects,
+		#' \eqn{\bar d}, with estimated variance \eqn{\widehat{\mathrm{Var}}(\bar
+		#' d)}, and the treated-minus-control difference in means among reservoir
+		#' (unmatched) subjects, \eqn{\bar r}, with estimated variance
+		#' \eqn{\widehat{\mathrm{Var}}(\bar r)}. When both are usable (at least 2
+		#' matched pairs and at least 2 treated/2 control reservoir subjects, with
+		#' finite positive variance estimates), they are combined by classical
+		#' inverse-variance weighting,
+		#' \deqn{\hat\beta_T = w^* \bar d + (1 - w^*)\, \bar r, \qquad w^* =
+		#'   \frac{\widehat{\mathrm{Var}}(\bar r)}{\widehat{\mathrm{Var}}(\bar r) +
+		#'   \widehat{\mathrm{Var}}(\bar d)},}
+		#' with combined variance the standard inverse-variance-pooled form
+		#' \eqn{\widehat{\mathrm{Var}}(\hat\beta_T) = \left(\widehat{\mathrm{Var}}(\bar
+		#' r)^{-1} + \widehat{\mathrm{Var}}(\bar d)^{-1}\right)^{-1} =
+		#' \widehat{\mathrm{Var}}(\bar r)\,\widehat{\mathrm{Var}}(\bar d) \big/
+		#' \left(\widehat{\mathrm{Var}}(\bar r) + \widehat{\mathrm{Var}}(\bar
+		#' d)\right)}. If only one of the two sub-estimates is usable (e.g. the
+		#' reservoir is empty or degenerate, or no pairs matched), \eqn{\hat\beta_T}
+		#' and its variance fall back to that sub-estimate alone. The compound
+		#' estimator is treated as asymptotically normal, so the interval is
+		#' \eqn{\hat\beta_T \pm z_{1-\alpha/2}\sqrt{\widehat{\mathrm{Var}}(\hat\beta_T)}}
+		#' (or a \eqn{t}-based critical value, depending on
+		#' \code{private$compute_z_or_t_ci_from_s_and_df}'s degrees-of-freedom
+		#' resolution).
 		#'
 		#' @param alpha The confidence level in the computed confidence
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
@@ -74,10 +135,17 @@ KKMeanDifferenceIVWCSource = list(
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Compute the KK mean-difference two-sided p-value using the
-		#'   configured asymptotic or likelihood-backed test. See
-		#'   \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} for the shared
-		#'   score, likelihood-ratio, and gradient-test semantics.
+		#' @description Computes a two-sided \strong{Wald} p-value for the compound
+		#' IVWC mean-difference estimator \eqn{\hat\beta_T} testing
+		#' \eqn{H_0: \beta_T = \code{delta}}, using the same asymptotically-normal
+		#' point estimate and standard error (\eqn{z = (\hat\beta_T -
+		#' \code{delta})/\widehat{\mathrm{SE}}(\hat\beta_T)}) that
+		#' \code{$compute_asymp_confidence_interval()} inverts to form its interval
+		#' — see that method's documentation for the full inverse-variance-weighted
+		#' combination formula. This class has no likelihood tier
+		#' (\code{likelihood_tier = "none"}), so no score, likelihood-ratio, or
+		#' gradient test is available here; this is a plain Wald test, not a
+		#' likelihood-backed one.
 		#'
 		#' @param delta   The null difference to test against. For any treatment effect at all this is
 		#'   set to zero (the default).

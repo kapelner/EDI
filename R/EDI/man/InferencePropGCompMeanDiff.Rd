@@ -4,10 +4,41 @@
 \alias{InferencePropGCompMeanDiff}
 \title{G-Computation Mean-Difference Inference for Proportion Responses}
 \description{
-Fits a fractional-logit working model for a proportion outcome using treatment
-and, optionally, all recorded covariates, then estimates the marginal mean
-difference by standardizing predicted mean proportions under all-treated and
-all-control assignments over the empirical covariate distribution.
+Fits a fractional-logit working model, \eqn{\mathrm{logit}\,E[Y_i \mid x_i] =
+x_i^\top\hat\beta} (via \code{\link{fast_logistic_regression_cpp}}, treating
+the continuous-in-\eqn{(0,1)} proportion as a quasi-binomial mean model —
+the same mean-model idea as
+\code{\link[EDI:InferencePropFractionalLogit]{InferencePropFractionalLogit}}),
+for a proportion outcome using treatment and, optionally, all recorded
+covariates, then estimates the marginal mean difference by G-computation:
+standardizing predicted mean proportions under all-treated and all-control
+assignments over the empirical covariate distribution (see
+\code{\link{gcomp_fractional_logit_point_estimate_cpp}} for the exact
+standardization formula). Inference uses a Huber-White sandwich-robust
+covariance for the regression coefficients and the \strong{delta method}
+(analytic gradient of the standardized mean-difference functional with
+respect to \eqn{\hat\beta}, by default) to propagate that covariance onto
+the mean-difference scale, \eqn{\widehat{\mathrm{Var}}(\widehat{\mathrm{md}})
+= \nabla^\top \widehat{\mathrm{Var}}(\hat\beta) \nabla}.
+
+
+The implementation is optimized for resampling-based inference. It utilizes a
+fast C++ IRLS solver for the underlying fractional logit regression. During
+resampling draws, it bypasses the calculation of the sandwich covariance
+matrix and delta-method standard errors, providing a significant speedup when
+computing bootstrap or randomization distributions.
+
+\strong{Variance fallback cascade.} If the primary analytic-gradient/sandwich-covariance
+variance is non-finite (e.g. near-boundary fitted probabilities), up to eight
+progressively more conservative fallback strategies are tried in order (see
+the \code{variance_fallback_methods} constructor argument for the full list
+and their individual definitions): stabilized (PSD-projected) sandwich
+covariance, model-based (Fisher information) covariance, finite-difference
+gradients in place of the analytic delta-method gradient, and combinations
+with progressively stronger probability clipping. The first strategy in the
+ordered list that yields a finite, positive variance is used; an empty
+\code{variance_fallback_methods} vector always returns \code{NA} variance
+rather than erroring.
 }
 \examples{
 \donttest{
@@ -20,92 +51,27 @@ inf = InferencePropGCompMeanDiff$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferencePropGCompAbstract} -> \code{InferencePropGCompMeanDiff}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferencePropGCompMeanDiff}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferencePropGCompMeanDiff-initialize}{\code{InferencePropGCompMeanDiff$new()}}
+    \item \href{#method-InferencePropGCompMeanDiff-compute_estimate}{\code{InferencePropGCompMeanDiff$compute_estimate()}}
+    \item \href{#method-InferencePropGCompMeanDiff-get_standard_error}{\code{InferencePropGCompMeanDiff$get_standard_error()}}
+    \item \href{#method-InferencePropGCompMeanDiff-compute_estimate_with_bootstrap_weights}{\code{InferencePropGCompMeanDiff$compute_estimate_with_bootstrap_weights()}}
+    \item \href{#method-InferencePropGCompMeanDiff-compute_asymp_confidence_interval}{\code{InferencePropGCompMeanDiff$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferencePropGCompMeanDiff-compute_asymp_two_sided_pval}{\code{InferencePropGCompMeanDiff$compute_asymp_two_sided_pval()}}
+    \item \href{#method-InferencePropGCompMeanDiff-compute_wald_two_sided_pval}{\code{InferencePropGCompMeanDiff$compute_wald_two_sided_pval()}}
+    \item \href{#method-InferencePropGCompMeanDiff-compute_wald_confidence_interval}{\code{InferencePropGCompMeanDiff$compute_wald_confidence_interval()}}
+    \item \href{#method-InferencePropGCompMeanDiff-compute_bootstrap_two_sided_pval}{\code{InferencePropGCompMeanDiff$compute_bootstrap_two_sided_pval()}}
+    \item \href{#method-InferencePropGCompMeanDiff-compute_bootstrap_confidence_interval}{\code{InferencePropGCompMeanDiff$compute_bootstrap_confidence_interval()}}
+    \item \href{#method-InferencePropGCompMeanDiff-approximate_bootstrap_distribution_beta_hat_T}{\code{InferencePropGCompMeanDiff$approximate_bootstrap_distribution_beta_hat_T()}}
     \item \href{#method-InferencePropGCompMeanDiff-clone}{\code{InferencePropGCompMeanDiff$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferencePropGCompAbstract</summary>
-<ul>
-  <li><code>InferencePropGCompAbstract$approximate_bootstrap_distribution_beta_hat_T()</code></li>
-  <li><code>InferencePropGCompAbstract$compute_asymp_confidence_interval()</code></li>
-  <li><code>InferencePropGCompAbstract$compute_asymp_two_sided_pval()</code></li>
-  <li><code>InferencePropGCompAbstract$compute_bootstrap_confidence_interval()</code></li>
-  <li><code>InferencePropGCompAbstract$compute_bootstrap_two_sided_pval()</code></li>
-  <li><code>InferencePropGCompAbstract$compute_estimate()</code></li>
-  <li><code>InferencePropGCompAbstract$compute_estimate_with_bootstrap_weights()</code></li>
-  <li><code>InferencePropGCompAbstract$compute_wald_confidence_interval()</code></li>
-  <li><code>InferencePropGCompAbstract$compute_wald_two_sided_pval()</code></li>
-  <li><code>InferencePropGCompAbstract$get_standard_error()</code></li>
-  <li><code>InferencePropGCompAbstract$initialize()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -127,6 +93,336 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropGCompMeanDiff-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-initialize}{}}}
+\subsection{\code{InferencePropGCompMeanDiff$new()}}{
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+
+
+  Initialize the g-computation inference object.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropGCompMeanDiff$new(
+  des_obj,
+  model_formula = NULL,
+  verbose = FALSE,
+  prob_clip_eps = 1e-06,
+  prob_clip_strong_eps = 1e-04,
+  max_resample_attempts = 50L,
+  smart_cold_start_default = NULL,
+  harden = TRUE,
+  variance_fallback_methods = c("robust", "stabilized_robust", "model_based",
+    "stabilized_robust_fd", "model_based_fd", "stabilized_robust_strong_clip",
+    "model_based_strong_clip", "model_based_fd_strong_clip")
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{des_obj}}{A completed \code{DesignSeqOneByOne} object with a proportion response.}
+      \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
+the formula from the design object is used and its pre-computed design matrix is
+reused. If a formula is provided, a new design matrix is constructed from the
+design's imputed covariates.}
+      \item{\code{verbose}}{Whether to print progress messages.}
+      \item{\code{prob_clip_eps}}{Primary probability clamp applied to fitted values during
+model-based variance computation. Predicted probabilities are clipped to
+\code{[prob_clip_eps, 1 - prob_clip_eps]} before computing IWLS weights.
+Must be in \code{[0, 0.5)}. Default \code{1e-6}.}
+      \item{\code{prob_clip_strong_eps}}{Stronger clamp used as a fallback when the primary
+variance strategy fails. Predicted probabilities and gradients are clipped to
+\code{[prob_clip_strong_eps, 1 - prob_clip_strong_eps]}. Must be in
+\code{[0, 0.5)} and should be \eqn{\ge} \code{prob_clip_eps}. Default \code{1e-4}.}
+      \item{\code{max_resample_attempts}}{Maximum number of times a single bootstrap replicate
+may be redrawn when the drawn sample fails validity screening (e.g. near-perfect
+separation, too few observations per arm, excessive boundary mass). If all attempts
+fail the replicate is recorded as \code{NA}, silently reducing the effective \code{B}.
+Can be overridden per-call in \code{approximate_bootstrap_distribution_beta_hat_T}.
+Must be a positive integer. Default \code{50L}.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
+      \item{\code{harden}}{Whether to apply robustness measures.}
+      \item{\code{variance_fallback_methods}}{Ordered character vector of variance strategies to
+attempt in sequence. Each name corresponds to a (gradient, covariance-matrix) pair;
+the first strategy that yields a finite, positive variance is used. Allowed values
+(in their default order) are:
+\describe{
+  \item{\code{"robust"}}{Analytic delta-method gradient with the sandwich (HC) covariance.}
+  \item{\code{"stabilized_robust"}}{Same gradient; covariance projected to the nearest PSD matrix.}
+  \item{\code{"model_based"}}{Same gradient; Fisher-information (IWLS) covariance.
+    Fitted probabilities are first clipped to \code{[prob_clip_eps, 1 - prob_clip_eps]},
+    then the binomial variance weight \eqn{w_i = \hat\mu_i(1-\hat\mu_i)} is further
+    capped at \code{0.25}. The cap is the global maximum of \eqn{p(1-p)}, attained at
+    \eqn{p = 0.5}; it prevents a near-boundary fitted probability that slips through the
+    clip from inflating the information matrix, which is mathematically correct because no
+    Bernoulli variance can exceed 0.25.}
+  \item{\code{"stabilized_robust_fd"}}{Finite-difference (central-difference) gradient;
+    stabilized sandwich covariance. The step size for coefficient \eqn{j} is
+    \eqn{h_j = \varepsilon^{1/3}(|\hat\beta_j| + 1)}, where
+    \eqn{\varepsilon = } \code{.Machine$double.eps}. The cube-root of machine epsilon
+    is the theoretically optimal step that balances truncation error
+    (\eqn{O(h^2)} for central differences) against floating-point cancellation
+    (\eqn{O(\varepsilon / h)}), giving a total error of \eqn{O(\varepsilon^{2/3})}.}
+  \item{\code{"model_based_fd"}}{Finite-difference gradient (same step rule as
+    \code{"stabilized_robust_fd"}); model-based covariance with the 0.25 weight cap.}
+  \item{\code{"stabilized_robust_strong_clip"}}{Strong-clipped analytic gradient; stabilized sandwich covariance.}
+  \item{\code{"model_based_strong_clip"}}{Strong-clipped analytic gradient; model-based covariance (strong-clipped) with the 0.25 weight cap.}
+  \item{\code{"model_based_fd_strong_clip"}}{Strong-clipped finite-difference gradient (same step rule); model-based covariance (strong-clipped) with the 0.25 weight cap.}
+}
+Pass a shorter vector or a single string to restrict which strategies are tried.
+An empty vector always returns \code{NA} variance.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropGCompMeanDiff-compute_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-compute_estimate}{}}}
+\subsection{\code{InferencePropGCompMeanDiff$compute_estimate()}}{
+  Computes the g-computation treatment-effect estimate.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropGCompMeanDiff$compute_estimate(estimate_only = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropGCompMeanDiff-get_standard_error"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-get_standard_error}{}}}
+\subsection{\code{InferencePropGCompMeanDiff$get_standard_error()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropGCompMeanDiff$get_standard_error()}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropGCompMeanDiff-compute_estimate_with_bootstrap_weights"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-compute_estimate_with_bootstrap_weights}{}}}
+\subsection{\code{InferencePropGCompMeanDiff$compute_estimate_with_bootstrap_weights()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropGCompMeanDiff$compute_estimate_with_bootstrap_weights(
+  subject_or_block_weights,
+  estimate_only = FALSE
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropGCompMeanDiff-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferencePropGCompMeanDiff$compute_asymp_confidence_interval()}}{
+  Computes a 1 - \code{alpha} confidence interval.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropGCompMeanDiff$compute_asymp_confidence_interval(alpha = 0.05)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{The confidence level in the computed confidence interval is 1 - \code{alpha}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropGCompMeanDiff-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferencePropGCompMeanDiff$compute_asymp_two_sided_pval()}}{
+  Uses the shared asymptotic two-sided p-value contract; see
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropGCompMeanDiff$compute_asymp_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{The null mean difference. Defaults to 0.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropGCompMeanDiff-compute_wald_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-compute_wald_two_sided_pval}{}}}
+\subsection{\code{InferencePropGCompMeanDiff$compute_wald_two_sided_pval()}}{
+  Computes a Wald two-sided p-value for the treatment effect.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropGCompMeanDiff$compute_wald_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{The null mean difference. Defaults to 0.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropGCompMeanDiff-compute_wald_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-compute_wald_confidence_interval}{}}}
+\subsection{\code{InferencePropGCompMeanDiff$compute_wald_confidence_interval()}}{
+  Computes a Wald confidence interval for the treatment effect.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropGCompMeanDiff$compute_wald_confidence_interval(alpha = 0.05)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{The significance level. Default 0.05.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropGCompMeanDiff-compute_bootstrap_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-compute_bootstrap_two_sided_pval}{}}}
+\subsection{\code{InferencePropGCompMeanDiff$compute_bootstrap_two_sided_pval()}}{
+  Computes a bootstrap two-sided p-value for the treatment effect.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropGCompMeanDiff$compute_bootstrap_two_sided_pval(
+  delta = 0,
+  B = 501,
+  type = "symmetric",
+  na.rm = FALSE,
+  boundary_tol = 0.02,
+  max_boundary_mass = 0.95,
+  sep_tol = 0.02,
+  min_group_n = 5L,
+  show_progress = TRUE,
+  min_number_usable_samples = 5L
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{The null mean difference. Defaults to 0.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{type}}{Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{boundary_tol}}{Resample screening threshold for boundary mass near 0/1.}
+      \item{\code{max_boundary_mass}}{Reject a resample when at least this fraction is near the boundary.}
+      \item{\code{sep_tol}}{Separation tolerance used to reject nearly perfectly separated resamples.}
+      \item{\code{min_group_n}}{Minimum number of observations required in each treatment arm.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropGCompMeanDiff-compute_bootstrap_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-compute_bootstrap_confidence_interval}{}}}
+\subsection{\code{InferencePropGCompMeanDiff$compute_bootstrap_confidence_interval()}}{
+  Generic (non-screening-modified) bootstrap two-sided
+  p-value, aliased directly from `InferenceNonParamBootstrap` so
+  `compute_bootstrap_two_sided_pval()` can dispatch to it without
+  relying on `super$`, which does not resolve under flat component
+  composition.
+
+
+  Computes a bootstrap confidence interval.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropGCompMeanDiff$compute_bootstrap_confidence_interval(
+  alpha = 0.05,
+  B = 501,
+  type = NULL,
+  na.rm = TRUE,
+  show_progress = TRUE,
+  boundary_tol = 0.02,
+  max_boundary_mass = 0.95,
+  sep_tol = 0.02,
+  min_group_n = 5L,
+  min_number_usable_samples = 5L
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{The confidence level 1 - \code{alpha}.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{type}}{Bootstrap CI type.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{show_progress}}{Whether to show bootstrap progress.}
+      \item{\code{boundary_tol}}{Resample screening threshold for boundary mass near 0/1.}
+      \item{\code{max_boundary_mass}}{Reject a resample when at least this fraction is near the boundary.}
+      \item{\code{sep_tol}}{Separation tolerance used to reject nearly perfectly separated resamples.}
+      \item{\code{min_group_n}}{Minimum number of observations required in each treatment arm.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropGCompMeanDiff-approximate_bootstrap_distribution_beta_hat_T"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-approximate_bootstrap_distribution_beta_hat_T}{}}}
+\subsection{\code{InferencePropGCompMeanDiff$approximate_bootstrap_distribution_beta_hat_T()}}{
+  Generic (non-screening-modified) bootstrap confidence
+  interval; see `compute_bootstrap_two_sided_pval_generic`.
+
+
+  Abbreviated bootstrap sampler that reuses a bootstrap worker.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropGCompMeanDiff$approximate_bootstrap_distribution_beta_hat_T(
+  B = 501,
+  show_progress = TRUE,
+  max_resample_attempts = NULL,
+  boundary_tol = 0.02,
+  max_boundary_mass = 0.95,
+  sep_tol = 0.02,
+  min_group_n = 5L,
+  debug = FALSE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{B}}{The number of bootstrap samples (default 501).}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{max_resample_attempts}}{Maximum redraw attempts per bootstrap replicate before
+the replicate is recorded as \code{NA}. \code{NULL} (default) uses the value set
+at construction time.}
+      \item{\code{boundary_tol}}{Resample screening threshold for boundary mass near 0/1.}
+      \item{\code{max_boundary_mass}}{Reject a resample when at least this fraction is near the boundary.}
+      \item{\code{sep_tol}}{Separation tolerance used to reject nearly perfectly separated resamples.}
+      \item{\code{min_group_n}}{Minimum number of observations required in each treatment arm.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferencePropGCompMeanDiff-clone"></a>}}
 \if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-clone}{}}}

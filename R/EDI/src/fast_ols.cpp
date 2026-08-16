@@ -73,15 +73,13 @@ ModelResult fast_ols_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
 
 #ifndef EDI_CORE_ONLY
 // [[Rcpp::export]]
-List fast_ols_cpp(SEXP X, SEXP y,
+List fast_ols_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y,
                   Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
                   Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue) {
-    NumericMatrix X_r(X);
     NumericVector y_r(y);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
     Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
     ModelResult res = fast_ols_internal(
-        X_mat, y_vec,
+        X, y_vec,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values),
         true
@@ -90,16 +88,14 @@ List fast_ols_cpp(SEXP X, SEXP y,
 }
 
 // [[Rcpp::export]]
-List fast_ols_with_var_cpp(SEXP X, SEXP y,
+List fast_ols_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y,
                            int j = 2,
                            Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
                            Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue) {
-    NumericMatrix X_r(X);
     NumericVector y_r(y);
-    Eigen::Map<const Eigen::MatrixXd> X_mat(X_r.begin(), X_r.nrow(), X_r.ncol());
     Eigen::Map<const Eigen::VectorXd> y_in(y_r.begin(), y_r.size());
-    const int n = X_mat.rows();
-    const int p = X_mat.cols();
+    const int n = X.rows();
+    const int p = X.cols();
     FixedParamSpec fixed_spec = make_fixed_param_spec(
         p,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
@@ -109,7 +105,7 @@ List fast_ols_with_var_cpp(SEXP X, SEXP y,
 
     Eigen::VectorXd y_to_use = y_in;
     for (int k = 0; k < fixed_spec.fixed_idx.size(); ++k) {
-        y_to_use.noalias() -= X_mat.col(fixed_spec.fixed_idx[k]) * fixed_spec.fixed_values[k];
+        y_to_use.noalias() -= X.col(fixed_spec.fixed_idx[k]) * fixed_spec.fixed_values[k];
     }
     const double yTy = y_to_use.squaredNorm();
 
@@ -122,8 +118,8 @@ List fast_ols_with_var_cpp(SEXP X, SEXP y,
     bool converged = false;
 
     if (p_free == p) {
-        XtX_free = symmetric_crossprod(X_mat);
-        Xty_free.noalias() = X_mat.transpose() * y_to_use;
+        XtX_free = symmetric_crossprod(X);
+        Xty_free.noalias() = X.transpose() * y_to_use;
         
         Eigen::LDLT<Eigen::MatrixXd> ldlt(XtX_free);
         if (ldlt.info() == Eigen::Success) {
@@ -150,13 +146,13 @@ List fast_ols_with_var_cpp(SEXP X, SEXP y,
                 .set("sigma2_hat", sigma2_hat)
                 .set("converged", true));
         } else {
-            Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(X_mat);
+            Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(X);
             beta_free = qr.solve(y_to_use);
             beta = beta_free;
         }
     } else {
         Eigen::MatrixXd X_free(n, p_free);
-        for (int k = 0; k < p_free; ++k) X_free.col(k) = X_mat.col(fixed_spec.free_idx[k]);
+        for (int k = 0; k < p_free; ++k) X_free.col(k) = X.col(fixed_spec.free_idx[k]);
         XtX_free = symmetric_crossprod(X_free);
         Xty_free.noalias() = X_free.transpose() * y_to_use;
 

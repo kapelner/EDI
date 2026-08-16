@@ -15,7 +15,12 @@ make_param_boot_weibull_censored_design <- function(seed = 20260521L, n = 100L){
 	des <- DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x1 = x1, x2 = x2))
 	des$overwrite_all_subject_assignments(w)
-	des$add_all_subject_responses(y, dead)
+	# (y, dead) positional convention was removed in the y/y_L/y_R migration
+	# (interval_censored_survival_response.md TODO-15).
+	y_exact <- ifelse(dead == 1, y, NA_real_)
+	y_L <- ifelse(dead == 1, NA_real_, y)
+	y_R <- ifelse(dead == 1, NA_real_, Inf)
+	des$add_all_subject_responses(y_exact, y_L, y_R)
 	des
 }
 
@@ -83,7 +88,7 @@ make_param_boot_count_kk_glmm_design <- function(seed = 20260524L, n = 72L){
 		w_i <- des$add_one_subject_to_experiment_and_assign(data.frame(x1 = x1[i], x2 = x2[i]))
 		mu_i <- exp(0.20 + 0.35 * w_i + 0.20 * x1[i] - 0.10 * x2[i] + rnorm(1, sd = 0.15))
 		y_i <- rpois(1L, lambda = mu_i)
-		des$add_one_subject_response(i, y_i, 1L)
+		des$add_one_subject_response(i, y_i)
 	}
 	des
 }
@@ -97,7 +102,7 @@ make_param_boot_count_kk_onelik_design <- function(seed = 20260802L, n = 48L){
 		w_i <- des$add_one_subject_to_experiment_and_assign(data.frame(x1 = x1[i], x2 = x2[i]))
 		mu_i <- exp(0.35 + 0.30 * w_i + 0.20 * x1[i] - 0.10 * x2[i])
 		y_i <- rpois(1L, lambda = mu_i)
-		des$add_one_subject_response(i, y_i, 1L)
+		des$add_one_subject_response(i, y_i)
 	}
 	des
 }
@@ -113,7 +118,7 @@ make_param_boot_ordinal_kk_glmm_design <- function(seed = 20260724L, n = 48L){
 		cuts <- plogis(c(-1.1, -0.1, 0.9) - eta_i)
 		probs <- c(cuts[1L], diff(cuts), 1 - cuts[3L])
 		y_i <- sample.int(4L, 1L, prob = pmax(probs, 0))
-		des$add_one_subject_response(i, y_i, 1L)
+		des$add_one_subject_response(i, y_i)
 	}
 	des
 }

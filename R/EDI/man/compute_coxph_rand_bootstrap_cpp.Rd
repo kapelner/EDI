@@ -2,30 +2,112 @@
 % Please edit documentation in R/RcppExports.R
 \name{compute_coxph_rand_bootstrap_cpp}
 \alias{compute_coxph_rand_bootstrap_cpp}
-\title{Bootstrap Randomization Test distribution for Cox PH (treatment-only model)}
+\title{Randomization/Bootstrap Reference Distribution of the Treatment Log-Hazard-Ratio for a
+Treatment-Only Cox PH Model (C++ Backend, Single-Covariate)}
 \usage{
 compute_coxph_rand_bootstrap_cpp(y0, dead, i_mat, w_mat, delta, num_cores)
 }
 \arguments{
-\item{y0}{Numeric vector of original survival times (length n).}
+\item{y0}{Numeric vector of original survival times (event or censoring time), length
+\eqn{n}; not itself resampled — \code{i_mat} indexes into this vector per draw.}
 
-\item{dead}{Numeric vector of event indicators (length n).}
+\item{dead}{Numeric vector of length \eqn{n} with values in \code{{0, 1}} giving the
+event indicator (1 = event, 0 = right-censored) for each original row, indexed by
+\code{i_mat} per draw.}
 
-\item{i_mat}{Integer matrix (n x B) of 1-based row indices.}
+\item{i_mat}{Integer matrix (\eqn{n \times B}) of 1-based row indices into \code{y0}/
+\code{dead}, one resampled dataset per column.}
 
-\item{w_mat}{Integer matrix (n x B) of treatment assignments (0/1).}
+\item{w_mat}{Integer matrix (\eqn{n \times B}) of treatment assignments in \code{{0, 1}},
+one resampled assignment vector per column, aligned with the corresponding column of
+\code{i_mat}.}
 
-\item{delta}{Sharp-null shift on log-time scale.}
+\item{delta}{Sharp-null log-time shift applied multiplicatively (\eqn{e^\delta}) to the
+working survival time of treated (\code{w == 1}) resampled subjects; \code{delta = 0}
+leaves times unshifted.}
 
-\item{num_cores}{Number of OpenMP threads.}
+\item{num_cores}{Number of OpenMP threads to use for parallelizing across draws
+(ignored, and draws run sequentially, when the package is built without OpenMP
+support).}
 }
 \value{
-Numeric vector of length B with treatment log-HR per draw (NA on non-convergence).
+Numeric vector of length \code{B = ncol(i_mat)} with the fitted treatment
+  log-hazard-ratio \eqn{\hat\beta_T} for each draw, or \code{NA_real_} for draws whose
+  Cox fit failed to converge.
 }
 \description{
-Computes the BRT null distribution of the treatment log-hazard-ratio from a
-  treatment-only Cox PH model across B pre-generated (i_mat, w_mat) draws. Each draw
-  resamples rows and applies a fresh treatment assignment; the sharp-null shift is
-  multiplicative on treated survival times (exp(delta) on the log-time scale).
+Builds an empirical reference (null or shifted-null) distribution of the treatment
+log-hazard-ratio \eqn{\hat\beta_T} from a treatment-only (single-covariate, no other
+adjustment covariates) Cox proportional-hazards model, by refitting the model on
+\code{B = ncol(i_mat)} pre-generated resample-and-reassign draws. This backs bootstrap
+randomization test (BRT) inversion for confidence intervals and p-values on the Cox
+log-hazard-ratio: repeated calls at different \code{delta} values (or a single call at
+\code{delta = 0} for a null/reference distribution) let the caller invert the empirical
+distribution of \eqn{\hat\beta_T} against a target quantile or tail probability. This is
+a single-covariate special case; \code{compute_coxph_rand_bootstrap_parallel_cpp} (used
+by \code{\link{fast_coxph_regression}}'s survival inference class) generalizes this to
+models with additional adjustment covariates and to Gaussian smoothing noise on the
+resampled log-hazard-ratio, and is the version actually wired into
+\code{InferenceCoxPH}; \strong{this treatment-only function currently has no in-package
+caller and should be treated as a lighter-weight standalone utility or superseded
+building block} rather than part of the primary inference path.
+}
+\details{
+\strong{Per-draw model.} For each draw \eqn{b = 1, \dots, B}, this function forms a
+resampled dataset of size \eqn{n} = \code{length(y0)} by taking row indices
+\code{i_mat[, b]} (1-based, into the original \code{y0}/\code{dead}) and treatment
+labels \code{w_mat[, b]}, applies the sharp-null time shift (see below), and fits an
+unstratified, single-covariate (treatment-only) Cox partial-likelihood model — the
+\eqn{p = 1} case of the model documented in \code{\link{build_cox_data_cache_cpp}} and
+\code{\link{fast_coxph_regression}} — via Newton-Raphson (\code{cox_fit()} with
+\code{estimate_only = true}, \code{maxit = 20}, \code{tol = 1e-9}, no warm start,
+\code{smart_cold_start = false}). Only the fitted coefficient \eqn{\hat\beta_T} (the log
+hazard ratio for treatment) is returned per draw; no variance-covariance matrix is
+computed (this function is for building a resampling distribution, not for single-fit
+inference).
+
+\strong{Sharp-null shift.} \code{delta} encodes a sharp null hypothesis of a constant
+multiplicative shift on the time scale for treated subjects: for draw \eqn{b}, subject
+\eqn{i} with resampled treatment label \eqn{w_i \in \{0, 1\}}, the working survival time
+is \eqn{y_i \cdot e^{\delta}} if \eqn{w_i = 1} and \eqn{y_i} (unchanged) if \eqn{w_i = 0};
+\code{dead} status is carried over from the original row unchanged. This is an
+accelerated-failure-time-style sharp null (\eqn{\delta = 0} recovers the unshifted
+resample), not a proportional-hazards sharp null; \code{delta} is on the same log-time
+scale used elsewhere in the package's AFT/Weibull machinery, not the log-hazard-ratio
+scale of the returned \eqn{\hat\beta_T}.
+
+\strong{Resampling scheme.} \code{i_mat} and \code{w_mat} are assumed pre-generated by
+the caller (e.g. via the package's bootstrap or randomization-draw machinery) and are
+not validated here: \code{i_mat} need not be a permutation (indices may repeat, as in a
+nonparametric bootstrap draw with replacement, or may be a permutation, as in a
+randomization test) and \code{w_mat} need not respect any particular design's
+assignment-probability structure — whatever exchangeability or randomization-validity
+properties the resulting reference distribution has are entirely a property of how the
+caller generated \code{i_mat}/\code{w_mat}, not of this function.
+
+\strong{Non-convergence and missingness.} A draw's entry in the output is \code{NA} if
+the Newton-Raphson fit fails to converge within \code{maxit} iterations or the fitted
+coefficient is non-finite; callers must handle \code{NA} entries (e.g. by omission) when
+computing empirical quantiles or tail probabilities from the returned vector.
+
+\strong{Parallelism and reproducibility.} When compiled with OpenMP support and
+\code{num_cores > 1}, draws are processed in parallel via
+\code{#pragma omp parallel for schedule(dynamic)}; each draw is a self-contained fit with
+no shared mutable state across draws (aside from writing to disjoint output slots), so
+results are deterministic given \code{i_mat}/\code{w_mat} regardless of the number of
+threads or scheduling order — this function consumes no RNG state itself, since the
+randomness lives entirely in how the caller generated \code{i_mat} and \code{w_mat}.
+
+\strong{Complexity.} \eqn{O(B \cdot n \log n)} for the \eqn{B} independent single-
+covariate Cox fits (dominated by the per-draw \code{CoxData} sort), parallelized across
+\code{num_cores} threads when available; memory use is \eqn{O(n)} per in-flight draw.
+}
+\seealso{
+\code{\link{fast_coxph_regression}} for the underlying Cox partial-likelihood
+  model and its references; \code{\link{build_cox_data_cache_cpp}} for the per-draw
+  sorted risk-set construction each draw performs internally.
+  See also \href{https://en.wikipedia.org/wiki/Randomization_test}{randomization test}
+  and \href{https://en.wikipedia.org/wiki/Bootstrapping_(statistics)}{bootstrap} for
+  background on resampling-based reference distributions.
 }
 \keyword{internal}

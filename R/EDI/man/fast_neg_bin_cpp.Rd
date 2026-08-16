@@ -2,7 +2,7 @@
 % Please edit documentation in R/glm_fit_helpers.R, R/RcppExports.R
 \name{fast_neg_bin_cpp}
 \alias{fast_neg_bin_cpp}
-\title{Fast Negative Binomial Regression (C++ Backend)}
+\title{Fast Negative Binomial Regression, Estimate Only (C++ Backend)}
 \usage{
 fast_neg_bin_cpp(
   X,
@@ -41,23 +41,47 @@ fast_neg_bin_cpp(
 \item{optimization_alg}{Optimization algorithm.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
+
+\item{estimate_only}{Logical; if \code{TRUE}, may skip work not needed to
+produce point estimates (kept in sync with the package's other
+\code{fast_*} estimate-vs-inference split).}
 }
 \value{
 A list containing the following components:
 \describe{
-\item{b}{A numeric vector of the estimated negative binomial regression coefficients.}
-\item{neg_ll}{The negative log-likelihood at the final iteration.}
+\item{b}{A numeric vector of the estimated negative binomial regression coefficients \eqn{\hat\beta}.}
+\item{theta_hat}{The estimated dispersion parameter \eqn{\hat\theta} (natural scale).}
+\item{logLik}{The model's log-likelihood at the fitted parameters.}
 \item{converged}{A logical value indicating whether the algorithm converged.}
+\item{iterations}{The number of optimizer iterations performed.}
+\item{fisher_information}{The working-weights curvature matrix used during
+  fitting.}
 }
 
 A list containing coefficients, theta, and convergence status.
 }
 \description{
+Fits the negative-binomial regression model in its mean/dispersion
+parameterization documented in full at
+\code{\link{fast_dnbinom_mu_vec_cpp}}: log link
+\eqn{\log \mu_i = x_i^\top \beta} (so \eqn{e^{\beta_j}} is a multiplicative
+change in the mean count, as in Poisson regression), with a single
+dispersion parameter \eqn{\theta} shared across all observations and
+\eqn{\mathrm{Var}(Y_i) = \mu_i + \mu_i^2/\theta} (smaller \eqn{\theta} means
+more overdispersion relative to Poisson; \eqn{\theta \to \infty} recovers
+Poisson). The optimizer's parameter vector is \code{c(beta, log(theta))}
+(\eqn{\theta} optimized on the log scale for positivity).
+
 High-performance negative binomial regression fitting.
 }
 \examples{
 X = matrix(rnorm(100), 10, 10)
 y = rpois(10, 2)
 fast_neg_bin_cpp(X, y)
+}
+\seealso{
+\code{\link{fast_dnbinom_mu_vec_cpp}} for the mean/dispersion
+  density parameterization used here; \code{\link{fast_neg_bin_with_var_cpp}}
+  for the variance-augmented variant.
 }
 \keyword{internal}

@@ -2,15 +2,67 @@
 % Please edit documentation in R/design_fixed_greedy.R
 \name{DesignFixedGreedy}
 \alias{DesignFixedGreedy}
-\title{A Greedy Search Fixed Design}
+\title{A Fixed, Covariate-Balanced Design via Greedy Pairwise-Swap Search}
 \description{
-An R6 Class encapsulating the data and functionality for a fixed greedy experimental design.
-Uses a native C++ (RcppEigen) greedy swap search for balanced allocations.
+A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} that searches, among
+balanced (\eqn{n/2}-treated) allocations, for one that directly minimizes a covariate
+imbalance criterion \eqn{f(d)}, \eqn{d = M(2w - 1)}, via a native C++ (RcppEigen +
+OpenMP) greedy pairwise-swap search (\code{greedy_design_search_cpp()}). Unlike
+\code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}, which optimizes a
+model-based information-matrix criterion (D-/A-optimality) implied by an assumed
+linear model, this design optimizes a direct covariate-distance criterion between the
+treated and control group means/covariance, with no linear-model assumption: the two
+supported \code{objective}s are
+\itemize{
+  \item \code{"mahal_dist"} (default): \eqn{d = L^{-1} X^\top (2w-1) / n} where
+    \eqn{\Sigma = LL^\top} is the Cholesky factor of the covariate covariance matrix,
+    and \eqn{f(d) = \lVert d \rVert_2^2} — the squared Mahalanobis distance between
+    the treated and control covariate means, accounting for covariate
+    correlation/scale. Falls back to \code{"abs_sum_diff"} if the covariate
+    covariance matrix is (numerically) singular, since the Cholesky factorization
+    then fails.
+  \item \code{"abs_sum_diff"}: \eqn{d = X_{\mathrm{std}}^\top (2w-1) / n} (covariates
+    standardized to unit variance, no correlation adjustment) and
+    \eqn{f(d) = \lVert d \rVert_1} — the sum of absolute standardized mean
+    differences across covariates.
+}
+
+
+\strong{Search algorithm.} Starting from a random balanced (Fisher-Yates) allocation,
+the search runs in one of two modes selected by \code{n_iter}: \code{Inf} (default)
+runs \strong{exhaustive best-improvement} search — each round scans every
+(treated, control) pair, applies the single globally best improving swap, and repeats
+until no swap improves \eqn{f(d)}, guaranteeing convergence to a strict local optimum;
+a positive integer instead runs exactly that many \strong{stochastic} steps, each
+picking a uniformly random (treated, control) pair and accepting the swap only if it
+improves \eqn{f(d)} (with patience-based early stopping). \code{r} independent design
+searches (one per requested replicate) run in parallel via OpenMP, each with its own
+\code{std::mt19937} generator. \strong{This search's
+randomization is reproducible via the constructor's \code{seed} argument}: per-thread
+RNGs are seeded from R's own RNG state (\code{GetRNGstate()}/\code{unif_rand()})
+before the parallel region begins, so \code{private$maybe_set_seed()} does govern the
+resulting allocation, independent of the number of OpenMP threads used.
+
+\strong{Constraints and fallbacks.} Only exactly balanced allocation
+(\code{prob_T = 0.5}, \eqn{n} even) is supported; the constructor errors otherwise. If
+no covariates are available, the search degenerates to pure balanced Fisher-Yates
+randomization (no swap search, since there is nothing to balance on). Every drawn
+allocation is validated (\code{private$validate_allocation_matrix()}) to have the
+correct shape, finite \eqn{\{0,1\}} entries, and exactly \eqn{n/2} treated per
+replicate, raising an error on violation rather than returning a malformed allocation.
 }
 \examples{
 \dontrun{
 des = DesignFixedGreedy$new(n = 10, response_type = 'continuous')
 }
+}
+\references{
+Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random
+  designs with greatly improved balance." \emph{Biometrika}, 106(3), 695-701,
+  \doi{10.1093/biomet/asz026}, for the greedy-swap balance-optimization approach this
+  class implements. See also
+  \href{https://en.wikipedia.org/wiki/Mahalanobis_distance}{Mahalanobis distance} for
+  orientation on the default objective.
 }
 \section{Super classes}{
 \code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixedGreedy}
@@ -28,9 +80,7 @@ des = DesignFixedGreedy$new(n = 10, response_type = 'continuous')
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subject_responses'><code>DesignFixed$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subjects_to_experiment'><code>DesignFixed$add_all_subjects_to_experiment()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-assign_w_to_all_subjects'><code>DesignFixed$assign_w_to_all_subjects()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-is_a_fixed'><code>DesignFixed$is_a_fixed()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-supports_resampling'><code>DesignFixed$supports_resampling()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from DesignMatching</summary>
@@ -62,6 +112,7 @@ des = DesignFixedGreedy$new(n = 10, response_type = 'continuous')
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_fixed_sample'><code>Design$assert_fixed_sample()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-capabilities'><code>Design$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-check_experiment_completed'><code>Design$check_experiment_completed()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-draw_ws_according_to_design'><code>Design$draw_ws_according_to_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-duplicate'><code>Design$duplicate()</code></a></li>
@@ -84,14 +135,16 @@ des = DesignFixedGreedy$new(n = 10, response_type = 'continuous')
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_L'><code>Design$get_y_L()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-has_covariates'><code>Design$has_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_custom_sequential'><code>Design$is_a_custom_sequential()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_fixed_custom'><code>Design$is_a_fixed_custom()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
-  <li><a href='../../EDI/html/Design.html#method-Design-is_a_seq_one_by_one'><code>Design$is_a_seq_one_by_one()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
 </ul>
 </details>}}
@@ -99,7 +152,8 @@ des = DesignFixedGreedy$new(n = 10, response_type = 'continuous')
 \if{html}{\out{<a id="method-DesignFixedGreedy-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedGreedy-initialize}{}}}
 \subsection{\code{DesignFixedGreedy$new()}}{
-  Initialize a greedy search fixed experimental design
+  Initialize a greedy pairwise-swap search fixed experimental
+  design. Only \code{prob_T = 0.5} is supported (see class documentation).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedGreedy$new(
@@ -121,7 +175,11 @@ des = DesignFixedGreedy$new(n = 10, response_type = 'continuous')
     \describe{
       \item{\code{response_type}}{The data type of response values.}
       \item{\code{prob_T}}{The probability of the treatment assignment. Must be 0.5.}
-      \item{\code{objective}}{The objective function to use. Default is "mahal_dist".}
+      \item{\code{objective}}{The covariate-imbalance objective to minimize: either
+\code{"mahal_dist"} (default, squared Mahalanobis distance between treated
+and control covariate means) or \code{"abs_sum_diff"} (sum of absolute
+standardized mean differences); see class documentation for the exact
+criteria.}
       \item{\code{n_iter}}{Number of swap iterations. \code{Inf} (default) uses exhaustive
 best-improvement search guaranteed to reach a strict local optimum. A positive
 integer runs that many stochastic random-pair iterations with patience-based
@@ -131,7 +189,8 @@ early stopping.}
       \item{\code{verbose}}{Flag for verbosity.}
       \item{\code{missingness_method}}{How to handle missing values in covariates.}
       \item{\code{design_formula}}{A formula object.}
-      \item{\code{seed}}{Integer seed for reproducibility.}
+      \item{\code{seed}}{Integer seed for reproducibility. This design's
+search \emph{is} reproducible via \code{seed} (see class documentation).}
     }
     \if{html}{\out{</div>}}
   }
@@ -144,14 +203,18 @@ early stopping.}
 \if{html}{\out{<a id="method-DesignFixedGreedy-supports_batch_w_pregeneration"></a>}}
 \if{latex}{\out{\hypertarget{method-DesignFixedGreedy-supports_batch_w_pregeneration}{}}}
 \subsection{\code{DesignFixedGreedy$supports_batch_w_pregeneration()}}{
-  Whether this design supports batch pregeneration of treatment vectors.
+  Returns \code{TRUE} so the calling framework pre-generates all
+  replicate \code{w} vectors for a simulation cell in a single batched call
+  to \code{greedy_design_search_cpp()} (which parallelizes the \code{r}
+  independent searches over OpenMP threads internally), rather than issuing
+  \code{r} separate single-replicate C++ calls.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedGreedy$supports_batch_w_pregeneration()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    \code{TRUE}.
+    Always \code{TRUE} for this class.
   }
 }
 

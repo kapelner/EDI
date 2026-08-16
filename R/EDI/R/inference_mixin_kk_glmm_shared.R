@@ -84,9 +84,13 @@ InferenceMixinKKGLMMShared = list(
 			if (!des_obj$is_a_kk_matching_capable()){
 				stop(class(self)[1], " requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.")
 			}
-			if (inherits(des_obj, "DesignFixedBinaryMatch")){
-				des_obj$.__enclos_env__$private$ensure_matching_structure_computed()
-			}
+			# Unconditional: ensure_matching_structure_computed() is a no-op by default
+			# (DesignMatching's base implementation) and only DesignFixedBinaryMatch
+			# overrides it with real (lazy) work, so calling it here for every
+			# kk-matching-capable design (already asserted above) is behavior-preserving
+			# and avoids a DesignFixedBinaryMatch class-identity check
+			# (fix_design_hierarchy.md, "Class-Identity Dispatch Replacement").
+			des_obj$.__enclos_env__$private$ensure_matching_structure_computed()
 			private$m = des_obj$.__enclos_env__$private$m
 			if (identical(private$glmm_response_type(), "proportion")) {
 				private$y = .sanitize_proportion_response(private$y, interior = FALSE)

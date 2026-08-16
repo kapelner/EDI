@@ -1,8 +1,40 @@
-#' A balanced completely randomized Fixed Design
+#' A Fixed, Individually Balanced Completely Randomized Design (iBCRD)
 #'
-#' An R6 Class encapsulating the data and functionality for a fixed balanced
-#' completely randomized experimental design.
+#' A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} implementing the
+#' individually balanced complete randomized design (iBCRD): the number of treated
+#' subjects is fixed at exactly \eqn{n_T = \mathrm{round}(n \cdot prob\_T)}, and each
+#' allocation \eqn{w} with exactly \eqn{n_T} ones is drawn uniformly at random from the
+#' \eqn{\binom{n}{n_T}} possible such allocations (via a Fisher-Yates shuffle of a base
+#' vector with \eqn{n_T} ones and \eqn{n - n_T} zeros). This is the classical "complete
+#' randomization" reference design of randomization inference: unlike
+#' \code{\link[EDI:DesignFixedBernoulli]{DesignFixedBernoulli}} (independent per-subject
+#' coin flips, random \eqn{n_T}), \eqn{n_T} is fixed here, which is what makes exact
+#' permutation/randomization tests over the \eqn{\binom{n}{n_T}} allocations well-defined;
+#' unlike \code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}/
+#' \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}, no covariate information is
+#' used to select among those allocations — every one of the \eqn{\binom{n}{n_T}}
+#' allocations is equally likely.
 #'
+#' @details
+#' \strong{Draw mechanism.} \code{draw_ws_raw(r)} delegates to
+#' \code{generate_permutations_ibcrd_cpp()}, which builds one base allocation vector
+#' (\eqn{n_T} ones followed by \eqn{n - n_T} zeros) and independently
+#' shuffles (Fisher-Yates via \code{std::shuffle}) a fresh copy of it
+#' per replicate column, seeded from R's own RNG stream (so \code{seed} does govern
+#' reproducibility here, unlike the A-/D-optimal exchange searches).
+#' \code{assign_w_to_all_subjects()} draws one such allocation (\code{r = 1}) and applies
+#' it to all subjects.
+#'
+#' \strong{Single implicit block.} The constructor sets \code{private$m} to a constant
+#' vector of 1s (a single block containing every subject) once \code{n} is known, so that
+#' shared blocking/matching machinery that expects a block-membership vector treats the
+#' whole sample as one block by default.
+#'
+#' @references Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd,
+#'   for complete randomization as the canonical reference design of randomization
+#'   inference. See also
+#'   \href{https://en.wikipedia.org/wiki/Randomized_experiment}{randomized experiment}
+#'   for orientation on complete vs. Bernoulli randomization.
 #' @examples
 #' des = DesignFixediBCRD$new(n = 10, response_type = 'continuous')
 #' des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10)))
@@ -11,11 +43,16 @@
 DesignFixediBCRD = R6::R6Class("DesignFixediBCRD",
 	inherit = DesignFixed,
 	public = list(
-		#' @description Initialize a fixed balanced completely randomized experimental design
+		#' @description Initialize a fixed individually balanced completely randomized
+		#'   experimental design (see class documentation for the exact randomization
+		#'   law).
 		#'
 		#' @param response_type   "continuous", "incidence", "proportion", "count", "survival", or
 		#'   "ordinal".
-		#' @param  prob_T  Probability of treatment assignment.
+		#' @param  prob_T  Target probability of treatment assignment; the realized
+		#'   number of treated subjects is fixed at \code{round(n * prob_T)} for every
+		#'   draw (unlike \code{\link[EDI:DesignFixedBernoulli]{DesignFixedBernoulli}},
+		#'   where it is random).
 		#' @param include_is_missing_as_a_new_feature     Flag for missingness indicators.
 		#' @param  n  		The sample size.
 		#' @param verbose A flag for verbosity.

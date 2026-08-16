@@ -593,15 +593,13 @@ edi::ResultMap fast_hurdle_poisson_glmm_internal(
 // [[Rcpp::export]]
 Eigen::VectorXd get_hurdle_poisson_glmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-
-
-	
-
-	
-
-	
-
-	
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
+	}
+	if (params.size() != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
+	}
 	std::vector<int> pos_idx;
 	pos_idx.reserve(X_r.rows());
 	for (int i = 0; i < X_r.rows(); ++i) {
@@ -629,17 +627,13 @@ Eigen::VectorXd get_hurdle_poisson_glmm_score_cpp(const Eigen::Map<Eigen::Matrix
 Eigen::VectorXd get_hurdle_poisson_glmm_weighted_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, SEXP weights_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector weights_r_r_coerced(weights_r); Eigen::Map<const Eigen::VectorXd> weights_r_vec_coerced(weights_r_r_coerced.begin(), weights_r_r_coerced.size());
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-
-
-	
-
-	
-
-	
-
-	
-
-	
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size() || X_r.rows() != weights_r_vec_coerced.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements, weights_r has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size(), weights_r_vec_coerced.size());
+	}
+	if (params.size() != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
+	}
 	std::vector<int> pos_idx;
 	pos_idx.reserve(X_r.rows());
 	for (int i = 0; i < X_r.rows(); ++i) {
@@ -668,15 +662,13 @@ Eigen::VectorXd get_hurdle_poisson_glmm_weighted_score_cpp(const Eigen::Map<Eige
 // [[Rcpp::export]]
 Eigen::MatrixXd get_hurdle_poisson_glmm_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-
-
-	
-
-	
-
-	
-
-	
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
+	}
+	if (params.size() != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
+	}
 	std::vector<int> pos_idx;
 	pos_idx.reserve(X_r.rows());
 	for (int i = 0; i < X_r.rows(); ++i) {
@@ -703,17 +695,13 @@ Eigen::MatrixXd get_hurdle_poisson_glmm_hessian_cpp(const Eigen::Map<Eigen::Matr
 Eigen::MatrixXd get_hurdle_poisson_glmm_weighted_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, SEXP weights_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector weights_r_r_coerced(weights_r); Eigen::Map<const Eigen::VectorXd> weights_r_vec_coerced(weights_r_r_coerced.begin(), weights_r_r_coerced.size());
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-
-
-	
-
-	
-
-	
-
-	
-
-	
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size() || X_r.rows() != weights_r_vec_coerced.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements, weights_r has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size(), weights_r_vec_coerced.size());
+	}
+	if (params.size() != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
+	}
 	std::vector<int> pos_idx;
 	pos_idx.reserve(X_r.rows());
 	for (int i = 0; i < X_r.rows(); ++i) {
@@ -741,15 +729,13 @@ Eigen::MatrixXd get_hurdle_poisson_glmm_weighted_hessian_cpp(const Eigen::Map<Ei
 // [[Rcpp::export]]
 double get_hurdle_poisson_glmm_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-
-
-	
-
-	
-
-	
-
-	
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
+	}
+	if (params.size() != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
+	}
 	std::vector<int> pos_idx;
 	pos_idx.reserve(X_r.rows());
 	for (int i = 0; i < X_r.rows(); ++i) {
@@ -774,17 +760,13 @@ double get_hurdle_poisson_glmm_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>&
 double get_hurdle_poisson_glmm_weighted_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, SEXP weights_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector weights_r_r_coerced(weights_r); Eigen::Map<const Eigen::VectorXd> weights_r_vec_coerced(weights_r_r_coerced.begin(), weights_r_r_coerced.size());
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-
-
-	
-
-	
-
-	
-
-	
-
-	
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size() || X_r.rows() != weights_r_vec_coerced.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements, weights_r has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size(), weights_r_vec_coerced.size());
+	}
+	if (params.size() != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
+	}
 	std::vector<int> pos_idx;
 	pos_idx.reserve(X_r.rows());
 	for (int i = 0; i < X_r.rows(); ++i) {

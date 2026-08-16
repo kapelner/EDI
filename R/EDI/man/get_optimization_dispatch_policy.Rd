@@ -7,14 +7,40 @@
 get_optimization_dispatch_policy()
 }
 \value{
-A named list describing the default optimization algorithm configuration.
+A named list with components \code{default_alg} (the fallback
+  algorithm, \code{"newton_raphson"} in the built-in policy) and
+  \code{inference_class_overrides} (a named character vector: regular-expression
+  pattern names to algorithm-name values, matched against the inference class
+  name).
 }
 \description{
-Returns EDI's built-in policy for choosing a default optimization algorithm.
+Returns EDI's built-in policy table, consulted by the internal (non-exported)
+dispatcher \code{edi_optimization_dispatch_policy()}, for choosing which
+optimization algorithm (\code{"newton_raphson"}, \code{"lbfgs"}, or
+\code{"irls"}) an inference class's C++ model-fitting backend uses by default.
 }
 \details{
-The built-in overrides are empirical. Regression models generally default to
+The dispatcher checks the inference class name against
+  \code{inference_class_overrides}'s named regular-expression patterns in list
+  order, returning the associated algorithm string at the first match; if none
+  match, it falls back to \code{default_alg} (\code{"newton_raphson"}). Unlike
+  \code{\link{get_bootstrap_dispatch_policy}}, there is no separate
+  design-class-scoped override table here — only a single flat pattern list.
+  The built-in overrides are empirical, chosen per model family based on which
+  algorithm converges fastest/most reliably for that likelihood surface in
+  practice — e.g. plain-vanilla generalized linear models with a canonical or
+  near-canonical link (Poisson, quasi-Poisson, robust Poisson, various incidence
+  models) default to \code{"irls"}, most non-canonical-link and ordinal/survival
+  models default to \code{"lbfgs"}, and stratified Cox PH and most matched
+  (\code{KK*GLMM}-adjacent) models default to \code{"newton_raphson"}.
 }
 \examples{
 get_optimization_dispatch_policy()
+}
+\seealso{
+\code{\link{get_bootstrap_dispatch_policy}} and
+  \code{\link{get_cold_start_dispatch_policy}} for the analogous policies
+  controlling bootstrap CI type and cold-start behavior;
+  \code{\link{.normalize_optimizer_algorithm}} for how a resolved algorithm
+  string is validated/normalized before being passed to a C++ backend.
 }

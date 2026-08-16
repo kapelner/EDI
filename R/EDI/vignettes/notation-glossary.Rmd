@@ -1,0 +1,130 @@
+---
+title: "Notation Glossary"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Notation Glossary}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+This page collects the symbols and naming conventions used consistently across
+EDI's `Design*`/`Inference*` R6 classes and their C++/Python backends, so
+individual `roxygen2`/docstring entries can link here instead of re-deriving
+notation locally. Where a symbol's meaning is genuinely family-specific (e.g.
+$\alpha$ means something different for a proportional-odds ordinal model than
+for a confidence level), that is called out explicitly rather than papered
+over — EDI does not reuse a symbol across two unrelated meanings without
+flagging it.
+
+## Sample, covariates, and the design matrix
+
+| Symbol | Meaning |
+| --- | --- |
+| $n$ | Total sample size (number of subjects in a completed/completing design). |
+| $p$ | Number of covariate columns. |
+| $X$ | The covariate design matrix, $n \times p$ (or $n \times q$ after intercept/expansion), as consumed by a `fast_*` C++ backend. Whether $X$ includes an intercept column is backend-specific and is stated per function — some (e.g. `fast_coxph_regression_cpp`) never take one because the model has none; others expect the caller to add it. |
+| $x_i$ | Row $i$ of $X$: subject $i$'s covariate vector (as a column vector in formulas, $x_i^\top\beta$). |
+| $\eta_i$ | The linear predictor for subject $i$, $\eta_i = x_i^\top\beta$ (or with a treatment/offset term folded in, per model). |
+
+## Treatment assignment
+
+| Symbol | Meaning |
+| --- | --- |
+| $W$ / `w` | The treatment assignment vector, length $n$. **Public convention throughout the package: $\{0,1\}$ encoding, $1$ = treated, $0$ = control** (see `?Design`, "Details"). Every `Design` public method that returns or accepts `w` (`get_w()`, `draw_ws_according_to_design()`, ...) uses this encoding. |
+| $w_i$ | Subject $i$'s treatment indicator, $w_i \in \{0,1\}$. |
+| Signed recoding | A handful of variance estimators (`InferenceIncidCMH`, `InferenceIncidExtendedRobins`) recode internally to a signed $\{-1,+1\}$ contrast where their formulas require it. This recoding is local to those classes and does not change the public $\{0,1\}$ convention. |
+| `SimulationFramework` custom hooks | `custom_apply_treatment_and_noise`/`make_estimand_fn` receive `w` in $\{-1,+1\}$ format for historical reasons specific to that framework's internal DGP machinery; convert with `(w+1)/2` to get the $\{0,1\}$ convention used everywhere else. This is a documented, isolated exception, not evidence the package-wide convention is inconsistent. |
+
+## Response, censoring, and the `y`/`y_L`/`y_R` schema
+
+| Symbol | Meaning |
+| --- | --- |
+| $Y$ / `y` | The (exact, uncensored) response vector. Scale/type depends on `response_type`: continuous, incidence (binary), count (non-negative integer), proportion (in $(0,1)$ or $[0,1]$), ordinal (categorical, coded $1,\dots,K$), or survival (a time). |
+| `y_L`, `y_R` | For interval-censored survival responses, the lower/upper bounds of the interval a subject's true event time is known to fall in. Supplied **XOR** with `y` on `Design$add_one_subject_response()`: a subject has either an exact `y` or a censored `(y_L, y_R)` pair, never both, never just one bound. Right-censored: `y_L` = last known survival time, `y_R = Inf`. Left-censored: `y_L = 0`. |
+| `dead` | The event/censoring indicator used by the survival-specific C++/Python backends and simulation DGP: `1` = event observed (maps to an exact `y`), `0` = right-censored (maps to `y_L = y`, `y_R = Inf`). This is the DGP-facing two-column contract that `Design`'s three-column `y`/`y_L`/`y_R` storage schema is bridged to/from (see `dead_to_response_bounds()` in `other_helpers.R`). |
+| $\delta_i$ | An event/censoring indicator in survival *model* notation (Cox partial likelihood, martingale residuals) — the modeling-formula analogue of `dead`. Not to be confused with the null-hypothesis $\delta$ below; which meaning applies is always clear from context (a per-subject subscript $\delta_i$ is always the censoring indicator, an unsubscripted $\delta$ in a hypothesis/CI context is always the null value). |
+
+## Coefficients and treatment effects
+
+| Symbol | Meaning |
+| --- | --- |
+| $\beta$ | A regression coefficient vector, same order as the columns of the design matrix it multiplies. |
+| $\hat\beta$ | The fitted (maximum-likelihood, or otherwise estimated) coefficient vector. |
+| $\beta_T$ | The treatment-effect coefficient specifically — the entry of $\beta$ multiplying the treatment column. Its position is passed explicitly to C++/Python backends as `j_treat`/`j_T` (1-based in R/Rcpp, 0-based in the Python bindings — always stated per function). |
+| `ssq_b_j` / `ssq_b_T` | The estimated variance of $\hat\beta_j$ (generically, index `j`) or specifically of $\hat\beta_T$; `se_beta_hat`/`s_beta_hat_T` is its square root, the standard error. |
+| $\alpha_k$ | **Ordinal-model context only:** the $k$-th cumulative-category threshold/intercept in a proportional-odds, adjacent-category, continuation-ratio, or stereotype-logit model, $k = 1,\dots,K-1$, with $\alpha_1 < \cdots < \alpha_{K-1}$ enforced (directly, or via a log-difference reparameterization during optimization). **Not** the same symbol as the significance level below — always disambiguated by whether the surrounding text is about an ordinal model's thresholds or about a confidence level. |
+| $\alpha$ (no subscript) | **Inference context:** the significance level; a computed interval has nominal coverage $1-\alpha$, and $H_0$ is rejected at level $\alpha$ when a two-sided p-value is $< \alpha$. |
+| $\delta$ | The null value a hypothesis test or confidence-interval inversion is built around: $H_0: \theta = \delta$ for the estimand $\theta$ (a risk difference, mean difference, quantile shift, etc.), with $\delta = 0$ the default "no effect" null used by `compute_asymp_two_sided_pval(delta = 0)`-style methods package-wide. Confidence intervals are obtained by inverting the test over a grid/bisection of candidate $\delta$ values (see `mn_ci_cpp`, `newcombe_independent_ci_cpp`, and the various `compute_rand_confidence_interval()` implementations). |
+| $\tau$ | The target quantile in a quantile-regression class (`InferenceContinQuantileRegr`, `InferencePropQuantileRegr`, and their KK variants), $0 < \tau < 1$; $\tau = 0.5$ (the default) is the median. |
+| $\phi$ | The precision parameter of a beta-distributed response (`fast_beta_regression`/`InferencePropBetaRegr`; larger $\phi$ = less dispersion around the mean $\mu$), optimized on the log scale (`log_phi`) for positivity. |
+| $\theta$ | The dispersion/shape parameter of a negative-binomial response (`fast_neg_bin`/`InferenceCountNegBin`; NB2 parameterization, $\mathrm{Var}(Y) = \mu + \mu^2/\theta$, smaller $\theta$ = more overdispersion relative to Poisson), optimized on the log scale (`log_theta`). |
+| $\sigma$ / `log_sigma` | The standard deviation of a Gaussian random effect (frailty, random intercept) in a GLMM/mixed-model backend (`fast_ordinal_glmm`, `fast_poisson_glmm`, `fast_gaussian_lmm`, `fast_weibull_frailty`, ...), always optimized on the log scale and typically clamped to $[-\texttt{max\_abs\_log\_sigma}, \texttt{max\_abs\_log\_sigma}]$ during optimization to keep Gauss-Hermite quadrature well-behaved. |
+
+## Design structure: blocks, matched pairs, clusters, and the reservoir
+
+| Symbol | Meaning |
+| --- | --- |
+| `m` | A per-subject integer vector of block (or matched-pair) identifiers: subjects sharing the same value of `m` are in the same block/pair. Populated either directly (a supplied `m` argument) or computed internally (e.g. `DesignFixedBinaryMatch`'s non-bipartite matching); the only sanctioned way to assign it outside `design_*.R` is `set_m()`. |
+| Block | A group of subjects (via `strata_cols`/`m`) that randomization or resampling respects as a unit — e.g. `DesignFixedBlocking` randomizes within blocks; the Bayesian bootstrap can draw one Dirichlet weight per block rather than per subject when the design's exchangeable resampling unit is a block. |
+| Matched pair | The special case of a block of size exactly 2, with within-pair treatment randomization (`DesignFixedBinaryMatch`) or on-the-fly sequential matching (the KK family: `DesignSeqOneByOneKK14`/`KK21`/`KK21stepwise`). "Matched-pair" inference classes (`InferenceIncidKKCondLogitOneLik` and friends) condition out the pair's nuisance intercept via a conditional-logit-style likelihood. |
+| Reservoir (subjects) | In a sequential KK-matched design, subjects who have not yet been paired at the time an allocation decision is needed — they are assigned via the design's fallback (unmatched) randomization rule rather than within-pair randomization, and are the "concordant"/marginal-model component in combined pair-plus-reservoir inference kernels (`fast_cpoisson_combined`, `fast_clogit_plus_glmm`), contrasted with the "discordant"/matched-pair component. |
+| Cluster | A group of subjects sharing a `cluster_col` value, randomized/resampled as a unit at the whole-cluster level (`DesignFixedCluster`, `DesignFixedBlockedCluster` — the latter combines cluster-level and block-level structure, strata-then-cluster). |
+| `group_id` | The generic per-row grouping identifier passed to GLMM/frailty C++ backends (`fast_ordinal_glmm`, `fast_poisson_glmm`, `fast_weibull_frailty`, ...) identifying which rows share a random effect — the member-level analogue of a block/pair/cluster ID for backends that don't themselves know whether the grouping is a matched pair or something else. |
+
+## Resampling and randomization
+
+| Symbol | Meaning |
+| --- | --- |
+| `B_boot` / `num_boot` | Number of nonparametric or Bayesian bootstrap resamples. |
+| `r_rand` / `r` | Number of randomization-distribution draws (permutations of `w` consistent with the design) used for a randomization p-value or as bisection steps of a randomization-based confidence interval. |
+| Bootstrap weights | Nonparametric bootstrap: implicit multinomial resample counts (one full resample = drawing $n$ subjects/blocks with replacement). Bayesian bootstrap: explicit Dirichlet$(1,\dots,1)$ weights, one per exchangeable resampling unit (subject or block — whichever the design supports; see `subject_or_block_weights` on `compute_estimate_with_bootstrap_weights()` methods package-wide), summing to $n$ (or the unit count) in expectation, used to reweight every subject's/block's contribution to the estimating equations rather than physically resampling rows. |
+| Randomization permutation | One re-draw of `w` from the design's own randomization distribution (respecting blocks/pairs/clusters exactly as the original design would have), used to build a reference (null or shifted-null) distribution for a treatment-effect statistic under $H_0$ — the basis of every `compute_rand_two_sided_pval()`/`compute_rand_confidence_interval()` implementation. |
+| `seed` | An integer RNG seed. Supplying `seed` makes a design's/simulation's draws reproducible; every current concrete `Design` class is seed-reproducible (see `vignette("reproducibility")` for the mechanism, including `DesignFixedGreedyDOptimal`'s local-generator approach and `DesignFixedGreedy`'s parallel-safe per-thread seeding). |
+
+## Treatment-effect scales
+
+The estimand returned by `compute_estimate()` (and the scale a confidence
+interval/p-value is computed on) is family-specific; individual class
+documentation states which of these applies, but as a map:
+
+| Response family | Typical effect scale |
+| --- | --- |
+| Continuous | Mean difference, or a quantile shift (`tau`-quantile regression) |
+| Incidence (binary) | Risk difference, log risk ratio, or log odds ratio, depending on the link (identity/log/logit) |
+| Count | Log rate ratio (Poisson/NegBin log link) |
+| Proportion | Difference in standardized (G-computation) mean, or a logit-scale quantile shift |
+| Survival | Log hazard ratio (Cox-family), log-time ratio (Weibull AFT), RMST difference, or a KM-median difference |
+| Ordinal | A cumulative-log-odds shift (proportional-odds $\beta$), a mean-rank/ridit statistic, or a standardized mean-category-score difference (G-computation) |
+
+## Transformed outcomes
+
+Several inference classes work on a transformed scale internally while
+reporting the estimand on that same transformed scale (never silently
+back-transforming to the raw scale unless the class's own documentation says
+so):
+
+- **Logit transform** (`logit()`/`inv_logit()` in `other_helpers.R`): used to
+  map a proportion/incidence response to the real line before applying
+  continuous-response machinery (e.g. `InferencePropQuantileRegr` fits
+  quantile regression on `logit(y)`, so its estimand is a log-odds-ratio
+  shift, not a raw-scale quantile shift). Both directions clamp near the
+  $\{0,1\}$ boundary to avoid non-finite values.
+- **Log transform**: count and rate models (Poisson, NegBin, log-binomial)
+  use a log link, so coefficients are log rate/risk ratios unless
+  exponentiated in the returned summary.
+- **Quantile transform**: `InferenceContinQuantileRegr`/
+  `InferencePropQuantileRegr` report a shift in the response's `tau`-quantile
+  (on the logit scale for the proportion variant), not a mean difference.
+
+## Where this glossary does not apply
+
+This page documents the *package-wide* conventions. A small number of
+low-level numerical kernels (`fast_pchisq_upper`, `fast_qnorm`, and other
+`fast_*` math utilities in `bindings_fast_math.cpp`/`fast_math_utils.cpp`)
+use single-letter mathematical arguments (`x`, `p`, `df`, `a`, `b`) with their
+ordinary textbook meanings, unrelated to the design/inference notation above;
+those are documented locally on each function instead.

@@ -2,21 +2,35 @@
 % Please edit documentation in R/other_helpers.R
 \name{inv_logit}
 \alias{inv_logit}
-\title{Inverse Logit Function}
+\title{Inverse Logit (Logistic) Function}
 \usage{
 inv_logit(x, zero_one_logit_clamp = .Machine$double.eps)
 }
 \arguments{
-\item{x}{Any real number}
+\item{x}{Any real number (or vector), typically a fitted linear predictor
+\eqn{\eta = x_i^\top\beta} on the log-odds scale.}
 
-\item{zero_one_logit_clamp}{The clamping amount for exact 0 and 1 values}
+\item{zero_one_logit_clamp}{The clamping distance from the 0/1 boundaries
+applied to the result. Default \code{.Machine$double.eps}.}
 }
 \value{
-Its corresponding inverse logit value between 0 and 1 non inclusive
+The inverse-logit-transformed value(s), in \verb{(0, 1)}, the same
+  length as \code{x}.
 }
 \description{
-Computes the inverse logit of a real number or vector.
+Computes the inverse logit (standard logistic sigmoid) function,
+\eqn{\mathrm{logit}^{-1}(x) = 1/(1 + e^{-x})}, the canonical mean function
+for binomial/logistic-family models throughout this package (mapping a
+linear predictor on the log-odds scale back to a probability). The result is
+clamped to \eqn{[\code{zero\_one\_logit\_clamp}, 1 -
+\code{zero\_one\_logit\_clamp}]} before being returned, so an extreme
+\code{x} (e.g. from a poorly identified or diverging fit) cannot produce an
+exact \code{0} or \code{1} probability that would later cause a \code{-Inf}/
+\code{NaN} when log-transformed downstream (e.g. in a log-likelihood).
 }
 \examples{
 inv_logit(0)
+}
+\seealso{
+\code{\link{logit}} for the forward transform.
 }

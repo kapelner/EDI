@@ -2,21 +2,50 @@
 % Please edit documentation in R/RcppExports.R
 \name{gcomp_fractional_logit_point_estimate_cpp}
 \alias{gcomp_fractional_logit_point_estimate_cpp}
-\title{Fast G-Computation Point Estimate for Fractional Logit (C++)}
+\title{Fast G-Computation (Standardization) Point Estimate for a Logit-Link Model (C++)}
 \usage{
 gcomp_fractional_logit_point_estimate_cpp(X_fit, coef_hat, j_treat)
 }
 \arguments{
-\item{X_fit}{Numeric matrix of predictors including intercept.}
+\item{X_fit}{Numeric matrix of predictors used to fit the model, including an
+intercept column if the model has one.}
 
-\item{coef_hat}{Numeric vector of fitted coefficients.}
+\item{coef_hat}{Numeric vector of fitted model coefficients \eqn{\hat\beta},
+same length and column order as \code{X_fit}.}
 
-\item{j_treat}{1-based column index of the treatment indicator in X_fit.}
+\item{j_treat}{1-based column index of the treatment indicator in \code{X_fit}.}
 }
 \value{
-A list with elements \code{mean1}, \code{mean0}, and \code{md} (mean difference).
+A list with elements \code{mean1} (standardized mean outcome under
+  \eqn{T=1} for everyone), \code{mean0} (standardized mean outcome under \eqn{T=0}
+  for everyone), and \code{md} (\code{mean1 - mean0}, the standardized risk
+  difference).
 }
 \description{
-Computes marginal mean difference under the fractional logit (quasi-binomial) model using G-computation.
+Computes the \strong{G-computation} (regression standardization) point estimate
+of the marginal treatment effect under a fitted logit-link model — logistic
+regression for a binary outcome, or the algebraically identical fractional
+logit / quasi-binomial model for a proportion outcome in \eqn{[0, 1]}, since
+the standardization formula depends only on the fitted linear predictor and
+link function, not the response's distributional assumptions. For each
+subject \eqn{i} in the fitted sample, the fitted linear predictor is
+decomposed into its treatment-free baseline \eqn{\eta_{\mathrm{base},i} =
+x_i^\top\hat\beta - \hat\beta_{j_{\mathrm{treat}}}\, x_{i,j_{\mathrm{treat}}}}
+and the two \strong{counterfactual} predictions
+\eqn{\widehat{\Pr}(Y_i = 1 \mid \mathrm{do}(T=1)) = \mathrm{logit}^{-1}(\eta_{\mathrm{base},i}
++ \hat\beta_{j_{\mathrm{treat}}})} and \eqn{\widehat{\Pr}(Y_i = 1 \mid \mathrm{do}(T=0)) =
+\mathrm{logit}^{-1}(\eta_{\mathrm{base},i})} are computed by setting every
+subject's treatment column to 1 (respectively 0) while leaving all other
+covariates at their observed values — this is standard G-computation /
+standardization: average the model-implied outcome over the empirical
+covariate distribution under each counterfactual treatment assignment. The
+two averages (\code{mean1}, \code{mean0}) and their difference (\code{md}, the
+standardized average treatment effect on the risk-difference scale) are
+returned.
+}
+\seealso{
+\code{\link{gcomp_logistic_point_estimate_cpp}}, which computes the
+  identical quantity (it delegates directly to this function) under the
+  "logistic regression" framing.
 }
 \keyword{internal}
