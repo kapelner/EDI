@@ -164,14 +164,23 @@ struct ModelResult {
 // it rather than rebuilding it from a functor. Templated (not overloaded per
 // struct) so any current or future result struct with the two required
 // fields works without a new overload.
+//
+// Disabled for v1.0.0 (body commented out, not deleted, so v1.1.0 can turn
+// it back on without starting from scratch): nothing in R or Python reads
+// min_eigenvalue_information yet, but a spuriously-false `converged` --
+// common on LBFGS exits, see optimizer_diagnostics_report.md TODO-4 -- was
+// making this fire on most calls, costing a full extra Hessian-equivalent
+// build + eigendecomposition every time.
 template <typename ResultStruct>
 inline void set_min_eigenvalue_if_suspect(const Eigen::MatrixXd& H, ResultStruct& res) {
-    if (res.converged || H.rows() != H.cols() || H.rows() == 0 || !H.allFinite()) return;
-    Eigen::MatrixXd H_sym = (H + H.transpose()) / 2.0;
-    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(H_sym, Eigen::EigenvaluesOnly);
-    if (es.info() == Eigen::Success) {
-        res.min_eigenvalue_information = es.eigenvalues()(0);
-    }
+    (void)H;
+    (void)res;
+    // if (res.converged || H.rows() != H.cols() || H.rows() == 0 || !H.allFinite()) return;
+    // Eigen::MatrixXd H_sym = (H + H.transpose()) / 2.0;
+    // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(H_sym, Eigen::EigenvaluesOnly);
+    // if (es.info() == Eigen::Success) {
+    //     res.min_eigenvalue_information = es.eigenvalues()(0);
+    // }
 }
 
 // Pure C++ internal helpers
@@ -1076,31 +1085,41 @@ struct has_hessian_method<T, decltype(void(
 // it in fit.min_eigenvalue_information, but only when fit.converged is
 // already false -- a fit already flagged suspect by the gradient-norm
 // criterion is exactly the case this is meant to help diagnose (is it also
-// ill-conditioned, or just slow to converge?). Never runs on a clean fit, so
-// it adds no cost to the common case. Symmetrizes the Hessian before the
-// eigendecomposition (observed-information Hessians from finite-difference
-// or accumulated paths are not always exactly symmetric to floating-point
-// precision). Silently leaves min_eigenvalue_information as NaN if the
-// Hessian can't be built, isn't finite, or the functor has no .hessian()
-// method at all (see has_hessian_method above) -- this is a diagnostic, not
-// a correctness-critical path, so it must never throw and must always
-// compile regardless of which functor type is instantiated.
+// ill-conditioned, or just slow to converge?). Symmetrizes the Hessian
+// before the eigendecomposition (observed-information Hessians from
+// finite-difference or accumulated paths are not always exactly symmetric
+// to floating-point precision). Silently leaves min_eigenvalue_information
+// as NaN if the Hessian can't be built, isn't finite, or the functor has no
+// .hessian() method at all (see has_hessian_method above).
+//
+// Disabled for v1.0.0 (body commented out, not deleted, so v1.1.0 can turn
+// it back on without starting from scratch): nothing in R or Python reads
+// min_eigenvalue_information yet, and "converged" coming back spuriously
+// false turned out to be common on LBFGS exits (TODO-4's delta/tol-coupling
+// discussion), not rare as this was designed assuming -- so in practice
+// this was firing on most calls, each paying for a full extra Hessian
+// build plus an O(p^3) eigendecomposition it never used to pay for
+// (confirmed via interval_censored_survival_response.md TODO-28: this, not
+// the Weibull kernel itself, was the real source of a measured 2-4x
+// slowdown across every likelihood-based kernel using this wrapper).
 template <typename LikelihoodFunctor>
 inline void compute_min_eigenvalue_if_suspect(LikelihoodFunctor& fun, LikelihoodFitResult& fit) {
-    if (fit.converged || fit.params.size() == 0) return;
-    if constexpr (has_hessian_method<LikelihoodFunctor>::value) {
-        try {
-            Eigen::MatrixXd H = fun.hessian(fit.params);
-            if (H.rows() != H.cols() || H.rows() == 0 || !H.allFinite()) return;
-            Eigen::MatrixXd H_sym = (H + H.transpose()) / 2.0;
-            Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(H_sym, Eigen::EigenvaluesOnly);
-            if (es.info() == Eigen::Success) {
-                fit.min_eigenvalue_information = es.eigenvalues()(0);
-            }
-        } catch (...) {
-            // Leave as NaN -- see function comment.
-        }
-    }
+    (void)fun;
+    (void)fit;
+    // if (fit.converged || fit.params.size() == 0) return;
+    // if constexpr (has_hessian_method<LikelihoodFunctor>::value) {
+    //     try {
+    //         Eigen::MatrixXd H = fun.hessian(fit.params);
+    //         if (H.rows() != H.cols() || H.rows() == 0 || !H.allFinite()) return;
+    //         Eigen::MatrixXd H_sym = (H + H.transpose()) / 2.0;
+    //         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(H_sym, Eigen::EigenvaluesOnly);
+    //         if (es.info() == Eigen::Success) {
+    //             fit.min_eigenvalue_information = es.eigenvalues()(0);
+    //         }
+    //     } catch (...) {
+    //         // Leave as NaN -- see function comment.
+    //     }
+    // }
 }
 
 inline std::string normalize_optimizer_algorithm(const std::string& optimization_alg,

@@ -11,15 +11,12 @@ Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 Note this one is not packaging-only despite the `.postN` suffix — in
 addition to the CI/packaging and documentation fixes below, it touches
 `R/EDI/src/fast_weibull_regression.cpp` directly (`R/EDI/DESCRIPTION`'s
-`Version` remains `1.0.0`, unbumped). Prepared in anticipation of release;
-still gated behind the same project note throughout this file: the R
-side's broader `y`/`y_L`/`y_R` interval-censoring survival rework is a
-still-evolving, multi-class effort (only Weibull AFT has a migrated fast
-C++ kernel so far; `fast_coxph_regression.cpp`, `fast_weibull_frailty.cpp`,
-and the KK-combined Clayton-copula/dep-censoring kernels are all still
-`(y, dead)`-only, unchanged, confirmed directly) — hold off shipping until
-that settles, rather than publish a version whose interval-censoring
-support is Weibull-only with no indication of what else is still to come.
+`Version` remains `1.0.0`, unbumped). The R side's broader `y`/`y_L`/`y_R`
+interval-censoring survival rework is a still-evolving, multi-class effort:
+only Weibull AFT has a migrated fast C++ kernel so far;
+`fast_coxph_regression.cpp`, `fast_weibull_frailty.cpp`, and the
+KK-combined Clayton-copula/dep-censoring kernels are all still
+`(y, dead)`-only, unchanged, confirmed directly.
 
 ### Changed (breaking)
 
