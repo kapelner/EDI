@@ -63,7 +63,7 @@ DesignSeqOneByOneKK14 = define_design_class(
 	# provide draw_bootstrap_indices, and the pair-preserving MatchingStructure version
 	# (processed after its dependency) must win -- this class had no override of its
 	# own, so it was already using this exact function via inheritance from
-	# DesignMatching (reference-identity, not just behavioral equivalence).
+	# the canonical MatchingStructure literal (reference identity, not just behavioral equivalence).
 	overrides = list(private = "draw_bootstrap_indices"),
 	public = list(
 		#' @description Characterization: this design matches subjects to each other

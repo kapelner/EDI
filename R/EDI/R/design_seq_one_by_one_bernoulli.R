@@ -14,8 +14,10 @@
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' @export
-DesignSeqOneByOneBernoulli = R6::R6Class("DesignSeqOneByOneBernoulli",
+DesignSeqOneByOneBernoulli = define_design_class(
+	classname = "DesignSeqOneByOneBernoulli",
 	inherit = DesignSeqOneByOne,
+	components = character(),
 	public = list(
 		#' @description Characterization: this design draws each subject's treatment
 		#'   assignment as an independent \eqn{\mathrm{Bernoulli}(prob\_T)} coin flip

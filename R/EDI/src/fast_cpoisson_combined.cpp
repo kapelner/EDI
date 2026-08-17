@@ -306,8 +306,11 @@ edi::ResultMap fast_cpoisson_combined_internal(
 	VectorXd grad(np);
 	MatrixXd H(np, np);
 	bool converged = false;
+	int iterations_run = 0;
+	double last_grad_norm = std::numeric_limits<double>::quiet_NaN();
 
 	for (int iter = 0; iter < maxit; ++iter) {
+		iterations_run = iter + 1;
 		edi_check_R_user_interrupt_every(iter);
 		const double  beta_0  = params[0];
 		const double  beta_T  = params[1];
@@ -392,6 +395,15 @@ edi::ResultMap fast_cpoisson_combined_internal(
             }
         }
 
+		// Gradient-norm-based convergence check (optimizer_diagnostics_report.md
+		// TODO-4), added ahead of the existing step-size fallback below --
+		// this loop previously had no explicit gradient check at all.
+		last_grad_norm = grad.norm();
+		if (last_grad_norm < tol) {
+			converged = true;
+			break;
+		}
+
 		// ---- Newton step over free parameters ----------------------------
 		VectorXd delta_full = VectorXd::Zero(np);
 		if (fixed_spec.free_idx.size() > 0) {
@@ -409,16 +421,31 @@ edi::ResultMap fast_cpoisson_combined_internal(
 		}
 
 		if (delta_full.norm() < tol) {
-			converged = true;
+			// Step-size-only exit: last_grad_norm above (checked at the top
+			// of this same iteration) is already known >= tol, so leaving
+			// `converged` false here is correct under the uniform
+			// gradient-norm rule (optimizer_diagnostics_report.md TODO-4) --
+			// unlike other fitters in this codebase, the gradient isn't
+			// recomputed post-step here (this loop's per-iteration gradient
+			// computation is comparatively expensive, folded into the same
+			// pass as the Fisher-information block), so a fit that stalls on
+			// step size just short of a small-enough gradient is reported
+			// as a distinct "stalled, not converged, not out of iterations"
+			// case rather than optimistically marked converged.
 			break;
 		}
 	}
+
+	const bool hit_iteration_cap = (iterations_run >= maxit) && !converged;
 
 	if (estimate_only) {
 		return edi::ResultMap()
 			.set("b", params)
 			.set("params", params)
-			.set("converged", converged);
+			.set("converged", converged)
+			.set("num_iter", iterations_run)
+			.set("hit_iteration_cap", hit_iteration_cap)
+			.set("gradient_norm", last_grad_norm);
 	}
 
 	// ---- Extract Var(beta_T) from H^{-1}[1,1] (1-based index 2) ---------
@@ -446,7 +473,10 @@ edi::ResultMap fast_cpoisson_combined_internal(
 		.set("neg_loglik", neg_loglik)
 		.set("neg_ll", neg_loglik)
 		.set("loglik", std::isfinite(neg_loglik) ? -neg_loglik : std::numeric_limits<double>::quiet_NaN())
-		.set("converged", converged);
+		.set("converged", converged)
+		.set("num_iter", iterations_run)
+		.set("hit_iteration_cap", hit_iteration_cap)
+		.set("gradient_norm", last_grad_norm);
 }
 
 #ifndef EDI_CORE_ONLY

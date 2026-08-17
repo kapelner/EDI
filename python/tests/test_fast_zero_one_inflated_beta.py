@@ -15,14 +15,17 @@ in [0, 1] inclusive (may include exact 0s and 1s, unlike plain beta
 regression). Returned 'params' packs [beta, log_phi, zero_one_b0,
 zero_one_b1].
 
-Note: fast_zero_one_inflated_beta_cpp's R-facing return list has no
-"converged"/"iterations"/"gradient_norm" fields at all (verified via
-`names(EDI:::fast_zero_one_inflated_beta_cpp(...))`) even though the
-underlying LikelihoodFitResult the Python binding surfaces does carry
-them -- the R wrapper just doesn't expose those fields. So this test only
-cross-checks params/neg_loglik against R (the only fields both sides
-expose) and asserts converged==True as a Python-side-only sanity check,
-not a cross-language comparison.
+Note (updated 2026-08-17): fast_zero_one_inflated_beta_cpp's R-facing return
+list previously had no "converged"/"iterations"/"gradient_norm" fields at
+all, even though the underlying LikelihoodFitResult the Python binding
+surfaces always carried them -- the R wrapper just didn't expose them. Fixed
+as part of optimizer_diagnostics_report.md TODO-1/TODO-4 (now exposes
+converged/num_iter/hit_iteration_cap/gradient_norm on both the
+estimate_only and full-result branches). This test still only cross-checks
+params/neg_loglik against the R fixture below (predates the R-side fix) and
+asserts converged==True as a Python-side sanity check -- re-verify against a
+fresh R run once compiled, since converged is now also gradient-norm-based
+per TODO-4.
 
 The expected values below were computed once via:
     EDI:::fast_zero_one_inflated_beta_cpp(X, X_zero_one, y)

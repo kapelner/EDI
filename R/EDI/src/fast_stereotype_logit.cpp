@@ -856,7 +856,11 @@ edi::ResultMap fast_stereotype_logit_full_internal(
             .set("scores_raw", (model.num_gamma() > 0) ? params.tail(model.num_gamma()) : VectorXd(0))
             .set("params", params)
             .set("neg_loglik", fit.value)
-            .set("converged", fit.converged);
+            .set("converged", fit.converged)
+            .set("num_iter", fit.niter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
+            .set("gradient_norm", fit.gradient_norm)
+            .set("min_eigenvalue_information", fit.min_eigenvalue_information);
     }
 
     MatrixXd neg_hess = -model.loglik_hessian(params);
@@ -891,6 +895,10 @@ edi::ResultMap fast_stereotype_logit_full_internal(
         .set("ssq_b_j", ssq_b_1)
         .set("vcov", std::monostate{})
         .set("converged", fit.converged)
+        .set("num_iter", fit.niter)
+        .set("hit_iteration_cap", fit.hit_iteration_cap)
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
         .set("fisher_information", neg_hess);
 }
 
@@ -1052,7 +1060,11 @@ List fast_stereotype_logit_cpp(const Rcpp::NumericMatrix& X, const Rcpp::Numeric
             .set("scores_raw", (model.num_gamma() > 0) ? params.tail(model.num_gamma()) : VectorXd(0))
             .set("params", params)
             .set("neg_loglik", fit.value)
-            .set("converged", fit.converged));
+            .set("converged", fit.converged)
+            .set("num_iter", fit.niter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
+            .set("gradient_norm", fit.gradient_norm)
+            .set("min_eigenvalue_information", fit.min_eigenvalue_information));
     }
     Eigen::MatrixXd neg_hess = -model.loglik_hessian(params);
     return edi::to_rcpp_list(edi::ResultMap()
@@ -1062,6 +1074,10 @@ List fast_stereotype_logit_cpp(const Rcpp::NumericMatrix& X, const Rcpp::Numeric
         .set("params", params)
         .set("neg_loglik", fit.value)
         .set("converged", fit.converged)
+        .set("num_iter", fit.niter)
+        .set("hit_iteration_cap", fit.hit_iteration_cap)
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
         .set("fisher_information", neg_hess));
 }
 
@@ -1183,6 +1199,10 @@ List fast_stereotype_logit_with_var_cpp(const Rcpp::NumericMatrix& X, const Rcpp
         .set("ssq_b_j", ssq_b_1)
         .set("vcov", std::monostate{})
         .set("converged", fit.converged)
+        .set("num_iter", fit.niter)
+        .set("hit_iteration_cap", fit.hit_iteration_cap)
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
         .set("fisher_information", info));
 }
 

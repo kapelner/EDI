@@ -48,9 +48,24 @@ internal scale before being passed to C++, so the accepted-allocation semantics 
 unaffected, but this rescaling is a backend implementation detail worth knowing when
 comparing C++-path and pure-R-path acceptance rates for the same nominal cutoff. The
 sampler draws up to \code{max(r * 1000, 100000)} candidates internally; if fewer than
-\code{r} allocations are accepted within that budget (an overly tight cutoff), the
-accepted set is recycled (\code{rep(..., length.out = r)}) rather than erroring or
-looping further.
+\code{r} allocations are accepted within that budget (an overly tight cutoff), this
+errors naming how many were actually found -- loosen \code{obj_val_cutoff} or use
+\code{prop_acceptable} instead. (Earlier versions silently recycled the accepted set
+to pad out to \code{r}, duplicating some draws; fixed, since that meant some
+"independent" replicates were literal duplicates of an accepted allocation.)
+
+\strong{Seed reproducibility and multi-core parallelism.} The C++ fast path's
+rejection sampler is a genuine work-stealing search: with more than one core
+(\code{\link{set_num_cores}}/a fork cluster/mirai daemons; the package default is a
+single core), threads race via atomic operations for both which candidate draws to
+try next and which output column an accepted draw claims, so which per-thread-seeded
+RNG stream ends up producing a given replicate -- and in what order -- depends on
+real-time OS scheduling, not just \code{seed}. With the default single core, draws
+\emph{are} exactly seed-reproducible; this is not guaranteed once more than one core
+is in use. Contrast with \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}/
+\code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}, whose C++ kernels
+use static (not work-stealing) thread scheduling and remain seed-reproducible
+regardless of core count.
 
 \strong{\code{prop_acceptable} path.} Uses
 \code{complete_randomization_forced_balanced_cpp()} (balanced case) or
@@ -82,7 +97,7 @@ Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve
   the default objective.
 }
 \section{Super classes}{
-\code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixedRerandomization}
+\code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixedRerandomization}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -99,31 +114,11 @@ Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
 </ul>
 </details>
-<details><summary>+ inherited public methods from DesignMatching</summary>
-<ul>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-assert_matching_design'><code>DesignMatching$assert_matching_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-get_matching_cluster_ids'><code>DesignMatching$get_matching_cluster_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-is_matching_design'><code>DesignMatching$is_matching_design()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from DesignBlocking</summary>
-<ul>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-add_all_subject_matched_pair_ids'><code>DesignBlocking$add_all_subject_matched_pair_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-assert_blocking_design'><code>DesignBlocking$assert_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-assert_equal_block_sizes'><code>DesignBlocking$assert_equal_block_sizes()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-get_block_ids'><code>DesignBlocking$get_block_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-get_cmh_se_w_mat'><code>DesignBlocking$get_cmh_se_w_mat()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-inject_cmh_se_w_mat'><code>DesignBlocking$inject_cmh_se_w_mat()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-is_blocking_design'><code>DesignBlocking$is_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-is_complete_blocking_design'><code>DesignBlocking$is_complete_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-set_m'><code>DesignBlocking$set_m()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-summarize_blocks'><code>DesignBlocking$summarize_blocks()</code></a></li>
-</ul>
-</details>
 <details><summary>+ inherited public methods from Design</summary>
 <ul>
   <li><a href='../../EDI/html/Design.html#method-Design-add_one_subject_response'><code>Design$add_one_subject_response()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-any_censoring'><code>Design$any_censoring()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-applicable_inference_class_names'><code>Design$applicable_inference_class_names()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_responses_recorded'><code>Design$assert_all_responses_recorded()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
@@ -155,13 +150,18 @@ Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-is_blocking_design'><code>Design$is_blocking_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-is_matching_design'><code>Design$is_matching_design()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-prepare_for_resampling_replay'><code>Design$prepare_for_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-unavailable_inference_classes_due_to_missing_packages'><code>Design$unavailable_inference_classes_due_to_missing_packages()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-warm_all_subject_data_cache'><code>Design$warm_all_subject_data_cache()</code></a></li>
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}

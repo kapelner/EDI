@@ -43,8 +43,10 @@
 #' seq_des = DesignSeqOneByOnePocockSimon$new(strata_cols = 'x1', n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = factor(1, levels=1:2)))
 #' @export
-DesignSeqOneByOnePocockSimon = R6::R6Class("DesignSeqOneByOnePocockSimon",
+DesignSeqOneByOnePocockSimon = define_design_class(
+	classname = "DesignSeqOneByOnePocockSimon",
 	inherit = DesignSeqOneByOne,
+	components = character(),
 	public = list(
 		#' @description Initialize a Pocock and Simon (1975) minimization sequential
 		#'   experimental design (see class documentation for the exact imbalance

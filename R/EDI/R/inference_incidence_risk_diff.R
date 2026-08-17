@@ -15,11 +15,26 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceIncidRiskDiff = R6::R6Class("InferenceIncidRiskDiff",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCacheNoParamBootstrap,
+InferenceIncidRiskDiff = define_inference_class(
+	classname = "InferenceIncidRiskDiff",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald"),
 	public = list(
-				
+		#' @description Uses the randomization-CI layer's two-sided p-value contract
+		#'   (\code{\link[EDI:InferenceRandCI]{InferenceRandCI}}'s version, not
+		#'   \code{InferenceRand}'s): for incidence responses it dispatches to the
+		#'   Zhang exact randomization test rather than refusing outright, matching
+		#'   this class's pre-migration old-ladder behavior. This deliberately
+		#'   differs from the \code{InferenceAllSimpleMeanDiff}-family precedent of
+		#'   pinning \code{InferenceRand}'s version, which would have regressed the
+		#'   working Zhang dispatch this class had on the old ladder.
+		#' @param r Number of randomization vectors. @param delta Null difference.
+		#' @param transform_responses Transformation. @param na.rm Remove NAs.
+		#' @param show_progress Show progress. @param permutations Pre-computed permutations.
+		#' @param type Optional exact-inference type for incidence dispatch.
+		#' @param args_for_type Optional arguments for \code{type}.
+		#' @param zero_one_logit_clamp Clamp for exact 0/1 values when logging.
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize a risk-difference inference object.
 		#' @param des_obj A completed \code{Design} object with an incidence response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
@@ -113,6 +128,80 @@ InferenceIncidRiskDiff = R6::R6Class("InferenceIncidRiskDiff",
 	),
 	private = list(
 		supports_likelihood_tests = function(){ FALSE },
+		supports_lik_ratio_param_bootstrap = function(){ FALSE },
+		# Absorbed (verbatim, minus likelihood-only branches) from
+		# StandardModelCacheSource when this class migrated off the old
+		# InferenceAsympLikStdModCacheNoParamBootstrap ladder: this class is
+		# likelihood_tier "none" (its OLS linear-probability objective is a
+		# misspecified Gaussian working model for binary y, hence
+		# supports_likelihood_tests = FALSE above), so it cannot compose the
+		# StandardModelCache component (whose standard_model_cache capability
+		# requires likelihood_tests, tier >= quasi). The likelihood-free subset
+		# it actually uses -- the shared() model-cache state machine, the
+		# cached-SE/df getters, and the design-backed bootstrap-worker
+		# delegation -- is small enough to own here directly. get_standard_
+		# error() drops the source's information-matrix-preference branch: that
+		# branch is gated on supports_information_preference(), which delegates
+		# to supports_likelihood_tests() and therefore never fired for this
+		# class on the old ladder either.
+		shared = function(estimate_only = FALSE){
+			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
+			has_cached_se = !is.null(private$cached_values$s_beta_hat_T) &&
+				length(private$cached_values$s_beta_hat_T) == 1L &&
+				isTRUE(is.finite(private$cached_values$s_beta_hat_T))
+			if (isTRUE(!is.null(private$cached_values$beta_hat_T) && (estimate_only || has_cached_se))) return(invisible(NULL))
+			model_output = private$generate_mod(estimate_only = estimate_only)
+			private$cached_mod = model_output
+			if (is.null(model_output)) {
+				private$cache_nonestimable_estimate("model_fit_unavailable")
+				private$cached_values$df = NA_real_
+				return(invisible(NULL))
+			}
+			beta_hat_T = as.numeric(model_output$beta_hat_T %||% model_output$b[2])[1L]
+			if (!is.finite(beta_hat_T)) {
+				private$cache_nonestimable_estimate("model_treatment_estimate_unavailable")
+				private$cached_values$df = NA_real_
+				return(invisible(NULL))
+			}
+			private$cached_values$beta_hat_T = beta_hat_T
+			if (!is.null(model_output$b)) {
+				private$set_fit_warm_start(
+					as.numeric(model_output$params %||% model_output$b),
+					type = if (!is.null(model_output$params)) "params" else "beta",
+					fisher = model_output$fisher_information %||% model_output$XtWX,
+					weights = model_output$w %||% model_output$mu,
+					force_pd = TRUE
+				)
+			}
+			if (estimate_only) return(invisible(NULL))
+			ssq = model_output$ssq_b_2 %||% model_output$ssq_b_j
+			ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
+			private$cached_values$df = model_output$df %||% NA_real_
+			if (is.finite(ssq) && ssq > 0) {
+				private$cached_values$s_beta_hat_T = sqrt(ssq)
+				private$clear_nonestimable_state()
+			} else {
+				private$cache_nonestimable_se("model_standard_error_unavailable")
+			}
+		},
+		get_standard_error = function(){
+			private$shared(estimate_only = FALSE)
+			private$cached_values$s_beta_hat_T
+		},
+		get_degrees_of_freedom = function(){
+			private$shared(estimate_only = FALSE)
+			private$cached_values$df
+		},
+		create_bootstrap_worker_state = function(){
+			private$create_design_backed_bootstrap_worker_state()
+		},
+		load_bootstrap_sample_into_worker = function(worker_state, indices){
+			private$load_bootstrap_sample_into_design_backed_worker(worker_state, indices)
+		},
+		compute_bootstrap_worker_estimate = function(worker_state){
+			private$compute_bootstrap_worker_estimate_via_compute_treatment_estimate(worker_state)
+		},
 		best_X_colnames = NULL,
 		build_design_matrix = function(){
 			X_cov = private$X
@@ -178,5 +267,23 @@ InferenceIncidRiskDiff = R6::R6Class("InferenceIncidRiskDiff",
 			}
 			attempt$fit
 		}
-	)
-	)
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"get_standard_error", "get_degrees_of_freedom",
+			"supports_likelihood_tests", "supports_lik_ratio_param_bootstrap",
+			"get_supported_testing_types_impl"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
+)

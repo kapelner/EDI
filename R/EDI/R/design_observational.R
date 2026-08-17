@@ -30,8 +30,10 @@
 #' des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10)))
 #' des$assign_w_to_all_subjects(w_precomputed = rbinom(10, 1, 0.3))
 #' @export
-ObservationalDesign = R6::R6Class("ObservationalDesign",
+ObservationalDesign = define_design_class(
+	classname = "ObservationalDesign",
 	inherit = DesignFixed,
+	components = character(),
 	public = list(
 		#' @description Initialize a fixed observational (non-randomized) design. No
 		#'   treatment vector is drawn or requested here; the constructor only records

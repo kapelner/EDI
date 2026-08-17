@@ -173,23 +173,17 @@ InferenceRand = R6::R6Class("InferenceRand",
 			need_thread_objs = !(use_lightweight_custom_stat && use_perms)
 			inf_template = if (need_thread_objs) self$duplicate() else NULL
 			des_template = if (need_thread_objs) setup$template$duplicate() else NULL
-			# Warm up the design template cache if it is a sequential design that uses covariates.
-			if (!is.null(des_template) && isTRUE(des_template$.__enclos_env__$private$uses_covariates)) {
+			# Warm up the design template cache if it uses covariates. The Design
+			# owns both the capability check and cache mutation; inference does not
+			# reach through its private environment (fix_design_hierarchy.md,
+			# Source Invariant #11).
+			if (!is.null(des_template)) {
 				is_verbose = isTRUE(private$verbose)
 				if (is_verbose) cat("Warming up design cache... ")
 				tryCatch({
-					priv = des_template$.__enclos_env__$private
-					old_t = priv$t
-					if (is.null(priv$all_subject_data_cache)) priv$all_subject_data_cache = list()
-					n_subjects = des_template$get_n()
-					for (t_temp in 1 : n_subjects) {
-						priv$t = t_temp
-						priv$compute_all_subject_data()
-					}
-					priv$t = old_t
-					if (is_verbose) cat("done.\n")
+					did_warm = des_template$warm_all_subject_data_cache()
+					if (is_verbose) cat(if (isTRUE(did_warm)) "done.\n" else "not needed.\n")
 				}, error = function(e) {
-					if (exists("old_t")) des_template$.__enclos_env__$private$t = old_t
 					if (is_verbose) cat("failed.\n")
 				})
 			}

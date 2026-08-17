@@ -597,7 +597,7 @@ edi::ResultMap fast_clayton_weibull_aft_optim_internal(
             last_val = fun(p_fixed, g);
         } catch (...) {}
         return edi::ResultMap()
-            .set("converged", false).set("error", std::string(e.what()))
+            .set("converged", false).set("hit_iteration_cap", false).set("error", std::string(e.what()))
             .set("par", p_fixed).set("params", p_fixed).set("b", p_fixed)
             .set("value", last_val).set("neg_loglik", last_val).set("neg_ll", last_val);
     } catch (...) {
@@ -608,7 +608,7 @@ edi::ResultMap fast_clayton_weibull_aft_optim_internal(
             last_val = fun(p_fixed, g);
         } catch (...) {}
         return edi::ResultMap()
-            .set("converged", false).set("error", std::string("unknown"))
+            .set("converged", false).set("hit_iteration_cap", false).set("error", std::string("unknown"))
             .set("par", p_fixed).set("params", p_fixed).set("b", p_fixed)
             .set("value", last_val).set("neg_loglik", last_val).set("neg_ll", last_val);
     }
@@ -623,6 +623,9 @@ edi::ResultMap fast_clayton_weibull_aft_optim_internal(
        .set("neg_ll", fit.value)
        .set("loglik", std::isfinite(fit.value) ? -fit.value : std::numeric_limits<double>::quiet_NaN())
        .set("niter", fit.niter)
+       .set("hit_iteration_cap", fit.hit_iteration_cap)
+       .set("gradient_norm", fit.gradient_norm)
+       .set("min_eigenvalue_information", fit.min_eigenvalue_information)
        .set("converged", fit.converged);
 
     if (estimate_only) {
@@ -694,9 +697,9 @@ edi::ResultMap fast_dep_cens_transform_optim_internal(
     try {
         fit = optimize_fixed_likelihood(fun, params, fixed_spec, maxit, reltol, optimization_alg, "lbfgs", 0, h_ptr);
     } catch (const std::exception& e) {
-        return edi::ResultMap().set("converged", false).set("error", std::string(e.what()));
+        return edi::ResultMap().set("converged", false).set("hit_iteration_cap", false).set("error", std::string(e.what()));
     } catch (...) {
-        return edi::ResultMap().set("converged", false).set("error", std::string("unknown"));
+        return edi::ResultMap().set("converged", false).set("hit_iteration_cap", false).set("error", std::string("unknown"));
     }
     params = fit.params;
 
@@ -709,6 +712,9 @@ edi::ResultMap fast_dep_cens_transform_optim_internal(
        .set("neg_ll", fit.value)
        .set("loglik", std::isfinite(fit.value) ? -fit.value : std::numeric_limits<double>::quiet_NaN())
        .set("niter", fit.niter)
+       .set("hit_iteration_cap", fit.hit_iteration_cap)
+       .set("gradient_norm", fit.gradient_norm)
+       .set("min_eigenvalue_information", fit.min_eigenvalue_information)
        .set("converged", fit.converged);
 
     if (estimate_only) {

@@ -508,6 +508,7 @@ edi::ResultMap fast_logistic_glmm_internal(
 	double neg_ll = std::numeric_limits<double>::quiet_NaN();
 	int niter = maxit;
 	bool converged = false;
+	bool hit_iteration_cap = false;
 	double gradient_norm = std::numeric_limits<double>::quiet_NaN();
 	try {
 		LikelihoodFitResult fit = optimize_fixed_likelihood(obj, par, fixed_spec, maxit, eps_g, optimization_alg, "lbfgs", 0, info_start_ptr);
@@ -515,6 +516,11 @@ edi::ResultMap fast_logistic_glmm_internal(
 		neg_ll = fit.value;
 		niter = fit.niter;
 		converged = std::isfinite(neg_ll) && fit.converged;
+		// hit_iteration_cap follows the same isfinite(neg_ll) gate as
+		// converged above: a non-finite objective is a distinct failure,
+		// not "ran out of iterations" (optimizer_diagnostics_report.md
+		// TODO-4).
+		hit_iteration_cap = std::isfinite(neg_ll) && fit.hit_iteration_cap;
 		gradient_norm = fit.gradient_norm;
 	} catch (...) {
 		return edi::ResultMap()
@@ -523,6 +529,7 @@ edi::ResultMap fast_logistic_glmm_internal(
 			.set("log_sigma", par[total - 1])
 			.set("ssq_b_T", std::numeric_limits<double>::quiet_NaN())
 			.set("converged", false)
+			.set("hit_iteration_cap", false)
 			.set("neg_loglik", std::numeric_limits<double>::quiet_NaN())
 			.set("gradient_norm", std::numeric_limits<double>::quiet_NaN())
 			.set("variance_boundary_hit", std::monostate{});
@@ -551,6 +558,8 @@ edi::ResultMap fast_logistic_glmm_internal(
 			.set("information_type", std::string("observed"))
 			.set("hessian", std::monostate{})
 			.set("converged", converged)
+			.set("num_iter", niter)
+			.set("hit_iteration_cap", hit_iteration_cap)
 			.set("neg_loglik", true_neg_ll)
 			.set("neg_ll", true_neg_ll)
 			.set("loglik", std::isfinite(true_neg_ll) ? -true_neg_ll : std::numeric_limits<double>::quiet_NaN())
@@ -571,6 +580,7 @@ edi::ResultMap fast_logistic_glmm_internal(
 		information(total - 1, total - 1) -= log_sigma_penalty_hessian(par[total - 1]);
 	} catch (...) {
 		converged = false;
+		hit_iteration_cap = false;
 	}
 
 	double ssq_b_T = std::numeric_limits<double>::quiet_NaN();
@@ -597,6 +607,8 @@ edi::ResultMap fast_logistic_glmm_internal(
 		.set("information_type", std::string("observed"))
 		.set("hessian", neg_information)
 		.set("converged", converged)
+		.set("num_iter", niter)
+		.set("hit_iteration_cap", hit_iteration_cap)
 		.set("neg_loglik", true_neg_ll)
 		.set("neg_ll", true_neg_ll)
 		.set("loglik", std::isfinite(true_neg_ll) ? -true_neg_ll : std::numeric_limits<double>::quiet_NaN())

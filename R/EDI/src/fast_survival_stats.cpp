@@ -11,6 +11,7 @@ inline bool R_IsNA(double x) { return std::isnan(x); }
 #include <algorithm> // for std::sort
 #include <cmath>
 #include <limits>
+#include <stdexcept> // for std::invalid_argument (NA/NaN event-time guard)
 #include <vector>
 
 #ifndef EDI_CORE_ONLY
@@ -24,10 +25,27 @@ namespace {
 
 struct SurvEntry { double time; int status; };
 
+// NA/NaN guard for event-time inputs. Every KM group-walk in this file scans
+// sorted times with `while (time[j] == current_time)`; a NaN time makes that
+// comparison false even for j == i, so the outer loop's `i = j` never
+// advances -- an infinite, uninterruptible (no R checkpoints) hang. NaN also
+// breaks std::sort's strict-weak-ordering precondition (UB). Callers must
+// therefore reject NaN input up front: the Rcpp entry points stop() with a
+// clear message, and the OpenMP-safe inline kernel returns NA_REAL (throwing
+// inside a parallel region is not an option). First hit in the wild: the
+// slow-path bootstrap machinery fed the design's raw NA-for-censored `y`
+// into the KM median kernel (fix_inference_hierarchy.md, Follow-Ups,
+// "NA-y subset-clone bootstrap hang", 2026-08-17).
+inline bool any_nan_time(const double* x, int n) {
+    for (int i = 0; i < n; ++i) if (std::isnan(x[i])) return true;
+    return false;
+}
+
 // Compute KM median or RMST for one sorted group; utimes/sprobs are reused across calls.
 inline double km_stat_inline(SurvEntry* grp, int ng, bool do_rmst,
                               std::vector<double>& utimes, std::vector<double>& sprobs) {
     if (ng == 0) return NA_REAL;
+    for (int i = 0; i < ng; ++i) if (std::isnan(grp[i].time)) return NA_REAL;
     std::sort(grp, grp + ng, [](const SurvEntry& a, const SurvEntry& b){ return a.time < b.time; });
     utimes.clear(); sprobs.clear();
     utimes.push_back(0.0); sprobs.push_back(1.0);
@@ -76,6 +94,16 @@ double get_survival_stat_for_group_result(const Eigen::Ref<const Eigen::VectorXd
                                           const std::string& requested_stat) {
     int n = static_cast<int>(y.size());
     if (n == 0) return NA_REAL;
+    // See any_nan_time() above: NaN times hang the group walk and break the
+    // sort. Portable (EDI_CORE_ONLY-safe) function, so throw a std::exception
+    // rather than Rcpp::stop; Rcpp converts it to an R error at the .Call
+    // boundary and pybind11 translates it for the Python TU.
+    if (any_nan_time(y.data(), n)) {
+        throw std::invalid_argument(
+            "get_survival_stat_for_group_result: y contains NA/NaN event times; "
+            "survival kernels require finite (effective) times -- resolve censored "
+            "subjects to their censoring time (Design$get_effective_time()) first.");
+    }
 
     struct Subject { double time; int status; };
     std::vector<Subject> subjects(n);
@@ -186,6 +214,10 @@ double get_survival_stat_for_group(SEXP y, SEXP dead, std::string requested_stat
     if (n == 0) {
         return NA_REAL;
     }
+    if (any_nan_time(y_vec_coerced.data(), n)) {
+        Rcpp::stop("get_survival_stat_for_group: y contains NA/NaN event times; "
+                   "survival kernels require finite (effective) times.");
+    }
 
     struct Subject {
         double time;
@@ -286,6 +318,10 @@ double get_survival_stat_diff(SEXP y, SEXP dead, SEXP w, std::string requested_s
     
 
     
+    if (any_nan_time(y_vec_coerced.data(), (int)y_vec_coerced.size())) {
+        Rcpp::stop("get_survival_stat_diff: y contains NA/NaN event times; "
+                   "survival kernels require finite (effective) times.");
+    }
     std::vector<int> control_indices_std, treatment_indices_std;
     for (int i = 0; i < w_vec_coerced.size(); ++i) {
         if (w_vec_coerced[i] == 0) {
@@ -349,6 +385,10 @@ double get_restricted_mean_se_for_group(SEXP y, SEXP dead) {
     
     int n = y_vec_coerced.size();
     if (n == 0) return NA_REAL;
+    if (any_nan_time(y_vec_coerced.data(), n)) {
+        Rcpp::stop("get_restricted_mean_se_for_group: y contains NA/NaN event times; "
+                   "survival kernels require finite (effective) times.");
+    }
 
     struct Subject { double time; int status; };
     std::vector<Subject> subjects(n);
@@ -476,6 +516,13 @@ NumericVector compute_survival_stat_diff_rand_bootstrap_parallel_cpp(
 
   const int n = i_mat.nrow();
   const int nsim = i_mat.ncol();
+  // Guard before the parallel region (throwing inside OpenMP is not allowed);
+  // km_stat_inline's own NaN check is the per-replicate backstop for
+  // NaN introduced via noise_mat.
+  if (any_nan_time(y0.begin(), (int)y0.size())) {
+    Rcpp::stop("compute_survival_stat_diff_rand_bootstrap_parallel_cpp: y0 contains "
+               "NA/NaN event times; survival kernels require finite (effective) times.");
+  }
   std::vector<double> results_vec(nsim, NA_REAL);
   const double* y0_ptr = y0.begin();
   const int* dead_ptr = dead.begin();
@@ -550,6 +597,10 @@ NumericVector compute_survival_stat_diff_rand_bootstrap_serial_cpp(
 
   const int n = i_mat.nrow();
   const int nsim = i_mat.ncol();
+  if (any_nan_time(y0.begin(), (int)y0.size())) {
+    Rcpp::stop("compute_survival_stat_diff_rand_bootstrap_serial_cpp: y0 contains "
+               "NA/NaN event times; survival kernels require finite (effective) times.");
+  }
   NumericVector results(nsim, NA_REAL);
   const double* y0_ptr = y0.begin();
   const int* dead_ptr = dead.begin();

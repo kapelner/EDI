@@ -22,7 +22,7 @@
 # Synthetic hosts use `inherit = Design` (the root class), not `inherit = DesignFixed`,
 # for the same reason documented at length in
 # test-design-cluster-structure-golden.R: DesignFixed still (pre "Timing-Family
-# Split") inherits transitively through DesignMatching -> DesignBlocking, which
+# Split") inherited structural methods through the legacy deep hierarchy, which
 # contaminates private$has_private_method() existence checks against ancestor-level
 # methods. Using `inherit = Design` directly sidesteps that contamination.
 

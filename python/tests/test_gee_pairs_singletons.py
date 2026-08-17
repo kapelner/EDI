@@ -54,6 +54,10 @@ def test_matches_r_fixture():
     X, y, group_id = _synthetic_data()
     res = gee_pairs_singletons(X, y, group_id, "gaussian")
 
+    # NOTE (2026-08-17): converged now derives from a gradient-norm-based
+    # (Score.norm() < tol) stopping check rather than step-size, per
+    # optimizer_diagnostics_report.md TODO-4 -- re-verify against a fresh R
+    # run once compiled.
     assert res["converged"] is True
     assert res["beta"] == pytest.approx(R_BETA, abs=ATOL, rel=RTOL)
     assert res["alpha"] == pytest.approx(R_ALPHA, abs=ATOL, rel=RTOL)

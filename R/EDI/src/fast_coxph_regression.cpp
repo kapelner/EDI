@@ -239,13 +239,18 @@ struct CoxFitResult {
     double neg_ll;
     bool converged;
     int num_iter;
+    bool hit_iteration_cap;
     // Norm of the score at the returned beta. cox_newton_raphson's own
     // convergence check is objective-value-based (|old_ll - ll| < tol), not
     // gradient-based, so this is a genuinely independent diagnostic -- but it
     // reuses total_grad, already computed each iteration, at zero extra cost.
     double gradient_norm;
+    // Fallback-path-only (optimizer_diagnostics_report.md TODO-1): minimum
+    // eigenvalue of the observed information at the returned beta, computed
+    // only when !converged. NaN when not computed.
+    double min_eigenvalue_information;
 
-    CoxFitResult() : neg_ll(std::numeric_limits<double>::quiet_NaN()), converged(false), num_iter(0), gradient_norm(std::numeric_limits<double>::quiet_NaN()) {}
+    CoxFitResult() : neg_ll(std::numeric_limits<double>::quiet_NaN()), converged(false), num_iter(0), hit_iteration_cap(false), gradient_norm(std::numeric_limits<double>::quiet_NaN()), min_eigenvalue_information(std::numeric_limits<double>::quiet_NaN()) {}
 };
 
 CoxFitResult cox_newton_raphson(
@@ -289,6 +294,11 @@ CoxFitResult cox_newton_raphson(
 
     double old_ll = 1e300;
     int iter = 0;
+    // Distinguishes the true (objective-value-based, by design -- see
+    // res.gradient_norm's comment below) convergence break from the failure
+    // breaks further down, both of which can also fire at iter < maxit.
+    // optimizer_diagnostics_report.md TODO-4.
+    bool converged_by_tol = false;
 
     for (iter = 0; iter < maxit; ++iter) {
         edi_check_R_user_interrupt_every(iter);
@@ -306,7 +316,7 @@ CoxFitResult cox_newton_raphson(
             total_hess.noalias() += ws.hess;
         }
 
-        if (std::abs(old_ll - ll) < tol) break;
+        if (std::abs(old_ll - ll) < tol) { converged_by_tol = true; break; }
         old_ll = ll;
 
         Eigen::MatrixXd H;
@@ -360,9 +370,22 @@ CoxFitResult cox_newton_raphson(
     CoxFitResult res;
     res.beta.assign(beta.data(), beta.data() + p);
     res.neg_ll = old_ll;
-    res.converged = (iter < maxit);
+    // NOT redefined to gradient-norm-based (optimizer_diagnostics_report.md
+    // TODO-4): this optimizer's own convergence check is intentionally
+    // objective-value-based (|old_ll - ll| < tol), not gradient-based (see
+    // res.gradient_norm's comment below) -- gradient_norm is exposed as a
+    // genuinely independent diagnostic, not the convergence criterion
+    // itself. `iter < maxit` alone was a real bug though: it also reported
+    // converged=TRUE for the failure breaks below (non-finite
+    // gradient/Hessian, singular Hessian), which can fire at iter < maxit
+    // too -- fixed via the explicit converged_by_tol flag.
+    res.converged = converged_by_tol;
     res.num_iter = iter;
+    res.hit_iteration_cap = !converged_by_tol && (iter >= maxit);
     res.hess_mat = total_hess;
+    // Reuses total_hess, already built above -- no new computation
+    // (optimizer_diagnostics_report.md TODO-1).
+    set_min_eigenvalue_if_suspect(total_hess, res);
     res.gradient_norm = total_grad.norm();
 
     if (!estimate_only) {
@@ -458,9 +481,14 @@ CoxFitResult cox_lbfgs(
     CoxFitResult res;
     res.beta.assign(fit.params.data(), fit.params.data() + p);
     res.neg_ll    = fit.value;
+    // Unlike cox_newton_raphson's objective-value-based criterion, this path
+    // goes through the shared LBFGS machinery, so `converged` here IS
+    // gradient-norm-based (optimizer_diagnostics_report.md TODO-4).
     res.converged = fit.converged;
     res.num_iter = fit.niter;
+    res.hit_iteration_cap = fit.hit_iteration_cap;
     res.gradient_norm = fit.gradient_norm;
+    res.min_eigenvalue_information = fit.min_eigenvalue_information;
 
     if (!estimate_only && (fit.converged || true)) { // Always try to get Hessian if not estimate_only
         res.hess_mat = obj.hessian(fit.params);
@@ -627,18 +655,22 @@ edi::ResultMap fast_coxph_regression_internal(
             .set("coefficients", coef_r)
             .set("converged", fit.converged)
             .set("neg_ll", fit.neg_ll)
-            .set("iterations", fit.num_iter)
+            .set("num_iter", fit.num_iter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
             .set("fisher_information", fit.hess_mat)
-            .set("gradient_norm", fit.gradient_norm);
+            .set("gradient_norm", fit.gradient_norm)
+            .set("min_eigenvalue_information", fit.min_eigenvalue_information);
     }
     return edi::ResultMap()
         .set("coefficients", coef_r)
         .set("vcov", fit.vcov)
         .set("converged", fit.converged)
         .set("neg_ll", fit.neg_ll)
-        .set("iterations", fit.num_iter)
+        .set("num_iter", fit.num_iter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
         .set("fisher_information", fit.hess_mat)
-        .set("gradient_norm", fit.gradient_norm);
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information);
 }
 
 // Stratified sibling of fast_coxph_regression_internal above: groups rows by
@@ -694,18 +726,22 @@ edi::ResultMap fast_stratified_coxph_regression_internal(
             .set("coefficients", coef_r)
             .set("converged", fit.converged)
             .set("neg_ll", fit.neg_ll)
-            .set("iterations", fit.num_iter)
+            .set("num_iter", fit.num_iter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
             .set("fisher_information", fit.hess_mat)
-            .set("gradient_norm", fit.gradient_norm);
+            .set("gradient_norm", fit.gradient_norm)
+            .set("min_eigenvalue_information", fit.min_eigenvalue_information);
     }
     return edi::ResultMap()
         .set("coefficients", coef_r)
         .set("vcov", fit.vcov)
         .set("converged", fit.converged)
         .set("neg_ll", fit.neg_ll)
-        .set("iterations", fit.num_iter)
+        .set("num_iter", fit.num_iter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
         .set("fisher_information", fit.hess_mat)
-        .set("gradient_norm", fit.gradient_norm);
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information);
 }
 
 #ifndef EDI_CORE_ONLY
@@ -775,18 +811,22 @@ List fast_coxph_regression_prebuilt_cpp(
             .set("coefficients", coef_r)
             .set("converged", fit.converged)
             .set("neg_ll", fit.neg_ll)
-            .set("iterations", fit.num_iter)
+            .set("num_iter", fit.num_iter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
             .set("fisher_information", fit.hess_mat)
-            .set("gradient_norm", fit.gradient_norm));
+            .set("gradient_norm", fit.gradient_norm)
+            .set("min_eigenvalue_information", fit.min_eigenvalue_information));
     }
     return edi::to_rcpp_list(edi::ResultMap()
         .set("coefficients", coef_r)
         .set("vcov", fit.vcov)
         .set("converged", fit.converged)
         .set("neg_ll", fit.neg_ll)
-        .set("iterations", fit.num_iter)
+        .set("num_iter", fit.num_iter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
         .set("fisher_information", fit.hess_mat)
-        .set("gradient_norm", fit.gradient_norm));
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information));
 }
 
 // [[Rcpp::export]]
@@ -819,9 +859,11 @@ List fast_coxph_regression_cpp(const Eigen::MatrixXd& X, const Eigen::VectorXd& 
             .set("coefficients", coef_r)
             .set("converged", fit.converged)
             .set("neg_ll", fit.neg_ll)
-            .set("iterations", fit.num_iter)
+            .set("num_iter", fit.num_iter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
             .set("fisher_information", fit.hess_mat)
-            .set("gradient_norm", fit.gradient_norm));
+            .set("gradient_norm", fit.gradient_norm)
+            .set("min_eigenvalue_information", fit.min_eigenvalue_information));
     }
     Eigen::MatrixXd vcov_mat = (cluster.isNotNull()) ? compute_robust_vcov(strata_data, fit.beta, fit.vcov, std::vector<int>(IntegerVector(cluster).begin(), IntegerVector(cluster).end())) : fit.vcov;
     return edi::to_rcpp_list(edi::ResultMap()
@@ -829,9 +871,11 @@ List fast_coxph_regression_cpp(const Eigen::MatrixXd& X, const Eigen::VectorXd& 
         .set("vcov", vcov_mat)
         .set("converged", fit.converged)
         .set("neg_ll", fit.neg_ll)
-        .set("iterations", fit.num_iter)
+        .set("num_iter", fit.num_iter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
         .set("fisher_information", fit.hess_mat)
-        .set("gradient_norm", fit.gradient_norm));
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information));
 }
 
 // [[Rcpp::export]]
@@ -887,18 +931,22 @@ List fast_stratified_coxph_regression_cpp(
             .set("coefficients", coef_r)
             .set("converged", fit.converged)
             .set("neg_ll", fit.neg_ll)
-            .set("iterations", fit.num_iter)
+            .set("num_iter", fit.num_iter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
             .set("fisher_information", fit.hess_mat)
-            .set("gradient_norm", fit.gradient_norm));
+            .set("gradient_norm", fit.gradient_norm)
+            .set("min_eigenvalue_information", fit.min_eigenvalue_information));
     }
     return edi::to_rcpp_list(edi::ResultMap()
         .set("coefficients", coef_r)
         .set("vcov", fit.vcov)
         .set("converged", fit.converged)
         .set("neg_ll", fit.neg_ll)
-        .set("iterations", fit.num_iter)
+        .set("num_iter", fit.num_iter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
         .set("fisher_information", fit.hess_mat)
-        .set("gradient_norm", fit.gradient_norm));
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information));
 }
 
 // [[Rcpp::export]]

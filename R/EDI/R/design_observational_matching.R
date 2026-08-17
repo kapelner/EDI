@@ -14,7 +14,7 @@
 #' (\code{private$matching_capable}, checked via \code{is_matching_design()}) from
 #' generic blocking, and several \code{Inference} components (jackknife, nonparametric
 #' bootstrap, Bayesian bootstrap, exchangeable-resampling-unit selection) branch on it to
-#' use pair-preserving resampling (\code{DesignMatching}'s own
+#' use pair-preserving resampling (\code{MatchingStructure}'s
 #' \code{draw_bootstrap_indices()}, via \code{draw_matching_bootstrap_sample_cpp()})
 #' instead of generic per-stratum resampling. \code{ObservationalDesignBlocks} overrides
 #' \code{draw_bootstrap_indices()} with the generic stratified version, so subclassing it
@@ -23,7 +23,7 @@
 #' \code{\link[EDI:ObservationalDesign]{ObservationalDesign}} directly -- the same
 #' relationship \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}} has to
 #' \code{\link[EDI:DesignFixed]{DesignFixed}} -- so it inherits
-#' \code{DesignMatching}'s real matched-pair bootstrap machinery unmodified.
+#' \code{MatchingStructure}'s matched-pair bootstrap machinery unmodified.
 #'
 #' @keywords internal
 #' @examples
@@ -39,7 +39,7 @@ ObservationalDesignMatching = define_design_class(
 	# provide draw_bootstrap_indices, and the pair-preserving MatchingStructure version
 	# (processed after its dependency) must win -- this class had no override of its
 	# own, so it was already using this exact function via inheritance from
-	# DesignMatching (reference-identity, not just behavioral equivalence).
+	# the canonical MatchingStructure literal (reference identity, not just behavioral equivalence).
 	overrides = list(private = "draw_bootstrap_indices"),
 	public = list(
 		#' @description Initialize a fixed observational (non-randomized) design whose

@@ -29,9 +29,11 @@ struct RobustModelResult {
     Eigen::MatrixXd X_free;
     double XtX_inv_diag_j;
     double scale;
-    int iterations;
+    int num_iter;
     bool converged;
+    bool hit_iteration_cap;
     double ssq_b_j;
+    double min_eigenvalue_information;
 };
 
 RobustModelResult fast_robust_regression_internal(

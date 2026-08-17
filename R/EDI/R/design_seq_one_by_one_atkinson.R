@@ -48,8 +48,10 @@
 #' seq_des = DesignSeqOneByOneAtkinson$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' @export
-DesignSeqOneByOneAtkinson = R6::R6Class("DesignSeqOneByOneAtkinson",
+DesignSeqOneByOneAtkinson = define_design_class(
+	classname = "DesignSeqOneByOneAtkinson",
 	inherit = DesignSeqOneByOne,
+	components = character(),
 	public = list(
 		#' @description Initialize an Atkinson (1982) biased-coin sequential
 		#'   experimental design (see class documentation for the assignment rule).

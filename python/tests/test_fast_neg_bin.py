@@ -63,14 +63,23 @@ def _synthetic_data():
 #   EDI:::fast_neg_bin_cpp(X, as.integer(y), estimate_only = FALSE, smart_cold_start = TRUE)
 R_B = np.array([0.362440207398258, 0.376465607321876, -0.0794374115758531])
 R_DISPERSION = 6.44141227855442  # R's $theta_hat
-R_ITERATIONS = 18
+R_NUM_ITER = 18
 
 # R reference, EDI 1.0.0, computed 2026-08-05 via (smart_cold_start omitted
 # -- exercises R's own default, FALSE, on the exact same fixture data):
 #   EDI:::fast_neg_bin_cpp(X, as.integer(y), estimate_only = FALSE)
 R_B_DEFAULT_COLD_START = np.array([0.36241919053302, 0.376530201068749, -0.0794330300265768])
 R_DISPERSION_DEFAULT_COLD_START = 6.44090879821874
-R_ITERATIONS_DEFAULT_COLD_START = 12
+R_NUM_ITER_DEFAULT_COLD_START = 12
+
+# NOTE (2026-08-17): num_iter (renamed from "iterations") should be unchanged
+# by the optimizer_diagnostics_report.md TODO-4 convergence-field rework --
+# that only changes how `converged`/`hit_iteration_cap` classify a given
+# exit, not which iteration the optimizer actually exits on. This fitter
+# defaults to "lbfgs", whose own stopping check also fires on a relative
+# function-value-decrease criterion, not gradient norm alone -- re-verify
+# `converged=True` still holds for both fixtures against a fresh R run after
+# the C++ change is compiled.
 
 
 def test_matches_r_fixture():
@@ -80,7 +89,8 @@ def test_matches_r_fixture():
     assert res["converged"] is True
     assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)
     assert res["dispersion"] == pytest.approx(R_DISPERSION, abs=ATOL, rel=RTOL)
-    assert res["iterations"] == R_ITERATIONS
+    assert res["num_iter"] == R_NUM_ITER
+    assert res["hit_iteration_cap"] is False
 
 
 def test_matches_r_fixture_default_smart_cold_start():
@@ -94,7 +104,8 @@ def test_matches_r_fixture_default_smart_cold_start():
     assert res["converged"] is True
     assert res["b"] == pytest.approx(R_B_DEFAULT_COLD_START, abs=ATOL, rel=RTOL)
     assert res["dispersion"] == pytest.approx(R_DISPERSION_DEFAULT_COLD_START, abs=ATOL, rel=RTOL)
-    assert res["iterations"] == R_ITERATIONS_DEFAULT_COLD_START
+    assert res["num_iter"] == R_NUM_ITER_DEFAULT_COLD_START
+    assert res["hit_iteration_cap"] is False
 
 
 def test_result_shape_and_types():

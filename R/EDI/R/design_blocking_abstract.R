@@ -1,35 +1,23 @@
-#' An Abstract Blocking Experimental Design
-#'
-#' @name DesignBlocking
-#' @description Internal method.
-#' An abstract R6 Class encapsulating shared blocking state and functionality for
-#' experimental designs that may define block identifiers.
-#'
-#' @keywords internal
-#' @examples
-#' \dontrun{
-#' des = DesignBlocking$new(n = 6, response_type = "continuous")
-#' }
-DesignBlocking = R6::R6Class("DesignBlocking",
-	lock_objects = FALSE,
-	inherit = Design,
-	public = list(
-		#' @description Checks whether this design currently has blocking structure.
-		#'
-		#' @return \code{TRUE} if the design supports blocking or manual block IDs
-		#'   have been recorded, \code{FALSE} otherwise.
+# Canonical literal implementation of the BlockingStructure component. This is
+# deliberately not an R6 generator: concrete designs receive these entries only
+# through define_design_class(components = "BlockingStructure").
+DESIGN_BLOCKING_STRUCTURE_PUBLIC = list(
+		# @description Checks whether this design currently has blocking structure.
+		#
+		# @return \code{TRUE} if the design supports blocking or manual block IDs
+		#   have been recorded, \code{FALSE} otherwise.
 		is_blocking_design = function(){
 			isTRUE(private$blocking_capable) || !is.null(private$m)
 		},
-		#' @description Inject a precomputed matrix of assignment vectors for CMH SE estimation.
-		#' @param w_mat Integer matrix (n x se_est_num_vectors).
+		# @description Inject a precomputed matrix of assignment vectors for CMH SE estimation.
+		# @param w_mat Integer matrix (n x se_est_num_vectors).
 		inject_cmh_se_w_mat = function(w_mat){
 			private$cmh_se_w_mat = w_mat
 			invisible(self)
 		},
-		#' @description Retrieve the precomputed CMH SE w_mat, or NULL if not set.
+		# @description Retrieve the precomputed CMH SE w_mat, or NULL if not set.
 		get_cmh_se_w_mat = function() private$cmh_se_w_mat,
-		#' @description Checks whether this design is a blocking design.
+		# @description Checks whether this design is a blocking design.
 		assert_blocking_design = function(){
 			if (should_run_asserts()) {
 				if (!self$is_blocking_design()){
@@ -37,9 +25,9 @@ DesignBlocking = R6::R6Class("DesignBlocking",
 				}
 			}
 		},
-		#' @description Check whether the current blocking structure is complete.
-		#'
-		#' @return \code{TRUE} if blocking is defined and all block IDs are positive.
+		# @description Check whether the current blocking structure is complete.
+		#
+		# @return \code{TRUE} if blocking is defined and all block IDs are positive.
 		is_complete_blocking_design = function(){
 			if (!self$is_blocking_design()) {
 				return(FALSE)
@@ -47,9 +35,9 @@ DesignBlocking = R6::R6Class("DesignBlocking",
 			block_ids = self$get_block_ids()
 			length(block_ids) > 0L && all(is.finite(block_ids)) && all(block_ids > 0L)
 		},
-		#' @description Checks whether all blocks have the same number of subjects.
-		#'
-		#' @return `TRUE` invisibly if the block sizes are equal.
+		# @description Checks whether all blocks have the same number of subjects.
+		#
+		# @return `TRUE` invisibly if the block sizes are equal.
 		assert_equal_block_sizes = function(){
 			self$assert_blocking_design()
 			block_ids = self$get_block_ids()
@@ -61,14 +49,14 @@ DesignBlocking = R6::R6Class("DesignBlocking",
 			}
 			invisible(TRUE)
 		},
-		#' @description Record externally-supplied matched-pair or block identifiers.
-		#'
-		#' This is primarily for post-hoc analysis of completed experiments whose
-		#' block IDs were defined outside the built-in design classes.
-		#'
-		#' @param m A positive-integer vector of block IDs with one entry per subject.
-		#'
-		#' @return Invisibly returns \code{self}.
+		# @description Record externally-supplied matched-pair or block identifiers.
+		#
+		# This is primarily for post-hoc analysis of completed experiments whose
+		# block IDs were defined outside the built-in design classes.
+		#
+		# @param m A positive-integer vector of block IDs with one entry per subject.
+		#
+		# @return Invisibly returns \code{self}.
 		add_all_subject_matched_pair_ids = function(m){
 			if (should_run_asserts()) {
 				assertIntegerish(m, lower = 1, any.missing = FALSE, len = private$t)
@@ -76,15 +64,15 @@ DesignBlocking = R6::R6Class("DesignBlocking",
 			private$m = as.integer(m)
 			invisible(self)
 		},
-		#' @description Set the strata (block identifiers) for this design.
-		#'
-		#' Can only be called when \code{private$m} is still \code{NULL} (i.e. before strata
-		#' have been derived or assigned). The design must advertise blocking support.
-		#'
-		#' @param m A non-negative-integer vector of block IDs, one entry per subject already
-		#'   recorded. Zero is reserved as a reservoir flag used by sequential KK designs.
-		#'
-		#' @return Invisibly returns \code{self} for method chaining.
+		# @description Set the strata (block identifiers) for this design.
+		#
+		# Can only be called when \code{private$m} is still \code{NULL} (i.e. before strata
+		# have been derived or assigned). The design must advertise blocking support.
+		#
+		# @param m A non-negative-integer vector of block IDs, one entry per subject already
+		#   recorded. Zero is reserved as a reservoir flag used by sequential KK designs.
+		#
+		# @return Invisibly returns \code{self} for method chaining.
 		set_m = function(m){
 			if (should_run_asserts()) {
 				if (!isTRUE(private$blocking_capable)){
@@ -98,23 +86,20 @@ DesignBlocking = R6::R6Class("DesignBlocking",
 			private$m = as.integer(m)
 			invisible(self)
 		},
-		#' @description If the design is a block design, get block identifiers (otherwise halts)
-		#'
-		#' @return An integer vector of block identifiers.
+		# @description If the design is a block design, get block identifiers (otherwise halts)
+		#
+		# @return An integer vector of block identifiers.
 		get_block_ids = function(){
 			if (!is.null(private$m) && length(private$m) == length(private$y)) {
 				return(private$m)
 			}
 			block_ids = private$m
 			Xraw = private$Xraw
-			strata_cols = private$strata_cols
 			if (is.null(block_ids) && private$has_private_method("get_or_compute_block_ids")) {
 				block_ids = private$get_or_compute_block_ids()
 			}
 			if (is.null(block_ids) &&
-					(is(self, "DesignFixedBlocking") ||
-					 is(self, "DesignFixedBlockedCluster") ||
-					 (!is.null(strata_cols) && length(strata_cols) > 0L)) &&
+					isTRUE(private$blocking_capable) &&
 					nrow(Xraw) == length(private$y)) {
 				strata_keys = private$get_strata_keys()
 				if (length(strata_keys) == length(private$y)) {
@@ -131,11 +116,11 @@ DesignBlocking = R6::R6Class("DesignBlocking",
 			private$m = block_ids
 			block_ids
 		},
-		#' @description Summarize the covariates within blocks.
-		#'
-		#' @param block_ids A vector of block identifiers to summarize. If NULL, defaults to all blocks.
-		#'
-		#' @return A list of data.tables, one for each block.
+		# @description Summarize the covariates within blocks.
+		#
+		# @param block_ids A vector of block identifiers to summarize. If NULL, defaults to all blocks.
+		#
+		# @return A list of data.tables, one for each block.
 		summarize_blocks = function(block_ids = NULL) {
 			if (should_run_asserts()) {
 				self$assert_blocking_design()
@@ -187,8 +172,9 @@ DesignBlocking = R6::R6Class("DesignBlocking",
 			}
 			res
 		}
-	),
-	private = list(
+	)
+
+DESIGN_BLOCKING_STRUCTURE_PRIVATE = list(
 		assert_min_block_size = function(n, B) {
 			if (should_run_asserts() && floor(n / B) < 2L) {
 				stop(
@@ -299,4 +285,3 @@ DesignBlocking = R6::R6Class("DesignBlocking",
 			keys
 		}
 	)
-)

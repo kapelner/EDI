@@ -25,6 +25,7 @@
 
 #include <RcppEigen.h>
 #include "RNG.h"
+#include "greedy_pairwise_swap_engine.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -218,36 +219,40 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
                         }
                     }
                 } else {
-                    bool any_improved = true;
-                    while (any_improved) {
-                        any_improved = false;
-                        double best_gain = 0.0;
-                        int best_ti = -1, best_ci = -1;
-                        for (int ti = 0; ti < nt; ti++) {
-                            const int i = treated[static_cast<std::size_t>(ti)];
-                            for (int ci = 0; ci < nt; ci++) {
-                                const int j = control[static_cast<std::size_t>(ci)];
-                                delta.noalias() = 2.0 * (M.col(j) - M.col(i));
-                                const double f_cand = abs_mode
-                                    ? (d + delta).lpNorm<1>()
-                                    : f + 2.0 * d.dot(delta) + delta.squaredNorm();
-                                const double gain = f - f_cand;
-                                if (gain > best_gain) { best_gain = gain; best_ti = ti; best_ci = ci; }
-                            }
+                    // Shared exhaustive best-improvement engine
+                    // (greedy_pairwise_swap_engine.h, fix_design_hierarchy.md
+                    // TODO-31) -- reaches the identical local optimum the
+                    // hand-rolled loop above did (epsilon = 0.0, same
+                    // strict-improvement threshold as the original
+                    // `best_gain = 0.0` init).
+                    struct GreedyExhaustiveObjective {
+                        const MatrixXd& M;
+                        bool             abs_mode;
+                        VectorXd&        d;
+                        double           f;
+                        std::vector<int>& w;
+                        mutable VectorXd scratch;
+
+                        double delta(int i, int j) const {
+                            scratch.noalias() = 2.0 * (M.col(j) - M.col(i));
+                            const double f_cand = abs_mode
+                                ? (d + scratch).lpNorm<1>()
+                                : f + 2.0 * d.dot(scratch) + scratch.squaredNorm();
+                            return f_cand - f;
                         }
-                        if (best_ti >= 0) {
-                            const int i = treated[static_cast<std::size_t>(best_ti)];
-                            const int j = control[static_cast<std::size_t>(best_ci)];
-                            delta.noalias() = 2.0 * (M.col(j) - M.col(i));
+                        void apply_swap(int i, int j) {
+                            scratch.noalias() = 2.0 * (M.col(j) - M.col(i));
+                            const double f_cand = abs_mode
+                                ? (d + scratch).lpNorm<1>()
+                                : f + 2.0 * d.dot(scratch) + scratch.squaredNorm();
+                            d += scratch;
+                            f  = f_cand;
                             w[static_cast<std::size_t>(i)] = 0;
                             w[static_cast<std::size_t>(j)] = 1;
-                            treated[static_cast<std::size_t>(best_ti)] = j;
-                            control[static_cast<std::size_t>(best_ci)] = i;
-                            d += delta;
-                            f -= best_gain;
-                            any_improved = true;
                         }
-                    }
+                    };
+                    GreedyExhaustiveObjective obj{M, abs_mode, d, f, w, VectorXd(p)};
+                    edi_search::exhaustive_best_improvement_search(obj, treated, control, 0.0);
                 }
             } else {
                 // ── Stochastic: run exactly n_iter random-pair steps

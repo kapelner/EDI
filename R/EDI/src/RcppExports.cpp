@@ -3321,6 +3321,56 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// get_weibull_regression_score_cpp
+Eigen::VectorXd get_weibull_regression_score_cpp(SEXP X, SEXP y, SEXP dead, SEXP params);
+RcppExport SEXP _EDI_get_weibull_regression_score_cpp(SEXP XSEXP, SEXP ySEXP, SEXP deadSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type X(XSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type y(ySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type dead(deadSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_weibull_regression_score_cpp(X, y, dead, params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_weibull_regression_hessian_cpp
+Eigen::MatrixXd get_weibull_regression_hessian_cpp(SEXP X, SEXP y, SEXP dead, SEXP params);
+RcppExport SEXP _EDI_get_weibull_regression_hessian_cpp(SEXP XSEXP, SEXP ySEXP, SEXP deadSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type X(XSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type y(ySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type dead(deadSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_weibull_regression_hessian_cpp(X, y, dead, params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// fast_weibull_regression_cpp
+List fast_weibull_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP dead, Nullable<NumericVector> warm_start_params, bool smart_cold_start, bool estimate_only, int maxit, double tol, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx, Rcpp::Nullable<Rcpp::NumericVector> fixed_values, std::string optimization_alg, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info);
+RcppExport SEXP _EDI_fast_weibull_regression_cpp(SEXP XSEXP, SEXP ySEXP, SEXP deadSEXP, SEXP warm_start_paramsSEXP, SEXP smart_cold_startSEXP, SEXP estimate_onlySEXP, SEXP maxitSEXP, SEXP tolSEXP, SEXP fixed_idxSEXP, SEXP fixed_valuesSEXP, SEXP optimization_algSEXP, SEXP warm_start_fisher_infoSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXd>& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type y(ySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type dead(deadSEXP);
+    Rcpp::traits::input_parameter< Nullable<NumericVector> >::type warm_start_params(warm_start_paramsSEXP);
+    Rcpp::traits::input_parameter< bool >::type smart_cold_start(smart_cold_startSEXP);
+    Rcpp::traits::input_parameter< bool >::type estimate_only(estimate_onlySEXP);
+    Rcpp::traits::input_parameter< int >::type maxit(maxitSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerVector> >::type fixed_idx(fixed_idxSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type fixed_values(fixed_valuesSEXP);
+    Rcpp::traits::input_parameter< std::string >::type optimization_alg(optimization_algSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type warm_start_fisher_info(warm_start_fisher_infoSEXP);
+    rcpp_result_gen = Rcpp::wrap(fast_weibull_regression_cpp(X, y, dead, warm_start_params, smart_cold_start, estimate_only, maxit, tol, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info));
+    return rcpp_result_gen;
+END_RCPP
+}
 // get_weibull_regression_general_score_cpp
 Eigen::VectorXd get_weibull_regression_general_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP y_L, SEXP y_R, const Eigen::Map<Eigen::VectorXd>& params);
 RcppExport SEXP _EDI_get_weibull_regression_general_score_cpp(SEXP XSEXP, SEXP ySEXP, SEXP y_LSEXP, SEXP y_RSEXP, SEXP paramsSEXP) {
@@ -5372,6 +5422,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_get_weibull_frailty_score_cpp", (DL_FUNC) &_EDI_get_weibull_frailty_score_cpp, 7},
     {"_EDI_get_weibull_frailty_hessian_cpp", (DL_FUNC) &_EDI_get_weibull_frailty_hessian_cpp, 7},
     {"_EDI_fast_weibull_frailty_cpp", (DL_FUNC) &_EDI_fast_weibull_frailty_cpp, 15},
+    {"_EDI_get_weibull_regression_score_cpp", (DL_FUNC) &_EDI_get_weibull_regression_score_cpp, 4},
+    {"_EDI_get_weibull_regression_hessian_cpp", (DL_FUNC) &_EDI_get_weibull_regression_hessian_cpp, 4},
+    {"_EDI_fast_weibull_regression_cpp", (DL_FUNC) &_EDI_fast_weibull_regression_cpp, 12},
     {"_EDI_get_weibull_regression_general_score_cpp", (DL_FUNC) &_EDI_get_weibull_regression_general_score_cpp, 5},
     {"_EDI_get_weibull_regression_general_hessian_cpp", (DL_FUNC) &_EDI_get_weibull_regression_general_hessian_cpp, 5},
     {"_EDI_fast_weibull_regression_general_cpp", (DL_FUNC) &_EDI_fast_weibull_regression_general_cpp, 13},

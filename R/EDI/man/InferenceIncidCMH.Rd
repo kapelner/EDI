@@ -27,6 +27,15 @@ where \eqn{n_{1b}, n_{0b}} are the numbers of positive and negative responses in
 block \eqn{b} and \eqn{n_B} is the (common) block size.  This equals
 \eqn{2\sqrt{V_{\rm CMH}}} where \eqn{V_{\rm CMH}} is the CMH variance from
 Azriel et al. (2026), Equation 3.
+
+For non-blocking designs, the "balanced design" precondition above requires
+the observed treatment allocation to be \emph{exactly} balanced
+(\eqn{n_T = n_C}), not merely drawn from a \eqn{prob\_T = 0.5} mechanism --
+e.g. plain Bernoulli randomization has \eqn{prob\_T = 0.5} but does not
+guarantee an exactly balanced realized allocation. The constructor issues a
+warning (not an error) when this is violated, since erroring would make
+this class unusable with Bernoulli-style non-blocking designs entirely; the
+warning tells the caller the reported standard error may be miscalibrated.
 }
 \examples{
 \dontrun{
@@ -43,8 +52,8 @@ inf$compute_estimate()
 }
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}} -> \code{InferenceIncidCMH}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceIncidCMH}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -55,49 +64,10 @@ inf$compute_estimate()
     \item \href{#method-InferenceIncidCMH-clone}{\code{InferenceIncidCMH$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAllSimpleMeanDiff</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceAllSimpleMeanDiff$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceAllSimpleMeanDiff$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-approximate_jackknife_distribution_beta_hat_T'><code>InferenceAllSimpleMeanDiff$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceAllSimpleMeanDiff$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceAllSimpleMeanDiff$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-approximate_randomization_distribution_beta_hat_T'><code>InferenceAllSimpleMeanDiff$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-approximate_subsampling_distribution_beta_hat_T'><code>InferenceAllSimpleMeanDiff$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_bayesian_bootstrap_confidence_interval'><code>InferenceAllSimpleMeanDiff$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceAllSimpleMeanDiff$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_bootstrap_confidence_interval'><code>InferenceAllSimpleMeanDiff$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_bootstrap_two_sided_pval'><code>InferenceAllSimpleMeanDiff$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_estimate'><code>InferenceAllSimpleMeanDiff$compute_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_estimate_with_bootstrap_weights'><code>InferenceAllSimpleMeanDiff$compute_estimate_with_bootstrap_weights()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_jackknife_bias_estimate'><code>InferenceAllSimpleMeanDiff$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_jackknife_estimate'><code>InferenceAllSimpleMeanDiff$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_jackknife_std_error'><code>InferenceAllSimpleMeanDiff$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_jackknife_wald_confidence_interval'><code>InferenceAllSimpleMeanDiff$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_jackknife_wald_two_sided_pval'><code>InferenceAllSimpleMeanDiff$compute_jackknife_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceAllSimpleMeanDiff$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceAllSimpleMeanDiff$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_rand_bootstrap_confidence_interval'><code>InferenceAllSimpleMeanDiff$compute_rand_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_rand_bootstrap_two_sided_pval'><code>InferenceAllSimpleMeanDiff$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_rand_confidence_interval'><code>InferenceAllSimpleMeanDiff$compute_rand_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_rand_two_sided_pval'><code>InferenceAllSimpleMeanDiff$compute_rand_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_subsampling_confidence_interval'><code>InferenceAllSimpleMeanDiff$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_subsampling_sensitivity'><code>InferenceAllSimpleMeanDiff$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_subsampling_two_sided_pval'><code>InferenceAllSimpleMeanDiff$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_wald_confidence_interval'><code>InferenceAllSimpleMeanDiff$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-compute_wald_two_sided_pval'><code>InferenceAllSimpleMeanDiff$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-get_mod'><code>InferenceAllSimpleMeanDiff$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-get_summary'><code>InferenceAllSimpleMeanDiff$get_summary()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-get_supported_testing_types'><code>InferenceAllSimpleMeanDiff$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-select_optimal_b_subsampling'><code>InferenceAllSimpleMeanDiff$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-select_optimal_m_out_of_n_bootstrap'><code>InferenceAllSimpleMeanDiff$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-set_custom_randomization_statistic_cpp'><code>InferenceAllSimpleMeanDiff$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAllSimpleMeanDiff.html#method-InferenceAllSimpleMeanDiff-set_custom_randomization_statistic_function'><code>InferenceAllSimpleMeanDiff$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -121,6 +91,10 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceIncidCMH-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidCMH-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceIncidCMH$compute_asymp_confidence_interval()}}{
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+
+
   Uses the shared asymptotic confidence-interval contract; see
   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
   \subsection{Usage}{

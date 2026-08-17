@@ -46,8 +46,11 @@
 #' seq_des = DesignSeqOneByOneRandomBlockSize$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' @export
-DesignSeqOneByOneRandomBlockSize = R6::R6Class("DesignSeqOneByOneRandomBlockSize",
+DesignSeqOneByOneRandomBlockSize = define_design_class(
+	classname = "DesignSeqOneByOneRandomBlockSize",
 	inherit = DesignSeqOneByOne,
+	components = c("BlockingStructure", "SequentialStrataBootstrap"),
+	overrides = list(private = "draw_bootstrap_indices"),
 	public = list(
 		#'
 		#' @description Initialize a sequential permuted-block experimental design
@@ -98,6 +101,7 @@ DesignSeqOneByOneRandomBlockSize = R6::R6Class("DesignSeqOneByOneRandomBlockSize
 			private$strata_cols = strata_cols
 			private$block_sizes = as.integer(block_sizes)
 			private$uses_covariates = !is.null(strata_cols)
+			private$sequential_bootstrap_whole_group = FALSE
 			private$strata_states = new.env(parent = emptyenv())
 			
 			# Validation for block sizes and prob_T
@@ -140,25 +144,6 @@ DesignSeqOneByOneRandomBlockSize = R6::R6Class("DesignSeqOneByOneRandomBlockSize
 		strata_cols = NULL,
 		block_sizes = NULL,
 		strata_states = NULL, # hash map of stratum -> vector of remaining assignments
-		draw_bootstrap_indices = function(bootstrap_type = NULL) {
-			i_b = if (private$uses_covariates) {
-				strata_keys = vapply(1:private$t, function(i) {
-					private$get_strata_key(private$Xraw[i, ])
-				}, character(1))
-				strata_ids = match(strata_keys, unique(strata_keys))
-				stratified_bootstrap_indices_cpp(as.integer(strata_ids))
-			} else {
-				sample_int_replace_cpp(private$t, private$t)
-			}
-			list(i_b = i_b, m_vec_b = NULL)
-		},
-		get_strata_key = function(x_row) {
-			# Concatenate strata column values into a key string
-			vals = vapply(private$strata_cols, function(col) {
-				val = x_row[[col]]
-				if (is.na(val)) "NA" else as.character(val)
-			}, character(1))
-			paste(vals, collapse = "|")
-		}
+		sequential_bootstrap_whole_group = FALSE
 	)
 )

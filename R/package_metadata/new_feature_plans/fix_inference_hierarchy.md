@@ -1236,6 +1236,158 @@ and are not yet covered by any per-class migration checklist:
   failure documented elsewhere in this doc. Manual smoke test also confirmed
   identical `compute_estimate`/CI/p-value/error-message output against the
   pre-migration class on an independent fixture.
+- [x] `InferenceIncidCMH` (`inference_incidence_cmh.R`) and
+  `InferenceIncidExtendedRobins` (`inference_incidence_extended_robins.R`) —
+  migrated 2026-08-17, same shape as `InferenceIncidWald` above
+  (`Inference` plus `components = c("BayesianBootstrap", "Wald",
+  "SimpleMeanDifference")`, `none` tier auto-derived). Both also found via
+  the same fresh manifest audit, zero prior mentions in this doc. Both
+  override `compute_asymp_confidence_interval`/`compute_asymp_two_sided_pval`
+  publicly (not just the private SE/df pair) to force a fresh
+  `get_standard_error()` computation first — this exposed a real migration
+  pitfall distinct from `InferenceIncidWald`'s (which didn't override these
+  two): the pre-migration bodies called `super$compute_asymp_confidence_
+  interval(alpha)`/`super$compute_asymp_two_sided_pval(delta)`, relying on
+  `super$` reaching `InferenceAllSimpleMeanDiff`'s own composed
+  `SimpleMeanDifference`-sourced implementation through the old layered
+  R6 inheritance chain. Under `define_inference_class()`, composed-component
+  methods are flattened directly into the class's own body rather than
+  reached through a separate inheritance layer, so `inherit = Inference`
+  means `super$` now resolves to `Inference`'s own (unimplemented) base
+  method instead -- caught immediately by golden tests as an `"ok"` vs.
+  `"unsupported"` status mismatch (`"Asymptotic inference is not
+  implemented for this inference class"`). Fixed by calling the `Wald`
+  component's shared helpers directly instead of through `super$`:
+  `private$compute_z_or_t_ci_from_s_and_df(alpha)`/`private$compute_z_or_t_
+  two_sided_pval_from_s_and_df(delta)` -- the same pattern already used by
+  e.g. `InferenceContinRobustRegr`. Also surfaced a second, orthogonal test-
+  harness gap while diagnosing the first: `InferenceIncidCMH`'s own
+  non-blocking `get_standard_error()` draws random reference vectors via
+  `Design$draw_ws_according_to_design()` when no design-level
+  `cmh_se_w_mat` precompute exists, making `compute_asymp_confidence_
+  interval`/`compute_wald_confidence_interval` (and their p-value
+  counterparts) genuinely stochastic for this specific class -- and
+  `Inference$set_seed()` alone does not control it, since
+  `draw_ws_according_to_design()` reads R's global RNG stream directly, not
+  the object's `private$seed`. `test-incid-cmh-extended-robins-migration-
+  golden.R`'s comparison helper now wraps every method call (not just the
+  pre-classified stochastic ones) in both an `obj$set_seed(...)` reset and
+  an outer `inference_migration_with_seed()` global-RNG reset, which is
+  safe/free for genuinely deterministic methods and correctly aligns the
+  ones that secretly aren't. All comparisons pass bit-identical on both a
+  blocking and a non-blocking (exactly-balanced) fixture for CMH, and a
+  blocking fixture for ExtendedRobins. Confirmed via
+  `test-design-inference.R`'s existing "CMH get_standard_error block and
+  non-block paths agree" tests (unaffected, same pre-existing imbalance
+  warnings as before) and `test-inference-class-registry.R`/
+  `test-mixin-contracts.R` (both clean, no locked-binding or migration-
+  related failures) that nothing else regressed.
+- [x] `InferenceIncidRiskDiff` (`inference_incidence_risk_diff.R`) — migrated
+  2026-08-17 to `Inference` plus `components = c("BayesianBootstrap",
+  "Wald")`, `none` tier (declared via `metadata`; also the auto-derived
+  value). This was the first migration off the
+  `InferenceAsympLikStdModCacheNoParamBootstrap` ladder, and it surfaced a
+  genuine architectural conflict rather than a mechanical port: the class's
+  mechanically-projected target component set (`LikelihoodTests` +
+  `StandardModelCache`, from `target_inference_components()` walking its old
+  ancestor chain) is **contract-illegal and wrong** — the class is
+  tier-"none" (its OLS linear-probability objective is a misspecified
+  Gaussian working model for binary y; `supports_likelihood_tests = FALSE`
+  is deliberate), while `StandardModelCache`'s `standard_model_cache`
+  capability requires `likelihood_tests`, which requires tier >= quasi
+  (`define_inference_class()` fails fast on this at line ~2693 of
+  `contracts_mixins.R`). Composing it anyway would make the class advertise
+  a capability it refuses at runtime, violating property 1. Resolution: do
+  **not** compose `StandardModelCache`; instead absorb the likelihood-free
+  subset it actually used as host-owned private methods — the `shared()`
+  model-cache state machine (verbatim), `get_standard_error`/
+  `get_degrees_of_freedom` (minus the information-matrix-preference branch,
+  which is gated on `supports_information_preference()` →
+  `supports_likelihood_tests()` and therefore never fired for this class on
+  the old ladder either), and the three design-backed bootstrap-worker
+  delegation one-liners (their generic backends live in the
+  NonparametricBootstrap layer, already composed transitively). Everything
+  else it needs (`fit_with_hardened_qr_column_dropping`,
+  `compute_z_or_t_*`) lives in root `Inference` or the `Wald` component.
+  The old ladder's score/gradient/LR/Bartlett public surface and the
+  `get/set_testing_type`/`information_preference` accessors are
+  **intentionally dropped** (golden test asserts the dropped set is exactly
+  that API family and nothing else). Empirically verified what that surface
+  actually did on the old ladder, which is worse than "errored": the
+  score/gradient/LR **p-value** methods errored cleanly ("does not expose a
+  likelihood-test specification"), but the corresponding **confidence
+  intervals** silently returned bounds *bit-identical to the Wald interval*
+  (the CI-inversion helpers fall back to Wald when the test machinery is
+  unavailable) — i.e. `compute_score_confidence_interval()` handed callers
+  a mislabeled Wald interval while `compute_score_two_sided_pval()` threw.
+  Internally inconsistent, misleading API — the exact property-1 violation
+  this doc bans, and what tier "none" forbids outright. The golden test
+  pins this down: for each dropped label, migrated must be absent AND the
+  legacy result must be unsupported, all-NA, or exactly the legacy's own
+  Wald interval — so if any dropped method had carried information the
+  retained Wald API doesn't, the test fails loudly.
+  Golden-tested in `test-incid-risk-diff-migration-golden.R` against a
+  byte-for-byte legacy copy (per-call seeded comparison for every harness
+  method; the intentionally-dropped likelihood-family labels instead assert
+  migrated-absent + legacy-degenerate-or-unsupported, so a drop of any
+  *working* surface still fails loudly), plus a registry migrated-status
+  check. **Randomization-dispatch decision, deliberately breaking with the
+  `InferenceAllSimpleMeanDiff` precedent:** this class pins
+  `compute_rand_two_sided_pval = InferenceRandCI$public_methods$...` (the
+  randomization-CI layer's version), **not** `InferenceRand$public_methods$...`
+  — the RandCI version dispatches incidence responses to the working Zhang
+  exact randomization test (`should_use_zhang_incidence_randomization()` →
+  `compute_exact_two_sided_pval_rand("Zhang", ...)`; all required privates
+  come along via the composed `RandomizationCI` component, whose
+  `source_name` is `InferenceRandCI` itself), while the `InferenceRand` base
+  version refuses incidence outright ("Randomization tests are not supported
+  for incidence. Use Zhang method."). The golden comparison caught this as a
+  legacy-"ok"-vs-migrated-"unsupported" status mismatch before the pin was
+  corrected. **Flag for the simple-estimator migration's owner:** the
+  established precedent of pinning `InferenceRand`'s version (used by
+  `InferenceAllSimpleMeanDiff` and inherited by every class built on it,
+  including this session's `InferenceIncidWald`/`InferenceIncidCMH`/
+  `InferenceIncidExtendedRobins` migrations, whose goldens compared against
+  factory-based parents and so couldn't see it) appears to have silently
+  dropped the old deep ladder's Zhang incidence dispatch for those classes
+  when *they* were first migrated — pre-existing, not introduced here, but
+  worth an explicit review of whether incidence users of the
+  simple-mean-difference family should get the RandCI pin too.
+- [x] **Tier-fix (not a migration): `InferenceSurvivalDepCensTransformRegr`
+  reclassified `none` → `full`.** Found 2026-08-17 while investigating why
+  the two remaining non-KK "none"-tier ladder classes couldn't compose
+  `StandardModelCache`: this class's registry tier was a pure
+  name-derivation bug, not a real classification — it implements a genuine
+  full parametric (bivariate log-normal transformation) likelihood with a
+  real `get_likelihood_test_spec` (score/information/`neg_loglik`),
+  `supports_likelihood_tests = TRUE`, `supports_lik_ratio_param_bootstrap =
+  TRUE`, and `simulate_under_lik_null`, but
+  `infer_inference_likelihood_tier()`'s full-tier name regex matched no
+  token in "DepCensTransformRegr", so it fell through to "none" — which
+  this doc's own tier table flatly forbids (none permits no LR/score/
+  parametric bootstrap), and which made its mechanically-projected target
+  component set self-contradictory (`ParametricLikelihoodBootstrap`
+  requires tier partial/full). The wrong value had even been frozen into
+  `test-full-likelihood-migration-baseline.R` as a
+  `survival_none_tier_expected_components` table (with the harvested
+  `SurvivalDepCensTransform` component's `allowed_likelihood_tiers` set to
+  `"none"` to match). Fixed end to end: added `DepCensTransform` to the
+  full-tier regex (only this one class matches); flipped the component's
+  `allowed_likelihood_tiers` to `"full"` (`contracts_mixins.R`, with an
+  explanatory comment); and updated the baseline — class added to
+  `full_likelihood_expected_classes`, the `survival` and `non_kk` groups,
+  and `full_likelihood_expected_standard_model_cache_classes`; both 45-class
+  count assertions bumped to 46; the none-tier table and its dedicated test
+  deleted, with the class/component pair moved into
+  `full_likelihood_expected_survival_components` (every assertion in that
+  loop — lazy load policy, `allowed_likelihood_tiers == "full"`,
+  source-method parity, effective-components membership — now holds for
+  it). Verified live: `infer_inference_likelihood_tier()` returns "full",
+  and the class now appears in `full_likelihood_concrete_class_names()`.
+  The class itself is untouched and still on the old
+  `InferenceAsympLikStdModCache` ladder — its actual migration belongs to
+  the Full-Likelihood Estimators effort, which this fix unblocks (its
+  target set is now internally consistent).
 - [x] `InferenceOrdinalGCompMeanDiff` (`inference_ordinal_gcomp.R`) — migrated
   2026-08-12 to `Inference` plus `components = c("BayesianBootstrap",
   "Wald")`, `none` tier. Dropped a dead `super$approximate_bootstrap_
@@ -1584,18 +1736,43 @@ and are not yet covered by any per-class migration checklist:
 
 For each class above:
 
-- [ ] Record its current direct parent, effective components, public methods,
+- [x] Record its current direct parent, effective components, public methods,
   and private-state owners.
-- [ ] Decide which inherited randomization, randomization-CI, nonparametric
+- [x] Decide which inherited randomization, randomization-CI, nonparametric
   bootstrap, randomization-bootstrap, Bayesian-bootstrap, and jackknife APIs
   are intentional capabilities versus legacy accidental surface area.
-- [ ] Migrate to `Inference` plus only the components matching its retained
+- [x] Migrate to `Inference` plus only the components matching its retained
   capabilities, one class at a time, using the migration-order helper so leaf
   classes move before concrete parents.
-- [ ] Add golden tests for estimate, randomization, bootstrap, Bayesian
+- [x] Add golden tests for estimate, randomization, bootstrap, Bayesian
   bootstrap, and jackknife outputs for each migrated class.
-- [ ] Call `mark_inference_class_migrated()` for each class only after golden
+- [x] Call `mark_inference_class_migrated()` for each class only after golden
   tests and method/private-state snapshots pass.
+
+**Section complete (verified 2026-08-17):** every concrete class listed above
+is individually `[x]` with its own per-class evidence entry, and a fresh
+programmatic sweep confirmed all 22 concrete classes from this section
+(`InferenceCustomAsymp`, `InferenceCustomBoot`, `InferenceContinQuantileRegr`,
+`InferenceContinRobustRegr`, `InferenceIncidNewcombeRiskDiff`,
+`InferenceIncidGCompRiskDiff`/`RiskRatio`,
+`InferenceIncidMiettinenNurminenRiskDiff`, `InferenceOrdinalGCompMeanDiff`,
+`InferenceOrdinalPartialProportionalOddsRegr`, `InferenceOrdinalRidit`,
+`InferenceOrdinalJonckheereTerpstraTest`, `InferencePropQuantileRegr`,
+`InferencePropGCompMeanDiff`, `InferenceSurvivalGehanWilcox`,
+`InferenceSurvivalKMDiff`, `InferenceSurvivalLogRank`,
+`InferenceSurvivalRestrictedMeanDiff`, `InferenceIncidWald`,
+`InferenceIncidCMH`, `InferenceIncidExtendedRobins`,
+`InferenceIncidRiskDiff`) pass `mark_inference_class_migrated()`'s full
+validation gate: parent = `Inference`, zero algorithmic-compatibility-base
+ancestors, effective components and capabilities identical to the manifest
+targets, and every capability-required public method present. A manifest
+query further confirmed the **only** remaining pending class that is neither
+KK-family nor full-likelihood-tier is `InferenceOrdinalPairedSignTest`,
+which is functionally KK (a paired/matched-set test composing
+`KKPassThrough`) and belongs to the "KK And IVWC Estimators" section — the
+non-KK no-likelihood ladder is done. (`InferenceCountKKHurdlePoissonIVWC`
+and `InferenceSurvivalKKWeibullMarginal` were relocated to the KK section by
+their own `[x]` entries above; they are not part of this count.)
 
 ##### No-Likelihood Migration Marking
 
@@ -1613,9 +1790,21 @@ For each class above:
   no-likelihood class `migrated`.
 - [ ] After all no-likelihood classes are migrated, delete no-longer-used
   algorithmic bases in this family and remove them from
-  `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES`. Blocked on the 20 classes
-  listed in "Asymptotic (Wald) No-Likelihood Migration" above, none of which
-  are migrated yet.
+  `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES`. **Status update 2026-08-17
+  (superseding the stale "none of which are migrated yet" note):** every
+  concrete class in the "Asymptotic (Wald) No-Likelihood Migration" section
+  is now migrated and passes `mark_inference_class_migrated()` (see that
+  section's completion note), and the first two descendant-free bases have
+  been deleted (`InferenceCountCompositeLikelihood`,
+  `InferenceCountLikelihoodNoParamBootstrap` — see the Base Deletion entry
+  below). The remaining bases in this family (`InferenceAsymp` →
+  `InferenceRand*`/`InferenceNonParamBootstrap`/`InferenceBayesianBootstrap`/
+  `InferenceJackknife` chain, `InferenceAsympLik`, `InferenceParamBootstrap`,
+  `InferenceAsympLikStdModCache*`, `InferenceCountLikelihood`,
+  `InferenceMLEorKMSummaryTable`) still have 1-67 pending concrete
+  descendants each — all in the full-likelihood and KK families — so their
+  deletion stays blocked on those two migration ladders, not on this
+  section.
 
 #### Quasi And Robust Estimators
 
@@ -1792,6 +1981,39 @@ inherit through algorithmic compatibility bases. The final strict gate, `no
 concrete class descends from an algorithmic compatibility base`, becomes
 actionable after those pending records are drained family by family.
 
+- [x] **`InferenceCountCompositeLikelihood` and
+  `InferenceCountLikelihoodNoParamBootstrap` deleted (2026-08-17)** — the
+  first algorithmic bases freed by completed migrations rather than by
+  branch topology. Found via a fresh per-base pending-descendant sweep over
+  the migration manifest: both had **zero** pending concrete descendants
+  (the composite base's only concretes, `InferenceCountQuasiPoisson`/
+  `InferenceCountRobustPoisson`, migrated 2026-08-16 to compose the
+  `CountCompositeLikelihood` component; the no-param-bootstrap count base
+  had no inheritors at all — `grep -rn "inherit =
+  Inference(CountCompositeLikelihood|CountLikelihoodNoParamBootstrap)"`
+  across `R/` and `tests/` returns nothing). Both generators were pure
+  duplicates of their harvested component sources
+  (`CountCompositeLikelihoodSource` in
+  `inference_count_composite_likelihood.R`,
+  `CountLikelihoodPlumbingSource` in
+  `inference_all_abstract_count_likelihood.R`), which the registered
+  components read directly and which are **kept**; only the two R6
+  generator assemblies were deleted (with explanatory tombstone comments in
+  place), exactly mirroring the `InferenceExact` deletion below. Registry
+  updates in the same change, per this section's rule: both names removed
+  from `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES`,
+  `EDI_INFERENCE_ABSTRACT_CLASS_NAMES`, and
+  `infer_inference_direct_components()`'s switch. The only remaining
+  textual references are string classname arguments in
+  `test-bootstrap-reused-worker-families.R`'s count-ancestry invariant,
+  whose either-ancestry-or-component check falls through to the component
+  branch for migrated classes by design. Verified: clean package load;
+  `test-inference-class-registry.R`, `test-mixin-contracts.R`, and
+  `test-bootstrap-reused-worker-families.R` fully pass;
+  `test-quasi-robust-migration-baseline.R` passes every metadata test with
+  its single runtime error being the recurring unrelated
+  concurrent-session DLL desync (`get_column_types_cpp` unresolved during
+  design construction, before any count class is involved).
 - [x] **`InferenceExact` has zero remaining concrete descendants — candidate
   for deletion now, ahead of the rest of this section.** Found 2026-08-14
   while checking whether the no-likelihood family's completion unblocked any
@@ -1906,6 +2128,98 @@ Bugs and tangential issues recorded inside this file's completed (`[x]`)
 migration entries but never turned into their own actionable TODOs. Collected
 here (2026-08-13) rather than left as prose-only notes.
 
+- [x] **NA-y subset-clone bootstrap hang: slow-path
+  `bootstrap_subset_inference()` fed raw NA-holed design `y` into survival
+  estimators, hanging C++ forever (2026-08-17).** Found while running the
+  newly-gated exhaustive reused-worker survival sweep for the Slow-wrapper
+  closure above — the sweep "timing out" was actually this hang. Root
+  cause, a missed spot in the y/y_L/y_R rework:
+  `bootstrap_subset_inference()` (`inference_all_abstract_non_param_boot.R`)
+  set `sub_inf_priv$y = sub_des_priv$y`, i.e. the subset of the **design's
+  raw `y`** — which post-migration holds `NA` for every censored subject —
+  while the parent inference object's own `private$y` was resolved by
+  `Inference$initialize()` to `get_effective_time()` (censoring time in
+  place of `NA`) for right-censored-only classes. The rework fixed the
+  `dead` line immediately below the same way (with its TODO-1 comment) but
+  left the `y` line reading from the design. Every slow-path (non-reusable-
+  worker) bootstrap replicate of every survival class therefore ran its
+  estimator on NA event times; `InferenceSurvivalKMDiff`'s C++ kernel
+  loops forever on NA input (uninterruptible — `setTimeLimit()` never
+  fires), hanging the whole generic bootstrap. Reproduced minimally:
+  `compute_estimate()` on an instance whose `private$y` was manually given
+  the design's raw NA-holed `y` hangs identically, while the same instance
+  with effective times returns instantly. **Fix:** subset `private$y` (and
+  `y_L`/`y_R`, which `duplicate()` had been leaving at the original full
+  length) from the source Inference's own already-resolved vectors,
+  mirroring the `dead` line — the design-side `sub_des_priv$y` stays raw,
+  matching real design storage. Verified: `InferenceSurvivalKMDiff`/
+  `CoxPHRegr`/`LogRank` fast-vs-slow B=3 comparisons went from
+  infinite-hang to 0.1–1.2s each with **bit-identical** results; the full
+  exhaustive asymp sweep completes in 13.9s; and the migration golden
+  tests (`test-incid-wald-…`, `test-incid-risk-diff-…`) plus
+  `test-inference-class-registry.R` all still pass (a same-hour
+  `get_standard_error`-is-NULL failure in the CMH golden was verified via
+  a single-file stash to reproduce identically **without** this fix —
+  concurrent-session component-machinery drift, not this change).
+  **Follow-up owed (C++ hardening, separate):** the KM kernel should
+  reject NA event times with an error instead of looping — this fix
+  removes the only in-package path that fed it NAs, but the kernel remains
+  a hang risk for any future caller.
+  **Hardening done 2026-08-17:** every entry point in
+  `fast_survival_stats.cpp` now rejects NA/NaN event times up front via a
+  shared file-local `any_nan_time()` helper (with a comment documenting the
+  hang mechanism): the four Rcpp entry points
+  (`get_survival_stat_for_group`, `get_survival_stat_diff`,
+  `get_restricted_mean_se_for_group`, and — transitively through the
+  group call — `get_restricted_mean_se_diff`) and both BRT kernels
+  (`compute_survival_stat_diff_rand_bootstrap_parallel_cpp`/`_serial_cpp`)
+  `Rcpp::stop()` with a clear message; the portable `EDI_CORE_ONLY`-safe
+  `get_survival_stat_for_group_result()` throws `std::invalid_argument`
+  (Rcpp converts it at the `.Call` boundary, pybind11 translates it for
+  the Python TU); and the OpenMP-inline `km_stat_inline()` returns
+  `NA_REAL` per replicate (throwing inside a parallel region is not an
+  option), backstopping NaN introduced via `noise_mat` after the
+  kernels' pre-loop `y0` guard. Verified two ways without touching the
+  shared `EDI.so`: (a) a standalone `EDI_CORE_ONLY` g++ build of the
+  translation unit plus a test harness — finite input still yields the
+  correct survfit-matching median (3.5 on all-events 1..6) and NaN input
+  throws instead of hanging, for both the group and diff functions; (b) a
+  full `-fsyntax-only` compile of the Rcpp (non-core) path against the
+  real R/Rcpp/RcppEigen headers. R-level regression test added as
+  `test-survival-kernel-na-guard.R` (all six R-facing entry points error
+  on NA; finite-input sanity checks) — its header notes that against a
+  stale pre-guard `EDI.so` the error-expectation cases hang rather than
+  fail, so a hang on that file means "recompile", not "regression".
+- [x] **Reused-worker sweep test files trimmed and gated for push-hook/CI
+  runtime (2026-08-17, user-directed).**
+  `test-bootstrap-reused-worker-asymp-families.R` was the slowest file in
+  the suite (>10 minutes; it exceeded a 900s budget even alone) and its
+  sibling `test-bootstrap-reused-worker-families.R` shared the same
+  structure. Changes to both: (a) each `Slow*` fixture class was defined
+  **twice back-to-back** (identical bodies — dead code, most likely a
+  mechanical concatenation from repeated migration passes) — deduplicated;
+  (b) 12 of 33 (asymp) and 2 (sibling) fast-vs-slow comparisons were exact
+  duplicates of the immediately preceding comparison with only a different
+  seed — dropped, since one seeded bit-identical comparison per class/design
+  pair already proves the reused-worker path; (c) bootstrap replicates
+  reduced (`B = 5L`/`11L` → `3L`): replicate 1 exercises worker creation and
+  replicates 2-3 exercise worker *reuse* (where the state-staleness bug
+  family lives), with per-replicate bit-identical equality still asserted;
+  (d) `expect_*(inherits(Cls$new(des), ...))` class-identity assertions each
+  paid a full model fit for an ancestry question — replaced with a
+  `generator_inherits()` R6-generator-chain walk (no construction, no fit),
+  including the always-on count-likelihood ancestry-invariant block in the
+  sibling file, which no longer needs a design at all; (e) the exhaustive
+  per-family sweeps in both files are now gated behind
+  **`EDI_EXHAUSTIVE_WORKER_TESTS=true`** (intended for nightly/pre-release
+  runs or after touching the worker machinery) — on default push-hook/CI
+  runs they skip, and a new always-on smoke test in the asymp file
+  (`InferenceContinLin` + `InferenceIncidRiskDiff`, cheap OLS-family C++
+  paths, n = 30, B = 3) keeps the shared reused-worker mechanism itself
+  covered on every run. Full end-to-end timing of the gated-off default run
+  was repeatedly interrupted by a concurrent session's in-flight
+  design-factory rework breaking package load — re-verify the default run
+  is seconds-fast once the tree stabilizes.
 - [x] **Fix the shared bootstrap-subsetting `dead`-propagation bug.** Found
   during the `InferenceCustomAsymp` migration: the shared
   `get_analysis_data()`/bootstrap-subsetting plumbing in
@@ -2296,7 +2610,7 @@ here (2026-08-13) rather than left as prose-only notes.
     resync; not touched, not my work. Both had already run clean (modulo
     already-documented pre-existing failures) in an earlier full pass
     before that breakage appeared.
-- [ ] **`InferenceOrdinalPropOddsRegr` and `InferenceSurvivalCoxPHRegr`
+- [x] **`InferenceOrdinalPropOddsRegr` and `InferenceSurvivalCoxPHRegr`
   Slow-wrapper test fixtures are missing `lock_objects = FALSE`.** Recorded
   as a recurring pre-existing failure across several `[x]` entries above
   (`InferenceSurvivalKMDiff`, `InferenceSurvivalLogRank`,
@@ -2329,6 +2643,38 @@ here (2026-08-13) rather than left as prose-only notes.
   the former locked-environment error, but its bootstrap fits exceeded the
   bounded three-minute focused run, so this checkbox remains open pending the
   full numeric comparison.
+  **Closed 2026-08-17.** Both focused runtime blocks now run end to end
+  (via `EDI_EXHAUSTIVE_WORKER_TESTS=true`, after the reused-worker test
+  files were trimmed/gated — see the Follow-Ups entry): the MLE/proportion
+  block (containing `SlowInferenceOrdinalPropOddsRegr`) passes completely
+  in 5.7s, and in the survival block every `Slow*` wrapper — including
+  `SlowInferenceSurvivalCoxPHRegr` — constructs, lazily installs its
+  components, and produces bit-identical fast-vs-slow bootstrap
+  comparisons, with **zero** locked-binding/"cannot add bindings to a
+  locked environment" errors anywhere. (The Cox block's earlier
+  "exceeded the bounded three-minute run" turned out not to be slow Cox
+  fits at all but an unrelated infinite C++ hang in the slow-path
+  bootstrap machinery fed NA event times — found, fixed, and documented
+  as its own Follow-Ups entry, "NA-y subset-clone bootstrap hang," the
+  same day. After that fix the entire exhaustive sweep runs in 13.9s.)
+  The one remaining error in the survival sweep is a different,
+  precisely-diagnosed bug outside this item's scope:
+  `InferenceSurvivalStratCoxPHRegr` (fast path and slow path alike, so
+  not a wrapper problem) fails `approximate_bootstrap_distribution_
+  beta_hat_T()` with "attempt to apply non-function" because roughly half
+  its bootstrap-machinery private methods are literally `NULL` on a
+  constructed instance (`assert_valid_bootstrap_type`,
+  `get_cached_resampling_distribution`, `bootstrap_sample_indices`,
+  `bootstrap_subset_inference`, `create_reusable_bootstrap_worker`,
+  `check_bootstrap_replicate_deadline`, `compute_fast_bootstrap_distr`,
+  `load_resampling_draw_into_worker`, `estimate_bootstrap_worker`,
+  `store_cached_resampling_distribution` — verified by direct private-env
+  introspection; `compute_estimate()` itself works, and plain
+  `InferenceSurvivalCoxPHRegr` has every one of these as a real function
+  and passes its comparisons). This is the TODO-13 "Cox's missing
+  randomization/bootstrap component methods" family, in the in-flight
+  Cox/full-likelihood migration's lane — left for that effort with this
+  diagnosis.
 - [x] **Make factory requirement validation traverse the full R6 ancestor
   chain.** Found 2026-08-16 while attempting to replace
   `InferenceOrdinalPairedSignTest`'s raw `KKPassThrough` splices with

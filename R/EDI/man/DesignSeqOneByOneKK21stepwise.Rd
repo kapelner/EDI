@@ -63,7 +63,7 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
   threshold calibration referenced by the \code{morrison} argument.
 }
 \section{Super classes}{
-\code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} -> \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} -> \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}} -> \code{DesignSeqOneByOneKK21stepwise}
+\code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}} -> \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} -> \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}} -> \code{DesignSeqOneByOneKK21stepwise}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -109,6 +109,7 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
   <li><a href='../../EDI/html/Design.html#method-Design-add_all_subject_responses'><code>Design$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-add_one_subject_response'><code>Design$add_one_subject_response()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-any_censoring'><code>Design$any_censoring()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-applicable_inference_class_names'><code>Design$applicable_inference_class_names()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_responses_recorded'><code>Design$assert_all_responses_recorded()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
@@ -141,12 +142,15 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-overwrite_all_subject_assignments'><code>Design$overwrite_all_subject_assignments()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-prepare_for_resampling_replay'><code>Design$prepare_for_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-unavailable_inference_classes_due_to_missing_packages'><code>Design$unavailable_inference_classes_due_to_missing_packages()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-warm_all_subject_data_cache'><code>Design$warm_all_subject_data_cache()</code></a></li>
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}

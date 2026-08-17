@@ -60,8 +60,14 @@
 #' des = DesignFixedMatchingGreedyPairSwitching$new(n = 10, response_type = 'continuous')
 #' }
 #' @export
-DesignFixedMatchingGreedyPairSwitching = R6::R6Class("DesignFixedMatchingGreedyPairSwitching",
+DesignFixedMatchingGreedyPairSwitching = define_design_class(
+	classname = "DesignFixedMatchingGreedyPairSwitching",
 	inherit = DesignFixed,
+	components = c("MatchingStructure", "BatchWPregeneration"),
+	overrides = list(
+		public = "supports_batch_w_pregeneration",
+		private = c("draw_bootstrap_indices", "ensure_matching_structure_computed")
+	),
 	public = list(
 		#' @description Initialize a fixed design that performs binary matching followed
 		#'   by greedy which-member-treated optimization (see class documentation).
@@ -111,6 +117,8 @@ DesignFixedMatchingGreedyPairSwitching = R6::R6Class("DesignFixedMatchingGreedyP
 			private$objective = objective
 			private$n_iter    = n_iter
 			private$uses_covariates = TRUE
+			private$blocking_capable = TRUE
+			private$matching_capable = TRUE
 		},
 		#' @description Returns \code{TRUE} so the calling framework pre-generates all
 		#'   replicate \code{w} vectors for a simulation cell in one batched call to
@@ -134,7 +142,16 @@ DesignFixedMatchingGreedyPairSwitching = R6::R6Class("DesignFixedMatchingGreedyP
 				X = private$X[1:n, , drop = FALSE]
 				private$bms = compute_binary_match_structure(X, mahal_match = (private$objective == "mahal_dist"))
 			}
+			if (!is.null(private$bms)) {
+				pair_rows = private$bms$indicies_pairs
+				m = integer(self$get_n())
+				for (pair_id in seq_len(nrow(pair_rows))) m[pair_rows[pair_id, ]] = pair_id
+				private$m = as.integer(m)
+			}
 			invisible(NULL)
+		},
+		ensure_matching_structure_computed = function(){
+			private$ensure_pair_structure_computed()
 		},
 		draw_bootstrap_indices = function(bootstrap_type = NULL){
 			# The greedy search only flips assignments within binary-match pairs
@@ -166,9 +183,7 @@ DesignFixedMatchingGreedyPairSwitching = R6::R6Class("DesignFixedMatchingGreedyP
 			}
 			private$covariate_impute_if_necessary_and_then_create_model_matrix()
 			X = private$X[1:n, , drop = FALSE]
-			if (is.null(private$bms)) {
-				private$bms = compute_binary_match_structure(X, mahal_match = (private$objective == "mahal_dist"))
-			}
+			private$ensure_pair_structure_computed()
 			pairs_mat = private$bms$indicies_pairs
 			storage.mode(pairs_mat) = "integer"
 			cpp_n_iter = if (is.infinite(private$n_iter)) -1L else as.integer(private$n_iter)

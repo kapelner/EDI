@@ -42,10 +42,10 @@
 #' \strong{Constraints and fallbacks.} Only exactly balanced allocation
 #' (\code{prob_T = 0.5}, \eqn{n} even) is supported; the constructor errors otherwise. If
 #' no covariates are available, the search degenerates to pure balanced Fisher-Yates
-#' randomization (no swap search, since there is nothing to balance on). Every drawn
-#' allocation is validated (\code{private$validate_allocation_matrix()}) to have the
-#' correct shape, finite \eqn{\{0,1\}} entries, and exactly \eqn{n/2} treated per
-#' replicate, raising an error on violation rather than returning a malformed allocation.
+#' randomization (no swap search, since there is nothing to balance on).
+#' \code{greedy_design_search_cpp()}'s output is trusted unvalidated -- it guarantees
+#' exactly \code{n x r} valid \eqn{\{0,1\}} columns with \eqn{n/2} treated subjects per
+#' column by construction (see fix_design_hierarchy.md, "AllocationMatrixValidation").
 #'
 #' @references Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random
 #'   designs with greatly improved balance." \emph{Biometrika}, 106(3), 695-701,
@@ -58,8 +58,11 @@
 #' des = DesignFixedGreedy$new(n = 10, response_type = 'continuous')
 #' }
 #' @export
-DesignFixedGreedy = R6::R6Class("DesignFixedGreedy",
+DesignFixedGreedy = define_design_class(
+	classname = "DesignFixedGreedy",
 	inherit = DesignFixed,
+	components = "BatchWPregeneration",
+	overrides = list(public = "supports_batch_w_pregeneration"),
 	public = list(
 		#' @description Initialize a greedy pairwise-swap search fixed experimental
 		#'   design. Only \code{prob_T = 0.5} is supported (see class documentation).
@@ -97,10 +100,12 @@ DesignFixedGreedy = R6::R6Class("DesignFixedGreedy",
 				design_formula = ~ .,
 				seed = NULL
 			) {
-			if (should_run_asserts()) {
-				if (prob_T != 0.5){
-					stop("Greedy designs currently only support even treatment allocation (prob_T = 0.5)")
-				}
+			# Always-on validation (fix_design_hierarchy.md, TODO-33): the kernel
+			# unconditionally hardcodes nt = n / 2 (design_fixed_greedy.cpp), so a
+			# non-0.5 prob_T that slipped past this check with asserts off would
+			# silently draw a different design than get_prob_T() reports.
+			if (!is.numeric(prob_T) || length(prob_T) != 1L || is.na(prob_T) || prob_T != 0.5) {
+				stop("Greedy designs currently only support even treatment allocation (prob_T = 0.5)")
 			}
 			# GED availability is checked lazily in draw_ws_according_to_design so
 			# that workers using pre-computed w vectors never trigger a JVM load.
@@ -134,10 +139,10 @@ DesignFixedGreedy = R6::R6Class("DesignFixedGreedy",
 				self$assert_all_subjects_arrived()
 			}
 			n = self$get_n()
-			if (should_run_asserts()) {
-				if (n %% 2 != 0){
-					stop("DesignFixedGreedy requires an even number of subjects.")
-				}
+			# Always-on validation (fix_design_hierarchy.md, TODO-33): same
+			# nt = n / 2 kernel assumption as the prob_T check in initialize().
+			if (n %% 2 != 0){
+				stop("DesignFixedGreedy requires an even number of subjects.")
 			}
 			if (is.null(private$X) || ncol(private$X) == 0){
 				return(replicate(r, sample(c(rep(1, n / 2), rep(0, n / 2)))))

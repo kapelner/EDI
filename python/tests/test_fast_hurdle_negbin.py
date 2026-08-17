@@ -65,6 +65,12 @@ def test_matches_r_fixture():
     X, y, X_hurdle = _synthetic_data()
     res = fast_hurdle_negbin(X, y, X_hurdle)
 
+    # NOTE (2026-08-17): converged/hurdle_converged now derive from the
+    # shared LBFGS/Newton machinery's gradient-norm-based redefinition
+    # (optimizer_diagnostics_report.md TODO-4) -- re-verify against a fresh R
+    # run once compiled. Separately, this fitter has a known unrelated
+    # heap-corruption bug tracked in bootstrap_calibrated_lr_report.md
+    # TODO-1 (not touched by this change).
     assert res["converged"] is True
     assert res["hurdle_converged"] is True
     assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)

@@ -292,12 +292,16 @@ edi::ResultMap fast_ordinal_glmm_internal(
 
 	double neg_ll = std::numeric_limits<double>::quiet_NaN();
 	bool converged = false;
+	int niter = maxit;
+	bool hit_iteration_cap = false;
 	double gradient_norm = std::numeric_limits<double>::quiet_NaN();
 	try {
 		LikelihoodFitResult fit = optimize_fixed_likelihood(obj, par, fixed_spec, maxit, eps_g, optimization_alg, "lbfgs", 0, info_start_ptr);
 		par = fit.params;
 		neg_ll = fit.value;
 		converged = std::isfinite(neg_ll) && fit.converged;
+		hit_iteration_cap = std::isfinite(neg_ll) && fit.hit_iteration_cap;
+		niter = fit.niter;
 		gradient_norm = fit.gradient_norm;
 	} catch (...) {
 		return edi::ResultMap()
@@ -306,6 +310,7 @@ edi::ResultMap fast_ordinal_glmm_internal(
 			.set("log_sigma", par[total - 1])
 			.set("ssq_b_T", std::numeric_limits<double>::quiet_NaN())
 			.set("converged", false)
+			.set("hit_iteration_cap", false)
 			.set("neg_loglik", std::numeric_limits<double>::quiet_NaN())
 			.set("gradient_norm", std::numeric_limits<double>::quiet_NaN())
 			.set("variance_boundary_hit", std::monostate{});
@@ -339,6 +344,8 @@ edi::ResultMap fast_ordinal_glmm_internal(
 		.set("log_sigma", par[total - 1])
 		.set("ssq_b_T", ssq_b_T)
 		.set("converged", converged)
+		.set("num_iter", niter)
+		.set("hit_iteration_cap", hit_iteration_cap)
 		.set("neg_loglik", neg_ll)
 		.set("fisher_information", information)
 		.set("gradient_norm", gradient_norm)

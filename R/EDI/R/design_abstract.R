@@ -15,15 +15,114 @@
 #' contrast internally where their formulas require it; that recoding is
 #' local to those classes and does not affect this public convention.
 #'
+#' @section Saving and loading:
+#' \code{Design} (and its \code{DesignSeqOneByOne} subclasses) is the unit of
+#' persistence for a trial. Persist a \code{des_obj} with base R's
+#' \code{saveRDS()}/\code{readRDS()} -- there is no dedicated
+#' \code{save_edi_design()}/\code{load_edi_design()} wrapper, and none is
+#' planned: the audit behind this section found nothing that needs
+#' transformation on load beyond what is documented here. \code{Inference*}
+#' objects are disposable, cheaply reconstructed from a \code{Design} object
+#' on demand (see each class's \code{$new()}), and must \strong{never} be
+#' \code{saveRDS()}'d directly -- nothing currently prevents it (they
+#' serialize "successfully" like any R6 object), but the result is a frozen
+#' snapshot a user could easily mistake for something that stays live against
+#' the design, and re-running inference from a reloaded \code{Design} is both
+#' cheap and the only tested path.
+#'
+#' \strong{Worked example} (mirrors the round-trip tests in
+#' \code{R/EDI/tests/testthat/test-save-load-design.R}):
+#' \preformatted{
+#' des_obj = DesignSeqOneByOneBernoulli$new(n = 20, response_type = "continuous")
+#' for (i in 1:10) {
+#'   des_obj$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#'   des_obj$add_one_subject_response(i, y = rnorm(1))
+#' }
+#' saveRDS(des_obj, "trial.rds", version = 2)
+#'
+#' # ...new R session...
+#' des_obj = readRDS("trial.rds")
+#' for (i in 11:20) {
+#'   des_obj$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#'   des_obj$add_one_subject_response(i, y = rnorm(1))
+#' }
+#' inf_obj = InferenceContinOLS$new(des_obj) # reconstructed fresh, never persisted
+#' inf_obj$compute_estimate()
+#' }
+#' Passing \code{version = 2} to \code{saveRDS()} is recommended, matching the
+#' one existing internal precedent for RDS serialization in this package
+#' (\code{SimulationFramework}'s replication cache); it is not required for a
+#' same-R-version round trip.
+#'
+#' \strong{Version stamp.} Every \code{Design} object records the package
+#' version it was constructed under (\code{get_edi_version_created()}). This
+#' is stamped once at construction and is \emph{not} refreshed by
+#' \code{readRDS()} -- it reflects the version that originally built the
+#' object, not whatever version is currently loaded. The first "resume the
+#' trial" call after a reload (\code{draw_ws_according_to_design()} for fixed
+#' designs, \code{add_one_subject_to_experiment_and_assign()} for sequential
+#' designs) compares the stamped version's major component against the
+#' currently loaded package's major component and emits a one-time
+#' \code{warning()} on a mismatch; minor/patch differences are silent, since
+#' most field additions are additive under this class's
+#' \code{lock_objects = FALSE} R6 fields and do not warrant nagging on every
+#' routine upgrade. Objects saved before this field existed self-initialize
+#' it to the currently loaded version the first time it is read, rather than
+#' erroring on the missing field.
+#'
+#' \strong{RNG/reproducibility caveat.} \code{private$seed} is consumed only
+#' once, inside \code{maybe_set_seed()} at construction time, and is
+#' \emph{not} re-applied on \code{readRDS()}. Continuing to enroll subjects
+#' after a reload therefore draws from whatever the global
+#' \code{.Random.seed} happens to be in the new session, not a deterministic
+#' continuation of the original stream. This is almost certainly the right
+#' behavior for a real trial (bit-for-bit-reproducible continuation across a
+#' process restart is not a property a production trial should have), but it
+#' means a same-seed reload-and-continue is \emph{not} expected to reproduce
+#' the same draws as an uninterrupted run with that seed -- do not rely on
+#' that for testing.
+#'
+#' \strong{Known non-serializable case.} A \code{DesignFixedOptimal}
+#' constructed with \code{objective = "custom"} from a raw
+#' \code{RcppXPtrUtils::cppXPtr()} external pointer (rather than a C++ source
+#' string) cannot be safely reloaded: compiled function pointers do not
+#' survive a \code{saveRDS()}/\code{readRDS()} round trip, and there is no
+#' retained source to recompile from. This is detected on first use after
+#' reload and raises a clear error rather than failing silently; supply
+#' \code{custom_objective} as a C++ source string instead of a pre-built
+#' \code{cppXPtr()} object if you need this design to survive a save/reload
+#' cycle -- that form recompiles itself automatically the first time it is
+#' used post-reload. Every other audited private cache on \code{Design} and
+#' its components (\code{all_subject_data_cache}, \code{permutations_cache},
+#' \code{lin_centered_covariates}, matching/blocking/cluster component state
+#' such as \code{m}, \code{xm_structural}, \code{boot_pair_rows}) was traced
+#' to its originating C++ return type and confirmed to hold only plain
+#' R matrices/vectors/lists, not external pointers or other
+#' non-serializable values.
+#'
 #' @keywords internal
 #' @examples
 #' \dontrun{
-#' seq_des = Design$new(n = 6, response_type = 'continuous')
+#' # Design is abstract and cannot be instantiated directly; construct a
+#' # concrete subclass instead, e.g.:
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' }
 Design = R6::R6Class("Design",
 	lock_objects = FALSE,
 	public = list(
+		#' @description Check whether this design currently has blocking structure.
+		#'
+		#' The base implementation returns \code{FALSE}. Designs that compose
+		#' \code{BlockingStructure} override this method with the structural check.
+		#' @return \code{FALSE} for designs without \code{BlockingStructure}.
+		is_blocking_design = function() FALSE,
+		#' @description Check whether this design currently has matching structure.
+		#'
+		#' The base implementation returns \code{FALSE}. Designs that compose
+		#' \code{MatchingStructure} override this method with the structural check.
+		#' @return \code{FALSE} for designs without \code{MatchingStructure}.
+		is_matching_design = function() FALSE,
 		#' @description Characterization: is this a KK matching-on-the-fly-capable
 		#'   design (sequential KK or its fixed binary-match equivalent)? Default
 		#'   \code{FALSE}; overridden to \code{TRUE} on
@@ -78,6 +177,14 @@ Design = R6::R6Class("Design",
 				ordinal_levels = NULL,
 				seed = NULL
 			) {
+			leaf_class = class(self)[1L]
+			if (is_design_class_abstract(leaf_class)) {
+				stop(
+					leaf_class, " is an abstract Design base class and cannot be instantiated directly. ",
+					"Use a concrete subclass instead.",
+					call. = FALSE
+				)
+			}
 			if (should_run_asserts()) {
 				assertChoice(response_type, c("continuous", "incidence", "proportion", "count", "survival", "ordinal"))
 				assertNumeric(prob_T, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
@@ -125,6 +232,7 @@ Design = R6::R6Class("Design",
 				 ".\n"))
 			}
 			private$seed = seed
+			private$edi_version_created = as.character(utils::packageVersion("EDI"))
 		},
 		#' @description For CARA designs, add a single subject response.
 		#'
@@ -435,53 +543,56 @@ Design = R6::R6Class("Design",
 		#' @param r Number of vectors to draw. Default is 1.
 		#' @return A matrix of size n x r with \{0,1\} entries (1 = treated, 0 = control).
 		draw_ws_according_to_design = function(r = 1L){
+			private$check_version_compat()
 			private$draw_ws_raw(r)
 		},
-		#' @description Returns the metadata-backed capabilities this design object
-		#'   exposes (see \code{fix_design_hierarchy.md}, "Capability Model").
+		#' @description Returns the capabilities this design \strong{instance} exposes
+		#'   (see \code{fix_design_hierarchy.md}, "Capability Model").
 		#'
-		#'   Some concrete design classes have now been rewired to consume
-		#'   \code{BlockingStructure}/\code{MatchingStructure}/\code{ClusterStructure}
-		#'   via \code{define_design_class()} (see the "Timing-Family Split" Phase 1
-		#'   TODO notes), but this still bridges the gap for the remaining ones: it
-		#'   unions whatever the class registry resolves today with a legacy fallback
-		#'   that calls the existing \code{is_blocking_design()}/\code{is_matching_design()}/
-		#'   \code{supports_batch_w_pregeneration()} predicates directly, so callers get
-		#'   correct answers regardless of which path a given class has been migrated
-		#'   through. The fallback is temporary and should be deleted once every
-		#'   concrete class is migrated and the registry alone is authoritative.
+		#'   Deliberately instance-level, not a class-registry read (fix_design_hierarchy.md,
+		#'   TODO-28): \code{is_blocking_design()}/\code{is_matching_design()} depend on
+		#'   real construction-time state (e.g. \code{private$m}/\code{private$blocking_capable}),
+		#'   not just which components a class composes -- \code{DesignFixediBCRD}
+		#'   constructed with an unknown \code{n}, for instance, composes
+		#'   \code{BlockingStructure} but is \emph{not} blocking-capable for that particular
+		#'   instance. A class-registry-only answer (this function briefly unioned in
+		#'   \code{get_effective_design_capabilities()}, a purely class-level, component-
+		#'   composition-based check) would silently report "blocking" for every instance
+		#'   of such a class regardless of its actual construction state -- confirmed as a
+		#'   real, reproducible false positive during this TODO's implementation, not a
+		#'   hypothetical. \code{get_effective_design_capabilities()}/
+		#'   \code{design_class_registry.R}'s \code{direct_components} still exist and are
+		#'   correct -- they're the right tool for a \strong{generator}-only query with no
+		#'   instance in hand (see \code{design_class_generator_supports_batch_w_pregeneration()}),
+		#'   just not for this instance-level method.
 		#' @return A character vector of capability names.
 		capabilities = function(){
-			class_name = class(self)[1L]
-			from_registry = if (exists("get_effective_design_capabilities", mode = "function")) {
-				tryCatch(get_effective_design_capabilities(class_name), error = function(e) character())
-			} else {
-				character()
-			}
-			from_legacy = character()
+			caps = character()
 			if (isTRUE(tryCatch(self$is_blocking_design(), error = function(e) FALSE))) {
-				from_legacy = c(from_legacy, "blocking")
+				caps = c(caps, "blocking")
 			}
 			if (isTRUE(tryCatch(self$is_matching_design(), error = function(e) FALSE))) {
-				from_legacy = c(from_legacy, "matching")
+				caps = c(caps, "matching")
+			}
+			if (isTRUE(tryCatch(self$is_a_cluster_capable(), error = function(e) FALSE))) {
+				caps = c(caps, "cluster")
 			}
 			if (isTRUE(tryCatch(self$supports_batch_w_pregeneration(), error = function(e) FALSE))) {
-				from_legacy = c(from_legacy, "batch_w_pregeneration")
+				caps = c(caps, "batch_w_pregeneration")
 			}
 			if (isTRUE(tryCatch(self$supports_resampling(), error = function(e) FALSE))) {
-				from_legacy = c(from_legacy, "resampling")
+				caps = c(caps, "resampling")
 			}
 			if (isTRUE(tryCatch(self$supports_randomization_draw(), error = function(e) FALSE))) {
-				from_legacy = c(from_legacy, "randomization_draw")
+				caps = c(caps, "randomization_draw")
 			}
 			if (isTRUE(tryCatch(self$supports_resampling_replay(), error = function(e) FALSE))) {
-				from_legacy = c(from_legacy, "resampling_replay")
+				caps = c(caps, "resampling_replay")
 			}
-			unique(c(from_registry, from_legacy))
+			unique(caps)
 		},
-		#' @description Returns whether this design object supports a metadata-backed
-		#'   capability. See \code{capabilities()} for the current registry/legacy
-		#'   bridging caveat.
+		#' @description Returns whether this design object supports a capability.
+		#'   See \code{capabilities()}.
 		#' @param capability A capability name, e.g. \code{"blocking"},
 		#'   \code{"matching"}, or \code{"batch_w_pregeneration"}.
 		#' @return \code{TRUE} if the capability is present, \code{FALSE} otherwise.
@@ -603,6 +714,35 @@ Design = R6::R6Class("Design",
 		supports_resampling_replay = function(){
 			private$supports_resampling_by_registry_abstract_check()
 		},
+		#' @description Hook invoked by the bootstrap-randomization-test machinery
+		#'   on a design object whose assignment mechanism is about to be replayed
+		#'   against resampled data (once per replicate draw site, ahead of
+		#'   \code{draw_ws_according_to_design(1L)}). The base implementation is a
+		#'   no-op; designs whose replay is a full re-optimization
+		#'   (\code{DesignFixedOptimal}) override it to switch to their
+		#'   per-replicate solver profile (\code{solver_args$brt_*}). Idempotent.
+		#' @return \code{invisible(NULL)}.
+		prepare_for_resampling_replay = function(){
+			invisible(NULL)
+		},
+		#' @description Warm the per-subject assignment-data cache, when this
+		#'   design uses covariates. This is an internal optimization hook for
+		#'   randomization inference; it keeps cache mutation inside the Design
+		#'   object instead of exposing its private environment to callers.
+		#' @return \code{TRUE} invisibly when a cache warm-up was attempted, or
+		#'   \code{FALSE} invisibly when the design does not use covariates.
+		warm_all_subject_data_cache = function(){
+			if (!isTRUE(private$uses_covariates)) return(invisible(FALSE))
+			old_t = private$t
+			on.exit({ private$t = old_t }, add = TRUE)
+			if (is.null(private$all_subject_data_cache)) private$all_subject_data_cache = list()
+			n_subjects = self$get_n()
+			for (t_temp in seq_len(n_subjects)) {
+				private$t = t_temp
+				private$compute_all_subject_data()
+			}
+			invisible(TRUE)
+		},
 		#' @description Get n, the sample size
 		#'
 		#' @return 			The number of subjects.
@@ -687,6 +827,23 @@ Design = R6::R6Class("Design",
 		get_missingness_method = function(){
 			private$missingness_method
 		},
+		#' @description Get the EDI package version this object was created under.
+		#'
+		#'   Stamped once, at construction time, from
+		#'   \code{utils::packageVersion("EDI")}; never re-stamped on
+		#'   \code{readRDS()} reload, so it reflects the version that originally
+		#'   built the object rather than whatever version is currently loaded.
+		#'   Objects saved before this field existed self-initialize it to the
+		#'   \emph{currently loaded} version the first time it is read (there is
+		#'   no way to recover the true original version for those objects),
+		#'   rather than erroring on the missing field.
+		#' @return 			A character string, e.g. \code{"1.0.0"}.
+		get_edi_version_created = function(){
+			if (is.null(private$edi_version_created)) {
+				private$edi_version_created = as.character(utils::packageVersion("EDI"))
+			}
+			private$edi_version_created
+		},
 		#' @description Transform the response vector y
 		#'
 		#' @param transform_fun A function that takes y_original and returns a new y.
@@ -739,6 +896,39 @@ Design = R6::R6Class("Design",
 		num_cores = function() get_num_cores()
 	),
 	private = list(
+		edi_version_created = NULL,
+		version_mismatch_checked = FALSE,
+		# See TODO "Decide version-mismatch behavior" in save_load_api.md:
+		# warn once, on the first post-reload call to a "resume the trial"
+		# entry point (draw_ws_according_to_design() for fixed designs,
+		# add_one_subject_to_experiment_and_assign() for sequential designs),
+		# only when the *major* component of the stamped version differs from
+		# the currently loaded package's major version. Silent on
+		# minor/patch differences, since routine additive upgrades (the
+		# common case under this package's `lock_objects = FALSE` R6
+		# fields) should not nag every user on every reload. A freshly
+		# constructed object always stamps the current version, so this is a
+		# no-op until an object is actually reloaded under a different major
+		# version. Uses get_edi_version_created() rather than reading the
+		# private field directly so pre-stamp objects (saved before this
+		# field existed) self-initialize instead of comparing against NULL.
+		check_version_compat = function(){
+			if (private$version_mismatch_checked) return(invisible(NULL))
+			private$version_mismatch_checked = TRUE
+			stamped_major = as.integer(unlist(strsplit(self$get_edi_version_created(), "\\."))[1])
+			current_major = as.integer(unlist(strsplit(as.character(utils::packageVersion("EDI")), "\\."))[1])
+			if (!is.na(stamped_major) && !is.na(current_major) && stamped_major != current_major) {
+				warning(
+					"This ", class(self)[1L], " object was created under EDI version ",
+					self$get_edi_version_created(), " but EDI version ",
+					as.character(utils::packageVersion("EDI")), " is currently loaded. ",
+					"Major-version differences may include breaking schema changes; ",
+					"verify this object still behaves as expected before continuing.",
+					call. = FALSE
+				)
+			}
+			invisible(NULL)
+		},
 		# Shared by supports_randomization_draw()/supports_resampling_replay(): both
 		# default to the same "is this a real concrete class, not an abstract
 		# timing-family base" check; ObservationalDesign overrides both public methods
@@ -812,7 +1002,13 @@ Design = R6::R6Class("Design",
 		},
 		covariate_impute_if_necessary_and_then_create_model_matrix = function(){
 			#make a copy... sometimes the raw will be the same as the imputed if there are no imputations
-			private$Ximp = copy(private$Xraw)
+			#(as.data.table rather than copy: the reusable-bootstrap-worker machinery
+			#deliberately stores the worker design's Xraw as a plain data.frame --
+			#see bootstrap_subset_source() in inference_all_abstract_non_param_boot.R --
+			#and this function's data.table `..` syntax below requires a data.table;
+			#as.data.table copies either way, so behavior is unchanged for the
+			#ordinary data.table path)
+			private$Ximp = as.data.table(private$Xraw)
 			column_has_missingness = columns_have_missingness_cpp(private$Xraw)
 			if (any(column_has_missingness)){
 				if (private$missingness_method == "error"){

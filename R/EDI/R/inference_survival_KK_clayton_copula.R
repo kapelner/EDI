@@ -216,10 +216,8 @@ InferenceSurvivalKKClaytonCopulaIVWC = R6::R6Class("InferenceSurvivalKKClaytonCo
 					X_r_int = cbind("(Intercept)" = 1, as.matrix(X_r))
 					p_r = ncol(X_r_int)
 					fit_fast_r = tryCatch(
-						fast_weibull_regression_general_cpp(
-							y = ifelse(dead_r != 0, y_r, NA_real_),
-							y_L = ifelse(dead_r == 0, y_r, NA_real_),
-							y_R = ifelse(dead_r == 0, Inf, NA_real_), X = X_r_int,
+						fast_weibull_regression_cpp(
+							y = y_r, dead = dead_r, X = X_r_int,
 							estimate_only = TRUE,
 							fixed_idx = as.integer(p_r),
 							fixed_values = as.numeric(private$cached_vc_params_reservoir[1L])
@@ -436,10 +434,8 @@ InferenceSurvivalKKClaytonCopulaIVWC = R6::R6Class("InferenceSurvivalKKClaytonCo
 					private$best_X_colnames_reservoir = colnames(Xcand)
 					X_r_int = cbind("(Intercept)" = 1, as.matrix(Xcand))
 					res_log_s = tryCatch(
-							fast_weibull_regression_general_cpp(
-								y   = ifelse(dead_r != 0, y_r, NA_real_),
-								y_L = ifelse(dead_r == 0, y_r, NA_real_),
-								y_R = ifelse(dead_r == 0, Inf, NA_real_),
+							fast_weibull_regression_cpp(
+								y = y_r, dead = dead_r,
 							X    = X_r_int,
 							estimate_only = TRUE
 						),

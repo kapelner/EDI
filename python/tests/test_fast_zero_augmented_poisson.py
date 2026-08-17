@@ -66,6 +66,9 @@ def test_matches_r_fixture_zero_inflated():
     X, y, Xzi = _synthetic_data()
     res = fast_zero_augmented_poisson(X, y, Xzi, is_hurdle=False)
 
+    # NOTE (2026-08-17): converged now derives from the shared LBFGS/Newton
+    # machinery's gradient-norm-based redefinition (optimizer_diagnostics_
+    # report.md TODO-4) -- re-verify against a fresh R run once compiled.
     assert res["converged"] is True
     assert res["params"] == pytest.approx(R_ZIP_PARAMS, abs=ATOL, rel=RTOL)
     assert res["neg_loglik"] == pytest.approx(R_ZIP_NEG_LOGLIK, abs=ATOL, rel=RTOL)
@@ -75,6 +78,9 @@ def test_matches_r_fixture_hurdle():
     X, y, Xzi = _synthetic_data()
     res = fast_zero_augmented_poisson(X, y, Xzi, is_hurdle=True)
 
+    # NOTE (2026-08-17): converged now derives from the shared LBFGS/Newton
+    # machinery's gradient-norm-based redefinition (optimizer_diagnostics_
+    # report.md TODO-4) -- re-verify against a fresh R run once compiled.
     assert res["converged"] is True
     assert res["params"] == pytest.approx(R_HURDLE_PARAMS, abs=ATOL, rel=RTOL)
     assert res["neg_loglik"] == pytest.approx(R_HURDLE_NEG_LOGLIK, abs=ATOL, rel=RTOL)

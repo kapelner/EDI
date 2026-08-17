@@ -48,17 +48,21 @@
 #' }
 #' }
 #' @export
-InferenceIncidCMH = R6::R6Class("InferenceIncidCMH",
-	lock_objects = FALSE,
-	inherit = InferenceAllSimpleMeanDiff,
+InferenceIncidCMH = define_inference_class(
+	classname = "InferenceIncidCMH",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Uses the shared asymptotic confidence-interval contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param alpha Numeric. Significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			self$compute_estimate()
 			private$get_standard_error()
-			super$compute_asymp_confidence_interval(alpha)
+			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Uses the shared asymptotic two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
@@ -66,7 +70,7 @@ InferenceIncidCMH = R6::R6Class("InferenceIncidCMH",
 		compute_asymp_two_sided_pval = function(delta = 0){
 			self$compute_estimate()
 			private$get_standard_error()
-			super$compute_asymp_two_sided_pval(delta)
+			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
 		#' @description Initialize Cochran-Mantel-Haenszel incidence inference,
 		#'   validate the stratified binary-response design, and prepare the
@@ -140,7 +144,13 @@ InferenceIncidCMH = R6::R6Class("InferenceIncidCMH",
 					private$des_obj_priv_int$n
 				)
 			} else {
-				precomp = private$des_obj$get_cmh_se_w_mat()
+				# get_cmh_se_w_mat() is an optional blocking-layer precompute; after the
+				# design-hierarchy rework non-blocking designs (e.g. DesignFixedBernoulli,
+				# now Design -> DesignFixed with no blocking ancestor) no longer carry the
+				# method at all, so calling it unconditionally was "attempt to apply
+				# non-function" -- guard with is.function() and fall through to drawing
+				# reference vectors from the design directly.
+				precomp = if (is.function(private$des_obj$get_cmh_se_w_mat)) private$des_obj$get_cmh_se_w_mat() else NULL
 				w_mat = if (!is.null(precomp)) precomp else private$des_obj$draw_ws_according_to_design(private$se_est_num_vectors)
 				# Both sources return {0,1}; recode to signed {-1,+1} locally -- this
 				# formula requires E_w[y'w] = 0 under any randomization, which only
@@ -165,5 +175,38 @@ InferenceIncidCMH = R6::R6Class("InferenceIncidCMH",
 		get_degrees_of_freedom = function(){
 			NA_real_
 		}
+	),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"initialize"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"compute_fast_bootstrap_distr",
+			"compute_fast_randomization_distr",
+			"compute_fast_rand_bootstrap_distr",
+			"compute_rand_bootstrap_ci_affine_coefs",
+			"shared",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_likelihood_tests",
+			"get_supported_testing_types_impl",
+			"simulate_under_lik_null",
+			"compute_brt_null_statistics_with_se",
+			"get_likelihood_test_spec"
+		)
 	)
 )

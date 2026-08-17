@@ -9,6 +9,36 @@
 # register_inference_class() -- registration for every Design generator, however
 # built, comes uniformly from populate_design_class_registry()'s namespace scan).
 
+test_that("design class assembly preserves NULL private state", {
+	assembled = EDI:::assemble_design_private(
+		"DesignTemporaryNullState",
+		component_names = character(),
+		private = list(optional_cache = NULL)
+	)
+
+	expect_named(assembled, "optional_cache")
+	expect_null(assembled$optional_cache)
+})
+
+test_that("component-owned state is materialized and permits declared host defaults", {
+	on.exit(EDI:::populate_design_component_registry(), add = TRUE)
+	EDI:::register_design_component(EDI:::DesignComponent(
+		name = "DesignTemporaryStateComponent",
+		private = list(component_cache = NULL),
+		owns_state = "component_cache",
+		allowed_host_overrides = list(public = character(), private = "component_cache")
+	))
+
+	DesignTemporaryStateHost = EDI:::define_design_class(
+		classname = "DesignTemporaryStateHost",
+		inherit = Design,
+		components = "DesignTemporaryStateComponent",
+		private = list(component_cache = "host-default")
+	)
+
+	expect_identical(DesignTemporaryStateHost$private_fields$component_cache, "host-default")
+})
+
 test_that("define_design_class() assembles a working BlockingStructure host", {
 	on.exit(EDI:::populate_design_component_registry(), add = TRUE)
 	DesignTemporaryBlockingHost = EDI:::define_design_class(
@@ -98,14 +128,21 @@ test_that("define_design_class() accepts a declared override of a component meth
 })
 
 test_that("define_design_class() rejects composing a scaffold component", {
+	# No permanent scaffold remains in the registry (see
+	# test-design-component-registry.R's identical note), so this test registers a
+	# temporary one itself.
 	on.exit(EDI:::populate_design_component_registry(), add = TRUE)
+	EDI:::register_design_component(EDI:::DesignComponent(
+		name = "DesignTemporaryScaffold",
+		status = "scaffold"
+	))
 	expect_error(
 		EDI:::define_design_class(
 			classname = "DesignTemporaryScaffoldHost",
 			inherit = DesignFixed,
-			components = "AllocationMatrixValidation"
+			components = "DesignTemporaryScaffold"
 		),
-		"Scaffold design component\\(s\\) cannot be resolved: AllocationMatrixValidation"
+		"Scaffold design component\\(s\\) cannot be resolved: DesignTemporaryScaffold"
 	)
 })
 
@@ -217,4 +254,41 @@ test_that("BlockingStructure component-owned state survives Design$duplicate()",
 	clone$.__enclos_env__$private$m = c(9L, 9L, 9L, 9L, 9L, 9L)
 	expect_identical(des$get_block_ids(), c(1L, 1L, 2L, 2L, 3L, 3L))
 	expect_identical(clone$get_block_ids(), c(9L, 9L, 9L, 9L, 9L, 9L))
+})
+
+test_that("TODO-35 production generators use define_design_class", {
+	source_dirs = c(file.path("R", "EDI", "R"), file.path("..", "..", "R"))
+	source_dirs = source_dirs[dir.exists(source_dirs)]
+	skip_if(length(source_dirs) == 0L, "package source files are unavailable")
+	source_dir = source_dirs[[1L]]
+
+	class_files = c(
+		DesignFixedCustom = "design_custom_extensions.R",
+		DesignCustomSequential = "design_custom_extensions.R",
+		DesignFixedBernoulli = "design_fixed_bernoulli.R",
+		DesignFixedFactorial = "design_fixed_factorial.R",
+		DesignFixedGreedy = "design_fixed_greedy.R",
+		DesignFixediBCRD = "design_fixed_ibcrd.R",
+		DesignFixedMatchingGreedyPairSwitching = "design_fixed_matching_greedy_pair_switching.R",
+		DesignFixedRerandomization = "design_fixed_rerandomization.R",
+		ObservationalDesign = "design_observational.R",
+		DesignSeqOneByOneAtkinson = "design_seq_one_by_one_atkinson.R",
+		DesignSeqOneByOneBernoulli = "design_seq_one_by_one_bernoulli.R",
+		DesignSeqOneByOneEfron = "design_seq_one_by_one_efron.R",
+		DesignSeqOneByOneiBCRD = "design_seq_one_by_one_ibcrd.R",
+		DesignSeqOneByOnePocockSimon = "design_seq_one_by_one_pocock_simon.R",
+		DesignSeqOneByOneRandomBlockSize = "design_seq_one_by_one_random_block_size.R",
+		DesignSeqOneByOneSPBR = "design_seq_one_by_one_spbr.R",
+		DesignSeqOneByOneUrn = "design_seq_one_by_one_urn.R"
+	)
+
+	for (class_name in names(class_files)) {
+		text = paste(readLines(file.path(source_dir, class_files[[class_name]]), warn = FALSE), collapse = "\n")
+		expect_match(
+			text,
+			paste0("(?m)^", class_name, "\\s*=\\s*define_design_class\\("),
+			perl = TRUE,
+			info = class_name
+		)
+	}
 })

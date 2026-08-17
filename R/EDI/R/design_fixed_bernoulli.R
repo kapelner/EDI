@@ -40,8 +40,10 @@
 #' des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10)))
 #' des$assign_w_to_all_subjects()
 #' @export
-DesignFixedBernoulli = R6::R6Class("DesignFixedBernoulli",
+DesignFixedBernoulli = define_design_class(
+	classname = "DesignFixedBernoulli",
 	inherit = DesignFixed,
+	components = character(),
 	public = list(
 		#' @description Characterization: this design draws each subject's treatment
 		#'   assignment as an independent \eqn{\mathrm{Bernoulli}(p)} coin flip (see class

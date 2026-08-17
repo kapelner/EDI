@@ -11,5 +11,5 @@ test_that("ordinal cauchit cached level count preserves arbitrary labels", {
 
 	expect_equal(fit_labels$n_params, 2L + ncol(X))
 	expect_equal(as.numeric(fit_labels$params), as.numeric(fit_remapped$params), tolerance = 0)
-	expect_identical(fit_labels$iterations, fit_remapped$iterations)
+	expect_identical(fit_labels$num_iter, fit_remapped$num_iter)
 })

@@ -188,9 +188,10 @@ CountCompositeLikelihoodSource = list(
 	private = inference_count_composite_likelihood_private
 )
 
-InferenceCountCompositeLikelihood = R6::R6Class("InferenceCountCompositeLikelihood",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
-	public = inference_count_composite_likelihood_public,
-	private = inference_count_composite_likelihood_private
-)
+# The InferenceCountCompositeLikelihood R6 generator that used to be assembled
+# here from the same source lists was deleted 2026-08-17 (fix_inference_
+# hierarchy.md, "Base Deletion"): its only concrete descendants
+# (InferenceCountQuasiPoisson/InferenceCountRobustPoisson) migrated to
+# define_inference_class() composing the CountCompositeLikelihood component,
+# which reads CountCompositeLikelihoodSource above directly -- the generator
+# had zero remaining inheritors and existed only as legacy ladder surface.

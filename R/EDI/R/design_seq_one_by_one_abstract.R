@@ -6,12 +6,14 @@
 #' @keywords internal
 #' @examples
 #' \dontrun{
-#' seq_des = DesignSeqOneByOne$new(n = 6, response_type = 'continuous')
+#' # DesignSeqOneByOne is abstract and cannot be instantiated directly;
+#' # construct a concrete subclass instead, e.g.:
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' }
 DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 	lock_objects = FALSE,
-	inherit = DesignMatching,
+	inherit = Design,
 	public = list(
 		#' @description Initialize a sequential one-by-one design.
 		#' @param response_type The data type of response values.
@@ -152,6 +154,7 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 		#' @param x_new A data frame with one row representing the new subject's covariates.
 		#' @return The treatment assignment as \{0,1\} (1 = treated, 0 = control).
 		add_one_subject_to_experiment_and_assign = function(x_new){
+			private$check_version_compat()
 			self$add_one_subject(x_new)
 			w_t = self$assign_wt()
 			if (private$fixed_sample){

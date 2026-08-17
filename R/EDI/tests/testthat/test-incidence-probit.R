@@ -10,7 +10,7 @@ test_that("InferenceIncidProbitRegr matches stats::glm on the treatment slope", 
 	p <- pnorm(-0.25 + 0.9 * w + 0.45 * x - 0.35 * z)
 	y <- rbinom(n, 1, p)
 
-	des <- EDI:::DesignFixed$new(n = n, response_type = "incidence", verbose = FALSE)
+	des <- DesignFixedTestFixture$new(n = n, response_type = "incidence", verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x = x, z = z))
 	des$overwrite_all_subject_assignments(w)
 	des$add_all_subject_responses(y)
@@ -33,7 +33,7 @@ test_that("InferenceIncidProbitRegr supports asymptotic and likelihood-based inf
 	p <- pnorm(-0.1 + 0.75 * w + 0.3 * x)
 	y <- rbinom(n, 1, p)
 
-	des <- EDI:::DesignFixed$new(n = n, response_type = "incidence", verbose = FALSE)
+	des <- DesignFixedTestFixture$new(n = n, response_type = "incidence", verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x = x))
 	des$overwrite_all_subject_assignments(w)
 	des$add_all_subject_responses(y)

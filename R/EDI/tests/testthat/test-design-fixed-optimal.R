@@ -160,6 +160,51 @@ test_that("objective 'custom' runs end-to-end through the class", {
 	expect_identical(sum(des$get_w()), 5)
 })
 
+test_that("fencing: randomization CI is refused like the randomization test (testing-plan item 5)", {
+	des = optimal_class_design(seed = 91)
+	des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(rnorm(10))
+	inf = EDI:::InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	expect_error(inf$compute_rand_confidence_interval(r = 50), "no randomization mechanism")
+})
+
+test_that("A/'all' labeling is objective-determined: the coin never fires (mirror not co-optimal)", {
+	# The trace criterion over all parameters includes the intercept (the
+	# control-group mean), so w* and 1 - w* are NOT tied and the labeling is
+	# decided by the objective itself -- the verification must detect the
+	# non-tie and skip the flip.
+	des = optimal_class_design(seed = 92, objective = "A", interest = "all")
+	des$assign_w_to_all_subjects()
+	diag = des$get_optimization_diagnostics()
+	expect_true(diag$mirror_feasible)   # prob_T = 0.5: the mirror is a legal allocation...
+	expect_false(diag$mirror_tied)      # ...but not a co-optimum
+	expect_false(diag$mirror_flipped)
+})
+
+test_that("quality baseline: annealing does not lose to blind greedy restarts in its necessary zone (testing-plan item 4)", {
+	# Annealing's necessary zone is past the exact-solve cutoff; compare, on the
+	# same data and D criterion, forced annealing against the best of n_chains
+	# independent DesignFixedGreedyDOptimal greedy draws.
+	n = 24
+	set.seed(555)
+	dat = data.frame(x1 = rnorm(n), x2 = runif(n), x3 = rnorm(n, sd = 2))
+	ann_obj = numeric(3); greedy_obj = numeric(3)
+	for (k in 1:3) {
+		des_a = DesignFixedOptimal$new(n = n, response_type = "continuous", seed = 600 + k,
+			objective = "D", solver = "annealing", solver_args = list(n_chains = 4L, max_iter = 5000L))
+		des_a$add_all_subjects_to_experiment(dat)
+		des_a$assign_w_to_all_subjects()
+		ann_obj[k] = des_a$get_optimization_diagnostics()$objective_value
+
+		des_g = DesignFixedGreedyDOptimal$new(n = n, response_type = "continuous", seed = 700 + k, objective = "D")
+		des_g$add_all_subjects_to_experiment(dat)
+		w_g = des_g$draw_ws_according_to_design(r = 4)
+		P = des_g$.__enclos_env__$private$P
+		greedy_obj[k] = min(apply(w_g, 2, function(w) drop(t(w) %*% P %*% w)))
+	}
+	expect_lte(mean(ann_obj), mean(greedy_obj) + 1e-9)
+})
+
 test_that("always-on construction validation", {
 	expect_error(DesignFixedOptimal$new(n = 10, response_type = "continuous", objective = "Z"), "objective must be")
 	expect_error(DesignFixedOptimal$new(n = 10, response_type = "continuous", prob_T = 1.2), "prob_T")

@@ -53,7 +53,16 @@ def _synthetic_data():
 R_COEFFICIENTS = np.array([0.654770101904559, -0.319961675829669])
 R_NEG_LL = 492.766701831856
 R_VCOV_DIAG = np.array([0.0346329954487925, 0.0091551597979166])
-R_ITERATIONS = 4
+R_NUM_ITER = 4
+
+# NOTE (2026-08-17): the default optimizer here is "newton_raphson", whose
+# convergence criterion is objective-value-based (|old_ll - ll| < tol), left
+# untouched by optimizer_diagnostics_report.md TODO-4 (see
+# fast_coxph_regression.cpp) -- the only fix in that path was a latent bug
+# where failure exits (singular Hessian, non-finite gradient) at iter < maxit
+# were also misreported as converged=True, which a normal converging fixture
+# like this one shouldn't hit. num_iter/converged should be unchanged; still
+# re-verify against a fresh R run once compiled.
 
 
 def test_matches_r_fixture():
@@ -64,7 +73,8 @@ def test_matches_r_fixture():
     assert res["coefficients"] == pytest.approx(R_COEFFICIENTS, abs=ATOL, rel=RTOL)
     assert res["neg_ll"] == pytest.approx(R_NEG_LL, abs=ATOL, rel=RTOL)
     assert np.diag(res["vcov"]) == pytest.approx(R_VCOV_DIAG, abs=ATOL, rel=RTOL)
-    assert res["iterations"] == R_ITERATIONS
+    assert res["num_iter"] == R_NUM_ITER
+    assert res["hit_iteration_cap"] is False
 
 
 def test_result_shape_and_types():

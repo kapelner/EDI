@@ -34,37 +34,38 @@ below for those.
 
 | Class | Response | EDI (ms) | Canonical | Canonical (ms) | Speedup |
 |---|---|---:|---|---:|---:|
-| `InferenceContinRobustRegr` | continuous | 0.17 | statsmodels `RLM` | 11.92 | **69.49x** |
+| `InferenceContinRobustRegr` | continuous | 0.17 | statsmodels `RLM` | 11.92 | **69.5x** |
 | `InferenceAllSimpleWilcox` | continuous | 0.25 | numpy `median(HL pairwise diff)` | 1.12 | **4.57x** |
 | `InferenceContinOLS` | continuous | 0.03 | numpy `linalg.lstsq` | 0.11 | **3.25x** |
-| `InferenceIncidBinomialIdentityRiskDiff` | incidence | 0.10 | statsmodels `GLM(Binomial, identity link)` | 15.49 | **149.00x** |
-| `InferenceIncidModifiedPoisson` | incidence | 0.16 | statsmodels `GLM(Poisson)` | 3.90 | **24.25x** |
-| `InferenceIncidProbitRegr` | incidence | 0.44 | statsmodels `GLM(Binomial, probit link)` | 9.38 | **21.34x** |
-| `InferenceIncidLogRegr` | incidence | 0.24 | statsmodels `GLM(Binomial)` | 4.03 | **17.04x** |
-| `InferenceIncidGCompRiskDiff` | incidence | 0.36 | statsmodels `GLM(Binomial)+gcomp(RD)` | 4.78 | **13.16x** |
-| `InferenceIncidGCompRiskRatio` | incidence | 0.30 | statsmodels `GLM(Binomial)+gcomp(RR)` | 3.69 | **12.21x** |
+| `InferenceIncidBinomialIdentityRiskDiff` | incidence | 0.10 | statsmodels `GLM(Binomial, identity link)` | 15.49 | **149x** |
+| `InferenceIncidModifiedPoisson` | incidence | 0.16 | statsmodels `GLM(Poisson)` | 3.90 | **24.2x** |
+| `InferenceIncidProbitRegr` | incidence | 0.44 | statsmodels `GLM(Binomial, probit link)` | 9.38 | **21.3x** |
+| `InferenceIncidLogRegr` | incidence | 0.24 | statsmodels `GLM(Binomial)` | 4.03 | **17x** |
+| `InferenceIncidGCompRiskDiff` | incidence | 0.36 | statsmodels `GLM(Binomial)+gcomp(RD)` | 4.78 | **13.2x** |
+| `InferenceIncidGCompRiskRatio` | incidence | 0.30 | statsmodels `GLM(Binomial)+gcomp(RR)` | 3.69 | **12.2x** |
 | `InferenceIncidRiskDiff` | incidence | 0.03 | numpy `linalg.lstsq (LPM)` | 0.11 | **4.12x** |
 | `InferenceIncidLogBinomial` | incidence | 1.63 | statsmodels `GLM(Binomial, log link)` | 5.13 | **3.15x** |
-| `InferenceSurvivalWeibullRegr` | survival | 0.08 | lifelines `WeibullAFTFitter.fit()` (right-censored only) | 192.55 | **2423.43x** |
-| `InferenceSurvivalKMDiff` | survival | 0.02 | lifelines `KaplanMeierFitter(median)` | 26.52 | **1647.81x** |
-| `InferenceSurvivalRestrictedMeanDiff` | survival | 0.01 | lifelines `utils.restricted_mean_survival_time` | 19.30 | **1460.28x** |
-| `InferenceSurvivalStratCoxPHRegr` | survival | 0.47 | lifelines `CoxPHFitter(strata=)` | 273.61 | **583.92x** |
-| `InferenceSurvivalLogRank` | survival | 0.12 | lifelines `statistics.logrank_test` | 26.28 | **212.34x** |
-| `InferenceSurvivalCoxPHRegr` | survival | 0.50 | scikit-survival `CoxPHSurvivalAnalysis` | 51.62 | **102.32x** |
-| `InferenceCountHurdleNegBin` | count | 2.33 | statsmodels `HurdleCountModel(negbin)` | 135.15 | **57.90x** |
-| `InferenceCountHurdlePoisson` | count | 1.43 | statsmodels `HurdleCountModel(poisson)` | 41.83 | **29.33x** |
-| `InferenceCountQuasiPoisson` | count | 0.14 | statsmodels `GLM(Poisson)` | 3.85 | **26.88x** |
-| `InferenceCountZeroInflatedNegBin` | count | 13.96 | statsmodels `ZeroInflatedNegativeBinomialP` | 356.91 | **25.56x** |
-| `InferenceCountRobustPoisson` | count | 0.16 | statsmodels `GLM(Poisson)` | 3.80 | **23.84x** |
-| `InferenceCountPoisson` | count | 0.18 | statsmodels `GLM(Poisson)` | 3.94 | **22.54x** |
-| `InferenceCountNegBin` | count | 0.81 | statsmodels `NegativeBinomial` | 17.87 | **22.13x** |
+| `InferenceSurvivalWeibullRegr` | survival | 0.15 | lifelines `WeibullAFTFitter.fit()` (right-censored only) | 179.45 | **1170x** |
+| `InferenceSurvivalWeibullRegr` | survival | 0.48 | lifelines `WeibullAFTFitter.fit_interval_censoring()` | 267.24 | **562x** |
+| `InferenceSurvivalKMDiff` | survival | 0.02 | lifelines `KaplanMeierFitter(median)` | 26.52 | **1650x** |
+| `InferenceSurvivalRestrictedMeanDiff` | survival | 0.01 | lifelines `utils.restricted_mean_survival_time` | 19.30 | **1460x** |
+| `InferenceSurvivalStratCoxPHRegr` | survival | 0.47 | lifelines `CoxPHFitter(strata=)` | 273.61 | **584x** |
+| `InferenceSurvivalLogRank` | survival | 0.12 | lifelines `statistics.logrank_test` | 26.28 | **212x** |
+| `InferenceSurvivalCoxPHRegr` | survival | 0.50 | scikit-survival `CoxPHSurvivalAnalysis` | 51.62 | **102x** |
+| `InferenceCountHurdleNegBin` | count | 2.33 | statsmodels `HurdleCountModel(negbin)` | 135.15 | **57.9x** |
+| `InferenceCountHurdlePoisson` | count | 1.43 | statsmodels `HurdleCountModel(poisson)` | 41.83 | **29.3x** |
+| `InferenceCountQuasiPoisson` | count | 0.14 | statsmodels `GLM(Poisson)` | 3.85 | **26.9x** |
+| `InferenceCountZeroInflatedNegBin` | count | 13.96 | statsmodels `ZeroInflatedNegativeBinomialP` | 356.91 | **25.6x** |
+| `InferenceCountRobustPoisson` | count | 0.16 | statsmodels `GLM(Poisson)` | 3.80 | **23.8x** |
+| `InferenceCountPoisson` | count | 0.18 | statsmodels `GLM(Poisson)` | 3.94 | **22.5x** |
+| `InferenceCountNegBin` | count | 0.81 | statsmodels `NegativeBinomial` | 17.87 | **22.1x** |
 | `InferenceCountZeroInflatedPoisson` | count | 11.91 | statsmodels `ZeroInflatedPoisson` | 59.04 | **4.96x** |
-| `InferencePropFractionalLogit` | proportion | 0.15 | statsmodels `GLM(Binomial, fractional y)` | 3.08 | **20.00x** |
-| `InferencePropGCompMeanDiff` | proportion | 0.26 | statsmodels `GLM(Binomial)+gcomp` | 4.04 | **15.60x** |
-| `InferencePropBetaRegr` | proportion | 1.40 | statsmodels `BetaModel` | 16.81 | **11.99x** |
-| `InferenceOrdinalPropOddsRegr` | ordinal | 0.91 | statsmodels `OrderedModel(logit)` | 117.69 | **129.83x** |
-| `InferenceOrdinalOrderedProbitRegr` | ordinal | 0.80 | statsmodels `OrderedModel(probit)` | 86.01 | **106.95x** |
-| `InferenceOrdinalGCompMeanDiff` | ordinal | 1.09 | statsmodels `OrderedModel(logit)+gcomp` | 113.58 | **104.52x** |
+| `InferencePropFractionalLogit` | proportion | 0.15 | statsmodels `GLM(Binomial, fractional y)` | 3.08 | **20x** |
+| `InferencePropGCompMeanDiff` | proportion | 0.26 | statsmodels `GLM(Binomial)+gcomp` | 4.04 | **15.6x** |
+| `InferencePropBetaRegr` | proportion | 1.40 | statsmodels `BetaModel` | 16.81 | **12x** |
+| `InferenceOrdinalPropOddsRegr` | ordinal | 0.91 | statsmodels `OrderedModel(logit)` | 117.69 | **130x** |
+| `InferenceOrdinalOrderedProbitRegr` | ordinal | 0.80 | statsmodels `OrderedModel(probit)` | 86.01 | **107x** |
+| `InferenceOrdinalGCompMeanDiff` | ordinal | 1.09 | statsmodels `OrderedModel(logit)+gcomp` | 113.58 | **105x** |
 
 **→ [Full results (`benchmark_model_fits_python.html`)](https://rawcdn.githack.com/kapelner/EDI/main/python/benchmark/benchmark_model_fits_python.html)**
 — includes the Wald/full-inference table (standard errors + p-values, not just

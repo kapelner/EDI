@@ -36,8 +36,10 @@
 #' des$add_all_subjects_to_experiment(data.frame(x=1:12))
 #' des$assign_w_to_all_subjects()
 #' @export
-DesignFixedFactorial = R6::R6Class("DesignFixedFactorial",
+DesignFixedFactorial = define_design_class(
+	classname = "DesignFixedFactorial",
 	inherit = DesignFixed,
+	components = character(),
 	public = list(
 		#' @description Initialize a factorial fixed experimental design. The product
 		#'   of levels implied by \code{factors} must currently equal exactly 2 (see

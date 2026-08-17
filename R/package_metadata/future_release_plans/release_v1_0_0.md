@@ -22,10 +22,20 @@ the frozen substrate makes it additive.
 1. **`fix_inference_hierarchy.md`** — the class architecture, component and
    capability model, and discovery API. Both hierarchy plans justify deleting
    legacy names with "the package is unreleased"; that argument expires at
-   v1.0.0, so the migration must be complete before it.
-2. **`fix_design_hierarchy.md`** — same contract-freeze argument, and its
+   v1.0.0, so the migration must be complete before it. **Progress
+   (2026-08-17):** `_master.md` Phase 1A (the inference-hierarchy bug batch —
+   lazy-component staleness, locked-binding sweep, dead-propagation bootstrap
+   bug, silent-state-wipe tests, unregistered-subclass capability detection,
+   globals.R dispatch-table validation) is done, all seven items `[x]` in the
+   owning plan. Still open: Phase 1D (finish migrating the remaining
+   Wald/KK/IVWC/full-likelihood families, then **Base Deletion** — retiring
+   the legacy mixin machinery — then Discovery/Static Cleanup/Regression
+   Gates), which is the bulk of this item's remaining scope.
+2. **[x] `fix_design_hierarchy.md`** — same contract-freeze argument, and its
    `owns_state` metadata is the prerequisite for the serialization audit
-   (item 5).
+   (item 5). **Done (2026-08-17): 0 open TODOs, moved to
+   `../finished_features/`.** Unblocks item 5 (`save_load_api.md`), which
+   has not started yet (18 open TODOs, 0 done).
 3. **[x] `interval_censored_survival_response.md`** — the y/y_L/y_R response
    schema is a data-contract change touching every design and inference
    class; it must finish before the contract freezes. It also gates the
@@ -70,8 +80,8 @@ the frozen substrate makes it additive.
    Deletion), not adjacent to it.
 10. **CRAN submission mechanics** (owned by this file; no other plan covers
     them) — see the Release Gate checklist below.
-12. **`design_fixed_optimal.md`** (added 2026-08-16, user decision) — the new
-    `DesignFixedOptimal` class: a deterministic single-allocation optimal
+12. **[x] `design_fixed_optimal.md`** (added 2026-08-16, user decision) — the
+    new `DesignFixedOptimal` class: a deterministic single-allocation optimal
     design (all `DesignFixedGreedyDOptimal` objectives + `DesignFixedGreedy`'s
     balance objectives + a compiled-C++ `custom_objective` XPtr, optimized via
     ompr MILP where exact and best-of-restarts otherwise; no randomization
@@ -79,17 +89,27 @@ the frozen substrate makes it additive.
     capability metadata as `ObservationalDesign`). Release-relevant because it
     adds a public class, a new `randomization_family` enum value
     (`"deterministic_optimal"`), and a public XPtr calling convention — all
-    API surface that must freeze at 1.0.0. Its TODO-1..4 decision gates must
-    be resolved with the user before implementation starts; its `"restarts"`
-    solver depends on `fix_design_hierarchy.md`'s Stage-2 shared engine
-    (already release-scoped via that plan) or the documented interim
-    kernel-argmin fallback.
-11. **`optimizer_diagnostics_report.md → TODO-4` decision** — redefining
+    API surface that must freeze at 1.0.0. **Done (2026-08-17):** every TODO
+    (1, 1b, 2–4, 5, 5b, 6–9, 8b, 10, 11) closed, plus the follow-on TODO-A1
+    (threading commercial-solver choice through the existing
+    `DesignFixedOptimalBlocks$new()` too). Class + registry wiring + roxygen
+    landed (`R/design_fixed_optimal.R`, `EDI_DESIGN_ALLOWED_RANDOMIZATION_FAMILIES`),
+    with a fencing audit confirming the inference side needed zero changes
+    (the Observational-design migration already made every rand/BRT call
+    site capability-driven). Full test coverage
+    (`test-design-fixed-optimal.R`, `test-design-fixed-optimal-brt.R`, 19
+    BRT assertions alone) passing. One real bug found and fixed as a
+    byproduct: the BRT reusable-worker impute path broke on a plain
+    data.frame `Xraw` (data.table `..` syntax), fixed via
+    `as.data.table(private$Xraw)`. Moved to
+    `../finished_features/design_fixed_optimal.md` (2026-08-17).
+11. **[x] `optimizer_diagnostics_report.md → TODO-4` decision** — redefining
     `converged` changes the meaning of a user-visible field, which after
     1.0.0 would be a quiet breaking change. Either do that one item pre-1.0
     or explicitly record that the current semantics are the stable ones
     (TODO-2 below). The rest of the diagnostics chain stays deferred either
-    way.
+    way. **Done (2026-08-17): implemented, not just recorded-as-stable.**
+    See Implementation TODO-2 below for the full writeup.
 
 ## Deferred to 1.x (additive by construction)
 
@@ -257,9 +277,17 @@ deliberately does not cover:
 - [ ] TODO-1: Record this scope as decided (done by this file's existence);
   keep `_master.md` phases as the execution order — this file only marks
   which items sit inside the release line.
-- [ ] TODO-2: Resolve amendment 11: do `optimizer_diagnostics_report.md →
+- [x] TODO-2: Resolve amendment 11: do `optimizer_diagnostics_report.md →
   TODO-4` pre-1.0, or record current `converged` semantics as stable.
   Decision goes in `optimizer_diagnostics_report.md`; note the outcome here.
+  **Done (2026-08-17): implemented, not just recorded-as-stable.** `converged`
+  redefined as gradient-norm-based (with an LBFGS-specific OR-fallback to
+  LBFGSpp's own criterion, added after a compiled/tested regression showed
+  the pure-gradient rule made ordinary LBFGS fits spuriously report
+  `converged = FALSE`), `hit_iteration_cap` added, every caller audited (see
+  `optimizer_diagnostics_report.md → TODO-4` for the full writeup). A
+  reproducible `fast_gaussian_lmm_cpp` segfault (unrelated to this decision,
+  found while investigating it) was also fixed along the way.
 - [ ] TODO-3: Fold `marginal_estimand_report.md → TODO-2` (mixture-family
   roxygen sharpening) into a `fix_documentation.md` batch.
 - [ ] TODO-4: Execute the Release Gate checklist above once items 1–9 are

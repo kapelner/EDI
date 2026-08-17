@@ -41,6 +41,7 @@ full_likelihood_expected_classes = c(
 	"InferencePropKKGLMM",
 	"InferencePropKKQuantileRegrOneLik",
 	"InferencePropZeroOneInflatedBetaRegr",
+	"InferenceSurvivalDepCensTransformRegr",
 	"InferenceSurvivalKKClaytonCopulaIVWC",
 	"InferenceSurvivalKKClaytonCopulaOneLik",
 	"InferenceSurvivalKKWeibullFrailtyIVWC",
@@ -100,6 +101,7 @@ full_likelihood_expected_groups = list(
 		"InferencePropZeroOneInflatedBetaRegr"
 	),
 	survival = c(
+		"InferenceSurvivalDepCensTransformRegr",
 		"InferenceSurvivalKKClaytonCopulaIVWC",
 		"InferenceSurvivalKKClaytonCopulaOneLik",
 		"InferenceSurvivalKKWeibullFrailtyIVWC",
@@ -154,6 +156,7 @@ full_likelihood_expected_groups = list(
 		"InferencePropBetaRegr",
 		"InferencePropFractionalLogit",
 		"InferencePropZeroOneInflatedBetaRegr",
+		"InferenceSurvivalDepCensTransformRegr",
 		"InferenceSurvivalWeibullRegr"
 	)
 )
@@ -174,6 +177,7 @@ full_likelihood_expected_standard_model_cache_classes = c(
 	"InferencePropBetaRegr",
 	"InferencePropFractionalLogit",
 	"InferencePropZeroOneInflatedBetaRegr",
+	"InferenceSurvivalDepCensTransformRegr",
 	"InferenceSurvivalWeibullRegr"
 )
 
@@ -222,6 +226,15 @@ incidence_gcomputation_expected_components = list(
 )
 
 full_likelihood_expected_survival_components = list(
+	# Moved here from the deleted survival_none_tier_expected_components table
+	# (2026-08-17): InferenceSurvivalDepCensTransformRegr was misclassified
+	# likelihood_tier "none" by infer_inference_likelihood_tier()'s name regex
+	# despite implementing a full parametric likelihood (score/information/LR
+	# spec, parametric bootstrap); the regex, the class's registry tier, and
+	# the SurvivalDepCensTransform component's allowed_likelihood_tiers are
+	# all "full" now -- see fix_inference_hierarchy.md, "Asymptotic (Wald)
+	# No-Likelihood Migration", 2026-08-17 tier-fix note.
+	InferenceSurvivalDepCensTransformRegr = "SurvivalDepCensTransform",
 	InferenceSurvivalWeibullRegr = "SurvivalWeibullLikelihood",
 	InferenceSurvivalKKWeibullMarginal = "SurvivalKKWeibullMarginal",
 	InferenceSurvivalKKClaytonCopulaIVWC = "SurvivalKKClaytonCopulaIVWC",
@@ -236,10 +249,6 @@ full_likelihood_expected_survival_components = list(
 	)
 )
 
-survival_none_tier_expected_components = list(
-	InferenceSurvivalDepCensTransformRegr = "SurvivalDepCensTransform"
-)
-
 test_that("full-likelihood migration baseline identifies and groups concrete classes", {
 	EDI:::populate_inference_class_registry()
 	manifest = EDI:::full_likelihood_behavior_manifest()
@@ -249,8 +258,8 @@ test_that("full-likelihood migration baseline identifies and groups concrete cla
 	expect_setequal(names(manifest), full_likelihood_expected_classes)
 	expect_identical(EDI:::full_likelihood_concrete_class_names(), sort(full_likelihood_expected_classes))
 	expect_identical(groups, lapply(full_likelihood_expected_groups, sort))
-	expect_equal(sum(counts$class_count[counts$group %in% c("glm", "count", "ordinal", "incidence", "proportion", "survival")]), 45L)
-	expect_equal(sum(counts$class_count[counts$group %in% c("KK_or_IVWC", "non_KK")]), 45L)
+	expect_equal(sum(counts$class_count[counts$group %in% c("glm", "count", "ordinal", "incidence", "proportion", "survival")]), 46L)
+	expect_equal(sum(counts$class_count[counts$group %in% c("KK_or_IVWC", "non_KK")]), 46L)
 
 	for (record in manifest) {
 		expect_identical(record$current_likelihood_tier, "full")
@@ -333,32 +342,6 @@ test_that("full-likelihood survival behavior is component sourced", {
 			expect_identical(sort(names(loaded_component$private) %||% character()), sort(source_private_names), info = component_name)
 			expect_true(component_name %in% record$current_effective_components, info = class_name)
 		}
-	}
-})
-
-test_that("none-tier survival dependent-censoring behavior is component sourced", {
-	EDI:::clear_inference_component_implementation_cache()
-	EDI:::populate_inference_component_registry()
-	EDI:::populate_inference_class_registry()
-
-	for (class_name in names(survival_none_tier_expected_components)) {
-		component_name = survival_none_tier_expected_components[[class_name]]
-		component = EDI:::get_inference_component(component_name)
-		loaded_component = EDI:::load_inference_component(component_name, class_name = paste0("test_", class_name))
-		source = get(component$source_name, envir = asNamespace("EDI"))
-		metadata = EDI:::get_inference_class_metadata(class_name)
-
-		expect_identical(component$provides_capabilities, character(), info = component_name)
-		expect_identical(component$component_loader$load_policy, "lazy", info = component_name)
-		expect_identical(component$allowed_likelihood_tiers, "none", info = component_name)
-		expect_identical(sort(component$provides_public_methods), sort(names(source$public)), info = component_name)
-		expect_identical(sort(component$provides_private_methods), sort(names(source$private)), info = component_name)
-		expect_identical(loaded_component$component_loader$load_policy, "eager", info = component_name)
-		expect_identical(sort(names(loaded_component$public)), sort(names(source$public)), info = component_name)
-		expect_identical(sort(names(loaded_component$private)), sort(names(source$private)), info = component_name)
-		expect_identical(metadata$response_types, "survival", info = class_name)
-		expect_identical(metadata$likelihood_tier, "none", info = class_name)
-		expect_true(component_name %in% EDI:::get_effective_components(class_name), info = class_name)
 	}
 })
 

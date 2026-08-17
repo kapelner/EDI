@@ -30,7 +30,8 @@ supplied, use a Poisson-specific heuristic initial guess rather than a zero cold
 \item{warm_start_fisher_info}{Optional initial curvature (information) matrix to warm-start the first iteration.}
 
 \item{estimate_only}{If \code{TRUE}, skip computing \code{mu}, \code{XtWX}/\code{fisher_information},
-and \code{score}, returning only \code{b}, \code{converged}, \code{iterations}, and \code{gradient_norm}.}
+and \code{score}, returning only \code{b}, \code{converged},
+\code{num_iter}, \code{hit_iteration_cap}, and \code{gradient_norm}.}
 }
 \value{
 A list containing the following components:
@@ -44,9 +45,15 @@ A list containing the following components:
 \item{score}{(omitted if \code{estimate_only = TRUE}) The score vector \eqn{X^\top(y - \hat\mu)}
   at the fitted coefficients.}
 \item{neg_ll}{(omitted if \code{estimate_only = TRUE}) The negative log-likelihood at the fitted coefficients.}
-\item{converged}{A logical value indicating whether the algorithm converged.}
-\item{iterations}{The number of iterations performed.}
-\item{gradient_norm}{The norm of the score vector at convergence.}
+\item{converged}{A logical value indicating whether the final gradient norm
+  was below \code{tol} (\code{gradient_norm < tol}); uniform across the
+  \code{"irls"}/\code{"lbfgs"}/\code{"newton_raphson"} optimizers.}
+\item{num_iter}{The number of iterations performed.}
+\item{hit_iteration_cap}{A logical value, mutually exclusive with
+  \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
+  iterations without meeting the gradient-norm convergence criterion.}
+\item{gradient_norm}{The norm of the score vector at the returned
+  coefficients.}
 }
 }
 \description{

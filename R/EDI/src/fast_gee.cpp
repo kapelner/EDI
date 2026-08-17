@@ -27,6 +27,8 @@ struct GEEResult {
     MatrixXd bread;
     bool converged;
     int niter;
+    bool hit_iteration_cap;
+    double gradient_norm;
 };
 
 inline double gee_variance(double mu, GEEFamily family) {
@@ -147,6 +149,12 @@ GEEResult gee_pairs_singletons_cpp_impl(const Eigen::Ref<const MatrixXd>& X,
     }
 
     double alpha = 0.0; bool converged = false; int iter = 0;
+    // Score.norm() at the current beta plays the same role a gradient norm
+    // plays for a likelihood optimizer (GEE solves an estimating equation,
+    // Score == 0, via a Newton-type update) -- optimizer_diagnostics_report.md
+    // TODO-4 applies the same uniform gradient-norm-based convergence rule
+    // used elsewhere in this codebase.
+    double last_grad_norm = std::numeric_limits<double>::quiet_NaN();
     for (; iter < maxit; ++iter) {
         edi_check_R_user_interrupt_every(iter);
         VectorXd mu(n), resid(n);
@@ -199,12 +207,18 @@ GEEResult gee_pairs_singletons_cpp_impl(const Eigen::Ref<const MatrixXd>& X,
         if (bread_is_zero) {
             for(int r=0; r<p; r++) for(int c=0; c<r; c++) Bread(c, r) = Bread(r, c);
         }
+        last_grad_norm = Score.norm();
+        if (last_grad_norm < tol) { converged = true; break; }
         VectorXd delta = gee_solve_system(Bread, Score);
         if (!delta.allFinite()) break;
         beta += delta;
-        if (delta.norm() < tol) { converged = true; break; }
         bread_is_zero = true; // Compute Bread in subsequent iterations
     }
+    // Every non-gradient-tol exit above (non-finite delta, maxit exhaustion)
+    // already implies last_grad_norm >= tol -- the check above would have
+    // fired first otherwise -- so no special-casing is needed here, matching
+    // the pattern used in fast_logistic_regression.cpp and elsewhere.
+    const bool hit_iteration_cap = (iter >= maxit) && !converged;
 
     MatrixXd Bread = MatrixXd::Zero(p, p); 
     MatrixXd Meat = MatrixXd::Zero(p, p);
@@ -253,7 +267,7 @@ GEEResult gee_pairs_singletons_cpp_impl(const Eigen::Ref<const MatrixXd>& X,
     }
     for(int r=0; r<p; r++) for(int c=0; c<r; c++) { Bread(c, r) = Bread(r, c); Meat(c, r) = Meat(r, c); }
     MatrixXd BI = gee_inverse_system(Bread);
-    return {beta, alpha, BI * Meat * BI, quasi_loglik, ScoreFinal, Bread, converged, std::min(maxit, iter + 1)};
+    return {beta, alpha, BI * Meat * BI, quasi_loglik, ScoreFinal, Bread, converged, std::min(maxit, iter + 1), hit_iteration_cap, last_grad_norm};
 }
 
 #ifndef EDI_CORE_ONLY
@@ -299,7 +313,9 @@ List gee_pairs_singletons_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
         .set("score", res.score)
         .set("fisher_information", res.bread)
         .set("converged", res.converged)
-        .set("niter", res.niter));
+        .set("niter", res.niter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
+        .set("gradient_norm", res.gradient_norm));
 }
 
 // [[Rcpp::export]]
@@ -338,6 +354,8 @@ List gee_pairs_singletons_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y_r, SE
         .set("score", res.score)
         .set("fisher_information", res.bread)
         .set("converged", res.converged)
-        .set("niter", res.niter));
+        .set("niter", res.niter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
+        .set("gradient_norm", res.gradient_norm));
 }
 #endif // EDI_CORE_ONLY

@@ -168,7 +168,10 @@ edi::ResultMap fast_ordinal_probit_regression_internal(
             .set("n_params", n_params)
             .set("params", params)
             .set("converged", fit.converged)
-            .set("iterations", fit.niter);
+            .set("num_iter", fit.niter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
+            .set("gradient_norm", fit.gradient_norm)
+            .set("min_eigenvalue_information", fit.min_eigenvalue_information);
     }
 
     MatrixXd H_full = model.hessian(params);
@@ -200,7 +203,10 @@ edi::ResultMap fast_ordinal_probit_regression_internal(
         .set("params", params)
         .set("neg_loglik", fit.value)
         .set("converged", fit.converged)
-        .set("iterations", fit.niter)
+        .set("num_iter", fit.niter)
+        .set("hit_iteration_cap", fit.hit_iteration_cap)
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
         .set("ssq_b_j", ssq_b_2)
         .set("observed_information", H_full)
         .set("fisher_information", H_full)

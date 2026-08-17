@@ -40,7 +40,14 @@ spliced into one step and marked **[spliced]**.
 > 2026-08-16: `multi_arm_designs.md → TODO-6` (Phase 4 step 1, the
 > `InferenceIncidCMH` non-blocking balance-guard gap) — `multi_arm_designs.md`
 > itself stays open (only TODO-6 was release-scoped) and does not move to
-> `../finished_features/`.
+> `../finished_features/`. Also done 2026-08-17: `design_fixed_optimal.md` —
+> every TODO closed (the new `DesignFixedOptimal` class, its registry/roxygen
+> wiring, and the follow-on `DesignFixedOptimalBlocks` commercial-solver
+> threading); moved to `../finished_features/design_fixed_optimal.md`
+> (2026-08-17). The two remaining mentions of it in this file (the
+> release-line note above and Phase 6's
+> `design_fixed_greedy_pair_switch_merge.md` dependency) are unaffected —
+> both refer to it by name only, not by path.
 
 Rules of use:
 
@@ -159,25 +166,48 @@ Plan closed, all TODOs (including TODO-14's exhaustive bit-identical
 regression sweep and TODO-15's stale `dead =` cleanup) checked off; moved
 to `../finished_features/interval_censored_survival_response.md`.
 
-### 1D. Inference-hierarchy migration completion (after 1A)
+### 1D. Inference-hierarchy migration completion (after 1A) — **26 open items remain (2026-08-17)**
 
-1. `fix_inference_hierarchy.md → Asymptotic (Wald) No-Likelihood Migration` —
-   the remaining survival classes (`InferenceSurvivalKMDiff`,
-   `InferenceSurvivalLogRank`, `InferenceSurvivalRestrictedMeanDiff`) and
-   the gcomp family (via 1A.2).
-2. `fix_inference_hierarchy.md → KK And IVWC Estimators` (all items — splice
-   removal, dedicated Source components, KK GEE/GLMM contracts).
-3. `fix_inference_hierarchy.md → Full-Likelihood Estimators` remainder,
-   `→ Quasi And Robust: RobustSandwich continuous wiring`,
-   `→ Partial-Likelihood: KK classes`.
-4. `fix_inference_hierarchy.md → Base Deletion` (all items) — then re-run
-   `fix_roxygenize_lazy_component_srcrefs.md`'s spot-checks (its forward note:
-   component docs lose their Rd home here).
-5. `fix_inference_hierarchy.md → Discovery`, `→ Static Cleanup`,
-   `→ Regression Gates`, `→ Lazy Component Loading benchmarks` (the two
-   unchecked benchmark gates), `→ Design-Side Discovery API`.
+Real progress since the last pass: Wald No-Likelihood Migration is down to 1
+cleanup item, Quasi/Robust Estimators and Discovery are both fully `[x]`.
+Remaining, by section (open-item counts):
 
-### 1E. Design-hierarchy completion
+1. `fix_inference_hierarchy.md → Asymptotic (Wald) No-Likelihood Migration`
+   — **1 open**: delete no-longer-used legacy scaffolding after all
+   no-likelihood classes are migrated.
+2. `fix_inference_hierarchy.md → KK And IVWC Estimators` — **7 open, the
+   largest remaining block**: finish `KKPassThrough`/`KKCompound`/`KKGEE`
+   declarations, remove direct `InferenceMixinKKPassThrough$public` access,
+   replace `eval(body(...))` usage, migrate KK IVWC/one-likelihood/GEE/GLMM
+   classes, add focused KK regression tests.
+3. `fix_inference_hierarchy.md → Full-Likelihood Estimators` remainder — **2
+   open** (migrate remaining classes, verify finite smoke tests);
+   `→ Partial-Likelihood: KK classes` — **1 open** (blocked on step 2's
+   `KKPassThrough` work).
+4. `fix_inference_hierarchy.md → Base Deletion` — **5 open**: convert
+   no-longer-subclassed algorithmic bases, delete
+   `InferenceRand`/`InferenceRandCI`/`InferenceNonParamBootstrap` etc.,
+   remove them from `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES`, enable
+   `EDI_REQUIRE_SHALLOW_INFERENCE_HIERARCHY`, add the final strict
+   no-legacy-descendant test — then re-run
+   `fix_roxygenize_lazy_component_srcrefs.md`'s spot-checks (component docs
+   lose their Rd home here).
+5. `fix_inference_hierarchy.md → Static Cleanup` — **4 open** (ban raw
+   component splicing, ban `eval(body(...))` fully, ban semantic
+   classification via method-name sniffing, ban component redeclaration of
+   root-owned state); `→ Regression Gates` — **5 open** (golden tests before
+   each family migrates, finite smoke tests, count-likelihood focused tests,
+   roxygenize-after-migration discipline, keep-tests-green discipline);
+   `→ Design-Side Discovery API` — **1 open** (a doc/export + roxygenize
+   item). `→ Discovery` is done (0 open).
+
+### 1E. Design-hierarchy completion — **DONE (2026-08-17)**
+
+Plan closed (0 open TODOs); moved to
+`../finished_features/fix_design_hierarchy.md`. This unblocks item 5
+(`save_load_api.md`, gated on `owns_state`) and Phase 5D step 1
+(`multi_arm_designs.md → TODO-1`, gated on this phase's capability
+metadata) — neither has started yet, but both can now begin.
 
 1. `fix_design_hierarchy.md → Follow-Ups` remainder: exported-metadata-under-
    `load_all()` fix, `get_or_compute_block_ids` decoupling, authoring the
@@ -219,8 +249,12 @@ sweep); moved to
 2. `optimizer_diagnostics_report.md → TODO-2` (Phase 1b targeted hardening).
 3. `optimizer_diagnostics_report.md → TODO-3` (Phase 2: `SolverDiagnostics`
    component) — **prerequisite for Firth in Phase 5A**.
-4. `optimizer_diagnostics_report.md → TODO-4` (Phase 3: redefine `converged`;
-   audit callers), then `→ TODO-5` (Phase 4, lower priority).
+4. **[x] DONE (2026-08-17)** `optimizer_diagnostics_report.md → TODO-4`
+   (Phase 3: redefine `converged` as gradient-norm-based with an
+   LBFGS-specific OR-fallback, `hit_iteration_cap` split out, every caller
+   audited; a `fast_gaussian_lmm_cpp` segfault found and fixed along the
+   way) — this also closes release amendment 11's decision gate. Then
+   `→ TODO-5` (Phase 4, lower priority, still open).
 5. `public_diagnostics_api_spec.md → TODO-1..4` (Phase 1 wrapper + result
    object), then `→ TODO-5..8` (core-path integration, after Phase 1D
    settles the families), then `→ TODO-9..12` (consumes step 1–4 output),

@@ -42,12 +42,44 @@ Every `Design` constructor accepts a `seed` argument. Internally this does
 
 This is the mechanism behind the overwhelming majority of `Design` subclasses
 (`DesignFixedBernoulli`, `DesignFixedFactorial`, `DesignFixedBlocking`, the
-`DesignSeqOneByOne*` family, etc.). Two design families implement "seed means
+`DesignSeqOneByOne*` family, etc.). Three design families implement "seed means
 R's `set.seed()` governs the draw" via a different, local-generator mechanism,
 documented in detail below: `DesignFixedGreedy` (parallel-safe per-thread
-generators) and `DesignFixedGreedyDOptimal` (a single local generator seeded
-from R's stream). Every concrete design is seed-reproducible; the package
-currently has no exceptions.
+generators), `DesignFixedGreedyDOptimal` (a single local generator seeded
+from R's stream), and `DesignFixedOptimal` (per-chain generators for its
+annealing solver plus an R-level mirror coin; see its own subsection below).
+Every concrete design is seed-reproducible; the package currently has no
+exceptions.
+
+## `DesignFixedOptimal`: deterministic solves, seeded coin and chains
+
+`DesignFixedOptimal` computes one optimal allocation rather than drawing from
+a randomization distribution, so most of its "draw" is not random at all:
+
+- **The exact `"ompr"` MILP path is fully deterministic** — same data, same
+  arguments, same allocation, no RNG consumed by the solve itself.
+- **The mirror coin is R-seeded.** With `mirror_coin = TRUE` (the default)
+  and a verified co-optimal mirror at `prob_T = 0.5`, one `runif(1)` draw
+  from R's live stream decides between `w*` and `1 - w*`. Under the
+  constructor's `seed`, `maybe_set_seed()` runs before the solve, so the
+  flip is reproducible; the MILP path is therefore "deterministic up to the
+  seeded label flip."
+- **The annealing solver seeds one `edi_rng::RRng` per chain** (not per
+  thread), each from one `R::unif_rand()` draw before the parallel region —
+  so a given `set.seed()` reproduces the identical search under **any**
+  OpenMP thread count, a deliberately stronger guarantee than
+  `DesignFixedGreedy`'s per-thread seeding. When `initial_temp` is
+  auto-calibrated, the calibration probe also consumes R's stream (and is
+  therefore covered by the same seed). Annealing carries certificate
+  `"annealing_converged"`, never `"global"`: Hajek (1988) guarantees
+  convergence in probability only under a logarithmic cooling schedule, and
+  the practical geometric schedule used here is asymptotically motivated,
+  not a finite-time proof.
+- **BRT replicates replay the coin-inclusive mechanism**: each replicate's
+  re-optimization (reduced annealing by default, `solver_args$brt_*`) and
+  its own mirror flip consume the worker's seeded stream, so bootstrap
+  randomization p-values are reproducible under `set.seed()` like every
+  other BRT in the package.
 
 ## The portable cross-language RNG: `edi_rng::RRng`
 

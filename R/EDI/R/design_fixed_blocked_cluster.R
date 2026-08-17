@@ -13,7 +13,7 @@
 #' @details
 #' \strong{Randomization mechanism.} Blocking keys are computed per subject via
 #' \code{private$get_strata_keys()} (shared with other
-#' \code{\link[EDI:DesignBlocking]{DesignBlocking}} subclasses): categorical columns in
+#' blocking-structure designs): categorical columns in
 #' \code{strata_cols} are used as-is, continuous columns are discretized into
 #' \code{preferred_num_bins_for_continuous_covariate} quantile-based bins, and multiple
 #' \code{strata_cols} are combined into a single composite block key. Within each

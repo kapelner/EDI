@@ -13,6 +13,10 @@ test_that("GEE Rcpp solver utilizes warm starts correctly", {
 	y <- rbinom(n, size = 1L, prob = plogis(eta))
 
 	# First fit: No warm start
+	# NOTE (2026-08-17): converged/niter now derive from a gradient-norm-based
+	# (Score.norm() < tol) stopping check rather than step-size (delta.norm())
+	# (optimizer_diagnostics_report.md TODO-4) -- these bounds are loose
+	# enough to be unaffected, but re-verify if this test starts failing.
 	fit1 <- EDI:::gee_pairs_singletons_cpp(X, y, group_id, family_str = "binomial")
 	expect_true(fit1$converged)
 	expect_gt(fit1$niter, 1L)

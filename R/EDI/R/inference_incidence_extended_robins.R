@@ -21,23 +21,27 @@
 #' }
 #' }
 #' @export
-InferenceIncidExtendedRobins = R6::R6Class("InferenceIncidExtendedRobins",
-	lock_objects = FALSE,
-	inherit = InferenceAllSimpleMeanDiff,
+InferenceIncidExtendedRobins = define_inference_class(
+	classname = "InferenceIncidExtendedRobins",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Uses the shared asymptotic confidence-interval contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param alpha Numeric. Significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$get_standard_error()
-			super$compute_asymp_confidence_interval(alpha)
+			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Uses the shared asymptotic two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param delta Numeric. Null treatment effect value (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$get_standard_error()
-			super$compute_asymp_two_sided_pval(delta)
+			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
 		#' @description Initialize Extended Robins blocked-design incidence inference.
 		#' @param des_obj A completed design object.
@@ -101,5 +105,38 @@ InferenceIncidExtendedRobins = R6::R6Class("InferenceIncidExtendedRobins",
 		get_degrees_of_freedom = function(){
 			NA_real_
 		}
+	),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"initialize"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"compute_fast_bootstrap_distr",
+			"compute_fast_randomization_distr",
+			"compute_fast_rand_bootstrap_distr",
+			"compute_rand_bootstrap_ci_affine_coefs",
+			"shared",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_likelihood_tests",
+			"get_supported_testing_types_impl",
+			"simulate_under_lik_null",
+			"compute_brt_null_statistics_with_se",
+			"get_likelihood_test_spec"
+		)
 	)
 )

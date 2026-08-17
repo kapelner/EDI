@@ -1,22 +1,11 @@
 # "Component Extraction" golden tests (fix_design_hierarchy.md).
 #
-# No concrete Design class has been rewired off DesignBlocking/DesignMatching
-# ancestry yet -- that needs a define_design_class() factory that does not exist
-# yet. What *has* happened is that BlockingStructure/MatchingStructure's public and
-# private method lists are real references to DesignBlocking's/DesignMatching's own
-# methods (registered in design_component_registry.R): reference-identity between
-# the component's stored function and DesignBlocking's/DesignMatching's own method
-# is already tested directly in test-design-component-registry.R
-# (`identical(component$public$foo, DesignBlocking$public_methods$foo)`), which by
-# itself proves behavioral equivalence for every class that inherits it unmodified
-# -- calling the exact same function object obviously produces the exact same
-# output. Concrete classes (DesignFixedBlocking, DesignFixedBinaryMatch, etc.) do
-# NOT list these methods on their own `public_methods`/`private_methods` at all --
-# those R6 generator fields only contain what that specific class defines directly,
-# not what it inherits -- so comparing e.g. `DesignFixedBlocking$public_methods$
-# is_blocking_design` (NULL, since it's inherited from DesignBlocking, never
-# redefined) against the component reference is not a meaningful check; it was
-# tried and correctly fails for exactly this reason, not because anything is wrong.
+# BlockingStructure/MatchingStructure are now self-contained literal method + state
+# bundles. The legacy DesignBlocking/DesignMatching generators no longer exist;
+# concrete classes receive these exact closures through define_design_class().
+# test-design-component-registry.R pins reference identity between the registered
+# component and its canonical literal source, while this file locks in behavior on
+# every concrete structural host.
 #
 # This file also does NOT re-invoke component methods through a manually
 # reassigned environment (`environment(fn) <- des$.__enclos_env__`): that pattern
@@ -34,9 +23,8 @@
 # ObservationalDesignBlocks, DesignFixedBinaryMatch,
 # DesignFixedMatchingGreedyPairSwitching, DesignSeqOneByOneKK14,
 # ObservationalDesignMatching)'s own behavioral output as an ordinary regression
-# test, so a future edit to DesignBlocking/DesignMatching that changes behavior for
-# any of these classes is caught here regardless of whether the component wiring
-# is touched.
+# test, so a future edit to either structural component is caught here regardless
+# of whether the consuming class is touched.
 
 test_that("DesignFixedBlocking blocking behavior is correct", {
 	set.seed(1)
@@ -93,18 +81,14 @@ test_that("DesignFixedMatchingGreedyPairSwitching matching behavior is correct",
 	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(8)))
 	des$assign_w_to_all_subjects()
 
-	# Genuine finding from this pass, not a test bug: this class computes and
-	# constrains its search to matched pairs internally (bms/
-	# ensure_pair_structure_computed), but never sets private$matching_capable
-	# (grep confirms design_fixed_matching_greedy_pair_switching.R never
-	# references matching_capable/blocking_capable at all) -- so is_matching_design()
-	# is FALSE here, unlike its sibling DesignFixedBinaryMatch, which does set it.
-	# Whether that's intentional (this class's "matching" is a pure search
-	# constraint, never exposed via get_matching_cluster_ids()/pair-aware
-	# jackknife-bootstrap treatment) or a latent gap deserves its own
-	# investigation -- flagged in fix_design_hierarchy.md rather than silently
-	# changed here.
-	expect_false(des$is_matching_design())
+	# TODO-26/TODO-35 resolved the old latent flag gap: the search's binary pairs
+	# are now installed as the design's matching structure, so every resampling
+	# path sees the same pair units as this class's own nonparametric bootstrap.
+	expect_true(des$is_matching_design())
+	expect_true(des$is_blocking_design())
+	cluster_ids = des$get_matching_cluster_ids()
+	expect_length(cluster_ids, 8)
+	expect_true(all(table(cluster_ids) == 2L))
 })
 
 test_that("DesignSeqOneByOneKK14 matching behavior is correct", {
@@ -130,10 +114,8 @@ test_that("ObservationalDesignMatching matching behavior is correct", {
 	expect_length(boot$i_b, 6)
 })
 
-test_that("BatchWPregeneration component method is reference-identical to each pre-generating class's own method", {
-	# unlike is_blocking_design/is_matching_design/etc. (defined on the ancestor
-	# DesignBlocking/DesignMatching, so absent from these concrete generators' own
-	# public_methods), supports_batch_w_pregeneration IS defined directly on each
+test_that("BatchWPregeneration component method is body-identical to each pre-generating class's own method", {
+	# supports_batch_w_pregeneration is defined directly on each
 	# of these four classes -- so a direct generator-level reference check is
 	# meaningful here.
 	EDI:::populate_design_component_registry()
@@ -145,8 +127,8 @@ test_that("BatchWPregeneration component method is reference-identical to each p
 	)) {
 		gen = get(class_name, envir = asNamespace("EDI"))
 		expect_identical(
-			batch_component$public$supports_batch_w_pregeneration,
-			gen$public_methods$supports_batch_w_pregeneration
+			body(batch_component$public$supports_batch_w_pregeneration),
+			body(gen$public_methods$supports_batch_w_pregeneration)
 		)
 	}
 })

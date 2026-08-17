@@ -558,11 +558,13 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 									worker_state[["worker"]]$.__enclos_env__$private
 								}
 								des_obj = if (!is.null(worker_state[["worker_des"]])) worker_state[["worker_des"]] else inf_priv$des_obj
+								des_obj$prepare_for_resampling_replay()
 								as.numeric(des_obj$draw_ws_according_to_design(1L)[, 1L])
 							} else {
 								sub_inf = private$bootstrap_subset_inference(list(i_b = draw$i_b, m_vec_b = draw$m_vec_b), smooth = FALSE)
 								if (is.null(sub_inf)) NULL else {
 									sub_des = sub_inf$.__enclos_env__$private$des_obj
+									sub_des$prepare_for_resampling_replay()
 									as.numeric(sub_des$draw_ws_according_to_design(1L)[, 1L])
 								}
 							}
@@ -606,6 +608,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				as.numeric(draw$w_b)
 			} else {
 				if (is.null(des_obj)) stop("Reusable BRT worker has no design object to draw assignments from.")
+				des_obj$prepare_for_resampling_replay()
 				as.numeric(des_obj$draw_ws_according_to_design(1L)[, 1L])
 			}
 			if (length(w_new) != length(draw$i_b)) stop("Fresh assignment length does not match the bootstrap sample size.")
@@ -772,6 +775,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			w_new = if (!is.null(draw$w_b)) {
 				as.numeric(draw$w_b)
 			} else {
+				sub_des$prepare_for_resampling_replay()
 				as.numeric(sub_des$draw_ws_according_to_design(1L)[, 1L])
 			}
 			if (length(w_new) != length(draw$i_b)) return(c(t0 = NA_real_, se0 = NA_real_))
@@ -901,6 +905,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			w_new = if (!is.null(draw$w_b)) {
 				as.numeric(draw$w_b)
 			} else {
+				sub_des$prepare_for_resampling_replay()
 				as.numeric(sub_des$draw_ws_according_to_design(1L)[, 1L])
 			}
 			if (length(w_new) != length(draw$i_b)) return(NA_real_)

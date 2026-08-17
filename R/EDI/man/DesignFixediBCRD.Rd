@@ -47,7 +47,7 @@ Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd,
   for orientation on complete vs. Bernoulli randomization.
 }
 \section{Super classes}{
-\code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixediBCRD}
+\code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixediBCRD}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -64,31 +64,11 @@ Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd,
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
 </ul>
 </details>
-<details><summary>+ inherited public methods from DesignMatching</summary>
-<ul>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-assert_matching_design'><code>DesignMatching$assert_matching_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-get_matching_cluster_ids'><code>DesignMatching$get_matching_cluster_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-is_matching_design'><code>DesignMatching$is_matching_design()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from DesignBlocking</summary>
-<ul>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-add_all_subject_matched_pair_ids'><code>DesignBlocking$add_all_subject_matched_pair_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-assert_blocking_design'><code>DesignBlocking$assert_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-assert_equal_block_sizes'><code>DesignBlocking$assert_equal_block_sizes()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-get_block_ids'><code>DesignBlocking$get_block_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-get_cmh_se_w_mat'><code>DesignBlocking$get_cmh_se_w_mat()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-inject_cmh_se_w_mat'><code>DesignBlocking$inject_cmh_se_w_mat()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-is_blocking_design'><code>DesignBlocking$is_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-is_complete_blocking_design'><code>DesignBlocking$is_complete_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-set_m'><code>DesignBlocking$set_m()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-summarize_blocks'><code>DesignBlocking$summarize_blocks()</code></a></li>
-</ul>
-</details>
 <details><summary>+ inherited public methods from Design</summary>
 <ul>
   <li><a href='../../EDI/html/Design.html#method-Design-add_one_subject_response'><code>Design$add_one_subject_response()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-any_censoring'><code>Design$any_censoring()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-applicable_inference_class_names'><code>Design$applicable_inference_class_names()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_responses_recorded'><code>Design$assert_all_responses_recorded()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
@@ -120,13 +100,18 @@ Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd,
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-is_blocking_design'><code>Design$is_blocking_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-is_matching_design'><code>Design$is_matching_design()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-prepare_for_resampling_replay'><code>Design$prepare_for_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-unavailable_inference_classes_due_to_missing_packages'><code>Design$unavailable_inference_classes_due_to_missing_packages()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-warm_all_subject_data_cache'><code>Design$warm_all_subject_data_cache()</code></a></li>
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}

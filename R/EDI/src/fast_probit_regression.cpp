@@ -139,14 +139,15 @@ ModelResult fast_probit_regression_internal(
         ProbitLbfgsObjective obj(X_free, y_eigen, weights_eigen, eta_fixed, use_weights);
         LikelihoodFitResult fit = optimize_likelihood_lbfgs(obj, beta_free, maxit, tol);
         beta_free = fit.params;
-        // Uniform gradient-norm-based convergence (optimizer_diagnostics_report.md
-        // TODO-4), matching fast_logistic_regression.cpp's template: LBFGSpp's
-        // own `fit.converged` also fires on a relative function-value-decrease
-        // criterion, not gradient norm alone, so it is not trusted here.
+        // fit.converged (optimizer_diagnostics_report.md TODO-4, revised
+        // 2026-08-17): gradient_norm < tol OR LBFGSpp's own criterion --
+        // see optimize_likelihood_lbfgs's own comment for why a pure
+        // gradient-norm-only rule was reverted (it made ordinary,
+        // correctly-fit LBFGS models routinely report converged=FALSE).
         res.gradient_norm = fit.gradient_norm;
-        res.converged = (fit.gradient_norm < tol);
+        res.converged = fit.converged;
         res.num_iter = fit.niter;
-        res.hit_iteration_cap = (fit.niter >= maxit) && !res.converged;
+        res.hit_iteration_cap = fit.hit_iteration_cap;
         res.neg_ll = fit.value;
     } else {
         Eigen::VectorXd mu(n);
@@ -220,6 +221,11 @@ ModelResult fast_probit_regression_internal(
         res.gradient_norm = last_grad_norm;
         res.converged = (last_grad_norm < tol);
         res.hit_iteration_cap = (res.num_iter >= maxit) && !res.converged;
+        // Reuses XtWX (free-parameter-space, before the zero-padding
+        // expand_free_covariance below would introduce for any fixed
+        // parameters) -- no new computation (optimizer_diagnostics_report.md
+        // TODO-1).
+        set_min_eigenvalue_if_suspect(XtWX, res);
         res.mu = mu;
         res.XtWX = expand_free_covariance(p, fixed_spec, XtWX, false);
         res.score = expand_free_params(score_free, Eigen::VectorXd::Zero(p), fixed_spec);
@@ -251,6 +257,13 @@ ModelResult fast_probit_regression_internal(
                 weights_vec[i] = wi * (phi * phi / vm);
             }
             res.XtWX = X_eigen.transpose() * weights_vec.asDiagonal() * X_eigen;
+            // Only reached for the LBFGS branch (IRLS already set res.XtWX
+            // above); this is the full-parameter-space information matrix
+            // (not a fixed-padded expansion, so safe to use directly)
+            // computed from the LBFGS-fitted res.b -- reused rather than
+            // requiring ProbitLbfgsObjective to implement .hessian()
+            // (optimizer_diagnostics_report.md TODO-1).
+            set_min_eigenvalue_if_suspect(res.XtWX, res);
         }
         if (res.score.size() == 0) {
             Eigen::VectorXd full_gen_res(n);
@@ -397,7 +410,8 @@ List fast_probit_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Rc
             .set("converged", res.converged)
             .set("num_iter", res.num_iter)
             .set("hit_iteration_cap", res.hit_iteration_cap)
-            .set("gradient_norm", res.gradient_norm));
+            .set("gradient_norm", res.gradient_norm)
+            .set("min_eigenvalue_information", res.min_eigenvalue_information));
     }
     const int n = X.rows();
     const Eigen::VectorXd eta = X * res.b;
@@ -418,7 +432,8 @@ List fast_probit_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Rc
         .set("score", res.score)
         .set("neg_ll", res.neg_ll)
         .set("converged", res.converged)
-        .set("gradient_norm", res.gradient_norm));
+        .set("gradient_norm", res.gradient_norm)
+        .set("min_eigenvalue_information", res.min_eigenvalue_information));
 }
 
 // [[Rcpp::export]]
@@ -452,7 +467,8 @@ List fast_probit_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, S
         .set("converged", res.converged)
         .set("num_iter", res.num_iter)
         .set("hit_iteration_cap", res.hit_iteration_cap)
-        .set("gradient_norm", res.gradient_norm));
+        .set("gradient_norm", res.gradient_norm)
+        .set("min_eigenvalue_information", res.min_eigenvalue_information));
 }
 
 //' Fast Probit Regression with Variance Calculation (C++)
@@ -558,6 +574,7 @@ List fast_probit_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
         .set("converged", res.converged)
         .set("num_iter", res.num_iter)
         .set("hit_iteration_cap", res.hit_iteration_cap)
-        .set("gradient_norm", res.gradient_norm));
+        .set("gradient_norm", res.gradient_norm)
+        .set("min_eigenvalue_information", res.min_eigenvalue_information));
 }
 #endif // EDI_CORE_ONLY

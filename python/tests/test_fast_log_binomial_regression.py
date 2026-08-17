@@ -57,7 +57,14 @@ def _synthetic_data():
 # R reference, EDI 1.0.0, computed 2026-08-04 via:
 #   EDI:::fast_log_binomial_regression_cpp(X, y, estimate_only = FALSE)
 R_B = np.array([-2.36178693647407, 0.549834908505586, -0.200845985175905])
-R_ITERATIONS = 12
+R_NUM_ITER = 12
+
+# NOTE (2026-08-17): converged/num_iter values are unaffected by the
+# optimizer_diagnostics_report.md TODO-4 rework -- this fitter's convergence
+# criterion (coefficient-relative-change, not gradient-norm) was deliberately
+# left untouched (see fast_log_binomial_regression.cpp for why); only the
+# field name (num_iter, renamed from "iterations") and the new
+# hit_iteration_cap field are new.
 
 
 def test_matches_r_fixture():
@@ -66,7 +73,8 @@ def test_matches_r_fixture():
 
     assert res["converged"] is True
     assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)
-    assert res["iterations"] == R_ITERATIONS
+    assert res["num_iter"] == R_NUM_ITER
+    assert res["hit_iteration_cap"] is False
 
 
 def test_result_shape_and_types():

@@ -264,6 +264,10 @@ ModelResult fast_beta_regression_internal(const Eigen::Ref<const Eigen::MatrixXd
     res.dispersion = std::exp(params[p]); // phi
     res.XtWX = estimate_only ? Eigen::MatrixXd::Zero(p+1, p+1) : fun.hessian(params);
     res.converged = fit.converged;
+    res.num_iter = fit.niter;
+    res.hit_iteration_cap = fit.hit_iteration_cap;
+    res.gradient_norm = fit.gradient_norm;
+    res.min_eigenvalue_information = fit.min_eigenvalue_information;
     return res;
 }
 
@@ -455,6 +459,10 @@ List fast_beta_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Null
 		.set("phi", fit.dispersion)
 		.set("neg_loglik", neg_loglik)
 		.set("converged", fit.converged)
+		.set("num_iter", fit.num_iter)
+		.set("hit_iteration_cap", fit.hit_iteration_cap)
+		.set("gradient_norm", fit.gradient_norm)
+		.set("min_eigenvalue_information", fit.min_eigenvalue_information)
 		.set("fisher_information", fit.XtWX));
 }
 
@@ -546,6 +554,10 @@ List fast_beta_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
 		.set("phi", fit.dispersion)
 		.set("neg_loglik", neg_loglik)
 		.set("converged", fit.converged)
+		.set("num_iter", fit.num_iter)
+		.set("hit_iteration_cap", fit.hit_iteration_cap)
+		.set("gradient_norm", fit.gradient_norm)
+		.set("min_eigenvalue_information", fit.min_eigenvalue_information)
 		.set("fisher_information", fit.XtWX));
 }
 
@@ -646,6 +658,10 @@ List fast_beta_regression_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
 		.set("vcov", cov_mat)
 		.set("std_errs", se)
 		.set("converged", fit.converged)
+		.set("num_iter", fit.num_iter)
+		.set("hit_iteration_cap", fit.hit_iteration_cap)
+		.set("gradient_norm", fit.gradient_norm)
+		.set("min_eigenvalue_information", fit.min_eigenvalue_information)
 		.set("fisher_information", fit.XtWX));
 	}
 #endif // EDI_CORE_ONLY

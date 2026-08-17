@@ -40,8 +40,10 @@
 #' des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10)))
 #' des$assign_w_to_all_subjects()
 #' @export
-DesignFixediBCRD = R6::R6Class("DesignFixediBCRD",
+DesignFixediBCRD = define_design_class(
+	classname = "DesignFixediBCRD",
 	inherit = DesignFixed,
+	components = "BlockingStructure",
 	public = list(
 		#' @description Initialize a fixed individually balanced completely randomized
 		#'   experimental design (see class documentation for the exact randomization
@@ -74,7 +76,8 @@ DesignFixediBCRD = R6::R6Class("DesignFixediBCRD",
 			) {
 			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 			if (!is.null(n)) {
-				private$m = rep(1L, as.integer(n))
+				private$blocking_capable = TRUE
+				self$set_m(rep(1L, as.integer(n)))
 			}
 		}
 	),

@@ -46,9 +46,15 @@ A list containing the following components:
   curvature matrix \eqn{X^\top W X} at the final iteration.}
 \item{score}{The (weighted) score vector at the fitted coefficients.}
 \item{neg_ll}{The weighted negative log-likelihood at the fitted coefficients.}
-\item{converged}{A logical value indicating whether the IRLS algorithm converged.}
-\item{iterations}{The number of optimizer iterations performed.}
-\item{gradient_norm}{The norm of the score vector at convergence.}
+\item{converged}{A logical value indicating whether the final gradient norm
+  was below \code{tol} (\code{gradient_norm < tol}); uniform across the
+  \code{"irls"}/\code{"lbfgs"} optimizers.}
+\item{num_iter}{The number of optimizer iterations performed.}
+\item{hit_iteration_cap}{A logical value, mutually exclusive with
+  \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
+  iterations without meeting the gradient-norm convergence criterion.}
+\item{gradient_norm}{The norm of the score vector at the returned
+  coefficients.}
 }
 }
 \description{

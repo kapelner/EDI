@@ -62,6 +62,9 @@ def test_matches_r_fixture():
     Xc, Xz, y = _synthetic_data()
     res = fast_zinb(Xc, Xz, y)
 
+    # NOTE (2026-08-17): converged now derives from the shared LBFGS/Newton
+    # machinery's gradient-norm-based redefinition (optimizer_diagnostics_
+    # report.md TODO-4) -- re-verify against a fresh R run once compiled.
     assert res["converged"] is True
     assert res["params"] == pytest.approx(R_PARAMS, abs=ATOL, rel=RTOL)
     assert res["neg_loglik"] == pytest.approx(R_NEG_LOGLIK, abs=ATOL, rel=RTOL)

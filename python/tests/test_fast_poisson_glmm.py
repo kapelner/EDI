@@ -54,6 +54,9 @@ def test_matches_r_fixture():
     X, y, group_id = _synthetic_data()
     res = fast_poisson_glmm(X, y, group_id, j_T=1)
 
+    # NOTE (2026-08-17): converged now derives from the shared LBFGS/Newton
+    # machinery's gradient-norm-based redefinition (optimizer_diagnostics_
+    # report.md TODO-4) -- re-verify against a fresh R run once compiled.
     assert res["converged"] is True
     assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)
     assert res["log_sigma"] == pytest.approx(R_LOG_SIGMA, abs=ATOL, rel=RTOL)

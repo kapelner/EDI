@@ -4,7 +4,7 @@ test_that("design component registry registers the planned components", {
 
 	expect_setequal(names(registry), c(
 		"BlockingStructure", "MatchingStructure", "ClusterStructure",
-		"SequentialStrataBootstrap", "AllocationMatrixValidation", "BatchWPregeneration"
+		"SequentialStrataBootstrap", "BatchWPregeneration"
 	))
 	for (component in registry) {
 		expect_identical(EDI:::design_component_public_names(component), component$provides_public_methods)
@@ -25,9 +25,16 @@ test_that("active components have real method references and pass body-reference
 	expect_setequal(blocking$provides_private_methods, c("assert_min_block_size", "get_strata_keys", "draw_bootstrap_indices"))
 	expect_identical(blocking$dependencies, character())
 	expect_identical(blocking$provides_capabilities, "blocking")
-	# real references to the still-live DesignBlocking generator, not copies
-	expect_identical(blocking$public$is_blocking_design, DesignBlocking$public_methods$is_blocking_design)
-	expect_identical(blocking$private$get_strata_keys, DesignBlocking$private_methods$get_strata_keys)
+	# Real references to the canonical literal component source, with no generator.
+	expect_identical(
+		blocking$public$is_blocking_design,
+		EDI:::DESIGN_BLOCKING_STRUCTURE_PUBLIC$is_blocking_design
+	)
+	expect_identical(
+		blocking$private$get_strata_keys,
+		EDI:::DESIGN_BLOCKING_STRUCTURE_PRIVATE$get_strata_keys
+	)
+	expect_true(all(blocking$owns_state %in% names(blocking$private)))
 	expect_silent(EDI:::validate_design_component_body_references(blocking))
 
 	matching = EDI:::get_design_component("MatchingStructure")
@@ -37,8 +44,9 @@ test_that("active components have real method references and pass body-reference
 	expect_true("m" %in% matching$requires_state)
 	expect_identical(
 		matching$private$draw_bootstrap_indices,
-		DesignMatching$private_methods$draw_bootstrap_indices
+		EDI:::DESIGN_MATCHING_STRUCTURE_PRIVATE$draw_bootstrap_indices
 	)
+	expect_true(all(matching$owns_state %in% names(matching$private)))
 	expect_silent(EDI:::validate_design_component_body_references(matching))
 
 	batch = EDI:::get_design_component("BatchWPregeneration")
@@ -70,20 +78,24 @@ test_that("ClusterStructure is a real, active component with a generalized draw_
 	expect_silent(EDI:::validate_design_component_body_references(cluster))
 })
 
-test_that("AllocationMatrixValidation is still registered as a scaffold, not fabricated", {
-	EDI:::populate_design_component_registry()
-
-	validation = EDI:::get_design_component("AllocationMatrixValidation")
-	expect_identical(validation$status, "scaffold")
-	expect_identical(validation$public, list())
-	expect_identical(validation$private, list())
-})
-
 test_that("scaffold components cannot be resolved as dependencies", {
+	# fix_design_hierarchy.md's "AllocationMatrixValidation" (the previous permanent
+	# scaffold example here) was deleted outright rather than reconciled -- its four
+	# duplicated implementations turned out to be dead defensive code, not a real
+	# shared component (see design_fixed_rerandomization.R/design_fixed_binary_match.R/
+	# design_fixed_greedy.R/design_fixed_matching_greedy_pair_switching.R). No
+	# permanent scaffold remains in the registry, so this test registers a temporary
+	# one itself to keep the scaffold-rejection code path covered.
 	EDI:::populate_design_component_registry()
+	on.exit(EDI:::populate_design_component_registry(), add = TRUE)
+
+	EDI:::register_design_component(EDI:::DesignComponent(
+		name = "DesignTemporaryScaffold",
+		status = "scaffold"
+	))
 
 	expect_error(
-		EDI:::resolve_design_component_dependencies("AllocationMatrixValidation"),
+		EDI:::resolve_design_component_dependencies("DesignTemporaryScaffold"),
 		"Scaffold design component"
 	)
 })
@@ -164,6 +176,7 @@ test_that("validate_design_component_body_references catches undeclared private/
 		name = "DesignTemporaryOkRef",
 		status = "active",
 		public = list(fine = function() private$owned_field),
+		private = list(owned_field = NULL),
 		owns_state = "owned_field"
 	)
 	expect_silent(EDI:::validate_design_component_body_references(ok))

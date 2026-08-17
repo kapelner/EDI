@@ -324,8 +324,6 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 	"InferenceAsympLikStdModCache",
 	"InferenceAsympLikStdModCacheNoParamBootstrap",
 	"InferenceCountLikelihood",
-	"InferenceCountLikelihoodNoParamBootstrap",
-	"InferenceCountCompositeLikelihood",
 	"InferenceKKPassThroughCompound",
 	"InferenceKKPassThroughCompoundNoParamBootstrap",
 	"InferenceMLEorKMSummaryTable"
@@ -350,8 +348,6 @@ EDI_INFERENCE_ABSTRACT_CLASS_NAMES = c(
 	"InferenceAsympLikStdModCache",
 	"InferenceAsympLikStdModCacheNoParamBootstrap",
 	"InferenceCountLikelihood",
-	"InferenceCountLikelihoodNoParamBootstrap",
-	"InferenceCountCompositeLikelihood",
 	"InferenceMLEorKMSummaryTable"
 )
 
@@ -381,8 +377,15 @@ infer_inference_response_types = function(name) {
 infer_inference_likelihood_tier = function(name) {
 	if (grepl("GEE|Quasi|Robust|Composite", name)) return("quasi")
 	if (grepl("Cox|CondLogit|CondAdjCat|LWA", name)) return("partial")
+	# DepCensTransform: InferenceSurvivalDepCensTransformRegr fits a full
+	# parametric (bivariate log-normal transformation) likelihood with real
+	# score/information/LR machinery and a parametric bootstrap -- before this
+	# token was added it fell through every branch to "none", which violated
+	# the tier table (none permits no LR/score/parametric bootstrap). See
+	# fix_inference_hierarchy.md, "Asymptotic (Wald) No-Likelihood Migration",
+	# 2026-08-17 tier-fix note.
 	if (grepl(
-		"OLS|Lin|LogRegr|LogBinomial|Probit|Poisson|NegBin|Hurdle|ZeroInflated|Beta|Weibull|GLMM|CLMM|PropOdds|Cauchit|Cloglog|Stereotype|ContRatio|AdjCat|OrderedProbit|BinomialIdentity|FractionalLogit|CountLikelihood|AsympLik|ParamBootstrap|OneLik|Copula|Frailty",
+		"OLS|Lin|LogRegr|LogBinomial|Probit|Poisson|NegBin|Hurdle|ZeroInflated|Beta|Weibull|GLMM|CLMM|PropOdds|Cauchit|Cloglog|Stereotype|ContRatio|AdjCat|OrderedProbit|BinomialIdentity|FractionalLogit|CountLikelihood|AsympLik|ParamBootstrap|OneLik|Copula|Frailty|DepCensTransform",
 		name
 	)) {
 		return("full")
@@ -459,19 +462,11 @@ infer_inference_direct_components = function(name) {
 		InferenceAsympLikStdModCache = "StandardModelCache",
 		InferenceAsympLikStdModCacheNoParamBootstrap = "StandardModelCache",
 			InferenceCountLikelihood = "CountLikelihoodPlumbing",
-			InferenceCountLikelihoodNoParamBootstrap = "CountLikelihoodPlumbing",
-			InferenceCountCompositeLikelihood = "CountLikelihoodPlumbing",
 			InferenceCountZeroAugmentedPoissonAbstract = "ZeroAugmentedCountLikelihood",
 			InferenceCountQuasiPoisson = c("Wald", "CountCompositeLikelihood"),
 			InferenceCountRobustPoisson = c("Wald", "CountCompositeLikelihood", "RobustSandwich"),
-			InferenceOrdinalPropOddsRegr = c(
-				"BayesianBootstrap", "ParametricLikelihoodBootstrap",
-				"OrdinalProportionalOddsLikelihood"
-			),
-			InferenceOrdinalAdjCatLogitRegr = c(
-				"BayesianBootstrap", "ParametricLikelihoodBootstrap",
-				"OrdinalAdjacentCategoryLikelihood"
-			),
+			InferenceOrdinalPropOddsRegr = "OrdinalProportionalOddsLikelihood",
+			InferenceOrdinalAdjCatLogitRegr = "OrdinalAdjacentCategoryLikelihood",
 			InferenceOrdinalCloglogRegr = "OrdinalCloglogLikelihood",
 			InferenceOrdinalCauchitRegr = "OrdinalCauchitLikelihood",
 			InferenceOrdinalStereotypeLogitRegr = "OrdinalStereotypeLikelihood",

@@ -41,7 +41,12 @@ def _synthetic_data():
 #   EDI:::fast_poisson_regression_cpp(X, y, estimate_only = FALSE)
 R_B = np.array([0.524632114554248, 0.330541628140221, -0.193715143568174])
 R_NEG_LOGLIK = 102.122308581
-R_ITERATIONS = 6
+R_NUM_ITER = 6
+
+# NOTE (2026-08-17): see the equivalent note in test_fast_logistic_regression.py
+# -- num_iter should be unchanged by the optimizer_diagnostics_report.md
+# TODO-4 rework, but re-verify converged=True against a fresh R run once the
+# C++ change is compiled (this fitter defaults to "irls").
 
 
 def test_matches_r_fixture():
@@ -51,7 +56,8 @@ def test_matches_r_fixture():
     assert res["converged"] is True
     assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)
     assert res["neg_loglik"] == pytest.approx(R_NEG_LOGLIK, abs=ATOL, rel=RTOL)
-    assert res["iterations"] == R_ITERATIONS
+    assert res["num_iter"] == R_NUM_ITER
+    assert res["hit_iteration_cap"] is False
 
 
 def test_result_shape_and_types():

@@ -603,6 +603,7 @@ edi::ResultMap fast_hurdle_negbin_internal(
 			.set("b", Eigen::VectorXd::Constant(p, std::numeric_limits<double>::quiet_NaN()))
 			.set("theta_hat", std::numeric_limits<double>::quiet_NaN())
 			.set("converged", false)
+			.set("hit_iteration_cap", false)
 			.set("hurdle_b", hurdle_b)
 			.set("hurdle_converged", hurdle_converged)
 			.set("failure_message", std::string("fewer positive observations than count-model parameters"));
@@ -665,6 +666,10 @@ edi::ResultMap fast_hurdle_negbin_internal(
 			.set("b", beta)
 			.set("theta_hat", theta_hat)
 			.set("converged", converged)
+			.set("num_iter", fit.niter)
+			.set("hit_iteration_cap", fit.hit_iteration_cap)
+			.set("gradient_norm", fit.gradient_norm)
+			.set("min_eigenvalue_information", fit.min_eigenvalue_information)
 			.set("hurdle_b", hurdle_b)
 			.set("hurdle_converged", hurdle_converged)
 			.set("neg_ll", neg_ll)
@@ -678,6 +683,10 @@ edi::ResultMap fast_hurdle_negbin_internal(
 		.set("b", beta)
 		.set("theta_hat", theta_hat)
 		.set("converged", converged)
+		.set("num_iter", fit.niter)
+		.set("hit_iteration_cap", fit.hit_iteration_cap)
+		.set("gradient_norm", fit.gradient_norm)
+		.set("min_eigenvalue_information", fit.min_eigenvalue_information)
 		.set("hurdle_b", hurdle_b)
 		.set("hurdle_converged", hurdle_converged)
 		.set("observed_information", observed_information)
@@ -739,6 +748,7 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 			.set("b", Eigen::VectorXd::Constant(p, std::numeric_limits<double>::quiet_NaN()))
 			.set("params", Eigen::VectorXd::Constant(p + 1, std::numeric_limits<double>::quiet_NaN()))
 			.set("converged", false)
+			.set("hit_iteration_cap", false)
 			.set("neg_ll", std::numeric_limits<double>::quiet_NaN());
 	}
 
@@ -789,6 +799,7 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 			.set("b", Eigen::VectorXd::Constant(p, std::numeric_limits<double>::quiet_NaN()))
 			.set("params", Eigen::VectorXd::Constant(p + 1, std::numeric_limits<double>::quiet_NaN()))
 			.set("converged", false)
+			.set("hit_iteration_cap", false)
 			.set("neg_ll", std::numeric_limits<double>::quiet_NaN())
 			.set("failure_message", failure_message);
 	}
@@ -800,6 +811,10 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 			.set("b", beta)
 			.set("params", params)
 			.set("converged", fit.converged)
+			.set("num_iter", fit.niter)
+			.set("hit_iteration_cap", fit.hit_iteration_cap)
+			.set("gradient_norm", fit.gradient_norm)
+			.set("min_eigenvalue_information", fit.min_eigenvalue_information)
 			.set("neg_ll", fit.value)
 			.set("failure_message", failure_message);
 	}
@@ -810,6 +825,10 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 		.set("b", beta)
 		.set("params", params)
 		.set("converged", fit.converged)
+		.set("num_iter", fit.niter)
+		.set("hit_iteration_cap", fit.hit_iteration_cap)
+		.set("gradient_norm", fit.gradient_norm)
+		.set("min_eigenvalue_information", fit.min_eigenvalue_information)
 		.set("neg_ll", fit.value)
 		.set("observed_information", observed_information)
 		.set("fisher_information", observed_information)

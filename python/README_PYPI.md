@@ -51,8 +51,8 @@ below for those instead.
 | **21.3x** | incidence | `fast_probit_regression` | statsmodels `GLM(Binomial, probit link)` | 0.44 | 9.38 |
 | **17.0x** | incidence | `fast_logistic_regression` | statsmodels `GLM(Binomial)` | 0.24 | 4.03 |
 | **3.15x** | incidence | `fast_log_binomial_regression` | statsmodels `GLM(Binomial, log link)` | 1.63 | 5.13 |
-| **694x** | survival | `fast_weibull_regression_general` | lifelines `WeibullAFTFitter.fit()` (right-censored only) | 0.15 | 104.46 |
-| **534x** | survival | `fast_weibull_regression_general` (interval-censored) | lifelines `WeibullAFTFitter.fit_interval_censoring()` | 0.28 | 151.66 |
+| **1170x** | survival | `fast_weibull_regression_general` | lifelines `WeibullAFTFitter.fit()` (right-censored only) | 0.15 | 179.45 |
+| **562x** | survival | `fast_weibull_regression_general` (interval-censored) | lifelines `WeibullAFTFitter.fit_interval_censoring()` | 0.48 | 267.24 |
 | **1650x** | survival | `get_survival_stat_diff` (median) | lifelines `KaplanMeierFitter(median)` | 0.02 | 26.52 |
 | **1460x** | survival | `get_survival_stat_diff` (restricted_mean) | lifelines `utils.restricted_mean_survival_time` | 0.01 | 19.30 |
 | **584x** | survival | `fast_stratified_coxph_regression` | lifelines `CoxPHFitter(strata=)` | 0.47 | 273.61 |

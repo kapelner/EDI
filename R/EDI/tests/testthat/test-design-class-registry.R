@@ -35,6 +35,26 @@ test_that("design class registry has one canonical metadata entry per generator"
 	}
 })
 
+test_that("direct_components is populated from define_design_class()'s resolved component set (fix_design_hierarchy.md TODO-28)", {
+	registry = EDI:::design_class_registry_as_list()
+	expect_identical(registry[["DesignFixedBlocking"]]$direct_components, "BlockingStructure")
+	# The caller's literal declaration ("MatchingStructure"), not the
+	# resolved/expanded set (which would also include "BlockingStructure",
+	# since MatchingStructure depends on it) -- storing the expanded form
+	# would make populate_design_class_registry()'s own re-resolution of it
+	# error as a self-duplicate.
+	expect_identical(registry[["DesignFixedBinaryMatch"]]$direct_components, "MatchingStructure")
+	expect_identical(registry[["DesignSeqOneByOneiBCRD"]]$direct_components, "BlockingStructure")
+	expect_identical(registry[["DesignFixedBernoulli"]]$direct_components, character())
+	# A plain R6::R6Class()-built generator not yet migrated onto
+	# define_design_class() has no stashed attribute at all.
+	expect_identical(EDI:::infer_design_direct_components(EDI:::Design), character())
+	# get_effective_design_capabilities() must actually resolve now, not
+	# silently return character() the way it did before this fix.
+	expect_identical(EDI:::get_effective_design_capabilities("DesignFixedBlocking"), "blocking")
+	expect_setequal(EDI:::get_effective_design_capabilities("DesignFixedBinaryMatch"), c("blocking", "matching"))
+})
+
 test_that("timing_family values are drawn from the closed enum, or NA only for the unsplit bases", {
 	EDI:::populate_design_class_registry()
 	registry = EDI:::design_class_registry_as_list()
@@ -200,7 +220,7 @@ test_that("design class metadata rejects missing fields and invalid enum values"
 	na_timing_on_concrete$timing_family = NA_character_
 	expect_error(
 		EDI:::validate_design_class_metadata(na_timing_on_concrete),
-		"only Design, DesignBlocking, DesignMatching"
+		"only Design"
 	)
 
 	na_family_on_concrete = valid
@@ -263,4 +283,44 @@ test_that("deterministic_optimal family is registered for the upcoming DesignFix
 	expect_false("DesignFixedOptimal" %in% EDI:::EDI_DESIGN_BATCH_W_PREGENERATION_CLASS_NAMES)
 	# The registry itself must remain valid with the staged, class-less mapping.
 	expect_silent(EDI:::validate_design_class_registry())
+})
+
+test_that("strict shallow design hierarchy flag fails when a class still inherits through DesignBlocking/DesignMatching (fix_design_hierarchy.md TODO-39)", {
+	old_value = Sys.getenv("EDI_REQUIRE_SHALLOW_DESIGN_HIERARCHY", unset = NA_character_)
+	on.exit({
+		if (is.na(old_value)) {
+			Sys.unsetenv("EDI_REQUIRE_SHALLOW_DESIGN_HIERARCHY")
+		} else {
+			Sys.setenv(EDI_REQUIRE_SHALLOW_DESIGN_HIERARCHY = old_value)
+		}
+	}, add = TRUE)
+
+	# Synthetic registry: a class inheriting directly from DesignBlocking, and one
+	# inheriting transitively through an intermediate class.
+	pending_registry = list(
+		DesignTemporaryPending = list(name = "DesignTemporaryPending", parent = "DesignBlocking"),
+		DesignTemporaryPendingChild = list(name = "DesignTemporaryPendingChild", parent = "DesignTemporaryPendingIntermediate"),
+		DesignTemporaryPendingIntermediate = list(name = "DesignTemporaryPendingIntermediate", parent = "DesignMatching")
+	)
+
+	Sys.unsetenv("EDI_REQUIRE_SHALLOW_DESIGN_HIERARCHY")
+	expect_false(EDI:::edi_require_shallow_design_hierarchy())
+	expect_silent(EDI:::assert_shallow_design_hierarchy_complete(pending_registry))
+
+	Sys.setenv(EDI_REQUIRE_SHALLOW_DESIGN_HIERARCHY = "true")
+	expect_true(EDI:::edi_require_shallow_design_hierarchy())
+	expect_error(
+		EDI:::assert_shallow_design_hierarchy_complete(pending_registry),
+		"still inherit through DesignBlocking/DesignMatching"
+	)
+
+	migrated_registry = list(
+		DesignTemporaryPending = list(name = "DesignTemporaryPending", parent = "DesignFixed")
+	)
+	expect_silent(EDI:::assert_shallow_design_hierarchy_complete(migrated_registry))
+})
+
+test_that("strict shallow design hierarchy flag gates the current live registry", {
+	EDI:::populate_design_class_registry()
+	expect_silent(EDI:::assert_shallow_design_hierarchy_complete())
 })

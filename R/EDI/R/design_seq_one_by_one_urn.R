@@ -31,8 +31,10 @@
 #' seq_des = DesignSeqOneByOneUrn$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' @export
-DesignSeqOneByOneUrn = R6::R6Class("DesignSeqOneByOneUrn",
+DesignSeqOneByOneUrn = define_design_class(
+	classname = "DesignSeqOneByOneUrn",
 	inherit = DesignSeqOneByOne,
+	components = character(),
 	public = list(
 		#'
 		#' @description Initialize Wei's UD(\eqn{\alpha}, \eqn{\beta}) adaptive urn

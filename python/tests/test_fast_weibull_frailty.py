@@ -64,6 +64,9 @@ def test_matches_r_fixture():
     X, y, dead, group_id = _synthetic_data()
     res = fast_weibull_frailty(X, y, dead, group_id)
 
+    # NOTE (2026-08-17): converged now derives from the shared LBFGS/Newton
+    # machinery's gradient-norm-based redefinition (optimizer_diagnostics_
+    # report.md TODO-4) -- re-verify against a fresh R run once compiled.
     assert res["converged"] is True
     assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)
     assert res["log_sigma_eps"] == pytest.approx(R_LOG_SIGMA_EPS, abs=ATOL, rel=RTOL)

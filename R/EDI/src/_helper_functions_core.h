@@ -135,6 +135,13 @@ struct ModelResult {
     // computed as part of the fitter's own convergence check (never a new
     // evaluation, except where noted at the call site). NaN if unavailable.
     double gradient_norm;
+    // Minimum eigenvalue of the (free-parameter block of the) observed
+    // information/Hessian at the returned b -- fallback-path-only, same
+    // rationale and NaN-default-means-not-computed contract as
+    // LikelihoodFitResult::min_eigenvalue_information above
+    // (optimizer_diagnostics_report.md TODO-1). Not yet populated by every
+    // ModelResult producer; only trust it where the call site sets it.
+    double min_eigenvalue_information;
 
     ModelResult() : neg_ll(std::numeric_limits<double>::quiet_NaN()),
         ssq_b_j(std::numeric_limits<double>::quiet_NaN()),
@@ -142,8 +149,30 @@ struct ModelResult {
         dispersion(std::numeric_limits<double>::quiet_NaN()),
         sigma2_hat(std::numeric_limits<double>::quiet_NaN()),
         num_iter(0), converged(false), hit_iteration_cap(false),
-        gradient_norm(std::numeric_limits<double>::quiet_NaN()) {}
+        gradient_norm(std::numeric_limits<double>::quiet_NaN()),
+        min_eigenvalue_information(std::numeric_limits<double>::quiet_NaN()) {}
 };
+
+// Fallback-path-only diagnostic for hand-rolled-loop result structs that
+// carry their own `converged`/`min_eigenvalue_information` fields (ModelResult,
+// CoxFitResult, ...) -- parallel to compute_min_eigenvalue_if_suspect above,
+// which operates on LikelihoodFitResult via a functor. Symmetrizes H and
+// stores its minimum eigenvalue into res.min_eigenvalue_information, but only
+// when res.converged is already false. Takes H directly (rather than a
+// functor + params) because these producers already have their curvature
+// matrix (XtWX, total_hess, ...) sitting in a local variable -- this reuses
+// it rather than rebuilding it from a functor. Templated (not overloaded per
+// struct) so any current or future result struct with the two required
+// fields works without a new overload.
+template <typename ResultStruct>
+inline void set_min_eigenvalue_if_suspect(const Eigen::MatrixXd& H, ResultStruct& res) {
+    if (res.converged || H.rows() != H.cols() || H.rows() == 0 || !H.allFinite()) return;
+    Eigen::MatrixXd H_sym = (H + H.transpose()) / 2.0;
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(H_sym, Eigen::EigenvaluesOnly);
+    if (es.info() == Eigen::Success) {
+        res.min_eigenvalue_information = es.eigenvalues()(0);
+    }
+}
 
 // Pure C++ internal helpers
 inline double compute_diagonal_inverse_entry(const Eigen::Ref<const Eigen::MatrixXd>& M, int j) {
@@ -1009,14 +1038,70 @@ struct LikelihoodFitResult {
     // evaluation. NaN if unavailable (e.g. the optimizer errored before any
     // gradient was computed).
     double gradient_norm;
+    // Minimum eigenvalue of the (free-parameter block of the) observed
+    // information/Hessian at the returned params -- a near-zero or negative
+    // value flags near-non-identifiability/ill-conditioning independent of
+    // whether the gradient looks small. Fallback-path-only by design
+    // (optimizer_diagnostics_report.md TODO-1): computing it is an O(p^3)
+    // eigendecomposition on top of an O(n*p^2) Hessian build, so it is only
+    // evaluated when `!converged` already flagged the fit as suspect, not on
+    // every clean fit. NaN when not computed (converged fits, or fits whose
+    // functor/params weren't in a state where the Hessian could be built).
+    double min_eigenvalue_information;
 
     LikelihoodFitResult() :
         value(std::numeric_limits<double>::quiet_NaN()),
         niter(0),
         converged(false),
         hit_iteration_cap(false),
-        gradient_norm(std::numeric_limits<double>::quiet_NaN()) {}
+        gradient_norm(std::numeric_limits<double>::quiet_NaN()),
+        min_eigenvalue_information(std::numeric_limits<double>::quiet_NaN()) {}
 };
+
+// SFINAE detection of an optional fun.hessian(params) method -- mirrors
+// has_expected_hessian below. Not every LikelihoodFunctor passed to
+// optimize_likelihood_lbfgs implements .hessian() (some, e.g.
+// LogisticLbfgsObjective, only ever needed operator() for the gradient), so
+// the eigenvalue diagnostic below must be conditional on this, not assume it.
+template <class T, class = void>
+struct has_hessian_method : std::false_type {};
+
+template <class T>
+struct has_hessian_method<T, decltype(void(
+    std::declval<T&>().hessian(std::declval<const Eigen::VectorXd&>())
+))> : std::true_type {};
+
+// Fallback-path-only diagnostic (optimizer_diagnostics_report.md TODO-1):
+// computes the minimum eigenvalue of fun's Hessian at fit.params and stores
+// it in fit.min_eigenvalue_information, but only when fit.converged is
+// already false -- a fit already flagged suspect by the gradient-norm
+// criterion is exactly the case this is meant to help diagnose (is it also
+// ill-conditioned, or just slow to converge?). Never runs on a clean fit, so
+// it adds no cost to the common case. Symmetrizes the Hessian before the
+// eigendecomposition (observed-information Hessians from finite-difference
+// or accumulated paths are not always exactly symmetric to floating-point
+// precision). Silently leaves min_eigenvalue_information as NaN if the
+// Hessian can't be built, isn't finite, or the functor has no .hessian()
+// method at all (see has_hessian_method above) -- this is a diagnostic, not
+// a correctness-critical path, so it must never throw and must always
+// compile regardless of which functor type is instantiated.
+template <typename LikelihoodFunctor>
+inline void compute_min_eigenvalue_if_suspect(LikelihoodFunctor& fun, LikelihoodFitResult& fit) {
+    if (fit.converged || fit.params.size() == 0) return;
+    if constexpr (has_hessian_method<LikelihoodFunctor>::value) {
+        try {
+            Eigen::MatrixXd H = fun.hessian(fit.params);
+            if (H.rows() != H.cols() || H.rows() == 0 || !H.allFinite()) return;
+            Eigen::MatrixXd H_sym = (H + H.transpose()) / 2.0;
+            Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(H_sym, Eigen::EigenvaluesOnly);
+            if (es.info() == Eigen::Success) {
+                fit.min_eigenvalue_information = es.eigenvalues()(0);
+            }
+        } catch (...) {
+            // Leave as NaN -- see function comment.
+        }
+    }
+}
 
 inline std::string normalize_optimizer_algorithm(const std::string& optimization_alg,
                                                  const std::string& default_optimization_alg,
@@ -1148,10 +1233,25 @@ inline LikelihoodFitResult optimize_likelihood_lbfgs(LikelihoodFunctor& fun,
     InterruptibleLikelihoodFunctor<LikelihoodFunctor> interruptible_fun(fun);
     try {
         fit.niter = solver.minimize(interruptible_fun, fit.params, fit.value);
-        fit.converged = (fit.niter < maxit);
         // Already tracked internally at every iteration as part of LBFGSpp's
         // own stopping check (m_gnorm); reading it back is not a new evaluation.
         fit.gradient_norm = solver.final_grad_norm();
+        // converged = gradient_norm < tol OR LBFGSpp's own criterion
+        // (optimizer_diagnostics_report.md TODO-4, revised 2026-08-17 after
+        // finding the pure-gradient-norm rule made ordinary, correctly-fit
+        // LBFGS models routinely report converged=FALSE -- on real
+        // log-likelihood surfaces the objective value plateaus, satisfying
+        // LBFGSpp's relative-function-decrease criterion (delta/past), well
+        // before the gradient norm actually drops below a tight `tol`; that
+        // is normal floating-point behavior near a flat optimum, not a
+        // failure. `niter < maxit` means LBFGSpp itself stopped via one of
+        // its own criteria (gradient OR function-value) rather than
+        // exhausting the iteration budget -- kept as an OR'd fallback so a
+        // fit isn't misclassified as unconverged just because the gradient
+        // check alone is stricter than what LBFGS can practically achieve.
+        bool lbfgs_own_converged = (fit.niter < maxit);
+        fit.converged = (fit.gradient_norm < tol) || lbfgs_own_converged;
+        fit.hit_iteration_cap = !lbfgs_own_converged && !fit.converged;
 #ifndef EDI_CORE_ONLY
     } catch (Rcpp::internal::InterruptedException&) {
         throw;
@@ -1159,8 +1259,10 @@ inline LikelihoodFitResult optimize_likelihood_lbfgs(LikelihoodFunctor& fun,
     } catch (...) {
         fit.value = std::numeric_limits<double>::quiet_NaN();
         fit.converged = false;
+        fit.hit_iteration_cap = false;
         fit.niter = maxit;
     }
+    compute_min_eigenvalue_if_suspect(fun, fit);
     return fit;
 }
 
@@ -1258,6 +1360,7 @@ inline LikelihoodFitResult optimize_likelihood_newton(LikelihoodFunctor& fun,
             fit.gradient_norm = last_grad_norm;
             fit.converged = (last_grad_norm < tol);
             fit.hit_iteration_cap = (fit.niter >= maxit) && !fit.converged;
+            compute_min_eigenvalue_if_suspect(fun, fit);
             return fit;
         }
     }
@@ -1273,6 +1376,7 @@ inline LikelihoodFitResult optimize_likelihood_newton(LikelihoodFunctor& fun,
     fit.converged = (last_grad_norm < tol);
     fit.hit_iteration_cap = (fit.niter >= maxit) && !fit.converged;
     fit.gradient_norm = last_grad_norm;
+    compute_min_eigenvalue_if_suspect(fun, fit);
     return fit;
 }
 

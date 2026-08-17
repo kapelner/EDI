@@ -98,10 +98,19 @@ the same time as \code{set_custom_randomization_statistic_function()}.
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{fn}}{Either a C++ source code string, a pre-compiled Rcpp function, or
-\code{NULL}. The compiled function must return a scalar \code{double}
-and accept either \code{(NumericVector y, IntegerVector w)} or
-\code{(NumericVector y, IntegerVector w, IntegerVector dead)}.}
+      \item{\code{fn}}{Either a C++ source code string, a pre-compiled Rcpp function,
+an \code{RcppXPtrUtils::cppXPtr()} external pointer, or
+\code{NULL}. A source string or Rcpp function must return a scalar
+\code{double} and accept either \code{(NumericVector y, IntegerVector w)}
+or \code{(NumericVector y, IntegerVector w, IntegerVector dead)}. An
+external pointer follows the package-wide \code{user_compiled_fns.h}
+calling convention shared with \code{DesignFixedOptimal}'s
+\code{custom_objective} -- Eigen types:
+\code{double f(const Eigen::VectorXd& y, const Eigen::VectorXd& w)}, or
+the 3-argument form appending \code{const Eigen::VectorXd& dead} --
+and, like a pre-compiled Rcpp function, is valid in the main process
+only (external pointers do not survive serialization to parallel
+workers; use a source string for parallel paths).}
     }
     \if{html}{\out{</div>}}
   }

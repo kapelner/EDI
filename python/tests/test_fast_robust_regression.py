@@ -45,17 +45,23 @@ R_COEFFICIENTS = np.array(
     [0.95890410926024, 0.533261327370603, -0.309509629741258]
 )
 R_SCALE = 0.490313028232971
-R_ITERATIONS = 11
+R_NUM_ITER = 11
 
 
 def test_matches_r_fixture():
     X, y = _synthetic_data()
     res = fast_robust_regression(X, y)
 
+    # converged/num_iter values are unaffected by the optimizer_diagnostics_
+    # report.md TODO-4 rework -- this fitter's convergence criterion
+    # (coefficient-relative-change, not gradient-norm) was deliberately left
+    # untouched (see fast_robust_regression.cpp for why); only the field
+    # name (num_iter) and the new hit_iteration_cap field are new.
     assert res["converged"] is True
     assert res["coefficients"] == pytest.approx(R_COEFFICIENTS, abs=ATOL, rel=RTOL)
     assert res["scale"] == pytest.approx(R_SCALE, abs=ATOL, rel=RTOL)
-    assert res["iterations"] == R_ITERATIONS
+    assert res["num_iter"] == R_NUM_ITER
+    assert res["hit_iteration_cap"] is False
 
 
 def test_result_shape_and_types():

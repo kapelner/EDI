@@ -39,8 +39,11 @@
 #' seq_des = DesignSeqOneByOneSPBR$new(strata_cols = 'x1', n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = factor(1, levels=1:2)))
 #' @export
-DesignSeqOneByOneSPBR = R6::R6Class("DesignSeqOneByOneSPBR",
+DesignSeqOneByOneSPBR = define_design_class(
+	classname = "DesignSeqOneByOneSPBR",
 	inherit = DesignSeqOneByOne,
+	components = c("BlockingStructure", "SequentialStrataBootstrap"),
+	overrides = list(private = "draw_bootstrap_indices"),
 	public = list(
 		#' @description Initialize a stratified permuted-block sequential experimental
 		#'   design with fixed block size (see class documentation for the exact
@@ -78,6 +81,7 @@ DesignSeqOneByOneSPBR = R6::R6Class("DesignSeqOneByOneSPBR",
 			private$strata_cols = strata_cols
 			private$block_size = as.integer(block_size)
 			private$uses_covariates = TRUE
+			private$sequential_bootstrap_whole_group = TRUE
 			private$strata_states = new.env(parent = emptyenv())
 			
 			if (should_run_asserts()) {
@@ -124,25 +128,6 @@ DesignSeqOneByOneSPBR = R6::R6Class("DesignSeqOneByOneSPBR",
 				as.integer(r)
 			)$w_mat
 		},
-		draw_bootstrap_indices = function(bootstrap_type = NULL){
-			strata_keys = vapply(1:private$t, function(i) {
-				private$get_strata_key(private$Xraw[i, ])
-			}, character(1))
-			if (is.null(bootstrap_type) || bootstrap_type == "within_blocks") {
-				strata_ids = match(strata_keys, unique(strata_keys))
-				list(i_b = stratified_bootstrap_indices_cpp(as.integer(strata_ids)), m_vec_b = NULL)
-			} else {
-				group_id = match(strata_keys, unique(strata_keys))
-				i_b = resample_group_rows_cpp(as.integer(group_id), length(unique(group_id)))
-				list(i_b = as.integer(i_b), m_vec_b = NULL)
-			}
-		},
-		get_strata_key = function(x_row) {
-			vals = vapply(private$strata_cols, function(col) {
-				val = x_row[[col]]
-				if (is.na(val)) "NA" else as.character(val)
-			}, character(1))
-			paste(vals, collapse = "|")
-		}
+		sequential_bootstrap_whole_group = TRUE
 	)
 )

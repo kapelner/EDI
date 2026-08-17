@@ -207,10 +207,8 @@ InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullF
 					X_r_int = cbind("(Intercept)" = 1, as.matrix(X_r))
 					p_r = ncol(X_r_int)
 					fit_fast_r = tryCatch(
-						fast_weibull_regression_general_cpp(
-							y   = ifelse(private$dead[i_reservoir] != 0, private$y[i_reservoir], NA_real_),
-							y_L = ifelse(private$dead[i_reservoir] == 0, private$y[i_reservoir], NA_real_),
-							y_R = ifelse(private$dead[i_reservoir] == 0, Inf, NA_real_),
+						fast_weibull_regression_cpp(
+							y = private$y[i_reservoir], dead = private$dead[i_reservoir],
 							X    = X_r_int,
 							estimate_only = TRUE,
 							fixed_idx    = as.integer(p_r),
@@ -334,10 +332,8 @@ InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullF
 				private$best_X_colnames_reservoir = best_cols_r
 				X_r_int = cbind("(Intercept)" = 1, as.matrix(attempt$X))
 				res_log_s = tryCatch(
-					fast_weibull_regression_general_cpp(
-						y   = ifelse(private$dead[i_reservoir] != 0, private$y[i_reservoir], NA_real_),
-						y_L = ifelse(private$dead[i_reservoir] == 0, private$y[i_reservoir], NA_real_),
-						y_R = ifelse(private$dead[i_reservoir] == 0, Inf, NA_real_),
+					fast_weibull_regression_cpp(
+						y = private$y[i_reservoir], dead = private$dead[i_reservoir],
 						X    = X_r_int,
 						estimate_only = TRUE
 					),

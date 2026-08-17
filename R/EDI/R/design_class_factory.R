@@ -44,7 +44,7 @@ combine_design_component_slot = function(target_name, component_names, slot, hos
 	if (isTRUE(resolve)) {
 		component_names = resolve_design_component_dependencies(component_names)
 	}
-	allowed = overrides[[slot]]
+	allowed_component_overrides = overrides[[slot]]
 	combined = list()
 	combined_kinds = character()
 	for (component_name in component_names) {
@@ -55,27 +55,33 @@ combine_design_component_slot = function(target_name, component_names, slot, hos
 		incoming_kinds = design_entry_kinds(component_entries)
 		collisions = intersect(names(combined), incoming_names)
 		kind_collisions = collisions[combined_kinds[collisions] != incoming_kinds[collisions]]
-		undeclared_kind_collisions = setdiff(kind_collisions, allowed)
+		undeclared_kind_collisions = setdiff(kind_collisions, allowed_component_overrides)
 		if (length(undeclared_kind_collisions) > 0L) {
 			stop(sprintf(
 				"%s has undeclared %s method/state collision(s): %s",
 				target_name, slot, paste(undeclared_kind_collisions, collapse = ", ")
 			), call. = FALSE)
 		}
-		undeclared = setdiff(collisions, allowed)
+		undeclared = setdiff(collisions, allowed_component_overrides)
 		if (length(undeclared) > 0L) {
 			stop(sprintf(
 				"%s has undeclared %s component collision(s): %s",
 				target_name, slot, paste(undeclared, collapse = ", ")
 			), call. = FALSE)
 		}
-		combined = utils::modifyList(combined, component_entries)
+		combined = utils::modifyList(combined, component_entries, keep.null = TRUE)
 		combined_kinds = design_entry_kinds(combined)
 	}
 	host_names = names(host_entries)
 	if (is.null(host_names)) host_names = character()
+	allowed_host_overrides = unique(c(
+		allowed_component_overrides,
+		unlist(lapply(component_names, function(component_name) {
+			get_design_component(component_name)$allowed_host_overrides[[slot]]
+		}), use.names = FALSE)
+	))
 	host_collisions = intersect(names(combined), host_names)
-	undeclared_host_collisions = setdiff(host_collisions, allowed)
+	undeclared_host_collisions = setdiff(host_collisions, allowed_host_overrides)
 	if (length(undeclared_host_collisions) > 0L) {
 		stop(sprintf(
 			"%s overrides component %s member(s) without declaration: %s",
@@ -84,14 +90,14 @@ combine_design_component_slot = function(target_name, component_names, slot, hos
 	}
 	host_kinds = design_entry_kinds(host_entries)
 	kind_collisions = host_collisions[combined_kinds[host_collisions] != host_kinds[host_collisions]]
-	undeclared_kind_collisions = setdiff(kind_collisions, allowed)
+	undeclared_kind_collisions = setdiff(kind_collisions, allowed_host_overrides)
 	if (length(undeclared_kind_collisions) > 0L) {
 		stop(sprintf(
 			"%s overrides component %s method/state member(s) without declaration: %s",
 			target_name, slot, paste(undeclared_kind_collisions, collapse = ", ")
 		), call. = FALSE)
 	}
-	utils::modifyList(combined, host_entries)
+	utils::modifyList(combined, host_entries, keep.null = TRUE)
 }
 
 assemble_design_public = function(target_name, component_names = character(), public = list(), overrides = list(), resolve = TRUE) {
@@ -103,22 +109,17 @@ assemble_design_private = function(target_name, component_names = character(), p
 }
 
 # R6 generator $public_methods/$private_methods only ever list what THAT specific
-# class defines directly, never what it inherits transitively -- confirmed
-# empirically (DesignFixedBlocking$public_methods$is_blocking_design is NULL, since
-# is_blocking_design is defined on the ancestor DesignBlocking, not redefined on
-# DesignFixedBlocking itself). contracts_mixins.R's equivalent helpers
+# class defines directly, never what it inherits transitively. contracts_mixins.R's equivalent helpers
 # (r6_inherited_public_names()/r6_inherited_private_names()) only walk one level,
 # which is sufficient there because every currently-migrated Inference class
 # inherits `Inference` directly (zero intermediate levels). Design's target
 # architecture explicitly keeps multi-level family bases legitimate (the KK
 # sequential-matching family: DesignSeqOneByOneKK14 -> DesignSeqOneByOneKK21 ->
-# DesignSeqOneByOneKK21stepwise, plus DesignFixed/DesignSeqOneByOne -> Design
-# themselves during the transition before "Timing-Family Split" lands), so a
+# DesignSeqOneByOneKK21stepwise), so a
 # component requiring a root Design method (e.g. BlockingStructure's requires_
 # public_methods = "get_X_raw") several hops up the chain must still be found --
-# confirmed by direct testing: a one-level lookup missed `get_X_raw` for a class
-# declared `inherit = DesignFixed` while DesignFixed still (pre-split) sits three
-# hops below Design. These two helpers walk the full `get_inherit()` chain instead.
+# confirmed by direct testing against a multi-level family subclass. These two
+# helpers walk the full `get_inherit()` chain instead.
 design_r6_inherited_public_names = function(inherit) {
 	collected = character()
 	gen = inherit
@@ -227,7 +228,7 @@ define_design_class = function(
 		overrides = overrides,
 		resolve_components = FALSE
 	)
-	R6::R6Class(
+	generator = R6::R6Class(
 		classname = classname,
 		lock_objects = FALSE,
 		inherit = inherit,
@@ -236,4 +237,21 @@ define_design_class = function(
 		active = active,
 		...
 	)
+	# Stashed here because R6::R6Class() has no field for it. Deliberately the
+	# caller's raw `components` argument, NOT the resolved/expanded
+	# `component_names` -- resolve_design_component_dependencies() (called again
+	# on this value by populate_design_class_registry()'s consumer,
+	# get_effective_design_components()) errors on a list that already includes
+	# a dependency alongside the component that pulls it in (e.g. explicitly
+	# listing both "BlockingStructure" and "MatchingStructure", when
+	# MatchingStructure already depends on BlockingStructure); storing the
+	# pre-expansion form keeps that re-resolution idempotent. Read back by
+	# populate_design_class_registry()'s namespace scan to populate the
+	# registry's `direct_components` field (fix_design_hierarchy.md, TODO-28);
+	# without this, that scan has no way to recover which components a
+	# generator actually composed, since assemble_design_public()/
+	# assemble_design_private() only copy the resolved *methods* onto the
+	# generator, not the component *names* that produced them.
+	attr(generator, "edi_design_direct_components") = components
+	generator
 }

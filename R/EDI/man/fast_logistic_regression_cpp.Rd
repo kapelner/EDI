@@ -42,7 +42,8 @@ warm-start curvature information.}
 
 \item{estimate_only}{Logical. If \code{TRUE}, skip the working-weights/
 score/Fisher-information computation after convergence, returning only
-\code{b}, \code{converged}, \code{iterations}, and \code{gradient_norm}.}
+\code{b}, \code{converged}, \code{num_iter}, \code{hit_iteration_cap}, and
+\code{gradient_norm}.}
 }
 \value{
 A list containing the following components:
@@ -51,16 +52,22 @@ A list containing the following components:
 \item{w}{The IRLS working weights \eqn{\hat\mu_i(1-\hat\mu_i)} at the final
   iteration (the Bernoulli variance function evaluated at the fitted
   probabilities); omitted when \code{estimate_only = TRUE}.}
-\item{iterations}{The number of optimizer iterations performed.}
+\item{num_iter}{The number of optimizer iterations performed.}
 \item{fisher_information}{The working-weights curvature matrix
   \eqn{X^\top W X}; omitted when \code{estimate_only = TRUE}.}
 \item{score}{The score (gradient of the log-likelihood) vector at the fitted
   coefficients; omitted when \code{estimate_only = TRUE}.}
 \item{neg_ll}{The negative log-likelihood at the fitted coefficients;
   omitted when \code{estimate_only = TRUE}.}
-\item{converged}{A logical value indicating whether the algorithm converged.}
-\item{gradient_norm}{The norm of the score vector at convergence, a
-  diagnostic of how tightly the convergence criterion was met.}
+\item{converged}{A logical value indicating whether the final gradient norm
+  was below \code{tol} (\code{gradient_norm < tol}); uniform across the
+  \code{"irls"}/\code{"lbfgs"} optimizers.}
+\item{hit_iteration_cap}{A logical value, mutually exclusive with
+  \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
+  iterations without meeting the gradient-norm convergence criterion.}
+\item{gradient_norm}{The norm of the score vector at the returned
+  coefficients, a diagnostic of how tightly the convergence criterion was
+  met.}
 }
 }
 \description{

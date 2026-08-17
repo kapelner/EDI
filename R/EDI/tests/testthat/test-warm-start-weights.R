@@ -31,12 +31,12 @@ test_that("fast_poisson_regression_cpp supports warm_start_weights", {
   
   # 1. Initial fit
   fit1 <- fast_poisson_regression_cpp(X, y, optimization_alg = "irls")
-  expect_true(fit1$iterations > 1)
-  
+  expect_true(fit1$num_iter > 1)
+
   # In Poisson IRLS, w = mu (or mu * weights).
   fit2 <- fast_poisson_regression_cpp(X, y, warm_start_beta = fit1$b, warm_start_weights = fit1$mu, optimization_alg = "irls")
-  
-  expect_true(fit2$iterations <= 2)
+
+  expect_true(fit2$num_iter <= 2)
   expect_equal(fit1$b, fit2$b, tolerance = 1e-7)
 })
 
@@ -53,8 +53,8 @@ test_that("fast_log_binomial_regression_cpp supports warm_start_weights", {
   fit1 <- fast_log_binomial_regression_cpp(X, y)
   
   fit2 <- fast_log_binomial_regression_cpp(X, y, warm_start_beta = fit1$b, warm_start_weights = fit1$working_weights)
-  
-  expect_true(fit2$iterations <= 2)
+
+  expect_true(fit2$num_iter <= 2)
   expect_equal(fit1$b, fit2$b, tolerance = 1e-7)
 })
 

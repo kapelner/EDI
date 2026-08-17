@@ -142,7 +142,9 @@ ModelResult fast_poisson_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
         }
         res.num_iter = fit.niter;
         res.converged = fit.converged;
+        res.hit_iteration_cap = fit.hit_iteration_cap;
         res.gradient_norm = fit.gradient_norm;
+        res.min_eigenvalue_information = fit.min_eigenvalue_information;
         return res;
     }
 
@@ -272,10 +274,33 @@ ModelResult fast_poisson_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
         
         if (!step_ok) break;
 		if (step.norm() < tol) {
-			res.converged = true;
+			// Step-size convergence: recompute the gradient norm at the
+			// post-step point (optimizer_diagnostics_report.md TODO-4,
+			// matching fast_logistic_regression.cpp's template) so
+			// `converged` below is classified by the actual gradient at the
+			// returned beta_free, not by this different stopping criterion
+			// having fired.
+			VectorXd eta_post = eta_fixed + X_f * beta_free;
+			VectorXd mu_post = eta_post.array().cwiseMin(700.0).exp();
+			VectorXd diff_post = y - mu_post;
+			if (use_weights) diff_post.array() *= weights.array();
+			res.gradient_norm = (X_f.transpose() * diff_post).norm();
 			break;
 		}
 	}
+
+    // Uniform gradient-norm-based convergence (optimizer_diagnostics_report.md
+    // TODO-4): every non-gradient-tol loop exit (singular Hessian, non-finite
+    // step, step-halving failure, maxit exhaustion) already implies
+    // res.gradient_norm >= tol -- the gradient-tol break earlier in the loop
+    // would have fired first otherwise -- so this blanket rule needs no
+    // special-casing, matching the template's analysis.
+    res.converged = (res.gradient_norm < tol);
+    res.hit_iteration_cap = (res.num_iter >= maxit) && !res.converged;
+    // Reuses XtWX_free, already built above (the last iteration's Fisher
+    // information in free-parameter space) -- no new computation
+    // (optimizer_diagnostics_report.md TODO-1).
+    set_min_eigenvalue_if_suspect(XtWX_free, res);
 
     for (int j = 0; j < p_free; ++j) res.b[fixed_spec.free_idx[j]] = beta_free[j];
     for (int j = 0; j < (int)fixed_spec.fixed_idx.size(); ++j) res.b[fixed_spec.fixed_idx[j]] = fixed_spec.fixed_values[j];
@@ -396,8 +421,10 @@ List fast_poisson_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, R
 		return edi::to_rcpp_list(edi::ResultMap()
 			.set("b", res.b)
 			.set("converged", res.converged)
-			.set("iterations", res.num_iter)
-			.set("gradient_norm", res.gradient_norm));
+			.set("num_iter", res.num_iter)
+			.set("hit_iteration_cap", res.hit_iteration_cap)
+			.set("gradient_norm", res.gradient_norm)
+			.set("min_eigenvalue_information", res.min_eigenvalue_information));
 	}
 	return edi::to_rcpp_list(edi::ResultMap()
 		.set("b", res.b)
@@ -407,8 +434,10 @@ List fast_poisson_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, R
 		.set("score", res.score)
 		.set("neg_ll", res.neg_ll)
 		.set("converged", res.converged)
-		.set("iterations", res.num_iter)
-		.set("gradient_norm", res.gradient_norm));
+		.set("num_iter", res.num_iter)
+		.set("hit_iteration_cap", res.hit_iteration_cap)
+		.set("gradient_norm", res.gradient_norm)
+		.set("min_eigenvalue_information", res.min_eigenvalue_information));
 }
 
 // [[Rcpp::export]]
@@ -437,8 +466,10 @@ List fast_poisson_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, 
 		.set("score", res.score)
 		.set("neg_ll", res.neg_ll)
 		.set("converged", res.converged)
-		.set("iterations", res.num_iter)
-		.set("gradient_norm", res.gradient_norm));
+		.set("num_iter", res.num_iter)
+		.set("hit_iteration_cap", res.hit_iteration_cap)
+		.set("gradient_norm", res.gradient_norm)
+		.set("min_eigenvalue_information", res.min_eigenvalue_information));
 }
 
 // [[Rcpp::export]]
@@ -492,7 +523,8 @@ List fast_poisson_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 		.set("ssq_b_2", res.ssq_b_2)
 		.set("mu", res.mu)
 		.set("converged", res.converged)
-		.set("iterations", res.num_iter)
+		.set("num_iter", res.num_iter)
+		.set("hit_iteration_cap", res.hit_iteration_cap)
 		.set("score", res.score)
 		.set("observed_information", res.XtWX)
 		.set("fisher_information", res.XtWX)
@@ -502,7 +534,8 @@ List fast_poisson_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 		.set("neg_loglik", res.neg_ll)
 		.set("neg_ll", res.neg_ll)
 		.set("loglik", R_finite(res.neg_ll) ? -res.neg_ll : NA_REAL)
-		.set("gradient_norm", res.gradient_norm));
+		.set("gradient_norm", res.gradient_norm)
+		.set("min_eigenvalue_information", res.min_eigenvalue_information));
 }
 
 // [[Rcpp::export]]
@@ -570,7 +603,9 @@ List fast_quasipoisson_regression_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>
 		.set("dispersion", res.dispersion)
 		.set("mu", res.mu)
 		.set("converged", res.converged)
-		.set("iterations", res.num_iter)
-		.set("gradient_norm", res.gradient_norm));
+		.set("num_iter", res.num_iter)
+		.set("hit_iteration_cap", res.hit_iteration_cap)
+		.set("gradient_norm", res.gradient_norm)
+		.set("min_eigenvalue_information", res.min_eigenvalue_information));
 }
 #endif // EDI_CORE_ONLY

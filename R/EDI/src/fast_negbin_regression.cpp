@@ -312,6 +312,9 @@ ModelResult fast_neg_bin_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
     res.XtWX = estimate_only ? Eigen::MatrixXd::Zero(p+1, p+1) : fun.hessian(params);
     res.num_iter = fit.niter;
     res.converged = fit.converged;
+    res.hit_iteration_cap = fit.hit_iteration_cap;
+    res.gradient_norm = fit.gradient_norm;
+    res.min_eigenvalue_information = fit.min_eigenvalue_information;
     res.sigma2_hat = -fit.value; // using sigma2_hat to store logLik temporarily
     return res;
 }
@@ -481,7 +484,10 @@ List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
         .set("theta_hat", res.dispersion)
         .set("logLik", res.sigma2_hat)
         .set("converged", res.converged)
-        .set("iterations", res.num_iter)
+        .set("num_iter", res.num_iter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
+        .set("gradient_norm", res.gradient_norm)
+        .set("min_eigenvalue_information", res.min_eigenvalue_information)
         .set("hess_fisher_info_matrix", res.XtWX)
         .set("vcov", vcov));
 }
@@ -529,7 +535,10 @@ List fast_neg_bin_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Nullable<Num
         .set("theta_hat", res.dispersion)
         .set("logLik", res.sigma2_hat)
         .set("converged", res.converged)
-        .set("iterations", res.num_iter)
+        .set("num_iter", res.num_iter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
+        .set("gradient_norm", res.gradient_norm)
+        .set("min_eigenvalue_information", res.min_eigenvalue_information)
         .set("fisher_information", res.XtWX));
 }
 
@@ -599,7 +608,10 @@ List fast_neg_bin_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEX
         .set("theta_hat", res.dispersion)
         .set("logLik", res.sigma2_hat)
         .set("converged", res.converged)
-        .set("iterations", res.num_iter)
+        .set("num_iter", res.num_iter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
+        .set("gradient_norm", res.gradient_norm)
+        .set("min_eigenvalue_information", res.min_eigenvalue_information)
         .set("fisher_information", res.XtWX));
 }
 #endif // EDI_CORE_ONLY

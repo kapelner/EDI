@@ -238,16 +238,16 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
         XtWX = weighted_crossprod(X_free, w);
         ldlt.compute(XtWX);
         if (ldlt.info() != Eigen::Success) {
-          return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false);
+          return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
         }
       } else {
-        return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false);
+        return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
       }
     }
 
     Eigen::VectorXd beta_free_target = ldlt.solve(XtWz);
     if (ldlt.info() != Eigen::Success || !all_finite_vec(beta_free_target)) {
-      return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false);
+      return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
     }
 
     // Precompute the step direction in eta-space once per IRLS iteration so
@@ -286,11 +286,19 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
     beta_free = beta_free_new;
   }
 
+  // NOT redefined to gradient-norm-based (optimizer_diagnostics_report.md
+  // TODO-4): this IRLS loop's stopping criterion is coefficient-relative-
+  // change, not gradient-based, and there is no already-computed score/
+  // gradient here to reuse "for free" -- see fast_robust_regression.cpp for
+  // the same reasoning. hit_iteration_cap is still meaningful without
+  // touching `converged`'s definition.
   if (estimate_only) {
+    const bool converged_out = converged && all_finite_vec(beta);
     return edi::ResultMap()
       .set("b", beta)
-      .set("converged", converged && all_finite_vec(beta))
-      .set("iterations", iterations);
+      .set("converged", converged_out)
+      .set("hit_iteration_cap", (iterations >= maxit) && !converged_out)
+      .set("num_iter", iterations);
   }
 
   Eigen::VectorXd eta = X * beta;
@@ -304,12 +312,14 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
     w = (1.0 / (mu.array() * (1.0 - mu.array())).max(kEps)).max(kEps).matrix();
   }
 
+  const bool converged_out = converged && all_finite_vec(beta) && all_finite_vec(mu) && all_finite_vec(w);
   return edi::ResultMap()
     .set("b", beta)
     .set("mu_hat", mu)
     .set("working_weights", w)
-    .set("iterations", iterations)
-    .set("converged", converged && all_finite_vec(beta) && all_finite_vec(mu) && all_finite_vec(w))
+    .set("num_iter", iterations)
+    .set("hit_iteration_cap", (iterations >= maxit) && !converged_out)
+    .set("converged", converged_out)
     .set("fisher_information", weighted_crossprod(X, w));
 }
 
@@ -417,16 +427,16 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
         XtWX = weighted_crossprod(X_free, w_eff);
         ldlt.compute(XtWX);
         if (ldlt.info() != Eigen::Success) {
-          return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false);
+          return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
         }
       } else {
-        return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false);
+        return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
       }
     }
 
     Eigen::VectorXd beta_free_target = ldlt.solve(XtWz);
     if (ldlt.info() != Eigen::Success || !all_finite_vec(beta_free_target)) {
-      return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false);
+      return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
     }
 
     const Eigen::VectorXd delta_beta = beta_free_target - beta_free;
@@ -460,11 +470,15 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
     beta_free = beta_free_new;
   }
 
+  // NOT redefined to gradient-norm-based -- see the unweighted variant above
+  // for the same reasoning (optimizer_diagnostics_report.md TODO-4).
   if (estimate_only) {
+    const bool converged_out = converged && all_finite_vec(beta);
     return edi::ResultMap()
       .set("b", beta)
-      .set("converged", converged && all_finite_vec(beta))
-      .set("iterations", iterations);
+      .set("converged", converged_out)
+      .set("hit_iteration_cap", (iterations >= maxit) && !converged_out)
+      .set("num_iter", iterations);
   }
 
   Eigen::VectorXd eta = X * beta;
@@ -479,12 +493,14 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
   }
   w_eff = obs_weights.cwiseProduct(w);
 
+  const bool converged_out = converged && all_finite_vec(beta) && all_finite_vec(mu) && all_finite_vec(w);
   return edi::ResultMap()
     .set("b", beta)
     .set("mu_hat", mu)
     .set("working_weights", w)
-    .set("iterations", iterations)
-    .set("converged", converged && all_finite_vec(beta) && all_finite_vec(mu) && all_finite_vec(w))
+    .set("num_iter", iterations)
+    .set("hit_iteration_cap", (iterations >= maxit) && !converged_out)
+    .set("converged", converged_out)
     .set("fisher_information", weighted_crossprod(X, w_eff));
 }
 
@@ -502,6 +518,8 @@ edi::ResultMap fit_constrained_binomial_with_var_cpp_impl(const Eigen::Ref<const
                                                  std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt) {
   edi::ResultMap fit = fit_constrained_binomial_cpp_impl(X, y, link_type, maxit, tol, fixed_idx, fixed_values, warm_start_beta, smart_cold_start, warm_start_weights, warm_start_fisher_info);
   const bool converged = *fit.get_if<bool>("converged");
+  const bool hit_iteration_cap = *fit.get_if<bool>("hit_iteration_cap");
+  const int num_iter = *fit.get_if<int>("num_iter");
   Eigen::VectorXd beta = *fit.get_if<Eigen::VectorXd>("b");
   Eigen::VectorXd w = *fit.get_if<Eigen::VectorXd>("working_weights");
 
@@ -512,7 +530,9 @@ edi::ResultMap fit_constrained_binomial_with_var_cpp_impl(const Eigen::Ref<const
       .set("std_err", Eigen::VectorXd(0))
       .set("z_vals", Eigen::VectorXd(0))
       .set("ssq_b_j", std::numeric_limits<double>::quiet_NaN())
-      .set("converged", false);
+      .set("converged", false)
+      .set("hit_iteration_cap", hit_iteration_cap)
+      .set("num_iter", num_iter);
   }
 
   FixedParamSpec fixed_spec = make_fixed_param_spec((int)X.cols(), fixed_idx, fixed_values);
@@ -532,7 +552,9 @@ edi::ResultMap fit_constrained_binomial_with_var_cpp_impl(const Eigen::Ref<const
       .set("std_err", Eigen::VectorXd(0))
       .set("z_vals", Eigen::VectorXd(0))
       .set("ssq_b_j", std::numeric_limits<double>::quiet_NaN())
-      .set("converged", false);
+      .set("converged", false)
+      .set("hit_iteration_cap", hit_iteration_cap)
+      .set("num_iter", num_iter);
   }
 
   int free_j = -1;
@@ -544,6 +566,8 @@ edi::ResultMap fit_constrained_binomial_with_var_cpp_impl(const Eigen::Ref<const
     .set("b", beta)
     .set("ssq_b_j", ssq_b_j)
     .set("converged", true)
+    .set("hit_iteration_cap", hit_iteration_cap)
+    .set("num_iter", num_iter)
     .set("fisher_information", fisher_information)
     .set("neg_ll", -loglik_constrained_binomial(X, y, beta, link_type))
     .set("logLik", loglik_constrained_binomial(X, y, beta, link_type));

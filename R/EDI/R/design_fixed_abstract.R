@@ -6,13 +6,15 @@
 #' @keywords internal
 #' @examples
 #' \dontrun{
-#' des = DesignFixed$new(n = 10, response_type = 'continuous')
+#' # DesignFixed is abstract and cannot be instantiated directly; construct a
+#' # concrete subclass instead, e.g.:
+#' des = DesignFixedBernoulli$new(n = 10, response_type = 'continuous')
 #' des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10)))
 #' des$assign_w_to_all_subjects()
 #' }
 DesignFixed = R6::R6Class("DesignFixed",
 	lock_objects = FALSE,
-	inherit = DesignMatching,
+	inherit = Design,
 	public = list(
 		#' @description Initialize a fixed experimental design
 		#'
@@ -175,5 +177,9 @@ DesignFixed = R6::R6Class("DesignFixed",
 			private$w = as.numeric(w)
 		}
 	),
-	private = list()
+	private = list(
+		draw_ws_raw = function(r = 100){
+			stop("draw_ws_raw must be implemented by a concrete design subclass.")
+		}
+	)
 )

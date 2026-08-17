@@ -214,17 +214,23 @@ if [ "$run_r_tests" = "1" ]; then
 		# from there. Running from the repo root instead makes "testthat"
 		# resolve to a nonexistent ./testthat, and test_dir() silently reports
 		# "No test files found." rather than erroring.
-		# TESTTHAT_PROBLEMS=false disables testthat >=3.3.2's extract_test():
-		# CheckReporter (active because test_check() sets
-		# TESTTHAT_IS_CHECKING="true") otherwise writes a tests/testthat/_problems/*.R
-		# reprex for EVERY failing expectation. On a genuinely failing test with
-		# many failing expectations that's a lot of slow extraction work, which
-		# stalls this hook long enough for git's already-open connection to the
-		# remote (opened for ref negotiation before this hook even runs) to go
-		# idle and get dropped -- "Connection to github.com closed by remote
-		# host." A local pre-push run just needs pass/fail; it doesn't need the
-		# reprex files.
-		if ! ( cd R/EDI/tests && NOT_CRAN=true TESTTHAT_PROBLEMS=false Rscript testthat.R ); then
+		# Uses scripts/run_prepush_r_tests.R rather than R/EDI/tests/testthat.R
+		# directly: that script's default CheckReporter prints one line per
+		# test file (and, on a failing expectation, testthat >=3.3.2's
+		# extract_test() additionally writes a slow tests/testthat/_problems/*.R
+		# reprex for EVERY failing expectation -- on a genuinely failing test
+		# with many failing expectations that's enough slow work to stall this
+		# hook long enough for git's already-open connection to the remote
+		# (opened for ref negotiation before this hook even runs) to go idle
+		# and get dropped: "Connection to github.com closed by remote host.").
+		# run_prepush_r_tests.R instead uses its own reporter that just tallies
+		# pass/fail/warn/skip counts into a fixed, live-updating 4-line block --
+		# it never calls extract_test(), so no _problems/ writes happen either
+		# way. Must run with cwd = R/EDI/tests: test_dir("testthat", ...) inside
+		# that script is relative to the CWD, same as test_check()'s internal
+		# call -- R CMD check gets away with a bare "testthat" because it
+		# copies testthat.R into tests/ and runs it from there.
+		if ! ( cd R/EDI/tests && NOT_CRAN=true Rscript "$repo_root/scripts/run_prepush_r_tests.R" ); then
 			echo "pre-push: R tests FAILED." >&2
 			failed=1
 		fi
@@ -302,6 +308,17 @@ if [ "$run_python_tests" = "1" ]; then
 	if [ ! -d "$py_venv" ]; then
 		python3 -m venv "$py_venv"
 	fi
+	# Venv-level pip.conf: pip's default ~/.cache/pip is read-only in some
+	# contexts pip gets run under (e.g. sandboxed agent sessions), where pip
+	# prints a benign "The directory ... is not owned or is not writable ...
+	# cache has been disabled" warning on every run. A cache inside the venv is
+	# writable anywhere the venv itself is, so the warning goes away and
+	# caching still works. Done as $py_venv/pip.conf rather than a
+	# PIP_CACHE_DIR prefix on the install below so it covers EVERY invocation
+	# of this venv's pip (manual runs included), and (re)written on every hook
+	# run so a freshly recreated venv gets it too. Gitignored along with the
+	# rest of python/.venv/.
+	printf '[global]\ncache-dir = %s\n' "$py_venv/pip-cache" > "$py_venv/pip.conf"
 	if ! ( cd python && "$py_venv/bin/pip" install -q -e ".[test]" && "$py_venv/bin/python" -m pytest tests -q ); then
 		echo "pre-push: python tests FAILED." >&2
 		failed=1

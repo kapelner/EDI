@@ -62,6 +62,13 @@ def test_matches_r_fixture():
     yT_v, n_k_v, X_diff_v, y_r, w_r, X_r = _synthetic_data()
     res = fast_cpoisson_combined(yT_v, n_k_v, X_diff_v, y_r, w_r, X_r)
 
+    # NOTE (2026-08-17): this loop previously had no gradient-norm check at
+    # all (only a step-size check); optimizer_diagnostics_report.md TODO-4
+    # added one ahead of the step-size fallback so a fit can now exit one
+    # Newton step earlier than before when the gradient is already small.
+    # Unlike the other fitters' TODO-4 notes, this can (in principle, not
+    # just classification) shift b/neg_loglik slightly, not just converged --
+    # re-verify all three against a fresh R run once compiled.
     assert res["converged"] is True
     assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)
     assert res["neg_loglik"] == pytest.approx(R_NEG_LOGLIK, abs=ATOL, rel=RTOL)

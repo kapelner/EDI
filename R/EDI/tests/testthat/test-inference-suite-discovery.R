@@ -78,8 +78,7 @@ test_that("InferenceSuite discovery is registry metadata-only", {
 
 test_that("InferenceSuite's requires_blocking gate actually rejects non-blocking designs (fix_design_hierarchy.md, Class-Identity Dispatch Replacement)", {
 	# Regression test for a real bug: .design_metadata()'s `is_blocking` used to be
-	# computed via `inherits(des_obj, "DesignBlocking") || inherits(des_obj,
-	# "DesignFixedBlocking")`. Because DesignBlocking is (pre "Timing-Family Split") a
+	# computed via concrete class identity checks. Because the old blocking base was a
 	# mandatory ancestor of every current DesignFixed/DesignSeqOneByOne subclass, the
 	# first inherits() check was TRUE for literally every design, making the
 	# `requires_blocking` gate for classes that actually require blocking a permanent

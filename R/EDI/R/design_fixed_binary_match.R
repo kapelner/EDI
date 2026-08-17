@@ -47,11 +47,10 @@
 #' randomization (a uniformly random permutation of \eqn{n/2} ones and \eqn{n/2} zeros),
 #' since there is no covariate information to match on.
 #'
-#' \strong{Validation and batch pregeneration.} Every drawn allocation matrix is checked
-#' (\code{private$validate_allocation_matrix()}) to have the expected shape, contain only
-#' finite \eqn{\{0,1\}} entries, and have exactly \eqn{n/2} treated subjects per replicate
-#' column; violations raise an error rather than silently returning a malformed
-#' allocation. \code{supports_batch_w_pregeneration()} returns \code{TRUE} so that the
+#' \strong{Batch pregeneration.} \code{draw_binary_match_assignments_cpp()}'s output is
+#' trusted unvalidated -- it guarantees exactly \code{n x r} valid \eqn{\{0,1\}} columns
+#' with \eqn{n/2} treated subjects per column by construction (see
+#' fix_design_hierarchy.md, "AllocationMatrixValidation"). \code{supports_batch_w_pregeneration()} returns \code{TRUE} so that the
 #' calling framework generates all replicate \code{w} vectors for a simulation cell in one
 #' batch (amortizing the one-time \pkg{nbpMatching} matching cost across all replicates
 #' of that cell) rather than recomputing the matching structure per replicate.
@@ -76,9 +75,9 @@ DesignFixedBinaryMatch = define_design_class(
 	# provide draw_bootstrap_indices, and the pair-preserving MatchingStructure version
 	# (processed after its dependency) must win -- this class had no override of its
 	# own, so it was already using this exact function via inheritance from
-	# DesignMatching (reference-identity, not just behavioral equivalence).
+	# the canonical MatchingStructure literal (reference identity, not just behavioral equivalence).
 	# ensure_matching_structure_computed genuinely collides too: MatchingStructure's
-	# version (pulled from DesignMatching) is generic, but this class's own version
+	# MatchingStructure version is generic, but this class's own version
 	# below is specific to its nbpMatching/bms-based structure and must win.
 	overrides = list(private = c("draw_bootstrap_indices", "ensure_matching_structure_computed")),
 	public = list(

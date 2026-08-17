@@ -52,7 +52,14 @@ A list containing the following components:
 \item{b}{A numeric vector of the obtained Poisson regression coefficients.}
 \item{hess_fisher_info_matrix}{The Fisher information matrix.}
 \item{neg_ll}{The negative log-likelihood at the final iteration.}
-\item{converged}{A logical value indicating whether the algorithm converged.}
+\item{converged}{A logical value indicating whether the final gradient norm
+  was below the convergence tolerance (\code{gradient_norm < tol}); uniform
+  across the \code{"lbfgs"}/\code{"newton_raphson"} optimizers.}
+\item{num_iter}{The number of optimizer iterations performed.}
+\item{hit_iteration_cap}{A logical value, mutually exclusive with
+  \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
+  iterations without meeting the gradient-norm convergence criterion.}
+\item{gradient_norm}{The norm of the gradient at the returned parameters.}
 }
 
 A list with components \code{b} (\eqn{\hat\beta}),

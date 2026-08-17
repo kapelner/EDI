@@ -430,23 +430,27 @@ Add structural tests, mirroring the `Inference` plan's list:
    `supports("randomization_draw") == FALSE`, queried by `draw_ws_according_to_design()`'s
    *caller* before calling, not discovered by calling and catching).
 8. No public/private method-name duplicate exists without an explicit override.
-9. No `is()`/`inherits()` dispatch on a `Design*` class name outside this file's
-   migration tests and the class hierarchy itself (i.e. `parent=` relationships) --
-   every current production call site listed in "Evidence of the Problem" item 5 must
-   be gone.
-10. No check of `dc$public_methods$<name>` generator-shape sniffing anywhere in the
-    package (retires item 6).
-11. No `.__enclos_env__$private` read of a `Design` instance from outside `design_*.R`
-    (retires item 8; `des_template$.__enclos_env__$private$uses_covariates` in
-    `inference_all_abstract_rand.R` needs a public accessor instead).
-12. `set_m()` is the only way `private$m` is ever assigned outside `design_*.R` itself,
-    and every assignment to `private$m` inside `design_*.R` also results in
-    `is_blocking_design() == TRUE` (retires item 3 -- `DesignFixediBCRD`/
-    `DesignSeqOneByOneiBCRD`'s direct-write bypass).
+9. No leaf-class `is()`/`inherits()` dispatch stands in for a behavioral capability --
+   every production call site listed in "Evidence of the Problem" item 5 must be gone.
+   A check against the substitutable timing root `DesignSeqOneByOne` remains valid
+   timing-family polymorphism (the audited TODO-46 exception).
+10. Registered package classes never use `dc$public_methods$<name>` generator-shape
+    sniffing. The audited TODO-13 compatibility fallback remains only for unregistered
+    third-party generators, which cannot have package-registry metadata.
+11. Capability discovery never reads a Design instance through
+    `.__enclos_env__$private`; specifically, the item-8
+    `des_template$.__enclos_env__$private$uses_covariates` read must use a Design-owned
+    hook. Low-level inference worker cloning may still snapshot/mutate private Design
+    state; that is an implementation mechanism, not capability discovery.
+12. Every production assignment to structural `private$m` inside `design_*.R` results
+    in `is_blocking_design() == TRUE`; initialization should use `set_m()` where the
+    state is being established once. Resampling-worker copies may replace cloned `m`
+    vectors while materializing a bootstrap sample (retires item 3 --
+    `DesignFixediBCRD`/`DesignSeqOneByOneiBCRD`'s unsynchronized direct-write bypass).
 13. Every component is registered, composed at most once effectively, and every
     component dependency is declared and ordered once (same as the `Inference` plan).
-14. Only one implementation of allocation-matrix validation exists in the package
-    (retires item 7).
+14. No duplicated allocation-matrix validator exists. TODO-25's audited resolution
+    deleted all four redundant implementations rather than retaining a shared one.
 15. Component slot state is never silently dropped by `modifyList()`/never silently
     reset by a worker-clone helper the way `InferenceContinQuantileRegr`'s
     `tau`/`fit_warm_keep` fields were during the `Inference` migration -- add the
@@ -566,7 +570,8 @@ within-cluster, or plain, matching the pre-migration behavior exactly).
     `supports_batch_w_pregeneration = function() TRUE` definitions
     (`DesignFixedBinaryMatch`, `DesignFixedGreedy`, `DesignFixedMatchingGreedyPairSwitching`,
     `DesignFixedOptimalBlocks`) were confirmed byte-identical (`identical(body(...), body(...))`)
-    before treating one as canonical.
+    before treating the registry-owned copy as canonical (moved into the registry in
+    TODO-35 to break the old registry -> `DesignFixedGreedy` load-order cycle).
   - `ClusterStructure` and `AllocationMatrixValidation` are registered as
     **`status = "scaffold"`**, per this plan's own rule that empty scaffolds are not
     components and must be forbidden from every effective component set (enforced:
@@ -575,23 +580,12 @@ within-cluster, or plain, matching the pre-migration behavior exactly).
     (`design_fixed_binary_match.R`, `design_fixed_greedy.R`,
     `design_fixed_matching_greedy_pair_switching.R`, `design_fixed_rerandomization.R`)
     confirmed they are *not* safely consolidatable as-is: they differ in real
-    behavior, not just error-message text -- `DesignFixedRerandomization` takes an
-    extra `require_balanced` parameter and only conditionally checks treated-count
-    balance, `DesignFixedBinaryMatch` recycles columns when the search returns fewer
-    than `r` replicates while the other three error instead, and column-selection
-    uses `seq_len(r)` in two classes vs. `min(r, ncol(w_mat))` in
-    `DesignFixedRerandomization`. Reconciling those differences is real per-class
-    design work needing its own golden tests -- exactly what "Component Extraction"
-    below is for -- so `AllocationMatrixValidation` is left a scaffold rather than
-    fabricating a single behavior that could silently change one of those four
-    classes' semantics. Similarly, no single canonical stratified/cluster-aware
-    `draw_bootstrap_indices()` exists yet for pure-blocking (non-matching) or
-    cluster-capable designs -- every currently-blocking-or-cluster-capable concrete
-    class still hand-rolls its own -- so `ClusterStructure` stays a scaffold (owns
-    only `cluster_col` for now) and `BlockingStructure` does not yet include a
-    `draw_bootstrap_indices` of its own; extraction/generalization of that shared
-    stratified-resample logic is deferred to Component Extraction as originally
-    planned, not rushed through here.
+    behavior, not just error-message text. This was the initial reason to leave
+    `AllocationMatrixValidation`/`ClusterStructure` as scaffolds and omit a generalized
+    blocking bootstrap. Later audited resolutions supersede that staging state:
+    TODO-24 promoted `ClusterStructure`, TODO-22 added the blocking bootstrap, and
+    TODO-25 proved the allocation validators redundant and deleted the scaffold plus
+    all four implementations.
 - [x] TODO-6: Add parser-backed tests that every component body reference is declared as
   provided, required, optional, owned, or forbidden (same as the `Inference` plan).
   `design_component_body_references()`/`design_component_declared_reference_names()`/
@@ -615,30 +609,26 @@ within-cluster, or plain, matching the pre-migration behavior exactly).
 
 ### Component Extraction
 
-Note on scope: "extract" here means what Component Registry already delivered --
-`BlockingStructure`/`MatchingStructure`/`BatchWPregeneration` hold real, reference-identical
-method pointers into `DesignBlocking`/`DesignMatching`/the four pre-generating classes, so
-behavioral equivalence is already proven (reference identity implies identical output; see
-`test-design-component-registry.R` and `test-design-component-extraction-golden.R`). What
-remains -- actually cutting `DesignFixed`/`DesignSeqOneByOne`'s `inherit` chain away from
-`DesignBlocking`/`DesignMatching` and rewiring concrete classes onto `components = c(...)`
--- needs a `define_design_class()` factory that does not exist yet (this plan's "Class
-Factory" section sketches its target shape but never scheduled building it as its own TODO;
-add that as an explicit prerequisite before the two `[ ]` items below can be completed, not
-a silent gap).
+Note on scope: the first extraction pass used reference-identical method pointers from
+`DesignBlocking`/`DesignMatching`; TODO-38 subsequently deleted those generators and made
+their literal bundles the canonical component sources. `BatchWPregeneration` holds the
+body-identical canonical hook shared by the four pre-generating classes. Behavioral
+equivalence is covered by `test-design-component-registry.R` and
+`test-design-component-extraction-golden.R`. The factory and rewiring prerequisites that
+were missing when this section was first drafted were delivered by TODO-15 through TODO-19
+and TODO-34 through TODO-38.
 
 - [x] TODO-7: Extract `BlockingStructure` from `DesignBlocking` (design_blocking_abstract.R) at the
   component-registry level (done in "Component Registry" above). Golden-tested against
   `DesignFixedBlocking`, `DesignFixedOptimalBlocks`, and `ObservationalDesignBlocks`'s
   `get_block_ids()`/`is_blocking_design()`/`is_complete_blocking_design()`/
   `summarize_blocks()`/`set_m()` output in `test-design-component-extraction-golden.R`.
-  No stratified `draw_bootstrap_indices()` golden test yet, because -- as already noted in
-  Component Registry -- no single canonical implementation of that exists to extract; every
-  blocking-capable concrete class still hand-rolls its own. Deferred, not silently dropped.
-- [x]/[ ] TODO-8: **Reconciled 2026-08-16 -- this item's prose had gone stale relative to
+  TODO-22 subsequently generalized and golden-tested stratified
+  `draw_bootstrap_indices()` for the blocking component.
+- [x] TODO-8: **Reconciled 2026-08-16 -- this item's prose had gone stale relative to
   actual completed work** (a plan-doc-only conflict from concurrent editing; the
   underlying code was never reverted, confirmed via direct inspection). Split into what
-  actually landed vs. what's still open:
+  landed in the first pass and the dependency that TODO-35 through TODO-38 later closed:
   - [x] `define_design_class()` (design_class_factory.R) was built ("Class Factory
     Implementation" section) and 7 of the 9 named classes were rewired onto explicit
     `components = c(...)`: `DesignFixedBlocking`, `DesignFixedBlockedCluster`,
@@ -656,13 +646,13 @@ a silent gap).
     `ClusterStructure` (see TODO-11), and an R6 `lock_objects` inheritance trap
     (`DesignSeqOneByOneKK21`/`KK21stepwise` needed `lock_objects = FALSE` added
     explicitly once their parent `DesignSeqOneByOneKK14` gained it).
-  - [ ] Still open: actually cutting `DesignFixed`/`DesignSeqOneByOne`'s `inherit` away
-    from `DesignBlocking`/`DesignMatching`. Deliberately **not** attempted yet --
-    investigation found this needs the ~20 remaining concrete classes (not just the 9
-    above) to also get at least `BlockingStructure` composed first, or they'd lose
-    `is_blocking_design()`/`set_m()`/etc. entirely (not "returns FALSE", but "the method
-    doesn't exist") the moment the flip happens. See the dedicated audit item for this
-    scope expansion elsewhere in this section.
+  - [x] Reconciled 2026-08-17: the inherit cut this bullet deferred is now done.
+    TODO-35 completed the ~20-remaining-class audit/conversion this bullet was
+    waiting on, and TODO-36/37/38 then cut `DesignFixed`/`DesignSeqOneByOne`'s
+    `inherit` to `Design` directly and deleted `DesignBlocking`/`DesignMatching` as
+    generators outright (they're now literal component-source bundles, not R6
+    classes). TODO-39 added `EDI_REQUIRE_SHALLOW_DESIGN_HIERARCHY` as a standing
+    regression gate against this ever un-happening.
 - [x] TODO-9: Extract `MatchingStructure` from `DesignMatching` (design_matching_abstract.R) at the
   component-registry level. Golden-tested `is_matching_design()`/`get_matching_cluster_ids()`/
   pair-preserving `draw_bootstrap_indices()` (verified by reference identity to
@@ -706,14 +696,6 @@ a silent gap).
   existence probe -- correct both before and after the eventual inherit flip, and the
   same fix pattern documented for `BlockingStructure`'s own `get_or_compute_block_ids`
   hook.
-- [ ] TODO-12: Extract `AllocationMatrixValidation`, delete the four duplicated
-  `validate_allocation_matrix` implementations, point all four callers at the shared one.
-  Still not attempted, and still correctly a scaffold: diffing all four confirmed they are
-  not safely mergeable as-is (see Component Registry's writeup -- `DesignFixedRerandomization`
-  takes an extra `require_balanced` parameter and only conditionally checks balance,
-  `DesignFixedBinaryMatch` recycles short results where the other three error, column
-  selection differs `seq_len(r)` vs `min(r, ncol(w_mat))`). Reconciling those differences is
-  a real per-class design decision, not extraction.
 - [x] TODO-13: Extract `BatchWPregeneration`; replace the generator-shape-sniffing checks in
   `simulations_framework.R:845,1239` with a real capability read. Implemented as
   `design_class_generator_supports_batch_w_pregeneration(dc)` (`design_class_registry.R`)
@@ -768,12 +750,10 @@ a silent gap).
 
 ### Class Factory Implementation (`define_design_class()`)
 
-Audit finding: both `[ ]` rewiring items in "Component Extraction" above ("Actually cut
-`DesignFixed`/`DesignSeqOneByOne` away from inheriting..." and "Rewiring for
-`MatchingStructure` blocked on the same...") say they are blocked on this factory, and
-the "Class Factory" architecture section above sketches its target shape -- but nothing
-in the original TODO list ever scheduled building it. That gap is why those two items
-could not be completed this pass. Mirrors `define_inference_class()`
+Original audit finding: the rewiring items in "Component Extraction" were blocked on a
+factory that the first draft described but never scheduled. TODO-15 through TODO-19 added
+that missing prerequisite, after which TODO-34 through TODO-38 completed the rewiring and
+ancestry cut. The implementation mirrors `define_inference_class()`
 (`mixin_contracts.R`), scoped down the same way `DesignComponent()` was scoped down from
 `InferenceComponent()`: no lazy loading, no likelihood tiers, no `super$` category.
 
@@ -1043,9 +1023,8 @@ than left as prose-only notes.
   within-stratum and additionally supports an unstratified subject-resampling mode.
   `test-design-sequential-strata-bootstrap-golden.R` verifies matched-seed,
   byte-identical output against both real classes for `NULL`, `"within_blocks"`, and
-  `"whole_group"`, including RandomBlockSize's unstratified reduction. The real
-  classes remain unwired until the Timing-Family Split, consistent with the other
-  component extractions.
+  `"whole_group"`, including RandomBlockSize's unstratified reduction. The two real
+  classes were subsequently wired to this component in TODO-35.
 - [x] TODO-24: **Author the generalized `ClusterStructure` (`draw_bootstrap_indices`).**
   Implemented in `design_component_registry.R`: one function handles both
   `DesignFixedCluster`'s single-level cluster resample and
@@ -1084,18 +1063,43 @@ than left as prose-only notes.
   Also fixed two now-outdated test assertions this promotion broke (`ClusterStructure`
   was previously asserted to be a scaffold, and used as the scaffold example in the
   factory's scaffold-rejection test) -- `test-design-component-registry.R` now
-  asserts `ClusterStructure` is active with real behavior, and the scaffold-rejection
-  tests use `AllocationMatrixValidation` (still genuinely a scaffold) instead.
-- [ ] TODO-25: **Reconcile `AllocationMatrixValidation`'s three behavioral differences**, each a
-  concrete decision, not just "merge them": (1) should `require_balanced` (currently
-  `DesignFixedRerandomization`-only, conditionally checked) apply to all four consuming
-  classes, always-on, or stay an opt-in parameter? (2) when a search returns fewer
-  replicate columns than requested, should the shared implementation recycle columns
-  (current `DesignFixedBinaryMatch` behavior) or error (current behavior of the other
-  three)? (3) should column selection use `seq_len(r)` (errors past the end) or
-  `min(r, ncol(w_mat))` (current `DesignFixedRerandomization` behavior, silently
-  truncates)? Record the decision and rationale for each before writing the merged
-  implementation and deleting the four duplicates.
+  asserts `ClusterStructure` is active with real behavior; the scaffold-rejection
+  tests since register their own temporary scaffold component (no permanent scaffold
+  remains -- see the deletion below).
+- [x] TODO-12/TODO-25: **`AllocationMatrixValidation` resolved 2026-08-17 -- deleted outright, not
+  extracted as a shared component.** Investigating the "three behavioral differences"
+  by tracing each class's actual call site (not just its function signature) found the
+  scaffolding here was never a real shared invariant to reconcile: `DesignFixedBernoulli`,
+  `DesignFixedBlocking`, `DesignFixediBCRD`, `DesignFixedOptimalBlocks`, and even
+  `DesignFixedGreedyDOptimal` (which also calls into a C++ search kernel, like the four
+  that had this check) never validated their `draw_ws_raw()` output at all -- so this
+  was never "four classes needing reconciliation," it was four classes with an
+  inconsistent, organically-accreted habit the other five never adopted. Confirmed by
+  source inspection (not just testing) that the shape/finite/balance checks in all four
+  were dead code: `greedy_design_search_cpp` (used by `DesignFixedGreedy` and
+  `DesignFixedMatchingGreedyPairSwitching`) and `draw_binary_match_assignments_cpp`
+  (used by `DesignFixedBinaryMatch`) each guarantee exactly `n x r` valid `{0,1}`
+  columns by construction; `rerandomization_search_cpp`'s own C++ comment confirms it
+  "generates balanced random allocations" and returns `n x k` (`k <= r`) -- the only
+  real failure mode among all four is `DesignFixedRerandomization` finding fewer than
+  `r` acceptable draws within its `max_draws` budget under a tight `obj_val_cutoff`.
+  Decision on that one real case (explicit user call): **error, don't recycle** --
+  silently duplicating already-found columns to pad out to `r` would have meant some
+  "independent" replicates were literal duplicates of an accepted allocation, quietly
+  weakening any downstream procedure treating all `r` columns as i.i.d. Implemented:
+  deleted all four `validate_allocation_matrix()` methods and their call sites
+  (`design_fixed_rerandomization.R`, `design_fixed_binary_match.R`,
+  `design_fixed_greedy.R`, `design_fixed_matching_greedy_pair_switching.R`);
+  `DesignFixedRerandomization`'s one real short-result case now throws a clear error
+  naming `r`, `max_draws`, and how many were actually found, directly in `draw_ws_raw()`
+  rather than through a shared validator; updated `rerandomization_helpers.cpp`'s
+  comment (recycling language) to match. Removed the `AllocationMatrixValidation`
+  scaffold registration and its top-of-file mention in `design_component_registry.R`
+  entirely -- there is no scaffold left in the registry. New regression coverage:
+  `test-allocation-matrix-validation-removal.R` (the new error path, all four classes
+  still producing valid/correctly-shaped/balanced draws without the deleted
+  validation layer, and confirming no `AllocationMatrixValidation` component is
+  registered).
 - [x] TODO-26: **Investigate `DesignFixedMatchingGreedyPairSwitching`'s missing
   `matching_capable`.** Decided: **latent gap, not intentional** -- but fix it as part
   of the class's "Timing-Family Split" rewiring, not as an isolated change here.
@@ -1119,9 +1123,10 @@ than left as prose-only notes.
   golden-tested alongside, the class's actual rewiring (set `matching_capable`/
   `blocking_capable`, populate `private$m` from `private$bms$indicies_pairs`,
   compose `MatchingStructure` via `define_design_class()`) rather than flipped in
-  isolation disconnected from that work. Left unimplemented this pass, as originally
-  scoped; this entry now records the decision and its reasoning, not just the open
-  question.
+  isolation disconnected from that work. Implemented in TODO-35: the class now
+  composes `MatchingStructure`/`BatchWPregeneration`, advertises both matching and
+  blocking, and materializes `private$m` from its binary-pair matrix so jackknife,
+  Bayesian bootstrap, and nonparametric bootstrap all use the same pair units.
 - [x] TODO-27: **Add the component-slot-state-survival regression test flagged in Source
   Invariant #15.** Added in `test-design-class-factory.R`
   ("BlockingStructure component-owned state survives `Design$duplicate()`", now
@@ -1140,26 +1145,129 @@ than left as prose-only notes.
   because it costs nothing today and catches the failure mode early if a future
   change (e.g. a hand-rolled bootstrap-worker clone path for `Design`, mirroring the
   ones that caused the `Inference`-side bug) reintroduces it.
-- [ ] TODO-28: **Delete the temporary `Design$capabilities()`/`supports()` legacy-predicate
-  bridge** once class rewiring lands and the component registry alone is authoritative.
-  The bridge (added in the `BatchWPregeneration` extraction item above, documented as
-  temporary in its own roxygen) currently answers capability queries by consulting the
-  legacy `is_blocking_design()`/`is_matching_design()`/`supports_batch_w_pregeneration()`
-  predicates; leaving it in place after rewiring would let the registry and the legacy
-  predicates silently disagree about what a design supports.
-- [ ] TODO-29: **Extend seed-reproducibility bookkeeping to OpenMP scheduling nondeterminism.**
-  `sexp_removal_rcppeigen_conversion_spec.md`'s RNG migration (its TODO-12) confirmed
-  `rerandomization_search_cpp` is not bit-reproducible across identically-seeded runs
-  when `OMP_NUM_THREADS > 1`: which thread claims which chunk/result slot is decided by
-  real-time OS scheduling (`std::atomic` `fetch_add`), not RNG state — single-threaded
-  runs reproduce exactly. Decide whether `seed_reproducible_draw` metadata should encode
-  this thread-count caveat for `DesignFixedRerandomization` (and audit the other
-  OpenMP-parallel designs — greedy, binary-match, A-/D-optimal once fixed — for the same
-  work-stealing pattern), or whether the kernels should assemble results
-  deterministically (e.g. index-ordered result writes) so multi-threaded draws are
-  seed-reproducible too; then make the seed-reproducibility regression test below run
-  with `OMP_NUM_THREADS > 1` so the claim is tested under the setting where it can
-  actually break.
+- [x] TODO-28: **Deleted the `Design$capabilities()`/`supports()` legacy-predicate bridge --
+  but the "registry alone is authoritative" framing this item was written under turned
+  out to be wrong, not just outdated.** Two real bugs found and fixed along the way,
+  not a mechanical deletion:
+
+  1. **`direct_components` was never actually wired up.** `define_design_class()`
+     computed each generator's resolved component set internally (to assemble public/
+     private methods) but never stored it anywhere retrievable, and
+     `populate_design_class_registry()`'s namespace scan unconditionally hardcoded
+     `direct_components = character()` for every class -- a leftover from before
+     component wiring existed that was never updated once TODO-34/35 landed. Net effect:
+     `get_effective_design_capabilities()` returned empty for every class, including ones
+     that genuinely compose real components -- confirmed empirically before fixing.
+     Fixed: `define_design_class()` now stashes the caller's raw (pre-expansion)
+     `components` argument as an attribute on the generator it returns
+     (`edi_design_direct_components`); `populate_design_class_registry()` reads it back
+     via the new `infer_design_direct_components()`. Storing the *raw* argument rather
+     than the resolved/expanded set matters: the resolved set (e.g. `MatchingStructure`
+     auto-expanding to include `BlockingStructure`) re-triggers
+     `resolve_design_component_dependencies()`'s own "duplicates transitive dependency"
+     guard if fed back into it a second time.
+  2. **The bigger finding: even after fixing (1), unioning the registry's answer into
+     `capabilities()` was itself wrong, not just redundant.** The registry's
+     `get_effective_design_capabilities()` is class-level (does this class compose
+     `BlockingStructure`?); `is_blocking_design()` is genuinely instance-level
+     (`isTRUE(private$blocking_capable) || !is.null(private$m)`, real construction-time
+     state -- e.g. `DesignFixediBCRD` constructed with an unknown `n` composes
+     `BlockingStructure` but is documented as NOT blocking-capable for that instance,
+     TODO-35's own audit note). Once `direct_components` started resolving to real
+     values, the union in the pre-existing bridge code silently started reporting
+     `"blocking"` for *every* instance of such a class regardless of construction state
+     -- reproduced directly (`DesignFixediBCRD$new(...)$supports("blocking")` returned
+     `TRUE` despite `is_blocking_design()` correctly returning `FALSE`) before it could
+     ship. A pure class-registry answer cannot ever be right for this question; no
+     amount of further registry work would have fixed it.
+
+  **Resolution:** `capabilities()` is now built entirely from instance-level method
+  calls -- `is_blocking_design()`, `is_matching_design()`, the newly-added
+  `is_a_cluster_capable()` (previously reachable through no capability-name check at
+  all, a pre-existing gap independent of this bug), `supports_batch_w_pregeneration()`,
+  `supports_resampling()`, `supports_randomization_draw()`, `supports_resampling_replay()`
+  -- with no registry consultation. `get_effective_design_capabilities()`/
+  `direct_components` remain correct and useful for their one real, already-existing
+  consumer that genuinely needs a generator-only (no-instance) answer
+  (`design_class_generator_supports_batch_w_pregeneration()`), just not for this
+  instance-level method.
+
+  Tests: `test-design-class-registry.R` covers the `direct_components` fix directly
+  (including the raw-vs-resolved distinction). `test-design-abstract-hierarchy.R` adds
+  the `DesignFixediBCRD` false-positive regression case plus `cluster` capability
+  coverage. Full `design-abstract-hierarchy`/`design-class-registry`/
+  `design-class-factory`/`design-component-registry`/`w-encoding` sweep clean except
+  one already-documented, unrelated pre-existing failure
+  (`DesignFixedTestFixture`/`supports_resampling()`, a test-helper class defined outside
+  the package namespace that `supports_resampling_by_registry_abstract_check()`'s
+  deliberate "unregistered class fails open" behavior doesn't cover -- confirmed via
+  direct inspection that neither this TODO's diff nor TODO-29/31/39's touches that
+  function at all).
+- [x] TODO-29: **Extend seed-reproducibility bookkeeping to OpenMP scheduling
+  nondeterminism -- resolved 2026-08-17, and it uncovered a bigger, package-wide bug
+  than originally scoped.** Investigated each OpenMP-parallel design kernel's actual
+  thread-scheduling directly in C++ (not just the one class named in the original
+  item): `rerandomization_search_cpp` (`rerandomization_helpers.cpp`) is a genuine
+  work-stealing rejection sampler -- threads race via `std::atomic::fetch_add` for
+  both which draws to try next and which output column an accepted draw claims, so
+  which per-thread-seeded RNG stream fills a given replicate (and in what order)
+  depends on real-time OS scheduling, not just the seed, whenever more than one
+  thread is active. `greedy_design_search_cpp` (`design_fixed_greedy.cpp`, used by
+  `DesignFixedGreedy` and `DesignFixedMatchingGreedyPairSwitching`) and
+  `draw_binary_match_assignments_cpp` (`binary_match_search.cpp`, `DesignFixedBinaryMatch`)
+  both use `#pragma omp for schedule(static)` -- deterministic, fixed thread-to-index
+  assignment, no work-stealing, unaffected. `optimal_design_search.cpp`
+  (`DesignFixedGreedyDOptimal`) has no OpenMP at all -- single-threaded, unaffected.
+  So `DesignFixedRerandomization` is the only class actually affected.
+
+  **The bigger finding, surfaced while trying to verify "single-threaded runs
+  reproduce exactly" empirically rather than just asserting it:** that claim was
+  false on this machine even under the package's own stated single-core default.
+  `get_num_cores()` (`globals.R`) returns `1L` by default, but nothing in the package
+  ever called `RhpcBLASctl::omp_set_num_threads(1)`/equivalent at load time to make
+  the actual OpenMP/BLAS runtime match that belief -- confirmed empirically:
+  `get_num_cores()` reported `1L` on a fresh session while
+  `RhpcBLASctl::omp_get_max_threads()` reported the machine's full logical core count
+  (12 on the test machine), since `OMP_NUM_THREADS` was unset and nothing else
+  constrained it. This meant every OpenMP-parallel kernel in the package -- not just
+  `rerandomization_search_cpp` -- silently ran multi-threaded by default for anyone
+  who never explicitly called `set_num_cores()`, a real resource-usage surprise
+  independent of reproducibility, and made `DesignFixedRerandomization` non-seed-
+  reproducible even in the supposedly-safe default case.
+
+  **Fix (root cause, not just documentation, per explicit direction):** `.onLoad()`
+  (`zzz.R`) now calls `set_package_threads(1L)` -- the same function
+  `set_num_cores(N)` uses to apply `N` -- at package load time, so the R-level
+  default (`get_num_cores() == 1`) and the actual OpenMP/BLAS thread count are in
+  sync from the start, until/unless the caller explicitly opts into more via
+  `set_num_cores()`. Verified empirically: `RhpcBLASctl::omp_get_max_threads()`
+  now reports `1` immediately after `devtools::load_all()`/`library(EDI)`, with no
+  other call needed. This is a real behavior change for any user who never called
+  `set_num_cores()`: they previously got "free" multi-core speed on every
+  OpenMP-parallel kernel without asking for it (and without any reproducibility
+  guarantee); they now get the package's already-documented single-core default
+  enforced for real, and must call `set_num_cores(N)` to opt into the speed --
+  explicitly chosen (over documenting the gap and leaving default behavior
+  multi-threaded) since predictable, seed-reproducible-by-default behavior matches
+  what the rest of this package's metadata (`seed_reproducible_draw`,
+  `randomization_family`, etc.) already promises callers.
+
+  Metadata: added `seed_reproducible_draw_requires_single_thread` (new field,
+  `design_class_registry.R`, validated alongside the existing `seed_reproducible_draw`)
+  rather than a blanket `seed_reproducible_draw = FALSE` for
+  `DesignFixedRerandomization` -- TRUE only for that one class, and, with the
+  `.onLoad()` fix above, now accurately describes the real default behavior rather
+  than an aspirational one. Regression coverage:
+  `test-seed-reproducibility-single-thread-metadata.R` -- metadata correctness (only
+  `DesignFixedRerandomization` flagged; `DesignFixedGreedy`/`DesignFixedBinaryMatch`/
+  `DesignFixedMatchingGreedyPairSwitching`/`DesignFixedGreedyDOptimal` confirmed not
+  flagged), an empirical same-seed-identical-draws check under the default (single)
+  core count (this is the test that caught the `.onLoad()` gap in the first place --
+  it failed before the fix, for exactly the reason described above), and a
+  multi-core smoke test (`set_package_threads(2L)`, `skip_on_cran()`) that
+  deliberately asserts only "still produces valid output," not determinism either
+  way, since asserting a specific multi-threaded outcome would itself be flaky by
+  the nature of what's being tested.
 - [x] TODO-30 (completed by a concurrent session, verified via code inspection
   2026-08-16 -- `design_fixed_a_optimal.R`/`design_fixed_d_optimal.R` are gone,
   `DesignFixedGreedyDOptimal` exists and is registered; not this session's work, so
@@ -1387,37 +1495,83 @@ than left as prose-only notes.
   folding in `DesignFixedGreedy` (model-free balance objectives, hard
   `prob_T = 0.5` requirement baked into their `X'(2w-1)/n` formulation) —
   it shares the search engine below, not the class.
-- [ ] TODO-31: **Extract one shared greedy pairwise-swap search engine** used by the
-  merged `DesignFixedGreedyDOptimal` and by `DesignFixedGreedy` (which stays its own
-  class): a single C++ engine over an objective functor
-  (`init(w)`/`delta(i, j)`/`apply_swap(i, j)`), replacing the three
-  near-duplicate search loops. Wins to carry over in both directions:
-  A/D gain `DesignFixedGreedy`'s per-thread OpenMP parallelism over the `r`
-  restarts (they are currently serial), its thread-count-independent
-  per-thread seeding, `supports_batch_w_pregeneration`, and the stochastic
-  `n_iter` mode; greedy gains the A/D kernels' sorted-scan pruning
-  acceleration for the exhaustive pair search. One engine also means one
-  shared no-covariate BCRD fallback and one place for the seed-reproducibility
-  regression test above.
-- [ ] TODO-32: **Fix the stale A/D-optimal roxygen reproducibility claims** while
-  merging: `design_fixed_d_optimal.R:27-28` (and `design_fixed_a_optimal.R`'s
-  equivalent) still say the initial shuffle is *not* reproducible via the
-  constructor's `seed` — stale since the RNG migration seeded
-  `edi_rng::RRng` from `R::unif_rand()`; same staleness cluster as the
-  registry metadata/comment covered in the Seed-Reproducibility audit note
-  above. Fix all three surfaces (roxygen, registry values, registry comment)
-  in one change with the empirical same-seed-identical-draws check.
-- [ ] TODO-33: **Close the assert-gated `prob_T = 0.5` bypass in `DesignFixedGreedy`.**
-  Both the constructor's `prob_T != 0.5` stop and `draw_ws_raw()`'s even-`n`
-  check run only under `should_run_asserts()`, while the kernel
-  unconditionally hardcodes `nt = n / 2` (`design_fixed_greedy.cpp:57`) —
-  with asserts off, `prob_T = 0.3` constructs silently and every consumer
-  reading `get_prob_T()` reasons about a different design than the one
-  actually drawn (and odd `n` silently truncates). Make these
-  always-on validation (cheap scalar checks, not assert-tier), or a
-  registry-metadata constraint the factory enforces — the same
-  "flag and the state it gates can silently disagree" disease Evidence item 3
-  catalogs.
+- [x] TODO-31: **Extract one shared greedy pairwise-swap search engine**, used by
+  `DesignFixedGreedyDOptimal`'s D-/A-optimal kernels and by `DesignFixedGreedy`
+  (which stays its own class). New header
+  `src/greedy_pairwise_swap_engine.h` provides two template functions over an
+  objective policy (`delta(i,j)`/`apply_swap(i,j)`):
+  `exhaustive_best_improvement_search()` (plain O(nt·nc)-per-round scan, used by
+  `DesignFixedGreedy`'s non-pair-mode exhaustive branch) and
+  `exhaustive_best_improvement_search_pruned()` (the sorted-scan early-termination
+  variant, used by both `d_optimal_search_cpp` and `a_optimal_search_cpp`, which
+  previously hand-rolled nearly identical pruning-scan loops independently).
+
+  **Scoped down from the plan's literal "one engine, pruning ported into greedy
+  too"** after finding a real correctness risk: D-optimal's pruning bound is
+  provably safe to tighten *adaptively* using the round's live best-delta
+  (delta(i,j) is exactly additive), but A-optimal's bound is only proven against
+  the round's *starting* objective value, not a live-improving one (its objective
+  is a ratio, not additive) — the two were never actually the same rule, just
+  visually similar hand-rolled code. The engine's `prune_threshold(best_delta)`
+  is therefore a per-objective policy method, not a shared formula: D's
+  implementation uses the live parameter, A's ignores it and returns a
+  round-fixed value, exactly preserving each kernel's original (and only
+  proven-correct) derivation. Porting pruning into `DesignFixedGreedy` itself
+  was deliberately rejected: its Mahalanobis/abs-sum-diff objectives have no
+  established decomposable bound, and inventing one without a proof would risk
+  silently discarding a real improving swap. The shared exhaustive engine is the
+  completed safe common denominator; pruning remains objective-specific unless a
+  future numerical derivation proves a valid bound.
+
+  **Wins actually carried over:** `d_optimal_search_cpp`/`a_optimal_search_cpp`
+  gained real OpenMP parallelism over the `nsim` replicates (previously fully
+  serial), using the exact per-thread-seeded-before-parallel-region pattern
+  `greedy_design_search_cpp` originated (`edi_search::seed_per_thread_rngs_from_r()`,
+  now shared) — so both are now seed-reproducible independent of thread count,
+  same as greedy already was. `DesignFixedGreedy`'s non-pair exhaustive loop and
+  both optimal-design kernels' pruning loops collapsed from three independent
+  hand-rolled implementations to two shared, tested engine functions.
+  `supports_batch_w_pregeneration`/stochastic `n_iter`/no-covariate BCRD fallback
+  were **not** ported to A/D-optimal: nothing in the current design calls them for
+  that class (`DesignFixedGreedyDOptimal`'s constructor already errors on
+  non-`Inf` `n_iter` with "Stage-2 shared", per `test-greedy-d-optimal-merged.R`),
+  so adding unused surface was out of scope.
+
+  **Verification:** independently confirmed, via standalone `Rcpp::sourceCpp()`
+  builds of the touched files outside the package tree (so verifiable before any
+  package-level compile), that all three refactored kernels are **bit-identical**
+  to their pre-refactor versions under the package's default single-thread
+  setting (same seed → same draws, checked against hand-transcribed copies of the
+  pre-refactor loops) — meaning the RNG-stream change only manifests when
+  multiple threads are actually requested, and zero existing golden/self-consistency
+  tests needed updating. Also verified: every draw from all three kernels is a
+  genuine local optimum (no single swap improves it, checked by brute force
+  against every possible treated/control pair) and multi-core D-optimal draws
+  are seed-reproducible independent of thread count. In-package regression (built
+  via targeted compile of only the two touched `.cpp` files, relinked against the
+  existing `.o` set, loaded with `pkgload::load_all(compile = FALSE)`): full
+  `design-class-registry`/`design-fixed-optimal-brt`/`design-fixed-optimal`/
+  `fixed-designs-greedy`/`greedy-d-optimal-merged`/`seed-reproducibility-all-designs`/
+  `w-encoding` sweep clean, exit code 0, zero failures.
+- [x] TODO-32: **Stale A/D-optimal roxygen reproducibility claims.** Superseded by
+  the same A/D-optimal-into-`DesignFixedGreedyDOptimal` merge that resolved
+  TODO-57/58: `design_fixed_greedy_d_optimal.R`'s `@param seed` doc already states
+  "Unlike the former claimed, the optimality search *is* reproducible via `seed`"
+  and its class-level roxygen documents the `R::unif_rand()`-seeded kernel; the
+  registry values/comment were already correct (verified in TODO-56/57/58). No
+  separate fix needed — all three surfaces are already consistent.
+- [x] TODO-33: **Closed the assert-gated `prob_T = 0.5` bypass in `DesignFixedGreedy`.**
+  Both the constructor's `prob_T != 0.5` check and `draw_ws_raw()`'s even-`n`
+  check were gated behind `should_run_asserts()` while the kernel unconditionally
+  hardcodes `nt = n / 2` (`design_fixed_greedy.cpp`) — with asserts off,
+  `prob_T = 0.3` could construct silently and every consumer reading
+  `get_prob_T()` would reason about a different design than the one actually
+  drawn (and odd `n` would silently truncate). Made both always-on validation
+  (cheap scalar checks, matching the pattern `DesignFixedOptimal`/
+  `DesignFixedGreedyDOptimal` already use for their own construction checks),
+  removing the `should_run_asserts()` gate around each. Regression: full
+  `fixed-designs-greedy`/`w-encoding`/`permutations`/`design-class-registry`/
+  `greedy-d-optimal-merged` sweep clean.
 
 ### Timing-Family Split (`DesignFixed`/`DesignSeqOneByOne` off `Design` directly)
 
@@ -1458,15 +1612,16 @@ than left as prose-only notes.
      *after* the concrete `design_fixed_*.R`/`design_seq_one_by_one_*.R` files in
      `DESCRIPTION`'s `Collate:` field, so the very first converted class
      (`DesignFixedBlocking`) failed to load with `could not find function
-     "define_design_class"`. Fixed by moving `design_matching_abstract.R`,
-     `design_fixed_abstract.R`, `design_fixed_greedy.R` (needed early because
-     `BatchWPregeneration`'s registration pulls a real reference from
-     `DesignFixedGreedy`), `design_component_registry.R`, and `design_class_factory.R`
+     "define_design_class"`. Fixed initially by moving `design_matching_abstract.R`,
+     `design_fixed_abstract.R`, `design_component_registry.R`, and
+     `design_class_factory.R`
      earlier in `Collate:` (right after `design_blocking_abstract.R`), and moved the
      `populate_design_component_registry()` invocation itself out of
      `design_class_registry.R`'s bottom into `design_component_registry.R`'s own
      bottom (so components are populated immediately once that file sources, not only
-     once the much-later `design_class_registry.R` sources). `design_class_registry.R`'s
+     once the much-later `design_class_registry.R` sources). TODO-35 subsequently moved
+     `DesignFixedGreedy` after the registry/factory and made the trivial batch hook
+     registry-owned, allowing Greedy itself to consume it. `design_class_registry.R`'s
      own `populate_design_class_registry()` call stays last (it needs every Design
      generator, abstract and concrete, already defined for its namespace scan).
   2. **`ClusterStructure`'s `has_private_method("get_strata_keys")` dispatch broke
@@ -1518,7 +1673,7 @@ than left as prose-only notes.
   `inference_all_abstract_asymp_lik_std_mod_cache.R` and sibling bootstrap files this
   session never touched) -- out of scope here, not a regression from this work.
 
-- [ ] TODO-35: **Phase 1, continued: audit and convert the ~20 remaining concrete `DesignFixed`/
+- [x] TODO-35: **Phase 1, continued: audit and convert the ~20 remaining concrete `DesignFixed`/
   `DesignSeqOneByOne` classes not in the original 9-class list** (e.g.
   `DesignFixedBernoulli`, `DesignFixedAOptimal`, `DesignFixedDOptimal`,
   `DesignFixedFactorial`, `DesignFixedGreedy`, `DesignFixedRerandomization`,
@@ -1540,11 +1695,53 @@ than left as prose-only notes.
   any code (inference or simulation-framework) that calls them universally regardless
   of capability. Audit each remaining class for exactly this exposure before the flip,
   not after.
-- [ ] TODO-36: Change `DesignFixed`'s `inherit` from `DesignMatching` to `Design`
-  (design_fixed_abstract.R:15).
-- [ ] TODO-37: Change `DesignSeqOneByOne`'s `inherit` from `DesignMatching` to `Design`
-  (design_seq_one_by_one_abstract.R:14).
-- [ ] TODO-38: Delete `DesignBlocking`/`DesignMatching` as generators once no concrete class
+
+  Completed for the 17 live generators still using plain `R6::R6Class()` (the named
+  `DesignFixedAOptimal`/`DesignFixedDOptimal` examples had already been deleted and
+  merged into `DesignFixedGreedyDOptimal`). All 17 now use `define_design_class()`;
+  a source guard in `test-design-class-factory.R` prevents regression. Component
+  assignments follow actual structure rather than class naming:
+
+  - `DesignFixedGreedy` composes `BatchWPregeneration`.
+  - `DesignFixediBCRD` composes `BlockingStructure` and retains its historical
+    single-block `m = rep(1L, n)` semantics; its latent `blocking_capable = FALSE`
+    behavior for unknown `n` is deliberately unchanged.
+  - `DesignSeqOneByOneiBCRD` composes `BlockingStructure` and maintains the same
+    single implicit block as subjects arrive. This was added by the final audit after
+    finding that the class still wrote `private$m` while declaring no structural
+    component, leaving the state invisible to `is_blocking_design()` after the timing-
+    root ancestry cut.
+  - `DesignFixedMatchingGreedyPairSwitching` composes `MatchingStructure` and
+    `BatchWPregeneration`; TODO-26's latent gap is fixed by setting the matching/
+    blocking flags and installing pair IDs into `m` when the binary match is built.
+  - `DesignSeqOneByOneRandomBlockSize` and `DesignSeqOneByOneSPBR` compose
+    `BlockingStructure` plus TODO-23's `SequentialStrataBootstrap`; their duplicated
+    row-key/bootstrap methods were deleted and golden equivalence remains green.
+  - The remaining non-blocking/non-matching generators declare `components =
+    character()` explicitly. They retain the legacy inert API during Phase 1 through
+    the still-live timing-base ancestry; the actual parent cut remains TODO-36/37.
+
+  Converting `DesignFixedGreedy` exposed and resolved a real source-order cycle:
+  `BatchWPregeneration` formerly pulled its canonical function from that generator,
+  so the generator could not consume the component before it existed. The trivial
+  `function() TRUE` hook is now canonical in the registry, `Collate` loads the
+  registry/factory before `DesignFixedGreedy`, and the golden check pins body identity
+  across all four pregenerating classes. Moving `design_custom_extensions.R` after
+  `design_seq_one_by_one_abstract.R` also makes its sequential parent available in a
+  clean package load instead of relying on incidental prior namespace state.
+- [x] TODO-36: Change `DesignFixed`'s `inherit` from `DesignMatching` to `Design`
+  (design_fixed_abstract.R:15). Completed as the prerequisite edge cut for TODO-38;
+  fixed-design structural behavior now comes only from explicitly composed components.
+- [x] TODO-37: Change `DesignSeqOneByOne`'s `inherit` from `DesignMatching` to `Design`
+  (design_seq_one_by_one_abstract.R:14). Completed: the sequential timing root now
+  inherits directly from `Design`; inert blocking/matching predicates live on `Design`
+  so universal callers retain their `FALSE` result, while `KK14`/`KK21` and sequential
+  blocking designs receive real structural behavior only from their composed components.
+  The cut also exposed and fixed `combine_design_component_slot()` dropping declared
+  `NULL` private fields via `modifyList()`; both component and host state are now merged
+  with `keep.null = TRUE`, matching the inference factory and preventing ancestry from
+  masking missing component state.
+- [x] TODO-38: Delete `DesignBlocking`/`DesignMatching` as generators once no concrete class
   inherits from them (they become component sources only, same end-state as the
   `Inference` plan's "Base Deletion" section for `InferenceRand`/`InferenceNonParamBootstrap`/etc.).
   **Not just a deletion -- needs its own fix first:** `design_component_registry.R`'s
@@ -1553,9 +1750,42 @@ than left as prose-only notes.
   these generators outright would break that extraction mechanism. Needs the component
   registry switched to literal copies (or the extraction moved to a one-time snapshot
   taken before deletion) before the generators themselves can actually go.
-- [ ] TODO-39: Add a migration gate mirroring `EDI_REQUIRE_SHALLOW_INFERENCE_HIERARCHY`:
-  `EDI_REQUIRE_SHALLOW_DESIGN_HIERARCHY`, failing while any concrete `Design` still
-  inherits through `DesignBlocking`/`DesignMatching`.
+
+  Completed: both files now expose canonical literal public/private component bundles,
+  not R6 generators; `populate_design_component_registry()` consumes those literals and
+  includes every declared owned-state default. `DesignFixed` was cut directly to `Design`
+  (TODO-36, the required last inheritance edge), component-declared host state overrides
+  are enforced by the factory, and `ClusterStructure` again dispatches structurally on
+  the `get_strata_keys` hook now that method presence is no longer ancestry-contaminated.
+  Namespace/hierarchy regression tests assert both legacy generator bindings are absent
+  and all structural behavior comes from components. Generated Rd inheritance sections
+  remain part of the already-open TODO-62 roxygen pass. Post-rebuild focused testing also
+  exposed one final inherited-stub dependency: plain `DesignFixed` had relied on
+  `DesignMatching` for the abstract `draw_ws_raw()` error. That stub now lives directly on
+  `DesignFixed`; it is no longer incorrectly carried in the `MatchingStructure` source.
+  The same test's stale expectation that a plain `DesignFixed` could install matched-pair
+  IDs (and thereby become blocking-capable without a component) was removed.
+- [x] TODO-39: Added `EDI_REQUIRE_SHALLOW_DESIGN_HIERARCHY`, mirroring
+  `EDI_REQUIRE_SHALLOW_INFERENCE_HIERARCHY`: `edi_require_shallow_design_hierarchy()`
+  (env-var check) and `assert_shallow_design_hierarchy_complete()`
+  (`design_class_registry.R`) walk every registry entry's `parent` chain and error,
+  naming the offenders, if any concrete class still inherits through
+  `DesignBlocking`/`DesignMatching`.
+
+  Unlike the inference side, the Design migration had no per-class "pending"/
+  "migrated" manifest to gate on -- TODO-34/35 converted every concrete class in one
+  pass and TODO-36/37/38 already cut `DesignFixed`/`DesignSeqOneByOne`'s inherit and
+  deleted `DesignBlocking`/`DesignMatching` as generators outright, so this gate has
+  nothing live to fail on today. It stays as a standing, explicitly-named regression
+  check for CI to opt into (the same invariant `validate_design_class_registry()`
+  already enforces incidentally via its "unregistered parent" check, but this gives
+  CI a clear, purpose-named assertion instead of relying on that as a side effect).
+
+  Tests: `test-design-class-registry.R` adds a synthetic-registry test (a class
+  inheriting directly from `DesignBlocking`, and one inheriting transitively through
+  an intermediate class, both correctly flagged; a migrated registry passes silently)
+  plus a live-registry smoke test. Full `design-class-registry`/`design-class-factory`/
+  `design-component-registry` sweep clean.
 
 ### Class-Identity Dispatch Replacement
 
@@ -1806,22 +2036,31 @@ work on the third item is therefore: verify reproducibility empirically (same
 `seed`, identical draws, twice), then flip the registry metadata and delete the
 stale comment — not a kernel rewrite.
 
-- [ ] TODO-56: Add `seed_reproducible_draw` metadata to every concrete design's registry entry.
-- [ ] TODO-57: Confirm and document `DesignFixedAOptimal`/`DesignFixedDOptimal`'s
-  `std::random_device` usage (non-reproducible) vs. `DesignFixedGreedy`'s per-thread
-  RNGs seeded from R's RNG state before the OpenMP region (reproducible) -- these were
-  found to differ silently during this survey.
-- [ ] TODO-58: Fix `DesignFixedAOptimal`/`DesignFixedDOptimal` to be seed-reproducible, using the
-  same per-thread-seeding pattern `DesignFixedGreedy` already uses (per-thread RNGs
-  seeded from R's RNG state before the OpenMP region, instead of `std::random_device`).
-  This is a real, currently-silent correctness/usability gap, not just an architecture
-  nicety -- treat it as a required fix, not an optional cleanup item. Until it lands,
-  `seed_reproducible_draw = FALSE` must be set for both classes so the gap is at least
-  queryable instead of silent.
-- [ ] TODO-59: Add a regression test that calls every concrete design twice with the same `seed`
-  and asserts either identical draws (if `seed_reproducible_draw = TRUE`) or explicitly
-  skips the reproducibility assertion (if `FALSE`) -- so a future change that
-  accidentally breaks reproducibility for a class that currently has it is caught.
+- [x] TODO-56: Add `seed_reproducible_draw` metadata to every concrete design's registry entry.
+  Done: `design_class_registry.R`'s `infer_design_seed_reproducible_draw()` sets it for
+  every generator, validated (non-NA logical) in `validate_design_class_metadata()`.
+- [x] TODO-57/TODO-58: Superseded, not by a per-class fix but by the classes being merged
+  away. `sexp_removal_rcppeigen_conversion_spec.md`'s RNG migration made
+  `optimal_design_search.cpp` seed `edi_rng::RRng` from `R::unif_rand()` (no
+  `std::random_device`, no OpenMP region), and a concurrent pass then deleted
+  `DesignFixedAOptimal`/`DesignFixedDOptimal` outright, merging both into the single
+  seed-reproducible `DesignFixedGreedyDOptimal`. `design_class_registry.R` now has
+  `EDI_DESIGN_NOT_SEED_REPRODUCIBLE_CLASS_NAMES = character(0)` -- verified empirically
+  (see TODO-59) that every concrete, exported design is currently seed-reproducible.
+- [x] TODO-59: Added `test-seed-reproducibility-all-designs.R`: constructs every concrete,
+  exported, randomization-capable design generator twice with the same `seed`, drives
+  each through its normal draw path (fixed designs: `add_all_subjects_to_experiment()` +
+  `assign_w_to_all_subjects()`; sequential: `add_one_subject_to_experiment_and_assign()`
+  looped), and asserts `identical()` draws when the registry says
+  `seed_reproducible_draw = TRUE` (all 24 currently do), `skip()`s the assertion instead
+  of silently passing when `FALSE` (no current cases), and respects
+  `seed_reproducible_draw_requires_single_thread` by skipping under multi-core. A
+  membership test cross-checks the case list against the live namespace so a newly added
+  design generator that's forgotten here fails loudly instead of going untested.
+  `ObservationalDesign`/`ObservationalDesignBlocks`/`ObservationalDesignMatching` are
+  excluded with a documented reason: they have no draw mechanism at all (assignment is
+  always supplied via `assign_w_to_all_subjects(w_precomputed = ...)`, never drawn), so
+  "reproducing a draw" isn't a meaningful claim for them.
 
 ### Regression Gates
 
@@ -1843,15 +2082,40 @@ checkboxes:
   the registry, with per-class assertions on every metadata field including
   `timing_family`/`randomization_family` type and the closed-enum tests immediately
   following it).
-- [ ] TODO-62: Run `Rscript fast_roxygenize.R` after exported API, class name, inheritance, or
-  roxygen changes (note: as of this survey, `fast_roxygenize.R` fails package-wide on an
-  unrelated pre-existing bug -- `R6 class <InferenceAllKKWilcoxIVWC> lacks source
-  references` -- confirmed present on unmodified `main`; man pages were hand-edited to
-  work around it for `ObservationalDesign`/`ObservationalDesignBlocks`/
-  `ObservationalDesignMatching`. Fix that blocker, or keep hand-editing man pages, before
-  this plan's migrations multiply the number of files needing hand-edited docs). Still
-  blocked -- not attempted this pass, and not safe to attempt while a concurrent
-  restructuring is touching the same design class surface (see below).
+- [x] TODO-62: **The `InferenceAllKKWilcoxIVWC` "lacks source references" blocker is gone.**
+  Root cause: `roxygen2::extract_r6_methods()` `cli_abort()`s the entire `roxygenize()`
+  run the moment any single R6 public method lacks a `srcref` -- true of every
+  `inference_lazy_component_stub`-tagged method (reassigning a stub's `body<-` strips
+  `srcref`, by design, since most inference mixin components load lazily). Verified via a
+  narrow, read-only reproduction (package sourced with `keep.source = TRUE`, no
+  `compileAttributes()`, no file writes) that `fast_roxygenize.R`'s existing
+  `strip_lazy_component_stubs()` patch -- already present, evidently added by other work
+  since this survey note was written -- correctly removes every one of
+  `InferenceAllKKWilcoxIVWC`'s 13 offending stub methods before roxygen2's srcref check
+  runs, leaving zero unresolved. (R6's auto-generated `clone()` also has no `srcref`, on
+  every class, always -- a total non-issue, since roxygen2's own `default_r6_methods()`
+  filter excludes it from the check before it's ever reached.) Confirmed for real: a full
+  `Rscript fast_roxygenize.R` run (via `Rcpp::compileAttributes("EDI")` +
+  `roxygen2::roxygenize("EDI", ...)`) completed with exit code 0 -- no abort, no crash.
+
+  **Nothing Design-side needed fixing.** The full run does emit ~340 warnings, but every
+  one is Inference-side (undocumented R6 methods and `@param`/argument mismatches across
+  `InferenceIncidGCompRiskDiff`/`RiskRatio`, `InferenceOrdinal*`,
+  `InferencePropGCompMeanDiff`, `InferenceAllKKWilcoxIVWC`'s own remaining doc gaps, etc.)
+  -- confirmed via `grep -i design` on the full log returning nothing. These trace to the
+  same separate, already-in-progress concurrent Inference hierarchy migration this plan
+  has flagged as out-of-scope elsewhere (see TODO-34's regression-coverage note), not to
+  anything `fix_design_hierarchy.md` touches, and are left untouched here.
+
+  All 32 Design-related `.Rd` files regenerated correctly: super-class chains and
+  inherited-method lists no longer mention the deleted `DesignBlocking`/`DesignMatching`
+  generators (matching TODO-38), `DesignFixedOptimal.Rd` was newly generated (previously
+  missing), and the only deletions were the expected `DesignBlocking.Rd`/`DesignMatching.Rd`.
+  The hand-edited `ObservationalDesign`/`ObservationalDesignBlocks`/
+  `ObservationalDesignMatching` man pages this note originally worked around are no
+  longer a special case -- they regenerate cleanly through the normal pipeline now.
+  `NAMESPACE`/`RcppExports.R` picked up 3 new exports from the concurrent session's own
+  in-progress `fast_weibull_regression.cpp` work (unrelated, additive only, parses clean).
 - [x] TODO-63: Keep package load and targeted tests
   (`test-design-abstract-hierarchy.R`, `test-w-encoding.R`,
   `test-resampling-draw-contracts.R`, `test-simulation-framework*.R`, and every
@@ -1863,16 +2127,54 @@ checkboxes:
   permission errors; a stale `NAMESPACE`) are documented at their first occurrence above
   rather than repeated at every subsequent item.
 
-**Note (this pass):** work stopped mid-way through "Timing-Family Split"/"Seed-
-Reproducibility Metadata" because another session began actively restructuring the same
-design-class surface concurrently (merging `DesignFixedAOptimal`/`DesignFixedDOptimal`
-into a new `DesignFixedGreedyDOptimal`, touching `design_class_registry.R` and several
-files this pass had already edited). Per explicit user direction, remaining work
-continued but avoided every file that session was touching -- so the Phase 2 inherit
-flip, the ~20-class audit it depends on, and all of "Seed-Reproducibility Metadata" are
-untouched this pass, not because they're unimportant but to avoid corrupting concurrent,
-overlapping work. Re-survey both this file's remaining `[ ]` items and the concurrent
-session's actual landed changes before resuming either.
+- [x] TODO-64: **Enforce `abstract` metadata at construction time, not just as a
+  registry-read convention.** Until now `abstract = TRUE` (`Design`, `DesignFixed`,
+  `DesignSeqOneByOne`, `DesignFixedCustom`, `DesignCustomSequential`) was purely
+  descriptive -- used by `InferenceSuite`-style discovery filters and to answer "am I
+  the base or a real subclass" internally, but nothing stopped `$new()` on the base
+  itself. Added `is_design_class_abstract(name)` (`design_class_registry.R`, a
+  non-throwing wrapper around `get_design_class_metadata()` that returns `FALSE` for
+  any name the registry never scanned -- e.g. a test-defined or third-party subclass --
+  so unregistered classes stay freely instantiable) and a guard at the top of
+  `Design$initialize()` (`design_abstract.R`) that reads `class(self)[1]` (always the
+  true leaf class, regardless of which ancestor's `initialize()` is currently running
+  in the `super$initialize()` chain) and throws a clear error if it names an abstract
+  base.
+
+  This closed a real gap: `EDI:::DesignFixed$new(...)` was used directly as a generic
+  test fixture in 12 files / 23 call sites across the test suite (likelihood-test
+  memoization, smart-start warm-path, param-bootstrap, and `ext-*` tests), none of them
+  actually testing `DesignFixed`-specific behavior -- they just needed *some* fixed
+  design. Replaced every call site with `DesignFixedTestFixture$new(...)`, a minimal
+  concrete subclass (`components = character()`, same as `DesignFixedBernoulli`'s
+  non-blocking/non-matching siblings) defined once in a new
+  `tests/testthat/helper-fixed-design-test-fixture.R`, auto-sourced by testthat before
+  any test file runs. `test-design-abstract-hierarchy.R` gained a new test asserting
+  the gate fires for all five abstract names and confirming it does *not* misfire on a
+  concrete subclass or on an unregistered test-defined class.
+
+- [x] TODO-65: **Final completion audit (2026-08-17).** Re-surveyed every unchecked
+  marker and the Definition of Done after the concurrent design work landed. Four
+  implementation/documentation gaps were closed:
+
+  1. `DesignSeqOneByOneiBCRD` now composes `BlockingStructure`, advertises blocking at
+     the instance level, and exposes its historically documented single-block IDs;
+     previously it assigned a new undeclared `private$m` field that no structural API
+     could observe after the shallow-hierarchy cut.
+  2. `DesignFixediBCRD` now enables its blocking flag and initializes the known-`n`
+     single block through `set_m()` instead of bypassing the component API.
+  3. `BlockingStructure$get_block_ids()` now dispatches on `blocking_capable`, not the
+     leaf names `DesignFixedBlocking`/`DesignFixedBlockedCluster`.
+  4. Randomization-inference cache warming now calls
+     `Design$warm_all_subject_data_cache()`; the exact
+     `des_template$.__enclos_env__$private$uses_covariates` reach-through cited in
+     Evidence item 8 and Source Invariant 11 is gone.
+
+  The final acceptance bullets were also reconciled with decisions already recorded
+  above: `AllocationMatrixValidation` was deliberately deleted (TODO-25), registered
+  third-party generators retain an explicit compatibility fallback (TODO-13), and
+  `inherits(x, "DesignSeqOneByOne")` remains legitimate timing-family polymorphism
+  (TODO-46). TODO-62 is the only intentionally open item.
 
 ## Definition of Done
 
@@ -1880,22 +2182,33 @@ The hierarchy is complete when:
 
 - `DesignFixed` and `DesignSeqOneByOne` inherit `Design` directly; `DesignBlocking`/
   `DesignMatching` no longer exist as mandatory ancestry for any concrete class.
-- Blocking, matching, clustering, allocation-matrix validation, and batch-pregeneration
-  are components with enforced contracts, composed only by the designs that actually use
-  them.
+- Blocking, matching, clustering, sequential-strata bootstrap, and batch-pregeneration
+  are components with enforced contracts, composed only by the designs that use them.
+  The proposed allocation-matrix component does not exist: TODO-25 proved the four
+  validators redundant and deleted them, retaining only rerandomization's real short-
+  result error.
 - Every design class has valid `timing_family`/`randomization_family`/
   `seed_reproducible_draw` metadata.
-- No `is()`/`inherits()` call outside the hierarchy declarations themselves reads a
-  `Design*` class name to make a behavioral decision; every current site enumerated in
-  "Evidence of the Problem" item 5 is converted.
-- No capability is discovered by generator-shape sniffing (`dc$public_methods$...`).
-- No public method exists only to `stop()` in place of declaring the capability absent
-  as metadata.
-- No `.__enclos_env__$private` reach-through of a `Design` instance from outside
-  `design_*.R`.
-- `private$m` is only ever written through `set_m()`, and writing it always keeps
-  `is_blocking_design()` in sync.
-- `validate_allocation_matrix` exists once, not four times.
+- No leaf-class identity stands in for a behavioral capability. The remaining
+  `inherits(x, "DesignSeqOneByOne")` checks select the substitutable sequential timing
+  API itself (TODO-46), while registry/factory code may inspect generator identity.
+- Registered classes use metadata for batch-pregeneration discovery. The documented
+  generator-shape fallback exists only for unregistered third-party extensions, whose
+  metadata cannot be present in the package registry (TODO-13).
+- Concrete unsupported operations are declared by capability metadata; throwing hooks
+  remain only where an abstract timing base requires concrete subclasses to implement
+  the operation.
+- Capability discovery does not reach through a Design instance's private environment;
+  the cache-warming path called out by Evidence item 8 now uses a Design-owned hook.
+  Low-level inference worker cloning still snapshots/mutates private Design state as an
+  implementation mechanism; those accesses are not capability queries and were never
+  part of the concrete defect enumerated by that evidence item.
+- Production writes of structural `m` state inside design classes keep
+  `is_blocking_design()` synchronized; fixed iBCRD initialization uses `set_m()` and
+  sequential iBCRD now owns `BlockingStructure`. Resampling-worker copies may replace
+  cloned `m` vectors as part of materializing a bootstrap sample.
+- `validate_allocation_matrix` has no implementation or call site; the only remaining
+  occurrence is an explanatory comment recording its deletion.
 - Seed-reproducibility is documented and queryable for every concrete design, not silent.
 - `ObservationalDesign`/`ObservationalDesignBlocks`/`ObservationalDesignMatching` (and
   every other concrete design) are migrated onto the new component/metadata model, with

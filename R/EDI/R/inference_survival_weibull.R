@@ -169,22 +169,45 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 		# reordering happens anywhere in this class), so they're safe to
 		# reference directly regardless of which local snapshot of y/dead a
 		# given call site is using.
+		# Dispatches to the fast exact/right-censored-only kernel when possible,
+		# the general left-/interval-censoring kernel only when actually needed
+		# (TODO-28: the fast kernel is ~3-4x cheaper per call, a real and
+		# unavoidable cost of general-censoring support, not worth paying on
+		# ordinary right-censored/exact data).
 		weibull_kernel_fit = function(X, y, dead, warm_start_params = NULL, warm_start_fisher_info = NULL,
 		                               fixed_idx = NULL, fixed_values = NULL, estimate_only = FALSE,
 		                               smart_cold_start = TRUE, optimization_alg = "lbfgs") {
-			fast_weibull_regression_general_cpp(
-				X = X, y = y, y_L = private$y_L, y_R = private$y_R,
-				warm_start_params = warm_start_params, warm_start_fisher_info = warm_start_fisher_info,
-				fixed_idx = fixed_idx, fixed_values = fixed_values,
-				smart_cold_start = smart_cold_start, estimate_only = estimate_only,
-				optimization_alg = optimization_alg
-			)
+			if (isTRUE(private$has_general_censoring)) {
+				fast_weibull_regression_general_cpp(
+					X = X, y = y, y_L = private$y_L, y_R = private$y_R,
+					warm_start_params = warm_start_params, warm_start_fisher_info = warm_start_fisher_info,
+					fixed_idx = fixed_idx, fixed_values = fixed_values,
+					smart_cold_start = smart_cold_start, estimate_only = estimate_only,
+					optimization_alg = optimization_alg
+				)
+			} else {
+				fast_weibull_regression_cpp(
+					X = X, y = y, dead = dead,
+					warm_start_params = warm_start_params, warm_start_fisher_info = warm_start_fisher_info,
+					fixed_idx = fixed_idx, fixed_values = fixed_values,
+					smart_cold_start = smart_cold_start, estimate_only = estimate_only,
+					optimization_alg = optimization_alg
+				)
+			}
 		},
 		weibull_kernel_score = function(X, y, dead, params) {
-			get_weibull_regression_general_score_cpp(X, y, private$y_L, private$y_R, params)
+			if (isTRUE(private$has_general_censoring)) {
+				get_weibull_regression_general_score_cpp(X, y, private$y_L, private$y_R, params)
+			} else {
+				get_weibull_regression_score_cpp(X, y, dead, params)
+			}
 		},
 		weibull_kernel_hessian = function(X, y, dead, params) {
-			get_weibull_regression_general_hessian_cpp(X, y, private$y_L, private$y_R, params)
+			if (isTRUE(private$has_general_censoring)) {
+				get_weibull_regression_general_hessian_cpp(X, y, private$y_L, private$y_R, params)
+			} else {
+				get_weibull_regression_hessian_cpp(X, y, dead, params)
+			}
 		},
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (is.null(private$best_X_colnames)){
@@ -250,12 +273,12 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 			if (is.null(sim_data)) return(NULL)
 			y_sim = sim_data$y
 			dead_sim = sim_data$dead
-			y_exact_sim = ifelse(dead_sim != 0, y_sim, NA_real_)
-			y_L_sim = ifelse(dead_sim == 0, y_sim, NA_real_)
-			y_R_sim = ifelse(dead_sim == 0, Inf, NA_real_)
+			# has_general_censoring is FALSE here (guarded above), so route
+			# through the fast exact/right-censored-only kernel directly --
+			# no y_exact/y_L/y_R conversion needed (TODO-28).
 			full_res = tryCatch(
-				fast_weibull_regression_general_cpp(
-					y = y_exact_sim, y_L = y_L_sim, y_R = y_R_sim, X = X_fit,
+				fast_weibull_regression_cpp(
+					y = y_sim, dead = dead_sim, X = X_fit,
 					smart_cold_start = private$smart_cold_start_default,
 					estimate_only = FALSE, optimization_alg = private$optimization_alg
 				),
@@ -273,8 +296,8 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 				full_fit = full_fit_boot,
 				fit_null = function(d, start = NULL){
 					res = tryCatch(
-						fast_weibull_regression_general_cpp(
-							y = y_exact_sim, y_L = y_L_sim, y_R = y_R_sim, X = X_fit,
+						fast_weibull_regression_cpp(
+							y = y_sim, dead = dead_sim, X = X_fit,
 							warm_start_params = start %||% as.numeric(full_res$params),
 							fixed_idx = j, fixed_values = d,
 							smart_cold_start = TRUE,

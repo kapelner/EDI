@@ -44,7 +44,9 @@ A list with components \code{b}/\code{params} (estimated
   matrix, tagged \code{information_type = "fisher"}), \code{hessian} (the
   negative of that matrix), \code{neg_loglik}/\code{neg_ll} (aliases for the
   negative log-likelihood), \code{loglik} (its negation), \code{converged}
-  (logical), \code{iterations}, and \code{gradient_norm}.
+  (logical, \code{gradient_norm < tol}, uniform across optimizers),
+  \code{num_iter}, \code{hit_iteration_cap} (logical, mutually exclusive
+  with \code{converged}), and \code{gradient_norm}.
 }
 \description{
 Fits the same logistic regression model as

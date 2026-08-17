@@ -282,8 +282,14 @@ NULL
 #' \item{b}{A numeric vector of the estimated negative binomial regression coefficients \eqn{\hat\beta}.}
 #' \item{theta_hat}{The estimated dispersion parameter \eqn{\hat\theta} (natural scale).}
 #' \item{logLik}{The model's log-likelihood at the fitted parameters.}
-#' \item{converged}{A logical value indicating whether the algorithm converged.}
-#' \item{iterations}{The number of optimizer iterations performed.}
+#' \item{converged}{A logical value indicating whether the final gradient norm
+#'   was below the convergence tolerance (\code{gradient_norm < tol}); uniform
+#'   across the \code{"lbfgs"}/\code{"newton_raphson"} optimizers.}
+#' \item{num_iter}{The number of optimizer iterations performed.}
+#' \item{hit_iteration_cap}{A logical value, mutually exclusive with
+#'   \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
+#'   iterations without meeting the gradient-norm convergence criterion.}
+#' \item{gradient_norm}{The norm of the gradient at the returned parameters.}
 #' \item{fisher_information}{The working-weights curvature matrix used during
 #'   fitting.}
 #' }
@@ -303,7 +309,14 @@ NULL
 #' \item{b}{A numeric vector of the obtained Poisson regression coefficients.}
 #' \item{hess_fisher_info_matrix}{The Fisher information matrix.}
 #' \item{neg_ll}{The negative log-likelihood at the final iteration.}
-#' \item{converged}{A logical value indicating whether the algorithm converged.}
+#' \item{converged}{A logical value indicating whether the final gradient norm
+#'   was below the convergence tolerance (\code{gradient_norm < tol}); uniform
+#'   across the \code{"lbfgs"}/\code{"newton_raphson"} optimizers.}
+#' \item{num_iter}{The number of optimizer iterations performed.}
+#' \item{hit_iteration_cap}{A logical value, mutually exclusive with
+#'   \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
+#'   iterations without meeting the gradient-norm convergence criterion.}
+#' \item{gradient_norm}{The norm of the gradient at the returned parameters.}
 #' }
 #'
 #' @export
@@ -446,7 +459,8 @@ NULL
 #' @param warm_start_weights Accepted but unused; see Details.
 #' @param warm_start_fisher_info Optional initial curvature (information) matrix to warm-start the first iteration.
 #' @param estimate_only If \code{TRUE}, skip computing \code{mu}, \code{XtWX}/\code{fisher_information},
-#'   and \code{score}, returning only \code{b}, \code{converged}, \code{iterations}, and \code{gradient_norm}.
+#'   and \code{score}, returning only \code{b}, \code{converged},
+#'   \code{num_iter}, \code{hit_iteration_cap}, and \code{gradient_norm}.
 #'
 #' @return  A list containing the following components:
 #' \describe{
@@ -459,9 +473,15 @@ NULL
 #' \item{score}{(omitted if \code{estimate_only = TRUE}) The score vector \eqn{X^\top(y - \hat\mu)}
 #'   at the fitted coefficients.}
 #' \item{neg_ll}{(omitted if \code{estimate_only = TRUE}) The negative log-likelihood at the fitted coefficients.}
-#' \item{converged}{A logical value indicating whether the algorithm converged.}
-#' \item{iterations}{The number of iterations performed.}
-#' \item{gradient_norm}{The norm of the score vector at convergence.}
+#' \item{converged}{A logical value indicating whether the final gradient norm
+#'   was below \code{tol} (\code{gradient_norm < tol}); uniform across the
+#'   \code{"irls"}/\code{"lbfgs"}/\code{"newton_raphson"} optimizers.}
+#' \item{num_iter}{The number of iterations performed.}
+#' \item{hit_iteration_cap}{A logical value, mutually exclusive with
+#'   \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
+#'   iterations without meeting the gradient-norm convergence criterion.}
+#' \item{gradient_norm}{The norm of the score vector at the returned
+#'   coefficients.}
 #' }
 #' @seealso \code{\link{fast_poisson_regression_weighted_cpp}} for the observation-weighted
 #'   variant; \code{\link{fast_poisson_regression_with_var_cpp}} for the variance-computing
@@ -505,15 +525,21 @@ NULL
 #'   treatment effect), regardless of what \code{j} is; equal to \code{ssq_b_j} when \code{j = 2}.
 #'   \code{NA} if the second column is a fixed coefficient.}
 #' \item{mu}{The fitted means \eqn{\hat\mu_i}.}
-#' \item{converged}{A logical value indicating whether the algorithm converged.}
-#' \item{iterations}{The number of iterations performed.}
+#' \item{converged}{A logical value indicating whether the final gradient norm
+#'   was below \code{tol} (\code{gradient_norm < tol}); uniform across the
+#'   \code{"irls"}/\code{"lbfgs"}/\code{"newton_raphson"} optimizers.}
+#' \item{num_iter}{The number of iterations performed.}
 #' \item{score}{The score vector at the fitted coefficients.}
 #' \item{observed_information, fisher_information, information}{Three aliases for the same
 #'   \eqn{X^\top W X} curvature matrix (\code{information_type} is always \code{"fisher"}).}
 #' \item{hessian}{The negative of that same matrix (the actual Hessian of the log-likelihood).}
 #' \item{neg_loglik, neg_ll}{The negative log-likelihood at the fitted coefficients (two aliases).}
 #' \item{loglik}{The log-likelihood (\code{-neg_ll}), or \code{NA} if \code{neg_ll} is non-finite.}
-#' \item{gradient_norm}{The norm of the score vector at convergence.}
+#' \item{hit_iteration_cap}{A logical value, mutually exclusive with
+#'   \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
+#'   iterations without meeting the gradient-norm convergence criterion.}
+#' \item{gradient_norm}{The norm of the score vector at the returned
+#'   coefficients.}
 #' }
 #' @seealso \code{\link{fast_poisson_regression_cpp}} for the estimate-only variant and full
 #'   model documentation; \code{\link{fast_quasipoisson_regression_with_var_cpp}} for the
@@ -905,14 +931,15 @@ fast_weibull_regression = function(y, dead, X, use_rcpp = TRUE, estimate_only = 
 		
 		y = as.numeric(y)
 		dead = as.numeric(dead)
-		y_exact = ifelse(dead != 0, y, NA_real_)
-		y_L = ifelse(dead == 0, y, NA_real_)
-		y_R = ifelse(dead == 0, Inf, NA_real_)
+		# This wrapper's signature only ever carries (y, dead) -- it can never
+		# receive left-/interval-censored data -- so route through the fast
+		# exact/right-censored-only kernel (TODO-28) rather than the general
+		# one; no y_exact/y_L/y_R conversion needed.
 		res = tryCatch(
-			fast_weibull_regression_general_cpp(X = X, y = y_exact, y_L = y_L, y_R = y_R,
+			fast_weibull_regression_cpp(X = X, y = y, dead = dead,
 			                            warm_start_params = warm_start_params,
-			                            smart_cold_start = FALSE, 
-			                            estimate_only = estimate_only, 
+			                            smart_cold_start = FALSE,
+			                            estimate_only = estimate_only,
 			                            optimization_alg = optimization_alg,
 			                            warm_start_fisher_info = warm_start_fisher_info),
 			error = function(e) stop("Weibull regression (Rcpp) failed to converge: ", e$message)

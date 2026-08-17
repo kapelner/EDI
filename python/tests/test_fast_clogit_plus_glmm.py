@@ -63,6 +63,9 @@ def test_matches_r_fixture():
     X_disc, y_disc, X_conc, y_conc, group_conc = _synthetic_data()
     res = fast_clogit_plus_glmm(X_disc, y_disc, X_conc, y_conc, group_conc, True, True)
 
+    # NOTE (2026-08-17): converged now derives from the shared LBFGS/Newton
+    # machinery's gradient-norm-based redefinition (optimizer_diagnostics_
+    # report.md TODO-4) -- re-verify against a fresh R run once compiled.
     assert res["converged"] is True
     assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)
     assert res["neg_loglik"] == pytest.approx(R_NEG_LOGLIK, abs=ATOL, rel=RTOL)

@@ -3806,6 +3806,55 @@ fast_weibull_frailty_cpp <- function(X, y, dead, group_id, warm_start_params = N
     .Call(`_EDI_fast_weibull_frailty_cpp`, X, y, dead, group_id, warm_start_params, warm_start_beta, estimate_only, n_gh, max_abs_log_sigma, maxit, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
 }
 
+#' @title Compute Weibull Regression Score
+#' @description Calculates the score vector (gradient of the log-likelihood) for a Weibull AFT regression model.
+#' @param X A numeric matrix of predictors.
+#' @param y A numeric vector of survival times.
+#' @param dead A numeric vector of event indicators.
+#' @param params A numeric vector of parameters [beta, log_sigma].
+#' @return A numeric vector representing the score.
+#' @export
+#' @keywords internal
+get_weibull_regression_score_cpp <- function(X, y, dead, params) {
+    .Call(`_EDI_get_weibull_regression_score_cpp`, X, y, dead, params)
+}
+
+#' @title Compute Weibull Regression Hessian
+#' @description Calculates the Hessian matrix (second derivatives of the log-likelihood) for a Weibull AFT regression model.
+#' @param X A numeric matrix of predictors.
+#' @param y A numeric vector of survival times.
+#' @param dead A numeric vector of event indicators.
+#' @param params A numeric vector of parameters [beta, log_sigma].
+#' @return A numeric matrix representing the Hessian.
+#' @export
+#' @keywords internal
+get_weibull_regression_hessian_cpp <- function(X, y, dead, params) {
+    .Call(`_EDI_get_weibull_regression_hessian_cpp`, X, y, dead, params)
+}
+
+#' @title Fast Weibull AFT Regression (C++)
+#' @description Weibull Accelerated Failure Time model fitting, exact/
+#'   right-censored responses only. See fast_weibull_regression_general_cpp
+#'   for the left-/interval-censored extension.
+#' @param X A numeric matrix of predictors.
+#' @param y A numeric vector of survival times.
+#' @param dead A numeric vector of event indicators (1=event, 0=censored).
+#' @param warm_start_params Optional starting values for coefficients.
+#' @param smart_cold_start Logical. If TRUE, use an initial OLS-based guess.
+#' @param estimate_only Logical. If TRUE, do not compute variance-covariance.
+#' @param maxit Maximum number of iterations.
+#' @param tol Convergence tolerance.
+#' @param fixed_idx Optional indices of fixed parameters.
+#' @param fixed_values Optional values for fixed parameters.
+#' @param optimization_alg Optimization algorithm.
+#' @param warm_start_fisher_info Optional initial Fisher Information matrix.
+#' @return A list containing coefficients, log_sigma, and convergence status.
+#' @export
+#' @keywords internal
+fast_weibull_regression_cpp <- function(X, y, dead, warm_start_params = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 100L, tol = 1e-8, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL) {
+    .Call(`_EDI_fast_weibull_regression_cpp`, X, y, dead, warm_start_params, smart_cold_start, estimate_only, maxit, tol, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
+}
+
 #' @title Compute Weibull Regression Score (General Censoring)
 #' @description Score vector for the Weibull AFT log-likelihood extended to
 #'   left-, right-, and interval-censored responses (see TODO-3 in

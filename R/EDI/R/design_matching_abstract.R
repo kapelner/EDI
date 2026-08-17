@@ -1,26 +1,14 @@
-#' An Abstract Matching Experimental Design
-#'
-#' @name DesignMatching
-#' @description Internal method.
-#' An abstract R6 class encapsulating shared matching-specific caches and
-#' utilities for designs that may expose matched-pair / reservoir structure.
-#'
-#' @keywords internal
-#' @examples
-#' \dontrun{
-#' des = DesignMatching$new(n = 6, response_type = "continuous")
-#' }
-DesignMatching = R6::R6Class("DesignMatching",
-	lock_objects = FALSE,
-	inherit = DesignBlocking,
-	public = list(
-		#' @description Check whether this design currently has matching structure.
-		#'
-		#' @return \code{TRUE} if the design advertises matching support.
+# Canonical literal implementation of the MatchingStructure component. This is
+# deliberately not an R6 generator: concrete designs receive these entries only
+# through define_design_class(components = "MatchingStructure").
+DESIGN_MATCHING_STRUCTURE_PUBLIC = list(
+		# @description Check whether this design currently has matching structure.
+		#
+		# @return \code{TRUE} if the design advertises matching support.
 		is_matching_design = function(){
 			isTRUE(private$matching_capable)
 		},
-		#' @description Assert that this design supports matching-specific operations.
+		# @description Assert that this design supports matching-specific operations.
 		assert_matching_design = function(){
 			if (should_run_asserts()) {
 				if (!self$is_matching_design()) {
@@ -28,19 +16,17 @@ DesignMatching = R6::R6Class("DesignMatching",
 				}
 			}
 		},
-		#' @description Return cluster IDs implied by the current matching structure.
-		#'
-		#' @param m_vec Optional integer match vector. Defaults to this design's match vector.
-		#'
-		#' @return Integer cluster IDs for matched pairs plus singleton reservoir units.
+		# @description Return cluster IDs implied by the current matching structure.
+		#
+		# @param m_vec Optional integer match vector. Defaults to this design's match vector.
+		#
+		# @return Integer cluster IDs for matched pairs plus singleton reservoir units.
 		get_matching_cluster_ids = function(m_vec = private$m){
 			private$compute_matching_cluster_ids(m_vec)
 		}
-	),
-	private = list(
-		draw_ws_raw = function(r = 100){
-			stop("draw_ws_raw must be implemented by a concrete design subclass.")
-		},
+	)
+
+DESIGN_MATCHING_STRUCTURE_PRIVATE = list(
 		xm_structural     = NULL,
 		xm_m_vec          = NULL,
 		lin_xm_structural = NULL,
@@ -127,4 +113,3 @@ DesignMatching = R6::R6Class("DesignMatching",
 			private$draw_matching_bootstrap_indices()
 		}
 	)
-)

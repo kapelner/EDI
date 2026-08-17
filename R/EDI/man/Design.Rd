@@ -20,7 +20,9 @@ local to those classes and does not affect this public convention.
 }
 \examples{
 \dontrun{
-seq_des = Design$new(n = 6, response_type = 'continuous')
+# Design is abstract and cannot be instantiated directly; construct a
+# concrete subclass instead, e.g.:
+seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = 'continuous')
 seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 }
 }
@@ -35,6 +37,8 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-Design-is_blocking_design}{\code{Design$is_blocking_design()}}
+    \item \href{#method-Design-is_matching_design}{\code{Design$is_matching_design()}}
     \item \href{#method-Design-is_a_kk_matching_capable}{\code{Design$is_a_kk_matching_capable()}}
     \item \href{#method-Design-is_a_cluster_capable}{\code{Design$is_a_cluster_capable()}}
     \item \href{#method-Design-is_a_bernoulli_capable}{\code{Design$is_a_bernoulli_capable()}}
@@ -60,10 +64,14 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \item \href{#method-Design-draw_ws_according_to_design}{\code{Design$draw_ws_according_to_design()}}
     \item \href{#method-Design-capabilities}{\code{Design$capabilities()}}
     \item \href{#method-Design-supports}{\code{Design$supports()}}
+    \item \href{#method-Design-applicable_inference_class_names}{\code{Design$applicable_inference_class_names()}}
+    \item \href{#method-Design-unavailable_inference_classes_due_to_missing_packages}{\code{Design$unavailable_inference_classes_due_to_missing_packages()}}
     \item \href{#method-Design-randomization_family}{\code{Design$randomization_family()}}
     \item \href{#method-Design-supports_resampling}{\code{Design$supports_resampling()}}
     \item \href{#method-Design-supports_randomization_draw}{\code{Design$supports_randomization_draw()}}
     \item \href{#method-Design-supports_resampling_replay}{\code{Design$supports_resampling_replay()}}
+    \item \href{#method-Design-prepare_for_resampling_replay}{\code{Design$prepare_for_resampling_replay()}}
+    \item \href{#method-Design-warm_all_subject_data_cache}{\code{Design$warm_all_subject_data_cache()}}
     \item \href{#method-Design-get_n}{\code{Design$get_n()}}
     \item \href{#method-Design-get_y_L}{\code{Design$get_y_L()}}
     \item \href{#method-Design-get_y_R}{\code{Design$get_y_R()}}
@@ -81,6 +89,42 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \item \href{#method-Design-clone}{\code{Design$clone()}}
   }
 }
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-is_blocking_design"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-is_blocking_design}{}}}
+\subsection{\code{Design$is_blocking_design()}}{
+  Check whether this design currently has blocking structure.
+
+The base implementation returns \code{FALSE}. Designs that compose
+\code{BlockingStructure} override this method with the structural check.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$is_blocking_design()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    \code{FALSE} for designs without \code{BlockingStructure}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-is_matching_design"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-is_matching_design}{}}}
+\subsection{\code{Design$is_matching_design()}}{
+  Check whether this design currently has matching structure.
+
+The base implementation returns \code{FALSE}. Designs that compose
+\code{MatchingStructure} override this method with the structural check.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$is_matching_design()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    \code{FALSE} for designs without \code{MatchingStructure}.
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Design-is_a_kk_matching_capable"></a>}}
 \if{latex}{\out{\hypertarget{method-Design-is_a_kk_matching_capable}{}}}
@@ -515,19 +559,25 @@ interval upper bound.}
 \if{html}{\out{<a id="method-Design-capabilities"></a>}}
 \if{latex}{\out{\hypertarget{method-Design-capabilities}{}}}
 \subsection{\code{Design$capabilities()}}{
-  Returns the metadata-backed capabilities this design object
-  exposes (see \code{fix_design_hierarchy.md}, "Capability Model").
+  Returns the capabilities this design \strong{instance} exposes
+  (see \code{fix_design_hierarchy.md}, "Capability Model").
 
-  Some concrete design classes have now been rewired to consume
-  \code{BlockingStructure}/\code{MatchingStructure}/\code{ClusterStructure}
-  via \code{define_design_class()} (see the "Timing-Family Split" Phase 1
-  TODO notes), but this still bridges the gap for the remaining ones: it
-  unions whatever the class registry resolves today with a legacy fallback
-  that calls the existing \code{is_blocking_design()}/\code{is_matching_design()}/
-  \code{supports_batch_w_pregeneration()} predicates directly, so callers get
-  correct answers regardless of which path a given class has been migrated
-  through. The fallback is temporary and should be deleted once every
-  concrete class is migrated and the registry alone is authoritative.
+  Deliberately instance-level, not a class-registry read (fix_design_hierarchy.md,
+  TODO-28): \code{is_blocking_design()}/\code{is_matching_design()} depend on
+  real construction-time state (e.g. \code{private$m}/\code{private$blocking_capable}),
+  not just which components a class composes -- \code{DesignFixediBCRD}
+  constructed with an unknown \code{n}, for instance, composes
+  \code{BlockingStructure} but is \emph{not} blocking-capable for that particular
+  instance. A class-registry-only answer (this function briefly unioned in
+  \code{get_effective_design_capabilities()}, a purely class-level, component-
+  composition-based check) would silently report "blocking" for every instance
+  of such a class regardless of its actual construction state -- confirmed as a
+  real, reproducible false positive during this TODO's implementation, not a
+  hypothetical. \code{get_effective_design_capabilities()}/
+  \code{design_class_registry.R}'s \code{direct_components} still exist and are
+  correct -- they're the right tool for a \strong{generator}-only query with no
+  instance in hand (see \code{design_class_generator_supports_batch_w_pregeneration()}),
+  just not for this instance-level method.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{Design$capabilities()}
@@ -542,9 +592,8 @@ interval upper bound.}
 \if{html}{\out{<a id="method-Design-supports"></a>}}
 \if{latex}{\out{\hypertarget{method-Design-supports}{}}}
 \subsection{\code{Design$supports()}}{
-  Returns whether this design object supports a metadata-backed
-  capability. See \code{capabilities()} for the current registry/legacy
-  bridging caveat.
+  Returns whether this design object supports a capability.
+  See \code{capabilities()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{Design$supports(capability)}
@@ -560,6 +609,64 @@ interval upper bound.}
   }
   \subsection{Returns}{
     \code{TRUE} if the capability is present, \code{FALSE} otherwise.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-applicable_inference_class_names"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-applicable_inference_class_names}{}}}
+\subsection{\code{Design$applicable_inference_class_names()}}{
+  Returns the sorted character vector of concrete, exported
+  \code{Inference} class names legal for this design object under
+  default constructor arguments, derived purely from this design's own
+  normalized metadata (response type, KK-matching capability, blocking,
+  and both censoring axes) filtered through the registry's
+  compatibility predicates -- the same normalization and predicate
+  logic \code{\link[EDI:InferenceSuite]{InferenceSuite}} uses for
+  discovery (see \code{normalize_inference_design_metadata()} and
+  \code{is_inference_class_compatible_with_design_metadata()} in
+  \code{inference_suite.R}). No candidate class is constructed to
+  determine applicability, so this has no side effects and cannot be
+  influenced by a constructor failure or a missing optional package
+  (see \code{unavailable_inference_classes_due_to_missing_packages()}
+  for that case, reported separately). A class whose censoring
+  tolerance depends on non-default constructor arguments (e.g.
+  \code{InferenceSurvivalCoxPHRegr} only tolerates general censoring
+  with \code{testing_type = "wald"}) is listed here when its
+  \strong{default} configuration is compatible; a construction-time
+  error for an incompatible non-default argument combination remains
+  the documented behavior of that class's \code{initialize()}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$applicable_inference_class_names()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A sorted character vector of applicable \code{Inference} class
+  names.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-unavailable_inference_classes_due_to_missing_packages"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-unavailable_inference_classes_due_to_missing_packages}{}}}
+\subsection{\code{Design$unavailable_inference_classes_due_to_missing_packages()}}{
+  Companion to \code{applicable_inference_class_names()}:
+  returns the subset of otherwise design-compatible \code{Inference}
+  classes that are excluded solely because a registered
+  \code{required_packages} entry is not installed, as a named list
+  (class name -> character vector of missing package names) -- kept
+  separate from plain design incompatibility so callers can tell "not
+  applicable to this design" apart from "applicable, but an optional
+  dependency isn't installed."
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$unavailable_inference_classes_due_to_missing_packages()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A named list, class name -> missing package names; empty list
+  if none.
   }
 }
 
@@ -673,6 +780,46 @@ interval upper bound.}
   }
   \subsection{Returns}{
     TRUE if bootstrap-randomization-test-style replay is supported.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-prepare_for_resampling_replay"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-prepare_for_resampling_replay}{}}}
+\subsection{\code{Design$prepare_for_resampling_replay()}}{
+  Hook invoked by the bootstrap-randomization-test machinery
+  on a design object whose assignment mechanism is about to be replayed
+  against resampled data (once per replicate draw site, ahead of
+  \code{draw_ws_according_to_design(1L)}). The base implementation is a
+  no-op; designs whose replay is a full re-optimization
+  (\code{DesignFixedOptimal}) override it to switch to their
+  per-replicate solver profile (\code{solver_args$brt_*}). Idempotent.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$prepare_for_resampling_replay()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    \code{invisible(NULL)}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-warm_all_subject_data_cache"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-warm_all_subject_data_cache}{}}}
+\subsection{\code{Design$warm_all_subject_data_cache()}}{
+  Warm the per-subject assignment-data cache, when this
+  design uses covariates. This is an internal optimization hook for
+  randomization inference; it keeps cache mutation inside the Design
+  object instead of exposing its private environment to callers.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$warm_all_subject_data_cache()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    \code{TRUE} invisibly when a cache warm-up was attempted, or
+  \code{FALSE} invisibly when the design does not use covariates.
   }
 }
 

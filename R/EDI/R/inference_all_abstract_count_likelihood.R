@@ -274,19 +274,12 @@ inference_count_likelihood_public = list(
 	))
 )
 
-#' Count-Specific Likelihood Inference Without Parametric LR Bootstrap
-#'
-#' @name InferenceCountLikelihoodNoParamBootstrap
-#' @description Internal base class for count likelihood families that should
-#' not expose the parametric LR bootstrap API.
-#'
-#' @keywords internal
-#' @noRd
-InferenceCountLikelihoodNoParamBootstrap = R6::R6Class("InferenceCountLikelihoodNoParamBootstrap",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLik,
-	public = inference_count_likelihood_public,
-	private = c(inference_count_likelihood_private, list(
-		is_a_count_likelihood_no_param_bootstrap = function() TRUE
-	))
-)
+# The InferenceCountLikelihoodNoParamBootstrap R6 generator that used to be
+# assembled here (inherit = InferenceAsympLik, same public/private lists as
+# CountLikelihoodPlumbingSource above plus an is_a_ marker) was deleted
+# 2026-08-17 (fix_inference_hierarchy.md, "Base Deletion"): it had zero
+# remaining inheritors anywhere in the package -- every count class either
+# still descends through InferenceCountLikelihood (the with-param-bootstrap
+# base, which stays until those classes migrate) or has already migrated to
+# define_inference_class() composing the CountLikelihoodPlumbing/
+# CountCompositeLikelihood components, which read the Source lists directly.

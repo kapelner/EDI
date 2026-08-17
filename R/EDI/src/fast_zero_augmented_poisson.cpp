@@ -344,9 +344,12 @@ edi::ResultMap fast_zap_with_var_internal(const Eigen::Ref<const Eigen::MatrixXd
         .set("params", params)
         .set("vcov", vcov)
         .set("converged", fit.converged)
+        .set("num_iter", fit.niter)
+        .set("hit_iteration_cap", fit.hit_iteration_cap)
         .set("neg_ll", fit.value)
         .set("fisher_information", observed_information)
-        .set("gradient_norm", fit.gradient_norm);
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information);
 }
 
 #ifndef EDI_CORE_ONLY
@@ -501,7 +504,7 @@ List fast_zero_augmented_poisson_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
             optimization_alg,
             nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info));
     } catch (...) {
-        return edi::to_rcpp_list(edi::ResultMap().set("converged", false).set("gradient_norm", NA_REAL));
+        return edi::to_rcpp_list(edi::ResultMap().set("converged", false).set("hit_iteration_cap", false).set("gradient_norm", NA_REAL));
     }
     Eigen::VectorXd params = fit.params;
     ZeroAugmentedPoisson fun(y_vec, X, Xzi, is_hurdle);
@@ -510,9 +513,12 @@ List fast_zero_augmented_poisson_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
         return edi::to_rcpp_list(edi::ResultMap()
             .set("params", params)
             .set("converged", fit.converged)
+            .set("num_iter", fit.niter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
             .set("neg_ll", fit.value)
             .set("neg_loglik", fit.value)
-            .set("gradient_norm", fit.gradient_norm));
+            .set("gradient_norm", fit.gradient_norm)
+            .set("min_eigenvalue_information", fit.min_eigenvalue_information));
     }
 
     Eigen::MatrixXd observed_information = fun.hessian(params);
@@ -526,6 +532,8 @@ List fast_zero_augmented_poisson_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
         .set("params", params)
         .set("vcov", vcov)
         .set("converged", fit.converged)
+        .set("num_iter", fit.niter)
+        .set("hit_iteration_cap", fit.hit_iteration_cap)
         .set("neg_ll", fit.value)
         .set("neg_loglik", fit.value)
         .set("observed_information", observed_information)
@@ -533,7 +541,8 @@ List fast_zero_augmented_poisson_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
         .set("information", observed_information)
         .set("information_type", std::string("observed"))
         .set("hessian", neg_observed_information)
-        .set("gradient_norm", fit.gradient_norm));
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information));
     out["coefficients"] = List::create(
         Named("cond") = params.head(p_cond),
         Named("zi") = params.tail(p_zi)

@@ -1336,7 +1336,14 @@ EDI_COMPONENT_SPECS = list(
 						"best_X_colnames"
 					),
 					provides_capabilities = character(),
-					allowed_likelihood_tiers = "none",
+					# "full", not "none": InferenceSurvivalDepCensTransformRegr implements
+					# a genuine full parametric likelihood (score/information/LR spec,
+					# supports_likelihood_tests = TRUE, supports_lik_ratio_param_bootstrap
+					# = TRUE, simulate_under_lik_null). It was previously misclassified
+					# "none" only because infer_inference_likelihood_tier()'s name regex
+					# didn't match "DepCensTransform" -- see fix_inference_hierarchy.md's
+					# "Asymptotic (Wald) No-Likelihood Migration" 2026-08-17 tier-fix note.
+					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE
 				),
 				SurvivalKKWeibullMarginal = list(

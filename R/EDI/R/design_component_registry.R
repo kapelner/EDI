@@ -7,12 +7,9 @@
 #' contract needs -- no lazy loading, no likelihood tiers, no \code{super$} category
 #' (Design components are pure state + method bundles, not deep-inheritance mixins).
 #'
-#' Components registered here are metadata + real method references only; they are
-#' not yet wired into any concrete \code{Design} class's \code{inherit=}/component
-#' list. That rewiring, and the golden-test verification it requires per class, is
-#' "Component Extraction" -- a later, separate TODO section. Registering a component
-#' here changes nothing about how \code{DesignBlocking}/\code{DesignMatching} and
-#' their descendants behave today.
+#' Components registered here are self-contained literal state + method bundles.
+#' Concrete designs opt into them through \code{define_design_class()}; structural
+#' behavior is no longer supplied by intermediate R6 generators.
 #'
 #' @keywords internal
 #' @noRd
@@ -26,8 +23,8 @@ DesignComponent = function(
 		dependencies = character(),
 		public = list(),
 		private = list(),
-		provides_public_methods = names(public),
-		provides_private_methods = names(private),
+		provides_public_methods = names(Filter(is.function, public)),
+		provides_private_methods = names(Filter(is.function, private)),
 		owns_state = character(),
 		requires_state = character(),
 		requires_public_methods = character(),
@@ -100,6 +97,22 @@ validate_design_component = function(component) {
 	if (!identical(sort(component$provides_private_methods), sort(design_component_private_names(component)))) {
 		stop(sprintf("Design component %s has stale private method metadata.", component$name), call. = FALSE)
 	}
+	missing_owned_state = setdiff(component$owns_state, names(component$private))
+	if (length(missing_owned_state) > 0L) {
+		stop(sprintf(
+			"Design component %s does not provide owned private state: %s",
+			component$name, paste(missing_owned_state, collapse = ", ")
+		), call. = FALSE)
+	}
+	functional_state = component$owns_state[vapply(
+		component$private[component$owns_state], is.function, logical(1L)
+	)]
+	if (length(functional_state) > 0L) {
+		stop(sprintf(
+			"Design component %s declares method(s) as owned state: %s",
+			component$name, paste(functional_state, collapse = ", ")
+		), call. = FALSE)
+	}
 	if (!is.list(component$allowed_host_overrides) ||
 			!identical(sort(names(component$allowed_host_overrides)), c("private", "public"))) {
 		stop(sprintf("Design component %s has invalid `allowed_host_overrides`.", component$name), call. = FALSE)
@@ -133,11 +146,13 @@ get_design_component = function(name) {
 }
 
 design_component_public_names = function(component) {
-	if (is.null(names(component$public))) character() else names(component$public)
+	nm = names(Filter(is.function, component$public))
+	if (is.null(nm)) character() else nm
 }
 
 design_component_private_names = function(component) {
-	if (is.null(names(component$private))) character() else names(component$private)
+	nm = names(Filter(is.function, component$private))
+	if (is.null(nm)) character() else nm
 }
 
 # Mirrors resolve_component_dependencies() in contracts_mixins.R, parametrized
@@ -299,18 +314,24 @@ validate_design_component_body_references = function(component) {
 populate_design_component_registry = function(ns = environment(populate_design_component_registry)) {
 	clear_design_component_registry()
 
-	blocking = get("DesignBlocking", envir = ns)
+	blocking_state = c(
+		"m", "strata_cols", "preferred_num_bins_for_continuous_covariate",
+		"B_target", "exact_num_blocks", "equal_block_sizes",
+		"blocking_capable", "cmh_se_w_mat"
+	)
 	register_design_component(DesignComponent(
 		name = "BlockingStructure",
 		status = "active",
 		dependencies = character(),
-		public = blocking$public_methods[c(
+		public = DESIGN_BLOCKING_STRUCTURE_PUBLIC[c(
 			"is_blocking_design", "assert_blocking_design", "is_complete_blocking_design",
 			"assert_equal_block_sizes", "add_all_subject_matched_pair_ids", "set_m",
 			"get_block_ids", "summarize_blocks", "inject_cmh_se_w_mat", "get_cmh_se_w_mat"
 		)],
 		private = c(
-			blocking$private_methods[c("assert_min_block_size", "get_strata_keys")],
+			DESIGN_BLOCKING_STRUCTURE_PRIVATE[c(
+				"assert_min_block_size", "get_strata_keys", blocking_state
+			)],
 			list(
 				# Generalizes the stratified/whole-block resample duplicated identically
 				# (down to variable names) across DesignFixedBlocking,
@@ -339,43 +360,42 @@ populate_design_component_registry = function(ns = environment(populate_design_c
 				}
 			)
 		),
-		owns_state = c(
-			"m", "strata_cols", "preferred_num_bins_for_continuous_covariate",
-			"B_target", "exact_num_blocks", "equal_block_sizes",
-			"blocking_capable", "cmh_se_w_mat"
-		),
+		owns_state = blocking_state,
 		requires_state = c("t", "Xraw", "y"),
 		requires_public_methods = "get_X_raw",
 		requires_private_methods = "has_private_method",
 		optional_private_methods = "get_or_compute_block_ids",
-		provides_capabilities = "blocking"
+		provides_capabilities = "blocking",
+		allowed_host_overrides = list(public = character(), private = blocking_state)
 	))
 
-	matching = get("DesignMatching", envir = ns)
+	matching_state = c(
+		"matching_capable", "boot_i_reservoir", "boot_n_reservoir", "boot_pair_rows",
+		"cluster_id", "cluster_id_m_vec", "lin_xm_m_vec", "lin_xm_structural",
+		"xm_m_vec", "xm_structural"
+	)
 	register_design_component(DesignComponent(
 		name = "MatchingStructure",
 		status = "active",
 		dependencies = "BlockingStructure",
-		public = matching$public_methods[c("is_matching_design", "assert_matching_design", "get_matching_cluster_ids")],
-		private = matching$private_methods[c(
+		public = DESIGN_MATCHING_STRUCTURE_PUBLIC[c("is_matching_design", "assert_matching_design", "get_matching_cluster_ids")],
+		private = DESIGN_MATCHING_STRUCTURE_PRIVATE[c(
 			"ensure_matching_structure_computed", "reset_matching_caches",
 			"init_matching_bootstrap_structure", "draw_matching_bootstrap_indices",
-			"compute_matching_cluster_ids", "draw_bootstrap_indices"
+			"compute_matching_cluster_ids", "draw_bootstrap_indices", matching_state
 		)],
-		owns_state = c(
-			"matching_capable", "boot_i_reservoir", "boot_n_reservoir", "boot_pair_rows",
-			"cluster_id", "cluster_id_m_vec", "lin_xm_m_vec", "lin_xm_structural",
-			"xm_m_vec", "xm_structural"
-		),
+		owns_state = matching_state,
 		requires_state = c("m", "n"),
 		requires_public_methods = "get_n",
-		provides_capabilities = "matching"
+		provides_capabilities = "matching",
+		allowed_host_overrides = list(public = character(), private = matching_state)
 	))
 
 	register_design_component(DesignComponent(
 		name = "ClusterStructure",
 		status = "active",
 		private = list(
+			cluster_col = NULL,
 			# Generalizes DesignFixedCluster's single-level cluster resample and
 			# DesignFixedBlockedCluster's two-level strata-then-cluster resample into one
 			# implementation. When BlockingStructure was not actually composed alongside
@@ -386,23 +406,15 @@ populate_design_component_registry = function(ns = environment(populate_design_c
 			# DesignFixedCluster's real output -- fix_design_hierarchy.md, "Follow-Ups
 			# From Implementation").
 			#
-			# Dispatches on `private$blocking_capable` rather than
-			# `has_private_method("get_strata_keys")`: the latter was tried first and
-			# broke real DesignFixedCluster once it was actually wired to this component
-			# (design_fixed_cluster.R), because DesignFixed still (pre "Timing-Family
-			# Split") inherits transitively through DesignMatching -> DesignBlocking, so
-			# `get_strata_keys` is present on *every* current DesignFixed subclass
-			# regardless of whether BlockingStructure was composed -- confirmed via the
-			# exact same class of failure documented for BlockingStructure's own
-			# `get_or_compute_block_ids` hook family. `blocking_capable` is an explicit
-			# capability flag, not an inherited-method probe, so it stays correct
-			# (FALSE for DesignFixedCluster, TRUE for DesignFixedBlockedCluster) both
-			# before and after the eventual inherit flip -- and is exactly the kind of
-			# check this whole migration is moving *toward*.
+			# The shallow hierarchy makes method presence structural again:
+			# get_strata_keys exists exactly when BlockingStructure was composed. Under
+			# the former DesignMatching -> DesignBlocking ancestry this probe was
+			# contaminated (every fixed design inherited the method), which forced a
+			# temporary blocking_capable dispatch. That workaround is no longer needed.
 			draw_bootstrap_indices = function(bootstrap_type = NULL) {
 				n = private$t
 				cluster_ids = as.character(private$Xraw[1:n, ][[private$cluster_col]])
-				strata_keys = if (isTRUE(private$blocking_capable)) {
+				strata_keys = if (private$has_private_method("get_strata_keys")) {
 					private$get_strata_keys()
 				} else {
 					rep("1", n)
@@ -422,15 +434,18 @@ populate_design_component_registry = function(ns = environment(populate_design_c
 			}
 		),
 		owns_state = "cluster_col",
-		requires_state = c("t", "Xraw", "blocking_capable"),
+		requires_state = c("t", "Xraw"),
+		requires_private_methods = "has_private_method",
 		optional_private_methods = "get_strata_keys",
-		provides_capabilities = "cluster"
+		provides_capabilities = "cluster",
+		allowed_host_overrides = list(public = character(), private = "cluster_col")
 	))
 
 	register_design_component(DesignComponent(
 		name = "SequentialStrataBootstrap",
 		status = "active",
 		private = list(
+			sequential_bootstrap_whole_group = NULL,
 			# Sequential blocking designs cannot use BlockingStructure's matrix-level
 			# get_strata_keys()/get_block_ids() path: their strata are formed one row at
 			# a time while Xraw grows.  Keep that data model explicit and share the two
@@ -466,14 +481,20 @@ populate_design_component_registry = function(ns = environment(populate_design_c
 		# SPBR supports whole-stratum resampling; RandomBlockSize has always treated
 		# every bootstrap_type as within-stratum (and also supports no strata).
 		owns_state = "sequential_bootstrap_whole_group",
-		requires_state = c("strata_cols", "uses_covariates", "t", "Xraw")
+		requires_state = c("strata_cols", "uses_covariates", "t", "Xraw"),
+		allowed_host_overrides = list(
+			public = character(), private = "sequential_bootstrap_whole_group"
+		)
 	))
 
-	greedy = get("DesignFixedGreedy", envir = ns)
 	register_design_component(DesignComponent(
 		name = "BatchWPregeneration",
 		status = "active",
-		public = greedy$public_methods["supports_batch_w_pregeneration"],
+		# Canonicalized here instead of pulled from DesignFixedGreedy: that generator
+		# now consumes this component, so retaining the old extraction direction would
+		# create a Collate-time cycle. All historical host definitions had this exact
+		# body, and the golden identity test pins that equivalence.
+		public = list(supports_batch_w_pregeneration = function() TRUE),
 		provides_capabilities = "batch_w_pregeneration"
 	))
 
@@ -487,9 +508,8 @@ populate_design_component_registry = function(ns = environment(populate_design_c
 
 # Invoked here (rather than alongside populate_design_class_registry() in
 # design_class_registry.R) so the component registry is populated immediately after
-# this file sources -- Collate positions this file right after DesignBlocking/
-# DesignMatching/DesignFixedGreedy (the concrete generators its registrations pull
-# real references from) and before design_class_factory.R, so that any concrete
+# this file sources -- Collate positions the literal structural source files before
+# this registry and design_class_factory.R, so that any concrete
 # design_*.R file using define_design_class(components = ...) later in the Collate
 # order finds a fully-populated component registry to resolve against.
 populate_design_component_registry()

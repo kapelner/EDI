@@ -40,15 +40,21 @@ A list containing the following components:
   treatment effect), regardless of what \code{j} is; equal to \code{ssq_b_j} when \code{j = 2}.
   \code{NA} if the second column is a fixed coefficient.}
 \item{mu}{The fitted means \eqn{\hat\mu_i}.}
-\item{converged}{A logical value indicating whether the algorithm converged.}
-\item{iterations}{The number of iterations performed.}
+\item{converged}{A logical value indicating whether the final gradient norm
+  was below \code{tol} (\code{gradient_norm < tol}); uniform across the
+  \code{"irls"}/\code{"lbfgs"}/\code{"newton_raphson"} optimizers.}
+\item{num_iter}{The number of iterations performed.}
 \item{score}{The score vector at the fitted coefficients.}
 \item{observed_information, fisher_information, information}{Three aliases for the same
   \eqn{X^\top W X} curvature matrix (\code{information_type} is always \code{"fisher"}).}
 \item{hessian}{The negative of that same matrix (the actual Hessian of the log-likelihood).}
 \item{neg_loglik, neg_ll}{The negative log-likelihood at the fitted coefficients (two aliases).}
 \item{loglik}{The log-likelihood (\code{-neg_ll}), or \code{NA} if \code{neg_ll} is non-finite.}
-\item{gradient_norm}{The norm of the score vector at convergence.}
+\item{hit_iteration_cap}{A logical value, mutually exclusive with
+  \code{converged}: \code{TRUE} iff the optimizer exhausted \code{maxit}
+  iterations without meeting the gradient-norm convergence criterion.}
+\item{gradient_norm}{The norm of the score vector at the returned
+  coefficients.}
 }
 }
 \description{

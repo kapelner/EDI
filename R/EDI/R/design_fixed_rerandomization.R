@@ -44,9 +44,24 @@
 #' unaffected, but this rescaling is a backend implementation detail worth knowing when
 #' comparing C++-path and pure-R-path acceptance rates for the same nominal cutoff. The
 #' sampler draws up to \code{max(r * 1000, 100000)} candidates internally; if fewer than
-#' \code{r} allocations are accepted within that budget (an overly tight cutoff), the
-#' accepted set is recycled (\code{rep(..., length.out = r)}) rather than erroring or
-#' looping further.
+#' \code{r} allocations are accepted within that budget (an overly tight cutoff), this
+#' errors naming how many were actually found -- loosen \code{obj_val_cutoff} or use
+#' \code{prop_acceptable} instead. (Earlier versions silently recycled the accepted set
+#' to pad out to \code{r}, duplicating some draws; fixed, since that meant some
+#' "independent" replicates were literal duplicates of an accepted allocation.)
+#'
+#' \strong{Seed reproducibility and multi-core parallelism.} The C++ fast path's
+#' rejection sampler is a genuine work-stealing search: with more than one core
+#' (\code{\link{set_num_cores}}/a fork cluster/mirai daemons; the package default is a
+#' single core), threads race via atomic operations for both which candidate draws to
+#' try next and which output column an accepted draw claims, so which per-thread-seeded
+#' RNG stream ends up producing a given replicate -- and in what order -- depends on
+#' real-time OS scheduling, not just \code{seed}. With the default single core, draws
+#' \emph{are} exactly seed-reproducible; this is not guaranteed once more than one core
+#' is in use. Contrast with \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}/
+#' \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}, whose C++ kernels
+#' use static (not work-stealing) thread scheduling and remain seed-reproducible
+#' regardless of core count.
 #'
 #' \strong{\code{prop_acceptable} path.} Uses
 #' \code{complete_randomization_forced_balanced_cpp()} (balanced case) or
@@ -75,8 +90,10 @@
 #' des = DesignFixedRerandomization$new(n = 10, response_type = 'continuous')
 #' }
 #' @export
-DesignFixedRerandomization = R6::R6Class("DesignFixedRerandomization",
+DesignFixedRerandomization = define_design_class(
+	classname = "DesignFixedRerandomization",
 	inherit = DesignFixed,
+	components = character(),
 	public = list(
 		#' @description Initialize a rerandomization fixed experimental design.
 		#'   Exactly one of \code{obj_val_cutoff}/\code{prop_acceptable} may be

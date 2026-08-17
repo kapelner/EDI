@@ -8,31 +8,9 @@
 # classes' output against a synthetic reference host built independently from the
 # same component.
 #
-# Important, generalizable finding from building these tests, later confirmed as a
-# real production bug: the synthetic hosts below deliberately use `inherit = Design`
-# (the root class) rather than `inherit = DesignFixed`. Composing ClusterStructure on
-# top of `DesignFixed` was tried first and failed with a real (if confusing)
-# downstream error, because `DesignFixed` still (pre "Timing-Family Split") inherits
-# transitively through `DesignMatching -> DesignBlocking`, so
-# `private$has_private_method("get_strata_keys")` incorrectly returns TRUE for *any*
-# current DesignFixed subclass -- confirmed even for DesignFixedBernoulli, which has
-# no blocking structure at all, purely because DesignBlocking is still a mandatory
-# ancestor of everything. This was originally caught only in the synthetic-host test
-# above -- but the *same* `has_private_method("get_strata_keys")` dispatch check was
-# still used in ClusterStructure's real implementation, and broke real
-# DesignFixedCluster the moment it was actually wired to the component (every
-# DesignFixedCluster instance has no `strata_cols`, so `get_strata_keys()` errored).
-# Fixed by switching ClusterStructure's dispatch to `isTRUE(private$blocking_capable)`
-# -- an explicit capability flag, not an inherited-method existence probe, so it is
-# unaffected by the pre-split ancestry contamination in either direction (FALSE for
-# DesignFixedCluster, TRUE for DesignFixedBlockedCluster, both before and after the
-# eventual inherit flip). This is a different situation from the
-# `get_or_compute_block_ids` existence check added to BlockingStructure earlier (safe
-# today because that method lives only on the leaf class DesignFixedOptimalBlocks,
-# never inherited by any sibling) -- any *future* `has_private_method()` check against
-# a method defined on `DesignBlocking`/`DesignMatching` themselves (as opposed to a
-# leaf concrete class) has this same hazard until the split lands; prefer an explicit
-# capability flag where one already exists, as done here.
+# The shallow hierarchy makes `has_private_method("get_strata_keys")` a structural
+# probe: it is true exactly when BlockingStructure is composed. These hosts pin both
+# sides of that dispatch without any inherited structural base or surrogate flag.
 
 test_that("ClusterStructure's generalized draw_bootstrap_indices reproduces DesignFixedCluster exactly (no stratification)", {
 	EDI:::populate_design_component_registry()
@@ -40,13 +18,6 @@ test_that("ClusterStructure's generalized draw_bootstrap_indices reproduces Desi
 		classname = "DesignTemporaryClusterOnlyHost",
 		inherit = Design,
 		components = "ClusterStructure",
-		# blocking_capable is declared here (rather than relying on the DesignBlocking
-		# ancestry that `inherit = Design` deliberately bypasses) purely to satisfy
-		# ClusterStructure's requires_state; the validator only checks the inherited
-		# chain plus this class's own explicit private list, not other composed
-		# components' owns_state, so BlockingStructure (not composed on this host at
-		# all) can't supply it here even in principle.
-		private = list(blocking_capable = FALSE),
 		public = list(
 			initialize = function(cluster_col, response_type, n, ...) {
 				super$initialize(response_type = response_type, n = n, ...)
@@ -91,11 +62,6 @@ test_that("ClusterStructure's generalized draw_bootstrap_indices reproduces Desi
 		classname = "DesignTemporaryBlockedClusterHost",
 		inherit = Design,
 		components = c("BlockingStructure", "ClusterStructure"),
-		# See DesignTemporaryClusterOnlyHost's comment above: requires_state is only
-		# checked against the inherited chain and this class's own explicit private
-		# list, not sibling components' owns_state, even though BlockingStructure (also
-		# composed here) declares blocking_capable in its own owns_state.
-		private = list(blocking_capable = TRUE),
 		public = list(
 			initialize = function(strata_cols, cluster_col, response_type, n, ...) {
 				super$initialize(response_type = response_type, n = n, ...)

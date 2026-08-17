@@ -47,6 +47,80 @@ membership is assigned by simple round-robin (\code{rep(seq_len(B), length.out =
 rather than by any of the three clustering algorithms, since there is no covariate
 information to cluster on.
 
+\strong{Solver backend (\code{method = "ompr"} only).} \code{roi_solver} selects the
+MILP backend \pkg{ompr.roi} dispatches to, a \strong{closed set}
+\code{c("glpk", "gurobi", "cplex")} (default \code{"glpk"}) -- validated against this
+set, not passed through to \code{ROI::ROI_registered_solvers()} unchecked, so a typo
+or an unsupported solver name fails fast with a clear message rather than an opaque
+\pkg{ompr} error three layers down. Gurobi and CPLEX are supported because they extend
+which block-formation problems stay practical, not just which are expressible: GLPK's
+branch-and-bound is single-threaded with no commercial-grade presolve/cutting-plane
+machinery, while Gurobi/CPLEX are typically an order of magnitude faster on the same
+MILP and solve in parallel, meaningfully extending the \eqn{n} for which the exact
+\code{"ompr"} method stays practical. Scope is deliberately closed to these two for
+now -- not because other ROI plugins (CBC, SYMPHONY, ...) wouldn't work mechanically
+(the dispatch is generic), but because Gurobi and CPLEX are the two most widely used
+commercial solvers and the only ones worth a maintained step-by-step guide at this
+point; extending the closed set is a small, low-risk addition later if a real need for
+a third backend appears, not a reason to leave the set open-ended now.
+
+\strong{Wiring up Gurobi:}
+\enumerate{
+  \item Obtain a Gurobi license (a free academic license is available from Gurobi for
+    non-commercial use) and install the Gurobi Optimizer itself. This sets up
+    \code{GUROBI_HOME} and the license file (\code{gurobi.lic}, discoverable via the
+    \code{GRB_LICENSE_FILE} environment variable or Gurobi's default search path) --
+    entirely outside this package's control or dependency graph.
+  \item Install Gurobi's own R package. \strong{Not available via CRAN} -- it ships
+    inside the Gurobi installation itself:
+    \code{R CMD INSTALL "$GUROBI_HOME/R/gurobi_<version>_R_<Rmajor.minor>.tar.gz"}
+    (exact filename/path depends on your Gurobi version and platform; see the
+    \code{R/} subdirectory of your Gurobi install). This is the vendor interface
+    \code{ROI.plugin.gurobi} wraps -- required even though it's not what you call
+    directly.
+  \item Install the ROI bridge package from CRAN:
+    \code{install.packages("ROI.plugin.gurobi")}. This package \strong{is} on CRAN
+    (it only depends on \pkg{ROI} + the \code{gurobi} R package from step 2 being
+    present at load time) and is the only new artifact this class's own dependency
+    graph ever touches.
+  \item Verify: after \code{library(ROI.plugin.gurobi)}, \code{"gurobi" \%in\%
+    ROI::ROI_registered_solvers()} should be \code{TRUE}.
+  \item Pass \code{roi_solver = "gurobi"} to the constructor.
+}
+
+\strong{Wiring up CPLEX:}
+\enumerate{
+  \item Obtain an IBM CPLEX license (a free academic license is available from IBM)
+    and install IBM ILOG CPLEX Optimization Studio.
+  \item Install \pkg{Rcplex} (CRAN), CPLEX's R interface. Unlike
+    \code{ROI.plugin.gurobi}, \pkg{Rcplex} is a \strong{source package that compiles
+    against your local CPLEX installation} -- it needs to be pointed at your CPLEX
+    SDK's include/lib directories at install time (typically via \code{configure.args}
+    to \code{install.packages()}, naming your CPLEX version's
+    \code{cplex/include}/\code{cplex/lib/<platform>} paths). The exact flag names and
+    paths are CPLEX-version- and platform-specific -- \strong{follow \pkg{Rcplex}'s
+    own \code{INSTALL}/README instructions for your installed CPLEX version} rather
+    than a fixed command copied from here, since this changes across CPLEX releases.
+  \item Install the ROI bridge package from CRAN:
+    \code{install.packages("ROI.plugin.cplex")} (depends on \pkg{Rcplex} from step 2
+    being present and working).
+  \item Verify: after \code{library(ROI.plugin.cplex)}, \code{"cplex" \%in\%
+    ROI::ROI_registered_solvers()} should be \code{TRUE}.
+  \item Pass \code{roi_solver = "cplex"} to the constructor.
+}
+
+\strong{Dependency-graph consequence:} \code{ROI.plugin.gurobi}/\code{ROI.plugin.cplex}
+(and \pkg{Rcplex}) are \strong{never added to \code{Suggests}} -- they're free/CRAN-
+available themselves, but declaring them would misrepresent the dependency as
+something \code{install.packages("EDI", dependencies = TRUE)} could satisfy, when the
+vendor package/license underneath cannot be. The lazy-check pattern already used for
+\pkg{ompr}/\pkg{ompr.roi}/\code{ROI.plugin.glpk} extends naturally: check
+\code{requireNamespace("ROI.plugin.gurobi"/"ROI.plugin.cplex")} at solve time (not at
+package load or class-definition time) for whichever \code{roi_solver} was requested,
+and error informatively -- naming the missing package and, if that's present but the
+solve still fails, noting the likely cause is a missing vendor license/installation,
+not something this class can diagnose further.
+
 \strong{Bootstrap.} \code{draw_bootstrap_indices()} resamples within blocks by
 default (\code{bootstrap_type = "within_blocks"} or \code{NULL}, via
 \code{stratified_bootstrap_indices_cpp()}) or resamples whole blocks otherwise (via
@@ -69,7 +143,7 @@ Higgins, M. J., Sävje, F., and Sekhon, J. S. (2016). "Improving massive
   the default \code{"ompr"} distance.
 }
 \section{Super classes}{
-\code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignBlocking]{DesignBlocking}} -> \code{\link[EDI:DesignMatching]{DesignMatching}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixedOptimalBlocks}
+\code{\link[EDI:Design]{Design}} -> \code{\link[EDI:DesignFixed]{DesignFixed}} -> \code{DesignFixedOptimalBlocks}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -87,31 +161,11 @@ Higgins, M. J., Sävje, F., and Sekhon, J. S. (2016). "Improving massive
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-overwrite_all_subject_assignments'><code>DesignFixed$overwrite_all_subject_assignments()</code></a></li>
 </ul>
 </details>
-<details><summary>+ inherited public methods from DesignMatching</summary>
-<ul>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-assert_matching_design'><code>DesignMatching$assert_matching_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-get_matching_cluster_ids'><code>DesignMatching$get_matching_cluster_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignMatching.html#method-DesignMatching-is_matching_design'><code>DesignMatching$is_matching_design()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from DesignBlocking</summary>
-<ul>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-add_all_subject_matched_pair_ids'><code>DesignBlocking$add_all_subject_matched_pair_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-assert_blocking_design'><code>DesignBlocking$assert_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-assert_equal_block_sizes'><code>DesignBlocking$assert_equal_block_sizes()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-get_block_ids'><code>DesignBlocking$get_block_ids()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-get_cmh_se_w_mat'><code>DesignBlocking$get_cmh_se_w_mat()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-inject_cmh_se_w_mat'><code>DesignBlocking$inject_cmh_se_w_mat()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-is_blocking_design'><code>DesignBlocking$is_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-is_complete_blocking_design'><code>DesignBlocking$is_complete_blocking_design()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-set_m'><code>DesignBlocking$set_m()</code></a></li>
-  <li><a href='../../EDI/html/DesignBlocking.html#method-DesignBlocking-summarize_blocks'><code>DesignBlocking$summarize_blocks()</code></a></li>
-</ul>
-</details>
 <details><summary>+ inherited public methods from Design</summary>
 <ul>
   <li><a href='../../EDI/html/Design.html#method-Design-add_one_subject_response'><code>Design$add_one_subject_response()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-any_censoring'><code>Design$any_censoring()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-applicable_inference_class_names'><code>Design$applicable_inference_class_names()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_responses_recorded'><code>Design$assert_all_responses_recorded()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_all_subjects_arrived'><code>Design$assert_all_subjects_arrived()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-assert_even_allocation'><code>Design$assert_even_allocation()</code></a></li>
@@ -143,13 +197,18 @@ Higgins, M. J., Sävje, F., and Sekhon, J. S. (2016). "Improving massive
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-is_blocking_design'><code>Design$is_blocking_design()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_fixed_sample_size'><code>Design$is_fixed_sample_size()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-is_matching_design'><code>Design$is_matching_design()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-prepare_for_resampling_replay'><code>Design$prepare_for_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-randomization_family'><code>Design$randomization_family()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports'><code>Design$supports()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports_randomization_draw'><code>Design$supports_randomization_draw()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling'><code>Design$supports_resampling()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-supports_resampling_replay'><code>Design$supports_resampling_replay()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-transform_y'><code>Design$transform_y()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-unavailable_inference_classes_due_to_missing_packages'><code>Design$unavailable_inference_classes_due_to_missing_packages()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-warm_all_subject_data_cache'><code>Design$warm_all_subject_data_cache()</code></a></li>
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
@@ -188,6 +247,7 @@ Higgins, M. J., Sävje, F., and Sekhon, J. S. (2016). "Improving massive
   B = NULL,
   method = "K-way",
   dist = "mahal",
+  roi_solver = "glpk",
   response_type,
   prob_T = 0.5,
   include_is_missing_as_a_new_feature = TRUE,
@@ -223,6 +283,10 @@ defaults to \code{floor(sqrt(n))}, with a minimum of 1.}
       \item{\code{dist}}{Distance specification used only when \code{method = "ompr"}.
 Either a function or one of \code{"euclidean"}, \code{"sum_abs_diff"},
 or \code{"mahal"}. Default is \code{"mahal"}.}
+      \item{\code{roi_solver}}{MILP backend used only when \code{method = "ompr"}. A
+closed set \code{c("glpk", "gurobi", "cplex")}, default \code{"glpk"}.
+See the class documentation's "Solver backend" and wiring-guide
+sections for the Gurobi/CPLEX setup steps.}
       \item{\code{response_type}}{The response type for the design.}
       \item{\code{prob_T}}{Treatment assignment probability within each block.}
       \item{\code{include_is_missing_as_a_new_feature}}{Whether to include missingness indicators.}

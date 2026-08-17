@@ -65,6 +65,9 @@ def test_matches_r_fixture():
     X, y, group_id = _synthetic_data()
     res = fast_ordinal_clmm(X, y, group_id, K=3, j_T=0, link="logit")
 
+    # NOTE (2026-08-17): converged now derives from the shared LBFGS/Newton
+    # machinery's gradient-norm-based redefinition (optimizer_diagnostics_
+    # report.md TODO-4) -- re-verify against a fresh R run once compiled.
     assert res["converged"] is True
     assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)
     assert res["alpha"] == pytest.approx(R_ALPHA, abs=ATOL, rel=RTOL)

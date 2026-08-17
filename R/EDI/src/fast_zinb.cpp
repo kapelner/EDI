@@ -243,7 +243,10 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
         .set("converged", fit.converged)
         .set("neg_ll", fit.value)
         .set("fisher_information", hess)
-        .set("iterations", fit.niter);
+        .set("num_iter", fit.niter)
+            .set("hit_iteration_cap", fit.hit_iteration_cap)
+            .set("gradient_norm", fit.gradient_norm)
+            .set("min_eigenvalue_information", fit.min_eigenvalue_information);
 }
 
 #ifndef EDI_CORE_ONLY
@@ -292,7 +295,10 @@ List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen:
         List out = edi::to_rcpp_list(edi::ResultMap()
             .set("params", fit.params)
             .set("converged", fit.converged)
-            .set("iterations", fit.niter));
+            .set("num_iter", fit.niter)
+        .set("hit_iteration_cap", fit.hit_iteration_cap)
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information));
         out["coefficients"] = List::create(
             Named("cond") = fit.params.head(p_cond),
             Named("zi") = fit.params.segment(p_cond, p_zi)

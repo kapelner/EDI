@@ -17,7 +17,7 @@
 #' @details
 #' \strong{Block construction.} Blocking keys are computed by
 #' \code{private$get_strata_keys()} (shared across
-#' \code{\link[EDI:DesignBlocking]{DesignBlocking}} subclasses): each column in
+#' blocking-structure designs): each column in
 #' \code{strata_cols} contributes a categorical key (continuous columns are discretized
 #' into \code{preferred_num_bins_for_continuous_covariate} quantile bins), and multiple
 #' columns are combined into one composite block key per subject; if \code{strata_cols}

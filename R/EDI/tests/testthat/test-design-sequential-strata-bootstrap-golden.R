@@ -1,7 +1,7 @@
 # Golden tests for the row-by-row sequential blocking bootstrap extracted for
 # fix_design_hierarchy.md TODO-23.  The synthetic host deliberately inherits Design
 # directly: this tests the component independently of the still-contaminated
-# DesignSeqOneByOne -> DesignMatching -> DesignBlocking transition hierarchy.
+# the former deep transition hierarchy.
 
 make_sequential_strata_bootstrap_host = function() {
 	EDI:::define_design_class(

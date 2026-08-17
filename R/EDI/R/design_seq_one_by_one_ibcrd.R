@@ -41,8 +41,10 @@
 #' seq_des = DesignSeqOneByOneiBCRD$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' @export
-DesignSeqOneByOneiBCRD = R6::R6Class("DesignSeqOneByOneiBCRD",
+DesignSeqOneByOneiBCRD = define_design_class(
+	classname = "DesignSeqOneByOneiBCRD",
 	inherit = DesignSeqOneByOne,
+	components = "BlockingStructure",
 	public = list(
 		#' @description Initialize a sequential design targeting exact terminal
 		#'   treatment/control balance (see class documentation for the assignment
@@ -75,6 +77,7 @@ DesignSeqOneByOneiBCRD = R6::R6Class("DesignSeqOneByOneiBCRD",
 				seed = NULL
 			) {
 			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
+			private$blocking_capable = TRUE
 		},
 		#' @description Add one subject to the experiment and assign treatment via
 		#'   \code{assign_wt()} (delegating to the inherited

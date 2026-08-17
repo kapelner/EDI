@@ -296,11 +296,8 @@ OrdinalProportionalOddsLikelihoodSource = inference_component_source_parts(Infer
 
 InferenceOrdinalPropOddsRegr = define_inference_class(
 	classname = "InferenceOrdinalPropOddsRegr",
-	inherit = Inference,
-	components = c(
-		"BayesianBootstrap", "ParametricLikelihoodBootstrap",
-		"OrdinalProportionalOddsLikelihood"
-	),
+	inherit = InferenceParamBootstrap,
+	components = "OrdinalProportionalOddsLikelihood",
 	public = list(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),

@@ -319,6 +319,10 @@ List fast_continuation_ratio_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X
         .set("X_aug", cr.X_aug)
         .set("z", cr.z)
         .set("converged", fit.converged)
+        .set("num_iter", fit.niter)
+        .set("hit_iteration_cap", fit.hit_iteration_cap)
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
         .set("fisher_information", fun.hessian(fit.params)));
 }
 
@@ -395,7 +399,8 @@ List fast_continuation_ratio_regression_with_var_cpp( const Eigen::Map<Eigen::Ma
         return edi::to_rcpp_list(edi::ResultMap()
             .set("b", VectorXd::Constant(1, NA_REAL))
             .set("ssq_b_j", NA_REAL)
-            .set("converged", false));
+            .set("converged", false)
+            .set("hit_iteration_cap", false));
     }
     int n_alpha = cr.n_alpha;
     LikelihoodFitResult& fit = cr.fit;
@@ -424,6 +429,10 @@ List fast_continuation_ratio_regression_with_var_cpp( const Eigen::Map<Eigen::Ma
         .set("neg_loglik", fit.value)
         .set("vcov", vcov_value)
         .set("converged", fit.converged)
+        .set("num_iter", fit.niter)
+        .set("hit_iteration_cap", fit.hit_iteration_cap)
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
         .set("params", fit.params)
         .set("fisher_information", info));
 }

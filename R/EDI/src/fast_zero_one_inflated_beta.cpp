@@ -601,7 +601,11 @@ List fast_zero_one_inflated_beta_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const
 			.set("zero_one_b1", params.tail(p_zero_one))
 			.set("params", params)
 			.set("neg_loglik", fit.value)
-			.set("converged", fit.converged));
+			.set("converged", fit.converged)
+			.set("num_iter", fit.niter)
+			.set("hit_iteration_cap", fit.hit_iteration_cap)
+			.set("gradient_norm", fit.gradient_norm)
+			.set("min_eigenvalue_information", fit.min_eigenvalue_information));
 	}
 
 	FixedParamSpec fixed_spec = make_fixed_param_spec(
@@ -631,6 +635,11 @@ List fast_zero_one_inflated_beta_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const
 		.set("params", params)
 		.set("vcov", vcov_mat)
 		.set("neg_loglik", fit.value)
+		.set("converged", fit.converged)
+		.set("num_iter", fit.niter)
+		.set("hit_iteration_cap", fit.hit_iteration_cap)
+		.set("gradient_norm", fit.gradient_norm)
+		.set("min_eigenvalue_information", fit.min_eigenvalue_information)
 		.set("observed_information", observed_information)
 		.set("fisher_information", observed_information)
 		.set("information", observed_information)

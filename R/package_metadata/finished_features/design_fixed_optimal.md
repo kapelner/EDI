@@ -790,26 +790,117 @@ open-ended now.
   override `supports_resampling_replay`, whose base default is correct) —
   that lands with the class in TODO-9, as does the automatic registration
   via the namespace scan.
-- [ ] TODO-8b: BRT wiring: route the BRT worker/draw path through
-  per-replicate re-optimization of the resampled covariates
-  (`generate_rand_bootstrap_draws()` and the reusable-worker machinery),
-  implement `solver_args$brt_max_iter`/`brt_n_chains`/`brt_solver`, apply
-  the mirror coin per replicate (each replicate's re-optimized `w*_b` gets
-  its own independent seeded flip, per the Class-mechanics decision — the
-  BRT must replay the *coin-inclusive* mechanism, not just the solve), and
-  document the per-replicate cost.
-- [ ] TODO-9: `assign_w_to_all_subjects()` solver dispatch, diagnostics
-  cache, and `get_optimization_diagnostics()`; plus the mirror coin
-  (`mirror_coin` constructor arg, post-solve co-optimum verification via
-  objective evaluation at `1 - w*` with tolerance, seeded fair flip on a
-  tie, strictly-better-mirror solver-bug assertion) applied at every solve
-  site — observed-data solve, `draw_ws_according_to_design(r = 1)`, and the
-  BRT replicate path (coordinate with TODO-8b). Diagnostics should record
-  whether the mirror tied and which label the coin chose.
-- [ ] TODO-10: Test suite per the Testing plan (brute-force exactness,
-  annealing quality/convergence rate, custom XPtr, quality baseline vs.
-  greedy restarts, fencing, fallback, BRT).
-- [ ] TODO-11: Documentation: full roxygen (objective/argument mapping table
+- [x] TODO-8b: **Done (2026-08-17).** Mechanism: a new generic no-op hook
+  `Design$prepare_for_resampling_replay()` (design_abstract.R), invoked at
+  all five BRT draw sites in `inference_all_abstract_rand_bootstrap.R`
+  (materialize worker + subset paths, the reusable-worker assignment
+  fallback, and both per-iteration fallbacks) immediately before
+  `draw_ws_according_to_design(1L)` — one no-op line for every other
+  design, no class-identity dispatch. `DesignFixedOptimal` overrides it to
+  enter replicate mode: subsequent solves use `solver_args$brt_solver`
+  (default `"annealing"` with `brt_n_chains` default 1 and `brt_max_iter`
+  default 2000; `"ompr"` opts into exact per-replicate solves through the
+  auto path), recorded as `solver_profile = "brt_replicate"` in the
+  diagnostics; the mirror coin applies per replicate unchanged (the solve
+  pipeline is shared, so the BRT replays the coin-inclusive mechanism).
+  `brt_solver` is validated at construction (closed set; `"ompr"` refused
+  for `objective = "custom"`). **Bug found and fixed in shared code:** the
+  reusable-worker machinery deliberately stores the worker design's `Xraw`
+  as a plain data.frame (`bootstrap_subset_source()`), but
+  `covariate_impute_if_necessary_and_then_create_model_matrix()` used
+  data.table `..` syntax on it — this class is the first whose in-worker
+  draw runs the impute path, which errored (silently swallowed by the
+  materialize `tryCatch`, surfacing as NA p-values). Fixed by
+  `as.data.table(private$Xraw)` at the top of the impute function
+  (behavior-identical for the ordinary path); worker-hook-contract and
+  smoothed-BRT-kernel suites re-run green. Tests
+  (`test-design-fixed-optimal-brt.R`, 19 assertions, all passing): no-op
+  hook on ordinary designs, profile switch (reduced annealing + exact-ompr
+  opt-in + main-profile without the hook), BRT p-value end-to-end with
+  seed determinism, per-replicate `w*_b` variation beyond mere mirroring
+  (canonicalized modulo the label flip), a spot-check that a replicate's
+  `w_b` achieves the certified optimum of a from-scratch exact solve on
+  that replicate's resampled covariates, and `brt_solver` validation.
+- [x] TODO-9: **Done (2026-08-17).** `R/design_fixed_optimal.R` (in Collate;
+  `export(DesignFixedOptimal)` added to NAMESPACE by hand, consistent with
+  the `@export` tag pending the next roxygenize): built via
+  `define_design_class(inherit = DesignFixed, components = character())`.
+  Constructor implements the full planned API with always-on validation
+  (closed objective/solver sets, interest/prior_precision fenced to
+  `"D"`/`"A"`, `custom_objective` required-iff-custom and normalized at
+  construction via the shared `assert_custom_objective_xptr()`,
+  `solver_args` closed name set — including the staged `brt_*` keys — with
+  eager `roi_solver` closed-set check, `mirror_coin` flag). Solve pipeline:
+  `draw_ws_raw(r = 1)` (r > 1 errors as defense-in-depth behind the
+  capability fence) -> `build_solver_inputs()` (D/A via the shared
+  `build_optimal_design_P_H`; mahal/abs via
+  `prepare_optimal_objective_matrices` incl. the l1 fallback; custom via
+  the XPtr) -> dispatch (`"auto"` = `optimal_solve_auto()`; forced
+  `"ompr"`/`"annealing"` paths, with forced-ompr Dinkelbach exhaustion
+  erroring informatively) -> **the mirror coin** (feasibility `n - n_T ==
+  n_T`, numeric co-optimum verification via the kind's `f_eval` closure at
+  tolerance `1e-9 * max(1, |f|)`, strictly-better-mirror solver-bug stop,
+  seeded fair flip) -> diagnostics cached
+  (`get_optimization_diagnostics()`: solver, `optimum_certificate`,
+  objective value, `mirror_feasible`/`mirror_tied`/`mirror_flipped`,
+  elapsed, plus the solver's own detail fields).
+  `supports_randomization_draw()` overridden to `FALSE`
+  (ObservationalDesign's pattern; `supports_resampling_replay()` keeps the
+  base `TRUE`); registration via the namespace scan picked up the staged
+  TODO-8 metadata automatically (verified: family, timing, seed flag,
+  batch flag, required packages). No covariates degenerates to a random
+  exact-`n_T` allocation (siblings' documented fallback). No `P`/`H`/`w*`
+  caching across solves — every `draw_ws_raw(1)` re-optimizes, which is
+  exactly what the BRT replicate path needs. Tests
+  (`test-design-fixed-optimal.R`, 68 assertions, all passing): registry +
+  capability profile, certified-optimum installation with diagnostics for
+  D/mahal/abs_sum_diff/A-Dinkelbach, mirror-coin behavior (both labelings
+  across seeds; none with `mirror_coin = FALSE`; seed reproducibility
+  including the coin; infeasible at `prob_T = 0.3`), the r = 1 draw
+  contract, fencing (rand test refused via the capability error;
+  model-based estimation runs), forced/auto-fallback solver selection,
+  custom end-to-end, and the always-on validation matrix.
+- [x] TODO-10: **Done (2026-08-17).** Full coverage map against the Testing
+  plan: item 1 (brute-force MILP/Dinkelbach exactness) —
+  `test-design-optimal-milp-solvers.R`; item 2 (annealing dominance,
+  determinism, bounded miss rate) — `test-design-optimal-annealing.R`;
+  item 3 (custom XPtr reproduces built-in optimum, validation) —
+  `test-design-optimal-custom-objective.R`; item 4 (quality baseline:
+  forced annealing in its necessary zone, mean objective <= best of
+  `n_chains` blind `DesignFixedGreedyDOptimal` draws over repeated trials)
+  — `test-design-fixed-optimal.R`; item 5 (fencing: rand test AND rand CI
+  refused via the capability error, model-based paths run, registry
+  metadata) — `test-design-fixed-optimal.R`; item 6 (auto fallback with
+  message, ompr-on-custom refusal; the lazy missing-Suggests error is not
+  exercised since the packages are installed in the dev environment — its
+  code path is `assert_optimal_roi_solver()`, trivially inspectable); item
+  7 (BRT end-to-end, variation modulo mirroring, re-optimization
+  spot-check, seed determinism) — `test-design-fixed-optimal-brt.R`; item
+  8 (mirror coin: Bernoulli behavior across seeds, `mirror_coin = FALSE`
+  determinism, A/`"all"` non-tie never flips — objective-determined
+  labeling detected by the numeric verification, infeasible at
+  `prob_T != 0.5`) — `test-design-fixed-optimal.R`. 73 + 19 + 21 + 34 + 30
+  assertions across the five files, all passing.
+- [x] TODO-11: **Done (2026-08-17).** Class roxygen expanded per spec: the
+  D/A/Bayesian/mahal/abs/custom objective-mapping `\describe` table (same
+  style as `DesignFixedGreedyDOptimal`'s), the solvers-and-certificates
+  section (Hajek 1988 cited for the annealing formality; certificate
+  semantics stated), the mirror-coin and inference-trade sections,
+  `@param custom_objective` stating XPtr-or-source-only \emph{and why} (the
+  per-candidate R-call argument, per TODO-2), `@param solver_args` carrying
+  the two separate step-by-step "Wiring up Gurobi"/"Wiring up CPLEX"
+  subsections plus the never-Suggests rationale and the closed `roi_solver`
+  set, a worked `RcppXPtrUtils::cppXPtr()` example in `@examples`, and
+  `@references` (Dinkelbach 1967, Hajek 1988, Atkinson et al. 2007).
+  `Rscript fast_roxygenize.R` run: `DesignFixedOptimal.Rd` (29KB) generated,
+  `export(DesignFixedOptimal)` regenerated from the tag.
+  `vignettes/reproducibility.Rmd` gained a `DesignFixedOptimal` subsection
+  (MILP deterministic up to the seeded label flip; per-CHAIN annealing
+  seeding reproducible under any OpenMP thread count; auto-temperature probe
+  seed coverage; BRT replicates replay the coin-inclusive mechanism) and the
+  families paragraph updated from two to three local-generator families.
+  Final battery after reinstall: all eight optimal-design/greedy/registry
+  suites green.
   in the same style as `DesignFixedGreedyDOptimal`'s D_M/D_s/D_A/D_B
   section, the model-based-inference-only trade-off stated prominently, an
   `RcppXPtrUtils::cppXPtr()` worked example), `Rscript fast_roxygenize.R`,

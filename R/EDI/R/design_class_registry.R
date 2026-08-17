@@ -3,10 +3,11 @@
 #' The registry is the source of truth for structural metadata used by the future
 #' shallow design hierarchy (see \code{fix_design_hierarchy.md}). It is intentionally
 #' separated from R6 generator environments so metadata can be validated without
-#' instantiating design classes. This file implements only the "Metadata Registry"
-#' section of that plan; component registration/resolution (\code{BlockingStructure},
-#' \code{MatchingStructure}, etc.) is later work, so \code{direct_components} is always
-#' \code{character()} for now.
+#' instantiating design classes. \code{direct_components} is populated from the
+#' resolved component set \code{define_design_class()} stashes on each generator it
+#' builds (\code{design_class_factory.R}); a generator built with plain
+#' \code{R6::R6Class()} instead (not yet migrated) has no such attribute and reads
+#' as \code{character()}.
 #'
 #' @keywords internal
 #' @noRd
@@ -25,9 +26,9 @@ EDI_DESIGN_ALLOWED_RANDOMIZATION_FAMILIES = c(
 	"urn", "custom_sequential", "none"
 )
 
-# The three shared bases that predate the fixed/sequential timing split and therefore
-# commit to neither a timing_family nor a randomization_family.
-EDI_DESIGN_UNSPLIT_ABSTRACT_CLASS_NAMES = c("Design", "DesignBlocking", "DesignMatching")
+# The shared root predates the fixed/sequential timing split and therefore commits
+# to neither a timing_family nor a randomization_family.
+EDI_DESIGN_UNSPLIT_ABSTRACT_CLASS_NAMES = "Design"
 
 # Plus the two timing-family roots themselves, which commit to a timing_family but
 # have no single randomization_family (that's the entire point of them being bases).
@@ -91,6 +92,38 @@ EDI_DESIGN_RANDOMIZATION_FAMILY_BY_NAME = c(
 # draw of their own; TRUE (the register_design_class() default) for everything else.
 EDI_DESIGN_NOT_SEED_REPRODUCIBLE_CLASS_NAMES = character(0)
 
+# seed_reproducible_draw_requires_single_thread (fix_design_hierarchy.md, TODO-29):
+# TRUE for a class whose draw is seed-reproducible with a single core
+# (get_num_cores() == 1, the package default) but not necessarily under multi-core
+# parallelism. Investigated each OpenMP-parallel design's kernel directly rather than
+# assuming they share the pattern: `rerandomization_search_cpp`
+# (rerandomization_helpers.cpp) is a genuine work-stealing rejection sampler --
+# threads race via `std::atomic::fetch_add` for both which draws to try next and which
+# output column an accepted draw claims, so which of a run's per-thread-seeded RNG
+# streams ends up filling a given column (and in what order) depends on real-time OS
+# scheduling, not just the seed. `greedy_design_search_cpp`
+# (design_fixed_greedy.cpp, used by DesignFixedGreedy and
+# DesignFixedMatchingGreedyPairSwitching) and `draw_binary_match_assignments_cpp`
+# (binary_match_search.cpp) both use `#pragma omp for schedule(static)`, which assigns
+# each thread a fixed, deterministic range of iteration indices regardless of
+# real-time timing -- no work-stealing, no nondeterminism.
+# `optimal_design_search.cpp` (DesignFixedGreedyDOptimal) has no OpenMP at all
+# (single-threaded). So DesignFixedRerandomization is the *only* affected class today.
+#
+# Decision (documented, not just implemented): keep `seed_reproducible_draw = TRUE`
+# for DesignFixedRerandomization rather than flipping it to FALSE outright --
+# get_num_cores() defaults to 1 (globals.R's get_num_cores(), unless the caller
+# explicitly opts into set_num_cores()/a fork cluster/mirai daemons), so the class
+# genuinely *is* seed-reproducible for the common case, and a blanket FALSE would be
+# misleading for it. The kernel was deliberately left as work-stealing rather than
+# switched to `schedule(static)` to match the other three kernels: doing so would
+# force it to abandon early termination the moment `r` acceptable draws are found
+# across *all* threads (the entire point of using atomics here, given a
+# potentially-expensive rejection search under a tight `obj_val_cutoff`) in favor of
+# every thread grinding through a fixed index range regardless of how many draws have
+# already been found elsewhere -- a real performance regression, not a free fix.
+EDI_DESIGN_SEED_REPRODUCIBLE_SINGLE_THREAD_ONLY_CLASS_NAMES = c("DesignFixedRerandomization")
+
 EDI_DESIGN_BATCH_W_PREGENERATION_CLASS_NAMES = c(
 	"DesignFixedBinaryMatch", "DesignFixedGreedy",
 	"DesignFixedMatchingGreedyPairSwitching", "DesignFixedOptimalBlocks"
@@ -122,8 +155,7 @@ is_design_r6_generator = function(obj) {
 
 # Structural, not name-based: walks the real R6 inheritance chain (including the
 # class itself) looking for DesignFixed/DesignSeqOneByOne, so a new subclass is
-# classified correctly with zero registry maintenance. Returns NA for the three
-# bases that predate the timing split (Design, DesignBlocking, DesignMatching).
+# classified correctly with zero registry maintenance. Returns NA for Design itself.
 infer_design_timing_family = function(obj) {
 	anc = obj
 	while (!is.null(anc)) {
@@ -152,9 +184,25 @@ infer_design_abstract = function(name) {
 	name %in% EDI_DESIGN_ABSTRACT_CLASS_NAMES
 }
 
+# Non-throwing abstract check for Design$initialize()'s instantiation gate.
+# get_design_class_metadata() throws for unregistered names (correct for its
+# own callers, which expect a known class), but the gate must not error out
+# for a class populate_design_class_registry() never scanned -- e.g. a
+# third-party/test-defined subclass built via define_design_class() outside
+# the EDI namespace -- those are never abstract by construction and must
+# remain freely instantiable.
+is_design_class_abstract = function(name) {
+	if (!exists(name, envir = EDI_DESIGN_CLASS_REGISTRY, inherits = FALSE)) return(FALSE)
+	isTRUE(get_design_class_metadata(name)$abstract)
+}
+
 infer_design_seed_reproducible_draw = function(name) {
 	if (name %in% EDI_DESIGN_ABSTRACT_CLASS_NAMES) return(NA)
 	!(name %in% EDI_DESIGN_NOT_SEED_REPRODUCIBLE_CLASS_NAMES)
+}
+
+infer_design_seed_reproducible_draw_requires_single_thread = function(name) {
+	name %in% EDI_DESIGN_SEED_REPRODUCIBLE_SINGLE_THREAD_ONLY_CLASS_NAMES
 }
 
 infer_design_supports_batch_w_pregeneration = function(name) {
@@ -169,7 +217,8 @@ infer_design_required_packages = function(name) {
 validate_design_class_metadata = function(metadata) {
 	required = c(
 		"name", "parent", "abstract", "exported", "timing_family",
-		"randomization_family", "seed_reproducible_draw", "direct_components",
+		"randomization_family", "seed_reproducible_draw",
+		"seed_reproducible_draw_requires_single_thread", "direct_components",
 		"supports_batch_w_pregeneration", "required_packages"
 	)
 	missing = setdiff(required, names(metadata))
@@ -234,6 +283,27 @@ validate_design_class_metadata = function(metadata) {
 	if (!is.logical(metadata$seed_reproducible_draw) || length(metadata$seed_reproducible_draw) != 1L) {
 		stop(sprintf("Design metadata for %s has invalid `seed_reproducible_draw`.", metadata$name), call. = FALSE)
 	}
+	# TODO-29 (fix_design_hierarchy.md, "Seed-Reproducibility Metadata"): TRUE only for
+	# a class whose draw is seed-reproducible with a single core (get_num_cores() == 1,
+	# the package default) but not necessarily under multi-core parallelism -- see
+	# DesignFixedRerandomization's registration for the one current case and its
+	# reasoning. Always FALSE, never NA, regardless of seed_reproducible_draw's own
+	# value (including for the abstract bases, where it's meaningless but must still be
+	# a concrete logical for validation uniformity).
+	if (!is.logical(metadata$seed_reproducible_draw_requires_single_thread) ||
+			length(metadata$seed_reproducible_draw_requires_single_thread) != 1L ||
+			is.na(metadata$seed_reproducible_draw_requires_single_thread)) {
+		stop(sprintf(
+			"Design metadata for %s has invalid `seed_reproducible_draw_requires_single_thread`.",
+			metadata$name
+		), call. = FALSE)
+	}
+	if (isTRUE(metadata$seed_reproducible_draw_requires_single_thread) && !isTRUE(metadata$seed_reproducible_draw)) {
+		stop(sprintf(
+			"Design metadata for %s: `seed_reproducible_draw_requires_single_thread` is only meaningful when `seed_reproducible_draw` is TRUE.",
+			metadata$name
+		), call. = FALSE)
+	}
 	if (!is.character(metadata$direct_components)) {
 		stop(sprintf("Design metadata for %s has invalid `direct_components`.", metadata$name), call. = FALSE)
 	}
@@ -256,6 +326,7 @@ register_design_class = function(name, parent = NULL, metadata = list(), direct_
 			timing_family = NA_character_,
 			randomization_family = NA_character_,
 			seed_reproducible_draw = NA,
+			seed_reproducible_draw_requires_single_thread = FALSE,
 			direct_components = direct_components,
 			supports_batch_w_pregeneration = FALSE,
 			required_packages = character()
@@ -397,6 +468,15 @@ get_effective_design_capabilities = function(name) {
 	capabilities
 }
 
+# Reads back the resolved component set define_design_class() stashed on the
+# generator (see its own comment). Plain R6::R6Class()-built generators (not
+# yet migrated onto define_design_class()) carry no such attribute -- character()
+# for those, same as before this existed.
+infer_design_direct_components = function(obj) {
+	components = attr(obj, "edi_design_direct_components", exact = TRUE)
+	if (is.null(components)) character() else components
+}
+
 clear_design_class_registry = function() {
 	rm(list = ls(EDI_DESIGN_CLASS_REGISTRY), envir = EDI_DESIGN_CLASS_REGISTRY)
 	clear_design_effective_metadata_cache()
@@ -424,10 +504,11 @@ populate_design_class_registry = function(ns = environment(populate_design_class
 				timing_family = infer_design_timing_family(obj),
 				randomization_family = infer_design_randomization_family(name),
 				seed_reproducible_draw = infer_design_seed_reproducible_draw(name),
+				seed_reproducible_draw_requires_single_thread = infer_design_seed_reproducible_draw_requires_single_thread(name),
 				supports_batch_w_pregeneration = infer_design_supports_batch_w_pregeneration(name),
 				required_packages = infer_design_required_packages(name)
 			),
-			direct_components = character()
+			direct_components = infer_design_direct_components(obj)
 		)
 	}
 	validate_design_class_registry()
@@ -449,9 +530,49 @@ design_class_generator_supports_batch_w_pregeneration = function(dc) {
 	!is.null(dc$public_methods$supports_batch_w_pregeneration)
 }
 
+# Migration gate mirroring inference_class_registry.R's
+# EDI_REQUIRE_SHALLOW_INFERENCE_HIERARCHY (fix_design_hierarchy.md, TODO-39). Unlike
+# the inference side, the Design migration had no per-class "pending"/"migrated"
+# manifest -- TODO-34/35 converted every concrete class in one pass and TODO-36/37/38
+# cut DesignFixed/DesignSeqOneByOne's inherit and deleted DesignBlocking/DesignMatching
+# as generators outright, so this gate has nothing left it could currently fail on. It
+# stays as a standing regression check (opt in via the env var, e.g. in CI), walking
+# each concrete class's `parent` chain through the registry and erroring if
+# DesignBlocking/DesignMatching is still an ancestor of anything -- the same invariant
+# validate_design_class_registry() already enforces incidentally (an unregistered
+# parent errors unconditionally, and those two names haven't been registrable
+# generators since TODO-38), but this gives CI an explicit, named, opt-in assertion
+# for it rather than relying on that as a side effect.
+edi_require_shallow_design_hierarchy = function() {
+	tolower(Sys.getenv("EDI_REQUIRE_SHALLOW_DESIGN_HIERARCHY", unset = "false")) %in% c("1", "true", "yes")
+}
+
+assert_shallow_design_hierarchy_complete = function(registry = design_class_registry_as_list(), require = edi_require_shallow_design_hierarchy()) {
+	if (!isTRUE(require)) return(invisible(TRUE))
+	offenders = character()
+	for (name in names(registry)) {
+		anc_name = registry[[name]]$parent
+		while (!is.null(anc_name)) {
+			if (anc_name %in% c("DesignBlocking", "DesignMatching")) {
+				offenders = c(offenders, name)
+				break
+			}
+			anc_name = registry[[anc_name]]$parent
+		}
+	}
+	if (length(offenders) > 0L) {
+		stop(sprintf(
+			"EDI_REQUIRE_SHALLOW_DESIGN_HIERARCHY is enabled, but %d design class(es) still inherit through DesignBlocking/DesignMatching: %s",
+			length(offenders),
+			paste(sort(offenders), collapse = ", ")
+		), call. = FALSE)
+	}
+	invisible(TRUE)
+}
+
 # populate_design_component_registry() now lives in design_component_registry.R
-# itself (Collate positions it early, right after DesignBlocking/DesignMatching/
-# DesignFixedGreedy, so concrete design_*.R files can compose components via
+# itself (Collate positions the literal structural component sources early, before
+# concrete design_*.R files compose components via
 # define_design_class() as they source). This file's own populate call must stay
 # late (this file's Collate position is last among the design_*.R files) since it
 # does a full namespace scan that needs every Design generator -- abstract and

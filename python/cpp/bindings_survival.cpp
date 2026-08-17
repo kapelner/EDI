@@ -111,7 +111,11 @@ edi::ResultMap fast_dep_cens_transform_optim_internal(
     std::optional<Eigen::MatrixXd> warm_start_fisher_info
 );
 
-edi::ResultMap fast_weibull_regression_general_internal(
+// Renamed from fast_weibull_regression_general_internal (TODO-28: the fast
+// exact/right-censored-only kernel was restored under its own name,
+// fast_weibull_regression_internal -- not yet bound in Python; see that
+// TODO for the follow-up to add it here too).
+edi::ResultMap fast_weibull_regression_left_interval_censoring_internal(
     const Eigen::Ref<const Eigen::MatrixXd>& X,
     const Eigen::Ref<const Eigen::VectorXd>& y,
     const Eigen::Ref<const Eigen::VectorXd>& y_L,
@@ -291,7 +295,7 @@ void bind_survival(py::module_& m) {
                                         std::optional<Eigen::VectorXd> fixed_values,
                                         std::string optimization_alg,
                                         std::optional<Eigen::MatrixXd> warm_start_fisher_info) {
-        edi::ResultMap res = fast_weibull_regression_general_internal(
+        edi::ResultMap res = fast_weibull_regression_left_interval_censoring_internal(
             X, y, y_L, y_R, warm_start_params, smart_cold_start, estimate_only, maxit, tol,
             fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info);
         return edi::to_py_dict(res);

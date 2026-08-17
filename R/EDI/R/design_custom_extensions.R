@@ -6,9 +6,11 @@
 #' \code{DesignFixed}.
 #'
 #' @keywords internal
-DesignFixedCustom = R6::R6Class("DesignFixedCustom",
+DesignFixedCustom = define_design_class(
+	classname = "DesignFixedCustom",
 	lock_objects = FALSE,
 	inherit = DesignFixed,
+	components = character(),
 	public = list(
 		#' @description Draw assignments from the custom design.
 		#' @param r Number of assignment vectors to draw.
@@ -44,9 +46,11 @@ DesignFixedCustom = R6::R6Class("DesignFixedCustom",
 #' \code{DesignSeqOneByOne}.
 #'
 #' @keywords internal
-DesignCustomSequential = R6::R6Class("DesignCustomSequential",
+DesignCustomSequential = define_design_class(
+	classname = "DesignCustomSequential",
 	lock_objects = FALSE,
 	inherit = DesignSeqOneByOne,
+	components = character(),
 	public = list(
 		#' @description User-defined assignment rule.
 		#' @return A binary treatment assignment.

@@ -9,7 +9,7 @@ make_param_boot_logit_design <- function(seed = 20260723L, n = 150L){
 	p <- plogis(-0.4 + 0.8 * w + 0.35 * x1 - 0.25 * x2)
 	y <- rbinom(n, 1, p)
 
-	des <- EDI:::DesignFixed$new(n = n, response_type = "incidence", verbose = FALSE)
+	des <- DesignFixedTestFixture$new(n = n, response_type = "incidence", verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x1 = x1, x2 = x2))
 	des$overwrite_all_subject_assignments(w)
 	des$add_all_subject_responses(y)
@@ -28,7 +28,7 @@ make_param_boot_cont_ratio_design <- function(seed = 20260724L, n = 96L){
 	u <- runif(n)
 	y <- ifelse(u <= cut_1, 1L, ifelse(u <= cut_2, 2L, ifelse(u <= cut_3, 3L, 4L)))
 
-	des <- EDI:::DesignFixed$new(n = n, response_type = "ordinal", verbose = FALSE)
+	des <- DesignFixedTestFixture$new(n = n, response_type = "ordinal", verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x1 = x1, x2 = x2))
 	des$overwrite_all_subject_assignments(w)
 	des$add_all_subject_responses(y)

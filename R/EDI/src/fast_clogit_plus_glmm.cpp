@@ -552,11 +552,20 @@ edi::ResultMap fast_clogit_plus_glmm_internal(
 	const double NaN = std::numeric_limits<double>::quiet_NaN();
 	double neg_ll = NaN;
 	bool converged = false;
+	int niter = maxit;
+	bool hit_iteration_cap = false;
+	double gradient_norm = NaN;
 	try {
 		LikelihoodFitResult fit = optimize_fixed_likelihood(obj, par, fixed_spec, maxit, eps_g, optimization_alg, "lbfgs", 0, info_start_ptr);
 		par = fit.params;
 		neg_ll = fit.value;
 		converged = std::isfinite(neg_ll) && fit.converged;
+		// Same isfinite(neg_ll) gate as converged: a non-finite objective is
+		// a distinct failure, not "ran out of iterations"
+		// (optimizer_diagnostics_report.md TODO-4).
+		hit_iteration_cap = std::isfinite(neg_ll) && fit.hit_iteration_cap;
+		niter = fit.niter;
+		gradient_norm = fit.gradient_norm;
 	} catch (...) {
 		return edi::ResultMap()
 			.set("params", par)
@@ -565,6 +574,7 @@ edi::ResultMap fast_clogit_plus_glmm_internal(
 			.set("se_beta_T", NaN)
 			.set("ssq_b_j", NaN)
 			.set("converged", false)
+			.set("hit_iteration_cap", false)
 			.set("neg_loglik", NaN);
 	}
 
@@ -584,6 +594,9 @@ edi::ResultMap fast_clogit_plus_glmm_internal(
 			.set("information_type", std::string("observed"))
 			.set("hessian", std::monostate{})
 			.set("converged", converged)
+			.set("num_iter", niter)
+			.set("hit_iteration_cap", hit_iteration_cap)
+			.set("gradient_norm", gradient_norm)
 			.set("neg_loglik", neg_ll)
 			.set("neg_ll", neg_ll)
 			.set("loglik", std::isfinite(neg_ll) ? -neg_ll : NaN);
@@ -619,6 +632,9 @@ edi::ResultMap fast_clogit_plus_glmm_internal(
 		.set("information_type", std::string("observed"))
 		.set("hessian", neg_info)
 		.set("converged", converged)
+		.set("num_iter", niter)
+		.set("hit_iteration_cap", hit_iteration_cap)
+		.set("gradient_norm", gradient_norm)
 		.set("neg_loglik", neg_ll)
 		.set("neg_ll", neg_ll)
 		.set("loglik", std::isfinite(neg_ll) ? -neg_ll : NaN)

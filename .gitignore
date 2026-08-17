@@ -79,9 +79,11 @@ R/package_tests/.~lock*
 benchmark_lrt_ci_nr.R
 test_ols_ivwc_onelik.R
 *.csv.bz2
-.claude/*
-R/.claude/
-R/EDI/.claude/
+# .claude/ at any depth: the repo-root one holds local Claude Code project
+# config, and sandboxed sessions drop stub .claude/ dirs wherever their cwd
+# lands (R/, R/EDI/, R/EDI/R/, ...), so match the directory name globally
+# instead of chasing each new location with its own entry.
+.claude/
 R/package_metadata/gradient_method_comparison_outputs/*
 R/benchmark/simd_matrix/*
 R/benchmark/benchmark_pb_high_load.R
@@ -150,3 +152,4 @@ R/package_metadata/new_research_ideas/*
 .zprofile
 .zshrc
 CMakeFiles/
+R/EDI/tests/prepush_test_timings.csv

@@ -47,9 +47,14 @@ struct RobustModelResult {
     double scale;
     int num_iter;
     bool converged;
+    bool hit_iteration_cap;
     double ssq_b_j;
+    // Fallback-path-only (optimizer_diagnostics_report.md TODO-1): minimum
+    // eigenvalue of the weighted-crossprod information at the returned b,
+    // computed only when !converged. NaN when not computed.
+    double min_eigenvalue_information;
 
-    RobustModelResult() : XtX_inv_diag_j(std::numeric_limits<double>::quiet_NaN()), scale(std::numeric_limits<double>::quiet_NaN()), num_iter(0), converged(false), ssq_b_j(std::numeric_limits<double>::quiet_NaN()) {}
+    RobustModelResult() : XtX_inv_diag_j(std::numeric_limits<double>::quiet_NaN()), scale(std::numeric_limits<double>::quiet_NaN()), num_iter(0), converged(false), hit_iteration_cap(false), ssq_b_j(std::numeric_limits<double>::quiet_NaN()), min_eigenvalue_information(std::numeric_limits<double>::quiet_NaN()) {}
 };
 
 RobustModelResult fast_robust_regression_internal(
@@ -153,7 +158,12 @@ RobustModelResult fast_robust_regression_internal(
     // 3. IRLS loop
     res.w = Eigen::VectorXd::Ones(n);
     Eigen::VectorXd b_old = b_free;
-    
+    bool numerical_failure = false;
+    // Hoisted out of the loop (was loop-local) so the last iteration's value
+    // survives to the fallback-eigenvalue diagnostic after the loop
+    // (optimizer_diagnostics_report.md TODO-1).
+    Eigen::MatrixXd XtWX;
+
     for (int iter = 1; iter <= maxit; ++iter) {
         edi_check_R_user_interrupt_every(iter);
         res.num_iter = iter;
@@ -176,7 +186,6 @@ RobustModelResult fast_robust_regression_internal(
         }
 
         // Solve Weighted Least Squares
-        Eigen::MatrixXd XtWX;
         if (iter == 1 && warm_start_fisher_info.has_value()) {
             const Eigen::MatrixXd& info_full = *warm_start_fisher_info;
             if (info_full.rows() != p || info_full.cols() != p) throw std::invalid_argument("warm_start_fisher_info must be a p x p matrix");
@@ -187,8 +196,8 @@ RobustModelResult fast_robust_regression_internal(
         Eigen::VectorXd XtWy = weighted_crossprod_rhs(X_free, res.w, y_adj);
         
         Eigen::LDLT<Eigen::MatrixXd> ldlt(XtWX);
-        if (ldlt.info() != Eigen::Success) break; // Numerical failure
-        
+        if (ldlt.info() != Eigen::Success) { numerical_failure = true; break; } // Numerical failure
+
         b_free = ldlt.solve(XtWy);
         for (int j = 0; j < p_free; ++j) res.b[fixed_spec.free_idx[j]] = b_free[j];
         r = y - X * res.b;
@@ -201,6 +210,24 @@ RobustModelResult fast_robust_regression_internal(
         }
         b_old = b_free;
     }
+
+    // NOT redefined to gradient-norm-based (optimizer_diagnostics_report.md
+    // TODO-4): this IRLS loop is a fixed-point iteration on reweighted least
+    // squares with a coefficient-relative-change stopping criterion, not a
+    // gradient-based optimizer -- there is no already-computed M-estimator
+    // score/gradient here to reuse "for free" (TODO-1's threading principle),
+    // and fabricating one would be new computation, not a diagnostics-layer
+    // exposure. `hit_iteration_cap` is still meaningful without touching
+    // `converged`'s definition: TRUE iff the loop ran out of `maxit`
+    // iterations without either converging or hitting the numerical-failure
+    // exit above.
+    res.hit_iteration_cap = !res.converged && !numerical_failure;
+    // Reuses XtWX (free-parameter-space, last iteration's value) -- no new
+    // computation. Independent of the convergence-criterion decision above:
+    // this diagnostic only needs a curvature/information matrix, which XtWX
+    // legitimately is regardless of what stopping rule produced it
+    // (optimizer_diagnostics_report.md TODO-1).
+    set_min_eigenvalue_if_suspect(XtWX, res);
 
     return res;
 }
@@ -309,7 +336,9 @@ List fast_robust_regression_cpp(
             .set("coefficients", res.b)
             .set("scale", res.scale)
             .set("converged", res.converged)
-            .set("iterations", res.num_iter));
+            .set("num_iter", res.num_iter)
+            .set("hit_iteration_cap", res.hit_iteration_cap)
+            .set("min_eigenvalue_information", res.min_eigenvalue_information));
     }
 
     if (!res.converged && res.XtWX.rows() == 0) {
@@ -373,7 +402,9 @@ List fast_robust_regression_cpp(
         .set("coefficients", res.b)
         .set("scale", res.scale)
         .set("converged", res.converged)
-        .set("iterations", res.num_iter)
+        .set("num_iter", res.num_iter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
+        .set("min_eigenvalue_information", res.min_eigenvalue_information)
         .set("ssq_b_j", ssq_j)
         .set("fisher_information", res.XtWX));
 }

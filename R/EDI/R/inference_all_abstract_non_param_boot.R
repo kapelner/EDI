@@ -1517,14 +1517,30 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			sub_inf_priv$des_obj = sub_des
 			sub_inf_priv$des_obj_priv_int = sub_des_priv
 			sub_inf_priv$X = if (!is.null(private$X)) subset_field(private$X) else NULL
-			sub_inf_priv$y = sub_des_priv$y
-			sub_inf_priv$y_temp = sub_des_priv$y
+			# Subset y from the source Inference's own private$y, NOT from the
+			# design's raw y (sub_des_priv$y): post y/y_L/y_R migration the design
+			# stores NA for every censored subject, while Inference$initialize()
+			# resolves private$y per class -- get_effective_time() (censoring time
+			# in place of NA) for right-censored-only classes, raw get_y() for
+			# general-censoring-capable ones. Copying the design's raw y here fed
+			# NA event times into survival estimators on every slow-path bootstrap
+			# replicate; InferenceSurvivalKMDiff's C++ kernel spins forever on NA
+			# input, hanging the whole generic bootstrap (caught 2026-08-17 by
+			# test-bootstrap-reused-worker-asymp-families.R's survival sweep).
+			# Mirrors the private$dead line below, which the y/y_L/y_R rework
+			# already fixed the same way.
+			sub_inf_priv$y = if (!is.null(private$y)) as.numeric(private$y[indices]) else sub_des_priv$y
+			sub_inf_priv$y_temp = sub_inf_priv$y
 			sub_inf_priv$w = sub_des_priv$w
 			# Design no longer stores a raw dead field (y/y_L/y_R migration,
 			# interval_censored_survival_response.md TODO-1); dead lives only on
 			# Inference objects, so subset it from the source Inference's own
 			# already-correct private$dead rather than round-tripping through Design.
 			sub_inf_priv$dead = if (!is.null(private$dead)) as.numeric(private$dead[indices]) else NULL
+			# Same for y_L/y_R: duplicate() copies the parent's full-length vectors,
+			# which would silently stay at the original n after subsetting.
+			sub_inf_priv$y_L = if (!is.null(private$y_L) && length(private$y_L) >= max(indices)) as.numeric(private$y_L[indices]) else private$y_L
+			sub_inf_priv$y_R = if (!is.null(private$y_R) && length(private$y_R) >= max(indices)) as.numeric(private$y_R[indices]) else private$y_R
 			sub_inf_priv$n = length(indices)
 			sub_inf_priv$cached_values = list()
 			sub_inf_priv$cached_values$rand_distr_cache = list()

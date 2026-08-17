@@ -52,7 +52,12 @@ def _synthetic_data():
 # R reference, EDI 1.0.0, computed 2026-08-04 via:
 #   EDI:::fast_identity_binomial_regression_cpp(X, y)
 R_B = np.array([0.335591533171959, 0.0100650398927152, 0.245688016207728])
-R_ITERATIONS = 6
+R_NUM_ITER = 6
+
+# NOTE (2026-08-17): converged/num_iter values are unaffected by the
+# optimizer_diagnostics_report.md TODO-4 rework -- see
+# test_fast_log_binomial_regression.py's equivalent note (same underlying
+# fitter, identity link).
 
 
 def test_matches_r_fixture():
@@ -61,7 +66,8 @@ def test_matches_r_fixture():
 
     assert res["converged"] is True
     assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)
-    assert res["iterations"] == R_ITERATIONS
+    assert res["num_iter"] == R_NUM_ITER
+    assert res["hit_iteration_cap"] is False
 
 
 def test_result_shape_and_types():

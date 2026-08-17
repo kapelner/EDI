@@ -27,8 +27,10 @@
 #' seq_des = DesignSeqOneByOneEfron$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' @export
-DesignSeqOneByOneEfron = R6::R6Class("DesignSeqOneByOneEfron",
+DesignSeqOneByOneEfron = define_design_class(
+	classname = "DesignSeqOneByOneEfron",
 	inherit = DesignSeqOneByOne,
+	components = character(),
 	public = list(
 		#' @description Initialize an Efron (1971) biased coin sequential experimental
 		#'   design (see class documentation for the exact assignment rule).
