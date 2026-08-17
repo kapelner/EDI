@@ -119,10 +119,22 @@ jobs:
       # drop the OMP_NUM_THREADS override) and fall back to per-file-group CI
       # bisection instead.
       _R_CHECK_DONTTEST_EXAMPLES_: true
-      OMP_NUM_THREADS: ${{ matrix.config.os == 'windows-latest' && '1' || '' }}
 
     steps:
       - uses: actions/checkout@v7
+
+      # OMP_NUM_THREADS is set via GITHUB_ENV (Windows-only) rather than a
+      # job-level env var above, because a job-level env var evaluating to ''
+      # on non-Windows legs still *sets* OMP_NUM_THREADS to the empty string
+      # rather than leaving it unset -- libgomp treats '' as an invalid value
+      # and prints "libgomp: Invalid value for environment variable
+      # OMP_NUM_THREADS: " to stderr, which rcmdcheck's --as-cran run then
+      # surfaces as a DESCRIPTION-meta-information WARNING/ERROR (see the
+      # 2026-08-17 ubuntu-latest (release) failure this was written to fix).
+      - name: Pin OMP_NUM_THREADS to 1 on Windows (see comment above)
+        if: matrix.config.os == 'windows-latest'
+        shell: bash
+        run: echo "OMP_NUM_THREADS=1" >> "$GITHUB_ENV"
 
       - uses: r-lib/actions/setup-pandoc@v2
 

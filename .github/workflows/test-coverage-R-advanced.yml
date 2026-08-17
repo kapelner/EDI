@@ -72,6 +72,7 @@ jobs:
         run: |
           Rscript package_tests/public_api_inventory.R
           Rscript package_tests/extract_checkmate_argument_contracts.R
+          Rscript package_tests/public_argument_contract_registry.R
 
       # Documented as the "Primary commands" sequence in
       # R/package_tests/public_argument_combination_runner.md.

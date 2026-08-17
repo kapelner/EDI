@@ -1,34 +1,3 @@
-#' Exact Binomial (McNemar-Type) Incidence Inference for Matched-Pair Designs
-#'
-#' Performs exact matched-pair inference for binary (incidence) outcomes using
-#' only \strong{discordant} matched pairs — pairs where the treated and control
-#' member's outcomes differ — the same reduction classical McNemar's test makes.
-#' Writing \eqn{d_+} for the count of discordant pairs where the treated
-#' subject had the event and the control did not, and \eqn{d_-} for the reverse,
-#' the point estimate is the Haldane-Anscombe continuity-corrected log odds
-#' ratio \eqn{\log\left((d_+ + 0.5)/(d_- + 0.5)\right)}; the confidence interval
-#' inverts the exact (Clopper-Pearson) binomial confidence interval for
-#' \eqn{d_+ / (d_+ + d_-)} against \eqn{1/2} (via \code{stats::binom.test}) onto
-#' the log-odds scale; and the two-sided p-value is an exact binomial test of
-#' \eqn{d_+} vs. \eqn{d_-} (via \code{zhang_exact_binom_pval_cpp}) against a
-#' null log odds ratio. This class is available for
-#' \code{DesignFixedBinaryMatch} and KK matching-on-the-fly designs. For KK
-#' designs, only the matched-pair data are used and the reservoir is ignored.
-#' If there are no matched pairs, or no discordant pairs, the relevant
-#' quantities are reported as non-estimable rather than as \code{NaN}/\code{Inf}.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'incidence')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
-#' inf = InferenceIncidExactBinomial$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' @name InferenceIncidExactBinomial
-#' @export
 ExactBinomialIncidenceSource = list(
 	public = list(
 		#' @description Initialize exact matched-pair binomial inference for
@@ -197,6 +166,37 @@ ExactBinomialIncidenceSource = list(
 	)
 )
 
+#' Exact Binomial (McNemar-Type) Incidence Inference for Matched-Pair Designs
+#'
+#' Performs exact matched-pair inference for binary (incidence) outcomes using
+#' only \strong{discordant} matched pairs — pairs where the treated and control
+#' member's outcomes differ — the same reduction classical McNemar's test makes.
+#' Writing \eqn{d_+} for the count of discordant pairs where the treated
+#' subject had the event and the control did not, and \eqn{d_-} for the reverse,
+#' the point estimate is the Haldane-Anscombe continuity-corrected log odds
+#' ratio \eqn{\log\left((d_+ + 0.5)/(d_- + 0.5)\right)}; the confidence interval
+#' inverts the exact (Clopper-Pearson) binomial confidence interval for
+#' \eqn{d_+ / (d_+ + d_-)} against \eqn{1/2} (via \code{stats::binom.test}) onto
+#' the log-odds scale; and the two-sided p-value is an exact binomial test of
+#' \eqn{d_+} vs. \eqn{d_-} (via \code{zhang_exact_binom_pval_cpp}) against a
+#' null log odds ratio. This class is available for
+#' \code{DesignFixedBinaryMatch} and KK matching-on-the-fly designs. For KK
+#' designs, only the matched-pair data are used and the reservoir is ignored.
+#' If there are no matched pairs, or no discordant pairs, the relevant
+#' quantities are reported as non-estimable rather than as \code{NaN}/\code{Inf}.
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'incidence')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
+#' inf = InferenceIncidExactBinomial$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' @name InferenceIncidExactBinomial
+#' @export
 InferenceIncidExactBinomial = define_inference_class(
 	classname = "InferenceIncidExactBinomial",
 	inherit = Inference,

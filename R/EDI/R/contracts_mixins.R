@@ -1411,7 +1411,9 @@ EDI_COMPONENT_SPECS = list(
 					load_policy = "lazy",
 					source_name = "SurvivalKKClaytonCopulaIVWCSource",
 					file = "inference_survival_KK_clayton_copula.R",
-					dependencies = character(),
+					# Leaf-only since the 2026-08-17 migration: the KK compound layer
+					# arrives through the KKCompound dependency.
+					dependencies = "KKCompound",
 					owns_state = c(
 						"optimization_alg", "best_par", "best_X_colnames", "cached_mod",
 						"best_X_colnames_matched", "best_X_colnames_reservoir",
@@ -1420,8 +1422,7 @@ EDI_COMPONENT_SPECS = list(
 					),
 					provides_public_methods = c(
 						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
-						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
-						"approximate_bootstrap_distribution_beta_hat_T", "duplicate"
+						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
 					),
 					provides_private_methods = c(
 						"compute_basic_match_data", "compute_treatment_estimate_during_randomization_inference",

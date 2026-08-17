@@ -149,7 +149,8 @@ static py::dict likelihood_fit_result_to_dict(const LikelihoodFitResult& fit) {
     py::dict out;
     out["params"] = fit.params;
     out["neg_loglik"] = fit.value;
-    out["iterations"] = fit.niter;
+    out["num_iter"] = fit.niter;
+    out["hit_iteration_cap"] = fit.hit_iteration_cap;
     out["converged"] = fit.converged;
     out["gradient_norm"] = fit.gradient_norm;
     return out;
@@ -179,7 +180,8 @@ void bind_count(py::module_& m) {
         out["converged"] = res.converged;
         out["neg_loglik"] = res.neg_ll;
         out["dispersion"] = res.dispersion;
-        out["iterations"] = res.num_iter;
+        out["num_iter"] = res.num_iter;
+        out["hit_iteration_cap"] = res.hit_iteration_cap;
         out["gradient_norm"] = res.gradient_norm;
         return out;
     },
@@ -266,7 +268,8 @@ void bind_count(py::module_& m) {
         out["converged"] = res.converged;
         out["neg_loglik"] = res.neg_ll;
         out["dispersion"] = res.dispersion;
-        out["iterations"] = res.num_iter;
+        out["num_iter"] = res.num_iter;
+        out["hit_iteration_cap"] = res.hit_iteration_cap;
         out["gradient_norm"] = res.gradient_norm;
         return out;
     },

@@ -1,46 +1,3 @@
-#' Simple Wilcoxon Rank-Sum (Hodges-Lehmann) Inference
-#'
-#' Fits a non-parametric treatment-effect estimator based on the two-sample
-#' Wilcoxon rank-sum test: the point estimate is the \strong{Hodges-Lehmann}
-#' location-shift estimate (the median of all pairwise treatment-minus-control
-#' differences \eqn{y_{T,i} - y_{C,j}}), and both the confidence interval and
-#' two-sided p-value are the standard rank-based Wilcoxon quantities from
-#' \code{stats::wilcox.test()} (normal approximation with continuity correction),
-#' not Wald intervals/tests built around the point estimate and a separately
-#' estimated standard error. Robust to outliers and does not assume normality or
-#' equal arm variances. Not supported for incidence (binary) responses (the
-#' Hodges-Lehmann estimator degenerates on 0/1 data — use
-#' \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}} or a
-#' conditional-logistic estimator instead) or censored survival data (use
-#' \code{\link[EDI:InferenceSurvivalGehanWilcox]{InferenceSurvivalGehanWilcox}}
-#' instead). This class has no likelihood tier (\code{likelihood_tier = "none"})
-#' and does not support the Bayesian bootstrap; its jackknife methods all report
-#' explicit non-estimability rather than computing a (statistically unreliable)
-#' delete-1 jackknife of the Hodges-Lehmann functional.
-#'
-#' @references Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
-#'   Based on Rank Tests." \emph{The Annals of Mathematical Statistics}, 34(2),
-#'   598-611, \doi{10.1214/aoms/1177704172}, for the Hodges-Lehmann estimator;
-#'   Wilcoxon, F. (1945). "Individual Comparisons by Ranking Methods."
-#'   \emph{Biometrics Bulletin}, 1(6), 80-83, \doi{10.2307/3001968}, for the
-#'   underlying rank-sum test.
-#'
-#' @examples
-#' \dontrun{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[3, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[4, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
-#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
-#'
-#' seq_des_inf = InferenceAllSimpleWilcox$new(seq_des)
-#' seq_des_inf$compute_estimate()
-#' }
-#' @name InferenceAllSimpleWilcox
-#' @export
 SimpleWilcoxSource = list(
 	public = list(
 		#' @description Initialize simple Wilcoxon inference and prepare the
@@ -360,6 +317,49 @@ SimpleWilcoxSource = list(
 	)
 )
 
+#' Simple Wilcoxon Rank-Sum (Hodges-Lehmann) Inference
+#'
+#' Fits a non-parametric treatment-effect estimator based on the two-sample
+#' Wilcoxon rank-sum test: the point estimate is the \strong{Hodges-Lehmann}
+#' location-shift estimate (the median of all pairwise treatment-minus-control
+#' differences \eqn{y_{T,i} - y_{C,j}}), and both the confidence interval and
+#' two-sided p-value are the standard rank-based Wilcoxon quantities from
+#' \code{stats::wilcox.test()} (normal approximation with continuity correction),
+#' not Wald intervals/tests built around the point estimate and a separately
+#' estimated standard error. Robust to outliers and does not assume normality or
+#' equal arm variances. Not supported for incidence (binary) responses (the
+#' Hodges-Lehmann estimator degenerates on 0/1 data — use
+#' \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}} or a
+#' conditional-logistic estimator instead) or censored survival data (use
+#' \code{\link[EDI:InferenceSurvivalGehanWilcox]{InferenceSurvivalGehanWilcox}}
+#' instead). This class has no likelihood tier (\code{likelihood_tier = "none"})
+#' and does not support the Bayesian bootstrap; its jackknife methods all report
+#' explicit non-estimability rather than computing a (statistically unreliable)
+#' delete-1 jackknife of the Hodges-Lehmann functional.
+#'
+#' @references Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
+#'   Based on Rank Tests." \emph{The Annals of Mathematical Statistics}, 34(2),
+#'   598-611, \doi{10.1214/aoms/1177704172}, for the Hodges-Lehmann estimator;
+#'   Wilcoxon, F. (1945). "Individual Comparisons by Ranking Methods."
+#'   \emph{Biometrics Bulletin}, 1(6), 80-83, \doi{10.2307/3001968}, for the
+#'   underlying rank-sum test.
+#'
+#' @examples
+#' \dontrun{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[3, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[4, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
+#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
+#'
+#' seq_des_inf = InferenceAllSimpleWilcox$new(seq_des)
+#' seq_des_inf$compute_estimate()
+#' }
+#' @name InferenceAllSimpleWilcox
+#' @export
 InferenceAllSimpleWilcox = define_inference_class(
 	classname = "InferenceAllSimpleWilcox",
 	inherit = Inference,

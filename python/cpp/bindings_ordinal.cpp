@@ -209,7 +209,8 @@ void bind_ordinal(py::module_& m) {
         out["alpha"] = Eigen::VectorXd(fit.params.head(K - 1));
         out["params"] = fit.params;
         out["neg_loglik"] = fit.value;
-        out["iterations"] = fit.niter;
+        out["num_iter"] = fit.niter;
+        out["hit_iteration_cap"] = fit.hit_iteration_cap;
         out["converged"] = fit.converged;
         out["gradient_norm"] = fit.gradient_norm;
         return out;
@@ -283,7 +284,8 @@ void bind_ordinal(py::module_& m) {
         out["alpha"] = Eigen::VectorXd(cr.fit.params.head(cr.n_alpha));
         out["params"] = cr.fit.params;
         out["neg_loglik"] = cr.fit.value;
-        out["iterations"] = cr.fit.niter;
+        out["num_iter"] = cr.fit.niter;
+        out["hit_iteration_cap"] = cr.fit.hit_iteration_cap;
         out["converged"] = cr.fit.converged;
         out["gradient_norm"] = cr.fit.gradient_norm;
         return out;

@@ -1,57 +1,3 @@
-#' Mean-Difference IVWC Inference for KK Matching-on-the-Fly Designs
-#'
-#' Fits a compound (inverse-variance-weighted combination, "IVWC") mean-difference
-#' estimator of the treatment effect for continuous responses under a
-#' \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}-family KK matching-on-the-fly
-#' design (see \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} and
-#' \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}). Such a design
-#' produces two structurally different kinds of subjects: subjects successfully
-#' matched into pairs during the sequential design, and unmatched "reservoir"
-#' subjects randomized independently. This estimator combines both:
-#' \deqn{\hat\beta_T = w^* \bar d + (1 - w^*)\, \bar r, \qquad
-#'   w^* = \frac{\widehat{\mathrm{Var}}(\bar r)}{\widehat{\mathrm{Var}}(\bar r) +
-#'   \widehat{\mathrm{Var}}(\bar d)},}
-#' where \eqn{\bar d} is the mean within-pair (treated minus control) difference
-#' among matched subjects and \eqn{\bar r} is the treated-minus-control difference
-#' in means among reservoir subjects, weighted inversely by their estimated
-#' variances (see \code{$compute_asymp_confidence_interval()} for the full
-#' variance formula and the fallback behavior when only one of the two
-#' sub-estimates is usable). Inference is Wald-only: this class has no
-#' likelihood tier (\code{likelihood_tier = "none"}) and provides asymptotic
-#' Wald, randomization, and bootstrap (including Bayesian bootstrap) confidence
-#' intervals and p-values, but no score/likelihood-ratio/gradient tests.
-#'
-#' @references Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly:
-#'   Sequential allocation with higher power and efficiency." \emph{Biometrics},
-#'   70(2), 378-388, \doi{10.1111/biom.12148}, for the KK matching-on-the-fly
-#'   design this estimator targets, and for the inverse-variance combination of
-#'   matched-pair and reservoir estimates.
-#'
-#' @section Legacy status: \strong{Legacy class.} Not fully tested in
-#'   \code{comprehensive_tests.R}; prefer a more actively maintained KK
-#'   continuous-response inference class (e.g.
-#'   \code{\link[EDI:InferenceContinKKOLSIVWC]{InferenceContinKKOLSIVWC}}) for new
-#'   analyses unless this specific unadjusted mean-difference estimator is
-#'   required.
-#' @export
-#' @examples
-#' \dontrun{
-#' seq_des = DesignSeqOneByOneKK14$new(n = 6, response_type = "continuous")
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[3, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[4, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
-#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
-#'
-#' seq_des_inf = InferenceAllKKMeanDiffIVWC$
-#'   new(seq_des)
-#' seq_des_inf$compute_estimate()
-#' seq_des_inf$compute_asymp_confidence_interval()
-#' seq_des_inf$compute_asymp_two_sided_pval()
-#' }
-#' @name InferenceAllKKMeanDiffIVWC
 KKMeanDifferenceIVWCSource = list(
 	public = list(
 		#' @description Initialize KK IVWC mean-difference inference.
@@ -288,6 +234,60 @@ KKMeanDifferenceIVWCSource = list(
 
 KKMeanDifferenceIVWCSource$public = Filter(Negate(is.null), KKMeanDifferenceIVWCSource$public)
 
+#' Mean-Difference IVWC Inference for KK Matching-on-the-Fly Designs
+#'
+#' Fits a compound (inverse-variance-weighted combination, "IVWC") mean-difference
+#' estimator of the treatment effect for continuous responses under a
+#' \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}-family KK matching-on-the-fly
+#' design (see \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} and
+#' \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}). Such a design
+#' produces two structurally different kinds of subjects: subjects successfully
+#' matched into pairs during the sequential design, and unmatched "reservoir"
+#' subjects randomized independently. This estimator combines both:
+#' \deqn{\hat\beta_T = w^* \bar d + (1 - w^*)\, \bar r, \qquad
+#'   w^* = \frac{\widehat{\mathrm{Var}}(\bar r)}{\widehat{\mathrm{Var}}(\bar r) +
+#'   \widehat{\mathrm{Var}}(\bar d)},}
+#' where \eqn{\bar d} is the mean within-pair (treated minus control) difference
+#' among matched subjects and \eqn{\bar r} is the treated-minus-control difference
+#' in means among reservoir subjects, weighted inversely by their estimated
+#' variances (see \code{$compute_asymp_confidence_interval()} for the full
+#' variance formula and the fallback behavior when only one of the two
+#' sub-estimates is usable). Inference is Wald-only: this class has no
+#' likelihood tier (\code{likelihood_tier = "none"}) and provides asymptotic
+#' Wald, randomization, and bootstrap (including Bayesian bootstrap) confidence
+#' intervals and p-values, but no score/likelihood-ratio/gradient tests.
+#'
+#' @references Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly:
+#'   Sequential allocation with higher power and efficiency." \emph{Biometrics},
+#'   70(2), 378-388, \doi{10.1111/biom.12148}, for the KK matching-on-the-fly
+#'   design this estimator targets, and for the inverse-variance combination of
+#'   matched-pair and reservoir estimates.
+#'
+#' @section Legacy status: \strong{Legacy class.} Not fully tested in
+#'   \code{comprehensive_tests.R}; prefer a more actively maintained KK
+#'   continuous-response inference class (e.g.
+#'   \code{\link[EDI:InferenceContinKKOLSIVWC]{InferenceContinKKOLSIVWC}}) for new
+#'   analyses unless this specific unadjusted mean-difference estimator is
+#'   required.
+#' @export
+#' @examples
+#' \dontrun{
+#' seq_des = DesignSeqOneByOneKK14$new(n = 6, response_type = "continuous")
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[3, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[4, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
+#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
+#'
+#' seq_des_inf = InferenceAllKKMeanDiffIVWC$
+#'   new(seq_des)
+#' seq_des_inf$compute_estimate()
+#' seq_des_inf$compute_asymp_confidence_interval()
+#' seq_des_inf$compute_asymp_two_sided_pval()
+#' }
+#' @name InferenceAllKKMeanDiffIVWC
 InferenceAllKKMeanDiffIVWC = define_inference_class(
 	classname = "InferenceAllKKMeanDiffIVWC",
 	inherit = Inference,

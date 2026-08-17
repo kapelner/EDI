@@ -1,42 +1,3 @@
-#' Simple Mean-Difference Inference for Continuous Responses
-#'
-#' Fits the simplest possible treatment-effect estimator for a continuous
-#' response: the unadjusted difference in sample means between the treated and
-#' control arms, \eqn{\hat\beta_T = \bar y_T - \bar y_C}, with no covariate
-#' adjustment. Inference is by \strong{Welch's unequal-variance t-test}: standard
-#' error \eqn{\sqrt{s_T^2/n_T + s_C^2/n_C}} (per-arm sample variances, not
-#' pooled) with Satterthwaite-Welch degrees of freedom — see
-#' \code{$compute_asymp_confidence_interval()} for the exact formula. This class
-#' has no likelihood tier (\code{likelihood_tier = "none"}) and provides
-#' asymptotic Wald, randomization, and bootstrap (including Bayesian bootstrap)
-#' confidence intervals and p-values. Warm starts are disabled for this class,
-#' since the simple mean difference is a closed-form estimator (no iterative fit
-#' to warm-start).
-#'
-#' @references Welch, B. L. (1947). "The Generalization of 'Student's' Problem
-#'   when Several Different Population Variances are Involved." \emph{Biometrika},
-#'   34(1-2), 28-35, \doi{10.1093/biomet/34.1-2.28}, for the unequal-variance
-#'   t-test and its Satterthwaite-Welch degrees-of-freedom approximation used
-#'   here.
-#'
-#' @examples
-#' \dontrun{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[3, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[4, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
-#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
-#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
-#'
-#' seq_des_inf = InferenceAllSimpleMeanDiff$new(seq_des)
-#' seq_des_inf$compute_estimate()
-#' seq_des_inf$compute_asymp_confidence_interval()
-#' seq_des_inf$compute_asymp_two_sided_pval()
-#' }
-#' @name InferenceAllSimpleMeanDiff
-#' @export
 SimpleMeanDifferenceSource = list(
 	public = list(
 		#' @description Initialize a simple mean-difference inference object.
@@ -372,6 +333,45 @@ SimpleMeanDifferenceSource = list(
 	)
 )
 
+#' Simple Mean-Difference Inference for Continuous Responses
+#'
+#' Fits the simplest possible treatment-effect estimator for a continuous
+#' response: the unadjusted difference in sample means between the treated and
+#' control arms, \eqn{\hat\beta_T = \bar y_T - \bar y_C}, with no covariate
+#' adjustment. Inference is by \strong{Welch's unequal-variance t-test}: standard
+#' error \eqn{\sqrt{s_T^2/n_T + s_C^2/n_C}} (per-arm sample variances, not
+#' pooled) with Satterthwaite-Welch degrees of freedom — see
+#' \code{$compute_asymp_confidence_interval()} for the exact formula. This class
+#' has no likelihood tier (\code{likelihood_tier = "none"}) and provides
+#' asymptotic Wald, randomization, and bootstrap (including Bayesian bootstrap)
+#' confidence intervals and p-values. Warm starts are disabled for this class,
+#' since the simple mean difference is a closed-form estimator (no iterative fit
+#' to warm-start).
+#'
+#' @references Welch, B. L. (1947). "The Generalization of 'Student's' Problem
+#'   when Several Different Population Variances are Involved." \emph{Biometrika},
+#'   34(1-2), 28-35, \doi{10.1093/biomet/34.1-2.28}, for the unequal-variance
+#'   t-test and its Satterthwaite-Welch degrees-of-freedom approximation used
+#'   here.
+#'
+#' @examples
+#' \dontrun{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[3, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[4, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
+#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
+#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
+#'
+#' seq_des_inf = InferenceAllSimpleMeanDiff$new(seq_des)
+#' seq_des_inf$compute_estimate()
+#' seq_des_inf$compute_asymp_confidence_interval()
+#' seq_des_inf$compute_asymp_two_sided_pval()
+#' }
+#' @name InferenceAllSimpleMeanDiff
+#' @export
 InferenceAllSimpleMeanDiff = define_inference_class(
 	classname = "InferenceAllSimpleMeanDiff",
 	inherit = Inference,

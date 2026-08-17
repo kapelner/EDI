@@ -1,37 +1,3 @@
-#' Exact Zhang Combined-Test Incidence Inference
-#'
-#' Performs exact inference for a binary (incidence) outcome that
-#' \strong{combines} two exact component tests when the design has both
-#' matched-pair and reservoir (unmatched) subjects — an internal-to-this-package
-#' method (not drawn from external literature) analogous in spirit to
-#' \code{\link[EDI:InferenceIncidExactBinomial]{InferenceIncidExactBinomial}}
-#' (matched pairs) and \code{\link[EDI:InferenceIncidExactFisher]{InferenceIncidExactFisher}}
-#' (unmatched 2x2 table), fused into one combined exact test rather than a
-#' Wald-style variance combination. The point estimate is always the
-#' Haldane-Anscombe continuity-corrected log odds ratio \eqn{\log\left((n_{11} +
-#' 0.5)(n_{00} + 0.5) / \left((n_{10}+0.5)(n_{01}+0.5)\right)\right)} from the
-#' pooled \eqn{2\times2} table across all subjects (matched and reservoir
-#' together). For \strong{p-values} and \strong{confidence intervals}, the two
-#' subsets are tested separately (an exact matched-pairs binomial test, as in
-#' \code{InferenceIncidExactBinomial}, on discordant pairs; an exact Fisher test
-#' on the reservoir \eqn{2\times2} table, as in \code{InferenceIncidExactFisher}),
-#' and their p-values are combined via \code{combination_method}: \code{"Fisher"}
-#' (default; \eqn{-2(\log p_M + \log p_R) \sim \chi^2_4} under independence),
-#' \code{"Stouffer"} (averaged z-scores), or \code{"min_p"} (Šidák-style
-#' \eqn{1-(1-\min(p_M,p_R))^2}). If only one of the two subsets is informative
-#' (e.g. a pure-Bernoulli design with no matching, or no discordant pairs), the
-#' combined p-value degenerates to that one component's p-value. Confidence
-#' intervals are obtained by numerically inverting (bisection) the combined
-#' p-value as a function of the hypothesized log odds ratio, starting from a
-#' normal-approximation (Haldane-Anscombe MLE) interval as the search bracket.
-#' Requires a Bernoulli-capable or matching-capable design.
-#'
-#' @examples
-#' \dontrun{
-#' # Example for InferenceIncidenceExactZhang
-#' }
-#' @name InferenceIncidenceExactZhang
-#' @export
 ExactZhangIncidenceSource = list(
 	public = list(
 		#' @description Initialize exact Zhang combined-test incidence inference.
@@ -137,6 +103,40 @@ ExactZhangIncidenceSource = list(
 	)
 )
 
+#' Exact Zhang Combined-Test Incidence Inference
+#'
+#' Performs exact inference for a binary (incidence) outcome that
+#' \strong{combines} two exact component tests when the design has both
+#' matched-pair and reservoir (unmatched) subjects — an internal-to-this-package
+#' method (not drawn from external literature) analogous in spirit to
+#' \code{\link[EDI:InferenceIncidExactBinomial]{InferenceIncidExactBinomial}}
+#' (matched pairs) and \code{\link[EDI:InferenceIncidExactFisher]{InferenceIncidExactFisher}}
+#' (unmatched 2x2 table), fused into one combined exact test rather than a
+#' Wald-style variance combination. The point estimate is always the
+#' Haldane-Anscombe continuity-corrected log odds ratio \eqn{\log\left((n_{11} +
+#' 0.5)(n_{00} + 0.5) / \left((n_{10}+0.5)(n_{01}+0.5)\right)\right)} from the
+#' pooled \eqn{2\times2} table across all subjects (matched and reservoir
+#' together). For \strong{p-values} and \strong{confidence intervals}, the two
+#' subsets are tested separately (an exact matched-pairs binomial test, as in
+#' \code{InferenceIncidExactBinomial}, on discordant pairs; an exact Fisher test
+#' on the reservoir \eqn{2\times2} table, as in \code{InferenceIncidExactFisher}),
+#' and their p-values are combined via \code{combination_method}: \code{"Fisher"}
+#' (default; \eqn{-2(\log p_M + \log p_R) \sim \chi^2_4} under independence),
+#' \code{"Stouffer"} (averaged z-scores), or \code{"min_p"} (Šidák-style
+#' \eqn{1-(1-\min(p_M,p_R))^2}). If only one of the two subsets is informative
+#' (e.g. a pure-Bernoulli design with no matching, or no discordant pairs), the
+#' combined p-value degenerates to that one component's p-value. Confidence
+#' intervals are obtained by numerically inverting (bisection) the combined
+#' p-value as a function of the hypothesized log odds ratio, starting from a
+#' normal-approximation (Haldane-Anscombe MLE) interval as the search bracket.
+#' Requires a Bernoulli-capable or matching-capable design.
+#'
+#' @examples
+#' \dontrun{
+#' # Example for InferenceIncidenceExactZhang
+#' }
+#' @name InferenceIncidenceExactZhang
+#' @export
 InferenceIncidenceExactZhang = define_inference_class(
 	classname = "InferenceIncidenceExactZhang",
 	inherit = Inference,

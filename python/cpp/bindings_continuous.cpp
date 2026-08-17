@@ -142,7 +142,8 @@ void bind_continuous(py::module_& m) {
         out["coefficients"] = res.b;
         out["scale"] = res.scale;
         out["converged"] = res.converged;
-        out["iterations"] = res.num_iter;
+        out["num_iter"] = res.num_iter;
+        out["hit_iteration_cap"] = res.hit_iteration_cap;
         return out;
     },
     py::arg("X"), py::arg("y"),

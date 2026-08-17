@@ -33,9 +33,12 @@
 #' @seealso \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyIVWC]{InferenceSurvivalKKWeibullFrailtyIVWC}}
 #'   for the corresponding log-normal-frailty IVWC estimator.
 #' @export
-InferenceSurvivalKKClaytonCopulaIVWC = R6::R6Class("InferenceSurvivalKKClaytonCopulaIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+# Static leaf source (2026-08-17 migration, same shape as
+# SurvivalKKWeibullMarginalSource / CountKKHurdlePoissonIVWCSource): the KK
+# compound layer arrives through the registered KKCompound component (this
+# component's declared dependency); this source holds only the class's own
+# estimator overrides.
+SurvivalKKClaytonCopulaIVWCSource = list(
 	public = list(
 		#' @description Initialize KK Clayton-copula survival inference and prepare
 		#'   the matched/reservoir likelihood components used by
@@ -112,25 +115,11 @@ InferenceSurvivalKKClaytonCopulaIVWC = R6::R6Class("InferenceSurvivalKKClaytonCo
 				private$assert_finite_se()
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
-		},
-		#' @description Duplicates this subclass while preserving fit caches; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param verbose Whether the duplicate should be verbose.
-		#' @param make_fork_cluster Whether the duplicate should be allowed to create a fork cluster.
-		duplicate = function(verbose = FALSE, make_fork_cluster = FALSE){
-			inf_obj = super$duplicate(verbose = verbose, make_fork_cluster = make_fork_cluster)
-			inf_obj
 		}
+		# The old evaluated-body override of the mixin's
+		# approximate_bootstrap_distribution_beta_hat_T and the pure-passthrough
+		# duplicate() override are deliberately GONE -- the KK component chain
+		# supplies the real functions directly (Static Cleanup).
 	),
 	private = list(
 		optimization_alg = "lbfgs",
@@ -450,7 +439,49 @@ InferenceSurvivalKKClaytonCopulaIVWC = R6::R6Class("InferenceSurvivalKKClaytonCo
 		)
 	)
 
-SurvivalKKClaytonCopulaIVWCSource = inference_component_source_parts(InferenceSurvivalKKClaytonCopulaIVWC)
+#' @export
+InferenceSurvivalKKClaytonCopulaIVWC = define_inference_class(
+	classname = "InferenceSurvivalKKClaytonCopulaIVWC",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "SurvivalKKClaytonCopulaIVWC"),
+	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as the
+		# other survival KK migrations (RandCI's Zhang dispatch never applies).
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "full"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_estimate_with_bootstrap_weights",
+			"approximate_bootstrap_distribution_beta_hat_T"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"shared",
+			"assert_finite_se",
+			"supports_likelihood_tests",
+			"max_abs_reasonable_coef",
+			"optimization_alg",
+			"best_par",
+			"best_X_colnames",
+			"cached_mod"
+		)
+	)
+)
 
 #' Clayton Copula Combined-Likelihood Inference for KK Designs
 #'

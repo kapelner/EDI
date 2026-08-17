@@ -1,40 +1,3 @@
-#' Simple Mean-Difference Inference with Pooled Variance
-#'
-#' Fits the same unadjusted mean-difference point estimate as
-#' \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}},
-#' \eqn{\hat\beta_T = \bar y_T - \bar y_C}, but performs inference via the
-#' classical \strong{pooled equal-variance} Student's t-test instead of
-#' Welch's unequal-variance version: pooled variance \eqn{s_p^2 =
-#' \left((n_T-1)s_T^2 + (n_C-1)s_C^2\right)/(n_T+n_C-2)}, standard error
-#' \eqn{s_p\sqrt{1/n_T + 1/n_C}}, and exact degrees of freedom \eqn{n_T+n_C-2}
-#' — see \code{$compute_asymp_confidence_interval()} for the full formula.
-#' This assumes the two arms have equal population variance; prefer
-#' \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}}
-#' when that assumption is doubtful, since the pooled estimator's nominal
-#' coverage degrades under heteroskedasticity with unequal arm sizes. This
-#' class does not support censored survival data (enforced at construction).
-#' This class has no likelihood tier (\code{likelihood_tier = "none"}) and
-#' provides asymptotic Wald, randomization, and bootstrap (including Bayesian
-#' bootstrap) confidence intervals and p-values. Warm starts are disabled for
-#' this class, since the simple mean difference is a closed-form estimator
-#' (no iterative fit to warm-start).
-#'
-#' @references Student [Gosset, W. S.] (1908). "The Probable Error of a Mean."
-#'   \emph{Biometrika}, 6(1), 1-25, \doi{10.1093/biomet/6.1.1}, for the
-#'   pooled-variance two-sample t-test used here.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'continuous')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(rnorm(10))
-#' inf = InferenceAllSimpleMeanDiffPooledVar$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' @name InferenceAllSimpleMeanDiffPooledVar
-#' @export
 SimpleMeanDifferencePooledVarSource = list(
 	public = list(
 		#' @description Initialize simple pooled-variance mean-difference inference
@@ -167,6 +130,43 @@ SimpleMeanDifferencePooledVarSource = list(
 	)
 )
 
+#' Simple Mean-Difference Inference with Pooled Variance
+#'
+#' Fits the same unadjusted mean-difference point estimate as
+#' \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}},
+#' \eqn{\hat\beta_T = \bar y_T - \bar y_C}, but performs inference via the
+#' classical \strong{pooled equal-variance} Student's t-test instead of
+#' Welch's unequal-variance version: pooled variance \eqn{s_p^2 =
+#' \left((n_T-1)s_T^2 + (n_C-1)s_C^2\right)/(n_T+n_C-2)}, standard error
+#' \eqn{s_p\sqrt{1/n_T + 1/n_C}}, and exact degrees of freedom \eqn{n_T+n_C-2}
+#' — see \code{$compute_asymp_confidence_interval()} for the full formula.
+#' This assumes the two arms have equal population variance; prefer
+#' \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}}
+#' when that assumption is doubtful, since the pooled estimator's nominal
+#' coverage degrades under heteroskedasticity with unequal arm sizes. This
+#' class does not support censored survival data (enforced at construction).
+#' This class has no likelihood tier (\code{likelihood_tier = "none"}) and
+#' provides asymptotic Wald, randomization, and bootstrap (including Bayesian
+#' bootstrap) confidence intervals and p-values. Warm starts are disabled for
+#' this class, since the simple mean difference is a closed-form estimator
+#' (no iterative fit to warm-start).
+#'
+#' @references Student [Gosset, W. S.] (1908). "The Probable Error of a Mean."
+#'   \emph{Biometrika}, 6(1), 1-25, \doi{10.1093/biomet/6.1.1}, for the
+#'   pooled-variance two-sample t-test used here.
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'continuous')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(rnorm(10))
+#' inf = InferenceAllSimpleMeanDiffPooledVar$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' @name InferenceAllSimpleMeanDiffPooledVar
+#' @export
 InferenceAllSimpleMeanDiffPooledVar = define_inference_class(
 	classname = "InferenceAllSimpleMeanDiffPooledVar",
 	inherit = Inference,

@@ -1,40 +1,3 @@
-#' Exact Fisher (Conditional Hypergeometric) Incidence Inference
-#'
-#' Performs exact conditional inference for binary (incidence) outcomes via
-#' Fisher's exact test on one or more 2x2 (treated/control by case/noncase)
-#' tables. When the design provides no stratification structure (e.g. an
-#' unstructured or iBCRD design), a single overall 2x2 table is built and
-#' \code{\link[stats]{fisher.test}} is used directly, giving the conditional
-#' MLE odds ratio and its exact confidence interval/p-value. When the design
-#' has \strong{blocking structure} (\code{DesignFixedBlocking},
-#' \code{DesignSeqOneByOneSPBR}, \code{DesignSeqOneByOneRandomBlockSize}), a
-#' separate 2x2 table is built per block-defining covariate stratum. When the
-#' design has \strong{matched-pair structure} (KK matching-on-the-fly designs),
-#' each matched pair becomes its own 2x2 table, with any reservoir (unmatched)
-#' subjects pooled into one additional stratum table. In either stratified
-#' case, \code{\link[stats]{mantelhaen.test}} (exact conditional test) is used
-#' instead, giving the common odds ratio across strata; stratified inference
-#' only supports testing/estimating against a null odds ratio of 1 (log odds
-#' ratio 0) — a non-zero null shift is rejected with an error. Strata with no
-#' cases or no noncases in either arm are dropped before analysis; if no
-#' informative strata remain, this errors rather than returning a degenerate
-#' result.
-#'
-#' @references Fisher, R. A. (1935). "The Logic of Inductive Inference."
-#'   \emph{Journal of the Royal Statistical Society}, 98(1), 39-82,
-#'   \doi{10.2307/2342435}, for the exact conditional test underlying
-#'   \code{\link[stats]{fisher.test}}; Mantel, N., and Haenszel, W. (1959).
-#'   "Statistical Aspects of the Analysis of Data from Retrospective Studies
-#'   of Disease." \emph{Journal of the National Cancer Institute}, 22(4),
-#'   719-748, for the stratified common-odds-ratio test used when the design
-#'   provides multiple strata.
-#'
-#' @examples
-#' \dontrun{
-#' # Example for InferenceIncidExactFisher
-#' }
-#' @name InferenceIncidExactFisher
-#' @export
 ExactFisherIncidenceSource = list(
 	public = list(
 		#' @description Initialize exact Fisher inference for incidence outcomes.
@@ -272,6 +235,43 @@ ExactFisherIncidenceSource = list(
 	)
 )
 
+#' Exact Fisher (Conditional Hypergeometric) Incidence Inference
+#'
+#' Performs exact conditional inference for binary (incidence) outcomes via
+#' Fisher's exact test on one or more 2x2 (treated/control by case/noncase)
+#' tables. When the design provides no stratification structure (e.g. an
+#' unstructured or iBCRD design), a single overall 2x2 table is built and
+#' \code{\link[stats]{fisher.test}} is used directly, giving the conditional
+#' MLE odds ratio and its exact confidence interval/p-value. When the design
+#' has \strong{blocking structure} (\code{DesignFixedBlocking},
+#' \code{DesignSeqOneByOneSPBR}, \code{DesignSeqOneByOneRandomBlockSize}), a
+#' separate 2x2 table is built per block-defining covariate stratum. When the
+#' design has \strong{matched-pair structure} (KK matching-on-the-fly designs),
+#' each matched pair becomes its own 2x2 table, with any reservoir (unmatched)
+#' subjects pooled into one additional stratum table. In either stratified
+#' case, \code{\link[stats]{mantelhaen.test}} (exact conditional test) is used
+#' instead, giving the common odds ratio across strata; stratified inference
+#' only supports testing/estimating against a null odds ratio of 1 (log odds
+#' ratio 0) — a non-zero null shift is rejected with an error. Strata with no
+#' cases or no noncases in either arm are dropped before analysis; if no
+#' informative strata remain, this errors rather than returning a degenerate
+#' result.
+#'
+#' @references Fisher, R. A. (1935). "The Logic of Inductive Inference."
+#'   \emph{Journal of the Royal Statistical Society}, 98(1), 39-82,
+#'   \doi{10.2307/2342435}, for the exact conditional test underlying
+#'   \code{\link[stats]{fisher.test}}; Mantel, N., and Haenszel, W. (1959).
+#'   "Statistical Aspects of the Analysis of Data from Retrospective Studies
+#'   of Disease." \emph{Journal of the National Cancer Institute}, 22(4),
+#'   719-748, for the stratified common-odds-ratio test used when the design
+#'   provides multiple strata.
+#'
+#' @examples
+#' \dontrun{
+#' # Example for InferenceIncidExactFisher
+#' }
+#' @name InferenceIncidExactFisher
+#' @export
 InferenceIncidExactFisher = define_inference_class(
 	classname = "InferenceIncidExactFisher",
 	inherit = Inference,
