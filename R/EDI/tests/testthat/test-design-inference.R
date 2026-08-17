@@ -298,7 +298,12 @@ test_that("CMH get_standard_error block and non-block paths agree for many D wit
 			des_nonblock$add_one_subject_to_experiment_and_assign(data.frame(x = i))
 		}
 		add_all_subject_responses_seq(des_nonblock, y)
-		inf_nonblock <- InferenceIncidCMH$new(des_nonblock, se_est_num_vectors = R, verbose = FALSE)
+		# See the tolerance note above the first non-block InferenceIncidCMH
+		# construction in this file: Bernoulli allocation imbalance triggers
+		# an intentional warning already accounted for by this test's tolerance.
+		inf_nonblock <- suppressWarnings(
+			InferenceIncidCMH$new(des_nonblock, se_est_num_vectors = R, verbose = FALSE)
+		)
 		se_nonblock <- inf_nonblock$.__enclos_env__$private$get_standard_error()
 		expect_equal(se_block, se_nonblock, tolerance = 0.25,
 			label = sprintf("non-block SE ≈ block SE for D=%d, R=%d", D, R))

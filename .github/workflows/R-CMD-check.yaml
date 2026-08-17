@@ -332,8 +332,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # rocker/r-devel's Debian sid apt sources routinely go through short
+      # windows where the archive is internally inconsistent (e.g. valgrind's
+      # sid build still pins an older libc6-dbg than the libc6 that's already
+      # current), which apt's solver reports as "Reached two conflicting
+      # decisions" even with --allow-downgrades -- see the 2026-08-17
+      # R-devel (valgrind) job failure this was written to fix. This is
+      # archive skew, not something under our control, and it normally
+      # clears within minutes as the mirror finishes syncing, so retry
+      # apt-get update+install a few times with a short backoff instead of
+      # failing the job outright on a transient mismatch.
       - name: Install valgrind and libuv (libuv is a system dependency of the 'fs' package, itself a transitive dependency of testthat via pkgload -- rocker/r-devel is a bare-bones image that doesn't include it, see the sanitizers job's Install libuv step for the failure this causes if skipped)
-        run: apt-get update && apt-get install -y --allow-downgrades valgrind libuv1-dev
+        run: |
+          for attempt in 1 2 3 4 5; do
+            apt-get update && apt-get install -y --allow-downgrades valgrind libuv1-dev && exit 0
+            echo "apt-get install failed (attempt $attempt/5), retrying after archive sync delay..."
+            sleep 60
+          done
+          exit 1
 
       # Matrix is listed explicitly (even though it's not a direct EDI
       # dependency) because survival Imports it, and rocker/r-devel doesn't

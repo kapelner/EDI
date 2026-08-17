@@ -2078,6 +2078,19 @@ their own `[x]` entries above; they are not part of this count.)
   partial-likelihood baseline, both simple goldens); the full-likelihood
   baseline's only failures remain the two reverted ordinal classes
   (pre-existing, tracked separately).
+  **Also migrated 2026-08-17 (unnamed, found via the same audit):
+  `InferenceSurvivalKKClaytonCopulaIVWC`** — plain leaf on
+  `InferenceKKPassThroughCompoundNoParamBootstrap` (not a raw-splice class
+  like the two named targets, but the same `eval(body(...))` bootstrap
+  override and a pure-passthrough `duplicate()` override). Same static-leaf
+  shape: `SurvivalKKClaytonCopulaIVWCSource` narrowed to leaf-only
+  (`dependencies = "KKCompound"`), factory composition
+  `c("BayesianBootstrap", "Wald", "SurvivalKKClaytonCopulaIVWC")` with the
+  `InferenceRand` pin, `eval(body(` count 12 → 11. Golden
+  `test-survival-kk-clayton-ivwc-migration-golden.R`: legacy generator uses
+  the real classname (not `...Legacy`) per the naming lesson below;
+  score/gradient/LR CI/p-value drop verified Wald-fallback-or-NA before
+  asserting (same pattern as `InferenceIncidRiskDiff`). All green.
 - [ ] Migrate KK one-likelihood classes to `Inference` plus `KKPassThrough`,
   `LikelihoodTests`, `ParametricLikelihoodBootstrap` when warranted, and
   estimator-specific likelihood components.

@@ -76,4 +76,23 @@ jobs:
 
       - name: Show testthat output
         if: always()
-        run: find R/EDI -name 'testthat.Rout*' -exec cat '{}' \;
+        # covr::codecov() doesn't run tests against R/EDI directly -- it
+        # builds and installs an instrumented copy of the package into an R
+        # tempdir() scratch location (/tmp/Rtmp*/... on this runner) and runs
+        # testthat.R from there, so testthat.Rout(.fail) never lands under
+        # R/EDI at all. `find R/EDI -name 'testthat.Rout*'` above always found
+        # nothing and printed silently -- the one place a failing coverage
+        # run's actual test output could be seen was never shown in CI logs
+        # (see the 2026-08-17 runs that failed with "Error: running the tests
+        # in 'testthat.R' failed" and no further detail). Search /tmp too,
+        # where covr's scratch install actually lives.
+        run: |
+          found=0
+          for f in $(find /tmp R/EDI -name 'testthat.Rout*' 2>/dev/null); do
+            found=1
+            echo "--- $f ---"
+            cat "$f"
+          done
+          if [ "$found" = "0" ]; then
+            echo "Show testthat output: no testthat.Rout* file found under /tmp or R/EDI."
+          fi
