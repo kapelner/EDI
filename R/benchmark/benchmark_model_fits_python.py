@@ -11,15 +11,15 @@ balanced binary treatment). When package_metadata/benchmark_model_fits.md is
 already in combined R+Python format, this script also refreshes its Python
 section from the freshly generated HTML.
 
-EDI has no Python bindings yet (see python_bindings_package_spec.md) — the
-`python/` scaffold in this repo currently only exposes the `fast_math` scalar
-utility kernels via pybind11, not the 33 model-fitting kernels this table
-covers. So every row's "EDI Time" is NA today by construction, not because of
-a failed fit: `time_edi()` below is a single, clearly-marked no-op that
-returns NaN. Once a kernel is bound (`edi_kernels.fast_<name>`), wiring it in
-is a one-line change to that row's `edi_kernel` callable — see the
-`EDI_KERNELS` registry below, which already names the target function per row
-so that future edit is mechanical, not a research task.
+EDI's Python bindings live in `python/` (the `edi_kernels` package, released
+on PyPI; see python_bindings_package_spec.md). At the top of every run this
+script CMake-builds that package's `_core` pybind11 module fresh and imports
+it, so the "EDI Time" column reflects the bindings' real state at run time:
+rows whose kernel is bound and wired get a real timing, and a row stays NA
+only when its class has no EDI C++ kernel at all (e.g. classes whose R
+implementation delegates to base R / a CRAN package — those rows are omitted
+from this report entirely rather than shown as permanently-grey NA rows) or
+when the build/import fails.
 
 Canonical Python baselines were researched against
 python_bindings_package_spec.md's "Python Baseline Registry" (2026-07-28/29)
@@ -54,7 +54,6 @@ from statsmodels.discrete.truncated_model import HurdleCountModel
 from statsmodels.othermod.betareg import BetaModel
 from statsmodels.miscmodels.ordinal_model import OrderedModel
 from statsmodels.robust.robust_linear_model import RLM
-from statsmodels.regression.quantile_regression import QuantReg
 
 from sksurv.linear_model import CoxPHSurvivalAnalysis
 from sksurv.util import Surv
@@ -719,12 +718,6 @@ def build_robust_regr():
     return canonical, edi_closure
 
 
-def build_quantreg():
-    d = data_continuous()
-    y, Xd = d["y"], d["Xd"]
-    return lambda: QuantReg(y, Xd).fit(q=0.5)
-
-
 def _gcomp_binary_estimand_from_b(b, Xd, effect):
     X1 = Xd.copy(); X1[:, 1] = 1
     X0 = Xd.copy(); X0[:, 1] = 0
@@ -816,7 +809,7 @@ def build_gcomp_ordinal():
 # always names the (first, non-inflation) treatment column consistently
 # ("x1" after an auto-detected "const", or plain "x1" when there is no
 # intercept in the design) regardless of family — verified directly against
-# GLM/NegativeBinomial/BetaModel/OrderedModel/Hurdle/ZIP/ZINB/RLM/QuantReg
+# GLM/NegativeBinomial/BetaModel/OrderedModel/Hurdle/ZIP/ZINB/RLM
 # exog_names before relying on it here.
 def _treatment_idx(exog_names):
     idx = [i for i, nm in enumerate(exog_names) if nm == "x1"]
@@ -1129,12 +1122,6 @@ def build_robust_regr_wald():
     return canonical, edi_closure
 
 
-def build_quantreg_wald():
-    d = data_continuous()
-    y, Xd = d["y"], d["Xd"]
-    return _sm_wald_wrapper(lambda: QuantReg(y, Xd).fit(q=0.5))
-
-
 def build_weibull_aft_wald():
     d = data_survival()
     y, dead, Xo = d["y"], d["dead"], d["Xo"]
@@ -1321,20 +1308,6 @@ def build_gcomp_ordinal_wald():
 # statsmodels' literal Newcombe method; lifelines' logrank_test(weightings=
 # 'wilcoxon') is the Gehan (generalized Wilcoxon) weighting, matching R's
 # survival::survdiff(rho=1).
-def build_ttest_pooled():
-    d = data_continuous()
-    y, w = d["y"], d["w"]
-    yt, yc = y[w == 1], y[w == 0]
-    return lambda: sstats.ttest_ind(yt, yc, equal_var=True)
-
-
-def build_mannwhitney():
-    d = data_continuous(n=500)  # matches the point-estimate Wilcox row's scale
-    y, w = d["y"], d["w"]
-    yt, yc = y[w == 1], y[w == 0]
-    return lambda: sstats.mannwhitneyu(yt, yc)
-
-
 def build_lin_wald():
     d = data_continuous()
     y, w, X = d["y"], d["w"], d["X"]
@@ -1361,14 +1334,6 @@ def build_lin_wald():
             pval = float(2 * sstats.norm.sf(abs(b1 / se))) if se > 0 and np.isfinite(se) else float("nan")
             return b1, se, pval
     return canonical, edi_closure
-
-
-def build_fisher_exact():
-    d = data_binary()
-    w, y = d["w"], d["y"]
-    tab = np.array([[np.sum((w == 1) & (y == 1)), np.sum((w == 1) & (y == 0))],
-                     [np.sum((w == 0) & (y == 1)), np.sum((w == 0) & (y == 0))]])
-    return lambda: sstats.fisher_exact(tab)
 
 
 def build_binom_diff(method):
@@ -1440,20 +1405,22 @@ def build_gehan_wilcox():
     return canonical, edi_closure
 
 
-# WALD_SPECS mirrors R's wald_specs class set exactly (41 classes) — not
-# simply "the same 40 as the point-estimate table minus a few exclusions".
-# R's own Wald table includes several nonparametric-test classes with no
-# point-estimate-table row at all (mean-diff pooled-var t-test, Wilcoxon
-# rank-sum, Lin's covariate-adjusted estimator, Fisher exact, Miettinen-
-# Nurminen/Newcombe risk-difference CIs, Jonckheere-Terpstra, Ridit, Gehan-
-# Wilcoxon, KM median difference) and *excludes* several ordinal-link
-# Baseline Gap classes and a few incidence/count rows that the
-# point-estimate table does include (identity-binomial, modified Poisson,
-# fractional logit, ordered probit, cauchit, cloglog) — those simply have no
-# row here, matching R exactly rather than a "40 minus 3" guess.
+# WALD_SPECS mirrors R's wald_specs class set — not simply "the same rows as
+# the point-estimate table minus a few exclusions". R's own Wald table
+# includes several nonparametric-test classes with no point-estimate-table
+# row at all (Lin's covariate-adjusted estimator, Miettinen-Nurminen/
+# Newcombe risk-difference CIs, Jonckheere-Terpstra, Ridit, Gehan-Wilcoxon,
+# KM median difference) and *excludes* several ordinal-link Baseline Gap
+# classes and a few incidence/count rows that the point-estimate table does
+# include (identity-binomial, modified Poisson, fractional logit, ordered
+# probit, cauchit, cloglog) — those simply have no row here, matching R.
+# Additionally, classes whose computation has no EDI C++ kernel at all —
+# because the R class delegates to base R or a CRAN package (quantile
+# regression via quantreg::rq, pooled-variance t-test, the Wilcoxon rank-sum
+# test itself, Fisher exact) — are omitted from this report entirely: there
+# is no EDI side to compare, so a permanently-grey NA row carries no
+# information.
 WALD_SPECS = [
-    ("continuous", "InferenceAllSimpleMeanDiffPooledVar", "scipy", "stats.ttest_ind(pooled)", "out of python-bindings scope (nonparametric-test kernel)", build_ttest_pooled, False),
-    ("continuous", "InferenceAllSimpleWilcox", "scipy", "stats.mannwhitneyu", "out of python-bindings scope (nonparametric-test kernel, EDI:::wilcox_hl_point_estimate_cpp)", build_mannwhitney, False),
     ("continuous", "InferenceContinLin", "statsmodels", "OLS(interaction)+summary", "(none bound yet — Lin's estimator has no distinct EDI kernel in this table)", build_lin_wald, False),
     ("incidence", "InferenceIncidLogRegr", "statsmodels", "GLM(Binomial)+summary", "fast_logistic_regression_with_var", lambda: build_glm_binomial_wald("logit"), False),
     ("continuous", "InferenceContinOLS", "statsmodels", "OLS+summary", "fast_ols_with_var", build_ols_wald, False),
@@ -1469,8 +1436,6 @@ WALD_SPECS = [
     ("count", "InferenceCountQuasiPoisson", "statsmodels", "GLM(Poisson)+summary", "fast_quasipoisson_regression_with_var", build_glm_poisson_wald, False),
     ("survival", "InferenceSurvivalWeibullRegr", "lifelines", "WeibullAFTFitter.fit()+summary", "fast_weibull_regression_general", build_weibull_aft_wald, False),
     ("continuous", "InferenceContinRobustRegr", "statsmodels", "RLM+summary", "fast_robust_regression_with_var", build_robust_regr_wald, False),
-    ("continuous", "InferenceContinQuantileRegr", "statsmodels", "QuantReg+summary", "(none — EDI's own R class delegates to quantreg::rq; no distinct EDI kernel)", build_quantreg_wald, False),
-    ("incidence", "InferenceIncidExactFisher", "scipy", "stats.fisher_exact", "out of python-bindings scope (nonparametric-test kernel)", build_fisher_exact, False),
     ("incidence", "InferenceIncidLogBinomial", "statsmodels", "GLM(Binomial, log link)+summary", "fast_log_binomial_regression_with_var", lambda: build_glm_binomial_wald("log-binomial"), False),
     ("incidence", "InferenceIncidProbitRegr", "statsmodels", "GLM(Binomial, probit link)+summary", "fast_probit_regression_with_var", lambda: build_glm_binomial_wald("probit"), False),
     ("incidence", "InferenceIncidMiettinenNurminenRiskDiff", "statsmodels", "stats.proportion.confint_proportions_2indep(score)", "out of python-bindings scope (nonparametric-test kernel, EDI:::mn_pvalue_cpp)", lambda: build_binom_diff("score"), False),
@@ -1574,7 +1539,6 @@ MODEL_SPECS = [
     ("survival", "InferenceSurvivalWeibullRegr", "lifelines", "WeibullAFTFitter.fit() (right-censored only)", "fast_weibull_regression_general", build_weibull_aft, False),
     ("survival", "InferenceSurvivalWeibullRegr", "lifelines", "WeibullAFTFitter.fit_interval_censoring()", "fast_weibull_regression_general (interval-censored)", build_weibull_aft_interval, False),
     ("continuous", "InferenceContinRobustRegr", "statsmodels", "RLM", "fast_robust_regression", build_robust_regr, False),
-    ("continuous", "InferenceContinQuantileRegr", "statsmodels", "QuantReg", "(none — EDI's own R class delegates to quantreg::rq.fit; no distinct EDI kernel)", build_quantreg, False),
     ("proportion", "InferencePropFractionalLogit", "statsmodels", "GLM(Binomial, fractional y)", "fast_logistic_regression", build_fractional_logit, False),
     ("incidence", "InferenceIncidLogBinomial", "statsmodels", "GLM(Binomial, log link)", "fast_log_binomial_regression", lambda: build_glm_binomial("log-binomial"), False),
     ("incidence", "InferenceIncidProbitRegr", "statsmodels", "GLM(Binomial, probit link)", "fast_probit_regression", lambda: build_glm_binomial("probit"), False),
@@ -1742,29 +1706,27 @@ def build_util_log1pexp():
     return (lambda: np.logaddexp(0, x)), (None if fn is None else (lambda: fn(x)))
 
 
-# 8 of these 14 kernels (digamma, trigamma, lgamma, lbeta, dnbinom_mu,
-# qnorm, log_pnorm, log_dnorm) match real EDI R package exports
-# (R/EDI/src/fast_math_utils.cpp — see benchmark_model_fits.R's Utility
-# table). fast_pchisq_upper is bound in EDI's own python/cpp/
-# bindings_fast_math.cpp stub, but that build isn't wired into this
-# benchmark (it's another session's in-progress, uncommitted scaffold —
-# see the module docstring); the remaining five (erfc, pnorm_fast,
-# dnorm_fast, atan, log1pexp) aren't bound anywhere in Python yet either.
+# All 14 kernels are bound in python/cpp/bindings_fast_math.cpp as thin
+# elementwise vectorizing wrappers around the same portable inline scalar
+# functions EDI's model-fitting kernels call internally (see
+# R/EDI/src/fast_math_utils.cpp and benchmark_model_fits.R's Utility
+# table for the R-side originals), so every row times a real vectorized
+# EDI call against its scipy/numpy vectorized equivalent.
 UTILITY_SPECS = [
-    ("utility", "fast_digamma", "scipy", "special.digamma", "fast_math.fast_digamma (not yet bound in python/)", build_util_digamma, False),
-    ("utility", "fast_trigamma", "scipy", "special.polygamma(1,.)", "fast_math.fast_trigamma (not yet bound in python/)", build_util_trigamma, False),
-    ("utility", "fast_lgamma", "scipy", "special.gammaln", "fast_math.fast_lgamma (not yet bound in python/)", build_util_lgamma, False),
-    ("utility", "fast_lbeta", "scipy", "special.betaln", "fast_math.fast_lbeta (not yet bound in python/)", build_util_lbeta, False),
-    ("utility", "fast_qnorm", "scipy", "stats.norm.ppf", "fast_math.fast_qnorm (not yet bound in python/)", build_util_qnorm, False),
-    ("utility", "fast_log_pnorm", "scipy", "stats.norm.logcdf", "fast_math.fast_log_pnorm (not yet bound in python/)", build_util_log_pnorm, False),
-    ("utility", "fast_log_dnorm", "scipy", "stats.norm.logpdf", "fast_math.fast_log_dnorm (not yet bound in python/)", build_util_log_dnorm, False),
-    ("utility", "fast_dnbinom_mu", "scipy", "stats.nbinom.logpmf", "fast_math.fast_dnbinom_mu (not yet bound in python/)", build_util_dnbinom_mu, False),
-    ("utility", "fast_pchisq_upper", "scipy", "stats.chi2.sf", "fast_math.fast_pchisq_upper is bound and working, but only as a scalar call (no vectorized wrapper exists); looping it in a Python for-loop N_UTIL times to compare against scipy's one vectorized chi2.sf(x, df) call would time Python-loop overhead against EDI, not EDI against scipy — left NA rather than publish a misleading number", build_util_pchisq_upper, False),
-    ("utility", "fast_erfc", "scipy", "special.erfc", "fast_math.fast_erfc (not yet bound in python/)", build_util_erfc, False),
-    ("utility", "pnorm_fast", "scipy", "stats.norm.cdf", "fast_math.pnorm_fast (not yet bound in python/)", build_util_pnorm_fast, False),
-    ("utility", "dnorm_fast", "scipy", "stats.norm.pdf", "fast_math.dnorm_fast (not yet bound in python/)", build_util_dnorm_fast, False),
-    ("utility", "fast_atan", "numpy", "arctan", "fast_math.fast_atan (not yet bound in python/)", build_util_atan, False),
-    ("utility", "fast_log1pexp", "numpy", "logaddexp(0,.)", "fast_math.fast_log1pexp (not yet bound in python/)", build_util_log1pexp, False),
+    ("utility", "fast_digamma", "scipy", "special.digamma", "fast_math.fast_digamma", build_util_digamma, False),
+    ("utility", "fast_trigamma", "scipy", "special.polygamma(1,.)", "fast_math.fast_trigamma", build_util_trigamma, False),
+    ("utility", "fast_lgamma", "scipy", "special.gammaln", "fast_math.fast_lgamma", build_util_lgamma, False),
+    ("utility", "fast_lbeta", "scipy", "special.betaln", "fast_math.fast_lbeta", build_util_lbeta, False),
+    ("utility", "fast_qnorm", "scipy", "stats.norm.ppf", "fast_math.fast_qnorm", build_util_qnorm, False),
+    ("utility", "fast_log_pnorm", "scipy", "stats.norm.logcdf", "fast_math.fast_log_pnorm", build_util_log_pnorm, False),
+    ("utility", "fast_log_dnorm", "scipy", "stats.norm.logpdf", "fast_math.fast_log_dnorm", build_util_log_dnorm, False),
+    ("utility", "fast_dnbinom_mu", "scipy", "stats.nbinom.logpmf", "fast_math.fast_dnbinom_mu", build_util_dnbinom_mu, False),
+    ("utility", "fast_pchisq_upper", "scipy", "stats.chi2.sf", "fast_math.fast_pchisq_upper (vectorized elementwise overload)", build_util_pchisq_upper, False),
+    ("utility", "fast_erfc", "scipy", "special.erfc", "fast_math.fast_erfc", build_util_erfc, False),
+    ("utility", "pnorm_fast", "scipy", "stats.norm.cdf", "fast_math.pnorm_fast", build_util_pnorm_fast, False),
+    ("utility", "dnorm_fast", "scipy", "stats.norm.pdf", "fast_math.dnorm_fast", build_util_dnorm_fast, False),
+    ("utility", "fast_atan", "numpy", "arctan", "fast_math.fast_atan", build_util_atan, False),
+    ("utility", "fast_log1pexp", "numpy", "logaddexp(0,.)", "fast_math.fast_log1pexp", build_util_log1pexp, False),
 ]
 
 
@@ -2002,18 +1964,18 @@ nav a {{ margin-right: 1rem; }}
 same three tables (point-estimate, Wald/full-inference, utility math kernels), same table shape,
 same three-color row coding. Produced by <code>R/benchmark/benchmark_model_fits_python.py</code>.</p>
 
-<h2>Status: EDI Python bindings are in-progress (built fresh on every run)</h2>
-<p>EDI's C++ model-fitting kernels are being bound to Python in an active, uncommitted,
-in-progress scaffold under <code>python/</code> (a separate effort from this benchmark script
-— see <code>R/package_metadata/python_bindings_package_spec.md</code>). This script does not
-own or edit that scaffold; at the top of every run it configures and builds whatever is
-currently there (via CMake, into an isolated <code>/tmp</code> directory) and imports
-whatever compiles, so the <strong>EDI Time</strong> column reflects the real state of that
-work at run time rather than a stale snapshot — different runs of this script can show
-different EDI coverage as that scaffold evolves, and a build failure there simply leaves
-every EDI column <code>NA</code> (not a crash of this script). Point-estimate rows with a
-working, wired binding call it directly; rows without one, or where the Wald table needs
-standard errors these bindings don't yet expose, stay <code>NA</code>. Same-input,
+<h2>Status: EDI Python bindings (built fresh on every run)</h2>
+<p>EDI's C++ model-fitting kernels are bound to Python in the <code>edi_kernels</code>
+package under <code>python/</code> (released on PyPI — see
+<code>R/package_metadata/python_bindings_package_spec.md</code>). This script does not
+own or edit that package; at the top of every run it configures and builds its
+<code>_core</code> pybind11 module (via CMake, into an isolated <code>/tmp</code> directory)
+and imports whatever compiles, so the <strong>EDI Time</strong> column reflects the real
+state of the bindings at run time rather than a stale snapshot — different runs of this
+script can show different EDI coverage as the bindings evolve, and a build failure there
+simply leaves every EDI column <code>NA</code> (not a crash of this script). Point-estimate
+rows with a working, wired binding call it directly; rows where the Wald table needs
+standard errors the bindings don't yet expose stay <code>NA</code>. Same-input,
 same-process discipline: for every wired row, both the EDI and canonical closures are built
 from the exact same generated arrays (never redrawn separately). Each side is timed at its
 own fastest available point-estimate-only entry point — the same convention the R report
@@ -2041,8 +2003,8 @@ line in different places.)</p>
 <h2>Methodology</h2>
 <ul>
 <li><strong>Bare-metal canonical timing:</strong> each canonical row constructs the model object and calls its lowest-level <code>.fit()</code>/equivalent directly on pre-built NumPy arrays (or, where the package requires it — <code>lifelines</code>, <code>statsmodels.OrderedModel</code> internals — a pre-built <code>pandas.DataFrame</code>), inside the timed region only; data generation happens once, outside the timed closure.</li>
-<li><strong>Point-estimate vs. Wald tables:</strong> the point-estimate table times a bare fit (matching each row's fastest available canonical entry point — <code>lstsq</code> instead of <code>OLS().fit()</code> where that's a real, distinct fast path); the Wald table times a full fit that also produces the treatment coefficient's standard error and two-sided p-value (<code>.bse</code>/<code>.pvalues</code> off the same fitted result for most statsmodels families; a package switch to <code>lifelines.CoxPHFitter</code> for the unstratified-Cox row specifically, since <code>scikit-survival</code>'s bare-metal <code>CoxPHSurvivalAnalysis</code> doesn't expose a variance; a finite-difference delta-method SE for the four G-computation rows, off <code>.cov_params()</code>). The Wald table's row set matches R's <code>wald_specs</code> exactly (41 classes) rather than reusing the point-estimate table's 40 — it adds several nonparametric-test-only classes with no point-estimate-table row at all (pooled-variance t-test, Wilcoxon rank-sum, Lin's estimator, Fisher exact, Miettinen-Nurminen/Newcombe risk-difference CIs, Jonckheere-Terpstra, Ridit, Gehan-Wilcoxon, KM median difference) and omits several point-estimate-table rows that R's own Wald table never covers (identity-binomial, modified Poisson, fractional logit, ordered probit, cauchit, cloglog). One row, restricted-mean-survival-time difference, is excluded from the Wald table for the same reason R's own Wald table excludes it — see below.</li>
-<li><strong>Utility-function timing:</strong> each row calls the scipy/numpy vectorized function once over a fixed-length input vector, mirroring <code>benchmark/fast_math_utils_bench.cpp</code>'s apples-to-apples vectorized-vs-vectorized discipline (a scalar-loop binding would unfairly penalize a C++ side that hasn't been written yet).</li>
+<li><strong>Point-estimate vs. Wald tables:</strong> the point-estimate table times a bare fit (matching each row's fastest available canonical entry point — <code>lstsq</code> instead of <code>OLS().fit()</code> where that's a real, distinct fast path); the Wald table times a full fit that also produces the treatment coefficient's standard error and two-sided p-value (<code>.bse</code>/<code>.pvalues</code> off the same fitted result for most statsmodels families; a package switch to <code>lifelines.CoxPHFitter</code> for the unstratified-Cox row specifically, since <code>scikit-survival</code>'s bare-metal <code>CoxPHSurvivalAnalysis</code> doesn't expose a variance; a finite-difference delta-method SE for the four G-computation rows, off <code>.cov_params()</code>). The Wald table's row set follows R's <code>wald_specs</code> rather than reusing the point-estimate table's — it adds several nonparametric-test-only classes with no point-estimate-table row at all (Lin's estimator, Miettinen-Nurminen/Newcombe risk-difference CIs, Jonckheere-Terpstra, Ridit, Gehan-Wilcoxon, KM median difference) and omits several point-estimate-table rows that R's own Wald table never covers (identity-binomial, modified Poisson, fractional logit, ordered probit, cauchit, cloglog). Classes with no EDI C++ kernel at all — the EDI R class delegates to base R or a CRAN package (quantile regression via <code>quantreg::rq</code>, the pooled-variance t-test, the Wilcoxon rank-sum test itself, Fisher exact) — are omitted from both tables entirely: with no EDI side to time, a permanently-NA row carries no information. One row, restricted-mean-survival-time difference, is excluded from the Wald table for the same reason R's own Wald table excludes it — see below.</li>
+<li><strong>Utility-function timing:</strong> each row calls the scipy/numpy vectorized function once over a fixed-length input vector, mirroring <code>benchmark/fast_math_utils_bench.cpp</code>'s apples-to-apples vectorized-vs-vectorized discipline (the EDI side likewise calls the vectorized elementwise wrappers exposed by <code>python/cpp/bindings_fast_math.cpp</code>, never a Python-level scalar loop).</li>
 <li><strong>Averaging:</strong> medians over {B_TIME} cold timing samples via an adaptive-batch <code>time.perf_counter</code> harness (mirrors the R harness's adaptive <code>system.time</code> split, target {int(TARGET_BATCH_MS)}ms/batch).</li>
 <li><strong>Significance:</strong> Welch's two-sample t-test (<code>scipy.stats.ttest_ind(..., equal_var=False)</code>) between the EDI and canonical timing replicate distributions — real for any row with a wired, working EDI binding; <code>NA</code> for rows where no binding is wired or available.</li>
 <li><strong>Row highlighting:</strong> light green = <code>Speedup &gt; 1</code> and <code>Timing Pval &lt; 0.05</code>; light grey = <code>NA</code> timing comparison (EDI not bound yet, or a fit failed); light blue = no canonical Python implementation exists at all for this model family/function.</li>
@@ -2063,7 +2025,7 @@ line in different places.)</p>
 
 <h2 id="wald">Wald Test Performance / Full Inference ({w_ok} of {len(wald_rows)} rows timed, {w_gap} Baseline Gaps)</h2>
 {LEGEND_HTML}
-<p>Same Baseline Gap families as the point-estimate table above, plus three rows excluded outright (no variance computation, not a Baseline Gap in the usual sense):</p>
+<p>Same Baseline Gap families as the point-estimate table above, plus {len(WALD_EXCLUDED)} row(s) excluded outright (no variance computation, not a Baseline Gap in the usual sense):</p>
 <ul>
 {wald_excluded_html}
 </ul>
@@ -2078,7 +2040,7 @@ line in different places.)</p>
 
 <h2 id="utility">Utility / Math Kernel Performance ({u_ok} of {len(util_rows)} functions timed)</h2>
 {LEGEND_HTML}
-<p>EDI's internal <code>fast_*</code> scalar math kernels — every one that exists in <code>R/EDI/src</code> (<code>fast_digamma</code>, <code>fast_trigamma</code>, <code>fast_lgamma</code>, <code>fast_lbeta</code>, <code>fast_qnorm</code>, <code>fast_log_pnorm</code>, <code>fast_log_dnorm</code>, <code>fast_dnbinom_mu</code>, <code>fast_pchisq_upper</code>, <code>fast_erfc</code>, <code>pnorm_fast</code>, <code>dnorm_fast</code>, <code>fast_atan</code>, <code>fast_log1pexp</code>) — vs. their scipy/numpy vectorized equivalents, over a length-{N_UTIL} vector. Only <code>fast_pchisq_upper</code> is declared in the <code>python/</code> <code>fast_math</code> stub (<code>python/cpp/bindings_fast_math.cpp</code>), and even that build currently fails to import (an unrelated undefined symbol from other in-progress bindings in the same compiled module — <code>python/build_verify/</code>), so no row has a usable EDI binding yet and every row is grey today.</p>
+<p>EDI's internal <code>fast_*</code> scalar math kernels — every one that exists in <code>R/EDI/src</code> (<code>fast_digamma</code>, <code>fast_trigamma</code>, <code>fast_lgamma</code>, <code>fast_lbeta</code>, <code>fast_qnorm</code>, <code>fast_log_pnorm</code>, <code>fast_log_dnorm</code>, <code>fast_dnbinom_mu</code>, <code>fast_pchisq_upper</code>, <code>fast_erfc</code>, <code>pnorm_fast</code>, <code>dnorm_fast</code>, <code>fast_atan</code>, <code>fast_log1pexp</code>) — vs. their scipy/numpy vectorized equivalents, over a length-{N_UTIL} vector. All 14 are bound in <code>python/cpp/bindings_fast_math.cpp</code> as vectorized elementwise wrappers around the same portable inline scalar functions EDI's model-fitting kernels call internally, so every row times a real EDI call against its canonical vectorized counterpart.</p>
 {TABLE_HEAD_HTML}
 {render_table_html(util_rows)}
 </tbody>

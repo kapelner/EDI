@@ -92,7 +92,7 @@ Use these sparingly as "See also" orientation links, paired with primary referen
 - [Score test](https://en.wikipedia.org/wiki/Score_test)
 - [Likelihood-ratio test](https://en.wikipedia.org/wiki/Likelihood-ratio_test)
 - [Wald test](https://en.wikipedia.org/wiki/Wald_test)
-- [Bootstrap](https://en.wikipedia.org/wiki/Bootstrapping_(statistics))
+- [Bootstrap](https://en.wikipedia.org/wiki/Bootstrapping_%28statistics%29)
 - [Randomization test](https://en.wikipedia.org/wiki/Randomization_test)
 - [Generalized linear model](https://en.wikipedia.org/wiki/Generalized_linear_model)
 - [Logistic regression](https://en.wikipedia.org/wiki/Logistic_regression)

@@ -107,9 +107,9 @@ if [ "$run_doc_link_check" = "1" ]; then
 	# Internal (relative-path) links block on new breakage only -- pre-existing
 	# debt is tracked in scripts/check_doc_links_baseline.csv (regenerate via
 	# --write-baseline) so this doesn't retroactively block every push on the
-	# existing backlog. External links are reported but never block (a
-	# third-party site being transiently down/rate-limited shouldn't stop a
-	# push) -- see the script's own comments for the full rationale.
+	# existing backlog. External link failures block too; the checker already
+	# filters out the systematic bot-blocking-403 false positive (see
+	# check_external() in the script), so what remains is real breakage.
 	if ! python3 scripts/check_doc_links.py; then
 		echo "pre-push: documentation link check FAILED (see output above)." >&2
 		abort_push
@@ -126,11 +126,14 @@ echo
 # committed. update_readme_cloc.sh exits 0 without touching README.md when
 # cloc isn't installed, so machines without cloc aren't blocked.
 echo "pre-push: regenerating README.md lines-of-code table ..."
+readme_committed=0
 if bash scripts/update_readme_cloc.sh; then
 	if ! git diff --exit-code -- README.md; then
-		echo "pre-push: README.md lines-of-code table was stale -- regenerated in place (diff above)." >&2
-		echo "pre-push: commit the updated README.md and push again." >&2
-		abort_push
+		echo "pre-push: README.md lines-of-code table was stale -- regenerated in place (diff above)."
+		echo "pre-push: committing the refreshed table ..."
+		git add README.md
+		git commit -m "updated README with new lines of code counts"
+		readme_committed=1
 	fi
 else
 	echo "pre-push: scripts/update_readme_cloc.sh FAILED." >&2
@@ -355,6 +358,13 @@ else
 fi
 
 echo
+
+if [ "$readme_committed" = "1" ]; then
+	echo "pre-push: all local checks passed, but README.md was committed mid-hook (see above)." >&2
+	echo "pre-push: git already resolved the commit(s) to push before this hook ran, so that new commit is NOT part of the current push." >&2
+	echo "pre-push: push again -- it will include the README commit and (with no further drift) sail through this hook." >&2
+	abort_push
+fi
 
 echo "pre-push: all local checks passed."
 exit 0

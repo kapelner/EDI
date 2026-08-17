@@ -32,18 +32,18 @@ nav a { margin-right: 1rem; }
 same three tables (point-estimate, Wald/full-inference, utility math kernels), same table shape,
 same three-color row coding. Produced by <code>R/benchmark/benchmark_model_fits_python.py</code>.</p>
 
-<h2>Status: EDI Python bindings are in-progress (built fresh on every run)</h2>
-<p>EDI's C++ model-fitting kernels are being bound to Python in an active, uncommitted,
-in-progress scaffold under <code>python/</code> (a separate effort from this benchmark script
-— see <code>R/package_metadata/python_bindings_package_spec.md</code>). This script does not
-own or edit that scaffold; at the top of every run it configures and builds whatever is
-currently there (via CMake, into an isolated <code>/tmp</code> directory) and imports
-whatever compiles, so the <strong>EDI Time</strong> column reflects the real state of that
-work at run time rather than a stale snapshot — different runs of this script can show
-different EDI coverage as that scaffold evolves, and a build failure there simply leaves
-every EDI column <code>NA</code> (not a crash of this script). Point-estimate rows with a
-working, wired binding call it directly; rows without one, or where the Wald table needs
-standard errors these bindings don't yet expose, stay <code>NA</code>. Same-input,
+<h2>Status: EDI Python bindings (built fresh on every run)</h2>
+<p>EDI's C++ model-fitting kernels are bound to Python in the <code>edi_kernels</code>
+package under <code>python/</code> (released on PyPI — see
+<code>R/package_metadata/python_bindings_package_spec.md</code>). This script does not
+own or edit that package; at the top of every run it configures and builds its
+<code>_core</code> pybind11 module (via CMake, into an isolated <code>/tmp</code> directory)
+and imports whatever compiles, so the <strong>EDI Time</strong> column reflects the real
+state of the bindings at run time rather than a stale snapshot — different runs of this
+script can show different EDI coverage as the bindings evolve, and a build failure there
+simply leaves every EDI column <code>NA</code> (not a crash of this script). Point-estimate
+rows with a working, wired binding call it directly; rows where the Wald table needs
+standard errors the bindings don't yet expose stay <code>NA</code>. Same-input,
 same-process discipline: for every wired row, both the EDI and canonical closures are built
 from the exact same generated arrays (never redrawn separately). Each side is timed at its
 own fastest available point-estimate-only entry point — the same convention the R report
@@ -71,15 +71,15 @@ line in different places.)</p>
 <h2>Methodology</h2>
 <ul>
 <li><strong>Bare-metal canonical timing:</strong> each canonical row constructs the model object and calls its lowest-level <code>.fit()</code>/equivalent directly on pre-built NumPy arrays (or, where the package requires it — <code>lifelines</code>, <code>statsmodels.OrderedModel</code> internals — a pre-built <code>pandas.DataFrame</code>), inside the timed region only; data generation happens once, outside the timed closure.</li>
-<li><strong>Point-estimate vs. Wald tables:</strong> the point-estimate table times a bare fit (matching each row's fastest available canonical entry point — <code>lstsq</code> instead of <code>OLS().fit()</code> where that's a real, distinct fast path); the Wald table times a full fit that also produces the treatment coefficient's standard error and two-sided p-value (<code>.bse</code>/<code>.pvalues</code> off the same fitted result for most statsmodels families; a package switch to <code>lifelines.CoxPHFitter</code> for the unstratified-Cox row specifically, since <code>scikit-survival</code>'s bare-metal <code>CoxPHSurvivalAnalysis</code> doesn't expose a variance; a finite-difference delta-method SE for the four G-computation rows, off <code>.cov_params()</code>). The Wald table's row set matches R's <code>wald_specs</code> exactly (41 classes) rather than reusing the point-estimate table's 40 — it adds several nonparametric-test-only classes with no point-estimate-table row at all (pooled-variance t-test, Wilcoxon rank-sum, Lin's estimator, Fisher exact, Miettinen-Nurminen/Newcombe risk-difference CIs, Jonckheere-Terpstra, Ridit, Gehan-Wilcoxon, KM median difference) and omits several point-estimate-table rows that R's own Wald table never covers (identity-binomial, modified Poisson, fractional logit, ordered probit, cauchit, cloglog). One row, restricted-mean-survival-time difference, is excluded from the Wald table for the same reason R's own Wald table excludes it — see below.</li>
-<li><strong>Utility-function timing:</strong> each row calls the scipy/numpy vectorized function once over a fixed-length input vector, mirroring <code>benchmark/fast_math_utils_bench.cpp</code>'s apples-to-apples vectorized-vs-vectorized discipline (a scalar-loop binding would unfairly penalize a C++ side that hasn't been written yet).</li>
+<li><strong>Point-estimate vs. Wald tables:</strong> the point-estimate table times a bare fit (matching each row's fastest available canonical entry point — <code>lstsq</code> instead of <code>OLS().fit()</code> where that's a real, distinct fast path); the Wald table times a full fit that also produces the treatment coefficient's standard error and two-sided p-value (<code>.bse</code>/<code>.pvalues</code> off the same fitted result for most statsmodels families; a package switch to <code>lifelines.CoxPHFitter</code> for the unstratified-Cox row specifically, since <code>scikit-survival</code>'s bare-metal <code>CoxPHSurvivalAnalysis</code> doesn't expose a variance; a finite-difference delta-method SE for the four G-computation rows, off <code>.cov_params()</code>). The Wald table's row set follows R's <code>wald_specs</code> rather than reusing the point-estimate table's — it adds several nonparametric-test-only classes with no point-estimate-table row at all (Lin's estimator, Miettinen-Nurminen/Newcombe risk-difference CIs, Jonckheere-Terpstra, Ridit, Gehan-Wilcoxon, KM median difference) and omits several point-estimate-table rows that R's own Wald table never covers (identity-binomial, modified Poisson, fractional logit, ordered probit, cauchit, cloglog). Classes with no EDI C++ kernel at all — the EDI R class delegates to base R or a CRAN package (quantile regression via <code>quantreg::rq</code>, the pooled-variance t-test, the Wilcoxon rank-sum test itself, Fisher exact) — are omitted from both tables entirely: with no EDI side to time, a permanently-NA row carries no information. One row, restricted-mean-survival-time difference, is excluded from the Wald table for the same reason R's own Wald table excludes it — see below.</li>
+<li><strong>Utility-function timing:</strong> each row calls the scipy/numpy vectorized function once over a fixed-length input vector, mirroring <code>benchmark/fast_math_utils_bench.cpp</code>'s apples-to-apples vectorized-vs-vectorized discipline (the EDI side likewise calls the vectorized elementwise wrappers exposed by <code>python/cpp/bindings_fast_math.cpp</code>, never a Python-level scalar loop).</li>
 <li><strong>Averaging:</strong> medians over 30 cold timing samples via an adaptive-batch <code>time.perf_counter</code> harness (mirrors the R harness's adaptive <code>system.time</code> split, target 200ms/batch).</li>
 <li><strong>Significance:</strong> Welch's two-sample t-test (<code>scipy.stats.ttest_ind(..., equal_var=False)</code>) between the EDI and canonical timing replicate distributions — real for any row with a wired, working EDI binding; <code>NA</code> for rows where no binding is wired or available.</li>
 <li><strong>Row highlighting:</strong> light green = <code>Speedup &gt; 1</code> and <code>Timing Pval &lt; 0.05</code>; light grey = <code>NA</code> timing comparison (EDI not bound yet, or a fit failed); light blue = no canonical Python implementation exists at all for this model family/function.</li>
 <li><strong>Package versions this report was run against:</strong> numpy 2.5.1, scipy 1.18.0, pandas 3.0.5, statsmodels 0.14.6, sksurv 0.28.0, lifelines 0.30.0.</li>
 </ul>
 
-<h2 id="results">Point-Estimate Results (33 of 47 rows timed, 14 Baseline Gaps)</h2>
+<h2 id="results">Point-Estimate Results (32 of 46 rows timed, 14 Baseline Gaps)</h2>
 <p class="legend">
 <span style="background:#d9fdd3"></span>EDI faster, significant &nbsp;
 <span style="background:#eceff1"></span>NA timing comparison &nbsp;
@@ -109,7 +109,6 @@ line in different places.)</p>
 <tr style="background-color: #d9fdd3;"><td>InferenceAllSimpleWilcox</td><td>continuous</td><td>0.15</td><td>numpy</td><td>median(HL pairwise diff)</td><td>0.61</td><td>4.00x</td><td>5.61e-31</td><td>***</td></tr>
 <tr style="background-color: #cfe2ff;"><td>InferenceContinKKGLMM</td><td>continuous</td><td>NA</td><td>None</td><td></td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceContinOLS</td><td>continuous</td><td>0.02</td><td>numpy</td><td>linalg.lstsq</td><td>0.08</td><td>4.44x</td><td>4.02e-27</td><td>***</td></tr>
-<tr style="background-color: #eceff1;"><td>InferenceContinQuantileRegr</td><td>continuous</td><td>NA</td><td>statsmodels</td><td>QuantReg</td><td>15.56</td><td>NA</td><td>NA</td><td></td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceContinRobustRegr</td><td>continuous</td><td>0.10</td><td>statsmodels</td><td>RLM</td><td>8.13</td><td>77.85x</td><td>2.21e-28</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceCountHurdleNegBin</td><td>count</td><td>1.59</td><td>statsmodels</td><td>HurdleCountModel(negbin)</td><td>89.63</td><td>56.33x</td><td>4.72e-29</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceCountHurdlePoisson</td><td>count</td><td>0.98</td><td>statsmodels</td><td>HurdleCountModel(poisson)</td><td>27.71</td><td>28.21x</td><td>3.18e-27</td><td>***</td></tr>
@@ -155,15 +154,15 @@ line in different places.)</p>
 <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalWeibullRegr</td><td>survival</td><td>0.37</td><td>lifelines</td><td>WeibullAFTFitter.fit_interval_censoring()</td><td>192.87</td><td>518.83x</td><td>4.32e-31</td><td>***</td></tr>
 </tbody>
 </table>
-<p><small>33 of 47 rows have a working canonical Python timing; 0 canonical fit(s) failed on this run (see console log); 14 are documented Baseline Gaps.</small></p>
+<p><small>32 of 46 rows have a working canonical Python timing; 0 canonical fit(s) failed on this run (see console log); 14 are documented Baseline Gaps.</small></p>
 
-<h2 id="wald">Wald Test Performance / Full Inference (34 of 47 rows timed, 13 Baseline Gaps)</h2>
+<h2 id="wald">Wald Test Performance / Full Inference (30 of 43 rows timed, 13 Baseline Gaps)</h2>
 <p class="legend">
 <span style="background:#d9fdd3"></span>EDI faster, significant &nbsp;
 <span style="background:#eceff1"></span>NA timing comparison &nbsp;
 <span style="background:#cfe2ff"></span>no canonical Python implementation
 </p>
-<p>Same Baseline Gap families as the point-estimate table above, plus three rows excluded outright (no variance computation, not a Baseline Gap in the usual sense):</p>
+<p>Same Baseline Gap families as the point-estimate table above, plus 1 row(s) excluded outright (no variance computation, not a Baseline Gap in the usual sense):</p>
 <ul>
 <li><code>InferenceSurvivalRestrictedMeanDiff</code>: Not in R's own Wald table either: lifelines' restricted_mean_survival_time (like R's survival:::survmean) returns only a point value; a variance requires a separate bootstrap-based computation, a different computational profile than every other Wald row here.</li>
 </ul>
@@ -186,12 +185,9 @@ line in different places.)</p>
 <thead><tr><th>Class</th><th>Response</th><th>EDI Time (ms)</th><th>Canonical Pkg</th><th>Canonical Func</th><th>Canonical Time (ms)</th><th>Speedup</th><th>Timing Pval</th><th></th></tr></thead>
 <tbody>
 
-<tr style="background-color: #eceff1;"><td>InferenceAllSimpleMeanDiffPooledVar</td><td>continuous</td><td>NA</td><td>scipy</td><td>stats.ttest_ind(pooled)</td><td>0.85</td><td>NA</td><td>NA</td><td></td></tr>
-<tr style="background-color: #eceff1;"><td>InferenceAllSimpleWilcox</td><td>continuous</td><td>NA</td><td>scipy</td><td>stats.mannwhitneyu</td><td>0.62</td><td>NA</td><td>NA</td><td></td></tr>
 <tr style="background-color: #cfe2ff;"><td>InferenceContinKKGLMM</td><td>continuous</td><td>NA</td><td>None</td><td></td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceContinLin</td><td>continuous</td><td>0.25</td><td>statsmodels</td><td>OLS(interaction)+summary</td><td>1.15</td><td>4.54x</td><td>8.45e-22</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceContinOLS</td><td>continuous</td><td>0.17</td><td>statsmodels</td><td>OLS+summary</td><td>0.59</td><td>3.42x</td><td>4.84e-25</td><td>***</td></tr>
-<tr style="background-color: #eceff1;"><td>InferenceContinQuantileRegr</td><td>continuous</td><td>NA</td><td>statsmodels</td><td>QuantReg+summary</td><td>22.69</td><td>NA</td><td>NA</td><td></td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceContinRobustRegr</td><td>continuous</td><td>0.29</td><td>statsmodels</td><td>RLM+summary</td><td>5.83</td><td>20.20x</td><td>3.24e-29</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceCountHurdleNegBin</td><td>count</td><td>1.37</td><td>statsmodels</td><td>HurdleCountModel(negbin)+summary</td><td>86.02</td><td>62.90x</td><td>6.37e-30</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceCountHurdlePoisson</td><td>count</td><td>1.28</td><td>statsmodels</td><td>HurdleCountModel(poisson)+summary</td><td>26.91</td><td>21.02x</td><td>1.08e-29</td><td>***</td></tr>
@@ -204,7 +200,6 @@ line in different places.)</p>
 <tr style="background-color: #d9fdd3;"><td>InferenceCountRobustPoisson</td><td>count</td><td>0.22</td><td>statsmodels</td><td>GLM(Poisson)+summary</td><td>2.85</td><td>12.85x</td><td>1.07e-31</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceCountZeroInflatedNegBin</td><td>count</td><td>4.43</td><td>statsmodels</td><td>ZeroInflatedNegativeBinomialP+summary</td><td>216.05</td><td>48.73x</td><td>1.05e-27</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceCountZeroInflatedPoisson</td><td>count</td><td>12.07</td><td>statsmodels</td><td>ZeroInflatedPoisson+summary</td><td>35.84</td><td>2.97x</td><td>8.69e-28</td><td>***</td></tr>
-<tr style="background-color: #eceff1;"><td>InferenceIncidExactFisher</td><td>incidence</td><td>NA</td><td>scipy</td><td>stats.fisher_exact</td><td>1.29</td><td>NA</td><td>NA</td><td></td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceIncidGCompRiskDiff</td><td>incidence</td><td>1.19</td><td>statsmodels</td><td>GLM(Binomial)+gcomp(RD)+delta-method SE</td><td>3.49</td><td>2.93x</td><td>8.34e-30</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceIncidGCompRiskRatio</td><td>incidence</td><td>1.17</td><td>statsmodels</td><td>GLM(Binomial)+gcomp(RR)+delta-method SE</td><td>3.27</td><td>2.79x</td><td>4.2e-24</td><td>***</td></tr>
 <tr style="background-color: #cfe2ff;"><td>InferenceIncidKKCondLogitGLMMOneLik</td><td>incidence</td><td>NA</td><td>None</td><td></td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
@@ -235,7 +230,7 @@ line in different places.)</p>
 <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalWeibullRegr</td><td>survival</td><td>0.19</td><td>lifelines</td><td>WeibullAFTFitter.fit()+summary</td><td>128.70</td><td>676.59x</td><td>4.37e-23</td><td>***</td></tr>
 </tbody>
 </table>
-<p><small>34 of 47 rows have a working canonical Python timing; 0 canonical fit(s) failed on this run (see console log); 13 are documented Baseline Gaps; 1 rows from the point-estimate table are excluded entirely (see above).</small></p>
+<p><small>30 of 43 rows have a working canonical Python timing; 0 canonical fit(s) failed on this run (see console log); 13 are documented Baseline Gaps; 1 rows from the point-estimate table are excluded entirely (see above).</small></p>
 
 <h2 id="utility">Utility / Math Kernel Performance (14 of 14 functions timed)</h2>
 <p class="legend">
@@ -243,7 +238,7 @@ line in different places.)</p>
 <span style="background:#eceff1"></span>NA timing comparison &nbsp;
 <span style="background:#cfe2ff"></span>no canonical Python implementation
 </p>
-<p>EDI's internal <code>fast_*</code> scalar math kernels — every one that exists in <code>R/EDI/src</code> (<code>fast_digamma</code>, <code>fast_trigamma</code>, <code>fast_lgamma</code>, <code>fast_lbeta</code>, <code>fast_qnorm</code>, <code>fast_log_pnorm</code>, <code>fast_log_dnorm</code>, <code>fast_dnbinom_mu</code>, <code>fast_pchisq_upper</code>, <code>fast_erfc</code>, <code>pnorm_fast</code>, <code>dnorm_fast</code>, <code>fast_atan</code>, <code>fast_log1pexp</code>) — vs. their scipy/numpy vectorized equivalents, over a length-5000 vector. Only <code>fast_pchisq_upper</code> is declared in the <code>python/</code> <code>fast_math</code> stub (<code>python/cpp/bindings_fast_math.cpp</code>), and even that build currently fails to import (an unrelated undefined symbol from other in-progress bindings in the same compiled module — <code>python/build_verify/</code>), so no row has a usable EDI binding yet and every row is grey today.</p>
+<p>EDI's internal <code>fast_*</code> scalar math kernels — every one that exists in <code>R/EDI/src</code> (<code>fast_digamma</code>, <code>fast_trigamma</code>, <code>fast_lgamma</code>, <code>fast_lbeta</code>, <code>fast_qnorm</code>, <code>fast_log_pnorm</code>, <code>fast_log_dnorm</code>, <code>fast_dnbinom_mu</code>, <code>fast_pchisq_upper</code>, <code>fast_erfc</code>, <code>pnorm_fast</code>, <code>dnorm_fast</code>, <code>fast_atan</code>, <code>fast_log1pexp</code>) — vs. their scipy/numpy vectorized equivalents, over a length-5000 vector. All 14 are bound in <code>python/cpp/bindings_fast_math.cpp</code> as vectorized elementwise wrappers around the same portable inline scalar functions EDI's model-fitting kernels call internally, so every row times a real EDI call against its canonical vectorized counterpart.</p>
 <table>
 <thead><tr><th>Class</th><th>Response</th><th>EDI Time (ms)</th><th>Canonical Pkg</th><th>Canonical Func</th><th>Canonical Time (ms)</th><th>Speedup</th><th>Timing Pval</th><th></th></tr></thead>
 <tbody>

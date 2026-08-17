@@ -84,8 +84,16 @@ def check_internal(md_file: Path, target: str) -> str | None:
     return None
 
 
+# A plain-python User-Agent gets a blanket 403 from academic publishers
+# (ScienceDirect, ACS, ResearchGate, ...) regardless of whether the page
+# exists -- impersonate a browser so a 403 carries more signal.
+EXTERNAL_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"
+)
+
+
 def check_external(url: str) -> str | None:
-    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "doc-link-checker"})
+    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": EXTERNAL_UA})
     try:
         with urllib.request.urlopen(req, timeout=EXTERNAL_TIMEOUT_SECS) as resp:
             if resp.status >= 400:
@@ -96,12 +104,21 @@ def check_external(url: str) -> str | None:
             # Some sites reject HEAD; retry with GET before giving up.
             try:
                 req2 = urllib.request.Request(
-                    url, method="GET", headers={"User-Agent": "doc-link-checker"}
+                    url, method="GET", headers={"User-Agent": EXTERNAL_UA}
                 )
                 with urllib.request.urlopen(req2, timeout=EXTERNAL_TIMEOUT_SECS) as resp:
                     if resp.status >= 400:
                         return f"HTTP {resp.status}"
                 return None
+            except urllib.error.HTTPError as e2:
+                if e2.code == 403:
+                    # Still 403 on a browser-UA GET: the site is up but
+                    # refuses automated clients (TLS/bot fingerprinting).
+                    # That says nothing about whether the page exists -- a
+                    # genuinely dead page returns 404/410 -- so don't
+                    # report it as broken.
+                    return None
+                return f"HTTP {e2.code}"
             except Exception as e2:
                 return f"{e2}"
         return f"HTTP {e.code}"
@@ -155,14 +172,13 @@ def main() -> int:
         print(msg + ".")
         return 0
 
-    # External links are reported but never block the push: unlike internal
-    # links (fully deterministic filesystem checks), an external site can be
-    # transiently down, rate-limiting, or blocking automated HEAD/GET
-    # requests -- a flaky third-party site should not be able to stop a
-    # push. Internal breakage is fully within this repo's control, so it
-    # blocks (modulo the baseline exemption for pre-existing debt above).
+    # External link failures block the push too. check_external() already
+    # tolerates the one systematic false positive (publishers that 403 every
+    # automated client regardless of whether the page exists), so anything
+    # reported here is a real 4xx/5xx or an unreachable host -- worth
+    # stopping on rather than scrolling past.
     if external_broken:
-        print(f"check_doc_links: {len(external_broken)} external link(s) did not respond (NOT blocking the push):")
+        print(f"check_doc_links: {len(external_broken)} external link(s) did not respond (blocking):")
         for md_file, target, err in sorted(external_broken, key=lambda t: str(t[0])):
             print(f"  {md_file.relative_to(REPO_ROOT)}: {target} -- {err}")
 
@@ -175,9 +191,8 @@ def main() -> int:
             f"newly discovered rather than something you just broke, add it to {BASELINE_PATH} "
             f"(re-run with --write-baseline to regenerate)."
         )
-        return 1
 
-    return 0
+    return 1
 
 
 def collect(report_external: bool):
