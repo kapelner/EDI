@@ -56,6 +56,7 @@ Suggests:
     ordinal,
     pscl,
     quantreg,
+    RcppXPtrUtils,
     Rfit,
     rmarkdown,
     testthat,

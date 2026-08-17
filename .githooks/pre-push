@@ -83,7 +83,14 @@ if [ "$run_r_tests" = "1" ] || grep -qE '^R/package_tests/|^R/package_metadata/f
 	run_comprehensive_suite=1
 fi
 
-failed=0
+# Fail fast: the first failing check aborts the push immediately -- later
+# checks are not run, so control returns to the terminal right away instead
+# of grinding through the remaining (potentially slow) blocks first.
+abort_push() {
+	echo "pre-push: a local check failed -- stopping remaining checks; push aborted." >&2
+	echo "pre-push: fix the failure, or bypass with 'git push --no-verify' if you really mean to push anyway." >&2
+	exit 1
+}
 
 # Any *.md changed anywhere in the repo -- not narrowed to which links moved,
 # since a link can break from the OTHER end (renaming/moving the file it
@@ -105,7 +112,7 @@ if [ "$run_doc_link_check" = "1" ]; then
 	# push) -- see the script's own comments for the full rationale.
 	if ! python3 scripts/check_doc_links.py; then
 		echo "pre-push: documentation link check FAILED (see output above)." >&2
-		failed=1
+		abort_push
 	fi
 else
 	echo "pre-push: no markdown files changed, skipping documentation link check."
@@ -123,11 +130,11 @@ if bash scripts/update_readme_cloc.sh; then
 	if ! git diff --exit-code -- README.md; then
 		echo "pre-push: README.md lines-of-code table was stale -- regenerated in place (diff above)." >&2
 		echo "pre-push: commit the updated README.md and push again." >&2
-		failed=1
+		abort_push
 	fi
 else
 	echo "pre-push: scripts/update_readme_cloc.sh FAILED." >&2
-	failed=1
+	abort_push
 fi
 
 echo
@@ -141,7 +148,7 @@ if [ "$roxygen_touched" = "1" ]; then
 	echo "pre-push: roxygen comments changed -- checking @references/REFERENCES.md sync ..."
 	if ! Rscript R/package_tests/check_references_sync.R; then
 		echo "pre-push: @references/REFERENCES.md sync check FAILED (see output above)." >&2
-		failed=1
+		abort_push
 	fi
 
 	echo
@@ -159,14 +166,16 @@ if [ "$roxygen_touched" = "1" ]; then
 	cat "$roxy_out"
 	if [ "$roxy_status" != "0" ]; then
 		echo "pre-push: fast_roxygenize.R FAILED (see output above)." >&2
-		failed=1
+		rm -f "$roxy_out"
+		abort_push
 	elif grep -qE "^Warning" "$roxy_out"; then
 		# roxygenize() reports doc problems (undocumented R6 methods, etc.) as R
 		# warnings, not errors -- Rscript still exits 0, so the exit code alone
 		# can't catch these; the printed "Warning message(s):" block is the
 		# only signal.
 		echo "pre-push: fast_roxygenize.R reported a documentation warning (see output above)." >&2
-		failed=1
+		rm -f "$roxy_out"
+		abort_push
 	fi
 	rm -f "$roxy_out"
 else
@@ -189,7 +198,7 @@ if [ "$run_r_tests" = "1" ]; then
 	echo "pre-push: C++-relevant files changed -- checking unity-build safety ..."
 	if ! bash scripts/check_unity_build_safety.sh; then
 		echo "pre-push: unity-build safety check FAILED (see output above)." >&2
-		failed=1
+		abort_push
 	fi
 else
 	echo "pre-push: no C++-relevant changes, skipping unity-build safety check."
@@ -213,55 +222,50 @@ if [ "$run_r_tests" = "1" ] || [ "$run_comprehensive_suite" = "1" ]; then
 	need_install=1
 fi
 
-install_ok=1
 if [ "$need_install" = "1" ]; then
 	echo "pre-push: installing EDI (incremental) ..."
 	# This install is only ever used to run tests/scripts against, never as a
 	# package someone actually loads and uses day-to-day -- skip everything
 	# that doesn't affect whether the code runs correctly.
 	if ! R CMD INSTALL --no-byte-compile --no-lazydata --no-html --no-demo --no-help --no-pdf R/EDI; then
-		install_ok=0
+		echo "pre-push: EDI install FAILED." >&2
+		abort_push
 	fi
 fi
 
 echo
 
 if [ "$run_r_tests" = "1" ]; then
-	if [ "$install_ok" = "0" ]; then
-		echo "pre-push: skipping R tests, install failed above." >&2
-		failed=1
-	else
-		echo "pre-push: R-relevant files changed -- running R's test suite ..."
-		# Same script + NOT_CRAN gate R CMD check's own "checking tests" phase
-		# runs internally, just invoked directly against the already-installed
-		# package instead of paying for a second, tarball-forced full recompile.
-		# Must run with cwd = R/EDI/tests: test_check() calls
-		# test_dir("testthat", ...) with a path relative to the CURRENT WORKING
-		# DIRECTORY, not the script's location -- R CMD check gets away with a
-		# bare "testthat" because it copies testthat.R into tests/ and runs it
-		# from there. Running from the repo root instead makes "testthat"
-		# resolve to a nonexistent ./testthat, and test_dir() silently reports
-		# "No test files found." rather than erroring.
-		# Uses scripts/run_prepush_r_tests.R rather than R/EDI/tests/testthat.R
-		# directly: that script's default CheckReporter prints one line per
-		# test file (and, on a failing expectation, testthat >=3.3.2's
-		# extract_test() additionally writes a slow tests/testthat/_problems/*.R
-		# reprex for EVERY failing expectation -- on a genuinely failing test
-		# with many failing expectations that's enough slow work to stall this
-		# hook long enough for git's already-open connection to the remote
-		# (opened for ref negotiation before this hook even runs) to go idle
-		# and get dropped: "Connection to github.com closed by remote host.").
-		# run_prepush_r_tests.R instead uses its own reporter that just tallies
-		# pass/fail/warn/skip counts into a fixed, live-updating 4-line block --
-		# it never calls extract_test(), so no _problems/ writes happen either
-		# way. Must run with cwd = R/EDI/tests: test_dir("testthat", ...) inside
-		# that script is relative to the CWD, same as test_check()'s internal
-		# call -- R CMD check gets away with a bare "testthat" because it
-		# copies testthat.R into tests/ and runs it from there.
-		if ! ( cd R/EDI/tests && NOT_CRAN=true Rscript "$repo_root/scripts/run_prepush_r_tests.R" ); then
-			echo "pre-push: R tests FAILED." >&2
-			failed=1
-		fi
+	echo "pre-push: R-relevant files changed -- running R's test suite ..."
+	# Same script + NOT_CRAN gate R CMD check's own "checking tests" phase
+	# runs internally, just invoked directly against the already-installed
+	# package instead of paying for a second, tarball-forced full recompile.
+	# Must run with cwd = R/EDI/tests: test_check() calls
+	# test_dir("testthat", ...) with a path relative to the CURRENT WORKING
+	# DIRECTORY, not the script's location -- R CMD check gets away with a
+	# bare "testthat" because it copies testthat.R into tests/ and runs it
+	# from there. Running from the repo root instead makes "testthat"
+	# resolve to a nonexistent ./testthat, and test_dir() silently reports
+	# "No test files found." rather than erroring.
+	# Uses scripts/run_prepush_r_tests.R rather than R/EDI/tests/testthat.R
+	# directly: that script's default CheckReporter prints one line per
+	# test file (and, on a failing expectation, testthat >=3.3.2's
+	# extract_test() additionally writes a slow tests/testthat/_problems/*.R
+	# reprex for EVERY failing expectation -- on a genuinely failing test
+	# with many failing expectations that's enough slow work to stall this
+	# hook long enough for git's already-open connection to the remote
+	# (opened for ref negotiation before this hook even runs) to go idle
+	# and get dropped: "Connection to github.com closed by remote host.").
+	# run_prepush_r_tests.R instead uses its own reporter that just tallies
+	# pass/fail/warn/skip counts into a fixed, live-updating 4-line block --
+	# it never calls extract_test(), so no _problems/ writes happen either
+	# way. Must run with cwd = R/EDI/tests: test_dir("testthat", ...) inside
+	# that script is relative to the CWD, same as test_check()'s internal
+	# call -- R CMD check gets away with a bare "testthat" because it
+	# copies testthat.R into tests/ and runs it from there.
+	if ! ( cd R/EDI/tests && NOT_CRAN=true Rscript "$repo_root/scripts/run_prepush_r_tests.R" ); then
+		echo "pre-push: R tests FAILED." >&2
+		abort_push
 	fi
 else
 	echo "pre-push: no R-relevant files changed, skipping R checks."
@@ -270,56 +274,51 @@ fi
 echo
 
 if [ "$run_comprehensive_suite" = "1" ]; then
-	if [ "$install_ok" = "0" ]; then
-		echo "pre-push: skipping comprehensive suite, install failed above." >&2
-		failed=1
+	echo "pre-push: R/package_tests-relevant files changed -- running comprehensive suite (smoke tier) + drift check ..."
+	if (
+		cd R &&
+		Rscript package_tests/public_api_inventory.R &&
+		Rscript package_tests/extract_checkmate_argument_contracts.R &&
+		Rscript package_tests/generate_public_argument_combinations.R &&
+		Rscript package_tests/run_public_argument_combinations.R &&
+		Rscript package_tests/analyze_public_argument_combinations.R &&
+		Rscript package_tests/public_argument_combination_integration.R &&
+		Rscript package_tests/check_public_argument_combination_quality_gates.R report &&
+		Rscript package_tests/comprehensive_suite_registry.R &&
+		Rscript package_tests/audit_comprehensive_suite_baseline.R &&
+		# comprehensive_suite_exemptions.csv deliberately excluded -- see
+		# test-coverage-R-advanced.yml's identical drift-check comment:
+		# audit_comprehensive_suite_baseline.R stamps it with
+		# created_date = Sys.Date() on every run, so it always "drifts".
+		git diff --exit-code -- \
+			package_tests/public_api_inventory.csv \
+			package_tests/public_argument_baseline_gap_report.csv \
+			package_tests/checkmate_argument_contracts.csv \
+			package_tests/public_argument_combination_cases.csv \
+			package_tests/public_argument_combination_rejected_candidates.csv \
+			package_tests/public_argument_combination_coverage.csv \
+			package_tests/public_argument_combination_results.csv \
+			package_tests/public_argument_combination_failures.csv \
+			package_tests/public_argument_combination_uncovered_apis.csv \
+			package_tests/public_argument_combination_registry_drift.csv \
+			package_tests/public_argument_combination_slowest_cases.csv \
+			package_tests/public_argument_combination_ci_failure_summary.csv \
+			package_tests/public_argument_combination_cases_integrated.csv \
+			package_tests/public_argument_combination_results_integrated.csv \
+			package_tests/public_argument_combination_coverage_integrated.csv \
+			package_tests/public_argument_combination_quality_gates.csv \
+			package_tests/public_argument_combination_quality_gate_summary.csv \
+			package_tests/comprehensive_suite_registry.csv \
+			package_tests/comprehensive_suite_baseline_audit.csv &&
+		Rscript package_tests/run_comprehensive_suite.R smoke "" 300 --force &&
+		Rscript package_tests/analyze_comprehensive_suite.R &&
+		Rscript package_tests/check_comprehensive_suite_quality_gates.R ci
+	); then
+		:
 	else
-		echo "pre-push: R/package_tests-relevant files changed -- running comprehensive suite (smoke tier) + drift check ..."
-		if (
-			cd R &&
-			Rscript package_tests/public_api_inventory.R &&
-			Rscript package_tests/extract_checkmate_argument_contracts.R &&
-			Rscript package_tests/generate_public_argument_combinations.R &&
-			Rscript package_tests/run_public_argument_combinations.R &&
-			Rscript package_tests/analyze_public_argument_combinations.R &&
-			Rscript package_tests/public_argument_combination_integration.R &&
-			Rscript package_tests/check_public_argument_combination_quality_gates.R report &&
-			Rscript package_tests/comprehensive_suite_registry.R &&
-			Rscript package_tests/audit_comprehensive_suite_baseline.R &&
-			# comprehensive_suite_exemptions.csv deliberately excluded -- see
-			# test-coverage-R-advanced.yml's identical drift-check comment:
-			# audit_comprehensive_suite_baseline.R stamps it with
-			# created_date = Sys.Date() on every run, so it always "drifts".
-			git diff --exit-code -- \
-				package_tests/public_api_inventory.csv \
-				package_tests/public_argument_baseline_gap_report.csv \
-				package_tests/checkmate_argument_contracts.csv \
-				package_tests/public_argument_combination_cases.csv \
-				package_tests/public_argument_combination_rejected_candidates.csv \
-				package_tests/public_argument_combination_coverage.csv \
-				package_tests/public_argument_combination_results.csv \
-				package_tests/public_argument_combination_failures.csv \
-				package_tests/public_argument_combination_uncovered_apis.csv \
-				package_tests/public_argument_combination_registry_drift.csv \
-				package_tests/public_argument_combination_slowest_cases.csv \
-				package_tests/public_argument_combination_ci_failure_summary.csv \
-				package_tests/public_argument_combination_cases_integrated.csv \
-				package_tests/public_argument_combination_results_integrated.csv \
-				package_tests/public_argument_combination_coverage_integrated.csv \
-				package_tests/public_argument_combination_quality_gates.csv \
-				package_tests/public_argument_combination_quality_gate_summary.csv \
-				package_tests/comprehensive_suite_registry.csv \
-				package_tests/comprehensive_suite_baseline_audit.csv &&
-			Rscript package_tests/run_comprehensive_suite.R smoke "" 300 --force &&
-			Rscript package_tests/analyze_comprehensive_suite.R &&
-			Rscript package_tests/check_comprehensive_suite_quality_gates.R ci
-		); then
-			:
-		else
-			echo "pre-push: comprehensive suite / drift check FAILED." >&2
-			echo "pre-push: if this is a drift failure (git diff above), regenerate and commit the affected package_tests/ CSVs -- see R/package_tests/public_argument_combination_runner.md." >&2
-			failed=1
-		fi
+		echo "pre-push: comprehensive suite / drift check FAILED." >&2
+		echo "pre-push: if this is a drift failure (git diff above), regenerate and commit the affected package_tests/ CSVs -- see R/package_tests/public_argument_combination_runner.md." >&2
+		abort_push
 	fi
 else
 	echo "pre-push: no R/package_tests-relevant files changed, skipping comprehensive suite."
@@ -349,19 +348,13 @@ if [ "$run_python_tests" = "1" ]; then
 	printf '[global]\ncache-dir = %s\n' "$py_venv/pip-cache" > "$py_venv/pip.conf"
 	if ! ( cd python && "$py_venv/bin/pip" install -q -e ".[test]" && "$py_venv/bin/python" -m pytest tests -q ); then
 		echo "pre-push: python tests FAILED." >&2
-		failed=1
+		abort_push
 	fi
 else
 	echo "pre-push: no python/C++-relevant files changed, skipping python checks."
 fi
 
 echo
-
-if [ "$failed" = "1" ]; then
-	echo "pre-push: one or more local checks failed -- push aborted." >&2
-	echo "pre-push: fix the failure, or bypass with 'git push --no-verify' if you really mean to push anyway." >&2
-	exit 1
-fi
 
 echo "pre-push: all local checks passed."
 exit 0
