@@ -1,6 +1,16 @@
 library(testthat)
 library(EDI)
 
+# Golden values re-recorded 2026-08-17 -- same two causes as
+# test-simple-mean-difference-migration-golden.R (see its header note):
+# the design-hierarchy rework changed the permutation/resampling RNG stream
+# (verified: the new simple-Wilcox randomization values are bit-identical to
+# front-door compute_estimate() recomputation on the same drawn
+# permutations), and the previously-baked all-NA randomization /
+# randomization-bootstrap distributions recorded the pre-2026-08-13
+# clone-bug era. Deterministic goldens (estimates, asymptotic CIs/p-values,
+# KK bootstrap distribution/CI) are unchanged to the last digit.
+
 simple_wilcox_golden_design = function(n = 12L, seed = 20260728L) {
 	inference_migration_complete_design("continuous", n = n, seed = seed)
 }
@@ -139,7 +149,11 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 		"randomization distribution",
 		"approximate_randomization_distribution_beta_hat_T",
 		list(r = 9L, show_progress = FALSE),
-		rep(NA_real_, 9L)
+		c(
+			0.049090909090908963, 0.4263636363636365, -0.11136363636363622,
+			0.196363636363636185, -0.124545454545454515, 0.84909090909090934,
+			0.1999999999999999, -0.49818181818181817, -0.449090909090908985
+		)
 	)
 	expect_simple_wilcox_golden(
 		"randomization p-value",
@@ -152,16 +166,16 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 		"approximate_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
 		c(
-			0.277272727272727, -0.0472727272727272, 0.215,
-			0.426363636363637, 0.301818181818182, 0.426363636363637,
-			0.450909090909091, 0.426363636363637, -0.0227272727272723
+			0.84909090909090923, 0.924545454545455, 0.35090909090909139,
+			0.32636363636363647, 0.30181818181818199, 1.17363636363636381,
+			0.57545454545454566, 0.84909090909090945, 0.38863636363636372
 		)
 	)
 	expect_simple_wilcox_golden(
 		"bootstrap confidence interval",
 		"compute_bootstrap_confidence_interval",
 		list(alpha = 0.2, B = 9L, show_progress = FALSE),
-		c(`10%` = -0.0407272727272725, `90%` = 0.444363636363637)
+		c(`10%` = 0.30836363636363651, `90%` = 1.10721212121212131)
 	)
 	expect_simple_wilcox_golden(
 		"bootstrap p-value",
@@ -174,9 +188,9 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 		"approximate_rand_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
 		c(
-			0.449090909090909, -0.086818181818182, 0.111363636363636,
-			-0.498181818181818, 0.226363636363637, 0.498181818181818,
-			0.124545454545455, 0, 0
+			0, 0.23954545454545473, 0.30181818181818199,
+			0, 0.07545454545454533, -0.42272727272727267,
+			0, -0.13590909090909081, -0.4490909090909091
 		)
 	)
 	expect_simple_wilcox_golden(
@@ -234,7 +248,11 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 		"randomization distribution",
 		"approximate_randomization_distribution_beta_hat_T",
 		list(r = 9L, show_progress = FALSE),
-		rep(NA_real_, 9L)
+		c(
+			-0.1626663432174322577, -0.162704310549257769, -0.0094121383485589252,
+			-0.0075523376223692144, -0.1627451388585888503, -0.16275512552050167,
+			-0.0054983719938008768, 0.1626228617150562161, 0.1628147845278387906
+		)
 	)
 	expect_kk_wilcox_golden(
 		"randomization p-value",
@@ -268,7 +286,11 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 		"randomization bootstrap distribution",
 		"approximate_rand_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
-		rep(NA_real_, 9L)
+		c(
+			-0.162856120731504211, -0.066998567187538299, -0.040537058306785882,
+			0, -0.01407192206605286, 0.571452644844059554,
+			-0.16359567953864429, 0.053228717594146359, 0
+		)
 	)
 	expect_kk_wilcox_golden(
 		"randomization bootstrap p-value",

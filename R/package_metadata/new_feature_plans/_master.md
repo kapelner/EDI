@@ -28,6 +28,16 @@ spliced into one step and marked **[spliced]**.
 > That file draws the release line; this file remains the
 > execution order.
 >
+> **v1.1.0 line (2026-08-17, user decision).**
+> `../future_release_plans/release_v1_1_0.md` batches **everything open in
+> this directory that is not inside the v1.0.0 line** into the v1.1.0 scope
+> — the full Phase 0 decision batch, Phases 2 and 4 remainders, all of
+> Phase 5, and Phase 6 (including `local_machine_optimization.md` and
+> `design_fixed_greedy_pair_switch_merge.md`). This supersedes
+> `release_v1_0_0.md → TODO-5`'s earlier "small first wave" guess. As with
+> the 1.0.0 file, it only draws the release line; this file remains the
+> execution order, and its TODOs are ticked in their owning plans.
+>
 > **Update (2026-08-16):** two of the release-scoped plans have since
 > closed and moved to `../finished_features/`: the interval-censored
 > survival (y/y_L/y_R) rework, and the SEXP/RcppEigen conversion spec
@@ -391,12 +401,28 @@ Each track starts only on a "yes" from Phase 0, and assumes Phase 1 is done
    its architecture depends on; it remains a research scoping doc until then.
 2. `save_load_api.md → all TODOs` — after Phase 1E.3, when
    `EDI_DESIGN_COMPONENTS`' `owns_state` makes the serialization audit
-   scriptable.
+   scriptable. Done (2026-08-17): every TODO closed (version stamp +
+   accessor, one-time major-version-mismatch warning, full private-field
+   serialization audit — which found and fixed a real non-serializable-XPtr
+   bug in `DesignFixedOptimal`'s custom-objective path — roxygen "Saving and
+   loading" section, and `test-save-load-design.R`); moved to
+   `../finished_features/save_load_api.md`.
 3. `interval_censored_survival_response_type_report.md → second wave` — per
    Phase 0 step 10, tracked in `interval_censored_survival_response.md`.
 4. `response_types_landscape_report.md → its remaining open TODOs` — refresh
    the landscape after any 5B track ships.
-5. `design_fixed_greedy_pair_switch_merge.md → TODO-1..10` — explicit
+5. `local_machine_optimization.md → TODO-1..12` — explicit v1.1.0 target
+   (added 2026-08-17): `optimize_EDI_locally()`, a user-invoked benchmark
+   tuner that recomputes the machine-dependent `globals.R` policy defaults
+   (cold starts, warm starts + n-thresholds, optimizer algorithm, parallel
+   crossover/core counts) on the user's own hardware, persists them to
+   `tools::R_user_dir("EDI", "config")`, and has `.onLoad()` import them.
+   Its TODO-2 (lifting the hardcoded sample-size-conditioned warm-start
+   layer out of `edi_warm_start_dispatch_policy()` into the overridable
+   config table) is valuable standalone and may be pulled earlier into a
+   1.0.x. Sequence after `cold_starts.md`'s documentation audit (Phase 4
+   step 5).
+6. `design_fixed_greedy_pair_switch_merge.md → TODO-1..10` — explicit
    post-1.0.0 target (user instruction, 2026-08-16). Sequenced after
    `fix_design_hierarchy.md`'s Stage-2 shared-engine extraction (Follow-Ups)
    and, ideally, after `design_fixed_optimal.md`'s own implementation ships

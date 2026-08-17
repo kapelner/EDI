@@ -205,6 +205,17 @@ test_that("parametric bootstrap LR smoke tests cover censoring, mixture, ordinal
 	)
 
 	assert_param_bootstrap_lr_smoke(
+		InferenceOrdinalAdjCatLogitRegr$new(
+			make_param_boot_ordinal_design(),
+			model_formula = ~ x1 + x2,
+			verbose = FALSE
+		),
+		B = 9L,
+		min_success = 3L,
+		seed = 9205L
+	)
+
+	assert_param_bootstrap_lr_smoke(
 		InferenceCountKKGLMM$new(
 			make_param_boot_count_kk_glmm_design(),
 			model_formula = ~ x1 + x2,

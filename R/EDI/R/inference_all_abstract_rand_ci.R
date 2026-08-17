@@ -401,7 +401,18 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			}
 			wald_ci = c(NA_real_, NA_real_)
 			asym_ci = c(NA_real_, NA_real_)
-			if (is(inf_obj, "InferenceAsymp")) {
+			# Behavior check, NOT class identity: `is(inf_obj, "InferenceAsymp")`
+			# was FALSE for every class migrated to define_inference_class()
+			# (parent = Inference, Wald arriving as a component), which silently
+			# dropped the Wald/asymp seed candidates -- and with them the
+			# fallback_ci -- from every migrated class's randomization CI: where
+			# the pre-migration class returned the Wald-seeded fallback when the
+			# bisection could not converge, the migrated class returned c(NA, NA).
+			# Found 2026-08-17 by the InferenceCountKKHurdlePoissonIVWC migration
+			# golden (legacy ladder fixture finite, migrated NA). The method
+			# calls inside are individually tryCatch-protected, so probing by
+			# method presence is safe for any class shape.
+			if (is.function(inf_obj$compute_asymp_confidence_interval)) {
 				asym_ci = normalize_ci(tryCatch(inf_obj$compute_asymp_confidence_interval(alpha = alpha * 2), error = function(e) c(NA_real_, NA_real_)))
 				supported = tryCatch(inf_obj$get_supported_testing_types(), error = function(e) character())
 				if ("wald" %in% supported) {

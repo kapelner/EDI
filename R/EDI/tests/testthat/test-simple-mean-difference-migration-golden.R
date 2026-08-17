@@ -1,6 +1,22 @@
 library(testthat)
 library(EDI)
 
+# Golden values re-recorded 2026-08-17 (previously recorded ~2026-08-11):
+#   - The randomization/bootstrap distribution values drifted because the
+#     design-hierarchy rework changed the permutation/resampling RNG stream.
+#     Verified before re-recording: the new randomization values are
+#     bit-identical to hand-computed mean-differences over the exact
+#     permutations drawn under the same seed (statistic unchanged, stream
+#     only), and every deterministic golden (estimate, jackknife
+#     estimate/SE/CI/p-value, pooled asymptotic CI/p-value) is unchanged to
+#     the last digit.
+#   - The Bayesian-bootstrap goldens previously expected all-NA output:
+#     they were recorded while the reusable-worker/lazy-component clone bug
+#     (fixed 2026-08-13, see fix_inference_hierarchy.md Follow-Ups) silently
+#     broke the Bayesian bootstrap for migrated classes. Finite,
+#     estimate-centered values are the correct behavior (verified: B=200
+#     gives 200/200 finite, mean ~ estimate).
+
 simple_mean_difference_golden_design = function(n = 12L, seed = 20260728L) {
 	inference_migration_complete_design("continuous", n = n, seed = seed)
 }
@@ -100,9 +116,9 @@ test_that("migrated simple mean difference golden outputs are stable", {
 		"approximate_randomization_distribution_beta_hat_T",
 		list(r = 9L, show_progress = FALSE),
 		c(
-			0.279948051948052, -0.470077922077922, -0.00666666666666682,
-			-0.337171717171717, -0.0694545454545454, -0.0993939393939394,
-			0.331688311688312, 0.0953246753246751, 0.192424242424242
+			0.03488636363636366, 0.40150649350649364, -0.099393939393939257,
+			0.15963636363636369, -0.069454545454545435, 0.81363636363636371,
+			0.25522727272727253, -0.43693506493506495, -0.26840909090909071
 		)
 	)
 	expect_simple_mean_difference_golden(
@@ -116,9 +132,9 @@ test_that("migrated simple mean difference golden outputs are stable", {
 		"approximate_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
 		c(
-			0.193636363636364, 0.0980303030303032, 0.31,
-			0.384, 0.237676767676768, 0.478787878787879,
-			0.540363636363637, 0.50375, 0.0980303030303032
+			0.72109090909090934, 0.89939393939393963, 0.35090909090909128,
+			0.32409090909090926, 0.34852272727272737, 0.98242424242424264,
+			0.61602272727272744, 0.81196969696969712, 0.40420454545454559
 		)
 	)
 	expect_simple_mean_difference_golden(
@@ -137,19 +153,23 @@ test_that("migrated simple mean difference golden outputs are stable", {
 		"bayesian bootstrap distribution",
 		"approximate_bayesian_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
-		rep(NA_real_, 9L)
+		c(
+			0.19448323582684879, 0.42816742892920184, 0.31442368672754006,
+			0.66668978340624663, 0.50190925369646533, 0.19224024788445437,
+			0.50628650214275361, 0.51833403695812996, 0.57560788857851741
+		)
 	)
 	expect_simple_mean_difference_golden(
 		"bayesian bootstrap confidence interval",
 		"compute_bayesian_bootstrap_confidence_interval",
 		list(alpha = 0.2, B = 9L, show_progress = FALSE),
-		c(`10%` = NA_real_, `90%` = NA_real_)
+		c(`10%` = 0.1928383780024262, `90%` = 0.64240127811885206)
 	)
 	expect_simple_mean_difference_golden(
 		"bayesian bootstrap p-value",
 		"compute_bayesian_bootstrap_two_sided_pval",
 		list(delta = 0, B = 9L, show_progress = FALSE),
-		NA_real_
+		0.22222222222222221
 	)
 	expect_simple_mean_difference_golden(
 		"jackknife estimate",
@@ -205,9 +225,9 @@ test_that("migrated pooled simple mean difference golden outputs are stable", {
 		"approximate_randomization_distribution_beta_hat_T",
 		list(r = 9L, show_progress = FALSE),
 		c(
-			0.279948051948052, -0.470077922077922, -0.00666666666666682,
-			-0.337171717171717, -0.0694545454545454, -0.0993939393939394,
-			0.331688311688312, 0.0953246753246751, 0.192424242424242
+			0.03488636363636366, 0.40150649350649364, -0.099393939393939257,
+			0.15963636363636369, -0.069454545454545435, 0.81363636363636371,
+			0.25522727272727253, -0.43693506493506495, -0.26840909090909071
 		),
 		class_name = class_name
 	)
@@ -216,9 +236,9 @@ test_that("migrated pooled simple mean difference golden outputs are stable", {
 		"approximate_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
 		c(
-			0.193636363636364, 0.0980303030303032, 0.31,
-			0.384, 0.237676767676768, 0.478787878787879,
-			0.540363636363637, 0.50375, 0.0980303030303032
+			0.72109090909090934, 0.89939393939393963, 0.35090909090909128,
+			0.32409090909090926, 0.34852272727272737, 0.98242424242424264,
+			0.61602272727272744, 0.81196969696969712, 0.40420454545454559
 		),
 		class_name = class_name
 	)
@@ -226,7 +246,11 @@ test_that("migrated pooled simple mean difference golden outputs are stable", {
 		"pooled bayesian bootstrap distribution",
 		"approximate_bayesian_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
-		rep(NA_real_, 9L),
+		c(
+			0.19448323582684879, 0.42816742892920184, 0.31442368672754006,
+			0.66668978340624663, 0.50190925369646533, 0.19224024788445437,
+			0.50628650214275361, 0.51833403695812996, 0.57560788857851741
+		),
 		class_name = class_name
 	)
 	expect_simple_mean_difference_golden(

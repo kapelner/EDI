@@ -34,8 +34,8 @@ the frozen substrate makes it additive.
 2. **[x] `fix_design_hierarchy.md`** — same contract-freeze argument, and its
    `owns_state` metadata is the prerequisite for the serialization audit
    (item 5). **Done (2026-08-17): 0 open TODOs, moved to
-   `../finished_features/`.** Unblocks item 5 (`save_load_api.md`), which
-   has not started yet (18 open TODOs, 0 done).
+   `../finished_features/`.** Unblocked item 5 (`save_load_api.md`), which is
+   also now done — see item 5.
 3. **[x] `interval_censored_survival_response.md`** — the y/y_L/y_R response
    schema is a data-contract change touching every design and inference
    class; it must finish before the contract freezes. It also gates the
@@ -53,11 +53,16 @@ the frozen substrate makes it additive.
    TODO-1`, a separate plan — also **done (2026-08-16)**: root cause was the
    unvalidated `get_hurdle_negbin_count_score_cpp`/`_hessian_cpp` getters,
    fixed with the same dimension guards as this plan's TODO-16.
-5. **`save_load_api.md`** — the serialization contract. EDI's core use case
-   is sequential experiments running over weeks; a user must be able to save
-   a mid-experiment design under 1.0.0 and load it under 1.2.0. That
+5. **[x] `save_load_api.md`** — the serialization contract. EDI's core use
+   case is sequential experiments running over weeks; a user must be able to
+   save a mid-experiment design under 1.0.0 and load it under 1.2.0. That
    guarantee has to exist at 1.0, and cannot be bolted on later without a
-   migration story. Depends on item 2's `owns_state`.
+   migration story. Depends on item 2's `owns_state`. **Done (2026-08-17):
+   all TODOs closed (version stamp/accessor, one-time major-version-mismatch
+   warning, full private-field serialization audit — which found and fixed a
+   real non-serializable-XPtr bug in `DesignFixedOptimal`'s custom-objective
+   path — roxygen "Saving and loading" section, `test-save-load-design.R`),
+   moved to `../finished_features/`.**
 6. **`extending-edi-r6.md`** — the external extension contract; it freezes
    when the hierarchy plans do, per the standing constraint in `_master.md`.
 7. **`fix_documentation.md`** — CRAN requires complete documentation, and
@@ -293,10 +298,14 @@ deliberately does not cover:
 - [ ] TODO-4: Execute the Release Gate checklist above once items 1–9 are
   closed in their owning plans.
 - [ ] TODO-5: On submission acceptance: move the closed in-scope plans to
-  `../finished_features/` per the standing constraint, and open a
+  `../finished_features/` per the standing constraint. ~~Open a
   `release_v1_1_0.md` scoping the first additive wave (likely
   `expanded_estimate_report.md` + `marginal_estimand_report.md` +
-  Cox-Snell/Cordeiro-McCullagh, per Phase 5A order).
+  Cox-Snell/Cordeiro-McCullagh, per Phase 5A order).~~ **Superseded
+  (2026-08-17, user decision):** `release_v1_1_0.md` was opened ahead of
+  acceptance with a broader scope — everything open in
+  `new_feature_plans/` outside this file's release line, not just a first
+  wave. Only the move-to-finished_features part of this TODO remains.
 - [x] TODO-6: Unity-build consolidation — audit, fix pass, and build wiring
   all complete (2026-08-16). See `unity_build_collision_audit.md` for the
   full history. Summary:

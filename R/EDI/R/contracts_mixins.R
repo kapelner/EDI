@@ -506,6 +506,39 @@ EDI_COMPONENT_SPECS = list(
 		allowed_likelihood_tiers = "none",
 		declare_body_references_optional = TRUE
 	),
+	KKNewcombeRiskDiffIVWC = list(
+		status = "active",
+		source_name = "KKNewcombeRiskDiffIVWCSource",
+		file = "inference_incidence_KK_newcombe_ivwc_univ.R",
+		dependencies = "KKCompound",
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "none",
+		declare_body_references_optional = TRUE
+	),
+	CountKKHurdlePoissonIVWC = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "CountKKHurdlePoissonIVWCSource",
+		file = "inference_count_KK_cond_poisson.R",
+		dependencies = "KKPassThrough",
+		owns_state = c("use_rcpp", "max_abs_reasonable_coef"),
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval", "compute_estimate_with_bootstrap_weights"
+		),
+		provides_private_methods = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data", "compute_fast_randomization_distr",
+			"build_model_matrix", "shared", "build_glmm_formula",
+			"fit_hurdle_for_matched_pairs", "fit_hurdle_for_matched_pairs_rcpp",
+			"fit_hurdle_for_matched_pairs_glmm_tmb", "fit_poisson_for_reservoir",
+			"assert_finite_se", "supports_likelihood_tests",
+			"use_rcpp", "max_abs_reasonable_coef"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "full",
+		declare_body_references_optional = TRUE
+	),
 	SimpleWilcox = list(
 		status = "active",
 		source_name = "SimpleWilcoxSource",
@@ -1346,36 +1379,28 @@ EDI_COMPONENT_SPECS = list(
 					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE
 				),
+				# Leaf-only since the 2026-08-17 migration: the mixin-merged surface it
+				# used to carry (harvested from the pre-migration raw-splice class) now
+				# arrives through the KKPassThrough dependency; this component holds
+				# only the class's own estimator overrides.
 				SurvivalKKWeibullMarginal = list(
 					status = "active",
 					load_policy = "lazy",
 					source_name = "SurvivalKKWeibullMarginalSource",
 					file = "inference_survival_KK_weibull_marginal.R",
-					dependencies = character(),
-					owns_state = c(
-						"m", "kk_passthrough", "y_temp", "dead", "w", "X",
-						"any_censoring", "best_par", "optimization_alg",
-						"best_Xmm_colnames", "max_abs_reasonable_coef"
-					),
+					dependencies = "KKPassThrough",
+					owns_state = c("cached_vc_params", "max_abs_reasonable_coef"),
 					provides_public_methods = c(
-						"approximate_bootstrap_distribution_beta_hat_T", "compute_estimate_with_bootstrap_weights",
-						"initialize", "compute_estimate", "compute_asymp_confidence_interval",
-						"compute_asymp_two_sided_pval", "duplicate"
+						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval", "duplicate"
 					),
 					provides_private_methods = c(
-						"is_a_kk_passthrough_design", "compute_basic_match_data", "supports_information_preference",
-						"supports_observed_information", "get_supported_testing_types_impl",
-						"get_supported_information_preferences_impl", "use_reusable_kk_bootstrap_worker",
-						"init_kk_passthrough", "create_kk_bootstrap_context", "create_kk_bootstrap_worker_state",
-						"load_kk_bootstrap_sample_into_worker", "clear_kk_bootstrap_worker_design_caches",
-						"compute_kk_bootstrap_worker_estimate", "compute_kk_bootstrap_debug_with_reused_worker",
-						"compute_kk_bootstrap_distribution_with_reused_workers", "compute_basic_kk_match_data_impl",
-						"supports_likelihood_tests", "get_cluster_ids", "fit_weibull_marginal_cpp",
-						"fit_weibull_marginal_survreg", "shared", "assert_finite_se", "get_standard_error",
-						"get_degrees_of_freedom", "compute_treatment_estimate_during_randomization_inference",
-						"compute_fast_rand_bootstrap_distr", "m", "kk_passthrough", "y_temp", "dead", "w",
-						"X", "any_censoring", "best_par", "optimization_alg", "best_Xmm_colnames",
-						"max_abs_reasonable_coef"
+						"compute_basic_match_data", "supports_likelihood_tests", "get_cluster_ids",
+						"fit_weibull_marginal_cpp", "fit_weibull_marginal_survreg", "shared",
+						"assert_finite_se", "get_standard_error", "get_degrees_of_freedom",
+						"compute_treatment_estimate_during_randomization_inference",
+						"compute_fast_rand_bootstrap_distr",
+						"cached_vc_params", "max_abs_reasonable_coef"
 					),
 					provides_capabilities = character(),
 					allowed_likelihood_tiers = "full",

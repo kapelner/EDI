@@ -1914,12 +1914,41 @@ their own `[x]` entries above; they are not part of this count.)
   transform, Clayton copula, and frailty paths.
 - [ ] Migrate full-likelihood classes to `Inference` plus
   `LikelihoodTests`, `StandardModelCache`, `ParametricLikelihoodBootstrap` when
-  warranted, and family-specific components. Audited 2026-08-12:
-  `InferenceOrdinalPropOddsRegr` and `InferenceOrdinalAdjCatLogitRegr` are
-  already migrated via `define_inference_class(inherit = Inference, ...)`,
-  ahead of this checklist item; the rest of the full-likelihood families
-  (GLM, count, remaining ordinal links, incidence, proportion, survival,
-  KK/IVWC) remain on the old ladder.
+  warranted, and family-specific components. Re-audited 2026-08-17:
+  `InferenceOrdinalCauchitRegr` and `InferenceOrdinalCloglogRegr` are migrated via
+  `define_inference_class(inherit = Inference, ...)`. The earlier note here
+  also named `InferenceOrdinalPropOddsRegr` and
+  `InferenceOrdinalAdjCatLogitRegr`, but their current factory definitions
+  still inherit `InferenceParamBootstrap`; their direct-to-`Inference`
+  migrations therefore remain pending along with the other full-likelihood
+  families (GLM, count, remaining ordinal links, incidence, proportion,
+  survival, KK/IVWC).
+- [x] Migrate `InferenceOrdinalCauchitRegr` as a non-KK full-likelihood class.
+  **Completed 2026-08-17:** the concrete class now inherits directly from
+  `Inference` and composes `BayesianBootstrap`,
+  `ParametricLikelihoodBootstrap`, and `OrdinalCauchitLikelihood`; its registry
+  target, full-likelihood migration baseline, and dedicated legacy-vs-shallow
+  golden coverage were updated together. The golden coverage exercises
+  deterministic likelihood/Wald/score/LR/gradient behavior plus seeded
+  nonparametric, randomization, Bayesian, and parametric-likelihood bootstrap
+  paths, and asserts the shallow migration gate and exact effective component
+  set. All edited R files parse and `git diff --check` is clean. Runtime
+  execution remains deferred because loading this source tree currently
+  requires rebuilding drifted native exports, and compilation needs explicit
+  permission.
+- [x] Migrate `InferenceOrdinalCloglogRegr` as a non-KK full-likelihood class.
+  **Completed 2026-08-17:** the concrete class now inherits directly from
+  `Inference` and composes `BayesianBootstrap`,
+  `ParametricLikelihoodBootstrap`, and `OrdinalCloglogLikelihood`; its registry
+  target, full-likelihood migration baseline, and dedicated legacy-vs-shallow
+  golden coverage were updated together. The golden coverage exercises
+  deterministic likelihood/Wald/score/LR/gradient behavior plus seeded
+  nonparametric, randomization, Bayesian, and parametric-likelihood bootstrap
+  paths, and asserts the shallow migration gate and exact effective component
+  set. All edited R files parse and `git diff --check` is clean. Runtime
+  execution remains deferred because loading this source tree currently
+  requires rebuilding drifted native exports, and compilation needs explicit
+  permission.
 - [ ] Verify every migrated full-likelihood class has finite smoke tests for
   supported likelihood, bootstrap, and Bartlett paths.
 
@@ -1932,7 +1961,47 @@ their own `[x]` entries above; they are not part of this count.)
 - [ ] Replace every `eval(body(InferenceMixinKKPassThrough$...))` usage with a
   named component override or helper.
 - [ ] Migrate KK IVWC classes to `Inference` plus `KKPassThrough`,
-  `KKCompound`, and estimator-specific components. Named target (added
+  `KKCompound`, and estimator-specific components.
+  **Progress 2026-08-17: `InferenceIncidKKNewcombeRiskDiff` migrated** —
+  first KK/IVWC leaf moved by this effort, establishing the working recipe
+  from the already-migrated `InferenceAllKKMeanDiffIVWC` template:
+  estimator body harvested verbatim into `KKNewcombeRiskDiffIVWCSource`;
+  new registered component `KKNewcombeRiskDiffIVWC`
+  (`dependencies = "KKCompound"`, tier "none", added to
+  `contracts_mixins.R` and to `test-mixin-contracts.R`'s canonical-name
+  list); class rebuilt as `define_inference_class(inherit = Inference,
+  components = c("BayesianBootstrap", "Wald", "KKNewcombeRiskDiffIVWC"))`
+  with the registry direct-components mapping added. Three lessons for the
+  remaining KK leaves, all caught by validation/goldens: (1) the Source's
+  `initialize` must call `private$init_kk_passthrough(des_obj)` explicitly
+  after `super$initialize()` — post-migration `super$` is root `Inference`,
+  so the KK match-structure setup (`private$m`, initial match data) the old
+  ladder parent ran no longer happens implicitly (symptom: Rcpp "type=NULL;
+  target=integer" from `compute_zhang_match_data_cpp` on every SE-touching
+  path); (2) two KK-chain-vs-bootstrap-chain public collisions
+  (`approximate_bootstrap_distribution_beta_hat_T`,
+  `compute_estimate_with_bootstrap_weights`) must be declared, KK-aware
+  versions winning via component order; (3) for **incidence** KK classes,
+  pin `compute_rand_two_sided_pval` from `InferenceRandCI` (not
+  `InferenceRand` as the continuous template does) to preserve the Zhang
+  randomization dispatch — same decision as `InferenceIncidRiskDiff`.
+  Golden-tested in `test-incid-kk-newcombe-migration-golden.R` (legacy
+  byte-copy vs migrated on a `DesignSeqOneByOneKK14` fixture, per-call
+  seeded; the legacy score/gradient/LR CIs were verified bit-identical Wald
+  fallbacks and their p-values NA before asserting the drop — same
+  verified pattern as `InferenceIncidRiskDiff`). Full battery green:
+  registry, mixin-contracts, partial-likelihood baseline, both simple
+  goldens. In the same change, the **stale Cox registry mappings were
+  trued up**: both `InferenceSurvivalCoxPHRegr` and
+  `InferenceSurvivalStratCoxPHRegr` factory calls compose
+  `c("BayesianBootstrap", <cox component>)`, but the registry
+  direct-components switch and the partial-likelihood static targets still
+  said only the Cox component — fixed in
+  `infer_inference_direct_components()`, the partial-likelihood targets
+  table, and `test-partial-likelihood-migration-baseline.R`'s two
+  expectation tables (now carrying the full resolved 11/12-component
+  chains).
+  Named target (added
   2026-08-12): `InferenceCountKKHurdlePoissonIVWC`
   (`inference_count_KK_cond_poisson.R`) — `none`-tier (Wald-only), needs a
   dedicated `Source` component (matching the `KKMeanDifferenceIVWCSource`
@@ -1951,6 +2020,35 @@ their own `[x]` entries above; they are not part of this count.)
   component wrapping the pooled Weibull AFT fit + `get_cluster_ids()` +
   matched-pair/reservoir cluster-robust sandwich logic, plus the
   `super$`-avoidance fix for `approximate_bootstrap_distribution_beta_hat_T`.
+  **Done 2026-08-17** — with a cleaner shape than the note above envisioned:
+  instead of one component wrapping the merged mixin+leaf surface, the
+  pre-existing self-harvested `SurvivalKKWeibullMarginal` component was
+  reshaped into a **static leaf-only source** with
+  `dependencies = "KKPassThrough"` — the mixin content now arrives through
+  the registered `KKPassThrough` component, the raw
+  `modifyList(InferenceMixinKKPassThrough$public/$private, ...)` splices are
+  gone from the class file, and the `eval(body(...))` bootstrap override is
+  deleted outright (the KKPassThrough component supplies the real function;
+  package-wide `eval(body(` count 14 → 13). The class is now
+  `define_inference_class(inherit = Inference, components =
+  c("BayesianBootstrap", "Wald", "SurvivalKKWeibullMarginal"))`; component
+  resolution order (KKPassThrough after the bootstrap/Wald chains, leaf
+  last) reproduces the old modifyList precedence exactly.
+  `compute_rand_two_sided_pval` is pinned from `InferenceRand` per the
+  plain-Cox survival precedent (RandCI's flattened `super$` trap — hit live
+  by the golden test before pinning). Component spec, registry
+  direct-components mapping (`c("BayesianBootstrap", "Wald",
+  "SurvivalKKWeibullMarginal")`), and collision declarations all updated;
+  tier left "full" to match the frozen component/baseline tier (the tier
+  itself is arguably "quasi" per the note above — a separate relabeling
+  question, same family as the `m_estimator_variance` relabel). Golden
+  test `test-survival-kk-weibull-marginal-migration-golden.R`: legacy
+  splice-reproducing generator vs migrated, per-call seeded, bit-identical
+  everywhere, plus a source-scan asserting the splice and evaluated-body
+  patterns stay gone. Full battery green (registry, mixin-contracts,
+  partial-likelihood baseline, both simple goldens); the full-likelihood
+  baseline's only failures remain the two reverted ordinal classes
+  (pre-existing, tracked separately).
 - [ ] Migrate KK one-likelihood classes to `Inference` plus `KKPassThrough`,
   `LikelihoodTests`, `ParametricLikelihoodBootstrap` when warranted, and
   estimator-specific likelihood components.
@@ -2128,6 +2226,60 @@ Bugs and tangential issues recorded inside this file's completed (`[x]`)
 migration entries but never turned into their own actionable TODOs. Collected
 here (2026-08-13) rather than left as prose-only notes.
 
+- [x] **Design-hierarchy-rework fallout sweep in the inference lane
+  (2026-08-17).** After the design-hierarchy rework landed (commit
+  `48bc5b83` and follow-ups: `Design -> DesignFixed`/`DesignSeqOneByOne`
+  timing split, no blocking ancestor on non-blocking designs, new
+  permutation/resampling streams), three inference-side breakages surfaced
+  and were repaired:
+  1. **`InferenceIncidCMH` non-blocking SE path**: called
+     `des_obj$get_cmh_se_w_mat()` unconditionally, but that optional
+     precompute lives on the blocking layer, which non-blocking designs
+     (e.g. `DesignFixedBernoulli`, now `Design -> DesignFixed` with no
+     blocking ancestor) no longer carry — "attempt to apply non-function".
+     Fixed with an `is.function()` guard falling through to
+     `draw_ws_according_to_design()`, in both the real class
+     (`inference_incidence_cmh.R`) and the byte-for-byte legacy fixture in
+     `test-incid-cmh-extended-robins-migration-golden.R` (the fixture pins
+     migration behavior, not old-design-hierarchy behavior; without the
+     guard it errored on the new designs for reasons unrelated to the
+     migration under test). Golden file fully green again.
+  2. **Stale RNG-stream goldens re-recorded** in
+     `test-simple-mean-difference-migration-golden.R` and
+     `test-simple-wilcox-migration-golden.R`: the rework changed the
+     permutation/resampling streams, so every RNG-dependent golden
+     (randomization/bootstrap/randomization-bootstrap distributions and
+     derived CIs) drifted. **Verified correct before re-recording**: the
+     new simple-mean-diff randomization values are bit-identical to
+     hand-computed \eqn{\bar y_T - \bar y_C} over the exact permutations
+     drawn under the same seed, and the new simple-Wilcox randomization
+     values are bit-identical to front-door `compute_estimate()`
+     recomputation on the same permuted assignments — statistic unchanged,
+     stream only. Every deterministic golden (estimates, jackknife
+     estimate/SE/CI/p-value, pooled/Wilcox asymptotic CIs and p-values, KK
+     bootstrap distribution/CI) was confirmed unchanged to the last digit,
+     pinning the drift to RNG-order alone.
+  3. **All-NA Bayesian-bootstrap / randomization goldens replaced with the
+     correct finite values**: several baked expectations
+     (`rep(NA_real_, 9L)` distributions, NA CIs/p-values) had recorded the
+     pre-2026-08-13 lazy-component/clone-bug era, when those paths were
+     silently broken for migrated classes. The finite, estimate-centered
+     values are the fixed behavior (verified at B=200: 200/200 finite,
+     mean ≈ estimate, for both mean-diff machines; KK randomization 9/9
+     finite). Both files carry header notes explaining the re-record and
+     its verification so the next drift is diagnosed faster.
+  Post-sweep verification: `test-simple-mean-difference-migration-golden.R`,
+  `test-simple-wilcox-migration-golden.R`,
+  `test-incid-cmh-extended-robins-migration-golden.R`,
+  `test-incid-wald-migration-golden.R`,
+  `test-incid-risk-diff-migration-golden.R`,
+  `test-exact-incidence-migration-baseline.R`, and
+  `test-quasi-robust-migration-baseline.R` are **all fully green**. Still
+  open from the same fallout family (tracked separately):
+  `InferenceSurvivalStratCoxPHRegr`'s NULL bootstrap-machinery privates
+  (diagnosed under the Slow-wrapper entry above) and the two reverted
+  ordinal classes failing `test-full-likelihood-migration-baseline.R`'s
+  migrated-classes assertions.
 - [x] **NA-y subset-clone bootstrap hang: slow-path
   `bootstrap_subset_inference()` fed raw NA-holed design `y` into survival
   estimators, hanging C++ forever (2026-08-17).** Found while running the
@@ -2675,6 +2827,36 @@ here (2026-08-13) rather than left as prose-only notes.
   randomization/bootstrap component methods" family, in the in-flight
   Cox/full-likelihood migration's lane — left for that effort with this
   diagnosis.
+  **StratCox fixed 2026-08-17 (lane picked up after the other session went
+  inactive):** root cause was the factory call composing only
+  `components = "StratifiedCoxPartialLikelihood"` — whose dependency chain
+  (`-> CoxPartialLikelihood -> StandardModelCache -> LikelihoodTests`)
+  never reaches the bootstrap layer — where plain
+  `InferenceSurvivalCoxPHRegr` composes
+  `c("BayesianBootstrap", "CoxPartialLikelihood")`. Fix mirrors plain Cox
+  exactly: added `BayesianBootstrap` first (same load-bearing resolution
+  ordering, so `StandardModelCache`'s Cox-aware
+  `compute_treatment_estimate_during_randomization_inference()` wins),
+  pinned `compute_rand_two_sided_pval` from `InferenceRand` (same traced
+  `super$`-flattening rationale), and declared the same collision set —
+  plus one StratCox-specific declaration the loud factory validation
+  caught: the host's deliberate not-supported
+  `compute_rand_confidence_interval` (log-hazard-ratio vs log-time-ratio
+  scale mismatch) now collides with `RandomizationCI`'s generic inversion
+  and must be declared so the host's `stop()` wins. Verified: 8 of the 10
+  formerly-NULL privates are now functions and the remaining two
+  (`store_cached_resampling_distribution`, `compute_fast_bootstrap_distr`)
+  are NULL on plain Cox too (legitimately optional); `compute_estimate`
+  unchanged (-0.1459273 on the diagnostic fixture); fast-vs-slow B=3
+  bootstrap comparisons run and match bit-identically; Bayesian bootstrap
+  finite; the designed rand-CI error message intact. **The exhaustive
+  reused-worker sweep (`EDI_EXHAUSTIVE_WORKER_TESTS=true`) is now fully
+  green for the first time — every class, 33.6s.**
+  `test-partial-likelihood-migration-baseline.R`,
+  `test-inference-class-registry.R`, and `test-mixin-contracts.R` all
+  fully pass; remaining failures elsewhere (`test-design-inference.R`
+  ordinal QR-hardening, ordinal/incidence parametric-bootstrap cases) are
+  the pre-existing ordinal-lane items tracked separately.
 - [x] **Make factory requirement validation traverse the full R6 ancestor
   chain.** Found 2026-08-16 while attempting to replace
   `InferenceOrdinalPairedSignTest`'s raw `KKPassThrough` splices with
@@ -2943,8 +3125,21 @@ here (2026-08-13) rather than left as prose-only notes.
 - [ ] Before migrating a family, add focused golden tests for estimates,
   standard errors, confidence intervals, p-values, and applicable bootstrap or
   randomization distributions.
-- [ ] Add finite smoke tests for every class with
-  `parametric_likelihood_bootstrap`.
+- [x] Add finite smoke tests for every class with
+  `parametric_likelihood_bootstrap`. **Completed 2026-08-17:** added a
+  registry-driven, table-based finite likelihood-ratio bootstrap smoke case for
+  every concrete class advertising the capability (36 classes), plus an exact
+  registry-to-case equality guard so future capable classes cannot enter
+  uncovered. The inventory exposed five legacy incidence classes that inherited
+  the capability while explicitly disabling it at runtime; transitional
+  registry exclusions now keep discovery truthful until their shallow
+  migrations remove the accidental component inheritance. It also exposed and
+  fixed likelihood-spec and simulation defects in
+  `InferenceOrdinalAdjCatLogitRegr` and
+  `InferenceOrdinalStereotypeLogitRegr`. Verified against the current source
+  tree without recompilation: the every-class suite passed 259 expectations,
+  the existing focused family suite passed 100 expectations, and the inference
+  registry suite passed with no failures or warnings.
 - [ ] Add focused tests for count likelihood families, standard-model-cache
   families, KK pass-through families, KK compound families, and likelihood-test
   families.

@@ -138,7 +138,17 @@ InferenceOrdinalStereotypeLogitRegr = R6::R6Class("InferenceOrdinalStereotypeLog
 							warm_start_params = ws_args$start_params,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info
 						)
-						list(b = res$b, ssq_b_j = res$ssq_b_1, params = res$params, neg_loglik = res$neg_loglik, fisher_information = res$fisher_information)
+						neg_loglik = res$neg_loglik
+						if (is.null(neg_loglik) || length(neg_loglik) != 1L || !is.finite(neg_loglik)) {
+							lik_fit = fast_stereotype_logit_cpp(
+								X_fit, private$y,
+								warm_start_params = res$params,
+								warm_start_fisher_info = res$fisher_information,
+								estimate_only = TRUE
+							)
+							neg_loglik = lik_fit$neg_loglik
+						}
+						list(b = res$b, ssq_b_j = res$ssq_b_1, params = res$params, neg_loglik = neg_loglik, fisher_information = res$fisher_information)
 					}
 				},
 				fit_ok = function(mod, X_fit, keep){
@@ -177,6 +187,7 @@ InferenceOrdinalStereotypeLogitRegr = R6::R6Class("InferenceOrdinalStereotypeLog
 			full_fit = list(params = ctx$full_params, neg_loglik = ctx$full_neg_loglik)
 			list(
 				X = X_fit, y = y, j = j_treat,
+				K = length(sort(unique(y))),
 				full_fit = full_fit,
 				fit_null = function(delta, start = NULL){
 					n_params = length(ctx$full_params)
@@ -211,7 +222,7 @@ InferenceOrdinalStereotypeLogitRegr = R6::R6Class("InferenceOrdinalStereotypeLog
 		},
 		supports_lik_ratio_param_bootstrap = function() TRUE,
 		simulate_under_lik_null = function(spec, delta, null_fit){
-			params_null = as.numeric(null_fit$b)
+			params_null = as.numeric(null_fit$params)
 			n_params    = length(params_null)
 			K           = as.integer(spec$K)
 			n_alpha     = K - 1L
@@ -228,14 +239,14 @@ InferenceOrdinalStereotypeLogitRegr = R6::R6Class("InferenceOrdinalStereotypeLog
 
 			eg   = exp(gammas)
 			seg  = sum(eg)
-			phi  = c(0, cumsum(eg) / (1 + seg))
+			phi  = c(0, cumsum(eg) / (1 + seg), 1)
 
 			eta  = as.numeric(X_fit %*% betas)
 			y_sim = integer(n)
 			for (i in seq_len(n)){
 				logits = c(0, alphas + phi[seq(2L, K)] * eta[i])
-				cum_p  = plogis(logits)
-				cat_p  = pmax(c(cum_p[1L], diff(cum_p), 1 - cum_p[n_alpha + 1L]), 0)
+				logits = logits - max(logits)
+				cat_p = exp(logits)
 				s = sum(cat_p)
 				y_sim[i] = if (is.finite(s) && s > 0) sample.int(K, 1L, prob = cat_p / s) else 1L
 			}

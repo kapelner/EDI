@@ -157,6 +157,7 @@ Dinkelbach, W. (1967). On nonlinear fractional programming.
   <li><a href='../../EDI/html/Design.html#method-Design-get_X_imp'><code>Design$get_X_imp()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X_raw'><code>Design$get_X_raw()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_design_formula'><code>Design$get_design_formula()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-get_edi_version_created'><code>Design$get_edi_version_created()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_effective_dead'><code>Design$get_effective_dead()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_effective_time'><code>Design$get_effective_time()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_missingness_method'><code>Design$get_missingness_method()</code></a></li>
@@ -257,7 +258,11 @@ magnitude too slow to be usable, not merely slower. Since
 there is no lower-frequency code path where an R closure would be
 merely inconvenient; the restriction is a hard performance
 requirement of this objective's only execution path. See the class
-examples for a worked \code{cppXPtr()} construction.}
+examples for a worked \code{cppXPtr()} construction. \strong{Save/
+reload note:} a raw \code{cppXPtr()} object does not survive
+\code{saveRDS()}/\code{readRDS()} (see \code{\link{Design}}'s
+"Saving and loading" section); pass a C++ source string instead
+if this design needs to be reloadable.}
       \item{\code{solver}}{\code{"auto"} (default), \code{"ompr"}, or
 \code{"annealing"}.}
       \item{\code{solver_args}}{A named list of solver tuning arguments. Supported:

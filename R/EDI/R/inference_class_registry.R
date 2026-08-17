@@ -13,6 +13,19 @@ EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE = new.env(parent = emptyenv())
 
 EDI_INFERENCE_ALLOWED_LIKELIHOOD_TIERS = c("none", "quasi", "partial", "full")
 
+# Transitional corrections for legacy deep-inheritance classes whose parent
+# ladder supplies ParametricLikelihoodBootstrap even though the concrete class
+# explicitly disables that operation. Remove each entry when the class is
+# migrated to shallow component composition and no longer inherits the
+# capability accidentally.
+EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES = list(
+	InferenceIncidKKCondLogitGLMMIVWC = "parametric_likelihood_bootstrap",
+	InferenceIncidKKCondLogitGLMMOneLik = "parametric_likelihood_bootstrap",
+	InferenceIncidKKGCompRiskDiff = "parametric_likelihood_bootstrap",
+	InferenceIncidKKGCompRiskRatio = "parametric_likelihood_bootstrap",
+	InferenceIncidModifiedPoisson = "parametric_likelihood_bootstrap"
+)
+
 EDI_EXACT_INCIDENCE_CLASS_NAMES = c(
 	"InferenceIncidExactBinomial",
 	"InferenceIncidExactFisher",
@@ -272,14 +285,17 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			behavior = c("cox", "standard_model_cache"),
 			estimator_family = "survival_cox_ph",
 			component_family = "CoxPartialLikelihood",
-			target_direct_components = "CoxPartialLikelihood",
+			# BayesianBootstrap is a real direct component: the factory composes
+			# c("BayesianBootstrap", "CoxPartialLikelihood") because the bootstrap
+			# layer is not in the Cox chain (TODO-13; StratCox twin fixed 2026-08-17).
+			target_direct_components = c("BayesianBootstrap", "CoxPartialLikelihood"),
 			notes = "Non-KK Cox proportional-hazards estimator currently inherits standard-model-cache likelihood behavior."
 		),
 		InferenceSurvivalStratCoxPHRegr = list(
 			behavior = c("cox", "stratified_cox", "standard_model_cache"),
 			estimator_family = "survival_stratified_cox_ph",
 			component_family = "CoxPartialLikelihood",
-			target_direct_components = "StratifiedCoxPartialLikelihood",
+			target_direct_components = c("BayesianBootstrap", "StratifiedCoxPartialLikelihood"),
 			notes = "Non-KK stratified Cox PH estimator should share the Cox partial-likelihood component family while preserving stratification-specific caches."
 		),
 		InferenceSurvivalKKLWACoxPHIVWC = list(
@@ -467,8 +483,16 @@ infer_inference_direct_components = function(name) {
 			InferenceCountRobustPoisson = c("Wald", "CountCompositeLikelihood", "RobustSandwich"),
 			InferenceOrdinalPropOddsRegr = "OrdinalProportionalOddsLikelihood",
 			InferenceOrdinalAdjCatLogitRegr = "OrdinalAdjacentCategoryLikelihood",
-			InferenceOrdinalCloglogRegr = "OrdinalCloglogLikelihood",
-			InferenceOrdinalCauchitRegr = "OrdinalCauchitLikelihood",
+			InferenceOrdinalCloglogRegr = c(
+				"BayesianBootstrap",
+				"ParametricLikelihoodBootstrap",
+				"OrdinalCloglogLikelihood"
+			),
+			InferenceOrdinalCauchitRegr = c(
+				"BayesianBootstrap",
+				"ParametricLikelihoodBootstrap",
+				"OrdinalCauchitLikelihood"
+			),
 			InferenceOrdinalStereotypeLogitRegr = "OrdinalStereotypeLikelihood",
 			InferenceOrdinalContRatioRegr = "OrdinalContinuationRatioLikelihood",
 			InferenceOrdinalOrderedProbitRegr = "OrdinalOrderedProbitLikelihood",
@@ -480,7 +504,7 @@ infer_inference_direct_components = function(name) {
 			InferenceIncidGCompAbstract = "IncidenceGComputation",
 			InferenceSurvivalWeibullRegr = "SurvivalWeibullLikelihood",
 			InferenceSurvivalDepCensTransformRegr = "SurvivalDepCensTransform",
-			InferenceSurvivalKKWeibullMarginal = "SurvivalKKWeibullMarginal",
+			InferenceSurvivalKKWeibullMarginal = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullMarginal"),
 			InferenceSurvivalKKClaytonCopulaIVWC = "SurvivalKKClaytonCopulaIVWC",
 			InferenceSurvivalKKClaytonCopulaOneLik = "SurvivalKKClaytonCopulaOneLik",
 			InferenceAbstractKKWeibullFrailtyIVWC = "SurvivalKKWeibullFrailtyIVWC",
@@ -497,10 +521,17 @@ infer_inference_direct_components = function(name) {
 		InferenceAllSimpleMeanDiff = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 		InferenceAllSimpleMeanDiffPooledVar = c("BayesianBootstrap", "Wald", "SimpleMeanDifferencePooledVar"),
 		InferenceAllKKMeanDiffIVWC = c("BayesianBootstrap", "Wald", "KKMeanDifferenceIVWC"),
+		InferenceIncidKKNewcombeRiskDiff = c("BayesianBootstrap", "Wald", "KKNewcombeRiskDiffIVWC"),
+		InferenceCountKKHurdlePoissonIVWC = c("BayesianBootstrap", "Wald", "CountKKHurdlePoissonIVWC"),
 		InferenceAllSimpleWilcox = c("RandomizationBootstrap", "Wald", "SimpleWilcox"),
 		InferenceAllKKWilcoxIVWC = c("RandomizationBootstrap", "Wald", "KKWilcoxIVWC"),
-		InferenceSurvivalCoxPHRegr = "CoxPartialLikelihood",
-		InferenceSurvivalStratCoxPHRegr = "StratifiedCoxPartialLikelihood",
+		# Both Cox entries list BayesianBootstrap explicitly: their factory calls
+		# compose c("BayesianBootstrap", <cox component>) (the bootstrap layer is
+		# NOT in the Cox components' dependency chains -- see the 2026-08-17
+		# StratCox NULL-bootstrap-privates fix), so the registry mapping must say
+		# so or effective/target components drift from the assembled reality.
+		InferenceSurvivalCoxPHRegr = c("BayesianBootstrap", "CoxPartialLikelihood"),
+		InferenceSurvivalStratCoxPHRegr = c("BayesianBootstrap", "StratifiedCoxPartialLikelihood"),
 		character()
 	)
 }
@@ -568,6 +599,9 @@ validate_inference_class_metadata = function(metadata) {
 	if (!is.character(metadata$required_packages)) {
 		stop(sprintf("Inference metadata for %s has invalid `required_packages`.", metadata$name), call. = FALSE)
 	}
+	if (!is.character(metadata$excluded_capabilities %||% character())) {
+		stop(sprintf("Inference metadata for %s has invalid `excluded_capabilities`.", metadata$name), call. = FALSE)
+	}
 	invisible(TRUE)
 }
 
@@ -585,6 +619,7 @@ register_inference_class = function(name, parent = NULL, metadata = list(), dire
 			direct_components = direct_components,
 			required_packages = character(),
 			capabilities = character(),
+			excluded_capabilities = character(),
 			supports_general_censoring = FALSE,
 			requires_blocking_design = FALSE
 		),
@@ -709,7 +744,10 @@ get_effective_capabilities = function(name) {
 	component_capabilities = as.character(unlist(lapply(get_effective_components(name), function(component_name) {
 		get_inference_component(component_name)$provides_capabilities
 	}), use.names = FALSE))
-	capabilities = unique(c(component_capabilities, metadata$capabilities %||% character()))
+	capabilities = setdiff(
+		unique(c(component_capabilities, metadata$capabilities %||% character())),
+		metadata$excluded_capabilities %||% character()
+	)
 	assign(name, capabilities, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE)
 	capabilities
 }
@@ -743,12 +781,15 @@ build_inference_hierarchy_migration_record = function(name) {
 	ancestors = inference_class_ancestor_names(name)
 	algorithmic_ancestors = intersect(ancestors, EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES)
 	target_components = target_inference_components(name)
-	target_capabilities = unique(c(
-		as.character(unlist(lapply(target_components, function(component_name) {
-			get_inference_component(component_name)$provides_capabilities
-		}), use.names = FALSE)),
-		metadata$capabilities %||% character()
-	))
+	target_capabilities = setdiff(
+		unique(c(
+			as.character(unlist(lapply(target_components, function(component_name) {
+				get_inference_component(component_name)$provides_capabilities
+			}), use.names = FALSE)),
+			metadata$capabilities %||% character()
+		)),
+		metadata$excluded_capabilities %||% character()
+	)
 	migration_status = if (identical(name, "Inference")) {
 		"root"
 	} else if (isTRUE(metadata$abstract)) {
@@ -1672,6 +1713,7 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				likelihood_tier = infer_inference_likelihood_tier(name),
 				required_packages = character(),
 				capabilities = character(),
+				excluded_capabilities = EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES[[name]] %||% character(),
 				supports_general_censoring = infer_inference_supports_general_censoring(obj),
 				requires_blocking_design = infer_inference_requires_blocking_design(obj)
 			),

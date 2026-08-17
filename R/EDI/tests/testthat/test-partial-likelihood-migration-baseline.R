@@ -90,17 +90,29 @@ partial_likelihood_expected_component_families = list(
 	)
 )
 
+# Both Cox classes compose c("BayesianBootstrap", <cox component>) in their
+# factory calls (BayesianBootstrap first, resolution-order load-bearing --
+# see the factory-call comments): the bootstrap layer is NOT in the Cox
+# components' dependency chains, and omitting it left the classes with NULL
+# bootstrap-machinery privates (plain Cox: TODO-13; StratCox: found and fixed
+# 2026-08-17, fix_inference_hierarchy.md Follow-Ups). The registry
+# direct-components mappings were updated to match the factory reality in the
+# same change, so these expectations carry the full resolved chain.
 partial_likelihood_expected_extracted_cox_targets = list(
 	InferenceSurvivalCoxPHRegr = list(
-		target_direct_components = "CoxPartialLikelihood",
+		target_direct_components = c("BayesianBootstrap", "CoxPartialLikelihood"),
 		target_components = c(
+			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
+			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
 			"Jackknife", "Wald", "LikelihoodTests", "StandardModelCache",
 			"CoxPartialLikelihood"
 		)
 	),
 	InferenceSurvivalStratCoxPHRegr = list(
-		target_direct_components = "StratifiedCoxPartialLikelihood",
+		target_direct_components = c("BayesianBootstrap", "StratifiedCoxPartialLikelihood"),
 		target_components = c(
+			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
+			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
 			"Jackknife", "Wald", "LikelihoodTests", "StandardModelCache",
 			"CoxPartialLikelihood", "StratifiedCoxPartialLikelihood"
 		)

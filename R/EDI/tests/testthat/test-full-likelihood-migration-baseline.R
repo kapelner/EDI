@@ -274,7 +274,9 @@ test_that("full-likelihood migration baseline identifies and groups concrete cla
 
 full_likelihood_expected_migrated_classes = c(
 	"InferenceOrdinalPropOddsRegr",
-	"InferenceOrdinalAdjCatLogitRegr"
+	"InferenceOrdinalAdjCatLogitRegr",
+	"InferenceOrdinalCauchitRegr",
+	"InferenceOrdinalCloglogRegr"
 )
 
 test_that("first full-likelihood class migrations remove algorithmic parents", {
@@ -282,7 +284,9 @@ test_that("first full-likelihood class migrations remove algorithmic parents", {
 	EDI:::populate_inference_class_registry()
 	expected_family_components = c(
 		InferenceOrdinalPropOddsRegr = "OrdinalProportionalOddsLikelihood",
-		InferenceOrdinalAdjCatLogitRegr = "OrdinalAdjacentCategoryLikelihood"
+		InferenceOrdinalAdjCatLogitRegr = "OrdinalAdjacentCategoryLikelihood",
+		InferenceOrdinalCauchitRegr = "OrdinalCauchitLikelihood",
+		InferenceOrdinalCloglogRegr = "OrdinalCloglogLikelihood"
 	)
 
 	for (class_name in full_likelihood_expected_migrated_classes) {

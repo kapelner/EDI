@@ -81,6 +81,7 @@ Zelen, M. (1974). "The randomization and stratification of patients to
   <li><a href='../../EDI/html/Design.html#method-Design-get_X_imp'><code>Design$get_X_imp()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_X_raw'><code>Design$get_X_raw()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_design_formula'><code>Design$get_design_formula()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-get_edi_version_created'><code>Design$get_edi_version_created()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_effective_dead'><code>Design$get_effective_dead()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_effective_time'><code>Design$get_effective_time()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_missingness_method'><code>Design$get_missingness_method()</code></a></li>

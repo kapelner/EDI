@@ -29,11 +29,17 @@
 #' inf = InferenceSurvivalKKWeibullMarginal$new(des)
 #' inf$compute_estimate()
 #' }
-#' @export
-InferenceSurvivalKKWeibullMarginal = R6::R6Class("InferenceSurvivalKKWeibullMarginal",
-	lock_objects = FALSE,
-	inherit = InferenceAsymp,
-	public = as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(
+#' @name InferenceSurvivalKKWeibullMarginal
+# Static leaf source (2026-08-17 migration): the class used to raw-splice the
+# whole InferenceMixinKKPassThrough public/private lists via modifyList() and
+# then harvest itself back into a component with
+# inference_component_source_parts(). Now the mixin content arrives through
+# the registered KKPassThrough component (this component's declared
+# dependency), and this source holds only the class's own overrides; the
+# resolution order (KKPassThrough after the bootstrap/Wald chains, this leaf
+# last) reproduces the old modifyList precedence exactly.
+SurvivalKKWeibullMarginalSource = list(
+	public = list(
 		#' @description Initialize the marginal (cluster-robust) Weibull inference object.
 		#' @param des_obj A completed KK or BinaryMatch design with survival response.
 		#' @param model_formula Optional formula for covariate adjustment.
@@ -98,14 +104,11 @@ InferenceSurvivalKKWeibullMarginal = R6::R6Class("InferenceSurvivalKKWeibullMarg
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Creates the bootstrap distribution of the treatment effect estimate.
-		#' @param B Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
-		},
+		# The old evaluated-body override of the mixin's
+		# approximate_bootstrap_distribution_beta_hat_T was a byte-copy of the
+		# mixin's own method; it is deliberately GONE -- the KKPassThrough
+		# component now supplies the real function directly (Static Cleanup,
+		# "Ban evaluated-body copies of mixin methods").
 		#' @description Duplicates this subclass while preserving fit caches; see
 		#'   \code{\link[EDI:Inference]{Inference}}.
 		#' @param verbose Whether the duplicate should be verbose.
@@ -113,10 +116,10 @@ InferenceSurvivalKKWeibullMarginal = R6::R6Class("InferenceSurvivalKKWeibullMarg
 		duplicate = function(verbose = FALSE, make_fork_cluster = FALSE){
 			super$duplicate(verbose = verbose, make_fork_cluster = make_fork_cluster)
 		}
-	))),
-	private = as.list(modifyList(as.list(InferenceMixinKKPassThrough$private), list(
-		cached_mod = NULL,
-		best_X_colnames = NULL,
+	),
+	private = list(
+		# cached_mod / best_X_colnames are owned (and NULL-initialized) by the
+		# KKPassThrough component; only leaf-specific state is declared here.
 		cached_vc_params = NULL,
 		max_abs_reasonable_coef = 1e4,
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
@@ -393,7 +396,59 @@ InferenceSurvivalKKWeibullMarginal = R6::R6Class("InferenceSurvivalKKWeibullMarg
 				as.numeric(delta), mats$noise_mat, private$n_cpp_threads(ncol(mats$w_mat))
 			)
 		}
-	)))
+	)
 )
 
-SurvivalKKWeibullMarginalSource = inference_component_source_parts(InferenceSurvivalKKWeibullMarginal)
+#' @export
+InferenceSurvivalKKWeibullMarginal = define_inference_class(
+	classname = "InferenceSurvivalKKWeibullMarginal",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullMarginal"),
+	public = list(
+		# Pinned from InferenceRand, NOT InferenceRandCI: RandCI's richer version
+		# calls super$compute_rand_two_sided_pval(), which resolves against this
+		# class's real R6 parent (Inference, no such method) once flattened --
+		# the exact trap documented in InferenceSurvivalCoxPHRegr's factory call.
+		# RandCI's only other behavior is an incidence-only Zhang dispatch that
+		# never applies to survival data.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "full"),
+	overrides = list(
+		# KKPassThrough-chain vs bootstrap/Wald-chain collisions: the KK-aware
+		# versions win via component resolution order (KKPassThrough merges
+		# after BayesianBootstrap/Wald), reproducing the pre-migration
+		# modifyList precedence.
+		public = c(
+			"compute_rand_two_sided_pval",
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights",
+			# Leaf-vs-chain collisions: this source's own estimator methods win
+			# (leaf merges last).
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"initialize",
+			"duplicate"
+		),
+		private = c(
+			# Jackknife-vs-NonparametricBootstrap chain (byte-identical bodies,
+			# winner immaterial -- same note as every other migrated class) plus
+			# KKPassThrough-vs-chain and leaf-vs-KKPassThrough collisions.
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"compute_basic_match_data",
+			"supports_likelihood_tests",
+			"shared"
+		)
+	)
+)

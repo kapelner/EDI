@@ -151,8 +151,32 @@ StratifiedCoxPartialLikelihoodSource = list(
 InferenceSurvivalStratCoxPHRegr = define_inference_class(
 	classname = "InferenceSurvivalStratCoxPHRegr",
 	inherit = Inference,
-	components = "StratifiedCoxPartialLikelihood",
+	# BayesianBootstrap added 2026-08-17 (fix_inference_hierarchy.md,
+	# Follow-Ups, Slow-wrapper entry's StratCox diagnosis): composing only
+	# StratifiedCoxPartialLikelihood left this class with NO bootstrap layer at
+	# all -- ~10 NonparametricBootstrap-chain private methods
+	# (bootstrap_sample_indices, bootstrap_subset_inference,
+	# get_cached_resampling_distribution, the reusable-worker plumbing, ...)
+	# were literal NULLs on every instance, so
+	# approximate_bootstrap_distribution_beta_hat_T() died with "attempt to
+	# apply non-function" on both the fast and slow paths.
+	# Ordering is load-bearing, exactly as in InferenceSurvivalCoxPHRegr (see
+	# that factory call's comment): BayesianBootstrap FIRST so the Cox
+	# component's dependency subtree resolves and merges LAST, letting
+	# StandardModelCache's Cox-aware
+	# compute_treatment_estimate_during_randomization_inference() win over
+	# InferenceRand's generic version.
+	components = c("BayesianBootstrap", "StratifiedCoxPartialLikelihood"),
 	public = list(
+		#' @description Uses the shared randomization two-sided p-value contract; see
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}. Pinned from
+		#'   \code{InferenceRand} for the same traced reason as
+		#'   \code{InferenceSurvivalCoxPHRegr} (see that factory call's comment):
+		#'   \code{InferenceRandCI}'s richer override calls \code{super$...()},
+		#'   which resolves against \code{Inference} once flattened, and its only
+		#'   other behavior is an incidence-only Zhang special case that never
+		#'   applies to survival data.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize stratified Cox proportional-hazards inference and
 		#'   prepare the partial-likelihood fit used by
 		#'   \code{\link[EDI:InferenceSurvivalStratCoxPHRegr]{InferenceSurvivalStratCoxPHRegr}}.
@@ -804,7 +828,18 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			"compute_estimate",
 			"compute_asymp_confidence_interval",
 			"compute_asymp_two_sided_pval",
-			"get_supported_testing_types"
+			"get_supported_testing_types",
+			# Host's own weighted stratified-Cox implementation must win over
+			# BayesianBootstrap's generic default (same as InferenceSurvivalCoxPHRegr).
+			"compute_estimate_with_bootstrap_weights",
+			# RandomizationCI vs RandomizationTest collision inside BayesianBootstrap's
+			# dependency chain, plus the host pin above -- see the public-list comment.
+			"compute_rand_two_sided_pval",
+			# Host's deliberate not-supported stop() (log-hazard-ratio units are
+			# inconsistent with the randomization CI's log-time-ratio scale) must win
+			# over RandomizationCI's generic inversion, same pattern as
+			# InferenceSurvivalKMDiff/RestrictedMeanDiff.
+			"compute_rand_confidence_interval"
 		),
 		private = c(
 			"shared",
@@ -825,7 +860,17 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			"compute_score_two_sided_pval_impl",
 			"compute_gradient_two_sided_pval_impl",
 			"compute_lik_ratio_two_sided_pval_impl",
-			"get_supported_testing_types_impl"
+			"get_supported_testing_types_impl",
+			# Collisions introduced by composing BayesianBootstrap alongside the
+			# Cox chain -- same set, same rationale as InferenceSurvivalCoxPHRegr's
+			# factory call (StandardModelCache's Cox-aware version wins the first
+			# via component ordering; the jackknife trio and the reusable-worker
+			# flag are byte-identical/immaterial between the two chains).
+			"compute_treatment_estimate_during_randomization_inference",
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker"
 		)
 	)
 )

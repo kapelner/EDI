@@ -21,10 +21,8 @@
 #' inf = InferenceIncidKKNewcombeRiskDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }
-#' @export
-InferenceIncidKKNewcombeRiskDiff = R6::R6Class("InferenceIncidKKNewcombeRiskDiff",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+#' @name InferenceIncidKKNewcombeRiskDiff
+KKNewcombeRiskDiffIVWCSource = list(
 	public = list(
 		#' @description Initialize KK Newcombe risk-difference IVWC inference and
 		#'   prepare matched/reservoir paired-binomial components used by
@@ -46,6 +44,11 @@ InferenceIncidKKNewcombeRiskDiff = R6::R6Class("InferenceIncidKKNewcombeRiskDiff
 				}
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+			# Post-migration super$ is root Inference, so the KK match-structure
+			# setup the old ladder parent used to run (private$m, initial match
+			# data) must be invoked explicitly -- same as the
+			# KKMeanDifferenceIVWCSource template's initialize.
+			private$init_kk_passthrough(des_obj)
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
 			}
@@ -137,5 +140,54 @@ InferenceIncidKKNewcombeRiskDiff = R6::R6Class("InferenceIncidKKNewcombeRiskDiff
 			private$cached_values$s_beta_hat_T = sqrt(res$variance)
 			private$cached_values$df = NA_real_
 		}
+	)
+)
+
+#' @export
+InferenceIncidKKNewcombeRiskDiff = define_inference_class(
+	classname = "InferenceIncidKKNewcombeRiskDiff",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "KKNewcombeRiskDiffIVWC"),
+	public = list(
+		# Pinned from InferenceRandCI (NOT InferenceRand, breaking with the
+		# continuous InferenceAllKKMeanDiffIVWC template): for incidence
+		# responses the RandCI version dispatches to the working Zhang exact
+		# randomization test, while InferenceRand's version refuses incidence
+		# outright -- the old ladder reached InferenceRandCI, so pinning
+		# InferenceRand's copy would silently regress working behavior. Same
+		# reasoning and verification as InferenceIncidRiskDiff's migration
+		# (fix_inference_hierarchy.md, "Asymptotic (Wald) No-Likelihood
+		# Migration"); all Zhang privates arrive via the composed
+		# RandomizationTest/RandomizationCI components.
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			# KKCompound chain vs BayesianBootstrap/NonparametricBootstrap chain:
+			# the KK-aware versions win via component ordering (the estimator
+			# component's KKCompound dependency resolves last), matching the
+			# InferenceAllKKMeanDiffIVWC template and old-ladder behavior.
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"supports_likelihood_tests",
+			"compute_basic_match_data",
+			"compute_fast_bootstrap_distr",
+			"compute_fast_randomization_distr",
+			"shared"
+		)
 	)
 )

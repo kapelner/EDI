@@ -83,7 +83,12 @@ make_cmh_legacy_generator = function() {
 						private$des_obj_priv_int$n
 					)
 				} else {
-					precomp = private$des_obj$get_cmh_se_w_mat()
+					# Mirrors the guard added to the real class (2026-08-17): after the
+					# design-hierarchy rework, non-blocking designs no longer carry
+					# get_cmh_se_w_mat() at all, so the byte-for-byte pre-migration body
+					# would error here on the new designs for reasons unrelated to the
+					# migration under test.
+					precomp = if (is.function(private$des_obj$get_cmh_se_w_mat)) private$des_obj$get_cmh_se_w_mat() else NULL
 					w_mat = if (!is.null(precomp)) precomp else private$des_obj$draw_ws_according_to_design(private$se_est_num_vectors)
 					w_mat = private$get_w_signed(w_mat)
 					ytw      = drop(private$y %*% w_mat)

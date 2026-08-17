@@ -18,6 +18,93 @@ convention. A handful of variance estimators (e.g. \code{InferenceIncidCMH},
 contrast internally where their formulas require it; that recoding is
 local to those classes and does not affect this public convention.
 }
+\section{Saving and loading}{
+
+\code{Design} (and its \code{DesignSeqOneByOne} subclasses) is the unit of
+persistence for a trial. Persist a \code{des_obj} with base R's
+\code{saveRDS()}/\code{readRDS()} -- there is no dedicated
+\code{save_edi_design()}/\code{load_edi_design()} wrapper, and none is
+planned: the audit behind this section found nothing that needs
+transformation on load beyond what is documented here. \code{Inference*}
+objects are disposable, cheaply reconstructed from a \code{Design} object
+on demand (see each class's \code{$new()}), and must \strong{never} be
+\code{saveRDS()}'d directly -- nothing currently prevents it (they
+serialize "successfully" like any R6 object), but the result is a frozen
+snapshot a user could easily mistake for something that stays live against
+the design, and re-running inference from a reloaded \code{Design} is both
+cheap and the only tested path.
+
+\strong{Worked example} (mirrors the round-trip tests in
+\code{R/EDI/tests/testthat/test-save-load-design.R}):
+\preformatted{
+des_obj = DesignSeqOneByOneBernoulli$new(n = 20, response_type = "continuous")
+for (i in 1:10) {
+  des_obj$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+  des_obj$add_one_subject_response(i, y = rnorm(1))
+}
+saveRDS(des_obj, "trial.rds", version = 2)
+
+# ...new R session...
+des_obj = readRDS("trial.rds")
+for (i in 11:20) {
+  des_obj$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+  des_obj$add_one_subject_response(i, y = rnorm(1))
+}
+inf_obj = InferenceContinOLS$new(des_obj) # reconstructed fresh, never persisted
+inf_obj$compute_estimate()
+}
+Passing \code{version = 2} to \code{saveRDS()} is recommended, matching the
+one existing internal precedent for RDS serialization in this package
+(\code{SimulationFramework}'s replication cache); it is not required for a
+same-R-version round trip.
+
+\strong{Version stamp.} Every \code{Design} object records the package
+version it was constructed under (\code{get_edi_version_created()}). This
+is stamped once at construction and is \emph{not} refreshed by
+\code{readRDS()} -- it reflects the version that originally built the
+object, not whatever version is currently loaded. The first "resume the
+trial" call after a reload (\code{draw_ws_according_to_design()} for fixed
+designs, \code{add_one_subject_to_experiment_and_assign()} for sequential
+designs) compares the stamped version's major component against the
+currently loaded package's major component and emits a one-time
+\code{warning()} on a mismatch; minor/patch differences are silent, since
+most field additions are additive under this class's
+\code{lock_objects = FALSE} R6 fields and do not warrant nagging on every
+routine upgrade. Objects saved before this field existed self-initialize
+it to the currently loaded version the first time it is read, rather than
+erroring on the missing field.
+
+\strong{RNG/reproducibility caveat.} \code{private$seed} is consumed only
+once, inside \code{maybe_set_seed()} at construction time, and is
+\emph{not} re-applied on \code{readRDS()}. Continuing to enroll subjects
+after a reload therefore draws from whatever the global
+\code{.Random.seed} happens to be in the new session, not a deterministic
+continuation of the original stream. This is almost certainly the right
+behavior for a real trial (bit-for-bit-reproducible continuation across a
+process restart is not a property a production trial should have), but it
+means a same-seed reload-and-continue is \emph{not} expected to reproduce
+the same draws as an uninterrupted run with that seed -- do not rely on
+that for testing.
+
+\strong{Known non-serializable case.} A \code{DesignFixedOptimal}
+constructed with \code{objective = "custom"} from a raw
+\code{RcppXPtrUtils::cppXPtr()} external pointer (rather than a C++ source
+string) cannot be safely reloaded: compiled function pointers do not
+survive a \code{saveRDS()}/\code{readRDS()} round trip, and there is no
+retained source to recompile from. This is detected on first use after
+reload and raises a clear error rather than failing silently; supply
+\code{custom_objective} as a C++ source string instead of a pre-built
+\code{cppXPtr()} object if you need this design to survive a save/reload
+cycle -- that form recompiles itself automatically the first time it is
+used post-reload. Every other audited private cache on \code{Design} and
+its components (\code{all_subject_data_cache}, \code{permutations_cache},
+\code{lin_centered_covariates}, matching/blocking/cluster component state
+such as \code{m}, \code{xm_structural}, \code{boot_pair_rows}) was traced
+to its originating C++ return type and confirmed to hold only plain
+R matrices/vectors/lists, not external pointers or other
+non-serializable values.
+}
+
 \examples{
 \dontrun{
 # Design is abstract and cannot be instantiated directly; construct a
@@ -83,6 +170,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \item \href{#method-Design-get_ordinal_levels}{\code{Design$get_ordinal_levels()}}
     \item \href{#method-Design-get_original_ordinal_levels}{\code{Design$get_original_ordinal_levels()}}
     \item \href{#method-Design-get_missingness_method}{\code{Design$get_missingness_method()}}
+    \item \href{#method-Design-get_edi_version_created}{\code{Design$get_edi_version_created()}}
     \item \href{#method-Design-transform_y}{\code{Design$transform_y()}}
     \item \href{#method-Design-get_design_formula}{\code{Design$get_design_formula()}}
     \item \href{#method-Design-duplicate}{\code{Design$duplicate()}}
@@ -1003,6 +1091,30 @@ interval upper bound.}
   \subsection{Returns}{
     The missingness handling method: \code{"impute"}, \code{"drop_column"},
   or \code{"error"}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-get_edi_version_created"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-get_edi_version_created}{}}}
+\subsection{\code{Design$get_edi_version_created()}}{
+  Get the EDI package version this object was created under.
+
+  Stamped once, at construction time, from
+  \code{utils::packageVersion("EDI")}; never re-stamped on
+  \code{readRDS()} reload, so it reflects the version that originally
+  built the object rather than whatever version is currently loaded.
+  Objects saved before this field existed self-initialize it to the
+  \emph{currently loaded} version the first time it is read (there is
+  no way to recover the true original version for those objects),
+  rather than erroring on the missing field.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$get_edi_version_created()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A character string, e.g. \code{"1.0.0"}.
   }
 }
 

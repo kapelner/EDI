@@ -22,7 +22,7 @@ canonical_component_names = function() {
 		"RandomizationBootstrap", "RandomizationBootstrapCI",
 		"BayesianBootstrap", "Jackknife", "Wald",
 		"SimpleMeanDifference", "SimpleMeanDifferencePooledVar",
-		"KKMeanDifferenceIVWC", "SimpleWilcox", "KKWilcoxIVWC",
+		"KKMeanDifferenceIVWC", "SimpleWilcox", "KKWilcoxIVWC", "KKNewcombeRiskDiffIVWC", "CountKKHurdlePoissonIVWC",
 		"ExactTest", "ExactBinomialIncidence", "ExactFisherIncidence",
 		"ExactZhangIncidence",
 		"LikelihoodTests", "ParametricLikelihoodBootstrap", "StandardModelCache",

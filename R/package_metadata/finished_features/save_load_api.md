@@ -4,11 +4,11 @@
 
 Generated: 2026-08-09
 
-Related: [sequential_inference.md](sequential_inference.md) (the
+Related: [sequential_inference.md](../new_feature_plans/sequential_inference.md) (the
 `analysis_log` ledger discussed there is the concrete trigger for this
 document — it's the first new private field proposed to be added to
 `Design` after users may already have serialized objects in the wild),
-[extending-edi-r6.md](extending-edi-r6.md).
+[extending-edi-r6.md](../new_feature_plans/extending-edi-r6.md).
 
 ## Assessment (why this document exists)
 
@@ -19,7 +19,7 @@ calling base R's `saveRDS()`/`readRDS()` directly on a `Design` object
 disposable, reconstructible-on-demand wrappers around it (never persisted)?
 
 **Mostly yes — the mental model is correct and already matches how the
-code behaves** (see [sequential_inference.md](sequential_inference.md) §3:
+code behaves** (see [sequential_inference.md](../new_feature_plans/sequential_inference.md) §3:
 `Inference$initialize()` takes value-copy snapshots of `y`/`w`/`X` and
 caches derived quantities against them; there is no notion in the codebase
 today of an `Inference*` object outliving the `Design` state it was built
@@ -41,7 +41,7 @@ definition since the object was saved simply will not exist on it.
 (`EDI/R/design_abstract.R:471-512`) has no version marker today. Since the
 package is under active development and this very session already proposed
 growing that list (`analysis_log` in
-[sequential_inference.md](sequential_inference.md) §7), any method that
+[sequential_inference.md](../new_feature_plans/sequential_inference.md) §7), any method that
 reads a field added after some users' objects were already saved needs to
 tolerate that field being absent — and there's currently no stamped
 signal on the object itself that would let such a method (or the user) know
@@ -85,20 +85,25 @@ grouped by concern.
 
 ### A. Core correctness / forward-compatibility
 
-- [ ] **Add a version stamp to `Design`.** In `Design$initialize()`
+- [x] **Add a version stamp to `Design`.** In `Design$initialize()`
   (`EDI/R/design_abstract.R:82`), set a new private field, e.g.
   `private$edi_version_created = as.character(utils::packageVersion("EDI"))`.
   This is the single piece of infrastructure everything else in this
   document depends on: without it, there is no way for code (or a user) to
   tell, after `readRDS()`, whether an object predates a given schema
-  change. Cheap, additive, no behavior change for existing code paths.
+  change. Cheap, additive, no behavior change for existing code paths. Done
+  (2026-08-17): `private$edi_version_created` set at the end of
+  `Design$initialize()`.
 
-- [ ] **Add a public accessor** `get_edi_version_created()` (mirroring the
+- [x] **Add a public accessor** `get_edi_version_created()` (mirroring the
   existing `get_t()`/`get_n()`-style accessor pattern already used
   throughout `Design`, e.g. `EDI/R/design_abstract.R:303`) so users and
   diagnostic tooling can introspect this without reaching into `private`.
+  Done (2026-08-17): added next to `get_missingness_method()`; self-initializes
+  to the currently loaded version if the private field is `NULL` (covers
+  objects saved before this field existed).
 
-- [ ] **Make every *newly added* private field self-initializing.**
+- [x] **Make every *newly added* private field self-initializing.**
   Concretely: any method that reads a private field introduced after the
   version-stamp TODO above must not assume `initialize()` set it. Pattern:
   ```r
@@ -111,10 +116,18 @@ grouped by concern.
   objects still work after a package upgrade" true, rather than merely
   documented. Apply this pattern to `analysis_log` /
   `record_analysis_event()` / `get_analysis_events()` from
-  [sequential_inference.md](sequential_inference.md) §7 specifically, since
-  that is the next field slated to be added.
+  [sequential_inference.md](../new_feature_plans/sequential_inference.md) §7 specifically, since
+  that is the next field slated to be added. Done (2026-08-17) as far as this
+  plan's own scope goes: `get_edi_version_created()` above demonstrates the
+  self-init pattern for its own field, and `DesignFixedOptimal`'s
+  `ensure_custom_objective_xptr_live()` (see the field-audit TODO below)
+  applies the same idea to a lazily-recovered field. `analysis_log` itself
+  does not exist yet — `sequential_inference.md` is not implemented — so
+  applying the pattern to that specific field is deferred to whoever
+  implements that document; this TODO's own deliverable (establishing and
+  demonstrating the pattern) is complete.
 
-- [ ] **Decide version-mismatch *behavior*, not just detection.** Once
+- [x] **Decide version-mismatch *behavior*, not just detection.** Once
   objects carry `edi_version_created`, decide what happens when
   `packageVersion("EDI")` at load time differs from the stamped value:
   silently proceed (current implicit behavior, now at least detectable),
@@ -124,17 +137,28 @@ grouped by concern.
   the mismatch. Recommend: warn on major-version mismatch only, silent
   otherwise — most field additions will be additive/backward-compatible
   given `lock_objects = FALSE`, so erroring by default would be overly
-  aggressive for routine minor/patch upgrades.
+  aggressive for routine minor/patch upgrades. Done (2026-08-17): implemented
+  exactly the recommended policy via `private$check_version_compat()`
+  (one-time, major-version-only `warning()`), called from
+  `draw_ws_according_to_design()` (fixed designs) and
+  `add_one_subject_to_experiment_and_assign()` (sequential designs) — the two
+  "resume the trial" entry points.
 
-- [ ] **Audit `Design`'s own private fields for serialization safety.**
+- [x] **Audit `Design`'s own private fields for serialization safety.**
   Confirm none of `private$all_subject_data_cache`, `private$permutations_cache`,
   `private$lin_centered_covariates` (`EDI/R/design_abstract.R:471-512`) can
   ever hold a non-serializable value (external pointer, connection, socket,
   environment that isn't meant to be duplicated). These are populated from
   C++ kernels (`compute_all_subject_data_cpp()` and friends) — trace the
-  actual `Rcpp::` return types, don't just infer from call-site usage.
+  actual `Rcpp::` return types, don't just infer from call-site usage. Done
+  (2026-08-17): traced `compute_all_subject_data_cpp` (all `Named(...) =
+  Eigen::MatrixXd/VectorXd/IntegerVector`, no `XPtr`), the randomization
+  permutations cache (`inference_all_abstract_rand.R`'s `generate_permutations`,
+  plain `w_mat` matrix), and `lin_centered_covariates`
+  (`inference_continuous_lin.R`, plain `scale()`d matrix) — all confirmed
+  plain R data, not external pointers.
 
-- [ ] **Extend the audit to component-owned and `DesignSeqOneByOne`-subclass
+- [x] **Extend the audit to component-owned and `DesignSeqOneByOne`-subclass
   private fields**, not just base `Design`. (Updated 2026-08-13:
   `DesignMatching` no longer exists as a generator once
   `fix_design_hierarchy.md` completes — its state is component-owned:
@@ -149,9 +173,32 @@ grouped by concern.
   Atkinson/SPBR/PocockSimon (e.g. `strata_cols`-keyed caches). Same failure
   mode as above, different files — the per-subclass part remains necessary
   because each concrete `DesignSeqOneByOne*` class adds its own private state
-  on top of the shared component/root state.
+  on top of the shared component/root state. Done (2026-08-17): traced `m`
+  (`set_m()`/`add_all_subject_matched_pair_ids()` in
+  `design_blocking_abstract.R`, always `as.integer(m)`), `xm_structural` and
+  friends (`helper_matching.R`'s `.compute_kk_basic_match_data_cached`, sourced
+  from `compute_zhang_match_data_cpp` — plain `NumericVector`/`NumericMatrix`
+  returns per `src/zhang_exact_speedups.cpp`), and `boot_pair_rows`/
+  `boot_i_reservoir` (`design_matching_abstract.R`, plain integer
+  vectors/matrices built in R) — all serialization-safe. This sweep also
+  found the one genuine non-serializable case in the whole package: a
+  `DesignFixedOptimal(objective = "custom")` built from a raw
+  `RcppXPtrUtils::cppXPtr()` (not a C++ source string) holds a real
+  external pointer in `private$custom_objective_normalized$xptr`
+  (`design_fixed_optimal.R`) — empirically reproduced the cross-session
+  failure (a clean `"external pointer is not valid"` error, not UB) and
+  fixed it with `private$ensure_custom_objective_xptr_live()`: a one-time
+  probe on first solve after reload that transparently recompiles from the
+  retained C++ source when available, or raises a clear, actionable error
+  naming the save/reload limitation when it isn't (raw-pointer construction
+  form). See `design_abstract.R`'s "Saving and loading" roxygen section for
+  the user-facing writeup. No other `XPtr`/`externalptr` usage anywhere in
+  `src/*.cpp` feeds a `Design`-owned private field (the other two hits,
+  `fast_coxph_regression.cpp`'s Cox data cache and
+  `user_compiled_fn_shims.cpp`'s custom-stat evaluators, are `Inference`-side
+  only, which this plan's Non-goals already exclude).
 
-- [ ] **Document (and verify) RNG/reproducibility semantics across a
+- [x] **Document (and verify) RNG/reproducibility semantics across a
   save/reload cycle.** `private$seed` is only consumed once, inside
   `maybe_set_seed()` at construction time
   (`EDI/R/design_abstract.R:638`) — it is *not* re-applied on `readRDS()`.
@@ -162,9 +209,15 @@ grouped by concern.
   determinism in production), but it should be stated explicitly in the
   roxygen so nobody expects bit-for-bit-reproducible continuation across a
   restart, and it's worth double-checking it doesn't silently break any
-  *test* that relies on reload+continue determinism.
+  *test* that relies on reload+continue determinism. Done (2026-08-17):
+  confirmed `maybe_set_seed()`/`private$seed` are untouched by this work
+  (still construction-time-only), documented explicitly in `Design`'s
+  "Saving and loading" roxygen section, and confirmed no existing test
+  relies on reload+continue determinism (the new round-trip tests in
+  `test-save-load-design.R` deliberately do not assert draw-level identity
+  across a reload, only structural/data fidelity).
 
-- [ ] **Check `Design$duplicate()` against the same concerns.**
+- [x] **Check `Design$duplicate()` against the same concerns.**
   `duplicate()` (`EDI/R/design_abstract.R:441`) already has interesting,
   possibly-relevant precedent: it explicitly clears
   `d$.__enclos_env__$private$seed = NULL` on the copy. Confirm whether
@@ -175,58 +228,102 @@ grouped by concern.
   copies newly-added fields like `analysis_log` without special-casing —
   R6's default shallow `clone()` copies all bindings present in `private`
   at clone time, so this should be automatic, but verify once the new
-  field exists.
+  field exists. Done (2026-08-17): `readRDS()` reload does not go through
+  `duplicate()`/`clone()` at all (R6's `unserialize` reconstructs the object
+  directly), so the two are independent — `duplicate()`'s existing
+  `seed = NULL` convention is unaffected and left as-is. Verified
+  `clone()` does automatically copy the new fields
+  (`edi_version_created`, `version_mismatch_checked`) with no special-casing
+  needed, via `test-save-load-design.R`'s
+  `"duplicate() carries the version stamp ... via R6's default clone()"`
+  test.
 
 ### B. Testing
 
-- [ ] **Round-trip smoke test (plain design).** Build a
+- [x] **Round-trip smoke test (plain design).** Build a
   `DesignSeqOneByOneBernoulli`, enroll several subjects with responses,
   `saveRDS()`/`readRDS()`, continue enrolling, run an `Inference*` class
   against it, and assert identical structure/estimates to an unsaved
   control run with the same seed/data. This is the direct verification for
   gap #2 in the Assessment above — do this *before* writing the roxygen
-  claim, not after.
+  claim, not after. Done (2026-08-17):
+  `test-save-load-design.R`'s `"plain sequential design round-trips..."`
+  test. Note on scope: does *not* assert identical estimates against an
+  unsaved control run continuing with "the same seed" — per the RNG TODO
+  above, that would be asserting something false (post-reload draws come
+  from the fresh session's global `.Random.seed`, not a continuation of the
+  original stream); instead asserts byte-for-byte structural fidelity of
+  everything recorded pre-save, then that continued enrollment and a fresh
+  `Inference*` construction both succeed and produce a sane numeric estimate.
 
-- [ ] **Round-trip smoke test (KK-matching design).** Same as above but for
+- [x] **Round-trip smoke test (KK-matching design).** Same as above but for
   `DesignSeqOneByOneKK14`, specifically exercising `private$m` and
   `private$all_subject_data_cache` mid-trial (i.e. save/reload while the
-  reservoir/matching state is non-trivial, not just at `t = 0`).
+  reservoir/matching state is non-trivial, not just at `t = 0`). Done
+  (2026-08-17): `test-save-load-design.R`'s `"KK-matching design
+  round-trips..."` test. Note: `get_block_ids()` itself only resolves once
+  every subject has arrived (existing behavior, see
+  `test-designs.R`'s `DesignSeqOneByOneiBCRD` case), so the mid-trial
+  assertion compares `private$m` directly via `.__enclos_env__` rather than
+  calling that public method before full accrual.
 
-- [ ] **Version-mismatch behavior test.** Construct an object, manually
+- [x] **Version-mismatch behavior test.** Construct an object, manually
   strip/rewrite its stamped `edi_version_created` (simulating an
   object saved by an older package version, including the "field doesn't
   exist at all" case for objects saved before the version stamp itself was
   added), and assert the chosen behavior from the "decide version-mismatch
   behavior" TODO above actually fires (warns / stays silent / errors as
-  specified) rather than crashing on a missing field.
+  specified) rather than crashing on a missing field. Done (2026-08-17):
+  `test-save-load-design.R`'s `"version-mismatch check warns once..."` test
+  — covers same-major (silent), different-major (warns once, silent on
+  second call), and missing-field (self-inits, no warning), for both the
+  fixed-design and sequential-design entry points.
 
-- [ ] **Cross-subclass field-audit test.** A single parameterized test
+- [x] **Cross-subclass field-audit test.** A single parameterized test
   iterated over all 13 `DesignSeqOneByOne*` subclasses (matching the list
   already enumerated in `SimulationFramework..default_design_classes`,
   `EDI/R/simulations_framework.R:4105`) that does a save/reload round trip
   and asserts `identical()` (or an appropriate near-equality check for any
-  floating-point cache) between pre-save and post-reload state.
+  floating-point cache) between pre-save and post-reload state. Done
+  (2026-08-17): `test-save-load-design.R`'s
+  `build_seq_design_for_save_load_audit` list plus a per-class round-trip
+  test, with a coverage-check test (`"...covers every concrete
+  DesignSeqOneByOne* subclass"`, `expect_setequal()` against the registry's
+  `timing_family == "sequential"` classes) so the list can't silently drift
+  out of sync with the codebase. Note: the actual current count is 11, not
+  13 — this plan's "13" cross-referenced a stale snapshot of
+  `.default_design_classes()`; the coverage-check test derives the true set
+  mechanically instead of hardcoding either number, so this is self-correcting
+  going forward. `get_X_raw()` (a `data.table`) is compared with
+  `expect_equal()`, not `expect_identical()` — `data.table`'s internal
+  self-reference pointer legitimately differs after a serialize/deserialize
+  round trip even though the data itself is unchanged, a real gotcha worth
+  recording here for the next person who reaches for `identical()` on a
+  `data.table`.
 
 ### C. Documentation
 
-- [ ] **Add a `@section Saving and loading:` block to `Design`'s roxygen**
+- [x] **Add a `@section Saving and loading:` block to `Design`'s roxygen**
   (and/or `DesignSeqOneByOne` specifically, since that's the primary
   multi-session use case) stating the supported contract explicitly:
   persist the `Design` object via `saveRDS()`/`readRDS()`; `Inference*`
   objects are disposable, cheaply reconstructed from the design, and must
-  never be persisted directly (reconstruct them fresh each session).
+  never be persisted directly (reconstruct them fresh each session). Done
+  (2026-08-17): `design_abstract.R`'s `Design` class roxygen.
 
-- [ ] **Include a worked example** in that section: save mid-trial, reload
+- [x] **Include a worked example** in that section: save mid-trial, reload
   in a fresh session, continue enrolling, run inference — mirroring the
   round-trip tests in section B so the documented example is literally the
-  tested path, not just an untested illustration.
+  tested path, not just an untested illustration. Done (2026-08-17):
+  included in the same section, matching `test-save-load-design.R`'s plain
+  round-trip test's shape.
 
-- [ ] **State the RNG/reproducibility caveat explicitly** (see the A
+- [x] **State the RNG/reproducibility caveat explicitly** (see the A
   section TODO above) in the same roxygen block, so it's discoverable at
   the point a user would look for save/load guidance, not buried in an
-  internal design doc.
+  internal design doc. Done (2026-08-17).
 
-- [ ] **State explicitly that `Inference*` objects must not be
+- [x] **State explicitly that `Inference*` objects must not be
   `saveRDS()`'d.** Nothing currently prevents a user from trying it (no
   guard exists), and it would "work" mechanically (R6 objects serialize
   regardless of whether that's a sane thing to do) while producing a frozen
@@ -234,10 +331,12 @@ grouped by concern.
   design. Cheapest fix here is documentation-only; a runtime guard is
   probably not worth the complexity unless this turns out to be a common
   support question in practice — noted as a fallback, not a committed TODO.
+  Done (2026-08-17): documentation-only, as recommended; no runtime guard
+  added.
 
 ### D. Open decisions (need a call before implementation, not just research)
 
-- [ ] **`saveRDS()` `version=` argument: recommend one, or leave to the
+- [x] **`saveRDS()` `version=` argument: recommend one, or leave to the
   user?** The only existing internal precedent in the package,
   `SimulationFramework`'s replication cache, explicitly pins
   `saveRDS(cache_record, tmp, version = 2)`
@@ -247,15 +346,26 @@ grouped by concern.
   existing internal convention, or leave it to R's current default and not
   editorialize. Leaning toward recommending consistency with the existing
   internal precedent, but flagging as a decision rather than assuming it.
+  Decided (2026-08-17): recommend `version = 2`, matching
+  `SimulationFramework`'s existing convention. Documented in `Design`'s
+  "Saving and loading" section and used in the worked example and every new
+  test.
 
-- [ ] **Confirm the "no wrapper functions" decision stands** after the
+- [x] **Confirm the "no wrapper functions" decision stands** after the
   audit/testing items above are done, rather than being assumed up front.
   If the serialization audit (A) turns up something that genuinely needs
   wrapping (e.g. a field that must be stripped/rebuilt on load, not just
   lazily defaulted), a thin `load_edi_design()` that does that
   transformation may become justified even though it isn't today. Revisit
   this decision after, not instead of, doing the audit — don't build the
-  wrapper speculatively.
+  wrapper speculatively. Confirmed (2026-08-17): stands, with one nuance the
+  audit actually found — `DesignFixedOptimal(objective = "custom")` built
+  from a raw `cppXPtr()` does need on-load handling (a stale external
+  pointer), but the fix is a lazy, on-demand recompile-or-clear-error inside
+  the class itself (`ensure_custom_objective_xptr_live()`), not a
+  `saveRDS()`/`readRDS()`-wrapping transformation — `readRDS()` alone still
+  fully reconstructs a working object (or a clear, actionable error) with no
+  wrapper needed at the call site.
 
 ## Non-goals
 

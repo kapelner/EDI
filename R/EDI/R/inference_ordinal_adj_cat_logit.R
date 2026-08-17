@@ -193,6 +193,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 			full_fit = list(params = ctx$full_params, neg_loglik = ctx$full_neg_loglik)
 			list(
 				X = X_fit, y = y, j = j_treat,
+				K = length(sort(unique(y))),
 				full_fit = full_fit,
 				fit_null = function(delta, start = NULL){
 					n_params = length(ctx$full_params)
@@ -227,7 +228,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 		},
 		supports_lik_ratio_param_bootstrap = function() TRUE,
 		simulate_under_lik_null = function(spec, delta, null_fit){
-			params_null = as.numeric(null_fit$b)
+			params_null = as.numeric(null_fit$params)
 			n_params    = length(params_null)
 			K           = as.integer(spec$K)
 			n_alpha     = K - 1L
@@ -262,8 +263,6 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 				error = function(e) NULL
 			)
 			if (is.null(full) || !isTRUE(full$converged)) return(NULL)
-			full$params = as.numeric(c(full$b, full$gamma %||% NULL))
-			if (length(full$b) < n_params) full$b = c(full$b, rep(0, n_params - length(full$b)))
 			list(
 				full_fit = full,
 				fit_null = function(d, start = NULL){
@@ -278,7 +277,6 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 						error = function(e) NULL
 					)
 					if (is.null(f2) || !isTRUE(f2$converged)) return(NULL)
-					f2$params = as.numeric(c(f2$b, f2$gamma %||% NULL))
 					f2
 				},
 				neg_loglik = function(fit) as.numeric(fit$neg_loglik %||% fit$neg_ll)

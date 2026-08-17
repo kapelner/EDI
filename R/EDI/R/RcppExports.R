@@ -4143,6 +4143,7 @@ fast_zero_one_inflated_beta_cpp <- function(X, X_zero_one, y, warm_start_params 
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix.
 #' @param estimate_only Logical. If TRUE, skip variance computation and return only coefficients.
 #' @return A list containing coefficients and convergence status.
+#' @export
 #' @keywords internal
 fast_zinb_cpp <- function(X, Xzi, y, warm_start_params = NULL, maxit = 1000L, tol = 1e-8, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", smart_cold_start = TRUE, warm_start_fisher_info = NULL, estimate_only = FALSE) {
     .Call(`_EDI_fast_zinb_cpp`, X, Xzi, y, warm_start_params, maxit, tol, fixed_idx, fixed_values, optimization_alg, smart_cold_start, warm_start_fisher_info, estimate_only)
