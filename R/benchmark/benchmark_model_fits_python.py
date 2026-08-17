@@ -77,15 +77,14 @@ MIN_RESOLVED_BATCH_MS = 10.0
 MAX_INNER_REPS = 100_000
 
 # ── EDI Python kernel bootstrap ─────────────────────────────────────────────
-# The python/ scaffold (see python_bindings_package_spec.md) is another
-# session's in-progress, uncommitted work — not something this script owns
-# or should modify. This just configures+builds it (via CMake, same
-# scikit-build-core-style flow python/CMakeLists.txt already defines) into
-# an isolated /tmp directory and imports whatever compiles, so the benchmark
-# always reflects the *current* state of that WIP rather than a stale
-# snapshot. If the build fails (that source is actively changing), every
-# row silently falls back to the "no binding yet" NA behavior — nothing
-# here assumes the build succeeds.
+# The python/ package (edi_kernels — see python_bindings_package_spec.md) is
+# not something this script owns or should modify. This just
+# configures+builds its _core module (via CMake, same scikit-build-core-style
+# flow python/CMakeLists.txt already defines) into an isolated /tmp directory
+# and imports whatever compiles, so the benchmark always reflects the
+# *current* state of the bindings rather than a stale snapshot. If the build
+# fails, every row silently falls back to the "no binding" NA behavior —
+# nothing here assumes the build succeeds.
 EDI_PY_AVAILABLE = False
 _edi_core = None
 

@@ -243,7 +243,13 @@ test_that("CMH get_standard_error block and non-block paths agree when D = 3 and
 		des_nonblock$add_one_subject_to_experiment_and_assign(data.frame(x = i))
 	}
 	add_all_subject_responses_seq(des_nonblock, y)
-	inf_nonblock <- InferenceIncidCMH$new(des_nonblock, se_est_num_vectors = n - 1L, verbose = FALSE)
+	# Bernoulli randomization only guarantees balance in expectation, so the
+	# realized allocation may be imbalanced; InferenceIncidCMH warns about
+	# this by design (see inference_incidence_cmh.R). The tolerance below
+	# already accounts for the resulting SE miscalibration, so suppress it.
+	inf_nonblock <- suppressWarnings(
+		InferenceIncidCMH$new(des_nonblock, se_est_num_vectors = n - 1L, verbose = FALSE)
+	)
 	se_nonblock <- inf_nonblock$.__enclos_env__$private$get_standard_error()
 	expect_equal(se_block, se_nonblock, tolerance = 0.15)
 })

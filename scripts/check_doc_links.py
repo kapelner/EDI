@@ -1,18 +1,27 @@
 #!/usr/bin/env python3
 """Pre-push doc-link checker.
 
-Scans every tracked *.md file for markdown links [text](target) and
-verifies each target is alive:
-  - internal (relative/absolute repo paths): the file exists on disk.
-  - external (http(s)://): a HEAD/GET request returns a non-error status.
+Scans the USER-FACING docs only -- the ones that ship somewhere a reader
+outside this repo sees them: the READMEs (repo root, R/, python/, PyPI),
+python/CHANGELOG.md, R/EDI/REFERENCES.md, and the roxygen comments in
+R/EDI/R/*.R (which become the package's rendered help pages). Internal
+plan/working documents (R/package_metadata/**, R/package_tests/**, graft/,
+CLAUDE.md, ...) are deliberately NOT checked: a stale link in a planning
+note costs nothing, and their sheer volume made every push noisy.
 
-Runs over the whole tracked doc corpus (not just the diff) because a link
-can be broken by a change on the OTHER end -- e.g. renaming/moving the file
-a doc links to (as happened this session: design_fixed_optimal.md and
-release_v1_0_0.md both moved) breaks every link pointing at the old path,
-none of which show up in a diff of the doc file itself. .githooks/pre-push
-gates whether to run this at all on "did any *.md file change", not on
-narrowing which links get checked once it does run.
+For each link found it verifies the target is alive:
+  - internal (relative/absolute repo paths, markdown files only): the file
+    exists on disk.
+  - external (http(s)://): a HEAD/GET request returns a non-error status.
+    Roxygen comments contribute external links only ([text](url), \\url{},
+    \\href{}); Rd cross-references like \\link[pkg]{fn} are not checked.
+
+Runs over the whole corpus above (not just the diff) because a link can be
+broken by a change on the OTHER end -- e.g. renaming/moving the file a doc
+links to breaks every link pointing at the old path, none of which show up
+in a diff of the doc file itself. .githooks/pre-push gates whether to run
+this at all on "did any checked file change", not on narrowing which links
+get checked once it does run.
 
 Known limitations (acceptable for a fast pre-push gate, not a general link
 linter): only markdown inline-link syntax [text](target) is parsed (no
@@ -52,11 +61,51 @@ def strip_code(text: str) -> str:
     return INLINE_CODE_RE.sub("", text)
 
 
+def is_user_facing_md(rel_path: str) -> bool:
+    # See module docstring: only docs a reader outside this repo sees.
+    return (
+        rel_path == "R/EDI/REFERENCES.md"
+        or rel_path == "python/CHANGELOG.md"
+        or Path(rel_path).name in ("README.md", "README_PYPI.md")
+    )
+
+
 def md_files():
     out = subprocess.run(
         ["git", "ls-files", "*.md"], capture_output=True, text=True, check=True, cwd=REPO_ROOT
     )
+    return [REPO_ROOT / p for p in out.stdout.splitlines() if p and is_user_facing_md(p)]
+
+
+ROXY_LINE_RE = re.compile(r"^\s*#'(.*)$")
+ROXY_TEX_URL_RE = re.compile(r"\\(?:url|href)\{(https?://[^}]+)\}")
+
+
+def roxygen_files():
+    out = subprocess.run(
+        ["git", "ls-files", "R/EDI/R/*.R"],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=REPO_ROOT,
+    )
     return [REPO_ROOT / p for p in out.stdout.splitlines() if p]
+
+
+def roxygen_external_urls(r_file: Path) -> list[str]:
+    """External http(s) links in a file's roxygen (#') comment lines."""
+    try:
+        text = r_file.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        return []
+    roxy_text = "\n".join(m.group(1) for m in map(ROXY_LINE_RE.match, text.splitlines()) if m)
+    urls = [u for u in ROXY_TEX_URL_RE.findall(roxy_text)]
+    urls += [
+        t.strip()
+        for t in LINK_RE.findall(roxy_text)
+        if t.strip().startswith(("http://", "https://"))
+    ]
+    return urls
 
 
 def strip_line_suffix(target: str) -> str:
@@ -166,7 +215,10 @@ def main() -> int:
     already_known = len(internal_broken) - len(new_internal)
 
     if not new_internal and not external_broken:
-        msg = f"check_doc_links: no new broken links ({len(md_files())} doc files checked)"
+        msg = (
+            f"check_doc_links: no new broken links ({len(md_files())} doc files + "
+            f"{len(roxygen_files())} roxygen sources checked)"
+        )
         if already_known:
             msg += f"; {already_known} pre-existing broken internal link(s) still tracked in the baseline (not blocking)"
         print(msg + ".")
@@ -214,6 +266,10 @@ def collect(report_external: bool):
             err = check_internal(md_file, target)
             if err:
                 internal_broken.append((md_file, target, err))
+
+    for r_file in roxygen_files():
+        for url in roxygen_external_urls(r_file):
+            external_targets.setdefault(url, []).append((r_file, url))
 
     external_broken: list[tuple[Path, str, str]] = []
     if report_external and external_targets:

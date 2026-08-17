@@ -92,18 +92,21 @@ abort_push() {
 	exit 1
 }
 
-# Any *.md changed anywhere in the repo -- not narrowed to which links moved,
+# Only the USER-FACING docs are link-checked (see check_doc_links.py's
+# docstring): READMEs, python/CHANGELOG.md, R/EDI/REFERENCES.md, and the
+# roxygen comments in R/EDI/R/*.R. Internal plan documents
+# (R/package_metadata/**, etc.) are not checked, so changes to them don't
+# trigger this. Still not narrowed to which links moved within that corpus,
 # since a link can break from the OTHER end (renaming/moving the file it
 # points at breaks every doc that links to the old path, none of which show
-# up in a diff of the doc file itself -- exactly what happened this session
-# when design_fixed_optimal.md and release_v1_0_0.md both moved).
+# up in a diff of the doc file itself).
 run_doc_link_check=0
-if grep -qE '\.md$' "$changed_files_file"; then
+if grep -qE '(^|/)README(_PYPI)?\.md$|^python/CHANGELOG\.md$|^R/EDI/REFERENCES\.md$|^R/EDI/R/.*\.R$' "$changed_files_file"; then
 	run_doc_link_check=1
 fi
 
 if [ "$run_doc_link_check" = "1" ]; then
-	echo "pre-push: markdown files changed -- checking documentation links ..."
+	echo "pre-push: user-facing docs/roxygen changed -- checking documentation links ..."
 	# Internal (relative-path) links block on new breakage only -- pre-existing
 	# debt is tracked in scripts/check_doc_links_baseline.csv (regenerate via
 	# --write-baseline) so this doesn't retroactively block every push on the
@@ -115,7 +118,7 @@ if [ "$run_doc_link_check" = "1" ]; then
 		abort_push
 	fi
 else
-	echo "pre-push: no markdown files changed, skipping documentation link check."
+	echo "pre-push: no user-facing docs/roxygen changed, skipping documentation link check."
 fi
 
 echo

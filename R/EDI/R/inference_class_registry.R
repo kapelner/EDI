@@ -532,6 +532,42 @@ infer_inference_direct_components = function(name) {
 		# so or effective/target components drift from the assembled reality.
 		InferenceSurvivalCoxPHRegr = c("BayesianBootstrap", "CoxPartialLikelihood"),
 		InferenceSurvivalStratCoxPHRegr = c("BayesianBootstrap", "StratifiedCoxPartialLikelihood"),
+		# The following classes compose components directly via their own
+		# define_inference_class(components = ...) call (no intermediate
+		# algorithmic abstract base), so their direct_components here must
+		# mirror that call exactly -- these were omitted from this switch,
+		# which silently gave them character(0) direct_components and, via
+		# get_effective_capabilities(), zero capabilities (e.g. supports("wald")
+		# returning FALSE despite composing the Wald component and advertising
+		# "wald" from get_supported_testing_types()). Found investigating
+		# spurious "every design/inference combo was filtered out" simulation
+		# warnings and CMH/get_standard_error test warnings.
+		InferenceContinRobustRegr = c("BayesianBootstrap", "Wald"),
+		InferenceIncidWald = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
+		InferencePropGCompMeanDiff = c("BayesianBootstrap", "Jackknife"),
+		InferenceSurvivalLogRank = c("BayesianBootstrap", "Wald"),
+		InferencePropQuantileRegr = c("BayesianBootstrap", "Wald"),
+		InferenceAbstractKKCondLogitGLMM = "KKPassThrough",
+		InferenceSurvivalGehanWilcox = c("BayesianBootstrap", "Wald"),
+		InferenceIncidCMH = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
+		InferenceOrdinalKKCondAdjCatLogitRegr = c("OrdinalConditionalLogitPartialLikelihood", "KKPassThrough"),
+		InferenceOrdinalRidit = c("BayesianBootstrap", "Wald"),
+		InferenceOrdinalGCompMeanDiff = c("BayesianBootstrap", "Wald"),
+		InferenceSurvivalRestrictedMeanDiff = c("BayesianBootstrap", "Wald"),
+		InferenceIncidExtendedRobins = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
+		InferenceContinQuantileRegr = c("BayesianBootstrap", "Wald"),
+		InferenceOrdinalJonckheereTerpstraTest = c("BayesianBootstrap", "Wald"),
+		InferenceIncidNewcombeRiskDiff = c("BayesianBootstrap", "Wald"),
+		InferenceSurvivalKMDiff = c("BayesianBootstrap", "Wald"),
+		InferenceIncidRiskDiff = c("BayesianBootstrap", "Wald"),
+		InferenceOrdinalPartialProportionalOddsRegr = c("BayesianBootstrap", "Wald"),
+		InferenceAbstractQuantileRandCI = "QuantileRandomizationCI",
+		InferenceCustomAsymp = c("Wald", "NonparametricBootstrap"),
+		InferenceCustomBoot = "NonparametricBootstrap",
+		InferenceAbstractKKOrdinalCLMM = "KKPassThrough",
+		InferenceIncidMiettinenNurminenRiskDiff = c("BayesianBootstrap", "Wald"),
+		InferenceIncidGCompRiskDiff = c("BayesianBootstrap", "Jackknife", "IncidenceGComputation"),
+		InferenceIncidGCompRiskRatio = c("BayesianBootstrap", "Jackknife", "IncidenceGComputation"),
 		character()
 	)
 }
