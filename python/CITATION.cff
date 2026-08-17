@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "edi_kernels: Python bindings for EDI's C++ model-fitting kernels"
+version: 1.0.0.post3
+date-released: "2026-08-17"
+authors:
+  - family-names: Kapelner
+    given-names: Adam
+    email: kapelner@qc.cuny.edu
+    orcid: "https://orcid.org/0000-0001-5985-6792"
+repository-code: "https://github.com/kapelner/EDI/tree/main/python"
+url: "https://pypi.org/project/edi_kernels/"
+license: GPL-3.0-only
+keywords:
+  - experimental design
+  - statistical inference
+  - survival analysis
+  - pybind11
+  - Eigen
+abstract: >
+  edi_kernels provides Python bindings, via pybind11, to the same C++
+  model-fitting kernels used by the EDI R package (github.com/kapelner/EDI)
+  -- no R or Rcpp dependency. It exposes fast solvers for a range of
+  regression and inference families (continuous, incidence, count,
+  proportion, survival, ordinal) built on Eigen and LBFGS++.
+preferred-citation:
+  type: software
+  title: "EDI: Experimental Design and Inference"
+  version: 1.0.0
+  date-released: "2026-08-10"
+  authors:
+    - family-names: Kapelner
+      given-names: Adam
+      email: kapelner@qc.cuny.edu
+      orcid: "https://orcid.org/0000-0001-5985-6792"
+  repository-code: "https://github.com/kapelner/EDI"
+  url: "https://github.com/kapelner/EDI"

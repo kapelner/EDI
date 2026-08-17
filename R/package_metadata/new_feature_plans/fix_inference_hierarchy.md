@@ -2011,7 +2011,36 @@ their own `[x]` entries above; they are not part of this count.)
   `super$...`. Its file-sibling `InferenceCountKKHurdlePoissonOneLik`
   (same file) is a separate, harder target — full-likelihood-tier, inherits
   `InferenceParamBootstrap`, belongs under "Migrate KK one-likelihood
-  classes" below instead. Second named target (added 2026-08-12):
+  classes" below instead.
+  **Done 2026-08-17** — via the static-leaf-source shape established by the
+  `InferenceSurvivalKKWeibullMarginal` migration the same day (see its entry
+  below): new `CountKKHurdlePoissonIVWCSource` + registered
+  `CountKKHurdlePoissonIVWC` component (`dependencies = "KKPassThrough"`,
+  lazy), raw mixin splices and the `eval(body(...))` bootstrap override
+  removed from the class (`eval(body(` count 13 → 12), factory composition
+  `c("BayesianBootstrap", "Wald", "CountKKHurdlePoissonIVWC")` with the
+  `InferenceRand` pin. The KKPassThrough contract's loud validation caught a
+  needed host `supports_likelihood_tests = FALSE` (previously inherited from
+  the `InferenceAsymp` ladder). Golden
+  `test-count-kk-hurdle-ivwc-migration-golden.R` all green — after
+  surfacing **two systemic findings**: (a) **golden fixtures must reuse the
+  REAL classname, not a "...Legacy" suffix** — `globals.R`'s
+  `$`-anchored optimizer policy (`"KKHurdlePoissonIVWC$" = "lbfgs"`) and
+  `Inference$capabilities()`'s nearest-registered-ancestor walk both key on
+  the class name, so a suffixed fixture silently ran a different optimizer
+  (~1e-4 numeric drift) or lost `kk_passthrough` capability (flipping the
+  randomization-CI transform dispatch); both this golden's and the Weibull
+  Marginal golden's fixtures now use the real name (local binding only, no
+  registry interference); (b) the **class-identity randomization-CI seed
+  bug** (see the dedicated Follow-Ups entry: `is(inf_obj,
+  "InferenceAsymp")` gated the Wald/asymp seed candidates, silently
+  NA-ing every migrated class's randomization-CI fallback). Also flagged
+  (preserved byte-identically, latent pre-existing bug): the class's
+  `compute_estimate_with_bootstrap_weights` calls
+  `private$shared_combined_bootstrap()`, which is defined **nowhere** in
+  the package — the weighted-bootstrap path has always errored at runtime
+  and its Bayesian-bootstrap replicates are silently all-NA; needs its own
+  fix-or-drop decision. Second named target (added 2026-08-12):
   `InferenceSurvivalKKWeibullMarginal`
   (`inference_survival_KK_weibull_marginal.R`) — `none`-tier (Wald-only,
   cluster-robust sandwich SE, explicitly not a true likelihood per its own
@@ -2226,6 +2255,33 @@ Bugs and tangential issues recorded inside this file's completed (`[x]`)
 migration entries but never turned into their own actionable TODOs. Collected
 here (2026-08-13) rather than left as prose-only notes.
 
+- [x] **Randomization-CI Wald-seed fallback silently lost by every migrated
+  class: `is(inf_obj, "InferenceAsymp")` class-identity dispatch
+  (found and fixed 2026-08-17).** `get_randomization_ci_seed_candidates()`
+  (`inference_all_abstract_rand_ci.R`) computed its Wald/asymp seed CIs —
+  and therefore `build_randomization_ci_search_bounds()`'s `fallback_ci` —
+  only when `is(inf_obj, "InferenceAsymp")`. Every class migrated to
+  `define_inference_class()` has `parent = Inference` with Wald arriving as
+  a component, so the check was FALSE for all of them: where the
+  pre-migration class returned the Wald-seeded fallback whenever the
+  randomization-CI bisection could not converge (e.g. small `r`),
+  the migrated class returned `c(NA, NA)` — a silent regression present
+  since the very first migration, invisible to every legacy-vs-migrated
+  golden whose fixture subclassed the already-migrated factory class (both
+  sides equally broken). Caught by the
+  `InferenceCountKKHurdlePoissonIVWC` golden, whose fixture rebuilt the
+  real old ladder (`inherit = InferenceAsymp`): legacy finite, migrated
+  NA. Fixed by replacing the class-identity check with a behavior probe
+  (`is.function(inf_obj$compute_asymp_confidence_interval)`) — the calls
+  inside are individually tryCatch-protected, so probing by method
+  presence is safe for any class shape, and old-ladder classes keep
+  identical behavior. Verified: the count-KK golden flipped to all-green;
+  the full golden battery (simple mean-diff/Wilcox, IncidWald, CMH/
+  ExtendedRobins, RiskDiff, KK Newcombe, KK Weibull marginal, partial-
+  likelihood baseline, registry, mixin-contracts) all pass;
+  `test-ci-rand.R` shows only its one pre-existing unrelated failure
+  (the `FixedRerandomization` `type = "Zhang"` signature mismatch,
+  documented earlier).
 - [x] **Design-hierarchy-rework fallout sweep in the inference lane
   (2026-08-17).** After the design-hierarchy rework landed (commit
   `48bc5b83` and follow-ups: `Design -> DesignFixed`/`DesignSeqOneByOne`

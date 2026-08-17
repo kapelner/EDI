@@ -584,3 +584,22 @@ ridit = fast_ridit_analysis(w_ridit, y_ridit, "control")
 # not tied to any response type -- upper-tail (survival function) p-value for a chi-squared statistic
 pval = fast_pchisq_upper(3.84, df=1)
 ```
+
+## Citation
+
+If you use `edi_kernels` in published work, please cite it. Citation
+metadata is maintained in [`CITATION.cff`](CITATION.cff) (Citation File
+Format), which GitHub renders as a "Cite this repository" button and
+which tools like [cffconvert](https://github.com/citation-file-format/cffconvert)
+can turn into other formats (APA, BibTeX, EndNote, ...). As BibTeX:
+
+```bibtex
+@software{kapelner_edi_kernels,
+  author  = {Kapelner, Adam},
+  title   = {{edi\_kernels}: {P}ython bindings for {EDI}'s {C}++ model-fitting kernels},
+  year    = {2026},
+  version = {1.0.0.post3},
+  url     = {https://pypi.org/project/edi_kernels/},
+  note    = {Part of the EDI project, \url{https://github.com/kapelner/EDI}}
+}
+```

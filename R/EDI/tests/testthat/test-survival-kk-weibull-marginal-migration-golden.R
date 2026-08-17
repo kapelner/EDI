@@ -15,8 +15,16 @@ library(EDI)
 # usage. The legacy generator below reproduces the pre-migration class
 # verbatim, splices included.
 make_kk_weibull_marginal_legacy_generator = function() {
+	# Deliberately the REAL classname (not "...Legacy"): capability resolution
+	# (Inference$capabilities() walks to the nearest REGISTERED class) and any
+	# name-keyed dispatch tables treat an unregistered suffixed name
+	# differently -- e.g. inference_uses_model_scale_randomization_transform()
+	# reads capabilities() and a "...Legacy" fixture loses kk_passthrough,
+	# flipping the randomization-CI transform path. Same rename rationale as
+	# the count-KK golden's fixture. Local variable binding only; no registry
+	# interference.
 	R6::R6Class(
-		"InferenceSurvivalKKWeibullMarginalLegacy",
+		"InferenceSurvivalKKWeibullMarginal",
 		lock_objects = FALSE,
 		parent_env = asNamespace("EDI"),
 		inherit = EDI:::InferenceAsymp,
