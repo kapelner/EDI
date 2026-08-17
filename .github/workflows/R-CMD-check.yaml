@@ -314,7 +314,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install valgrind and libuv (libuv is a system dependency of the 'fs' package, itself a transitive dependency of testthat via pkgload -- rocker/r-devel is a bare-bones image that doesn't include it, see the sanitizers job's Install libuv step for the failure this causes if skipped)
-        run: apt-get update && apt-get install -y valgrind libuv1-dev
+        run: apt-get update && apt-get install -y --allow-downgrades valgrind libuv1-dev
 
       # Matrix is listed explicitly (even though it's not a direct EDI
       # dependency) because survival Imports it, and rocker/r-devel doesn't
