@@ -7,9 +7,17 @@
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #' @export
-InferenceContinKKRobustRegrIVWC = R6::R6Class("InferenceContinKKRobustRegrIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+# Static leaf source (2026-08-17 migration, same shape as the other four KK
+# leaves migrated the same day): the KK compound layer (matched/reservoir
+# plumbing, reduce_design_matrix_once(), and -- unlike the eval(body(...))
+# classes -- the bootstrap-distribution method too) arrives entirely through
+# the registered KKCompound component (this component's declared
+# dependency); this source holds only the class's own estimator overrides.
+# Unlike the eval(body(...)) classes, this class never overrode
+# approximate_bootstrap_distribution_beta_hat_T at all -- it simply inherited
+# KKPassThrough's version through the old ladder, so no override is needed
+# here either; the composed component supplies it directly.
+ContinKKRobustRegrIVWCSource = list(
 	public = list(
 		#' @description Initialize KK inverse-variance combined robust-regression
 		#'   inference and prepare the matched/reservoir components used by

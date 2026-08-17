@@ -3492,6 +3492,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           if (supports_inference_capability(inf_obj, "randomization_test") && any(c("rand_ci", "rand_pval") %in% pending_inference_types)) {
             if ("rand_pval" %in% pending_inference_types) {
               args = get_args("rand_pval", list(r = state$r_rand, na.rm = TRUE, show_progress = FALSE))
+              cat("DEBUG class(inf_obj$compute_rand_two_sided_pval):", class(inf_obj$compute_rand_two_sided_pval), "args:", paste(names(args), collapse=","), "\n")
               pval_r = tryCatch(do.call(inf_obj$compute_rand_two_sided_pval, args), error = function(e) {
                 fatal = handle_error(make_error(
                   stage = "inference_call",

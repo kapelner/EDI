@@ -99,7 +99,11 @@ def roxygen_external_urls(r_file: Path) -> list[str]:
     except (UnicodeDecodeError, OSError):
         return []
     roxy_text = "\n".join(m.group(1) for m in map(ROXY_LINE_RE.match, text.splitlines()) if m)
-    urls = [u for u in ROXY_TEX_URL_RE.findall(roxy_text)]
+    # Rd source must escape a literal "%" as "\%" (it's the Rd comment
+    # character) -- unescape before checking, or a correctly-written
+    # \href{...\%27...} 404s on the literal backslash that was never part
+    # of the real URL.
+    urls = [u.replace("\\%", "%") for u in ROXY_TEX_URL_RE.findall(roxy_text)]
     urls += [
         t.strip()
         for t in LINK_RE.findall(roxy_text)
@@ -149,6 +153,11 @@ def check_external(url: str) -> str | None:
                 return f"HTTP {resp.status}"
         return None
     except urllib.error.HTTPError as e:
+        if e.code == 429:
+            # Rate-limited (seen repeatedly from github.com under this
+            # script's own retry traffic) -- says nothing about whether the
+            # page exists, so don't report it as broken.
+            return None
         if e.code in (403, 405):
             # Some sites reject HEAD; retry with GET before giving up.
             try:
@@ -160,12 +169,12 @@ def check_external(url: str) -> str | None:
                         return f"HTTP {resp.status}"
                 return None
             except urllib.error.HTTPError as e2:
-                if e2.code == 403:
-                    # Still 403 on a browser-UA GET: the site is up but
-                    # refuses automated clients (TLS/bot fingerprinting).
-                    # That says nothing about whether the page exists -- a
-                    # genuinely dead page returns 404/410 -- so don't
-                    # report it as broken.
+                if e2.code in (403, 429):
+                    # Still 403/429 on a browser-UA GET: the site is up but
+                    # refuses automated clients (TLS/bot fingerprinting) or
+                    # is rate-limiting us. That says nothing about whether
+                    # the page exists -- a genuinely dead page returns
+                    # 404/410 -- so don't report it as broken.
                     return None
                 return f"HTTP {e2.code}"
             except Exception as e2:
