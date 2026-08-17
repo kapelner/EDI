@@ -30,12 +30,10 @@ TallyReporter <- R6::R6Class("TallyReporter",
 		timings_path = NULL,
 		last_draw_time = 0,
 		lines_drawn = 0L,
-		dynamic = TRUE,
 
 		initialize = function(...) {
 			super$initialize(...)
 			self$start_time <- Sys.time()
-			self$dynamic <- isTRUE(isatty(stdout()))
 			# Resolved now, while cwd is still R/EDI/tests: test_dir() setwd()s
 			# into testthat/ before end_reporter fires, so a relative path there
 			# would land one directory too deep.
@@ -135,24 +133,18 @@ TallyReporter <- R6::R6Class("TallyReporter",
 				sprintf("  test: %s", self$current_test)
 			)
 
-			if (self$dynamic) {
-				if (self$lines_drawn > 0) {
-					cat(sprintf("\033[%dA", self$lines_drawn))
-				}
-				for (l in lines) cat("\033[2K", l, "\n", sep = "")
-				self$lines_drawn <- length(lines)
-			} else {
-				# Non-tty output (e.g. redirected to a log file): a fresh block
-				# every ~2s instead of per-test/per-file lines.
-				if (force || (now - private$last_static_draw) >= 2) {
-					cat(paste(lines, collapse = "\n"), "\n\n", sep = "")
-					private$last_static_draw <- now
-				}
+			# Redraw the same fixed 4-line block in place via ANSI cursor-up +
+			# clear-line -- unconditional (not gated on isatty(stdout())), since
+			# this reporter is only ever invoked by .githooks/pre-push, which is
+			# always terminal-adjacent even when stdout isn't a tty in the strict
+			# sense (e.g. run through a tool harness); the escape codes still
+			# reach whatever terminal ultimately renders the output.
+			if (self$lines_drawn > 0) {
+				cat(sprintf("\033[%dA", self$lines_drawn))
 			}
+			for (l in lines) cat("\033[2K", l, "\n", sep = "")
+			self$lines_drawn <- length(lines)
 		}
-	),
-	private = list(
-		last_static_draw = 0
 	)
 )
 

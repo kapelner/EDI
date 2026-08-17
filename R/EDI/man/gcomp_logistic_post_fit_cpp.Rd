@@ -62,7 +62,7 @@ non-positive.
 \seealso{
 \code{\link{gcomp_logistic_point_estimate_cpp}} for the point-estimate
   computation this function's variances are built around;
-  \code{\link{gcomp_fractional_logit_post_fit_cpp}} for the analogous
+  \code{gcomp_fractional_logit_post_fit_cpp} for the analogous
   fractional-logit/quasi-binomial post-fit inference.
 }
 \keyword{internal}

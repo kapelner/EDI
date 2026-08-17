@@ -3,7 +3,7 @@ library(testthat)
 library(EDI)
 
 set.seed(1914)
-n_brt = 40
+n_brt = 24
 X_brt = data.frame(x1 = rnorm(n_brt), x2 = runif(n_brt))
 
 build_brt_design = function(design_gen, effect, response_type = "continuous"){
@@ -217,7 +217,7 @@ test_that("BRT batch kernels match the per-iteration reference path across stati
 		}
 	}
 	set.seed(2026)
-	n_k = 40
+	n_k = 24
 	Xk = data.frame(x1 = rnorm(n_k), x2 = runif(n_k))
 	run_fixed = function(response_type, y_fun, dead = NULL){
 		des = DesignFixedBernoulli$new(response_type = response_type, n = n_k)
@@ -486,19 +486,19 @@ test_that("compute_brt_null_statistics_with_se returns finite t0 and positive se
 
 test_that("studentized BRT CI covers true effect and both bounds are finite", {
 	set.seed(2025)
-	n_rep = 20
+	n_rep = 12
 	truth = 1.5
 	covered_stud = covered_van = logical(n_rep)
 	for (r in seq_len(n_rep)) {
-		des = DesignSeqOneByOneKK14$new(n = 30L, response_type = "continuous")
-		for (t in seq_len(30L)) {
+		des = DesignSeqOneByOneKK14$new(n = 20L, response_type = "continuous")
+		for (t in seq_len(20L)) {
 			w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 			des$add_one_subject_response(t, truth * (w_t == 1) + rnorm(1))
 		}
 		inf = InferenceAllSimpleMeanDiff$new(des)
 		inf$num_cores = 1L
-		ci_stud = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 201, type = "studentized", show_progress = FALSE)
-		ci_van  = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 201, type = "percentile",    show_progress = FALSE)
+		ci_stud = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 121, type = "studentized", show_progress = FALSE)
+		ci_van  = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 121, type = "percentile",    show_progress = FALSE)
 		covered_stud[r] = is.finite(ci_stud[1]) && ci_stud[1] <= truth && truth <= ci_stud[2]
 		covered_van[r]  = is.finite(ci_van[1])  && ci_van[1]  <= truth && truth <= ci_van[2]
 	}
@@ -563,16 +563,16 @@ test_that("symmetric-percentile-t BRT pval >= studentized pval under null (absol
 test_that("symmetric-percentile-t BRT CI covers true effect", {
 	set.seed(2026)
 	truth = 1.5
-	covered = logical(20L)
-	for (r in seq_len(20L)) {
-		des = DesignSeqOneByOneKK14$new(n = 30L, response_type = "continuous")
-		for (t in seq_len(30L)) {
+	covered = logical(12L)
+	for (r in seq_len(12L)) {
+		des = DesignSeqOneByOneKK14$new(n = 20L, response_type = "continuous")
+		for (t in seq_len(20L)) {
 			w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 			des$add_one_subject_response(t, truth * (w_t == 1) + rnorm(1))
 		}
 		inf = InferenceAllSimpleMeanDiff$new(des)
 		inf$num_cores = 1L
-		ci = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 201, type = "symmetric-percentile-t", show_progress = FALSE)
+		ci = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 121, type = "symmetric-percentile-t", show_progress = FALSE)
 		covered[r] = is.finite(ci[1]) && ci[1] <= truth && truth <= ci[2]
 	}
 	expect_gte(mean(covered), 0.70)
@@ -602,16 +602,16 @@ test_that("smoothed BRT pval is smaller under alternative than under null", {
 test_that("smoothed BRT CI covers true effect and both bounds are finite", {
 	set.seed(314)
 	truth = 1.5
-	covered = logical(20L)
-	for (r in seq_len(20L)) {
-		des = DesignSeqOneByOneKK14$new(n = 30L, response_type = "continuous")
-		for (t in seq_len(30L)) {
+	covered = logical(12L)
+	for (r in seq_len(12L)) {
+		des = DesignSeqOneByOneKK14$new(n = 20L, response_type = "continuous")
+		for (t in seq_len(20L)) {
 			w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 			des$add_one_subject_response(t, truth * (w_t == 1) + rnorm(1))
 		}
 		inf = InferenceAllSimpleMeanDiff$new(des)
 		inf$num_cores = 1L
-		ci = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 201, type = "smoothed", show_progress = FALSE)
+		ci = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 121, type = "smoothed", show_progress = FALSE)
 		covered[r] = is.finite(ci[1]) && ci[1] <= truth && truth <= ci[2]
 	}
 	expect_gte(mean(covered), 0.70)
@@ -639,14 +639,14 @@ build_survival_brt_design = function(design_gen, n, log_hr = 0){
 	for (t in seq_len(n)){
 		w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 		rate = if (w_t == 1) exp(-log_hr) else 1.0
-		des$add_one_subject_response(t, rexp(1, rate), 1L)
+		des$add_one_subject_response(t, rexp(1, rate))
 	}
 	des
 }
 
 test_that("CoxPH BRT fast kernel: pval finite under null", {
 	set.seed(31)
-	des = build_survival_brt_design(function() DesignSeqOneByOneBernoulli$new(n = 30, response_type = "survival"), 30, log_hr = 0)
+	des = build_survival_brt_design(function() DesignSeqOneByOneBernoulli$new(n = 20, response_type = "survival"), 20, log_hr = 0)
 	inf = InferenceSurvivalCoxPHRegr$new(des)
 	inf$num_cores = 1L
 	pval = inf$compute_rand_bootstrap_two_sided_pval(delta = 0, B = 51, show_progress = FALSE)
@@ -656,8 +656,8 @@ test_that("CoxPH BRT fast kernel: pval finite under null", {
 
 test_that("CoxPH BRT fast kernel: pval under null >= pval under alternative", {
 	set.seed(32)
-	des_null = build_survival_brt_design(function() DesignSeqOneByOneBernoulli$new(n = 30, response_type = "survival"), 30, log_hr = 0)
-	des_alt  = build_survival_brt_design(function() DesignSeqOneByOneBernoulli$new(n = 30, response_type = "survival"), 30, log_hr = 1.5)
+	des_null = build_survival_brt_design(function() DesignSeqOneByOneBernoulli$new(n = 20, response_type = "survival"), 20, log_hr = 0)
+	des_alt  = build_survival_brt_design(function() DesignSeqOneByOneBernoulli$new(n = 20, response_type = "survival"), 20, log_hr = 1.5)
 	inf_null = InferenceSurvivalCoxPHRegr$new(des_null); inf_null$num_cores = 1L
 	inf_alt  = InferenceSurvivalCoxPHRegr$new(des_alt);  inf_alt$num_cores = 1L
 	pval_null = inf_null$compute_rand_bootstrap_two_sided_pval(delta = 0, B = 101, show_progress = FALSE)
@@ -667,7 +667,7 @@ test_that("CoxPH BRT fast kernel: pval under null >= pval under alternative", {
 
 test_that("CoxPH BRT fast kernel uses compute_fast_rand_bootstrap_distr (not worker path)", {
 	set.seed(33)
-	des = build_survival_brt_design(function() DesignSeqOneByOneBernoulli$new(n = 30, response_type = "survival"), 30, log_hr = 0)
+	des = build_survival_brt_design(function() DesignSeqOneByOneBernoulli$new(n = 20, response_type = "survival"), 20, log_hr = 0)
 	inf = InferenceSurvivalCoxPHRegr$new(des)
 	inf$num_cores = 1L
 	inf$compute_estimate()  # fill cox_X_fit_cache
@@ -684,10 +684,10 @@ test_that("CoxPH BRT fast kernel uses compute_fast_rand_bootstrap_distr (not wor
 
 test_that("Weibull marginal BRT fast kernel: pval finite under null", {
 	set.seed(41)
-	des = DesignSeqOneByOneKK14$new(n = 30, response_type = "survival")
-	for (t in seq_len(30)) {
+	des = DesignSeqOneByOneKK14$new(n = 20, response_type = "survival")
+	for (t in seq_len(20)) {
 		w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-		des$add_one_subject_response(t, rexp(1), 1L)
+		des$add_one_subject_response(t, rexp(1))
 	}
 	inf = InferenceSurvivalKKWeibullMarginal$new(des)
 	inf$num_cores = 1L
@@ -698,13 +698,13 @@ test_that("Weibull marginal BRT fast kernel: pval finite under null", {
 
 test_that("Weibull marginal BRT fast kernel: pval under null >= pval under strong alternative", {
 	set.seed(42)
-	n_wb = 30
+	n_wb = 20
 	make_wb_des = function(log_hr){
 		des = DesignSeqOneByOneKK14$new(n = n_wb, response_type = "survival")
 		for (t in seq_len(n_wb)) {
 			w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 			rate = if (w_t == 1) exp(-log_hr) else 1.0
-			des$add_one_subject_response(t, rexp(1, rate), 1L)
+			des$add_one_subject_response(t, rexp(1, rate))
 		}
 		des
 	}

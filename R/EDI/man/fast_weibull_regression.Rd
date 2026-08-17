@@ -73,7 +73,7 @@ When \code{use_rcpp = TRUE}, an intercept column is prepended to
 
   When \code{use_rcpp = FALSE}, any existing intercept column is stripped and
   \code{survreg} is left to add its own; remaining covariate columns are first
-  passed through \code{\link{drop_linearly_dependent_cols}} to remove
+  passed through \code{drop_linearly_dependent_cols} to remove
   collinear columns before fitting (silently — no error or warning is raised
   for dropped columns). \code{estimate_only}, \code{optimization_alg},
   \code{warm_start_params}, and \code{warm_start_fisher_info} have \strong{no

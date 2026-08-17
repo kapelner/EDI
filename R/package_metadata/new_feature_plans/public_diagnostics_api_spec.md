@@ -475,6 +475,18 @@ After the optimizer diagnostics layer is implemented:
 - [ ] TODO-11: Expose `get_last_fit_diagnostics()` as planned by
    [optimizer_diagnostics_report.md](optimizer_diagnostics_report.md).
 - [ ] TODO-12: Have `compute_*_details()` pull from those caches without recomputing.
+- [ ] TODO-19 (added 2026-08-18, user decision): enrich
+   `EDIInferenceSuiteResults`' per-class `diagnostics` element (see
+   `inference_suite_inspect.md → Per-class diagnostics element`;
+   `InferenceSuite$run_all_inference()` ships in v1.0.0 with free fields
+   only — `converged`, `hit_iteration_cap`, `iterations`, `optimizer`).
+   Expand it **additively** from this spec's layers: condition numbers,
+   separation flags, per-stage timings, and the curated
+   `EDIInferenceDebugResult` fields, pulled from the TODO-10/11 caches
+   without recomputation. The element is a named list precisely so this
+   expansion never changes its shape or breaks JSON consumers
+   (`save_results_as_JSON` output included). v1.1.0 scope, sequenced with
+   this Phase 3.
 
 ### Phase 4: Audit/report integration
 

@@ -39,7 +39,7 @@
 #' @references Efron, B. (1971). "Forcing a sequential experiment to be balanced."
 #'   \emph{Biometrika}, 58(3), 403-417, \doi{10.1093/biomet/58.3.403}, for sequential
 #'   balanced-block randomization background. See also
-#'   \href{https://en.wikipedia.org/wiki/Block_randomisation}{block randomisation} for
+#'   \href{https://en.wikipedia.org/wiki/Randomized_controlled_trial#Restricted}{block randomisation} for
 #'   orientation on permuted-block designs and the selection-bias rationale for varying
 #'   block size.
 #' @examples

@@ -92,7 +92,7 @@ function's fitting logic.
 }
 
 \seealso{
-\code{\link{fast_probit_regression_weighted_cpp}} for the observation-weighted
+\code{fast_probit_regression_weighted_cpp} for the observation-weighted
   variant; \code{\link{fast_probit_regression_with_var_cpp}} for the variance-computing
   variant.
 }

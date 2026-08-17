@@ -40,8 +40,8 @@ robust_survreg = function(y, dead, cov_matrix_or_vector, dist = "weibull", num_m
 #' near-collinear design matrices:
 #' \enumerate{
 #'   \item \strong{Preprocessing}: near-collinear columns of the design matrix
-#'     are dropped first via \code{\link{drop_highly_correlated_cols}} then
-#'     \code{\link{drop_linearly_dependent_cols}}, before any fitting is attempted.
+#'     are dropped first via \code{drop_highly_correlated_cols} then
+#'     \code{drop_linearly_dependent_cols}, before any fitting is attempted.
 #'   \item \strong{Warm start (Weibull only)}: when \code{dist = "weibull"}, a
 #'     fast closed-form-gradient Weibull fit (\code{\link{fast_weibull_regression}})
 #'     is attempted first; if it succeeds and returns a finite log-likelihood, its

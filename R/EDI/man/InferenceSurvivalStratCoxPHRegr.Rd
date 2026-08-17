@@ -179,7 +179,7 @@ estimate.}
   Compute a randomization-based confidence interval for the
   stratified Cox treatment effect by inverting the class-specific
   randomization p-value. See
-  \code{\link[EDI:InferenceRandCI]{InferenceRandCI}}.
+  \code{InferenceRandCI}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalStratCoxPHRegr$compute_rand_confidence_interval(

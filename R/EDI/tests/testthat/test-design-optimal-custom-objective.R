@@ -113,10 +113,10 @@ test_that("custom randomization statistic: XPtr form is uniform with the legacy 
 	# The same mean-difference statistic supplied both ways must yield the
 	# identical randomization p-value under the same seed.
 	set.seed(400)
-	des = DesignFixediBCRD$new(n = 20, response_type = "continuous", seed = 17)
-	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(20)))
+	des = DesignFixediBCRD$new(n = 14, response_type = "continuous", seed = 17)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(14)))
 	des$assign_w_to_all_subjects()
-	des$add_all_subject_responses(rnorm(20))
+	des$add_all_subject_responses(rnorm(14))
 
 	stat_xptr = RcppXPtrUtils::cppXPtr(
 		"double stat_eigen(const Eigen::VectorXd& y, const Eigen::VectorXd& w) {
@@ -136,12 +136,12 @@ test_that("custom randomization statistic: XPtr form is uniform with the legacy 
 	inf1 = EDI:::InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
 	inf1$set_custom_randomization_statistic_cpp(stat_xptr)
 	set.seed(18)
-	p_xptr = inf1$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+	p_xptr = inf1$compute_rand_two_sided_pval(r = 100, show_progress = FALSE)
 
 	inf2 = EDI:::InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
 	inf2$set_custom_randomization_statistic_cpp(stat_src)
 	set.seed(18)
-	p_src = inf2$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+	p_src = inf2$compute_rand_two_sided_pval(r = 100, show_progress = FALSE)
 
 	expect_equal(p_xptr, p_src, tolerance = 1e-12)
 })

@@ -1,70 +1,3 @@
-#' Inference Suite: Discover and Bundle Every Applicable Inference Class for a Design
-#'
-#' A lightweight coordinator (not itself an \code{Inference} subclass, and not
-#' part of the \code{Inference} R6 hierarchy) that pairs a single completed
-#' \code{\link[EDI:Design]{Design}} object with the full set of concrete
-#' \code{Inference} classes compatible with it. On construction, the suite
-#' consults package-level inference metadata to discover every exported,
-#' non-abstract \code{Inference} subclass whose declared response-type,
-#' matched-design (KK), blocking, and censoring requirements are all satisfied
-#' by \code{des_obj}, storing the resulting sorted class-name vector in
-#' \code{applicable_design_classes}. Because discovery is driven by metadata
-#' lookups rather than by actually attempting to construct each candidate
-#' class, the applicable list automatically stays current as new inference
-#' classes are registered elsewhere in the package, without this class needing
-#' any changes, and without risking side effects (e.g. an optional-package
-#' load failure inside some class's constructor) from a doomed construction
-#' attempt.
-#'
-#' @details \strong{Compatibility rules} (see
-#'   \code{is_inference_class_compatible_with_design_metadata()}, also used by
-#'   \code{\link[EDI:Design]{Design}}'s own
-#'   \code{applicable_inference_class_names()}): a candidate class is
-#'   excluded if it is abstract or not exported; if it declares no compatible
-#'   response types, or none match \code{des_obj}'s response type; if its name
-#'   contains \code{"KK"} (a matched-design-only class) but \code{des_obj} does
-#'   not support KK matching; if the class's \code{requires_blocking_design()}
-#'   is \code{TRUE} (currently only \code{InferenceIncidExtendedRobins} --
-#'   \code{InferenceIncidCMH} works on both blocking and non-blocking designs
-#'   via different standard-error estimators, so it is \strong{not} excluded)
-#'   but \code{des_obj} does not support blocking; or if \code{des_obj} has any
-#'   left-/interval-censored subjects (a finite \code{y_R}) but the class's
-#'   \code{supports_interval_or_left_censored_data()} is \code{FALSE} --
-#'   both of the latter two mirror \code{Inference$initialize()}'s own
-#'   construction-time gate exactly, via each class's registered
-#'   \code{requires_blocking_design}/\code{supports_general_censoring}
-#'   metadata (see \code{infer_inference_requires_blocking_design()}/
-#'   \code{infer_inference_supports_general_censoring()} in
-#'   \code{inference_class_registry.R}). Ordinary right-censoring alone never
-#'   excludes a class. The KK-name-pattern rule is still hardcoded in this
-#'   class rather than looked up from a central registry.
-#'
-#'   A class that is design-compatible but whose registered
-#'   \code{required_packages} are not all installed is excluded from
-#'   \code{applicable_design_classes} and reported separately, by class name,
-#'   in \code{unavailable_due_to_missing_packages} -- so callers can tell "not
-#'   applicable to this design" apart from "applicable, but an optional
-#'   dependency isn't installed" (see the \code{Discovery} section of
-#'   \code{fix_inference_hierarchy.md}). Package availability is never a
-#'   reason a class is treated as design-incompatible.
-#'
-#'   This class does not itself compute any estimates, p-values, or confidence
-#'   intervals; it only discovers and validates which inference classes are
-#'   applicable and, once constructed, does not eagerly construct any of them.
-#'   \code{lock_objects = FALSE} allows ad hoc fields to be attached to an
-#'   instance after construction.
-#' @export
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 20, response_type = "continuous")
-#' for (i in 1:20) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(rnorm(20))
-#'
-#' suite = InferenceSuite$new(seq_des)
-#' suite$applicable_design_classes
-#' }
 
 #' Normalizes a completed `Design` object into the flat metadata shape
 #' inference-class discovery (`InferenceSuite`, and any future `Design`-side
@@ -201,6 +134,73 @@ unavailable_inference_classes_due_to_missing_packages_for_design = function(des_
 	discover_applicable_inference_classes(des_obj)$unavailable_due_to_missing_packages
 }
 
+#' Inference Suite: Discover and Bundle Every Applicable Inference Class for a Design
+#'
+#' A lightweight coordinator (not itself an \code{Inference} subclass, and not
+#' part of the \code{Inference} R6 hierarchy) that pairs a single completed
+#' \code{\link[EDI:Design]{Design}} object with the full set of concrete
+#' \code{Inference} classes compatible with it. On construction, the suite
+#' consults package-level inference metadata to discover every exported,
+#' non-abstract \code{Inference} subclass whose declared response-type,
+#' matched-design (KK), blocking, and censoring requirements are all satisfied
+#' by \code{des_obj}, storing the resulting sorted class-name vector in
+#' \code{applicable_design_classes}. Because discovery is driven by metadata
+#' lookups rather than by actually attempting to construct each candidate
+#' class, the applicable list automatically stays current as new inference
+#' classes are registered elsewhere in the package, without this class needing
+#' any changes, and without risking side effects (e.g. an optional-package
+#' load failure inside some class's constructor) from a doomed construction
+#' attempt.
+#'
+#' @details \strong{Compatibility rules} (see
+#'   \code{is_inference_class_compatible_with_design_metadata()}, also used by
+#'   \code{\link[EDI:Design]{Design}}'s own
+#'   \code{applicable_inference_class_names()}): a candidate class is
+#'   excluded if it is abstract or not exported; if it declares no compatible
+#'   response types, or none match \code{des_obj}'s response type; if its name
+#'   contains \code{"KK"} (a matched-design-only class) but \code{des_obj} does
+#'   not support KK matching; if the class's \code{requires_blocking_design()}
+#'   is \code{TRUE} (currently only \code{InferenceIncidExtendedRobins} --
+#'   \code{InferenceIncidCMH} works on both blocking and non-blocking designs
+#'   via different standard-error estimators, so it is \strong{not} excluded)
+#'   but \code{des_obj} does not support blocking; or if \code{des_obj} has any
+#'   left-/interval-censored subjects (a finite \code{y_R}) but the class's
+#'   \code{supports_interval_or_left_censored_data()} is \code{FALSE} --
+#'   both of the latter two mirror \code{Inference$initialize()}'s own
+#'   construction-time gate exactly, via each class's registered
+#'   \code{requires_blocking_design}/\code{supports_general_censoring}
+#'   metadata (see \code{infer_inference_requires_blocking_design()}/
+#'   \code{infer_inference_supports_general_censoring()} in
+#'   \code{inference_class_registry.R}). Ordinary right-censoring alone never
+#'   excludes a class. The KK-name-pattern rule is still hardcoded in this
+#'   class rather than looked up from a central registry.
+#'
+#'   A class that is design-compatible but whose registered
+#'   \code{required_packages} are not all installed is excluded from
+#'   \code{applicable_design_classes} and reported separately, by class name,
+#'   in \code{unavailable_due_to_missing_packages} -- so callers can tell "not
+#'   applicable to this design" apart from "applicable, but an optional
+#'   dependency isn't installed" (see the \code{Discovery} section of
+#'   \code{fix_inference_hierarchy.md}). Package availability is never a
+#'   reason a class is treated as design-incompatible.
+#'
+#'   This class does not itself compute any estimates, p-values, or confidence
+#'   intervals; it only discovers and validates which inference classes are
+#'   applicable and, once constructed, does not eagerly construct any of them.
+#'   \code{lock_objects = FALSE} allows ad hoc fields to be attached to an
+#'   instance after construction.
+#' @export
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 20, response_type = "continuous")
+#' for (i in 1:20) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(rnorm(20))
+#'
+#' suite = InferenceSuite$new(seq_des)
+#' suite$applicable_design_classes
+#' }
 InferenceSuite = R6::R6Class("InferenceSuite",
 	lock_objects = FALSE,
 	public = list(

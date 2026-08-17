@@ -179,6 +179,7 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 		}
 	),
 	private = list(
+		equal_block_sizes = FALSE,
 		draw_ws_raw = function(r = 100){
 			w_mat = matrix(NA_real_, nrow = private$t, ncol = r)
 			for (j in 1 : r){

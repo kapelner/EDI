@@ -116,6 +116,22 @@ the frozen substrate makes it additive.
     way. **Done (2026-08-17): implemented, not just recorded-as-stable.**
     See Implementation TODO-2 below for the full writeup.
 
+13. **`inference_suite_inspect.md`** (added 2026-08-17, user decision) —
+    `InferenceSuite$run_all_inference()`: constructs and fits every applicable
+    inference class and reports one uniform comparison schema (identical
+    across response types and iid vs. KK/matched-pair designs), with
+    incremental screen output + %-done/ETA progress bar
+    (SimulationFramework pattern), a timestamped auto-opened HTML report,
+    and two ggplot2 visualizations (estimate number line with angled
+    class labels and a boxplot of estimates underneath; annotated
+    `(1-alpha)`-level CI forest with per-row p-values, CI widths, and
+    class/method labels, significance-styled at `alpha`) with an
+    optional timestamped PDF. Release-relevant because it adds public API
+    surface (`run_all_inference()`, its schema and `EDIInferenceSuiteResults`
+    return object, its `screen`/`html`/`plots`/`pdf`/`alpha`/
+    `save_results_as_JSON` parameters) that must freeze at 1.0.0. Sequenced after Phase
+    1D per `_master.md` § 1G.
+
 ## Deferred to 1.x (additive by construction)
 
 Everything below attaches to the frozen substrate without breaking it —

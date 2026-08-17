@@ -31,7 +31,7 @@
 #' @references Zelen, M. (1974). "The randomization and stratification of patients to
 #'   clinical trials." \emph{Journal of Chronic Diseases}, 27(7-8), 365-375,
 #'   \doi{10.1016/0021-9681(74)90015-0}, for stratified permuted-block randomization.
-#'   See also \href{https://en.wikipedia.org/wiki/Block_randomisation}{block
+#'   See also \href{https://en.wikipedia.org/wiki/Randomized_controlled_trial#Restricted}{block
 #'   randomisation} for orientation, and
 #'   \code{\link[EDI:DesignSeqOneByOneRandomBlockSize]{DesignSeqOneByOneRandomBlockSize}}
 #'   for the randomly-varying-block-size variant.

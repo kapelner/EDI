@@ -225,7 +225,7 @@ treatment effect at all this is set to zero (the default).}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalRestrictedMeanDiff-compute_rand_confidence_interval}{}}}
 \subsection{\code{InferenceSurvivalRestrictedMeanDiff$compute_rand_confidence_interval()}}{
   Uses the shared randomization confidence-interval contract; see
-  \code{\link[EDI:InferenceRandCI]{InferenceRandCI}}.
+  \code{InferenceRandCI}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalRestrictedMeanDiff$compute_rand_confidence_interval(

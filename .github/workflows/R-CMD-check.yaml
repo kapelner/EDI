@@ -216,7 +216,14 @@ jobs:
         with:
           working-directory: R/EDI
           args: 'c("--no-manual", "--as-cran")'
-          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
+          # --no-build-vignettes: knitr (VignetteBuilder) is a Suggests, and this
+          # job deliberately skips Suggests (dependencies: 'NA' above) -- without
+          # this flag, `R CMD build` still attempts to build the vignettes, fails
+          # silently for lack of knitr, and check then emits "Package has a
+          # VignetteBuilder field but no prebuilt vignette index" (see the other
+          # Suggests-skipping jobs -- ASAN/UBSAN, valgrind -- which already build
+          # with `--no-build-vignettes` for the same reason).
+          build_args: 'c("--no-manual","--no-build-vignettes","--compact-vignettes=gs+qpdf")'
           error-on: '"note"'
 
   # ASAN/UBSAN sanitizer build. Catches C++ undefined behavior (out-of-bounds

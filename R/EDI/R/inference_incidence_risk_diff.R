@@ -21,7 +21,7 @@ InferenceIncidRiskDiff = define_inference_class(
 	components = c("BayesianBootstrap", "Wald"),
 	public = list(
 		#' @description Uses the randomization-CI layer's two-sided p-value contract
-		#'   (\code{\link[EDI:InferenceRandCI]{InferenceRandCI}}'s version, not
+		#'   (\code{InferenceRandCI}'s version, not
 		#'   \code{InferenceRand}'s): for incidence responses it dispatches to the
 		#'   Zhang exact randomization test rather than refusing outright, matching
 		#'   this class's pre-migration old-ladder behavior. This deliberately

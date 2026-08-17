@@ -40,7 +40,7 @@ first resulting column is named \code{"(Intercept)"} (i.e. the formula was not g
 \code{- 1} / \code{+ 0}), that column is dropped — this function always returns a
 covariate-only matrix with no intercept column, since EDI's design and inference classes
 add their own intercept/treatment columns at a fixed position. (4) The result is passed
-through \code{\link{drop_linearly_dependent_cols}}, which detects the numeric rank of
+through \code{drop_linearly_dependent_cols}, which detects the numeric rank of
 the matrix (via \code{matrix_rank_cpp()} at tolerance \code{1e-7}) and, if the matrix is
 rank-deficient, greedily retains a full-rank subset of columns using the pivot order
 from \code{\link[base]{qr}(M, tol = 1e-7)} (dropping the same tolerance's worth of

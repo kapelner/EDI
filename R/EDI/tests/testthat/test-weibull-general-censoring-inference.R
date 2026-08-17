@@ -129,7 +129,12 @@ test_that("InferenceSurvivalWeibullRegr's estimate/CI/pval match the general ker
 	pv = inf$compute_asymp_two_sided_pval()
 
 	X_full = priv$build_design_matrix()
-	fit_direct = fast_weibull_regression_general_cpp(X_full, priv$y, priv$y_L, priv$y_R)
+	# priv$y here is get_effective_time() (exact value, or y_L for a censored
+	# subject -- see inference_all_abstract.R), not the raw NA-for-censored y
+	# the general kernel expects; use des_obj$get_y() directly so a censored
+	# row is passed through as NA (censored) rather than as a fabricated exact
+	# observation at its y_L bound.
+	fit_direct = fast_weibull_regression_general_cpp(X_full, priv$des_obj$get_y(), priv$y_L, priv$y_R)
 	expect_true(isTRUE(fit_direct$converged))
 	expect_equal(est, as.numeric(fit_direct$params[2L]), tolerance = 1e-8)
 	expect_true(all(is.finite(ci)))

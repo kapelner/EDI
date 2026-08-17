@@ -270,7 +270,7 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 		#' @description Compute a randomization-based confidence interval for the
 		#'   stratified Cox treatment effect by inverting the class-specific
 		#'   randomization p-value. See
-		#'   \code{\link[EDI:InferenceRandCI]{InferenceRandCI}}.
+		#'   \code{InferenceRandCI}.
 		#' @param alpha The significance level (default 0.05).
 		#' @param r Number of vectors to draw.
 		#' @param pval_epsilon The bisection convergence tolerance.

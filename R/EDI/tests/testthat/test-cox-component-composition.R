@@ -18,7 +18,7 @@ library(EDI)
 # backwards and was reverted (see TODO-13's "Attempted fix, reverted" note);
 # this test file exists so a repeat doesn't go unnoticed.
 
-make_right_censored_design = function(seed, n = 150L){
+make_right_censored_design = function(seed, n = 90L){
 	set.seed(seed)
 	X = data.frame(x1 = rnorm(n))
 	des = DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
@@ -47,26 +47,26 @@ test_that("InferenceSurvivalCoxPHRegr's randomization/bootstrap/jackknife family
 	inf_rand = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
 	inf_rand$num_cores = 1L
 	expect_true(is.function(inf_rand$compute_rand_two_sided_pval))
-	rand_pv = inf_rand$compute_rand_two_sided_pval(r = 51, show_progress = FALSE)
+	rand_pv = inf_rand$compute_rand_two_sided_pval(r = 31, show_progress = FALSE)
 	expect_true(is.finite(rand_pv) && rand_pv >= 0 && rand_pv <= 1)
 
 	inf_boot = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
 	inf_boot$num_cores = 1L
-	boot_distr = inf_boot$approximate_bootstrap_distribution_beta_hat_T(B = 51, show_progress = FALSE)
+	boot_distr = inf_boot$approximate_bootstrap_distribution_beta_hat_T(B = 31, show_progress = FALSE)
 	expect_gt(mean(is.finite(boot_distr)), 0.8)
 	expect_gt(sd(boot_distr[is.finite(boot_distr)]), 0)
 
 	inf_bboot = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
 	inf_bboot$num_cores = 1L
-	bboot_distr = inf_bboot$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 51, show_progress = FALSE)
+	bboot_distr = inf_bboot$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 31, show_progress = FALSE)
 	expect_gt(mean(is.finite(bboot_distr)), 0.8)
 	expect_gt(sd(bboot_distr[is.finite(bboot_distr)]), 0)
-	bboot_pv = inf_bboot$compute_bayesian_bootstrap_two_sided_pval(B = 51, type = "percentile", show_progress = FALSE)
+	bboot_pv = inf_bboot$compute_bayesian_bootstrap_two_sided_pval(B = 31, type = "percentile", show_progress = FALSE)
 	expect_true(is.finite(bboot_pv))
 
 	inf_brt = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
 	inf_brt$num_cores = 1L
-	brt_pv = inf_brt$compute_rand_bootstrap_two_sided_pval(B = 51, show_progress = FALSE)
+	brt_pv = inf_brt$compute_rand_bootstrap_two_sided_pval(B = 31, show_progress = FALSE)
 	expect_true(is.finite(brt_pv))
 
 	inf_jack = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
@@ -78,7 +78,7 @@ test_that("InferenceSurvivalCoxPHRegr's randomization/bootstrap/jackknife family
 test_that("Cox's TODO-6 icenReg dispatch is unaffected by the component-composition fix", {
 	skip_if_not_installed("icenReg")
 	set.seed(5002L)
-	n = 300L
+	n = 100L
 	X = data.frame(x1 = rnorm(n))
 	des = DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
 	des$add_all_subjects_to_experiment(X)

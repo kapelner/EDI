@@ -85,6 +85,34 @@ fi
 
 failed=0
 
+# Any *.md changed anywhere in the repo -- not narrowed to which links moved,
+# since a link can break from the OTHER end (renaming/moving the file it
+# points at breaks every doc that links to the old path, none of which show
+# up in a diff of the doc file itself -- exactly what happened this session
+# when design_fixed_optimal.md and release_v1_0_0.md both moved).
+run_doc_link_check=0
+if grep -qE '\.md$' "$changed_files_file"; then
+	run_doc_link_check=1
+fi
+
+if [ "$run_doc_link_check" = "1" ]; then
+	echo "pre-push: markdown files changed -- checking documentation links ..."
+	# Internal (relative-path) links block on new breakage only -- pre-existing
+	# debt is tracked in scripts/check_doc_links_baseline.csv (regenerate via
+	# --write-baseline) so this doesn't retroactively block every push on the
+	# existing backlog. External links are reported but never block (a
+	# third-party site being transiently down/rate-limited shouldn't stop a
+	# push) -- see the script's own comments for the full rationale.
+	if ! python3 scripts/check_doc_links.py; then
+		echo "pre-push: documentation link check FAILED (see output above)." >&2
+		failed=1
+	fi
+else
+	echo "pre-push: no markdown files changed, skipping documentation link check."
+fi
+
+echo
+
 # Keep README.md's lines-of-code table current: regenerate it in place, then
 # treat a resulting diff as drift (same pattern as the package_tests CSV
 # drift check below) -- the push proceeds only once the refreshed table is

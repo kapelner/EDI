@@ -37,6 +37,9 @@ spliced into one step and marked **[spliced]**.
 > `release_v1_0_0.md → TODO-5`'s earlier "small first wave" guess. As with
 > the 1.0.0 file, it only draws the release line; this file remains the
 > execution order, and its TODOs are ticked in their owning plans.
+> Amended 2026-08-17: `design_seq_many_by_many.md` (the new sequential
+> many-by-many design family — Phase 5F below) is written directly into the
+> v1.1.0 scope (user decision; `release_v1_1_0.md → TODO-15`).
 >
 > **Update (2026-08-16):** two of the release-scoped plans have since
 > closed and moved to `../finished_features/`: the interval-censored
@@ -249,6 +252,27 @@ conversions, TODO-15's ownership decision, and TODO-14's final grep
 sweep); moved to
 `../finished_features/sexp_removal_rcppeigen_conversion_spec.md`.
 
+### 1G. InferenceSuite run_all_inference() (after 1D)
+
+Added 2026-08-17 (user decision), release-scoped into v1.0.0 (it adds
+public API surface — `InferenceSuite$run_all_inference()` — that must freeze at
+1.0.0; see `release_v1_0_0.md` amendment 13).
+
+1. `inference_suite_inspect.md → TODO-1..9` — fit-and-compare every
+   applicable inference class with one uniform output schema (identical
+   across response types and iid vs. KK designs), incremental screen
+   output with a %-done/ETA progress bar (SimulationFramework pattern),
+   timestamped auto-opened HTML report, and two ggplot2 visualizations
+   (estimate number line with angled class labels + boxplot of estimates
+   underneath; annotated `(1-alpha)`-level CI forest with per-row
+   p-values, CI widths, and class/method labels, significance-styled at
+   the user's `alpha`) with optional timestamped PDF. Its test
+   grid spans every response type × {iid, KK} × {BCRD, blocking, KK,
+   greedy, D-optimal} design classes. Sequence after Phase 1D —
+   `run_all_inference()` constructs and fits every applicable class, so the
+   families should be migrated before its golden fixtures are cut
+   (discovery itself is already metadata-driven and stable).
+
 ---
 
 ## Phase 2 — Diagnostics chain (strictly ordered)
@@ -392,6 +416,23 @@ Each track starts only on a "yes" from Phase 0, and assumes Phase 1 is done
 1. `gpu_optimizations.md → TODO-7` (backend/build design) then `→ TODO-2..5`
    (the three prototypes plus the GLMM reassessment, in the report's order),
    each gated by `→ TODO-6`'s benchmark matrix before merge.
+
+### 5F. Sequential many-by-many design family (added 2026-08-17; v1.1.0)
+
+Not Phase-0 gated (its only decisions are internal to its own TODO-1, which
+can join any decision sitting); needs only the shipped 1.0.0 shallow design
+hierarchy, so it may run in parallel with any other Phase 5 track.
+
+1. `design_seq_many_by_many.md → TODO-1` (decision batch: Atkinson rule
+   (a)/(b), bootstrap shape, rerandomization threshold schedule, Blocking
+   carry-over queues), then
+   `→ TODO-2` (the behavior-preserving shared-ingestion extraction from the
+   frozen `DesignSeqOneByOne$add_one_subject()`, golden-tested first), then
+   `→ TODO-3..6` (abstract + the five classes: Bernoulli, CRD, Blocking
+   (TODO-4b, added 2026-08-18), Rerandomization per Zhou et al. 2018,
+   Atkinson-type), then `→ TODO-7..9`
+   (inference battery, discovery/`run_all_inference()` verification, docs/API
+   bookkeeping), with `→ TODO-10` recording the named follow-ups only.
 
 ---
 

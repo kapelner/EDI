@@ -59,7 +59,7 @@
 #'   multivariate matching before randomization." \emph{Biostatistics}, 5(2), 263-275,
 #'   \doi{10.1093/biostatistics/5.2.263}, for optimal non-bipartite matched-pair designs
 #'   prior to randomization. See also
-#'   \href{https://en.wikipedia.org/wiki/Matched_pair}{matched pair} and
+#'   \href{https://en.wikipedia.org/wiki/Matching_(statistics)}{matched pair} and
 #'   \href{https://en.wikipedia.org/wiki/Mahalanobis_distance}{Mahalanobis distance} for
 #'   orientation.
 #' @examples

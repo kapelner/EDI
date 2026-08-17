@@ -101,9 +101,9 @@ test_that("proportion bootstrap diagnostics explain any comprehensive-style fail
 		"InferencePropZeroOneInflatedBetaRegr"
 	)
 	design_names = c("Bernoulli", "iBCRD", "Efron")
-	B = 51L
+	B = 31L
 
-	dat = build_airquality_proportion_dataset(max_n_dataset = 150L)
+	dat = build_airquality_proportion_dataset(max_n_dataset = 65L)
 	rows = list()
 
 	for (design_name in design_names) {

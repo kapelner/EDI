@@ -167,7 +167,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 			}
 		},
 		#' @description Uses the shared randomization confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceRandCI]{InferenceRandCI}}.
+		#'   \code{InferenceRandCI}.
 		#'
 		#' @param alpha The confidence level in the computed confidence
 		#'   interval is 1 - \code{alpha}. The default is 0.05.

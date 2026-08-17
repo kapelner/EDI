@@ -68,6 +68,9 @@ decision-gated), `response_types_landscape_report.md` (refresh).
 
 Designs and orchestration: `multi_arm_designs.md` (TODO-1..5; TODO-6 already
 shipped in 1.0.0), `design_fixed_greedy_pair_switch_merge.md`,
+`design_seq_many_by_many.md` (added 2026-08-17, user decision — the new
+sequential many-by-many design family: `DesignSeqManyByMany` abstract plus
+Bernoulli/CRD/Blocking/Rerandomization/Atkinson concrete classes),
 `sequential_inference.md` (research scoping — may produce a decision to
 defer implementation to 1.2; the scoping itself is in scope).
 
@@ -202,7 +205,16 @@ ticked in their **owning plans**; this list is the release index.
 - [ ] TODO-14: **Landscape refresh**: `response_types_landscape_report.md →
   remaining open TODOs` — refresh after the TODO-6/7 tracks ship, so the
   landscape describes the release, not the plan.
-- [ ] TODO-15: **Release mechanics** (owned by this file): CHANGELOG 1.1.0
+- [ ] TODO-15: **Sequential many-by-many design family**:
+  `design_seq_many_by_many.md → TODO-1..10` — its TODO-1 decision batch
+  (Atkinson rule, bootstrap shape, threshold schedule) can join this file's
+  TODO-1 sitting; the implementation is additive and independent of every
+  other track (it needs only the 1.0.0 shallow design hierarchy), so it may
+  run in parallel with TODO-5..8 any time after v1.0.0 ships. Note its
+  TODO-2 extracts shared ingestion logic from the frozen
+  `DesignSeqOneByOne$add_one_subject()` path — behavior-preserving under
+  golden test, per the additive constraint below.
+- [ ] TODO-16: **Release mechanics** (owned by this file): CHANGELOG 1.1.0
   entry written when the batch closes (dated at submission, house
   convention); version bump; re-run the `release_v1_0_0.md` Release Gate
   checklist's CRAN-facing items on the 1.1.0 candidate (win-builder/
