@@ -381,6 +381,7 @@ test_that("run_all_inference: classes/exclude_classes filter and validate", {
 })
 
 test_that("run_all_inference: max_secs_per_class actually interrupts a slow R-level fit", {
+	skip_on_cran()
 	on.exit(EDI:::populate_inference_class_registry(), add = TRUE)
 	set.seed(20260818)
 	n = 12L
@@ -430,6 +431,7 @@ test_that("run_all_inference: max_secs_per_class actually interrupts a slow R-le
 })
 
 test_that("run_all_inference: num_cores > 1 fits in parallel and produces identical rows to sequential", {
+	skip_on_cran()
 	skip_on_os("windows")
 	set.seed(20260818)
 	n = 20L

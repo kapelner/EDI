@@ -116,16 +116,33 @@ TallyReporter <- R6::R6Class("TallyReporter",
 		},
 
 		draw = function(force = FALSE) {
+			# ANSI cursor-up + clear-line redraw-in-place only works when
+			# something is actually interpreting the escape codes. When stdout
+			# isn't a real tty (piped through a tool harness, redirected to a
+			# log file, etc.) those bytes are printed literally and every
+			# throttled draw() call becomes 4 new scrolling lines instead of
+			# overwriting -- exactly the flood this reporter was meant to
+			# avoid. Fall back to an infrequent, single-line, non-ANSI
+			# heartbeat in that case.
+			interactive_tty <- isatty(stdout())
+			min_interval <- if (interactive_tty) 0.1 else 5
 			now <- as.numeric(Sys.time())
-			# Throttle redraws to ~10/sec so the terminal isn't hammered on a
-			# fast-passing suite; always draw on the final (force) call.
-			if (!force && (now - self$last_draw_time) < 0.1) {
+			if (!force && (now - self$last_draw_time) < min_interval) {
 				return(invisible())
 			}
 			self$last_draw_time <- now
 
 			elapsed <- round(as.numeric(difftime(Sys.time(), self$start_time, units = "secs")))
 			status <- if (force) "done" else "running"
+
+			if (!interactive_tty) {
+				cat(sprintf(
+					"EDI R test suite -- %s (%ds elapsed) pass: %d fail: %d warn: %d skip: %d file: %s\n",
+					status, elapsed, self$n_ok, self$n_fail, self$n_warn, self$n_skip, self$current_file
+				))
+				return(invisible())
+			}
+
 			lines <- c(
 				sprintf("EDI R test suite -- %s (%ds elapsed)", status, elapsed),
 				sprintf("  pass: %-6d fail: %-6d warn: %-6d skip: %-6d", self$n_ok, self$n_fail, self$n_warn, self$n_skip),
@@ -134,11 +151,7 @@ TallyReporter <- R6::R6Class("TallyReporter",
 			)
 
 			# Redraw the same fixed 4-line block in place via ANSI cursor-up +
-			# clear-line -- unconditional (not gated on isatty(stdout())), since
-			# this reporter is only ever invoked by .githooks/pre-push, which is
-			# always terminal-adjacent even when stdout isn't a tty in the strict
-			# sense (e.g. run through a tool harness); the escape codes still
-			# reach whatever terminal ultimately renders the output.
+			# clear-line.
 			if (self$lines_drawn > 0) {
 				cat(sprintf("\033[%dA", self$lines_drawn))
 			}

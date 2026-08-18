@@ -200,6 +200,19 @@ same lines gets added.
 Added 2026-08-14, derived from this report's own recommendation sections
 (restated for the completed shallow-hierarchy/component architecture).
 
+**Recommended execution order (added 2026-08-18, verified against
+`fix_inference_hierarchy.md`'s current migration status):** none of this
+plan's own TODOs are gated on Phase 1D's still-open items — TODO-2 lands
+entirely on the `ParametricLikelihoodBootstrap` *component*, which is
+already extracted and stable (Phase 1D's "Component Extraction" is done),
+not on any specific concrete class's migration status. Order: TODO-1
+(joint decision with `marginal_estimand_report.md → TODO-1`) → TODO-3 →
+TODO-4 → TODO-5 (all three are scope/mechanism decisions, cheap and
+unblocking) → TODO-2 (the actual implementation). See
+`marginal_estimand_report.md`'s own Implementation TODOs section for the
+full joint ordering across both plans, including which of *its* TODOs
+(4/5/9) genuinely are gated on Phase 1D.
+
 - [ ] TODO-1: **Make a decision about whether to implement this at all — ask the user.** Do not start the items below until that decision is recorded here.
 - [ ] TODO-2: If pursued: implement `estimate_type` mirroring `testing_type` (get/set, `get_supported_estimate_types()`, `estimate_type_key()` cache key) scoped to pure post-fit transforms (`"raw"`, `"param_bootstrap"`, later `"cox_snell"`/`"jackknife_bc"`), now on the `ParametricLikelihoodBootstrap` component with capability-driven method presence.
 - [ ] TODO-3: Resolve open question 1: whether `compute_estimate()` itself dispatches on `estimate_type` or a new typed method does (the report leans against mutating `compute_estimate()`'s meaning).

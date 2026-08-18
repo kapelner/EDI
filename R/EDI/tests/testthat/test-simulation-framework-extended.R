@@ -2,6 +2,7 @@ library(testthat)
 library(EDI)
 
 test_that("SimulationFramework supports parallel execution", {
+	skip_on_cran()
 	skip_if(
 		identical(Sys.getenv("R_COVR"), "true"),
 		"avoid spawning a real fork cluster/mirai daemons under covr's gcov-instrumented build"
@@ -28,6 +29,7 @@ test_that("SimulationFramework supports parallel execution", {
 })
 
 test_that("SimulationFramework supports mirai-backed replication parallelism", {
+	skip_on_cran()
 	skip_if_not_installed("mirai")
 	skip_if(
 		identical(Sys.getenv("R_COVR"), "true"),

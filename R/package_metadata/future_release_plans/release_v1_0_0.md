@@ -134,27 +134,40 @@ the frozen substrate makes it additive.
     only its test-fixture lock waits for Phase 1D to close (amended
     2026-08-18, user decision) — see `_master.md` § 1G.
 
-14. **`expanded_estimate_report.md` + `marginal_estimand_report.md`**
-    (added 2026-08-18, user decision — pulled forward from the "Deferred
-    to 1.x" list below). The package-wide estimand concept: the
-    `estimate_type` axis (post-fit correction variant — raw / param-
-    bootstrap / later Cox-Snell / jackknife-bias-corrected) and the
-    orthogonal `set_estimand()` axis (conditional vs. marginal target
-    quantity), decided jointly per each plan's own `Depends on` header so
-    neither enum absorbs the other's values. Release-relevant now because
+14. **`marginal_estimand_report.md`** (added 2026-08-18, user decision —
+    pulled forward from the "Deferred to 1.x" list below; narrowed
+    2026-08-18 to just this plan — see amendment below). The
+    `set_estimand()` axis: conditional (current behavior) vs. marginal
+    (unconditional-mean) target quantity for the mixture-model families
+    (ZOIB, zero-augmented/hurdle Poisson). Release-relevant because
     `inference_suite_inspect.md`'s Combined Evidence Metric feature
     (TODO-14..21 there) keys its default weighting policy off each
     class's `estimand` tag — shipping that default at 1.0.0 without a
     real, package-wide `estimand` concept behind it would freeze a
     public-facing weighting default onto metadata that barely exists yet
     (today only the incidence g-computation classes implement
-    `get_estimand_type()`). Both plans' own TODO-1 is still an open
-    "whether to pursue this at all" decision — that decision itself, and
-    the implementation if "yes", are now in the v1.0.0 line rather than
-    deferred. Sequenced in `_master.md`'s Phase 0 (the joint decision)
-    and Phase 5A step 1 (implementation); `marginal_estimand_report.md →
-    TODO-2`'s roxygen sharpening was already folded into the doc batch
-    (item 7) regardless of this move.
+    `get_estimand_type()`). TODO-1 is still an open "whether to pursue
+    this at all" decision — that decision itself, and the implementation
+    if "yes", are in the v1.0.0 line. **Done (2026-08-18):**
+    `marginal_estimand_report.md → TODO-2`'s roxygen sharpening (folded
+    into the doc batch, item 7, regardless of this move) — see that
+    plan's own TODO-2 for the full writeup, including a scope correction
+    found while doing it (the caveat needed to reach four concrete
+    exported classes, not just the internal abstract base named in the
+    original TODO text). Sequenced in `_master.md`'s Phase 0 and Phase 5A
+    step 1.
+    **Amendment (2026-08-18, user decision):** `expanded_estimate_report.md`
+    — the orthogonal `estimate_type` axis, originally pulled into this
+    item alongside `marginal_estimand_report.md` for a joint decision —
+    is moved back to v1.1.0 (see the "Deferred to 1.x" list below).
+    Nothing currently in v1.0.0 scope needs it: the Combined Evidence
+    Metric that motivated this whole item only reads `estimand`, never
+    `estimate_type`, and `estimate_type`'s own stated urgency (unblocking
+    the Cox-Snell/Cordeiro-McCullagh/median-bias correction plans' API
+    shape) is itself v1.1.0-scoped. The two plans' TODO-1 decisions no
+    longer have to land in the same sitting — whichever is decided second
+    should just check the first plan's chosen values so the two enums
+    don't collide, per each plan's own `Depends on` header.
 
 ## Deferred to 1.x (additive by construction)
 
@@ -162,11 +175,12 @@ Everything below attaches to the frozen substrate without breaking it —
 that is the point of freezing first:
 
 - **Phase 0 decision batch + Phase 5A corrections track** (minus
-  `expanded_estimate_report.md`/`marginal_estimand_report.md`, pulled
-  forward into item 14 above, added 2026-08-18): Cox-Snell /
-  Cordeiro-McCullagh / median-bias corrections, Firth, L1/L2, Bartlett
-  extensions, modified profile likelihood, bootstrap-calibrated LR. All are
-  new switches/methods whose defaults preserve 1.0.0 behavior.
+  `marginal_estimand_report.md`, pulled forward into item 14 above, added
+  2026-08-18): `expanded_estimate_report.md` (`estimate_type` — moved back
+  here 2026-08-18, see item 14's amendment), Cox-Snell / Cordeiro-McCullagh /
+  median-bias corrections, Firth, L1/L2, Bartlett extensions, modified
+  profile likelihood, bootstrap-calibrated LR. All are new switches/methods
+  whose defaults preserve 1.0.0 behavior.
 - **Phase 2 diagnostics chain** (except the `converged` decision, item 11):
   new diagnostics fields and the public diagnostics API are additive.
 - **Phase 4 kernel/perf lane** (except `multi_arm_designs.md → TODO-6`,

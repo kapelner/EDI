@@ -165,6 +165,7 @@ test_that("InferenceIncidKKGCompRiskDiff migration produces identical outputs", 
 })
 
 test_that("InferenceIncidKKGCompRiskRatio migration produces identical outputs", {
+	skip_on_cran()
 	Legacy = make_incid_kk_gcomp_rr_legacy_generator()
 	des = incid_kk_gcomp_golden_design()
 	run_incid_kk_gcomp_golden(Legacy$new(des, verbose = FALSE), InferenceIncidKKGCompRiskRatio$new(des, verbose = FALSE), "RR")

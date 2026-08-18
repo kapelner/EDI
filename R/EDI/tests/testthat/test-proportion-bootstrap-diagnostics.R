@@ -92,6 +92,7 @@ collect_bootstrap_diagnostics <- function(inf_obj, B = 51L){
 }
 
 test_that("proportion bootstrap diagnostics explain any comprehensive-style failures", {
+	skip_on_cran()
 	set.seed(1)
 
 	class_names = c(

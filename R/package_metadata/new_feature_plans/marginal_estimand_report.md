@@ -258,37 +258,100 @@ hoc.
 
 ## Implementation TODOs
 
+**Recommended execution order across both estimand plans (added
+2026-08-18, verified against `fix_inference_hierarchy.md`'s current
+migration status):**
+
+1. `marginal_estimand_report.md → TODO-2` (roxygen) — ungated, run any
+   time, in parallel with everything below.
+2. `expanded_estimate_report.md → TODO-1` + `marginal_estimand_report.md
+   → TODO-1` (the joint yes/no decision).
+3. `expanded_estimate_report.md → TODO-3, TODO-4, TODO-5` +
+   `marginal_estimand_report.md → TODO-8` (cheap scope/mechanism
+   decisions, all ungated).
+4. `expanded_estimate_report.md → TODO-2` (implement `estimate_type` on
+   the already-extracted `ParametricLikelihoodBootstrap` component).
+5. `marginal_estimand_report.md → TODO-3` (implement the `set_estimand()`
+   switch as an `InferenceComponent` — architecture only, no concrete
+   class).
+6. `marginal_estimand_report.md → TODO-6, TODO-7` (testing-type
+   awareness, randomization/bootstrap dispatch — both touch shared
+   component/root machinery, not a specific unmigrated class).
+7. **Wait for `fix_inference_hierarchy.md`'s "Full-Likelihood Estimators"
+   remainder to close (`_master.md` § 1D, 2 open items), then:**
+   `marginal_estimand_report.md → TODO-4` (ZOIB), `→ TODO-5` (ZIP/hurdle),
+   `→ TODO-9` (logistic/Poisson/beta-regression) — verified 2026-08-18 by
+   grepping every target class's `inherit =` line: all still point at
+   legacy deep-hierarchy bases (`InferenceAsympLikStdModCache`/
+   `InferenceCountLikelihood`/`InferenceCountZeroAugmentedPoissonAbstract`),
+   none migrated yet. Building marginal-mean wiring into these now means
+   redoing it once Phase 1D restructures them.
+
 - [ ] TODO-1: **Decision — ask the user; decide jointly with
   `expanded_estimate_report.md → TODO-1`** so the two enums are scoped
   against each other (`estimate_type` = estimator corrections,
   `estimand` = target quantity). Record both decisions in both plans before
   starting anything below.
-- [ ] TODO-2: Independent of TODO-1's outcome: sharpen the roxygen headers of
+- [x] TODO-2: Sharpened the roxygen headers of
   `inference_proportion_zero_one_inflated_beta.R` and
   `inference_count_zero_augmented_poisson_abstract.R` to state the
-  component-conditioning bluntly (not the effect on `E[Y]`). Pulled into the
-  v1.0.0 documentation batch per `release_v1_0_0.md → TODO-3` (the rest of
-  this plan is deferred to 1.x).
+  component-conditioning bluntly (not the effect on `E[Y]`), plus a scope
+  correction found while doing it: `inference_count_zero_augmented_
+  poisson_abstract.R` defines `InferenceCountZeroAugmentedPoissonAbstract`
+  as `@keywords internal @noRd` — it generates no Rd page, so sharpening
+  only that file's header would have been invisible to any actual user of
+  `?InferenceCountZeroInflatedPoisson` etc. The caveat was therefore also
+  added to all four concrete exported subclasses' own doc blocks
+  (`InferenceCountZeroInflatedPoisson`/`NegBin` in
+  `inference_count_zero_inflated.R`, `InferenceCountHurdlePoisson`/`NegBin`
+  in `inference_count_hurdle.R`), each phrased for its own mechanism
+  (excess-zero-inflation vs. hurdle-crossing). Verified: all four touched
+  files still `parse()` cleanly, `roxygen2::parse_file()` (static, doesn't
+  load the package) confirms one well-formed block per class (5 total
+  across the 4 files), and the package still loads via
+  `pkgload::load_all(compile = FALSE)`. Not gated on anything — ran
+  independent of TODO-1's decision, per the "Recommended execution order"
+  above.
 - [ ] TODO-3: If pursued: implement the switch architecture — `set_estimand()`
   / `get_estimand()` / `get_supported_estimands()`, estimand-aware cache key
   generalizing `likelihood_test_delta_key()`, initial state `"conditional"` —
   as a registered `InferenceComponent` with a `marginal_estimand` capability,
   honoring the three constraints in "Compatibility with
   `fix_inference_hierarchy.md`" (the setter exists only on composing classes;
-  choose the `compute_estimate()` dispatch mechanism explicitly).
-- [ ] TODO-4: ZOIB: model-implied mean function, g-computation average, and
-  delta-method SE against the joint vcov already returned by
-  `fast_zero_one_inflated_beta_cpp`; wire `"marginal_mean_diff"`.
-- [ ] TODO-5: Zero-augmented Poisson (ZIP and hurdle concretes): mean
-  functions (including the zero-truncated hurdle mean); wire
-  `"marginal_ratio"` and `"marginal_mean_diff"`.
+  choose the `compute_estimate()` dispatch mechanism explicitly). Architecture
+  only, no concrete-class wiring — **not gated on Phase 1D**.
+- [ ] TODO-4: **Gated on `fix_inference_hierarchy.md`'s still-open
+  "Full-Likelihood Estimators" remainder (`_master.md` § 1D) — verified
+  2026-08-18: `InferencePropZeroOneInflatedBetaRegr` still `inherit =
+  InferenceAsympLikStdModCache` (a legacy deep-hierarchy base), not yet
+  migrated to `Inference` + explicit components.** Sequence after that
+  migration lands, not before — wiring marginal-mean logic into a class
+  about to be restructured means redoing the wiring. ZOIB: model-implied
+  mean function, g-computation average, and delta-method SE against the
+  joint vcov already returned by `fast_zero_one_inflated_beta_cpp`; wire
+  `"marginal_mean_diff"`.
+- [ ] TODO-5: **Gated on the same open Phase 1D item as TODO-4 — verified
+  2026-08-18: `InferenceCountZeroInflatedPoisson`/`NegBin`,
+  `InferenceCountHurdlePoisson`/`NegBin`, and their shared abstract
+  `InferenceCountZeroAugmentedPoissonAbstract` all still `inherit =`
+  legacy deep-hierarchy bases.** Sequence after migration. Zero-augmented
+  Poisson (ZIP and hurdle concretes): mean functions (including the
+  zero-truncated hurdle mean); wire `"marginal_ratio"` and
+  `"marginal_mean_diff"`.
 - [ ] TODO-6: Make `get_supported_testing_types()` estimand-aware; loud
   errors on incompatible `testing_type` × `estimand` combinations regardless
-  of setter order.
+  of setter order. Depends only on TODO-3's architecture — **not gated on
+  Phase 1D**.
 - [ ] TODO-7: Dispatch the randomization-inference statistic and the
-  bootstrap-weight recompute paths on the estimand.
+  bootstrap-weight recompute paths on the estimand. Touches the shared
+  component/root machinery, not any specific unmigrated concrete class —
+  **not gated on Phase 1D**.
 - [ ] TODO-8: Resolve open question 1 (`compute_estimate()` dispatch) as part
   of the TODO-1 joint decision; update `extending-edi-r6.md` if the external
   extension contract changes (mean-function contribution point).
-- [ ] TODO-9: Later wave: adopt on non-collapsible single-component GLM
+- [ ] TODO-9: **Gated on the same open Phase 1D item as TODO-4/5 — verified
+  2026-08-18: `InferenceIncidLogit`, `InferenceCountPoisson`,
+  `InferenceProportionBeta`, and `InferenceIncidBinomialIdentity` all still
+  `inherit =` legacy deep-hierarchy bases, not yet migrated.** Sequence
+  after migration. Later wave: adopt on non-collapsible single-component GLM
   families (logistic, Poisson, beta regression) via one-line mean functions.

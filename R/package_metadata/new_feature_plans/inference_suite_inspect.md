@@ -397,6 +397,30 @@ not a bug, but it must be described accurately: "evidence of an effect
 somewhere in this model family," not "the treatment effect is real and
 looks like X."
 
+**Scope boundary — why this is safe by construction, not just by
+convention (added 2026-08-18):** the intersection-null argument above only
+holds when every combined class is a test about the *same* outcome
+variable `Y` — combining, say, a Cox model's p-value (does treatment affect
+time-to-event) with a Gamma model's p-value (does treatment affect cost)
+would **not** be valid, since a real effect on one with zero effect on the
+other is entirely plausible and there is no single sharp null forcing both
+to hold simultaneously. `run_all_inference()` cannot accidentally do this:
+`response_type` is a required constructor argument to `Design*$new()`
+(`design_abstract.R:170,189`), stored once into `private$response_type`
+at `initialize()` with no setter — only the read-only
+`get_response_type()` accessor (`design_abstract.R:802`). `InferenceSuite`
+is constructed from one `Design` object and reads `get_response_type()`
+once to drive `discover_applicable_inference_classes()`
+(`inference_suite.R`) — every class in `applicable_design_classes`, and
+therefore every row `run_all_inference()` fits and combines, is
+necessarily a test about that one fixed `Y`. There is no code path in this
+class that lets one `run_all_inference()` call span two response types. The
+one way to violate the same-`Y` assumption is manually combining raw
+`pval`s from two separate `InferenceSuite` objects' `results_table`s
+outside `cct_combine_pvalues()` — worth one explicit sentence in the
+roxygen (folded into TODO-19) precisely because the architecture prevents
+it internally but can't stop a user from doing that by hand externally.
+
 ### Weighting — open design question, not yet decided
 
 Equal weighting (`w_i = 1/k`) is the CCT default and is fine when every row

@@ -45,18 +45,32 @@ spliced into one step and marked **[spliced]**.
 > under KK designs — Phase 5G below) is promoted from
 > `../new_research_ideas/` and written directly into the v1.1.0 scope
 > (`release_v1_1_0.md → TODO-15b`).
-> Amended 2026-08-18 (user decision): `expanded_estimate_report.md` and
-> `marginal_estimand_report.md` — the package-wide `estimate_type`/
-> `set_estimand()` estimand axes — are pulled **out of** the v1.1.0
+> Amended 2026-08-18 (user decision): `marginal_estimand_report.md` — the
+> `set_estimand()` estimand axis — is pulled **out of** the v1.1.0
 > "everything else" bucket and **into** the v1.0.0 line instead (see
-> `release_v1_0_0.md`'s item 14). Both plans' own TODO-1 "whether to
-> pursue this at all" decision moves from the Phase 0 batch below into the
-> v1.0.0-gated portion of that same batch. Motivation:
+> `release_v1_0_0.md`'s item 14). Its TODO-1 "whether to pursue this at
+> all" decision moves from the Phase 0 batch below into the v1.0.0-gated
+> portion of that same batch. Motivation:
 > `inference_suite_inspect.md`'s Combined Evidence Metric feature
 > (TODO-14..21 there) defaults its per-class weighting to grouping by
 > `estimand`, so shipping that default at 1.0.0 needs the real,
 > package-wide `estimand` concept behind it, not just the handful of
 > gcomp classes that currently implement `get_estimand_type()`.
+> `expanded_estimate_report.md` (the orthogonal `estimate_type` axis) was
+> initially pulled in alongside it for a joint decision, then **moved back
+> to v1.1.0 the same day (user decision)**: nothing in v1.0.0 scope needs
+> `estimate_type` — the Combined Evidence Metric only reads `estimand` —
+> and `estimate_type`'s own stated urgency (the Cox-Snell/
+> Cordeiro-McCullagh/median-bias correction plans' API shape) is itself
+> v1.1.0-scoped. The two plans' TODO-1s no longer have to be decided in
+> the same sitting; whichever comes second just needs to check the
+> first's chosen values so the two enums don't collide.
+> **`marginal_estimand_report.md → TODO-1` decided (2026-08-18, user
+> decision): yes, pursue `set_estimand()`.** TODO-3/6/7/8 (the ungated
+> architecture/plumbing work) are now unblocked; TODO-4/5/9 (concrete ZOIB/
+> ZIP/hurdle/logit/Poisson/beta-regression wiring) remain gated on
+> `fix_inference_hierarchy.md`'s Full-Likelihood Estimators remainder per
+> that plan's own "Recommended execution order" note.
 >
 > **Update (2026-08-16):** two of the release-scoped plans have since
 > closed and moved to `../finished_features/`: the interval-censored
@@ -95,18 +109,24 @@ Rules of use:
 One sitting; every gated plan's TODO-1. Decisions cascade, so take them in
 this order:
 
-1. `expanded_estimate_report.md → TODO-1` **[spliced with]**
-   `marginal_estimand_report.md → TODO-1` — one joint decision: the
-   `estimate_type` design (**blocks the API shape** of every
-   estimate-correction plan below) together with the orthogonal
-   `set_estimand()` axis (conditional vs. marginal target quantity), scoped
-   against each other so neither enum absorbs the other's values.
-   **Release-scoped (amended 2026-08-18, user decision) — see the release
-   line note above and `release_v1_0_0.md`'s item 14**: this decision (and
-   the implementation if "yes") is now v1.0.0-gated, not deferred, since
+1. **[x] `marginal_estimand_report.md → TODO-1` — DONE (2026-08-18, user
+   decision): yes, pursue `set_estimand()`.** Release-scoped (see the
+   release line note above and `release_v1_0_0.md`'s item 14) — its
+   implementation is v1.0.0-gated, not deferred, since
    `inference_suite_inspect.md`'s Combined Evidence Metric default
    weighting policy needs a real, package-wide `estimand` concept behind
-   it.
+   it. See `marginal_estimand_report.md`'s own "Recommended execution
+   order" note for its TODO-3/6/7/8 (unblocked, ungated) vs. TODO-4/5/9
+   (gated on `fix_inference_hierarchy.md`'s Full-Likelihood Estimators
+   remainder) split.
+
+   `expanded_estimate_report.md → TODO-1` (the orthogonal `estimate_type`
+   design — **blocks the API shape** of every estimate-correction plan in
+   Phase 5A) was originally spliced with the above for a joint decision;
+   **moved back to v1.1.0 (2026-08-18, user decision, undecided)** — see
+   `release_v1_1_0.md → TODO-1` step 1. Whenever it is decided, check
+   which `estimand` values `marginal_estimand_report.md → TODO-3` lands on
+   first, so neither enum absorbs the other's values.
 2. `firth_penalties_report.md → TODO-1` **[spliced with]**
    `l1_l2_penalties_all_likelihood_paths_report.md → TODO-1` — one joint
    decision; both plans share the penalized-fitting inference-semantics
@@ -393,11 +413,26 @@ Each track starts only on a "yes" from Phase 0, and assumes Phase 1 is done
 1. **Release-scoped (amended 2026-08-18, user decision — see
    `release_v1_0_0.md`'s item 14; this is the only step of Phase 5A that
    is, the rest of this phase stays v1.1.0):**
-   `expanded_estimate_report.md → TODO-2..5` — implement `estimate_type`
-   first (its values are consumed by steps 2 and 6), then
-   `marginal_estimand_report.md → TODO-3..8` — the orthogonal `set_estimand()`
-   switch (same get/set/supported-values/cache-key architecture; its TODO-2
-   doc sharpening is decision-independent and can land any time).
+   `marginal_estimand_report.md → TODO-3..8` — the `set_estimand()`
+   switch (same get/set/supported-values/cache-key architecture; its
+   TODO-1 decided **yes** 2026-08-18, its TODO-2 doc sharpening is
+   **done**). `expanded_estimate_report.md → TODO-2..5` (`estimate_type`)
+   was originally sequenced as this step's first half; **moved back to
+   v1.1.0 the same day (user decision)** — see `release_v1_1_0.md →
+   TODO-5` step 1.
+   **Sub-sequencing within this step (verified 2026-08-18 — see
+   `marginal_estimand_report.md`'s own "Recommended execution order"
+   note):** `→ TODO-4` (ZOIB), `→ TODO-5` (ZIP/hurdle), and `→ TODO-9`
+   (logistic/Poisson/beta-regression) are genuinely gated on this phase's
+   own still-open "Full-Likelihood Estimators" remainder (item 3 below) —
+   every target class (`InferencePropZeroOneInflatedBetaRegr`,
+   `InferenceCountZeroInflatedPoisson`/`NegBin`,
+   `InferenceCountHurdlePoisson`/`NegBin`,
+   `InferenceCountZeroAugmentedPoissonAbstract`, `InferenceIncidLogit`,
+   `InferenceCountPoisson`, `InferenceProportionBeta`,
+   `InferenceIncidBinomialIdentity`) still `inherit =` a legacy
+   deep-hierarchy base. `→ TODO-3/6/7/8` touch no unmigrated class and may
+   proceed immediately, in parallel with item 3 below.
 2. `bias_correction_cox_snell.md → TODO-2..5` **[spliced with]**
    `cordeiro_mccullagh_bias_correction_report.md → TODO-2..4` — one project:
    shared `X'WX`/information helper, one component registration, Easy-tier

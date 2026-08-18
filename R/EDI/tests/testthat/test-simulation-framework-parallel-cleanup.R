@@ -2,6 +2,7 @@ library(testthat)
 library(EDI)
 
 test_that("SimulationFramework restores parallelism settings", {
+	skip_on_cran()
 	skip_if(
 		identical(Sys.getenv("R_COVR"), "true"),
 		"avoid spawning a real fork cluster/mirai daemons under covr's gcov-instrumented build"
@@ -73,6 +74,7 @@ test_that("SimulationFramework restores num_cores_override", {
 })
 
 test_that("mirai use blocks later fork clusters in the same R session", {
+	skip_on_cran()
 	skip_if_not_installed("mirai")
 	skip_if(
 		identical(Sys.getenv("R_COVR"), "true"),

@@ -20,6 +20,7 @@ test_that("prepare_for_resampling_replay is a harmless no-op on ordinary designs
 })
 
 test_that("the replicate profile switches solves to reduced annealing (default) or exact ompr (opt-in)", {
+	skip_on_cran()
 	des = brt_optimal_design(n = 12, seed = 61, solver_args = list(brt_max_iter = 500L))
 	des$prepare_for_resampling_replay()
 	des$assign_w_to_all_subjects()
@@ -46,6 +47,7 @@ test_that("without the hook, solves stay on the main profile", {
 })
 
 test_that("BRT end-to-end: p-value computes, is valid, and is seed-deterministic", {
+	skip_on_cran()
 	des = brt_optimal_design(seed = 64, solver_args = list(brt_max_iter = 400L))
 	des$assign_w_to_all_subjects()
 	set.seed(70)
@@ -63,6 +65,7 @@ test_that("BRT end-to-end: p-value computes, is valid, and is seed-deterministic
 })
 
 test_that("per-replicate w*_b varies beyond mere mirroring (testing-plan item 7)", {
+	skip_on_cran()
 	des = brt_optimal_design(seed = 65, solver_args = list(brt_max_iter = 400L))
 	des$assign_w_to_all_subjects()
 	set.seed(72)
@@ -82,6 +85,7 @@ test_that("per-replicate w*_b varies beyond mere mirroring (testing-plan item 7)
 })
 
 test_that("spot-check: a replicate assignment is reproduced by re-optimizing that replicate's resampled covariates", {
+	skip_on_cran()
 	des = brt_optimal_design(seed = 66, solver_args = list(brt_solver = "ompr"))
 	des$assign_w_to_all_subjects()
 	set.seed(74)

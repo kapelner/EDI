@@ -226,6 +226,7 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 })
 
 test_that("migrated KK Wilcoxon golden outputs are stable", {
+	skip_on_cran()
 	expect_kk_wilcox_golden(
 		"estimate",
 		"compute_estimate",

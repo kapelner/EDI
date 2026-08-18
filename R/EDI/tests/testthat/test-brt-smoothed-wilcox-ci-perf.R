@@ -31,6 +31,7 @@ test_that("smoothed CI: fast-kernel result matches the forced-slow-fallback resu
 })
 
 test_that("smoothed CI: fast kernel is dramatically faster than the forced-slow fallback", {
+	skip_on_cran()
 	# This is the actual motivating case from the original investigation: CI inversion
 	# pre-materializes fresh assignments (materialize_w = TRUE) once and reuses them (common
 	# random numbers) across every delta evaluated during root-finding, so the fast kernel can

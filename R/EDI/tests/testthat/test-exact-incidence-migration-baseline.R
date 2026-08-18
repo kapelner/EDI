@@ -371,6 +371,7 @@ test_that("exact incidence migration baseline pins current golden outputs", {
 })
 
 test_that("exact Zhang migration matches legacy outputs across supported fixtures", {
+	skip_on_cran()
 	InferenceIncidenceExactZhangLegacy = make_exact_zhang_legacy_generator()
 	specs = list(
 		Bernoulli = list(
@@ -428,6 +429,7 @@ test_that("exact Zhang migration matches legacy outputs across supported fixture
 })
 
 test_that("exact Fisher migration matches legacy outputs across supported fixtures", {
+	skip_on_cran()
 	InferenceIncidExactFisherLegacy = make_exact_fisher_legacy_generator()
 	specs = list(
 		iBCRD = list(

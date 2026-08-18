@@ -60,6 +60,7 @@ test_that("assert_custom_objective_xptr rejects everything but a compiled XPtr, 
 })
 
 test_that("annealing_solve_custom reproduces the built-in abs_sum_diff optimum", {
+	skip_on_cran()
 	X = custom_test_X(10, 3, 302)
 	prep = EDI:::prepare_optimal_objective_matrices(X, "abs_sum_diff")
 	exact = EDI:::milp_solve_l1(prep$A, n_T = 5L)

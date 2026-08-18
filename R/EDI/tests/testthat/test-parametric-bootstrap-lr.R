@@ -84,6 +84,7 @@ test_that("parametric bootstrap worker loader stores a simulated null draw", {
 })
 
 test_that("generic parametric bootstrap LR is serial-parallel deterministic under a fixed seed", {
+	skip_on_cran()
 	skip_if(
 		identical(Sys.getenv("R_COVR"), "true"),
 		"avoid spawning real mirai daemons under covr's gcov-instrumented build"
@@ -121,6 +122,7 @@ test_that("generic parametric bootstrap LR is serial-parallel deterministic unde
 })
 
 test_that("parametric bootstrap LR keeps deterministic mode off when no seed is set", {
+	skip_on_cran()
 	skip_if(
 		identical(Sys.getenv("R_COVR"), "true"),
 		"avoid spawning real mirai daemons under covr's gcov-instrumented build"

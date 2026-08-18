@@ -98,7 +98,6 @@ test_that("static cleanup guardrail prevents new raw component splicing", {
 		"R/EDI/R/inference_incidence_KK_marginal_abstract.R" = 2L,
 		"R/EDI/R/inference_ordinal_KK_combined.R" = 2L,
 		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 3L,
-		"R/EDI/R/inference_survival_KK_lwa_cox_one_lik_abstract.R" = 2L,
 		"R/EDI/R/inference_survival_KK_strat_cox.R" = 3L,
 		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 3L
 	)
@@ -149,6 +148,11 @@ test_that("component redeclarations of root-owned state cannot grow", {
 		# migration: the merged abstract+leaf source redeclares `m` (KK
 		# match-vector) the same way KKPassThrough/KKGEE/KKGLMM already do.
 		KKQuantileRegrIVWC = "m",
+		# KKLWACoxOneLikPartialLikelihood added at the 2026-08-18 LWA Cox
+		# OneLik migration: the merged abstract+leaf source redeclares
+		# `optimization_alg` (fixed "lbfgs" for this class) the same way
+		# SurvivalKKClaytonCopulaIVWC/KKGLMM already do.
+		KKLWACoxOneLikPartialLikelihood = "optimization_alg",
 		# Trimmed at the 2026-08-17 WeibullMarginal migration: the spec was
 		# reshaped leaf-only (KK state now arrives via the KKPassThrough
 		# dependency), leaving only the class-specific VC-parameter cache.

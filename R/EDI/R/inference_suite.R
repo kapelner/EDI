@@ -728,6 +728,23 @@ run_all_inference_plot_to_base64_png = function(plot, width = 8, height = 6) {
 #'   \code{screen}/\code{html}/\code{plots}/\code{pdf}/
 #'   \code{save_results_as_JSON} output options). \code{lock_objects = FALSE}
 #'   allows ad hoc fields to be attached to an instance after construction.
+#'
+#'   \strong{Every row this class discovers and fits is a test about the
+#'   same outcome variable, by construction.} \code{response_type} is a
+#'   required, immutable constructor argument on \code{\link[EDI:Design]{Design}}
+#'   (read-only thereafter via \code{get_response_type()}), and this class
+#'   discovers every candidate in \code{applicable_design_classes} from one
+#'   attached \code{Design} object's one \code{response_type} -- there is no
+#'   code path here that spans two response types in a single instance. This
+#'   matters beyond bookkeeping: a planned comparison-across-classes feature
+#'   (a single combined-evidence p-value summarizing every row, via a
+#'   dependence-robust combination test) relies on every combined class
+#'   sharing one sharp null of "no treatment effect on this outcome" --
+#'   which only holds when every test concerns the same outcome variable
+#'   (combining, say, a survival model's p-value with an unrelated
+#'   continuous-outcome model's p-value would not be valid, since a real
+#'   effect on one with none on the other is entirely plausible). That
+#'   precondition is guaranteed here structurally, not by caller discipline.
 #' @export
 #' @examples
 #' \donttest{

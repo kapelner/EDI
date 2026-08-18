@@ -102,6 +102,7 @@ test_that("InferenceBaiAdjustedTKK14 migration produces identical outputs", {
 })
 
 test_that("InferenceBaiAdjustedTKK14 convex-combination path matches", {
+	skip_on_cran()
 	skip_if_not_installed("nbpMatching")
 	Legacy = make_bai_legacy_generator("InferenceBaiAdjustedTKK14",
 		function(avg1, avg2) sum((avg1 - avg2)^2))
@@ -114,6 +115,7 @@ test_that("InferenceBaiAdjustedTKK14 convex-combination path matches", {
 })
 
 test_that("InferenceBaiAdjustedTKK21 migration produces identical outputs", {
+	skip_on_cran()
 	skip_if_not_installed("nbpMatching")
 	Legacy = make_bai_legacy_generator("InferenceBaiAdjustedTKK21",
 		function(avg1, avg2) sum(private$des_obj_priv_int$covariate_weights * (avg1 - avg2)^2))

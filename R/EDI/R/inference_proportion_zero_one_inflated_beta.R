@@ -4,13 +4,21 @@
 #' response is modeled as a three-component mixture with point masses at 0 and 1
 #' plus a beta-distributed interior component on \eqn{(0, 1)}. The reported
 #' treatment effect is the treatment coefficient from the beta mean submodel, on
-#' the logit scale.
+#' the logit scale, \strong{conditional on the response falling strictly inside
+#' \eqn{(0, 1)}}: it is not, and should not be read as, the effect on the
+#' unconditional mean \eqn{E[Y]}, which also depends on how treatment shifts the
+#' zero/one inflation probabilities. A design where treatment moves mass between
+#' the point masses and the interior, with no shift in the interior beta mean,
+#' will report a null treatment coefficient here even though \eqn{E[Y]} changed.
 #'
 #' @details
 #' The beta mean submodel uses treatment alone in the univariate class and
 #' treatment plus covariates in the multivariate class. The zero/one inflation
 #' submodels use \code{model_formula_zero_one}, which defaults to \code{~ .}
 #' so that treatment plus all available covariates enter those auxiliary pieces.
+#' See the class-level description above for what the reported coefficient does
+#' and does not represent; a marginal (unconditional-mean) estimand is not yet
+#' implemented for this class (see \code{marginal_estimand_report.md}).
 #'
 #' @examples
 #' \donttest{

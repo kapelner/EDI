@@ -491,8 +491,16 @@ infer_inference_direct_components = function(name) {
 			InferenceCountZeroAugmentedPoissonAbstract = "ZeroAugmentedCountLikelihood",
 			InferenceCountQuasiPoisson = c("Wald", "CountCompositeLikelihood"),
 			InferenceCountRobustPoisson = c("Wald", "CountCompositeLikelihood", "RobustSandwich"),
-			InferenceOrdinalPropOddsRegr = "OrdinalProportionalOddsLikelihood",
-			InferenceOrdinalAdjCatLogitRegr = "OrdinalAdjacentCategoryLikelihood",
+			InferenceOrdinalPropOddsRegr = c(
+				"BayesianBootstrap",
+				"ParametricLikelihoodBootstrap",
+				"OrdinalProportionalOddsLikelihood"
+			),
+			InferenceOrdinalAdjCatLogitRegr = c(
+				"BayesianBootstrap",
+				"ParametricLikelihoodBootstrap",
+				"OrdinalAdjacentCategoryLikelihood"
+			),
 			InferenceOrdinalCloglogRegr = c(
 				"BayesianBootstrap",
 				"ParametricLikelihoodBootstrap",

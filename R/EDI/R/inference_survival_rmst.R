@@ -73,7 +73,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 					# Turnbull-NPMLE restricted-mean contrast (TODO-8,
 					# interval_censored_survival_response.md) via
 					# interval::icfit() -- see
-					# inference_survival_turnbull_helpers.R for the
+					# helper_inference_survival_turnbull.R for the
 					# interval-identifiability convention.
 					assert_interval_installed(class(self)[1L])
 					private$cached_values$beta_hat_T = turnbull_npmle_stat_diff(

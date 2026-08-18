@@ -225,6 +225,7 @@ test_that("InferenceIncidCMH migration produces identical outputs (blocking desi
 })
 
 test_that("InferenceIncidCMH migration produces identical outputs (non-blocking, balanced design)", {
+	skip_on_cran()
 	InferenceIncidCMHLegacy = make_cmh_legacy_generator()
 	set.seed(20260817L)
 	n = 20L

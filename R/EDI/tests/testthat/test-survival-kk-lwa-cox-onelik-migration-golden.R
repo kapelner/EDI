@@ -64,10 +64,26 @@ survival_kk_lwa_cox_onelik_golden_design = function(n = 24L, seed = 20260817L) {
 test_that("InferenceSurvivalKKLWACoxPHOneLik migration produces identical outputs", {
 	Legacy = make_survival_kk_lwa_cox_onelik_legacy_generator()
 	des = survival_kk_lwa_cox_onelik_golden_design()
-	legacy = Legacy$new(des)
-	migrated = InferenceSurvivalKKLWACoxPHOneLik$new(des)
+	# A FRESH legacy/migrated pair is built per label rather than reused
+	# across the whole loop (unlike every other golden this stretch), because
+	# of a found-and-documented PRE-EXISTING NATIVE CRASH (see
+	# fix_inference_hierarchy.md's Follow-Ups entry, "InferenceSurvivalKK
+	# LWACoxPHOneLik native segfault..."): calling `compute_rand_two_sided_
+	# pval()` (which mutates `private$w`/`private$y`/`private$dead` in place
+	# during its permutation loop, then explicitly re-reads them from the
+	# design object afterward -- see `compute_treatment_estimate_during_
+	# randomization_inference`'s own comment) and THEN calling
+	# `approximate_rand_bootstrap_distribution_beta_hat_T()` on the SAME
+	# object segfaults inside `fast_coxph_regression_cpp` (a dimension/
+	# pointer mismatch reaching the reusable-bootstrap-worker's duplicated
+	# private state). Reproduced identically on a from-scratch reconstruction
+	# of the pre-migration legacy class -- not a migration regression.
+	# Rebuilding fresh objects per label sidesteps the corrupting call-order
+	# entirely while still comparing every label's own in-isolation output.
 	for (label in names(inference_migration_method_calls)) {
 		spec = inference_migration_method_calls[[label]]
+		legacy = Legacy$new(des)
+		migrated = InferenceSurvivalKKLWACoxPHOneLik$new(des)
 		legacy$set_seed(20260817L)
 		legacy_result = inference_migration_with_seed(20260817L,
 			inference_migration_call_optional_method(legacy, spec$method, spec$args))

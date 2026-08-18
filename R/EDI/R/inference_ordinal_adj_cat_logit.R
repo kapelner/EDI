@@ -299,8 +299,8 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 
 	InferenceOrdinalAdjCatLogitRegr = define_inference_class(
 		classname = "InferenceOrdinalAdjCatLogitRegr",
-		inherit = InferenceParamBootstrap,
-		components = "OrdinalAdjacentCategoryLikelihood",
+		inherit = Inference,
+		components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalAdjacentCategoryLikelihood"),
 		public = list(
 			compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 		),

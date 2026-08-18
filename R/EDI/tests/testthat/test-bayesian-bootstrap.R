@@ -471,6 +471,7 @@ test_that("next-wave weighted hooks return finite estimates on KK GEE paths", {
 })
 
 test_that("Bayesian bootstrap matches mirai-backed parallel execution", {
+	skip_on_cran()
 	skip_if_not_installed("mirai")
 	skip_if(
 		identical(Sys.getenv("R_COVR"), "true"),

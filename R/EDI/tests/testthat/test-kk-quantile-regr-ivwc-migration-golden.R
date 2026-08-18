@@ -181,6 +181,7 @@ test_that("InferenceContinKKQuantileRegrIVWC migration produces identical output
 })
 
 test_that("InferenceContinKKQuantileRegrIVWC randomization CI matches", {
+	skip_on_cran()
 	skip_if_not_installed("quantreg")
 	Legacy = make_contin_kk_quantile_regr_legacy_generator()
 	des = kk_quantile_regr_golden_design("continuous")
@@ -194,6 +195,7 @@ test_that("InferenceContinKKQuantileRegrIVWC randomization CI matches", {
 })
 
 test_that("InferencePropKKQuantileRegrIVWC migration produces identical outputs", {
+	skip_on_cran()
 	skip_if_not_installed("quantreg")
 	Legacy = make_prop_kk_quantile_regr_legacy_generator()
 	des = kk_quantile_regr_golden_design("proportion")

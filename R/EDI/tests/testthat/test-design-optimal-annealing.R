@@ -41,6 +41,7 @@ test_that("annealing best-of-chains objective <= every individual chain value", 
 })
 
 test_that("annealing finds the certified global optimum with high frequency (quadratic, brute-forceable n)", {
+	skip_on_cran()
 	X = annealing_test_X(10, 2, 203)
 	prep = EDI:::prepare_optimal_objective_matrices(X, "mahal_dist")
 	exact = EDI:::milp_solve_quadratic(prep$Q, n_T = 5L)

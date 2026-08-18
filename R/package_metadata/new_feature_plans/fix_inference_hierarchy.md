@@ -1879,6 +1879,46 @@ their own `[x]` entries above; they are not part of this count.)
   `LikelihoodTests`, `StandardModelCache`, and family-specific components.
 - [ ] Migrate KK partial-likelihood classes only after `KKPassThrough` and
   `KKCompound` host contracts pass collision and dependency validation.
+  **Progress 2026-08-18: `InferenceSurvivalKKLWACoxPHOneLik` migrated** —
+  the LWA Cox OneLik sibling of the `InferenceSurvivalKKLWACoxPHIVWC`
+  migration earlier this stretch. Same two-layer shape (abstract
+  `InferenceAbstractKKLWACoxOneLik` on `InferenceParamBootstrap`,
+  raw-splicing `InferenceMixinKKPassThrough$public/private`, plus a thin
+  assertFormula/delegating leaf) merged into the previously shim-only
+  registered component `KKLWACoxOneLikPartialLikelihood`
+  (`KKLWACoxOneLikPartialLikelihoodSource`, `dependencies` reshaped from
+  `"ParametricLikelihoodBootstrap"` alone to `c("KKPassThrough",
+  "ParametricLikelihoodBootstrap")` — the latter already depends on
+  `LikelihoodTests` transitively). **First genuinely full-likelihood-tier
+  migration this stretch** (real score/gradient/LR test support via
+  `get_likelihood_test_spec()`/`simulate_under_lik_null()`, unlike every
+  Wald-only IVWC/gcomp/quantile-regr leaf before it): needed
+  `metadata$capabilities = "likelihood_ratio"` declared explicitly on the
+  class, since no component spec in this codebase provides that capability
+  automatically — any class composing `ParametricLikelihoodBootstrap`
+  directly (bypassing `StandardModelCache`) must declare it itself, same as
+  `InferenceOrdinalCauchitRegr`/`InferenceOrdinalCloglogRegr`. Several new
+  collision names surfaced that the Wald-only recipe never touched:
+  `approximate_bootstrap_distribution_beta_hat_T`, `get_supported_testing_
+  types` (public); `supports_information_preference`, `supports_observed_
+  information`, `get_supported_information_preferences_impl`,
+  `supports_bartlett_likelihood_ratio_approx`, `get_bartlett_factor_approx`
+  (private) — all declared in `overrides`. `InferenceRand` pin (survival,
+  not incidence, so no Lesson-3 RandCI question). **Found and documented
+  (not fixed) a serious pre-existing native crash** while writing the
+  golden — see the dedicated Follow-Ups entry,
+  "`InferenceSurvivalKKLWACoxPHOneLik` native segfault." Golden
+  `test-survival-kk-lwa-cox-onelik-migration-golden.R` (real classname; the
+  legacy fixture had to manually re-splice `InferenceMixinKKPassThrough$
+  private` since the merged Source deliberately dropped it — `inherit =
+  InferenceParamBootstrap` doesn't supply `init_kk_passthrough` the way
+  `InferenceKKPassThroughCompoundNoParamBootstrap` did for the IVWC
+  siblings; per-label fresh object construction to sidestep the crash): all
+  green. Static expectations updated in three places (component contract
+  shape, load-trace, and target-components) in
+  `test-partial-likelihood-migration-baseline.R`, same treatment as the LWA
+  Cox IVWC entries; guardrail ratchets updated (splice-count file removed
+  entirely, one new root-state redeclaration entry for `optimization_alg`).
 - [x] Verify partial-likelihood classes do not gain
   `parametric_likelihood_bootstrap` unless they provide a null simulator.
 - Note (2026-08-14): `InferenceSurvivalCoxPHRegr`'s migration to
@@ -2678,6 +2718,52 @@ Bugs and tangential issues recorded inside this file's completed (`[x]`)
 migration entries but never turned into their own actionable TODOs. Collected
 here (2026-08-13) rather than left as prose-only notes.
 
+- [ ] **`InferenceSurvivalKKLWACoxPHOneLik` native segfault: `compute_rand_
+  two_sided_pval()` followed by `approximate_rand_bootstrap_distribution_
+  beta_hat_T()` on the same object crashes R (found 2026-08-18, NOT fixed —
+  pre-existing, confirmed present in the pre-migration architecture too).**
+  Discovered while writing this class's migration golden
+  (`test-survival-kk-lwa-cox-onelik-migration-golden.R`): calling
+  `compute_rand_two_sided_pval(delta = 0, r = 9L)` then
+  `approximate_rand_bootstrap_distribution_beta_hat_T(B = 9L)` on the SAME
+  object segfaults (`*** caught segfault ***`, `address 0xb8, cause 'memory
+  not mapped'`) inside `fast_coxph_regression_cpp`, reached via
+  `worker_state$worker$compute_estimate()` → `private$shared_combined_
+  likelihood()` → `private$fit_with_hardened_qr_column_dropping()`. Bisected
+  to exactly this two-call sequence (neither call crashes alone or with any
+  shorter prefix tried). **Root cause (diagnosed but not fixed):**
+  `InferenceAbstractKKLWACoxOneLik`'s own `compute_treatment_estimate_
+  during_randomization_inference()` re-reads and reassigns `private$w`/
+  `private$y`/`private$dead` directly from the design object mid-call (its
+  own comment: "Re-read w, y, dead because they might have been transformed
+  for randomization") — this in-place mutation of the LIVE object's private
+  state, combined with a LATER call to the reusable-bootstrap-worker
+  machinery (`InferenceAsymp`'s `create_bootstrap_worker_state()` →
+  `create_design_backed_bootstrap_worker_state()`, which `self$duplicate()`s
+  the object to build a worker), appears to leave the duplicated worker's
+  `X`/`w`/`dead` vectors at inconsistent lengths relative to whatever
+  cached/reduced design matrix `fast_coxph_regression_cpp` receives,
+  producing an out-of-bounds native read. **Verified NOT a migration
+  regression**: reproduced identically on a from-scratch R6 reconstruction
+  of the pre-migration `InferenceAbstractKKLWACoxOneLik`/
+  `InferenceSurvivalKKLWACoxPHOneLik` ladder (same `inherit =
+  InferenceParamBootstrap` chain, same raw `InferenceMixinKKPassThrough`
+  splice) — the crash predates this migration and was simply never
+  exercised by any existing test until this golden was written (no prior
+  test called both methods on the same object). **Worked around, not
+  fixed**, in the golden test: each label gets a fresh legacy/migrated pair
+  instead of reusing one object across the whole label loop (every other
+  KK/IVWC golden this stretch reuses objects across labels). This is a
+  native crash (not a wrong-answer bug), so it deserves a dedicated
+  investigation and fix in `inference_all_abstract_non_param_boot.R`'s
+  reusable-bootstrap-worker duplication path and/or
+  `inference_survival_KK_lwa_cox_one_lik_abstract.R`'s in-place `private$w/
+  y/dead` reassignment — not attempted here per this project's standing
+  "never compile/touch C++ without explicit permission" rule and because
+  fixing a native crash root-caused in shared resampling infrastructure is
+  a larger, riskier task than this migration's scope. Whoever picks this up
+  should start from the exact repro above (KK14 survival design, `n=24`,
+  `r=9`/`B=9`) and `gdb`/`valgrind` the two-call sequence directly.
 - [x] **Randomization-CI Wald-seed fallback silently lost by every migrated
   class: `is(inf_obj, "InferenceAsymp")` class-identity dispatch
   (found and fixed 2026-08-17).** `get_randomization_ci_seed_candidates()`

@@ -229,7 +229,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 			if (isTRUE(private$has_general_censoring)) {
 				# Turnbull-NPMLE median contrast (TODO-8,
 				# interval_censored_survival_response.md) via interval::icfit()
-				# -- see inference_survival_turnbull_helpers.R for the
+				# -- see helper_inference_survival_turnbull.R for the
 				# interval-identifiability convention. No analytic SE exists for
 				# this derived quantity (icfit() gives no closed-form variance
 				# for a median contrast), so s_beta_hat_T is left NA here --

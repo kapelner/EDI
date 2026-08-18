@@ -303,6 +303,13 @@ test_that("first full-likelihood class migrations remove algorithmic parents", {
 				"RandomizationCI",
 				"NonparametricBootstrap",
 				"RandomizationBootstrap",
+				# RandomizationBootstrapCI is a genuine addition to the base
+				# resolved chain since this table was first written -- missing
+				# here was a stale expectation, not a real regression (same
+				# fix already applied to the dedicated Cauchit/Cloglog
+				# goldens; PropOdds/AdjCatLogit are newly migrated as of
+				# 2026-08-18 and start from the corrected chain).
+				"RandomizationBootstrapCI",
 				"BayesianBootstrap",
 				"Jackknife",
 				"Wald",

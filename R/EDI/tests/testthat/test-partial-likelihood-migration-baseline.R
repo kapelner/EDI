@@ -173,14 +173,16 @@ partial_likelihood_expected_extracted_lwa_cox_targets = list(
 		)
 	),
 	InferenceSurvivalKKLWACoxPHOneLik = list(
-		target_direct_components = c("KKLWACoxOneLikPartialLikelihood", "KKPassThrough"),
+		# Updated at migration time (2026-08-18) to the factory reality:
+		# BayesianBootstrap is an explicit direct component and KKPassThrough
+		# arrives as the component's dependency, same treatment as the LWA
+		# Cox IVWC entry above.
+		target_direct_components = c("BayesianBootstrap", "KKLWACoxOneLikPartialLikelihood"),
 		target_components = c(
-			"Jackknife",
-			"Wald",
-			"LikelihoodTests",
-			"ParametricLikelihoodBootstrap",
-			"KKLWACoxOneLikPartialLikelihood",
-			"KKPassThrough"
+			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
+			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
+			"KKPassThrough", "Jackknife", "Wald", "LikelihoodTests",
+			"ParametricLikelihoodBootstrap", "KKLWACoxOneLikPartialLikelihood"
 		)
 	)
 )
@@ -341,13 +343,31 @@ test_that("LWA Cox and survival rank-regression components expose extracted help
 		)
 	)
 
+	# Reshaped at migration time (2026-08-18): previously a shim-only
+	# component with dependencies = "ParametricLikelihoodBootstrap"; now the
+	# real merged abstract+leaf source for InferenceSurvivalKKLWACoxPHOneLik
+	# (the kk_lwa_cox_one_lik_* shims are preserved alongside the real
+	# machinery, same treatment as the LWA Cox IVWC component above).
 	expect_identical(one_lik_component$source_name, "KKLWACoxOneLikPartialLikelihoodSource")
 	expect_identical(one_lik_component$component_loader$load_policy, "lazy")
-	expect_identical(one_lik_component$dependencies, "ParametricLikelihoodBootstrap")
-	expect_identical(EDI:::component_public_names(one_lik_component), character())
+	expect_identical(one_lik_component$dependencies, c("KKPassThrough", "ParametricLikelihoodBootstrap"))
+	expect_setequal(
+		EDI:::component_public_names(one_lik_component),
+		c(
+			"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
+		)
+	)
 	expect_setequal(
 		EDI:::component_private_names(one_lik_component),
 		c(
+			"is_a_kk_lwa_cox_one_lik", "compute_basic_match_data",
+			"get_standard_error", "get_degrees_of_freedom", "assert_finite_se",
+			"supports_likelihood_tests", "supports_lik_ratio_param_bootstrap",
+			"simulate_under_lik_null", "get_likelihood_test_spec",
+			"compute_treatment_estimate_during_randomization_inference",
+			"design_matrix_candidates", "shared_combined_likelihood",
+			"max_abs_reasonable_coef", "optimization_alg",
 			"kk_lwa_cox_one_lik_get_standard_error",
 			"kk_lwa_cox_one_lik_get_degrees_of_freedom",
 			"kk_lwa_cox_one_lik_assert_finite_se",
@@ -424,7 +444,7 @@ test_that("LWA Cox and survival rank-regression component implementations load w
 	expect_setequal(names(one_lik_component$private), EDI:::get_inference_component("KKLWACoxOneLikPartialLikelihood")$provides_private_methods)
 	expect_setequal(names(rank_component$private), EDI:::get_inference_component("KKSurvivalRankRegression")$provides_private_methods)
 	expect_true(all(c("KKPassThrough", "KKCompound", "KKLWACoxIVWCPartialLikelihood") %in% EDI:::inference_component_load_trace("KKLWACoxIVWCPartialLikelihoodContractTest")))
-	expect_true(all(c("Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap", "KKLWACoxOneLikPartialLikelihood") %in% EDI:::inference_component_load_trace("KKLWACoxOneLikPartialLikelihoodContractTest")))
+	expect_true(all(c("KKPassThrough", "Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap", "KKLWACoxOneLikPartialLikelihood") %in% EDI:::inference_component_load_trace("KKLWACoxOneLikPartialLikelihoodContractTest")))
 	expect_true(all(c("Wald", "KKSurvivalRankRegression") %in% EDI:::inference_component_load_trace("KKSurvivalRankRegressionContractTest")))
 })
 

@@ -199,6 +199,7 @@ test_that("closed-form BRT CI works end-to-end for OLS with covariates", {
 })
 
 test_that("BRT batch kernels match the per-iteration reference path across statistic families", {
+	skip_on_cran()
 	# generic parity harness: kernel output vs run_rand_bootstrap_iteration on the same draws
 	check_kernel_parity = function(inf, deltas, transform, n_check, tol = 1e-8){
 		priv = inf$.__enclos_env__$private
@@ -485,6 +486,7 @@ test_that("compute_brt_null_statistics_with_se returns finite t0 and positive se
 })
 
 test_that("studentized BRT CI covers true effect and both bounds are finite", {
+	skip_on_cran()
 	set.seed(2025)
 	n_rep = 12
 	truth = 1.5
@@ -561,6 +563,7 @@ test_that("symmetric-percentile-t BRT pval >= studentized pval under null (absol
 })
 
 test_that("symmetric-percentile-t BRT CI covers true effect", {
+	skip_on_cran()
 	set.seed(2026)
 	truth = 1.5
 	covered = logical(12L)
@@ -600,6 +603,7 @@ test_that("smoothed BRT pval is smaller under alternative than under null", {
 })
 
 test_that("smoothed BRT CI covers true effect and both bounds are finite", {
+	skip_on_cran()
 	set.seed(314)
 	truth = 1.5
 	covered = logical(12L)

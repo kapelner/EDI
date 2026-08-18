@@ -3,7 +3,14 @@
 #' Internal base class for non-KK zero-inflated and hurdle Poisson regression
 #' models fit using the \pkg{glmmTMB} fitter. The reported treatment effect is the
 #' treatment coefficient from the conditional count component, on the log-rate
-#' scale.
+#' scale, \strong{conditional on the response coming from the count process, not
+#' the structural/excess-zero mechanism}: it is not, and should not be read as,
+#' the effect on the unconditional mean \eqn{E[Y]}, which also depends on how
+#' treatment shifts the zero-inflation/hurdle probability. A design where
+#' treatment shifts only the excess-zero probability, with no change in the
+#' conditional count rate, will report a null treatment coefficient here even
+#' though \eqn{E[Y]} changed. A marginal (unconditional-mean) estimand is not
+#' yet implemented for this family (see \code{marginal_estimand_report.md}).
 #'
 #' @keywords internal
 #' @noRd

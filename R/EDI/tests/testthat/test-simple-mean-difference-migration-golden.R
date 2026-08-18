@@ -198,6 +198,7 @@ test_that("migrated simple mean difference golden outputs are stable", {
 })
 
 test_that("migrated pooled simple mean difference golden outputs are stable", {
+	skip_on_cran()
 	class_name = "InferenceAllSimpleMeanDiffPooledVar"
 	expect_simple_mean_difference_golden(
 		"pooled estimate",

@@ -182,6 +182,7 @@ test_that("A/'all' labeling is objective-determined: the coin never fires (mirro
 })
 
 test_that("quality baseline: annealing does not lose to blind greedy restarts in its necessary zone (testing-plan item 4)", {
+	skip_on_cran()
 	# Annealing's necessary zone is past the exact-solve cutoff; compare, on the
 	# same data and D criterion, forced annealing against the best of n_chains
 	# independent DesignFixedGreedyDOptimal greedy draws.
