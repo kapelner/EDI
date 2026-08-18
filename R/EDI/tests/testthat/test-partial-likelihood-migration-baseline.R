@@ -187,6 +187,24 @@ partial_likelihood_expected_extracted_lwa_cox_targets = list(
 	)
 )
 
+# InferenceSurvivalKKStratCoxPHOneLik's registry target entry newly gained
+# target_direct_components at migration time (2026-08-18) -- unlike its IVWC
+# sibling, which never had one (see that class's Progress note in
+# fix_inference_hierarchy.md). Same treatment as the LWA Cox OneLik entry
+# above: BayesianBootstrap is an explicit direct component and KKPassThrough
+# arrives as the component's dependency.
+partial_likelihood_expected_extracted_strat_cox_one_lik_targets = list(
+	InferenceSurvivalKKStratCoxPHOneLik = list(
+		target_direct_components = c("BayesianBootstrap", "SurvivalKKStratCoxOneLikPartialLikelihood"),
+		target_components = c(
+			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
+			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
+			"KKPassThrough", "Jackknife", "Wald", "LikelihoodTests",
+			"ParametricLikelihoodBootstrap", "SurvivalKKStratCoxOneLikPartialLikelihood"
+		)
+	)
+)
+
 test_that("partial-likelihood migration manifest records every current concrete class", {
 	EDI:::populate_inference_class_registry()
 	manifest = EDI:::partial_likelihood_behavior_manifest()
@@ -448,6 +466,49 @@ test_that("LWA Cox and survival rank-regression component implementations load w
 	expect_true(all(c("Wald", "KKSurvivalRankRegression") %in% EDI:::inference_component_load_trace("KKSurvivalRankRegressionContractTest")))
 })
 
+test_that("KK stratified Cox one-likelihood component exposes extracted helper contracts", {
+	EDI:::populate_inference_component_registry()
+	strat_one_lik_component = EDI:::get_inference_component("SurvivalKKStratCoxOneLikPartialLikelihood")
+
+	# New component (2026-08-18 migration, unlike the LWA Cox OneLik pair
+	# this was not previously a shim-only component -- InferenceSurvivalKK
+	# StratCoxPHOneLik was a single-layer R6 leaf, so this source is minted
+	# fresh from that leaf's own body with no pre-existing shim methods to
+	# preserve).
+	expect_identical(strat_one_lik_component$source_name, "SurvivalKKStratCoxOneLikPartialLikelihoodSource")
+	expect_identical(strat_one_lik_component$component_loader$load_policy, "lazy")
+	expect_identical(strat_one_lik_component$dependencies, c("KKPassThrough", "ParametricLikelihoodBootstrap"))
+	expect_setequal(
+		EDI:::component_public_names(strat_one_lik_component),
+		c(
+			"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
+		)
+	)
+	expect_setequal(
+		EDI:::component_private_names(strat_one_lik_component),
+		c(
+			"compute_basic_match_data",
+			"max_abs_reasonable_coef", "optimization_alg", "best_X_colnames",
+			"design_matrix_candidates", "shared_combined_likelihood",
+			"supports_likelihood_tests", "get_likelihood_test_spec",
+			"get_standard_error", "get_degrees_of_freedom", "assert_finite_se",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null"
+		)
+	)
+})
+
+test_that("KK stratified Cox one-likelihood component implementation loads with matching contract", {
+	EDI:::populate_inference_component_registry()
+	EDI:::clear_inference_component_implementation_cache()
+
+	strat_one_lik_component = EDI:::load_inference_component("SurvivalKKStratCoxOneLikPartialLikelihood", class_name = "SurvivalKKStratCoxOneLikPartialLikelihoodContractTest")
+
+	expect_identical(strat_one_lik_component$component_loader$load_policy, "eager")
+	expect_setequal(names(strat_one_lik_component$private), EDI:::get_inference_component("SurvivalKKStratCoxOneLikPartialLikelihood")$provides_private_methods)
+	expect_true(all(c("KKPassThrough", "Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap", "SurvivalKKStratCoxOneLikPartialLikelihood") %in% EDI:::inference_component_load_trace("SurvivalKKStratCoxOneLikPartialLikelihoodContractTest")))
+})
+
 test_that("partial-likelihood manifest records extracted Cox target component stacks", {
 	EDI:::populate_inference_class_registry()
 	manifest = EDI:::partial_likelihood_behavior_manifest()
@@ -457,13 +518,19 @@ test_that("partial-likelihood manifest records extracted Cox target component st
 		expect_identical(manifest[[class_name]]$target_direct_components, expected$target_direct_components, info = class_name)
 		expect_identical(manifest[[class_name]]$target_components, expected$target_components, info = class_name)
 	}
+	for (class_name in names(partial_likelihood_expected_extracted_strat_cox_one_lik_targets)) {
+		expected = partial_likelihood_expected_extracted_strat_cox_one_lik_targets[[class_name]]
+		expect_identical(manifest[[class_name]]$target_direct_components, expected$target_direct_components, info = class_name)
+		expect_identical(manifest[[class_name]]$target_components, expected$target_components, info = class_name)
+	}
 
 	unextracted = setdiff(
 		names(manifest),
 		c(
 			names(partial_likelihood_expected_extracted_cox_targets),
 			names(partial_likelihood_expected_extracted_conditional_logit_targets),
-			names(partial_likelihood_expected_extracted_lwa_cox_targets)
+			names(partial_likelihood_expected_extracted_lwa_cox_targets),
+			names(partial_likelihood_expected_extracted_strat_cox_one_lik_targets)
 		)
 	)
 	for (class_name in unextracted) {

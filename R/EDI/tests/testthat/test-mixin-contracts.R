@@ -23,7 +23,7 @@ canonical_component_names = function() {
 		"BayesianBootstrap", "Jackknife", "Wald",
 		"SimpleMeanDifference", "SimpleMeanDifferencePooledVar",
 		"KKMeanDifferenceIVWC", "SimpleWilcox", "KKWilcoxIVWC", "KKNewcombeRiskDiffIVWC", "CountKKHurdlePoissonIVWC",
-		"ContinKKRobustRegrIVWC", "ContinKKOLSIVWC", "SurvivalKKRankRegrIVWC",
+		"ContinKKRobustRegrIVWC", "ContinKKOLSIVWC", "ContinKKOLSOneLikLikelihood", "SurvivalKKRankRegrIVWC",
 		"BaiAdjustedT", "SurvivalKKStratCoxIVWC", "IncidKKCondLogitIVWC",
 		"KKQuantileRegrIVWC", "IncidenceKKGComputation",
 		"ExactTest", "ExactBinomialIncidence", "ExactFisherIncidence",
@@ -32,6 +32,7 @@ canonical_component_names = function() {
 		"CoxPartialLikelihood", "StratifiedCoxPartialLikelihood",
 		"ConditionalLogitPartialLikelihood", "OrdinalConditionalLogitPartialLikelihood",
 		"KKLWACoxIVWCPartialLikelihood", "KKLWACoxOneLikPartialLikelihood",
+		"SurvivalKKStratCoxOneLikPartialLikelihood",
 		"KKSurvivalRankRegression",
 			"CountLikelihoodPlumbing", "CountCompositeLikelihood",
 			"ZeroAugmentedCountLikelihood",
@@ -49,7 +50,7 @@ canonical_component_names = function() {
 			"SurvivalKKWeibullFrailtyOneLikLeaf",
 					"KKPassThrough", "KKCompound", "KKGEE",
 		"RobustSandwich", "KKGLMM", "OffOptimumLikelihoodEval",
-		"QuantileRandomizationCI", "BartlettApproximation"
+		"QuantileRandomizationCI", "BartlettApproximation", "MarginalEstimand"
 	)
 }
 

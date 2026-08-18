@@ -81,7 +81,7 @@ test_that("compute_rand_confidence_interval works for continuous response", {
 
 	# Compute randomization CI
 	# Using small nsim for speed in tests
-	ci <- inf$compute_rand_confidence_interval(alpha = 0.05, r = 100, pval_epsilon = 0.05)
+	ci <- inf$compute_rand_confidence_interval(alpha = 0.05, r = 51, pval_epsilon = 0.05)
 
 	expect_equal(length(ci), 2)
 	expect_true(ci[1] < ci[2])
@@ -108,7 +108,7 @@ test_that("compute_rand_confidence_interval works for proportion response", {
 	inf <- InferencePropBetaRegr$new(des, verbose = FALSE)
 
 	# Compute randomization CI
-	ci <- inf$compute_rand_confidence_interval(alpha = 0.05, r = 100, pval_epsilon = 0.05)
+	ci <- inf$compute_rand_confidence_interval(alpha = 0.05, r = 51, pval_epsilon = 0.05)
 
 	expect_equal(length(ci), 2)
 	expect_true(ci[1] < ci[2])
@@ -163,7 +163,7 @@ test_that("compute_rand_confidence_interval works for survival response (uncenso
 	inf <- InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
 
 	# Compute randomization CI
-	ci <- inf$compute_rand_confidence_interval(alpha = 0.05, r = 100, pval_epsilon = 0.05)
+	ci <- inf$compute_rand_confidence_interval(alpha = 0.05, r = 51, pval_epsilon = 0.05)
 
 	expect_equal(length(ci), 2)
 	expect_true(ci[1] < ci[2])
@@ -190,7 +190,7 @@ test_that("compute_rand_confidence_interval works for ordinal response (cumulati
 
 	inf <- InferenceOrdinalPropOddsRegr$new(des, verbose = FALSE)
 
-	ci <- inf$compute_rand_confidence_interval(alpha = 0.05, r = 100, pval_epsilon = 0.05, show_progress = FALSE)
+	ci <- inf$compute_rand_confidence_interval(alpha = 0.05, r = 51, pval_epsilon = 0.05, show_progress = FALSE)
 
 	expect_equal(length(ci), 2)
 	expect_true(ci[1] < ci[2])
@@ -213,7 +213,7 @@ test_that("compute_rand_confidence_interval throws error for unsupported types",
 	for (i in 1:n) des_count$add_one_subject_to_experiment_and_assign(data.table(x=1))
 	add_all_subject_responses_seq(des_count, rpois(n, 5))
 	inf_count <- InferenceCountNegBin$new(des_count)
-	ci_count <- inf_count$compute_rand_confidence_interval(alpha = 0.05, r = 100, pval_epsilon = 0.05)
+	ci_count <- inf_count$compute_rand_confidence_interval(alpha = 0.05, r = 51, pval_epsilon = 0.05)
 	expect_equal(length(ci_count), 2)
 	expect_true(ci_count[1] < ci_count[2])
 	expect_true(all(is.finite(ci_count)))

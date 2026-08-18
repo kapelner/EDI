@@ -780,6 +780,16 @@ EDI_COMPONENT_SPECS = list(
 		allowed_likelihood_tiers = c("quasi", "partial", "full"),
 		declare_body_references_optional = TRUE
 	),
+	MarginalEstimand = list(
+		status = "active",
+		source_name = "InferenceMarginalEstimand",
+		file = "inference_all_abstract_marginal_estimand.R",
+		dependencies = character(),
+		owns_state = "estimand",
+		provides_capabilities = "marginal_estimand",
+		allowed_likelihood_tiers = c("partial", "full"),
+		declare_body_references_optional = TRUE
+	),
 	ParametricLikelihoodBootstrap = list(
 		status = "active",
 		load_policy = "lazy",
@@ -998,6 +1008,78 @@ EDI_COMPONENT_SPECS = list(
 		),
 		provides_capabilities = character(),
 		allowed_likelihood_tiers = "partial",
+		declare_body_references_optional = TRUE
+	),
+	SurvivalKKStratCoxOneLikPartialLikelihood = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "SurvivalKKStratCoxOneLikPartialLikelihoodSource",
+		file = "inference_survival_KK_strat_cox.R",
+		# 2026-08-18 migration (fix_inference_hierarchy.md "Partial-Likelihood
+		# Estimators" / "KK And IVWC Estimators"): formerly
+		# `InferenceSurvivalKKStratCoxPHOneLik`, a single-layer R6 leaf
+		# inheriting `InferenceParamBootstrap` and raw-splicing
+		# `InferenceMixinKKPassThrough$public/private` (`utils::modifyList
+		# (as.list(...), ...)`) -- no separate abstract base, unlike the LWA
+		# Cox OneLik pair. Same reshaping recipe as
+		# `KKLWACoxOneLikPartialLikelihoodSource`: the class's own
+		# stratified-Cox combined-likelihood machinery becomes this source,
+		# `dependencies` supplies `KKPassThrough` for match-structure setup/
+		# `compute_treatment_estimate_during_randomization_inference` (this
+		# class never overrode that method itself, unlike LWA, so it is not
+		# duplicated here -- it flows through from KKPassThrough) plus
+		# `ParametricLikelihoodBootstrap` (already depends on
+		# `LikelihoodTests` transitively).
+		dependencies = c("KKPassThrough", "ParametricLikelihoodBootstrap"),
+		owns_state = c("max_abs_reasonable_coef", "optimization_alg", "best_X_colnames"),
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
+		),
+		provides_private_methods = c(
+			"compute_basic_match_data",
+			"max_abs_reasonable_coef", "optimization_alg", "best_X_colnames",
+			"design_matrix_candidates", "shared_combined_likelihood",
+			"supports_likelihood_tests", "get_likelihood_test_spec",
+			"get_standard_error", "get_degrees_of_freedom", "assert_finite_se",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "partial",
+		declare_body_references_optional = TRUE
+	),
+	ContinKKOLSOneLikLikelihood = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "ContinKKOLSOneLikLikelihoodSource",
+		file = "inference_continuous_KK_ols_one_lik.R",
+		# 2026-08-18 migration (fix_inference_hierarchy.md "Full-Likelihood
+		# Estimators" / "KK And IVWC Estimators"): formerly a plain R6 leaf on
+		# the real R6 abstract `InferenceKKPassThroughCompound`. `KKCompound`
+		# supplies reduce_design_matrix_once()/compute_basic_match_data()/
+		# init_kk_passthrough() (same as every KKCompound-dependent IVWC leaf);
+		# ParametricLikelihoodBootstrap already depends on LikelihoodTests
+		# transitively.
+		dependencies = c("KKCompound", "ParametricLikelihoodBootstrap"),
+		owns_state = character(),
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"get_likelihood_components"
+		),
+		provides_private_methods = c(
+			"compute_fast_randomization_distr", "get_standard_error",
+			"get_degrees_of_freedom", "supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_bartlett_likelihood_ratio_exact", "get_bartlett_factor_exact",
+			"simulate_under_lik_null", "get_supported_testing_types_impl",
+			"get_score_test_information_matrix", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"get_likelihood_test_spec", "compute_likelihood_test_two_sided_pval",
+			"assert_finite_se", "fit_ols", "fit_combined", "fit_weighted_combined"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "full",
 		declare_body_references_optional = TRUE
 	),
 	SurvivalKKRankRegrIVWC = list(

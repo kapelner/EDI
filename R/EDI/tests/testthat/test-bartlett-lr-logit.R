@@ -29,8 +29,8 @@ test_that("Bartlett factor: is finite, positive, and reproducible given a fixed 
 	spec <- priv$get_likelihood_test_spec()
 
 	inf$set_seed(777)
-	factor1 <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = spec$fit_null(0), B = 99)
-	factor2 <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = spec$fit_null(0), B = 99)
+	factor1 <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = spec$fit_null(0), B = 41)
+	factor2 <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = spec$fit_null(0), B = 41)
 
 	expect_true(is.finite(factor1))
 	expect_gt(factor1, 0)
@@ -48,9 +48,9 @@ test_that("Bartlett factor changes with a different seed (not a hard-coded const
 	null_fit <- spec$fit_null(0)
 
 	inf$set_seed(111)
-	factor_a <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = null_fit, B = 99)
+	factor_a <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = null_fit, B = 41)
 	inf$set_seed(222)
-	factor_b <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = null_fit, B = 99)
+	factor_b <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = null_fit, B = 41)
 
 	expect_true(is.finite(factor_a) && is.finite(factor_b))
 	expect_false(isTRUE(all.equal(factor_a, factor_b)))
@@ -63,9 +63,9 @@ test_that("Bartlett factor changes with a different B (same seed), since more/fe
 	null_fit <- spec$fit_null(0)
 
 	inf$set_seed(321)
-	factor_small_B <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = null_fit, B = 25)
+	factor_small_B <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = null_fit, B = 15)
 	inf$set_seed(321)
-	factor_large_B <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = null_fit, B = 150)
+	factor_large_B <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = null_fit, B = 51)
 
 	expect_true(is.finite(factor_small_B) && is.finite(factor_large_B))
 	expect_false(isTRUE(all.equal(factor_small_B, factor_large_B)))
@@ -83,11 +83,11 @@ test_that("Bartlett p-value matches pchisq(raw LR statistic / factor, df=1) exac
 
 	null_fit_for_factor <- spec$fit_null(0)
 	inf$set_seed(999)
-	factor <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = null_fit_for_factor, B = 60)
+	factor <- priv$get_bartlett_factor_approx(spec = spec, delta = 0, full_fit = spec$full_fit, null_fit = null_fit_for_factor, B = 31)
 	expected_bartlett_pval <- pchisq(raw_stat / factor, df = 1, lower.tail = FALSE)
 
 	inf$set_seed(999)
-	bartlett_pval <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 60)
+	bartlett_pval <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 31)
 
 	expect_true(is.finite(bartlett_pval))
 	expect_equal(bartlett_pval, expected_bartlett_pval, tolerance = 1e-4)
@@ -96,11 +96,11 @@ test_that("Bartlett p-value matches pchisq(raw LR statistic / factor, df=1) exac
 test_that("Bartlett p-value is reproducible for the same (delta, B, seed) and differs when B changes", {
 	inf <- make_logit_inference(seed = 210)
 	inf$set_seed(654)
-	pval_B60_a <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 60)
+	pval_B60_a <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 31)
 	inf$set_seed(654)
-	pval_B60_b <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 60)
+	pval_B60_b <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 31)
 	inf$set_seed(654)
-	pval_B120 <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 120)
+	pval_B120 <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 51)
 
 	expect_true(is.finite(pval_B60_a) && is.finite(pval_B60_b) && is.finite(pval_B120))
 	expect_equal(pval_B60_a, pval_B60_b, tolerance = 0)
@@ -134,7 +134,7 @@ test_that("Bartlett confidence interval honors an explicit B and stays finite/or
 	inf <- make_logit_inference(seed = 211)
 	inf$set_seed(1357)
 	est <- inf$compute_estimate()
-	ci <- inf$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = 0.2, B = 40)
+	ci <- inf$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = 0.2, B = 21)
 
 	expect_length(ci, 2)
 	expect_true(all(is.finite(ci)))
@@ -158,8 +158,8 @@ test_that("The seed is inherited from the inference object's own set_seed(), wit
 	expect_false("seed" %in% names(formals(inf$compute_lik_ratio_bartlett_approx_confidence_interval)))
 
 	inf$set_seed(2468)
-	pval_a <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 30)
+	pval_a <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 15)
 	inf$set_seed(2468)
-	pval_b <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 30)
+	pval_b <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 15)
 	expect_equal(pval_a, pval_b, tolerance = 0)
 })

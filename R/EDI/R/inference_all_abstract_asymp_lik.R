@@ -467,7 +467,21 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		# get_supported_testing_types_impl() directly with a hard-coded vector;
 		# appending here means those overrides don't each need to be touched to
 		# pick up Bartlett support.
+		#
+		# Estimand-aware (marginal_estimand_report.md TODO-6): a class composing
+		# both LikelihoodTests and MarginalEstimand has no single coefficient to
+		# profile once switched off the conditional estimand -- fixed_idx-style
+		# constrained refits (score/gradient/lik_ratio/Bartlett) do not apply, so
+		# the supported set shrinks to Wald-via-delta-method only. Checked via
+		# self$supports("marginal_estimand") -- the sanctioned capability query,
+		# not a private-method-name probe (Source Invariant #19 bans
+		# has_private_method()-based semantic classification) -- so classes that
+		# do not compose MarginalEstimand pay no cost and see no behavior change.
 		get_supported_testing_types_with_bartlett = function(){
+			if (isTRUE(self$supports("marginal_estimand")) &&
+					!identical(self$get_estimand(), "conditional")) {
+				return("wald")
+			}
 			types = private$get_supported_testing_types_impl()
 			if (isTRUE(private$supports_bartlett_likelihood_ratio_approx())) {
 				types = c(types, "lik_ratio_bartlett_approx")

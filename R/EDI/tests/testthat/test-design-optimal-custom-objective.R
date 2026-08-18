@@ -79,16 +79,22 @@ test_that("annealing_solve_custom reproduces the built-in abs_sum_diff optimum",
 })
 
 test_that("annealing_solve_custom is seed-deterministic", {
+	# Only determinism (same seed -> identical result) is asserted, not
+	# optimality, so a small max_iter budget suffices -- "annealing_converged"
+	# just means "the annealing solver was used" (see
+	# helper_optimal_annealing.R), not that it hit the global optimum.
 	X = custom_test_X(12, 2, 303)
 	set.seed(14)
-	res1 = EDI:::annealing_solve_custom(X, custom_abs_sum_diff_xptr(), n_T = 6L, n_chains = 2L, max_iter = 1500L)
+	res1 = EDI:::annealing_solve_custom(X, custom_abs_sum_diff_xptr(), n_T = 6L, n_chains = 2L, max_iter = 250L)
 	set.seed(14)
-	res2 = EDI:::annealing_solve_custom(X, custom_abs_sum_diff_xptr(), n_T = 6L, n_chains = 2L, max_iter = 1500L)
+	res2 = EDI:::annealing_solve_custom(X, custom_abs_sum_diff_xptr(), n_T = 6L, n_chains = 2L, max_iter = 250L)
 	expect_identical(res1$w, res2$w)
 	expect_identical(res1$objective_value, res2$objective_value)
 })
 
 test_that("annealing_solve_custom also accepts a C++ source string, via the same shared normalizer", {
+	# Only checks plumbing (sum(w) and certificate label), not optimality --
+	# small max_iter is fine.
 	X = custom_test_X(10, 2, 305)
 	src = "double f_src(const Eigen::MatrixXd& X, const Eigen::VectorXd& w) {
 		Eigen::RowVectorXd mu = X.colwise().mean();
@@ -97,7 +103,7 @@ test_that("annealing_solve_custom also accepts a C++ source string, via the same
 		return (Xc.transpose() * s).squaredNorm();
 	}"
 	set.seed(16)
-	res = EDI:::annealing_solve_custom(X, src, n_T = 5L, n_chains = 2L, max_iter = 1500L)
+	res = EDI:::annealing_solve_custom(X, src, n_T = 5L, n_chains = 2L, max_iter = 250L)
 	expect_identical(sum(res$w), 5)
 	expect_identical(res$certificate, "annealing_converged")
 })
@@ -160,10 +166,12 @@ test_that("custom randomization statistic: bare externalptrs without cppXPtr's s
 })
 
 test_that("optimal_solve_auto: custom always uses annealing, even at tiny n", {
+	# Plumbing check (solver/certificate routing), not optimality -- small
+	# max_iter is fine.
 	X = custom_test_X(8, 2, 304)
 	set.seed(15)
 	res = EDI:::optimal_solve_auto(kind = "custom", X = X,
-		custom_objective = custom_abs_sum_diff_xptr(), n_T = 4L, max_iter = 1000L)
+		custom_objective = custom_abs_sum_diff_xptr(), n_T = 4L, max_iter = 250L)
 	expect_identical(res$solver, "annealing")
 	expect_identical(res$certificate, "annealing_converged")
 	expect_identical(sum(res$w), 4)

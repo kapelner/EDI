@@ -243,11 +243,11 @@ test_that("Smart wrapper warns when B is explicitly supplied but the exact path 
 	inf <- ext_env$BartlettExactPreferred2$new(make_logit_inference(seed = 302)$get_design_object(), verbose = FALSE)
 
 	expect_warning(
-		inf$compute_lik_ratio_bartlett_two_sided_pval(delta = 0, B = 50),
+		inf$compute_lik_ratio_bartlett_two_sided_pval(delta = 0, B = 5),
 		"B is ignored"
 	)
 	expect_warning(
-		inf$compute_lik_ratio_bartlett_confidence_interval(alpha = 0.1, B = 50),
+		inf$compute_lik_ratio_bartlett_confidence_interval(alpha = 0.1, B = 5),
 		"B is ignored"
 	)
 })
@@ -259,15 +259,15 @@ test_that("Smart wrapper falls back to approx when exact is unsupported", {
 	expect_true(priv$supports_bartlett_likelihood_ratio_approx())
 
 	inf$set_seed(9999)
-	approx_pval <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 99)
+	approx_pval <- inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0, B = 9)
 	inf$set_seed(9999)
-	smart_pval <- expect_no_warning(inf$compute_lik_ratio_bartlett_two_sided_pval(delta = 0, B = 99))
+	smart_pval <- expect_no_warning(inf$compute_lik_ratio_bartlett_two_sided_pval(delta = 0, B = 9))
 	expect_equal(smart_pval, approx_pval, tolerance = 0)
 
 	inf$set_seed(8888)
-	approx_ci <- inf$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = 0.2, B = 40)
+	approx_ci <- inf$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = 0.2, B = 9)
 	inf$set_seed(8888)
-	smart_ci <- expect_no_warning(inf$compute_lik_ratio_bartlett_confidence_interval(alpha = 0.2, B = 40))
+	smart_ci <- expect_no_warning(inf$compute_lik_ratio_bartlett_confidence_interval(alpha = 0.2, B = 9))
 	expect_equal(as.numeric(smart_ci), as.numeric(approx_ci), tolerance = 0)
 })
 

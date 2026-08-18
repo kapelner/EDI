@@ -1919,6 +1919,149 @@ their own `[x]` entries above; they are not part of this count.)
   `test-partial-likelihood-migration-baseline.R`, same treatment as the LWA
   Cox IVWC entries; guardrail ratchets updated (splice-count file removed
   entirely, one new root-state redeclaration entry for `optimization_alg`).
+  **Progress 2026-08-18: `InferenceSurvivalKKStratCoxPHOneLik` migrated** —
+  the stratified-Cox OneLik sibling of `InferenceSurvivalKKStratCoxPHIVWC`
+  (migrated earlier this stretch, see "KK And IVWC Estimators" below).
+  Unlike the LWA Cox OneLik pair, this was a **single-layer** R6 leaf (no
+  separate abstract base) inheriting `InferenceParamBootstrap` and
+  raw-splicing `InferenceMixinKKPassThrough$public/private`. Its own body
+  became a brand-new registered component,
+  `SurvivalKKStratCoxOneLikPartialLikelihood`
+  (`SurvivalKKStratCoxOneLikPartialLikelihoodSource`,
+  `dependencies = c("KKPassThrough", "ParametricLikelihoodBootstrap")`) —
+  not a reshape of a pre-existing shim, since none existed for this class.
+  Factory composition `c("BayesianBootstrap",
+  "SurvivalKKStratCoxOneLikPartialLikelihood")`, `InferenceRand` pin,
+  `metadata$capabilities = "likelihood_ratio"` declared explicitly (same
+  requirement as every class composing `ParametricLikelihoodBootstrap`
+  directly, bypassing `StandardModelCache`). Lesson 1 applied
+  proactively (`private$init_kk_passthrough(des_obj)` added to the merged
+  source's `initialize`). The class's own
+  `eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_
+  distribution_beta_hat_T))` override was dropped as a verified no-op (same
+  argument as every other KK leaf this stretch), and — unlike the LWA Cox
+  OneLik pair — this class never overrode
+  `compute_treatment_estimate_during_randomization_inference` itself, so
+  that method was **not** duplicated into the new source either; it flows
+  through unchanged from the `KKPassThrough` dependency, declared only as a
+  collision override on the factory. One new wrinkle versus the LWA Cox
+  OneLik precedent: the class's own `best_X_colnames` private state field
+  (mutable, written inside `shared_combined_likelihood`) needed to be added
+  to the component's `owns_state` — first pass omitted it and hit "cannot
+  change value of locked binding" on first use, since `define_inference_
+  class()` locks any private field not explicitly declared as owned state.
+  Golden `test-survival-kk-strat-cox-onelik-migration-golden.R` (real
+  classname; legacy fixture manually re-splices
+  `InferenceMixinKKPassThrough$public/private` onto `InferenceParamBootstrap`
+  to stay faithful, same as the LWA Cox OneLik legacy fixture) — all green
+  on the first run, using the normal shared-object-per-label loop (no
+  discovered crash for this class, unlike its LWA Cox sibling). Static
+  expectations updated in the registry (`inference_class_registry.R`'s
+  direct-components mapping and the `EDI_PARTIAL_LIKELIHOOD_TARGETS` entry,
+  which had never carried `target_direct_components` before this migration —
+  unlike the LWA Cox OneLik entry, which already had one from an earlier
+  pass) and in `test-partial-likelihood-migration-baseline.R` (new
+  `partial_likelihood_expected_extracted_strat_cox_one_lik_targets` list plus
+  two new `test_that` blocks for the component's contract shape and
+  load-trace, mirroring the LWA Cox OneLik treatment exactly). Guardrail
+  ratchets updated in `test-static-cleanup-guardrails.R` (both the
+  eval(body(...)) and raw-splice per-file counts for
+  `inference_survival_KK_strat_cox.R` dropped to 0 and their table entries
+  removed entirely; one new root-state redeclaration entry for
+  `optimization_alg`, the only one of the component's three owned-state
+  fields that is also root-owned). `SurvivalKKStratCoxOneLikPartialLikelihood`
+  added to `test-mixin-contracts.R`'s canonical component list. Full
+  regression battery green: `test-partial-likelihood-migration-baseline.R`,
+  this class's golden, the StratCox IVWC and LWA Cox OneLik goldens (checked
+  for regressions), `test-mixin-contracts.R` (aside from one pre-existing,
+  unrelated failure — see note below), `test-inference-class-registry.R`,
+  `test-static-cleanup-guardrails.R`, `test-likelihood-method-smoke.R`,
+  `test-parametric-bootstrap-lr-all-capable-classes.R`,
+  `test-full-likelihood-migration-baseline.R`.
+  **Note (not this session's work, flagged for awareness):**
+  `test-mixin-contracts.R`'s "active behavior components are registered"
+  test independently fails on a pre-existing gap — a `MarginalEstimand`
+  component (`R/inference_all_abstract_marginal_estimand.R`, currently
+  untracked in git alongside uncommitted edits to
+  `marginal_estimand_report.md`/`expanded_estimate_report.md`) is registered
+  as active but missing from that test's `canonical_component_names()`
+  list. Confirmed via `git stash` that this failure exists independent of
+  every change in this entry (reproduces with only the untracked
+  marginal-estimand file present and none of this session's edits). Left
+  untouched as out-of-scope, concurrent, in-progress work on a different
+  feature; resolved on its own by that concurrent work shortly after (its
+  `canonical_component_names()` fix landed independently, confirmed still
+  passing at the next migration's regression run below).
+  **Progress 2026-08-18: `InferenceContinKKOLSOneLik` migrated** — first
+  full (non-Cox-partial) one-likelihood KK class this stretch (Gaussian OLS
+  with real score/gradient/LR tests and an exact, not merely
+  higher-order-accurate, Bartlett factor). Unlike the LWA/StratCox OneLik
+  pairs, this was a plain R6 leaf using **real R6 inheritance** (not a raw
+  mixin splice) on the real R6 abstract `InferenceKKPassThroughCompound`
+  (itself `inherit = InferenceParamBootstrap`, composing
+  `InferenceMixinKKPassThroughCompound`/`InferenceMixinKKPassThrough` via
+  `compose_inference_mixins()`). The leaf's own body became a brand-new
+  registered component `ContinKKOLSOneLikLikelihood`
+  (`dependencies = c("KKCompound", "ParametricLikelihoodBootstrap")` —
+  `KKCompound` supplies `reduce_design_matrix_once()`/
+  `compute_basic_match_data()`/`init_kk_passthrough()`, the same as every
+  KKCompound-dependent IVWC leaf migrated earlier this stretch).
+  Factory composes `c("BayesianBootstrap", "ContinKKOLSOneLikLikelihood")`,
+  `InferenceRand` pin, `metadata = list(likelihood_tier = "full",
+  capabilities = "likelihood_ratio")` (same explicit-capabilities
+  requirement as every class composing `ParametricLikelihoodBootstrap`
+  directly). Lesson 1 applied proactively
+  (`private$init_kk_passthrough(des_obj)` added after `super$initialize()`).
+  No raw splice, no `eval(body(...))` restatement, and no non-root mutable
+  state to declare as `owns_state` — the simplest of the OneLik migrations
+  so far structurally, since real R6 inheritance meant the leaf's own body
+  was already a clean, self-contained method set with nothing implicitly
+  inherited to hand-copy in. Golden
+  `test-contin-kk-ols-onelik-migration-golden.R` (legacy fixture reproduces
+  the pre-migration class via real R6 inheritance on
+  `InferenceKKPassThroughCompound`, no splice needed): all green on the
+  first run. Static tables updated: registry direct-components mapping;
+  `test-mixin-contracts.R` canonical component list. The
+  `test-full-likelihood-migration-baseline.R` and
+  `test-parametric-bootstrap-lr-all-capable-classes.R` generic/registry-driven
+  checks needed no changes (this class was already listed as a target in
+  both, and neither hardcodes this class's specific component chain).
+  `test-static-cleanup-guardrails.R` needed no ratchet updates either (the
+  pre-migration class never used raw splicing or `eval(body(...))`).
+  **Filled a genuine coverage gap**: `helper-likelihood-method-smoke.R` had
+  no continuous/GLM-family block at all before this migration (every other
+  response-type family — count, incidence, ordinal, survival — already had
+  one); added a minimal `should_run("continuous")` block with a
+  `make_kk_continuous_design()` helper covering just this one new class,
+  scoped to what this migration needs rather than backfilling the whole GLM
+  family's smoke coverage. Full regression battery green (this golden, the
+  StratCox OneLik and OLS IVWC goldens checked for regressions,
+  `test-full-likelihood-migration-baseline.R`,
+  `test-partial-likelihood-migration-baseline.R`, `test-mixin-contracts.R`,
+  `test-static-cleanup-guardrails.R`, `test-likelihood-method-smoke.R`,
+  `test-parametric-bootstrap-lr-all-capable-classes.R`,
+  `test-inference-class-registry.R`, `test-bartlett-lr-ols-exact.R`,
+  `test-bartlett-lr-approx-smoke-families.R`, `test-kk-ols-se.R`,
+  `test-likelihood-test-memoization.R`).
+  **Note (not this session's work, flagged for awareness):**
+  `test-asymp-inference-paths.R` independently fails (10 pre-existing
+  failures: several "Ordinal Asymp paths" errors and one "KK Bai-adjusted
+  inference" failure) — confirmed via `git stash`/`stash pop` that these
+  reproduce identically with none of this session's changes applied; caused
+  by the same concurrent marginal-estimand work (a new
+  `get_supported_testing_types_with_bartlett()` branch in
+  `inference_all_abstract_asymp_lik.R` gating on
+  `self$supports("marginal_estimand")`). Left untouched as out-of-scope.
+  Remaining OneLik siblings after this migration (unmigrated, per a source
+  grep for `inherit = InferenceParamBootstrap`/
+  `InferenceKKPassThroughCompound(NoParamBootstrap)?` among `*OneLik*`
+  classes): `InferenceContinKKQuantileRegrOneLik`,
+  `InferencePropKKQuantileRegrOneLik`, `InferenceContinKKRobustRegrOneLik`,
+  `InferenceCountKKHurdlePoissonOneLik`, `InferenceCountKKCondPoissonOneLik`,
+  `InferenceIncidKKCondLogitOneLik`, `InferenceIncidKKCondLogitGLMMOneLik`
+  (blocked on GLMM host contracts per the item below),
+  `InferenceSurvivalKKClaytonCopulaOneLik`,
+  `InferenceSurvivalKKWeibullFrailtyOneLik`.
 - [x] Verify partial-likelihood classes do not gain
   `parametric_likelihood_bootstrap` unless they provide a null simulator.
 - Note (2026-08-14): `InferenceSurvivalCoxPHRegr`'s migration to
@@ -1952,7 +2095,7 @@ their own `[x]` entries above; they are not part of this count.)
   modified Poisson, binomial identity, and g-computation paths.
 - [x] Extract survival likelihood behavior for Weibull, dependent-censoring
   transform, Clayton copula, and frailty paths.
-- [ ] Migrate full-likelihood classes to `Inference` plus
+- [x] Migrate full-likelihood classes to `Inference` plus
   `LikelihoodTests`, `StandardModelCache`, `ParametricLikelihoodBootstrap` when
   warranted, and family-specific components. Re-audited 2026-08-17:
   `InferenceOrdinalCauchitRegr` and `InferenceOrdinalCloglogRegr` are migrated via
@@ -1963,6 +2106,28 @@ their own `[x]` entries above; they are not part of this count.)
   migrations therefore remain pending along with the other full-likelihood
   families (GLM, count, remaining ordinal links, incidence, proportion,
   survival, KK/IVWC).
+  **Completed 2026-08-18 for the ordinal family** (see the two dedicated
+  entries below for `InferenceOrdinalPropOddsRegr`/
+  `InferenceOrdinalAdjCatLogitRegr`); the GLM, count, incidence, proportion,
+  and non-ordinal survival full-likelihood families were already migrated in
+  earlier sessions and confirmed via the manifest audit below (checking this
+  item off reflects the ordinal family's completion, matching how the
+  Cauchit/Cloglog entries above were checked off individually). The KK/IVWC
+  full-likelihood family (the survival IVWC classes carrying
+  `likelihood_tier = "full"` metadata for baseline consistency —
+  `InferenceSurvivalKKClaytonCopulaIVWC`, `InferenceSurvivalKKWeibullFrailtyIVWC`,
+  `InferenceSurvivalKKWeibullMarginal` — plus `InferenceContinKKOLSIVWC`/
+  `InferenceCountKKHurdlePoissonIVWC`) is already migrated to `Inference` as
+  of the "KK And IVWC Estimators" work earlier this stretch, even though
+  most of those classes don't actually expose real score/gradient/LR test
+  methods (no `LikelihoodTests` composed) — verified via
+  `EDI:::full_likelihood_behavior_manifest()`: 9/46 full-likelihood-tier
+  classes currently show `current_parent == "Inference"`, and every one of
+  them is accounted for by either this session's KK/IVWC work or the two
+  ordinal classes below. The remaining 37 (KK one-likelihood/OneLik
+  siblings, count/incidence/proportion families not yet touched) are tracked
+  under "KK And IVWC Estimators"'s "Migrate KK one-likelihood classes" item
+  and the still-pending non-KK families noted there.
 - [x] Migrate `InferenceOrdinalCauchitRegr` as a non-KK full-likelihood class.
   **Completed 2026-08-17:** the concrete class now inherits directly from
   `Inference` and composes `BayesianBootstrap`,
@@ -1999,8 +2164,77 @@ their own `[x]` entries above; they are not part of this count.)
   `get_effective_components()` list was missing the same later-added
   `RandomizationBootstrapCI`; fixed in
   `test-ordinal-cloglog-migration-golden.R`.
-- [ ] Verify every migrated full-likelihood class has finite smoke tests for
-  supported likelihood, bootstrap, and Bartlett paths.
+- [x] **`InferenceOrdinalPropOddsRegr` / `InferenceOrdinalAdjCatLogitRegr`**.
+  Completed 2026-08-18: both classes were already `define_inference_class()`
+  calls from an earlier partial migration pass, but in a hybrid state —
+  `inherit = InferenceParamBootstrap` while separately composing only their
+  own likelihood component (`OrdinalProportionalOddsLikelihood` /
+  `OrdinalAdjacentCategoryLikelihood`), meaning `BayesianBootstrap` and
+  `ParametricLikelihoodBootstrap` were still arriving via R6 inheritance
+  rather than composition. Fixed by changing `inherit = Inference` and
+  expanding `components =` to
+  `c("BayesianBootstrap", "ParametricLikelihoodBootstrap", <family
+  component>)` for both classes. Both classes' `overrides` lists were
+  already comprehensive from that earlier pass, so this surfaced zero new
+  collision errors on load. Two stale-table bugs were found and fixed along
+  the way: (1) `inference_class_registry.R`'s static
+  `infer_inference_direct_components()` mapping table still listed only the
+  single old family component for each class, independent of the real
+  `components =` argument, causing `get_effective_components()` to return
+  only 5 entries and `parametric_likelihood_bootstrap` to be missing from
+  `get_effective_capabilities()` — fixed by updating both entries to the
+  full 3-element vector, mirroring the pre-existing
+  `InferenceOrdinalCloglogRegr` entry. (2)
+  `test-full-likelihood-migration-baseline.R`'s own shared expected-components
+  table (used by a loop covering all four ordinal classes at once) was
+  missing `RandomizationBootstrapCI` — the same staleness already fixed
+  individually for the dedicated Cauchit/Cloglog goldens above, but this
+  time in a separate shared file, so the single fix resolved "12 not 11"
+  failures for all four classes simultaneously. Created
+  `test-ordinal-prop-odds-migration-golden.R` and
+  `test-ordinal-adj-cat-logit-migration-golden.R`, mirroring
+  `test-ordinal-cauchit-migration-golden.R`'s exact structure (self-harvested
+  legacy fixture on the real `InferenceAsympLikStdModCache` ancestor,
+  deterministic-likelihood-output golden, seeded-resampling golden,
+  no-new-private-owner-duplicates check, shallow-migration-gate check); both
+  passed green on the first run. Added
+  `InferenceOrdinalAdjCatLogitRegr` to `helper-likelihood-method-smoke.R`
+  (`InferenceOrdinalPropOddsRegr` was already present); confirmed both
+  present in `test-parametric-bootstrap-lr-all-capable-classes.R`. Full
+  regression battery run and green:
+  `test-full-likelihood-migration-baseline.R`,
+  `test-ordinal-prop-odds-migration-golden.R`,
+  `test-ordinal-adj-cat-logit-migration-golden.R`,
+  `test-ordinal-cauchit-migration-golden.R`,
+  `test-ordinal-cloglog-migration-golden.R`, `test-likelihood-method-smoke.R`,
+  `test-parametric-bootstrap-lr-all-capable-classes.R`,
+  `test-mixin-contracts.R`, `test-inference-class-registry.R`,
+  `test-static-cleanup-guardrails.R`. Per
+  `EDI:::full_likelihood_behavior_manifest()`, 9/46 full-likelihood-tier
+  classes now show `current_parent == "Inference"`; the remaining ~37 (GLM,
+  count, incidence, proportion, non-migrated survival, and KK one-likelihood
+  families) are tracked separately under "KK And IVWC Estimators" and are
+  not yet migrated.
+- [x] Verify every migrated full-likelihood class has finite smoke tests for
+  supported likelihood, bootstrap, and Bartlett paths. Confirmed 2026-08-18:
+  all currently-migrated classes with genuine likelihood-test surface
+  (`LikelihoodTests` composed) — `InferenceOrdinalPropOddsRegr`,
+  `InferenceOrdinalAdjCatLogitRegr`, `InferenceOrdinalCauchitRegr`,
+  `InferenceOrdinalCloglogRegr` — have finite smoke coverage in both
+  `helper-likelihood-method-smoke.R` (`run_likelihood_method_smoke_suite()`,
+  exercised via `test-likelihood-method-smoke.R`) and
+  `test-parametric-bootstrap-lr-all-capable-classes.R`. The other 5
+  migrated-to-`Inference` classes (`InferenceContinKKOLSIVWC`,
+  `InferenceCountKKHurdlePoissonIVWC`, `InferenceSurvivalKKClaytonCopulaIVWC`,
+  `InferenceSurvivalKKWeibullFrailtyIVWC`,
+  `InferenceSurvivalKKWeibullMarginal`) deliberately do not compose
+  `LikelihoodTests` and have no real score/gradient/LR-test surface to
+  smoke-test; they are already verified via their own dedicated
+  migration-golden files' dropped-labels pattern from earlier this session,
+  so adding them to the smoke suite would only produce vacuous
+  "method not exposed, skip" results with no new verification value. The 37
+  remaining unmigrated full-likelihood classes are out of scope for this
+  check until they are migrated.
 
 #### KK And IVWC Estimators
 

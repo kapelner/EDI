@@ -275,7 +275,24 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 		des
 	}
 
+	make_kk_continuous_design <- function(n = 24L){
+		des = DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE)
+		x1 = rnorm(n)
+		x2 = rnorm(n)
+		for (i in seq_len(n)){
+			w_i = des$add_one_subject_to_experiment_and_assign(data.frame(x1 = x1[i], x2 = x2[i]))
+			des$add_one_subject_response(i, 0.6 * ((w_i + 1) / 2) + 0.3 * x1[i] + rnorm(1L, sd = 0.8))
+		}
+		des
+	}
+
 	results = list()
+	if (should_run("continuous")) {
+		results$kk_contin_ols_one_lik = call_all_methods(
+			InferenceContinKKOLSOneLik$new(make_kk_continuous_design(), model_formula = ~ x1, verbose = FALSE),
+			"InferenceContinKKOLSOneLik"
+		)
+	}
 	if (should_run("count")) {
 		results$count_poisson = call_all_methods(
 			InferenceCountPoisson$new(make_fixed_count_design(), model_formula = ~ x1, verbose = FALSE),
@@ -316,6 +333,10 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 		results$ordinal_prop_odds = call_all_methods(
 			InferenceOrdinalPropOddsRegr$new(make_fixed_ordinal_design(), model_formula = ~ x1 + x2, verbose = FALSE),
 			"InferenceOrdinalPropOddsRegr"
+		)
+		results$ordinal_adj_cat_logit = call_all_methods(
+			InferenceOrdinalAdjCatLogitRegr$new(make_fixed_ordinal_design(), model_formula = ~ x1 + x2, verbose = FALSE),
+			"InferenceOrdinalAdjCatLogitRegr"
 		)
 		results$ordinal_ordered_probit = call_all_methods(
 			InferenceOrdinalOrderedProbitRegr$new(make_fixed_ordinal_design(), model_formula = ~ x1 + x2, verbose = FALSE),

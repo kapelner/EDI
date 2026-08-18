@@ -342,11 +342,28 @@ InferenceSurvivalKKStratCoxPHIVWC = define_inference_class(
 
 #' Stratified Cox Combined-Likelihood Compound Inference for KK Designs
 #'
-#' @export
-InferenceSurvivalKKStratCoxPHOneLik = R6::R6Class("InferenceSurvivalKKStratCoxPHOneLik",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
-	public = as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(
+#' @keywords internal
+# Static leaf-shared source (2026-08-18 migration, fix_inference_hierarchy.md
+# "Partial-Likelihood Estimators" / "KK And IVWC Estimators"): formerly a
+# single-layer R6 leaf `InferenceSurvivalKKStratCoxPHOneLik` inheriting
+# `InferenceParamBootstrap` and raw-splicing `InferenceMixinKKPassThrough$
+# public/private`. Merged into the registered component source
+# `SurvivalKKStratCoxOneLikPartialLikelihoodSource` (see the
+# SurvivalKKStratCoxOneLikPartialLikelihood entry in contracts_mixins.R,
+# analogous reshaping to KKLWACoxOneLikPartialLikelihoodSource). The
+# `eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_
+# distribution_beta_hat_T))` override was dropped as a verified no-op (same
+# argument as every other KK leaf this stretch): the old ladder's inline
+# public list only overrode initialize/compute_estimate/compute_estimate_
+# with_bootstrap_weights/compute_asymp_*, so it inherited exactly that
+# KKPassThrough body anyway; the class declares the collision in its
+# factory's overrides so the KKPassThrough-supplied version wins. This class
+# never overrode compute_treatment_estimate_during_randomization_inference
+# (unlike the LWA Cox OneLik sibling), so it also flows through unchanged
+# from the KKPassThrough dependency -- declared as a collision override on
+# the factory, not duplicated in this source.
+SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
+	public = list(
 		#' @description Initialize KK stratified Cox one-likelihood inference and
 		#'   prepare the combined partial-likelihood fit used by
 		#'   \code{\link[EDI:InferenceSurvivalKKStratCoxPHOneLik]{InferenceSurvivalKKStratCoxPHOneLik}}.
@@ -359,6 +376,10 @@ InferenceSurvivalKKStratCoxPHOneLik = R6::R6Class("InferenceSurvivalKKStratCoxPH
 				assertResponseType(des_obj$get_response_type(), "survival")
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+			# Lesson 1 (see KKNewcombeRiskDiffIVWCSource): post-migration
+			# super$initialize() resolves to the root Inference, not
+			# InferenceParamBootstrap, so the KK match-structure setup that
+			# ancestor's initialize() performed must be invoked explicitly here.
 			private$init_kk_passthrough(des_obj)
 		},
 		#' @description Returns the model-specific combined-likelihood treatment estimate; see
@@ -427,18 +448,9 @@ InferenceSurvivalKKStratCoxPHOneLik = R6::R6Class("InferenceSurvivalKKStratCoxPH
 				private$assert_finite_se()
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
 		}
-	))),
-	private = as.list(modifyList(as.list(InferenceMixinKKPassThrough$private), list(
+	),
+	private = list(
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		max_abs_reasonable_coef = 1e4,
 		best_X_colnames = NULL,
@@ -606,5 +618,66 @@ InferenceSurvivalKKStratCoxPHOneLik = R6::R6Class("InferenceSurvivalKKStratCoxPH
 				neg_loglik = function(fit) as.numeric(fit$neg_loglik %||% fit$neg_ll)
 			)
 		}
-	)))
+	)
+)
+
+#' @export
+# Migrated 2026-08-18 (fix_inference_hierarchy.md "Partial-Likelihood
+# Estimators" / "KK And IVWC Estimators"): see
+# SurvivalKKStratCoxOneLikPartialLikelihoodSource above.
+InferenceSurvivalKKStratCoxPHOneLik = define_inference_class(
+	classname = "InferenceSurvivalKKStratCoxPHOneLik",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "SurvivalKKStratCoxOneLikPartialLikelihood"),
+	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other survival/count KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	# capabilities = "likelihood_ratio" is required explicitly -- same
+	# rationale as InferenceSurvivalKKLWACoxPHOneLik: no component spec
+	# declares provides_capabilities = "likelihood_ratio" anywhere, so a
+	# class composing ParametricLikelihoodBootstrap directly (bypassing
+	# StandardModelCache) must advertise it on the class itself.
+	metadata = list(likelihood_tier = "partial", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"get_supported_testing_types"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"assert_finite_se",
+			"supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap",
+			"simulate_under_lik_null",
+			"get_likelihood_test_spec",
+			"design_matrix_candidates",
+			"shared_combined_likelihood",
+			"max_abs_reasonable_coef",
+			"optimization_alg",
+			"supports_information_preference",
+			"supports_observed_information",
+			"get_supported_information_preferences_impl",
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx"
+		)
+	)
 )

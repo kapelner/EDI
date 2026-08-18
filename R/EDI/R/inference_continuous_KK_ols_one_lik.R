@@ -17,10 +17,24 @@
 #' inf = InferenceContinKKOLSOneLik$new(seq_des)
 #' inf$compute_estimate()
 #' }
-#' @export
-InferenceContinKKOLSOneLik = R6::R6Class("InferenceContinKKOLSOneLik",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompound,
+#' @keywords internal
+# Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md
+# "Full-Likelihood Estimators" / "KK And IVWC Estimators"): formerly a
+# plain R6 leaf inheriting `InferenceKKPassThroughCompound` (a real R6
+# abstract, itself `inherit = InferenceParamBootstrap` composing the
+# `InferenceMixinKKPassThroughCompound`/`InferenceMixinKKPassThrough` mixins
+# via `compose_inference_mixins()` -- not a raw splice, unlike the LWA/
+# StratCox OneLik pairs). This class's own body becomes the new registered
+# component `ContinKKOLSOneLikLikelihood`
+# (`dependencies = c("KKCompound", "ParametricLikelihoodBootstrap")` --
+# `KKCompound` supplies `reduce_design_matrix_once`/`compute_basic_match_data`/
+# `init_kk_passthrough`, the same as every KKCompound-dependent IVWC leaf
+# migrated earlier this stretch; `ParametricLikelihoodBootstrap` already
+# depends on `LikelihoodTests` transitively). Genuinely `likelihood_tier =
+# "full"` (real Gaussian likelihood with an exact, not merely
+# higher-order-accurate, Bartlett factor) -- first full (non-Cox-partial)
+# one-likelihood KK class migrated this stretch.
+ContinKKOLSOneLikLikelihoodSource = list(
 	public = list(
 		#' @description Initialize the KK one-likelihood OLS inference object and
 		#'   prepare the combined matched/reservoir design used by
@@ -42,6 +56,12 @@ InferenceContinKKOLSOneLik = R6::R6Class("InferenceContinKKOLSOneLik",
 				}
 			}
 			super$initialize(des_obj = des_obj, verbose = verbose, model_formula = model_formula)
+			# Lesson 1 (see KKNewcombeRiskDiffIVWCSource): post-migration
+			# super$initialize() resolves to the root Inference, not
+			# InferenceKKPassThroughCompound, so the KK match-structure setup
+			# that ancestor's initialize() performed must be invoked explicitly
+			# here.
+			private$init_kk_passthrough(des_obj)
 			private$fit_warm_start_enabled = FALSE
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
@@ -488,5 +508,73 @@ InferenceContinKKOLSOneLik = R6::R6Class("InferenceContinKKOLSOneLik",
 			}
 			list(beta = beta, se = se)
 		}
+	)
+)
+
+#' @export
+# Migrated 2026-08-18 (fix_inference_hierarchy.md "Full-Likelihood
+# Estimators" / "KK And IVWC Estimators"): see
+# ContinKKOLSOneLikLikelihoodSource above.
+InferenceContinKKOLSOneLik = define_inference_class(
+	classname = "InferenceContinKKOLSOneLik",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ContinKKOLSOneLikLikelihood"),
+	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other survival/count/continuous KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	# capabilities = "likelihood_ratio" is required explicitly -- same
+	# rationale as every class composing ParametricLikelihoodBootstrap
+	# directly (bypassing StandardModelCache): no component spec in this
+	# codebase declares provides_capabilities = "likelihood_ratio" anywhere.
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"get_likelihood_components",
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"get_supported_testing_types"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"compute_fast_randomization_distr",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"assert_finite_se",
+			"supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_bartlett_likelihood_ratio_exact",
+			"get_bartlett_factor_exact",
+			"simulate_under_lik_null",
+			"get_score_test_information_matrix",
+			"compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl",
+			"compute_lik_ratio_two_sided_pval_impl",
+			"get_likelihood_test_spec",
+			"compute_likelihood_test_two_sided_pval",
+			"fit_ols",
+			"fit_combined",
+			"fit_weighted_combined",
+			"supports_information_preference",
+			"supports_observed_information",
+			"get_supported_information_preferences_impl",
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx"
+		)
 	)
 )

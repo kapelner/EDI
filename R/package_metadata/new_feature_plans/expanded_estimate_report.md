@@ -2,7 +2,7 @@
 
 > **Depends on:** gated decision only — but it *blocks the API shape* of `bias_correction_cox_snell.md`, `cordeiro_mccullagh_bias_correction_report.md`, and `median_bias_correction_likelihood_paths_report.md`: decide `estimate_type` before any of them adds another ad hoc `compute_*_estimate()` method. (Global ordering: see `_master.md`.)
 >
-> **Release-scoped (amended 2026-08-18, user decision):** pulled forward into v1.0.0 from the v1.1.0 "everything else" bucket — see `release_v1_0_0.md`'s item 14. Motivation: `inference_suite_inspect.md`'s Combined Evidence Metric feature defaults its per-class weighting to grouping by `estimand`, so that default needs a real, package-wide `estimand` concept behind it at 1.0.0, not just the handful of gcomp classes that implement `get_estimand_type()` today.
+> **v1.1.0-scoped (amended 2026-08-18, user decision):** briefly pulled forward into v1.0.0 alongside `marginal_estimand_report.md` for a joint decision, then moved back to v1.1.0 the same day — nothing in v1.0.0 scope actually needs `estimate_type` (`inference_suite_inspect.md`'s Combined Evidence Metric, the plan that motivated the pull, only reads `estimand`, never `estimate_type`), and this plan's own stated urgency (unblocking the Cox-Snell/Cordeiro-McCullagh/median-bias correction plans' API shape) is itself v1.1.0-scoped. See `release_v1_1_0.md`'s `TODO-1`/`TODO-5`. `marginal_estimand_report.md → TODO-1` was decided **yes** and stays in v1.0.0; when this plan's TODO-1 is eventually decided, check which `estimand` values that plan's TODO-3 already landed on so neither enum absorbs the other's.
 
 > **Cross-reference (2026-08-15).** `marginal_estimand_report.md` proposes a
 > **second, orthogonal switch** — `set_estimand()` (conditional vs. marginal
@@ -205,13 +205,16 @@ Added 2026-08-14, derived from this report's own recommendation sections
 plan's own TODOs are gated on Phase 1D's still-open items — TODO-2 lands
 entirely on the `ParametricLikelihoodBootstrap` *component*, which is
 already extracted and stable (Phase 1D's "Component Extraction" is done),
-not on any specific concrete class's migration status. Order: TODO-1
-(joint decision with `marginal_estimand_report.md → TODO-1`) → TODO-3 →
-TODO-4 → TODO-5 (all three are scope/mechanism decisions, cheap and
-unblocking) → TODO-2 (the actual implementation). See
-`marginal_estimand_report.md`'s own Implementation TODOs section for the
-full joint ordering across both plans, including which of *its* TODOs
-(4/5/9) genuinely are gated on Phase 1D.
+not on any specific concrete class's migration status. Order: TODO-1 →
+TODO-3 → TODO-4 → TODO-5 (all three are scope/mechanism decisions, cheap
+and unblocking) → TODO-2 (the actual implementation). **Release-line note
+(amended 2026-08-18):** TODO-1 was originally a joint decision with
+`marginal_estimand_report.md → TODO-1`, taken together so neither
+resulting enum absorbs the other's values; that plan's TODO-1 has since
+been decided (**yes**, v1.0.0-scoped) independently of this one (which
+stays open, v1.1.0-scoped) — when this plan's TODO-1 is eventually
+decided, check which `estimand` values `marginal_estimand_report.md →
+TODO-3` already landed on.
 
 - [ ] TODO-1: **Make a decision about whether to implement this at all — ask the user.** Do not start the items below until that decision is recorded here.
 - [ ] TODO-2: If pursued: implement `estimate_type` mirroring `testing_type` (get/set, `get_supported_estimate_types()`, `estimate_type_key()` cache key) scoped to pure post-fit transforms (`"raw"`, `"param_bootstrap"`, later `"cox_snell"`/`"jackknife_bc"`), now on the `ParametricLikelihoodBootstrap` component with capability-driven method presence.

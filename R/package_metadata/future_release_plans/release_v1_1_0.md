@@ -149,26 +149,28 @@ ticked in their **owning plans**; this list is the release index.
   `cold_starts.md → TODO-1..14` (documentation/audit — also a prerequisite
   for TODO-10, which benchmarks the axes this audit documents).
 - [ ] TODO-5: **Corrections track** (`_master.md` Phase 5A order, minus
-  its step 1 — `expanded_estimate_report.md`/`marginal_estimand_report.md`,
-  moved to v1.0.0, amended 2026-08-18; each remaining item gated by its
-  TODO-1 decision):
-  1. `bias_correction_cox_snell.md → TODO-2..5` +
+  `marginal_estimand_report.md`, moved to v1.0.0, amended 2026-08-18;
+  `expanded_estimate_report.md` moved back here the same day; each
+  decision-gated item gated by its TODO-1 decision):
+  1. `expanded_estimate_report.md → TODO-2..5` (`estimate_type` first —
+     its values are consumed by steps 3 and 5),
+  2. `bias_correction_cox_snell.md → TODO-2..5` +
      `cordeiro_mccullagh_bias_correction_report.md → TODO-2..4` (one
      project: shared `X'WX` helper, Easy-tier GLMs first),
-  2. the higher-order test-correction batch in order:
+  3. the higher-order test-correction batch in order:
      `score_correction_cordeiro_ferrari.md → Phase 0..5` (anchor), then
      `gradient_correction_lemonte.md → Phase 0..4`, then
      `likrat_correction_bartlett.md → exact-rollout TODO-2` (shared
      cumulant machinery built exactly once),
-  3. `firth_penalties_report.md → TODO-2..5` (requires TODO-3's
+  4. `firth_penalties_report.md → TODO-2..5` (requires TODO-3's
      `SolverDiagnostics`) + `l1_l2_penalties_all_likelihood_paths_report.md
      → TODO-3` (joint semantics recorded once in both plans),
-  4. `l1_l2_penalties_all_likelihood_paths_report.md → TODO-2` then
+  5. `l1_l2_penalties_all_likelihood_paths_report.md → TODO-2` then
      `→ TODO-4`,
-  5. `median_bias_correction_likelihood_paths_report.md → TODO-3..4` (only
+  6. `median_bias_correction_likelihood_paths_report.md → TODO-3..4` (only
      after Firth ships),
-  6. `modified_profile_likelihood_report.md → TODO-2..4`,
-  7. `bootstrap_calibrated_lr_report.md → Difficult-tier work` (if TODO-1.7
+  7. `modified_profile_likelihood_report.md → TODO-2..4`,
+  8. `bootstrap_calibrated_lr_report.md → Difficult-tier work` (if TODO-1.7
      said yes).
 - [ ] TODO-6: **Response-type track** (`_master.md` Phase 5B order):
   `nominal_… → TODO-2 (Stage 1)` + `rank_choice_… → TODO-2 (Stage 1)`

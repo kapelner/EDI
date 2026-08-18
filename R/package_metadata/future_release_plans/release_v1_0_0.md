@@ -146,16 +146,23 @@ the frozen substrate makes it additive.
     real, package-wide `estimand` concept behind it would freeze a
     public-facing weighting default onto metadata that barely exists yet
     (today only the incidence g-computation classes implement
-    `get_estimand_type()`). TODO-1 is still an open "whether to pursue
-    this at all" decision — that decision itself, and the implementation
-    if "yes", are in the v1.0.0 line. **Done (2026-08-18):**
+    `get_estimand_type()`). **TODO-1 decided (2026-08-18, user decision):
+    yes, pursue `set_estimand()`.** **Done (2026-08-18):**
     `marginal_estimand_report.md → TODO-2`'s roxygen sharpening (folded
     into the doc batch, item 7, regardless of this move) — see that
     plan's own TODO-2 for the full writeup, including a scope correction
     found while doing it (the caveat needed to reach four concrete
     exported classes, not just the internal abstract base named in the
-    original TODO text). Sequenced in `_master.md`'s Phase 0 and Phase 5A
-    step 1.
+    original TODO text). Also done (2026-08-18): TODO-3 (`set_estimand()`
+    implemented as a new `MarginalEstimand` `InferenceComponent`,
+    composed by zero production classes so far — pure architecture),
+    TODO-6 (estimand-aware `get_supported_testing_types()`, both setter
+    directions loud-error regardless of order), TODO-8 (the
+    `compute_estimate()` dispatch question resolved as part of TODO-3).
+    TODO-4/5/7/9 (the concrete ZOIB/ZIP/hurdle/logit/Poisson/beta-
+    regression wiring) remain gated on `fix_inference_hierarchy.md`'s
+    Full-Likelihood Estimators remainder. Sequenced in `_master.md`'s
+    Phase 0 and Phase 5A step 1.
     **Amendment (2026-08-18, user decision):** `expanded_estimate_report.md`
     — the orthogonal `estimate_type` axis, originally pulled into this
     item alongside `marginal_estimand_report.md` for a joint decision —

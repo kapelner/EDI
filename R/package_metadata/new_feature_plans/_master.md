@@ -66,9 +66,11 @@ spliced into one step and marked **[spliced]**.
 > the same sitting; whichever comes second just needs to check the
 > first's chosen values so the two enums don't collide.
 > **`marginal_estimand_report.md → TODO-1` decided (2026-08-18, user
-> decision): yes, pursue `set_estimand()`.** TODO-3/6/7/8 (the ungated
-> architecture/plumbing work) are now unblocked; TODO-4/5/9 (concrete ZOIB/
-> ZIP/hurdle/logit/Poisson/beta-regression wiring) remain gated on
+> decision): yes, pursue `set_estimand()`.** TODO-3/6/8 (the ungated
+> architecture/plumbing work) are **done** (2026-08-18); TODO-4/5/7/9
+> (concrete ZOIB/ZIP/hurdle/logit/Poisson/beta-regression wiring — TODO-7
+> turned out to have no independent architecture, it rides along with
+> these as their consequence, not a separate gate) remain gated on
 > `fix_inference_hierarchy.md`'s Full-Likelihood Estimators remainder per
 > that plan's own "Recommended execution order" note.
 >
@@ -116,7 +118,7 @@ this order:
    `inference_suite_inspect.md`'s Combined Evidence Metric default
    weighting policy needs a real, package-wide `estimand` concept behind
    it. See `marginal_estimand_report.md`'s own "Recommended execution
-   order" note for its TODO-3/6/7/8 (unblocked, ungated) vs. TODO-4/5/9
+   order" note for its TODO-3/6/8 (done, ungated) vs. TODO-4/5/7/9
    (gated on `fix_inference_hierarchy.md`'s Full-Likelihood Estimators
    remainder) split.
 
@@ -420,19 +422,22 @@ Each track starts only on a "yes" from Phase 0, and assumes Phase 1 is done
    was originally sequenced as this step's first half; **moved back to
    v1.1.0 the same day (user decision)** — see `release_v1_1_0.md →
    TODO-5` step 1.
-   **Sub-sequencing within this step (verified 2026-08-18 — see
+   **Sub-sequencing within this step (verified/updated 2026-08-18 — see
    `marginal_estimand_report.md`'s own "Recommended execution order"
-   note):** `→ TODO-4` (ZOIB), `→ TODO-5` (ZIP/hurdle), and `→ TODO-9`
-   (logistic/Poisson/beta-regression) are genuinely gated on this phase's
-   own still-open "Full-Likelihood Estimators" remainder (item 3 below) —
-   every target class (`InferencePropZeroOneInflatedBetaRegr`,
+   note):** `→ TODO-4` (ZOIB), `→ TODO-5` (ZIP/hurdle), `→ TODO-7`
+   (randomization/bootstrap dispatch — has no independent architecture,
+   rides along with TODO-4/5/9 as their consequence, not a separate gate),
+   and `→ TODO-9` (logistic/Poisson/beta-regression) are genuinely gated
+   on this phase's own still-open "Full-Likelihood Estimators" remainder
+   (item 3 below) — every target class
+   (`InferencePropZeroOneInflatedBetaRegr`,
    `InferenceCountZeroInflatedPoisson`/`NegBin`,
    `InferenceCountHurdlePoisson`/`NegBin`,
    `InferenceCountZeroAugmentedPoissonAbstract`, `InferenceIncidLogit`,
    `InferenceCountPoisson`, `InferenceProportionBeta`,
    `InferenceIncidBinomialIdentity`) still `inherit =` a legacy
-   deep-hierarchy base. `→ TODO-3/6/7/8` touch no unmigrated class and may
-   proceed immediately, in parallel with item 3 below.
+   deep-hierarchy base. `→ TODO-3/6/8` are **done** (2026-08-18) and
+   touched no unmigrated class.
 2. `bias_correction_cox_snell.md → TODO-2..5` **[spliced with]**
    `cordeiro_mccullagh_bias_correction_report.md → TODO-2..4` — one project:
    shared `X'WX`/information helper, one component registration, Easy-tier

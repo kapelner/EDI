@@ -60,11 +60,14 @@ test_that("static cleanup guardrail prevents new eval(body(Inference...)) usage"
 	# (fix_inference_hierarchy.md "KK And IVWC Estimators"): the IVWC classes
 	# in each of these files dropped their eval(body(...)) overrides; the
 	# remaining counts are the unmigrated OneLik siblings.
+	# inference_survival_KK_strat_cox.R dropped to 0 at the 2026-08-18
+	# InferenceSurvivalKKStratCoxPHOneLik migration (its own eval(body(...))
+	# restatement was a verified no-op, same as every other KK leaf this
+	# stretch) -- entry removed entirely.
 	expected = c(
 		"R/EDI/R/inference_count_KK_cond_poisson.R" = 2L,
 		"R/EDI/R/inference_incidence_KK_cond_logit.R" = 1L,
 		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 1L,
-		"R/EDI/R/inference_survival_KK_strat_cox.R" = 1L,
 		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 1L
 	)
 
@@ -84,6 +87,12 @@ test_that("static cleanup guardrail prevents new raw component splicing", {
 	# IVWC class's raw mixin splices were replaced by registered-component
 	# composition; the remaining counts are the unmigrated OneLik siblings
 	# and the compound/abstract bases still awaiting the base-deletion phase.
+	# inference_survival_KK_strat_cox.R dropped to 0 at the 2026-08-18
+	# InferenceSurvivalKKStratCoxPHOneLik migration (its raw
+	# InferenceMixinKKPassThrough$public/private splices were replaced by
+	# composing the KKPassThrough component via the new
+	# SurvivalKKStratCoxOneLikPartialLikelihood component's dependency) --
+	# entry removed entirely.
 	expected = c(
 		"R/EDI/R/inference_all_abstract_KK_passthrough_compound.R" = 4L,
 		"R/EDI/R/inference_all_abstract_asymp_lik.R" = 1L,
@@ -98,7 +107,6 @@ test_that("static cleanup guardrail prevents new raw component splicing", {
 		"R/EDI/R/inference_incidence_KK_marginal_abstract.R" = 2L,
 		"R/EDI/R/inference_ordinal_KK_combined.R" = 2L,
 		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 3L,
-		"R/EDI/R/inference_survival_KK_strat_cox.R" = 3L,
 		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 3L
 	)
 
@@ -153,6 +161,13 @@ test_that("component redeclarations of root-owned state cannot grow", {
 		# `optimization_alg` (fixed "lbfgs" for this class) the same way
 		# SurvivalKKClaytonCopulaIVWC/KKGLMM already do.
 		KKLWACoxOneLikPartialLikelihood = "optimization_alg",
+		# SurvivalKKStratCoxOneLikPartialLikelihood added at the 2026-08-18
+		# StratCox OneLik migration: same shape as KKLWACoxOneLikPartialLikelihood
+		# above -- the merged source redeclares `optimization_alg` (fixed
+		# "lbfgs" for this class). max_abs_reasonable_coef/best_X_colnames are
+		# also owns_state on this component but are NOT root-owned (not in
+		# Inference$private_fields), so they don't appear here.
+		SurvivalKKStratCoxOneLikPartialLikelihood = "optimization_alg",
 		# Trimmed at the 2026-08-17 WeibullMarginal migration: the spec was
 		# reshaped leaf-only (KK state now arrives via the KKPassThrough
 		# dependency), leaving only the class-specific VC-parameter cache.

@@ -332,6 +332,11 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			behavior = c("cox", "stratified_cox", "kk_passthrough"),
 			estimator_family = "survival_kk_stratified_cox_one_likelihood",
 			component_family = "KKStratifiedCoxPartialLikelihood",
+			# Updated at migration time (2026-08-18) to the factory reality (same
+			# treatment as the LWA Cox OneLik entry above): BayesianBootstrap is an
+			# explicit direct component and KKPassThrough arrives as the
+			# component's dependency rather than a direct entry.
+			target_direct_components = c("BayesianBootstrap", "SurvivalKKStratCoxOneLikPartialLikelihood"),
 			notes = "KK stratified Cox one-likelihood estimator combines matched sets and reservoir subjects in one stratified Cox partial likelihood."
 		)
 	)
@@ -547,6 +552,8 @@ infer_inference_direct_components = function(name) {
 		InferenceSurvivalKKLWACoxPHOneLik = c("BayesianBootstrap", "KKLWACoxOneLikPartialLikelihood"),
 		InferenceBaiAdjustedTKK14 = c("BayesianBootstrap", "Wald", "BaiAdjustedT"),
 		InferenceSurvivalKKStratCoxPHIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKStratCoxIVWC"),
+		InferenceSurvivalKKStratCoxPHOneLik = c("BayesianBootstrap", "SurvivalKKStratCoxOneLikPartialLikelihood"),
+		InferenceContinKKOLSOneLik = c("BayesianBootstrap", "ContinKKOLSOneLikLikelihood"),
 		InferenceIncidKKCondLogitIVWC = c("BayesianBootstrap", "Wald", "IncidKKCondLogitIVWC"),
 		InferenceIncidKKGCompRiskDiff = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),
 		InferenceIncidKKGCompRiskRatio = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),

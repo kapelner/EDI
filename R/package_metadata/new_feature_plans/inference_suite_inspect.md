@@ -515,21 +515,30 @@ package.
 
 - New `combined_evidence` element on the `EDIInferenceSuiteResults` return
   object: `list(pval = <numeric or NA>, stat = <numeric or NA>, method =
-  "cauchy_combination", n_classes_used = <integer>, weighting =
+  "cauchy_combination", n_classes_used = <integer>, n_estimand_groups =
+  <integer>, estimands_used = <character vector>, weighting =
   <character>, weights_used = <named numeric vector, class -> weight>,
   classes_used = <character vector>)`. `weighting` records which policy was
   actually applied for this call (`"equal"` / `"estimand_grouped"` /
   `"custom"` — see TODO-15) and `weights_used` records the exact per-class
   weight vector, so a saved/JSON result is self-documenting about how its
-  own combined p-value was built, not just that one was built. `NA` when
+  own combined p-value was built, not just that one was built.
+  `n_estimand_groups`/`estimands_used` record `G` and which `estimand`
+  values actually fed the combination (after `combined_evidence_estimands`
+  filtering, if any) — populated for every `weighting` policy, not only
+  `"estimand_grouped"`, since "how many distinct senses of 'effect' does
+  this number summarize" is informative regardless of how they were
+  weighted. `NA`/`0`/empty when
   fewer than 2
   `status == "ok"` classes have a non-`NA` `pval` (a "combination" of one
   p-value is just that p-value, not a meaningful combined-evidence claim —
   degenerate case, document explicitly rather than silently returning the
   single p-value as if it were combined).
 - `screen` and `html` outputs print one summary line beneath the per-class
-  table: `"Combined evidence (Cauchy combination, k = <n> classes): p =
-  <value>"`.
+  table, stating the estimand count *before* the p-value so a reader sees
+  what's being summarized before the number itself:
+  `"Combined evidence across G = <n_estimand_groups> estimands (k = <n>
+  classes, weighting = <weighting>): p = <value>"`.
 - Independent of, and additive to, `save_results_as_JSON` (TODO-7b) — the
   new element serializes like every other scalar field.
 
@@ -827,10 +836,30 @@ before/around the same release:
   ```r
   run_all_inference(
     ...,
+    combined_evidence_estimands = NULL,
     combined_evidence_weighting = c("estimand_grouped", "equal", "custom"),
     combined_evidence_weights   = NULL
   )
   ```
+
+  - `combined_evidence_estimands = NULL` (**default: include every
+    estimand**): restricts which `estimand` groups feed the combined
+    p-value. `NULL` means every `estimand` present among usable
+    (`status == "ok"`, non-`NA` `pval`) rows is included — this is the
+    "show everyone, decide nothing on the user's behalf" default that
+    matches the rest of `InferenceSuite`'s philosophy. A user can instead
+    pass a character vector of `estimand` values to keep
+    (e.g. `c("mean_difference", "hazard_ratio")`), which both restricts
+    the combined p-value's inputs *and* changes `G` for
+    `"estimand_grouped"` weighting (recomputed over only the retained
+    groups, so remaining groups still split `1/G` evenly rather than
+    inheriting stale shares from excluded ones). Validate against the
+    actual `estimand` values present in `results_table` for this fit
+    (argument-time `stop()` on an unknown value, same style as TODO-11's
+    `classes` validation) — this is a coarser, estimand-level sibling of
+    TODO-11's class-level `classes`/`exclude_classes` allow-list, not a
+    replacement for it; both can be used together (e.g. restrict to
+    certain classes *and* certain estimands in the same call).
 
   - `combined_evidence_weighting = "estimand_grouped"` (**default**):
     policy (b) below — group by `estimand`, `w_i = 1 / (G * m_i)`.
@@ -909,9 +938,99 @@ before/around the same release:
   group under `"estimand_grouped"`, or be excluded from the default policy
   entirely with a `warning()` — leaving this undecided would make the
   default weighting silently inconsistent between response types).
-- [ ] TODO-16: Wire `combined_evidence` into `run_all_inference()`'s return
-  object and into the `screen`/`html` summary line beneath the per-class
-  table (only over `status == "ok"` rows with non-`NA` `pval`).
+
+  **Do not start this audit from a "should be a small number of estimand
+  groups per response type" prior — added 2026-08-18, informed reasoning
+  from the §3.4 method roster, not yet verified against real tags.** The
+  number of distinct estimand groups (`G`) varies sharply by response
+  type, for structural reasons, not accidents of implementation:
+  - **Continuous** and **count** (excluding zero-inflated/hurdle) are
+    plausibly genuinely small — OLS/robust-regression/Lin/KK-OLS-IVWC/
+    KK-Bai variants all target one location-shift functional, and
+    Poisson/quasi-Poisson/NegBin/robust-Poisson/conditional-Poisson/GEE
+    all target one log-rate-ratio functional. Expect `G` on the order of
+    2-3 for these, modulo quantile regression (see below).
+  - **Ordinal is the sharpest counterexample, and likely has the *most*
+    estimand groups of any response type, not the fewest.** Proportional
+    odds, adjacent-category logit, stereotype logit, cauchit, cloglog,
+    ordered probit, and ridit are not different *estimation methods* for
+    one shared quantity — each is a genuinely different link function,
+    which is exactly why they are separately named and implemented in the
+    first place (cauchit/cloglog exist specifically to put the treatment
+    effect on a different scale than proportional-odds logit does). Expect
+    `G` closer to 6-10 for ordinal; the estimand-grouping weighting matters
+    most here and is most at risk of being wrong if the audit
+    under-differentiates these.
+  - **Incidence has a subtlety beyond link functions: noncollapsibility.**
+    Logistic regression's marginal (population-averaged) odds ratio and
+    its conditional (subject-specific/cluster-adjusted) odds ratio are not
+    asymptotically the same quantity even when both come from "a logistic
+    model" — so a plain `InferenceIncidLogit` and a conditional-logit/GLMM
+    (KK) variant plausibly need *different* `estimand` tags, not the same
+    one, on top of logit/probit/log-binomial/modified-Poisson/
+    risk-difference already being distinct scales. Resolve this
+    explicitly during the audit rather than defaulting conditional and
+    marginal variants into the same bucket by not thinking about it.
+  - **Zero-inflated/hurdle count models (and ZOIB in proportion) may not
+    reduce to *one* estimand at all — flag as an open question, do not
+    force a single tag.** A zero-inflated Poisson has a structural-zero
+    component and a count-process-rate component; treatment could
+    plausibly affect one, the other, both, or neither, and there is no
+    obviously correct single "the treatment effect" p-value for that class
+    without picking which part is meant. This is a genuinely harder
+    problem than link-function grouping and may need its own resolution
+    (e.g. two separate rows/estimands per class, or an explicit
+    documented simplification) rather than being swept into whichever
+    single `estimand` string is easiest to assign.
+  - **Quantile regression is τ-indexed, not fixed**, in continuous,
+    proportion, and any other family that offers it — if quantile
+    regression is fit at multiple τ values, each τ is arguably its own
+    scientific question ("does treatment shift the 25th percentile" ≠
+    "does treatment shift the median"), so this alone can turn what looks
+    like one model into several estimand groups depending on
+    configuration, even within an otherwise-small response-type family.
+- [ ] TODO-16: Wire `combined_evidence` (including `n_estimand_groups`/
+  `estimands_used`, per "Output wiring" above) into `run_all_inference()`'s
+  return object and into the `screen`/`html` summary line beneath the
+  per-class table (only over `status == "ok"` rows with non-`NA` `pval`,
+  after `combined_evidence_estimands` filtering per TODO-15). Apply
+  `combined_evidence_weighting`/`combined_evidence_weights`/
+  `combined_evidence_estimands` here, not at discovery/fit time — these
+  arguments only affect which usable rows feed the combination and how,
+  never which classes get constructed/fitted in the first place.
+- [ ] TODO-16a: **Organize the per-class table by `estimand`, not just
+  computation order** (added 2026-08-18, per user request). Two separate
+  surfaces, resolved differently:
+  - **`results_table` (the final, complete data.frame) and the `html`
+    report's table**: sort/group rows by `estimand` (rows sharing an
+    `estimand` adjacent; `NA_character_`-`estimand` rows last as their own
+    group), with a natural secondary sort (e.g. by `inference_class` name)
+    within each group. This is a pure presentation reorder — it does not
+    change `results` (the list, TODO-7b), which stays in computation order
+    since that is documented as its contract and other code (e.g. the
+    per-class failure-isolation test) may rely on it.
+  - **`screen`'s live incremental streaming (TODO-4, already shipped)
+    is *not* changed by this** — rows print as each class's fit
+    completes, which is inherently completion-order and can't be
+    pre-sorted by `estimand` without buffering (defeating the "streamed as
+    it happens" point of TODO-4). Instead, print a compact per-estimand
+    breakdown as part of the final combined-evidence summary line block
+    (after all rows have streamed): one line per `estimand` group showing
+    its own within-group `estimand_grouped` sub-combination p-value (the
+    intermediate value TODO-15's two-stage-equivalent formula computes
+    internally on the way to the flat weight vector), immediately above
+    the overall combined-evidence line — so a screen reader sees "here's
+    what each estimand group says" before "here's the one number
+    combining all of them," even though the per-class rows above it
+    streamed in fit-completion order, not estimand order.
+  - `print.EDIInferenceSuiteResults()` (TODO-10, not yet implemented) must
+    use the same `estimand`-grouped ordering as `results_table`/`html`,
+    since it is documented to render "the same table `screen` already
+    prints" — reconcile that TODO-10 description with this one: it prints
+    the same *rows and columns*, in the `estimand`-grouped order, not
+    necessarily replaying `screen`'s original streaming order.
+  - Already consistent with this direction and needing no change: the two
+    ggplot2 visualizations (TODO-7, shipped) already facet by `estimand`.
 - [ ] TODO-17: Edge cases: clip `p_i` away from exactly 0/1 before the
   `tan()` transform (avoids `±Inf`/degenerate `atan()` input); fewer than 2
   usable p-values → `combined_evidence$pval = NA_real_`, documented, not
