@@ -153,3 +153,4 @@ R/package_metadata/new_research_ideas/*
 .zshrc
 CMakeFiles/
 R/EDI/tests/prepush_test_timings.csv
+R/EDI/tests/.prepush_errors

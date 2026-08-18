@@ -22,12 +22,15 @@ TallyReporter <- R6::R6Class("TallyReporter",
 	public = list(
 		n_ok = 0L, n_fail = 0L, n_warn = 0L, n_skip = 0L,
 		failures = list(),
+		warnings = list(),
+		skips = list(),
 		current_file = "",
 		current_test = "",
 		start_time = NULL,
 		file_start_time = NULL,
 		file_timings = list(),
 		timings_path = NULL,
+		errors_path = NULL,
 		last_draw_time = 0,
 		lines_drawn = 0L,
 
@@ -38,6 +41,7 @@ TallyReporter <- R6::R6Class("TallyReporter",
 			# into testthat/ before end_reporter fires, so a relative path there
 			# would land one directory too deep.
 			self$timings_path <- file.path(getwd(), "prepush_test_timings.csv")
+			self$errors_path <- file.path(getwd(), ".prepush_errors")
 		},
 
 		start_file = function(filename) {
@@ -70,8 +74,18 @@ TallyReporter <- R6::R6Class("TallyReporter",
 				)
 			} else if (testthat:::expectation_skip(result)) {
 				self$n_skip <- self$n_skip + 1L
+				self$skips[[length(self$skips) + 1L]] <- list(
+					file = self$current_file,
+					test = test %||% self$current_test,
+					message = conditionMessage(result)
+				)
 			} else if (testthat:::expectation_warning(result)) {
 				self$n_warn <- self$n_warn + 1L
+				self$warnings[[length(self$warnings) + 1L]] <- list(
+					file = self$current_file,
+					test = test %||% self$current_test,
+					message = conditionMessage(result)
+				)
 			} else {
 				self$n_ok <- self$n_ok + 1L
 			}
@@ -80,15 +94,41 @@ TallyReporter <- R6::R6Class("TallyReporter",
 
 		end_reporter = function() {
 			self$draw(force = TRUE)
-			if (length(self$failures) > 0) {
-				cat("\nFailures:\n")
-				for (f in self$failures) {
-					cat(sprintf("  [%s] %s\n", f$file, f$test))
-					cat(sprintf("    %s\n", gsub("\n", "\n    ", f$message)))
-				}
-			}
-			cat("\n")
+			self$write_errors()
 			self$write_timings()
+		},
+
+		# Full detail on every failure/warning/skip goes to a gitignored file,
+		# not the screen -- the screen only ever shows the live pass/fail/warn/
+		# skip tally (see draw()), so a run with many issues doesn't flood the
+		# terminal with per-expectation messages the way testthat's own
+		# reporters do.
+		write_errors = function() {
+			has_issues <- length(self$failures) > 0 || length(self$warnings) > 0 || length(self$skips) > 0
+			if (!has_issues) {
+				if (file.exists(self$errors_path)) file.remove(self$errors_path)
+				return(invisible())
+			}
+			con <- file(self$errors_path, open = "w")
+			on.exit(close(con))
+			write_section <- function(title, items) {
+				if (length(items) == 0) return(invisible())
+				cat(sprintf("%s (%d):\n", title, length(items)), file = con)
+				for (item in items) {
+					cat(sprintf("  [%s] %s\n", item$file, item$test), file = con)
+					cat(sprintf("    %s\n", gsub("\n", "\n    ", item$message)), file = con)
+				}
+				cat("\n", file = con)
+			}
+			write_section("Failures", self$failures)
+			write_section("Warnings", self$warnings)
+			write_section("Skips", self$skips)
+			cat(sprintf(
+				"EDI R test suite -- %s (%ds elapsed) pass: %d fail: %d warn: %d skip: %d\n",
+				format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+				round(as.numeric(difftime(Sys.time(), self$start_time, units = "secs"))),
+				self$n_ok, self$n_fail, self$n_warn, self$n_skip
+			), file = con)
 		},
 
 		# Per-file wall-clock timings, slowest first. This is the data source for

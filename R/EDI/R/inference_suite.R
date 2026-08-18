@@ -667,6 +667,55 @@ run_all_inference_plot_to_base64_png = function(plot, width = 8, height = 6) {
 	jsonlite::base64_enc(readBin(tmp, "raw", file.info(tmp)$size))
 }
 
+#' Combines p-values `pvals` via the Cauchy combination test (CCT):
+#' `T = sum(w_i * tan((0.5 - p_i) * pi))`,
+#' `combined_pval = 0.5 - atan(T) / pi`. Its defining property -- the reason
+#' it backs `run_all_inference()`'s Combined Evidence Metric rather than
+#' Fisher's/Stouffer's/minP -- is that the combined p-value is
+#' asymptotically valid under \strong{arbitrary and unknown dependence}
+#' among the `p_i`, with no covariance matrix to estimate and no resampling
+#' to calibrate it; see `inference_suite_inspect.md`'s "Combined Evidence
+#' Metric" section for the full union-intersection-test rationale and
+#' interpretation caveat.
+#'
+#' This is a flat, non-group-aware combiner: `weights` is already the final
+#' per-`p_i` weight vector by the time it reaches here. The
+#' `"estimand_grouped"` two-stage combination (within-`estimand` CCT, then
+#' across-group CCT) is mathematically equivalent to one flat call with a
+#' particular closed-form weight vector (`w_i = 1 / (G * m_i)`), so no
+#' separate grouped-combiner code path exists -- the caller computes that
+#' vector and passes it in as `weights` (see TODO-15/16 in the plan doc).
+#'
+#' Deliberately does not clip `pvals` away from exactly 0/1 or guard the
+#' <2-usable-p-values degenerate case -- that hardening is
+#' `inference_suite_inspect.md → TODO-17`, scoped separately from this
+#' formula implementation.
+#'
+#' @references Liu, Y. and Xie, J. (2020), "Cauchy combination test: a
+#'   powerful test with analytic p-value calculation under arbitrary
+#'   dependency structures," \emph{Journal of the American Statistical
+#'   Association}, 115(529), 393-402.
+#'
+#' @param pvals Numeric vector of p-values to combine, each in `(0, 1)`.
+#' @param weights Numeric vector the same length as `pvals`, or `NULL`
+#'   (default) for equal weights `1 / length(pvals)`. Need not sum to 1 --
+#'   renormalized internally so the effective weights always do.
+#' @return The combined p-value, a numeric scalar in `(0, 1)`.
+#'
+#' @keywords internal
+#' @noRd
+cct_combine_pvalues = function(pvals, weights = NULL) {
+	pvals = as.numeric(pvals)
+	if (is.null(weights)) {
+		weights = rep(1 / length(pvals), length(pvals))
+	} else {
+		weights = as.numeric(weights)
+		weights = weights / sum(weights)
+	}
+	stat = sum(weights * tan((0.5 - pvals) * pi))
+	0.5 - atan(stat) / pi
+}
+
 
 #' Inference Suite: Discover and Bundle Every Applicable Inference Class for a Design
 #'

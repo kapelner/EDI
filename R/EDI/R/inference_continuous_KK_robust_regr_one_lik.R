@@ -3,12 +3,21 @@
 #' Fits a single stacked robust regression over matched-pair differences and reservoir
 #' observations for KK matching-on-the-fly designs with continuous responses.
 #'
-#' @export
-InferenceContinKKRobustRegrOneLik = R6::R6Class("InferenceContinKKRobustRegrOneLik",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+#' @keywords internal
+# Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md
+# "Quasi And Robust Estimators" / "KK And IVWC Estimators"): formerly a
+# plain R6 leaf using real R6 inheritance (not a raw mixin splice) on the
+# real R6 abstract `InferenceKKPassThroughCompoundNoParamBootstrap` (same
+# shape as `InferenceContinKKOLSOneLik`'s pre-migration state, but on the
+# NoParamBootstrap sibling since this class has no likelihood-test surface
+# -- `"quasi"` tier, same as `InferenceContinKKRobustRegrIVWC`). This
+# class's own body becomes the new registered component
+# `ContinKKRobustRegrOneLik` (`dependencies = "KKCompound"` -- no
+# `ParametricLikelihoodBootstrap`, since this is a robust/quasi estimator
+# with no normalized likelihood-ratio surface, same as the IVWC sibling).
+ContinKKRobustRegrOneLikSource = list(
 	public = list(
-				
+
 		#' @description Initialize KK one-likelihood robust-regression inference and
 		#'   prepare the combined matched/reservoir design used by
 		#'   \code{\link[EDI:InferenceContinKKRobustRegrOneLik]{InferenceContinKKRobustRegrOneLik}}.
@@ -44,10 +53,15 @@ InferenceContinKKRobustRegrOneLik = R6::R6Class("InferenceContinKKRobustRegrOneL
 				}
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula)
+			# Lesson 1 (see KKNewcombeRiskDiffIVWCSource): post-migration
+			# super$initialize() resolves to the root Inference, not
+			# InferenceKKPassThroughCompoundNoParamBootstrap, so the KK
+			# match-structure setup that ancestor's initialize() performed must
+			# be invoked explicitly here.
+			private$init_kk_passthrough(des_obj)
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
 			}
-
 
 			private$rlm_method = method
 			private$rlm_maxit = maxit
@@ -510,6 +524,57 @@ InferenceContinKKRobustRegrOneLik = R6::R6Class("InferenceContinKKRobustRegrOneL
 			}
 			list(beta = beta, se = se)
 		}
+	)
+)
+
+#' @export
+# Migrated 2026-08-18 (fix_inference_hierarchy.md "Quasi And Robust
+# Estimators" / "KK And IVWC Estimators"): see
+# ContinKKRobustRegrOneLikSource above.
+InferenceContinKKRobustRegrOneLik = define_inference_class(
+	classname = "InferenceContinKKRobustRegrOneLik",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "ContinKKRobustRegrOneLik"),
+	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other continuous KK migration this stretch (RandCI's Zhang dispatch
+		# never applies to continuous data anyway).
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "quasi"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_wald_confidence_interval",
+			"compute_wald_two_sided_pval",
+			"duplicate",
+			# KKCompound chain vs bootstrap/Wald chain: the KK-aware versions win
+			# via component order (KKCompound resolves after BayesianBootstrap/
+			# Wald), matching the old ladder's inherited behavior -- this class
+			# never overrode approximate_bootstrap_distribution_beta_hat_T itself.
+			"approximate_bootstrap_distribution_beta_hat_T"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"compute_fast_randomization_distr",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"assert_finite_se"
+		)
 	)
 )
 #' Robust-Regression Combined-Likelihood Inference for KK Designs

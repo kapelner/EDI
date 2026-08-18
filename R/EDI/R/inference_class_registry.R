@@ -554,6 +554,7 @@ infer_inference_direct_components = function(name) {
 		InferenceSurvivalKKStratCoxPHIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKStratCoxIVWC"),
 		InferenceSurvivalKKStratCoxPHOneLik = c("BayesianBootstrap", "SurvivalKKStratCoxOneLikPartialLikelihood"),
 		InferenceContinKKOLSOneLik = c("BayesianBootstrap", "ContinKKOLSOneLikLikelihood"),
+		InferenceContinKKRobustRegrOneLik = c("BayesianBootstrap", "Wald", "ContinKKRobustRegrOneLik"),
 		InferenceIncidKKCondLogitIVWC = c("BayesianBootstrap", "Wald", "IncidKKCondLogitIVWC"),
 		InferenceIncidKKGCompRiskDiff = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),
 		InferenceIncidKKGCompRiskRatio = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),

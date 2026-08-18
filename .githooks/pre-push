@@ -270,7 +270,7 @@ if [ "$run_r_tests" = "1" ]; then
 	# call -- R CMD check gets away with a bare "testthat" because it
 	# copies testthat.R into tests/ and runs it from there.
 	if ! ( cd R/EDI/tests && NOT_CRAN=true Rscript "$repo_root/scripts/run_prepush_r_tests.R" ); then
-		echo "pre-push: R tests FAILED." >&2
+		echo "pre-push: R tests FAILED -- see R/EDI/tests/.prepush_errors for failure/warning/skip detail." >&2
 		abort_push
 	fi
 else

@@ -1082,6 +1082,36 @@ EDI_COMPONENT_SPECS = list(
 		allowed_likelihood_tiers = "full",
 		declare_body_references_optional = TRUE
 	),
+	ContinKKRobustRegrOneLik = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "ContinKKRobustRegrOneLikSource",
+		file = "inference_continuous_KK_robust_regr_one_lik.R",
+		# 2026-08-18 migration (fix_inference_hierarchy.md "Quasi And Robust
+		# Estimators" / "KK And IVWC Estimators"): formerly a plain R6 leaf on
+		# the real R6 abstract `InferenceKKPassThroughCompoundNoParamBootstrap`.
+		# `KKCompound` supplies reduce_design_matrix_once()/
+		# compute_basic_match_data()/init_kk_passthrough(); no
+		# ParametricLikelihoodBootstrap, same "quasi" tier as the IVWC sibling.
+		dependencies = "KKCompound",
+		owns_state = c("rlm_method", "rlm_maxit", "rlm_acc", "rlm_start_with_ols", "use_rcpp", "rlm_force_M"),
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_wald_confidence_interval", "compute_wald_two_sided_pval",
+			"duplicate"
+		),
+		provides_private_methods = c(
+			"rlm_method", "rlm_maxit", "rlm_acc", "rlm_start_with_ols", "use_rcpp",
+			"compute_fast_randomization_distr", "rlm_force_M",
+			"resolve_rlm_control", "is_rlm_nonconvergence_warning", "assert_finite_se",
+			"get_standard_error", "get_degrees_of_freedom", "fit_rlm", "fit_combined",
+			"fit_weighted_combined"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "quasi",
+		declare_body_references_optional = TRUE
+	),
 	SurvivalKKRankRegrIVWC = list(
 		status = "active",
 		load_policy = "lazy",

@@ -1036,6 +1036,36 @@ before/around the same release:
   usable p-values → `combined_evidence$pval = NA_real_`, documented, not
   silently treated as "the" p-value; all usable p-values identical (sanity:
   combined p should equal that value under equal weighting).
+
+  **Known, deliberately out-of-scope gap for v1.0.0 (added 2026-08-18):** a
+  single numerically pathological fit (e.g. separation-driven near-zero
+  Wald `p_i` from an unstable coefficient/SE) can dominate `T` the same
+  way a genuine signal would, at both the per-class and per-`estimand`-group
+  level — CCT has no way to distinguish "real evidence" from "numerical
+  artifact" on its own. The 0/1 clipping above is a pure floating-point
+  safety net (prevents `Inf`/`NaN` propagation) and does **not** address
+  this — it still lets an artifact-driven `p_i = 1e-300` dominate `T`
+  cleanly. A real fix needs a native diagnostics signal
+  (`converged`/`boundary_hit`/`diagnostic_category = "separation"`) to
+  exclude or flag such fits before they enter `cct_combine_pvalues()`, and
+  that signal does not exist yet: `inference_suite_inspect.md`'s own
+  per-class `diagnostics` sub-list is currently hardcoded `NA` for every
+  field (confirmed under TODO-7b) because there is no generic
+  native-diagnostics accessor on `Inference` at the R level — wiring real
+  values in is tracked as `public_diagnostics_api_spec.md → TODO-19`
+  (v1.1.0). Do not substitute an ad hoc magnitude-threshold heuristic
+  (e.g. flag `abs(estimate) > 1e6` or similarly small `se`) as a stopgap —
+  `optimizer_diagnostics_report.md` documents that exact pattern (a
+  "copy-pasted `max(abs(b)) <= 1e6` magnitude threshold" scattered across
+  3-4 C++ call sites) as an unreliable proxy the diagnostics API exists
+  specifically to replace; adding a second copy of it here for the
+  combined-evidence path would work against that cleanup rather than with
+  it. Revisit this TODO once `public_diagnostics_api_spec.md → TODO-19`
+  lands and `diagnostics$converged`/`diagnostic_category` carry real
+  values — at that point, exclude (or downweight, TBD) any class whose
+  diagnostics indicate a boundary/separation fit before it contributes to
+  `combined_evidence`, both at the per-class and per-`estimand`-group
+  level.
 - [ ] TODO-18: Tests — simulate iid Uniform(0,1) p-values under a true
   global null and confirm `combined_pval` is calibrated (roughly uniform,
   not anti-conservative); simulate p-values sharing common data-driven
