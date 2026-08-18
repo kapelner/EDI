@@ -16,16 +16,48 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceBaiAdjustedTKK21 = R6::R6Class("InferenceBaiAdjustedTKK21",
-	lock_objects = FALSE,
-	inherit = InferenceBaiAdjustedT,
+# Migrated 2026-08-18: same shape as InferenceBaiAdjustedTKK14 (see that
+# file); the covariate-weighted `distance` private is this leaf's only own
+# surface (dead code, preserved verbatim).
+InferenceBaiAdjustedTKK21 = define_inference_class(
+	classname = "InferenceBaiAdjustedTKK21",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "BaiAdjustedT"),
 	public = list(
-
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
-
 	private = list(
-	distance = function(avg1, avg2){
-		sum(private$des_obj_priv_int$covariate_weights * (avg1 - avg2)^2)
-	}
+		distance = function(avg1, avg2){
+			sum(private$des_obj_priv_int$covariate_weights * (avg1 - avg2)^2)
+		}
+	),
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"compute_fast_randomization_distr",
+			"shared",
+			"get_standard_error"
+		)
 	)
 )

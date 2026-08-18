@@ -1,6 +1,8 @@
 # Should `InferenceParamBootstrap` Grow an `estimate_type` Field?
 
 > **Depends on:** gated decision only — but it *blocks the API shape* of `bias_correction_cox_snell.md`, `cordeiro_mccullagh_bias_correction_report.md`, and `median_bias_correction_likelihood_paths_report.md`: decide `estimate_type` before any of them adds another ad hoc `compute_*_estimate()` method. (Global ordering: see `_master.md`.)
+>
+> **Release-scoped (amended 2026-08-18, user decision):** pulled forward into v1.0.0 from the v1.1.0 "everything else" bucket — see `release_v1_0_0.md`'s item 14. Motivation: `inference_suite_inspect.md`'s Combined Evidence Metric feature defaults its per-class weighting to grouping by `estimand`, so that default needs a real, package-wide `estimand` concept behind it at 1.0.0, not just the handful of gcomp classes that implement `get_estimand_type()` today.
 
 > **Cross-reference (2026-08-15).** `marginal_estimand_report.md` proposes a
 > **second, orthogonal switch** — `set_estimand()` (conditional vs. marginal

@@ -20,9 +20,15 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceContinKKOLSIVWC = R6::R6Class("InferenceContinKKOLSIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+# Static leaf source (2026-08-18 migration, same shape as the other five KK
+# leaves migrated this week): the legacy class never defined compute_estimate/
+# compute_asymp_confidence_interval/compute_asymp_two_sided_pval/duplicate
+# itself -- it inherited the generic private$shared()-based versions from
+# InferenceMLEorKMSummaryTable (inference_all_abstract_mle_or_KM_summary_
+# table.R) via the old ladder. Those generic versions are hand-copied into
+# this Source's public list below (private$shared(); private$compute_z_or_t_*)
+# since that ancestor is not part of the composed chain post-migration.
+ContinKKOLSIVWCSource = list(
 	public = list(
 		#' @description Initialize KK inverse-variance combined OLS inference and
 		#'   prepare the matched/reservoir OLS components used by
@@ -45,9 +51,49 @@ InferenceContinKKOLSIVWC = R6::R6Class("InferenceContinKKOLSIVWC",
 				}
 			}
 			super$initialize(des_obj = des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+			# Lesson 1 (see KKNewcombeRiskDiffIVWCSource): post-migration super$initialize()
+			# resolves to the root Inference, not InferenceKKPassThroughCompoundNoParamBootstrap,
+			# so the KK match-structure setup that the old compound ladder's initialize()
+			# performed must be invoked explicitly here.
+			private$init_kk_passthrough(des_obj)
 			private$fit_warm_start_enabled = FALSE
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
+			}
+		},
+		#' @description Returns the class-specific treatment-effect estimate; see
+		#'   \code{\link[EDI:Inference]{Inference}}.
+		#' @param estimate_only Logical. If TRUE, skip variance component calculations.
+		compute_estimate = function(estimate_only = FALSE){
+			private$shared(estimate_only = estimate_only)
+			private$cached_values$beta_hat_T
+		},
+		#' @description Uses the shared asymptotic confidence-interval contract; see
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @param alpha Numeric. Significance level (default 0.05).
+		compute_asymp_confidence_interval = function(alpha = 0.05){
+			if (should_run_asserts()) {
+				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+			}
+			private$shared()
+			private$compute_z_or_t_ci_from_s_and_df(alpha)
+		},
+		#' @description Computes the OLS asymptotic p-value using the shared
+		#'   Wald/asymptotic semantics documented in
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @param delta Numeric. Null treatment effect value (default 0).
+		compute_asymp_two_sided_pval = function(delta = 0){
+			if (should_run_asserts()) {
+				assertNumeric(delta)
+			}
+			private$shared()
+			if (delta == 0){
+				private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			} else {
+				if (should_run_asserts()) {
+					stop("TO-DO")
+				}
+				NA_real_
 			}
 		}
 	),
@@ -199,5 +245,48 @@ InferenceContinKKOLSIVWC = R6::R6Class("InferenceContinKKOLSIVWC",
 				private$cached_values$df_beta_T_reservoir  = fit$df
 			}
 		}
+	)
+)
+
+#' @export
+InferenceContinKKOLSIVWC = define_inference_class(
+	classname = "InferenceContinKKOLSIVWC",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "ContinKKOLSIVWC"),
+	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other survival/count KK migration this session.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "quasi"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			# KKCompound chain vs bootstrap/Wald chain: the KK-aware versions win
+			# via component order (KKCompound resolves after BayesianBootstrap/
+			# Wald), matching the old ladder's inherited behavior -- this class
+			# never overrode either method itself.
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"compute_fast_randomization_distr",
+			"shared",
+			"assert_finite_se"
+		)
 	)
 )

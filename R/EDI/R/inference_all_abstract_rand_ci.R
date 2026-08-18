@@ -61,7 +61,24 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			if (should_run_asserts()) {
 				private$assert_no_incidence_only_randomization_args(private$des_obj_priv_int$response_type, type, args_for_type)
 			}
-			super$compute_rand_two_sided_pval(
+			# Not super$compute_rand_two_sided_pval(): a class composed via
+			# define_inference_class() that splices this method in as a raw function
+			# copy (not real inheritance -- see the "generic self-aliased overrides"
+			# pattern in e.g. inference_incidence_gcomp.R, inference_incidence_risk_diff.R)
+			# has no InferenceRand ancestor for super$ to resolve against under the
+			# shallow `inherit = Inference` hierarchy -- super$compute_rand_two_sided_pval
+			# is simply absent there, so calling it throws "attempt to apply
+			# non-function" (caught by test-simulation-framework-advanced.R against
+			# InferenceIncidRiskDiff). Rebinding the borrowed function's environment to
+			# the current call's (which already has correctly-bound self/private/super
+			# for whichever class this method was spliced into, by the same R6
+			# construction-time rebinding that makes self$/private$ work in every other
+			# spliced-in method) lets self/private resolve correctly regardless of the
+			# real inheritance chain, without requiring every class that splices this
+			# public method in to also splice in a matching private helper.
+			core_fn = InferenceRand$public_methods$compute_rand_two_sided_pval
+			environment(core_fn) = environment()
+			core_fn(
 				r = r,
 				delta = delta,
 				transform_responses = transform_responses,

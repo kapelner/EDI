@@ -6,9 +6,67 @@
 #' \code{qlogis} for proportion outcomes).
 #'
 #' @keywords internal
-InferenceAbstractKKQuantileRegrIVWC = R6::R6Class("InferenceAbstractKKQuantileRegrIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceAbstractQuantileRandCI,
+# Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
+# IVWC Estimators"): this file previously defined
+# `InferenceAbstractKKQuantileRegrIVWC` R6-inheriting from the hybrid
+# `InferenceAbstractQuantileRandCI` (itself already `define_inference_class(
+# inherit = InferenceKKPassThroughCompoundNoParamBootstrap, components =
+# "QuantileRandomizationCI")` -- a partially migrated class that still
+# R6-inherits the old ladder). This class's own `super$initialize()` chain
+# therefore still reached `InferenceKKPassThroughCompoundNoParamBootstrap`'s
+# initialize (which calls `private$init_kk_passthrough(des_obj)`) despite
+# never calling it directly itself -- the class's *own* `if (private$is_KK)`
+# block is ADDITIONAL logic for kk14/kk21 sequential designs (where
+# `has_match_structure` is FALSE so `init_kk_passthrough`'s own match-data
+# pass is a no-op), distinct from `init_kk_passthrough`'s own
+# `has_match_structure` branch (DesignFixedBinaryMatch). Despite the "KK"
+# name and doc title, `des_obj$is_a_kk_matching_capable()` (asserted inside
+# `init_kk_passthrough`) accepts DesignFixedBinaryMatch too, so this class
+# genuinely supports both design families -- preserved as-is. Registered as
+# the `KKQuantileRegrIVWC` component with `dependencies = c("KKCompound",
+# "QuantileRandomizationCI")` (the latter is what actually supplies
+# `compute_rand_confidence_interval()` post-migration; docs on
+# `InferenceExtQuantileRandCI` calling itself "composed into exactly one
+# host" are now stale -- see contracts_mixins.R for the up-to-date list).
+# Free-function helper (same pattern as .compute_kk_basic_match_data_cached
+# in helper_matching.R): factored out of the Source's own initialize so that
+# InferenceContinKKQuantileRegrIVWC and InferencePropKKQuantileRegrIVWC --
+# two concrete leaves sharing this one component, each needing DIFFERENT
+# response-type assertions and post-init logic wrapped around it -- can each
+# call it from inside their OWN initialize (which must call super$initialize()
+# itself, since `super` is resolved by R6 at each leaf's construction time and
+# is therefore only reachable inside a method body actually defined on that
+# leaf; a component-level "initialize" that a flat composition's `overrides`
+# declares the host as winning is otherwise unreachable, per Lesson 1).
+.init_kk_quantile_regr_ivwc = function(self, private, super, des_obj, model_formula, tau, transform_y_fn, verbose, smart_cold_start_default){
+	if (should_run_asserts()) {
+		assertFormula(model_formula, null.ok = TRUE)
+		assertNumeric(tau, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
+	}
+	if (should_run_asserts()) {
+		if (!check_package_installed("quantreg")) {
+			stop("Package 'quantreg' is required. Please install it with install.packages(\"quantreg\").")
+		}
+	}
+	private$tau = tau
+	private$transform_y_fn_list = list(fn = transform_y_fn)
+	super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+	# Lesson 1 (see KKNewcombeRiskDiffIVWCSource): post-migration
+	# super$initialize() resolves to the root Inference, not
+	# InferenceKKPassThroughCompoundNoParamBootstrap, so the KK match-structure
+	# setup that ancestor's initialize() performed must be invoked explicitly
+	# here (this is IN ADDITION to the is_KK block below, which is this
+	# class's own separate sequential-design logic -- see the Source header
+	# comment).
+	private$init_kk_passthrough(des_obj)
+	if (private$is_KK){
+		private$m = des_obj$.__enclos_env__$private$m
+		private$compute_basic_match_data()
+	}
+	invisible(NULL)
+}
+
+KKQuantileRegrIVWCSource = list(
 	public = list(
 		#' @description Initialize KK inverse-variance combined quantile-regression
 		#'   inference. The parent validates the completed KK design, stores the
@@ -34,22 +92,7 @@ InferenceAbstractKKQuantileRegrIVWC = R6::R6Class("InferenceAbstractKKQuantileRe
 		#'   Default is \code{FALSE}.
 		#' @param smart_cold_start_default Whether to use smart cold start values.
 		initialize = function(des_obj, model_formula = NULL, tau = 0.5, transform_y_fn = identity,  verbose = FALSE, smart_cold_start_default = NULL){
-			if (should_run_asserts()) {
-				assertFormula(model_formula, null.ok = TRUE)
-				assertNumeric(tau, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
-			}
-			if (should_run_asserts()) {
-				if (!check_package_installed("quantreg")) {
-					stop("Package 'quantreg' is required. Please install it with install.packages(\"quantreg\").")
-				}
-			}
-			private$tau = tau
-			private$transform_y_fn_list = list(fn = transform_y_fn)
-			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
-			if (private$is_KK){
-				private$m = des_obj$.__enclos_env__$private$m
-				private$compute_basic_match_data()
-			}
+			.init_kk_quantile_regr_ivwc(self, private, super, des_obj, model_formula, tau, transform_y_fn, verbose, smart_cold_start_default)
 		},
 		#' @description Computes the appropriate quantile regression compound estimate
 		#'

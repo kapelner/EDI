@@ -16,16 +16,56 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceBaiAdjustedTKK14 = R6::R6Class("InferenceBaiAdjustedTKK14",
-	lock_objects = FALSE,
-	inherit = InferenceBaiAdjustedT,
+# Migrated 2026-08-18 (fix_inference_hierarchy.md "KK And IVWC Estimators"):
+# formerly a thin R6 leaf on the abstract base `InferenceBaiAdjustedT`; the
+# machinery now arrives via the registered `BaiAdjustedT` component
+# (inference_continuous_KK_bai_abstract.R). The `distance` private below is
+# this leaf's only own surface (nothing calls it -- pair distances go through
+# compute_pair_distance_matrix_cpp -- but it is preserved verbatim).
+InferenceBaiAdjustedTKK14 = define_inference_class(
+	classname = "InferenceBaiAdjustedTKK14",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "BaiAdjustedT"),
 	public = list(
-
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
-
 	private = list(
-	distance = function(avg1, avg2){
-		sum((avg1 - avg2)^2)
-	}
+		distance = function(avg1, avg2){
+			sum((avg1 - avg2)^2)
+		}
+	),
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			# KKCompound chain vs bootstrap/Wald chain: the KK-aware versions win
+			# via component order (KKCompound resolves after BayesianBootstrap/
+			# Wald), matching the old ladder's inherited behavior.
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"compute_fast_randomization_distr",
+			"shared",
+			# MLEorKM's graceful-NA version wins over the Wald component's
+			# stop()-on-missing-SE fallback (Lesson 5, see the Source comment).
+			"get_standard_error"
+		)
 	)
 )

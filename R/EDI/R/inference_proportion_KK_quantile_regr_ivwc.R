@@ -47,13 +47,46 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferencePropKKQuantileRegrIVWC = R6::R6Class("InferencePropKKQuantileRegrIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceAbstractKKQuantileRegrIVWC,
+# Migrated 2026-08-18 (fix_inference_hierarchy.md "KK And IVWC Estimators"):
+# same shape and rationale as InferenceContinKKQuantileRegrIVWC (see that
+# file's header comment).
+InferencePropKKQuantileRegrIVWC = define_inference_class(
+	classname = "InferencePropKKQuantileRegrIVWC",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "KKQuantileRegrIVWC"),
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_rand_confidence_interval",
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"shared"
+		)
+	),
 	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other continuous/survival KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize proportion-response KK IVWC quantile-regression
 		#'   inference on the logit response scale; see
-		#'   \code{\link[EDI:InferenceAbstractKKQuantileRegrIVWC]{InferenceAbstractKKQuantileRegrIVWC}}.
+		#'   \code{\link[EDI:InferencePropKKQuantileRegrIVWC]{InferencePropKKQuantileRegrIVWC}}.
 		#' @param des_obj A DesignSeqOneByOne object whose entire n subjects
 		#'   are assigned and response y is recorded within.
 		#' @param tau                             The quantile level for regression on the logit
@@ -72,7 +105,9 @@ InferencePropKKQuantileRegrIVWC = R6::R6Class("InferencePropKKQuantileRegrIVWC",
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "proportion")
 			}
-			super$initialize(des_obj = des_obj, model_formula = model_formula, tau = tau, transform_y_fn = qlogis, verbose = verbose, smart_cold_start_default = smart_cold_start_default)
+			# See InferenceContinKKQuantileRegrIVWC's initialize for why this
+			# calls the free-function helper rather than super$initialize().
+			.init_kk_quantile_regr_ivwc(self, private, super, des_obj, model_formula, tau, qlogis, verbose, smart_cold_start_default)
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
 			}

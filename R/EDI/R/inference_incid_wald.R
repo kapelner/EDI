@@ -20,9 +20,22 @@ InferenceIncidWald = define_inference_class(
 	inherit = Inference,
 	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 	public = list(
-		#' @description Uses the shared randomization two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
-		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		#' @description Uses the randomization-CI layer's two-sided p-value contract
+		#'   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
+		#'   incidence responses this dispatches to the Zhang exact randomization
+		#'   test where applicable rather than refusing outright, matching this
+		#'   class's pre-migration old-ladder behavior (it inherited from
+		#'   \code{InferenceAllSimpleMeanDiff}, whose own pin was already
+		#'   corrected to \code{InferenceRandCI} -- see that file's identical
+		#'   rationale). This class independently composes the same components
+		#'   rather than truly inheriting \code{InferenceAllSimpleMeanDiff}, so it
+		#'   had its own stale copy of the old \code{InferenceRand} pin, which
+		#'   silently regressed Zhang dispatch (`compute_rand_two_sided_pval()`
+		#'   started throwing "Randomization tests are not supported for
+		#'   incidence" for the same designs the old ladder handled correctly) --
+		#'   found via \code{test-incid-wald-migration-golden.R}'s
+		#'   \code{randomization_pval} case going from `"ok"` to `"unsupported"`.
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize Wald risk-difference incidence inference and
 		#'   prepare the treatment/control binomial summaries used by
 		#'   \code{\link[EDI:InferenceIncidWald]{InferenceIncidWald}} and related

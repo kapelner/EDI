@@ -23,6 +23,9 @@ canonical_component_names = function() {
 		"BayesianBootstrap", "Jackknife", "Wald",
 		"SimpleMeanDifference", "SimpleMeanDifferencePooledVar",
 		"KKMeanDifferenceIVWC", "SimpleWilcox", "KKWilcoxIVWC", "KKNewcombeRiskDiffIVWC", "CountKKHurdlePoissonIVWC",
+		"ContinKKRobustRegrIVWC", "ContinKKOLSIVWC", "SurvivalKKRankRegrIVWC",
+		"BaiAdjustedT", "SurvivalKKStratCoxIVWC", "IncidKKCondLogitIVWC",
+		"KKQuantileRegrIVWC", "IncidenceKKGComputation",
 		"ExactTest", "ExactBinomialIncidence", "ExactFisherIncidence",
 		"ExactZhangIncidence",
 		"LikelihoodTests", "ParametricLikelihoodBootstrap", "StandardModelCache",
@@ -42,7 +45,7 @@ canonical_component_names = function() {
 			"SurvivalWeibullLikelihood", "SurvivalDepCensTransform",
 			"SurvivalKKWeibullMarginal", "SurvivalKKClaytonCopulaIVWC",
 			"SurvivalKKClaytonCopulaOneLik", "SurvivalKKWeibullFrailtyIVWC",
-			"SurvivalKKWeibullFrailtyIVWCLeaf", "SurvivalKKWeibullFrailtyOneLik",
+			"SurvivalKKWeibullFrailtyOneLik",
 			"SurvivalKKWeibullFrailtyOneLikLeaf",
 					"KKPassThrough", "KKCompound", "KKGEE",
 		"RobustSandwich", "KKGLMM", "OffOptimumLikelihoodEval",
@@ -857,13 +860,36 @@ test_that("R6 generator private lists are not accessed from generator objects", 
 	expect_equal(offenders, character())
 })
 
-test_that("KK OLS IVWC uses the compound bootstrap-weight estimator", {
-	expect_null(EDI:::InferenceContinKKOLSIVWC$public_methods$compute_estimate_with_bootstrap_weights)
-	expect_true(is.function(EDI:::InferenceKKPassThroughCompoundNoParamBootstrap$public_methods$compute_estimate_with_bootstrap_weights))
-	expect_false(identical(
-		body(EDI:::InferenceKKPassThroughCompoundNoParamBootstrap$public_methods$compute_estimate_with_bootstrap_weights),
+test_that("KK OLS IVWC's bootstrap-weight estimator matches the migrated architecture", {
+	# Pre-migration (fix_inference_hierarchy.md, "KK And IVWC Estimators"),
+	# InferenceContinKKOLSIVWC inherited compute_estimate_with_bootstrap_weights
+	# purely via the R6 ladder from InferenceKKPassThroughCompoundNoParamBootstrap
+	# (whose own version -- inference_kk_passthrough_compound_components$public,
+	# built ad hoc in inference_all_abstract_KK_passthrough_compound.R and never
+	# registered as a reusable component -- differs from
+	# InferenceMixinKKPassThrough's raw passthrough), so $public_methods was NULL
+	# on the class itself. Post-migration (2026-08-18),
+	# define_inference_class() flattens every resolved method directly onto the
+	# generator, so this is never NULL for a composed class; the migrated
+	# InferenceContinKKOLSIVWC composes only the registered "KKCompound"/
+	# "KKPassThrough" components, neither of which carries that ad hoc compound
+	# override, so it resolves to KKPassThrough's raw passthrough instead.
+	# This is not a behavior regression: neither InferenceContinKKOLSIVWC nor
+	# InferenceContinKKRobustRegrIVWC ever defines private$compute_weighted_
+	# estimate_ivwc, so the legacy compound override's own body always fell
+	# through to its generic "weighted matched-diff mean" fallback branch --
+	# mathematically the same surrogate KKPassThrough's passthrough computes --
+	# confirmed bit-identical by the bootstrap_ci/bootstrap_pval/bootstrap_distr
+	# labels in test-contin-kk-ols-ivwc-migration-golden.R and
+	# test-contin-kk-robust-regr-ivwc-migration-golden.R (both of which do
+	# exercise this method: InferenceAsymp's supports_reusable_bootstrap_worker()
+	# default is TRUE and neither class overrides it).
+	fn = EDI:::InferenceContinKKOLSIVWC$public_methods$compute_estimate_with_bootstrap_weights
+	expect_true(is.function(fn))
+	expect_identical(
+		body(fn),
 		body(EDI:::InferenceMixinKKPassThrough$public$compute_estimate_with_bootstrap_weights)
-	))
+	)
 })
 
 test_that("single-host protected bases are not decomposed into new mixins", {

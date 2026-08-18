@@ -515,6 +515,185 @@ EDI_COMPONENT_SPECS = list(
 		allowed_likelihood_tiers = "none",
 		declare_body_references_optional = TRUE
 	),
+	ContinKKRobustRegrIVWC = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "ContinKKRobustRegrIVWCSource",
+		file = "inference_continuous_KK_robust_regr_ivwc.R",
+		dependencies = "KKCompound",
+		owns_state = c(
+			"rlm_method", "rlm_maxit", "rlm_acc", "rlm_start_with_ols",
+			"use_rcpp", "rlm_force_M"
+		),
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval", "duplicate"
+		),
+		provides_private_methods = c(
+			"compute_fast_randomization_distr", "resolve_rlm_control",
+			"is_rlm_nonconvergence_warning", "shared", "assert_finite_se",
+			"fit_rlm_with_treatment", "robust_for_matched_pairs", "robust_for_reservoir",
+			"rlm_method", "rlm_maxit", "rlm_acc", "rlm_start_with_ols",
+			"use_rcpp", "rlm_force_M"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "quasi",
+		declare_body_references_optional = TRUE
+	),
+	IncidenceKKGComputation = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "IncidenceKKGComputationSource",
+		file = "inference_incidence_KK_gcomp_abstract.R",
+		dependencies = "KKPassThrough",
+		owns_state = c("best_X_colnames", "gcomp_boot_beta", "max_abs_reasonable_coef"),
+		provides_public_methods = c(
+			"initialize",
+			"compute_estimate", "get_standard_error", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_wald_two_sided_pval", "compute_wald_confidence_interval",
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"approximate_bootstrap_distribution_beta_hat_T_generic",
+			"compute_rand_two_sided_pval",
+			"get_supported_testing_types",
+			"compute_bootstrap_confidence_interval", "compute_bootstrap_confidence_interval_generic",
+			"compute_bootstrap_two_sided_pval", "compute_bootstrap_two_sided_pval_generic",
+			"compute_bayesian_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_two_sided_pval_generic",
+			"compute_bayesian_bootstrap_confidence_interval", "compute_bayesian_bootstrap_confidence_interval_generic",
+			"compute_jackknife_wald_two_sided_pval", "compute_jackknife_wald_two_sided_pval_generic",
+			"compute_jackknife_wald_confidence_interval", "compute_jackknife_wald_confidence_interval_generic"
+		),
+		provides_private_methods = c(
+			"is_a_incid_kk_gcomp", "is_a_kk_marginal_incid", "supports_likelihood_tests",
+			"compute_basic_match_data", "compute_treatment_estimate_during_randomization_inference",
+			"max_abs_reasonable_coef", "default_null_value",
+			"compute_rr_bootstrap_basic_confidence_interval",
+			"compute_rr_bayesian_bootstrap_log_confidence_interval",
+			"compute_rr_jackknife_log_se", "compute_rr_jackknife_wald_two_sided_pval",
+			"compute_rr_jackknife_wald_confidence_interval",
+			"compute_weighted_gcomp_estimate", "set_failed_fit_cache", "effects_are_usable",
+			"coefficients_are_usable", "fit_logistic_with_sandwich",
+			"compute_standardized_effects_r", "compute_standardized_effects",
+			"get_effect_estimate", "compute_effect_confidence_interval", "compute_effect_pvalue",
+			"shared", "get_covariate_names", "get_cluster_ids",
+			"best_X_colnames", "gcomp_boot_beta",
+			"build_design_matrix", "get_estimand_type",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "none",
+		declare_body_references_optional = TRUE
+	),
+	KKQuantileRegrIVWC = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "KKQuantileRegrIVWCSource",
+		file = "inference_all_KK_quantile_regr_ivwc_abstract.R",
+		# QuantileRandomizationCI (Zhang combined rand-CI) is a dependency here
+		# rather than a separate direct component on each concrete class: both
+		# InferenceContinKKQuantileRegrIVWC and InferencePropKKQuantileRegrIVWC
+		# need it and neither has any reason to compose it without this
+		# component too.
+		dependencies = c("KKCompound", "QuantileRandomizationCI"),
+		owns_state = c("tau", "transform_y_fn_list", "m"),
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval"
+		),
+		provides_private_methods = c(
+			"is_a_kk_quantile_regr_ivwc", "tau", "transform_y_fn_list", "m",
+			"compute_basic_match_data", "matrix_with_n_rows",
+			"reduce_full_rank_matrix", "reduce_preserve_cols_matrix",
+			"set_colnames_safely", "shared", "quantile_for_matched_pairs",
+			"quantile_for_reservoir", "iqr_se", "extract_se_from_rq",
+			"compute_rand_pval_matched_pairs", "compute_rand_pval_reservoir",
+			"qr_intercept_pairs", "qr_trt_coef_reservoir"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "none",
+		declare_body_references_optional = TRUE
+	),
+	IncidKKCondLogitIVWC = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "IncidKKCondLogitIVWCSource",
+		file = "inference_incidence_KK_cond_logit.R",
+		dependencies = "KKCompound",
+		owns_state = character(),
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval"
+		),
+		provides_private_methods = c(
+			"compute_basic_match_data", "get_standard_error", "shared",
+			"clogit_for_matched_pairs", "logistic_for_reservoir"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "partial",
+		declare_body_references_optional = TRUE
+	),
+	SurvivalKKStratCoxIVWC = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "SurvivalKKStratCoxIVWCSource",
+		file = "inference_survival_KK_strat_cox.R",
+		dependencies = "KKCompound",
+		owns_state = "max_abs_reasonable_coef",
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval"
+		),
+		provides_private_methods = c(
+			"get_standard_error", "compute_basic_match_data",
+			"cox_design_candidates", "rcpp_cox_fit_is_usable", "shared",
+			"assert_finite_se", "max_abs_reasonable_coef"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "partial",
+		declare_body_references_optional = TRUE
+	),
+	BaiAdjustedT = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "BaiAdjustedTSource",
+		file = "inference_continuous_KK_bai_abstract.R",
+		dependencies = "KKCompound",
+		owns_state = "convex_flag",
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval"
+		),
+		provides_private_methods = c(
+			"is_a_bai_adjusted_t", "get_standard_error",
+			"compute_fast_randomization_distr", "shared",
+			"compute_bai_variance_for_pairs", "compute_halves",
+			"convex_flag"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "none",
+		declare_body_references_optional = TRUE
+	),
+	ContinKKOLSIVWC = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "ContinKKOLSIVWCSource",
+		file = "inference_continuous_KK_ols_ivwc.R",
+		dependencies = "KKCompound",
+		owns_state = character(),
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval"
+		),
+		provides_private_methods = c(
+			"compute_fast_randomization_distr", "shared", "assert_finite_se",
+			"satterthwaite_df", "fit_ols_with_treatment", "ols_for_matched_pairs",
+			"ols_for_reservoir"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "quasi",
+		declare_body_references_optional = TRUE
+	),
 	CountKKHurdlePoissonIVWC = list(
 		status = "active",
 		load_policy = "lazy",
@@ -755,9 +934,22 @@ EDI_COMPONENT_SPECS = list(
 		load_policy = "lazy",
 		source_name = "KKLWACoxIVWCPartialLikelihoodSource",
 		file = "inference_survival_KK_lwa_cox_ivwc_abstract.R",
-		dependencies = "Wald",
-		provides_public_methods = character(),
+		# 2026-08-18 migration: previously a shim-only component with
+		# dependencies = "Wald"; now the real merged abstract+leaf source for
+		# InferenceSurvivalKKLWACoxPHIVWC (Wald arrives explicitly in that
+		# class's composition vector).
+		dependencies = "KKCompound",
+		owns_state = "max_abs_reasonable_coef",
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval"
+		),
 		provides_private_methods = c(
+			"is_a_kk_lwa_cox_ivwc", "get_standard_error",
+			"compute_basic_match_data", "shared", "assert_finite_se",
+			"cox_design_candidates", "fit_cox_model",
+			"lwa_cox_for_matched_pairs", "cox_for_reservoir",
+			"max_abs_reasonable_coef",
 			"kk_lwa_cox_ivwc_shared",
 			"kk_lwa_cox_ivwc_assert_finite_se",
 			"kk_lwa_cox_design_candidates",
@@ -774,9 +966,25 @@ EDI_COMPONENT_SPECS = list(
 		load_policy = "lazy",
 		source_name = "KKLWACoxOneLikPartialLikelihoodSource",
 		file = "inference_survival_KK_lwa_cox_one_lik_abstract.R",
-		dependencies = "ParametricLikelihoodBootstrap",
-		provides_public_methods = character(),
+		# 2026-08-18 migration: previously a shim-only component with
+		# dependencies = "ParametricLikelihoodBootstrap"; now the real merged
+		# abstract+leaf source for InferenceSurvivalKKLWACoxPHOneLik (see the
+		# KKLWACoxIVWCPartialLikelihood entry above for the analogous IVWC
+		# reshaping earlier this stretch).
+		dependencies = c("KKPassThrough", "ParametricLikelihoodBootstrap"),
+		owns_state = c("max_abs_reasonable_coef", "optimization_alg"),
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
+		),
 		provides_private_methods = c(
+			"is_a_kk_lwa_cox_one_lik", "compute_basic_match_data",
+			"get_standard_error", "get_degrees_of_freedom", "assert_finite_se",
+			"supports_likelihood_tests", "supports_lik_ratio_param_bootstrap",
+			"simulate_under_lik_null", "get_likelihood_test_spec",
+			"compute_treatment_estimate_during_randomization_inference",
+			"design_matrix_candidates", "shared_combined_likelihood",
+			"max_abs_reasonable_coef", "optimization_alg",
 			"kk_lwa_cox_one_lik_get_standard_error",
 			"kk_lwa_cox_one_lik_get_degrees_of_freedom",
 			"kk_lwa_cox_one_lik_assert_finite_se",
@@ -790,6 +998,30 @@ EDI_COMPONENT_SPECS = list(
 		),
 		provides_capabilities = character(),
 		allowed_likelihood_tiers = "partial",
+		declare_body_references_optional = TRUE
+	),
+	SurvivalKKRankRegrIVWC = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "SurvivalKKRankRegrIVWCSource",
+		file = "inference_survival_KK_rank_regr_ivwc_abstract.R",
+		dependencies = "KKCompound",
+		owns_state = c("best_X_colnames_matched", "best_X_colnames_reservoir", "max_abs_reasonable_coef"),
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval"
+		),
+		provides_private_methods = c(
+			"is_a_kk_survival_rank_regr_ivwc", "build_design_matrix",
+			"compute_basic_match_data", "aft_design_candidates",
+			"extract_term_estimate", "extract_term_se", "shared",
+			"assert_finite_se", "get_standard_error",
+			"aftsrr_for_matched_pairs", "aftsrr_for_reservoir",
+			"best_X_colnames_matched", "best_X_colnames_reservoir",
+			"max_abs_reasonable_coef"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "none",
 		declare_body_references_optional = TRUE
 	),
 	KKSurvivalRankRegression = list(
@@ -1476,7 +1708,11 @@ EDI_COMPONENT_SPECS = list(
 					load_policy = "lazy",
 					source_name = "SurvivalKKWeibullFrailtyIVWCSource",
 					file = "inference_survival_KK_weibull_frailty.R",
-					dependencies = character(),
+					# 2026-08-18 migration (same reshaping as SurvivalKKClaytonCopulaIVWC):
+					# previously a self-harvested abstract component paired with a
+					# separate ...IVWCLeaf component (now deleted); this is the merged
+					# abstract+leaf static source, on the KKCompound dependency chain.
+					dependencies = "KKCompound",
 					owns_state = c(
 						"optimization_alg", "best_par", "best_X_colnames", "any_censoring",
 						"m", "cached_mod", "best_X_colnames_matched",
@@ -1485,11 +1721,11 @@ EDI_COMPONENT_SPECS = list(
 					),
 					provides_public_methods = c(
 						"initialize", "compute_estimate", "compute_asymp_confidence_interval",
-						"compute_asymp_two_sided_pval", "approximate_bootstrap_distribution_beta_hat_T",
-						"duplicate"
+						"compute_asymp_two_sided_pval"
 					),
 					provides_private_methods = c(
-						"is_a_kk_weibull_frailty_ivwc", "compute_basic_match_data",
+						"is_a_kk_weibull_frailty_ivwc", "get_standard_error",
+						"compute_basic_match_data",
 						"supports_lik_ratio_param_bootstrap",
 						"compute_treatment_estimate_during_randomization_inference",
 						"frailty_for_matched_pairs", "weibull_for_reservoir", "shared",
@@ -1498,18 +1734,6 @@ EDI_COMPONENT_SPECS = list(
 						"best_X_colnames_reservoir", "max_abs_reasonable_coef",
 						"cached_vc_params_matched", "cached_vc_params_reservoir"
 					),
-					provides_capabilities = character(),
-					allowed_likelihood_tiers = "full",
-					declare_body_references_optional = TRUE
-				),
-				SurvivalKKWeibullFrailtyIVWCLeaf = list(
-					status = "active",
-					load_policy = "lazy",
-					source_name = "SurvivalKKWeibullFrailtyIVWCLeafSource",
-					file = "inference_survival_KK_weibull_frailty.R",
-					dependencies = character(),
-					provides_public_methods = "initialize",
-					provides_private_methods = character(),
 					provides_capabilities = character(),
 					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE

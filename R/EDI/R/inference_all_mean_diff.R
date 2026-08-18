@@ -377,7 +377,18 @@ InferenceAllSimpleMeanDiff = define_inference_class(
 	inherit = Inference,
 	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 	public = list(
-		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+		#' @description Uses the randomization-CI layer's two-sided p-value contract
+		#'   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
+		#'   incidence responses this dispatches to the Zhang exact randomization
+		#'   test where applicable rather than refusing outright, matching this
+		#'   class's pre-migration old-ladder behavior (see
+		#'   \code{InferenceIncidRiskDiff}'s identical rationale). Previously bound
+		#'   to \code{InferenceRand}'s version instead, which silently regressed
+		#'   Zhang dispatch after migration -- see
+		#'   \code{inference_all_abstract_rand_ci.R}'s
+		#'   \code{compute_rand_two_sided_pval} for why it's now safe to splice
+		#'   this in outside the old inheritance chain.
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
 	),
 	metadata = list(likelihood_tier = "none"),
 	overrides = list(

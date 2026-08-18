@@ -110,9 +110,11 @@ test_that("InferenceSurvivalKKWeibullMarginal is marked migrated and eval(body) 
 	expect_identical(metadata$parent, "Inference")
 	manifest = EDI:::inference_hierarchy_migration_manifest_as_list()
 	expect_identical(manifest[["InferenceSurvivalKKWeibullMarginal"]]$migration_status, "migrated")
-	src = readLines(system.file("R", "inference_survival_KK_weibull_marginal.R", package = "EDI") %||%
-		"R/inference_survival_KK_weibull_marginal.R", warn = FALSE)
 	src_path = file.path(testthat::test_path(), "..", "..", "R", "inference_survival_KK_weibull_marginal.R")
+	if (!file.exists(src_path)) {
+		installed_path = system.file("R", "inference_survival_KK_weibull_marginal.R", package = "EDI")
+		if (nzchar(installed_path)) src_path = installed_path
+	}
 	if (file.exists(src_path)) {
 		src = readLines(src_path, warn = FALSE)
 		expect_false(any(grepl("eval(body(", src, fixed = TRUE)))

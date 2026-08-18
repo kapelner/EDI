@@ -46,13 +46,52 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceContinKKQuantileRegrIVWC = R6::R6Class("InferenceContinKKQuantileRegrIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceAbstractKKQuantileRegrIVWC,
+# Migrated 2026-08-18 (fix_inference_hierarchy.md "KK And IVWC Estimators"):
+# formerly a thin R6 leaf on the abstract base
+# `InferenceAbstractKKQuantileRegrIVWC`; the machinery now arrives via the
+# registered `KKQuantileRegrIVWC` component (which itself depends on
+# `KKCompound` and `QuantileRandomizationCI` -- see
+# inference_all_KK_quantile_regr_ivwc_abstract.R). `compute_rand_two_sided_
+# pval` is pinned from `InferenceRand`, same rationale as every other
+# continuous/survival KK migration this stretch (RandCI's Zhang dispatch
+# never applies to continuous data).
+InferenceContinKKQuantileRegrIVWC = define_inference_class(
+	classname = "InferenceContinKKQuantileRegrIVWC",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "KKQuantileRegrIVWC"),
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_rand_confidence_interval",
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"shared"
+		)
+	),
 	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other continuous/survival KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize continuous-response KK IVWC quantile-regression
 		#'   inference; see
-		#'   \code{\link[EDI:InferenceAbstractKKQuantileRegrIVWC]{InferenceAbstractKKQuantileRegrIVWC}}.
+		#'   \code{\link[EDI:InferenceContinKKQuantileRegrIVWC]{InferenceContinKKQuantileRegrIVWC}}.
 		#' @param des_obj A DesignSeqOneByOne object whose entire n subjects
 		#'   are assigned and response y is recorded within.
 		#' @param tau                             The quantile level for regression, strictly between
@@ -86,7 +125,12 @@ InferenceContinKKQuantileRegrIVWC = R6::R6Class("InferenceContinKKQuantileRegrIV
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "continuous")
 			}
-			super$initialize(des_obj, tau, identity, verbose = verbose, model_formula = model_formula)
+			# Calls the KKQuantileRegrIVWC component's shared init logic via the
+			# free-function helper, not super$initialize() -- see
+			# .init_kk_quantile_regr_ivwc()'s comment in
+			# inference_all_KK_quantile_regr_ivwc_abstract.R (Lesson 1 corollary
+			# for two leaves sharing one component).
+			.init_kk_quantile_regr_ivwc(self, private, super, des_obj, model_formula, tau, identity, verbose, NULL)
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
 			}

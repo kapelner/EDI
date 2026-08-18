@@ -366,17 +366,41 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceIncidKKGCompRiskDiff = R6::R6Class("InferenceIncidKKGCompRiskDiff",
-	lock_objects = FALSE,
-	inherit = InferenceIncidKKGCompAbstract,
-	public = list(
-	),
+InferenceIncidKKGCompRiskDiff = define_inference_class(
+	classname = "InferenceIncidKKGCompRiskDiff",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),
 	private = list(
 		build_design_matrix = function(){
 			private$create_design_matrix()
 		},
 		get_estimand_type = function() "RD"
-	)
+	),
+	overrides = list(
+		public = c(
+			"initialize",
+			"compute_estimate", "get_standard_error", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_wald_two_sided_pval", "compute_wald_confidence_interval",
+			"approximate_bootstrap_distribution_beta_hat_T", "compute_rand_two_sided_pval",
+			"get_supported_testing_types",
+			"compute_bootstrap_confidence_interval", "compute_bootstrap_two_sided_pval",
+			"compute_bayesian_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_confidence_interval",
+			"compute_jackknife_wald_two_sided_pval", "compute_jackknife_wald_confidence_interval"
+		),
+		private = c(
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_supported_testing_types_impl",
+			"compute_basic_match_data",
+			"build_design_matrix",
+			"get_estimand_type",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )
 #' G-Computation Risk-Ratio Inference for KK Designs with Binary Responses
 #'
@@ -398,17 +422,41 @@ InferenceIncidKKGCompRiskDiff = R6::R6Class("InferenceIncidKKGCompRiskDiff",
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceIncidKKGCompRiskRatio = R6::R6Class("InferenceIncidKKGCompRiskRatio",
-	lock_objects = FALSE,
-	inherit = InferenceIncidKKGCompAbstract,
-	public = list(
-	),
+InferenceIncidKKGCompRiskRatio = define_inference_class(
+	classname = "InferenceIncidKKGCompRiskRatio",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),
 	private = list(
 		build_design_matrix = function(){
 			private$create_design_matrix()
 		},
 		get_estimand_type = function() "RR"
-	)
+	),
+	overrides = list(
+		public = c(
+			"initialize",
+			"compute_estimate", "get_standard_error", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_wald_two_sided_pval", "compute_wald_confidence_interval",
+			"approximate_bootstrap_distribution_beta_hat_T", "compute_rand_two_sided_pval",
+			"get_supported_testing_types",
+			"compute_bootstrap_confidence_interval", "compute_bootstrap_two_sided_pval",
+			"compute_bayesian_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_confidence_interval",
+			"compute_jackknife_wald_two_sided_pval", "compute_jackknife_wald_confidence_interval"
+		),
+		private = c(
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_supported_testing_types_impl",
+			"compute_basic_match_data",
+			"build_design_matrix",
+			"get_estimand_type",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		)
+	),
+	metadata = list(likelihood_tier = "none")
 )
 #' Modified-Poisson Inference for KK Designs with Binary Responses
 #'

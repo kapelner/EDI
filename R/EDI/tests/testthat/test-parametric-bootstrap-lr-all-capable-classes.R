@@ -136,13 +136,16 @@ test_that("every concrete parametric-likelihood-bootstrap class has a finite smo
 
 test_that("legacy runtime opt-outs do not advertise parametric likelihood bootstrap", {
 	legacy_opt_outs <- names(EDI:::EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES)
+	# InferenceIncidKKGCompRiskDiff/RiskRatio removed 2026-08-18: migrated to
+	# define_inference_class() composing IncidenceKKGComputation (tier
+	# "none"), so they no longer accidentally inherit
+	# parametric_likelihood_bootstrap at all -- the transitional exclusion
+	# entry is no longer needed (per this table's own removal instruction).
 	expect_setequal(
 		legacy_opt_outs,
 		c(
 			"InferenceIncidKKCondLogitGLMMIVWC",
 			"InferenceIncidKKCondLogitGLMMOneLik",
-			"InferenceIncidKKGCompRiskDiff",
-			"InferenceIncidKKGCompRiskRatio",
 			"InferenceIncidModifiedPoisson"
 		)
 	)

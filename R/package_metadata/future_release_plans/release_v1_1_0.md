@@ -23,6 +23,10 @@ list or its amendments. Concretely, the exclusions are:
 - `fix_documentation.md` (1.0.0 item 7 — including the Python docstring
   TODOs, which ride the same-commit-family `edi_kernels` 1.0.0 wheel, and
   the folded-in `marginal_estimand_report.md → TODO-2` roxygen sharpening),
+- `expanded_estimate_report.md`/`marginal_estimand_report.md` in full (1.0.0
+  item 14, amended 2026-08-18 — the package-wide `estimand` concept
+  `inference_suite_inspect.md`'s Combined Evidence Metric default weighting
+  policy needs),
 - `fix_roxygenize_lazy_component_srcrefs.md → R CMD check TODO` (1.0.0
   item 9),
 - the already-closed fragments: `multi_arm_designs.md → TODO-6`,
@@ -36,8 +40,9 @@ track from this release without replacement; it does not block the release.
 
 ## In scope (by plan)
 
-The corrections family: `expanded_estimate_report.md`,
-`marginal_estimand_report.md` (minus its TODO-2, which is 1.0.0),
+The corrections family (**minus `expanded_estimate_report.md`/
+`marginal_estimand_report.md`, pulled into v1.0.0 — amended 2026-08-18,
+user decision; see `release_v1_0_0.md`'s item 14**):
 `bias_correction_cox_snell.md`, `cordeiro_mccullagh_bias_correction_report.md`,
 `score_correction_cordeiro_ferrari.md`, `gradient_correction_lemonte.md`,
 `likrat_correction_bartlett.md`, `firth_penalties_report.md`,
@@ -66,6 +71,14 @@ The response-type family: `nominal_response_type_report.md`,
 `interval_censored_survival_response_type_report.md` (second wave,
 decision-gated), `response_types_landscape_report.md` (refresh).
 
+The KK one-stage-estimation family (added 2026-08-18): `kk_beta_regression_one_lik_derivation.md`
+— a genuine Beta-family (not quasi-binomial) one-stage `OneLik` joint
+likelihood for proportion responses under KK designs, closing one of the
+two remaining gaps named in `../new_research_ideas/KK_followup_research_plan.md`.
+Additive, no decision gate; may run in parallel with the response-type
+family above once TODO-1's KK-migration dependency (see the plan's own
+`Depends on` header) is satisfied.
+
 Designs and orchestration: `multi_arm_designs.md` (TODO-1..5; TODO-6 already
 shipped in 1.0.0), `design_fixed_greedy_pair_switch_merge.md`,
 `design_seq_many_by_many.md` (added 2026-08-17, user decision — the new
@@ -83,28 +96,28 @@ ticked in their **owning plans**; this list is the release index.
 
 - [ ] TODO-1: **Phase 0 decision batch** (ask the user, no code — one
   sitting, in this order because decisions cascade; this is `_master.md`
-  Phase 0 verbatim, minus decisions already taken):
-  1. `expanded_estimate_report.md → TODO-1` + `marginal_estimand_report.md →
-     TODO-1` (joint: `estimate_type` × `set_estimand()` scoping),
-  2. `firth_penalties_report.md → TODO-1` +
+  Phase 0 verbatim, minus decisions already taken, and minus
+  `expanded_estimate_report.md`/`marginal_estimand_report.md → TODO-1`,
+  which moved to v1.0.0 — amended 2026-08-18):
+  1. `firth_penalties_report.md → TODO-1` +
      `l1_l2_penalties_all_likelihood_paths_report.md → TODO-1` (joint
      penalized-fitting inference semantics),
-  3. `median_bias_correction_likelihood_paths_report.md → TODO-1` (after
+  2. `median_bias_correction_likelihood_paths_report.md → TODO-1` (after
      Firth),
-  4. `bias_correction_cox_snell.md → TODO-1` +
+  3. `bias_correction_cox_snell.md → TODO-1` +
      `cordeiro_mccullagh_bias_correction_report.md → TODO-1` (one project),
-  5. `modified_profile_likelihood_report.md → TODO-1`,
-  6. `likrat_correction_bartlett.md → TODO-1` (incl. ordering vs.
+  4. `modified_profile_likelihood_report.md → TODO-1`,
+  5. `likrat_correction_bartlett.md → TODO-1` (incl. ordering vs.
      score/gradient corrections),
-  7. `bootstrap_calibrated_lr_report.md → TODO-2` (Difficult tier yes/no),
-  8. the response-type decisions in one pass: `nominal_… → TODO-1`,
+  6. `bootstrap_calibrated_lr_report.md → TODO-2` (Difficult tier yes/no),
+  7. the response-type decisions in one pass: `nominal_… → TODO-1`,
      `rank_choice_… → TODO-1`, `semi_continuous_… → TODO-1`,
      `multivariate_… → TODO-1`, `compositional_… → TODO-1`,
      `longitudinal_repeated_measures_… → TODO-1`,
-  9. `gpu_optimizations.md → TODO-1` and `→ TODO-7` (backend/build story),
-  10. `interval_censored_survival_response_type_report.md → TODO-1`
+  8. `gpu_optimizations.md → TODO-1` and `→ TODO-7` (backend/build story),
+  9. `interval_censored_survival_response_type_report.md → TODO-1`
       (second-wave semiparametric yes/no),
-  11. `local_machine_optimization.md → TODO-1` remaining parts (a, b, c, e —
+  10. `local_machine_optimization.md → TODO-1` remaining parts (a, b, c, e —
       part (d) was decided 2026-08-17: tuned core count is recorded-only).
 - [ ] TODO-2: `local_machine_optimization.md → TODO-2` — the warm-start
   dispatcher refactor (lift the hardcoded sample-size-conditioned layer of
@@ -126,28 +139,27 @@ ticked in their **owning plans**; this list is the release index.
   wirings in both wait on 1.0.0's Phase 1D.2 KK migration landing),
   `cold_starts.md → TODO-1..14` (documentation/audit — also a prerequisite
   for TODO-10, which benchmarks the axes this audit documents).
-- [ ] TODO-5: **Corrections track** (`_master.md` Phase 5A order; each item
-  gated by its TODO-1 decision):
-  1. `expanded_estimate_report.md → TODO-2..5` (`estimate_type` first — its
-     values are consumed downstream), then `marginal_estimand_report.md →
-     TODO-3..8`,
-  2. `bias_correction_cox_snell.md → TODO-2..5` +
+- [ ] TODO-5: **Corrections track** (`_master.md` Phase 5A order, minus
+  its step 1 — `expanded_estimate_report.md`/`marginal_estimand_report.md`,
+  moved to v1.0.0, amended 2026-08-18; each remaining item gated by its
+  TODO-1 decision):
+  1. `bias_correction_cox_snell.md → TODO-2..5` +
      `cordeiro_mccullagh_bias_correction_report.md → TODO-2..4` (one
      project: shared `X'WX` helper, Easy-tier GLMs first),
-  3. the higher-order test-correction batch in order:
+  2. the higher-order test-correction batch in order:
      `score_correction_cordeiro_ferrari.md → Phase 0..5` (anchor), then
      `gradient_correction_lemonte.md → Phase 0..4`, then
      `likrat_correction_bartlett.md → exact-rollout TODO-2` (shared
      cumulant machinery built exactly once),
-  4. `firth_penalties_report.md → TODO-2..5` (requires TODO-3's
+  3. `firth_penalties_report.md → TODO-2..5` (requires TODO-3's
      `SolverDiagnostics`) + `l1_l2_penalties_all_likelihood_paths_report.md
      → TODO-3` (joint semantics recorded once in both plans),
-  5. `l1_l2_penalties_all_likelihood_paths_report.md → TODO-2` then
+  4. `l1_l2_penalties_all_likelihood_paths_report.md → TODO-2` then
      `→ TODO-4`,
-  6. `median_bias_correction_likelihood_paths_report.md → TODO-3..4` (only
+  5. `median_bias_correction_likelihood_paths_report.md → TODO-3..4` (only
      after Firth ships),
-  7. `modified_profile_likelihood_report.md → TODO-2..4`,
-  8. `bootstrap_calibrated_lr_report.md → Difficult-tier work` (if TODO-1.7
+  6. `modified_profile_likelihood_report.md → TODO-2..4`,
+  7. `bootstrap_calibrated_lr_report.md → Difficult-tier work` (if TODO-1.6
      said yes).
 - [ ] TODO-6: **Response-type track** (`_master.md` Phase 5B order):
   `nominal_… → TODO-2 (Stage 1)` + `rank_choice_… → TODO-2 (Stage 1)`
@@ -170,7 +182,7 @@ ticked in their **owning plans**; this list is the release index.
   supplies the capability metadata), `→ TODO-2`, `→ TODO-3`, `→ TODO-4`
   (coordinate with TODO-6's multivariate orchestration layer — same shape),
   `→ TODO-5` (demand-gated).
-- [ ] TODO-9: **GPU track** (if TODO-1.9 said yes; `_master.md` Phase 5E):
+- [ ] TODO-9: **GPU track** (if TODO-1.8 said yes; `_master.md` Phase 5E):
   `gpu_optimizations.md → TODO-7` (backend/build design) then `→ TODO-2..5`,
   each merge gated by `→ TODO-6`'s benchmark matrix.
 - [ ] TODO-10: **Local machine optimization**:
@@ -191,7 +203,7 @@ ticked in their **owning plans**; this list is the release index.
   in 2.0.0, vs. the plan's current delete-outright shape); the explicit
   user instruction (2026-08-16) made it post-1.0.0 but did not settle the
   deprecation mechanics.
-- [ ] TODO-12: **Interval-censored second wave** (if TODO-1.10 said yes):
+- [ ] TODO-12: **Interval-censored second wave** (if TODO-1.9 said yes):
   the NPMLE/Turnbull + stratified-Cox icenReg delegation work per
   `interval_censored_survival_response_type_report.md`, tracked as new
   TODOs in a reopened/new owning plan (the original
@@ -205,6 +217,15 @@ ticked in their **owning plans**; this list is the release index.
 - [ ] TODO-14: **Landscape refresh**: `response_types_landscape_report.md →
   remaining open TODOs` — refresh after the TODO-6/7 tracks ship, so the
   landscape describes the release, not the plan.
+- [ ] TODO-15b: **KK one-stage Beta-regression estimator** (added
+  2026-08-18): `kk_beta_regression_one_lik_derivation.md → TODO-1..10` —
+  TODO-1 (prototype validation) first; TODO-2/TODO-3 (glmmTMB-reuse cheap
+  path + its golden tests) ship before TODO-4/TODO-5 (the from-scratch
+  Gauss-Hermite backend and its `OneLik` class), mirroring
+  `InferenceContinKKGLMM`'s own `use_rcpp` history. Additive and
+  independent of every other track in this file; may run in parallel with
+  TODO-6's response-type track any time after its own KK-migration
+  dependency is met (see the plan's `Depends on` header).
 - [ ] TODO-15: **Sequential many-by-many design family**:
   `design_seq_many_by_many.md → TODO-1..10` — its TODO-1 decision batch
   (Atkinson rule, bootstrap shape, threshold schedule) can join this file's

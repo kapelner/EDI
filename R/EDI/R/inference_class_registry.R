@@ -21,8 +21,6 @@ EDI_INFERENCE_ALLOWED_LIKELIHOOD_TIERS = c("none", "quasi", "partial", "full")
 EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES = list(
 	InferenceIncidKKCondLogitGLMMIVWC = "parametric_likelihood_bootstrap",
 	InferenceIncidKKCondLogitGLMMOneLik = "parametric_likelihood_bootstrap",
-	InferenceIncidKKGCompRiskDiff = "parametric_likelihood_bootstrap",
-	InferenceIncidKKGCompRiskRatio = "parametric_likelihood_bootstrap",
 	InferenceIncidModifiedPoisson = "parametric_likelihood_bootstrap"
 )
 
@@ -264,7 +262,11 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			behavior = c("conditional_logit", "kk_compound", "kk_passthrough"),
 			estimator_family = "incidence_kk_conditional_logit_ivwc",
 			component_family = "ConditionalLogitPartialLikelihood",
-			target_direct_components = c("ConditionalLogitPartialLikelihood", "KKCompound"),
+			# Updated at migration time (2026-08-18) to the factory reality: the
+			# estimator privates call the conditional_logit_fit_* free functions
+			# directly, so no ConditionalLogitPartialLikelihood component methods
+			# are composed; same treatment as the LWA Cox IVWC entry.
+			target_direct_components = c("BayesianBootstrap", "Wald", "IncidKKCondLogitIVWC"),
 			notes = "KK incidence conditional-logit IVWC estimator; depends on KK pass-through/compound behavior plus conditional-logit fit helpers."
 		),
 		InferenceIncidKKCondLogitOneLik = list(
@@ -302,14 +304,22 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			behavior = c("cox", "lwa_cox", "kk_compound", "kk_passthrough"),
 			estimator_family = "survival_kk_lwa_cox_ivwc",
 			component_family = "KKLWACoxPartialLikelihood",
-			target_direct_components = c("KKLWACoxIVWCPartialLikelihood", "KKCompound"),
+			# Updated at migration time (2026-08-18) to the factory reality:
+			# BayesianBootstrap and Wald are explicit direct components (same
+			# treatment as the non-KK Cox entries), and KKCompound arrives as
+			# the component's dependency rather than a direct entry.
+			target_direct_components = c("BayesianBootstrap", "Wald", "KKLWACoxIVWCPartialLikelihood"),
 			notes = "KK LWA Cox IVWC estimator combines matched cluster-robust Cox and reservoir Cox components."
 		),
 		InferenceSurvivalKKLWACoxPHOneLik = list(
 			behavior = c("cox", "lwa_cox", "kk_passthrough"),
 			estimator_family = "survival_kk_lwa_cox_one_likelihood",
 			component_family = "KKLWACoxPartialLikelihood",
-			target_direct_components = c("KKLWACoxOneLikPartialLikelihood", "KKPassThrough"),
+			# Updated at migration time (2026-08-18) to the factory reality (same
+			# treatment as the LWA Cox IVWC entry above): BayesianBootstrap is an
+			# explicit direct component and KKPassThrough arrives as the
+			# component's dependency rather than a direct entry.
+			target_direct_components = c("BayesianBootstrap", "KKLWACoxOneLikPartialLikelihood"),
 			notes = "KK LWA Cox one-likelihood estimator uses a combined marginal Cox partial likelihood with cluster-robust variance."
 		),
 		InferenceSurvivalKKStratCoxPHIVWC = list(
@@ -507,8 +517,7 @@ infer_inference_direct_components = function(name) {
 			InferenceSurvivalKKWeibullMarginal = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullMarginal"),
 			InferenceSurvivalKKClaytonCopulaIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKClaytonCopulaIVWC"),
 			InferenceSurvivalKKClaytonCopulaOneLik = "SurvivalKKClaytonCopulaOneLik",
-			InferenceAbstractKKWeibullFrailtyIVWC = "SurvivalKKWeibullFrailtyIVWC",
-			InferenceSurvivalKKWeibullFrailtyIVWC = "SurvivalKKWeibullFrailtyIVWCLeaf",
+			InferenceSurvivalKKWeibullFrailtyIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyIVWC"),
 			InferenceAbstractKKWeibullFrailtyOneLik = "SurvivalKKWeibullFrailtyOneLik",
 			InferenceSurvivalKKWeibullFrailtyOneLik = "SurvivalKKWeibullFrailtyOneLikLeaf",
 			InferenceCountPoissonKKGEE = "KKGEE",
@@ -523,6 +532,19 @@ infer_inference_direct_components = function(name) {
 		InferenceAllKKMeanDiffIVWC = c("BayesianBootstrap", "Wald", "KKMeanDifferenceIVWC"),
 		InferenceIncidKKNewcombeRiskDiff = c("BayesianBootstrap", "Wald", "KKNewcombeRiskDiffIVWC"),
 		InferenceCountKKHurdlePoissonIVWC = c("BayesianBootstrap", "Wald", "CountKKHurdlePoissonIVWC"),
+		InferenceContinKKRobustRegrIVWC = c("BayesianBootstrap", "Wald", "ContinKKRobustRegrIVWC"),
+		InferenceContinKKOLSIVWC = c("BayesianBootstrap", "Wald", "ContinKKOLSIVWC"),
+		InferenceSurvivalKKRankRegrIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKRankRegrIVWC"),
+		InferenceSurvivalKKLWACoxPHIVWC = c("BayesianBootstrap", "Wald", "KKLWACoxIVWCPartialLikelihood"),
+		InferenceSurvivalKKLWACoxPHOneLik = c("BayesianBootstrap", "KKLWACoxOneLikPartialLikelihood"),
+		InferenceBaiAdjustedTKK14 = c("BayesianBootstrap", "Wald", "BaiAdjustedT"),
+		InferenceSurvivalKKStratCoxPHIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKStratCoxIVWC"),
+		InferenceIncidKKCondLogitIVWC = c("BayesianBootstrap", "Wald", "IncidKKCondLogitIVWC"),
+		InferenceIncidKKGCompRiskDiff = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),
+		InferenceIncidKKGCompRiskRatio = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),
+		InferenceContinKKQuantileRegrIVWC = c("BayesianBootstrap", "Wald", "KKQuantileRegrIVWC"),
+		InferencePropKKQuantileRegrIVWC = c("BayesianBootstrap", "Wald", "KKQuantileRegrIVWC"),
+		InferenceBaiAdjustedTKK21 = c("BayesianBootstrap", "Wald", "BaiAdjustedT"),
 		InferenceAllSimpleWilcox = c("RandomizationBootstrap", "Wald", "SimpleWilcox"),
 		InferenceAllKKWilcoxIVWC = c("RandomizationBootstrap", "Wald", "KKWilcoxIVWC"),
 		# Both Cox entries list BayesianBootstrap explicitly: their factory calls

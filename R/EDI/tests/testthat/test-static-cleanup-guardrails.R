@@ -56,15 +56,16 @@ test_that("static cleanup guardrail prevents new eval(body(Inference...)) usage"
 		"no readable per-file .R source found from this test's working directory (e.g. covr's --install-tests copy, or a check flavor whose test dir isn't under the source checkout) -- this guardrail can't verify anything without it"
 	)
 	matches = static_cleanup_matches("eval\\s*\\(\\s*body\\s*\\(\\s*Inference")
+	# Counts ratcheted down 2026-08-17/18 by the KK/IVWC migrations
+	# (fix_inference_hierarchy.md "KK And IVWC Estimators"): the IVWC classes
+	# in each of these files dropped their eval(body(...)) overrides; the
+	# remaining counts are the unmigrated OneLik siblings.
 	expected = c(
-		"R/EDI/R/inference_count_KK_cond_poisson.R" = 3L,
-		"R/EDI/R/inference_incidence_KK_cond_logit.R" = 2L,
-		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 2L,
-		"R/EDI/R/inference_survival_KK_lwa_cox_ivwc_abstract.R" = 1L,
-		"R/EDI/R/inference_survival_KK_rank_regr_ivwc_abstract.R" = 1L,
-		"R/EDI/R/inference_survival_KK_strat_cox.R" = 2L,
-		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 2L,
-		"R/EDI/R/inference_survival_KK_weibull_marginal.R" = 1L
+		"R/EDI/R/inference_count_KK_cond_poisson.R" = 2L,
+		"R/EDI/R/inference_incidence_KK_cond_logit.R" = 1L,
+		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 1L,
+		"R/EDI/R/inference_survival_KK_strat_cox.R" = 1L,
+		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 1L
 	)
 
 	expect_identical(static_cleanup_file_counts(matches), expected[sort(names(expected))])
@@ -78,26 +79,28 @@ test_that("static cleanup guardrail prevents new raw component splicing", {
 	matches = static_cleanup_matches(
 		"\\b(Inference(?:Ext|Mixin)[A-Za-z0-9_]+\\$(public|private)|inference_[A-Za-z0-9_]+_(?:components\\$(?:public|private)|private))\\b"
 	)
+	# Counts ratcheted down 2026-08-17/18 by the KK/IVWC migrations
+	# (fix_inference_hierarchy.md "KK And IVWC Estimators"): each migrated
+	# IVWC class's raw mixin splices were replaced by registered-component
+	# composition; the remaining counts are the unmigrated OneLik siblings
+	# and the compound/abstract bases still awaiting the base-deletion phase.
 	expected = c(
 		"R/EDI/R/inference_all_abstract_KK_passthrough_compound.R" = 4L,
 		"R/EDI/R/inference_all_abstract_asymp_lik.R" = 1L,
 		"R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R" = 4L,
-		"R/EDI/R/inference_all_abstract_count_likelihood.R" = 4L,
+		"R/EDI/R/inference_all_abstract_count_likelihood.R" = 3L,
 		"R/EDI/R/inference_all_abstract_non_param_boot.R" = 7L,
 		"R/EDI/R/inference_all_abstract_param_boot.R" = 1L,
 		"R/EDI/R/inference_all_abstract_rand.R" = 1L,
-		"R/EDI/R/inference_count_composite_likelihood.R" = 3L,
-		"R/EDI/R/inference_count_KK_cond_poisson.R" = 9L,
-		"R/EDI/R/inference_incidence_KK_cond_logit.R" = 4L,
+		"R/EDI/R/inference_count_composite_likelihood.R" = 2L,
+		"R/EDI/R/inference_count_KK_cond_poisson.R" = 6L,
+		"R/EDI/R/inference_incidence_KK_cond_logit.R" = 3L,
 		"R/EDI/R/inference_incidence_KK_marginal_abstract.R" = 2L,
 		"R/EDI/R/inference_ordinal_KK_combined.R" = 2L,
-		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 4L,
-		"R/EDI/R/inference_survival_KK_lwa_cox_ivwc_abstract.R" = 1L,
+		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 3L,
 		"R/EDI/R/inference_survival_KK_lwa_cox_one_lik_abstract.R" = 2L,
-		"R/EDI/R/inference_survival_KK_rank_regr_ivwc_abstract.R" = 1L,
-		"R/EDI/R/inference_survival_KK_strat_cox.R" = 4L,
-		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 4L,
-		"R/EDI/R/inference_survival_KK_weibull_marginal.R" = 3L
+		"R/EDI/R/inference_survival_KK_strat_cox.R" = 3L,
+		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 3L
 	)
 
 	expect_identical(static_cleanup_file_counts(matches), expected[sort(names(expected))])
@@ -128,7 +131,10 @@ test_that("semantic classification through private is_a method probes cannot gro
 	matches = static_cleanup_matches(
 		"(has_private_method|object_has_private_method)\\s*\\(\\s*\"is_a_[A-Za-z0-9_]+\""
 	)
-	expected = c("R/EDI/R/inference_all_abstract_rand.R" = 2L)
+	# Ratcheted 2 -> 1 when the rand-CI seed gate moved from an is_a probe to
+	# an is.function(compute_asymp_confidence_interval) check (2026-08-17
+	# rand-CI seed fix, fix_inference_hierarchy.md Follow-Ups).
+	expected = c("R/EDI/R/inference_all_abstract_rand.R" = 1L)
 	expect_identical(static_cleanup_file_counts(matches), expected)
 })
 
@@ -139,7 +145,14 @@ test_that("component redeclarations of root-owned state cannot grow", {
 	})
 	actual = actual[lengths(actual) > 0L]
 	expected = list(
-		SurvivalKKWeibullMarginal = sort(c("m", "y_temp", "dead", "w", "X", "any_censoring", "optimization_alg")),
+		# KKQuantileRegrIVWC added at the 2026-08-18 quantile-regr IVWC
+		# migration: the merged abstract+leaf source redeclares `m` (KK
+		# match-vector) the same way KKPassThrough/KKGEE/KKGLMM already do.
+		KKQuantileRegrIVWC = "m",
+		# Trimmed at the 2026-08-17 WeibullMarginal migration: the spec was
+		# reshaped leaf-only (KK state now arrives via the KKPassThrough
+		# dependency), leaving only the class-specific VC-parameter cache.
+		SurvivalKKWeibullMarginal = "cached_vc_params",
 		SurvivalKKClaytonCopulaIVWC = "optimization_alg",
 		SurvivalKKClaytonCopulaOneLik = sort(c("m", "y_temp", "dead", "w", "X", "any_censoring", "optimization_alg")),
 		SurvivalKKWeibullFrailtyIVWC = sort(c("optimization_alg", "any_censoring", "m")),

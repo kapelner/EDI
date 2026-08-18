@@ -26,9 +26,21 @@ InferenceIncidExtendedRobins = define_inference_class(
 	inherit = Inference,
 	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 	public = list(
-		#' @description Uses the shared randomization two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
-		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		#' @description Uses the randomization-CI layer's two-sided p-value contract
+		#'   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
+		#'   incidence responses this dispatches to the Zhang exact randomization
+		#'   test where applicable rather than refusing outright, matching this
+		#'   class's pre-migration old-ladder behavior (it inherited from
+		#'   \code{InferenceAllSimpleMeanDiff}, whose own pin was already
+		#'   corrected to \code{InferenceRandCI} -- see that file's identical
+		#'   rationale). This class independently composes the same components
+		#'   rather than truly inheriting \code{InferenceAllSimpleMeanDiff}, so it
+		#'   had its own stale copy of the old \code{InferenceRand} pin (same bug
+		#'   as \code{InferenceIncidWald}/\code{InferenceIncidCMH}, fixed
+		#'   alongside them even though this class's own golden test's design
+		#'   doesn't happen to trigger the Zhang-eligible path that would have
+		#'   caught it).
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Uses the shared asymptotic confidence-interval contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param alpha Numeric. Significance level (default 0.05).

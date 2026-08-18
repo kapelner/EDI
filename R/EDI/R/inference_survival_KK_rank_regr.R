@@ -19,32 +19,55 @@
 #' }
 #' }
 #' @export
-InferenceSurvivalKKRankRegrIVWC = R6::R6Class("InferenceSurvivalKKRankRegrIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceAbstractKKSurvivalRankRegrIVWC,
+# Migrated 2026-08-18 (fix_inference_hierarchy.md "KK And IVWC Estimators"):
+# formerly a thin R6 leaf on the abstract base
+# `InferenceAbstractKKSurvivalRankRegrIVWC`; abstract + leaf were merged into
+# the static `SurvivalKKRankRegrIVWCSource` in
+# inference_survival_KK_rank_regr_ivwc_abstract.R (that file Collates before
+# this one), composed here via the registered `SurvivalKKRankRegrIVWC`
+# component (`dependencies = "KKCompound"`).
+InferenceSurvivalKKRankRegrIVWC = define_inference_class(
+	classname = "InferenceSurvivalKKRankRegrIVWC",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "SurvivalKKRankRegrIVWC"),
 	public = list(
-		#' @description Initialize the legacy KK survival rank-regression inference
-		#'   object and prepare the Gehan-Wilcoxon rank-regression model used by
-		#'   \code{\link[EDI:InferenceSurvivalKKRankRegrIVWC]{InferenceSurvivalKKRankRegrIVWC}}.
-		#' @param des_obj A completed \code{DesignSeqOneByOneKK14} object with a survival response.
-		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-		#'   the formula from the design object is used and its pre-computed design matrix is
-		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
-		#' @param verbose Whether to print progress messages.
-		initialize = function(des_obj, model_formula = NULL, verbose = FALSE){
-			super$initialize(des_obj = des_obj, model_formula = model_formula, verbose = verbose)
-		}
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other survival/count KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
-	private = list(
-		build_design_matrix = function(){
-			X_cov = private$X
-			if (is.null(X_cov) || ncol(X_cov) == 0) {
-				X = cbind(`(Intercept)` = 1, treatment = private$w)
-			} else {
-				X = cbind(`(Intercept)` = 1, treatment = private$w, X_cov)
-			}
-			X
-		}
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			# KKCompound chain vs bootstrap/Wald chain: the KK-aware versions win
+			# via component order (KKCompound resolves after BayesianBootstrap/
+			# Wald), matching the old ladder's inherited behavior -- the merged
+			# source dropped the abstract's no-op eval(body(...)) restatement of
+			# approximate_bootstrap_distribution_beta_hat_T.
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"shared",
+			"assert_finite_se",
+			# MLEorKM's graceful-NA version wins over the Wald component's
+			# stop()-on-missing-SE fallback (see the Source comment).
+			"get_standard_error",
+			"build_design_matrix"
+		)
 	)
 )

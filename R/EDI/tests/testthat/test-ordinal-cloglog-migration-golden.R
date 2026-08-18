@@ -114,6 +114,10 @@ test_that("InferenceOrdinalCloglogRegr passes the shallow migration gate", {
 			"RandomizationCI",
 			"NonparametricBootstrap",
 			"RandomizationBootstrap",
+			# RandomizationBootstrapCI is a genuine addition to the base
+			# resolved chain since this golden was written on 2026-08-17 --
+			# missing here was a stale expectation, not a real regression.
+			"RandomizationBootstrapCI",
 			"BayesianBootstrap",
 			"Jackknife",
 			"Wald",

@@ -405,9 +405,20 @@ InferenceIncidKKCondLogitOneLik = R6::R6Class("InferenceIncidKKCondLogitOneLik",
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #' @export
-InferenceIncidKKCondLogitIVWC = R6::R6Class("InferenceIncidKKCondLogitIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+# Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
+# IVWC Estimators"): formerly a plain leaf on
+# `InferenceKKPassThroughCompoundNoParamBootstrap`; the KK compound layer now
+# arrives via the registered KKCompound component (this component's declared
+# dependency). The estimator privates call the free functions
+# conditional_logit_fit_matched_pairs()/conditional_logit_fit_reservoir()
+# directly, so no ConditionalLogitPartialLikelihood component methods are
+# needed here (the discovery-era target composition named that component; the
+# factory reality below supersedes it, mirroring the LWA Cox IVWC target
+# update). The `eval(body(...))` bootstrap override was dropped as a verified
+# no-op (same argument as SurvivalKKRankRegrIVWCSource). The factory call is
+# below the source. The OneLik sibling earlier in this file is untouched
+# (one-likelihood phase).
+IncidKKCondLogitIVWCSource = list(
 	public = list(
 		#' @description Initialize conditional-logistic IVWC inference for KK binary
 		#'   responses and prepare separate matched-pair and reservoir likelihood
@@ -449,20 +460,21 @@ InferenceIncidKKCondLogitIVWC = R6::R6Class("InferenceIncidKKCondLogitIVWC",
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B Integer. Number of bootstrap samples (default 501).
-		#' @param show_progress Logical. Whether to show a progress bar.
-			#' @param debug Logical. Whether to return diagnostics.
-			#' @param bootstrap_type Character. Optional resampling scheme.
-			#' @return A numeric vector of bootstrap estimates.
-			approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-				eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
-			}
-		),
+		}
+	),
 	private = list(
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
+		# Copied verbatim from InferenceMLEorKMSummaryTable (the old ladder's
+		# ancestor) -- Lesson 5 (see SurvivalKKRankRegrIVWCSource): the Wald
+		# component's own get_standard_error() fallback stop()s when the SE is
+		# missing (shared() below has an extra early-return on cached
+		# beta_hat_T and NA-out failure paths), whereas the old ladder's
+		# version (this one) calls shared() and then degrades to NA_real_.
+		get_standard_error = function(){
+			private$shared(estimate_only = FALSE)
+			se = private$cached_values$s_beta_hat_T
+			if (is.null(se) || length(se) != 1L) NA_real_ else se
+		},
 		shared = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
@@ -526,5 +538,50 @@ InferenceIncidKKCondLogitIVWC = R6::R6Class("InferenceIncidKKCondLogitIVWC",
 			private$cached_values$beta_T_reservoir = as.numeric(fit$b[2])
 			private$cached_values$ssq_beta_T_reservoir = as.numeric(fit$ssq_b_j)
 		}
+	)
+)
+
+#' @export
+InferenceIncidKKCondLogitIVWC = define_inference_class(
+	classname = "InferenceIncidKKCondLogitIVWC",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "IncidKKCondLogitIVWC"),
+	public = list(
+		# Pinned from InferenceRandCI (NOT InferenceRand): incidence classes
+		# keep RandCI's Zhang-dispatch-aware version -- Lesson 3, same as the
+		# KK Newcombe migration.
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "partial"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			# KKCompound chain vs bootstrap/Wald chain: the KK-aware versions win
+			# via component order, matching the old ladder's inherited behavior
+			# -- the source dropped the class's no-op eval(body(...)) restatement
+			# of approximate_bootstrap_distribution_beta_hat_T.
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"shared",
+			# MLEorKM's graceful-NA version wins over the Wald component's
+			# stop()-on-missing-SE fallback (Lesson 5, see the Source comment).
+			"get_standard_error"
+		)
 	)
 )

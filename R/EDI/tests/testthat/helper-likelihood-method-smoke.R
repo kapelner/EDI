@@ -54,7 +54,18 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 
 		for (method_name in pval_methods){
 			method_fn = inf[[method_name]]
-			stopifnot(is.function(method_fn))
+			if (!is.function(method_fn)) {
+				# Classes composing no likelihood-tier component at all (e.g.
+				# RobustSandwich-only estimators, which have no likelihood to form
+				# score/gradient/LR tests from) legitimately never get these methods
+				# spliced in -- not even as a throwing stub -- unlike classes that
+				# compose a likelihood component but decline a specific test type
+				# (those DO get a stub that throws "does not support ...", caught
+				# by is_unsupported_method_error() below). Both cases mean the same
+				# thing to this smoke suite: skip.
+				cat(sprintf("  [%s] skipping %s: method not exposed by this class\n", label, method_name))
+				next
+			}
 			cat(sprintf("  [%s] calling %s ...\n", label, method_name))
 			val = tryCatch(
 				method_fn(delta = 0),
@@ -81,7 +92,11 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 
 		for (method_name in ci_methods){
 			method_fn = inf[[method_name]]
-			stopifnot(is.function(method_fn))
+			if (!is.function(method_fn)) {
+				# See the identical pval_methods loop's comment above.
+				cat(sprintf("  [%s] skipping %s: method not exposed by this class\n", label, method_name))
+				next
+			}
 			cat(sprintf("  [%s] calling %s ...\n", label, method_name))
 			val = tryCatch(
 				method_fn(alpha = 0.2),
@@ -198,7 +213,7 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 		des$assign_w_to_all_subjects()
 		w = des$get_w()
 		y = rexp(n, rate = exp(-0.2 + 0.15 * w + 0.2 * x1))
-		des$add_all_subject_responses(y, rep(1L, n))
+		des$add_all_subject_responses(y)
 		des
 	}
 

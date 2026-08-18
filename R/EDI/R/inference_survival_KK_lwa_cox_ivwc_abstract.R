@@ -13,25 +13,45 @@
 #' rejected and treated as non-estimable.
 #'
 #' @keywords internal
-InferenceAbstractKKLWACoxIVWC = R6::R6Class("InferenceAbstractKKLWACoxIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+# Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
+# IVWC Estimators"): this file previously defined the abstract base
+# `InferenceAbstractKKLWACoxIVWC` on
+# `InferenceKKPassThroughCompoundNoParamBootstrap`, whose ONLY descendant was
+# the thin concrete leaf `InferenceSurvivalKKLWACoxPHIVWC`
+# (inference_survival_KK_lwa_cox.R: an assertFormula check + delegation).
+# Abstract + leaf are merged into the pre-existing (previously shim-only)
+# registered component source `KKLWACoxIVWCPartialLikelihoodSource` below --
+# the kk_lwa_cox_* delegating shims it already carried are preserved at the
+# bottom of the private list. The factory call lives in the concrete file
+# (which Collates after this one). The abstract's
+# `eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_
+# distribution_beta_hat_T))` override was dropped as a verified no-op (same
+# argument as SurvivalKKRankRegrIVWCSource: the compound ladder's inline
+# public list never overrode that method, so the ladder inherited exactly
+# that body anyway).
+KKLWACoxIVWCPartialLikelihoodSource = list(
 	public = list(
 		#' @description Initialize KK LWA Cox IVWC inference and prepare the
 		#'   matched/reservoir marginal Cox partial-likelihood components used by
-		#'   \code{\link[EDI:InferenceAbstractKKLWACoxIVWC]{InferenceAbstractKKLWACoxIVWC}}.
+		#'   \code{\link[EDI:InferenceSurvivalKKLWACoxPHIVWC]{InferenceSurvivalKKLWACoxPHIVWC}}.
 		#' @param des_obj  	A DesignSeqOneByOne object (must be a KK design).
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
 		#'   design's imputed covariates.
 		#' @param verbose  		Whether to print progress messages.
-		#' @param smart_cold_start_default   Whether to use smart cold start values.
-		initialize = function(des_obj, model_formula = NULL,  verbose = FALSE, smart_cold_start_default = NULL){
+		initialize = function(des_obj, model_formula = NULL, verbose = FALSE){
+			# The concrete leaf's assertFormula check, then the old abstract's
+			# body. The abstract's smart_cold_start_default parameter was never
+			# exposed by the leaf's delegating initialize, so it is pinned NULL
+			# here (the merged signature keeps the leaf's public API shape).
+			if (should_run_asserts()) {
+				assertFormula(model_formula, null.ok = TRUE)
+			}
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "survival")
 			}
-			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = NULL)
 			private$init_kk_passthrough(des_obj)
 		},
 		#' @description Returns the estimated treatment effect (log-hazard ratio).
@@ -75,20 +95,21 @@ InferenceAbstractKKLWACoxIVWC = R6::R6Class("InferenceAbstractKKLWACoxIVWC",
 				}
 				NA_real_
 			}
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
 		}
 	),
 	private = list(
 		is_a_kk_lwa_cox_ivwc = function() TRUE,
+		# Copied verbatim from InferenceMLEorKMSummaryTable (the old ladder's
+		# ancestor) -- Lesson 5 (see SurvivalKKRankRegrIVWCSource): the Wald
+		# component's own get_standard_error() fallback stop()s when the SE is
+		# missing (e.g. a nonestimable-SE path), whereas the old ladder's
+		# version (this one) calls shared() and then degrades to NA_real_,
+		# which Wald-impl methods turn into NA CIs/p-values.
+		get_standard_error = function(){
+			private$shared(estimate_only = FALSE)
+			se = private$cached_values$s_beta_hat_T
+			if (is.null(se) || length(se) != 1L) NA_real_ else se
+		},
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		max_abs_reasonable_coef = 1e4,
 		shared = function(estimate_only = FALSE){
@@ -238,13 +259,10 @@ InferenceAbstractKKLWACoxIVWC = R6::R6Class("InferenceAbstractKKLWACoxIVWC",
 			if (is.null(fit)) return(invisible(NULL))
 			private$cached_values$beta_T_reservoir = fit$beta
 			private$cached_values$ssq_beta_T_reservoir = fit$ssq
-		}
-	)
-)
-
-KKLWACoxIVWCPartialLikelihoodSource = list(
-	public = list(),
-	private = list(
+		},
+		# The pre-migration shim-only KKLWACoxIVWCPartialLikelihoodSource
+		# carried these delegating wrappers; preserved verbatim now that the
+		# real machinery lives in this same source.
 		kk_lwa_cox_ivwc_shared = function(estimate_only = FALSE) {
 			private$shared(estimate_only = estimate_only)
 		},

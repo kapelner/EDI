@@ -14,9 +14,17 @@
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #' @export
-InferenceSurvivalKKStratCoxPHIVWC = R6::R6Class("InferenceSurvivalKKStratCoxPHIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+# Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
+# IVWC Estimators"): formerly a plain leaf on
+# `InferenceKKPassThroughCompoundNoParamBootstrap`; the KK compound layer now
+# arrives via the registered KKCompound component (this component's declared
+# dependency). The `eval(body(InferenceMixinKKPassThrough$public$approximate_
+# bootstrap_distribution_beta_hat_T))` override was dropped as a verified
+# no-op (same argument as SurvivalKKRankRegrIVWCSource: the compound ladder's
+# inline public list never overrode that method, so the ladder inherited
+# exactly that body anyway). The factory call is below the source. The OneLik
+# sibling later in this file is untouched (one-likelihood phase).
+SurvivalKKStratCoxIVWCSource = list(
 	public = list(
 		#' @description Initialize KK stratified Cox IVWC inference and prepare the
 		#'   matched/reservoir partial-likelihood components used by
@@ -76,19 +84,20 @@ InferenceSurvivalKKStratCoxPHIVWC = R6::R6Class("InferenceSurvivalKKStratCoxPHIV
 				}
 				NA_real_
 			}
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
 		}
 	),
 	private = list(
+		# Copied verbatim from InferenceMLEorKMSummaryTable (the old ladder's
+		# ancestor) -- Lesson 5 (see SurvivalKKRankRegrIVWCSource): the Wald
+		# component's own get_standard_error() fallback stop()s when the SE is
+		# missing (e.g. the nonestimable paths in shared() below), whereas the
+		# old ladder's version (this one) calls shared() and then degrades to
+		# NA_real_, which Wald-impl methods turn into NA CIs/p-values.
+		get_standard_error = function(){
+			private$shared(estimate_only = FALSE)
+			se = private$cached_values$s_beta_hat_T
+			if (is.null(se) || length(se) != 1L) NA_real_ else se
+		},
 		# Overrides the generic KK pass-through delegation to
 		# private$compute_basic_kk_match_data_impl(): that shared helper delegates
 		# to compute_zhang_match_data_cpp(), which only ever produces
@@ -282,8 +291,54 @@ InferenceSurvivalKKStratCoxPHIVWC = R6::R6Class("InferenceSurvivalKKStratCoxPHIV
 				return(invisible(NULL))
 			}
 		}
+	)
+)
+
+#' @export
+InferenceSurvivalKKStratCoxPHIVWC = define_inference_class(
+	classname = "InferenceSurvivalKKStratCoxPHIVWC",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "SurvivalKKStratCoxIVWC"),
+	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other survival/count KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "partial"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			# KKCompound chain vs bootstrap/Wald chain: the KK-aware versions win
+			# via component order (KKCompound resolves after BayesianBootstrap/
+			# Wald), matching the old ladder's inherited behavior -- the source
+			# dropped the class's no-op eval(body(...)) restatement of
+			# approximate_bootstrap_distribution_beta_hat_T.
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"shared",
+			"assert_finite_se",
+			# MLEorKM's graceful-NA version wins over the Wald component's
+			# stop()-on-missing-SE fallback (Lesson 5, see the Source comment).
+			"get_standard_error"
 		)
 	)
+)
 
 #' Stratified Cox Combined-Likelihood Compound Inference for KK Designs
 #'

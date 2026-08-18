@@ -239,10 +239,10 @@ full_likelihood_expected_survival_components = list(
 	InferenceSurvivalKKWeibullMarginal = "SurvivalKKWeibullMarginal",
 	InferenceSurvivalKKClaytonCopulaIVWC = "SurvivalKKClaytonCopulaIVWC",
 	InferenceSurvivalKKClaytonCopulaOneLik = "SurvivalKKClaytonCopulaOneLik",
-	InferenceSurvivalKKWeibullFrailtyIVWC = c(
-		"SurvivalKKWeibullFrailtyIVWC",
-		"SurvivalKKWeibullFrailtyIVWCLeaf"
-	),
+	# Merged to a single component at migration time (2026-08-18): the
+	# separate self-harvested ...IVWCLeaf component was folded into the main
+	# source, same reshaping as the Clayton IVWC entry above.
+	InferenceSurvivalKKWeibullFrailtyIVWC = "SurvivalKKWeibullFrailtyIVWC",
 	InferenceSurvivalKKWeibullFrailtyOneLik = c(
 		"SurvivalKKWeibullFrailtyOneLik",
 		"SurvivalKKWeibullFrailtyOneLikLeaf"

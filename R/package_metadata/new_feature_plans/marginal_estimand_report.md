@@ -3,7 +3,14 @@
 > **Depends on:** gated decision only — but it must be decided **jointly with**
 > `expanded_estimate_report.md → TODO-1` (the `estimate_type` decision): the two
 > are orthogonal axes over the same fitted object, and deciding them separately
-> risks one enum absorbing values that belong on the other. (Global ordering:
+> risks one enum absorbing values that belong on the other.
+>
+> **Release-scoped (amended 2026-08-18, user decision):** pulled forward into
+> v1.0.0 from the v1.1.0 "everything else" bucket, alongside
+> `expanded_estimate_report.md` — see `release_v1_0_0.md`'s item 14.
+> Motivation: `inference_suite_inspect.md`'s Combined Evidence Metric feature
+> defaults its per-class weighting to grouping by `estimand`, so that default
+> needs a real, package-wide `estimand` concept behind it at 1.0.0. (Global ordering:
 > see `_master.md`.)
 
 Written 2026-08-15, from a design discussion of what the mixture-model

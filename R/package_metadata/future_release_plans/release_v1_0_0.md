@@ -129,24 +129,44 @@ the frozen substrate makes it additive.
     optional timestamped PDF. Release-relevant because it adds public API
     surface (`run_all_inference()`, its schema and `EDIInferenceSuiteResults`
     return object, its `screen`/`html`/`plots`/`pdf`/`alpha`/
-    `save_results_as_JSON` parameters) that must freeze at 1.0.0. Sequenced after Phase
-    1D per `_master.md` § 1G.
+    `save_results_as_JSON` parameters) that must freeze at 1.0.0.
+    Implementation may proceed in parallel with the tail of Phase 1D;
+    only its test-fixture lock waits for Phase 1D to close (amended
+    2026-08-18, user decision) — see `_master.md` § 1G.
+
+14. **`expanded_estimate_report.md` + `marginal_estimand_report.md`**
+    (added 2026-08-18, user decision — pulled forward from the "Deferred
+    to 1.x" list below). The package-wide estimand concept: the
+    `estimate_type` axis (post-fit correction variant — raw / param-
+    bootstrap / later Cox-Snell / jackknife-bias-corrected) and the
+    orthogonal `set_estimand()` axis (conditional vs. marginal target
+    quantity), decided jointly per each plan's own `Depends on` header so
+    neither enum absorbs the other's values. Release-relevant now because
+    `inference_suite_inspect.md`'s Combined Evidence Metric feature
+    (TODO-14..21 there) keys its default weighting policy off each
+    class's `estimand` tag — shipping that default at 1.0.0 without a
+    real, package-wide `estimand` concept behind it would freeze a
+    public-facing weighting default onto metadata that barely exists yet
+    (today only the incidence g-computation classes implement
+    `get_estimand_type()`). Both plans' own TODO-1 is still an open
+    "whether to pursue this at all" decision — that decision itself, and
+    the implementation if "yes", are now in the v1.0.0 line rather than
+    deferred. Sequenced in `_master.md`'s Phase 0 (the joint decision)
+    and Phase 5A step 1 (implementation); `marginal_estimand_report.md →
+    TODO-2`'s roxygen sharpening was already folded into the doc batch
+    (item 7) regardless of this move.
 
 ## Deferred to 1.x (additive by construction)
 
 Everything below attaches to the frozen substrate without breaking it —
 that is the point of freezing first:
 
-- **Phase 0 decision batch + Phase 5A corrections track**:
-  `expanded_estimate_report.md` (`estimate_type`),
-  `marginal_estimand_report.md` (`set_estimand()`), Cox-Snell /
+- **Phase 0 decision batch + Phase 5A corrections track** (minus
+  `expanded_estimate_report.md`/`marginal_estimand_report.md`, pulled
+  forward into item 14 above, added 2026-08-18): Cox-Snell /
   Cordeiro-McCullagh / median-bias corrections, Firth, L1/L2, Bartlett
   extensions, modified profile likelihood, bootstrap-calibrated LR. All are
-  new switches/methods whose defaults preserve 1.0.0 behavior. (One
-  decision-independent exception folds into item 7 now:
-  `marginal_estimand_report.md → TODO-2`, the roxygen sharpening of the
-  mixture families' conditional-estimand wording, is documentation and
-  belongs in the 1.0.0 doc batch.)
+  new switches/methods whose defaults preserve 1.0.0 behavior.
 - **Phase 2 diagnostics chain** (except the `converged` decision, item 11):
   new diagnostics fields and the public diagnostics API are additive.
 - **Phase 4 kernel/perf lane** (except `multi_arm_designs.md → TODO-6`,
@@ -311,8 +331,8 @@ deliberately does not cover:
   found while investigating it) was also fixed along the way.
 - [ ] TODO-3: Fold `marginal_estimand_report.md → TODO-2` (mixture-family
   roxygen sharpening) into a `fix_documentation.md` batch.
-- [ ] TODO-4: Execute the Release Gate checklist above once items 1–9 are
-  closed in their owning plans.
+- [ ] TODO-4: Execute the Release Gate checklist above once items 1–9 and
+  14 are closed in their owning plans.
 - [ ] TODO-5: On submission acceptance: move the closed in-scope plans to
   `../finished_features/` per the standing constraint. ~~Open a
   `release_v1_1_0.md` scoping the first additive wave (likely

@@ -1932,10 +1932,17 @@ their own `[x]` entries above; they are not part of this count.)
   deterministic likelihood/Wald/score/LR/gradient behavior plus seeded
   nonparametric, randomization, Bayesian, and parametric-likelihood bootstrap
   paths, and asserts the shallow migration gate and exact effective component
-  set. All edited R files parse and `git diff --check` is clean. Runtime
-  execution remains deferred because loading this source tree currently
-  requires rebuilding drifted native exports, and compilation needs explicit
-  permission.
+  set. All edited R files parse and `git diff --check` is clean.
+  **Stale-note correction (2026-08-18 audit):** the original entry claimed
+  runtime execution "remains deferred because loading this source tree
+  currently requires rebuilding drifted native exports" — no longer true;
+  the package has loaded and run cleanly via `pkgload::load_all(".", compile
+  = FALSE)` throughout the entire 2026-08-17/18 KK/IVWC migration stretch.
+  The 2026-08-17-authored golden's own expected `get_effective_components()`
+  list was actually stale in a different, real way (missing
+  `RandomizationBootstrapCI`, added to the base resolved chain sometime
+  after that golden was written) — found and fixed during the same audit;
+  see `test-ordinal-cauchit-migration-golden.R`.
 - [x] Migrate `InferenceOrdinalCloglogRegr` as a non-KK full-likelihood class.
   **Completed 2026-08-17:** the concrete class now inherits directly from
   `Inference` and composes `BayesianBootstrap`,
@@ -1945,10 +1952,13 @@ their own `[x]` entries above; they are not part of this count.)
   deterministic likelihood/Wald/score/LR/gradient behavior plus seeded
   nonparametric, randomization, Bayesian, and parametric-likelihood bootstrap
   paths, and asserts the shallow migration gate and exact effective component
-  set. All edited R files parse and `git diff --check` is clean. Runtime
-  execution remains deferred because loading this source tree currently
-  requires rebuilding drifted native exports, and compilation needs explicit
-  permission.
+  set. All edited R files parse and `git diff --check` is clean.
+  **Stale-note correction (2026-08-18 audit):** same as
+  `InferenceOrdinalCauchitRegr`'s entry above — the "deferred, needs
+  rebuild" claim is outdated, and the golden's expected
+  `get_effective_components()` list was missing the same later-added
+  `RandomizationBootstrapCI`; fixed in
+  `test-ordinal-cloglog-migration-golden.R`.
 - [ ] Verify every migrated full-likelihood class has finite smoke tests for
   supported likelihood, bootstrap, and Bartlett paths.
 
@@ -2091,6 +2101,406 @@ their own `[x]` entries above; they are not part of this count.)
   the real classname (not `...Legacy`) per the naming lesson below;
   score/gradient/LR CI/p-value drop verified Wald-fallback-or-NA before
   asserting (same pattern as `InferenceIncidRiskDiff`). All green.
+- [x] **Progress 2026-08-18: `InferenceContinKKRobustRegrIVWC` migrated** —
+  plain leaf on `InferenceKKPassThroughCompoundNoParamBootstrap` (quasi
+  tier, no `eval(body(...))` override — it simply inherited the mixin's
+  `approximate_bootstrap_distribution_beta_hat_T`/
+  `compute_estimate_with_bootstrap_weights` unmodified). Same static-leaf
+  shape as the four prior KK leaves this stretch:
+  `ContinKKRobustRegrIVWCSource` (`dependencies = "KKCompound"`), factory
+  composition `c("BayesianBootstrap", "Wald", "ContinKKRobustRegrIVWC")` with
+  the `InferenceRand` pin, `overrides` declaring the standard chain-vs-chain
+  public/private collisions. Hit Lesson 1 again (recurrence, not a new
+  lesson): the Source's `initialize` only called `super$initialize()`, which
+  post-migration resolves to root `Inference` and skips the KK
+  match-structure setup the old compound ladder's `initialize` performed —
+  symptom was estimate 0.526 vs legacy 1.02 and all downstream CI/pval
+  wrong by the same margin; fixed by adding an explicit
+  `private$init_kk_passthrough(des_obj)` call after `super$initialize()`,
+  mirroring the `KKNewcombeRiskDiffIVWCSource` fix. One golden-test-only
+  wrinkle: `score_ci` is a real (non-degenerate) legacy value that is
+  *numerically* but not *bit-identical* to the Wald CI (differs ~1e-6:
+  0.7157783/1.3328011 vs Wald 0.7157792/1.3328002), because
+  `compute_score_confidence_interval()` bypasses the
+  `supports_likelihood_tests() == FALSE` / `get_likelihood_test_spec() ==
+  NULL` gate and calls `invert_test_pval_confidence_interval()` directly,
+  which numerically root-finds (`uniroot`) around the Wald estimate rather
+  than returning it in closed form; the golden's Wald-fallback tolerance was
+  widened from `1e-10` to `1e-4` for this one label with a comment
+  explaining why (not a real likelihood-test-surface drop). Golden
+  `test-contin-kk-robust-regr-ivwc-migration-golden.R`: legacy generator
+  uses the real classname (not `...Legacy`) per the naming lesson below. All
+  green; `ContinKKRobustRegrIVWC` added to `test-mixin-contracts.R`'s
+  canonical component list. `eval(body(` count unaffected by this one (this
+  class never had an override); no change to that counter here.
+- [x] **Progress 2026-08-18: `InferenceContinKKOLSIVWC` migrated** — plain
+  leaf on `InferenceKKPassThroughCompoundNoParamBootstrap`, structurally the
+  simplest KK leaf so far: it never defined `compute_estimate`,
+  `compute_asymp_confidence_interval`, `compute_asymp_two_sided_pval`, or
+  `duplicate()` at all -- it inherited the generic `private$shared()`-based
+  versions from `InferenceMLEorKMSummaryTable`
+  (`inference_all_abstract_mle_or_KM_summary_table.R`) through the old
+  ladder. Since that ancestor is not part of the composed chain
+  post-migration, those three generic methods were hand-copied verbatim
+  into `ContinKKOLSIVWCSource$public` (no `duplicate()` override needed --
+  it never had one, so root `Inference`'s default suffices). Same static-leaf
+  shape as the other five KK leaves this week:
+  `dependencies = "KKCompound"`, factory composition
+  `c("BayesianBootstrap", "Wald", "ContinKKOLSIVWC")` with the `InferenceRand`
+  pin, and the same Lesson-1 `private$init_kk_passthrough(des_obj)` call
+  added to `initialize` (this time added proactively before running the
+  golden, rather than discovered via a failure). All standard chain-vs-chain
+  overrides declared (jackknife/worker trios,
+  `get_supported_testing_types_impl`,
+  `compute_treatment_estimate_during_randomization_inference`,
+  `compute_basic_match_data`, `compute_fast_randomization_distr`, `shared`,
+  `assert_finite_se`, plus the KKCompound-wins pair
+  `approximate_bootstrap_distribution_beta_hat_T`/
+  `compute_estimate_with_bootstrap_weights`). Golden
+  `test-contin-kk-ols-ivwc-migration-golden.R` (real classname, same
+  dropped-labels/Wald-fallback pattern with the same widened `1e-4`
+  tolerance for `score_ci`/`score_pval` as `ContinKKRobustRegrIVWC`): all
+  green on the first run.
+  One pre-existing structural test needed updating for the new architecture,
+  not a behavior fix: `test-mixin-contracts.R`'s "KK OLS IVWC uses the
+  compound bootstrap-weight estimator" asserted
+  `InferenceContinKKOLSIVWC$public_methods$compute_estimate_with_bootstrap_weights`
+  was `NULL` (true pre-migration, since the method was only reachable via
+  the R6 ladder) and differed from `InferenceMixinKKPassThrough`'s raw
+  passthrough (true pre-migration: the compound ladder had its own ad hoc
+  override, built inline in `inference_all_abstract_KK_passthrough_compound.R`
+  and never registered as a reusable component). Post-migration this
+  resolves to a real flattened function equal to `InferenceMixinKKPassThrough`'s
+  passthrough, not the old ad hoc compound version -- verified this is not a
+  regression: neither `InferenceContinKKOLSIVWC` nor
+  `InferenceContinKKRobustRegrIVWC` ever defines
+  `private$compute_weighted_estimate_ivwc`, so the legacy compound override's
+  body always fell through to its own generic "weighted matched-diff mean"
+  fallback branch, which is mathematically the same surrogate
+  `InferenceMixinKKPassThrough`'s passthrough computes; confirmed
+  bit-identical by both classes' `bootstrap_ci`/`bootstrap_pval`/
+  `bootstrap_distr` golden labels (`InferenceAsymp`'s
+  `supports_reusable_bootstrap_worker()` default is `TRUE` and neither class
+  overrides it, so this method is genuinely exercised, not dead code). Test
+  rewritten to assert the new-architecture invariant instead of the
+  old-ladder one, with the reasoning above inlined as a comment.
+  `ContinKKOLSIVWC` added to `test-mixin-contracts.R`'s canonical component
+  list.
+- [x] **Progress 2026-08-18: `InferenceSurvivalKKRankRegrIVWC` migrated** —
+  first of the abstract-base group. Pre-migration it was a two-layer ladder:
+  abstract `InferenceAbstractKKSurvivalRankRegrIVWC` (all estimator
+  machinery, on `InferenceKKPassThroughCompoundNoParamBootstrap`) + a thin
+  concrete leaf (delegating `initialize` and a `build_design_matrix` helper
+  that nothing in the chain calls — preserved as dead surface anyway). Both
+  layers merged into static `SurvivalKKRankRegrIVWCSource` in the *abstract's*
+  file (which Collates before the concrete file, where the
+  `define_inference_class()` factory now lives); abstract R6 generator
+  deleted (grep confirmed the concrete leaf was its only reference
+  anywhere). Composition `c("BayesianBootstrap", "Wald",
+  "SurvivalKKRankRegrIVWC")` (`dependencies = "KKCompound"`, tier "none"),
+  `InferenceRand` pin, standard collision overrides. The merged initialize
+  keeps the concrete leaf's narrower public signature (`des_obj,
+  model_formula, verbose` — the abstract's `smart_cold_start_default` param
+  was never exposed by the leaf, so it is pinned `NULL` inside with a
+  comment). Two findings:
+  (1) the abstract's `eval(body(InferenceMixinKKPassThrough$public$
+  approximate_bootstrap_distribution_beta_hat_T))` override was dropped as a
+  **verified no-op**: the compound ladder's inline public list only defines
+  `initialize` and `compute_estimate_with_bootstrap_weights`, so the old
+  ladder inherited exactly that KKPassThrough body anyway (this also means
+  the legacy golden fixture — source spliced onto the compound base without
+  the override — is verbatim-faithful). `eval(body(` count 11 → 10.
+  (2) **new lesson (Lesson 5, get_standard_error)**: first golden run
+  errored on the migrated side with "must implement get_standard_error() to
+  support Wald-type inference". The old ladder's `get_standard_error` came
+  from `InferenceMLEorKMSummaryTable` (calls `private$shared()` then
+  degrades to `NA_real_` when SE is missing); the Wald component's own
+  fallback instead `stop()`s on a missing SE. Reachable here because this
+  class's `shared()` has an extra early-return on cached `beta_hat_T` (even
+  from an `estimate_only` pass that never computed the SE). Fix: copy
+  MLEorKM's `get_standard_error` verbatim into the Source private + declare
+  the override. Watch for this on every remaining class whose old ladder ran
+  through `InferenceMLEorKMSummaryTable` and whose leaf never defined its
+  own `get_standard_error`. Golden
+  `test-survival-kk-rank-regr-ivwc-migration-golden.R` (real classname,
+  `skip_if_not_installed("aftgee")`, dropped-labels pattern, plus an
+  eval(body)-gone source check over both files): all green;
+  `SurvivalKKRankRegrIVWC` added to the canonical component list. The
+  pre-existing `KKSurvivalRankRegression` wrapper component (registered,
+  composed by nobody, delegating `kk_survival_rank_*` shims to these same
+  privates) was left untouched.
+- [x] **Progress 2026-08-18: `InferenceSurvivalKKLWACoxPHIVWC` migrated** —
+  second of the abstract-base group, same two-layer shape (abstract
+  `InferenceAbstractKKLWACoxIVWC` + thin assertFormula/delegating leaf; the
+  `InferenceSurvivalKKLWACoxPHOneLik` sibling in the same concrete file is
+  untouched, it belongs to the one-likelihood phase). Key difference from
+  rank-regr: instead of minting a new component, the **pre-existing
+  shim-only `KKLWACoxIVWCPartialLikelihood` component was reshaped into the
+  real merged source** — abstract+leaf machinery merged into
+  `KKLWACoxIVWCPartialLikelihoodSource` (its `kk_lwa_cox_*` delegating shims
+  preserved at the bottom of the private list), `dependencies` changed
+  `"Wald"` → `"KKCompound"`, and provides lists extended. Composition
+  `c("BayesianBootstrap", "Wald", "KKLWACoxIVWCPartialLikelihood")`, tier
+  "partial", `InferenceRand` pin, standard overrides, Lesson-5
+  `get_standard_error` copied in proactively, no-op `eval(body(...))`
+  override dropped (count 10 → 9). This class had pre-existing **static
+  target expectations** in two places — the registry's partial-likelihood
+  static targets table and
+  `test-partial-likelihood-migration-baseline.R`'s expected lists (direct
+  `c("KKLWACoxIVWCPartialLikelihood", "KKCompound")`, 5-component resolved
+  chain, plus component-shape assertions pinning `dependencies = "Wald"`/
+  empty publics/shims-only privates and a Wald-in-load-trace check) — all
+  updated to the factory reality (direct `c("BayesianBootstrap", "Wald",
+  "KKLWACoxIVWCPartialLikelihood")`, full 11-component resolved chain,
+  reshaped component contract, KKPassThrough/KKCompound load trace), the
+  same treatment the non-KK Cox entries got on 2026-08-17, with comments at
+  each site. Golden `test-survival-kk-lwa-cox-ivwc-migration-golden.R`
+  (real classname, dropped-labels pattern, eval(body)-gone check): all green
+  on the first run; partial-likelihood baseline + registry + mixin-contracts
+  + all prior KK goldens green.
+- [x] **Progress 2026-08-18: Bai trio migrated (`InferenceBaiAdjustedTKK14`,
+  `InferenceBaiAdjustedTKK21`)** — abstract `InferenceBaiAdjustedT` converted
+  to the shared registered `BaiAdjustedT` component
+  (`BaiAdjustedTSource` in inference_continuous_KK_bai_abstract.R,
+  `dependencies = "KKCompound"`, tier "none", owns `convex_flag`); each leaf
+  is now a `define_inference_class()` factory composing
+  `c("BayesianBootstrap", "Wald", "BaiAdjustedT")` plus its own host-level
+  `distance` private (dead code in both leaves — nothing calls
+  `private$distance`; pair distances go through
+  `compute_pair_distance_matrix_cpp` — preserved verbatim anyway). First
+  migration where two concrete classes share one migrated component. Applied
+  Lessons 1 (this abstract, unlike rank-regr/LWA, did NOT call
+  `init_kk_passthrough` itself — relied on the compound base — so the call
+  was added to the Source's initialize) and 5 (`get_standard_error` copied
+  in; needed because `compute_estimate` only populates `s_beta_hat_T` on the
+  convex branch). Two new wrinkles: (a) new collision kind — undeclared
+  private collision `compute_basic_match_data` fired even though the leaf
+  source does not define it (KKPassThrough vs KKCompound chain collision
+  surfaces at the composing class), declared in both leaves' overrides;
+  (b) **intentional drop**: the abstract carried a PRIVATE `duplicate`
+  passthrough shadowing the public root method — unreachable
+  (`self$duplicate` always resolves public) and rejected by
+  `define_inference_class()`'s public/private name-duplication check, so it
+  was dropped with comments at the source and in the golden. Golden
+  `test-contin-kk-bai-migration-golden.R` (both leaves, real classnames,
+  KK14 golden on `DesignSeqOneByOneKK14` + KK21 on `DesignSeqOneByOneKK21`,
+  `skip_if_not_installed("nbpMatching")`, plus a convex_flag=TRUE
+  estimate/CI/pval comparison): the dropped-labels check needed a third
+  degenerate form — legacy `score_ci` comes back as a **zero-width interval
+  collapsed onto the point estimate** (1.2768/1.2768 vs Wald 0.826/1.728),
+  i.e. the score inversion degenerates with no likelihood surface behind
+  it; collapsed-onto-estimate now licenses the drop alongside all-NA and
+  Wald-fallback. All green; `BaiAdjustedT` in the canonical component list;
+  full battery green.
+- [x] **Progress 2026-08-18: `InferenceSurvivalKKStratCoxPHIVWC` migrated**
+  — plain leaf (not abstract-based; its file's
+  `InferenceSurvivalKKStratCoxPHOneLik` sibling is untouched for the
+  one-likelihood phase). Standard recipe: `SurvivalKKStratCoxIVWCSource`
+  (`dependencies = "KKCompound"`, tier "partial", keeps the class's own
+  `compute_basic_match_data` long-format override and the TODO-16
+  `assert_finite_se` stub), composition `c("BayesianBootstrap", "Wald",
+  "SurvivalKKStratCoxIVWC")`, `InferenceRand` pin, Lesson-5
+  `get_standard_error` added proactively, no-op `eval(body(...))` override
+  dropped (count 9 → 8), original initialize signature (including
+  `smart_cold_start_default`) preserved since this was a leaf's own public
+  API. This class's registry static-targets entry never had
+  `target_direct_components` (pre-migration note said contracts were
+  needed first), so no target-table updates were required — only the new
+  direct-components mapping. Golden
+  `test-survival-kk-strat-cox-ivwc-migration-golden.R` (real classname,
+  dropped-labels pattern incl. the collapsed-onto-estimate degenerate
+  form): all green on the first run; mixin-contracts + registry +
+  partial-likelihood baseline green.
+- [x] **Progress 2026-08-18: `InferenceSurvivalKKWeibullFrailtyIVWC`
+  migrated** — same reshaping as the Clayton copula IVWC migration: the
+  abstract `InferenceAbstractKKWeibullFrailtyIVWC` (previously
+  self-harvested via `inference_component_source_parts()`) and its thin leaf
+  (previously the separate self-harvested `SurvivalKKWeibullFrailtyIVWCLeaf`
+  component, now **deleted**) were merged into a static
+  `SurvivalKKWeibullFrailtyIVWCSource`; spec `dependencies` → "KKCompound";
+  composition `c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyIVWC")`,
+  tier "full", `InferenceRand` pin, Lesson-5 `get_standard_error`, and both
+  the no-op `eval(body(...))` bootstrap override and the pure-passthrough
+  public `duplicate` dropped (Clayton precedent). Static expectations
+  updated: registry class→component map (abstract + Leaf entries replaced
+  by the one direct-components triple), mixin-contracts canonical list
+  (Leaf name removed), full-likelihood baseline expected components
+  (two-component entry → single). The OneLik frailty pair is untouched
+  (one-likelihood phase). Golden
+  `test-survival-kk-weibull-frailty-ivwc-migration-golden.R`: all green on
+  the first run.
+  **Also this change surfaced that `test-static-cleanup-guardrails.R` had
+  not been in the regression battery all stretch** — its three ratchet
+  tables (eval(body(Inference...)) counts, raw-splice counts, is_a-probe
+  counts) and the root-owned-state redeclaration list were stale for
+  *several* migrations back (WeibullMarginal's owns_state trim, the rand-CI
+  seed fix's is_a-probe removal, and every eval(body)/splice drop since).
+  All four tables re-pinned to current actuals with dated comments; the
+  guardrails file is now part of the battery.
+- [x] **Progress 2026-08-18: `InferenceIncidKKCondLogitIVWC` migrated** —
+  the last compound-base IVWC leaf of this group. Standard recipe:
+  `IncidKKCondLogitIVWCSource` (`dependencies = "KKCompound"`, tier
+  "partial"), composition `c("BayesianBootstrap", "Wald",
+  "IncidKKCondLogitIVWC")`, **`InferenceRandCI` pin (incidence class —
+  Lesson 3)**, Lesson-5 `get_standard_error`, no-op `eval(body(...))`
+  override dropped (count 8 → 7). The discovery-era target composition
+  (`c("ConditionalLogitPartialLikelihood", "KKCompound")` in both the
+  registry static table and the partial-likelihood baseline's expected
+  lists) named `ConditionalLogitPartialLikelihood`, but the class's
+  estimator privates call the `conditional_logit_fit_*` free functions
+  directly and compose no methods from that component — both targets
+  updated to the factory reality with comments (LWA Cox treatment). Golden
+  `test-incid-kk-cond-logit-ivwc-migration-golden.R`: all green on the
+  first run. Guardrail ratchets updated (cond-logit file eval(body) 2 → 1,
+  splices 4 → 3). The OneLik sibling (on `InferenceParamBootstrap`) is
+  untouched (one-likelihood phase). Note: `test-bayesian-bootstrap.R`'s
+  mirai-daemons test errors under the Claude Code sandbox
+  (`.dispatcher_start ... Permission denied` — socket creation blocked) but
+  passes cleanly outside it; environmental, not a regression.
+- [x] **Progress 2026-08-18: `InferenceContinKKQuantileRegrIVWC` /
+  `InferencePropKKQuantileRegrIVWC` migrated** — a structurally different
+  case from every other KK leaf this stretch: pre-migration this was a
+  **three-tier R6 chain** (concrete leaf → `InferenceAbstractKKQuantileRegrIVWC`
+  → `InferenceAbstractQuantileRandCI`, the last already a **hybrid**
+  `define_inference_class(inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+  components = "QuantileRandomizationCI")` — partially migrated but still
+  R6-inheriting the old ladder). The middle abstract was converted to the
+  registered `KKQuantileRegrIVWC` component (`dependencies = c("KKCompound",
+  "QuantileRandomizationCI")`, `owns_state` includes `m` — the first
+  component this stretch to redeclare root-owned `m`, ratcheted into the
+  guardrail table). Despite the "KK" name, `init_kk_passthrough`'s
+  `is_a_kk_matching_capable()` assertion accepts `DesignFixedBinaryMatch`
+  too, so the class genuinely supports two design families — preserved
+  as-is, verified only on the kk14 path (matching every other golden this
+  stretch).
+  **New pattern (two leaves, one component, each with different init
+  wrapping logic):** unlike every single-leaf merge this stretch,
+  `InferenceContinKKQuantileRegrIVWC` and `InferencePropKKQuantileRegrIVWC`
+  both compose `KKQuantileRegrIVWC` but need *different* response-type
+  assertions and post-init logic (Prop additionally sanitizes the response
+  and rebuilds `KKstats`) wrapped around the *same* tau/transform_y_fn/KK-setup
+  machinery — and each leaf's `overrides` declares itself the winner of the
+  `initialize` collision, which means the component's own `initialize` is
+  otherwise **unreachable** post-flattening (a flat composition has no
+  concept of "leaf calls into component via `super$`" the way true R6
+  inheritance did). Solved by factoring the shared logic into a plain
+  free-function helper, `.init_kk_quantile_regr_ivwc(self, private, super,
+  ...)` (same pattern as the pre-existing `.compute_kk_basic_match_data_cached()`
+  helper), which each leaf's own `initialize` calls directly — `super$
+  initialize()` must be invoked from inside a method actually bound to that
+  leaf's construction, since `super` is only resolvable there. Documented as
+  a **Lesson 1 corollary**: watch for this whenever multiple concrete
+  classes need to share one migrated component AND each needs distinct
+  initialize-wrapping logic (the Bai trio avoided this because neither leaf
+  had any initialize logic of its own).
+  Golden `test-kk-quantile-regr-ivwc-migration-golden.R` needed two new
+  pieces of infrastructure: (1) the legacy fixture generator had to
+  reconstruct the 3-tier chain (an inline abstract R6 generator built inside
+  the `inherit = ` expression itself — R6 evaluates `inherit` lazily in
+  `parent_env`/the EDI namespace at `$new()` time, so a locally-defined test
+  helper symbol referencing outer closure variables is invisible there;
+  only a self-contained expression of namespace-qualified/base symbols
+  survives); (2) a **found-and-worked-around pre-existing legacy bug**: this
+  class's score/gradient/lik_ratio-test machinery (fallback AsympLik
+  dispatch, same degenerate surface as every other dropped-labels case) has
+  a demonstrated corrupting side effect on `private$cached_values$beta_hat_T`
+  that only manifests several calls later — after the bootstrap-worker
+  machinery runs — silently turning `compute_estimate()` (and everything
+  downstream, including `compute_rand_confidence_interval()`) into `NA` for
+  the *rest of the shared test object's lifetime*. Reproduced identically on
+  the **unmigrated legacy class itself**, so this is not a migration
+  regression; since the migrated side never exposes these labels at all, the
+  corrupting path can never be reached in the new architecture. Fixed at the
+  test-harness level: the dropped-label probe call now runs on a throwaway
+  `legacy$clone(deep = TRUE)` instead of the shared object, isolating the
+  known-corrupting call from the rest of the label sequence. All green.
+  `KKQuantileRegrIVWC` added to the canonical component list;
+  `test-kk-bootstrap-method-inheritance.R` (found stale, not previously in
+  the regression battery, referencing the now-deleted
+  `InferenceAbstractKKQuantileRegrIVWC` symbol directly — broken since the
+  `InferenceContinKKOLSIVWC` migration two turns ago and never caught)
+  updated to the new-architecture invariant and added to the battery.
+- [x] **Progress 2026-08-18: `InferenceIncidKKGCompRiskDiff` /
+  `InferenceIncidKKGCompRiskRatio` migrated** — a three-tier chain (concrete
+  leaf → `InferenceIncidKKGCompAbstract` [gcomp machinery] →
+  `InferenceAbstractKKMarginalIncid` [KK cluster helpers, raw-splices
+  `InferenceMixinKKPassThrough`, `inherit = InferenceParamBootstrap`]).
+  **Both abstract bases were deliberately left untouched as real R6
+  generators**: `InferenceAbstractKKMarginalIncid` is also the parent of
+  `InferenceAbstractKKModifiedPoisson`/`InferenceIncidKKModifiedPoisson`, a
+  separate estimator family not migrated in this change — verified working
+  unchanged after the migration. The new `IncidenceKKGComputation` component
+  self-harvests `InferenceIncidKKGCompAbstract`'s own body via
+  `inference_component_source_parts()` (same self-harvest-without-touching-
+  the-abstract pattern the pre-existing non-KK sibling
+  `IncidenceGComputationSource` already used), then layers in by hand: a
+  fresh `initialize` (Lesson 1: explicit `private$init_kk_passthrough()`),
+  `InferenceAbstractKKMarginalIncid`'s `get_cluster_ids`/`get_covariate_names`/
+  `compute_basic_match_data`/`supports_likelihood_tests` (copied verbatim,
+  since that abstract isn't itself a registered component), and the same
+  generic-self-aliased-override pattern the non-KK sibling
+  (`incidence_gcomp_generic_alias_overrides`) uses for every method whose
+  harvested body called `super$...`. `dependencies = "KKPassThrough"` (not
+  `KKCompound` — no IVWC matched/reservoir combination here, just
+  cluster-robust SEs over all subjects). `EDI_INFERENCE_LEGACY_EXCLUDED_
+  CAPABILITIES`'s two transitional exclusion entries for these classes were
+  removed per that table's own removal instruction (no longer accidentally
+  inheriting `parametric_likelihood_bootstrap`); the static expectation list
+  in `test-parametric-bootstrap-lr-all-capable-classes.R` updated to match.
+  Two real bugs found and fixed via the golden, both now documented inline
+  at their fix site:
+  (1) **`compute_rand_two_sided_pval` pin wrong on the first pass** — copied
+  the non-KK sibling's `InferenceRand` pin without verifying it against
+  *this* class's actual legacy resolution; an R6 ancestor walk showed the
+  real legacy chain resolves to `InferenceRandCI` instead (which correctly
+  handles incidence data; `InferenceRand`'s version refuses it outright).
+  Lesson: a sibling class's pin choice is not transferable without checking
+  each class's own actual ladder resolution, even when the sibling looks
+  structurally identical.
+  (2) **Missing worker-reuse wiring** — the non-KK sibling's
+  `incidence_gcomp_worker_overrides` (`supports_reusable_bootstrap_worker`
+  + the three `create_bootstrap_worker_state`/`load_bootstrap_sample_into_
+  worker`/`compute_bootstrap_worker_estimate` methods) was overlooked on
+  the first pass; without it the migrated class silently fell back to the
+  generic (non-reused-worker) resampling path. Symptom was subtle and
+  easy to mistake for a real bug in the *legacy* side: legacy's
+  `approximate_randomization_distribution_beta_hat_T`/`approximate_rand_
+  bootstrap_distribution_beta_hat_T` returned the exact same constant value
+  across all replicates (a property of the worker-reuse path, not a red
+  flag on its own) while migrated varied properly — the WRONG side looked
+  more "correct." Found only by the golden comparison, not by inspection;
+  added `incidence_kk_gcomp_worker_overrides` mirroring the non-KK block
+  exactly, restoring parity. Golden
+  `test-incid-kk-gcomp-migration-golden.R` (RD and RR both tested; RR
+  needed the golden harness's hardcoded `delta = 0` pval-label args
+  substituted with the correct per-estimand null (1) — every RR-type gcomp
+  class rejects `delta <= 0` and this was simply never exercised by any
+  prior golden; same clone-isolation precaution for the
+  score/gradient/lik_ratio dropped-label probes as the quantile-regr
+  golden, though this class turned out not to exhibit that corruption):
+  all green. `IncidenceKKGComputation` added to the canonical component
+  list; full battery (mixin-contracts, registry, guardrails, parametric-
+  bootstrap-capable-classes, and the three pre-existing gcomp-specific test
+  files exercising cache-readiness/reused-worker-fast-path/warm-start-
+  chaining) green.
+- **Scoping note 2026-08-18:** `InferenceIncidKKModifiedPoisson`/
+  `InferenceAbstractKKModifiedPoisson` (`inference_incidence_KK_marginal.R`)
+  is the one remaining descendant of `InferenceAbstractKKMarginalIncid`
+  after the g-computation pair above migrated — investigated as a
+  candidate "finish the KKMarginalIncid family" follow-on, but it is **not**
+  a same-shape continuation: `supports_likelihood_tests() = TRUE`,
+  `supports_lik_ratio_param_bootstrap() = TRUE`, and a real
+  `get_likelihood_test_spec()`/`simulate_under_lik_null()` (score/gradient/
+  LR tests, parametric-bootstrap LR calibration) — it needs
+  `LikelihoodTests`/`ParametricLikelihoodBootstrap` composed, not the
+  Wald-only `"none"`-tier recipe every KK/IVWC migration this stretch has
+  used. Its non-KK sibling `InferenceIncidModifiedPoisson`
+  (`inference_incidence_modified_poisson.R`) is **also still unmigrated**
+  (`inherit = InferenceAsympLikStdModCache`), so unlike every other pairing
+  this stretch there is no already-migrated non-KK template to mirror —
+  this would be a from-scratch full-likelihood-tier migration. Belongs with
+  the "Full-Likelihood Estimators" / KK one-likelihood work below, not this
+  section; not started.
 - [ ] Migrate KK one-likelihood classes to `Inference` plus `KKPassThrough`,
   `LikelihoodTests`, `ParametricLikelihoodBootstrap` when warranted, and
   estimator-specific likelihood components.
@@ -2960,6 +3370,50 @@ here (2026-08-13) rather than left as prose-only notes.
   its explanatory note and expected behavior groups, and added an assertion
   that it does not compose `RobustSandwich`. A source-overlay manifest probe
   confirms the class is no longer in the `robust_sandwich` group.
+- [x] **`InferenceIncidWald`/`InferenceIncidCMH`/`InferenceIncidExtendedRobins`
+  `randomization_pval` regression from uncommitted 2026-08-17 WIP — found
+  2026-08-18, fixed 2026-08-18.** Root cause traced fully: an in-progress
+  2026-08-17 WIP fixed `InferenceIncidRiskDiff`'s "attempt to apply
+  non-function" crash by (a) changing `InferenceRandCI$compute_rand_two_
+  sided_pval` (`inference_all_abstract_rand_ci.R`) to rebind a borrowed
+  `InferenceRand` core function's environment to the current call instead of
+  calling `super$...` (needed because a class composed via
+  `define_inference_class()` that splices this method in as a raw copy has
+  no real `InferenceRand` ancestor for `super$` to resolve against), and (b)
+  switching `InferenceAllSimpleMeanDiff`'s own `compute_rand_two_sided_pval`
+  pin from `InferenceRand` to `InferenceRandCI` (needed so incidence
+  responses get Zhang exact-test dispatch instead of `InferenceRand`'s
+  outright refusal). That second change fixed `InferenceAllSimpleMeanDiff`
+  itself, and since this project's golden-fixture convention has legacy test
+  generators **truly R6-inherit** `InferenceAllSimpleMeanDiff` (not copy its
+  body), the legacy side of every affected golden picked up the corrected
+  pin automatically and started producing real Zhang-dispatch values where
+  it previously would have matched the (also-broken) migrated side. But
+  `InferenceIncidWald`, `InferenceIncidCMH`, and `InferenceIncidExtendedRobins`
+  don't inherit `InferenceAllSimpleMeanDiff` — each independently *composes*
+  the identical `c("BayesianBootstrap", "Wald", "SimpleMeanDifference")` and
+  had its own copy of the *old* `InferenceRand` pin, so all three silently
+  regressed (`compute_rand_two_sided_pval()` started throwing "Randomization
+  tests are not supported for incidence" wherever the corrected legacy path
+  now takes the Zhang branch). `InferenceIncidExtendedRobins`'s own golden
+  test doesn't happen to exercise a Zhang-eligible design, so it wasn't
+  caught by its own suite — found only because it shares the identical bug
+  pattern as the two confirmed-broken siblings, verified by R6 ancestor walk
+  (`InferenceAllSimpleMeanDiff$get_inherit()` chain resolves `compute_rand_
+  two_sided_pval` to itself, confirming the corrected `InferenceRandCI` pin
+  is what legacy fixtures actually get). Fixed by pinning all three to
+  `InferenceRandCI$public_methods$compute_rand_two_sided_pval`, matching
+  `InferenceAllSimpleMeanDiff`'s already-corrected choice, with the
+  reasoning documented inline at each site. Verified: both previously-failing
+  goldens (`test-incid-wald-migration-golden.R`,
+  `test-incid-cmh-extended-robins-migration-golden.R`) fully green; the full
+  migration-golden suite (21 files) plus `test-mixin-contracts.R`,
+  `test-inference-class-registry.R`, `test-static-cleanup-guardrails.R`,
+  `test-exact-incidence-migration-baseline.R`, and
+  `test-simulation-framework-advanced.R` (the original target of the
+  2026-08-17 WIP, confirming that fix's own intent is undisturbed) all
+  green. No other concrete class inherits from any of these three, so no
+  further propagation needed.
 
 ### Discovery
 

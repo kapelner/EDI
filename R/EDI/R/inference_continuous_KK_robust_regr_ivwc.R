@@ -55,6 +55,11 @@ ContinKKRobustRegrIVWCSource = list(
 				}
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+			# Lesson 1 (see KKNewcombeRiskDiffIVWCSource): post-migration super$initialize()
+			# resolves to the root Inference, not InferenceKKPassThroughCompoundNoParamBootstrap,
+			# so the KK match-structure setup that the old compound ladder's initialize()
+			# performed must be invoked explicitly here.
+			private$init_kk_passthrough(des_obj)
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
 			}
@@ -358,6 +363,7 @@ ContinKKRobustRegrIVWCSource = list(
 		}
 	)
 )
+
 #' Robust-Regression IVWC Compound Inference for KK Designs
 #'
 #' Fits a variance-weighted compound estimator for KK matching-on-the-fly designs
@@ -375,3 +381,47 @@ ContinKKRobustRegrIVWCSource = list(
 #' inf = InferenceContinKKRobustRegrIVWC$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @export
+InferenceContinKKRobustRegrIVWC = define_inference_class(
+	classname = "InferenceContinKKRobustRegrIVWC",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "ContinKKRobustRegrIVWC"),
+	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other survival/count KK migration this session (RandCI's Zhang
+		# dispatch never applies to continuous data anyway).
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "quasi"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"duplicate",
+			# KKCompound chain vs bootstrap/Wald chain: the KK-aware versions win
+			# via component order (KKCompound resolves after BayesianBootstrap/
+			# Wald), matching the old ladder's inherited behavior -- this class
+			# never overrode either method itself.
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"compute_fast_randomization_distr",
+			"shared",
+			"assert_finite_se"
+		)
+	)
+)

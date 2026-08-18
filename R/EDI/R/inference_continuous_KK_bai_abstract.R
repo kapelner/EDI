@@ -9,9 +9,18 @@
 #' \code{install.packages("nbpMatching")} before using this class.
 #'
 #' @keywords internal
-InferenceBaiAdjustedT = R6::R6Class("InferenceBaiAdjustedT",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+# Static shared source (2026-08-18 migration, fix_inference_hierarchy.md "KK
+# And IVWC Estimators"): this file previously defined the abstract base
+# `InferenceBaiAdjustedT` on `InferenceKKPassThroughCompoundNoParamBootstrap`,
+# whose only descendants were the two thin leaves `InferenceBaiAdjustedTKK14`
+# and `InferenceBaiAdjustedTKK21` (each adds only a `distance` private that
+# nothing ever calls -- pair distances go through
+# compute_pair_distance_matrix_cpp). The machinery is now the registered
+# `BaiAdjustedT` component (dependencies = "KKCompound"), shared by both
+# leaves' `define_inference_class()` factories (their files Collate after
+# this one); each factory passes its own `distance` private as host-level
+# surface.
+BaiAdjustedTSource = list(
 	public = list(
 		#' @description Initialize Bai adjusted-t inference for a completed KK
 		#' continuous-response design, including the optional convex combination of
@@ -35,6 +44,12 @@ InferenceBaiAdjustedT = R6::R6Class("InferenceBaiAdjustedT",
 				}
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula)
+			# Lesson 1 (see KKNewcombeRiskDiffIVWCSource): post-migration
+			# super$initialize() resolves to the root Inference, not
+			# InferenceKKPassThroughCompoundNoParamBootstrap, so the KK
+			# match-structure setup the old compound ladder's initialize()
+			# performed must be invoked explicitly here.
+			private$init_kk_passthrough(des_obj)
 			private$fit_warm_start_enabled = FALSE
 			private$convex_flag = convex_flag
 			if (should_run_asserts()) {
@@ -178,6 +193,17 @@ InferenceBaiAdjustedT = R6::R6Class("InferenceBaiAdjustedT",
 	private = list(
 		is_a_bai_adjusted_t = function() TRUE,
 		convex_flag = NULL,
+		# Copied verbatim from InferenceMLEorKMSummaryTable (the old ladder's
+		# ancestor) -- Lesson 5 (see SurvivalKKRankRegrIVWCSource): the Wald
+		# component's own get_standard_error() fallback stop()s when the SE is
+		# missing (compute_estimate here only populates s_beta_hat_T on the
+		# convex branch), whereas the old ladder's version (this one) calls
+		# shared() and then degrades to NA_real_.
+		get_standard_error = function(){
+			private$shared(estimate_only = FALSE)
+			se = private$cached_values$s_beta_hat_T
+			if (is.null(se) || length(se) != 1L) NA_real_ else se
+		},
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
 			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
 			
@@ -218,10 +244,11 @@ InferenceBaiAdjustedT = R6::R6Class("InferenceBaiAdjustedT",
 			)
 			return(res)
 		},
-		duplicate = function(verbose = FALSE, make_fork_cluster = FALSE){
-			i = super$duplicate(verbose = verbose, make_fork_cluster = make_fork_cluster)
-			i
-		},
+		# The old abstract carried a PRIVATE `duplicate` passthrough
+		# (`i = super$duplicate(...); i`) shadowing the public root method. It
+		# was unreachable (R6 method calls resolve `self$duplicate` to the
+		# public one) and define_inference_class() rejects a name appearing in
+		# both public and private, so it is dropped rather than migrated.
 		shared = function(estimate_only = FALSE){
 				if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 				if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))

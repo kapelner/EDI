@@ -662,3 +662,204 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		}
 	)
 )
+
+# Static leaf-shared source (2026-08-18 migration, fix_inference_hierarchy.md
+# "KK And IVWC Estimators"): `InferenceIncidKKGCompAbstract` and
+# `InferenceAbstractKKMarginalIncid` (inference_incidence_KK_marginal_abstract.R)
+# are left completely untouched -- both remain real R6 generators, because
+# `InferenceAbstractKKMarginalIncid` is also the parent of
+# `InferenceAbstractKKModifiedPoisson`/`InferenceIncidKKModifiedPoisson`
+# (inference_incidence_KK_marginal.R), a separate estimator family not being
+# migrated in this change. Only the two concrete leaves
+# (`InferenceIncidKKGCompRiskDiff`/`RiskRatio`, both previously empty
+# `public = list()` R6 leaves relying entirely on the abstract chain) are
+# migrated; this component supplies everything they need. Self-harvests
+# `InferenceIncidKKGCompAbstract`'s own body (which has no `initialize` of
+# its own -- it inherited straight through) via
+# `inference_component_source_parts()`, same as the non-KK sibling component
+# `IncidenceGComputationSource` at the bottom of inference_incidence_gcomp_
+# abstract.R, then layers in: (1) a hand-written `initialize` replicating
+# `InferenceAbstractKKMarginalIncid$initialize` (incidence-response assert +
+# no-censoring assert + Lesson 1's explicit `private$init_kk_passthrough()`,
+# since post-migration `super$initialize()` resolves straight to root
+# `Inference`); (2) `InferenceAbstractKKMarginalIncid`'s own KK-cluster
+# helpers (`get_cluster_ids`, `get_covariate_names`, `compute_basic_match_
+# data`, `supports_likelihood_tests`), copied verbatim since that class isn't
+# itself a registered component; (3) the same generic-self-aliased-override
+# pattern as `incidence_gcomp_generic_alias_overrides`
+# (inference_incidence_gcomp.R) for every method whose harvested body calls
+# `super$...` -- valid under the old R6 ladder, not under flat composition.
+incidence_kk_gcomp_generic_alias_overrides = list(
+	# Pinned from InferenceRandCI, NOT InferenceRand: unlike the non-KK
+	# sibling (incidence_gcomp_generic_alias_overrides, which resolves to
+	# InferenceRand via InferenceAsymp's ladder), this KK class's legacy
+	# ladder (InferenceParamBootstrap -> ... -> InferenceRandCI) actually
+	# resolves compute_rand_two_sided_pval to InferenceRandCI's version
+	# (verified via R6 ancestor walk) -- InferenceRand's version refuses
+	# incidence data outright ("Randomization tests are not supported for
+	# incidence. Use Zhang method"), which is NOT what the legacy class does.
+	# Lesson 3 applies here after all; the non-KK sibling's different choice
+	# doesn't generalize because that class's OWN ladder resolves differently.
+	compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
+	get_supported_testing_types = InferenceAsymp$public_methods$get_supported_testing_types,
+	compute_bootstrap_confidence_interval_generic = InferenceNonParamBootstrap$public_methods$compute_bootstrap_confidence_interval,
+	compute_bootstrap_two_sided_pval_generic = InferenceNonParamBootstrap$public_methods$compute_bootstrap_two_sided_pval,
+	approximate_bootstrap_distribution_beta_hat_T_generic = InferenceNonParamBootstrap$public_methods$approximate_bootstrap_distribution_beta_hat_T,
+	compute_bayesian_bootstrap_two_sided_pval_generic = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_two_sided_pval,
+	compute_bayesian_bootstrap_confidence_interval_generic = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_confidence_interval,
+	compute_jackknife_wald_two_sided_pval_generic = InferenceJackknife$public_methods$compute_jackknife_wald_two_sided_pval,
+	compute_jackknife_wald_confidence_interval_generic = InferenceJackknife$public_methods$compute_jackknife_wald_confidence_interval,
+	approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
+		self$approximate_bootstrap_distribution_beta_hat_T_generic(B, show_progress, debug, bootstrap_type)
+	},
+	compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L){
+		type_resolved = tolower(type %||% "percentile")
+		if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "basic")) {
+			return(private$compute_rr_bootstrap_basic_confidence_interval(alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples))
+		}
+		self$compute_bootstrap_confidence_interval_generic(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
+	},
+	compute_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = "symmetric", na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L){
+		if (is.null(delta)){
+			delta = private$default_null_value()
+		}
+		self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
+	},
+	compute_bayesian_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+		if (is.null(delta)){
+			delta = private$default_null_value()
+		}
+		self$compute_bayesian_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
+	},
+	compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+		type_resolved = tolower(type %||% "percentile")
+		if (identical(private$get_estimand_type(), "RR") && type_resolved %in% c("basic", "wald")) {
+			return(private$compute_rr_bayesian_bootstrap_log_confidence_interval(alpha = alpha, B = B, type = type_resolved, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
+		}
+		self$compute_bayesian_bootstrap_confidence_interval_generic(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
+	},
+	compute_jackknife_wald_two_sided_pval = function(delta = NULL, unit = "auto"){
+		if (is.null(delta)){
+			delta = private$default_null_value()
+		}
+		if (identical(private$get_estimand_type(), "RR")) {
+			return(private$compute_rr_jackknife_wald_two_sided_pval(delta = delta, unit = unit))
+		}
+		self$compute_jackknife_wald_two_sided_pval_generic(delta = delta, unit = unit)
+	},
+	compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
+		if (identical(private$get_estimand_type(), "RR")) {
+			return(private$compute_rr_jackknife_wald_confidence_interval(alpha = alpha, unit = unit))
+		}
+		self$compute_jackknife_wald_confidence_interval_generic(alpha = alpha, unit = unit)
+	}
+)
+
+# Reusable-bootstrap-worker wiring, mirroring `incidence_gcomp_worker_
+# overrides` in inference_incidence_gcomp.R exactly (same rationale:
+# `best_X_colnames`/`gcomp_boot_beta`, the warm-start caches
+# `compute_weighted_gcomp_estimate()` chains across resampling replicates,
+# only do anything useful when the SAME worker object is reused across an
+# entire resampling run rather than being freshly re-cloned per replicate).
+# Missing this block on the first pass of this migration left
+# `supports_reusable_bootstrap_worker()` silently falling back to the
+# generic default (FALSE) instead of the legacy ladder's TRUE, which
+# produced a *wrong-but-plausible-looking* divergence: the migrated class's
+# `approximate_randomization_distribution_beta_hat_T`/
+# `approximate_rand_bootstrap_distribution_beta_hat_T` varied properly
+# across replicates while the legacy class returned the same constant value
+# every time (a symptom of the worker-reuse path, not a red flag on its
+# own) -- caught by the golden, not by inspection.
+incidence_kk_gcomp_worker_overrides = list(
+	supports_reusable_bootstrap_worker = function(){
+		TRUE
+	},
+	create_bootstrap_worker_state = function(){
+		private$create_design_backed_bootstrap_worker_state()
+	},
+	load_bootstrap_sample_into_worker = function(worker_state, indices){
+		private$load_bootstrap_sample_into_design_backed_worker(worker_state, indices)
+	},
+	compute_bootstrap_worker_estimate = function(worker_state){
+		private$compute_bootstrap_worker_estimate_via_compute_treatment_estimate(worker_state)
+	}
+)
+
+incidence_kk_gcomp_marginal_incid_overrides = list(
+	is_a_kk_marginal_incid = function() TRUE,
+	supports_likelihood_tests = function() FALSE,
+	compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
+	get_covariate_names = function(){
+		X = private$get_X()
+		p = ncol(X)
+		x_names = colnames(X)
+		if (is.null(x_names)){
+			x_names = paste0("x", seq_len(p))
+		}
+		x_names
+	},
+	get_cluster_ids = function(){
+		des_priv = private$des_obj_priv_int
+		m_vec = private$m
+		if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
+		m_vec_int = as.integer(m_vec)
+		m_vec_int[is.na(m_vec_int)] = 0L
+		des_m = des_priv$m
+		if (is.null(des_m)) des_m = rep(NA_integer_, private$n)
+		des_m_int = as.integer(des_m)
+		des_m_int[is.na(des_m_int)] = 0L
+		if (!is.null(des_priv$cluster_id) && identical(m_vec_int, des_m_int)){
+			return(des_priv$cluster_id)
+		}
+		if (!is.null(private$cached_values$cluster_id) &&
+			identical(m_vec_int, private$cached_values$cluster_id_m_vec)){
+			return(private$cached_values$cluster_id)
+		}
+		cluster_id = des_priv$compute_matching_cluster_ids(m_vec_int)
+		if (identical(m_vec_int, des_m_int)){
+			des_priv$cluster_id = cluster_id
+			des_priv$cluster_id_m_vec = m_vec_int
+		} else {
+			private$cached_values$cluster_id = cluster_id
+			private$cached_values$cluster_id_m_vec = m_vec_int
+		}
+		cluster_id
+	}
+)
+
+IncidenceKKGComputationSource = local({
+	parts = inference_component_source_parts(InferenceIncidKKGCompAbstract)
+	list(
+		public = utils::modifyList(parts$public, c(
+			list(
+				#' @description Initialize KK marginal g-computation inference for a
+				#'   completed incidence design; prepares the KK match structure used by
+				#'   the cluster-robust sandwich covariance.
+				#' @param des_obj A completed \code{Design} object with an incidence response.
+				#' @param model_formula   Optional formula for covariate adjustment.
+				#' @param verbose Whether to print progress messages.
+				#' @param smart_cold_start_default Whether to use smart cold start values.
+				initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL){
+					if (should_run_asserts()) {
+						assertResponseType(des_obj$get_response_type(), "incidence")
+					}
+					super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+					if (should_run_asserts()) {
+						assertNoCensoring(private$any_censoring)
+					}
+					# Lesson 1 (see KKNewcombeRiskDiffIVWCSource): post-migration
+					# super$initialize() resolves to the root Inference, not
+					# InferenceAbstractKKMarginalIncid, so the KK match-structure setup
+					# that ancestor's initialize() performed must be invoked explicitly
+					# here.
+					private$init_kk_passthrough(des_obj)
+				}
+			),
+			incidence_kk_gcomp_generic_alias_overrides
+		)),
+		private = utils::modifyList(parts$private, c(
+			incidence_kk_gcomp_marginal_incid_overrides,
+			incidence_kk_gcomp_worker_overrides
+		))
+	)
+})

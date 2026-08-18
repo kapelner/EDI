@@ -46,9 +46,19 @@
 #' @seealso \code{\link[EDI:InferenceSurvivalKKClaytonCopulaIVWC]{InferenceSurvivalKKClaytonCopulaIVWC}}
 #'   for the corresponding gamma-frailty (Clayton copula) IVWC estimator.
 #' @keywords internal
-InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullFrailtyIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+# Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
+# IVWC Estimators", same reshaping as SurvivalKKClaytonCopulaIVWC): this block
+# previously defined the abstract base `InferenceAbstractKKWeibullFrailtyIVWC`
+# on `InferenceKKPassThroughCompoundNoParamBootstrap` (self-harvested into the
+# registered component via inference_component_source_parts()), whose only
+# descendant was the thin `InferenceSurvivalKKWeibullFrailtyIVWC` leaf (an
+# optimization_alg setter + delegation, self-harvested as the separate
+# now-deleted ...IVWCLeaf component). Abstract + leaf are merged into this
+# static source; the leaf's factory call sits where the concrete R6 class used
+# to be, further down this file. The abstract's `eval(body(...))` bootstrap
+# override and its pure-passthrough public `duplicate` were both dropped
+# (same verified-no-op/passthrough argument as the Clayton IVWC migration).
+SurvivalKKWeibullFrailtyIVWCSource = list(
 	public = list(
 		#' @description Initialize KK Weibull-frailty IVWC survival inference and
 		#'   prepare matched/reservoir parametric survival components used by
@@ -59,12 +69,18 @@ InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullF
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
 		#'   design's imputed covariates.
 		#' @param verbose  		Whether to print progress messages.
-		#' @param smart_cold_start_default   Whether to use smart cold start values.
-		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL){
+		#' @param optimization_alg Optimization algorithm to use.
+		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, optimization_alg = NULL){
+			# The concrete leaf's optimization_alg setter, then the old
+			# abstract's body. The abstract's smart_cold_start_default parameter
+			# was never exposed by the leaf's delegating initialize, so it is
+			# pinned NULL below (the merged signature keeps the leaf's public
+			# API shape).
+			self$set_optimization_alg(optimization_alg)
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "survival")
 			}
-			super$initialize(des_obj = des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+			super$initialize(des_obj = des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = NULL)
 			private$init_kk_passthrough(des_obj)
 		},
 		#' @description Returns the model-specific log-time-ratio treatment estimate; see
@@ -101,28 +117,21 @@ InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullF
 				private$assert_finite_se()
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
-		},
-		#' @description Duplicates this subclass while preserving fit caches; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param verbose Whether the duplicate should be verbose.
-		#' @param make_fork_cluster Whether the duplicate should be allowed to create a fork cluster.
-		duplicate = function(verbose = FALSE, make_fork_cluster = FALSE){
-			inf_obj = super$duplicate(verbose = verbose, make_fork_cluster = make_fork_cluster)
-			inf_obj
 		}
 	),
 	private = list(
 		is_a_kk_weibull_frailty_ivwc = function() TRUE,
+		# Copied verbatim from InferenceMLEorKMSummaryTable (the old ladder's
+		# ancestor) -- Lesson 5 (see SurvivalKKRankRegrIVWCSource): the Wald
+		# component's own get_standard_error() fallback stop()s when the SE is
+		# missing (shared() below has an extra early-return on cached
+		# beta_hat_T and NA-out failure paths), whereas the old ladder's
+		# version (this one) calls shared() and then degrades to NA_real_.
+		get_standard_error = function(){
+			private$shared(estimate_only = FALSE)
+			se = private$cached_values$s_beta_hat_T
+			if (is.null(se) || length(se) != 1L) NA_real_ else se
+		},
 		optimization_alg = NULL,
 		best_par = NULL,
 		best_X_colnames = NULL,
@@ -400,10 +409,8 @@ InferenceAbstractKKWeibullFrailtyIVWC = R6::R6Class("InferenceAbstractKKWeibullF
 				return(invisible(NULL))
 			}
 		}
-		)
 	)
-
-SurvivalKKWeibullFrailtyIVWCSource = inference_component_source_parts(InferenceAbstractKKWeibullFrailtyIVWC)
+)
 
 #' Abstract class for Weibull Frailty Combined-Likelihood Inference
 #'
@@ -760,23 +767,64 @@ SurvivalKKWeibullFrailtyOneLikSource = inference_component_source_parts(Inferenc
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #' @export
-InferenceSurvivalKKWeibullFrailtyIVWC = R6::R6Class("InferenceSurvivalKKWeibullFrailtyIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceAbstractKKWeibullFrailtyIVWC,
+# Migrated 2026-08-18 (fix_inference_hierarchy.md "KK And IVWC Estimators"):
+# formerly a thin R6 leaf on the abstract base
+# `InferenceAbstractKKWeibullFrailtyIVWC`; abstract + leaf were merged into
+# the static `SurvivalKKWeibullFrailtyIVWCSource` earlier in this file and
+# the separate self-harvested ...IVWCLeaf component was deleted (same
+# reshaping as the Clayton copula IVWC migration).
+InferenceSurvivalKKWeibullFrailtyIVWC = define_inference_class(
+	classname = "InferenceSurvivalKKWeibullFrailtyIVWC",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyIVWC"),
 	public = list(
-		#' @description Initialize the IVWC Weibull-frailty inference object.
-		#' @param des_obj A completed KK survival design object.
-		#' @param model_formula Optional formula for covariate adjustment.
-		#' @param verbose Whether to print progress messages.
-		#' @param optimization_alg Optimization algorithm to use.
-		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, optimization_alg = NULL){
-			self$set_optimization_alg(optimization_alg)
-			super$initialize(des_obj = des_obj, model_formula = model_formula, verbose = verbose)
-		}
+		# Pinned from InferenceRand -- same flattened-super$ rationale as the
+		# other survival KK migrations (RandCI's Zhang dispatch never applies).
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	metadata = list(likelihood_tier = "full"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			# KKCompound chain vs bootstrap/Wald chain: the KK-aware versions win
+			# via component order, matching the old ladder's inherited behavior
+			# -- the source dropped the abstract's no-op eval(body(...))
+			# restatement of approximate_bootstrap_distribution_beta_hat_T and
+			# its pure-passthrough duplicate.
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"shared",
+			"assert_finite_se",
+			"supports_lik_ratio_param_bootstrap",
+			# MLEorKM's graceful-NA version wins over the Wald component's
+			# stop()-on-missing-SE fallback (Lesson 5, see the Source comment).
+			"get_standard_error",
+			"max_abs_reasonable_coef",
+			"optimization_alg",
+			"best_par",
+			"best_X_colnames",
+			"any_censoring",
+			"m",
+			"cached_mod"
 		)
 	)
-
-SurvivalKKWeibullFrailtyIVWCLeafSource = inference_component_source_parts(InferenceSurvivalKKWeibullFrailtyIVWC)
+)
 
 #' Weibull Frailty Combined-Likelihood Inference for KK Designs
 #'

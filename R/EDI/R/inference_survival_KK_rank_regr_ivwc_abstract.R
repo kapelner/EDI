@@ -15,21 +15,37 @@
 #' non-estimable.
 #'
 #' @keywords internal
-InferenceAbstractKKSurvivalRankRegrIVWC = R6::R6Class("InferenceAbstractKKSurvivalRankRegrIVWC",
-	lock_objects = FALSE,
-	inherit = InferenceKKPassThroughCompoundNoParamBootstrap,
+# Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
+# IVWC Estimators"): this file previously defined the abstract base
+# `InferenceAbstractKKSurvivalRankRegrIVWC` on
+# `InferenceKKPassThroughCompoundNoParamBootstrap`, whose ONLY descendant was
+# the thin concrete leaf `InferenceSurvivalKKRankRegrIVWC`
+# (inference_survival_KK_rank_regr.R: a delegating initialize plus a
+# build_design_matrix helper that nothing in this estimator chain ever calls).
+# Abstract + leaf are merged into this single static source; the factory call
+# lives in the concrete file (which Collates after this one). The abstract's
+# `eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_
+# distribution_beta_hat_T))` override was dropped as a verified no-op: the
+# compound ladder's inline public list only defines initialize and
+# compute_estimate_with_bootstrap_weights, so the ladder inherited exactly
+# that same KKPassThrough body anyway, with or without the override.
+SurvivalKKRankRegrIVWCSource = list(
 	public = list(
 		#' @description Initialize KK survival rank-regression IVWC inference and
 		#'   prepare matched/reservoir Gehan-Wilcoxon rank-regression components used
-		#'   by \code{\link[EDI:InferenceAbstractKKSurvivalRankRegrIVWC]{InferenceAbstractKKSurvivalRankRegrIVWC}}.
+		#'   by \code{\link[EDI:InferenceSurvivalKKRankRegrIVWC]{InferenceSurvivalKKRankRegrIVWC}}.
 		#' @param des_obj  	A DesignSeqOneByOne object (must be a KK design).
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
 		#'   design's imputed covariates.
 		#' @param verbose  		Whether to print progress messages.
-		#' @param smart_cold_start_default   Whether to use smart cold start values.
-		initialize = function(des_obj, model_formula = NULL,  verbose = FALSE, smart_cold_start_default = NULL){
+		initialize = function(des_obj, model_formula = NULL, verbose = FALSE){
+			# The old abstract's initialize took a smart_cold_start_default
+			# parameter, but the concrete leaf's delegating initialize never
+			# exposed it, so it was always NULL; the merged signature keeps the
+			# leaf's (public API) shape and pins NULL explicitly below.
+			smart_cold_start_default = NULL
 			res_type = des_obj$get_response_type()
 			if (should_run_asserts()) {
 				if (res_type == "incidence"){
@@ -89,20 +105,23 @@ InferenceAbstractKKSurvivalRankRegrIVWC = R6::R6Class("InferenceAbstractKKSurviv
 				}
 				NA_real_
 			}
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
 		}
 	),
 	private = list(
 		is_a_kk_survival_rank_regr_ivwc = function() TRUE,
+		# Inherited verbatim from the old concrete leaf (inference_survival_KK_
+		# rank_regr.R). Nothing in this estimator chain calls it -- the aftsrr
+		# fits build their design matrices via aft_design_candidates() -- but it
+		# is preserved for byte-identical surface with the legacy class.
+		build_design_matrix = function(){
+			X_cov = private$X
+			if (is.null(X_cov) || ncol(X_cov) == 0) {
+				X = cbind(`(Intercept)` = 1, treatment = private$w)
+			} else {
+				X = cbind(`(Intercept)` = 1, treatment = private$w, X_cov)
+			}
+			X
+		},
 		best_X_colnames_matched = NULL,
 		best_X_colnames_reservoir = NULL,
 		max_abs_reasonable_coef = 1e4,
@@ -238,6 +257,18 @@ InferenceAbstractKKSurvivalRankRegrIVWC = R6::R6Class("InferenceAbstractKKSurviv
 			if (!is.finite(private$cached_values$s_beta_hat_T)){
 				return(invisible(NULL))
 			}
+		},
+		# Copied verbatim from InferenceMLEorKMSummaryTable (the old ladder's
+		# ancestor). Needed because shared() above early-returns whenever
+		# beta_hat_T is already cached -- even from an estimate_only pass that
+		# never computed the SE -- and the Wald component's own
+		# get_standard_error() fallback stop()s on a missing SE, whereas the old
+		# ladder's version (this one) calls shared() and then degrades to
+		# NA_real_, which Wald-impl methods turn into NA CIs/p-values.
+		get_standard_error = function(){
+			private$shared(estimate_only = FALSE)
+			se = private$cached_values$s_beta_hat_T
+			if (is.null(se) || length(se) != 1L) NA_real_ else se
 		},
 		aftsrr_for_matched_pairs = function(estimate_only = FALSE){
 			split = split_kk_matched_reservoir_idx(private$m, private$n)

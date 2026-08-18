@@ -40,6 +40,23 @@ spliced into one step and marked **[spliced]**.
 > Amended 2026-08-17: `design_seq_many_by_many.md` (the new sequential
 > many-by-many design family — Phase 5F below) is written directly into the
 > v1.1.0 scope (user decision; `release_v1_1_0.md → TODO-15`).
+> Amended 2026-08-18: `kk_beta_regression_one_lik_derivation.md` (a genuine
+> Beta-family one-stage `OneLik` joint likelihood for proportion responses
+> under KK designs — Phase 5G below) is promoted from
+> `../new_research_ideas/` and written directly into the v1.1.0 scope
+> (`release_v1_1_0.md → TODO-15b`).
+> Amended 2026-08-18 (user decision): `expanded_estimate_report.md` and
+> `marginal_estimand_report.md` — the package-wide `estimate_type`/
+> `set_estimand()` estimand axes — are pulled **out of** the v1.1.0
+> "everything else" bucket and **into** the v1.0.0 line instead (see
+> `release_v1_0_0.md`'s item 14). Both plans' own TODO-1 "whether to
+> pursue this at all" decision moves from the Phase 0 batch below into the
+> v1.0.0-gated portion of that same batch. Motivation:
+> `inference_suite_inspect.md`'s Combined Evidence Metric feature
+> (TODO-14..21 there) defaults its per-class weighting to grouping by
+> `estimand`, so shipping that default at 1.0.0 needs the real,
+> package-wide `estimand` concept behind it, not just the handful of
+> gcomp classes that currently implement `get_estimand_type()`.
 >
 > **Update (2026-08-16):** two of the release-scoped plans have since
 > closed and moved to `../finished_features/`: the interval-censored
@@ -84,6 +101,12 @@ this order:
    estimate-correction plan below) together with the orthogonal
    `set_estimand()` axis (conditional vs. marginal target quantity), scoped
    against each other so neither enum absorbs the other's values.
+   **Release-scoped (amended 2026-08-18, user decision) — see the release
+   line note above and `release_v1_0_0.md`'s item 14**: this decision (and
+   the implementation if "yes") is now v1.0.0-gated, not deferred, since
+   `inference_suite_inspect.md`'s Combined Evidence Metric default
+   weighting policy needs a real, package-wide `estimand` concept behind
+   it.
 2. `firth_penalties_report.md → TODO-1` **[spliced with]**
    `l1_l2_penalties_all_likelihood_paths_report.md → TODO-1` — one joint
    decision; both plans share the penalized-fitting inference-semantics
@@ -252,26 +275,51 @@ conversions, TODO-15's ownership decision, and TODO-14's final grep
 sweep); moved to
 `../finished_features/sexp_removal_rcppeigen_conversion_spec.md`.
 
-### 1G. InferenceSuite run_all_inference() (after 1D)
+### 1G. InferenceSuite run_all_inference() (implementation parallel with 1D; fixture-lock after 1D)
 
 Added 2026-08-17 (user decision), release-scoped into v1.0.0 (it adds
 public API surface — `InferenceSuite$run_all_inference()` — that must freeze at
-1.0.0; see `release_v1_0_0.md` amendment 13).
+1.0.0; see `release_v1_0_0.md` amendment 13). **Amended 2026-08-18 (user
+decision):** not functionally gated on Phase 1D — discovery is already
+metadata-driven and stable (Phase 1A), and `run_all_inference()` only
+calls each class's existing, behavior-preserving fit methods. Only its
+TODO-9 fixture *lock* waits for Phase 1D to close (Base Deletion there
+can still shift a class's `likelihood_tier`/optional-method columns);
+TODO-1..8 (the plumbing, output modes, visualizations, return object) can
+proceed now, in parallel with the tail of Phase 1D.
 
-1. `inference_suite_inspect.md → TODO-1..9` — fit-and-compare every
+1. `inference_suite_inspect.md → TODO-1..8` — fit-and-compare every
    applicable inference class with one uniform output schema (identical
    across response types and iid vs. KK designs), incremental screen
    output with a %-done/ETA progress bar (SimulationFramework pattern),
-   timestamped auto-opened HTML report, and two ggplot2 visualizations
+   timestamped auto-opened HTML report, two ggplot2 visualizations
    (estimate number line with angled class labels + boxplot of estimates
    underneath; annotated `(1-alpha)`-level CI forest with per-row
    p-values, CI widths, and class/method labels, significance-styled at
-   the user's `alpha`) with optional timestamped PDF. Its test
-   grid spans every response type × {iid, KK} × {BCRD, blocking, KK,
-   greedy, D-optimal} design classes. Sequence after Phase 1D —
-   `run_all_inference()` constructs and fits every applicable class, so the
-   families should be migrated before its golden fixtures are cut
-   (discovery itself is already metadata-driven and stable).
+   the user's `alpha`) with optional timestamped PDF, and the
+   `EDIInferenceSuiteResults` return object (including its per-class
+   `diagnostics` element — free optimizer fields only in v1.0.0, expanded
+   in v1.1.0 per `public_diagnostics_api_spec.md → TODO-19`) with the
+   `save_results_as_JSON` flag. May start immediately, in parallel with
+   the tail of Phase 1D.
+2. `inference_suite_inspect.md → TODO-9` — the full test grid (every
+   response type × {iid, KK} × {BCRD, blocking, KK, greedy, D-optimal}
+   design classes), **locked only once Phase 1D closes**.
+3. `inference_suite_inspect.md → TODO-10..13` — practitioner follow-ups
+   (`print`/`summary` S3 methods, `classes`/`exclude_classes`
+   allow/deny-list, `max_secs_per_class` timeout, `num_cores` fork-cluster
+   parallelization). Independent of Phase 1D and of step 4 below.
+4. `inference_suite_inspect.md → TODO-14..21` — the Combined Evidence
+   Metric (Cauchy combination across every class's p-value).
+   **Depends on the release-scoped estimand work** (Phase 0 step 1 /
+   Phase 5A step 1 above, `expanded_estimate_report.md`/
+   `marginal_estimand_report.md`): TODO-15a's `estimand`-tagging audit and
+   the `"estimand_grouped"` default weighting policy need the real,
+   package-wide `estimand` concept those plans define, not just the
+   handful of gcomp classes that implement `get_estimand_type()` today.
+   Sequence after that work lands (or after its Phase 0 decision at least
+   settles what `estimand` values exist, if implementation is still in
+   flight).
 
 ---
 
@@ -342,7 +390,10 @@ Each track starts only on a "yes" from Phase 0, and assumes Phase 1 is done
 
 ### 5A. Corrections track (ordered; shared machinery flows downward)
 
-1. `expanded_estimate_report.md → TODO-2..5` — implement `estimate_type`
+1. **Release-scoped (amended 2026-08-18, user decision — see
+   `release_v1_0_0.md`'s item 14; this is the only step of Phase 5A that
+   is, the rest of this phase stays v1.1.0):**
+   `expanded_estimate_report.md → TODO-2..5` — implement `estimate_type`
    first (its values are consumed by steps 2 and 6), then
    `marginal_estimand_report.md → TODO-3..8` — the orthogonal `set_estimand()`
    switch (same get/set/supported-values/cache-key architecture; its TODO-2
@@ -433,6 +484,29 @@ hierarchy, so it may run in parallel with any other Phase 5 track.
    Atkinson-type), then `→ TODO-7..9`
    (inference battery, discovery/`run_all_inference()` verification, docs/API
    bookkeeping), with `→ TODO-10` recording the named follow-ups only.
+
+### 5G. KK one-stage Beta-regression estimator (added 2026-08-18; v1.1.0)
+
+Not Phase-0 gated; additive on top of `InferencePropBetaRegr` and the
+existing `InferenceMixinKKGLMMShared` mixin. Needs Phase 1D.2's KK-hierarchy
+migration landed (reads `KKstats`/`compute_basic_match_data()` conventions
+from the migrated classes), so it may run in parallel with any other Phase 5
+track once that dependency is met.
+
+1. `kk_beta_regression_one_lik_derivation.md → TODO-1` (prototype
+   validation: simulate and check the quadrature likelihood/score/Hessian,
+   and the `sigma_b^2 -> 0` degeneracy claim, before any production code),
+   then `→ TODO-2..3` (cheap path: a `glmmTMB::beta_family()` leaf class
+   reusing `InferenceMixinKKGLMMShared`, plus its golden tests — ships
+   first), then `→ TODO-4..5` (exact path: the `fast_beta_regression_glmm_cpp`
+   Gauss-Hermite backend and its `OneLik` class, mirroring
+   `InferenceContinKKGLMM`'s own `use_rcpp` history), then `→ TODO-6`
+   (boundary LRT correction for `sigma_b^2 = 0`), `→ TODO-7` (pairs-only/
+   reservoir-only IVWC comparator), `→ TODO-8` (identifiability + complexity
+   tier), `→ TODO-9` (simulation-study arm, folds into
+   `../new_research_ideas/KK_followup_research_plan.md`), `→ TODO-10` (docs/
+   release mechanics, coordinate merge order with `betaregscale_duplication.md`
+   if both touch `fast_beta_regression.cpp` in the same release window).
 
 ---
 

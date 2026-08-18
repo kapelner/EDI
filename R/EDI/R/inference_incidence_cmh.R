@@ -53,9 +53,21 @@ InferenceIncidCMH = define_inference_class(
 	inherit = Inference,
 	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 	public = list(
-		#' @description Uses the shared randomization two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
-		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		#' @description Uses the randomization-CI layer's two-sided p-value contract
+		#'   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
+		#'   incidence responses this dispatches to the Zhang exact randomization
+		#'   test where applicable rather than refusing outright, matching this
+		#'   class's pre-migration old-ladder behavior (it inherited from
+		#'   \code{InferenceAllSimpleMeanDiff}, whose own pin was already
+		#'   corrected to \code{InferenceRandCI} -- see that file's identical
+		#'   rationale). This class independently composes the same components
+		#'   rather than truly inheriting \code{InferenceAllSimpleMeanDiff}, so it
+		#'   had its own stale copy of the old \code{InferenceRand} pin, which
+		#'   silently regressed Zhang dispatch for the non-blocking balanced-design
+		#'   path -- found via
+		#'   \code{test-incid-cmh-extended-robins-migration-golden.R}'s
+		#'   \code{randomization_pval} case going from `"ok"` to `"unsupported"`.
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Uses the shared asymptotic confidence-interval contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param alpha Numeric. Significance level (default 0.05).

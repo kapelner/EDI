@@ -6,25 +6,54 @@
 #' obtained via the Huber-White cluster-robust sandwich estimator (LWA style).
 #'
 #' @keywords internal
-InferenceAbstractKKLWACoxOneLik = R6::R6Class("InferenceAbstractKKLWACoxOneLik",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
-	public = utils::modifyList(as.list(InferenceMixinKKPassThrough$public), list(
+# Static leaf-shared source (2026-08-18 migration, fix_inference_hierarchy.md
+# "Partial-Likelihood Estimators" / "KK And IVWC Estimators"): this file
+# previously defined `InferenceAbstractKKLWACoxOneLik` R6-inheriting
+# `InferenceParamBootstrap` and raw-splicing `InferenceMixinKKPassThrough$
+# public/private` (`utils::modifyList(as.list(...), ...)`), whose only
+# descendant was the thin concrete leaf `InferenceSurvivalKKLWACoxPHOneLik`
+# (inference_survival_KK_lwa_cox.R: an assertFormula check + delegation).
+# Abstract + leaf are merged into the previously shim-only registered
+# component source `KKLWACoxOneLikPartialLikelihoodSource` (same reshaping as
+# `KKLWACoxIVWCPartialLikelihoodSource` in
+# inference_survival_KK_lwa_cox_ivwc_abstract.R earlier this stretch) --
+# `dependencies` reshaped from `"ParametricLikelihoodBootstrap"` alone to
+# `c("KKPassThrough", "ParametricLikelihoodBootstrap")` (the latter already
+# depends on `LikelihoodTests` transitively, so this class's score/gradient/
+# LR-test and parametric-bootstrap-LR-calibration surface arrives unchanged;
+# `KKPassThrough` supplies `init_kk_passthrough`/match-data machinery, since
+# this class bypasses `StandardModelCache`/`InferenceMLEorKMSummaryTable`
+# entirely in favor of its own custom `shared_combined_likelihood`, unlike
+# the non-KK Cox partial-likelihood classes). The `kk_lwa_cox_one_lik_*`
+# delegating shims the component already carried are preserved verbatim at
+# the bottom of the private list.
+KKLWACoxOneLikPartialLikelihoodSource = list(
+	public = list(
 		#' @description Initialize KK LWA Cox one-likelihood inference and prepare
 		#'   the combined marginal Cox partial-likelihood fit used by
-		#'   \code{\link[EDI:InferenceAbstractKKLWACoxOneLik]{InferenceAbstractKKLWACoxOneLik}}.
+		#'   \code{\link[EDI:InferenceSurvivalKKLWACoxPHOneLik]{InferenceSurvivalKKLWACoxPHOneLik}}.
 		#' @param des_obj  	A DesignSeqOneByOne object (must be a KK design).
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
 		#'   design's imputed covariates.
 		#' @param verbose  		Whether to print progress messages.
-		#' @param smart_cold_start_default   Whether to use smart cold start values.
-		initialize = function(des_obj, model_formula = NULL,  verbose = FALSE, smart_cold_start_default = NULL){
+		initialize = function(des_obj, model_formula = NULL, verbose = FALSE){
+			# The concrete leaf's assertFormula check, then the old abstract's
+			# body. The abstract's smart_cold_start_default parameter was never
+			# exposed by the leaf's delegating initialize, so it is pinned NULL
+			# here (the merged signature keeps the leaf's public API shape).
+			if (should_run_asserts()) {
+				assertFormula(model_formula, null.ok = TRUE)
+			}
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "survival")
 			}
-			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = NULL)
+			# Lesson 1 (see KKNewcombeRiskDiffIVWCSource): post-migration
+			# super$initialize() resolves to the root Inference, not
+			# InferenceParamBootstrap, so the KK match-structure setup that
+			# ancestor's initialize() performed must be invoked explicitly here.
 			private$init_kk_passthrough(des_obj)
 		},
 		#' @description Returns the model-specific combined-likelihood treatment estimate; see
@@ -93,8 +122,8 @@ InferenceAbstractKKLWACoxOneLik = R6::R6Class("InferenceAbstractKKLWACoxOneLik",
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
-	)),
-	private = utils::modifyList(as.list(InferenceMixinKKPassThrough$private), list(
+	),
+	private = list(
 		is_a_kk_lwa_cox_one_lik = function() TRUE,
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		max_abs_reasonable_coef = 1e4,
@@ -327,13 +356,10 @@ InferenceAbstractKKLWACoxOneLik = R6::R6Class("InferenceAbstractKKLWACoxOneLik",
 			}
 			private$cache_nonestimable_estimate("kk_lwa_cox_combined_fit_failed")
 			invisible(NULL)
-		}
-	))
-)
-
-KKLWACoxOneLikPartialLikelihoodSource = list(
-	public = list(),
-	private = list(
+		},
+		# The pre-migration shim-only KKLWACoxOneLikPartialLikelihoodSource
+		# carried these delegating wrappers; preserved verbatim now that the
+		# real machinery lives in this same source.
 		kk_lwa_cox_one_lik_get_standard_error = function() {
 			private$get_standard_error()
 		},
