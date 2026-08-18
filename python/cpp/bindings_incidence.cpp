@@ -13,6 +13,12 @@ namespace py = pybind11;
 
 enum class GEEFamily { GAUSSIAN, BINOMIAL, POISSON };
 
+// Matches R/EDI/src/fast_gee.cpp's file-local GEEResult exactly (no shared
+// header exists for it) -- keep in sync if that struct's field list ever
+// changes. A stale/short mirror here previously caused a real stack-buffer
+// overflow: gee_pairs_singletons_cpp_impl (compiled against the real,
+// longer struct) writes hit_iteration_cap/gradient_norm past the end of
+// the caller's (short-struct-sized) local, corrupting the stack.
 struct GEEResult {
     Eigen::VectorXd beta;
     double alpha;
@@ -22,6 +28,8 @@ struct GEEResult {
     Eigen::MatrixXd bread;
     bool converged;
     int niter;
+    bool hit_iteration_cap;
+    double gradient_norm;
 };
 
 GEEResult gee_pairs_singletons_cpp_impl(
@@ -88,6 +96,8 @@ void bind_incidence(py::module_& m) {
         out["fisher_information"] = res.bread;
         out["converged"] = res.converged;
         out["niter"] = res.niter;
+        out["hit_iteration_cap"] = res.hit_iteration_cap;
+        out["gradient_norm"] = res.gradient_norm;
         return out;
     },
     py::arg("X"), py::arg("y"), py::arg("group_id"), py::arg("family"),
