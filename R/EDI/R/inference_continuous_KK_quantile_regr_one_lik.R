@@ -16,10 +16,50 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceContinKKQuantileRegrOneLik = R6::R6Class("InferenceContinKKQuantileRegrOneLik",
-	lock_objects = FALSE,
-	inherit = InferenceAbstractKKQuantileRegrOneLik,
+# Migrated 2026-08-18 (fix_inference_hierarchy.md "Full-Likelihood
+# Estimators" / "KK And IVWC Estimators"): formerly a thin R6 leaf on the
+# abstract base `InferenceAbstractKKQuantileRegrOneLik`; the machinery now
+# arrives via the registered `KKQuantileRegrOneLik` component (which itself
+# depends on `KKCompound` and `QuantileRandomizationCI` -- see
+# inference_all_KK_quantile_regr_one_lik_abstract.R). `compute_rand_two_sided_
+# pval` is pinned from `InferenceRand`, same rationale as every other
+# continuous/survival KK migration this stretch.
+InferenceContinKKQuantileRegrOneLik = define_inference_class(
+	classname = "InferenceContinKKQuantileRegrOneLik",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "Wald", "KKQuantileRegrOneLik"),
+	metadata = list(likelihood_tier = "none"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_rand_confidence_interval",
+			"approximate_bootstrap_distribution_beta_hat_T"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"compute_fast_randomization_distr",
+			"assert_finite_se",
+			"get_standard_error"
+		)
+	),
 	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other continuous/survival KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize continuous-response KK combined-likelihood quantile-regression inference.
 		#'   The shared stacked quantile-regression fit is documented in
 		#'   \code{\link[EDI:InferenceAbstractKKQuantileRegrOneLik]{InferenceAbstractKKQuantileRegrOneLik}}.
@@ -51,14 +91,24 @@ InferenceContinKKQuantileRegrOneLik = R6::R6Class("InferenceContinKKQuantileRegr
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "continuous")
 			}
-			super$initialize(des_obj, tau, identity, verbose = verbose, model_formula = model_formula)
+			# Calls the KKQuantileRegrOneLik component's shared init logic via
+			# the free-function helper, not super$initialize() -- see
+			# .init_kk_quantile_regr_one_lik()'s comment in
+			# inference_all_KK_quantile_regr_one_lik_abstract.R (Lesson 1
+			# corollary for two leaves sharing one component).
+			.init_kk_quantile_regr_one_lik(self, private, super, des_obj, model_formula, tau, identity, verbose)
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
 			}
-		},
-		#' @description Returns the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only If TRUE, skip variance component calculations.
-		compute_estimate = function(estimate_only = FALSE) super$compute_estimate()
+		}
+		# The pre-migration leaf's compute_estimate = function(estimate_only =
+		# FALSE) super$compute_estimate() was a pure delegating passthrough with
+		# no added logic (it did not even forward estimate_only) -- dropped
+		# rather than declared as an override collision, letting the composed
+		# KKQuantileRegrOneLik component's real compute_estimate win directly
+		# (same reasoning as the Lesson 1 corollary: a component-level method
+		# is not reachable via super$ in a flat composition, so a leaf override
+		# that only ever forwarded to super was already dead weight even
+		# pre-migration).
 	)
 )

@@ -7,6 +7,17 @@
 #' Note that warm starts are disabled for this class as OLS is a closed-form
 #' estimator and does not benefit from initialization.
 #'
+#' The point estimate \eqn{\hat\beta_T} is the inverse-variance-weighted
+#' combination of an OLS fit on matched-pair within-pair differences and an
+#' OLS fit on reservoir (unmatched) subjects' outcomes, falling back to
+#' whichever sub-fit is usable if the other is not — the same compound
+#' combination rule used by
+#' \code{\link[EDI:InferenceAllKKMeanDiffIVWC]{InferenceAllKKMeanDiffIVWC}},
+#' generalized here to allow covariate adjustment via \code{model_formula}.
+#' \code{likelihood_tier = "none"}: this is an estimating-equation (least
+#' squares) estimator, not a fitted likelihood, so only Wald-type asymptotic
+#' inference is available (no likelihood-ratio or score test).
+#'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #'
 #' @examples

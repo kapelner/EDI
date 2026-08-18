@@ -15,9 +15,52 @@
 #' Standard errors use Powell's "nid" sandwich estimator, falling back to "iid".
 #'
 #' @keywords internal
-InferenceAbstractKKQuantileRegrOneLik = R6::R6Class("InferenceAbstractKKQuantileRegrOneLik",
-	lock_objects = FALSE,
-	inherit = InferenceAbstractQuantileRandCI,
+# Static leaf-shared source (2026-08-18 migration, fix_inference_hierarchy.md
+# "Full-Likelihood Estimators" / "KK And IVWC Estimators"): same reshaping as
+# `KKQuantileRegrIVWCSource` in inference_all_KK_quantile_regr_ivwc_abstract.R
+# (see that file's header comment for the full rationale) -- this file
+# previously defined `InferenceAbstractKKQuantileRegrOneLik` R6-inheriting
+# the hybrid `InferenceAbstractQuantileRandCI`. Registered as the
+# `KKQuantileRegrOneLik` component with `dependencies = c("KKCompound",
+# "QuantileRandomizationCI")` (no `ParametricLikelihoodBootstrap`: despite
+# the "combined-likelihood"/"OneLik" naming, this class has no real
+# score/gradient/LR test surface -- `quantreg::rq()` sandwich SEs only,
+# `likelihood_tier = "none"`, same as the IVWC sibling). Same free-function-
+# helper pattern as `.init_kk_quantile_regr_ivwc()`:
+# `InferenceContinKKQuantileRegrOneLik` and `InferencePropKKQuantileRegrOneLik`
+# -- two concrete leaves sharing this one component, each needing DIFFERENT
+# response-type assertions and post-init logic -- each call it from inside
+# their OWN initialize (Lesson 1 corollary, see the IVWC file's comment for
+# the full explanation of why a component-level initialize is otherwise
+# unreachable here).
+.init_kk_quantile_regr_one_lik = function(self, private, super, des_obj, model_formula, tau, transform_y_fn, verbose){
+	if (should_run_asserts()) {
+		assertFormula(model_formula, null.ok = TRUE)
+		assertNumeric(tau, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
+	}
+	if (should_run_asserts()) {
+		if (!check_package_installed("quantreg")) {
+			stop("Package 'quantreg' is required. Please install it with install.packages(\"quantreg\").")
+		}
+	}
+	private$tau = tau
+	private$transform_y_fn_list = list(fn = transform_y_fn)
+	super$initialize(des_obj, verbose = verbose, model_formula = model_formula)
+	# Lesson 1 (see KKNewcombeRiskDiffIVWCSource): post-migration
+	# super$initialize() resolves to the root Inference, not
+	# InferenceAbstractQuantileRandCI's old ladder, so the KK match-structure
+	# setup that ancestor's initialize() performed must be invoked explicitly
+	# here (this is IN ADDITION to the is_KK block below, which is this
+	# class's own separate sequential-design logic, same as the IVWC sibling).
+	private$init_kk_passthrough(des_obj)
+	if (private$is_KK){
+		private$m = des_obj$.__enclos_env__$private$m
+		private$compute_basic_match_data()
+	}
+	invisible(NULL)
+}
+
+KKQuantileRegrOneLikSource = list(
 	public = list(
 		#' @description Initialize KK quantile-regression combined-likelihood inference.
 		#' @param des_obj A completed KK design object.
@@ -35,22 +78,7 @@ InferenceAbstractKKQuantileRegrOneLik = R6::R6Class("InferenceAbstractKKQuantile
 		#' @param verbose Whether to print progress messages.
 		#' @return A new inference object.
 		initialize = function(des_obj, model_formula = NULL, tau = 0.5, transform_y_fn = identity,  verbose = FALSE){
-			if (should_run_asserts()) {
-				assertFormula(model_formula, null.ok = TRUE)
-				assertNumeric(tau, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
-			}
-			if (should_run_asserts()) {
-				if (!check_package_installed("quantreg")) {
-					stop("Package 'quantreg' is required. Please install it with install.packages(\"quantreg\").")
-				}
-			}
-			private$tau = tau
-			private$transform_y_fn_list = list(fn = transform_y_fn)
-			super$initialize(des_obj, verbose = verbose, model_formula = model_formula)
-			if (private$is_KK){
-				private$m = des_obj$.__enclos_env__$private$m
-				private$compute_basic_match_data()
-			}
+			.init_kk_quantile_regr_one_lik(self, private, super, des_obj, model_formula, tau, transform_y_fn, verbose)
 		},
 		#' @description Compute the quantile-regression treatment estimate.
 		#' @param estimate_only Whether to skip standard-error calculations.

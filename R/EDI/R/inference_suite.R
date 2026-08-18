@@ -794,6 +794,18 @@ cct_combine_pvalues = function(pvals, weights = NULL) {
 #'   continuous-outcome model's p-value would not be valid, since a real
 #'   effect on one with none on the other is entirely plausible). That
 #'   precondition is guaranteed here structurally, not by caller discipline.
+#' @references Madigan, D., Ryan, P. B., and Schuemie, M. (2013), "Does
+#'   design matter? Systematic evaluation of the impact of analytical
+#'   choices on effect estimates in observational studies," \emph{Therapeutic
+#'   Advances in Drug Safety}, 4(2), 53-62, PMID 25083251 -- the motivating
+#'   finding behind this class's "every legitimate way to look for an
+#'   effect, compared honestly" default output.
+#'
+#'   Liu, Y. and Xie, J. (2020), "Cauchy combination test: a powerful test
+#'   with analytic p-value calculation under arbitrary dependency
+#'   structures," \emph{Journal of the American Statistical Association},
+#'   115(529), 393-402 -- \code{run_all_inference()}'s Combined Evidence
+#'   Metric.
 #' @export
 #' @examples
 #' \donttest{

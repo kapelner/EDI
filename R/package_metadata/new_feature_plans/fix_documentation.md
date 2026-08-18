@@ -745,7 +745,7 @@ for the merge and the now-seed-reproducible kernels.)
 - [x] TODO #181: Method `InferenceAllKKMeanDiffIVWC$compute_estimate()` (current description `69` chars).
 - [x] TODO #182: Method `InferenceAllKKMeanDiffIVWC$compute_rand_confidence_interval()` (current description `63` chars).
 - [x] TODO #183: Method `InferenceAllKKMeanDiffIVWC$get_likelihood_test_spec()` (current description `155` chars).
-- [ ] TODO #184: Method `InferenceAllKKMeanDiffIVWC$simulate_under_lik_null()` (current description `49` chars).
+- [x] TODO #184 (stale, 2026-08-19): Method `InferenceAllKKMeanDiffIVWC$simulate_under_lik_null()` — not a resolvable method on this class: its `KKMeanDifferenceIVWC` component (`contracts_mixins.R`) declares `allowed_likelihood_tiers = "none"` and provides no likelihood-test methods, and `InferenceAllKKMeanDiffIVWC`'s `metadata = list(likelihood_tier = "none")`; no `simulate_under_lik_null`/`get_likelihood_test_spec` exist anywhere in `inference_all_KK_mean_diff_IVWC.R` (verified by grep across the file). Snapshot was stale; do not document.
 - [x] TODO #185 (obsolete, 2026-08-13): Method `InferenceAllKKMeanDiffIVWC$supports_lik_ratio_param_bootstrap()` — `supports_*` hook methods are deleted by `fix_inference_hierarchy.md`'s capability model (`obj$supports(...)` reads metadata instead); do not document.
 - [x] TODO #186 (obsolete, 2026-08-13): Method `InferenceAllKKMeanDiffIVWC$supports_likelihood_tests()` — same `supports_*` deletion as #185; do not document.
 - [x] TODO #187: Topic `InferenceAllKKMeanDiffIVWC` (current description `385` chars).
@@ -798,41 +798,41 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceBaiAdjustedTKK14.Rd`
 
-- [ ] TODO #222: Topic `InferenceBaiAdjustedTKK14` (current description `229` chars).
+- [x] TODO #222: Topic `InferenceBaiAdjustedTKK14` (current description `229` chars). Rewrote the title/description (was a copy-pasted "Maximum Likelihood" title, wrong — this is a closed-form estimator) to explain the KK14 design link, the inverse-variance combination (delegated to `InferenceBaiAdjustedT`), and the KK14-specific unweighted pair-distance. Verified via `roxygen2::parse_file()`.
 
 ### `InferenceBaiAdjustedTKK21.Rd`
 
-- [ ] TODO #223: Topic `InferenceBaiAdjustedTKK21` (current description `229` chars).
+- [x] TODO #223: Topic `InferenceBaiAdjustedTKK21` (current description `229` chars). Same fix as #222, documenting the KK21-specific covariate-weighted pair-distance. Verified via `roxygen2::parse_file()`.
 
 ### `InferenceContinKKGLMM.Rd`
 
-- [ ] TODO #224: Method `InferenceContinKKGLMM$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #225: Method `InferenceContinKKGLMM$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #226: Method `InferenceContinKKGLMM$compute_estimate_with_bootstrap_weights()` (current description `62` chars).
-- [ ] TODO #227: Method `InferenceContinKKGLMM$compute_estimate()` (current description `58` chars).
-- [ ] TODO #228: Method `InferenceContinKKGLMM$new()` (current description `38` chars).
-- [ ] TODO #229: Topic `InferenceContinKKGLMM` (current description `456` chars).
+- [x] TODO #224: Method `InferenceContinKKGLMM$compute_asymp_confidence_interval()` (current description `60` chars). Documented as Wald CI from fitted-model SE/df.
+- [x] TODO #225: Method `InferenceContinKKGLMM$compute_asymp_two_sided_pval()` (current description `58` chars). Documented as Wald two-sided test.
+- [x] TODO #226: Method `InferenceContinKKGLMM$compute_estimate_with_bootstrap_weights()` (current description `62` chars). Documented weighted-refit mechanics and rcpp/glmmTMB fast-path fallback.
+- [x] TODO #227: Method `InferenceContinKKGLMM$compute_estimate()` (current description `58` chars). Documented the LMM model, ML fit path, and GLS fast-path exactness argument under randomization.
+- [x] TODO #228: Method `InferenceContinKKGLMM$new()` (current description `38` chars). Params were already individually documented; left as-is (already meets the standard).
+- [x] TODO #229: Topic `InferenceContinKKGLMM` (current description `456` chars). Added model form, likelihood tier/validity assumptions, and statsmodels/Wikipedia analog links. Verified via `roxygen2::parse_file()`.
 
 ### `InferenceContinKKOLSIVWC.Rd`
 
-- [ ] TODO #230: Method `InferenceContinKKOLSIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #231: Method `InferenceContinKKOLSIVWC$new()` (current description `110` chars).
-- [ ] TODO #232: Topic `InferenceContinKKOLSIVWC` (current description `432` chars).
+- [x] TODO #230: Method `InferenceContinKKOLSIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars). This method is not redefined on this leaf — it resolves to the shared `KKPassThrough` component (`inference_mixin_kk_passthrough.R`), which already carries full documentation (bootstrap scheme, `bootstrap_type` options, debug mode); nothing to add here.
+- [x] TODO #231: Method `InferenceContinKKOLSIVWC$new()` (current description `110` chars). Already fully documents all constructor params; meets the standard as-is.
+- [x] TODO #232: Topic `InferenceContinKKOLSIVWC` (current description `432` chars). Added compound-estimator combination rule and likelihood-tier note. Verified via `roxygen2::parse_file()`.
 
 ### `InferenceContinKKOLSOneLik.Rd`
 
-- [ ] TODO #233: Method `InferenceContinKKOLSOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #234: Method `InferenceContinKKOLSOneLik$compute_asymp_two_sided_pval()` (current description `107` chars).
-- [ ] TODO #235: Method `InferenceContinKKOLSOneLik$compute_estimate_with_bootstrap_weights()` (current description `62` chars).
-- [ ] TODO #236: Method `InferenceContinKKOLSOneLik$compute_estimate()` (current description `58` chars).
-- [ ] TODO #237: Method `InferenceContinKKOLSOneLik$get_likelihood_components()` (current description `74` chars).
-- [ ] TODO #238: Method `InferenceContinKKOLSOneLik$new()` (current description `111` chars).
-- [ ] TODO #239: Topic `InferenceContinKKOLSOneLik` (current description `416` chars).
+- [x] TODO #233: Method `InferenceContinKKOLSOneLik$compute_asymp_confidence_interval()` (current description `60` chars). Documented Wald/score/gradient/lik_ratio dispatch and HC2 vs. classical-likelihood distinction. Verified via `roxygen2::parse_file()`.
+- [x] TODO #234: Method `InferenceContinKKOLSOneLik$compute_asymp_two_sided_pval()` (current description `107` chars). Documented null/alternative, testing-type dispatch, and the exact Bartlett correction. Verified via `roxygen2::parse_file()`.
+- [x] TODO #235: Method `InferenceContinKKOLSOneLik$compute_estimate_with_bootstrap_weights()` (current description `62` chars). Documented weight expansion, weighted-OLS refit, constant-weight fallback, and dropped-row handling. Verified via `roxygen2::parse_file()`.
+- [x] TODO #236: Method `InferenceContinKKOLSOneLik$compute_estimate()` (current description `58` chars). Documented the stacked matched/reservoir design and caching behavior. Verified via `roxygen2::parse_file()`.
+- [x] TODO #237: Method `InferenceContinKKOLSOneLik$get_likelihood_components()` (current description `74` chars). Documented the fixed-sigma2 Gaussian likelihood convention and return fields. Verified via `roxygen2::parse_file()`.
+- [x] TODO #238: Method `InferenceContinKKOLSOneLik$new()` (current description `111` chars). Already fully documents all constructor params; meets the standard as-is.
+- [x] TODO #239: Topic `InferenceContinKKOLSOneLik` (current description `416` chars). Added `@details` (model, HC2 variance, full-likelihood-tier/exact-Bartlett note, assumptions) and a real `@references` entry (KK14, matching REFERENCES.md's existing citation, which was also updated with this class in its "Used by" list). Verified via `roxygen2::parse_file()`.
 
 ### `InferenceContinKKQuantileRegrIVWC.Rd`
 
-- [ ] TODO #240: Method `InferenceContinKKQuantileRegrIVWC$new()` (current description `73` chars).
-- [ ] TODO #241: Topic `InferenceContinKKQuantileRegrIVWC` (current description `1586` chars).
+- [x] TODO #240: Method `InferenceContinKKQuantileRegrIVWC$new()` (current description `73` chars). Already fully documents `tau`/`model_formula`/`verbose`/`des_obj` plus a runnable example; meets the standard as-is.
+- [x] TODO #241: Topic `InferenceContinKKQuantileRegrIVWC` (current description `1586` chars). Already covers model composition, tau semantics, sandwich SE choice, randomization-CI validity argument, and the `quantreg` Suggests dependency; meets the standard as-is.
 
 ### `InferenceContinKKQuantileRegrOneLik.Rd`
 
@@ -842,12 +842,12 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceContinKKRobustRegrIVWC.Rd`
 
-- [ ] TODO #245: Method `InferenceContinKKRobustRegrIVWC$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #246: Method `InferenceContinKKRobustRegrIVWC$compute_asymp_two_sided_pval()` (current description `106` chars).
-- [ ] TODO #247: Method `InferenceContinKKRobustRegrIVWC$compute_estimate()` (current description `57` chars).
-- [ ] TODO #248: Method `InferenceContinKKRobustRegrIVWC$duplicate()` (current description `164` chars).
-- [ ] TODO #249: Method `InferenceContinKKRobustRegrIVWC$new()` (current description `120` chars).
-- [ ] TODO #250: Topic `InferenceContinKKRobustRegrIVWC` (current description `321` chars).
+- [x] TODO #245: Method `InferenceContinKKRobustRegrIVWC$compute_asymp_confidence_interval()` (current description `60` chars). Documented Wald-only inference (quasi tier) and combined-variance formula. Verified via `roxygen2::parse_file()`.
+- [x] TODO #246: Method `InferenceContinKKRobustRegrIVWC$compute_asymp_two_sided_pval()` (current description `106` chars). Documented null/alternative and Wald semantics. Verified via `roxygen2::parse_file()`.
+- [x] TODO #247: Method `InferenceContinKKRobustRegrIVWC$compute_estimate()` (current description `57` chars). Documented the inverse-variance combination formula for matched vs. reservoir robust fits. Verified via `roxygen2::parse_file()`.
+- [x] TODO #248: Method `InferenceContinKKRobustRegrIVWC$duplicate()` (current description `164` chars). Thin override delegating to `super$duplicate()`; existing param docs already meet the standard for a lifecycle pass-through.
+- [x] TODO #249: Method `InferenceContinKKRobustRegrIVWC$new()` (current description `120` chars). Already fully documents `method`/`maxit`/`acc`/`start_with_ols`/`use_rcpp`/etc.; meets the standard as-is.
+- [x] TODO #250: Topic `InferenceContinKKRobustRegrIVWC` (current description `321` chars). Added `@details` (model/combination rule, MASS::rlm M/MM fitting, quasi-tier rationale, assumptions), `@references` (KK14, and REFERENCES.md updated), and statsmodels/Wikipedia analog links. Verified via `roxygen2::parse_file()`.
 
 ### `InferenceContinKKRobustRegrOneLik.Rd`
 

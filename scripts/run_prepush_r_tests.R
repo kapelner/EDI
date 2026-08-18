@@ -32,7 +32,6 @@ TallyReporter <- R6::R6Class("TallyReporter",
 		timings_path = NULL,
 		errors_path = NULL,
 		last_draw_time = 0,
-		lines_drawn = 0L,
 
 		initialize = function(...) {
 			super$initialize(...)
@@ -94,8 +93,11 @@ TallyReporter <- R6::R6Class("TallyReporter",
 
 		end_reporter = function() {
 			self$draw(force = TRUE)
-			self$write_errors()
+			had_issues <- self$write_errors()
 			self$write_timings()
+			if (had_issues) {
+				cat(sprintf("test output can be found in %s\n", self$errors_path))
+			}
 		},
 
 		# Full detail on every failure/warning/skip goes to a gitignored file,
@@ -107,7 +109,7 @@ TallyReporter <- R6::R6Class("TallyReporter",
 			has_issues <- length(self$failures) > 0 || length(self$warnings) > 0 || length(self$skips) > 0
 			if (!has_issues) {
 				if (file.exists(self$errors_path)) file.remove(self$errors_path)
-				return(invisible())
+				return(invisible(FALSE))
 			}
 			con <- file(self$errors_path, open = "w")
 			on.exit(close(con))
@@ -129,6 +131,7 @@ TallyReporter <- R6::R6Class("TallyReporter",
 				round(as.numeric(difftime(Sys.time(), self$start_time, units = "secs"))),
 				self$n_ok, self$n_fail, self$n_warn, self$n_skip
 			), file = con)
+			invisible(TRUE)
 		},
 
 		# Per-file wall-clock timings, slowest first. This is the data source for
@@ -156,14 +159,21 @@ TallyReporter <- R6::R6Class("TallyReporter",
 		},
 
 		draw = function(force = FALSE) {
-			# ANSI cursor-up + clear-line redraw-in-place only works when
-			# something is actually interpreting the escape codes. When stdout
-			# isn't a real tty (piped through a tool harness, redirected to a
-			# log file, etc.) those bytes are printed literally and every
-			# throttled draw() call becomes 4 new scrolling lines instead of
-			# overwriting -- exactly the flood this reporter was meant to
-			# avoid. Fall back to an infrequent, single-line, non-ANSI
-			# heartbeat in that case.
+			# A multi-line ANSI cursor-up + clear-line block was tried here
+			# first, redrawing a fixed 4-line status in place. It depends on
+			# nothing else writing to stdout between redraws and on
+			# self$lines_drawn staying exactly in sync with what's on screen --
+			# in practice (confirmed against a real interactive terminal, not
+			# just a piped/non-tty context) it still desynced and produced new
+			# scrolling lines instead of overwriting. Now uses a single line:
+			# on a real tty, rewritten in place with a bare carriage return +
+			# clear-line (the same technique git/npm/cargo use for progress --
+			# nothing to get out of sync since there's only ever one line).
+			# When stdout isn't a tty (piped through a tool harness, redirected
+			# to a log file, etc.), \r isn't interpreted, so fall back to an
+			# infrequent, ordinary newline-terminated heartbeat instead --
+			# otherwise every throttled draw would emit raw, unstripped
+			# "\r\033[2K" control bytes into the log ahead of each line.
 			interactive_tty <- isatty(stdout())
 			min_interval <- if (interactive_tty) 0.1 else 5
 			now <- as.numeric(Sys.time())
@@ -174,29 +184,15 @@ TallyReporter <- R6::R6Class("TallyReporter",
 
 			elapsed <- round(as.numeric(difftime(Sys.time(), self$start_time, units = "secs")))
 			status <- if (force) "done" else "running"
-
-			if (!interactive_tty) {
-				cat(sprintf(
-					"EDI R test suite -- %s (%ds elapsed) pass: %d fail: %d warn: %d skip: %d file: %s\n",
-					status, elapsed, self$n_ok, self$n_fail, self$n_warn, self$n_skip, self$current_file
-				))
-				return(invisible())
-			}
-
-			lines <- c(
-				sprintf("EDI R test suite -- %s (%ds elapsed)", status, elapsed),
-				sprintf("  pass: %-6d fail: %-6d warn: %-6d skip: %-6d", self$n_ok, self$n_fail, self$n_warn, self$n_skip),
-				sprintf("  file: %s", self$current_file),
-				sprintf("  test: %s", self$current_test)
+			line <- sprintf(
+				"EDI R test suite -- %s (%ds elapsed) pass: %-6d fail: %-6d warn: %-6d skip: %-6d file: %s",
+				status, elapsed, self$n_ok, self$n_fail, self$n_warn, self$n_skip, self$current_file
 			)
-
-			# Redraw the same fixed 4-line block in place via ANSI cursor-up +
-			# clear-line.
-			if (self$lines_drawn > 0) {
-				cat(sprintf("\033[%dA", self$lines_drawn))
+			if (interactive_tty) {
+				cat("\r\033[2K", line, if (force) "\n" else "", sep = "")
+			} else {
+				cat(line, "\n", sep = "")
 			}
-			for (l in lines) cat("\033[2K", l, "\n", sep = "")
-			self$lines_drawn <- length(lines)
 		}
 	)
 )

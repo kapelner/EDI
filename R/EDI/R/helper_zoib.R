@@ -1,7 +1,9 @@
 # Zero-one-inflated beta regression internals (start values, log-likelihood, and fitter).
 
 .sanitize_proportion_response = function(y, interior = FALSE){
-	assertNumeric(y, any.missing = FALSE)
+	if (should_run_asserts()) {
+		assertNumeric(y, any.missing = FALSE)
+	}
 	y = as.numeric(y)
 	if (length(y) == 0L) return(y)
 	if (isTRUE(interior)) {

@@ -614,6 +614,36 @@ EDI_COMPONENT_SPECS = list(
 		allowed_likelihood_tiers = "none",
 		declare_body_references_optional = TRUE
 	),
+	KKQuantileRegrOneLik = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "KKQuantileRegrOneLikSource",
+		file = "inference_all_KK_quantile_regr_one_lik_abstract.R",
+		# 2026-08-18 migration (fix_inference_hierarchy.md "Full-Likelihood
+		# Estimators" / "KK And IVWC Estimators"): same reshaping as
+		# KKQuantileRegrIVWC above -- QuantileRandomizationCI is a dependency
+		# here rather than a separate direct component, shared by both
+		# InferenceContinKKQuantileRegrOneLik and
+		# InferencePropKKQuantileRegrOneLik. No ParametricLikelihoodBootstrap:
+		# despite the "OneLik" naming, this class has no real likelihood-test
+		# surface (quantreg::rq() sandwich SEs only).
+		dependencies = c("KKCompound", "QuantileRandomizationCI"),
+		owns_state = c("tau", "transform_y_fn_list", "m"),
+		provides_public_methods = c(
+			"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
+		),
+		provides_private_methods = c(
+			"is_a_kk_quantile_regr_one_lik", "tau", "transform_y_fn_list", "m",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_fast_randomization_distr", "compute_basic_match_data",
+			"assert_finite_se", "get_standard_error", "shared_combined_likelihood",
+			"extract_se_from_rq", "compute_weighted_combined_estimate"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "none",
+		declare_body_references_optional = TRUE
+	),
 	IncidKKCondLogitIVWC = list(
 		status = "active",
 		load_policy = "lazy",

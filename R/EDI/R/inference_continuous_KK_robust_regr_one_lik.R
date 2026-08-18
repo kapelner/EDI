@@ -69,20 +69,33 @@ ContinKKRobustRegrOneLikSource = list(
 			private$rlm_start_with_ols = start_with_ols
 			private$use_rcpp = use_rcpp
 		},
-		#' @description Returns the combined robust-regression estimate of the treatment effect.
-		#' @param estimate_only If TRUE, skip variance component calculations and use
-		#'   the faster \code{"M"} robust estimator regardless of the \code{method}
+		#' @description Point estimate of the treatment coefficient from a single stacked robust
+		#'   regression (\code{MASS::rlm} or the internal Rcpp IRLS kernel) run over matched-pair
+		#'   difference rows stacked with reservoir rows, analogous to
+		#'   \code{\link[EDI:InferenceContinKKOLSOneLik]{InferenceContinKKOLSOneLik}}'s stacked OLS
+		#'   design but with a robust M/MM objective in place of least squares.
+		#' @param estimate_only If \code{TRUE}, skip variance-component calculations and use the
+		#'   faster \code{"M"} robust estimator regardless of the \code{method}
 		#'   argument passed at construction time.
+		#' @return Numeric scalar treatment-effect estimate on the outcome's natural scale.
 		compute_estimate = function(estimate_only = FALSE){
 			private$fit_combined(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the combined robust-regression estimate under
-		#'   Bayesian-bootstrap weights.
-		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
-		#'   bootstrap weights.
-		#' @param estimate_only If \code{TRUE}, compute only the weighted point
-		#'   estimate.
+		#' @description Recomputes the combined robust-regression treatment estimate under
+		#'   nonparametric/Bayesian-bootstrap subject-or-block weights. Weights are expanded to
+		#'   row level via \code{kk_pair_and_reservoir_bootstrap_weights()}, then a weighted robust
+		#'   fit (\code{fit_weighted_combined()}) is run on the same stacked matched/reservoir
+		#'   design as \code{compute_estimate()}. Falls back to the unweighted
+		#'   \code{compute_estimate()} result when the weights are effectively constant (no
+		#'   resampling variation).
+		#' @param subject_or_block_weights Numeric vector of nonnegative bootstrap replicate
+		#'   weights, one per subject or per matched block (KK match structure), in the design's
+		#'   native order.
+		#' @param estimate_only If \code{TRUE}, compute only the weighted point estimate and skip
+		#'   the standard error.
+		#' @return Numeric scalar treatment-effect estimate under the given weights, or
+		#'   \code{NA_real_} if the weighted fit is not estimable.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			if (weights_are_effectively_constant(row_weights)) {
@@ -102,10 +115,16 @@ ContinKKRobustRegrOneLikSource = list(
 			}
 			private$cached_values$beta_hat_T
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Wald confidence interval for the treatment coefficient:
+		#'   \eqn{\hat\beta_T \pm t_{1-\alpha/2,\,df}\cdot \hat{se}(\hat\beta_T)} from the combined
+		#'   robust fit. \code{likelihood_tier = "quasi"} for this class (M/MM objective, not a
+		#'   normalized likelihood), so this is the only asymptotic testing type available (an
+		#'   alias of \code{compute_wald_confidence_interval()}). See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared contract.
 		#' @param alpha The confidence level in the computed confidence interval is 1 -
 		#'   \code{alpha}. The default is 0.05.
+		#' @return A length-2 numeric vector \code{c(lower, upper)}, or \code{NA} bounds if
+		#'   nonestimable.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
@@ -116,11 +135,14 @@ ContinKKRobustRegrOneLikSource = list(
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Computes the one-likelihood robust-regression asymptotic
-		#'   p-value using the shared Wald/asymptotic semantics documented in
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta The null difference to test against. For any treatment effect at all this
-		#'   is set to zero (the default).
+		#' @description Two-sided Wald p-value for \eqn{H_0: \beta_T = \code{delta}} vs.
+		#'   \eqn{H_1: \beta_T \neq \code{delta}} from the combined robust fit (alias of
+		#'   \code{compute_wald_two_sided_pval()}); see
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald/asymptotic
+		#'   semantics.
+		#' @param delta The null value of \eqn{\beta_T} to test against; 0 (the default) tests for
+		#'   any treatment effect at all.
+		#' @return Numeric scalar p-value in \eqn{[0, 1]}, or \code{NA_real_} if nonestimable.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta)
@@ -131,9 +153,14 @@ ContinKKRobustRegrOneLikSource = list(
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Computes the Wald confidence interval.
+		#' @description Wald confidence interval for the treatment coefficient; identical
+		#'   computation to \code{compute_asymp_confidence_interval()}, exposed under the explicit
+		#'   \code{"wald"} name since this quasi-tier class supports only Wald-type asymptotic
+		#'   inference.
 		#' @param alpha The confidence level in the computed confidence interval is 1 -
 		#'   \code{alpha}. The default is 0.05.
+		#' @return A length-2 numeric vector \code{c(lower, upper)}, or \code{NA} bounds if
+		#'   nonestimable.
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)

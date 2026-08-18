@@ -1865,6 +1865,44 @@ their own `[x]` entries above; they are not part of this count.)
   unless represented by `estimating_equation_likelihood_ratio`.
 - [x] Mark migrated quasi/robust classes only after estimate, SE, CI, p-value,
   and method-availability snapshots match.
+- **Progress 2026-08-18: `InferenceContinKKRobustRegrOneLik` migrated** —
+  the robust-regression OneLik sibling of `InferenceContinKKRobustRegrIVWC`
+  (migrated earlier this stretch). Structurally the same shape as
+  `InferenceContinKKOLSOneLik`'s pre-migration state (real R6 inheritance,
+  not a raw splice) but on `InferenceKKPassThroughCompoundNoParamBootstrap`
+  instead of `InferenceKKPassThroughCompound`, since this class has no
+  likelihood-test surface — `"quasi"` tier, same as the IVWC sibling. New
+  registered component `ContinKKRobustRegrOneLik`
+  (`dependencies = "KKCompound"`, no `ParametricLikelihoodBootstrap`).
+  Factory composes `c("BayesianBootstrap", "Wald",
+  "ContinKKRobustRegrOneLik")`, `InferenceRand` pin. Lesson 1 applied
+  proactively. One golden-test wrinkle, same as the IVWC sibling's own
+  golden: `score_ci` comes back `"ok"` on the legacy side with a real
+  (non-NA, non-degenerate) value, because `compute_score_confidence_
+  interval()` bypasses the `supports_likelihood_tests() == FALSE` gate and
+  calls `invert_test_pval_confidence_interval()` directly, which numerically
+  root-finds around the Wald estimate rather than returning it in closed
+  form — verified Wald-fallback (not real likelihood-test surface) using
+  the exact same tolerance-widened comparison the IVWC golden already
+  established, reused directly here. Golden
+  `test-contin-kk-robust-regr-onelik-migration-golden.R`: all green after
+  adopting that check (only needed because my first draft used a looser,
+  wrong check that didn't anticipate an `"ok"`-status Wald-fallback CI).
+  Static tables updated: registry direct-components mapping;
+  `test-mixin-contracts.R` canonical component list.
+  `test-static-cleanup-guardrails.R` needed no ratchet updates (no raw
+  splice, no `eval(body(...))` in the pre-migration class).
+  `test-parametric-bootstrap-lr-all-capable-classes.R` and
+  `helper-likelihood-method-smoke.R` deliberately left unchanged: this
+  "quasi"-tier class composes no `LikelihoodTests`/
+  `ParametricLikelihoodBootstrap`, so it has no real score/gradient/LR
+  surface to smoke-test (same reasoning as the Wald-only IVWC classes
+  excluded from the smoke suite earlier this stretch). Full regression
+  battery green: this golden, the Robust-Regr IVWC golden (checked for
+  regressions), `test-quasi-robust-migration-baseline.R`,
+  `test-mixin-contracts.R`, `test-static-cleanup-guardrails.R`,
+  `test-inference-class-registry.R`, `test-likelihood-method-smoke.R`,
+  `test-parametric-bootstrap-lr-all-capable-classes.R`.
 
 #### Partial-Likelihood Estimators
 
@@ -2056,12 +2094,14 @@ their own `[x]` entries above; they are not part of this count.)
   grep for `inherit = InferenceParamBootstrap`/
   `InferenceKKPassThroughCompound(NoParamBootstrap)?` among `*OneLik*`
   classes): `InferenceContinKKQuantileRegrOneLik`,
-  `InferencePropKKQuantileRegrOneLik`, `InferenceContinKKRobustRegrOneLik`,
+  `InferencePropKKQuantileRegrOneLik`,
   `InferenceCountKKHurdlePoissonOneLik`, `InferenceCountKKCondPoissonOneLik`,
   `InferenceIncidKKCondLogitOneLik`, `InferenceIncidKKCondLogitGLMMOneLik`
   (blocked on GLMM host contracts per the item below),
   `InferenceSurvivalKKClaytonCopulaOneLik`,
   `InferenceSurvivalKKWeibullFrailtyOneLik`.
+  (`InferenceContinKKRobustRegrOneLik` migrated in the "Quasi And Robust
+  Estimators" section above — dropped from this list.)
 - [x] Verify partial-likelihood classes do not gain
   `parametric_likelihood_bootstrap` unless they provide a null simulator.
 - Note (2026-08-14): `InferenceSurvivalCoxPHRegr`'s migration to

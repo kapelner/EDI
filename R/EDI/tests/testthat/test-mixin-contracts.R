@@ -26,7 +26,7 @@ canonical_component_names = function() {
 		"ContinKKRobustRegrIVWC", "ContinKKOLSIVWC", "ContinKKOLSOneLikLikelihood",
 		"ContinKKRobustRegrOneLik", "SurvivalKKRankRegrIVWC",
 		"BaiAdjustedT", "SurvivalKKStratCoxIVWC", "IncidKKCondLogitIVWC",
-		"KKQuantileRegrIVWC", "IncidenceKKGComputation",
+		"KKQuantileRegrIVWC", "KKQuantileRegrOneLik", "IncidenceKKGComputation",
 		"ExactTest", "ExactBinomialIncidence", "ExactFisherIncidence",
 		"ExactZhangIncidence",
 		"LikelihoodTests", "ParametricLikelihoodBootstrap", "StandardModelCache",

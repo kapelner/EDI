@@ -822,12 +822,34 @@ before/around the same release:
 
 ### Combined Evidence Metric (added 2026-08-18)
 
-- [ ] TODO-14: Implement `cct_combine_pvalues(pvals, weights = NULL)` helper
-  (`@keywords internal @noRd`, alongside the other `run_all_inference_*`
-  helpers): the `T = sum(w_i * tan((0.5 - p_i) * pi))` /
-  `combined_pval = 0.5 - atan(T) / pi` formula from Liu & Xie (2020).
-  Defaults to equal weights when `weights = NULL`. Cite Liu & Xie (2020) in
-  the roxygen `@references`.
+- [x] TODO-14: `cct_combine_pvalues(pvals, weights = NULL)` implemented in
+  `inference_suite.R` (`@keywords internal @noRd`, alongside the other
+  `run_all_inference_*` helpers) — the `T = sum(w_i * tan((0.5 - p_i) * pi))`
+  / `combined_pval = 0.5 - atan(T) / pi` formula, equal weights when
+  `weights = NULL`, and unnormalized weights renormalized internally
+  (so callers, e.g. the future `"estimand_grouped"` weight vector, don't
+  need to pre-sum to 1). `@references` Liu & Xie (2020) included in the
+  roxygen (informational only, since `@noRd` suppresses actual Rd
+  generation — the formal, rendered citation is `TODO-20`'s job on
+  `InferenceSuite`'s own class-level roxygen). Deliberately excludes
+  `TODO-17`'s edge-case hardening (0/1 clipping, <2-p-value guard), per
+  the plan's own scoping split.
+
+  **Verified beyond what TODO-14 strictly required**, since a formula this
+  central deserves more than a smoke test: single p-value returns itself
+  exactly; identical p-values combine to that same value regardless of
+  weighting (a known CCT property); one tiny p-value dominates (min-p-like
+  behavior); unnormalized vs. normalized weights give identical results.
+  Then two calibration simulations (20,000 replicates each, effectively a
+  lightweight preview of `TODO-18`): under a true null with **independent**
+  p-values, the combined p-value is calibrated (mean 0.499, 5.0%/1.07% tail
+  rates against nominal 5%/1%, KS-test-vs-Uniform(0,1) `p = 0.33`, no
+  rejection); under a true null with **`rho = 0.9`-correlated** p-values
+  (shared common factor), the false-positive rate stays at nominal (5.5%
+  vs. 5% nominal, 1.1% vs. 1% nominal) — this is the actual headline
+  property the plan cites as the reason CCT was chosen over
+  Fisher's/Stouffer's/minP, confirmed empirically rather than assumed from
+  the literature.
 - [ ] TODO-15: **User-facing weighting arguments on `run_all_inference()` —
   the user decides, the package does not silently pick a policy** (revised
   2026-08-18, per user request: weighting must be an argument the caller

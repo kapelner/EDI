@@ -4,6 +4,40 @@
 #' with continuous responses using robust linear regression (`MASS::rlm`) for the
 #' matched-pair and reservoir components separately.
 #'
+#' @details
+#' \strong{Model.} Two robust M/MM-estimator regressions are fit independently:
+#' one on the within-pair outcome differences for matched pairs (with covariate
+#' differences as predictors, no intercept), and one on the reservoir subjects
+#' (raw covariates plus a treatment indicator). Each yields a treatment-effect
+#' estimate \eqn{\hat\beta_{T,k}} and estimated variance. The two are combined
+#' by inverse-variance weighting into a single \eqn{\hat\beta_T}, the same
+#' combination rule used by \code{\link[EDI:InferenceContinKKOLSIVWC]{InferenceContinKKOLSIVWC}}
+#' but with robust rather than OLS component fits. A component missing enough
+#' data (e.g. no matched pairs) is dropped from the combination.
+#'
+#' \strong{Robust fitting.} Uses \code{MASS::rlm} (or an internal Rcpp IRLS
+#' kernel when \code{use_rcpp = TRUE}, the default) with \code{method = "M"} or
+#' \code{"MM"}; \code{"MM"} (the default) uses an LQS-based high-breakdown
+#' start, while \code{"M"} can optionally warm-start from OLS
+#' (\code{start_with_ols = TRUE}). \code{likelihood_tier = "quasi"}: the
+#' M/MM objective is not a normalized likelihood, so only Wald-type asymptotic
+#' inference is available (no score/gradient/likelihood-ratio testing types).
+#'
+#' \strong{Assumptions.} Continuous response; independent matched pairs and/or
+#' independent reservoir subjects; no censoring; a KK matching-on-the-fly
+#' design. Robust regression down-weights outlying residuals, trading some
+#' efficiency under exactly-Gaussian errors for resistance to heavy tails and
+#' contamination.
+#'
+#' @references
+#' Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
+#' allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
+#' 378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
+#'
+#' @seealso Analogous Python API for robust linear models:
+#'   \href{https://www.statsmodels.org/stable/rlm.html}{statsmodels RLM}.
+#'   \href{https://en.wikipedia.org/wiki/Robust_regression}{Robust regression}
+#'   (orientation).
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #' @export
@@ -70,16 +104,31 @@ ContinKKRobustRegrIVWCSource = list(
 			private$rlm_start_with_ols = start_with_ols
 			private$use_rcpp = use_rcpp
 		},
-		#' @description Returns the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only Logical. If TRUE, skip variance component calculations.
+		#' @description Point estimate of the treatment effect combining a matched-pair robust
+		#'   regression (\code{MASS::rlm} on within-pair differences) and a reservoir robust
+		#'   regression (treatment vs. control), combined by inverse-variance weighting: the two
+		#'   component estimates \eqn{\hat\beta_{T,\text{matched}}} and
+		#'   \eqn{\hat\beta_{T,\text{reservoir}}} (each with its own estimated variance) are
+		#'   combined as \eqn{\hat\beta_T = \sum_k w_k \hat\beta_{T,k} / \sum_k w_k} with
+		#'   \eqn{w_k = 1/\widehat{\mathrm{Var}}(\hat\beta_{T,k})}; a component is dropped from the
+		#'   combination if it is not estimable (e.g. too few observations). See
+		#'   \code{\link[EDI:Inference]{Inference}} for the general estimate contract.
+		#' @param estimate_only Logical. If \code{TRUE}, skip variance-component calculations.
+		#' @return Numeric scalar treatment-effect estimate on the outcome's natural scale.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param alpha Numeric. Significance level (default 0.05).
+		#' @description Wald confidence interval for the inverse-variance-combined treatment
+		#'   effect: \eqn{\hat\beta_T \pm t_{1-\alpha/2,\,df}\cdot \hat{se}(\hat\beta_T)}, using the
+		#'   combined variance \eqn{1/\sum_k w_k} from \code{compute_estimate()}'s inverse-variance
+		#'   weighting. \code{likelihood_tier = "quasi"} for this class (M/MM-estimator objective,
+		#'   not a normalized likelihood), so only the Wald testing type is supported. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared contract.
+		#' @param alpha The confidence level in the computed confidence interval is 1 -
+		#'   \code{alpha}. The default is 0.05.
+		#' @return A length-2 numeric vector \code{c(lower, upper)}, or \code{NA} bounds if
+		#'   nonestimable.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
@@ -90,10 +139,14 @@ ContinKKRobustRegrIVWCSource = list(
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Computes the robust-regression asymptotic p-value using the
-		#'   shared Wald/asymptotic semantics documented in
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta Numeric. Null treatment effect value (default 0).
+		#' @description Two-sided Wald p-value for \eqn{H_0: \beta_T = \code{delta}} vs.
+		#'   \eqn{H_1: \beta_T \neq \code{delta}}, using the inverse-variance-combined estimate and
+		#'   standard error from \code{compute_estimate()}. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald/asymptotic
+		#'   semantics.
+		#' @param delta The null value of \eqn{\beta_T} to test against; 0 (the default) tests for
+		#'   any treatment effect at all.
+		#' @return Numeric scalar p-value in \eqn{[0, 1]}, or \code{NA_real_} if nonestimable.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta)

@@ -7,6 +7,52 @@
 #' Note that warm starts are disabled for this class as OLS is a closed-form
 #' estimator and does not benefit from initialization.
 #'
+#' @details
+#' \strong{Model.} Let \eqn{m} be the number of matched pairs and
+#' \eqn{n_R = n_{RT} + n_{RC}} the number of unmatched reservoir subjects. The
+#' design matrix stacks two blocks: \eqn{m} matched-pair difference rows
+#' (each row's response is the within-pair outcome difference, coded with an
+#' implicit unit treatment column and covariate differences \eqn{X_{d}}), and
+#' \eqn{n_R} reservoir rows (raw covariates plus a treatment/matching-status
+#' indicator column). The stacked regression is fit by ordinary least squares
+#' (\code{\link[stats]{lm.fit}}), and \eqn{\hat\beta_T} is the coefficient on
+#' the treatment/matched-difference column, i.e. an additive mean-difference
+#' estimand on the outcome's natural scale. If only matched pairs exist,
+#' \code{j_treat = 1}; if only reservoir data exist, \code{j_treat = 2}; if
+#' both exist, the combined design uses \code{j_treat = 2}. If neither
+#' matched pairs nor a treatment-and-control-populated reservoir exist, the
+#' estimate is marked nonestimable (\code{"no_usable_matched_or_reservoir_data"}).
+#'
+#' \strong{Variance.} Standard errors use the HC2 heteroskedasticity-consistent
+#' sandwich estimator (\code{ols_hc2_post_fit_cpp}), not the classical OLS
+#' variance, so the Wald confidence interval/p-value are robust to
+#' heteroskedasticity across the matched/reservoir blocks.
+#'
+#' \strong{Likelihood tier.} \code{likelihood_tier = "full"}: this is a genuine
+#' Gaussian likelihood (not a quasi-likelihood or partial likelihood), so
+#' score, gradient, and likelihood-ratio testing types are available in
+#' addition to Wald, and an exact (not higher-order-accurate) Bartlett
+#' correction reproduces base R's \code{lm()} classical partial F-test exactly
+#' under the classical homoskedastic-Gaussian-errors assumption (a stronger
+#' assumption than the HC2-robust Wald path uses, so the two paths need not
+#' agree numerically).
+#'
+#' \strong{Assumptions.} Continuous response; independent matched pairs and/or
+#' independent reservoir subjects; no censoring
+#' (\code{\link[EDI:assertNoCensoring]{assertNoCensoring}} is enforced); a
+#' KK matching-on-the-fly design
+#' (\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} or subclass).
+#'
+#' @references
+#' Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
+#' allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
+#' 378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
+#'
+#' @seealso \code{\link[EDI:InferenceContinKKOLSIVWC]{InferenceContinKKOLSIVWC}}
+#'   for the inverse-variance-weighted-combination alternative to this
+#'   one-likelihood combined-fit approach; analogous Python API:
+#'   \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM/OLS}.
+#'
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
@@ -67,17 +113,37 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Returns the combined OLS estimate of the treatment effect.
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @description Point estimate of the treatment coefficient \eqn{\beta_T} from a single
+		#'   stacked OLS fit run over matched-pair difference rows (intercept-free, coding the
+		#'   pair's covariate difference and a constant response difference) stacked with reservoir
+		#'   rows (with a matching-status indicator column and raw covariates); see
+		#'   \code{\link[EDI:InferenceContinKKOLSOneLik]{InferenceContinKKOLSOneLik}} for the exact
+		#'   stacked design. Caches the fit; repeated calls with unchanged data reuse the cache and
+		#'   are deterministic.
+		#' @param estimate_only If \code{TRUE}, skip standard-error/variance computation (used
+		#'   internally during bootstrap/randomization resampling for speed).
+		#' @return Numeric scalar: the treatment-effect estimate on the outcome's natural
+		#'   (untransformed) scale, i.e. a mean-difference estimand.
 		compute_estimate = function(estimate_only = FALSE){
 			private$fit_combined(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the treatment estimate under bootstrap weights; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
-		#' @param subject_or_block_weights Numeric vector. Row weights for bootstrap.
-		#' @param estimate_only Logical. If TRUE, skip variance component calculations.
-		#' @return The treatment estimate.
+		#' @description Recomputes the treatment estimate under nonparametric/Bayesian bootstrap
+		#'   subject-or-block weights, used by \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}
+		#'   and the reused nonparametric-bootstrap worker path. Weights are expanded from
+		#'   subject/block level to the matched-pair and reservoir row level via
+		#'   \code{kk_pair_and_reservoir_bootstrap_weights()}, then a weighted OLS
+		#'   (\code{\link[stats]{lm.wfit}}) is fit on the same stacked design as
+		#'   \code{compute_estimate()}. If the weights are effectively constant (no resampling
+		#'   variation), falls back to the unweighted \code{compute_estimate()} result rather than
+		#'   refitting. Non-finite or non-positive weighted rows are dropped before fitting; if no
+		#'   estimable rows remain, returns \code{NA_real_}.
+		#' @param subject_or_block_weights Numeric vector of nonnegative bootstrap replicate weights,
+		#'   one per subject or per matched block (KK match structure), in the design's native order.
+		#' @param estimate_only Logical. If \code{TRUE}, skip the HC2 sandwich standard-error
+		#'   computation and return only the point estimate.
+		#' @return Numeric scalar treatment-effect estimate under the given weights (same scale as
+		#'   \code{compute_estimate()}), or \code{NA_real_} if the weighted fit is not estimable.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			if (weights_are_effectively_constant(row_weights)) {
@@ -97,10 +163,20 @@ ContinKKOLSOneLikLikelihoodSource = list(
 			}
 			private$cached_values$beta_hat_T
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Two-sided \eqn{(1-\alpha)} confidence interval for the treatment
+		#'   coefficient \eqn{\beta_T}. When \code{testing_type = "wald"} (the default), this is the
+		#'   classical Wald interval \eqn{\hat\beta_T \pm t_{1-\alpha/2,\,df}\cdot \hat{se}(\hat\beta_T)}
+		#'   using the HC2 sandwich standard error and the OLS residual degrees of freedom \eqn{n-p}.
+		#'   When \code{testing_type} is \code{"score"}, \code{"gradient"}, or \code{"lik_ratio"}, the
+		#'   interval instead comes from inverting the corresponding likelihood-based test (Gaussian
+		#'   likelihood, homoskedastic-errors assumption) against \eqn{\chi^2_1}; see
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared inversion machinery. The
+		#'   Wald path uses the HC2-robust variance and need not numerically match the likelihood-based
+		#'   paths, which assume classical homoskedastic Gaussian errors.
 		#' @param alpha The confidence level in the computed confidence interval is 1 -
 		#'   \code{alpha}. The default is 0.05.
+		#' @return A length-2 numeric vector \code{c(lower, upper)}, or \code{NA} bounds if the
+		#'   underlying fit is nonestimable.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
@@ -119,11 +195,19 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				lik_ratio = private$invert_lik_ratio_ci_newton(alpha)
 			)
 		},
-		#' @description Computes the one-likelihood OLS asymptotic p-value using the
-		#'   shared Wald/asymptotic semantics documented in
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta The null difference to test against. For any treatment effect at all this
-		#'   is set to zero (the default).
+		#' @description Two-sided p-value for \eqn{H_0: \beta_T = \code{delta}} vs.
+		#'   \eqn{H_1: \beta_T \neq \code{delta}}. Under \code{testing_type = "wald"} (default), this
+		#'   is the classical \eqn{t}-test p-value from the HC2 sandwich standard error and
+		#'   \eqn{n-p} residual degrees of freedom. Under \code{"score"}, \code{"gradient"}, or
+		#'   \code{"lik_ratio"}, this dispatches to the corresponding Gaussian-likelihood test
+		#'   (see \code{get_likelihood_test_spec()}), referred to \eqn{\chi^2_1}, with an exact
+		#'   (not merely higher-order-accurate) Bartlett correction for the likelihood-ratio path
+		#'   (see \code{get_bartlett_factor_exact()}) that makes it match base R's \code{lm()}
+		#'   classical partial F-test exactly. See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}
+		#'   for the shared testing-type dispatch contract.
+		#' @param delta The null value of \eqn{\beta_T} to test against; 0 (the default) tests for
+		#'   any treatment effect at all.
+		#' @return Numeric scalar p-value in \eqn{[0, 1]}, or \code{NA_real_} if nonestimable.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta)
@@ -142,8 +226,13 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta)
 			)
 		},
-		#' @description Returns the log-likelihood, gradient, and Hessian at the current estimate.
-		#' @return A list with \code{loglik}, \code{gradient}, and \code{hessian}.
+		#' @description Returns the Gaussian log-likelihood, score, and observed information at the
+		#'   current full-model fit, with \eqn{\sigma^2} held fixed at the full model's unbiased
+		#'   estimate \eqn{\mathrm{RSS}/(n-p)} (not re-profiled). Triggers \code{compute_estimate()}
+		#'   as a side effect if not already fit. Returns \code{NULL} if the fit is nonestimable.
+		#' @return A list with \code{loglik} (scalar), \code{gradient} (score vector, length
+		#'   \eqn{p}), and \code{hessian} (observed information matrix, \eqn{p \times p}), or
+		#'   \code{NULL} if nonestimable.
 		get_likelihood_components = function(){
 			private$fit_combined()
 			spec = private$get_likelihood_test_spec()

@@ -1,7 +1,23 @@
-#' Inference based on Maximum Likelihood for KK designs
+#' Bai Adjusted-t Mean-Difference Inference for KK21 Designs
 #'
-#' Inference for mean difference. Note that warm starts are disabled for this class
-#' as the Bai adjusted t-test is a closed-form estimator and does not benefit from initialization.
+#' Continuous-response mean-difference inference for designs assigned by
+#' \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}} (the
+#' Kapelner-Krieger 2021 sequential matching-on-the-fly design with
+#' covariate-weighted matching). The point estimate and its variance are the
+#' closed-form Bai-adjusted-t combination of the matched-pairs mean
+#' difference and the unmatched-reservoir mean difference,
+#' inverse-variance-weighted when both are usable; see
+#' \code{\link[EDI:InferenceBaiAdjustedT]{InferenceBaiAdjustedT}} for the full
+#' formula, the pair-distance definition, and the confidence-interval/p-value
+#' construction shared with \code{\link[EDI:InferenceBaiAdjustedTKK14]{InferenceBaiAdjustedTKK14}}.
+#' The two leaves differ only in how pair distance is defined during
+#' matching: this class (KK21) uses the design's covariate-weighted squared
+#' distance \eqn{\sum_j w_j (x_{1j} - x_{2j})^2}, where \eqn{w_j} are the
+#' design's \code{covariate_weights} (see
+#' \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}), unlike
+#' KK14's unweighted distance. Because the estimator is closed-form,
+#' initialization does not use warm starts (there is no iterative fit to
+#' warm-start).
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #'

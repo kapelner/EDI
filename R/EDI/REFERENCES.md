@@ -72,7 +72,11 @@ gaps" at the bottom).
   `DesignSeqOneByOneKK14`, `DesignSeqOneByOneKK21` (base algorithm this
   extends), `DesignSeqOneByOneKK21stepwise`, `InferenceAllKKMeanDiffIVWC`,
   `InferenceAllKKWilcoxIVWC` (inverse-variance combination of matched-pair
-  and reservoir estimates — this is the core "KK" family reference).
+  and reservoir estimates — this is the core "KK" family reference),
+  `InferenceContinKKOLSOneLik` (single stacked-OLS combined-likelihood fit
+  over matched-pair differences and reservoir rows),
+  `InferenceContinKKRobustRegrIVWC` (inverse-variance-weighted combination of
+  matched-pair and reservoir robust-regression fits).
 - **[Greevy2004]** Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P.
   (2004). "Optimal multivariate matching before randomization."
   *Biostatistics*, 5(2), 263-275. doi:10.1093/biostatistics/5.2.263. — Used
@@ -119,6 +123,25 @@ files' `@references`) if/when it becomes available.
   two classes.
 
 ## Inference methods
+
+### Inference orchestration
+
+- **[MadiganRyanSchuemie2013]** Madigan, D., Ryan, P. B., and Schuemie, M.
+  (2013). "Does design matter? Systematic evaluation of the impact of
+  analytical choices on effect estimates in observational studies."
+  *Therapeutic Advances in Drug Safety*, 4(2), 53-62. PMID 25083251. —
+  Used by: `InferenceSuite`, `run_all_inference()` (the motivating
+  finding — that analytical/design choices materially shift effect
+  estimates in observational studies — behind making "every legitimate
+  way to look for an effect, compared honestly" the suite's default
+  output rather than a single chosen method).
+- **[LiuXie2020]** Liu, Y., and Xie, J. (2020). "Cauchy combination test: a
+  powerful test with analytic p-value calculation under arbitrary
+  dependency structures." *Journal of the American Statistical
+  Association*, 115(529), 393-402. — Used by: `InferenceSuite`,
+  `run_all_inference()` (the Combined Evidence Metric's Cauchy
+  combination test, valid under arbitrary and unknown dependence among
+  the per-class p-values being combined).
 
 ### Cross-cutting: two-sample location, rank, and robust methods
 

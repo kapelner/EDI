@@ -8,6 +8,19 @@
 #' internal Rcpp/L-BFGS routine that requires no external packages. Set
 #' \code{use_rcpp = FALSE} to fall back to \pkg{glmmTMB}.
 #'
+#' The treatment coefficient \eqn{\beta_T} is on the response's natural
+#' (untransformed) scale — a mean difference, not a ratio or log-scale
+#' effect. \code{likelihood_tier = "full"}: likelihood-ratio, score, and
+#' Wald tests are all available when the model converges (see
+#' \code{$get_likelihood_test_spec()} inherited from the shared count/GLMM
+#' likelihood plumbing). Validity requires the random-intercept-per-pair
+#' structure to correctly capture the design's matching dependence and the
+#' usual linear mixed model assumptions (conditional normality of responses
+#' and pair effects, correctly specified fixed-effects formula).
+#'
+#' @seealso Comparable Python API: \href{https://www.statsmodels.org/stable/mixed_linear.html}{statsmodels MixedLM}.
+#'   See also: \href{https://en.wikipedia.org/wiki/Mixed_model}{Mixed model} (Wikipedia).
+#'
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
@@ -24,7 +37,15 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 	components = "KKGLMM",
 	metadata = list(likelihood_tier = "full"),
 	public = list(
-		#' @description Initialize a KK GLMM inference object.
+		#' @description Initialize inference for the linear mixed model
+		#'   \eqn{Y_i = \beta_0 + \beta_T W_i + X_i^\top \gamma + b_{g(i)} +
+		#'   \epsilon_i}, \eqn{b_g \sim N(0, \sigma_b^2)}, \eqn{\epsilon_i \sim
+		#'   N(0, \sigma_e^2)}, where \eqn{g(i)} is subject \eqn{i}'s matched-pair
+		#'   group id, \eqn{W_i} is the treatment indicator, \eqn{X_i} are
+		#'   covariates, and \eqn{\beta_T} is the treatment effect (mean
+		#'   difference on the response's natural scale). The random intercept
+		#'   \eqn{b_g} absorbs the within-pair correlation induced by matching, so
+		#'   \eqn{\beta_T}'s standard error correctly reflects the design.
 		#' @param des_obj A completed \code{Design} object with a continuous response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -63,18 +84,45 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 			private$use_gls_fast_path = use_gls_fast_path
 			private$use_gls_fast_path_bootstrap = use_gls_fast_path_bootstrap
 		},
-		#' @description Computes the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @description Fits the linear mixed model by maximum likelihood and
+		#'   returns \eqn{\hat\beta_T}. When \code{use_rcpp = TRUE} (the
+		#'   default), the log-likelihood
+		#'   \eqn{\ell(\beta, \sigma_b^2, \sigma_e^2)} is maximized directly by an
+		#'   internal Rcpp/L-BFGS routine over \eqn{\beta} and the log-variance
+		#'   components; otherwise \pkg{glmmTMB} performs the fit. If
+		#'   \code{use_gls_fast_path = TRUE} and variance components are already
+		#'   cached from a prior full fit (used during randomization inference,
+		#'   where only the treatment column changes across permutations),
+		#'   \code{estimate_only = TRUE} calls instead solve the generalized
+		#'   least-squares problem at the cached variance components — exact
+		#'   under exchangeability of the permuted treatment assignment, since
+		#'   fixing the variance components at their null-fit MLE and permuting
+		#'   only \eqn{W} preserves the permutation test's validity.
+		#' @param estimate_only If TRUE, skip variance component calculations
+		#'   (standard error, degrees of freedom) needed for confidence
+		#'   intervals or p-values; only \eqn{\hat\beta_T} is returned.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the treatment estimate under bootstrap weights; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
-		#' @param subject_or_block_weights Numeric vector. Row weights for bootstrap.
-		#' @param estimate_only Logical. If TRUE, skip variance component calculations.
-		#' @return The treatment estimate.
+		#' @description Refits the linear mixed model with subject/block-level
+		#'   weights applied to each row's contribution to the likelihood
+		#'   (Bayesian-bootstrap or nonparametric-bootstrap draw weights,
+		#'   expanded from subject/block level to individual rows via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}),
+		#'   and returns the reweighted estimate \eqn{\hat\beta_T^{(w)}}. When
+		#'   weights are effectively constant, this collapses to the unweighted
+		#'   \code{compute_estimate()} call (returns \code{df = Inf} to signal a
+		#'   degenerate/skipped bootstrap replicate rather than refitting). When
+		#'   \code{use_rcpp = TRUE}, a weighted Rcpp fast path is tried first via
+		#'   \code{private$weighted_rcpp_estimate()}; otherwise
+		#'   \code{private$compute_weighted_glmm_bootstrap_estimate()} refits via
+		#'   \pkg{glmmTMB}-based machinery.
+		#' @param subject_or_block_weights Numeric vector of nonnegative weights,
+		#'   one per matched-pair group or reservoir subject (bootstrap draw
+		#'   weights), expanded to per-row weights before fitting.
+		#' @param estimate_only Logical. If TRUE, skip standard-error computation.
+		#' @return The reweighted treatment estimate \eqn{\hat\beta_T^{(w)}}.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			if (weights_are_effectively_constant(row_weights)) {
@@ -113,16 +161,21 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 			private$cached_values$summary_table = NULL
 			private$cached_values$beta_hat_T
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param alpha Confidence level.
+		#' @description Computes a \eqn{1-\alpha} Wald confidence interval for
+		#'   \eqn{\beta_T} from the fitted-model standard error, using a normal
+		#'   or \eqn{t} critical value depending on the resolved degrees of
+		#'   freedom (see \code{private$compute_z_or_t_ci_from_s_and_df}).
+		#' @param alpha The confidence level of the interval is \eqn{1 -
+		#'   \code{alpha}}. Default \code{0.05}.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta Null treatment effect value.
+		#' @description Computes a two-sided Wald p-value for
+		#'   \eqn{H_0: \beta_T = \code{delta}} using the fitted-model estimate
+		#'   and standard error (same statistic that
+		#'   \code{$compute_asymp_confidence_interval()} inverts).
+		#' @param delta The null treatment-effect value. Default \code{0}.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
