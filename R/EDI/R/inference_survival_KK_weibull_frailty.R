@@ -428,10 +428,31 @@ SurvivalKKWeibullFrailtyIVWCSource = list(
 #' @seealso \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
 #'   for the corresponding gamma-frailty (Clayton copula) combined-likelihood estimator.
 #' @keywords internal
-InferenceAbstractKKWeibullFrailtyOneLik = R6::R6Class("InferenceAbstractKKWeibullFrailtyOneLik",
+# Kept as real (internal, non-exported) R6 generators purely so the
+# pre-existing self-harvests below (`inference_component_source_parts()`)
+# can snapshot their content at load time -- migration 2026-08-19
+# (fix_inference_hierarchy.md "Full-Likelihood Estimators" / "KK And IVWC
+# Estimators"), same shape as InferenceSurvivalKKClaytonCopulaOneLik's
+# migration (see that class's header comment in
+# inference_survival_KK_clayton_copula.R for the full rationale): this
+# abstract's public/private were built via a raw
+# `modifyList(InferenceMixinKKPassThrough$public/private, list(...))`
+# splice, so the harvest necessarily captures the full flattened surface.
+# The concrete leaf below uses TRUE R6 inheritance onto this abstract (not
+# a splice), so its own harvest correctly captures only its own `initialize`
+# override. Two `super$compute_asymp_confidence_interval`/
+# `super$compute_asymp_two_sided_pval` fallback calls (reaching
+# InferenceAsympLik's generic switch dispatch, same "wald" fast-path/
+# fallback-for-others shape as InferenceIncidKKCondLogitOneLik) are rewritten
+# to `self$..._generic()` aliases -- see that class's Source header comment
+# for the full generic-`self$`-aliased-override rationale.
+InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw = R6::R6Class("InferenceAbstractKKWeibullFrailtyOneLik",
 	lock_objects = FALSE,
 	inherit = InferenceParamBootstrap,
 	public = as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(
+		# Generic-`self$`-aliased overrides -- see this file's header comment.
+		compute_asymp_confidence_interval_generic = InferenceAsympLik$public_methods$compute_asymp_confidence_interval,
+		compute_asymp_two_sided_pval_generic = InferenceAsympLik$public_methods$compute_asymp_two_sided_pval,
 		#' @description Initialize KK Weibull-frailty one-likelihood survival
 		#'   inference and prepare the combined parametric survival likelihood used by
 		#'   \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyOneLik]{InferenceSurvivalKKWeibullFrailtyOneLik}}.
@@ -493,7 +514,7 @@ InferenceAbstractKKWeibullFrailtyOneLik = R6::R6Class("InferenceAbstractKKWeibul
 		#' @param alpha Confidence level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (!identical(self$get_testing_type(), "wald")) {
-				return(super$compute_asymp_confidence_interval(alpha = alpha))
+				return(self$compute_asymp_confidence_interval_generic(alpha = alpha))
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -502,7 +523,7 @@ InferenceAbstractKKWeibullFrailtyOneLik = R6::R6Class("InferenceAbstractKKWeibul
 		#' @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (!identical(self$get_testing_type(), "wald")) {
-				return(super$compute_asymp_two_sided_pval(delta = delta))
+				return(self$compute_asymp_two_sided_pval_generic(delta = delta))
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
@@ -701,9 +722,17 @@ InferenceAbstractKKWeibullFrailtyOneLik = R6::R6Class("InferenceAbstractKKWeibul
 			)
 		},
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
+			# Re-read w, y, dead because they might have been transformed for
+			# randomization. `dead` is NOT read from `private$des_obj_priv_int$dead`
+			# here: post y/y_L/y_R migration, Design no longer stores a raw `dead`
+			# field, so that read is always NULL and clobbers the correctly-set
+			# `private$dead` -- see fix_inference_hierarchy.md Follow-Ups (found
+			# 2026-08-19, same root cause as the InferenceSurvivalKKLWACoxPHOneLik
+			# segfault fixed the same day). Re-derive `dead` the same way
+			# Design$get_effective_dead() does instead.
 			private$w = private$des_obj_priv_int$w
 			private$y = private$des_obj_priv_int$y
-			private$dead = private$des_obj_priv_int$dead
+			private$dead = as.numeric(!is.na(private$y))
 			private$compute_basic_match_data()
 			if (is.null(private$cached_values$best_X_colnames)){
 				private$shared_combined_likelihood(estimate_only = TRUE)
@@ -755,7 +784,7 @@ InferenceAbstractKKWeibullFrailtyOneLik = R6::R6Class("InferenceAbstractKKWeibul
 		)))
 	)
 
-SurvivalKKWeibullFrailtyOneLikSource = inference_component_source_parts(InferenceAbstractKKWeibullFrailtyOneLik)
+SurvivalKKWeibullFrailtyOneLikSource = inference_component_source_parts(InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw)
 
 #' Weibull Frailty IVWC Inference for KK Designs
 #'
@@ -833,9 +862,11 @@ InferenceSurvivalKKWeibullFrailtyIVWC = define_inference_class(
 #' for the frailty-distribution details and contrast with the gamma-frailty
 #' \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
 #' (Clayton copula) alternative.
-#' @export
-InferenceSurvivalKKWeibullFrailtyOneLik = R6::R6Class("InferenceSurvivalKKWeibullFrailtyOneLik",
-	inherit = InferenceAbstractKKWeibullFrailtyOneLik,
+#' @keywords internal
+# Kept alive as a non-exported R6 generator for harvesting purposes -- see
+# InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw's header comment above.
+InferenceSurvivalKKWeibullFrailtyOneLikLegacyRaw = R6::R6Class("InferenceSurvivalKKWeibullFrailtyOneLik",
+	inherit = InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw,
 	public = list(
 		#' @description Initialize the one-likelihood Weibull-frailty inference object.
 		#' @param des_obj A completed KK survival design object.
@@ -850,4 +881,81 @@ InferenceSurvivalKKWeibullFrailtyOneLik = R6::R6Class("InferenceSurvivalKKWeibul
 		)
 	)
 
-SurvivalKKWeibullFrailtyOneLikLeafSource = inference_component_source_parts(InferenceSurvivalKKWeibullFrailtyOneLik)
+SurvivalKKWeibullFrailtyOneLikLeafSource = inference_component_source_parts(InferenceSurvivalKKWeibullFrailtyOneLikLegacyRaw)
+
+#' Weibull Frailty Combined-Likelihood Inference for KK Designs
+#'
+#' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
+#' \code{\link[EDI:InferenceAbstractKKWeibullFrailtyOneLik]{InferenceAbstractKKWeibullFrailtyOneLik}}
+#' for the frailty-distribution details and contrast with the gamma-frailty
+#' \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
+#' (Clayton copula) alternative.
+#' @export
+# Migrated 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
+# Estimators" / "KK And IVWC Estimators"): see
+# InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw's header comment above.
+InferenceSurvivalKKWeibullFrailtyOneLik = define_inference_class(
+	classname = "InferenceSurvivalKKWeibullFrailtyOneLik",
+	inherit = Inference,
+	components = c(
+		"BayesianBootstrap", "ParametricLikelihoodBootstrap",
+		# Component order is load-bearing here: SurvivalKKWeibullFrailtyOneLikLeaf
+		# is listed BEFORE SurvivalKKWeibullFrailtyOneLik so the abstract's
+		# fuller initialize() (which handles use_rcpp/optimization_alg/
+		# init_kk_passthrough) resolves LAST and wins the collision -- the
+		# leaf's own initialize() was a `self$set_optimization_alg(...)` call
+		# immediately followed by `super$initialize()`, which under a flat
+		# composition has no path back into the abstract component's own
+		# initialize (Lesson 1 corollary); the leaf's own pre-call is also
+		# redundant regardless, since the abstract's initialize calls
+		# set_optimization_alg() itself (with allow_irls = FALSE) right after.
+		"SurvivalKKWeibullFrailtyOneLikLeaf", "SurvivalKKWeibullFrailtyOneLik"
+	),
+	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other survival KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	# capabilities = "likelihood_ratio" is required explicitly -- same
+	# rationale as every class composing ParametricLikelihoodBootstrap
+	# directly (bypassing StandardModelCache).
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_asymp_confidence_interval_generic",
+			"compute_asymp_two_sided_pval_generic",
+			"get_supported_testing_types",
+			"approximate_bootstrap_distribution_beta_hat_T"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"assert_finite_se",
+			"supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_information_preference",
+			"supports_observed_information",
+			"get_supported_information_preferences_impl",
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx",
+			"get_likelihood_test_spec",
+			"simulate_under_lik_null"
+		)
+	)
+)

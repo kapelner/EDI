@@ -2,28 +2,8 @@
 % Please edit documentation in R/inference_incidence_exact_binomial.R
 \name{InferenceIncidExactBinomial}
 \alias{InferenceIncidExactBinomial}
-\alias{ExactBinomialIncidenceSource}
 \title{Exact Binomial (McNemar-Type) Incidence Inference for Matched-Pair Designs}
-\usage{
-ExactBinomialIncidenceSource
-}
-\value{
-A new \code{InferenceIncidExactBinomial} object.
-
-The treatment estimate.
-}
 \description{
-Initialize exact matched-pair binomial inference for
-  incidence outcomes. Requires \code{des_obj} to be
-  \code{DesignFixedBinaryMatch} or a KK matching-on-the-fly-capable
-  design; errors otherwise. Requires an uncensored incidence response.
-
-Computes the Haldane-Anscombe continuity-corrected
-  matched-pair log odds ratio \eqn{\log\left((d_+ + 0.5)/(d_- + 0.5)\right)}
-  from the discordant matched-pair counts (see class documentation for
-  the full model). \code{NA} if there are no matched pairs.
-}
-\details{
 Performs exact matched-pair inference for binary (incidence) outcomes using
 only \strong{discordant} matched pairs — pairs where the treated and control
 member's outcomes differ — the same reduction classical McNemar's test makes.
@@ -51,4 +31,109 @@ seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
 inf = InferenceIncidExactBinomial$new(seq_des)
 inf$compute_estimate()
 }
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceIncidExactBinomial}
+}
+\section{Methods}{
+\subsection{Public methods}{
+  \itemize{
+    \item \href{#method-InferenceIncidExactBinomial-initialize}{\code{InferenceIncidExactBinomial$new()}}
+    \item \href{#method-InferenceIncidExactBinomial-compute_estimate}{\code{InferenceIncidExactBinomial$compute_estimate()}}
+    \item \href{#method-InferenceIncidExactBinomial-clone}{\code{InferenceIncidExactBinomial$clone()}}
+  }
+}
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
+<ul>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_analysis_data'><code>Inference$get_analysis_data()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_covariates'><code>Inference$get_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_design_object'><code>Inference$get_design_object()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_model_formula'><code>Inference$get_model_formula()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
+</ul>
+</details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidExactBinomial-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidExactBinomial-initialize}{}}}
+\subsection{\code{InferenceIncidExactBinomial$new()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidExactBinomial$new(
+  des_obj,
+  model_formula = NULL,
+  verbose = FALSE,
+  smart_cold_start_default = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
+assigned and response y is recorded within.}
+      \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
+the formula from the design object is used and its pre-computed design matrix is
+reused. If a formula is provided, a new design matrix is constructed from the
+design's imputed covariates.}
+      \item{\code{verbose}}{Whether to print progress messages.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
+likelihood-based models. Explicit starts always override this object-level policy.
+\code{NULL} (default) consults the global cold-start dispatch policy.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidExactBinomial-compute_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidExactBinomial-compute_estimate}{}}}
+\subsection{\code{InferenceIncidExactBinomial$compute_estimate()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidExactBinomial$compute_estimate(estimate_only = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidExactBinomial-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidExactBinomial-clone}{}}}
+\subsection{\code{InferenceIncidExactBinomial$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidExactBinomial$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
 }

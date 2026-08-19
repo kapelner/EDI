@@ -154,3 +154,4 @@ R/package_metadata/new_research_ideas/*
 CMakeFiles/
 R/EDI/tests/prepush_test_timings.csv
 R/EDI/tests/.prepush_errors
+R/EDI/tests/.prepush_test_stdout.log

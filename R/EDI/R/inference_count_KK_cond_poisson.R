@@ -471,11 +471,44 @@ InferenceCountKKHurdlePoissonIVWC = define_inference_class(
 
 #' KK Hurdle Poisson Combined-Likelihood Inference for Count Responses
 #'
-#' @export
-InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoissonOneLik",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
-	public = as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(
+#' @keywords internal
+# Static leaf source (2026-08-19 migration, fix_inference_hierarchy.md
+# "Full-Likelihood Estimators" / "KK And IVWC Estimators"): formerly a
+# single-layer R6 leaf inheriting `InferenceParamBootstrap` and raw-splicing
+# `InferenceMixinKKPassThrough$public/private`. This class's own
+# `compute_score_confidence_interval`/`compute_lik_ratio_confidence_interval`/
+# `compute_gradient_confidence_interval`/`compute_score_two_sided_pval`/
+# `compute_lik_ratio_two_sided_pval`/`compute_gradient_two_sided_pval` are
+# NOT pure delegating passthroughs (unlike the quantile-regr OneLik pair's
+# `compute_estimate`) -- each computes a "design-conservative" combination of
+# a design-based CI/p-value (from `shared_combined_hurdle`) and a
+# "model"-based CI/p-value obtained via `super$...()` under the old R6
+# ladder (reaching `InferenceAsympLik`'s generic likelihood-test dispatch,
+# itself now harvested verbatim as the `LikelihoodTests` component). Since a
+# flat composition has no `super$` path into a component's own method once
+# the host wins that name collision (Lesson 1), the six `super$...()` calls
+# are replaced with `self$..._generic()` calls against six new aliases bound
+# directly from `InferenceAsympLik$public_methods$...` -- the same
+# generic-`self$`-aliased-override pattern `incidence_gcomp_generic_alias_
+# overrides` (inference_incidence_gcomp.R) already uses for exactly this
+# problem. This class never defined `get_standard_error`/
+# `get_degrees_of_freedom` itself -- inherited via the old ladder from
+# `InferenceMLEorKMSummaryTable` (graceful NA-on-missing-SE degradation);
+# Lesson 5 applies, so `get_standard_error` is copied in verbatim (the Wald
+# component's own fallback `stop()`s on a missing SE instead).
+# `approximate_bootstrap_distribution_beta_hat_T`'s
+# `eval(body(InferenceMixinKKPassThrough$public$...))` restatement was
+# dropped as a verified no-op (same argument as every other KK leaf this
+# stretch). Registered as the `CountKKHurdlePoissonOneLikLikelihood`
+# component with `dependencies = c("KKPassThrough",
+# "ParametricLikelihoodBootstrap")` -- this class never composed `KKCompound`
+# even pre-migration (its own `compute_basic_match_data` uses the
+# `.compute_kk_basic_match_data_cached()` helper directly, and its
+# `initialize` performs its own manual `has_match_structure`/`m` setup
+# rather than calling `init_kk_passthrough()`, so no Lesson-1 fix is needed
+# in `initialize` here -- preserved verbatim).
+CountKKHurdlePoissonOneLikLikelihoodSource = list(
+	public = list(
 		#' @description Initialize KK hurdle-Poisson one-likelihood inference for
 		#'   count responses and prepare the combined matched/reservoir likelihood.
 		#'   See \code{\link[EDI:InferenceCountKKHurdlePoissonOneLik]{InferenceCountKKHurdlePoissonOneLik}}
@@ -516,6 +549,17 @@ InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoisson
 				private$compute_basic_match_data()
 			}
 		},
+		# Generic-`self$`-aliased overrides for InferenceAsympLik's (harvested
+		# as the LikelihoodTests component) generic likelihood-test dispatch --
+		# see this Source's header comment. Called by this class's own
+		# "design-conservative" compute_score/lik_ratio/gradient_* overrides
+		# below in place of the `super$...()` calls the old R6 ladder used.
+		compute_score_confidence_interval_generic = InferenceAsympLik$public_methods$compute_score_confidence_interval,
+		compute_lik_ratio_confidence_interval_generic = InferenceAsympLik$public_methods$compute_lik_ratio_confidence_interval,
+		compute_gradient_confidence_interval_generic = InferenceAsympLik$public_methods$compute_gradient_confidence_interval,
+		compute_score_two_sided_pval_generic = InferenceAsympLik$public_methods$compute_score_two_sided_pval,
+		compute_lik_ratio_two_sided_pval_generic = InferenceAsympLik$public_methods$compute_lik_ratio_two_sided_pval,
+		compute_gradient_two_sided_pval_generic = InferenceAsympLik$public_methods$compute_gradient_two_sided_pval,
 		#' @description Compute the one-likelihood hurdle-Poisson treatment-effect
 		#'   estimate by fitting the combined count likelihood and caching the
 		#'   treatment log-rate coefficient for related p-value and interval methods.
@@ -562,7 +606,7 @@ InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoisson
 			se_design = private$cached_values$s_beta_hat_T
 			df_design = private$cached_values$df
 			ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
-			ci_model = tryCatch(super$compute_score_confidence_interval(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
+			ci_model = tryCatch(self$compute_score_confidence_interval_generic(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
 			private$cached_values$beta_hat_T = beta_design
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
@@ -577,7 +621,7 @@ InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoisson
 			se_design = private$cached_values$s_beta_hat_T
 			df_design = private$cached_values$df
 			ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
-			ci_model = tryCatch(super$compute_lik_ratio_confidence_interval(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
+			ci_model = tryCatch(self$compute_lik_ratio_confidence_interval_generic(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
 			private$cached_values$beta_hat_T = beta_design
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
@@ -592,7 +636,7 @@ InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoisson
 			se_design = private$cached_values$s_beta_hat_T
 			df_design = private$cached_values$df
 			ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
-			ci_model = tryCatch(super$compute_gradient_confidence_interval(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
+			ci_model = tryCatch(self$compute_gradient_confidence_interval_generic(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
 			private$cached_values$beta_hat_T = beta_design
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
@@ -627,7 +671,7 @@ InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoisson
 			se_design = private$cached_values$s_beta_hat_T
 			df_design = private$cached_values$df
 			p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-			p_model = tryCatch(super$compute_score_two_sided_pval(delta = delta), error = function(e) NA_real_)
+			p_model = tryCatch(self$compute_score_two_sided_pval_generic(delta = delta), error = function(e) NA_real_)
 			private$cached_values$beta_hat_T = beta_design
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
@@ -642,7 +686,7 @@ InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoisson
 			se_design = private$cached_values$s_beta_hat_T
 			df_design = private$cached_values$df
 			p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-			p_model = tryCatch(super$compute_lik_ratio_two_sided_pval(delta = delta), error = function(e) NA_real_)
+			p_model = tryCatch(self$compute_lik_ratio_two_sided_pval_generic(delta = delta), error = function(e) NA_real_)
 			private$cached_values$beta_hat_T = beta_design
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
@@ -657,7 +701,7 @@ InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoisson
 			se_design = private$cached_values$s_beta_hat_T
 			df_design = private$cached_values$df
 			p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-			p_model = tryCatch(super$compute_gradient_two_sided_pval(delta = delta), error = function(e) NA_real_)
+			p_model = tryCatch(self$compute_gradient_two_sided_pval_generic(delta = delta), error = function(e) NA_real_)
 			private$cached_values$beta_hat_T = beta_design
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
@@ -676,7 +720,10 @@ InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoisson
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Compute Wald two sided pval
+		#' @description Compute the Wald two-sided p-value for the one-likelihood
+		#'   hurdle-Poisson treatment coefficient, falling back to the Bayesian-bootstrap
+		#'   p-value when the model standard error is unavailable. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param delta Null treatment effect value.
 		compute_wald_two_sided_pval = function(delta = 0){
 			private$shared_combined_hurdle()
@@ -684,23 +731,33 @@ InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoisson
 				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B Integer. Number of bootstrap samples (default 501).
-		#' @param show_progress Logical. Whether to show a progress bar.
-		#' @param debug Logical. Whether to return diagnostics.
-		#' @param bootstrap_type Character. Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
 		}
-	))),
-	private = as.list(modifyList(as.list(InferenceMixinKKPassThrough$private), list(
+		# approximate_bootstrap_distribution_beta_hat_T's old eval(body(
+		# InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_
+		# beta_hat_T)) restatement dropped as a verified no-op (same argument
+		# as every other KK leaf this stretch): the old ladder's raw-spliced
+		# public list only overrode initialize/compute_estimate/compute_
+		# estimate_with_bootstrap_weights/compute_asymp_*/compute_wald_*, so it
+		# inherited exactly that KKPassThrough body anyway; the factory
+		# declares the collision so the KKPassThrough-supplied version wins.
+	),
+	private = list(
 		m = NULL,
 		cached_mod = NULL,
 		use_rcpp = TRUE,
 		max_abs_reasonable_coef = 1e4,
+		# Lesson 5 (see SurvivalKKRankRegrIVWCSource): this class never
+		# defined get_standard_error itself -- the old ladder's
+		# InferenceMLEorKMSummaryTable ancestor supplied a graceful
+		# NA-on-missing-SE version (calls private$shared(), which this
+		# class's own private$shared = function(...) private$shared_
+		# combined_hurdle(...) alias resolves correctly), copied in verbatim
+		# since the Wald component's own fallback stop()s instead.
+		get_standard_error = function(){
+			private$shared(estimate_only = FALSE)
+			se = private$cached_values$s_beta_hat_T
+			if (is.null(se) || length(se) != 1L) NA_real_ else se
+		},
 		supports_likelihood_tests = function(){
 			TRUE
 		},
@@ -1250,14 +1307,161 @@ InferenceCountKKHurdlePoissonOneLik = R6::R6Class("InferenceCountKKHurdlePoisson
 				}
 			)
 		}
-	)))
+	)
 )
-#' Conditional-Poisson Inference for KK Designs with Combined Likelihood
+
+#' KK Hurdle-Poisson Combined-Likelihood Inference for Count Responses
+#'
+#' Fits a two-part hurdle-Poisson model to a KK matching-on-the-fly count
+#' design by maximizing a single combined likelihood over the matched pairs
+#' and reservoir subjects jointly, rather than fitting matched and reservoir
+#' submodels separately and combining them afterward (contrast with the
+#' inverse-variance-weighted-combination sibling,
+#' \code{\link[EDI:InferenceCountKKHurdlePoissonIVWC]{InferenceCountKKHurdlePoissonIVWC}}).
+#'
+#' @details
+#' \strong{Model.} For subject \eqn{i} with count response \eqn{Y_i \ge 0}, a
+#' hurdle model factors the likelihood into (1) a binary zero-vs-positive part
+#' \eqn{P(Y_i = 0) = 1 - \pi_i}, \eqn{\mathrm{logit}(\pi_i) = X_i'\gamma}, and
+#' (2) a zero-truncated Poisson part for the positive counts,
+#' \eqn{Y_i \mid Y_i > 0 \sim \text{Poisson}_{+}(\lambda_i)},
+#' \eqn{\log \lambda_i = X_i'\beta + \beta_T W_i}, where \eqn{W_i} is the
+#' treatment indicator and \eqn{\beta_T} is the treatment log-rate coefficient
+#' for the positive-count submodel (the estimand returned by
+#' \code{compute_estimate()}). Unlike a standard hurdle model fit by maximum
+#' likelihood on i.i.d. rows, this class's negative log-likelihood combines
+#' the matched-pair rows and reservoir rows of a KK design into one objective
+#' (see \code{private$fit_combined_hurdle()}), so the fitted \eqn{\beta_T}
+#' and its curvature already reflect the design's matched/reservoir
+#' structure rather than treating all subjects as exchangeable.
+#'
+#' \strong{Likelihood tier.} \code{likelihood_tier = "full"}: Wald, score,
+#' likelihood-ratio, and gradient testing types are all available (see
+#' \code{get_testing_type()}). Because a hurdle-Poisson combined likelihood
+#' does not by itself encode the KK design's finite-sample matched-pair
+#' randomization distribution, the score/likelihood-ratio/gradient
+#' confidence intervals and p-values are computed twice — once from this
+#' class's design-aware asymptotic variance (the same Wald-type calculation
+#' used by \code{compute_wald_confidence_interval()}) and once from the
+#' generic likelihood-based calculation inherited from
+#' \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} — and the wider
+#' interval / larger p-value of the two is returned (see
+#' \code{.conservative_kk_onelik_ci()}/\code{.conservative_kk_onelik_pval()}),
+#' so the model-based test is never anti-conservative relative to the design.
+#' The Wald confidence interval and p-value fall back to the
+#' \code{\link[EDI:BayesianBootstrap]{BayesianBootstrap}} component's
+#' bootstrap distribution when the model-based standard error is unavailable
+#' or non-finite (e.g. a boundary/separation fit).
+#'
+#' \strong{Assumptions.} Independence across matched pairs and reservoir
+#' subjects conditional on covariates; correct specification of the
+#' logistic hurdle and log-linear positive-count submodels; a KK
+#' matching-on-the-fly design (\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}}
+#' or subclass) supplying the matched/reservoir partition. No response
+#' censoring is supported (checked at construction via
+#' \code{assertNoCensoring()}).
+#'
+#' @references
+#' Mullahy, J. (1986). "Specification and Testing of Some Modified Count
+#' Data Models." \emph{Journal of Econometrics}, 33(3), 341-365.
+#' \doi{10.1016/0304-4076(86)90002-3}. (Mullahy1986 in \code{REFERENCES.md}.)
+#'
+#' @seealso Analogous Python API for hurdle/zero-truncated count models:
+#'   \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
+#'   discrete models} (\code{HurdleCountModel}).
+#'   \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson
+#'   regression} (orientation).
 #' @export
-InferenceCountKKCondPoissonOneLik = R6::R6Class("InferenceCountKKCondPoissonOneLik",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
-	public = as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(
+# Migrated 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
+# Estimators" / "KK And IVWC Estimators"): see
+# CountKKHurdlePoissonOneLikLikelihoodSource above.
+InferenceCountKKHurdlePoissonOneLik = define_inference_class(
+	classname = "InferenceCountKKHurdlePoissonOneLik",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "CountKKHurdlePoissonOneLikLikelihood"),
+	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other survival/count/continuous KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	# capabilities = "likelihood_ratio" is required explicitly -- same
+	# rationale as every class composing ParametricLikelihoodBootstrap
+	# directly (bypassing StandardModelCache): no component spec in this
+	# codebase declares provides_capabilities = "likelihood_ratio" anywhere.
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_score_confidence_interval",
+			"compute_lik_ratio_confidence_interval",
+			"compute_gradient_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_score_two_sided_pval",
+			"compute_lik_ratio_two_sided_pval",
+			"compute_gradient_two_sided_pval",
+			"compute_wald_confidence_interval",
+			"compute_wald_two_sided_pval",
+			"get_supported_testing_types",
+			"compute_score_confidence_interval_generic",
+			"compute_lik_ratio_confidence_interval_generic",
+			"compute_gradient_confidence_interval_generic",
+			"compute_score_two_sided_pval_generic",
+			"compute_lik_ratio_two_sided_pval_generic",
+			"compute_gradient_two_sided_pval_generic",
+			"approximate_bootstrap_distribution_beta_hat_T"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"get_standard_error",
+			"supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_information_preference",
+			"supports_observed_information",
+			"get_supported_information_preferences_impl",
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx",
+			"get_likelihood_test_spec",
+			"simulate_under_lik_null"
+		)
+	)
+)
+
+#' Conditional-Poisson Inference for KK Designs with Combined Likelihood
+#' @keywords internal
+# Static leaf source (2026-08-19 migration, fix_inference_hierarchy.md
+# "Full-Likelihood Estimators" / "KK And IVWC Estimators"): same shape and
+# same generic-`self$`-aliased-override fix as
+# `CountKKHurdlePoissonOneLikLikelihoodSource` above (see that Source's
+# header comment for the full rationale) -- formerly a single-layer R6 leaf
+# raw-splicing `InferenceMixinKKPassThrough$public/private` onto
+# `InferenceParamBootstrap`, with six `compute_score/lik_ratio/gradient_*`
+# overrides computing a "design-adjusted" combination via `super$...()` into
+# the generic likelihood-test dispatch. Unlike HurdlePoisson OneLik, this
+# class's `initialize` DID already call `private$init_kk_passthrough(des_obj)`
+# explicitly (preserved verbatim -- no Lesson-1 fix needed since it was
+# already correct). Lesson 5 applies (`get_standard_error` copied in
+# verbatim: never defined itself, relying on
+# `InferenceMLEorKMSummaryTable`'s graceful version via the old ladder).
+# `approximate_bootstrap_distribution_beta_hat_T`'s `eval(body(...))`
+# restatement dropped as a verified no-op. Registered as
+# `CountKKCondPoissonOneLikLikelihood` (`dependencies = c("KKPassThrough",
+# "ParametricLikelihoodBootstrap")` -- no `KKCompound`, same reasoning as
+# HurdlePoisson OneLik).
+CountKKCondPoissonOneLikLikelihoodSource = list(
+	public = list(
 		#' @description Initialize conditional-Poisson one-likelihood inference for
 		#'   KK count designs and prepare the combined likelihood used by
 		#'   \code{\link[EDI:InferenceCountKKCondPoissonOneLik]{InferenceCountKKCondPoissonOneLik}}.
@@ -1275,6 +1479,14 @@ InferenceCountKKCondPoissonOneLik = R6::R6Class("InferenceCountKKCondPoissonOneL
 			}
 			private$init_kk_passthrough(des_obj)
 		},
+		# Generic-`self$`-aliased overrides -- see this Source's header
+		# comment (same pattern as CountKKHurdlePoissonOneLikLikelihoodSource).
+		compute_score_confidence_interval_generic = InferenceAsympLik$public_methods$compute_score_confidence_interval,
+		compute_lik_ratio_confidence_interval_generic = InferenceAsympLik$public_methods$compute_lik_ratio_confidence_interval,
+		compute_gradient_confidence_interval_generic = InferenceAsympLik$public_methods$compute_gradient_confidence_interval,
+		compute_score_two_sided_pval_generic = InferenceAsympLik$public_methods$compute_score_two_sided_pval,
+		compute_lik_ratio_two_sided_pval_generic = InferenceAsympLik$public_methods$compute_lik_ratio_two_sided_pval,
+		compute_gradient_two_sided_pval_generic = InferenceAsympLik$public_methods$compute_gradient_two_sided_pval,
 		#' @description Compute the conditional-Poisson one-likelihood treatment
 		#'   estimate by fitting the combined matched/reservoir likelihood and caching
 		#'   the treatment log-rate coefficient for related likelihood-test methods.
@@ -1348,7 +1560,7 @@ InferenceCountKKCondPoissonOneLik = R6::R6Class("InferenceCountKKCondPoissonOneL
 			se_design = private$cached_values$s_beta_hat_T
 			df_design = private$cached_values$df
 			ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
-			ci_model = tryCatch(super$compute_score_confidence_interval(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
+			ci_model = tryCatch(self$compute_score_confidence_interval_generic(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
 			private$cached_values$beta_hat_T = beta_design
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
@@ -1363,7 +1575,7 @@ InferenceCountKKCondPoissonOneLik = R6::R6Class("InferenceCountKKCondPoissonOneL
 			se_design = private$cached_values$s_beta_hat_T
 			df_design = private$cached_values$df
 			ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
-			ci_model = tryCatch(super$compute_lik_ratio_confidence_interval(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
+			ci_model = tryCatch(self$compute_lik_ratio_confidence_interval_generic(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
 			private$cached_values$beta_hat_T = beta_design
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
@@ -1378,7 +1590,7 @@ InferenceCountKKCondPoissonOneLik = R6::R6Class("InferenceCountKKCondPoissonOneL
 			se_design = private$cached_values$s_beta_hat_T
 			df_design = private$cached_values$df
 			ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
-			ci_model = tryCatch(super$compute_gradient_confidence_interval(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
+			ci_model = tryCatch(self$compute_gradient_confidence_interval_generic(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
 			private$cached_values$beta_hat_T = beta_design
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
@@ -1393,7 +1605,7 @@ InferenceCountKKCondPoissonOneLik = R6::R6Class("InferenceCountKKCondPoissonOneL
 			se_design = private$cached_values$s_beta_hat_T
 			df_design = private$cached_values$df
 			p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-			p_model = tryCatch(super$compute_score_two_sided_pval(delta = delta), error = function(e) NA_real_)
+			p_model = tryCatch(self$compute_score_two_sided_pval_generic(delta = delta), error = function(e) NA_real_)
 			private$cached_values$beta_hat_T = beta_design
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
@@ -1408,7 +1620,7 @@ InferenceCountKKCondPoissonOneLik = R6::R6Class("InferenceCountKKCondPoissonOneL
 			se_design = private$cached_values$s_beta_hat_T
 			df_design = private$cached_values$df
 			p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-			p_model = tryCatch(super$compute_lik_ratio_two_sided_pval(delta = delta), error = function(e) NA_real_)
+			p_model = tryCatch(self$compute_lik_ratio_two_sided_pval_generic(delta = delta), error = function(e) NA_real_)
 			private$cached_values$beta_hat_T = beta_design
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
@@ -1423,27 +1635,27 @@ InferenceCountKKCondPoissonOneLik = R6::R6Class("InferenceCountKKCondPoissonOneL
 			se_design = private$cached_values$s_beta_hat_T
 			df_design = private$cached_values$df
 			p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-			p_model = tryCatch(super$compute_gradient_two_sided_pval(delta = delta), error = function(e) NA_real_)
+			p_model = tryCatch(self$compute_gradient_two_sided_pval_generic(delta = delta), error = function(e) NA_real_)
 			private$cached_values$beta_hat_T = beta_design
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (is.finite(p_design)) private$clear_nonestimable_state()
 			.conservative_kk_onelik_pval(p_model, p_design)
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B Integer. Number of bootstrap samples (default 501).
-		#' @param show_progress Logical. Whether to show a progress bar.
-		#' @param debug Logical. Whether to return diagnostics.
-		#' @param bootstrap_type Character. Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
 		}
-	))),
-	private = as.list(modifyList(as.list(InferenceMixinKKPassThrough$private), list(
+		# approximate_bootstrap_distribution_beta_hat_T's old eval(body(...))
+		# restatement dropped as a verified no-op (same argument as
+		# CountKKHurdlePoissonOneLikLikelihoodSource above).
+	),
+	private = list(
 		cached_mod = NULL,
 		max_abs_reasonable_coef = 1e4,
+		# Lesson 5 (see CountKKHurdlePoissonOneLikLikelihoodSource): this
+		# class never defined get_standard_error itself.
+		get_standard_error = function(){
+			private$shared(estimate_only = FALSE)
+			se = private$cached_values$s_beta_hat_T
+			if (is.null(se) || length(se) != 1L) NA_real_ else se
+		},
 		supports_lik_ratio_param_bootstrap = function(){
 			TRUE
 		},
@@ -1898,5 +2110,129 @@ InferenceCountKKCondPoissonOneLik = R6::R6Class("InferenceCountKKCondPoissonOneL
 				}
 			)
 		}
-	)))
+	)
+)
+
+#' One-Likelihood Conditional-Poisson Inference for KK Count Designs
+#'
+#' Estimates a treatment log-rate-ratio \eqn{\beta_T} for count outcomes
+#' collected under a KK matching-on-the-fly design
+#' (\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} or
+#' subclass) by maximizing a single combined likelihood that couples a
+#' conditional (within-matched-pair, intercept-free) Poisson likelihood for
+#' matched subjects with an ordinary Poisson likelihood for reservoir
+#' subjects, sharing one treatment coefficient across both pieces. This is
+#' the "one-likelihood" alternative to the inverse-variance-weighted
+#' combination
+#' (\code{\link[EDI:InferenceContinKKOLSIVWC]{...IVWC}} pattern used
+#' elsewhere in the KK family): rather than fitting matched and reservoir
+#' models separately and pooling by inverse-variance weights, the treatment
+#' coefficient here is estimated jointly from the full combined
+#' log-likelihood, and its standard error, score, likelihood-ratio, and
+#' gradient statistics are all "design-conservative" -- each is the
+#' pointwise-wider of the model-based asymptotic quantity and a
+#' design-based quantity computed by treating the estimate as a plug-in
+#' statistic under \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}'s
+#' \eqn{z}/\eqn{t} machinery, so inference never overstates precision
+#' relative to the design alone.
+#'
+#' \strong{Estimand.} \eqn{\beta_T}, the treatment coefficient in a
+#' log-linear (Poisson) mean model \eqn{E[Y \mid W, X] = \exp(\beta_0 +
+#' \beta_T W + X\beta)}, interpreted as a log rate ratio (equivalently,
+#' \eqn{\exp(\hat\beta_T)} is the treatment-vs-control incidence rate
+#' ratio).
+#'
+#' \strong{Model.} Matched subjects contribute a conditional-Poisson term
+#' that eliminates the pair-specific nuisance intercept by conditioning on
+#' the pair total count (removing the need to estimate one intercept per
+#' pair); reservoir subjects contribute an ordinary Poisson log-likelihood
+#' with a single shared intercept. Both pieces are summed into one
+#' combined negative log-likelihood and maximized jointly in
+#' \eqn{(\beta_0, \beta_T, \beta)} (see \code{get_cpoisson_combined_hessian_cpp}
+#' and \code{fast_cpoisson_combined_with_var_cpp} for the backend fitting
+#' contract). \code{likelihood_tier = "full"}, so likelihood-ratio, score,
+#' and gradient tests and a parametric likelihood bootstrap are all
+#' available in addition to the design-conservative Wald path.
+#'
+#' \strong{Assumptions.} Independence of counts across matched pairs and
+#' reservoir subjects given covariates; correct log-linear mean
+#' specification; a KK matching-on-the-fly design supplying the
+#' matched/reservoir partition. No response censoring is supported (checked
+#' at construction via \code{assertNoCensoring()}).
+#'
+#' @references
+#' Kapelner, A. and Krieger, A. (2014). "Matching on-the-fly: A group
+#' sequential covariate balanced randomization procedure." \emph{arXiv
+#' preprint} arXiv:1305.6259. (KK14 in \code{REFERENCES.md}.)
+#'
+#' @seealso Analogous Python API for count models:
+#'   \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
+#'   discrete models} (\code{ConditionalPoisson}, \code{Poisson}).
+#'   \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson
+#'   regression} (orientation).
+#' @export
+# Migrated 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
+# Estimators" / "KK And IVWC Estimators"): see
+# CountKKCondPoissonOneLikLikelihoodSource above.
+InferenceCountKKCondPoissonOneLik = define_inference_class(
+	classname = "InferenceCountKKCondPoissonOneLik",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "CountKKCondPoissonOneLikLikelihood"),
+	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other survival/count/continuous KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	# capabilities = "likelihood_ratio" is required explicitly -- same
+	# rationale as every class composing ParametricLikelihoodBootstrap
+	# directly (bypassing StandardModelCache).
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_score_confidence_interval",
+			"compute_lik_ratio_confidence_interval",
+			"compute_gradient_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_score_two_sided_pval",
+			"compute_lik_ratio_two_sided_pval",
+			"compute_gradient_two_sided_pval",
+			"compute_wald_confidence_interval",
+			"compute_wald_two_sided_pval",
+			"get_supported_testing_types",
+			"compute_score_confidence_interval_generic",
+			"compute_lik_ratio_confidence_interval_generic",
+			"compute_gradient_confidence_interval_generic",
+			"compute_score_two_sided_pval_generic",
+			"compute_lik_ratio_two_sided_pval_generic",
+			"compute_gradient_two_sided_pval_generic",
+			"approximate_bootstrap_distribution_beta_hat_T"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"get_standard_error",
+			"supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_information_preference",
+			"supports_observed_information",
+			"get_supported_information_preferences_impl",
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx",
+			"get_likelihood_test_spec",
+			"simulate_under_lik_null"
+		)
+	)
 )

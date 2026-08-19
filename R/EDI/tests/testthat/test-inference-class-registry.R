@@ -298,7 +298,7 @@ test_that("no-likelihood concrete classes are grouped for piecewise migration", 
 	expect_true(all(c(
 		"InferenceIncidExactBinomial",
 		"InferenceIncidExactFisher",
-		"InferenceIncidenceExactZhang"
+		"InferenceIncidExactZhang"
 	) %in% groups$exact))
 })
 
@@ -309,7 +309,7 @@ test_that("exact incidence behavior manifest records current surface and target 
 	expect_named(manifest, c(
 		"InferenceIncidExactBinomial",
 		"InferenceIncidExactFisher",
-		"InferenceIncidenceExactZhang"
+		"InferenceIncidExactZhang"
 	))
 	for (name in names(manifest)) {
 		record = manifest[[name]]
@@ -326,8 +326,8 @@ test_that("exact incidence behavior manifest records current surface and target 
 	}
 	expect_true("ExactBinomialIncidence" %in% manifest$InferenceIncidExactBinomial$target_components)
 	expect_true("ExactFisherIncidence" %in% manifest$InferenceIncidExactFisher$target_components)
-	expect_true("ExactZhangIncidence" %in% manifest$InferenceIncidenceExactZhang$target_components)
-	expect_identical(manifest$InferenceIncidenceExactZhang$legacy_optional_surface, character())
+	expect_true("ExactZhangIncidence" %in% manifest$InferenceIncidExactZhang$target_components)
+	expect_identical(manifest$InferenceIncidExactZhang$legacy_optional_surface, character())
 })
 
 test_that("CMH is classified as blocked-incidence Wald behavior, not exact behavior", {

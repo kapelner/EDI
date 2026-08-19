@@ -27,7 +27,7 @@ EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES = list(
 EDI_EXACT_INCIDENCE_CLASS_NAMES = c(
 	"InferenceIncidExactBinomial",
 	"InferenceIncidExactFisher",
-	"InferenceIncidenceExactZhang"
+	"InferenceIncidExactZhang"
 )
 
 EDI_EXACT_INCIDENCE_TARGETS = list(
@@ -41,7 +41,7 @@ EDI_EXACT_INCIDENCE_TARGETS = list(
 		target_components = c("ExactTest", "ExactFisherIncidence"),
 		notes = "Fisher/mantelhaen exact incidence inference should retain exact APIs only; inherited bootstrap, randomization, Bayesian-bootstrap, and jackknife APIs are treated as legacy surface."
 	),
-	InferenceIncidenceExactZhang = list(
+	InferenceIncidExactZhang = list(
 		intentional_capabilities = "exact_test",
 		target_components = c("ExactTest", "ExactZhangIncidence"),
 		notes = "Zhang exact incidence inference should retain exact APIs only; generic resampling-weight methods are legacy surface and are not valid exact Zhang capabilities."
@@ -273,7 +273,12 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			behavior = c("conditional_logit", "kk_passthrough"),
 			estimator_family = "incidence_kk_conditional_logit_one_likelihood",
 			component_family = "ConditionalLogitPartialLikelihood",
-			target_direct_components = c("ConditionalLogitPartialLikelihood", "KKPassThrough"),
+			# Updated at migration time (2026-08-19) to the factory reality (same
+			# treatment as the IVWC entry above): BayesianBootstrap is an
+			# explicit direct component and KKPassThrough/
+			# ParametricLikelihoodBootstrap arrive via the new
+			# IncidKKCondLogitOneLikLikelihood component's dependencies.
+			target_direct_components = c("BayesianBootstrap", "IncidKKCondLogitOneLikLikelihood"),
 			notes = "KK incidence conditional-logit one-likelihood estimator; migrate after conditional-logit null-fit and likelihood-test contracts are declared."
 		),
 		InferenceOrdinalKKCondAdjCatLogitRegr = list(
@@ -474,6 +479,43 @@ infer_inference_requires_blocking_design = function(generator) {
 	FALSE
 }
 
+#' What treatment-effect quantity a concrete `Inference` generator's
+#' `compute_estimate()` reports (e.g. `"mean_difference"`, `"log_odds_ratio"`,
+#' `"hazard_ratio"`), for `InferenceSuite$run_all_inference()`'s Combined
+#' Evidence Metric to group classes by (see `inference_suite_inspect.md`'s
+#' "Combined Evidence Metric" section and `marginal_estimand_report.md`).
+#' Declare-only -- no switching capability; that is the separate `MarginalEstimand`
+#' component. Same safe-invoke-without-construction approach as
+#' `infer_inference_requires_blocking_design()` above (see that function's
+#' doc for why this is safe); default `NA_character_` (declaring a value is
+#' opt-in, not required) via `Inference$get_estimand_type()`.
+#'
+#' @keywords internal
+#' @noRd
+infer_inference_estimand_type = function(generator) {
+	current = generator
+	while (!is.null(current)) {
+		fn = current$private_methods$get_estimand_type
+		if (!is.null(fn)) {
+			# Unlike requires_blocking_design()/supports_interval_or_left_censored_
+			# data(), not every get_estimand_type() implementation is a trivial
+			# self/private-free literal: InferenceIncidGCompAbstract's own version
+			# is an intentional "abstract, must implement" stub
+			# (`stop(class(self)[1], " must implement get_estimand_type()")`,
+			# referencing `self`, which isn't bound outside real instantiation) for
+			# its concrete subclasses to override -- calling it bare like this
+			# always throws for that class's own registry entry. Treated as "no
+			# declared value" (NA_character_), which is the semantically correct
+			# outcome for an abstract class's own registry entry regardless of the
+			# reason the call failed.
+			val = tryCatch(fn(), error = function(e) NA_character_)
+			return(if (is.null(val) || (length(val) == 1L && is.na(val))) NA_character_ else as.character(val)[1L])
+		}
+		current = current$get_inherit()
+	}
+	NA_character_
+}
+
 infer_inference_direct_components = function(name) {
 	switch(
 		name,
@@ -487,7 +529,7 @@ infer_inference_direct_components = function(name) {
 		InferenceAsymp = "Wald",
 		InferenceIncidExactBinomial = "ExactBinomialIncidence",
 		InferenceIncidExactFisher = "ExactFisherIncidence",
-		InferenceIncidenceExactZhang = "ExactZhangIncidence",
+		InferenceIncidExactZhang = "ExactZhangIncidence",
 		InferenceAsympLik = "LikelihoodTests",
 		InferenceParamBootstrap = "ParametricLikelihoodBootstrap",
 		InferenceAsympLikStdModCache = "StandardModelCache",
@@ -529,10 +571,13 @@ infer_inference_direct_components = function(name) {
 			InferenceSurvivalDepCensTransformRegr = "SurvivalDepCensTransform",
 			InferenceSurvivalKKWeibullMarginal = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullMarginal"),
 			InferenceSurvivalKKClaytonCopulaIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKClaytonCopulaIVWC"),
-			InferenceSurvivalKKClaytonCopulaOneLik = "SurvivalKKClaytonCopulaOneLik",
+			InferenceSurvivalKKClaytonCopulaOneLik = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalKKClaytonCopulaOneLik"),
 			InferenceSurvivalKKWeibullFrailtyIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyIVWC"),
 			InferenceAbstractKKWeibullFrailtyOneLik = "SurvivalKKWeibullFrailtyOneLik",
-			InferenceSurvivalKKWeibullFrailtyOneLik = "SurvivalKKWeibullFrailtyOneLikLeaf",
+			InferenceSurvivalKKWeibullFrailtyOneLik = c(
+				"BayesianBootstrap", "ParametricLikelihoodBootstrap",
+				"SurvivalKKWeibullFrailtyOneLikLeaf", "SurvivalKKWeibullFrailtyOneLik"
+			),
 			InferenceCountPoissonKKGEE = "KKGEE",
 		InferenceIncidKKGEE = "KKGEE",
 		InferenceOrdinalKKGEE = "KKGEE",
@@ -557,6 +602,9 @@ infer_inference_direct_components = function(name) {
 		InferenceContinKKRobustRegrOneLik = c("BayesianBootstrap", "Wald", "ContinKKRobustRegrOneLik"),
 		InferenceContinKKQuantileRegrOneLik = c("BayesianBootstrap", "Wald", "KKQuantileRegrOneLik"),
 		InferencePropKKQuantileRegrOneLik = c("BayesianBootstrap", "Wald", "KKQuantileRegrOneLik"),
+		InferenceCountKKHurdlePoissonOneLik = c("BayesianBootstrap", "CountKKHurdlePoissonOneLikLikelihood"),
+		InferenceCountKKCondPoissonOneLik = c("BayesianBootstrap", "CountKKCondPoissonOneLikLikelihood"),
+		InferenceIncidKKCondLogitOneLik = c("BayesianBootstrap", "IncidKKCondLogitOneLikLikelihood"),
 		InferenceIncidKKCondLogitIVWC = c("BayesianBootstrap", "Wald", "IncidKKCondLogitIVWC"),
 		InferenceIncidKKGCompRiskDiff = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),
 		InferenceIncidKKGCompRiskRatio = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),
@@ -587,7 +635,21 @@ infer_inference_direct_components = function(name) {
 		InferencePropGCompMeanDiff = c("BayesianBootstrap", "Jackknife"),
 		InferenceSurvivalLogRank = c("BayesianBootstrap", "Wald"),
 		InferencePropQuantileRegr = c("BayesianBootstrap", "Wald"),
-		InferenceAbstractKKCondLogitGLMM = "KKPassThrough",
+		# Updated 2026-08-19 (fix_inference_hierarchy.md "KK And IVWC
+		# Estimators", "Migrate KK GEE and GLMM classes"): mirrors the
+		# factory reality after InferenceAbstractKKCondLogitGLMM flipped from
+		# the hybrid `inherit = InferenceParamBootstrap, components =
+		# "KKPassThrough"` state to composing BayesianBootstrap/
+		# ParametricLikelihoodBootstrap directly (same fix as
+		# InferenceContinKKGLMM/InferenceCountKKGLMM/InferenceOrdinalKKGLMM
+		# earlier this stretch). Resolved transitively into
+		# InferencePropKKGLMM/InferenceIncidKKCondLogitGLMMIVWC/
+		# InferenceIncidKKCondLogitGLMMOneLik's own effective_components via
+		# resolve_inference_components()'s parent-chain walk (none of the
+		# three leaves have their own direct_components entry, by design --
+		# same pattern as every other InferenceAsympLikStdModCache-style
+		# leaf).
+		InferenceAbstractKKCondLogitGLMM = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKPassThrough"),
 		InferenceSurvivalGehanWilcox = c("BayesianBootstrap", "Wald"),
 		InferenceIncidCMH = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 		InferenceOrdinalKKCondAdjCatLogitRegr = c("OrdinalConditionalLogitPartialLikelihood", "KKPassThrough"),
@@ -608,6 +670,16 @@ infer_inference_direct_components = function(name) {
 		InferenceIncidMiettinenNurminenRiskDiff = c("BayesianBootstrap", "Wald"),
 		InferenceIncidGCompRiskDiff = c("BayesianBootstrap", "Jackknife", "IncidenceGComputation"),
 		InferenceIncidGCompRiskRatio = c("BayesianBootstrap", "Jackknife", "IncidenceGComputation"),
+		# 2026-08-19 (fix_inference_hierarchy.md "KK And IVWC Estimators",
+		# "Migrate KK GEE and GLMM classes"): flipped from the hybrid
+		# `inherit = InferenceParamBootstrap` state (which reached
+		# ParametricLikelihoodBootstrap's capabilities via inheritance,
+		# needing no entry here) to composing components directly -- must
+		# mirror the define_inference_class(components = ...) call exactly,
+		# same rationale as the direct-composition classes documented above.
+		InferenceContinKKGLMM = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
+		InferenceCountKKGLMM = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
+		InferenceOrdinalKKGLMM = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
 		character()
 	)
 }
@@ -697,7 +769,8 @@ register_inference_class = function(name, parent = NULL, metadata = list(), dire
 			capabilities = character(),
 			excluded_capabilities = character(),
 			supports_general_censoring = FALSE,
-			requires_blocking_design = FALSE
+			requires_blocking_design = FALSE,
+			estimand = NA_character_
 		),
 		metadata
 	)
@@ -1791,7 +1864,8 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				capabilities = character(),
 				excluded_capabilities = EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES[[name]] %||% character(),
 				supports_general_censoring = infer_inference_supports_general_censoring(obj),
-				requires_blocking_design = infer_inference_requires_blocking_design(obj)
+				requires_blocking_design = infer_inference_requires_blocking_design(obj),
+				estimand = infer_inference_estimand_type(obj)
 			),
 			direct_components = infer_inference_direct_components(name)
 		)

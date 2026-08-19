@@ -1,7 +1,21 @@
 #' Cumulative Cloglog Inference for Ordinal Responses
 #'
-#' Cumulative cloglog model inference for ordinal responses using the treatment
-#' indicator and, optionally, all recorded covariates as predictors.
+#' Complementary log-log cumulative-odds ordinal regression:
+#' \eqn{P(Y \le k \mid W, X) = 1 - \exp\{-\exp(\alpha_k - \beta_T W -
+#' \beta_X^\top X)\}}, where \eqn{\alpha_k} are category-specific cutpoints and
+#' \eqn{\beta_T} is the treatment coefficient on the cloglog scale. Fit by
+#' maximum likelihood. The cloglog link is asymmetric (unlike logit/probit) and
+#' is the natural ordinal generalization of a proportional-hazards/grouped
+#' survival-time model, so it is preferred when the underlying process is
+#' plausibly a discretized time-to-event or extreme-value mechanism.
+#' \code{likelihood_tier = "full"}: exposes likelihood-ratio, score, gradient,
+#' and parametric-likelihood-bootstrap inference in addition to Wald/asymptotic
+#' and Bayesian-bootstrap paths.
+#'
+#' @references Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
+#'   (2nd ed.). Wiley. Ch. 3-4 (cumulative link models); McCullagh, P. (1980).
+#'   "Regression Models for Ordinal Data." \emph{JRSS-B}, 42(2), 109-142.
+#' @seealso \url{https://en.wikipedia.org/wiki/Ordinal_regression}
 #'
 #' @export
 InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
@@ -26,10 +40,19 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the ordinal weighted treatment estimate; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
-		#' @param subject_or_block_weights Numeric vector. Row weights for bootstrap.
-		#' @param estimate_only Logical. If TRUE, skip variance component calculations.
+		#' @description Refits the cloglog cumulative-link model under subject/block
+		#'   resampling weights via \code{weighted_ordinal_bootstrap_surrogate_fit()}
+		#'   (a weighted-likelihood surrogate fit, not full IRLS re-optimization from
+		#'   cold start) and returns the re-estimated treatment coefficient
+		#'   \eqn{\hat\beta_T} on the cloglog-link scale. Used to build the
+		#'   nonparametric- and Bayesian-bootstrap distributions of \eqn{\hat\beta_T}.
+		#'   If the surrogate fit fails or yields a non-finite estimate, the
+		#'   replicate's estimate, standard error, and degrees of freedom are all set
+		#'   to \code{NA}.
+		#' @param subject_or_block_weights Numeric vector of resampling weights, one
+		#'   per subject or resampling block.
+		#' @param estimate_only Accepted for interface compatibility; standard errors
+		#'   are never computed for a single bootstrap replicate regardless of this flag.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			X_fit = private$build_design_matrix()

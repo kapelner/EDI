@@ -9,6 +9,31 @@ The random intercept per matched pair is integrated out via Gauss-Hermite quadra
 
 When \code{use_rcpp = TRUE} (default) the likelihood is maximised by an internal
 Rcpp routine. Set \code{use_rcpp = FALSE} to fall back to \pkg{glmmTMB}.
+
+
+\strong{Model.} \eqn{Y_{ij} \mid b_i \sim \mathrm{Poisson}(\mu_{ij})} with
+\eqn{\log \mu_{ij} = X_{ij}'\beta + \beta_T \cdot W_{ij} + b_i}, where
+\eqn{i} indexes matched pairs, \eqn{j \in \{1, 2\}} the two subjects within
+a pair, \eqn{W_{ij}} is the treatment indicator, and \eqn{b_i \sim
+\mathcal{N}(0, \sigma_b^2)} is a pair-level random intercept absorbing
+within-pair correlation induced by matching. \eqn{\beta_T} is a log-rate
+(log relative risk) treatment effect: \eqn{\exp(\hat\beta_T)} is the
+estimated rate ratio. The random effect is integrated out of the marginal
+likelihood by adaptive Gauss-Hermite quadrature rather than a Laplace
+approximation.
+
+\strong{Likelihood tier.} \code{likelihood_tier = "full"}: both Wald
+(model-based standard error) and likelihood-ratio testing types are
+available. Because the GLMM likelihood alone does not encode the KK design's
+matched-pair randomization structure, the likelihood-ratio CI/p-value are
+conservatively widened/calibrated against the design-aware Wald result (see
+\code{compute_lik_ratio_confidence_interval()}/
+\code{compute_lik_ratio_two_sided_pval()}) so the model-based test is never
+anti-conservative relative to the design.
+
+\strong{Assumptions.} Count response modeled as conditionally Poisson given
+the random intercept (equidispersion conditional on \eqn{b_i}); pair-level
+random effects independent across pairs; a KK matching-on-the-fly design.
 }
 \examples{
 \donttest{
@@ -20,6 +45,20 @@ seq_des$add_all_subject_responses(rpois(10, 2))
 inf = InferenceCountKKGLMM$new(seq_des)
 inf$compute_estimate()
 }
+}
+\references{
+Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
+allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
+378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
+}
+\seealso{
+Analogous Python API for Poisson/count GLMs:
+  \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
+  discrete models}.
+  \href{https://en.wikipedia.org/wiki/Generalized_linear_model}{Generalized
+  linear model} and
+  \href{https://en.wikipedia.org/wiki/Gauss%E2%80%93Hermite_quadrature}{Gauss-Hermite
+  quadrature} (orientation).
 }
 \section{Super classes}{
 \code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}} -> \code{InferenceCountKKGLMM}
@@ -160,7 +199,9 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceCountKKGLMM-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKGLMM-initialize}{}}}
 \subsection{\code{InferenceCountKKGLMM$new()}}{
-  Initialize a KK Poisson GLMM inference object.
+  Initialize a KK Poisson-GLMM inference object for a matched-pair KK
+  design with a count response and prepare the matched-pair random-intercept
+  likelihood machinery; see the class topic for the model.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountKKGLMM$new(
@@ -176,12 +217,18 @@ inf$compute_estimate()
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{des_obj}}{A completed \code{Design} object with a count response.}
-      \item{\code{model_formula}}{Optional formula for covariate adjustment.}
-      \item{\code{use_rcpp}}{Logical. If \code{TRUE} (default), use the internal Rcpp Poisson GLMM.}
-      \item{\code{optimization_alg}}{Optimization algorithm. Default is dispatched via policy.}
+      \item{\code{des_obj}}{A completed KK matching-on-the-fly \code{Design} object
+(\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} or subclass) with a
+count response.}
+      \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL}
+(default), the formula from the design object is used.}
+      \item{\code{use_rcpp}}{Logical. If \code{TRUE} (default), maximize the Gauss-Hermite-quadrature
+marginal likelihood with the internal Rcpp Poisson-GLMM routine; if \code{FALSE},
+fall back to \pkg{glmmTMB}.}
+      \item{\code{optimization_alg}}{Optimization algorithm passed to the likelihood maximizer. If
+\code{NULL} (default), an algorithm is dispatched via the package's optimizer policy.}
       \item{\code{verbose}}{Whether to print progress messages.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart starting values for the optimizer.}
     }
     \if{html}{\out{</div>}}
   }
@@ -191,8 +238,10 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceCountKKGLMM-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKGLMM-compute_estimate}{}}}
 \subsection{\code{InferenceCountKKGLMM$compute_estimate()}}{
-  Computes the class-specific treatment-effect estimate; see
-  \code{\link[EDI:Inference]{Inference}}.
+  Point estimate of the treatment log-rate coefficient \eqn{\beta_T} from a
+  Poisson GLMM with a matched-pair random intercept, fit by maximizing the
+  Gauss-Hermite-quadrature-integrated marginal likelihood (internal Rcpp routine when
+  \code{use_rcpp = TRUE}, else \pkg{glmmTMB}). See the class topic for the model form.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountKKGLMM$compute_estimate(estimate_only = FALSE)}
@@ -201,9 +250,13 @@ inf$compute_estimate()
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{If \code{TRUE}, skip variance-component calculations.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Numeric scalar: the treatment coefficient on the log-rate (link) scale, i.e.
+  \eqn{\exp(\hat\beta_T)} is a rate ratio.
   }
 }
 
@@ -211,8 +264,13 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceCountKKGLMM-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKGLMM-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceCountKKGLMM$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the KK Poisson-GLMM treatment estimate under
-  Bayesian-bootstrap weights.
+  Recomputes the KK Poisson-GLMM treatment estimate under nonparametric/
+  Bayesian-bootstrap subject-or-block weights, refitting the weighted GLMM
+  (\code{compute_weighted_glmm_bootstrap_estimate()}). Standard error, degrees of
+  freedom, and the cached summary table are cleared/set to \code{NA}/\code{Inf}/
+  \code{NULL} since only the point estimate is meaningful under resampling weights.
+  Falls back to the unweighted point estimate when the weights are effectively
+  constant.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountKKGLMM$compute_estimate_with_bootstrap_weights(
@@ -224,12 +282,16 @@ inf$compute_estimate()
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{subject_or_block_weights}}{Subject-, block-, cluster-, or matched-set
-bootstrap weights.}
-      \item{\code{estimate_only}}{If \code{TRUE}, compute only the weighted point
-estimate.}
+      \item{\code{subject_or_block_weights}}{Numeric vector of nonnegative bootstrap replicate
+weights, one per subject or per matched block (KK match structure).}
+      \item{\code{estimate_only}}{If \code{TRUE}, compute only the weighted point estimate (this
+method never computes a weighted standard error regardless of this argument).}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Numeric scalar treatment-effect estimate (log-rate scale) under the given
+  weights.
   }
 }
 
@@ -237,8 +299,10 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceCountKKGLMM-compute_wald_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKGLMM-compute_wald_confidence_interval}{}}}
 \subsection{\code{InferenceCountKKGLMM$compute_wald_confidence_interval()}}{
-  Uses the shared Wald confidence-interval contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Wald confidence interval for the treatment log-rate coefficient:
+  \eqn{\hat\beta_T \pm t_{1-\alpha/2,\,df}\cdot \hat{se}(\hat\beta_T)}, using the
+  model-based GLMM standard error. See
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared contract.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountKKGLMM$compute_wald_confidence_interval(alpha = 0.05)}
@@ -247,9 +311,13 @@ estimate.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Significance level.}
+      \item{\code{alpha}}{The confidence level in the computed confidence interval is 1 -
+\code{alpha}. The default is 0.05.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A length-2 numeric vector \code{c(lower, upper)} on the log-rate scale.
   }
 }
 
@@ -257,7 +325,8 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceCountKKGLMM-compute_wald_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKGLMM-compute_wald_two_sided_pval}{}}}
 \subsection{\code{InferenceCountKKGLMM$compute_wald_two_sided_pval()}}{
-  Computes a Wald two-sided p-value.
+  Two-sided Wald p-value for \eqn{H_0: \beta_T = \code{delta}} vs.
+  \eqn{H_1: \beta_T \neq \code{delta}}, using the model-based GLMM standard error.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountKKGLMM$compute_wald_two_sided_pval(delta = 0)}
@@ -266,9 +335,13 @@ estimate.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{delta}}{The null value of \eqn{\beta_T} to test against; 0 (the default) tests for
+any treatment effect at all.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Numeric scalar p-value in \eqn{[0, 1]}.
   }
 }
 
@@ -276,8 +349,14 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceCountKKGLMM-compute_lik_ratio_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKGLMM-compute_lik_ratio_confidence_interval}{}}}
 \subsection{\code{InferenceCountKKGLMM$compute_lik_ratio_confidence_interval()}}{
-  Computes a likelihood-ratio confidence interval, conservatively
-  widened against the design-aware Wald interval.
+  Likelihood-ratio confidence interval for the treatment log-rate
+  coefficient, inverting the GLMM's profile likelihood-ratio test against
+  \eqn{\chi^2_1}. Because the GLMM likelihood does not itself account for the KK
+  matched-pair design's randomization structure, this interval is conservatively
+  widened to be at least as wide as the design-aware Wald interval
+  (\code{compute_wald_confidence_interval()}) via \code{.conservative_kk_onelik_ci()} --
+  guarding against the model-based interval being anti-conservative relative to the
+  design.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountKKGLMM$compute_lik_ratio_confidence_interval(alpha = 0.05)}
@@ -286,9 +365,13 @@ estimate.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Significance level.}
+      \item{\code{alpha}}{The confidence level in the computed confidence interval is 1 -
+\code{alpha}. The default is 0.05.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A length-2 numeric vector \code{c(lower, upper)} on the log-rate scale.
   }
 }
 
@@ -296,8 +379,12 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceCountKKGLMM-compute_lik_ratio_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKGLMM-compute_lik_ratio_two_sided_pval}{}}}
 \subsection{\code{InferenceCountKKGLMM$compute_lik_ratio_two_sided_pval()}}{
-  Computes a likelihood-ratio two-sided p-value, conservatively
-  calibrated against the design-aware Wald p-value.
+  Two-sided likelihood-ratio p-value for \eqn{H_0: \beta_T = \code{delta}},
+  from the GLMM's profile likelihood-ratio test referred to \eqn{\chi^2_1}. As with
+  \code{compute_lik_ratio_confidence_interval()}, this is conservatively calibrated
+  (via \code{.conservative_kk_onelik_pval()}) against the design-aware Wald p-value so
+  the model-based test cannot be anti-conservative relative to the KK matched-pair
+  design.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountKKGLMM$compute_lik_ratio_two_sided_pval(delta = 0)}
@@ -306,9 +393,13 @@ estimate.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{delta}}{The null value of \eqn{\beta_T} to test against; 0 (the default) tests for
+any treatment effect at all.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Numeric scalar p-value in \eqn{[0, 1]}.
   }
 }
 
@@ -316,8 +407,11 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceCountKKGLMM-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKGLMM-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceCountKKGLMM$compute_asymp_confidence_interval()}}{
-  Uses the shared asymptotic confidence-interval contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Asymptotic confidence interval, dispatching to
+  \code{compute_wald_confidence_interval()} or \code{compute_lik_ratio_confidence_interval()}
+  depending on \code{self$get_testing_type()} (defaults to Wald if the testing type is
+  neither). See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  testing-type dispatch contract.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountKKGLMM$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -326,9 +420,13 @@ estimate.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Confidence level.}
+      \item{\code{alpha}}{The confidence level in the computed confidence interval is 1 -
+\code{alpha}. The default is 0.05.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A length-2 numeric vector \code{c(lower, upper)} on the log-rate scale.
   }
 }
 
@@ -336,8 +434,11 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceCountKKGLMM-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKGLMM-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceCountKKGLMM$compute_asymp_two_sided_pval()}}{
-  Uses the shared asymptotic two-sided p-value contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Asymptotic two-sided p-value, dispatching to
+  \code{compute_wald_two_sided_pval()} or \code{compute_lik_ratio_two_sided_pval()}
+  depending on \code{self$get_testing_type()} (defaults to Wald if the testing type is
+  neither). See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  testing-type dispatch contract.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountKKGLMM$compute_asymp_two_sided_pval(delta = 0)}
@@ -346,9 +447,13 @@ estimate.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{delta}}{The null value of \eqn{\beta_T} to test against; 0 (the default) tests for
+any treatment effect at all.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Numeric scalar p-value in \eqn{[0, 1]}.
   }
 }
 

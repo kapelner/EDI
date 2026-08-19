@@ -1,8 +1,19 @@
 #' Wald Incidence Inference
 #'
-#' Unadjusted incidence inference using the empirical risk difference together
-#' with the standard unpooled Wald standard error and normal-approximation
-#' confidence interval / hypothesis test.
+#' Unadjusted incidence inference using the empirical risk difference
+#' \eqn{\hat\theta = \bar Y_T - \bar Y_C} (sample proportions in the treatment
+#' and control arms) together with the standard unpooled Wald standard error
+#' \eqn{\hat s(\hat\theta) = \sqrt{\bar Y_T(1-\bar Y_T)/n_T +
+#' \bar Y_C(1-\bar Y_C)/n_C}} and normal-approximation confidence interval /
+#' hypothesis test \eqn{\hat\theta \pm z_{1-\alpha/2}\,\hat s(\hat\theta)}. This
+#' is the classical two-proportion Wald interval (e.g. Wald 1943; see
+#' \code{\link[EDI:InferenceIncidNewcombeRiskDiff]{InferenceIncidNewcombeRiskDiff}}
+#' for a small-sample-robust alternative). \code{likelihood_tier = "none"}: no
+#' likelihood is fit, so no likelihood-ratio or parametric-bootstrap methods are
+#' exposed; the reservoir/covariate structure is ignored, unlike
+#' \code{\link[EDI:InferenceIncidRiskDiff]{InferenceIncidRiskDiff}}'s covariate-
+#' adjusted linear-probability model. Non-estimable if either arm has zero
+#' subjects.
 #'
 #' @examples
 #' \donttest{

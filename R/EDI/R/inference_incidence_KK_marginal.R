@@ -348,12 +348,34 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 )
 #' G-Computation Risk-Difference Inference for KK Designs with Binary Responses
 #'
-#' Fits an all-subject logistic working model for a KK incidence outcome using
-#' treatment and, optionally, all recorded covariates, then estimates the marginal
-#' risk difference by standardizing predicted risks under all-treated and
-#' all-control assignments over the empirical covariate distribution. Matched
-#' pairs are treated as clusters and reservoir subjects are treated as singletons
-#' when computing the sandwich covariance.
+#' Fits an all-subject logistic working model \eqn{\mathrm{logit}\,P(Y=1\mid W,X) =
+#' \beta_0 + \beta_T W + \beta_X^\top X} for a KK incidence outcome using treatment
+#' \eqn{W} and, optionally, all recorded covariates \eqn{X}, then estimates the
+#' marginal (standardized, g-computation) risk difference
+#' \eqn{\hat\theta = n^{-1}\sum_i \{\hat p(1, X_i) - \hat p(0, X_i)\}} by averaging
+#' the fitted-model predicted risks under all-treated and all-control assignments
+#' over the empirical covariate distribution (Robins 1986). Matched pairs are
+#' treated as clusters and reservoir subjects are treated as singletons when
+#' computing the sandwich covariance of the standardized estimator (the
+#' delta-method variance of the empirical mean of the two counterfactual-risk
+#' contrasts, not the naive logistic-regression coefficient variance).
+#'
+#' This estimator has \code{likelihood_tier = "none"}: the fitted logistic model
+#' is a working model for standardization only, and reported inference is
+#' sandwich/bootstrap-based, not likelihood-based. \code{compute_estimate()} fits
+#' the model and returns \eqn{\hat\theta} on the risk-difference (probability)
+#' scale; \code{compute_estimate_with_bootstrap_weights()} refits under
+#' Bayesian-bootstrap subject weights for \code{\link{compute_bayesian_bootstrap_confidence_interval}}.
+#' Jackknife deletes one cluster (matched pair or singleton reservoir subject) at
+#' a time. If the working model fails to converge or the design has no
+#' treatment-arm variation, the estimate is marked non-estimable via
+#' \code{is_nonestimable()}.
+#'
+#' @references Robins, J. (1986). A new approach to causal inference in
+#'   mortality studies with a sustained exposure period. \emph{Mathematical
+#'   Modelling}, 7(9-12), 1393-1512. \doi{10.1016/0270-0255(86)90088-6}
+#' @seealso \code{\link[EDI:InferenceIncidKKGCompRiskRatio]{InferenceIncidKKGCompRiskRatio}}
+#'   for the risk-ratio analog on the same standardization machinery.
 #'
 #' @examples
 #' \donttest{
@@ -404,12 +426,27 @@ InferenceIncidKKGCompRiskDiff = define_inference_class(
 )
 #' G-Computation Risk-Ratio Inference for KK Designs with Binary Responses
 #'
-#' Fits a all-subject logistic working model for a KK incidence outcome using
-#' treatment and, optionally, all recorded covariates, then estimates the marginal
-#' risk ratio by standardizing predicted risks under all-treated and all-control
-#' assignments over the empirical covariate distribution. Matched pairs are
-#' treated as clusters and reservoir subjects are treated as singletons when
-#' computing the sandwich covariance.
+#' Fits the same all-subject logistic working model as
+#' \code{\link[EDI:InferenceIncidKKGCompRiskDiff]{InferenceIncidKKGCompRiskDiff}}
+#' for a KK incidence outcome using treatment and, optionally, all recorded
+#' covariates, then estimates the marginal (standardized, g-computation) risk
+#' ratio \eqn{\hat\theta = \left(n^{-1}\sum_i \hat p(1, X_i)\right) /
+#' \left(n^{-1}\sum_i \hat p(0, X_i)\right)} by averaging fitted-model predicted
+#' risks under all-treated and all-control assignments over the empirical
+#' covariate distribution (Robins 1986). Matched pairs are treated as clusters
+#' and reservoir subjects are treated as singletons when computing the sandwich
+#' covariance; the delta method is applied on the log-risk-ratio scale to keep
+#' the reported ratio and its confidence interval positive, then
+#' back-transformed for reporting.
+#'
+#' This estimator has \code{likelihood_tier = "none"}. If the working model
+#' fails to converge, has no treatment-arm variation, or the all-control
+#' standardized risk is zero (undefined ratio), the estimate is marked
+#' non-estimable via \code{is_nonestimable()}.
+#'
+#' @references Robins, J. (1986). A new approach to causal inference in
+#'   mortality studies with a sustained exposure period. \emph{Mathematical
+#'   Modelling}, 7(9-12), 1393-1512. \doi{10.1016/0270-0255(86)90088-6}
 #'
 #' @examples
 #' \donttest{

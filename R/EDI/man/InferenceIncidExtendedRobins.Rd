@@ -64,8 +64,20 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceIncidExtendedRobins-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidExtendedRobins-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceIncidExtendedRobins$compute_asymp_confidence_interval()}}{
-  Uses the shared randomization two-sided p-value contract; see
-  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+  Uses the randomization-CI layer's two-sided p-value contract
+  (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
+  incidence responses this dispatches to the Zhang exact randomization
+  test where applicable rather than refusing outright, matching this
+  class's pre-migration old-ladder behavior (it inherited from
+  \code{InferenceAllSimpleMeanDiff}, whose own pin was already
+  corrected to \code{InferenceRandCI} -- see that file's identical
+  rationale). This class independently composes the same components
+  rather than truly inheriting \code{InferenceAllSimpleMeanDiff}, so it
+  had its own stale copy of the old \code{InferenceRand} pin (same bug
+  as \code{InferenceIncidWald}/\code{InferenceIncidCMH}, fixed
+  alongside them even though this class's own golden test's design
+  doesn't happen to trigger the Zhang-eligible path that would have
+  caught it).
 
 
   Uses the shared asymptotic confidence-interval contract; see

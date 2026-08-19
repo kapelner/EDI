@@ -7,9 +7,39 @@
 #' @keywords internal
 InferenceAbstractKKCondLogitGLMM = define_inference_class(
 	classname = "InferenceAbstractKKCondLogitGLMM",
-	inherit = InferenceParamBootstrap,
-	components = "KKPassThrough",
+	inherit = Inference,
+	# 2026-08-19 (fix_inference_hierarchy.md "KK And IVWC Estimators",
+	# "Migrate KK GEE and GLMM classes"): flipped from the hybrid
+	# `define_inference_class(inherit = InferenceParamBootstrap, components =
+	# "KKPassThrough")` state (already a factory call, but still
+	# R6-inheriting BayesianBootstrap/ParametricLikelihoodBootstrap instead
+	# of composing them) to composing them directly -- same hybrid-state fix
+	# as InferenceContinKKGLMM/InferenceCountKKGLMM/InferenceOrdinalKKGLMM
+	# earlier this stretch. This abstract base has 3 real concrete
+	# descendants (plain R6::R6Class leaves, same pattern as
+	# InferenceAsympLikStdModCache's descendants): InferencePropKKGLMM,
+	# InferenceIncidKKCondLogitGLMMIVWC, InferenceIncidKKCondLogitGLMMOneLik
+	# -- none of the three call `super$...()` anywhere in their own bodies
+	# (verified by grep), so no generic-alias overrides were needed for this
+	# migration.
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKPassThrough"),
+	# capabilities = "likelihood_ratio" is required explicitly -- same
+	# rationale as every class composing ParametricLikelihoodBootstrap
+	# directly (bypassing StandardModelCache) this stretch.
+	metadata = list(likelihood_tier = "partial", capabilities = "likelihood_ratio"),
 	public = list(
+		# Pinned from InferenceRandCI (NOT InferenceRand, unlike every other
+		# KK GLMM migration this stretch): this abstract base serves both
+		# incidence and proportion response types, and its pre-migration
+		# resolution (walked via the R6 inheritance chain of the hybrid
+		# `inherit = InferenceParamBootstrap` state) landed on
+		# InferenceRandCI's compute_rand_two_sided_pval -- the
+		# Zhang-incidence-aware wrapper -- not InferenceRand's raw
+		# permutation-only version. Confirmed via golden-test failure:
+		# InferenceRand's version threw "Randomization tests are not
+		# supported for incidence. Use Zhang method." on incidence designs
+		# where the legacy class succeeded with a real Zhang p-value.
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize KK conditional-logit GLMM incidence
 		#'   inference, validate the binary response, and prepare the matched-pair
 		#'   conditional likelihood and reservoir mixed-model components. See
@@ -42,15 +72,6 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
-		},
-		#' @description Returns the standard error of the treatment effect estimate.
-		get_standard_error = function(){
-			private$shared(estimate_only = FALSE)
-			se = private$cached_values$s_beta_hat_T
-			if (is.null(se) || length(se) == 0L) {
-				return(NA_real_)
-			}
-			as.numeric(se)[1L]
 		},
 		#' @description Recomputes the class-specific treatment estimate for a bootstrap sample; see
 		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
@@ -120,6 +141,31 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 	),
 	private = list(
 		is_a_kk_cond_logit_glmm = function() TRUE,
+		# 2026-08-19 (fix_inference_hierarchy.md "KK And IVWC Estimators",
+		# "Migrate KK GEE and GLMM classes"): moved from `public` to `private`
+		# during this migration. It was public-only pre-migration, which was
+		# harmless only because the `KKPassThrough`-only composition never
+		# pulled in a competing private `get_standard_error` (the canonical
+		# location for this method everywhere else in the codebase --
+		# see e.g. Wald's `get_standard_error` in
+		# inference_all_abstract_asymp.R). Composing
+		# `ParametricLikelihoodBootstrap` (which depends on `LikelihoodTests`
+		# -> `Wald`) now pulls in a real private `get_standard_error`, so the
+		# public/private duplicate must be resolved by picking one location;
+		# grepped the whole tree first to confirm no caller uses
+		# `$get_standard_error()` publicly on any of this abstract base's
+		# descendants (every caller uses `private$get_standard_error()` /
+		# `.__enclos_env__$private$get_standard_error()`), so moving it to
+		# `private` (host wins the collision, declared below) preserves
+		# behavior exactly.
+		get_standard_error = function(){
+			private$shared(estimate_only = FALSE)
+			se = private$cached_values$s_beta_hat_T
+			if (is.null(se) || length(se) == 0L) {
+				return(NA_real_)
+			}
+			as.numeric(se)[1L]
+		},
 		max_abs_reasonable_coef = 50,
 		max_abs_reasonable_se = 10,
 		max_abs_log_sigma = 8,
@@ -322,9 +368,39 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 		}
 	),
 	overrides = list(
-		public = "compute_estimate_with_bootstrap_weights",
-		private = "compute_basic_match_data",
-		public_private = "get_standard_error"
-	),
-	metadata = list(likelihood_tier = "partial")
+		public = c(
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval",
+			"get_supported_testing_types",
+			"approximate_bootstrap_distribution_beta_hat_T"
+		),
+		private = c(
+			"bootstrap_extreme_estimate_threshold",
+			"compute_basic_match_data",
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"assert_finite_se",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_information_preference",
+			"supports_observed_information",
+			"get_supported_information_preferences_impl",
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx",
+			"get_likelihood_test_spec",
+			"shared",
+			"get_complexity_tier"
+		)
+	)
 )

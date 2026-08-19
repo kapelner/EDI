@@ -244,10 +244,25 @@ InferenceOrdinalKKGEE = define_inference_class(
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceOrdinalKKGLMM = R6::R6Class("InferenceOrdinalKKGLMM",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
-	public = utils::modifyList(as.list(InferenceMixinKKGLMMShared$public), list(
+InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
+	inherit = Inference,
+	# 2026-08-19 (fix_inference_hierarchy.md "KK And IVWC Estimators", "Migrate
+	# KK GEE and GLMM classes"): flipped from the raw-splice
+	# `utils::modifyList(as.list(InferenceMixinKKGLMMShared$public), list(...))`
+	# state (manual harvesting of the KKGLMM raw source under
+	# `inherit = InferenceParamBootstrap`) to composing the registered `KKGLMM`
+	# component directly, plus `BayesianBootstrap`/`ParametricLikelihoodBootstrap`
+	# -- same hybrid-state fix as InferenceContinKKGLMM/InferenceCountKKGLMM
+	# earlier this stretch.
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
+	# capabilities = "likelihood_ratio" is required explicitly -- same
+	# rationale as every class composing ParametricLikelihoodBootstrap
+	# directly (bypassing StandardModelCache) this stretch.
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as
+		# every other KK GLMM migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize KK ordinal GLMM inference, validate the ordinal
 		#'   matched/reservoir design, and prepare the mixed-model likelihood used by
 		#'   \code{\link[EDI:InferenceOrdinalKKGLMM]{InferenceOrdinalKKGLMM}}.
@@ -338,8 +353,8 @@ InferenceOrdinalKKGLMM = R6::R6Class("InferenceOrdinalKKGLMM",
 			private$cached_values$summary_table = NULL
 			private$cached_values$beta_hat_T
 		}
-	)),
-	private = utils::modifyList(as.list(InferenceMixinKKGLMMShared$private), list(
+	),
+	private = list(
 		use_rcpp = TRUE,
 		glmm_response_type  = function() "ordinal",
 		glmm_family         = function() glmmTMB::cumulative(link = "logit"),
@@ -627,5 +642,40 @@ InferenceOrdinalKKGLMM = R6::R6Class("InferenceOrdinalKKGLMM",
 				neg_loglik = function(fit) as.numeric(fit$neg_loglik)
 			)
 		}
-	))
+	),
+	overrides = list(
+		public = c(
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval",
+			"get_supported_testing_types"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"assert_finite_se",
+			"supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_information_preference",
+			"supports_observed_information",
+			"get_supported_information_preferences_impl",
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx",
+			"get_likelihood_test_spec",
+			"simulate_under_lik_null",
+			"shared",
+			"get_complexity_tier"
+		)
+	)
 )

@@ -872,7 +872,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		"InferenceContinMultGLS",
 		"InferenceSurvivalKKClaytonCopulaOneLik",
 		"InferenceAbstractKKWeibullFrailtyOneLik",
-		"InferenceIncidenceExactZhang",
+		"InferenceIncidExactZhang",
 		"InferenceIncidExactZhangAbstract",
 		"InferenceOrdinalPairedSignTest",
 		"InferenceOrdinalKKCondAdjCatLogitRegr",
@@ -999,7 +999,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		response_type != "incidence" ||
 		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$should_use_zhang_incidence_randomization(), error = function(e) FALSE)) ||
 		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$should_use_design_randomization_for_incidence(), error = function(e) FALSE))
-	skip_rand      = is(seq_des_inf, "InferenceIncidenceExactZhang") || is(seq_des_inf, "InferenceIncidExactZhangAbstract") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferenceOrdinalPairedSignTest") || is(seq_des_inf, "InferenceOrdinalKKCondAdjCatLogitRegr") || is(seq_des_inf, "InferenceOrdinalGCompMeanDiff") || is(seq_des_inf, "InferenceOrdinalGCompMeanDiff") || is(seq_des_inf, "InferenceOrdinalCloglogRegr") || is(seq_des_inf, "InferenceOrdinalOrderedProbitRegr") || is(seq_des_inf, "InferenceOrdinalOrderedProbitRegr") || is(seq_des_inf, "InferenceOrdinalCauchitRegr") || is(seq_des_inf, "InferenceOrdinalCauchitRegr") || is(seq_des_inf, "InferenceOrdinalKKCondAdjCatLogitRegr")
+	skip_rand      = is(seq_des_inf, "InferenceIncidExactZhang") || is(seq_des_inf, "InferenceIncidExactZhangAbstract") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferenceOrdinalPairedSignTest") || is(seq_des_inf, "InferenceOrdinalKKCondAdjCatLogitRegr") || is(seq_des_inf, "InferenceOrdinalGCompMeanDiff") || is(seq_des_inf, "InferenceOrdinalGCompMeanDiff") || is(seq_des_inf, "InferenceOrdinalCloglogRegr") || is(seq_des_inf, "InferenceOrdinalOrderedProbitRegr") || is(seq_des_inf, "InferenceOrdinalOrderedProbitRegr") || is(seq_des_inf, "InferenceOrdinalCauchitRegr") || is(seq_des_inf, "InferenceOrdinalCauchitRegr") || is(seq_des_inf, "InferenceOrdinalKKCondAdjCatLogitRegr")
 	skip_mle_pval  = FALSE
 	skip_rand_pval = is(seq_des_inf, "InferenceContinMultGLS") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferenceSurvivalKKClaytonCopulaOneLik")
 	skip_regular_rand_pval = skip_rand_pval || !supports_incidence_rand_pval
@@ -1446,7 +1446,7 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		return(invisible(NULL))
 	}
 
-	is_zhang_inference = is(seq_des_inf, "InferenceIncidenceExactZhang") || is(seq_des_inf, "InferenceIncidExactZhang")
+	is_zhang_inference = is(seq_des_inf, "InferenceIncidExactZhang")
 	zhang_valid_design = response_type == "incidence" &&
 		design_supports_zhang_incidence(des_obj_for_exact)
 	has_exact_inference = if (is_zhang_inference) zhang_valid_design else supports_exact_inference(seq_des_inf)
@@ -2431,14 +2431,14 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 					)
 				}
 			if (design_supports_zhang_incidence(des_obj)) {
-				inference_banner("InferenceIncidenceExactZhang")
+				inference_banner("InferenceIncidExactZhang")
 				err_msg_ez = tryCatch({
-					run_inference_checks(InferenceIncidenceExactZhang$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+					run_inference_checks(InferenceIncidExactZhang$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 					NULL
 				}, error = function(e) if (length(e$message) == 0L) "" else e$message)
-				if (!is.null(err_msg_ez)) message("  Skipping InferenceIncidenceExactZhang: ", err_msg_ez)
+				if (!is.null(err_msg_ez)) message("  Skipping InferenceIncidExactZhang: ", err_msg_ez)
 			} else {
-				message("  Skipping InferenceIncidenceExactZhang: design is not Zhang-compatible.")
+				message("  Skipping InferenceIncidExactZhang: design is not Zhang-compatible.")
 			}
 		inference_banner("InferenceIncidWald")
 		run_inference_checks(InferenceIncidWald$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)

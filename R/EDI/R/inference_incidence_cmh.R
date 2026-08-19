@@ -68,17 +68,25 @@ InferenceIncidCMH = define_inference_class(
 		#'   \code{test-incid-cmh-extended-robins-migration-golden.R}'s
 		#'   \code{randomization_pval} case going from `"ok"` to `"unsupported"`.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param alpha Numeric. Significance level (default 0.05).
+		#' @description Wald confidence interval for the balanced-design/CMH risk-difference
+		#'   estimate \eqn{\hat\tau}, using the randomization-based (blocking-design: exact CMH
+		#'   variance formula; non-blocking design: Monte Carlo over \code{se_est_num_vectors}
+		#'   design draws) standard error documented in the class \code{@details}. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald contract.
+		#' @param alpha The confidence level in the computed confidence interval is 1 -
+		#'   \code{alpha}. The default is 0.05.
+		#' @return A length-2 numeric vector \code{c(lower, upper)} on the risk-difference scale.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			self$compute_estimate()
 			private$get_standard_error()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta Numeric. Null treatment effect value (default 0).
+		#' @description Two-sided Wald p-value for \eqn{H_0: \tau = \code{delta}} vs.
+		#'   \eqn{H_1: \tau \neq \code{delta}}, using the same randomization-based standard error
+		#'   as \code{compute_asymp_confidence_interval()}.
+		#' @param delta The null value of \eqn{\tau} to test against; 0 (the default) tests for
+		#'   any treatment effect at all.
+		#' @return Numeric scalar p-value in \eqn{[0, 1]}.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			self$compute_estimate()
 			private$get_standard_error()

@@ -19,8 +19,7 @@ classes are registered elsewhere in the package, without this class needing
 any changes, and without risking side effects (e.g. an optional-package
 load failure inside some class's constructor) from a doomed construction
 attempt.
-}
-\details{
+
 \strong{Compatibility rules} (see
   \code{is_inference_class_compatible_with_design_metadata()}, also used by
   \code{\link[EDI:Design]{Design}}'s own
@@ -53,11 +52,33 @@ attempt.
   \code{fix_inference_hierarchy.md}). Package availability is never a
   reason a class is treated as design-incompatible.
 
-  This class does not itself compute any estimates, p-values, or confidence
-  intervals; it only discovers and validates which inference classes are
-  applicable and, once constructed, does not eagerly construct any of them.
-  \code{lock_objects = FALSE} allows ad hoc fields to be attached to an
-  instance after construction.
+  Construction itself does not compute any estimates, p-values, or
+  confidence intervals -- it only discovers and validates which inference
+  classes are applicable and does not eagerly construct any of them. This
+  class's \code{run_all_inference()} method does that: it constructs and
+  fits every applicable class and returns a uniform
+  comparison across them (see that method's own documentation for the
+  output schema, the CI/p-value method selection policy, and the
+  \code{screen}/\code{html}/\code{plots}/\code{pdf}/
+  \code{save_results_as_JSON} output options). \code{lock_objects = FALSE}
+  allows ad hoc fields to be attached to an instance after construction.
+
+  \strong{Every row this class discovers and fits is a test about the
+  same outcome variable, by construction.} \code{response_type} is a
+  required, immutable constructor argument on \code{\link[EDI:Design]{Design}}
+  (read-only thereafter via \code{get_response_type()}), and this class
+  discovers every candidate in \code{applicable_design_classes} from one
+  attached \code{Design} object's one \code{response_type} -- there is no
+  code path here that spans two response types in a single instance. This
+  matters beyond bookkeeping: a planned comparison-across-classes feature
+  (a single combined-evidence p-value summarizing every row, via a
+  dependence-robust combination test) relies on every combined class
+  sharing one sharp null of "no treatment effect on this outcome" --
+  which only holds when every test concerns the same outcome variable
+  (combining, say, a survival model's p-value with an unrelated
+  continuous-outcome model's p-value would not be valid, since a real
+  effect on one with none on the other is entirely plausible). That
+  precondition is guaranteed here structurally, not by caller discipline.
 }
 \examples{
 \donttest{
@@ -69,15 +90,33 @@ seq_des$add_all_subject_responses(rnorm(20))
 
 suite = InferenceSuite$new(seq_des)
 suite$applicable_design_classes
+
+# Fit and compare every applicable class:
+results = suite$run_all_inference(screen = TRUE)
+results$results_table
 }
+}
+\references{
+Madigan, D., Ryan, P. B., and Schuemie, M. (2013), "Does
+  design matter? Systematic evaluation of the impact of analytical
+  choices on effect estimates in observational studies," \emph{Therapeutic
+  Advances in Drug Safety}, 4(2), 53-62, PMID 25083251 -- the motivating
+  finding behind this class's "every legitimate way to look for an
+  effect, compared honestly" default output.
+
+  Liu, Y. and Xie, J. (2020), "Cauchy combination test: a powerful test
+  with analytic p-value calculation under arbitrary dependency
+  structures," \emph{Journal of the American Statistical Association},
+  115(529), 393-402 -- \code{run_all_inference()}'s Combined Evidence
+  Metric.
 }
 \section{Public fields}{
-\if{html}{\out{<div class="r6-fields">}}
-\describe{
-\item{\code{applicable_design_classes}}{Character vector of applicable inference
+  \if{html}{\out{<div class="r6-fields">}}
+  \describe{
+    \item{\code{applicable_design_classes}}{Character vector of applicable inference
 class names derived during initialization.}
 
-\item{\code{unavailable_due_to_missing_packages}}{A named list, one entry per
+    \item{\code{unavailable_due_to_missing_packages}}{A named list, one entry per
 otherwise-design-compatible class whose registered \code{required_packages}
 are not all installed: names are class names, values are the character
 vector of missing package names. These classes are excluded from
@@ -87,47 +126,47 @@ plain design/response-type incompatibility (see the class-level docs'
 design" from "applicable, but an optional dependency isn't installed."
 Empty named list if every design-compatible class has all required
 packages available.}
-}
-\if{html}{\out{</div>}}
+  }
+  \if{html}{\out{</div>}}
 }
 \section{Methods}{
 \subsection{Public methods}{
-\itemize{
-\item \href{#method-InferenceSuite-new}{\code{InferenceSuite$new()}}
-\item \href{#method-InferenceSuite-clone}{\code{InferenceSuite$clone()}}
-}
+  \itemize{
+    \item \href{#method-InferenceSuite-initialize}{\code{InferenceSuite$new()}}
+    \item \href{#method-InferenceSuite-run_all_inference}{\code{InferenceSuite$run_all_inference()}}
+    \item \href{#method-InferenceSuite-clone}{\code{InferenceSuite$clone()}}
+  }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSuite-new"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSuite-new}{}}}
+\if{html}{\out{<a id="method-InferenceSuite-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSuite-initialize}{}}}
 \subsection{\code{InferenceSuite$new()}}{
-Discover every \code{Inference} class applicable to \code{des_obj}
+  Discover every \code{Inference} class applicable to \code{des_obj}
   (see the class-level documentation for the compatibility rules) and validate
   any per-class constructor overrides in \code{inference_params}, storing
   \code{applicable_design_classes} for later use. This constructor does
   \strong{not} instantiate any \code{Inference} object itself; callers are
   expected to construct the specific classes they need (optionally passing the
   validated \code{inference_params}) from the discovered list.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{InferenceSuite$new(des_obj, model_formula = NULL, inference_params = list())}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{des_obj}}{A completed \code{\link[EDI:Design]{Design}} object (validated via
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSuite$new(des_obj, model_formula = NULL, inference_params = list())}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{des_obj}}{A completed \code{\link[EDI:Design]{Design}} object (validated via
 \code{\link[methods]{is}(des_obj, "Design")} when assertions are enabled; see
 \code{\link{toggle_asserts}}).}
-
-\item{\code{model_formula}}{Accepted for interface/future-extension purposes but
+      \item{\code{model_formula}}{Accepted for interface/future-extension purposes but
 currently \strong{not used anywhere in this method's body} — supplying a
 non-\code{NULL} value has no effect on discovery, validation, or any stored
 state. Do not rely on this parameter to affect covariate adjustment; a
 design's own model formula and design matrix are what individual
 \code{Inference} classes actually consult when later constructed from this
 suite's discovered class list.}
-
-\item{\code{inference_params}}{A named list of lists supplying additional
+      \item{\code{inference_params}}{A named list of lists supplying additional
 constructor arguments for specific inference classes.  Each name
 must be the name of a concrete \code{Inference} subclass that is applicable
 to \code{des_obj} (checked against \code{applicable_design_classes} once
@@ -138,25 +177,145 @@ argument name supplied must match a formal parameter of that class's
 \code{initialize} method (other than \code{des_obj} and \code{...}) or an
 error is raised naming the unknown argument(s) and the valid ones.
 Defaults to an empty list (no extra arguments for any class).}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
-\if{html}{\out{</div>}}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSuite-run_all_inference"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSuite-run_all_inference}{}}}
+\subsection{\code{InferenceSuite$run_all_inference()}}{
+  Construct and fit every class in \code{applicable_design_classes},
+  and report one uniform comparison row per class -- estimate, SE, CI, p-value
+  (each via the highest-priority available method; see
+  \code{inference_suite_inspect.md}'s "Method Selection Policy"), likelihood
+  tier, estimand (where declared), fit time, captured warnings, and status.
+  Unlike the constructor, this method fits models and is not free; call it
+  explicitly when you want the comparison, not automatically.
+
+  A single class's construction or fit failure never aborts the report -- it
+  is caught and recorded as that class's \code{status}/\code{message} (see
+  "Per-Class Failure Isolation" in the design doc).
+
+  \strong{Side effects (v1.0.0 slice):} \code{screen} prints each row as its
+  class finishes fitting (computation order), not buffered to the end, with a
+  percent-done/estimated-time-remaining progress bar line underneath each row
+  (the ETA is the mean per-class elapsed time so far times classes remaining),
+  followed by a footer listing classes excluded for missing optional packages.
+  \code{html = TRUE} writes a self-contained, timestamped HTML report (the
+  same table plus the same footer) to the \strong{current working directory}
+  and opens it via \code{\link[utils]{browseURL}}; it requires the
+  \pkg{knitr} package. The \code{plots} ggplot2 visualizations, and their
+  embedding into this HTML report, are not yet implemented
+  (\code{inference_suite_inspect.md} TODO-7); \code{pdf} output is not yet a
+  parameter of this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSuite$run_all_inference(
+  screen = TRUE,
+  html = FALSE,
+  alpha = 0.05,
+  save_results_as_JSON = FALSE,
+  plots = screen,
+  pdf = FALSE,
+  classes = NULL,
+  exclude_classes = character(),
+  max_secs_per_class = NULL,
+  num_cores = 1L
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{screen}}{Print results to the console as each class finishes. At least
+one of \code{screen}/\code{html} must be \code{TRUE}.}
+      \item{\code{html}}{Render, save (current working directory, timestamped filename),
+and auto-open a self-contained HTML report of the results.}
+      \item{\code{alpha}}{Significance level: confidence intervals are computed at
+\code{1 - alpha} and \code{alpha} is the significance threshold used
+anywhere the report flags significance. Default \code{0.05}.}
+      \item{\code{save_results_as_JSON}}{If \code{TRUE}, serialize the return object
+(excluding plot objects) to a timestamped JSON file in the current working
+directory. Requires the optional \pkg{jsonlite} package; if it is not
+installed, a \code{warning()} is issued and this artifact is skipped rather
+than erroring. Default \code{FALSE}.}
+      \item{\code{plots}}{If \code{TRUE}, build and display (on the current graphics
+device) two \pkg{ggplot2} visualizations: an estimate number line
+(class/method labels above each point at 45 degrees, a box-and-whisker
+summary underneath) and an annotated confidence-interval forest plot
+(p-value left of each interval, interval width right of it, class/method
+labeled underneath, color-keyed to significance at \code{alpha}). Requires
+the optional \pkg{ggplot2} package; if it is not installed, a
+\code{warning()} is issued and plotting is skipped rather than erroring.
+Defaults to the value of \code{screen}.}
+      \item{\code{pdf}}{If \code{TRUE}, save both visualizations to one timestamped,
+two-page PDF file in the current working directory (page height scales
+with the number of classes in the CI forest plot). Same \pkg{ggplot2}
+dependency and missing-package handling as \code{plots}. Default
+\code{FALSE}.}
+      \item{\code{classes}}{Optional character vector restricting which applicable
+classes to fit -- e.g. re-running against only the few classes a user is
+actually deciding between, without reconstructing the suite. Every name
+must already be in \code{applicable_design_classes} or this errors,
+naming the unknown name(s) and the valid ones. \code{NULL} (default)
+fits every applicable class.}
+      \item{\code{exclude_classes}}{Optional character vector of applicable classes to
+skip, applied after \code{classes}. Same validation as \code{classes}.
+Default none.}
+      \item{\code{max_secs_per_class}}{Optional per-class elapsed-time limit in seconds
+(via \code{\link{setTimeLimit}}), after which that class's row gets
+\code{status = "timeout"} instead of hanging the whole report. Protects
+against one pathological class (e.g. a bootstrap/randomization method
+with many replicates) blocking every other class. \strong{Known
+limitation:} R's time limits are checked at R-level interrupt points, so
+this reliably cuts off slow R-level work but is not guaranteed to
+interrupt one very slow single native (C/C++/BLAS) call with no
+intervening R-level check. \code{NULL} (default) means no limit.}
+      \item{\code{num_cores}}{If greater than \code{1}, fit classes in parallel across
+this many forked workers (\code{\link[parallel]{makeForkCluster}}) --
+Unix/Linux only; on other platforms this falls back to sequential
+(\code{num_cores = 1}) with a \code{warning()}. \strong{Screen output
+changes under parallel execution:} fitting is a single blocking call
+that only returns once every worker has finished, so there is no
+meaningful per-class ETA to show while running -- \code{screen = TRUE}
+instead prints a "fitting N classes across K workers" message up front,
+then every result row together once complete, then a total-elapsed-time
+summary line (a deliberate design choice, not a degraded default -- see
+\code{inference_suite_inspect.md}'s TODO-13). Default \code{1L}
+(sequential, with the normal incremental streaming/progress bar).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisibly, an object of class \code{c("EDIInferenceSuiteResults", "list")}
+  with elements \code{results} (one named sub-list per class, in computation
+  order), \code{results_table} (the same rows as a flat \code{data.frame}),
+  \code{design}, \code{alpha}, \code{unavailable_due_to_missing_packages},
+  \code{plots} (\code{list(estimates, ci_forest)}, each a \code{ggplot} object
+  or \code{NULL}), \code{files} (\code{list(html, pdf, json)}, each a path or
+  \code{NULL}), \code{timestamp}, \code{total_secs}, and \code{edi_version}.
+  }
 }
-}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceSuite-clone"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSuite-clone}{}}}
 \subsection{\code{InferenceSuite$clone()}}{
-The objects of this class are cloneable with this method.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{InferenceSuite$clone(deep = FALSE)}\if{html}{\out{</div>}}
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSuite$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{deep}}{Whether to make a deep clone.}
-}
-\if{html}{\out{</div>}}
-}
-}
 }

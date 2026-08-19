@@ -65,9 +65,9 @@ list(
   likelihood_tier = <character>,   # "none" | "quasi" | "partial" | "full"
   estimate        = <numeric or NA_real_>,
   se              = <numeric or NA_real_>,
-  ci_lower        = <numeric or NA_real_>,
-  ci_upper        = <numeric or NA_real_>,
-  ci_method       = <character or NA_character_>,  # e.g. "wald", "randomization"
+  ci_a        = <numeric or NA_real_>,
+  ci_b        = <numeric or NA_real_>,
+  ci_method       = <character or NA_character_>,  # e.g. "wald", "rand"
   pval            = <numeric or NA_real_>,
   pval_method     = <character or NA_character_>,
   estimand        = <character>,   # what the estimate IS: e.g. "mean_difference",
@@ -79,8 +79,12 @@ list(
   warnings        = <character or NA_character_>,  # captured R warnings from the
                                    # fit (convergence, separation, etc.),
                                    # collapsed to one string; NA if none
-  status          = "ok" | "nonestimable" | "error",
-  message         = <character or NA_character_>
+  status          = "ok" | "nonest" | "error",
+  message         = <character or NA_character_>,
+  weight          = <numeric or NA_real_>  # "estimand_grouped" Combined Evidence
+                                   # weight, w_i = 1 / (G * m_i) over usable
+                                   # (status == "ok", finite pval) rows; NA
+                                   # for any non-usable row
 )
 ```
 
@@ -92,6 +96,9 @@ Below the per-class table, both output modes append an
 **unavailable-classes footer** listing
 `unavailable_due_to_missing_packages` (class name → missing packages), so
 the practitioner can see which estimators an `install.packages()` away.
+Each line reads `"<class> - requires install.packages(\"<pkg1>\", ...)"`,
+and the heading above the list is singular/plural-aware ("The following
+Inference class is unavailable:" / "...classes are unavailable:").
 
 `design_family` is derived once from `normalize_inference_design_metadata()`'s
 existing `is_kk` field (`"kk_matched_pair"` if `TRUE`, else `"iid"`) — no
@@ -122,7 +129,7 @@ against this fixed priority order and calling the first available:
 CI and p-value each pick independently (a class could have `wald` CI but
 lack a `wald`-tier p-value some other way) — `ci_method` and `pval_method`
 are not forced to agree. A class with none of these four capabilities
-gets `ci_lower = ci_upper = ci_method = NA` / `pval = pval_method = NA`
+gets `ci_a = ci_b = ci_method = NA` / `pval = pval_method = NA`
 and `status` stays `"ok"` if `estimate` still computed (a point estimate
 without an interval/test is not itself a failure). Bayesian bootstrap,
 randomization bootstrap, jackknife, and likelihood-ratio-test methods are
@@ -138,7 +145,7 @@ report. Wrap each class's construct-and-fit sequence in `tryCatch()`:
 
 - Construction/fit raises a non-estimability condition recognized by the
   package's existing non-estimable-result convention → `status =
-  "nonestimable"`, `message` set from the condition, all numeric fields
+  "nonest"`, `message` set from the condition, all numeric fields
   `NA`.
 - Construction/fit raises any other error → `status = "error"`, `message =
   conditionMessage(e)`, all numeric fields `NA`.
@@ -193,7 +200,7 @@ list(
     InferenceContinOLS = list(
       inference_class = ..., response_type = ..., design_family = ...,
       likelihood_tier = ..., estimate = ..., se = ...,
-      ci_lower = ..., ci_upper = ..., ci_method = ...,
+      ci_a = ..., ci_b = ..., ci_method = ...,
       pval = ..., pval_method = ..., estimand = ...,
       fit_secs = ..., warnings = ..., status = ..., message = ...,
       diagnostics = list(...)   # numerical-fit diagnostics; see below
@@ -281,7 +288,7 @@ p-values plus significance-driven segment styling.
    on one shared axis (the boxplot is per-facet too — a spread summary
    across mixed scales would be meaningless).
 2. **Annotated CI forest plot** (merges the former p-value and CI plots)
-   — every class's `(1 - alpha)`-level `[ci_lower, ci_upper]` as a
+   — every class's `(1 - alpha)`-level `[ci_a, ci_b]` as a
    horizontal segment with a point at the estimate, and per row:
    - the **p-value printed to the left** of the CI segment (scientific
      notation below ~1e-4, so tiny p-values stay readable),
@@ -578,7 +585,7 @@ verified by forcing one class to error — the other 6 rows stayed `"ok"`).
   (`run_all_inference_one_class()`) with `tryCatch()`/
   `withCallingHandlers()` isolation — a construction/fit error yields
   `status = "error"`; `is_nonestimable("any")` yields `status =
-  "nonestimable"`; captured `warning()`s collapse into the `warnings`
+  "nonest"`; captured `warning()`s collapse into the `warnings`
   column. Verified: one class forced to error does not affect the other
   rows.
 - [x] TODO-3: `design_family` normalization (`"iid"` vs.
@@ -786,7 +793,7 @@ before/around the same release:
 - [x] TODO-12: `max_secs_per_class` timeout via `setTimeLimit(elapsed =
   ..., transient = TRUE)` (reset via `on.exit()` so the limit never leaks
   past one class's fit), yielding a new `status = "timeout"` value
-  alongside `"ok"`/`"nonestimable"`/`"error"`. **Verified it actually
+  alongside `"ok"`/`"nonest"`/`"error"`. **Verified it actually
   interrupts a genuinely slow fit, not just a fast one that happens to
   finish before a check**: a deliberately slow R-level test-double class
   (a 5-second busy-loop) was cut off at ~1.5s when given
@@ -941,6 +948,76 @@ before/around the same release:
   `1/(G * m_i)` vector from `results_table$estimand` (for `status == "ok"`
   rows with non-`NA` `pval` only) and passes it in as `weights`.
 
+**Infrastructure landed (2026-08-19, user decision — before this,
+`get_estimand_type()` was only a private-instance-method convention two
+gcomp classes happened to follow, with no registry presence and no
+architectural home):**
+
+- `Inference$get_estimand_type()` (`inference_all_abstract.R`): a new
+  root-class default (`NA_character_`), declare-only, mirroring
+  `requires_blocking_design()`'s exact pattern — a trivial,
+  argument-less, self/private-free literal that a concrete class
+  overrides to a fixed string (`"mean_difference"`, `"log_odds_ratio"`,
+  `"hazard_ratio"`, etc.) when it wants to participate.
+- `infer_inference_estimand_type(generator)`
+  (`inference_class_registry.R`): safe, no-instantiation walk up the
+  generator's `private_methods`, identical in shape to
+  `infer_inference_requires_blocking_design()`, folded into
+  `populate_inference_class_registry()`'s per-class metadata (a new
+  `estimand` field, alongside `likelihood_tier`/`response_types`) and
+  `register_inference_class()`'s default record. **Real bug found and
+  fixed while building this**: `InferenceIncidGCompAbstract` already had
+  an intentional `get_estimand_type() { stop(...) }` "must implement"
+  stub for its own subclasses, referencing `self` — calling it bare (as
+  the safe-walk does) crashed `populate_inference_class_registry()`
+  outright for that abstract class's own registry entry. Fixed by
+  wrapping the walk's function call in `tryCatch()`, treating any error
+  as "no declared value" — the semantically correct outcome for an
+  abstract class's own entry regardless of why the call failed.
+- `run_all_inference_estimand()` (`inference_suite.R`) now reads
+  `get_inference_class_metadata(cls_name)$estimand` instead of
+  introspecting the fitted instance's private method — cheaper, and
+  (a real improvement found while making the change) now populates
+  **regardless of fit outcome**: a `status = "nonest"`/`"error"`/
+  `"timeout"` row still correctly reports its class's declared estimand,
+  since registry lookup needs no successful construction. Moved into
+  `run_all_inference_one_class()`'s unconditional row initialization,
+  matching `likelihood_tier`'s existing placement exactly, rather than
+  only being set inside the `"ok"` branch as before.
+
+  **Verified**: `EDI_VALIDATE_INFERENCE_CONTRACTS=true` strict load
+  clean; direct registry checks confirm `InferenceIncidGCompRiskDiff`
+  → `"RD"`, `InferenceIncidGCompRiskRatio` → `"RR"`,
+  `InferenceContinOLS` (undeclared) → `NA`, the abstract gcomp base
+  itself → `NA` (no crash); a live `run_all_inference()` call across
+  both gcomp classes plus `InferenceIncidLogRegr` showed the
+  registry-level fix working end-to-end — `InferenceIncidGCompRiskRatio`
+  reported `estimand = "RR"` even on a `status = "nonest"` row for
+  that random seed. A committed regression test
+  (`test-inference-suite-run-all-inference.R`) asserts exactly this.
+  Full test suite (`test-mixin-contracts.R`, `test-inference-class-
+  registry.R`, `test-inference-suite-discovery.R`,
+  `test-inference-suite-run-all-inference.R`) passed cleanly before the
+  final regression test was added; that last run was blocked by an
+  unrelated concurrent Phase 1D session mid-editing
+  `inference_incidence_KK_cond_logit_glmm_abstract.R`/`contracts_mixins.R`
+  (confirmed via `git status`/`git diff`, different transient error on
+  each retry — an active save in progress, not a real bug) — re-run once
+  that session's edit lands.
+
+**Important finding for sequencing (2026-08-19): declaring
+`get_estimand_type()` on a class is NOT gated on Phase 1D**, unlike
+`marginal_estimand_report.md → TODO-4/5/7/9`'s full `set_estimand()`
+switching wiring. The safe-walk mechanism
+(`infer_inference_estimand_type()`) reads `private_methods` off *any* R6
+generator via `get_inherit()` regardless of whether that class is still
+on the legacy deep-hierarchy `inherit =` ladder or already migrated to
+`define_inference_class()` — it never touches the component system at
+all. So rolling out declare-only estimand tags across every response-type
+family (the actual work TODO-15a's audit would motivate) can proceed in
+parallel with Phase 1D, the same way `inference_suite_inspect.md`'s own
+TODO-1..8 did.
+
 - [ ] TODO-15a: **Audit `estimand`/`get_estimand_type()` tagging across
   every response-type family before `"estimand_grouped"` ships as the
   default.** `"estimand_grouped"`'s correctness depends entirely on
@@ -1053,11 +1130,33 @@ before/around the same release:
     necessarily replaying `screen`'s original streaming order.
   - Already consistent with this direction and needing no change: the two
     ggplot2 visualizations (TODO-7, shipped) already facet by `estimand`.
-- [ ] TODO-17: Edge cases: clip `p_i` away from exactly 0/1 before the
-  `tan()` transform (avoids `±Inf`/degenerate `atan()` input); fewer than 2
-  usable p-values → `combined_evidence$pval = NA_real_`, documented, not
-  silently treated as "the" p-value; all usable p-values identical (sanity:
-  combined p should equal that value under equal weighting).
+- [x] TODO-17: `run_all_inference_combine_pvalues(pvals, weights = NULL,
+  pval_eps = 1e-4)` implemented in `inference_suite.R`, wrapping
+  `cct_combine_pvalues()` (TODO-14): drops `NA` p-values (with aligned
+  weight-vector dropping); returns `NA_real_` for fewer than 2 usable
+  p-values rather than treating a lone p-value as a combined one; clips
+  every usable p-value to `[pval_eps, 1 - pval_eps]` before the `tan()`
+  transform. **`pval_eps` is a user-adjustable parameter (per user
+  request, 2026-08-18), default `1e-4`** — named and defaulted now so it
+  can be exposed directly as a `run_all_inference()` parameter once
+  TODO-16 wires `combined_evidence` into its public signature; not added
+  to `run_all_inference()` itself yet, since nothing calls this helper
+  until that wiring lands (avoids dead public-API surface).
+
+  **Verified** (in isolation, sourcing just the two helper functions
+  directly, since the package didn't load at verification time due to an
+  unrelated concurrent session mid-editing
+  `inference_count_KK_cond_poisson.R` — confirmed via `git diff`/`git
+  status` that file is 84 insertions/22 deletions in progress, untouched
+  by this work, left alone): `p = 0`/`p = 1` inputs no longer produce
+  `Inf`/`NaN` (all finite); `f(0.05)`, `f(c(0.05, NA))`, and
+  `f(numeric(0))` all correctly return `NA`; `NA`-dropping with weight
+  realignment matches the direct equivalent call exactly; four identical
+  p-values (`0.15`) combine to exactly `0.15` under equal weighting,
+  confirming the CCT mathematical identity holds through the wrapper;
+  `pval_eps` genuinely changes clipping behavior (`p = 0` combined with
+  `p_eps = 1e-4` gives a different, correctly less-extreme result than
+  `p_eps = 1e-8`).
 
   **Known, deliberately out-of-scope gap for v1.0.0 (added 2026-08-18):** a
   single numerically pathological fit (e.g. separation-driven near-zero
@@ -1103,36 +1202,44 @@ before/around the same release:
   union-intersection-null framing, and the Liu & Xie (2020) citation.
   Cross-reference `JSS_paper_research_plan.md` §3.5b/§4 item 7 so the paper
   and the roxygen state the same caveat consistently.
-- [ ] TODO-20: **`@references` roxygen block + `REFERENCES.md` entry —
-  required by `check_references_sync.R`, not optional polish.** Confirmed
-  by grep (2026-08-18): `inference_suite.R` currently has *no* `@references`
-  block at all, and `REFERENCES.md` has no `InferenceSuite`/Madigan/Cauchy
-  entries anywhere. `check_references_sync.R` (wired into `.githooks/
-  pre-push`) fails the build if a file gains an `@references` block whose
-  class/function name isn't indexed under some `REFERENCES.md` entry's
-  "Used by:" list — so this TODO isn't just documentation hygiene, it's a
-  pre-push gate. Two citations need adding together, since both attach to
-  `InferenceSuite`/`run_all_inference()`:
-  - **Liu, Y. and Xie, J. (2020)**, "Cauchy combination test: a powerful
-    test with analytic p-value calculation under arbitrary dependency
-    structures," *Journal of the American Statistical Association*,
-    115(529), 393-402 — the combined-evidence metric's method (this TODO).
-  - **Madigan, D., Ryan, P. B., and Schuemie, M. (2013)**, "Does design
-    matter? Systematic evaluation of the impact of analytical choices on
-    effect estimates in observational studies," *Therapeutic Advances in
-    Drug Safety*, 4(2), 53-62, PMID 25083251 — `InferenceSuite`'s
-    motivating citation (already used in `JSS_paper_research_plan.md`
-    §3.5b's prose, but likewise never actually added to the package's own
-    roxygen/`REFERENCES.md`; that's a pre-existing gap this TODO should
-    close at the same time rather than leave for a separate pass, since
-    both citations land on the same class in the same edit).
-  Concretely: add an `#' @references` block to `InferenceSuite`'s
-  class-level roxygen in `inference_suite.R` citing both works, then add
-  both as new `REFERENCES.md` entries with stable citation keys (e.g.
-  `[LiuXie2020]`, `[MadiganRyanSchuemie2013]`) under a new or existing
-  "Inference orchestration" heading, each with `Used by: `InferenceSuite`,
-  `run_all_inference()``. Run `Rscript R/package_tests/
-  check_references_sync.R` after to confirm.
+- [x] TODO-20: `@references` added to `InferenceSuite`'s class-level
+  roxygen in `inference_suite.R` (Madigan/Ryan/Schuemie 2013 + Liu/Xie
+  2020), and both added to `REFERENCES.md` under a new "Inference
+  orchestration" subsection (`[MadiganRyanSchuemie2013]`, `[LiuXie2020]`)
+  with stable citation keys, matching house format exactly.
+  `cct_combine_pvalues()`'s own internal `@keywords internal @noRd`
+  roxygen (added with TODO-14) already carried an informational
+  `@references Liu, Y. and Xie, J. (2020)...` line too, so this file had
+  two `@references`-bearing blocks by the time this TODO ran.
+
+  **Ran the actual gate** (`Rscript R/package_tests/
+  check_references_sync.R`), not just assumed it would pass, and it
+  caught two real issues:
+  1. **A genuine mechanical gap in my first draft**: I initially wrote
+     `Used by: \`InferenceSuite\`, \`run_all_inference()\`` per this
+     TODO's own instructions, but `check_references_sync.R`'s live-name
+     extraction only recognizes **top-level** assignments
+     (`^name = ...` at column 0, or `R6::R6Class("Name", ...)`/
+     `classname = "Name"`) — `run_all_inference` is a method nested
+     inside `InferenceSuite`'s `public = list(...)`, not a top-level
+     assignment, so it doesn't count as a "live name" and the check
+     failed with "cites a name that no longer exists." Confirmed via the
+     one other precedent in the file (`generate_covariate_dataset()`,
+     which *is* a top-level function) that nested R6 methods are
+     structurally never citable this way. Fixed by citing only
+     `InferenceSuite` in both entries.
+  2. **A pre-existing, unrelated failure**: `design_fixed_optimal.R` has
+     an `@references` block with no matching `REFERENCES.md` entry.
+     Confirmed via `git diff`/`git log` that this file was last touched
+     2026-08-17 (the `design_fixed_optimal.md` finished feature) and I
+     have never touched it this session — left alone, not this plan's
+     scope to fix, but worth flagging since it's a real standing
+     pre-push-gate failure independent of anything here.
+
+  After the fix, `check_references_sync.R` reports only that one
+  pre-existing, unrelated failure — everything this TODO touched is
+  clean. Full test suite still passes, package still loads via
+  `pkgload::load_all(compile = FALSE)`, zero stray files.
 - [ ] TODO-21: `smoke_test_run_comprehensive_suite.R`
   (`R/package_tests/`) — check whether this comprehensive smoke test
   exercises `InferenceSuite$run_all_inference()`, and if so, extend its

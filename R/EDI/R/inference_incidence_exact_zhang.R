@@ -10,7 +10,7 @@ ExactZhangIncidenceSource = list(
 		#'   design's imputed covariates.
 		#' @param verbose Whether to print progress messages.
 		#' @param smart_cold_start_default Whether to use smart cold start values by default.
-		#' @return A new \code{InferenceIncidenceExactZhang} object.
+		#' @return A new \code{InferenceIncidExactZhang} object.
 		initialize = function(des_obj, model_formula = NULL,  verbose = FALSE, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "incidence")
@@ -133,12 +133,12 @@ ExactZhangIncidenceSource = list(
 #'
 #' @examples
 #' \dontrun{
-#' # Example for InferenceIncidenceExactZhang
+#' # Example for InferenceIncidExactZhang
 #' }
-#' @name InferenceIncidenceExactZhang
+#' @name InferenceIncidExactZhang
 #' @export
-InferenceIncidenceExactZhang = define_inference_class(
-	classname = "InferenceIncidenceExactZhang",
+InferenceIncidExactZhang = define_inference_class(
+	classname = "InferenceIncidExactZhang",
 	inherit = Inference,
 	components = "ExactZhangIncidence",
 	metadata = list(likelihood_tier = "none"),

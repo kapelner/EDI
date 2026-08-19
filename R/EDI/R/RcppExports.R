@@ -749,7 +749,7 @@ get_continuation_ratio_regression_hessian_cpp <- function(X, y, params) {
 #'   equals the continuation-ratio model's negative log-likelihood), \code{X_aug}/
 #'   \code{z} (the augmented design matrix and binary response actually fit, exposed
 #'   for reuse, e.g. by
-#'   \code{get_continuation_ratio_regression_hessian_cpp}), \code{converged}
+#'   \code{\link{get_continuation_ratio_regression_hessian_cpp}}), \code{converged}
 #'   (logical), and \code{fisher_information} (the exact observed information
 #'   Hessian at the fitted parameters). See Details for the degenerate
 #'   fewer-than-2-categories case, which returns a reduced subset of these fields.
@@ -3022,7 +3022,7 @@ fast_ordinal_regression_with_var_cpp <- function(X, y, warm_start_params = NULL,
 #' exactly as in \code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}}, and
 #' then:
 #' \itemize{
-#'   \item An \code{OrdinalRegression} log-likelihood
+#'   \item An \code{\link[=OrdinalRegression]{OrdinalRegression}} log-likelihood
 #'     Hessian is evaluated at \eqn{[\hat\alpha, \hat\beta]} and inverted (with a
 #'     symmetrization step and a finiteness check) to give the
 #'     \strong{model-based} (non-sandwich) variance-covariance matrix of the full
@@ -3330,7 +3330,7 @@ get_probit_regression_hessian_cpp <- function(X, beta) {
 #'   probit IRLS working weights, evaluated at the fitted \eqn{\hat\beta} regardless of
 #'   which \code{optimization_alg} was used), \code{fisher_information} (\eqn{X^\top W X}
 #'   at those weights), \code{score}, and \code{neg_ll} (the negative log-likelihood).
-#' @seealso \code{fast_probit_regression_weighted_cpp} for the observation-weighted
+#' @seealso \code{\link{fast_probit_regression_weighted_cpp}} for the observation-weighted
 #'   variant; \code{\link{fast_probit_regression_with_var_cpp}} for the variance-computing
 #'   variant.
 #' @export
@@ -4264,7 +4264,7 @@ gcomp_logistic_point_estimate_cpp <- function(X_fit, coef_hat, j_treat) {
 #'   not strictly positive).
 #' @seealso \code{\link{gcomp_logistic_point_estimate_cpp}} for the point-estimate
 #'   computation this function's variances are built around;
-#'   \code{gcomp_fractional_logit_post_fit_cpp} for the analogous
+#'   \code{\link{gcomp_fractional_logit_post_fit_cpp}} for the analogous
 #'   fractional-logit/quasi-binomial post-fit inference.
 #' @export
 #' @keywords internal

@@ -2,126 +2,88 @@
 % Please edit documentation in R/inference_count_KK_cond_poisson.R
 \name{InferenceCountKKHurdlePoissonOneLik}
 \alias{InferenceCountKKHurdlePoissonOneLik}
-\title{KK Hurdle Poisson Combined-Likelihood Inference for Count Responses}
+\title{KK Hurdle-Poisson Combined-Likelihood Inference for Count Responses}
 \description{
-KK Hurdle Poisson Combined-Likelihood Inference for Count Responses
+Fits a two-part hurdle-Poisson model to a KK matching-on-the-fly count
+design by maximizing a single combined likelihood over the matched pairs
+and reservoir subjects jointly, rather than fitting matched and reservoir
+submodels separately and combining them afterward (contrast with the
+inverse-variance-weighted-combination sibling,
+\code{\link[EDI:InferenceCountKKHurdlePoissonIVWC]{InferenceCountKKHurdlePoissonIVWC}}).
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}} -> \code{InferenceCountKKHurdlePoissonOneLik}
+\details{
+\strong{Model.} For subject \eqn{i} with count response \eqn{Y_i \ge 0}, a
+hurdle model factors the likelihood into (1) a binary zero-vs-positive part
+\eqn{P(Y_i = 0) = 1 - \pi_i}, \eqn{\mathrm{logit}(\pi_i) = X_i'\gamma}, and
+(2) a zero-truncated Poisson part for the positive counts,
+\eqn{Y_i \mid Y_i > 0 \sim \text{Poisson}_{+}(\lambda_i)},
+\eqn{\log \lambda_i = X_i'\beta + \beta_T W_i}, where \eqn{W_i} is the
+treatment indicator and \eqn{\beta_T} is the treatment log-rate coefficient
+for the positive-count submodel (the estimand returned by
+\code{compute_estimate()}). Unlike a standard hurdle model fit by maximum
+likelihood on i.i.d. rows, this class's negative log-likelihood combines
+the matched-pair rows and reservoir rows of a KK design into one objective
+(see \code{private$fit_combined_hurdle()}), so the fitted \eqn{\beta_T}
+and its curvature already reflect the design's matched/reservoir
+structure rather than treating all subjects as exchangeable.
+
+\strong{Likelihood tier.} \code{likelihood_tier = "full"}: Wald, score,
+likelihood-ratio, and gradient testing types are all available (see
+\code{get_testing_type()}). Because a hurdle-Poisson combined likelihood
+does not by itself encode the KK design's finite-sample matched-pair
+randomization distribution, the score/likelihood-ratio/gradient
+confidence intervals and p-values are computed twice — once from this
+class's design-aware asymptotic variance (the same Wald-type calculation
+used by \code{compute_wald_confidence_interval()}) and once from the
+generic likelihood-based calculation inherited from
+\code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} — and the wider
+interval / larger p-value of the two is returned (see
+\code{.conservative_kk_onelik_ci()}/\code{.conservative_kk_onelik_pval()}),
+so the model-based test is never anti-conservative relative to the design.
+The Wald confidence interval and p-value fall back to the
+\code{\link[EDI:BayesianBootstrap]{BayesianBootstrap}} component's
+bootstrap distribution when the model-based standard error is unavailable
+or non-finite (e.g. a boundary/separation fit).
+
+\strong{Assumptions.} Independence across matched pairs and reservoir
+subjects conditional on covariates; correct specification of the
+logistic hurdle and log-linear positive-count submodels; a KK
+matching-on-the-fly design (\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}}
+or subclass) supplying the matched/reservoir partition. No response
+censoring is supported (checked at construction via
+\code{assertNoCensoring()}).
+}
+\references{
+Mullahy, J. (1986). "Specification and Testing of Some Modified Count
+Data Models." \emph{Journal of Econometrics}, 33(3), 341-365.
+\doi{10.1016/0304-4076(86)90002-3}. (Mullahy1986 in \code{REFERENCES.md}.)
+}
+\seealso{
+Analogous Python API for hurdle/zero-truncated count models:
+  \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
+  discrete models} (\code{HurdleCountModel}).
+  \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson
+  regression} (orientation).
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceCountKKHurdlePoissonOneLik}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-initialize}{\code{InferenceCountKKHurdlePoissonOneLik$new()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_estimate}{\code{InferenceCountKKHurdlePoissonOneLik$compute_estimate()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_estimate_with_bootstrap_weights}{\code{InferenceCountKKHurdlePoissonOneLik$compute_estimate_with_bootstrap_weights()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_asymp_confidence_interval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_asymp_confidence_interval()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_score_confidence_interval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_score_confidence_interval()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_lik_ratio_confidence_interval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_confidence_interval()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_gradient_confidence_interval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_gradient_confidence_interval()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_asymp_two_sided_pval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_asymp_two_sided_pval()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_score_two_sided_pval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_score_two_sided_pval()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_lik_ratio_two_sided_pval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_two_sided_pval()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_gradient_two_sided_pval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_gradient_two_sided_pval()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_wald_confidence_interval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_wald_confidence_interval()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_wald_two_sided_pval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_wald_two_sided_pval()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-approximate_bootstrap_distribution_beta_hat_T}{\code{InferenceCountKKHurdlePoissonOneLik$approximate_bootstrap_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_function}{\code{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_function()}}
+    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_cpp()}}
+    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceCountKKHurdlePoissonOneLik$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_rand_two_sided_pval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceCountKKHurdlePoissonOneLik-clone}{\code{InferenceCountKKHurdlePoissonOneLik$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_lik_ratio_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_lik_ratio_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_lik_ratio_bootstrap_two_sided_pval'><code>InferenceParamBootstrap$compute_lik_ratio_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_param_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_estimate'><code>InferenceParamBootstrap$compute_param_bootstrap_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_pval'><code>InferenceParamBootstrap$compute_param_bootstrap_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_diagnostics()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_estimate_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_estimate_diagnostics()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsympLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -135,6 +97,7 @@ KK Hurdle Poisson Combined-Likelihood Inference for Count Responses
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
@@ -142,325 +105,64 @@ KK Hurdle Poisson Combined-Likelihood Inference for Count Responses
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-initialize"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-initialize}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$new()}}{
-  Initialize KK hurdle-Poisson one-likelihood inference for
-  count responses and prepare the combined matched/reservoir likelihood.
-  See \code{\link[EDI:InferenceCountKKHurdlePoissonOneLik]{InferenceCountKKHurdlePoissonOneLik}}
-  and \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}}
-  for related likelihood and bootstrap methods.
+\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_function"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_function}{}}}
+\subsection{\code{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_function()}}{
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$new(
-  des_obj,
-  model_formula = NULL,
-  use_rcpp = TRUE,
-  optimization_alg = NULL,
-  verbose = FALSE,
-  smart_cold_start_default = NULL
+    \preformatted{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_function(
+  custom_randomization_statistic_function
 )}
     \if{html}{\out{</div>}}
   }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{des_obj}}{A completed \code{Design} object with count responses.}
-      \item{\code{model_formula}}{Optional formula for covariate adjustment.}
-      \item{\code{use_rcpp}}{Logical. If \code{TRUE} (default), use our internal Rcpp
-implementations where available. If \code{FALSE}, use \pkg{glmmTMB}.}
-      \item{\code{optimization_alg}}{Optimization algorithm.}
-      \item{\code{verbose}}{A flag indicating whether messages should be displayed.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
-    }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_cpp"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_cpp}{}}}
+\subsection{\code{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_cpp()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_cpp(fn)}
     \if{html}{\out{</div>}}
   }
 }
 
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_estimate"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_estimate}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_estimate()}}{
-  Compute the one-likelihood hurdle-Poisson treatment-effect
-  estimate by fitting the combined count likelihood and caching the
-  treatment log-rate coefficient for related p-value and interval methods.
+\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-approximate_randomization_distribution_beta_hat_T"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-approximate_randomization_distribution_beta_hat_T}{}}}
+\subsection{\code{InferenceCountKKHurdlePoissonOneLik$approximate_randomization_distribution_beta_hat_T()}}{
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_estimate(estimate_only = FALSE)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{estimate_only}}{If \code{TRUE}, skip standard-error calculations.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_estimate_with_bootstrap_weights"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_estimate_with_bootstrap_weights}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the combined hurdle-Poisson estimate under
-  Bayesian-bootstrap weights.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_estimate_with_bootstrap_weights(
-  subject_or_block_weights,
-  estimate_only = FALSE
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{subject_or_block_weights}}{Subject-, block-, cluster-, or matched-set
-bootstrap weights.}
-      \item{\code{estimate_only}}{If \code{TRUE}, compute only the weighted point
-estimate.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_asymp_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_asymp_confidence_interval}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_asymp_confidence_interval()}}{
-  Compute the configured asymptotic confidence interval for the
-  one-likelihood hurdle-Poisson treatment coefficient, delegating to Wald,
-  score, likelihood-ratio, or gradient paths as documented in
-  \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_asymp_confidence_interval(
-  alpha = 0.05
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Confidence level.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_score_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_score_confidence_interval}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_score_confidence_interval()}}{
-  Computes a design-conservative score confidence interval.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_score_confidence_interval(
-  alpha = 0.05
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Significance level.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_lik_ratio_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_lik_ratio_confidence_interval}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_confidence_interval()}}{
-  Computes a design-conservative likelihood-ratio confidence interval.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_confidence_interval(
-  alpha = 0.05
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Significance level.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_gradient_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_gradient_confidence_interval}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_gradient_confidence_interval()}}{
-  Computes a design-conservative gradient confidence interval.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_gradient_confidence_interval(
-  alpha = 0.05
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Significance level.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_asymp_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_asymp_two_sided_pval}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_asymp_two_sided_pval()}}{
-  Compute the configured asymptotic two-sided p-value for the
-  one-likelihood hurdle-Poisson treatment coefficient, delegating to Wald,
-  score, likelihood-ratio, or gradient paths as documented in
-  \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_asymp_two_sided_pval(delta = 0)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Null treatment effect value.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_score_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_score_two_sided_pval}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_score_two_sided_pval()}}{
-  Computes a design-conservative score p-value.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_score_two_sided_pval(delta = 0)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Null treatment effect value.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_lik_ratio_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_lik_ratio_two_sided_pval}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_two_sided_pval()}}{
-  Computes a design-conservative likelihood-ratio p-value.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_two_sided_pval(delta = 0)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Null treatment effect value.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_gradient_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_gradient_two_sided_pval}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_gradient_two_sided_pval()}}{
-  Computes a design-conservative gradient p-value.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_gradient_two_sided_pval(delta = 0)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Null treatment effect value.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_wald_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_wald_confidence_interval}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_wald_confidence_interval()}}{
-  Compute the Wald confidence interval for the one-likelihood
-  hurdle-Poisson treatment coefficient, falling back to bootstrap when the
-  model standard error is unavailable. See
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_wald_confidence_interval(
-  alpha = 0.05
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Confidence level.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_wald_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_wald_two_sided_pval}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_wald_two_sided_pval()}}{
-  Compute Wald two sided pval
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_wald_two_sided_pval(delta = 0)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Null treatment effect value.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-approximate_bootstrap_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-approximate_bootstrap_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$approximate_bootstrap_distribution_beta_hat_T()}}{
-  Uses the shared nonparametric bootstrap distribution contract; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$approximate_bootstrap_distribution_beta_hat_T(
-  B = 501,
+    \preformatted{InferenceCountKKHurdlePoissonOneLik$approximate_randomization_distribution_beta_hat_T(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
   show_progress = TRUE,
+  permutations = NULL,
   debug = FALSE,
-  bootstrap_type = NULL
+  zero_one_logit_clamp = .Machine$double.eps
 )}
     \if{html}{\out{</div>}}
   }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{B}}{Integer. Number of bootstrap samples (default 501).}
-      \item{\code{show_progress}}{Logical. Whether to show a progress bar.}
-      \item{\code{debug}}{Logical. Whether to return diagnostics.}
-      \item{\code{bootstrap_type}}{Character. Optional resampling scheme.}
-    }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceCountKKHurdlePoissonOneLik$compute_rand_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountKKHurdlePoissonOneLik$compute_rand_two_sided_pval(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  na.rm = TRUE,
+  show_progress = TRUE,
+  permutations = NULL,
+  zero_one_logit_clamp = .Machine$double.eps
+)}
     \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    A numeric vector of bootstrap estimates.
   }
 }
 

@@ -33,10 +33,22 @@
 #' }
 #' @export
 InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
-	inherit = InferenceParamBootstrap,
-	components = "KKGLMM",
-	metadata = list(likelihood_tier = "full"),
+	inherit = Inference,
+	# 2026-08-19 (fix_inference_hierarchy.md "KK And IVWC Estimators", "Migrate
+	# KK GEE and GLMM classes"): flipped from the hybrid `inherit =
+	# InferenceParamBootstrap` (already define_inference_class(), but still
+	# R6-inheriting BayesianBootstrap/ParametricLikelihoodBootstrap instead of
+	# composing them) -- same hybrid-state fix as InferenceOrdinalPropOddsRegr/
+	# InferenceOrdinalAdjCatLogitRegr earlier this stretch.
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
+	# capabilities = "likelihood_ratio" is required explicitly -- same
+	# rationale as every class composing ParametricLikelihoodBootstrap
+	# directly (bypassing StandardModelCache) this stretch.
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
 	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as
+		# every other continuous KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize inference for the linear mixed model
 		#'   \eqn{Y_i = \beta_0 + \beta_T W_i + X_i^\top \gamma + b_{g(i)} +
 		#'   \epsilon_i}, \eqn{b_g \sim N(0, \sigma_b^2)}, \eqn{\epsilon_i \sim
@@ -454,10 +466,39 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 			)
 		}
 	),
-	overrides = list(public = c(
-		"compute_estimate",
-		"compute_estimate_with_bootstrap_weights",
-		"compute_asymp_confidence_interval",
-		"compute_asymp_two_sided_pval"
-	))
+	overrides = list(
+		public = c(
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval",
+			"get_supported_testing_types"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"assert_finite_se",
+			"supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_information_preference",
+			"supports_observed_information",
+			"get_supported_information_preferences_impl",
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx",
+			"get_likelihood_test_spec",
+			"simulate_under_lik_null",
+			"shared",
+			"get_complexity_tier"
+		)
+	)
 )

@@ -2,81 +2,8 @@
 % Please edit documentation in R/inference_all_simple_wilcox.R
 \name{InferenceAllSimpleWilcox}
 \alias{InferenceAllSimpleWilcox}
-\alias{SimpleWilcoxSource}
 \title{Simple Wilcoxon Rank-Sum (Hodges-Lehmann) Inference}
-\usage{
-SimpleWilcoxSource
-}
 \description{
-Initialize simple Wilcoxon inference and prepare the
-  rank-based treatment statistic used by
-  \code{\link[EDI:InferenceAllSimpleWilcox]{InferenceAllSimpleWilcox}}.
-  Rejects \code{response_type = "incidence"} (Hodges-Lehmann degenerates
-  on binary data) and rejects censored survival data at construction; see
-  the class-level documentation for recommended alternatives in both
-  cases. Legal \code{response_type} values are \code{"continuous"},
-  \code{"count"}, \code{"proportion"}, \code{"survival"} (uncensored
-  only), and \code{"ordinal"}.
-
-Returns the \strong{Hodges-Lehmann} estimate of location
-  shift: the median of all pairwise treatment-minus-control differences
-  \eqn{y_{T,i} - y_{C,j}} (via \code{wilcox_hl_point_estimate_cpp()}), the
-  standard point estimate associated with the Wilcoxon rank-sum test.
-  Robust to outliers and does not assume normality or equal variances.
-
-Wilcoxon rank-sum test two-sided p-value testing
-  \eqn{H_0: \beta_T = \code{delta}} (via \code{stats::wilcox.test(yT, yC -
-  delta, exact = FALSE)$p.value}, the normal approximation with
-  continuity correction) — a genuine rank-based test, \strong{not} a
-  Wald test built from the Hodges-Lehmann estimate and its standard
-  error, despite living alongside \code{$compute_asymp_confidence_interval()}
-  in this class's "asymptotic" method family. For \code{delta != 0}, the
-  control arm's values are shifted by \code{delta} before testing, so the
-  test checks whether \eqn{y_T} and \eqn{y_C + \code{delta}} come from
-  the same distribution.
-
-Returns the Hodges-Lehmann confidence interval directly from
-  \code{stats::wilcox.test(yT, yC, conf.int = TRUE, exact = FALSE,
-  conf.level = 1 - alpha)} — the standard nonparametric interval
-  associated with the Wilcoxon rank-sum test, based on inverting the
-  rank-sum test statistic rather than a Wald normal-approximation
-  interval around \code{$compute_estimate()}'s point estimate (though the
-  two coincide asymptotically).
-
-Reports the jackknife point-estimate as explicitly
-  non-estimable for this Hodges-Lehmann estimator, rather than computing
-  a leave-one-out jackknife: the median-of-pairwise-differences
-  functional is not smooth enough for the delete-1 jackknife's
-  linear-approximation machinery to be reliable. This method exists
-  purely to record that unavailability (via
-  \code{private$cache_nonestimable_estimate()}) rather than silently
-  returning a misleading number; see
-  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
-  jackknife contract this method participates in.
-
-Reports the jackknife bias-correction estimate as
-  non-estimable for this simple Wilcoxon estimator, for the same reason
-  as \code{$compute_jackknife_estimate()} (the Hodges-Lehmann functional
-  is not smooth enough for the delete-1 jackknife); see
-  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
-  jackknife contract.
-
-Reports the jackknife standard error as non-estimable for
-  this simple Wilcoxon estimator, for the same reason as
-  \code{$compute_jackknife_estimate()}; see
-  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
-  jackknife contract.
-
-Reports the jackknife-Wald p-value as non-estimable here,
-  for the same reason as \code{$compute_jackknife_estimate()}; see
-  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
-
-Reports the jackknife-Wald confidence interval as
-  non-estimable here, for the same reason as
-  \code{$compute_jackknife_estimate()}; see
-  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
-}
-\details{
 Fits a non-parametric treatment-effect estimator based on the two-sample
 Wilcoxon rank-sum test: the point estimate is the \strong{Hodges-Lehmann}
 location-shift estimate (the median of all pairwise treatment-minus-control
@@ -117,4 +44,212 @@ Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
   Wilcoxon, F. (1945). "Individual Comparisons by Ranking Methods."
   \emph{Biometrics Bulletin}, 1(6), 80-83, \doi{10.2307/3001968}, for the
   underlying rank-sum test.
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceAllSimpleWilcox}
+}
+\section{Methods}{
+\subsection{Public methods}{
+  \itemize{
+    \item \href{#method-InferenceAllSimpleWilcox-initialize}{\code{InferenceAllSimpleWilcox$new()}}
+    \item \href{#method-InferenceAllSimpleWilcox-compute_estimate}{\code{InferenceAllSimpleWilcox$compute_estimate()}}
+    \item \href{#method-InferenceAllSimpleWilcox-compute_asymp_two_sided_pval}{\code{InferenceAllSimpleWilcox$compute_asymp_two_sided_pval()}}
+    \item \href{#method-InferenceAllSimpleWilcox-compute_asymp_confidence_interval}{\code{InferenceAllSimpleWilcox$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferenceAllSimpleWilcox-compute_jackknife_estimate}{\code{InferenceAllSimpleWilcox$compute_jackknife_estimate()}}
+    \item \href{#method-InferenceAllSimpleWilcox-compute_jackknife_bias_estimate}{\code{InferenceAllSimpleWilcox$compute_jackknife_bias_estimate()}}
+    \item \href{#method-InferenceAllSimpleWilcox-compute_jackknife_std_error}{\code{InferenceAllSimpleWilcox$compute_jackknife_std_error()}}
+    \item \href{#method-InferenceAllSimpleWilcox-compute_jackknife_wald_two_sided_pval}{\code{InferenceAllSimpleWilcox$compute_jackknife_wald_two_sided_pval()}}
+    \item \href{#method-InferenceAllSimpleWilcox-compute_jackknife_wald_confidence_interval}{\code{InferenceAllSimpleWilcox$compute_jackknife_wald_confidence_interval()}}
+    \item \href{#method-InferenceAllSimpleWilcox-clone}{\code{InferenceAllSimpleWilcox$clone()}}
+  }
+}
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
+<ul>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_analysis_data'><code>Inference$get_analysis_data()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_covariates'><code>Inference$get_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_design_object'><code>Inference$get_design_object()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_model_formula'><code>Inference$get_model_formula()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
+</ul>
+</details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleWilcox-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleWilcox-initialize}{}}}
+\subsection{\code{InferenceAllSimpleWilcox$new()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleWilcox$new(
+  des_obj,
+  model_formula = NULL,
+  verbose = FALSE,
+  max_resample_attempts = 50L,
+  smart_cold_start_default = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
+assigned and response y is recorded within.}
+      \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
+the formula from the design object is used and its pre-computed design matrix is
+reused. If a formula is provided, a new design matrix is constructed from the
+design's imputed covariates.}
+      \item{\code{verbose}}{Whether to print progress messages.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
+likelihood-based models. Explicit starts always override this object-level policy.
+\code{NULL} (default) consults the global cold-start dispatch policy.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleWilcox-compute_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleWilcox-compute_estimate}{}}}
+\subsection{\code{InferenceAllSimpleWilcox$compute_estimate()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleWilcox$compute_estimate(estimate_only = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleWilcox-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleWilcox-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferenceAllSimpleWilcox$compute_asymp_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleWilcox$compute_asymp_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleWilcox-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleWilcox-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferenceAllSimpleWilcox$compute_asymp_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleWilcox$compute_asymp_confidence_interval(alpha = 0.05)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleWilcox-compute_jackknife_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleWilcox-compute_jackknife_estimate}{}}}
+\subsection{\code{InferenceAllSimpleWilcox$compute_jackknife_estimate()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleWilcox$compute_jackknife_estimate(unit = "auto")}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleWilcox-compute_jackknife_bias_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleWilcox-compute_jackknife_bias_estimate}{}}}
+\subsection{\code{InferenceAllSimpleWilcox$compute_jackknife_bias_estimate()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleWilcox$compute_jackknife_bias_estimate(unit = "auto")}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleWilcox-compute_jackknife_std_error"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleWilcox-compute_jackknife_std_error}{}}}
+\subsection{\code{InferenceAllSimpleWilcox$compute_jackknife_std_error()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleWilcox$compute_jackknife_std_error(unit = "auto")}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleWilcox-compute_jackknife_wald_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleWilcox-compute_jackknife_wald_two_sided_pval}{}}}
+\subsection{\code{InferenceAllSimpleWilcox$compute_jackknife_wald_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleWilcox$compute_jackknife_wald_two_sided_pval(
+  delta = 0,
+  unit = "auto"
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleWilcox-compute_jackknife_wald_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleWilcox-compute_jackknife_wald_confidence_interval}{}}}
+\subsection{\code{InferenceAllSimpleWilcox$compute_jackknife_wald_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleWilcox$compute_jackknife_wald_confidence_interval(
+  alpha = 0.05,
+  unit = "auto"
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleWilcox-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleWilcox-clone}{}}}
+\subsection{\code{InferenceAllSimpleWilcox$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleWilcox$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
 }

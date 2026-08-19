@@ -4,7 +4,9 @@
 # is a separate entry point used only by .githooks/pre-push, so that a local
 # push isn't stuck watching one line scroll by per test file (or, worse, one
 # line per failing expectation via testthat's _problems/ extraction). It
-# reports a fixed 4-line block that redraws in place instead.
+# redraws a single status line in place instead, and diverts any other
+# stdout/message() noise from test bodies or package code to a log file so
+# it can't interleave with that line (see the sink() setup near the bottom).
 #
 # Must run with cwd = R/EDI/tests (same requirement test_check() has
 # internally): test_dir("testthat", ...) below is relative to the CWD.
@@ -32,10 +34,12 @@ TallyReporter <- R6::R6Class("TallyReporter",
 		timings_path = NULL,
 		errors_path = NULL,
 		last_draw_time = 0,
+		interactive_tty = FALSE,
 
-		initialize = function(...) {
+		initialize = function(interactive_tty = FALSE, ...) {
 			super$initialize(...)
 			self$start_time <- Sys.time()
+			self$interactive_tty <- interactive_tty
 			# Resolved now, while cwd is still R/EDI/tests: test_dir() setwd()s
 			# into testthat/ before end_reporter fires, so a relative path there
 			# would land one directory too deep.
@@ -96,7 +100,7 @@ TallyReporter <- R6::R6Class("TallyReporter",
 			had_issues <- self$write_errors()
 			self$write_timings()
 			if (had_issues) {
-				cat(sprintf("test output can be found in %s\n", self$errors_path))
+				cat(sprintf("test output can be found in %s\n", self$errors_path), file = stderr())
 			}
 		},
 
@@ -151,11 +155,11 @@ TallyReporter <- R6::R6Class("TallyReporter",
 			total <- sum(timings$elapsed_secs)
 			top <- head(timings, 10)
 			cat(sprintf("Per-file timings (%d files, %.0fs total) written to %s\n",
-				nrow(timings), total, self$timings_path))
+				nrow(timings), total, self$timings_path), file = stderr())
 			cat(sprintf("Slowest files (top %d = %.0f%% of total):\n",
-				nrow(top), 100 * sum(top$elapsed_secs) / max(total, .Machine$double.eps)))
-			cat(sprintf("  %8.1fs  %s\n", top$elapsed_secs, top$file), sep = "")
-			cat("\n")
+				nrow(top), 100 * sum(top$elapsed_secs) / max(total, .Machine$double.eps)), file = stderr())
+			cat(sprintf("  %8.1fs  %s\n", top$elapsed_secs, top$file), sep = "", file = stderr())
+			cat("\n", file = stderr())
 		},
 
 		draw = function(force = FALSE) {
@@ -165,17 +169,21 @@ TallyReporter <- R6::R6Class("TallyReporter",
 			# self$lines_drawn staying exactly in sync with what's on screen --
 			# in practice (confirmed against a real interactive terminal, not
 			# just a piped/non-tty context) it still desynced and produced new
-			# scrolling lines instead of overwriting. Now uses a single line:
-			# on a real tty, rewritten in place with a bare carriage return +
-			# clear-line (the same technique git/npm/cargo use for progress --
-			# nothing to get out of sync since there's only ever one line).
-			# When stdout isn't a tty (piped through a tool harness, redirected
-			# to a log file, etc.), \r isn't interpreted, so fall back to an
-			# infrequent, ordinary newline-terminated heartbeat instead --
-			# otherwise every throttled draw would emit raw, unstripped
-			# "\r\033[2K" control bytes into the log ahead of each line.
-			interactive_tty <- isatty(stdout())
-			min_interval <- if (interactive_tty) 0.1 else 5
+			# scrolling lines instead of overwriting. Then switched to a
+			# single line rewritten in place with a bare carriage return +
+			# clear-line -- but that still broke, because test bodies and
+			# package code (e.g. inference constructors' verbose=TRUE logging,
+			# WIP test-helper debug cat()/print() calls) share the same stdout
+			# stream and have no coordination with this reporter: whatever
+			# they print lands wherever our cursor happens to be. The actual
+			# fix is upstream of draw() -- the top-level script sinks stdout
+			# (and message()/warning() traffic) to a log file for the
+			# duration of the run, so nothing but this reporter's own status
+			# reaches the terminal. This method writes to stderr, which that
+			# sink leaves untouched, using self$interactive_tty (captured
+			# before sinking started, since sink() would make isatty(stdout())
+			# report the log file's tty-ness instead of the real terminal's).
+			min_interval <- if (self$interactive_tty) 0.1 else 5
 			now <- as.numeric(Sys.time())
 			if (!force && (now - self$last_draw_time) < min_interval) {
 				return(invisible())
@@ -188,18 +196,54 @@ TallyReporter <- R6::R6Class("TallyReporter",
 				"EDI R test suite -- %s (%ds elapsed) pass: %-6d fail: %-6d warn: %-6d skip: %-6d file: %s",
 				status, elapsed, self$n_ok, self$n_fail, self$n_warn, self$n_skip, self$current_file
 			)
-			if (interactive_tty) {
-				cat("\r\033[2K", line, if (force) "\n" else "", sep = "")
+			if (self$interactive_tty) {
+				cat("\r\033[2K", line, if (force) "\n" else "", sep = "", file = stderr())
 			} else {
-				cat(line, "\n", sep = "")
+				cat(line, "\n", sep = "", file = stderr())
 			}
 		}
 	)
 )
 
-reporter <- TallyReporter$new()
+# Captured before sinking starts: once stdout is sunk to a file connection,
+# isatty(stdout()) would report the log file's tty-ness (always FALSE), not
+# the real terminal's.
+interactive_tty <- isatty(stderr())
+reporter <- TallyReporter$new(interactive_tty = interactive_tty)
 withr::local_envvar(TESTTHAT_IS_CHECKING = "true")
-testthat::test_dir("testthat", package = "EDI", reporter = reporter, load_package = "installed", stop_on_failure = FALSE)
+
+# Test bodies and package code (e.g. a verbose=TRUE inference constructor's
+# logging, WIP test-helper debug cat()/print() calls) write to stdout with no
+# coordination with this reporter's live status line -- left alone, that
+# output lands wherever the reporter's cursor happens to be and breaks the
+# single-line-in-place redraw. Divert it to a gitignored log file for the
+# duration of the run instead; TallyReporter's own status writes go to
+# stderr (see draw()), which a type="output"-only sink leaves untouched --
+# a type="message" sink was tried too (to also catch message()/warning()
+# noise) but verified by hand that it ALSO redirects explicit
+# cat(file=stderr()) once active, silently swallowing this reporter's own
+# output into the log. Not worth that interaction: the noise actually
+# observed in practice has been plain cat()/print(), which type="output"
+# alone already handles.
+stdout_log_path <- file.path(getwd(), ".prepush_test_stdout.log")
+stdout_log_con <- file(stdout_log_path, open = "wt")
+sink(stdout_log_con, type = "output")
+
+run_error <- tryCatch({
+	testthat::test_dir("testthat", package = "EDI", reporter = reporter, load_package = "installed", stop_on_failure = FALSE)
+	NULL
+}, error = function(e) e)
+
+sink(type = "output")
+close(stdout_log_con)
+
+if (!is.null(run_error)) {
+	cat(sprintf(
+		"EDI R test suite -- errored: %s (see %s for any diverted output)\n",
+		conditionMessage(run_error), stdout_log_path
+	), file = stderr())
+	quit(status = 1, save = "no")
+}
 
 if (reporter$n_fail > 0) {
 	quit(status = 1, save = "no")

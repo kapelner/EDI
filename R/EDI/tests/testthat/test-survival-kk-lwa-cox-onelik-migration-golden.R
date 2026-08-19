@@ -101,6 +101,36 @@ test_that("InferenceSurvivalKKLWACoxPHOneLik migration produces identical output
 	}
 })
 
+test_that("InferenceSurvivalKKLWACoxPHOneLik: compute_rand_two_sided_pval() then approximate_rand_bootstrap_distribution_beta_hat_T() on the SAME object no longer segfaults", {
+	# Regression test for the native segfault documented in
+	# fix_inference_hierarchy.md's Follow-Ups ("InferenceSurvivalKKLWACoxPHOneLik
+	# native segfault"). Root cause: compute_treatment_estimate_during_
+	# randomization_inference() re-read `private$dead` from `private$des_obj_
+	# priv_int$dead`, a field that no longer exists post the y/y_L/y_R
+	# migration (Design never stores a raw `dead` field any more) and is
+	# therefore always NULL -- clobbering the correctly-initialized
+	# `private$dead` (originally `des_obj$get_effective_dead()`) with NULL.
+	# That corruption persisted on the live object after compute_rand_two_
+	# sided_pval() returned. A later call to approximate_rand_bootstrap_
+	# distribution_beta_hat_T() reused that corrupted live `private$dead` in
+	# load_rand_bootstrap_assignment_into_worker()'s `dead_sim = as.numeric(
+	# private$dead[draw$i_b])`, producing a zero-length `dead` vector that was
+	# passed straight into fast_coxph_regression_cpp() (whose native code reads
+	# dead[i] for i up to nrow(X)-1), triggering an out-of-bounds native read.
+	# Fixed by re-deriving `dead` the same way Design$get_effective_dead()
+	# does (`as.numeric(!is.na(private$y))`) instead of reading the defunct
+	# field.
+	des = survival_kk_lwa_cox_onelik_golden_design()
+	inf = InferenceSurvivalKKLWACoxPHOneLik$new(des)
+	inf$set_seed(20260817L)
+	p1 = inference_migration_with_seed(20260817L, inf$compute_rand_two_sided_pval(delta = 0, r = 9L))
+	expect_true(is.numeric(p1))
+	# This second call on the SAME object is what used to segfault R.
+	boot_distr = inference_migration_with_seed(20260817L, inf$approximate_rand_bootstrap_distribution_beta_hat_T(B = 9L))
+	expect_true(is.numeric(boot_distr))
+	expect_length(boot_distr, 9L)
+})
+
 test_that("InferenceSurvivalKKLWACoxPHOneLik is marked migrated and eval(body) is gone from its files", {
 	EDI:::populate_inference_class_registry()
 	metadata = EDI:::get_inference_class_metadata("InferenceSurvivalKKLWACoxPHOneLik")

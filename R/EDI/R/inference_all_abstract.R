@@ -411,6 +411,27 @@ Inference = R6::R6Class("Inference",
 		requires_blocking_design = function(){
 			FALSE
 		},
+		# Declares what treatment-effect quantity this class's compute_estimate()
+		# reports -- e.g. "mean_difference", "log_odds_ratio", "hazard_ratio" --
+		# for cross-class comparison (InferenceSuite$run_all_inference()'s
+		# Combined Evidence Metric groups classes by this to avoid a
+		# many-near-identical-methods family outvoting a lone distinct one; see
+		# inference_suite_inspect.md's "Combined Evidence Metric" section and
+		# marginal_estimand_report.md). Default NA_character_ -- declaring a
+		# value is opt-in, not required; most classes have never needed to name
+		# their estimand since there was no cross-class comparison consuming it
+		# until now. A class that wants to participate overrides this to a
+		# fixed string. Mirrors requires_blocking_design() above exactly: a
+		# trivial, argument-less, self/private-free literal so
+		# infer_inference_estimand_type() (inference_class_registry.R) can
+		# invoke the nearest ancestor's copy directly from the generator's own
+		# private_methods list, without constructing an instance, to populate
+		# the class metadata registry. Declare-only -- no switching capability;
+		# that is the separate, heavier `MarginalEstimand` component
+		# (marginal_estimand_report.md), not this.
+		get_estimand_type = function(){
+			NA_character_
+		},
 		seed = NULL,
 		harden = TRUE,
 		des_obj = NULL,		des_obj_priv_int = NULL,

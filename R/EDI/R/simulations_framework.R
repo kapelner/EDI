@@ -4241,7 +4241,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           InferenceIncidKKCondLogitOneLik,
           InferenceIncidCMH,
           InferenceIncidExtendedRobins,
-          InferenceIncidenceExactZhang,
+          InferenceIncidExactZhang,
           InferenceIncidExactFisher,
           InferenceIncidExactBinomial
         ),

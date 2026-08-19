@@ -6,6 +6,13 @@
 \description{
 Fits a zero-inflated negative binomial regression for count responses using
 the treatment indicator and, optionally, all recorded covariates as predictors.
+The reported treatment effect is the coefficient from the conditional count
+component, on the log-rate scale, \strong{conditional on the response coming
+from the count process, not the excess-zero-inflation mechanism}: it is not
+the effect on the unconditional mean \eqn{E[Y]}, which also depends on how
+treatment shifts the excess-zero probability. A marginal (unconditional-mean)
+estimand is not yet implemented for this class (see
+\code{marginal_estimand_report.md}).
 }
 \examples{
 \donttest{

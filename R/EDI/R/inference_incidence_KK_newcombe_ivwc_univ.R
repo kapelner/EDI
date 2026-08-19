@@ -6,10 +6,24 @@
 #' inverse-variance weighted combination (IVWC).
 #'
 #' @details
-#' The matched-pair component uses the discordant pairs to estimate the treatment
-#' effect and its variance. The reservoir component treats unmatched subjects as
-#' independent samples. The two estimates are combined using the standard IVWC
-#' framework of the package.
+#' The matched-pair component applies the paired Newcombe (Method-10-style
+#' Wilson-score) interval to the discordant pairs to estimate the treatment
+#' effect and its variance (Newcombe 1998). The reservoir component applies the
+#' independent-samples Newcombe interval, treating unmatched subjects as two
+#' independent binomial samples. The two component estimates
+#' \eqn{\hat\theta_1, \hat\theta_2} are combined by inverse-variance weighting,
+#' \eqn{\hat\theta = w_1 \hat\theta_1 + w_2 \hat\theta_2}, \eqn{w_j =
+#' (1/\hat V_j) / \sum_k (1/\hat V_k)}, the standard IVWC framework used
+#' throughout the package's KK inference classes. \code{likelihood_tier =
+#' "none"}: this is a closed-form Wilson-score-type estimator, not a fitted
+#' likelihood model, so no likelihood-ratio or parametric-bootstrap methods are
+#' exposed. If a design has no matched pairs or no reservoir subjects, the
+#' single available component is used directly rather than combined.
+#'
+#' @references Newcombe, R. G. (1998). Interval Estimation for the Difference
+#'   Between Independent Proportions: Comparison of Eleven Methods.
+#'   \emph{Statistics in Medicine}, 17(8), 873-890.
+#'   \doi{10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I}
 #'
 #' @examples
 #' \donttest{
@@ -53,9 +67,19 @@ KKNewcombeRiskDiffIVWCSource = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Computes the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only flag.
+		#' @description Computes the compound Newcombe risk-difference point estimate
+		#'   \eqn{\hat\theta = w_1 \hat\theta_1 + w_2 \hat\theta_2} on the risk-difference
+		#'   (probability) scale, where \eqn{\hat\theta_1} is the paired-Newcombe
+		#'   discordant-pair estimate from matched pairs and \eqn{\hat\theta_2} is the
+		#'   independent-Newcombe estimate from reservoir subjects, combined by
+		#'   inverse-variance weighting \eqn{w_j \propto 1/\widehat{\mathrm{Var}}(\hat\theta_j)}
+		#'   (falls back to the single available component when one has zero subjects).
+		#'   Caches intermediate match/reservoir statistics for reuse by
+		#'   \code{compute_asymp_confidence_interval()} and
+		#'   \code{compute_asymp_two_sided_pval()}.
+		#' @param estimate_only If \code{TRUE}, skip caching the variance components
+		#'   needed for inference and return only the point estimate (cheaper for
+		#'   simulation/power-calculation callers that never request a CI or p-value).
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			est = private$cached_values$beta_hat_T

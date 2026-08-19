@@ -80,9 +80,17 @@ KKQuantileRegrOneLikSource = list(
 		initialize = function(des_obj, model_formula = NULL, tau = 0.5, transform_y_fn = identity,  verbose = FALSE){
 			.init_kk_quantile_regr_one_lik(self, private, super, des_obj, model_formula, tau, transform_y_fn, verbose)
 		},
-		#' @description Compute the quantile-regression treatment estimate.
+		#' @description Point estimate of the treatment coefficient \eqn{\beta_T} at quantile
+		#'   \code{tau} from a single stacked quantile regression (\pkg{quantreg}) fit jointly over
+		#'   matched-pair difference rows and reservoir rows -- the check-function loss
+		#'   \eqn{\rho_\tau(u) = u(\tau - \mathbf{1}_{u<0})} is minimized jointly across both data
+		#'   sources in one fit, analogous to
+		#'   \code{\link[EDI:InferenceContinKKOLSOneLik]{InferenceContinKKOLSOneLik}}'s stacked OLS
+		#'   design but with a quantile-regression objective. At \code{tau = 0.5} (the default) this
+		#'   is the median treatment effect.
 		#' @param estimate_only Whether to skip standard-error calculations.
-		#' @return The treatment estimate.
+		#' @return Numeric scalar: the \eqn{\tau}-quantile treatment-effect estimate on the
+		#'   outcome's natural scale.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared_combined_likelihood(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T

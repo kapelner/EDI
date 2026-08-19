@@ -34,17 +34,17 @@ expect_valid_run_all_inference_report = function(des_obj, expected_design_family
 	tbl = res$results_table
 	expect_identical(
 		names(tbl),
-		c("inference_class", "response_type", "design_family", "likelihood_tier",
-		  "estimate", "se", "ci_lower", "ci_upper", "ci_method",
+		c("inference_class", "cov_model", "response_type", "design_family", "likelihood_tier",
+		  "estimate", "se", "ci_a", "ci_b", "ci_method",
 		  "pval", "pval_method", "estimand", "fit_secs", "warnings",
-		  "status", "message")
+		  "status", "message", "weight")
 	)
 	expect_identical(nrow(tbl), length(suite$applicable_design_classes))
 	expect_identical(names(res$results), suite$applicable_design_classes)
 
 	if (nrow(tbl) > 0L) {
 		expect_true(all(tbl$design_family == expected_design_family))
-		expect_true(all(tbl$status %in% c("ok", "nonestimable", "error")))
+		expect_true(all(tbl$status %in% c("ok", "nonest", "error")))
 		expect_true(any(tbl$status == "ok"))
 		ok = tbl[tbl$status == "ok", , drop = FALSE]
 		# A status == "ok" row must have a finite estimate; a class with no
@@ -456,4 +456,37 @@ test_that("run_all_inference: num_cores > 1 fits in parallel and produces identi
 	# fit_secs will differ run to run; compare everything else.
 	compare_cols = setdiff(names(seq_tbl), "fit_secs")
 	expect_identical(seq_tbl[compare_cols], par_tbl[compare_cols])
+})
+
+test_that("run_all_inference: estimand is a registry-level fact, populated regardless of fit outcome", {
+	set.seed(20260819)
+	n = 20L
+	des = DesignFixedBernoulli$new(n = n, response_type = "incidence", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	w = des$get_w()
+	des$add_all_subject_responses(rbinom(n, 1, plogis(-0.2 + 0.6 * w)))
+	suite = InferenceSuite$new(des)
+	target = intersect(
+		suite$applicable_design_classes,
+		c("InferenceIncidGCompRiskDiff", "InferenceIncidGCompRiskRatio", "InferenceIncidLogRegr")
+	)
+	skip_if(length(target) < 2L, "gcomp classes not applicable to this fixture")
+
+	capture.output({
+		res <- suite$run_all_inference(screen = TRUE, plots = FALSE, classes = target)
+	})
+	tbl = res$results_table
+	row_rd = tbl[tbl$inference_class == "InferenceIncidGCompRiskDiff", ]
+	row_rr = tbl[tbl$inference_class == "InferenceIncidGCompRiskRatio", ]
+	row_logit = tbl[tbl$inference_class == "InferenceIncidLogRegr", ]
+
+	expect_identical(row_rd$estimand, "RD")
+	# The whole point of reading estimand from the class metadata registry
+	# instead of the fitted instance: it must still be populated even when
+	# status != "ok" (registry lookup needs no successful construction/fit).
+	expect_identical(row_rr$estimand, "RR")
+	expect_true(row_rr$status %in% c("ok", "nonest"))
+	# A class with no declared get_estimand_type() reports NA, not an error.
+	expect_identical(row_logit$estimand, NA_character_)
 })

@@ -233,7 +233,7 @@ if [ "$need_install" = "1" ]; then
 	# This install is only ever used to run tests/scripts against, never as a
 	# package someone actually loads and uses day-to-day -- skip everything
 	# that doesn't affect whether the code runs correctly.
-	if ! R CMD INSTALL --no-byte-compile --no-lazydata --no-html --no-demo --no-help --no-pdf R/EDI; then
+	if ! R CMD INSTALL --no-byte-compile --no-html --no-demo --no-help R/EDI; then
 		echo "pre-push: EDI install FAILED." >&2
 		abort_push
 	fi

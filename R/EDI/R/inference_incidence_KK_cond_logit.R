@@ -134,11 +134,29 @@ ConditionalLogitPartialLikelihoodSource = list(
 #' The matched-pair component uses the conditional logistic likelihood, and the
 #' reservoir component uses the standard Bernoulli log-likelihood.
 #'
-#' @export
-InferenceIncidKKCondLogitOneLik = R6::R6Class("InferenceIncidKKCondLogitOneLik",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
-	public = as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(
+#' @keywords internal
+# Static leaf source (2026-08-19 migration, fix_inference_hierarchy.md
+# "Full-Likelihood Estimators" / "KK And IVWC Estimators"): formerly a
+# single-layer R6 leaf raw-splicing InferenceMixinKKPassThrough$public/
+# private onto InferenceParamBootstrap. This class's own
+# compute_asymp_confidence_interval/compute_asymp_two_sided_pval fast-path
+# the "wald" testing type directly and fall back to `super$...()` for
+# score/gradient/lik_ratio (reaching InferenceAsympLik's generic switch
+# dispatch, harvested verbatim as the LikelihoodTests component) -- unlike
+# the count OneLik classes' six-method "design-conservative" pattern, only
+# these two methods need the generic-`self$`-aliased-override fix (same
+# pattern as CountKKHurdlePoissonOneLikLikelihoodSource/
+# CountKKCondPoissonOneLikLikelihoodSource; see either's header comment for
+# the full rationale). This class's own compute_basic_match_data = function()
+# private$compute_basic_kk_match_data_impl() is a verified no-op restatement
+# of InferenceMixinKKPassThrough's own default body -- dropped. This class
+# already defined get_standard_error itself, so no Lesson-5 fix is needed
+# here (unlike the count OneLik classes). Registered as
+# `IncidKKCondLogitOneLikLikelihood` (`dependencies = c("KKPassThrough",
+# "ParametricLikelihoodBootstrap")` -- fits one joint combined logistic
+# likelihood directly, no KKCompound-style variance-weighted combination).
+IncidKKCondLogitOneLikLikelihoodSource = list(
+	public = list(
 		#' @description Initialize conditional-logistic combined-likelihood inference
 		#'   for KK binary responses and prepare matched-pair conditional-logit plus
 		#'   reservoir Bernoulli likelihood components. See
@@ -161,6 +179,10 @@ InferenceIncidKKCondLogitOneLik = R6::R6Class("InferenceIncidKKCondLogitOneLik",
 			}
 			private$init_kk_passthrough(des_obj)
 		},
+		# Generic-`self$`-aliased overrides -- see this Source's header
+		# comment (same pattern as the count OneLik Sources).
+		compute_asymp_confidence_interval_generic = InferenceAsympLik$public_methods$compute_asymp_confidence_interval,
+		compute_asymp_two_sided_pval_generic = InferenceAsympLik$public_methods$compute_asymp_two_sided_pval,
 		#' @description Computes the class-specific treatment-effect estimate; see
 		#'   \code{\link[EDI:Inference]{Inference}}.
 		#' @param estimate_only Logical. If TRUE, skip variance component calculations.
@@ -191,7 +213,7 @@ InferenceIncidKKCondLogitOneLik = R6::R6Class("InferenceIncidKKCondLogitOneLik",
 		#' @param alpha Numeric. Significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (!identical(self$get_testing_type(), "wald")) {
-				return(super$compute_asymp_confidence_interval(alpha = alpha))
+				return(self$compute_asymp_confidence_interval_generic(alpha = alpha))
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -201,24 +223,20 @@ InferenceIncidKKCondLogitOneLik = R6::R6Class("InferenceIncidKKCondLogitOneLik",
 		#' @param delta Numeric. Null treatment effect value (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (!identical(self$get_testing_type(), "wald")) {
-				return(super$compute_asymp_two_sided_pval(delta = delta))
+				return(self$compute_asymp_two_sided_pval_generic(delta = delta))
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B Integer. Number of bootstrap samples (default 501).
-		#' @param show_progress Logical. Whether to show a progress bar.
-		#' @param debug Logical. Whether to return diagnostics.
-		#' @param bootstrap_type Character. Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_distribution_beta_hat_T))
 		}
-	))),
-	private = as.list(modifyList(as.list(InferenceMixinKKPassThrough$private), list(
-		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
+		# approximate_bootstrap_distribution_beta_hat_T's old eval(body(...))
+		# restatement dropped as a verified no-op (same argument as the count
+		# OneLik Sources).
+	),
+	private = list(
+		# compute_basic_match_data's old restatement (`function()
+		# private$compute_basic_kk_match_data_impl()`) dropped as a verified
+		# no-op -- InferenceMixinKKPassThrough's own default body is
+		# identical.
 		cached_mod = NULL,
 		max_abs_reasonable_coef = 1e4,
 		shared_combined_likelihood = function(estimate_only = FALSE){
@@ -398,12 +416,154 @@ InferenceIncidKKCondLogitOneLik = R6::R6Class("InferenceIncidKKCondLogitOneLik",
 				}
 			)
 		}
-	)))
+	)
 )
-#' Conditional Logistic IVWC Inference for KK Designs with Binary Responses
+
+#' One-Likelihood Conditional-Logistic Inference for KK Binary Designs
 #'
+#' Estimates a treatment log-odds-ratio \eqn{\beta_T} for binary
+#' (incidence) outcomes collected under a KK matching-on-the-fly design
+#' (\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} or
+#' subclass) by maximizing one combined likelihood that couples a
+#' conditional-logistic (intercept-free, within-matched-pair) likelihood
+#' for matched subjects with an ordinary logistic likelihood for reservoir
+#' subjects, sharing a single treatment coefficient across both pieces.
+#' This is the "one-likelihood" counterpart to
+#' \code{\link[EDI:InferenceIncidKKCondLogitIVWC]{InferenceIncidKKCondLogitIVWC}},
+#' which instead fits the matched and reservoir pieces separately and
+#' pools them by inverse-variance weighting; here the treatment coefficient
+#' is a single joint MLE, and \code{likelihood_tier = "full"} exposes
+#' likelihood-ratio, score, and gradient inference plus a parametric
+#' likelihood bootstrap in addition to Wald.
+#'
+#' \strong{Estimand.} \eqn{\beta_T}, the treatment coefficient of a
+#' logistic mean model \eqn{\mathrm{logit}(P(Y=1 \mid W,X)) = \beta_0 +
+#' \beta_T W + X\beta}; \eqn{\exp(\hat\beta_T)} is the treatment-vs-control
+#' odds ratio.
+#'
+#' \strong{Model.} Matched pairs contribute McFadden-style conditional
+#' logistic likelihood terms that condition away the pair-specific nuisance
+#' intercept (see \code{build_matching_combined_clogit_design_cpp}/
+#' \code{collect_discordant_pairs_cpp}); reservoir subjects contribute an
+#' ordinary logistic likelihood with one shared intercept. The combined
+#' negative log-likelihood is minimized jointly in
+#' \eqn{(\beta_0, \beta_T, \beta)} via \code{fast_logistic_regression_cpp}/
+#' \code{fast_logistic_regression_with_var_cpp}. When
+#' \code{get_testing_type() != "wald"}, asymptotic CI/p-value calls are
+#' routed through \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}}'s
+#' generic score/likelihood-ratio/gradient dispatch instead of the
+#' design's own Wald machinery.
+#'
+#' \strong{Assumptions.} Independence across matched pairs and reservoir
+#' subjects given covariates; correct logistic mean specification; a KK
+#' matching-on-the-fly design supplying the matched/reservoir partition.
+#' No response censoring is supported (checked at construction via
+#' \code{assertNoCensoring()}).
+#'
+#' @references
+#' Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
+#' allocation with higher power and efficiency." \emph{Biometrics}, 70(2),
+#' 378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
+#'
+#' @seealso Analogous Python API for conditional logistic regression:
+#'   \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
+#'   discrete models} (\code{ConditionalLogit}).
+#'   \href{https://en.wikipedia.org/wiki/Logistic_regression}{Logistic
+#'   regression} (orientation).
+#' @export
+# Migrated 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
+# Estimators" / "KK And IVWC Estimators"): see
+# IncidKKCondLogitOneLikLikelihoodSource above.
+InferenceIncidKKCondLogitOneLik = define_inference_class(
+	classname = "InferenceIncidKKCondLogitOneLik",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "IncidKKCondLogitOneLikLikelihood"),
+	public = list(
+		# Pinned from InferenceRandCI (incidence class -- Lesson 3): the
+		# non-KK sibling InferenceIncidRiskDiff and every other incidence KK
+		# migration this stretch pin RandCI for the Zhang randomization
+		# dispatch, not InferenceRand.
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+	),
+	# capabilities = "likelihood_ratio" is required explicitly -- same
+	# rationale as every class composing ParametricLikelihoodBootstrap
+	# directly (bypassing StandardModelCache).
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"compute_asymp_confidence_interval_generic",
+			"compute_asymp_two_sided_pval_generic",
+			"get_supported_testing_types",
+			"approximate_bootstrap_distribution_beta_hat_T"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_standard_error",
+			"supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_information_preference",
+			"supports_observed_information",
+			"get_supported_information_preferences_impl",
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx",
+			"get_likelihood_test_spec",
+			"simulate_under_lik_null"
+		)
+	)
+)
+
+#' Conditional Logistic IVWC Inference (KK Designs, Binary Response)
+#'
+#' Inverse-variance-weighted combination (IVWC) of two independently fit
+#' conditional-likelihood pieces for KK matched-pair-plus-reservoir binary
+#' designs: matched pairs are analyzed with exact conditional logistic
+#' regression (\code{\link{conditional_logit_fit_matched_pairs}}, which
+#' conditions out the pair-specific nuisance intercept and estimates only the
+#' treatment log-odds-ratio \eqn{\beta_T} from discordant pairs, or the joint
+#' \code{clogit}-style likelihood when covariates are present), and reservoir
+#' subjects are analyzed with ordinary logistic regression
+#' (\code{\link{conditional_logit_fit_reservoir}}). If \eqn{\hat\beta_m,
+#' \hat\sigma^2_m} and \eqn{\hat\beta_r, \hat\sigma^2_r} are the matched-pair
+#' and reservoir estimates and their variances, the combined estimate is the
+#' variance-weighted average
+#' \deqn{\hat\beta_T = w^\star \hat\beta_m + (1-w^\star) \hat\beta_r, \quad
+#' w^\star = \frac{\hat\sigma^2_r}{\hat\sigma^2_r + \hat\sigma^2_m},}
+#' with combined variance \eqn{\hat\sigma^2_m \hat\sigma^2_r / (\hat\sigma^2_m
+#' + \hat\sigma^2_r)}. This is the classical fixed-effects inverse-variance
+#' meta-analysis pooling formula (see Cochrane Handbook / DerSimonian-Laird),
+#' applied here to combine the two conditionally-independent likelihood
+#' contributions of a KK design rather than to pool separate studies. When
+#' only one of the two components is estimable the combined estimate falls
+#' back to that component alone. Contrast this with
+#' \code{InferenceIncidKKCondLogitOneLik}, which instead fits a single joint
+#' likelihood over both pieces (see that class's documentation) --
+#' \code{likelihood_tier = "partial"} here reflects that the matched-pair
+#' piece is a genuine conditional (partial) likelihood, but the two-piece
+#' combination itself is a closed-form Wald/meta-analytic step, not a further
+#' likelihood evaluation.
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+#'
+#' @seealso \code{\link[EDI:InferenceIncidKKCondLogitOneLik]{InferenceIncidKKCondLogitOneLik}}
+#'   for the one-likelihood alternative combining strategy.
+#' @references
+#' Fleiss, J.L., Levin, B., Paik, M.C. (2003). \emph{Statistical Methods for
+#' Rates and Proportions}, 3rd ed. Wiley. (conditional logistic regression for
+#' matched pairs)
 #' @export
 # Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
 # IVWC Estimators"): formerly a plain leaf on

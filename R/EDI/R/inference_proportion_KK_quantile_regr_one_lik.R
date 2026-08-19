@@ -2,10 +2,22 @@
 #'
 #' Fits the combined stacked quantile regression (matched-pair differences + reservoir)
 #' using the treatment indicator and all recorded covariates for proportion responses.
-#' Responses are transformed via logit before regression; the estimated treatment
-#' effect is a log-odds-ratio shift at quantile \code{tau}.
-#' Minimises the joint check-function loss over both data sources simultaneously.
-#' Inference is based on the stacked combined-likelihood quantile-regression fit.
+#' Responses \eqn{y \in (0,1)} are transformed via
+#' \eqn{\mathrm{logit}(y) = \log(y/(1-y))} before regression; the estimated
+#' treatment effect \eqn{\hat\beta_T} is a log-odds-ratio shift at quantile
+#' \code{tau} of the logit-transformed response. Minimizes the joint
+#' check-function (pinball) loss \eqn{\rho_\tau(u) = u(\tau - \mathbb{1}\{u<0\})}
+#' over both data sources simultaneously in one \pkg{quantreg} fit, unlike the
+#' \code{\link[EDI:InferencePropKKQuantileRegrIVWC]{IVWC}} sibling, which fits
+#' matched-pair and reservoir quantile regressions separately and pools them by
+#' inverse-variance weighting. Standard errors use Powell's sandwich estimator.
+#' \code{likelihood_tier = "none"}: quantile regression minimizes an
+#' asymmetric-loss objective, not a proper likelihood, so no likelihood-ratio or
+#' parametric-bootstrap methods are exposed. Requires the \pkg{quantreg}
+#' package.
+#'
+#' @references Koenker, R. (2005). \emph{Quantile Regression}. Cambridge
+#'   University Press. \doi{10.1017/CBO9780511754098}
 #'
 #' @examples
 #' \donttest{

@@ -1040,6 +1040,128 @@ EDI_COMPONENT_SPECS = list(
 		allowed_likelihood_tiers = "partial",
 		declare_body_references_optional = TRUE
 	),
+	CountKKHurdlePoissonOneLikLikelihood = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "CountKKHurdlePoissonOneLikLikelihoodSource",
+		file = "inference_count_KK_cond_poisson.R",
+		# 2026-08-19 migration (fix_inference_hierarchy.md "Full-Likelihood
+		# Estimators" / "KK And IVWC Estimators"): formerly a single-layer R6
+		# leaf raw-splicing InferenceMixinKKPassThrough$public/private onto
+		# InferenceParamBootstrap. No KKCompound dependency: this class's own
+		# compute_basic_match_data uses .compute_kk_basic_match_data_cached()
+		# directly and its initialize performs its own manual match-structure
+		# setup rather than calling init_kk_passthrough() (preserved verbatim,
+		# no Lesson-1 fix needed here).
+		dependencies = c("KKPassThrough", "ParametricLikelihoodBootstrap"),
+		owns_state = c("m", "cached_mod", "use_rcpp", "max_abs_reasonable_coef"),
+		provides_public_methods = c(
+			"initialize",
+			"compute_score_confidence_interval_generic",
+			"compute_lik_ratio_confidence_interval_generic",
+			"compute_gradient_confidence_interval_generic",
+			"compute_score_two_sided_pval_generic",
+			"compute_lik_ratio_two_sided_pval_generic",
+			"compute_gradient_two_sided_pval_generic",
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_score_confidence_interval",
+			"compute_lik_ratio_confidence_interval", "compute_gradient_confidence_interval",
+			"compute_asymp_two_sided_pval", "compute_score_two_sided_pval",
+			"compute_lik_ratio_two_sided_pval", "compute_gradient_two_sided_pval",
+			"compute_wald_confidence_interval", "compute_wald_two_sided_pval"
+		),
+		provides_private_methods = c(
+			"m", "cached_mod", "use_rcpp", "max_abs_reasonable_coef",
+			"get_standard_error", "supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap", "get_supported_testing_types_impl",
+			"warn_bootstrap_fallback_once", "compute_basic_match_data",
+			"build_model_matrix", "build_combined_hurdle_data",
+			"build_weighted_combined_hurdle_data", "combined_hurdle_neg_loglik",
+			"combined_hurdle_score", "combined_hurdle_hessian",
+			"information_inverse_diagonal_entry", "record_combined_hurdle_fit_summary",
+			"fit_combined_hurdle", "shared_combined_hurdle",
+			"compute_weighted_combined_hurdle_estimate", "shared",
+			"simulate_under_lik_null", "get_likelihood_test_spec"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "full",
+		declare_body_references_optional = TRUE
+	),
+	CountKKCondPoissonOneLikLikelihood = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "CountKKCondPoissonOneLikLikelihoodSource",
+		file = "inference_count_KK_cond_poisson.R",
+		# 2026-08-19 migration (fix_inference_hierarchy.md "Full-Likelihood
+		# Estimators" / "KK And IVWC Estimators"): same shape as
+		# CountKKHurdlePoissonOneLikLikelihood above.
+		dependencies = c("KKPassThrough", "ParametricLikelihoodBootstrap"),
+		owns_state = c("cached_mod", "max_abs_reasonable_coef"),
+		provides_public_methods = c(
+			"initialize",
+			"compute_score_confidence_interval_generic",
+			"compute_lik_ratio_confidence_interval_generic",
+			"compute_gradient_confidence_interval_generic",
+			"compute_score_two_sided_pval_generic",
+			"compute_lik_ratio_two_sided_pval_generic",
+			"compute_gradient_two_sided_pval_generic",
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_wald_confidence_interval", "compute_wald_two_sided_pval",
+			"compute_score_confidence_interval", "compute_lik_ratio_confidence_interval",
+			"compute_gradient_confidence_interval", "compute_score_two_sided_pval",
+			"compute_lik_ratio_two_sided_pval", "compute_gradient_two_sided_pval"
+		),
+		provides_private_methods = c(
+			"cached_mod", "max_abs_reasonable_coef", "get_standard_error",
+			"supports_lik_ratio_param_bootstrap", "get_supported_testing_types_impl",
+			"compute_basic_match_data", "build_model_matrix",
+			"build_combined_cpoisson_data", "reduce_combined_covariates",
+			"set_failed_combined_cache", "try_combined_fit", "try_pairs_only",
+			"try_reservoir_only", "fit_combined_cpoisson",
+			"compute_weighted_combined_estimate", "weighted_cpoisson_neg_loglik",
+			"weighted_cpoisson_score",
+			"supports_likelihood_tests", "shared_combined_cpoisson", "shared",
+			"simulate_under_lik_null", "get_likelihood_test_spec"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "full",
+		declare_body_references_optional = TRUE
+	),
+	IncidKKCondLogitOneLikLikelihood = list(
+		status = "active",
+		load_policy = "lazy",
+		source_name = "IncidKKCondLogitOneLikLikelihoodSource",
+		file = "inference_incidence_KK_cond_logit.R",
+		# 2026-08-19 migration (fix_inference_hierarchy.md "Full-Likelihood
+		# Estimators" / "KK And IVWC Estimators"): formerly a single-layer R6
+		# leaf raw-splicing InferenceMixinKKPassThrough$public/private onto
+		# InferenceParamBootstrap. Fits one joint combined logistic likelihood
+		# directly (no KKCompound-style variance-weighted combination).
+		dependencies = c("KKPassThrough", "ParametricLikelihoodBootstrap"),
+		owns_state = c("cached_mod", "max_abs_reasonable_coef"),
+		provides_public_methods = c(
+			"initialize",
+			"compute_asymp_confidence_interval_generic",
+			"compute_asymp_two_sided_pval_generic",
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
+		),
+		# approximate_bootstrap_distribution_beta_hat_T is deliberately NOT in
+		# provides_public_methods (this Source no longer defines it -- see the
+		# Source's header comment); it is still declared on the class's
+		# `overrides$public` so the composed KKPassThrough/BayesianBootstrap
+		# chain-vs-chain collision resolves via component order.
+		provides_private_methods = c(
+			"cached_mod", "max_abs_reasonable_coef", "shared_combined_likelihood",
+			"get_standard_error", "supports_likelihood_tests",
+			"get_likelihood_test_spec", "supports_lik_ratio_param_bootstrap",
+			"compute_weighted_combined_estimate", "simulate_under_lik_null"
+		),
+		provides_capabilities = character(),
+		allowed_likelihood_tiers = "full",
+		declare_body_references_optional = TRUE
+	),
 	SurvivalKKStratCoxOneLikPartialLikelihood = list(
 		status = "active",
 		load_policy = "lazy",
@@ -1894,7 +2016,10 @@ EDI_COMPONENT_SPECS = list(
 					provides_public_methods = c(
 						"approximate_bootstrap_distribution_beta_hat_T", "compute_estimate_with_bootstrap_weights",
 						"initialize", "compute_estimate", "compute_asymp_confidence_interval",
-						"compute_asymp_two_sided_pval"
+						"compute_asymp_two_sided_pval",
+						# Added 2026-08-19 migration: generic-`self$`-aliased overrides
+						# (see the source file's header comment).
+						"compute_asymp_confidence_interval_generic", "compute_asymp_two_sided_pval_generic"
 					),
 					provides_private_methods = c(
 						"is_a_kk_passthrough_design", "compute_basic_match_data", "supports_information_preference",
@@ -1933,15 +2058,64 @@ EDI_COMPONENT_SPECS = list(
 		file = "inference_mixin_kk_gee_shared.R",
 		dependencies = c("BayesianBootstrap", "Wald"),
 		owns_state = c("m", "use_rcpp", "max_abs_reasonable_coef", "kk_gee_engine"),
-		requires_state = c("any_censoring", "cached_values", "harden", "n", "y"),
-		requires_public_methods = character(),
+		# des_obj_priv_int added 2026-08-19 (fix_inference_hierarchy.md "KK And
+		# IVWC Estimators", "finish declaring every KKPassThrough/KKCompound/
+		# KKGEE/KKGLMM host requirement"): compute_rand_two_sided_pval()
+		# (below) reads it unconditionally, and it's a root Inference field
+		# (set directly in Inference$initialize(), not owned by any component)
+		# so it's always present regardless of composition -- confirmed via
+		# complete_component_reference_contract()'s reference scan
+		# (EDI_VALIDATE_INFERENCE_CONTRACTS=true), which previously found this
+		# as an undeclared reference. custom_randomization_statistic_function/
+		# randomization_mc_control (RandomizationTest's owns_state) were
+		# DELIBERATELY left undeclared here despite also being referenced:
+		# they're read defensively (`is.null(private$x)`, always safe even if
+		# the binding was never materialized) and, for
+		# custom_randomization_statistic_function specifically, never exist as
+		# a static private-list entry at all -- it's created dynamically the
+		# first time `set_custom_randomization_statistic_function()` runs
+		# (`private[["custom_randomization_statistic_function"]] = ...`), so
+		# declaring it in requires_state made define_inference_class()'s
+		# static private-name check fail even though the resolved component
+		# chain genuinely includes RandomizationTest (verified: adding both
+		# here broke `InferenceCountPoissonKKGEE`'s load with "missing private
+		# state required by KKGEE"). Left as an accepted gap in the static
+		# contract rather than force-declared.
+		requires_state = c(
+			"any_censoring", "cached_values", "harden", "n", "y",
+			"des_obj_priv_int"
+		),
+		requires_public_methods = c(
+			# is_nonestimable is guarded with is.function(self$is_nonestimable)
+			# in compute_rand_two_sided_pval(), so it's declared required (always
+			# present on the root chain) rather than merely optional -- the
+			# is.function() guard there is defensive, not a sign of absence.
+			"is_nonestimable"
+		),
 		requires_private_methods = c(
 			"cache_nonestimable_estimate", "cache_nonestimable_se", "clear_nonestimable_state",
 			"compute_z_or_t_ci_from_s_and_df", "compute_z_or_t_two_sided_pval_from_s_and_df",
 			"create_design_matrix", "expand_subject_or_block_weights_to_row_weights",
 			"fit_with_hardened_qr_column_dropping", "gee_family", "gee_response_type",
 			"get_fit_warm_start_fisher", "get_fit_warm_start_for_length",
-			"get_fit_warm_start_weights", "set_fit_warm_start", "shared_gee_dispatch"
+			"get_fit_warm_start_weights", "set_fit_warm_start", "shared_gee_dispatch",
+			# The following 13 are the compute_rand_two_sided_pval()
+			# randomization-test path's dependencies on the always-composed
+			# RandomizationTest/RandomizationCI/InferenceAll base chain --
+			# same discovery/rationale as requires_state above.
+			"assert_design_supports_randomization_draw",
+			"assert_no_incidence_only_randomization_args",
+			"build_randomization_distribution_cache_key",
+			"compute_exact_two_sided_pval_rand",
+			"compute_two_sided_pval_with_sequential_mc",
+			"compute_two_sided_randomization_pval_from_t0s",
+			"ensure_resampling_distribution_cache",
+			"generate_permutations",
+			"get_randomization_distribution_prefix",
+			"normalize_exact_inference_args",
+			"sequential_mc_control_enabled",
+			"should_use_design_randomization_for_incidence",
+			"should_use_zhang_incidence_randomization"
 		),
 		optional_public_methods = c(
 			"compute_jackknife_wald_confidence_interval",
@@ -1950,7 +2124,8 @@ EDI_COMPONENT_SPECS = list(
 		optional_private_methods = character(),
 		provides_capabilities = c("kk_gee", "wald"),
 		allowed_likelihood_tiers = c("quasi"),
-		conflicts = character()
+		conflicts = character(),
+		declare_body_references_optional = TRUE
 	),
 	RobustSandwich = list(
 		status = "active",
@@ -1964,6 +2139,16 @@ EDI_COMPONENT_SPECS = list(
 	KKGLMM = list(
 		status = "active",
 		load_policy = "lazy",
+		# `declare_body_references_optional = TRUE` is deliberately NOT set
+		# here: register_inference_component_from_spec() skips the reference-
+		# completeness scan entirely for `load_policy = "lazy"` components
+		# (their `public`/`private` are left empty at registration time, so
+		# the auto-scan would be vacuous). Verified 2026-08-19 (fix_inference_
+		# hierarchy.md "KK And IVWC Estimators", "finish declaring every
+		# KKPassThrough/KKCompound/KKGEE/KKGLMM host requirement") by manually
+		# harvesting the real source (InferenceMixinKKGLMMShared) and running
+		# component_body_references()/component_declared_reference_names()
+		# against it directly: zero undeclared private/self/super references.
 		source_name = "InferenceMixinKKGLMMShared",
 		file = "inference_mixin_kk_glmm_shared.R",
 		dependencies = character(),
@@ -2024,7 +2209,15 @@ EDI_COMPONENT_SPECS = list(
 		requires_super_methods = "approximate_bootstrap_distribution_beta_hat_T",
 		provides_capabilities = c("kk_passthrough", "nonparametric_bootstrap"),
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
-		conflicts = character()
+		conflicts = character(),
+		# Enabled 2026-08-19 (fix_inference_hierarchy.md "KK And IVWC
+		# Estimators", "finish declaring every KKPassThrough/KKCompound/
+		# KKGEE/KKGLMM host requirement"): verified complete via
+		# complete_component_reference_contract() (EDI_VALIDATE_INFERENCE_
+		# CONTRACTS=true) -- zero undeclared private/self/super references
+		# found. Enabling the check here (rather than leaving it off) makes
+		# that completeness a standing guarantee instead of a one-time audit.
+		declare_body_references_optional = TRUE
 	),
 	KKCompound = list(
 		status = "active",
@@ -2039,7 +2232,10 @@ EDI_COMPONENT_SPECS = list(
 		optional_private_methods = character(),
 		provides_capabilities = "kk_compound",
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
-		conflicts = character()
+		conflicts = character(),
+		# Enabled 2026-08-19, same rationale as KKPassThrough above: verified
+		# complete via complete_component_reference_contract().
+		declare_body_references_optional = TRUE
 	),
 	OffOptimumLikelihoodEval = list(
 		status = "active",

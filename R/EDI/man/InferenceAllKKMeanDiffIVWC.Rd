@@ -2,47 +2,8 @@
 % Please edit documentation in R/inference_all_KK_mean_diff_IVWC.R
 \name{InferenceAllKKMeanDiffIVWC}
 \alias{InferenceAllKKMeanDiffIVWC}
-\alias{KKMeanDifferenceIVWCSource}
 \title{Mean-Difference IVWC Inference for KK Matching-on-the-Fly Designs}
-\usage{
-KKMeanDifferenceIVWCSource
-}
-\value{
-The setting-appropriate (see description) numeric estimate of the treatment effect
-
-A (1 - alpha)-sized frequentist confidence interval for the treatment effect
-
-The approximate frequentist p-value
-}
 \description{
-Initialize KK IVWC mean-difference inference.
-
-Computes the compound IVWC (inverse-variance-weighted
-compound) mean-difference point estimate \eqn{\hat\beta_T}: the
-inverse-variance-weighted combination \eqn{w^* \bar d + (1-w^*)\, \bar
-r} of the matched-pair mean within-pair difference \eqn{\bar d} and the
-reservoir treated-minus-control mean difference \eqn{\bar r}, falling
-back to whichever of the two is usable if the other is not (see
-\code{$compute_asymp_confidence_interval()} for the full weighting
-formula and usability conditions).
-
-Computes a \eqn{1-\alpha} level frequentist confidence interval
-for the compound IVWC (inverse-variance-weighted compound) mean-difference
-estimator \eqn{\hat\beta_T}.
-
-Computes a two-sided \strong{Wald} p-value for the compound
-IVWC mean-difference estimator \eqn{\hat\beta_T} testing
-\eqn{H_0: \beta_T = \code{delta}}, using the same asymptotically-normal
-point estimate and standard error (\eqn{z = (\hat\beta_T -
-\code{delta})/\widehat{\mathrm{SE}}(\hat\beta_T)}) that
-\code{$compute_asymp_confidence_interval()} inverts to form its interval
-— see that method's documentation for the full inverse-variance-weighted
-combination formula. This class has no likelihood tier
-(\code{likelihood_tier = "none"}), so no score, likelihood-ratio, or
-gradient test is available here; this is a plain Wald test, not a
-likelihood-backed one.
-}
-\details{
 Fits a compound (inverse-variance-weighted combination, "IVWC") mean-difference
 estimator of the treatment effect for continuous responses under a
 \code{\link[EDI:DesignSeqOneByOne]{DesignSeqOneByOne}}-family KK matching-on-the-fly
@@ -63,33 +24,6 @@ sub-estimates is usable). Inference is Wald-only: this class has no
 likelihood tier (\code{likelihood_tier = "none"}) and provides asymptotic
 Wald, randomization, and bootstrap (including Bayesian bootstrap) confidence
 intervals and p-values, but no score/likelihood-ratio/gradient tests.
-
-
-The point estimate combines two sub-estimates depending on which are
-usable: the mean within-pair difference among matched subjects,
-\eqn{\bar d}, with estimated variance \eqn{\widehat{\mathrm{Var}}(\bar
-d)}, and the treated-minus-control difference in means among reservoir
-(unmatched) subjects, \eqn{\bar r}, with estimated variance
-\eqn{\widehat{\mathrm{Var}}(\bar r)}. When both are usable (at least 2
-matched pairs and at least 2 treated/2 control reservoir subjects, with
-finite positive variance estimates), they are combined by classical
-inverse-variance weighting,
-\deqn{\hat\beta_T = w^* \bar d + (1 - w^*)\, \bar r, \qquad w^* =
-  \frac{\widehat{\mathrm{Var}}(\bar r)}{\widehat{\mathrm{Var}}(\bar r) +
-  \widehat{\mathrm{Var}}(\bar d)},}
-with combined variance the standard inverse-variance-pooled form
-\eqn{\widehat{\mathrm{Var}}(\hat\beta_T) = \left(\widehat{\mathrm{Var}}(\bar
-r)^{-1} + \widehat{\mathrm{Var}}(\bar d)^{-1}\right)^{-1} =
-\widehat{\mathrm{Var}}(\bar r)\,\widehat{\mathrm{Var}}(\bar d) \big/
-\left(\widehat{\mathrm{Var}}(\bar r) + \widehat{\mathrm{Var}}(\bar
-d)\right)}. If only one of the two sub-estimates is usable (e.g. the
-reservoir is empty or degenerate, or no pairs matched), \eqn{\hat\beta_T}
-and its variance fall back to that sub-estimate alone. The compound
-estimator is treated as asymptotically normal, so the interval is
-\eqn{\hat\beta_T \pm z_{1-\alpha/2}\sqrt{\widehat{\mathrm{Var}}(\hat\beta_T)}}
-(or a \eqn{t}-based critical value, depending on
-\code{private$compute_z_or_t_ci_from_s_and_df}'s degrees-of-freedom
-resolution).
 }
 \section{Legacy status}{
  \strong{Legacy class.} Not fully tested in
@@ -124,4 +58,155 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly:
   70(2), 378-388, \doi{10.1111/biom.12148}, for the KK matching-on-the-fly
   design this estimator targets, and for the inverse-variance combination of
   matched-pair and reservoir estimates.
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceAllKKMeanDiffIVWC}
+}
+\section{Methods}{
+\subsection{Public methods}{
+  \itemize{
+    \item \href{#method-InferenceAllKKMeanDiffIVWC-initialize}{\code{InferenceAllKKMeanDiffIVWC$new()}}
+    \item \href{#method-InferenceAllKKMeanDiffIVWC-compute_estimate}{\code{InferenceAllKKMeanDiffIVWC$compute_estimate()}}
+    \item \href{#method-InferenceAllKKMeanDiffIVWC-compute_asymp_confidence_interval}{\code{InferenceAllKKMeanDiffIVWC$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferenceAllKKMeanDiffIVWC-compute_asymp_two_sided_pval}{\code{InferenceAllKKMeanDiffIVWC$compute_asymp_two_sided_pval()}}
+    \item \href{#method-InferenceAllKKMeanDiffIVWC-clone}{\code{InferenceAllKKMeanDiffIVWC$clone()}}
+  }
+}
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
+<ul>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_analysis_data'><code>Inference$get_analysis_data()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_covariates'><code>Inference$get_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_design_object'><code>Inference$get_design_object()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_model_formula'><code>Inference$get_model_formula()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
+</ul>
+</details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllKKMeanDiffIVWC-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllKKMeanDiffIVWC-initialize}{}}}
+\subsection{\code{InferenceAllKKMeanDiffIVWC$new()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllKKMeanDiffIVWC$new(
+  des_obj,
+  verbose = FALSE,
+  harden = TRUE,
+  model_formula = NULL,
+  smart_cold_start_default = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
+assigned and response y is recorded within.}
+      \item{\code{verbose}}{Whether to print progress messages.}
+      \item{\code{harden}}{Whether to apply robustness measures (default \code{TRUE}). When
+\code{TRUE}, the inference methods employ defensive strategies including QR-based
+rank reduction of the design matrix, progressive correlation-threshold dropping,
+and fallback fits (e.g.\ robust survival regression, treatment-only models) to
+avoid crashes on ill-conditioned data. When \code{FALSE}, the vanilla algorithm
+runs on the full design matrix as supplied; any rank deficiency or convergence
+failure will surface as an error rather than being silently worked around. Set to
+\code{FALSE} when you want to verify that the raw model converges without
+intervention.}
+      \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
+the formula from the design object is used and its pre-computed design matrix is
+reused. If a formula is provided, a new design matrix is constructed from the
+design's imputed covariates.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
+likelihood-based models. Explicit starts always override this object-level policy.
+\code{NULL} (default) consults the global cold-start dispatch policy.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllKKMeanDiffIVWC-compute_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllKKMeanDiffIVWC-compute_estimate}{}}}
+\subsection{\code{InferenceAllKKMeanDiffIVWC$compute_estimate()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllKKMeanDiffIVWC$compute_estimate(estimate_only = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllKKMeanDiffIVWC-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllKKMeanDiffIVWC-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferenceAllKKMeanDiffIVWC$compute_asymp_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllKKMeanDiffIVWC$compute_asymp_confidence_interval(alpha = 0.05)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllKKMeanDiffIVWC-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllKKMeanDiffIVWC-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferenceAllKKMeanDiffIVWC$compute_asymp_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllKKMeanDiffIVWC$compute_asymp_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllKKMeanDiffIVWC-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllKKMeanDiffIVWC-clone}{}}}
+\subsection{\code{InferenceAllKKMeanDiffIVWC$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllKKMeanDiffIVWC$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
 }

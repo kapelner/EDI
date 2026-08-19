@@ -102,7 +102,7 @@ X[beta_T == 1 &
 	inference_class %in% c(
 		"InferenceAllSimpleMeanDiff",
 		"InferenceAllKKMeanDiffIVWC",
-		"InferenceIncidenceExactZhang",
+		"InferenceIncidExactZhang",
 		"InferenceIncidKKExactZhang",
 		"InferenceIncidRiskDiff",
 		"InferenceIncidMiettinenNurminenRiskDiff",

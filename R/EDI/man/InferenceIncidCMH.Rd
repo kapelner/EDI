@@ -91,12 +91,27 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceIncidCMH-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidCMH-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceIncidCMH$compute_asymp_confidence_interval()}}{
-  Uses the shared randomization two-sided p-value contract; see
-  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+  Uses the randomization-CI layer's two-sided p-value contract
+  (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
+  incidence responses this dispatches to the Zhang exact randomization
+  test where applicable rather than refusing outright, matching this
+  class's pre-migration old-ladder behavior (it inherited from
+  \code{InferenceAllSimpleMeanDiff}, whose own pin was already
+  corrected to \code{InferenceRandCI} -- see that file's identical
+  rationale). This class independently composes the same components
+  rather than truly inheriting \code{InferenceAllSimpleMeanDiff}, so it
+  had its own stale copy of the old \code{InferenceRand} pin, which
+  silently regressed Zhang dispatch for the non-blocking balanced-design
+  path -- found via
+  \code{test-incid-cmh-extended-robins-migration-golden.R}'s
+  \code{randomization_pval} case going from `"ok"` to `"unsupported"`.
 
 
-  Uses the shared asymptotic confidence-interval contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Wald confidence interval for the balanced-design/CMH risk-difference
+  estimate \eqn{\hat\tau}, using the randomization-based (blocking-design: exact CMH
+  variance formula; non-blocking design: Monte Carlo over \code{se_est_num_vectors}
+  design draws) standard error documented in the class \code{@details}. See
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald contract.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidCMH$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -105,9 +120,13 @@ inf$compute_estimate()
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Numeric. Significance level (default 0.05).}
+      \item{\code{alpha}}{The confidence level in the computed confidence interval is 1 -
+\code{alpha}. The default is 0.05.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A length-2 numeric vector \code{c(lower, upper)} on the risk-difference scale.
   }
 }
 
@@ -115,8 +134,9 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceIncidCMH-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidCMH-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceIncidCMH$compute_asymp_two_sided_pval()}}{
-  Uses the shared asymptotic two-sided p-value contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Two-sided Wald p-value for \eqn{H_0: \tau = \code{delta}} vs.
+  \eqn{H_1: \tau \neq \code{delta}}, using the same randomization-based standard error
+  as \code{compute_asymp_confidence_interval()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidCMH$compute_asymp_two_sided_pval(delta = 0)}
@@ -125,9 +145,13 @@ inf$compute_estimate()
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{Numeric. Null treatment effect value (default 0).}
+      \item{\code{delta}}{The null value of \eqn{\tau} to test against; 0 (the default) tests for
+any treatment effect at all.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Numeric scalar p-value in \eqn{[0, 1]}.
   }
 }
 

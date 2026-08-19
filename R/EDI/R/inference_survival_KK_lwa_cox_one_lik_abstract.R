@@ -239,10 +239,25 @@ KKLWACoxOneLikPartialLikelihoodSource = list(
 			)
 		},
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
-			# Re-read w, y, dead because they might have been transformed for randomization
+			# Re-read w, y, dead because they might have been transformed for randomization.
+			# `dead` is NOT read from `private$des_obj_priv_int$dead` here: post
+			# y/y_L/y_R migration (interval_censored_survival_response.md TODO-1),
+			# Design no longer stores a raw `dead` field at all, so
+			# `des_obj_priv_int$dead` is always NULL -- reading it directly used to
+			# clobber `private$dead` (correctly set at init time via
+			# `des_obj$get_effective_dead()`, see InferenceAll's initialize()) with
+			# NULL. That NULL then persisted on the live object after this method
+			# returned, and a later reusable-bootstrap-worker call reading the same
+			# live `private$dead` (`load_rand_bootstrap_assignment_into_worker()`'s
+			# `dead_sim = as.numeric(private$dead[draw$i_b])`) turned it into a
+			# zero-length vector fed straight into `fast_coxph_regression_cpp()`,
+			# segfaulting on the length mismatch (found 2026-08-19, see
+			# fix_inference_hierarchy.md Follow-Ups). Re-derive `dead` the same way
+			# Design$get_effective_dead() does instead of reading a field that no
+			# longer exists.
 			private$w = private$des_obj_priv_int$w
 			private$y = private$des_obj_priv_int$y
-			private$dead = private$des_obj_priv_int$dead
+			private$dead = as.numeric(!is.na(private$y))
 			
 			# Recompute basic match data for the new w/y/dead
 			private$compute_basic_match_data()

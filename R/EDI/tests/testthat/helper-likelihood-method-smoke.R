@@ -246,6 +246,18 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 		des
 	}
 
+	make_kk_count_design <- function(n = 40L){
+		des = DesignSeqOneByOneKK14$new(n = n, response_type = "count", verbose = FALSE)
+		x1 = rnorm(n)
+		x2 = rnorm(n)
+		for (i in seq_len(n)){
+			w_i = des$add_one_subject_to_experiment_and_assign(data.frame(x1 = x1[i], x2 = x2[i]))
+			y_i = rpois(1L, exp(0.4 + 0.35 * w_i + 0.2 * x1[i] - 0.1 * x2[i]))
+			des$add_one_subject_response(i, y_i)
+		}
+		des
+	}
+
 	make_kk_survival_design <- function(n = 16L){
 		des = DesignSeqOneByOneKK14$new(n = n, response_type = "survival", verbose = FALSE)
 		x1 = rnorm(n)
@@ -294,6 +306,14 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 		)
 	}
 	if (should_run("count")) {
+		results$kk_count_hurdle_poisson_one_lik = call_all_methods(
+			InferenceCountKKHurdlePoissonOneLik$new(make_kk_count_design(), model_formula = ~ x1, verbose = FALSE),
+			"InferenceCountKKHurdlePoissonOneLik"
+		)
+		results$kk_count_cond_poisson_one_lik = call_all_methods(
+			InferenceCountKKCondPoissonOneLik$new(make_kk_count_design(), model_formula = ~ x1, verbose = FALSE),
+			"InferenceCountKKCondPoissonOneLik"
+		)
 		results$count_poisson = call_all_methods(
 			InferenceCountPoisson$new(make_fixed_count_design(), model_formula = ~ x1, verbose = FALSE),
 			"InferenceCountPoisson"
@@ -327,6 +347,10 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 		results$incidence_kk_modified_poisson = call_all_methods(
 			InferenceIncidKKModifiedPoisson$new(make_kk_incidence_design(), model_formula = ~ x1, verbose = FALSE),
 			"InferenceIncidKKModifiedPoisson"
+		)
+		results$incidence_kk_cond_logit_one_lik = call_all_methods(
+			InferenceIncidKKCondLogitOneLik$new(make_kk_incidence_design(), model_formula = ~ x1, verbose = FALSE),
+			"InferenceIncidKKCondLogitOneLik"
 		)
 	}
 	if (should_run("ordinal")) {
@@ -379,6 +403,10 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 		results$kk_survival_clayton = call_all_methods(
 			InferenceSurvivalKKClaytonCopulaOneLik$new(make_kk_survival_design(n = 64L), model_formula = ~ x1, verbose = FALSE),
 			"InferenceSurvivalKKClaytonCopulaOneLik"
+		)
+		results$kk_survival_weibull_frailty_one_lik = call_all_methods(
+			InferenceSurvivalKKWeibullFrailtyOneLik$new(make_kk_survival_design(n = 64L), model_formula = ~ x1, verbose = FALSE),
+			"InferenceSurvivalKKWeibullFrailtyOneLik"
 		)
 	}
 	invisible(results)

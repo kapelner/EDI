@@ -11,8 +11,23 @@
 #' correlation-based pruning. Extreme finite coefficients / standard errors are
 #' rejected and treated as non-estimable.
 #'
+#' The matched-pair sub-estimate treats each pair as its own stratum (a
+#' pair-specific baseline hazard, exactly canceling shared-frailty effects
+#' within the pair via Cox's partial likelihood) and is a special case of the
+#' Lee-Wei-Amato (1992) large-numbers-of-small-groups stratified Cox approach;
+#' the reservoir sub-estimate is a standard unstratified Cox partial-likelihood
+#' fit (Cox 1972). The two log-hazard-ratio estimates are combined by
+#' inverse-variance weighting, the same rule used throughout the KK IVWC family.
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+#' @references
+#' Cox, D. R. (1972). "Regression Models and Life-Tables." Journal of the
+#' Royal Statistical Society, Series B, 34(2), 187-220.
+#'
+#' Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type Regression
+#' Analysis for Large Numbers of Small Groups of Correlated Failure Time
+#' Observations." In Survival Analysis: State of the Art, 237-247. Springer.
+#' \doi{10.1007/978-94-015-7983-4_14}
 #' @export
 # Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
 # IVWC Estimators"): formerly a plain leaf on
@@ -621,6 +636,28 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 	)
 )
 
+#' Stratified Cox Combined-Likelihood Compound Inference for KK Designs
+#'
+#' Fits a single combined partial likelihood for KK matching-on-the-fly designs
+#' with survival responses: matched pairs contribute a stratified Cox term (one
+#' stratum per pair, canceling shared-frailty effects within the pair) and
+#' reservoir subjects contribute a standard unstratified Cox term, summed into
+#' one joint partial log-likelihood and optimized jointly for a single shared
+#' treatment coefficient. This differs from the two-stage IVWC sibling
+#' \code{\link[EDI:InferenceSurvivalKKStratCoxPHIVWC]{InferenceSurvivalKKStratCoxPHIVWC}},
+#' which fits the matched and reservoir sub-models separately and combines the
+#' two log-hazard-ratio estimates by inverse-variance weighting; this class
+#' instead estimates one coefficient from the combined likelihood directly,
+#' which additionally supports likelihood-ratio tests and parametric
+#' likelihood bootstrap (\code{likelihood_tier = "partial"}).
+#' @references
+#' Cox, D. R. (1972). "Regression Models and Life-Tables." Journal of the
+#' Royal Statistical Society, Series B, 34(2), 187-220.
+#'
+#' Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type Regression
+#' Analysis for Large Numbers of Small Groups of Correlated Failure Time
+#' Observations." In Survival Analysis: State of the Art, 237-247. Springer.
+#' \doi{10.1007/978-94-015-7983-4_14}
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "Partial-Likelihood
 # Estimators" / "KK And IVWC Estimators"): see

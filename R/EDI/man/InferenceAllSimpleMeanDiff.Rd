@@ -2,66 +2,8 @@
 % Please edit documentation in R/inference_all_mean_diff.R
 \name{InferenceAllSimpleMeanDiff}
 \alias{InferenceAllSimpleMeanDiff}
-\alias{SimpleMeanDifferenceSource}
 \title{Simple Mean-Difference Inference for Continuous Responses}
-\usage{
-SimpleMeanDifferenceSource
-}
-\value{
-The setting-appropriate (see description) numeric estimate of the treatment effect
-}
 \description{
-Initialize a simple mean-difference inference object.
-
-Computes a \eqn{1-\alpha} level confidence interval for the
-  simple (unadjusted) mean-difference treatment effect
-  \eqn{\hat\beta_T = \bar y_T - \bar y_C}, using \strong{Welch's
-  unequal-variance} formula: standard error
-  \eqn{\widehat{\mathrm{SE}}(\hat\beta_T) = \sqrt{s_T^2/n_T + s_C^2/n_C}}
-  (sample variances \eqn{s_T^2}, \eqn{s_C^2} computed separately per arm,
-  not pooled) with Satterthwaite-Welch degrees of freedom
-  \eqn{\mathrm{df} = (s_T^2/n_T + s_C^2/n_C)^2 \big/ \left(\frac{(s_T^2/n_T)^2}{n_T-1}
-  + \frac{(s_C^2/n_C)^2}{n_C-1}\right)}; the interval is
-  \eqn{\hat\beta_T \pm t_{\mathrm{df}, 1-\alpha/2}\,\widehat{\mathrm{SE}}(\hat\beta_T)}.
-  Requires at least 2 observations per arm; otherwise the standard error
-  and interval are \code{NA}. See
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
-  asymptotic confidence-interval contract this delegates to.
-
-Computes a two-sided Welch's t-test p-value testing
-  \eqn{H_0: \beta_T = \code{delta}}, from the same Welch
-  unequal-variance standard error and Satterthwaite-Welch degrees of
-  freedom used by \code{$compute_asymp_confidence_interval()} — see that
-  method's documentation for the full formula. See
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
-  asymptotic two-sided p-value contract this delegates to.
-
-Computes the simple (unadjusted) mean-difference point
-  estimate \eqn{\hat\beta_T = \bar y_T - \bar y_C}, the difference in
-  sample means between the treated and control arms. \code{NA} if
-  either arm has zero observations. See
-  \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}}
-  for the shared estimate-contract this participates in.
-
-Recomputes the simple mean-difference estimate under
-  subject/block bootstrap weights (used by the Bayesian bootstrap and
-  related weighted-resampling machinery — see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}).
-  The weighted point estimate is \eqn{\hat\beta_T = \bar y_T^w - \bar
-  y_C^w}, weighted arm means \eqn{\bar y_T^w = \sum_i r_i y_i \mathbb{1}[w_i=1]
-  / \sum_i r_i \mathbb{1}[w_i=1]} (and analogously for control), where
-  \eqn{r_i} are the expanded row weights. Unless \code{estimate_only =
-  TRUE}, the standard error uses a \strong{weighted, effective-sample-size}
-  Welch formula: \eqn{n_{\mathrm{eff}} = (\sum r_i)^2 / \sum r_i^2}
-  (the usual Kish effective-sample-size correction for unequal weights)
-  in place of the raw \eqn{n} in both the per-arm weighted variance
-  denominator and the Satterthwaite-Welch degrees-of-freedom formula (see
-  \code{$compute_asymp_confidence_interval()} for the unweighted version
-  of the same formula). Rows with non-finite or non-positive weight, or a
-  non-finite response, are dropped before computing; if no rows survive,
-  returns \code{NA} with all cached variance components set to \code{NA}.
-}
-\details{
 Fits the simplest possible treatment-effect estimator for a continuous
 response: the unadjusted difference in sample means between the treated and
 control arms, \eqn{\hat\beta_T = \bar y_T - \bar y_C}, with no covariate
@@ -98,4 +40,161 @@ Welch, B. L. (1947). "The Generalization of 'Student's' Problem
   34(1-2), 28-35, \doi{10.1093/biomet/34.1-2.28}, for the unequal-variance
   t-test and its Satterthwaite-Welch degrees-of-freedom approximation used
   here.
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceAllSimpleMeanDiff}
+}
+\section{Methods}{
+\subsection{Public methods}{
+  \itemize{
+    \item \href{#method-InferenceAllSimpleMeanDiff-initialize}{\code{InferenceAllSimpleMeanDiff$new()}}
+    \item \href{#method-InferenceAllSimpleMeanDiff-compute_asymp_confidence_interval}{\code{InferenceAllSimpleMeanDiff$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferenceAllSimpleMeanDiff-compute_asymp_two_sided_pval}{\code{InferenceAllSimpleMeanDiff$compute_asymp_two_sided_pval()}}
+    \item \href{#method-InferenceAllSimpleMeanDiff-compute_estimate}{\code{InferenceAllSimpleMeanDiff$compute_estimate()}}
+    \item \href{#method-InferenceAllSimpleMeanDiff-compute_estimate_with_bootstrap_weights}{\code{InferenceAllSimpleMeanDiff$compute_estimate_with_bootstrap_weights()}}
+    \item \href{#method-InferenceAllSimpleMeanDiff-clone}{\code{InferenceAllSimpleMeanDiff$clone()}}
+  }
+}
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
+<ul>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_analysis_data'><code>Inference$get_analysis_data()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_covariates'><code>Inference$get_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_design_object'><code>Inference$get_design_object()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_model_formula'><code>Inference$get_model_formula()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
+</ul>
+</details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleMeanDiff-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleMeanDiff-initialize}{}}}
+\subsection{\code{InferenceAllSimpleMeanDiff$new()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleMeanDiff$new(
+  des_obj,
+  model_formula = NULL,
+  verbose = FALSE,
+  max_resample_attempts = 50L,
+  smart_cold_start_default = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
+assigned and response y is recorded within.}
+      \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
+the formula from the design object is used and its pre-computed design matrix is
+reused. If a formula is provided, a new design matrix is constructed from the
+design's imputed covariates.}
+      \item{\code{verbose}}{Whether to print progress messages.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
+likelihood-based models. Explicit starts always override this object-level policy.
+\code{NULL} (default) consults the global cold-start dispatch policy.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleMeanDiff-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleMeanDiff-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferenceAllSimpleMeanDiff$compute_asymp_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleMeanDiff$compute_asymp_confidence_interval(alpha = 0.05)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleMeanDiff-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleMeanDiff-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferenceAllSimpleMeanDiff$compute_asymp_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleMeanDiff$compute_asymp_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleMeanDiff-compute_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleMeanDiff-compute_estimate}{}}}
+\subsection{\code{InferenceAllSimpleMeanDiff$compute_estimate()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleMeanDiff$compute_estimate(estimate_only = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleMeanDiff-compute_estimate_with_bootstrap_weights"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleMeanDiff-compute_estimate_with_bootstrap_weights}{}}}
+\subsection{\code{InferenceAllSimpleMeanDiff$compute_estimate_with_bootstrap_weights()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleMeanDiff$compute_estimate_with_bootstrap_weights(
+  subject_or_block_weights,
+  estimate_only = FALSE
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleMeanDiff-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleMeanDiff-clone}{}}}
+\subsection{\code{InferenceAllSimpleMeanDiff$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleMeanDiff$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
 }

@@ -53,7 +53,7 @@ A list with components \code{b} (the shared covariate coefficients
   equals the continuation-ratio model's negative log-likelihood), \code{X_aug}/
   \code{z} (the augmented design matrix and binary response actually fit, exposed
   for reuse, e.g. by
-  \code{get_continuation_ratio_regression_hessian_cpp}), \code{converged}
+  \code{\link{get_continuation_ratio_regression_hessian_cpp}}), \code{converged}
   (logical), and \code{fisher_information} (the exact observed information
   Hessian at the fitted parameters). See Details for the degenerate
   fewer-than-2-categories case, which returns a reduced subset of these fields.

@@ -64,9 +64,12 @@ test_that("static cleanup guardrail prevents new eval(body(Inference...)) usage"
 	# InferenceSurvivalKKStratCoxPHOneLik migration (its own eval(body(...))
 	# restatement was a verified no-op, same as every other KK leaf this
 	# stretch) -- entry removed entirely.
+	# inference_count_KK_cond_poisson.R dropped to 0 at the 2026-08-19
+	# InferenceCountKKCondPoissonOneLik migration (both classes in that file
+	# are now migrated) -- entry removed entirely.
+	# inference_incidence_KK_cond_logit.R dropped to 0 at the 2026-08-19
+	# InferenceIncidKKCondLogitOneLik migration -- entry removed entirely.
 	expected = c(
-		"R/EDI/R/inference_count_KK_cond_poisson.R" = 2L,
-		"R/EDI/R/inference_incidence_KK_cond_logit.R" = 1L,
 		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 1L,
 		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 1L
 	)
@@ -93,6 +96,17 @@ test_that("static cleanup guardrail prevents new raw component splicing", {
 	# composing the KKPassThrough component via the new
 	# SurvivalKKStratCoxOneLikPartialLikelihood component's dependency) --
 	# entry removed entirely.
+	# inference_count_KK_cond_poisson.R dropped to 0 at the 2026-08-19
+	# InferenceCountKKCondPoissonOneLik migration (both classes in that file
+	# are now migrated) -- entry removed entirely.
+	# inference_incidence_KK_cond_logit.R dropped to 0 at the 2026-08-19
+	# InferenceIncidKKCondLogitOneLik migration -- entry removed entirely.
+	# inference_ordinal_KK_combined.R dropped to 0 at the 2026-08-19
+	# InferenceOrdinalKKGLMM migration (fix_inference_hierarchy.md "KK And
+	# IVWC Estimators", "Migrate KK GEE and GLMM classes"): its raw
+	# `utils::modifyList(as.list(InferenceMixinKKGLMMShared$public/private),
+	# ...)` splices were replaced by composing the registered `KKGLMM`
+	# component directly -- entry removed entirely.
 	expected = c(
 		"R/EDI/R/inference_all_abstract_KK_passthrough_compound.R" = 4L,
 		"R/EDI/R/inference_all_abstract_asymp_lik.R" = 1L,
@@ -102,10 +116,7 @@ test_that("static cleanup guardrail prevents new raw component splicing", {
 		"R/EDI/R/inference_all_abstract_param_boot.R" = 1L,
 		"R/EDI/R/inference_all_abstract_rand.R" = 1L,
 		"R/EDI/R/inference_count_composite_likelihood.R" = 2L,
-		"R/EDI/R/inference_count_KK_cond_poisson.R" = 6L,
-		"R/EDI/R/inference_incidence_KK_cond_logit.R" = 3L,
 		"R/EDI/R/inference_incidence_KK_marginal_abstract.R" = 2L,
-		"R/EDI/R/inference_ordinal_KK_combined.R" = 2L,
 		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 3L,
 		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 3L
 	)
@@ -156,11 +167,19 @@ test_that("component redeclarations of root-owned state cannot grow", {
 		# migration: the merged abstract+leaf source redeclares `m` (KK
 		# match-vector) the same way KKPassThrough/KKGEE/KKGLMM already do.
 		KKQuantileRegrIVWC = "m",
+		# KKQuantileRegrOneLik added at the 2026-08-18/19 quantile-regr OneLik
+		# migration: same shape as the KKQuantileRegrIVWC entry above.
+		KKQuantileRegrOneLik = "m",
 		# KKLWACoxOneLikPartialLikelihood added at the 2026-08-18 LWA Cox
 		# OneLik migration: the merged abstract+leaf source redeclares
 		# `optimization_alg` (fixed "lbfgs" for this class) the same way
 		# SurvivalKKClaytonCopulaIVWC/KKGLMM already do.
 		KKLWACoxOneLikPartialLikelihood = "optimization_alg",
+		# CountKKHurdlePoissonOneLikLikelihood added at the 2026-08-19
+		# HurdlePoisson OneLik migration: redeclares "m" (of its four
+		# owns_state fields -- m, cached_mod, use_rcpp,
+		# max_abs_reasonable_coef -- only "m" is root-owned).
+		CountKKHurdlePoissonOneLikLikelihood = "m",
 		# SurvivalKKStratCoxOneLikPartialLikelihood added at the 2026-08-18
 		# StratCox OneLik migration: same shape as KKLWACoxOneLikPartialLikelihood
 		# above -- the merged source redeclares `optimization_alg` (fixed

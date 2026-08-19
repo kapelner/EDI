@@ -4,9 +4,19 @@
 \alias{InferenceIncidRiskDiff}
 \title{Risk Difference Inference for Incidence Responses}
 \description{
-Fits a linear probability model via OLS for binary (incidence) responses using
-the treatment indicator and, optionally, all recorded covariates as
-predictors. The treatment effect is reported as a risk difference.
+Fits a linear probability model \eqn{E[Y \mid W, X] = \beta_0 + \beta_T W +
+\beta_X^\top X} via ordinary least squares for binary (incidence) responses
+\eqn{Y \in \{0,1\}}, using the treatment indicator \eqn{W} and, optionally,
+all recorded covariates \eqn{X} as predictors. \eqn{\hat\beta_T} is reported
+directly as the risk-difference estimate: because \eqn{Y} is 0/1, the OLS fit
+coincides with a saturated/linear model for the conditional risk
+\eqn{P(Y=1\mid W,X)}, so the coefficient on \eqn{W} is already on the
+risk-difference (probability) scale with no back-transformation needed. This
+is a misspecified working model for a binary response (heteroskedastic,
+errors not Gaussian), so \code{likelihood_tier = "none"}: standard errors and
+the Wald CI use the usual OLS sandwich/homoskedastic variance of
+\eqn{\hat\beta_T}, not a binomial likelihood, and no likelihood-ratio or
+parametric-bootstrap methods are exposed.
 }
 \examples{
 \donttest{
@@ -105,8 +115,12 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceIncidRiskDiff-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidRiskDiff-compute_estimate}{}}}
 \subsection{\code{InferenceIncidRiskDiff$compute_estimate()}}{
-  Computes the class-specific treatment-effect estimate; see
-  \code{\link[EDI:Inference]{Inference}}.
+  Fits the OLS linear-probability model and returns the
+  risk-difference point estimate \eqn{\hat\beta_T}, the coefficient on
+  treatment. On a hardened design (\code{private$harden}), or when
+  \code{estimate_only = FALSE}, delegates to \code{fast_ols_with_var_cpp()}
+  via the shared model cache so the variance is available for later
+  confidence-interval/p-value calls without refitting.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidRiskDiff$compute_estimate(estimate_only = FALSE)}
@@ -115,7 +129,9 @@ design's imputed covariates.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{If \code{TRUE}, skip the variance/degrees-of-freedom
+computation and return only \eqn{\hat\beta_T} (cheaper for
+simulation/randomization callers that never request inference).}
     }
     \if{html}{\out{</div>}}
   }
@@ -125,8 +141,12 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceIncidRiskDiff-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidRiskDiff-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceIncidRiskDiff$compute_asymp_confidence_interval()}}{
-  Uses the shared asymptotic confidence-interval contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Wald confidence interval for the risk difference,
+  \eqn{\hat\beta_T \pm t_{1-\alpha/2, df}\, \hat s(\hat\beta_T)}, using the
+  OLS standard error and residual degrees of freedom \eqn{df = n - p}
+  from the cached model fit. Interval bounds are not clamped to
+  \eqn{[-1, 1]}; a linear-probability model can produce out-of-range
+  endpoints near the boundary of the covariate space.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidRiskDiff$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -135,7 +155,8 @@ design's imputed covariates.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Confidence level.}
+      \item{\code{alpha}}{Two-sided miscoverage rate; the returned interval has nominal
+coverage \eqn{1-\alpha}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -145,8 +166,10 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceIncidRiskDiff-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidRiskDiff-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceIncidRiskDiff$compute_asymp_two_sided_pval()}}{
-  Uses the shared asymptotic two-sided p-value contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Two-sided Wald test of \eqn{H_0: \beta_T = \delta} vs.
+  \eqn{H_1: \beta_T \neq \delta}, via the t-statistic
+  \eqn{(\hat\beta_T - \delta) / \hat s(\hat\beta_T)} referred to a
+  \eqn{t_{df}} distribution with the cached OLS residual degrees of freedom.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidRiskDiff$compute_asymp_two_sided_pval(delta = 0)}
@@ -155,7 +178,8 @@ design's imputed covariates.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{delta}}{Null risk-difference value under \eqn{H_0} (default \code{0},
+no treatment effect).}
     }
     \if{html}{\out{</div>}}
   }
@@ -165,8 +189,14 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceIncidRiskDiff-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidRiskDiff-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceIncidRiskDiff$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the class-specific treatment estimate for a bootstrap sample; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+  Refits the linear-probability model by weighted least squares
+  (\code{stats::lm.wfit()}) under subject/block resampling weights
+  (nonparametric-bootstrap replicate weights or Bayesian-bootstrap Dirichlet
+  weights, both expanded to row weights via
+  \code{expand_subject_or_block_weights_to_row_weights()}) and returns the
+  re-estimated treatment coefficient. Rows with non-finite or non-positive
+  weight are excluded; if too few positive-weight rows remain to identify
+  the design, the replicate estimate is \code{NA_real_}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidRiskDiff$compute_estimate_with_bootstrap_weights(
@@ -178,8 +208,12 @@ design's imputed covariates.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{subject_or_block_weights}}{Row weights for the bootstrap sample.}
-      \item{\code{estimate_only}}{If TRUE, skip variance calculations.}
+      \item{\code{subject_or_block_weights}}{Numeric weights, one per subject or per
+resampling block (matched pair/cluster), as produced by the bootstrap or
+Bayesian-bootstrap resampling machinery.}
+      \item{\code{estimate_only}}{Accepted for interface compatibility; standard errors
+are never computed for a single bootstrap replicate regardless of this
+flag (only the point estimate is used to build the bootstrap distribution).}
     }
     \if{html}{\out{</div>}}
   }

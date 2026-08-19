@@ -836,9 +836,9 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceContinKKQuantileRegrOneLik.Rd`
 
-- [ ] TODO #242: Method `InferenceContinKKQuantileRegrOneLik$compute_estimate()` (current description `57` chars).
-- [ ] TODO #243: Method `InferenceContinKKQuantileRegrOneLik$new()` (current description `144` chars).
-- [ ] TODO #244: Topic `InferenceContinKKQuantileRegrOneLik` (current description `413` chars).
+- [x] TODO #242: Method `InferenceContinKKQuantileRegrOneLik$compute_estimate()` (current description `57` chars). This class was migrated to `define_inference_class` since the last gating check — no longer gated by `fix_inference_hierarchy.md`. The method resolves to the shared `KKQuantileRegrOneLik` component's `compute_estimate()`; documented there (`inference_all_KK_quantile_regr_one_lik_abstract.R`) with the stacked check-function-loss model. Verified via `roxygen2::parse_file()`.
+- [x] TODO #243: Method `InferenceContinKKQuantileRegrOneLik$new()` (current description `144` chars). Fixed a dead `\link` to the deleted `InferenceAbstractKKQuantileRegrOneLik` R6 class (pre-migration ancestor), pointing instead to the current topic and shared component method. Verified via `roxygen2::parse_file()`.
+- [x] TODO #244: Topic `InferenceContinKKQuantileRegrOneLik` (current description `413` chars). Added `@details` (check-function-loss model, tau semantics, none-tier rationale, assumptions, quantreg dependency) and `@references` (KK14 + Koenker2005, both already in REFERENCES.md, "Used by" lists updated for this class). Verified via `roxygen2::parse_file()`.
 
 ### `InferenceContinKKRobustRegrIVWC.Rd`
 
@@ -851,15 +851,15 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceContinKKRobustRegrOneLik.Rd`
 
-- [ ] TODO #251: Method `InferenceContinKKRobustRegrOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #252: Method `InferenceContinKKRobustRegrOneLik$compute_asymp_two_sided_pval()` (current description `121` chars).
-- [ ] TODO #253: Method `InferenceContinKKRobustRegrOneLik$compute_estimate_with_bootstrap_weights()` (current description `56` chars).
-- [ ] TODO #254: Method `InferenceContinKKRobustRegrOneLik$compute_estimate()` (current description `72` chars).
-- [ ] TODO #255: Method `InferenceContinKKRobustRegrOneLik$compute_wald_confidence_interval()` (current description `38` chars).
-- [ ] TODO #256: Method `InferenceContinKKRobustRegrOneLik$compute_wald_two_sided_pval()` (current description `36` chars).
-- [ ] TODO #257: Method `InferenceContinKKRobustRegrOneLik$duplicate()` (current description `172` chars).
-- [ ] TODO #258: Method `InferenceContinKKRobustRegrOneLik$new()` (current description `114` chars).
-- [ ] TODO #259: Topic `InferenceContinKKRobustRegrOneLik` (current description `221` chars).
+- [x] TODO #251: Method `InferenceContinKKRobustRegrOneLik$compute_asymp_confidence_interval()` (current description `60` chars). Documented Wald-only (quasi tier) semantics. Verified via `roxygen2::parse_file()`.
+- [x] TODO #252: Method `InferenceContinKKRobustRegrOneLik$compute_asymp_two_sided_pval()` (current description `121` chars). Documented null/alternative and Wald-alias relationship. Verified via `roxygen2::parse_file()`.
+- [x] TODO #253: Method `InferenceContinKKRobustRegrOneLik$compute_estimate_with_bootstrap_weights()` (current description `56` chars). Documented weight expansion and weighted-refit behavior. Verified via `roxygen2::parse_file()`.
+- [x] TODO #254: Method `InferenceContinKKRobustRegrOneLik$compute_estimate()` (current description `72` chars). Documented the stacked matched/reservoir robust design. Verified via `roxygen2::parse_file()`.
+- [x] TODO #255: Method `InferenceContinKKRobustRegrOneLik$compute_wald_confidence_interval()` (current description `38` chars). Documented as the explicit-name alias of the asymp CI. Verified via `roxygen2::parse_file()`.
+- [x] TODO #256: Method `InferenceContinKKRobustRegrOneLik$compute_wald_two_sided_pval()` (current description `36` chars). Documented as the explicit-name alias of the asymp p-value. Verified via `roxygen2::parse_file()`.
+- [x] TODO #257: Method `InferenceContinKKRobustRegrOneLik$duplicate()` (current description `172` chars). Thin override delegating to `super$duplicate()`; existing param docs already meet the standard.
+- [x] TODO #258: Method `InferenceContinKKRobustRegrOneLik$new()` (current description `114` chars). Already fully documents all constructor params; meets the standard as-is.
+- [x] TODO #259: Topic `InferenceContinKKRobustRegrOneLik` (current description `221` chars). Added `@details` (stacked-design model, quasi-tier rationale, assumptions), `@references` (KK14, REFERENCES.md updated), and a statsmodels analog link. Verified via `roxygen2::parse_file()`.
 
 ### `InferenceContinLin.Rd`
 
@@ -920,54 +920,54 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceCountKKCondPoissonOneLik.Rd`
 
-- [ ] TODO #299: Method `InferenceCountKKCondPoissonOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #300: Method `InferenceCountKKCondPoissonOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #301: Method `InferenceCountKKCondPoissonOneLik$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #302: Method `InferenceCountKKCondPoissonOneLik$compute_estimate_with_bootstrap_weights()` (current description `58` chars).
-- [ ] TODO #303: Method `InferenceCountKKCondPoissonOneLik$compute_estimate()` (current description `130` chars).
-- [ ] TODO #304: Method `InferenceCountKKCondPoissonOneLik$compute_gradient_confidence_interval()` (current description `56` chars).
-- [ ] TODO #305: Method `InferenceCountKKCondPoissonOneLik$compute_gradient_two_sided_pval()` (current description `44` chars).
-- [ ] TODO #306: Method `InferenceCountKKCondPoissonOneLik$compute_lik_ratio_confidence_interval()` (current description `64` chars).
-- [ ] TODO #307: Method `InferenceCountKKCondPoissonOneLik$compute_lik_ratio_two_sided_pval()` (current description `52` chars).
-- [ ] TODO #308: Method `InferenceCountKKCondPoissonOneLik$compute_score_confidence_interval()` (current description `53` chars).
-- [ ] TODO #309: Method `InferenceCountKKCondPoissonOneLik$compute_score_two_sided_pval()` (current description `41` chars).
-- [ ] TODO #310: Method `InferenceCountKKCondPoissonOneLik$compute_wald_confidence_interval()` (current description `54` chars).
-- [ ] TODO #311: Method `InferenceCountKKCondPoissonOneLik$compute_wald_two_sided_pval()` (current description `34` chars).
-- [ ] TODO #312: Method `InferenceCountKKCondPoissonOneLik$new()` (current description `120` chars).
+- [x] TODO #299: Method `InferenceCountKKCondPoissonOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #300: Method `InferenceCountKKCondPoissonOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #301: Method `InferenceCountKKCondPoissonOneLik$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #302: Method `InferenceCountKKCondPoissonOneLik$compute_estimate_with_bootstrap_weights()` (current description `58` chars).
+- [x] TODO #303: Method `InferenceCountKKCondPoissonOneLik$compute_estimate()` (current description `130` chars).
+- [x] TODO #304: Method `InferenceCountKKCondPoissonOneLik$compute_gradient_confidence_interval()` (current description `56` chars).
+- [x] TODO #305: Method `InferenceCountKKCondPoissonOneLik$compute_gradient_two_sided_pval()` (current description `44` chars).
+- [x] TODO #306: Method `InferenceCountKKCondPoissonOneLik$compute_lik_ratio_confidence_interval()` (current description `64` chars).
+- [x] TODO #307: Method `InferenceCountKKCondPoissonOneLik$compute_lik_ratio_two_sided_pval()` (current description `52` chars).
+- [x] TODO #308: Method `InferenceCountKKCondPoissonOneLik$compute_score_confidence_interval()` (current description `53` chars).
+- [x] TODO #309: Method `InferenceCountKKCondPoissonOneLik$compute_score_two_sided_pval()` (current description `41` chars).
+- [x] TODO #310: Method `InferenceCountKKCondPoissonOneLik$compute_wald_confidence_interval()` (current description `54` chars).
+- [x] TODO #311: Method `InferenceCountKKCondPoissonOneLik$compute_wald_two_sided_pval()` (current description `34` chars).
+- [x] TODO #312: Method `InferenceCountKKCondPoissonOneLik$new()` (current description `120` chars).
 - [x] TODO #313 (obsolete, 2026-08-13): Method `InferenceCountKKCondPoissonOneLik$supports_lik_ratio_param_bootstrap()` — `supports_*` hook methods are deleted by `fix_inference_hierarchy.md`'s capability model; do not document.
-- [ ] TODO #314: Topic `InferenceCountKKCondPoissonOneLik` (current description `139` chars).
+- [x] TODO #314: Topic `InferenceCountKKCondPoissonOneLik` (current description `139` chars).
 
 ### `InferenceCountKKGLMM.Rd`
 
-- [ ] TODO #315: Method `InferenceCountKKGLMM$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #316: Method `InferenceCountKKGLMM$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #317: Method `InferenceCountKKGLMM$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
-- [ ] TODO #318: Method `InferenceCountKKGLMM$compute_estimate()` (current description `58` chars).
-- [ ] TODO #319: Method `InferenceCountKKGLMM$compute_lik_ratio_confidence_interval()` (current description `63` chars).
-- [ ] TODO #320: Method `InferenceCountKKGLMM$compute_lik_ratio_two_sided_pval()` (current description `61` chars).
-- [ ] TODO #321: Method `InferenceCountKKGLMM$compute_wald_confidence_interval()` (current description `54` chars).
-- [ ] TODO #322: Method `InferenceCountKKGLMM$compute_wald_two_sided_pval()` (current description `34` chars).
-- [ ] TODO #323: Method `InferenceCountKKGLMM$new()` (current description `46` chars).
-- [ ] TODO #324: Topic `InferenceCountKKGLMM` (current description `348` chars).
+- [x] TODO #315: Method `InferenceCountKKGLMM$compute_asymp_confidence_interval()` (current description `60` chars). Documented Wald/lik_ratio dispatch. Verified via `roxygen2::parse_file()`.
+- [x] TODO #316: Method `InferenceCountKKGLMM$compute_asymp_two_sided_pval()` (current description `58` chars). Documented Wald/lik_ratio dispatch and null/alternative. Verified via `roxygen2::parse_file()`.
+- [x] TODO #317: Method `InferenceCountKKGLMM$compute_estimate_with_bootstrap_weights()` (current description `55` chars). Documented weighted-GLMM refit and cache-clearing behavior. Verified via `roxygen2::parse_file()`.
+- [x] TODO #318: Method `InferenceCountKKGLMM$compute_estimate()` (current description `58` chars). Documented the Poisson-GLMM log-rate estimand and GH-quadrature fitting. Verified via `roxygen2::parse_file()`.
+- [x] TODO #319: Method `InferenceCountKKGLMM$compute_lik_ratio_confidence_interval()` (current description `63` chars). Documented the profile-LR inversion and the design-aware conservative widening. Verified via `roxygen2::parse_file()`.
+- [x] TODO #320: Method `InferenceCountKKGLMM$compute_lik_ratio_two_sided_pval()` (current description `61` chars). Documented the profile-LR test and design-aware conservative calibration. Verified via `roxygen2::parse_file()`.
+- [x] TODO #321: Method `InferenceCountKKGLMM$compute_wald_confidence_interval()` (current description `54` chars). Documented the model-based Wald formula. Verified via `roxygen2::parse_file()`.
+- [x] TODO #322: Method `InferenceCountKKGLMM$compute_wald_two_sided_pval()` (current description `34` chars). Documented null/alternative and model-based SE. Verified via `roxygen2::parse_file()`.
+- [x] TODO #323: Method `InferenceCountKKGLMM$new()` (current description `46` chars). Expanded all constructor params (design type, formula default, use_rcpp/glmmTMB fallback, optimizer policy). Verified via `roxygen2::parse_file()`.
+- [x] TODO #324: Topic `InferenceCountKKGLMM` (current description `348` chars). Added `@details` (Poisson-GLMM-with-random-intercept model, GH quadrature, full-tier + design-aware-conservative LR rationale, assumptions), `@references` (KK14, REFERENCES.md updated), and statsmodels/Wikipedia analog links. Verified via `roxygen2::parse_file()`.
 
 ### `InferenceCountKKHurdlePoissonOneLik.Rd`
 
-- [ ] TODO #325: Method `InferenceCountKKHurdlePoissonOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #326: Method `InferenceCountKKHurdlePoissonOneLik$compute_asymp_confidence_interval()` (current description `194` chars).
-- [ ] TODO #327: Method `InferenceCountKKHurdlePoissonOneLik$compute_asymp_two_sided_pval()` (current description `192` chars).
-- [ ] TODO #328: Method `InferenceCountKKHurdlePoissonOneLik$compute_estimate_with_bootstrap_weights()` (current description `53` chars).
-- [ ] TODO #329: Method `InferenceCountKKHurdlePoissonOneLik$compute_estimate()` (current description `124` chars).
-- [ ] TODO #330: Method `InferenceCountKKHurdlePoissonOneLik$compute_gradient_confidence_interval()` (current description `60` chars).
-- [ ] TODO #331: Method `InferenceCountKKHurdlePoissonOneLik$compute_gradient_two_sided_pval()` (current description `48` chars).
-- [ ] TODO #332: Method `InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_confidence_interval()` (current description `68` chars).
-- [ ] TODO #333: Method `InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_two_sided_pval()` (current description `56` chars).
-- [ ] TODO #334: Method `InferenceCountKKHurdlePoissonOneLik$compute_score_confidence_interval()` (current description `57` chars).
-- [ ] TODO #335: Method `InferenceCountKKHurdlePoissonOneLik$compute_score_two_sided_pval()` (current description `45` chars).
-- [ ] TODO #336: Method `InferenceCountKKHurdlePoissonOneLik$compute_wald_confidence_interval()` (current description `173` chars).
-- [ ] TODO #337: Method `InferenceCountKKHurdlePoissonOneLik$compute_wald_two_sided_pval()` (current description `27` chars).
-- [ ] TODO #338: Method `InferenceCountKKHurdlePoissonOneLik$new()` (current description `196` chars).
+- [x] TODO #325: Method `InferenceCountKKHurdlePoissonOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars). (Not overridden by this class -- inherits the already-documented `KKPassThrough`-component body verbatim per the source comment; nothing to add here.)
+- [x] TODO #326: Method `InferenceCountKKHurdlePoissonOneLik$compute_asymp_confidence_interval()` (current description `194` chars). (Doc already adequate: dispatches to Wald/score/lik_ratio/gradient per testing type; added a class-level `@details` explaining the design-conservative widening scheme.)
+- [x] TODO #327: Method `InferenceCountKKHurdlePoissonOneLik$compute_asymp_two_sided_pval()` (current description `192` chars). (Doc already adequate; see class-level `@details`.)
+- [x] TODO #328: Method `InferenceCountKKHurdlePoissonOneLik$compute_estimate_with_bootstrap_weights()` (current description `53` chars). (Doc already adequate.)
+- [x] TODO #329: Method `InferenceCountKKHurdlePoissonOneLik$compute_estimate()` (current description `124` chars). (Doc already adequate; estimand \(\beta_T\) defined in the new class-level `@details`.)
+- [x] TODO #330: Method `InferenceCountKKHurdlePoissonOneLik$compute_gradient_confidence_interval()` (current description `60` chars). (Doc already adequate.)
+- [x] TODO #331: Method `InferenceCountKKHurdlePoissonOneLik$compute_gradient_two_sided_pval()` (current description `48` chars). (Doc already adequate.)
+- [x] TODO #332: Method `InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_confidence_interval()` (current description `68` chars). (Doc already adequate.)
+- [x] TODO #333: Method `InferenceCountKKHurdlePoissonOneLik$compute_lik_ratio_two_sided_pval()` (current description `56` chars). (Doc already adequate.)
+- [x] TODO #334: Method `InferenceCountKKHurdlePoissonOneLik$compute_score_confidence_interval()` (current description `57` chars). (Doc already adequate.)
+- [x] TODO #335: Method `InferenceCountKKHurdlePoissonOneLik$compute_score_two_sided_pval()` (current description `45` chars). (Doc already adequate.)
+- [x] TODO #336: Method `InferenceCountKKHurdlePoissonOneLik$compute_wald_confidence_interval()` (current description `173` chars). (Doc already adequate.)
+- [x] TODO #337: Method `InferenceCountKKHurdlePoissonOneLik$compute_wald_two_sided_pval()` (current description `27` chars). (Was a bare one-liner; rewrote to full standard following the sibling `compute_wald_confidence_interval` doc.)
+- [x] TODO #338: Method `InferenceCountKKHurdlePoissonOneLik$new()` (current description `196` chars). (Doc already adequate; params documented.)
 - [x] TODO #339 (obsolete, 2026-08-13): Method `InferenceCountKKHurdlePoissonOneLik$supports_lik_ratio_param_bootstrap()` — `supports_*` hook methods are deleted by `fix_inference_hierarchy.md`'s capability model; do not document.
-- [ ] TODO #340: Topic `InferenceCountKKHurdlePoissonOneLik` (current description `135` chars).
+- [x] TODO #340: Topic `InferenceCountKKHurdlePoissonOneLik` (current description `135` chars). Added a full class-level `@title`/`@details` block (hurdle-Poisson combined-likelihood model, design-conservative testing-tier widening, assumptions) plus `@references` (Mullahy 1986, new REFERENCES.md "Count" section/entry) and `@seealso` links -- no title/description roxygen existed on this class at all before (only `#' @export`).
 
 ### `InferenceCountNegBin.Rd`
 
@@ -1045,17 +1045,17 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidCMH.Rd`
 
-- [ ] TODO #391: Method `InferenceIncidCMH$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #392: Method `InferenceIncidCMH$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #393: Method `InferenceIncidCMH$new()` (current description `149` chars).
-- [ ] TODO #394: Topic `InferenceIncidCMH` (current description `1121` chars).
+- [x] TODO #391: Method `InferenceIncidCMH$compute_asymp_confidence_interval()` (current description `60` chars). Documented the randomization-based SE and risk-difference scale. Verified via `roxygen2::parse_file()`.
+- [x] TODO #392: Method `InferenceIncidCMH$compute_asymp_two_sided_pval()` (current description `58` chars). Documented null/alternative and shared SE. Verified via `roxygen2::parse_file()`.
+- [x] TODO #393: Method `InferenceIncidCMH$new()` (current description `149` chars). Already fully documents design validation, `se_est_num_vectors`, and return value; meets the standard as-is.
+- [x] TODO #394: Topic `InferenceIncidCMH` (current description `1121` chars). Already covers full model/SE derivation (balanced and blocking cases), realized-imbalance warning, and legacy status; meets the standard as-is.
 
-### `InferenceIncidenceExactZhang.Rd`
+### `InferenceIncidExactZhang.Rd`
 
-- [x] TODO #395: Method `InferenceIncidenceExactZhang$compute_estimate()` (current description `47` chars).
-- [x] TODO #396: Method `InferenceIncidenceExactZhang$compute_exact_confidence_interval()` (current description `43` chars).
-- [x] TODO #397: Method `InferenceIncidenceExactZhang$new()` (current description `43` chars).
-- [x] TODO #398: Topic `InferenceIncidenceExactZhang` (current description `63` chars).
+- [x] TODO #395: Method `InferenceIncidExactZhang$compute_estimate()` (current description `47` chars).
+- [x] TODO #396: Method `InferenceIncidExactZhang$compute_exact_confidence_interval()` (current description `43` chars).
+- [x] TODO #397: Method `InferenceIncidExactZhang$new()` (current description `43` chars).
+- [x] TODO #398: Topic `InferenceIncidExactZhang` (current description `63` chars).
 
 ### `InferenceIncidExactBinomial.Rd`
 
@@ -1073,10 +1073,10 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidExtendedRobins.Rd`
 
-- [ ] TODO #407: Method `InferenceIncidExtendedRobins$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #408: Method `InferenceIncidExtendedRobins$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #409: Method `InferenceIncidExtendedRobins$new()` (current description `62` chars).
-- [ ] TODO #410: Topic `InferenceIncidExtendedRobins` (current description `329` chars).
+- [x] TODO #407: Method `InferenceIncidExtendedRobins$compute_asymp_confidence_interval()` (already documented: links to the shared `InferenceAsymp` Wald z/t-CI contract; migrated/ungated, verified adequate).
+- [x] TODO #408: Method `InferenceIncidExtendedRobins$compute_asymp_two_sided_pval()` (already documented, same shared-contract link; verified adequate).
+- [x] TODO #409: Method `InferenceIncidExtendedRobins$new()` (already documents block-design/equal-allocation preconditions and params; verified adequate).
+- [x] TODO #410: Topic `InferenceIncidExtendedRobins` (already documents the estimator as unadjusted block-stratified mean-difference with legacy status; verified adequate, no change needed).
 
 ### `InferenceIncidGCompRiskDiff.Rd`
 
@@ -1088,22 +1088,22 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidKKCondLogitIVWC.Rd`
 
-- [ ] TODO #413: Method `InferenceIncidKKCondLogitIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #414: Method `InferenceIncidKKCondLogitIVWC$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #415: Method `InferenceIncidKKCondLogitIVWC$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #416: Method `InferenceIncidKKCondLogitIVWC$compute_estimate()` (current description `58` chars).
-- [ ] TODO #417: Method `InferenceIncidKKCondLogitIVWC$new()` (current description `129` chars).
-- [ ] TODO #418: Topic `InferenceIncidKKCondLogitIVWC` (current description `129` chars).
+- [x] TODO #413: Method `InferenceIncidKKCondLogitIVWC$approximate_bootstrap_distribution_beta_hat_T()` (resolves to the shared `KKCompound`/bootstrap component; documented at the component level, migrated/ungated).
+- [x] TODO #414: Method `InferenceIncidKKCondLogitIVWC$compute_asymp_confidence_interval()` (already documented via shared `InferenceAsymp` z/t-CI contract link; verified adequate).
+- [x] TODO #415: Method `InferenceIncidKKCondLogitIVWC$compute_asymp_two_sided_pval()` (already documented, same shared-contract link; verified adequate).
+- [x] TODO #416: Method `InferenceIncidKKCondLogitIVWC$compute_estimate()` (already documented as class-specific estimate hook per `Inference`; verified adequate).
+- [x] TODO #417: Method `InferenceIncidKKCondLogitIVWC$new()` (already documents params and covariate-formula reuse behavior; verified adequate).
+- [x] TODO #418: Topic `InferenceIncidKKCondLogitIVWC` (expanded: documented the IVWC combination formula (variance-weighted average of matched-pair conditional-logit and reservoir logistic-regression estimates, classical fixed-effects meta-analytic pooling), contrasted with the OneLik sibling, added a Fleiss/Levin/Paik conditional-logistic-for-matched-pairs reference. `R/EDI/R/inference_incidence_KK_cond_logit.R`).
 
 ### `InferenceIncidKKCondLogitOneLik.Rd`
 
-- [ ] TODO #419: Method `InferenceIncidKKCondLogitOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #420: Method `InferenceIncidKKCondLogitOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #421: Method `InferenceIncidKKCondLogitOneLik$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #422: Method `InferenceIncidKKCondLogitOneLik$compute_estimate_with_bootstrap_weights()` (current description `59` chars).
-- [ ] TODO #423: Method `InferenceIncidKKCondLogitOneLik$compute_estimate()` (current description `58` chars).
-- [ ] TODO #424: Method `InferenceIncidKKCondLogitOneLik$new()` (current description `209` chars).
-- [ ] TODO #425: Topic `InferenceIncidKKCondLogitOneLik` (current description `308` chars).
+- [x] TODO #419: Method `InferenceIncidKKCondLogitOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #420: Method `InferenceIncidKKCondLogitOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #421: Method `InferenceIncidKKCondLogitOneLik$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #422: Method `InferenceIncidKKCondLogitOneLik$compute_estimate_with_bootstrap_weights()` (current description `59` chars).
+- [x] TODO #423: Method `InferenceIncidKKCondLogitOneLik$compute_estimate()` (current description `58` chars).
+- [x] TODO #424: Method `InferenceIncidKKCondLogitOneLik$new()` (current description `209` chars).
+- [x] TODO #425: Topic `InferenceIncidKKCondLogitOneLik` (current description `308` chars).
 
 ### `InferenceIncidKKCondLogitGLMMIVWC.Rd`
 
@@ -1116,11 +1116,11 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidKKGCompRiskDiff.Rd`
 
-- [ ] TODO #429: Topic `InferenceIncidKKGCompRiskDiff` (current description `497` chars).
+- [x] TODO #429: Topic `InferenceIncidKKGCompRiskDiff` (current description `497` chars). Added standardization formula, sandwich-covariance clustering note, likelihood-tier/non-estimable behavior, and Robins (1986) citation.
 
 ### `InferenceIncidKKGCompRiskRatio.Rd`
 
-- [ ] TODO #430: Topic `InferenceIncidKKGCompRiskRatio` (current description `486` chars).
+- [x] TODO #430: Topic `InferenceIncidKKGCompRiskRatio` (current description `486` chars). Added standardization formula (log-scale delta method), non-estimable conditions, and Robins (1986) citation.
 
 ### `InferenceIncidKKGEE.Rd`
 
@@ -1138,9 +1138,9 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidKKNewcombeRiskDiff.Rd`
 
-- [ ] TODO #439: Method `InferenceIncidKKNewcombeRiskDiff$compute_estimate()` (current description `58` chars).
-- [ ] TODO #440: Method `InferenceIncidKKNewcombeRiskDiff$new()` (current description `118` chars).
-- [ ] TODO #441: Topic `InferenceIncidKKNewcombeRiskDiff` (current description `586` chars).
+- [x] TODO #439: Method `InferenceIncidKKNewcombeRiskDiff$compute_estimate()` (current description `58` chars). Documented compound IVWC formula and `estimate_only` behavior.
+- [x] TODO #440: Method `InferenceIncidKKNewcombeRiskDiff$new()` (current description `118` chars). Existing param docs already adequate; added one line on the KK-design/no-censoring precondition.
+- [x] TODO #441: Topic `InferenceIncidKKNewcombeRiskDiff` (current description `586` chars). Added closed-form IVWC formula, likelihood-tier note, and Newcombe (1998) citation; updated REFERENCES.md used-by list.
 
 ### `InferenceIncidLogBinomial.Rd`
 
@@ -1191,17 +1191,17 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidRiskDiff.Rd`
 
-- [ ] TODO #471: Method `InferenceIncidRiskDiff$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #472: Method `InferenceIncidRiskDiff$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #473: Method `InferenceIncidRiskDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #474: Method `InferenceIncidRiskDiff$compute_estimate()` (current description `58` chars).
-- [ ] TODO #475: Method `InferenceIncidRiskDiff$new()` (current description `46` chars).
-- [ ] TODO #476: Topic `InferenceIncidRiskDiff` (current description `263` chars).
+- [x] TODO #471: Method `InferenceIncidRiskDiff$compute_asymp_confidence_interval()` (current description `60` chars). Documented Wald-t formula and unclamped-bound note.
+- [x] TODO #472: Method `InferenceIncidRiskDiff$compute_asymp_two_sided_pval()` (current description `58` chars). Documented Wald-t test formula/null.
+- [x] TODO #473: Method `InferenceIncidRiskDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars). Documented weighted-refit mechanics and NA fallback.
+- [x] TODO #474: Method `InferenceIncidRiskDiff$compute_estimate()` (current description `58` chars). Documented estimate_only fast path and caching.
+- [x] TODO #475: Method `InferenceIncidRiskDiff$new()` (current description `46` chars). Reviewed: existing param docs already meet the standard, no change needed.
+- [x] TODO #476: Topic `InferenceIncidRiskDiff` (current description `263` chars). Added linear-probability-model formula, why beta_T is already a risk difference, and likelihood_tier=none rationale.
 
 ### `InferenceIncidWald.Rd`
 
-- [ ] TODO #477: Method `InferenceIncidWald$new()` (current description `166` chars).
-- [ ] TODO #478: Topic `InferenceIncidWald` (current description `211` chars).
+- [x] TODO #477: Method `InferenceIncidWald$new()` (current description `166` chars). Reviewed: already adequate.
+- [x] TODO #478: Topic `InferenceIncidWald` (current description `211` chars). Added Wald-interval formula, contrast with Newcombe/RiskDiff siblings, non-estimable condition.
 
 ### `InferenceOrdinalAdjCatLogitRegr.Rd`
 
@@ -1211,15 +1211,15 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceOrdinalCauchitRegr.Rd`
 
-- [ ] TODO #482: Method `InferenceOrdinalCauchitRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
-- [ ] TODO #483: Method `InferenceOrdinalCauchitRegr$new()` (current description `46` chars).
-- [ ] TODO #484: Topic `InferenceOrdinalCauchitRegr` (current description `193` chars).
+- [x] TODO #482: Method `InferenceOrdinalCauchitRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars). Documented surrogate-fit mechanics and NA fallback.
+- [x] TODO #483: Method `InferenceOrdinalCauchitRegr$new()` (current description `46` chars). Reviewed: existing param docs adequate.
+- [x] TODO #484: Topic `InferenceOrdinalCauchitRegr` (current description `193` chars). Added cauchit cumulative-link formula, likelihood tier, Agresti (2010) citation.
 
 ### `InferenceOrdinalCloglogRegr.Rd`
 
-- [ ] TODO #485: Method `InferenceOrdinalCloglogRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
-- [ ] TODO #486: Method `InferenceOrdinalCloglogRegr$new()` (current description `49` chars).
-- [ ] TODO #487: Topic `InferenceOrdinalCloglogRegr` (current description `193` chars).
+- [x] TODO #485: Method `InferenceOrdinalCloglogRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars). Documented surrogate-fit mechanics and NA fallback.
+- [x] TODO #486: Method `InferenceOrdinalCloglogRegr$new()` (current description `49` chars). Reviewed: existing param docs adequate.
+- [x] TODO #487: Topic `InferenceOrdinalCloglogRegr` (current description `193` chars). Added cloglog cumulative-link formula, McCullagh (1980)/Agresti (2010) citations.
 
 ### `InferenceOrdinalContRatioRegr.Rd`
 
@@ -1385,14 +1385,14 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferencePropKKQuantileRegrIVWC.Rd`
 
-- [ ] TODO #587: Method `InferencePropKKQuantileRegrIVWC$new()` (current description `101` chars).
-- [ ] TODO #588: Topic `InferencePropKKQuantileRegrIVWC` (current description `1458` chars).
+- [x] TODO #587: Method `InferencePropKKQuantileRegrIVWC$new()` (current description `101` chars). Reviewed: `new()` resolves to the shared `KKQuantileRegrIVWC` component's already fully-documented initializer (tau/transform_y_fn/model_formula all documented there); nothing to add.
+- [x] TODO #588: Topic `InferencePropKKQuantileRegrIVWC` (current description `1458` chars). Reviewed: topic doc already covers the compound-estimator formula, logit-scale transform, Powell sandwich SE, and quantreg dependency in depth; already meets the standard.
 
 ### `InferencePropKKQuantileRegrOneLik.Rd`
 
-- [ ] TODO #589: Method `InferencePropKKQuantileRegrOneLik$compute_estimate()` (current description `57` chars).
-- [ ] TODO #590: Method `InferencePropKKQuantileRegrOneLik$new()` (current description `185` chars).
-- [ ] TODO #591: Topic `InferencePropKKQuantileRegrOneLik` (current description `542` chars).
+- [x] TODO #589: Method `InferencePropKKQuantileRegrOneLik$compute_estimate()` (current description `57` chars). Reviewed: already documented via the shared `KKQuantileRegrOneLik` component (a prior pass added `@eqn`-level docs there).
+- [x] TODO #590: Method `InferencePropKKQuantileRegrOneLik$new()` (current description `185` chars). Reviewed: already documented via the shared component initializer.
+- [x] TODO #591: Topic `InferencePropKKQuantileRegrOneLik` (current description `542` chars). Added pinball-loss formula, contrast with IVWC sibling, Koenker (2005) citation.
 
 ### `InferencePropQuantileRegr.Rd`
 
@@ -1458,79 +1458,79 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceSurvivalKKClaytonCopulaIVWC.Rd`
 
-- [ ] TODO #636: Method `InferenceSurvivalKKClaytonCopulaIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #637: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #638: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_asymp_two_sided_pval()` (current description `160` chars).
-- [ ] TODO #639: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_estimate_with_bootstrap_weights()` (current description `59` chars).
-- [ ] TODO #640: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_estimate()` (current description `65` chars).
-- [ ] TODO #641: Method `InferenceSurvivalKKClaytonCopulaIVWC$duplicate()` (current description `57` chars).
-- [ ] TODO #642: Method `InferenceSurvivalKKClaytonCopulaIVWC$new()` (current description `111` chars).
-- [ ] TODO #643: Topic `InferenceSurvivalKKClaytonCopulaIVWC` (current description `453` chars).
+- [x] TODO #636: Method `InferenceSurvivalKKClaytonCopulaIVWC$approximate_bootstrap_distribution_beta_hat_T()` (reviewed: supplied by the KK component chain, not this Source; that shared implementation already documented via `KKCompound`/`KKPassThrough`).
+- [x] TODO #637: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_asymp_confidence_interval()` (reviewed: `SurvivalKKClaytonCopulaIVWCSource` already documents params and links `InferenceAsymp`; adequate as-is).
+- [x] TODO #638: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_asymp_two_sided_pval()` (reviewed: already documents the frailty/dependence-model p-value semantics; adequate as-is).
+- [x] TODO #639: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_estimate_with_bootstrap_weights()` (reviewed: already documents the Bayesian-bootstrap weighted-surrogate-fit behavior and constant-weight fast path; adequate as-is).
+- [x] TODO #640: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_estimate()` (reviewed: already documents log-time-ratio estimand; adequate as-is).
+- [x] TODO #641: Method `InferenceSurvivalKKClaytonCopulaIVWC$duplicate()` (reviewed: intentionally not overridden by this Source per the "Static Cleanup" comment — inherited from the KK component chain, already documented there).
+- [x] TODO #642: Method `InferenceSurvivalKKClaytonCopulaIVWC$new()` (reviewed: already documents params and delegation; adequate as-is).
+- [x] TODO #643: Topic `InferenceSurvivalKKClaytonCopulaIVWC` (reviewed: already documents the Clayton-copula/Weibull-frailty closed form, cites Clayton 1978 and Oakes 1989, and cross-links the log-normal-frailty sibling class; adequate as-is).
 
 ### `InferenceSurvivalKKClaytonCopulaOneLik.Rd`
 
-- [ ] TODO #644: Method `InferenceSurvivalKKClaytonCopulaOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #645: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #646: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_asymp_two_sided_pval()` (current description `122` chars).
-- [ ] TODO #647: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_estimate()` (current description `65` chars).
-- [ ] TODO #648: Method `InferenceSurvivalKKClaytonCopulaOneLik$duplicate()` (current description `57` chars).
-- [ ] TODO #649: Method `InferenceSurvivalKKClaytonCopulaOneLik$new()` (current description `106` chars).
-- [ ] TODO #650: Topic `InferenceSurvivalKKClaytonCopulaOneLik` (current description `119` chars).
+- [x] TODO #644: Method `InferenceSurvivalKKClaytonCopulaOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #645: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #646: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_asymp_two_sided_pval()` (current description `122` chars).
+- [x] TODO #647: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_estimate()` (current description `65` chars).
+- [x] TODO #648: Method `InferenceSurvivalKKClaytonCopulaOneLik$duplicate()` (current description `57` chars).
+- [x] TODO #649: Method `InferenceSurvivalKKClaytonCopulaOneLik$new()` (current description `106` chars).
+- [x] TODO #650: Topic `InferenceSurvivalKKClaytonCopulaOneLik` (current description `119` chars).
 
 ### `InferenceSurvivalKKLWACoxPHIVWC.Rd`
 
-- [ ] TODO #651: Method `InferenceSurvivalKKLWACoxPHIVWC$new()` (current description `81` chars).
-- [ ] TODO #652: Topic `InferenceSurvivalKKLWACoxPHIVWC` (current description `292` chars).
+- [x] TODO #651: Method `InferenceSurvivalKKLWACoxPHIVWC$new()` (current description `81` chars). Reviewed: already documented via the shared abstract component's initializer.
+- [x] TODO #652: Topic `InferenceSurvivalKKLWACoxPHIVWC` (current description `292` chars). Added Cox+LWA sandwich formula, contrast with OneLik sibling, Lee-Wei-Amato (1992) citation.
 
 ### `InferenceSurvivalKKLWACoxPHOneLik.Rd`
 
-- [ ] TODO #653: Method `InferenceSurvivalKKLWACoxPHOneLik$new()` (current description `91` chars).
-- [ ] TODO #654: Topic `InferenceSurvivalKKLWACoxPHOneLik` (current description `208` chars).
+- [x] TODO #653: Method `InferenceSurvivalKKLWACoxPHOneLik$new()` (current description `91` chars). Reviewed: already documented via the shared abstract component's initializer.
+- [x] TODO #654: Topic `InferenceSurvivalKKLWACoxPHOneLik` (current description `208` chars). Added combined-partial-likelihood formula, contrast with IVWC sibling, likelihood_tier note.
 
 ### `InferenceSurvivalKKRankRegrIVWC.Rd`
 
-- [ ] TODO #655: Method `InferenceSurvivalKKRankRegrIVWC$new()` (current description `127` chars).
-- [ ] TODO #656: Topic `InferenceSurvivalKKRankRegrIVWC` (current description `265` chars).
+- [x] TODO #655: Method `InferenceSurvivalKKRankRegrIVWC$new()` (reviewed: `SurvivalKKRankRegrIVWCSource$initialize` in `inference_survival_KK_rank_regr_ivwc_abstract.R` already documents params and delegates behavior; adequate as-is).
+- [x] TODO #656: Topic `InferenceSurvivalKKRankRegrIVWC` (reviewed: existing topic doc already covers model (Gehan-Wilcoxon rank AFT via `aftgee`), matched/reservoir combination rule, hardening behavior, and `aftgee` package requirement; adequate as-is).
 
 ### `InferenceSurvivalKKStratCoxPHIVWC.Rd`
 
-- [ ] TODO #657: Method `InferenceSurvivalKKStratCoxPHIVWC$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #658: Method `InferenceSurvivalKKStratCoxPHIVWC$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #659: Method `InferenceSurvivalKKStratCoxPHIVWC$compute_asymp_two_sided_pval()` (current description `125` chars).
-- [ ] TODO #660: Method `InferenceSurvivalKKStratCoxPHIVWC$compute_estimate()` (current description `58` chars).
-- [ ] TODO #661: Method `InferenceSurvivalKKStratCoxPHIVWC$new()` (current description `115` chars).
-- [ ] TODO #662: Topic `InferenceSurvivalKKStratCoxPHIVWC` (current description `746` chars).
+- [x] TODO #657: Method `InferenceSurvivalKKStratCoxPHIVWC$approximate_bootstrap_distribution_beta_hat_T()` (reviewed: supplied by the KK component chain, already documented there).
+- [x] TODO #658: Method `InferenceSurvivalKKStratCoxPHIVWC$compute_asymp_confidence_interval()` (reviewed: `SurvivalKKStratCoxIVWCSource` already documents params and links `InferenceAsymp`; adequate as-is).
+- [x] TODO #659: Method `InferenceSurvivalKKStratCoxPHIVWC$compute_asymp_two_sided_pval()` (reviewed: already documents partial-likelihood SE-based p-value semantics; adequate as-is).
+- [x] TODO #660: Method `InferenceSurvivalKKStratCoxPHIVWC$compute_estimate()` (reviewed: already documents log-hazard-ratio estimand; adequate as-is).
+- [x] TODO #661: Method `InferenceSurvivalKKStratCoxPHIVWC$new()` (reviewed: already documents params and delegation; adequate as-is).
+- [x] TODO #662: Topic `InferenceSurvivalKKStratCoxPHIVWC` (expanded: added the matched-pair-as-stratum vs. reservoir-unstratified model description with Cox 1972 / Lee-Wei-Amato 1992 `@references`; updated `REFERENCES.md` "Used by" lists for both entries).
 
 ### `InferenceSurvivalKKStratCoxPHOneLik.Rd`
 
-- [ ] TODO #663: Method `InferenceSurvivalKKStratCoxPHOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #664: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_asymp_confidence_interval()` (current description `68` chars).
-- [ ] TODO #665: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_asymp_two_sided_pval()` (current description `49` chars).
-- [ ] TODO #666: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_estimate_with_bootstrap_weights()` (current description `54` chars).
-- [ ] TODO #667: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_estimate()` (current description `70` chars).
-- [ ] TODO #668: Method `InferenceSurvivalKKStratCoxPHOneLik$new()` (current description `109` chars).
-- [ ] TODO #669: Topic `InferenceSurvivalKKStratCoxPHOneLik` (current description `137` chars).
+- [x] TODO #663: Method `InferenceSurvivalKKStratCoxPHOneLik$approximate_bootstrap_distribution_beta_hat_T()` (reviewed: supplied by the KK component chain, already documented there).
+- [x] TODO #664: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_asymp_confidence_interval()` (reviewed: `SurvivalKKStratCoxOneLikPartialLikelihoodSource` already documents params; adequate as-is).
+- [x] TODO #665: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_asymp_two_sided_pval()` (reviewed: already documents combined-likelihood p-value semantics; adequate as-is).
+- [x] TODO #666: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_estimate_with_bootstrap_weights()` (reviewed: already documents Bayesian-bootstrap weighted-surrogate-fit behavior; adequate as-is).
+- [x] TODO #667: Method `InferenceSurvivalKKStratCoxPHOneLik$compute_estimate()` (reviewed: already documents combined-likelihood estimand; adequate as-is).
+- [x] TODO #668: Method `InferenceSurvivalKKStratCoxPHOneLik$new()` (reviewed: already documents params and delegation; adequate as-is).
+- [x] TODO #669: Topic `InferenceSurvivalKKStratCoxPHOneLik` (was thin, only `@keywords internal`, no title/description — added a full topic doc explaining the combined-partial-likelihood model, contrasting it with the two-stage IVWC sibling, and citing Cox 1972 / Lee-Wei-Amato 1992).
 
 ### `InferenceSurvivalKKWeibullFrailtyIVWC.Rd`
 
-- [ ] TODO #670: Method `InferenceSurvivalKKWeibullFrailtyIVWC$new()` (current description `53` chars).
-- [ ] TODO #671: Topic `InferenceSurvivalKKWeibullFrailtyIVWC` (current description `102` chars).
+- [x] TODO #670: Method `InferenceSurvivalKKWeibullFrailtyIVWC$new()` (reviewed: `SurvivalKKWeibullFrailtyIVWCSource$initialize` already documents params; adequate as-is).
+- [x] TODO #671: Topic `InferenceSurvivalKKWeibullFrailtyIVWC` (reviewed/expanded: existing doc already had a thorough log-normal-vs-gamma-frailty model discussion; added missing `@references` for Vaupel/Manton/Stallard 1979 and Hougaard 2000, added matching `REFERENCES.md` entries).
 
 ### `InferenceSurvivalKKWeibullFrailtyOneLik.Rd`
 
-- [ ] TODO #672: Method `InferenceSurvivalKKWeibullFrailtyOneLik$new()` (current description `63` chars).
-- [ ] TODO #673: Topic `InferenceSurvivalKKWeibullFrailtyOneLik` (current description `121` chars).
+- [x] TODO #672: Method `InferenceSurvivalKKWeibullFrailtyOneLik$new()` (current description `63` chars).
+- [x] TODO #673: Topic `InferenceSurvivalKKWeibullFrailtyOneLik` (current description `121` chars).
 
 ### `InferenceSurvivalKKWeibullMarginal.Rd`
 
-- [ ] TODO #674: Method `InferenceSurvivalKKWeibullMarginal$approximate_bootstrap_distribution_beta_hat_T()` (current description `68` chars).
-- [ ] TODO #675: Method `InferenceSurvivalKKWeibullMarginal$compute_asymp_confidence_interval()` (current description `61` chars).
-- [ ] TODO #676: Method `InferenceSurvivalKKWeibullMarginal$compute_asymp_two_sided_pval()` (current description `59` chars).
-- [ ] TODO #677: Method `InferenceSurvivalKKWeibullMarginal$compute_estimate_with_bootstrap_weights()` (current description `67` chars).
-- [ ] TODO #678: Method `InferenceSurvivalKKWeibullMarginal$compute_estimate()` (current description `68` chars).
-- [ ] TODO #679: Method `InferenceSurvivalKKWeibullMarginal$duplicate()` (current description `57` chars).
-- [ ] TODO #680: Method `InferenceSurvivalKKWeibullMarginal$new()` (current description `66` chars).
-- [ ] TODO #681: Topic `InferenceSurvivalKKWeibullMarginal` (current description `1180` chars).
+- [x] TODO #674: Method `InferenceSurvivalKKWeibullMarginal$approximate_bootstrap_distribution_beta_hat_T()` (reviewed: supplied by the `KKPassThrough` component, already documented there).
+- [x] TODO #675: Method `InferenceSurvivalKKWeibullMarginal$compute_asymp_confidence_interval()` (reviewed: `SurvivalKKWeibullMarginalSource` already documents params and cluster-robust CI behavior; adequate as-is).
+- [x] TODO #676: Method `InferenceSurvivalKKWeibullMarginal$compute_asymp_two_sided_pval()` (reviewed: already documents cluster-robust p-value semantics; adequate as-is).
+- [x] TODO #677: Method `InferenceSurvivalKKWeibullMarginal$compute_estimate_with_bootstrap_weights()` (reviewed: already documents Bayesian-bootstrap weighted-surrogate-fit behavior; adequate as-is).
+- [x] TODO #678: Method `InferenceSurvivalKKWeibullMarginal$compute_estimate()` (reviewed: already documents log-time-ratio estimand; adequate as-is).
+- [x] TODO #679: Method `InferenceSurvivalKKWeibullMarginal$duplicate()` (reviewed: already documents fit-cache-preserving duplication with params; adequate as-is).
+- [x] TODO #680: Method `InferenceSurvivalKKWeibullMarginal$new()` (reviewed: already documents params; adequate as-is).
+- [x] TODO #681: Topic `InferenceSurvivalKKWeibullMarginal` (reviewed: already documents the pooled working-independence Weibull AFT model, cluster-robust sandwich construction, contrast with the frailty sibling class, and the `survival::survreg` fallback equivalence; adequate as-is).
 
 ### `InferenceSurvivalKMDiff.Rd`
 

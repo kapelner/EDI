@@ -9,6 +9,24 @@ Fits the combined stacked quantile regression (matched-pair differences + reserv
 using the treatment indicator and all recorded covariates for continuous responses.
 Minimises the joint check-function loss over both data sources simultaneously.
 Inference is based on the stacked combined-likelihood quantile-regression fit.
+
+
+\strong{Model.} Analogous to
+\code{\link[EDI:InferenceContinKKOLSOneLik]{InferenceContinKKOLSOneLik}}'s single
+stacked design (matched-pair difference rows plus reservoir rows fit
+jointly), but the objective is the \code{quantreg} check-function loss
+\eqn{\rho_\tau(u) = u(\tau - \mathbf{1}_{u<0})} rather than squared error,
+so the estimand \eqn{\beta_T} is the treatment effect on the \eqn{\tau}-th
+quantile of the response, not the mean. \code{tau = 0.5} (default) targets
+the median treatment effect, which is more robust to outliers and
+heavy-tailed responses than the OLS mean-based estimator; any value
+strictly between 0 and 1 is accepted. \code{likelihood_tier = "none"}: no
+likelihood-based (score/gradient/lik_ratio) testing types, only Wald.
+
+\strong{Assumptions.} Continuous response; independent matched pairs and/or
+independent reservoir subjects; no censoring; a KK matching-on-the-fly
+design. Requires the \pkg{quantreg} package (listed in Suggests, not
+installed automatically).
 }
 \examples{
 \donttest{
@@ -41,123 +59,35 @@ infer <- InferenceContinKKQuantileRegrOneLik$new(seq_des, verbose
 infer
 
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{InferenceKKPassThroughCompoundNoParamBootstrap} -> \code{\link[EDI:InferenceAbstractQuantileRandCI]{InferenceAbstractQuantileRandCI}} -> \code{\link[EDI:InferenceAbstractKKQuantileRegrOneLik]{InferenceAbstractKKQuantileRegrOneLik}} -> \code{InferenceContinKKQuantileRegrOneLik}
+\references{
+Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
+allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
+378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
+Koenker, R. (2005). \emph{Quantile Regression}. Cambridge University Press.
+}
+\seealso{
+\code{\link[EDI:InferenceContinKKQuantileRegrIVWC]{InferenceContinKKQuantileRegrIVWC}}
+  for the inverse-variance-weighted-combination alternative to this
+  one-likelihood combined-fit approach.
+  \href{https://en.wikipedia.org/wiki/Quantile_regression}{Quantile
+  regression} (orientation).
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceContinKKQuantileRegrOneLik}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-InferenceContinKKQuantileRegrOneLik-initialize}{\code{InferenceContinKKQuantileRegrOneLik$new()}}
-    \item \href{#method-InferenceContinKKQuantileRegrOneLik-compute_estimate}{\code{InferenceContinKKQuantileRegrOneLik$compute_estimate()}}
     \item \href{#method-InferenceContinKKQuantileRegrOneLik-clone}{\code{InferenceContinKKQuantileRegrOneLik$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAbstractKKQuantileRegrOneLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAbstractKKQuantileRegrOneLik.html#method-InferenceAbstractKKQuantileRegrOneLik-compute_asymp_confidence_interval'><code>InferenceAbstractKKQuantileRegrOneLik$compute_asymp_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAbstractKKQuantileRegrOneLik.html#method-InferenceAbstractKKQuantileRegrOneLik-compute_asymp_two_sided_pval'><code>InferenceAbstractKKQuantileRegrOneLik$compute_asymp_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAbstractKKQuantileRegrOneLik.html#method-InferenceAbstractKKQuantileRegrOneLik-compute_estimate_with_bootstrap_weights'><code>InferenceAbstractKKQuantileRegrOneLik$compute_estimate_with_bootstrap_weights()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAbstractQuantileRandCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAbstractQuantileRandCI.html#method-InferenceAbstractQuantileRandCI-compute_rand_confidence_interval'><code>InferenceAbstractQuantileRandCI$compute_rand_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceKKPassThroughCompoundNoParamBootstrap</summary>
-<ul>
-  <li><code>InferenceKKPassThroughCompoundNoParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsympLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_confidence_interval'><code>InferenceAsympLik$compute_gradient_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_two_sided_pval'><code>InferenceAsympLik$compute_gradient_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_confidence_interval'><code>InferenceAsympLik$compute_score_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_two_sided_pval'><code>InferenceAsympLik$compute_score_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -181,9 +111,12 @@ infer
 \if{html}{\out{<a id="method-InferenceContinKKQuantileRegrOneLik-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinKKQuantileRegrOneLik-initialize}{}}}
 \subsection{\code{InferenceContinKKQuantileRegrOneLik$new()}}{
-  Initialize continuous-response KK combined-likelihood quantile-regression inference.
-  The shared stacked quantile-regression fit is documented in
-  \code{\link[EDI:InferenceAbstractKKQuantileRegrOneLik]{InferenceAbstractKKQuantileRegrOneLik}}.
+  Initialize continuous-response KK combined-likelihood quantile-regression
+  inference. The shared stacked matched-pair/reservoir quantile-regression fit and its
+  \code{tau} semantics are documented on
+  \code{\link[EDI:InferenceContinKKQuantileRegrOneLik]{InferenceContinKKQuantileRegrOneLik}}
+  and on the shared \code{compute_estimate()} method it inherits from the
+  \code{KKQuantileRegrOneLik} component.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceContinKKQuantileRegrOneLik$new(
@@ -225,26 +158,6 @@ infer <- InferenceContinKKQuantileRegrOneLik$new(seq_des, verbose
 = FALSE)
 infer
 }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceContinKKQuantileRegrOneLik-compute_estimate"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceContinKKQuantileRegrOneLik-compute_estimate}{}}}
-\subsection{\code{InferenceContinKKQuantileRegrOneLik$compute_estimate()}}{
-  Returns the class-specific treatment-effect estimate; see
-  \code{\link[EDI:Inference]{Inference}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceContinKKQuantileRegrOneLik$compute_estimate(estimate_only = FALSE)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
-    }
     \if{html}{\out{</div>}}
   }
 }

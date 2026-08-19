@@ -2,126 +2,85 @@
 % Please edit documentation in R/inference_count_KK_cond_poisson.R
 \name{InferenceCountKKCondPoissonOneLik}
 \alias{InferenceCountKKCondPoissonOneLik}
-\title{Conditional-Poisson Inference for KK Designs with Combined Likelihood}
+\title{One-Likelihood Conditional-Poisson Inference for KK Count Designs}
 \description{
-Conditional-Poisson Inference for KK Designs with Combined Likelihood
+Estimates a treatment log-rate-ratio \eqn{\beta_T} for count outcomes
+collected under a KK matching-on-the-fly design
+(\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} or
+subclass) by maximizing a single combined likelihood that couples a
+conditional (within-matched-pair, intercept-free) Poisson likelihood for
+matched subjects with an ordinary Poisson likelihood for reservoir
+subjects, sharing one treatment coefficient across both pieces. This is
+the "one-likelihood" alternative to the inverse-variance-weighted
+combination
+(\code{\link[EDI:InferenceContinKKOLSIVWC]{...IVWC}} pattern used
+elsewhere in the KK family): rather than fitting matched and reservoir
+models separately and pooling by inverse-variance weights, the treatment
+coefficient here is estimated jointly from the full combined
+log-likelihood, and its standard error, score, likelihood-ratio, and
+gradient statistics are all "design-conservative" -- each is the
+pointwise-wider of the model-based asymptotic quantity and a
+design-based quantity computed by treating the estimate as a plug-in
+statistic under \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}'s
+\eqn{z}/\eqn{t} machinery, so inference never overstates precision
+relative to the design alone.
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}} -> \code{InferenceCountKKCondPoissonOneLik}
+\details{
+\strong{Estimand.} \eqn{\beta_T}, the treatment coefficient in a
+log-linear (Poisson) mean model \eqn{E[Y \mid W, X] = \exp(\beta_0 +
+\beta_T W + X\beta)}, interpreted as a log rate ratio (equivalently,
+\eqn{\exp(\hat\beta_T)} is the treatment-vs-control incidence rate
+ratio).
+
+\strong{Model.} Matched subjects contribute a conditional-Poisson term
+that eliminates the pair-specific nuisance intercept by conditioning on
+the pair total count (removing the need to estimate one intercept per
+pair); reservoir subjects contribute an ordinary Poisson log-likelihood
+with a single shared intercept. Both pieces are summed into one
+combined negative log-likelihood and maximized jointly in
+\eqn{(\beta_0, \beta_T, \beta)} (see \code{get_cpoisson_combined_hessian_cpp}
+and \code{fast_cpoisson_combined_with_var_cpp} for the backend fitting
+contract). \code{likelihood_tier = "full"}, so likelihood-ratio, score,
+and gradient tests and a parametric likelihood bootstrap are all
+available in addition to the design-conservative Wald path.
+
+\strong{Assumptions.} Independence of counts across matched pairs and
+reservoir subjects given covariates; correct log-linear mean
+specification; a KK matching-on-the-fly design supplying the
+matched/reservoir partition. No response censoring is supported (checked
+at construction via \code{assertNoCensoring()}).
+}
+\references{
+Kapelner, A. and Krieger, A. (2014). "Matching on-the-fly: A group
+sequential covariate balanced randomization procedure." \emph{arXiv
+preprint} arXiv:1305.6259. (KK14 in \code{REFERENCES.md}.)
+}
+\seealso{
+Analogous Python API for count models:
+  \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
+  discrete models} (\code{ConditionalPoisson}, \code{Poisson}).
+  \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson
+  regression} (orientation).
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceCountKKCondPoissonOneLik}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-initialize}{\code{InferenceCountKKCondPoissonOneLik$new()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_estimate}{\code{InferenceCountKKCondPoissonOneLik$compute_estimate()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_estimate_with_bootstrap_weights}{\code{InferenceCountKKCondPoissonOneLik$compute_estimate_with_bootstrap_weights()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_asymp_confidence_interval}{\code{InferenceCountKKCondPoissonOneLik$compute_asymp_confidence_interval()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_asymp_two_sided_pval}{\code{InferenceCountKKCondPoissonOneLik$compute_asymp_two_sided_pval()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_wald_confidence_interval}{\code{InferenceCountKKCondPoissonOneLik$compute_wald_confidence_interval()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_wald_two_sided_pval}{\code{InferenceCountKKCondPoissonOneLik$compute_wald_two_sided_pval()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_score_confidence_interval}{\code{InferenceCountKKCondPoissonOneLik$compute_score_confidence_interval()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_lik_ratio_confidence_interval}{\code{InferenceCountKKCondPoissonOneLik$compute_lik_ratio_confidence_interval()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_gradient_confidence_interval}{\code{InferenceCountKKCondPoissonOneLik$compute_gradient_confidence_interval()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_score_two_sided_pval}{\code{InferenceCountKKCondPoissonOneLik$compute_score_two_sided_pval()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_lik_ratio_two_sided_pval}{\code{InferenceCountKKCondPoissonOneLik$compute_lik_ratio_two_sided_pval()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_gradient_two_sided_pval}{\code{InferenceCountKKCondPoissonOneLik$compute_gradient_two_sided_pval()}}
-    \item \href{#method-InferenceCountKKCondPoissonOneLik-approximate_bootstrap_distribution_beta_hat_T}{\code{InferenceCountKKCondPoissonOneLik$approximate_bootstrap_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceCountKKCondPoissonOneLik-set_custom_randomization_statistic_function}{\code{InferenceCountKKCondPoissonOneLik$set_custom_randomization_statistic_function()}}
+    \item \href{#method-InferenceCountKKCondPoissonOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceCountKKCondPoissonOneLik$set_custom_randomization_statistic_cpp()}}
+    \item \href{#method-InferenceCountKKCondPoissonOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceCountKKCondPoissonOneLik$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_rand_two_sided_pval}{\code{InferenceCountKKCondPoissonOneLik$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceCountKKCondPoissonOneLik-clone}{\code{InferenceCountKKCondPoissonOneLik$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_lik_ratio_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_lik_ratio_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_lik_ratio_bootstrap_two_sided_pval'><code>InferenceParamBootstrap$compute_lik_ratio_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_param_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_estimate'><code>InferenceParamBootstrap$compute_param_bootstrap_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_pval'><code>InferenceParamBootstrap$compute_param_bootstrap_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_diagnostics()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_estimate_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_estimate_diagnostics()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsympLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -135,6 +94,7 @@ Conditional-Poisson Inference for KK Designs with Combined Likelihood
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
@@ -142,312 +102,64 @@ Conditional-Poisson Inference for KK Designs with Combined Likelihood
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-initialize"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-initialize}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$new()}}{
-  Initialize conditional-Poisson one-likelihood inference for
-  KK count designs and prepare the combined likelihood used by
-  \code{\link[EDI:InferenceCountKKCondPoissonOneLik]{InferenceCountKKCondPoissonOneLik}}.
+\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-set_custom_randomization_statistic_function"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-set_custom_randomization_statistic_function}{}}}
+\subsection{\code{InferenceCountKKCondPoissonOneLik$set_custom_randomization_statistic_function()}}{
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$new(
-  des_obj,
-  model_formula = NULL,
-  verbose = FALSE,
-  smart_cold_start_default = NULL
+    \preformatted{InferenceCountKKCondPoissonOneLik$set_custom_randomization_statistic_function(
+  custom_randomization_statistic_function
 )}
     \if{html}{\out{</div>}}
   }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{des_obj}}{A completed \code{Design} object with count responses.}
-      \item{\code{model_formula}}{Optional formula for covariate adjustment.}
-      \item{\code{verbose}}{A flag indicating whether messages should be displayed.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
-    }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-set_custom_randomization_statistic_cpp"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-set_custom_randomization_statistic_cpp}{}}}
+\subsection{\code{InferenceCountKKCondPoissonOneLik$set_custom_randomization_statistic_cpp()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountKKCondPoissonOneLik$set_custom_randomization_statistic_cpp(fn)}
     \if{html}{\out{</div>}}
   }
 }
 
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_estimate"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_estimate}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_estimate()}}{
-  Compute the conditional-Poisson one-likelihood treatment
-  estimate by fitting the combined matched/reservoir likelihood and caching
-  the treatment log-rate coefficient for related likelihood-test methods.
+\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-approximate_randomization_distribution_beta_hat_T"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-approximate_randomization_distribution_beta_hat_T}{}}}
+\subsection{\code{InferenceCountKKCondPoissonOneLik$approximate_randomization_distribution_beta_hat_T()}}{
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$compute_estimate(estimate_only = FALSE)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{estimate_only}}{Whether to skip standard-error calculations.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_estimate_with_bootstrap_weights"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_estimate_with_bootstrap_weights}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the combined conditional-Poisson estimate under
-  Bayesian-bootstrap weights.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$compute_estimate_with_bootstrap_weights(
-  subject_or_block_weights,
-  estimate_only = FALSE
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{subject_or_block_weights}}{Subject-, block-, cluster-, or matched-set
-bootstrap weights.}
-      \item{\code{estimate_only}}{If \code{TRUE}, compute only the weighted point
-estimate.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_asymp_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_asymp_confidence_interval}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_asymp_confidence_interval()}}{
-  Uses the shared asymptotic confidence-interval contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$compute_asymp_confidence_interval(
-  alpha = 0.05
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Numeric. Significance level (default 0.05).}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_asymp_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_asymp_two_sided_pval}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_asymp_two_sided_pval()}}{
-  Uses the shared asymptotic two-sided p-value contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$compute_asymp_two_sided_pval(delta = 0)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Numeric. Null treatment effect value (default 0).}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_wald_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_wald_confidence_interval}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_wald_confidence_interval()}}{
-  Uses the shared Wald confidence-interval contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$compute_wald_confidence_interval(
-  alpha = 0.05
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Numeric. Significance level (default 0.05).}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_wald_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_wald_two_sided_pval}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_wald_two_sided_pval()}}{
-  Computes a Wald two-sided p-value.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$compute_wald_two_sided_pval(delta = 0)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Numeric. Null treatment effect value (default 0).}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_score_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_score_confidence_interval}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_score_confidence_interval()}}{
-  Computes a design-adjusted score confidence interval.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$compute_score_confidence_interval(
-  alpha = 0.05
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Numeric. Significance level (default 0.05).}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_lik_ratio_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_lik_ratio_confidence_interval}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_lik_ratio_confidence_interval()}}{
-  Computes a design-adjusted likelihood-ratio confidence interval.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$compute_lik_ratio_confidence_interval(
-  alpha = 0.05
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Numeric. Significance level (default 0.05).}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_gradient_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_gradient_confidence_interval}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_gradient_confidence_interval()}}{
-  Computes a design-adjusted gradient confidence interval.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$compute_gradient_confidence_interval(
-  alpha = 0.05
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Numeric. Significance level (default 0.05).}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_score_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_score_two_sided_pval}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_score_two_sided_pval()}}{
-  Computes a design-adjusted score p-value.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$compute_score_two_sided_pval(delta = 0)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Numeric. Null treatment effect value (default 0).}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_lik_ratio_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_lik_ratio_two_sided_pval}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_lik_ratio_two_sided_pval()}}{
-  Computes a design-adjusted likelihood-ratio p-value.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$compute_lik_ratio_two_sided_pval(delta = 0)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Numeric. Null treatment effect value (default 0).}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_gradient_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_gradient_two_sided_pval}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_gradient_two_sided_pval()}}{
-  Computes a design-adjusted gradient p-value.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$compute_gradient_two_sided_pval(delta = 0)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Numeric. Null treatment effect value (default 0).}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-approximate_bootstrap_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-approximate_bootstrap_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceCountKKCondPoissonOneLik$approximate_bootstrap_distribution_beta_hat_T()}}{
-  Uses the shared nonparametric bootstrap distribution contract; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKCondPoissonOneLik$approximate_bootstrap_distribution_beta_hat_T(
-  B = 501,
+    \preformatted{InferenceCountKKCondPoissonOneLik$approximate_randomization_distribution_beta_hat_T(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
   show_progress = TRUE,
+  permutations = NULL,
   debug = FALSE,
-  bootstrap_type = NULL
+  zero_one_logit_clamp = .Machine$double.eps
 )}
     \if{html}{\out{</div>}}
   }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{B}}{Integer. Number of bootstrap samples (default 501).}
-      \item{\code{show_progress}}{Logical. Whether to show a progress bar.}
-      \item{\code{debug}}{Logical. Whether to return diagnostics.}
-      \item{\code{bootstrap_type}}{Character. Optional resampling scheme.}
-    }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceCountKKCondPoissonOneLik$compute_rand_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountKKCondPoissonOneLik$compute_rand_two_sided_pval(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  na.rm = TRUE,
+  show_progress = TRUE,
+  permutations = NULL,
+  zero_one_logit_clamp = .Machine$double.eps
+)}
     \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    A numeric vector of bootstrap estimates.
   }
 }
 

@@ -77,6 +77,16 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceSurvivalStratCoxPHRegr-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalStratCoxPHRegr-initialize}{}}}
 \subsection{\code{InferenceSurvivalStratCoxPHRegr$new()}}{
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}. Pinned from
+  \code{InferenceRand} for the same traced reason as
+  \code{InferenceSurvivalCoxPHRegr} (see that factory call's comment):
+  \code{InferenceRandCI}'s richer override calls \code{super$...()},
+  which resolves against \code{Inference} once flattened, and its only
+  other behavior is an incidence-only Zhang special case that never
+  applies to survival data.
+
+
   Initialize stratified Cox proportional-hazards inference and
   prepare the partial-likelihood fit used by
   \code{\link[EDI:InferenceSurvivalStratCoxPHRegr]{InferenceSurvivalStratCoxPHRegr}}.

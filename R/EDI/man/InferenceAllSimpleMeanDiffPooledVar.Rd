@@ -2,50 +2,8 @@
 % Please edit documentation in R/inference_all_simple_mean_diff_pooled_var.R
 \name{InferenceAllSimpleMeanDiffPooledVar}
 \alias{InferenceAllSimpleMeanDiffPooledVar}
-\alias{SimpleMeanDifferencePooledVarSource}
 \title{Simple Mean-Difference Inference with Pooled Variance}
-\usage{
-SimpleMeanDifferencePooledVarSource
-}
-\value{
-A new \code{InferenceAllSimpleMeanDiffPooledVar} object.
-}
 \description{
-Initialize simple pooled-variance mean-difference inference
-  for continuous responses and prepare the pooled standard-error
-  calculation used by
-  \code{\link[EDI:InferenceAllSimpleMeanDiffPooledVar]{InferenceAllSimpleMeanDiffPooledVar}}.
-  Disables warm starts (closed-form estimator) and asserts
-  \code{des_obj} has no censored observations (unsupported by this
-  class).
-
-Computes a \eqn{1-\alpha} level confidence interval for the
-  simple (unadjusted) mean-difference treatment effect
-  \eqn{\hat\beta_T = \bar y_T - \bar y_C}, using the classical
-  \strong{pooled equal-variance} Student's t-test formula (unlike
-  \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}}'s
-  Welch unequal-variance version): the pooled variance estimate
-  \eqn{s_p^2 = \left((n_T-1)s_T^2 + (n_C-1)s_C^2\right) / (n_T+n_C-2)}
-  gives standard error \eqn{\widehat{\mathrm{SE}}(\hat\beta_T) =
-  s_p\sqrt{1/n_T + 1/n_C}} with exact degrees of freedom \eqn{n_T + n_C -
-  2}; the interval is \eqn{\hat\beta_T \pm t_{\mathrm{df}, 1-\alpha/2}\,
-  \widehat{\mathrm{SE}}(\hat\beta_T)}. Assumes equal population
-  variances in the two arms — use
-  \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}}
-  instead when that assumption is doubtful. Requires at least 2
-  observations per arm; otherwise returns \code{c(NA, NA)}. See
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
-  asymptotic confidence-interval contract this participates in.
-
-Computes a two-sided pooled-variance Student's t-test
-  p-value testing \eqn{H_0: \beta_T = \code{delta}}, from the same
-  pooled standard error and exact \eqn{n_T+n_C-2} degrees of freedom
-  used by \code{$compute_asymp_confidence_interval()} — see that
-  method's documentation for the full formula. See
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
-  asymptotic two-sided p-value contract this participates in.
-}
-\details{
 Fits the same unadjusted mean-difference point estimate as
 \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}},
 \eqn{\hat\beta_T = \bar y_T - \bar y_C}, but performs inference via the
@@ -80,4 +38,129 @@ inf$compute_estimate()
 Student [Gosset, W. S.] (1908). "The Probable Error of a Mean."
   \emph{Biometrika}, 6(1), 1-25, \doi{10.1093/biomet/6.1.1}, for the
   pooled-variance two-sample t-test used here.
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceAllSimpleMeanDiffPooledVar}
+}
+\section{Methods}{
+\subsection{Public methods}{
+  \itemize{
+    \item \href{#method-InferenceAllSimpleMeanDiffPooledVar-initialize}{\code{InferenceAllSimpleMeanDiffPooledVar$new()}}
+    \item \href{#method-InferenceAllSimpleMeanDiffPooledVar-compute_asymp_confidence_interval}{\code{InferenceAllSimpleMeanDiffPooledVar$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferenceAllSimpleMeanDiffPooledVar-compute_asymp_two_sided_pval}{\code{InferenceAllSimpleMeanDiffPooledVar$compute_asymp_two_sided_pval()}}
+    \item \href{#method-InferenceAllSimpleMeanDiffPooledVar-clone}{\code{InferenceAllSimpleMeanDiffPooledVar$clone()}}
+  }
+}
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
+<ul>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_analysis_data'><code>Inference$get_analysis_data()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_covariates'><code>Inference$get_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_design_object'><code>Inference$get_design_object()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_model_formula'><code>Inference$get_model_formula()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
+</ul>
+</details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleMeanDiffPooledVar-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleMeanDiffPooledVar-initialize}{}}}
+\subsection{\code{InferenceAllSimpleMeanDiffPooledVar$new()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleMeanDiffPooledVar$new(
+  des_obj,
+  model_formula = NULL,
+  verbose = FALSE,
+  smart_cold_start_default = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
+assigned and response y is recorded within.}
+      \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
+the formula from the design object is used and its pre-computed design matrix is
+reused. If a formula is provided, a new design matrix is constructed from the
+design's imputed covariates.}
+      \item{\code{verbose}}{Whether to print progress messages.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
+likelihood-based models. Explicit starts always override this object-level policy.
+\code{NULL} (default) consults the global cold-start dispatch policy.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleMeanDiffPooledVar-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleMeanDiffPooledVar-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferenceAllSimpleMeanDiffPooledVar$compute_asymp_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleMeanDiffPooledVar$compute_asymp_confidence_interval(
+  alpha = 0.05
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleMeanDiffPooledVar-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleMeanDiffPooledVar-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferenceAllSimpleMeanDiffPooledVar$compute_asymp_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleMeanDiffPooledVar$compute_asymp_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleMeanDiffPooledVar-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleMeanDiffPooledVar-clone}{}}}
+\subsection{\code{InferenceAllSimpleMeanDiffPooledVar$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleMeanDiffPooledVar$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
 }

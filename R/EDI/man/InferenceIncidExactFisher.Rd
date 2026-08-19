@@ -2,28 +2,8 @@
 % Please edit documentation in R/inference_indicidence_exact_fisher.R
 \name{InferenceIncidExactFisher}
 \alias{InferenceIncidExactFisher}
-\alias{ExactFisherIncidenceSource}
 \title{Exact Fisher (Conditional Hypergeometric) Incidence Inference}
-\usage{
-ExactFisherIncidenceSource
-}
-\value{
-A new \code{InferenceIncidExactFisher} object.
-
-The treatment estimate.
-}
 \description{
-Initialize exact Fisher inference for incidence outcomes.
-  Requires an uncensored incidence response; the design's structure
-  (unstructured, blocked, or matched) determines the stratification used
-  at estimation time (see class documentation).
-
-Computes the log of the (conditional MLE, or common-odds-ratio
-  if stratified) odds ratio from \code{\link[stats]{fisher.test}} or
-  \code{\link[stats]{mantelhaen.test}} (see class documentation for which
-  applies and why).
-}
-\details{
 Performs exact conditional inference for binary (incidence) outcomes via
 Fisher's exact test on one or more 2x2 (treated/control by case/noncase)
 tables. When the design provides no stratification structure (e.g. an
@@ -58,4 +38,109 @@ Fisher, R. A. (1935). "The Logic of Inductive Inference."
   of Disease." \emph{Journal of the National Cancer Institute}, 22(4),
   719-748, for the stratified common-odds-ratio test used when the design
   provides multiple strata.
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceIncidExactFisher}
+}
+\section{Methods}{
+\subsection{Public methods}{
+  \itemize{
+    \item \href{#method-InferenceIncidExactFisher-initialize}{\code{InferenceIncidExactFisher$new()}}
+    \item \href{#method-InferenceIncidExactFisher-compute_estimate}{\code{InferenceIncidExactFisher$compute_estimate()}}
+    \item \href{#method-InferenceIncidExactFisher-clone}{\code{InferenceIncidExactFisher$clone()}}
+  }
+}
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
+<ul>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_analysis_data'><code>Inference$get_analysis_data()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_covariates'><code>Inference$get_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_design_object'><code>Inference$get_design_object()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_model_formula'><code>Inference$get_model_formula()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
+</ul>
+</details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidExactFisher-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidExactFisher-initialize}{}}}
+\subsection{\code{InferenceIncidExactFisher$new()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidExactFisher$new(
+  des_obj,
+  model_formula = NULL,
+  verbose = FALSE,
+  smart_cold_start_default = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
+assigned and response y is recorded within.}
+      \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
+the formula from the design object is used and its pre-computed design matrix is
+reused. If a formula is provided, a new design matrix is constructed from the
+design's imputed covariates.}
+      \item{\code{verbose}}{Whether to print progress messages.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
+likelihood-based models. Explicit starts always override this object-level policy.
+\code{NULL} (default) consults the global cold-start dispatch policy.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidExactFisher-compute_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidExactFisher-compute_estimate}{}}}
+\subsection{\code{InferenceIncidExactFisher$compute_estimate()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidExactFisher$compute_estimate(estimate_only = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidExactFisher-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidExactFisher-clone}{}}}
+\subsection{\code{InferenceIncidExactFisher$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidExactFisher$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
 }

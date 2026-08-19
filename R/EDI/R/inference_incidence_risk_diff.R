@@ -1,8 +1,18 @@
 #' Risk Difference Inference for Incidence Responses
 #'
-#' Fits a linear probability model via OLS for binary (incidence) responses using
-#' the treatment indicator and, optionally, all recorded covariates as
-#' predictors. The treatment effect is reported as a risk difference.
+#' Fits a linear probability model \eqn{E[Y \mid W, X] = \beta_0 + \beta_T W +
+#' \beta_X^\top X} via ordinary least squares for binary (incidence) responses
+#' \eqn{Y \in \{0,1\}}, using the treatment indicator \eqn{W} and, optionally,
+#' all recorded covariates \eqn{X} as predictors. \eqn{\hat\beta_T} is reported
+#' directly as the risk-difference estimate: because \eqn{Y} is 0/1, the OLS fit
+#' coincides with a saturated/linear model for the conditional risk
+#' \eqn{P(Y=1\mid W,X)}, so the coefficient on \eqn{W} is already on the
+#' risk-difference (probability) scale with no back-transformation needed. This
+#' is a misspecified working model for a binary response (heteroskedastic,
+#' errors not Gaussian), so \code{likelihood_tier = "none"}: standard errors and
+#' the Wald CI use the usual OLS sandwich/homoskedastic variance of
+#' \eqn{\hat\beta_T}, not a binomial likelihood, and no likelihood-ratio or
+#' parametric-bootstrap methods are exposed.
 #'
 #' @examples
 #' \donttest{
@@ -52,9 +62,15 @@ InferenceIncidRiskDiff = define_inference_class(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Computes the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @description Fits the OLS linear-probability model and returns the
+		#'   risk-difference point estimate \eqn{\hat\beta_T}, the coefficient on
+		#'   treatment. On a hardened design (\code{private$harden}), or when
+		#'   \code{estimate_only = FALSE}, delegates to \code{fast_ols_with_var_cpp()}
+		#'   via the shared model cache so the variance is available for later
+		#'   confidence-interval/p-value calls without refitting.
+		#' @param estimate_only If \code{TRUE}, skip the variance/degrees-of-freedom
+		#'   computation and return only \eqn{\hat\beta_T} (cheaper for
+		#'   simulation/randomization callers that never request inference).
 		compute_estimate = function(estimate_only = FALSE){
 			if (estimate_only) {
 				if (!is.null(private$cached_values$beta_hat_T)) return(private$cached_values$beta_hat_T)
@@ -73,24 +89,42 @@ InferenceIncidRiskDiff = define_inference_class(
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param alpha Confidence level.
+		#' @description Wald confidence interval for the risk difference,
+		#'   \eqn{\hat\beta_T \pm t_{1-\alpha/2, df}\, \hat s(\hat\beta_T)}, using the
+		#'   OLS standard error and residual degrees of freedom \eqn{df = n - p}
+		#'   from the cached model fit. Interval bounds are not clamped to
+		#'   \eqn{[-1, 1]}; a linear-probability model can produce out-of-range
+		#'   endpoints near the boundary of the covariate space.
+		#' @param alpha Two-sided miscoverage rate; the returned interval has nominal
+		#'   coverage \eqn{1-\alpha}.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta Null treatment effect value.
+		#' @description Two-sided Wald test of \eqn{H_0: \beta_T = \delta} vs.
+		#'   \eqn{H_1: \beta_T \neq \delta}, via the t-statistic
+		#'   \eqn{(\hat\beta_T - \delta) / \hat s(\hat\beta_T)} referred to a
+		#'   \eqn{t_{df}} distribution with the cached OLS residual degrees of freedom.
+		#' @param delta Null risk-difference value under \eqn{H_0} (default \code{0},
+		#'   no treatment effect).
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Recomputes the class-specific treatment estimate for a bootstrap sample; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param subject_or_block_weights Row weights for the bootstrap sample.
-		#' @param estimate_only If TRUE, skip variance calculations.
+		#' @description Refits the linear-probability model by weighted least squares
+		#'   (\code{stats::lm.wfit()}) under subject/block resampling weights
+		#'   (nonparametric-bootstrap replicate weights or Bayesian-bootstrap Dirichlet
+		#'   weights, both expanded to row weights via
+		#'   \code{expand_subject_or_block_weights_to_row_weights()}) and returns the
+		#'   re-estimated treatment coefficient. Rows with non-finite or non-positive
+		#'   weight are excluded; if too few positive-weight rows remain to identify
+		#'   the design, the replicate estimate is \code{NA_real_}.
+		#' @param subject_or_block_weights Numeric weights, one per subject or per
+		#'   resampling block (matched pair/cluster), as produced by the bootstrap or
+		#'   Bayesian-bootstrap resampling machinery.
+		#' @param estimate_only Accepted for interface compatibility; standard errors
+		#'   are never computed for a single bootstrap replicate regardless of this
+		#'   flag (only the point estimate is used to build the bootstrap distribution).
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			X_full = private$build_design_matrix()

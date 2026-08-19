@@ -29,6 +29,15 @@
 #' prefer the Weibull-frailty class for a Gaussian-random-intercept / GLMM-style
 #' dependence structure.
 #'
+#' @references
+#' Clayton DG (1978). "A Model for Association in Bivariate Life Tables and
+#' Its Application in Epidemiological Studies of Familial Tendency in Chronic
+#' Disease Incidence." Biometrika, 65(1), 141-151. \doi{10.2307/2335289}
+#'
+#' Oakes D (1989). "Bivariate Survival Models Induced by Frailties." Journal
+#' of the American Statistical Association, 84(406), 487-493.
+#' \doi{10.2307/2289934}
+#'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #' @seealso \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyIVWC]{InferenceSurvivalKKWeibullFrailtyIVWC}}
 #'   for the corresponding log-normal-frailty IVWC estimator.
@@ -133,9 +142,17 @@ SurvivalKKClaytonCopulaIVWCSource = list(
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		max_abs_reasonable_coef = 1e4,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
+			# Re-read w, y, dead because they might have been transformed for
+			# randomization. `dead` is NOT read from `private$des_obj_priv_int$dead`
+			# here: post y/y_L/y_R migration, Design no longer stores a raw `dead`
+			# field, so that read is always NULL and clobbers the correctly-set
+			# `private$dead` -- see fix_inference_hierarchy.md Follow-Ups (found
+			# 2026-08-19, same root cause as the InferenceSurvivalKKLWACoxPHOneLik
+			# segfault fixed the same day). Re-derive `dead` the same way
+			# Design$get_effective_dead() does instead.
 			private$w = private$des_obj_priv_int$w
 			private$y = private$des_obj_priv_int$y
-			private$dead = private$des_obj_priv_int$dead
+			private$dead = as.numeric(!is.na(private$y))
 			private$compute_basic_match_data()
 			if (is.null(private$best_X_colnames_matched) && is.null(private$best_X_colnames_reservoir)){
 				private$shared()
@@ -491,8 +508,25 @@ InferenceSurvivalKKClaytonCopulaIVWC = define_inference_class(
 #' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyOneLik]{InferenceSurvivalKKWeibullFrailtyOneLik}}
 #' alternative.
 #'
-#' @export
-InferenceSurvivalKKClaytonCopulaOneLik = R6::R6Class("InferenceSurvivalKKClaytonCopulaOneLik",
+#' @keywords internal
+# Kept as a real (internal, non-exported) R6 generator purely so the
+# pre-existing self-harvest below (`inference_component_source_parts()`)
+# can snapshot its raw-spliced public/private at load time -- migration
+# 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood Estimators" / "KK
+# And IVWC Estimators"). Because this class's own public/private were built
+# via `modifyList(InferenceMixinKKPassThrough$public/private, list(...))`
+# (a raw splice, not true R6 inheritance), the harvested source necessarily
+# captures the FULL flattened surface -- R6 has no way to separate "this
+# class's own methods" from "methods that arrived via the splice" once
+# they're merged into one list passed to `R6::R6Class()`. The registered
+# `SurvivalKKClaytonCopulaOneLik` component (contracts_mixins.R) was already
+# set up in anticipation of this shape, self-contained with
+# `dependencies = character()` (unlike every other OneLik migration this
+# stretch, which composes a slimmer leaf-only source depending on
+# `KKPassThrough`) -- this class already called `private$init_kk_passthrough
+# (des_obj)` explicitly in its own initialize, so no Lesson-1 fix was
+# needed either way.
+InferenceSurvivalKKClaytonCopulaOneLikLegacyRaw = R6::R6Class("InferenceSurvivalKKClaytonCopulaOneLik",
 	lock_objects = FALSE,
 	inherit = InferenceParamBootstrap,
 	public = as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(
@@ -569,9 +603,17 @@ InferenceSurvivalKKClaytonCopulaOneLik = R6::R6Class("InferenceSurvivalKKClayton
 		max_abs_reasonable_coef = 1e4,
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
+			# Re-read w, y, dead because they might have been transformed for
+			# randomization. `dead` is NOT read from `private$des_obj_priv_int$dead`
+			# here: post y/y_L/y_R migration, Design no longer stores a raw `dead`
+			# field, so that read is always NULL and clobbers the correctly-set
+			# `private$dead` -- see fix_inference_hierarchy.md Follow-Ups (found
+			# 2026-08-19, same root cause as the InferenceSurvivalKKLWACoxPHOneLik
+			# segfault fixed the same day). Re-derive `dead` the same way
+			# Design$get_effective_dead() does instead.
 			private$w = private$des_obj_priv_int$w
 			private$y = private$des_obj_priv_int$y
-			private$dead = private$des_obj_priv_int$dead
+			private$dead = as.numeric(!is.na(private$y))
 			private$compute_basic_match_data()
 			# Fixed-VC fast path: private$best_par and private$best_X_colnames survive duplicate()
 			if (!is.null(private$best_par) && length(private$best_par) >= 3L &&
@@ -881,4 +923,113 @@ InferenceSurvivalKKClaytonCopulaOneLik = R6::R6Class("InferenceSurvivalKKClayton
 	)))
 )
 
-SurvivalKKClaytonCopulaOneLikSource = inference_component_source_parts(InferenceSurvivalKKClaytonCopulaOneLik)
+SurvivalKKClaytonCopulaOneLikSource = inference_component_source_parts(InferenceSurvivalKKClaytonCopulaOneLikLegacyRaw)
+
+#' One-Likelihood Clayton-Copula Weibull AFT Inference for KK Survival Designs
+#'
+#' Estimates a treatment log-time-ratio \eqn{\beta_T} for right-censored
+#' survival outcomes collected under a KK matching-on-the-fly design
+#' (\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} or
+#' subclass) by maximizing a single combined likelihood: matched-pair
+#' survival times are modeled with a Weibull accelerated-failure-time (AFT)
+#' margin joined by a Clayton copula (dependence parameter \eqn{\theta})
+#' to account for within-pair correlation induced by shared matching
+#' covariates, while unmatched reservoir subjects are modeled by the same
+#' Weibull AFT margin marginally (no dependence term). All subjects share
+#' one treatment coefficient, estimated jointly.
+#'
+#' \strong{Estimand.} \eqn{\beta_T}, the treatment coefficient of a Weibull
+#' AFT model \eqn{\log T = \beta_0 + \beta_T W + X\beta + \sigma\epsilon}
+#' with \eqn{\epsilon} extreme-value-distributed; \eqn{\exp(\hat\beta_T)}
+#' is the treatment-vs-control survival-time ratio (an acceleration
+#' factor). This is a distinct scale from the log hazard ratio reported by
+#' Cox-based KK survival classes.
+#'
+#' \strong{Model.} \code{.fit_clayton_weibull_aft()} jointly optimizes the
+#' AFT regression coefficients, the Weibull shape (\eqn{\log\sigma}), and
+#' the Clayton copula dependence parameter (\eqn{\log\theta}) by direct
+#' maximum likelihood over the combined matched-pair-copula /
+#' reservoir-marginal log-likelihood; right-censoring enters as the usual
+#' survival contribution (density for observed failures, survival function
+#' for censored times). \code{likelihood_tier = "full"}, so a parametric
+#' likelihood bootstrap (\code{simulate_under_lik_null}, which draws new
+#' pair times from the fitted Clayton copula and new singleton times from
+#' the marginal Weibull) is available alongside Wald inference.
+#'
+#' \strong{Assumptions.} Weibull AFT margin correctly specified; Clayton
+#' copula correctly captures within-pair dependence (a positive-dependence,
+#' single-parameter Archimedean copula); independent censoring given
+#' covariates; a KK matching-on-the-fly design supplying the matched/
+#' reservoir partition.
+#'
+#' @references
+#' Clayton, D. G. (1978). "A model for association in bivariate life tables
+#' and its application in epidemiological studies of familial tendency in
+#' chronic disease incidence." \emph{Biometrika}, 65(1), 141-151.
+#' \doi{10.1093/biomet/65.1.141}. (Clayton1978 in \code{REFERENCES.md}.)
+#'
+#' Oakes, D. (1989). "Bivariate survival models induced by frailties."
+#' \emph{Journal of the American Statistical Association}, 84(406),
+#' 487-493. \doi{10.1080/01621459.1989.10478795}. (Oakes1989 in
+#' \code{REFERENCES.md}.)
+#'
+#' @seealso Analogous Python API for AFT/copula survival models:
+#'   \href{https://lifelines.readthedocs.io/en/latest/fitters/regression/WeibullAFTFitter.html}{lifelines
+#'   WeibullAFTFitter}, \href{https://copulas.readthedocs.io/}{copulas}.
+#'   \href{https://en.wikipedia.org/wiki/Copula_(probability_theory)}{Copula
+#'   (probability theory)} (orientation).
+#' @export
+# Migrated 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
+# Estimators" / "KK And IVWC Estimators"): see
+# InferenceSurvivalKKClaytonCopulaOneLikLegacyRaw's comment above.
+InferenceSurvivalKKClaytonCopulaOneLik = define_inference_class(
+	classname = "InferenceSurvivalKKClaytonCopulaOneLik",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalKKClaytonCopulaOneLik"),
+	public = list(
+		# Pinned from InferenceRand -- same flattened-super$ rationale as every
+		# other survival KK migration this stretch.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	),
+	# capabilities = "likelihood_ratio" is required explicitly -- same
+	# rationale as every class composing ParametricLikelihoodBootstrap
+	# directly (bypassing StandardModelCache).
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"initialize",
+			"compute_estimate",
+			"compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"get_supported_testing_types",
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"duplicate"
+		),
+		private = c(
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"compute_basic_match_data",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"assert_finite_se",
+			"supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_information_preference",
+			"supports_observed_information",
+			"get_supported_information_preferences_impl",
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx",
+			"get_likelihood_test_spec",
+			"simulate_under_lik_null"
+		)
+	)
+)

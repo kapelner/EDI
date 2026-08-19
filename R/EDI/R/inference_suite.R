@@ -48,16 +48,21 @@ inference_class_compatibility_metadata = function(nm) {
 #' response types, or none match `design_meta$response_type`; if it requires
 #' KK matching (name contains `"KK"`) but the design isn't KK-capable; if its
 #' `requires_blocking_design` metadata is `TRUE` but the design doesn't
-#' support blocking; or if the design has any left-/interval-censored
+#' support blocking; if the design has any left-/interval-censored
 #' subjects (`has_general_censoring`) but the class's
 #' `supports_general_censoring` metadata is `FALSE` -- the latter two mirror
-#' `Inference$initialize()`'s own construction-time gate exactly. Ordinary
-#' right-censoring alone (`any_censoring` without `has_general_censoring`)
-#' never excludes a class.
+#' `Inference$initialize()`'s own construction-time gate exactly; or if its
+#' name contains `"IVWC"` -- the legacy inverse-variance-weighted-combination
+#' KK estimators are deprecated in favor of the `OneLik` joint-likelihood
+#' variants and are never surfaced by `InferenceSuite` discovery, even though
+#' they remain independently constructible/exported for backwards
+#' compatibility. Ordinary right-censoring alone (`any_censoring` without
+#' `has_general_censoring`) never excludes a class.
 #'
 #' @keywords internal
 #' @noRd
 is_inference_class_compatible_with_design_metadata = function(nm, design_meta) {
+	if (grepl("IVWC", nm, fixed = TRUE)) return(FALSE)
 	class_meta = inference_class_compatibility_metadata(nm)
 	if (isTRUE(class_meta$abstract) || !isTRUE(class_meta$exported)) return(FALSE)
 	if (length(class_meta$response_types) == 0L) return(FALSE)
@@ -147,7 +152,7 @@ unavailable_inference_classes_due_to_missing_packages_for_design = function(des_
 EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY = list(
 	list(capability = "wald", method = "compute_asymp_confidence_interval", label = "wald"),
 	list(capability = "exact_test", method = "compute_exact_confidence_interval", label = "exact"),
-	list(capability = "randomization_ci", method = "compute_rand_confidence_interval", label = "randomization"),
+	list(capability = "randomization_ci", method = "compute_rand_confidence_interval", label = "rand"),
 	list(capability = "nonparametric_bootstrap", method = "compute_bootstrap_confidence_interval", label = "bootstrap")
 )
 
@@ -156,7 +161,7 @@ EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY = list(
 EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY = list(
 	list(capability = "wald", method = "compute_asymp_two_sided_pval", label = "wald"),
 	list(capability = "exact_test", method = "compute_exact_two_sided_pval_for_treatment_effect", label = "exact"),
-	list(capability = "randomization_test", method = "compute_rand_two_sided_pval", label = "randomization"),
+	list(capability = "randomization_test", method = "compute_rand_two_sided_pval", label = "rand"),
 	list(capability = "nonparametric_bootstrap", method = "compute_bootstrap_two_sided_pval", label = "bootstrap")
 )
 
@@ -200,26 +205,31 @@ run_all_inference_select_pval = function(inf_obj) {
 	list(pval = NA_real_, method = NA_character_)
 }
 
-#' Best-effort estimand label for `inf_obj`: only a handful of classes
-#' (currently the incidence g-computation family) declare a private
-#' `get_estimand_type()`; every other class reports `NA_character_` until a
-#' package-wide estimand registry exists (out of scope for this feature --
-#' see `expanded_estimate_report.md`/`marginal_estimand_report.md`).
+#' Estimand label for `cls_name`, read from the class metadata registry's
+#' `estimand` field (`inference_class_registry.R`'s
+#' `infer_inference_estimand_type()`, folded in at
+#' `populate_inference_class_registry()` time by walking the generator's
+#' declared `get_estimand_type()` private method -- see that class's own
+#' roxygen on `Inference$get_estimand_type()` for the full design). Registry
+#' lookup, not instance introspection: works even for a class whose
+#' construction/fit failed (no `inf_obj` needed), and matches the
+#' architecture's "Discovery reads metadata, never constructors" rule.
+#' `NA_character_` for any class that hasn't declared one (still the vast
+#' majority as of this writing -- declaring a value is opt-in, not
+#' required).
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_estimand = function(inf_obj) {
-	priv = inf_obj$.__enclos_env__$private
-	if (is.function(priv$get_estimand_type)) {
-		tryCatch(as.character(priv$get_estimand_type()), error = function(e) NA_character_)
-	} else {
-		NA_character_
-	}
+run_all_inference_estimand = function(cls_name) {
+	tryCatch(
+		get_inference_class_metadata(cls_name)$estimand %||% NA_character_,
+		error = function(e) NA_character_
+	)
 }
 
 #' Constructs, fits, and summarizes one inference class for
 #' `InferenceSuite$run_all_inference()`. Never throws -- construction/fit
-#' failures are caught and turned into `status = "error"`/`"nonestimable"`/
+#' failures are caught and turned into `status = "error"`/`"nonest"`/
 #' `"timeout"` rows instead of aborting the whole report (see
 #' `inference_suite_inspect.md`'s "Per-Class Failure Isolation" section).
 #' The `diagnostics` sub-list is v1.0.0-scoped to \code{NA} placeholders --
@@ -246,14 +256,19 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 		response_type   = response_type,
 		design_family   = design_family,
 		likelihood_tier = get_inference_class_metadata(cls_name)$likelihood_tier %||% NA_character_,
+		cov_model       = NA_character_,
 		estimate        = NA_real_,
 		se              = NA_real_,
-		ci_lower        = NA_real_,
-		ci_upper        = NA_real_,
+		ci_a            = NA_real_,
+		ci_b            = NA_real_,
 		ci_method       = NA_character_,
 		pval            = NA_real_,
 		pval_method     = NA_character_,
-		estimand        = NA_character_,
+		# Registry-level fact (like likelihood_tier above), not dependent on
+		# fit success -- set unconditionally here rather than only inside the
+		# "ok" branch below, so a nonestimable/error/timeout row still reports
+		# what this class targets.
+		estimand        = run_all_inference_estimand(cls_name),
 		fit_secs        = NA_real_,
 		warnings        = NA_character_,
 		status          = "error",
@@ -279,17 +294,24 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 			}, error = function(e) NA_real_)
 			ci = run_all_inference_select_ci(inf_obj, alpha)
 			pv = run_all_inference_select_pval(inf_obj)
-			estimand = run_all_inference_estimand(inf_obj)
+			# Always populated once construction succeeds (Inference$initialize()
+			# always sets private$model_formula, even for classes -- e.g.
+			# SimpleMeanDifferenceSource -- that accept a model_formula argument
+			# but never actually use it in the fit). Reporting it here is a
+			# statement of "what formula this instance was constructed with," not
+			# a claim that every class's fit is a function of it -- which classes
+			# actually use their formula is not yet audited/flagged separately.
+			cov_model = tryCatch(deparse1(inf_obj$get_model_formula()), error = function(e) NA_character_)
 			if (isTRUE(inf_obj$is_nonestimable("any"))) {
 				list(
-					status = "nonestimable",
+					status = "nonest", cov_model = cov_model,
 					message = inf_obj$get_nonestimable_reason() %||% NA_character_
 				)
 			} else {
 				list(
-					status = "ok", estimate = as.numeric(estimate), se = se,
-					ci_lower = ci$lower, ci_upper = ci$upper, ci_method = ci$method,
-					pval = pv$pval, pval_method = pv$method, estimand = estimand
+					status = "ok", cov_model = cov_model, estimate = as.numeric(estimate), se = se,
+					ci_a = ci$lower, ci_b = ci$upper, ci_method = ci$method,
+					pval = pv$pval, pval_method = pv$method
 				)
 			}
 		}, error = function(e) {
@@ -403,7 +425,8 @@ run_all_inference_unavailable_footer_lines = function(unavailable_due_to_missing
 	}
 	nm = names(unavailable_due_to_missing_packages)
 	vapply(seq_along(unavailable_due_to_missing_packages), function(i) {
-		sprintf("%s: requires %s", nm[[i]], paste(unavailable_due_to_missing_packages[[i]], collapse = ", "))
+		pkgs = paste(sprintf('"%s"', unavailable_due_to_missing_packages[[i]]), collapse = ", ")
+		sprintf("%s - requires install.packages(%s)", nm[[i]], pkgs)
 	}, character(1L))
 }
 
@@ -428,8 +451,12 @@ run_all_inference_render_html = function(out) {
 	table_html = knitr::kable(out$results_table, format = "html", table.attr = "class=\"results\"", row.names = FALSE)
 	footer_lines = run_all_inference_unavailable_footer_lines(out$unavailable_due_to_missing_packages)
 	footer_html = paste0("<li>", vapply(footer_lines, htmltools_escape_or_identity, character(1L)), "</li>", collapse = "\n")
+	unavailable_heading = sprintf(
+		"The following Inference %s unavailable",
+		if (length(out$unavailable_due_to_missing_packages) == 1L) "class is" else "classes are"
+	)
 	n_ci_rows = sum(out$results_table$status == "ok" &
-		is.finite(out$results_table$ci_lower) & is.finite(out$results_table$ci_upper))
+		is.finite(out$results_table$ci_a) & is.finite(out$results_table$ci_b))
 	b64_estimates = run_all_inference_plot_to_base64_png(out$plots$estimates)
 	b64_ci_forest = run_all_inference_plot_to_base64_png(
 		out$plots$ci_forest, height = max(6, 0.5 * n_ci_rows + 1.5)
@@ -454,7 +481,7 @@ table.results th { background: #f0f0f0; }
 tr:nth-child(even) { background: #fafafa; }
 .meta { color: #555; font-size: 0.9rem; }
 .status-error { color: #b00020; }
-.status-nonestimable { color: #a06800; }
+.status-nonest { color: #a06800; }
 </style>
 </head>
 <body>
@@ -466,14 +493,15 @@ total time %.2fs&nbsp;&middot;&nbsp; EDI %s
 </p>
 %s
 %s
-<h2>Classes unavailable due to missing packages</h2>
+<h2>%s</h2>
 <ul>
 %s
 </ul>
 </body>
 </html>
 ', out$timestamp, design$design_class, design$response_type, design$design_family, design$n,
-		out$alpha, out$timestamp, out$total_secs, out$edi_version, table_html, images_html, footer_html)
+		out$alpha, out$timestamp, out$total_secs, out$edi_version, table_html, images_html,
+		unavailable_heading, footer_html)
 }
 
 #' Escapes `&`, `<`, `>` for embedding free text into the HTML report
@@ -563,7 +591,7 @@ run_all_inference_plot_estimates = function(results_table) {
 run_all_inference_plot_ci_forest = function(results_table, alpha) {
 	df = results_table[
 		results_table$status == "ok" &
-			is.finite(results_table$ci_lower) & is.finite(results_table$ci_upper),
+			is.finite(results_table$ci_a) & is.finite(results_table$ci_b),
 		, drop = FALSE
 	]
 	if (nrow(df) == 0L) return(NULL)
@@ -575,7 +603,7 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		is.na(df$pval), "p=NA",
 		ifelse(df$pval < 1e-4, sprintf("p=%.2e", df$pval), sprintf("p=%.4f", df$pval))
 	)
-	df$width_label  = sprintf("width=%.3g", df$ci_upper - df$ci_lower)
+	df$width_label  = sprintf("width=%.3g", df$ci_b - df$ci_a)
 	df$method_label = sprintf(
 		"%s (%s / %s)", df$inference_class,
 		df$ci_method %||% "NA", df$pval_method %||% "NA"
@@ -584,12 +612,12 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 	ggplot2::ggplot(df, ggplot2::aes(y = y)) +
 		ggplot2::geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
 		ggplot2::geom_segment(
-			ggplot2::aes(x = ci_lower, xend = ci_upper, yend = y, color = significant),
+			ggplot2::aes(x = ci_a, xend = ci_b, yend = y, color = significant),
 			linewidth = 1
 		) +
 		ggplot2::geom_point(ggplot2::aes(x = estimate, color = significant), size = 2) +
-		ggplot2::geom_text(ggplot2::aes(x = ci_lower, label = pval_label), hjust = 1.15, size = 3) +
-		ggplot2::geom_text(ggplot2::aes(x = ci_upper, label = width_label), hjust = -0.15, size = 3) +
+		ggplot2::geom_text(ggplot2::aes(x = ci_a, label = pval_label), hjust = 1.15, size = 3) +
+		ggplot2::geom_text(ggplot2::aes(x = ci_b, label = width_label), hjust = -0.15, size = 3) +
 		ggplot2::geom_text(
 			ggplot2::aes(x = estimate, label = method_label),
 			vjust = 2.3, size = 2.7, lineheight = 0.85
@@ -702,6 +730,33 @@ run_all_inference_plot_to_base64_png = function(plot, width = 8, height = 6) {
 #'   renormalized internally so the effective weights always do.
 #' @return The combined p-value, a numeric scalar in `(0, 1)`.
 #'
+#' Per-row weight under the `"estimand_grouped"` Combined Evidence policy:
+#' equal weight across `estimand` groups, split evenly within each group --
+#' `w_i = 1 / (G * m_i)` for usable rows (`status == "ok"` and a finite
+#' `pval`), where `G` is the number of distinct `estimand` values among
+#' usable rows and `m_i` is the size of row `i`'s own group. `NA_real_` for
+#' any non-usable row (nonestimable/error/timeout, or `status == "ok"` with
+#' no finite `pval`), since it contributes nothing to the combined p-value.
+#' Feeds `cct_combine_pvalues()`/`run_all_inference_combine_pvalues()` as the
+#' `weights` argument. Returns all-`NA_real_` if there are no usable rows.
+#'
+#' @param results_table A `run_all_inference()`-shaped results table with
+#'   `status`, `pval`, and `estimand` columns.
+#' @return A numeric vector the same length/order as `results_table`'s rows.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_estimand_grouped_weights = function(results_table) {
+	usable = results_table$status == "ok" & is.finite(results_table$pval)
+	w = rep(NA_real_, nrow(results_table))
+	if (!any(usable)) return(w)
+	estimands = results_table$estimand[usable]
+	group_sizes = table(estimands)
+	G = length(group_sizes)
+	w[usable] = 1 / (G * as.numeric(group_sizes[estimands]))
+	w
+}
+
 #' @keywords internal
 #' @noRd
 cct_combine_pvalues = function(pvals, weights = NULL) {
@@ -714,6 +769,49 @@ cct_combine_pvalues = function(pvals, weights = NULL) {
 	}
 	stat = sum(weights * tan((0.5 - pvals) * pi))
 	0.5 - atan(stat) / pi
+}
+
+#' Edge-case-hardened wrapper around `cct_combine_pvalues()` for
+#' `run_all_inference()`'s Combined Evidence Metric
+#' (`inference_suite_inspect.md → TODO-17`):
+#'
+#' - Drops `NA` p-values (already excluded from `pvals`/`weights` upstream in
+#'   the usual case, but tolerated here too).
+#' - Fewer than 2 usable p-values after dropping `NA`s: returns `NA_real_`
+#'   rather than silently treating a single p-value as if it were a
+#'   combined one -- a "combination" of one p-value is just that p-value,
+#'   not a meaningful combined-evidence claim.
+#' - Clips every usable p-value to `[pval_eps, 1 - pval_eps]` before the
+#'   `tan((0.5 - p) * pi)` transform in `cct_combine_pvalues()`, avoiding
+#'   the `+-Inf`/degenerate `atan()` input a p-value of exactly 0 or 1
+#'   would otherwise produce.
+#'
+#' `pval_eps` is named and defaulted (`1e-4`) to be exposed directly as a
+#' `run_all_inference()` parameter once `TODO-16` wires `combined_evidence`
+#' into its return object and public signature -- not yet added there,
+#' since nothing calls this helper until that lands (per this session's
+#' policy against unused public-API surface).
+#'
+#' @param pvals Numeric vector of p-values to combine; `NA` entries are
+#'   dropped before counting/combining.
+#' @param weights Numeric vector the same length as `pvals`, aligned
+#'   positionally (an `NA` `pvals` entry drops the same-position `weights`
+#'   entry too), or `NULL` for equal weights over the usable p-values. Need
+#'   not sum to 1 -- `cct_combine_pvalues()` renormalizes internally.
+#' @param pval_eps Clip p-values to `[pval_eps, 1 - pval_eps]` before
+#'   combining. Default `1e-4`.
+#' @return The combined p-value (`NA_real_` if fewer than 2 usable p-values).
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_combine_pvalues = function(pvals, weights = NULL, pval_eps = 1e-4) {
+	pvals = as.numeric(pvals)
+	usable = !is.na(pvals)
+	if (sum(usable) < 2L) return(NA_real_)
+	pvals = pvals[usable]
+	if (!is.null(weights)) weights = as.numeric(weights)[usable]
+	pvals = pmin(pmax(pvals, pval_eps), 1 - pval_eps)
+	cct_combine_pvalues(pvals, weights)
 }
 
 
@@ -1104,15 +1202,20 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				}
 			}
 			if (screen) {
-				cat("\nClasses unavailable due to missing packages:\n")
+				n_unavail = length(self$unavailable_due_to_missing_packages)
+				cat(sprintf(
+					"\nThe following Inference %s unavailable:\n",
+					if (n_unavail == 1L) "class is" else "classes are"
+				))
 				cat(paste0("  ", run_all_inference_unavailable_footer_lines(self$unavailable_due_to_missing_packages)), sep = "\n")
 			}
 			results_table = do.call(rbind.data.frame, lapply(results, function(r) {
 				data.frame(
-					inference_class = r$inference_class, response_type = r$response_type,
+					inference_class = r$inference_class, cov_model = r$cov_model,
+					response_type = r$response_type,
 					design_family = r$design_family, likelihood_tier = r$likelihood_tier,
 					estimate = r$estimate, se = r$se,
-					ci_lower = r$ci_lower, ci_upper = r$ci_upper, ci_method = r$ci_method,
+					ci_a = r$ci_a, ci_b = r$ci_b, ci_method = r$ci_method,
 					pval = r$pval, pval_method = r$pval_method, estimand = r$estimand,
 					fit_secs = r$fit_secs, warnings = r$warnings,
 					status = r$status, message = r$message,
@@ -1120,6 +1223,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				)
 			}))
 			rownames(results_table) = NULL
+			results_table$weight = run_all_inference_estimand_grouped_weights(results_table)
 			out = list(
 				results = results,
 				results_table = results_table,
@@ -1150,7 +1254,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			if (pdf && (!is.null(out$plots$estimates) || !is.null(out$plots$ci_forest))) {
 				pdf_path = file.path(getwd(), sprintf("inference_suite_results_plots_%s.pdf", out$timestamp))
 				n_ci_rows = sum(results_table$status == "ok" &
-					is.finite(results_table$ci_lower) & is.finite(results_table$ci_upper))
+					is.finite(results_table$ci_a) & is.finite(results_table$ci_b))
 				run_all_inference_save_plots_pdf(out$plots, pdf_path, n_ci_rows)
 				out$files$pdf = pdf_path
 			}
@@ -1217,7 +1321,7 @@ summary.EDIInferenceSuiteResults = function(object, ...) {
 	structure(
 		list(
 			n_classes = nrow(tbl),
-			status_counts = table(factor(tbl$status, levels = c("ok", "nonestimable", "error", "timeout"))),
+			status_counts = table(factor(tbl$status, levels = c("ok", "nonest", "error", "timeout"))),
 			estimate_range = if (nrow(ok) > 0L) range(ok$estimate, na.rm = TRUE) else c(NA_real_, NA_real_),
 			alpha = object$alpha,
 			n_significant = sum(!is.na(ok$pval) & ok$pval < object$alpha)

@@ -4,9 +4,20 @@
 \alias{InferenceIncidWald}
 \title{Wald Incidence Inference}
 \description{
-Unadjusted incidence inference using the empirical risk difference together
-with the standard unpooled Wald standard error and normal-approximation
-confidence interval / hypothesis test.
+Unadjusted incidence inference using the empirical risk difference
+\eqn{\hat\theta = \bar Y_T - \bar Y_C} (sample proportions in the treatment
+and control arms) together with the standard unpooled Wald standard error
+\eqn{\hat s(\hat\theta) = \sqrt{\bar Y_T(1-\bar Y_T)/n_T +
+\bar Y_C(1-\bar Y_C)/n_C}} and normal-approximation confidence interval /
+hypothesis test \eqn{\hat\theta \pm z_{1-\alpha/2}\,\hat s(\hat\theta)}. This
+is the classical two-proportion Wald interval (e.g. Wald 1943; see
+\code{\link[EDI:InferenceIncidNewcombeRiskDiff]{InferenceIncidNewcombeRiskDiff}}
+for a small-sample-robust alternative). \code{likelihood_tier = "none"}: no
+likelihood is fit, so no likelihood-ratio or parametric-bootstrap methods are
+exposed; the reservoir/covariate structure is ignored, unlike
+\code{\link[EDI:InferenceIncidRiskDiff]{InferenceIncidRiskDiff}}'s covariate-
+adjusted linear-probability model. Non-estimable if either arm has zero
+subjects.
 }
 \examples{
 \donttest{
@@ -58,8 +69,21 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceIncidWald-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidWald-initialize}{}}}
 \subsection{\code{InferenceIncidWald$new()}}{
-  Uses the shared randomization two-sided p-value contract; see
-  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+  Uses the randomization-CI layer's two-sided p-value contract
+  (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
+  incidence responses this dispatches to the Zhang exact randomization
+  test where applicable rather than refusing outright, matching this
+  class's pre-migration old-ladder behavior (it inherited from
+  \code{InferenceAllSimpleMeanDiff}, whose own pin was already
+  corrected to \code{InferenceRandCI} -- see that file's identical
+  rationale). This class independently composes the same components
+  rather than truly inheriting \code{InferenceAllSimpleMeanDiff}, so it
+  had its own stale copy of the old \code{InferenceRand} pin, which
+  silently regressed Zhang dispatch (`compute_rand_two_sided_pval()`
+  started throwing "Randomization tests are not supported for
+  incidence" for the same designs the old ladder handled correctly) --
+  found via \code{test-incid-wald-migration-golden.R}'s
+  \code{randomization_pval} case going from `"ok"` to `"unsupported"`.
 
 
   Initialize Wald risk-difference incidence inference and

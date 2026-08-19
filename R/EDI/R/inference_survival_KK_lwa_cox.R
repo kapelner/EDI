@@ -1,10 +1,25 @@
 #' LWA-style Marginal Cox IVWC Compound Inference for KK Designs
 #'
-#' Fits a compound estimator for KK matching-on-the-fly designs with survival responses
-#' using a marginal Cox model with Lee-Wei-Amato style cluster-robust variance for
-#' matched pairs and standard Cox regression for reservoir subjects.
+#' Fits a compound (IVWC) estimator for KK matching-on-the-fly designs with
+#' survival responses: matched pairs are analyzed with a marginal Cox model
+#' \eqn{\lambda(t \mid W) = \lambda_0(t)\exp(\beta_T W)} whose robust variance
+#' uses the Lee-Wei-Amato (1992) cluster-robust sandwich (treating each matched
+#' pair as an independent cluster of correlated failure times), while reservoir
+#' subjects are analyzed with a standard (independent-subjects) Cox partial
+#' likelihood; the two log-hazard-ratio estimates are then combined by
+#' inverse-variance weighting. \code{likelihood_tier = "partial"} (Cox partial
+#' likelihood), but likelihood-ratio/score/gradient tests are not exposed on
+#' this IVWC compound (only on the
+#' \code{\link[EDI:InferenceSurvivalKKLWACoxPHOneLik]{OneLik}} sibling, which
+#' fits one combined partial likelihood across both sources instead of pooling
+#' two separate fits).
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+#'
+#' @references Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type
+#'   Regression Analysis for Large Numbers of Small Groups of Correlated
+#'   Failure Time Observations." In \emph{Survival Analysis: State of the Art},
+#'   237-247. Springer. \doi{10.1007/978-94-015-7983-4_14}
 #'
 #' @examples
 #' \donttest{
@@ -69,8 +84,19 @@ InferenceSurvivalKKLWACoxPHIVWC = define_inference_class(
 )
 #' LWA-style Marginal Cox Combined-Likelihood Inference for KK Designs
 #'
-#' Fits a combined-likelihood Cox model for KK matching-on-the-fly designs with
-#' survival responses using a marginal approach over all subjects.
+#' Fits a single combined Cox partial likelihood
+#' \eqn{\lambda(t \mid W, X) = \lambda_0(t)\exp(\beta_T W + \beta_X^\top X)}
+#' jointly over matched-pair and reservoir subjects for KK matching-on-the-fly
+#' designs with survival responses (a marginal, not stratified, Cox model:
+#' matched pairs do not get pair-specific baseline hazards). This is the
+#' one-likelihood combined-fit analog of
+#' \code{\link[EDI:InferenceSurvivalKKLWACoxPHIVWC]{InferenceSurvivalKKLWACoxPHIVWC}},
+#' which instead fits and pools two separate estimators. \code{likelihood_tier
+#' = "partial"}: exposes likelihood-ratio and parametric-likelihood-bootstrap
+#' inference in addition to Wald/asymptotic and Bayesian-bootstrap paths.
+#'
+#' @references Cox, D. R. (1972). "Regression Models and Life-Tables."
+#'   \emph{Journal of the Royal Statistical Society, Series B}, 34(2), 187-220.
 #'
 #' @examples
 #' \donttest{

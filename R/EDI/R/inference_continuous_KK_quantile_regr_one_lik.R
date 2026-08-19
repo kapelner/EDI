@@ -5,6 +5,36 @@
 #' Minimises the joint check-function loss over both data sources simultaneously.
 #' Inference is based on the stacked combined-likelihood quantile-regression fit.
 #'
+#' @details
+#' \strong{Model.} Analogous to
+#' \code{\link[EDI:InferenceContinKKOLSOneLik]{InferenceContinKKOLSOneLik}}'s single
+#' stacked design (matched-pair difference rows plus reservoir rows fit
+#' jointly), but the objective is the \code{quantreg} check-function loss
+#' \eqn{\rho_\tau(u) = u(\tau - \mathbf{1}_{u<0})} rather than squared error,
+#' so the estimand \eqn{\beta_T} is the treatment effect on the \eqn{\tau}-th
+#' quantile of the response, not the mean. \code{tau = 0.5} (default) targets
+#' the median treatment effect, which is more robust to outliers and
+#' heavy-tailed responses than the OLS mean-based estimator; any value
+#' strictly between 0 and 1 is accepted. \code{likelihood_tier = "none"}: no
+#' likelihood-based (score/gradient/lik_ratio) testing types, only Wald.
+#'
+#' \strong{Assumptions.} Continuous response; independent matched pairs and/or
+#' independent reservoir subjects; no censoring; a KK matching-on-the-fly
+#' design. Requires the \pkg{quantreg} package (listed in Suggests, not
+#' installed automatically).
+#'
+#' @references
+#' Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
+#' allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
+#' 378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
+#' Koenker, R. (2005). \emph{Quantile Regression}. Cambridge University Press.
+#'
+#' @seealso \code{\link[EDI:InferenceContinKKQuantileRegrIVWC]{InferenceContinKKQuantileRegrIVWC}}
+#'   for the inverse-variance-weighted-combination alternative to this
+#'   one-likelihood combined-fit approach.
+#'   \href{https://en.wikipedia.org/wiki/Quantile_regression}{Quantile
+#'   regression} (orientation).
+#'
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
@@ -60,9 +90,12 @@ InferenceContinKKQuantileRegrOneLik = define_inference_class(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other continuous/survival KK migration this stretch.
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
-		#' @description Initialize continuous-response KK combined-likelihood quantile-regression inference.
-		#'   The shared stacked quantile-regression fit is documented in
-		#'   \code{\link[EDI:InferenceAbstractKKQuantileRegrOneLik]{InferenceAbstractKKQuantileRegrOneLik}}.
+		#' @description Initialize continuous-response KK combined-likelihood quantile-regression
+		#'   inference. The shared stacked matched-pair/reservoir quantile-regression fit and its
+		#'   \code{tau} semantics are documented on
+		#'   \code{\link[EDI:InferenceContinKKQuantileRegrOneLik]{InferenceContinKKQuantileRegrOneLik}}
+		#'   and on the shared \code{compute_estimate()} method it inherits from the
+		#'   \code{KKQuantileRegrOneLik} component.
 		#' @param des_obj A DesignSeqOneByOne object whose entire n subjects
 		#'   are assigned and response y is recorded within.
 		#' @param  tau  			The quantile level for regression, strictly between 0 and 1. Default is 0.5.

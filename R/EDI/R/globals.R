@@ -1168,7 +1168,7 @@ edi_warm_start_dispatch_policy = function(inference_class, operation, n = NULL) 
          grepl("^InferenceCountKKHurdlePoissonOneLik$",   inference_class, perl = TRUE) ||
          grepl("^InferenceIncidExactBinomial$",           inference_class, perl = TRUE) ||
          grepl("^InferenceIncidProbitRegr$",              inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidenceExactZhang$",          inference_class, perl = TRUE) ||
+         grepl("^InferenceIncidExactZhang$",          inference_class, perl = TRUE) ||
          grepl("^InferenceOrdinalKKGLMM$",                inference_class, perl = TRUE) ||
          grepl("^InferenceOrdinalOrderedProbitRegr$",     inference_class, perl = TRUE))) {
       return(FALSE)

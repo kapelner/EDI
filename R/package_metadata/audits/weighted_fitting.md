@@ -251,7 +251,7 @@ These are not part of the package’s built-in weighted Bayesian-bootstrap rollo
 
 - `InferenceIncidExactFisher`
 - `InferenceIncidExactBinomial`
-- `InferenceIncidenceExactZhang`
+- `InferenceIncidExactZhang`
 - `InferenceCustomAsymp`
 - `InferenceCustomRand`
 - `InferenceCustomBoot`

@@ -76,7 +76,18 @@ gaps" at the bottom).
   `InferenceContinKKOLSOneLik` (single stacked-OLS combined-likelihood fit
   over matched-pair differences and reservoir rows),
   `InferenceContinKKRobustRegrIVWC` (inverse-variance-weighted combination of
-  matched-pair and reservoir robust-regression fits).
+  matched-pair and reservoir robust-regression fits),
+  `InferenceContinKKRobustRegrOneLik` (single stacked robust-regression
+  combined fit over matched-pair differences and reservoir rows),
+  `InferenceCountKKGLMM` (Poisson GLMM with a matched-pair random intercept
+  under the KK design), `InferenceContinKKQuantileRegrOneLik` (single stacked
+  matched-pair/reservoir quantile regression under the KK design),
+  `InferenceCountKKCondPoissonOneLik` (single combined conditional-Poisson
+  matched-pair / ordinary-Poisson reservoir likelihood, design-conservative
+  Wald/score/likelihood-ratio/gradient inference for the shared treatment
+  coefficient), `InferenceIncidKKCondLogitOneLik` (single combined
+  conditional-logistic matched-pair / ordinary-logistic reservoir
+  likelihood, joint MLE of one shared treatment log-odds-ratio).
 - **[Greevy2004]** Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P.
   (2004). "Optimal multivariate matching before randomization."
   *Biostatistics*, 5(2), 263-275. doi:10.1093/biostatistics/5.2.263. — Used
@@ -130,7 +141,7 @@ files' `@references`) if/when it becomes available.
   (2013). "Does design matter? Systematic evaluation of the impact of
   analytical choices on effect estimates in observational studies."
   *Therapeutic Advances in Drug Safety*, 4(2), 53-62. PMID 25083251. —
-  Used by: `InferenceSuite`, `run_all_inference()` (the motivating
+  Used by: `InferenceSuite` (the motivating
   finding — that analytical/design choices materially shift effect
   estimates in observational studies — behind making "every legitimate
   way to look for an effect, compared honestly" the suite's default
@@ -138,8 +149,7 @@ files' `@references`) if/when it becomes available.
 - **[LiuXie2020]** Liu, Y., and Xie, J. (2020). "Cauchy combination test: a
   powerful test with analytic p-value calculation under arbitrary
   dependency structures." *Journal of the American Statistical
-  Association*, 115(529), 393-402. — Used by: `InferenceSuite`,
-  `run_all_inference()` (the Combined Evidence Metric's Cauchy
+  Association*, 115(529), 393-402. — Used by: `InferenceSuite` (the Combined Evidence Metric's Cauchy
   combination test, valid under arbitrary and unknown dependence among
   the per-class p-values being combined).
 
@@ -174,7 +184,8 @@ files' `@references`) if/when it becomes available.
   `InferenceContinQuantileRegr`, `InferencePropQuantileRegr`.
 - **[Koenker2005]** Koenker, R. (2005). *Quantile Regression*. Cambridge
   University Press. — Used by: `InferenceContinQuantileRegr` (Powell-style
-  sandwich SE).
+  sandwich SE), `InferenceContinKKQuantileRegrOneLik`, `InferencePropKKQuantileRegrOneLik`
+  (single stacked matched-pair/reservoir quantile regression under the KK design).
 - **[Powell1991]** Powell, J. L. (1991). "Estimation of Monotonic
   Regression Models under Quantile Restrictions," in *Nonparametric and
   Semiparametric Methods in Econometrics and Statistics*. Cambridge
@@ -223,8 +234,9 @@ files' `@references`) if/when it becomes available.
   Difference Between Independent Proportions: Comparison of Eleven
   Methods." *Statistics in Medicine*, 17(8), 873-890.
   doi:10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I. —
-  Used by: `InferenceIncidNewcombeRiskDiff`, `newcombe_independent_ci_cpp`,
-  `newcombe_paired_ci_cpp` ("Method 10" hybrid Wilson-score interval).
+  Used by: `InferenceIncidNewcombeRiskDiff`, `InferenceIncidKKNewcombeRiskDiff`,
+  `newcombe_independent_ci_cpp`, `newcombe_paired_ci_cpp` ("Method 10" hybrid
+  Wilson-score interval).
 - **[Fisher1935Logic]** Fisher, R. A. (1935). "The Logic of Inductive
   Inference." *Journal of the Royal Statistical Society*, 98(1), 39-82.
   doi:10.2307/2342435. — Used by: the exact conditional test underlying
@@ -234,6 +246,24 @@ files' `@references`) if/when it becomes available.
   of Disease." *Journal of the National Cancer Institute*, 22(4), 719-748.
   — Used by: `InferenceIncidExactFisher`'s stratified common-odds-ratio
   path, `InferenceIncidCMH`.
+
+- **[Robins1986]** Robins, J. (1986). "A New Approach to Causal Inference in
+  Mortality Studies with a Sustained Exposure Period." *Mathematical
+  Modelling*, 7(9-12), 1393-1512. doi:10.1016/0270-0255(86)90088-6. — Used
+  by: `InferenceIncidKKGCompRiskDiff`, `InferenceIncidKKGCompRiskRatio`
+  (g-computation/standardization estimand).
+
+### Count
+
+- **[Mullahy1986]** Mullahy, J. (1986). "Specification and Testing of
+  Some Modified Count Data Models." *Journal of Econometrics*, 33(3),
+  341-365. doi:10.1016/0304-4076(86)90002-3. — Used by:
+  `InferenceCountKKHurdlePoissonOneLik` (two-part hurdle model: a binary
+  zero-vs-positive submodel combined with a zero-truncated Poisson
+  submodel for the positive counts). See also the "Coverage gaps" section
+  below for the still-gated `InferenceCountHurdlePoisson`/
+  `InferenceCountHurdleNegBin` siblings this citation also applies to once
+  they migrate.
 
 ### Ordinal
 
@@ -253,7 +283,10 @@ files' `@references`) if/when it becomes available.
   109-142. doi:10.1111/j.2517-6161.1980.tb01109.x. — Used by:
   `InferenceOrdinalPropOddsRegr`, `InferenceOrdinalPartialProportionalOddsRegr`
   (the full proportional-odds/cumulative-logit model both classes are built
-  on).
+  on), `InferenceOrdinalCloglogRegr` (cumulative-link model family).
+- **[Agresti2010Ordinal]** Agresti, A. (2010). *Analysis of Ordinal
+  Categorical Data* (2nd ed.). Wiley. — Used by: `InferenceOrdinalCauchitRegr`,
+  `InferenceOrdinalCloglogRegr` (cumulative-link model chapters).
 - **[PetersonHarrell1990]** Peterson, B., and Harrell, F. E. (1990).
   "Partial Proportional Odds Models for Ordinal Response Variables."
   *Journal of the Royal Statistical Society, Series C (Applied
@@ -265,8 +298,18 @@ files' `@references`) if/when it becomes available.
 - **[Cox1972]** Cox, D. R. (1972). "Regression Models and Life-Tables."
   *Journal of the Royal Statistical Society, Series B*, 34(2), 187-220. —
   Used by: `InferenceSurvivalCoxPHRegr`, `fast_coxph_regression`,
-  `fast_stratified_coxph_regression` (proportional-hazards model and
-  partial likelihood).
+  `fast_stratified_coxph_regression`, `InferenceSurvivalKKLWACoxPHOneLik`,
+  `InferenceSurvivalKKStratCoxPHIVWC`, `InferenceSurvivalKKStratCoxPHOneLik`
+  (proportional-hazards model and partial likelihood; the reservoir sub-fit
+  in the two KK stratified-Cox compound classes).
+- **[LeeWeiAmato1992]** Lee, E. W., Wei, L. J., and Amato, D. A. (1992).
+  "Cox-Type Regression Analysis for Large Numbers of Small Groups of
+  Correlated Failure Time Observations." In *Survival Analysis: State of
+  the Art*, 237-247. Springer. doi:10.1007/978-94-015-7983-4_14. — Used by:
+  `InferenceSurvivalKKLWACoxPHIVWC` (cluster-robust sandwich variance for
+  matched-pair Cox regression); `InferenceSurvivalKKStratCoxPHIVWC` and
+  `InferenceSurvivalKKStratCoxPHOneLik` (the pair-as-stratum matched-pair
+  sub-estimate is a special case of this small-groups stratified Cox approach).
 - **[Breslow1974]** Breslow, N. E. (1974). "Covariance Analysis of
   Censored Survival Data." *Biometrics*, 30(1), 89-99.
   doi:10.2307/2529620. — Used by: `InferenceSurvivalCoxPHRegr` (tied-event
@@ -311,6 +354,28 @@ files' `@references`) if/when it becomes available.
   Medicine*, 15(13), 1387-1395. — Used by: `InferenceSurvivalLogRank` (the
   interval-censored generalization used on the left-/interval-censored
   path, via `interval::ictest(scores = "logrank1")`).
+- **[Clayton1978]** Clayton, D. G. (1978). "A Model for Association in
+  Bivariate Life Tables and Its Application in Epidemiological Studies of
+  Familial Tendency in Chronic Disease Incidence." *Biometrika*, 65(1),
+  141-151. doi:10.2307/2335289. — Used by:
+  `InferenceSurvivalKKClaytonCopulaIVWC` (the gamma-frailty Clayton copula
+  linking matched-pair survival times), `InferenceSurvivalKKClaytonCopulaOneLik`
+  (single combined Weibull-AFT-with-Clayton-copula matched-pair /
+  marginal-Weibull reservoir likelihood).
+- **[Oakes1989]** Oakes, D. (1989). "Bivariate Survival Models Induced by
+  Frailties." *Journal of the American Statistical Association*, 84(406),
+  487-493. doi:10.2307/2289934. — Used by:
+  `InferenceSurvivalKKClaytonCopulaIVWC` (closed-form frailty integration
+  underlying the Clayton copula likelihood), `InferenceSurvivalKKClaytonCopulaOneLik`.
+- **[VaupelMantonStallard1979]** Vaupel, J. W., Manton, K. G., and Stallard,
+  E. (1979). "The Impact of Heterogeneity in Individual Frailty on the
+  Dynamics of Mortality." *Demography*, 16(3), 439-454. — Used by:
+  `InferenceSurvivalKKWeibullFrailtyIVWC` (contrast with the gamma-frailty
+  Clayton copula model).
+- **[Hougaard2000]** Hougaard, P. (2000). *Analysis of Multivariate Survival
+  Data*. Springer. doi:10.1007/978-1-4612-1304-8. — Used by:
+  `InferenceSurvivalKKWeibullFrailtyIVWC` (log-normal-frailty Weibull AFT
+  GLMM background).
 
 ### Proportion
 

@@ -145,8 +145,21 @@ partial_likelihood_expected_extracted_conditional_logit_targets = list(
 		)
 	),
 	InferenceIncidKKCondLogitOneLik = list(
-		target_direct_components = c("ConditionalLogitPartialLikelihood", "KKPassThrough"),
-		target_components = c("ConditionalLogitPartialLikelihood", "KKPassThrough")
+		# Updated at migration time (2026-08-19) to the factory reality (same
+		# treatment as the IVWC entry above): the estimator's shared_combined_
+		# likelihood() calls conditional_logit_prepare_combined_design()
+		# (a free function) directly, so no ConditionalLogitPartialLikelihood
+		# component methods are composed; BayesianBootstrap is an explicit
+		# direct component and KKPassThrough/ParametricLikelihoodBootstrap
+		# arrive via the new IncidKKCondLogitOneLikLikelihood component's
+		# dependencies.
+		target_direct_components = c("BayesianBootstrap", "IncidKKCondLogitOneLikLikelihood"),
+		target_components = c(
+			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
+			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
+			"KKPassThrough", "Jackknife", "Wald", "LikelihoodTests",
+			"ParametricLikelihoodBootstrap", "IncidKKCondLogitOneLikLikelihood"
+		)
 	),
 	InferenceOrdinalKKCondAdjCatLogitRegr = list(
 		target_direct_components = c("OrdinalConditionalLogitPartialLikelihood", "KKPassThrough"),

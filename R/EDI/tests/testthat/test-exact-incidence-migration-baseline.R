@@ -179,7 +179,7 @@ make_exact_zhang_legacy_generator = function() {
 		})
 	}
 	R6::R6Class(
-		"InferenceIncidenceExactZhangLegacy",
+		"InferenceIncidExactZhangLegacy",
 		lock_objects = FALSE,
 		parent_env = asNamespace("EDI"),
 		inherit = EDI:::InferenceJackknife,
@@ -293,7 +293,7 @@ expect_exact_incidence_current_snapshot = function(class_name, extra_duplicate_p
 test_that("exact incidence migration baseline pins current golden outputs", {
 	InferenceIncidExactBinomialLegacy = make_exact_binomial_legacy_generator()
 	InferenceIncidExactFisherLegacy = make_exact_fisher_legacy_generator()
-	InferenceIncidenceExactZhangLegacy = make_exact_zhang_legacy_generator()
+	InferenceIncidExactZhangLegacy = make_exact_zhang_legacy_generator()
 	specs = list(
 		InferenceIncidExactBinomial = list(
 			generator = EDI:::InferenceIncidExactBinomial,
@@ -315,9 +315,9 @@ test_that("exact incidence migration baseline pins current golden outputs", {
 			pval = 1,
 			ci = c(-1.40296790485226, 2.22290783523223)
 		),
-		InferenceIncidenceExactZhang = list(
-			generator = EDI:::InferenceIncidenceExactZhang,
-			legacy_generator = InferenceIncidenceExactZhangLegacy,
+		InferenceIncidExactZhang = list(
+			generator = EDI:::InferenceIncidExactZhang,
+			legacy_generator = InferenceIncidExactZhangLegacy,
 			design = make_exact_zhang_migration_design(),
 			alpha = 0.10,
 			pval_epsilon = 0.01,
@@ -372,7 +372,7 @@ test_that("exact incidence migration baseline pins current golden outputs", {
 
 test_that("exact Zhang migration matches legacy outputs across supported fixtures", {
 	skip_on_cran()
-	InferenceIncidenceExactZhangLegacy = make_exact_zhang_legacy_generator()
+	InferenceIncidExactZhangLegacy = make_exact_zhang_legacy_generator()
 	specs = list(
 		Bernoulli = list(
 			design = make_exact_zhang_migration_design(),
@@ -394,7 +394,7 @@ test_that("exact Zhang migration matches legacy outputs across supported fixture
 
 	for (fixture_name in names(specs)) {
 		spec = specs[[fixture_name]]
-		inf = EDI:::InferenceIncidenceExactZhang$new(spec$design, verbose = FALSE)
+		inf = EDI:::InferenceIncidExactZhang$new(spec$design, verbose = FALSE)
 		expect_equal(inf$compute_estimate(), spec$estimate, tolerance = 1e-12, info = fixture_name)
 		expect_equal(
 			inf$compute_exact_two_sided_pval_for_treatment_effect(delta = 0),
@@ -409,8 +409,8 @@ test_that("exact Zhang migration matches legacy outputs across supported fixture
 			info = fixture_name
 		)
 		expect_silent(expect_inference_migration_outputs_equal(
-			legacy_class = InferenceIncidenceExactZhangLegacy,
-			migrated_class = EDI:::InferenceIncidenceExactZhang,
+			legacy_class = InferenceIncidExactZhangLegacy,
+			migrated_class = EDI:::InferenceIncidExactZhang,
 			design = spec$design,
 			method_calls = list(
 				estimate = inference_migration_method_calls$estimate,
@@ -494,7 +494,7 @@ test_that("exact Fisher migration matches legacy outputs across supported fixtur
 test_that("exact incidence migration baseline pins method and private-state snapshots", {
 	InferenceIncidExactBinomialLegacy = make_exact_binomial_legacy_generator()
 	InferenceIncidExactFisherLegacy = make_exact_fisher_legacy_generator()
-	InferenceIncidenceExactZhangLegacy = make_exact_zhang_legacy_generator()
+	InferenceIncidExactZhangLegacy = make_exact_zhang_legacy_generator()
 	expect_identical(
 		inference_migration_public_methods(InferenceIncidExactBinomialLegacy),
 		exact_incidence_baseline_public_methods
@@ -536,23 +536,23 @@ test_that("exact incidence migration baseline pins method and private-state snap
 		character()
 	)
 	expect_identical(
-		inference_migration_public_methods(InferenceIncidenceExactZhangLegacy),
+		inference_migration_public_methods(InferenceIncidExactZhangLegacy),
 		exact_incidence_baseline_public_methods
 	)
 	expect_setequal(
-		names(inference_migration_duplicate_private_owners(InferenceIncidenceExactZhangLegacy)),
+		names(inference_migration_duplicate_private_owners(InferenceIncidExactZhangLegacy)),
 		c("supports_bayesian_bootstrap", exact_incidence_baseline_duplicate_private_owners)
 	)
 	expect_identical(
-		inference_migration_public_methods("InferenceIncidenceExactZhang"),
+		inference_migration_public_methods("InferenceIncidExactZhang"),
 		exact_binomial_migrated_public_methods
 	)
 	expect_identical(
-		names(inference_migration_duplicate_private_owners("InferenceIncidenceExactZhang")),
+		names(inference_migration_duplicate_private_owners("InferenceIncidExactZhang")),
 		character()
 	)
 	expect_identical(
-		EDI:::exact_incidence_behavior_manifest()$InferenceIncidenceExactZhang$legacy_optional_surface,
+		EDI:::exact_incidence_behavior_manifest()$InferenceIncidExactZhang$legacy_optional_surface,
 		character()
 	)
 })
@@ -587,14 +587,14 @@ test_that("exact Fisher migration metadata marks the class migrated", {
 
 test_that("exact Zhang migration metadata marks the class migrated", {
 	EDI:::populate_inference_class_registry()
-	record = EDI:::get_inference_hierarchy_migration_record("InferenceIncidenceExactZhang")
+	record = EDI:::get_inference_hierarchy_migration_record("InferenceIncidExactZhang")
 
-	expect_identical(EDI:::get_inference_class_metadata("InferenceIncidenceExactZhang")$parent, "Inference")
-	expect_identical(EDI:::get_effective_components("InferenceIncidenceExactZhang"), c("ExactTest", "ExactZhangIncidence"))
-	expect_identical(EDI:::get_effective_capabilities("InferenceIncidenceExactZhang"), c("exact_test", "exact_zhang_incidence"))
+	expect_identical(EDI:::get_inference_class_metadata("InferenceIncidExactZhang")$parent, "Inference")
+	expect_identical(EDI:::get_effective_components("InferenceIncidExactZhang"), c("ExactTest", "ExactZhangIncidence"))
+	expect_identical(EDI:::get_effective_capabilities("InferenceIncidExactZhang"), c("exact_test", "exact_zhang_incidence"))
 	expect_identical(record$migration_status, "migrated")
 	expect_silent(EDI:::mark_inference_class_migrated(
-		"InferenceIncidenceExactZhang",
-		public_method_names = EDI:::exact_incidence_behavior_manifest()$InferenceIncidenceExactZhang$current_public_optional_methods
+		"InferenceIncidExactZhang",
+		public_method_names = EDI:::exact_incidence_behavior_manifest()$InferenceIncidExactZhang$current_public_optional_methods
 	))
 })
