@@ -2141,6 +2141,25 @@ wrapping the same base engine).
   isolate the hot line(s) before attempting a fix, not guessed at.
   README/benchmark numbers reflect this real, current behavior
   accurately (updated 2026-08-17); they are not the bug, the kernel is.
+- [ ] TODO-29 (added 2026-08-19, user decision; v1.1.0 scope per
+  `release_v1_1_0.md`): rename the `dead` field/argument/column to
+  `uncensored` throughout the package (R, C++, docs, Python binding).
+  Motivation: with left- and interval-censoring now natively supported
+  (this plan's TODO-1/TODO-3), `dead` is no longer an accurate name for
+  the event indicator — it reads as "died" specifically, when the field
+  really means "event observed rather than censored," and can be `TRUE`
+  for a non-death event or for a left-censored/interval-censored row.
+  `uncensored` matches the general censoring semantics this plan
+  introduced. Large blast radius: ~576 R-file occurrences (`private$dead`,
+  `spec$dead`, function args, roxygen docs) plus ~14 `.cpp` and 4 `.h`
+  files in `src/`, plus the Python binding surface (TODO-21).
+  **Scoping decided (2026-08-19, user decision): full rename** — R, C++,
+  and Python binding identifiers/args/columns all renamed from `dead` to
+  `uncensored`, not R-layer-only. No `spec$dead` backward-compatible alias
+  — hard break, no deprecation warning/silent mapping. Compilation
+  implications: touched `.cpp` files must be verified with targeted
+  compiles only, per this repo's no-full-rebuild rule — never
+  `pkgbuild::compile_dll()`/`load_all(compile=TRUE)`/`R CMD INSTALL`.
 
 ## Appendix: How Common Is Interval-Censored Survival Data?
 

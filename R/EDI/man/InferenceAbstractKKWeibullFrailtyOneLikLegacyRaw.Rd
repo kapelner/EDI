@@ -31,7 +31,6 @@ Clayton copula model implemented by
     \item \href{#method-InferenceAbstractKKWeibullFrailtyOneLik-compute_estimate_with_bootstrap_weights}{\code{InferenceAbstractKKWeibullFrailtyOneLik$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferenceAbstractKKWeibullFrailtyOneLik-compute_asymp_confidence_interval}{\code{InferenceAbstractKKWeibullFrailtyOneLik$compute_asymp_confidence_interval()}}
     \item \href{#method-InferenceAbstractKKWeibullFrailtyOneLik-compute_asymp_two_sided_pval}{\code{InferenceAbstractKKWeibullFrailtyOneLik$compute_asymp_two_sided_pval()}}
-    \item \href{#method-InferenceAbstractKKWeibullFrailtyOneLik-approximate_bootstrap_distribution_beta_hat_T}{\code{InferenceAbstractKKWeibullFrailtyOneLik$approximate_bootstrap_distribution_beta_hat_T()}}
     \item \href{#method-InferenceAbstractKKWeibullFrailtyOneLik-clone}{\code{InferenceAbstractKKWeibullFrailtyOneLik$clone()}}
   }
 }
@@ -107,6 +106,7 @@ Clayton copula model implemented by
 </details>
 <details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
 <ul>
+  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
@@ -269,34 +269,6 @@ estimate.}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{delta}}{Null treatment effect value.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceAbstractKKWeibullFrailtyOneLik-approximate_bootstrap_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceAbstractKKWeibullFrailtyOneLik-approximate_bootstrap_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceAbstractKKWeibullFrailtyOneLik$approximate_bootstrap_distribution_beta_hat_T()}}{
-  Uses the shared nonparametric bootstrap distribution contract; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceAbstractKKWeibullFrailtyOneLik$approximate_bootstrap_distribution_beta_hat_T(
-  B = 501,
-  show_progress = TRUE,
-  debug = FALSE,
-  bootstrap_type = NULL
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{B}}{Number of bootstrap samples.}
-      \item{\code{show_progress}}{Whether to show a progress bar.}
-      \item{\code{debug}}{Whether to return diagnostics.}
-      \item{\code{bootstrap_type}}{Optional resampling scheme.}
     }
     \if{html}{\out{</div>}}
   }

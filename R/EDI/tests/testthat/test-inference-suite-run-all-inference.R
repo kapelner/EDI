@@ -27,20 +27,26 @@ expect_valid_run_all_inference_report = function(des_obj, expected_design_family
 	expect_identical(
 		names(res),
 		c("results", "results_table", "design", "alpha",
-		  "unavailable_due_to_missing_packages", "plots", "files",
+		  "unavailable_due_to_missing_packages", "combined_evidence", "plots", "files",
 		  "timestamp", "total_secs", "edi_version")
 	)
 
 	tbl = res$results_table
 	expect_identical(
 		names(tbl),
-		c("inference_class", "cov_model", "response_type", "design_family", "likelihood_tier",
+		c("inference_class", "method", "cov_model", "response_type", "design_family", "likelihood_tier",
 		  "estimate", "se", "ci_a", "ci_b", "ci_method",
 		  "pval", "pval_method", "estimand", "fit_secs", "warnings",
 		  "status", "message", "weight")
 	)
-	expect_identical(nrow(tbl), length(suite$applicable_design_classes))
-	expect_identical(names(res$results), suite$applicable_design_classes)
+	# `methods = NULL` (default) now fans out to one row per applicable
+	# method sentinel per class, so row/result count is >= the class count,
+	# not equal to it -- but every applicable class must appear at least
+	# once, and no unrequested class should ever appear.
+	expect_true(nrow(tbl) >= length(suite$applicable_design_classes))
+	expect_identical(sort(unique(tbl$inference_class)), sort(suite$applicable_design_classes))
+	result_classes = vapply(res$results, function(r) r$inference_class, character(1L))
+	expect_identical(sort(unique(result_classes)), sort(suite$applicable_design_classes))
 
 	if (nrow(tbl) > 0L) {
 		expect_true(all(tbl$design_family == expected_design_family))
@@ -361,14 +367,14 @@ test_that("run_all_inference: classes/exclude_classes filter and validate", {
 		res_allow <- suite$run_all_inference(screen = TRUE, plots = FALSE,
 			classes = c("InferenceContinOLS", "InferenceContinLin"))
 	})
-	expect_identical(sort(res_allow$results_table$inference_class), c("InferenceContinLin", "InferenceContinOLS"))
+	expect_identical(sort(unique(res_allow$results_table$inference_class)), c("InferenceContinLin", "InferenceContinOLS"))
 
 	capture.output({
 		res_deny <- suite$run_all_inference(screen = TRUE, plots = FALSE,
 			exclude_classes = "InferenceContinOLS")
 	})
 	expect_false("InferenceContinOLS" %in% res_deny$results_table$inference_class)
-	expect_identical(nrow(res_deny$results_table), length(suite$applicable_design_classes) - 1L)
+	expect_identical(length(unique(res_deny$results_table$inference_class)), length(suite$applicable_design_classes) - 1L)
 
 	expect_error(
 		suite$run_all_inference(screen = TRUE, classes = "NotARealInferenceClass"),
@@ -481,12 +487,17 @@ test_that("run_all_inference: estimand is a registry-level fact, populated regar
 	row_rr = tbl[tbl$inference_class == "InferenceIncidGCompRiskRatio", ]
 	row_logit = tbl[tbl$inference_class == "InferenceIncidLogRegr", ]
 
-	expect_identical(row_rd$estimand, "RD")
+	# `methods = NULL` (default) can now fan a class out to more than one
+	# row (one per applicable method sentinel) -- `estimand` is a
+	# registry-level, per-class fact, so it's identical across every
+	# method-row for the same class; check via unique() rather than
+	# assuming exactly one row.
+	expect_identical(unique(row_rd$estimand), "RD")
 	# The whole point of reading estimand from the class metadata registry
 	# instead of the fitted instance: it must still be populated even when
 	# status != "ok" (registry lookup needs no successful construction/fit).
-	expect_identical(row_rr$estimand, "RR")
-	expect_true(row_rr$status %in% c("ok", "nonest"))
+	expect_identical(unique(row_rr$estimand), "RR")
+	expect_true(all(row_rr$status %in% c("ok", "nonest")))
 	# A class with no declared get_estimand_type() reports NA, not an error.
-	expect_identical(row_logit$estimand, NA_character_)
+	expect_identical(unique(row_logit$estimand), NA_character_)
 })

@@ -139,13 +139,35 @@ unavailable_inference_classes_due_to_missing_packages_for_design = function(des_
 	discover_applicable_inference_classes(des_obj)$unavailable_due_to_missing_packages
 }
 
-#' Priority-ordered CI/p-value method dispatch tables backing
-#' `InferenceSuite$run_all_inference()`'s "primary method" selection. There is
-#' no generic `compute_ci()`/`compute_pval()` on `Inference` -- concrete
-#' classes expose capability-gated, differently-named methods -- so each
-#' table entry pairs a capability (checked via `obj$capabilities()`) with the
-#' method it gates. See `inference_suite_inspect.md`'s "Method Selection
-#' Policy" section for the full rationale.
+#' CI/p-value method dispatch tables backing `InferenceSuite$
+#' run_all_inference()`'s `methods` argument -- one row per method sentinel
+#' label. There is no generic `compute_ci()`/`compute_pval()` on
+#' `Inference` -- concrete classes expose capability-gated,
+#' differently-named methods -- so each table entry pairs a capability
+#' (checked via `obj$capabilities()`) with the method it gates and the
+#' sentinel label `run_all_inference()`'s `methods` argument uses to
+#' request it. No longer priority-ordered/cascading as of 2026-08-19 (per
+#' user request -- every applicable sentinel gets its own row instead of
+#' one row per class picking the first available); the name is kept for
+#' now rather than renamed mid-refactor. See `inference_suite_inspect.md`'s
+#' "Method Selection Policy" section for the original (now superseded)
+#' cascade rationale.
+#'
+#' @keywords internal
+#' @noRd
+#' Covers every testing-procedure capability declared in
+#' `contracts_mixins.R`'s `public_methods_for_capability` (2026-08-19 audit,
+#' after user feedback that the original four-sentinel list omitted most of
+#' the package's actual inference machinery): asymptotic Wald, exact,
+#' randomization (test-statistic and randomization-bootstrap variants),
+#' jackknife, the three `likelihood_tests` sub-procedures (score/
+#' likelihood-ratio/gradient -- one capability, three independent tests),
+#' parametric-likelihood-bootstrap, and Bayesian-bootstrap. Deliberately
+#' excludes `likelihood_ratio`/`estimating_equation_likelihood_ratio` as
+#' separate sentinels -- both capabilities gate the exact same
+#' `compute_lik_ratio_*` method pair as `likelihood_tests`'s `lik_ratio`
+#' sub-procedure already covers, so they'd be a duplicate row, not a
+#' distinct test.
 #'
 #' @keywords internal
 #' @noRd
@@ -153,6 +175,30 @@ EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY = list(
 	list(capability = "wald", method = "compute_asymp_confidence_interval", label = "wald"),
 	list(capability = "exact_test", method = "compute_exact_confidence_interval", label = "exact"),
 	list(capability = "randomization_ci", method = "compute_rand_confidence_interval", label = "rand"),
+	list(capability = "randomization_bootstrap_ci", method = "compute_rand_bootstrap_confidence_interval", label = "rand_bootstrap"),
+	list(capability = "jackknife", method = "compute_jackknife_wald_confidence_interval", label = "jackknife"),
+	list(capability = "likelihood_tests", method = "compute_score_confidence_interval", label = "score"),
+	list(capability = "likelihood_tests", method = "compute_lik_ratio_confidence_interval", label = "lik_ratio"),
+	list(capability = "likelihood_tests", method = "compute_gradient_confidence_interval", label = "gradient"),
+	# 2026-08-19 (inference_suite_inspect.md audit): Bartlett-corrected
+	# likelihood-ratio CIs. Gated by "likelihood_tests", same precedent
+	# imprecision already accepted by the score/lik_ratio/gradient rows
+	# above (that capability doesn't distinguish which of the four
+	# testing types a class actually supports either) -- the real,
+	# per-instance gate is supports_bartlett_likelihood_ratio_approx()/
+	# _exact(), checked internally by these methods (surfaced via
+	# get_supported_testing_types()) and degrading to NA/error caught by
+	# this table's tryCatch wrapper, not a capability flag; see the
+	# "compute_lik_ratio_bartlett_exact_two_sided_pval()... not gated by
+	# any registered capability" TODO for why no new capability was added.
+	# "lik_ratio_bartlett" is the "best available" auto-selecting
+	# dispatcher (exact-over-approx); "_approx"/"_exact" are opt-in pins
+	# for reproducibility, per that TODO's own judgment call.
+	list(capability = "likelihood_tests", method = "compute_lik_ratio_bartlett_confidence_interval", label = "lik_ratio_bartlett"),
+	list(capability = "likelihood_tests", method = "compute_lik_ratio_bartlett_approx_confidence_interval", label = "lik_ratio_bartlett_approx"),
+	list(capability = "likelihood_tests", method = "compute_lik_ratio_bartlett_exact_confidence_interval", label = "lik_ratio_bartlett_exact"),
+	list(capability = "parametric_likelihood_bootstrap", method = "compute_lik_ratio_bootstrap_confidence_interval", label = "param_boot"),
+	list(capability = "bayesian_bootstrap", method = "compute_bayesian_bootstrap_confidence_interval", label = "bayes_boot"),
 	list(capability = "nonparametric_bootstrap", method = "compute_bootstrap_confidence_interval", label = "bootstrap")
 )
 
@@ -162,47 +208,119 @@ EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY = list(
 	list(capability = "wald", method = "compute_asymp_two_sided_pval", label = "wald"),
 	list(capability = "exact_test", method = "compute_exact_two_sided_pval_for_treatment_effect", label = "exact"),
 	list(capability = "randomization_test", method = "compute_rand_two_sided_pval", label = "rand"),
+	list(capability = "randomization_bootstrap", method = "compute_rand_bootstrap_two_sided_pval", label = "rand_bootstrap"),
+	list(capability = "jackknife", method = "compute_jackknife_wald_two_sided_pval", label = "jackknife"),
+	list(capability = "likelihood_tests", method = "compute_score_two_sided_pval", label = "score"),
+	list(capability = "likelihood_tests", method = "compute_lik_ratio_two_sided_pval", label = "lik_ratio"),
+	list(capability = "likelihood_tests", method = "compute_gradient_two_sided_pval", label = "gradient"),
+	# See the matching CI-table entries above for why these three are
+	# gated by "likelihood_tests" (same precedent as score/lik_ratio/
+	# gradient) rather than a new capability.
+	list(capability = "likelihood_tests", method = "compute_lik_ratio_bartlett_two_sided_pval", label = "lik_ratio_bartlett"),
+	list(capability = "likelihood_tests", method = "compute_lik_ratio_bartlett_approx_two_sided_pval", label = "lik_ratio_bartlett_approx"),
+	list(capability = "likelihood_tests", method = "compute_lik_ratio_bartlett_exact_two_sided_pval", label = "lik_ratio_bartlett_exact"),
+	list(capability = "parametric_likelihood_bootstrap", method = "compute_lik_ratio_bootstrap_two_sided_pval", label = "param_boot"),
+	list(capability = "bayesian_bootstrap", method = "compute_bayesian_bootstrap_two_sided_pval", label = "bayes_boot"),
 	list(capability = "nonparametric_bootstrap", method = "compute_bootstrap_two_sided_pval", label = "bootstrap")
 )
 
-#' Selects and calls the first available CI method for `inf_obj` per
-#' `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`. Returns
-#' `list(lower, upper, method)` with `NA`s if no capability in the table
-#' applies, or every applicable call errors/returns a non-finite interval.
+#' The full set of method sentinel strings `run_all_inference()`'s `methods`
+#' argument accepts -- one per (capability, method-pair) row of
+#' `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`/`EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY`,
+#' which in turn covers every testing-procedure capability in
+#' `contracts_mixins.R`'s `public_methods_for_capability` (11 sentinels,
+#' widened 2026-08-19 from an initial four -- `"wald"`/`"exact"`/`"rand"`/
+#' `"bootstrap"` -- that omitted most of the package's actual inference
+#' machinery, per user feedback). `methods = NULL` (the default) resolves
+#' to all eleven -- "truly all the possible methods" per user request,
+#' 2026-08-19, replacing the earlier single-cascade-winner design
+#' (`run_all_inference_select_ci()`/`run_all_inference_select_pval()`,
+#' removed the same day).
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_select_ci = function(inf_obj, alpha) {
-	caps = inf_obj$capabilities()
-	for (entry in EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY) {
-		if (entry$capability %in% caps) {
-			ci = tryCatch(inf_obj[[entry$method]](alpha = alpha), error = function(e) NULL)
-			if (!is.null(ci) && length(ci) == 2L && all(is.finite(ci))) {
-				return(list(lower = ci[[1L]], upper = ci[[2L]], method = entry$label))
-			}
-		}
-	}
-	list(lower = NA_real_, upper = NA_real_, method = NA_character_)
+EDI_INFERENCE_SUITE_METHOD_SENTINELS = c(
+	"wald", "exact", "rand", "rand_bootstrap", "jackknife",
+	"score", "lik_ratio", "gradient",
+	"lik_ratio_bartlett", "lik_ratio_bartlett_approx", "lik_ratio_bartlett_exact",
+	"param_boot", "bayes_boot", "bootstrap"
+)
+
+#' Whether inference class `nm` has *any* capability (CI or p-value) for
+#' method sentinel `m`, checked via the registry's
+#' `get_effective_capabilities()` -- no instantiation needed, matching the
+#' architecture's "discovery reads metadata, never constructors" rule (same
+#' pattern `inference_class_accepts_model_formula()` uses for `formulas`).
+#'
+#' @keywords internal
+#' @noRd
+inference_class_has_method = function(nm, m) {
+	caps = get_effective_capabilities(nm)
+	entry_ci = Find(function(e) identical(e$label, m), EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY)
+	entry_pval = Find(function(e) identical(e$label, m), EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY)
+	(!is.null(entry_ci) && entry_ci$capability %in% caps) ||
+		(!is.null(entry_pval) && entry_pval$capability %in% caps)
 }
 
-#' Selects and calls the first available p-value method for `inf_obj` per
-#' `EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY`. Returns `list(pval, method)`
-#' with `NA`s if no capability in the table applies, or every applicable call
-#' errors/returns a non-finite p-value.
+#' Which of `methods` (already validated against `EDI_INFERENCE_SUITE_METHOD_SENTINELS`)
+#' class `nm` has any capability for -- backs `run_all_inference_build_tasks()`'s
+#' `methods` fan-out, same registry-only, no-instantiation approach as
+#' `inference_class_accepts_model_formula()`.
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_select_pval = function(inf_obj) {
-	caps = inf_obj$capabilities()
-	for (entry in EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY) {
-		if (entry$capability %in% caps) {
-			pv = tryCatch(inf_obj[[entry$method]](delta = 0), error = function(e) NULL)
-			if (!is.null(pv) && length(pv) == 1L && is.finite(pv)) {
-				return(list(pval = pv, method = entry$label))
-			}
-		}
+run_all_inference_class_applicable_methods = function(nm, methods) {
+	Filter(function(m) inference_class_has_method(nm, m), methods)
+}
+
+#' Calls inference class `inf_obj`'s CI method for sentinel `method` (one of
+#' `EDI_INFERENCE_SUITE_METHOD_SENTINELS`) directly -- no cascading to a
+#' different sentinel if this one is unavailable or fails, unlike the
+#' removed `run_all_inference_select_ci()`. Returns
+#' `list(lower, upper, method)`. `method` in the return value reports
+#' `entry$label` whenever an attempt was actually made -- i.e. whenever
+#' `inf_obj` has this sentinel's CI capability at all -- **even if the call
+#' itself errored or returned a non-finite interval** (per user request,
+#' 2026-08-19: "always print out the value of ci_method... otherwise we
+#' don't know what method actually failed"); `lower`/`upper` are `NA_real_`
+#' in that failure case, but `method` still names which sentinel was tried.
+#' `method` is `NA_character_` only when no attempt was possible at all --
+#' `inf_obj` genuinely lacks this sentinel's CI capability.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_call_ci_for_method = function(inf_obj, alpha, method) {
+	entry = Find(function(e) identical(e$label, method), EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY)
+	if (is.null(entry) || !(entry$capability %in% inf_obj$capabilities())) {
+		return(list(lower = NA_real_, upper = NA_real_, method = NA_character_))
 	}
-	list(pval = NA_real_, method = NA_character_)
+	ci = tryCatch(inf_obj[[entry$method]](alpha = alpha), error = function(e) NULL)
+	if (!is.null(ci) && length(ci) == 2L && all(is.finite(ci))) {
+		return(list(lower = ci[[1L]], upper = ci[[2L]], method = entry$label))
+	}
+	list(lower = NA_real_, upper = NA_real_, method = entry$label)
+}
+
+#' Calls inference class `inf_obj`'s p-value method for sentinel `method`
+#' (one of `EDI_INFERENCE_SUITE_METHOD_SENTINELS`) directly -- see
+#' `run_all_inference_call_ci_for_method()`'s docs for the no-cascading
+#' rationale and the "`method` reports the attempted sentinel even on
+#' failure" behavior, which applies here identically. Returns
+#' `list(pval, method)`; `method` is `NA_character_` only when `inf_obj`
+#' has no p-value capability for this sentinel at all (no attempt made).
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_call_pval_for_method = function(inf_obj, method) {
+	entry = Find(function(e) identical(e$label, method), EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY)
+	if (is.null(entry) || !(entry$capability %in% inf_obj$capabilities())) {
+		return(list(pval = NA_real_, method = NA_character_))
+	}
+	pv = tryCatch(inf_obj[[entry$method]](delta = 0), error = function(e) NULL)
+	if (!is.null(pv) && length(pv) == 1L && is.finite(pv)) {
+		return(list(pval = pv, method = entry$label))
+	}
+	list(pval = NA_real_, method = entry$label)
 }
 
 #' Estimand label for `cls_name`, read from the class metadata registry's
@@ -285,47 +403,66 @@ run_all_inference_normalize_formulas = function(formulas) {
 	lapply(formulas, function(f) if (is.character(f)) stats::as.formula(f) else f)
 }
 
-#' Expands `cls_names` x `formulas` into one fitting task per (class,
-#' formula) pair, for `InferenceSuite$run_all_inference()`'s `formulas`
-#' argument. `formulas = NULL` (the default) returns one task per class with
-#' `model_formula = NULL` -- identical to pre-`formulas` behavior, since
-#' `model_formula = NULL` at construction already resolves to
-#' `des_obj$get_design_formula()` (default `~ .`). When `formulas` is
-#' non-`NULL` (already normalized to a list of `formula` objects by
-#' `run_all_inference_normalize_formulas()`): classes for which
-#' `inference_class_accepts_model_formula()` is `TRUE` get one task per
-#' formula in `formulas`; classes for which it is `FALSE` still get exactly
-#' one task (formulas has no applicable argument slot to fan out over), with
-#' `model_formula = NULL`, ignoring `formulas` entirely for that class. Each
-#' task's `result_name` is the plain class name when a class contributes
-#' exactly one task (the common case), or `"<class>[<deparsed formula>]"`
-#' when a class contributes more than one, so `results`/`results_table` row
+#' Expands `cls_names` x `formulas` x `methods` into one fitting task per
+#' (class, formula, method) combination, for `InferenceSuite$
+#' run_all_inference()`'s `formulas`/`methods` arguments.
+#'
+#' \strong{Formula dimension}: `formulas = NULL` (the default) contributes
+#' one formula-slot per class with `model_formula = NULL` -- identical to
+#' pre-`formulas` behavior, since `model_formula = NULL` at construction
+#' already resolves to `des_obj$get_design_formula()` (default `~ .`). When
+#' `formulas` is non-`NULL` (already normalized to a list of `formula`
+#' objects by `run_all_inference_normalize_formulas()`): classes for which
+#' `inference_class_accepts_model_formula()` is `TRUE` get one formula-slot
+#' per formula in `formulas`; classes for which it is `FALSE` still get
+#' exactly one formula-slot (`model_formula = NULL`, ignoring `formulas`).
+#'
+#' \strong{Method dimension}: for each formula-slot, one task per method
+#' sentinel in `run_all_inference_class_applicable_methods(nm, methods)` --
+#' i.e. only sentinels the class has *any* CI or p-value capability for
+#' among the requested `methods`. A class with zero applicable methods
+#' among `methods` still gets exactly one task with `method = NA_character_`
+#' (mirrors the pre-`methods` "no capability -> NA" row, rather than
+#' silently dropping the class from the table).
+#'
+#' Each task's `result_name` is the plain class name (optionally
+#' `"<class>[<deparsed formula>]"` if more than one formula-slot applies)
+#' when the class contributes exactly one task per formula-slot, or that
+#' same base with `"{<method>}"` appended when more than one method sentinel
+#' is applicable for that class, so `results`/`results_table` row
 #' identifiers stay unique.
 #'
 #' @param cls_names Character vector of class names to build tasks for.
 #' @param formulas `NULL`, or a list of `formula` objects (see
 #'   `run_all_inference_normalize_formulas()`).
-#' @return A list of `list(cls_name, model_formula, result_name)`.
+#' @param methods Character vector of method sentinels (subset of
+#'   `EDI_INFERENCE_SUITE_METHOD_SENTINELS`) to fan out over.
+#' @return A list of `list(cls_name, model_formula, method, result_name)`.
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_build_tasks = function(cls_names, formulas) {
-	if (is.null(formulas)) {
-		return(lapply(cls_names, function(nm) {
-			list(cls_name = nm, model_formula = NULL, result_name = nm)
-		}))
-	}
+run_all_inference_build_tasks = function(cls_names, formulas, methods) {
 	tasks = list()
 	for (nm in cls_names) {
-		if (inference_class_accepts_model_formula(nm)) {
-			for (f in formulas) {
+		formula_slots = if (is.null(formulas)) {
+			list(list(model_formula = NULL, formula_tag = NULL))
+		} else if (inference_class_accepts_model_formula(nm)) {
+			lapply(formulas, function(f) list(model_formula = f, formula_tag = deparse1(f)))
+		} else {
+			list(list(model_formula = NULL, formula_tag = NULL))
+		}
+		applicable_methods = run_all_inference_class_applicable_methods(nm, methods)
+		method_slots = if (length(applicable_methods) == 0L) list(NA_character_) else as.list(applicable_methods)
+		multi_method = length(method_slots) > 1L
+		for (fs in formula_slots) {
+			for (m in method_slots) {
+				result_name = if (is.null(fs$formula_tag)) nm else sprintf("%s[%s]", nm, fs$formula_tag)
+				if (multi_method && !is.na(m)) result_name = sprintf("%s{%s}", result_name, m)
 				tasks[[length(tasks) + 1L]] = list(
-					cls_name = nm, model_formula = f,
-					result_name = sprintf("%s[%s]", nm, deparse1(f))
+					cls_name = nm, model_formula = fs$model_formula,
+					method = m, result_name = result_name
 				)
 			}
-		} else {
-			tasks[[length(tasks) + 1L]] = list(cls_name = nm, model_formula = NULL, result_name = nm)
 		}
 	}
 	tasks
@@ -333,10 +470,11 @@ run_all_inference_build_tasks = function(cls_names, formulas) {
 
 #' @keywords internal
 #' @noRd
-run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class = NULL) {
+run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class = NULL, method = NA_character_) {
 	t0 = Sys.time()
 	row = list(
 		inference_class = cls_name,
+		method          = method,
 		response_type   = response_type,
 		design_family   = design_family,
 		likelihood_tier = get_inference_class_metadata(cls_name)$likelihood_tier %||% NA_character_,
@@ -376,8 +514,16 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 				priv = inf_obj$.__enclos_env__$private
 				if (is.function(priv$get_standard_error)) as.numeric(priv$get_standard_error()) else NA_real_
 			}, error = function(e) NA_real_)
-			ci = run_all_inference_select_ci(inf_obj, alpha)
-			pv = run_all_inference_select_pval(inf_obj)
+			ci = if (is.na(method)) {
+				list(lower = NA_real_, upper = NA_real_, method = NA_character_)
+			} else {
+				run_all_inference_call_ci_for_method(inf_obj, alpha, method)
+			}
+			pv = if (is.na(method)) {
+				list(pval = NA_real_, method = NA_character_)
+			} else {
+				run_all_inference_call_pval_for_method(inf_obj, method)
+			}
 			# Always populated once construction succeeds (Inference$initialize()
 			# always sets private$model_formula, even for classes -- e.g.
 			# SimpleMeanDifferenceSource -- that accept a model_formula argument
@@ -446,34 +592,203 @@ run_all_inference_fmt_secs = function(secs) {
 	paste(parts, collapse = " ")
 }
 
-#' Prints one `run_all_inference()` result row to the console (shared by both
-#' the sequential and fork-cluster-parallel code paths in
-#' `InferenceSuite$run_all_inference()`, so the two produce identically
-#' formatted rows).
+#' Formats a completion-time duration for `run_all_inference()`'s final
+#' "Status: Completed in ..." screen message: seconds alone under a minute
+#' (`"30s"`), minutes-and-seconds at or above a minute (`"1min 30s"`) --
+#' deliberately never rolls into hours/days regardless of magnitude (per
+#' user request), unlike `run_all_inference_fmt_secs()`'s ETA formatting,
+#' which does.
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_print_row = function(i, n_total, r) {
-	cat(sprintf(
-		"[%d/%d] %-40s status=%-12s estimate=%-12s pval=%-10s (%s)\n",
-		i, n_total, r$inference_class, r$status,
-		if (is.na(r$estimate)) "NA" else formatC(r$estimate, digits = 4, format = "g"),
-		if (is.na(r$pval)) "NA" else formatC(r$pval, digits = 4, format = "g"),
-		r$pval_method %||% "NA"
-	))
+run_all_inference_fmt_completed_secs = function(secs) {
+	secs = max(0L, round(secs))
+	if (secs < 60L) return(sprintf("%ds", secs))
+	m = secs %/% 60L
+	s = secs %% 60L
+	sprintf("%dmin %ds", m, s)
+}
+
+#' The subset of `run_all_inference_build_display_table()`'s display columns
+#' shown during `screen = TRUE` live streaming: everything except `weight`,
+#' which cannot be computed per-row (it depends on the full, final
+#' `estimand` grouping across every row, not knowable until every class has
+#' fit). Column order/labels otherwise match the final pretty-printed table
+#' (`print.EDIInferenceSuiteResults()`) exactly, per user request
+#' (2026-08-19: "it should look identical to what happens on print()").
+#'
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS = c(
+	"inference class", "method", "cov mod", "estimand", "estimate", "se",
+	"ci_a", "ci_b", "ci_method", "pval", "pval_method", "status"
+)
+
+#' Per-task display fields known *before any class is constructed or
+#' fitted* -- everything derivable from `task$cls_name`/`task$model_formula`/
+#' `task$method` and registry metadata alone: `inference_class`'s short
+#' label, the `method` sentinel, the raw (undisplayed-yet) `cov_model`
+#' formula string, and the `estimand`. This is what makes precomputing the
+#' live table's column widths *before* the fitting loop starts possible --
+#' see `run_all_inference_build_live_table_header()`. `cov_model_raw`
+#' mirrors `run_all_inference_one_class()`'s own construction-time
+#' resolution logic (`adjusts_for_covariates == FALSE` -> blank;
+#' otherwise the task's own formula, or `des_obj$get_design_formula()`
+#' when the task carries none) without constructing anything.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_static_row_fields = function(task, des_obj) {
+	adjusts = get_inference_class_metadata(task$cls_name)$adjusts_for_covariates
+	cov_model_raw = if (isFALSE(adjusts)) {
+		NA_character_
+	} else {
+		f = task$model_formula %||% des_obj$get_design_formula()
+		tryCatch(deparse1(f), error = function(e) NA_character_)
+	}
+	list(
+		inference_class_disp = inference_class_short_label(task$cls_name),
+		method_disp = if (is.na(task$method)) "NA" else task$method,
+		cov_model_raw = cov_model_raw,
+		estimand_disp = {
+			e = run_all_inference_estimand(task$cls_name)
+			if (is.na(e)) "NA" else estimand_short_label(e)
+		}
+	)
+}
+
+#' Precomputes everything the live `screen = TRUE` table needs before the
+#' fitting loop starts: one header line + a double (`=`) rule sized to fit
+#' every task's `inference class`/`method`/`cov mod`/`estimand` values (the
+#' only display columns knowable ahead of fitting -- see
+#' `run_all_inference_static_row_fields()`), a fixed-width reservation for
+#' the fit-time-only columns (`estimate`/`se`/`ci_a`/`ci_b`/`ci_method`/
+#' `pval`/`pval_method`/`status`, sized from the known-in-advance value
+#' vocabularies: `EDI_INFERENCE_SUITE_METHOD_SENTINELS` for the method
+#' columns, the fixed `status` value set for that column), and the
+#' `cov_model` letter-key legend, assigned in the exact same order
+#' (`estimand`, then `inference_class`) `run_all_inference_build_display_table()`
+#' uses for the final table -- so a formula that gets labeled `"(A)"` live
+#' is still `"(A)"` in the final `print(res)`, not a different, independently
+#' re-assigned letter.
+#'
+#' @param tasks The task list `run_all_inference_build_tasks()` returns.
+#' @param des_obj The `Design` object being fit against.
+#' @return `list(header_lines, total_width, widths, statics, cov_key)` --
+#'   `statics` is a list parallel to `tasks`, each element already carrying
+#'   its fully-rendered, NA-handled `cov_model` display string
+#'   (`cov_model_disp`) alongside the fields from
+#'   `run_all_inference_static_row_fields()`.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_build_live_table_header = function(tasks, des_obj) {
+	statics = lapply(tasks, run_all_inference_static_row_fields, des_obj = des_obj)
+	estimands_for_sort = vapply(tasks, function(t) run_all_inference_estimand(t$cls_name) %||% NA_character_, character(1L))
+	sort_idx = order(estimands_for_sort, vapply(tasks, `[[`, character(1L), "cls_name"), na.last = TRUE)
+	cov = cov_model_display(vapply(statics, `[[`, character(1L), "cov_model_raw")[sort_idx])
+	key = cov$key
+	render_cov = function(raw) {
+		if (is.na(raw)) return("")
+		if (raw %in% c("~1", "~.")) return(raw)
+		if (raw %in% names(key)) return(sprintf("(%s)", key[[raw]]))
+		raw
+	}
+	statics = lapply(statics, function(s) {
+		s$cov_model_disp = render_cov(s$cov_model_raw)
+		s
+	})
+
+	max_method_label = max(nchar(EDI_INFERENCE_SUITE_METHOD_SENTINELS), nchar("NA"))
+	max_status_label = max(nchar(c("ok", "nonest", "error", "timeout")))
+	fixed_widths = c(
+		estimate = 10L, se = 10L, ci_a = 10L, ci_b = 10L,
+		ci_method = max_method_label, pval = 10L, pval_method = max_method_label,
+		status = max_status_label
+	)
+	static_widths = c(
+		`inference class` = max(nchar("inference class"), max(vapply(statics, function(s) nchar(s$inference_class_disp), integer(1L)))),
+		method = max(nchar("method"), max(vapply(statics, function(s) nchar(s$method_disp), integer(1L)))),
+		`cov mod` = max(nchar("cov mod"), max(vapply(statics, function(s) nchar(s$cov_model_disp), integer(1L)))),
+		estimand = max(nchar("estimand"), max(vapply(statics, function(s) nchar(s$estimand_disp), integer(1L))))
+	)
+	widths = c(static_widths, fixed_widths)[EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS]
+	widths = pmax(widths, nchar(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS))
+
+	fmt_row = function(vals) paste(mapply(function(v, w) formatC(v, width = -w), vals, widths), collapse = "  ")
+	header_line = fmt_row(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS)
+	total_width = nchar(header_line)
+	list(
+		header_lines = c(header_line, strrep("=", total_width)),
+		total_width = total_width, widths = widths, statics = statics, cov_key = key
+	)
+}
+
+#' Prints one `run_all_inference()` result row to the console (shared by both
+#' the sequential and fork-cluster-parallel code paths in
+#' `InferenceSuite$run_all_inference()`, so the two produce identically
+#' formatted rows), using the exact same headers/column order/alignment as
+#' `print.EDIInferenceSuiteResults()`'s final pretty table -- widths
+#' precomputed once by `run_all_inference_build_live_table_header()` before
+#' the fitting loop starts (per user request, 2026-08-19: "it should look
+#' identical to what happens on print()"). `estimate`/`se`/`ci_a`/`ci_b`/
+#' `pval` format via `run_all_inference_sigfig()`, same as the final table.
+#'
+#' @param r One `run_all_inference_one_class()` result row.
+#' @param static The matching element of `run_all_inference_build_live_
+#'   table_header()`'s `statics` list (same task index as `r`).
+#' @param widths Named width vector from the same header-builder call.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_print_row = function(r, static, widths) {
+	na_chr = function(x) if (is.na(x)) "NA" else x
+	vals = c(
+		static$inference_class_disp,
+		static$method_disp,
+		static$cov_model_disp,
+		static$estimand_disp,
+		run_all_inference_sigfig(r$estimate, 3L),
+		run_all_inference_sigfig(r$se, 3L),
+		run_all_inference_sigfig(r$ci_a, 3L),
+		run_all_inference_sigfig(r$ci_b, 3L),
+		na_chr(r$ci_method),
+		run_all_inference_sigfig(r$pval, 3L, scientific = TRUE),
+		na_chr(r$pval_method),
+		r$status
+	)
+	cat(paste(mapply(function(v, w) formatC(v, width = -w), vals, widths), collapse = "  "), "\n", sep = "")
+}
+
+#' Prints the `cov_model` letter-key legend beneath the live table's bottom
+#' rule, same format/content as `run_all_inference_format_pretty_table()`'s
+#' own trailing legend -- keeps `screen = TRUE` output "identical to what
+#' happens on print()" (per user request, 2026-08-19) including this piece.
+#' No-op if `cov_key` is empty.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_print_live_cov_key = function(cov_key) {
+	if (length(cov_key) == 0L) return(invisible(NULL))
+	cat("\nCov mod key:\n")
+	for (f in names(cov_key)) {
+		cat(sprintf('  (%s)  "%s"\n', cov_key[[f]], f))
+	}
 }
 
 #' Renders one `run_all_inference()` progress-bar line: a bracketed
 #' percent-fill bar plus an ETA estimated from the mean per-class elapsed
 #' time so far, following `simulations_framework.R`'s
 #' `.draw_simulation_progress_bars()` bar-rendering/ETA-estimation pattern
-#' (`SimulationFramework`'s own screen progress bar). Unlike that
-#' implementation, this one prints a fresh line per update rather than an
-#' in-place `\r` redraw: `run_all_inference()` only updates once per
-#' *completed class* (not many times per second), so each bar line sits
-#' directly under that class's just-printed result row, and always emitting
-#' a trailing newline avoids interleaving hazards between the row output
-#' and the bar when a caller redirects/captures stdout.
+#' (`SimulationFramework`'s own screen progress bar). A single instance of
+#' this bar lives at the bottom of the screen, redrawn in place via `\r`
+#' as each class completes (per user request, 2026-08-19) -- result rows
+#' print *above* it (`run_all_inference_print_row()`), never interleaved
+#' with separate bar lines per row. The final "completed" message is a
+#' separate, single line printed once after the loop
+#' (`run_all_inference_fmt_completed_secs()`), not embedded in this
+#' function -- so this function only ever renders the in-progress state
+#' (`n_done < n_total`) or the just-before-final 100% frame.
 #'
 #' @keywords internal
 #' @noRd
@@ -482,10 +797,10 @@ run_all_inference_progress_bar_line = function(n_done, n_total, elapsed_secs_so_
 	if (is.null(width) || width < 40L) width = 80L
 	prop = if (n_total > 0L) n_done / n_total else 1
 	eta_str = if (n_done >= n_total) {
-		"Status: Completed."
+		"Estimated Time Left: 0s"
 	} else if (n_done > 0L) {
 		mean_secs = mean(elapsed_secs_so_far[seq_len(n_done)])
-		paste0("Time Left: ", run_all_inference_fmt_secs(mean_secs * (n_total - n_done)))
+		paste0("Estimated Time Left: ", run_all_inference_fmt_secs(mean_secs * (n_total - n_done)))
 	} else {
 		"Status: Estimating..."
 	}
@@ -542,6 +857,9 @@ run_all_inference_render_html = function(out) {
 	html_table = run_all_inference_format_html_table(out$results_table)
 	table_html = html_table$table_html
 	cov_key_html = html_table$key_html
+	combined_evidence_html = sprintf(
+		"<p>%s</p>", htmltools_escape_or_identity(run_all_inference_combined_evidence_summary_line(out$combined_evidence))
+	)
 	footer_lines = run_all_inference_unavailable_footer_lines(out$unavailable_due_to_missing_packages)
 	footer_html = paste0("<li>", vapply(footer_lines, htmltools_escape_or_identity, character(1L)), "</li>", collapse = "\n")
 	unavailable_heading = sprintf(
@@ -588,6 +906,7 @@ total time %.2fs&nbsp;&middot;&nbsp; EDI %s
 %s
 %s
 %s
+%s
 <h2>%s</h2>
 <ul>
 %s
@@ -595,8 +914,8 @@ total time %.2fs&nbsp;&middot;&nbsp; EDI %s
 </body>
 </html>
 ', out$timestamp, design$design_class, design$response_type, design$design_family, design$n,
-		out$alpha, out$timestamp, out$total_secs, out$edi_version, table_html, cov_key_html, images_html,
-		unavailable_heading, footer_html)
+		out$alpha, out$timestamp, out$total_secs, out$edi_version, table_html, cov_key_html,
+		combined_evidence_html, images_html, unavailable_heading, footer_html)
 }
 
 #' Escapes `&`, `<`, `>` for embedding free text into the HTML report
@@ -956,10 +1275,14 @@ inference_class_short_label = function(name) {
 estimand_short_label = function(estimand) {
 	vapply(estimand, function(e) {
 		if (is.na(e)) return(NA_character_)
-		s = gsub("_", " ", e, fixed = TRUE)
+		if (identical(e, "RD")) return("risk diff")
+		if (identical(e, "RR")) return("risk ratio")
+		s = gsub("log_odds", "logodds", e, fixed = TRUE)
+		s = gsub("_", " ", s, fixed = TRUE)
 		s = gsub("difference", "diff", s, fixed = TRUE)
 		s = gsub("stochastic", "stoch", s, fixed = TRUE)
 		s = gsub("superiority", "super", s, fixed = TRUE)
+		s = gsub("conditional", "cond", s, fixed = TRUE)
 		s
 	}, character(1L), USE.NAMES = FALSE)
 }
@@ -1052,7 +1375,7 @@ run_all_inference_sigfig = function(x, n = 2L, scientific = FALSE) {
 run_all_inference_build_display_table = function(results_table) {
 	tbl = results_table
 	if (nrow(tbl) == 0L) return(NULL)
-	tbl = tbl[order(tbl$estimand, na.last = TRUE), , drop = FALSE]
+	tbl = tbl[order(tbl$estimand, tbl$inference_class, na.last = TRUE), , drop = FALSE]
 
 	cov = cov_model_display(tbl$cov_model)
 	na_chr = function(x) ifelse(is.na(x), "NA", x)
@@ -1195,9 +1518,62 @@ run_all_inference_estimand_grouped_weights = function(results_table) {
 	w
 }
 
+#' Per-row combined-evidence weight under `run_all_inference()`'s
+#' user-selectable `combined_evidence_weighting` policy
+#' (`inference_suite_inspect.md`'s TODO-15: "the user decides, the package
+#' does not silently pick a policy"). A row is `"usable"` -- eligible for a
+#' nonzero weight -- when `status == "ok"`, its `pval` is finite, and
+#' (when `estimands` is non-`NULL`) its `estimand` is in `estimands`; every
+#' non-usable row gets `NA_real_` regardless of policy.
+#'
+#' - `"estimand_grouped"`: `w_i = 1 / (G * m_i)` -- see
+#'   `run_all_inference_estimand_grouped_weights()`'s docs for the formula's
+#'   rationale; `G`/`m_i` are computed over the (possibly `estimands`-)
+#'   filtered usable set.
+#' - `"equal"`: flat `w_i = 1 / k` over the `k` usable rows, no grouping.
+#' - `"custom"`: `custom_weights` is a named numeric vector (`inference_class`
+#'   name -> weight); a usable row whose class isn't named gets weight `0`.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_compute_combined_evidence_weights = function(results_table, weighting, estimands = NULL, custom_weights = NULL) {
+	usable = results_table$status == "ok" & is.finite(results_table$pval)
+	if (!is.null(estimands)) {
+		usable = usable & results_table$estimand %in% estimands
+	}
+	w = rep(NA_real_, nrow(results_table))
+	if (!any(usable)) return(w)
+	if (identical(weighting, "equal")) {
+		w[usable] = 1 / sum(usable)
+	} else if (identical(weighting, "estimand_grouped")) {
+		est = results_table$estimand[usable]
+		group_sizes = table(est)
+		G = length(group_sizes)
+		w[usable] = 1 / (G * as.numeric(group_sizes[est]))
+	} else if (identical(weighting, "custom")) {
+		cw = custom_weights[results_table$inference_class[usable]]
+		cw[is.na(cw)] = 0
+		w[usable] = as.numeric(cw)
+	} else {
+		stop("run_all_inference_compute_combined_evidence_weights: unknown weighting '", weighting, "'.")
+	}
+	w
+}
+
 #' @keywords internal
 #' @noRd
 cct_combine_pvalues = function(pvals, weights = NULL) {
+	cct_combine_pvalues_full(pvals, weights)$pval
+}
+
+#' Same computation as `cct_combine_pvalues()`, additionally returning the
+#' raw CCT statistic `T` (before the `0.5 - atan(T)/pi` transform to a
+#' p-value) -- `run_all_inference()`'s `combined_evidence$stat` field needs
+#' this raw value, not just the final p-value.
+#'
+#' @keywords internal
+#' @noRd
+cct_combine_pvalues_full = function(pvals, weights = NULL) {
 	pvals = as.numeric(pvals)
 	if (is.null(weights)) {
 		weights = rep(1 / length(pvals), length(pvals))
@@ -1206,50 +1582,104 @@ cct_combine_pvalues = function(pvals, weights = NULL) {
 		weights = weights / sum(weights)
 	}
 	stat = sum(weights * tan((0.5 - pvals) * pi))
-	0.5 - atan(stat) / pi
+	list(pval = 0.5 - atan(stat) / pi, stat = stat)
 }
 
-#' Edge-case-hardened wrapper around `cct_combine_pvalues()` for
+#' Edge-case-hardened wrapper around `cct_combine_pvalues_full()` for
 #' `run_all_inference()`'s Combined Evidence Metric
-#' (`inference_suite_inspect.md → TODO-17`):
+#' (`inference_suite_inspect.md → TODO-17`), wired into
+#' `run_all_inference()`'s `combined_evidence` return element (TODO-16):
 #'
 #' - Drops `NA` p-values (already excluded from `pvals`/`weights` upstream in
 #'   the usual case, but tolerated here too).
-#' - Fewer than 2 usable p-values after dropping `NA`s: returns `NA_real_`
-#'   rather than silently treating a single p-value as if it were a
-#'   combined one -- a "combination" of one p-value is just that p-value,
-#'   not a meaningful combined-evidence claim.
+#' - Fewer than 2 usable p-values after dropping `NA`s: returns
+#'   `pval = stat = NA_real_` rather than silently treating a single
+#'   p-value as if it were a combined one -- a "combination" of one
+#'   p-value is just that p-value, not a meaningful combined-evidence claim.
 #' - Clips every usable p-value to `[pval_eps, 1 - pval_eps]` before the
-#'   `tan((0.5 - p) * pi)` transform in `cct_combine_pvalues()`, avoiding
-#'   the `+-Inf`/degenerate `atan()` input a p-value of exactly 0 or 1
-#'   would otherwise produce.
-#'
-#' `pval_eps` is named and defaulted (`1e-4`) to be exposed directly as a
-#' `run_all_inference()` parameter once `TODO-16` wires `combined_evidence`
-#' into its return object and public signature -- not yet added there,
-#' since nothing calls this helper until that lands (per this session's
-#' policy against unused public-API surface).
+#'   `tan((0.5 - p) * pi)` transform, avoiding the `+-Inf`/degenerate
+#'   `atan()` input a p-value of exactly 0 or 1 would otherwise produce.
 #'
 #' @param pvals Numeric vector of p-values to combine; `NA` entries are
 #'   dropped before counting/combining.
 #' @param weights Numeric vector the same length as `pvals`, aligned
-#'   positionally (an `NA` `pvals` entry drops the same-position `weights`
-#'   entry too), or `NULL` for equal weights over the usable p-values. Need
-#'   not sum to 1 -- `cct_combine_pvalues()` renormalizes internally.
+#'   positionally, or `NULL` for equal weights over the usable p-values.
+#'   Need not sum to 1 -- renormalized internally.
 #' @param pval_eps Clip p-values to `[pval_eps, 1 - pval_eps]` before
 #'   combining. Default `1e-4`.
-#' @return The combined p-value (`NA_real_` if fewer than 2 usable p-values).
+#' @return `list(pval, stat, n_used)`.
 #'
 #' @keywords internal
 #' @noRd
 run_all_inference_combine_pvalues = function(pvals, weights = NULL, pval_eps = 1e-4) {
 	pvals = as.numeric(pvals)
 	usable = !is.na(pvals)
-	if (sum(usable) < 2L) return(NA_real_)
+	n_used = sum(usable)
+	if (n_used < 2L) return(list(pval = NA_real_, stat = NA_real_, n_used = n_used))
 	pvals = pvals[usable]
 	if (!is.null(weights)) weights = as.numeric(weights)[usable]
 	pvals = pmin(pmax(pvals, pval_eps), 1 - pval_eps)
-	cct_combine_pvalues(pvals, weights)
+	full = cct_combine_pvalues_full(pvals, weights)
+	list(pval = full$pval, stat = full$stat, n_used = n_used)
+}
+
+#' Formats the one-line Combined Evidence summary
+#' `run_all_inference()`'s `screen`/`html` output, and
+#' `print.EDIInferenceSuiteResults()`, all print beneath the per-class table
+#' (`inference_suite_inspect.md`'s TODO-16 "Output wiring"):
+#' `"Combined evidence across G = <n> estimands (k = <n> classes,
+#' weighting = <weighting>): p = <value>"`.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_combined_evidence_summary_line = function(combined_evidence) {
+	# Display-only relabeling of the `combined_evidence_weighting` value
+	# (per user request, 2026-08-19) -- the argument/return-value string
+	# itself stays "estimand_grouped" (unchanged API); only this printed
+	# line reads it as prose.
+	weighting_disp = switch(combined_evidence$weighting,
+		estimand_grouped = "grouped by estimand",
+		combined_evidence$weighting
+	)
+	sprintf(
+		"Combined evidence across G = %d estimands (k = %d classes, weighting = %s): p = %s",
+		combined_evidence$n_estimand_groups, combined_evidence$n_classes_used,
+		weighting_disp,
+		if (is.na(combined_evidence$pval)) "NA" else formatC(combined_evidence$pval, digits = 3, format = "g")
+	)
+}
+
+#' Compact per-`estimand` breakdown lines (TODO-16a): one line per distinct
+#' `estimand` among usable (`status == "ok"`, finite `pval`, non-`NA`
+#' `estimand`) rows, showing that group's own within-group CCT
+#' sub-combination p-value (equal weighting within the group -- a
+#' generically meaningful summary regardless of the overall
+#' `combined_evidence_weighting` policy actually in effect). Printed
+#' immediately above the overall Combined Evidence summary line
+#' (`run_all_inference_combined_evidence_summary_line()`) in `screen`
+#' output and `print.EDIInferenceSuiteResults()`, so a reader sees "here's
+#' what each estimand group says" before "here's the one number combining
+#' all of them." Rows print in the same sorted `estimand` order as
+#' `results_table` (TODO-16a).
+#'
+#' @param results_table A `run_all_inference()`-shaped results table
+#'   (post-TODO-16a sort, though this function does not depend on that).
+#' @return A character vector, one line per `estimand` group; empty if no
+#'   row is usable.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_per_estimand_breakdown_lines = function(results_table) {
+	usable = results_table$status == "ok" & is.finite(results_table$pval) & !is.na(results_table$estimand)
+	if (!any(usable)) return(character(0))
+	est = results_table$estimand[usable]
+	pv = results_table$pval[usable]
+	groups = split(pv, est)
+	vapply(names(groups), function(g) {
+		combined = run_all_inference_combine_pvalues(groups[[g]])
+		p_str = if (is.na(combined$pval)) "NA" else formatC(combined$pval, digits = 3, format = "g")
+		sprintf("  %s (k = %d): p = %s", g, length(groups[[g]]), p_str)
+	}, character(1L), USE.NAMES = FALSE)
 }
 
 
@@ -1330,6 +1760,28 @@ run_all_inference_combine_pvalues = function(pvals, weights = NULL, pval_eps = 1
 #'   continuous-outcome model's p-value would not be valid, since a real
 #'   effect on one with none on the other is entirely plausible). That
 #'   precondition is guaranteed here structurally, not by caller discipline.
+#'
+#' \strong{Combined Evidence interpretation caveat (read before using
+#' \code{combined_evidence$pval}):} the Cauchy combination test is a
+#' union-intersection test of \eqn{H_0: \theta_1 = 0 \cap \theta_2 = 0 \cap
+#' \dots \cap \theta_k = 0} against the alternative that \strong{at least
+#' one} \eqn{\theta_i \neq 0}. A significant \code{combined_evidence$pval}
+#' is therefore \strong{evidence of an effect in at least one of these
+#' senses, not evidence for a specific estimate or direction} -- it does
+#' not say which class's estimand is nonzero, nor does a small combined
+#' p-value imply every (or even most) constituent p-values were small. Do
+#' not report \code{combined_evidence$pval} as if it estimated a single
+#' effect size, and do not treat it as validating any one class's estimate
+#' over another's; its only valid use is as evidence that *some* legitimate
+#' way of looking for a treatment effect on this outcome found one.
+#'
+#' This same-\code{Y} precondition is guaranteed \emph{within} one
+#' \code{InferenceSuite} instance structurally (one \code{Design}, one
+#' \code{response_type}), but the architecture cannot stop a caller from
+#' manually combining raw \code{pval}s pulled from two separate
+#' \code{InferenceSuite} objects' \code{results_table}s outside
+#' \code{cct_combine_pvalues()} -- doing so is outside this function's
+#' validity guarantee and is not a supported use of this metric.
 #' @references Madigan, D., Ryan, P. B., and Schuemie, M. (2013), "Does
 #'   design matter? Systematic evaluation of the impact of analytical
 #'   choices on effect estimates in observational studies," \emph{Therapeutic
@@ -1405,17 +1857,8 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   suite's discovered class list.
 		initialize = function(des_obj, model_formula = NULL, inference_params = list()) {
 			if (should_run_asserts()) {
-				if (!is(des_obj, "Design")) {
-					stop("InferenceSuite: des_obj must be a Design object.")
-				}
-				if (!is.list(inference_params)) {
-					stop("InferenceSuite: inference_params must be a list.")
-				}
-			}
-			if (length(inference_params) > 0L &&
-					(is.null(names(inference_params)) ||
-					 any(nchar(names(inference_params)) == 0L))) {
-				stop("InferenceSuite: inference_params must be a fully named list.")
+				assertClass(des_obj, "Design")
+				assertList(inference_params, names = "unique")
 			}
 			# ── 1. Discover applicable classes ────────────────────────────────
 			self$applicable_design_classes = des_obj$applicable_inference_class_names()
@@ -1554,19 +1997,154 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   (does the constructor accept one), not a semantic one (does the fit
 		#'   actually use it) -- some classes accept-and-ignore \code{model_formula}
 		#'   (e.g. \code{InferenceAllSimpleMeanDiff}'s unadjusted Welch's t-test);
-		#'   see \code{fix_inference_hierarchy.md}'s open
-		#'   \code{adjusts_for_covariates} registry-metadata audit TODO, which
-		#'   would let this argument (and the \code{cov_model} column) become
-		#'   semantics-aware once landed.
+		#'   see \code{fix_inference_hierarchy.md}'s
+		#'   \code{adjusts_for_covariates} registry-metadata audit, which makes
+		#'   the \code{cov_model} column semantics-aware wherever that audit has
+		#'   landed.
+		#' @param methods \code{NULL} (default), or a character vector of method
+		#'   sentinel strings restricting which inference method(s) get fit and
+		#'   reported per class. \code{NULL} means \strong{every} sentinel in
+		#'   \code{EDI_INFERENCE_SUITE_METHOD_SENTINELS} -- i.e. truly all
+		#'   possible methods, not a single "best available" pick (per user
+		#'   request, 2026-08-19, replacing the earlier design where each class
+		#'   contributed exactly one row via a fixed wald-first cascade). Valid
+		#'   sentinels, each corresponding to one asymptotic/exact/randomization/
+		#'   resampling inference family a class may (or may not) implement:
+		#'   \describe{
+		#'     \item{\code{"wald"}}{Asymptotic Wald inference --
+		#'       \code{compute_asymp_confidence_interval()}/
+		#'       \code{compute_asymp_two_sided_pval()} (capability
+		#'       \code{"wald"}). The standard closed-form normal-approximation
+		#'       CI/test.}
+		#'     \item{\code{"exact"}}{Exact inference --
+		#'       \code{compute_exact_confidence_interval()}/
+		#'       \code{compute_exact_two_sided_pval_for_treatment_effect()}
+		#'       (capability \code{"exact_test"}). Finite-sample-exact methods
+		#'       (e.g. Fisher's exact test, exact binomial).}
+		#'     \item{\code{"rand"}}{Randomization inference --
+		#'       \code{compute_rand_confidence_interval()}/
+		#'       \code{compute_rand_two_sided_pval()} (capabilities
+		#'       \code{"randomization_ci"}/\code{"randomization_test"} --
+		#'       distinct capability names for the CI vs. p-value side, since a
+		#'       class can support one without the other). Design-based
+		#'       inference via re-randomizing the observed treatment
+		#'       assignment.}
+		#'     \item{\code{"rand_bootstrap"}}{Randomization-bootstrap inference --
+		#'       \code{compute_rand_bootstrap_confidence_interval()}/
+		#'       \code{compute_rand_bootstrap_two_sided_pval()} (capabilities
+		#'       \code{"randomization_bootstrap_ci"}/\code{"randomization_bootstrap"} --
+		#'       distinct capability names for the CI vs. p-value side, since a
+		#'       class can support one without the other). Resamples under the
+		#'       randomization null rather than the usual iid-resampling
+		#'       bootstrap.}
+		#'     \item{\code{"jackknife"}}{Jackknife-Wald inference --
+		#'       \code{compute_jackknife_wald_confidence_interval()}/
+		#'       \code{compute_jackknife_wald_two_sided_pval()} (capability
+		#'       \code{"jackknife"}). Leave-one-out variance estimate feeding a
+		#'       Wald-style CI/test.}
+		#'     \item{\code{"score"}}{Score (Rao) test -- \code{compute_score_confidence_interval()}/
+		#'       \code{compute_score_two_sided_pval()} (capability
+		#'       \code{"likelihood_tests"}, one of its three independent
+		#'       sub-procedures).}
+		#'     \item{\code{"lik_ratio"}}{Likelihood-ratio test --
+		#'       \code{compute_lik_ratio_confidence_interval()}/
+		#'       \code{compute_lik_ratio_two_sided_pval()} (capability
+		#'       \code{"likelihood_tests"}).}
+		#'     \item{\code{"gradient"}}{Gradient test --
+		#'       \code{compute_gradient_confidence_interval()}/
+		#'       \code{compute_gradient_two_sided_pval()} (capability
+		#'       \code{"likelihood_tests"}).}
+		#'     \item{\code{"lik_ratio_bartlett"}}{Bartlett-corrected likelihood-ratio
+		#'       test, "best available" variant -- \code{compute_lik_ratio_bartlett_confidence_interval()}/
+		#'       \code{compute_lik_ratio_bartlett_two_sided_pval()} (capability
+		#'       \code{"likelihood_tests"}; auto-selects the exact analytic
+		#'       correction over the Monte-Carlo approximation when this class
+		#'       implements one, else falls back to \code{"lik_ratio"}). Not
+		#'       every likelihood-tests-capable class supports a Bartlett
+		#'       correction; unsupported classes degrade to \code{NA}.}
+		#'     \item{\code{"lik_ratio_bartlett_approx"}}{Bartlett-corrected
+		#'       likelihood-ratio test, Monte-Carlo-approximated correction factor
+		#'       pinned explicitly (for reproducibility) --
+		#'       \code{compute_lik_ratio_bartlett_approx_confidence_interval()}/
+		#'       \code{compute_lik_ratio_bartlett_approx_two_sided_pval()}
+		#'       (capability \code{"likelihood_tests"}; degrades to \code{NA} for
+		#'       classes without an approximate Bartlett factor).}
+		#'     \item{\code{"lik_ratio_bartlett_exact"}}{Bartlett-corrected
+		#'       likelihood-ratio test, closed-form analytic correction factor
+		#'       pinned explicitly -- \code{compute_lik_ratio_bartlett_exact_confidence_interval()}/
+		#'       \code{compute_lik_ratio_bartlett_exact_two_sided_pval()}
+		#'       (capability \code{"likelihood_tests"}; degrades to \code{NA} for
+		#'       classes without an exact Bartlett factor).}
+		#'     \item{\code{"param_boot"}}{Parametric-likelihood-bootstrap
+		#'       inference -- \code{compute_lik_ratio_bootstrap_confidence_interval()}/
+		#'       \code{compute_lik_ratio_bootstrap_two_sided_pval()} (capability
+		#'       \code{"parametric_likelihood_bootstrap"}).}
+		#'     \item{\code{"bayes_boot"}}{Bayesian bootstrap inference --
+		#'       \code{compute_bayesian_bootstrap_confidence_interval()}/
+		#'       \code{compute_bayesian_bootstrap_two_sided_pval()} (capability
+		#'       \code{"bayesian_bootstrap"}).}
+		#'     \item{\code{"bootstrap"}}{Nonparametric bootstrap inference --
+		#'       \code{compute_bootstrap_confidence_interval()}/
+		#'       \code{compute_bootstrap_two_sided_pval()} (capability
+		#'       \code{"nonparametric_bootstrap"}).}
+		#'   }
+		#'   (\code{"likelihood_ratio"}/\code{"estimating_equation_likelihood_ratio"}
+		#'   are deliberately not separate sentinels -- both capabilities gate
+		#'   the exact same method pair \code{"lik_ratio"} above already covers.)
+		#'   For each class, only sentinels the class has \emph{any} CI or
+		#'   p-value capability for (among the requested \code{methods}) get a
+		#'   row -- a class with zero applicable sentinels still gets exactly
+		#'   one row with \code{method = NA_character_} (mirrors the
+		#'   pre-\code{methods} "no capability" row) rather than being silently
+		#'   dropped. A class contributing more than one applicable-sentinel row
+		#'   is disambiguated in \code{results}/\code{results_table} by
+		#'   \code{"<class>{<method>}"} (or \code{"<class>[<formula>]{<method>}"}
+		#'   under simultaneous \code{formulas} fan-out) names. Unlike the
+		#'   removed cascade, \code{ci_method}/\code{pval_method} on a given row
+		#'   now always match that row's own \code{method} (or are \code{NA} if
+		#'   this class lacks that half of the sentinel's capability) --
+		#'   there is no fallback to a different sentinel within one row.
+		#' @param combined_evidence_estimands \code{NULL} (default: include every
+		#'   declared \code{estimand}), or a character vector of \code{estimand}
+		#'   values to restrict the Combined Evidence p-value/weights to.
+		#'   Validated argument-time against the \code{estimand} values actually
+		#'   declared among \code{classes}/\code{exclude_classes}-filtered
+		#'   candidates.
+		#' @param combined_evidence_weighting One of \code{"estimand_grouped"}
+		#'   (default -- \code{w_i = 1 / (G * m_i)}), \code{"equal"} (flat
+		#'   \code{w_i = 1/k}), or \code{"custom"} (caller supplies
+		#'   \code{combined_evidence_weights}). See
+		#'   \code{inference_suite_inspect.md}'s TODO-15.
+		#' @param combined_evidence_weights Named numeric vector
+		#'   (\code{inference_class} name -> weight), required when and only
+		#'   when \code{combined_evidence_weighting = "custom"}. Names must be a
+		#'   subset of the classes being fit; an unnamed usable class defaults to
+		#'   weight \code{0} (excluded). Need not pre-sum to 1.
 		#' @return Invisibly, an object of class \code{c("EDIInferenceSuiteResults", "list")}
 		#'   with elements \code{results} (one named sub-list per class, in computation
-		#'   order), \code{results_table} (the same rows as a flat \code{data.frame}),
+		#'   order), \code{results_table} (the same rows as a flat \code{data.frame},
+		#'   sorted/grouped by \code{estimand} -- \code{NA_character_} last -- with a
+		#'   secondary sort by \code{inference_class}; includes the \code{weight}
+		#'   column driven by \code{combined_evidence_weighting}/
+		#'   \code{combined_evidence_estimands}), \code{combined_evidence}
+		#'   (\code{list(pval, stat, method = "cauchy_combination", n_classes_used,
+		#'   n_estimand_groups, estimands_used, weighting, weights_used,
+		#'   classes_used)} -- the Cauchy-combination-test p-value/statistic
+		#'   across all usable rows under the resolved weighting policy;
+		#'   \code{weights_used}/\code{classes_used} are keyed/valued by each
+		#'   row's \code{results} name, not \code{results_table$inference_class}
+		#'   directly, since that column can repeat under \code{formulas};
+		#'   \code{pval = stat = NA_real_} if fewer than 2 rows are usable),
 		#'   \code{design}, \code{alpha}, \code{unavailable_due_to_missing_packages},
 		#'   \code{plots} (\code{list(estimates, ci_forest)}, each a \code{ggplot} object
 		#'   or \code{NULL}), \code{files} (\code{list(html, pdf, json)}, each a path or
 		#'   \code{NULL}), \code{timestamp}, \code{total_secs}, and \code{edi_version}.
 		run_all_inference = function(screen = TRUE, html = FALSE, alpha = 0.05, save_results_as_JSON = FALSE, plots = screen, pdf = FALSE,
-				classes = NULL, exclude_classes = character(), max_secs_per_class = NULL, num_cores = 1L, formulas = NULL) {
+				classes = NULL, exclude_classes = character(), max_secs_per_class = NULL, num_cores = 1L, formulas = NULL,
+				methods = NULL,
+				combined_evidence_estimands = NULL,
+				combined_evidence_weighting = c("estimand_grouped", "equal", "custom"),
+				combined_evidence_weights = NULL) {
 			if (should_run_asserts()) {
 				assertFlag(screen)
 				assertFlag(html)
@@ -1593,7 +2171,20 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 						}
 					}
 				}
+				assertCharacter(methods, min.len = 1L, any.missing = FALSE, unique = TRUE, null.ok = TRUE)
+				if (!is.null(methods)) {
+					unknown_m = setdiff(methods, EDI_INFERENCE_SUITE_METHOD_SENTINELS)
+					if (length(unknown_m) > 0L) {
+						stop(sprintf(
+							"InferenceSuite$run_all_inference: unknown `methods` value(s): %s\n  Valid sentinels: %s",
+							paste(unknown_m, collapse = ", "), paste(EDI_INFERENCE_SUITE_METHOD_SENTINELS, collapse = ", ")
+						))
+					}
+				}
+				assertCharacter(combined_evidence_estimands, min.len = 1L, any.missing = FALSE, null.ok = TRUE)
 			}
+			methods = methods %||% EDI_INFERENCE_SUITE_METHOD_SENTINELS
+			combined_evidence_weighting = match.arg(combined_evidence_weighting, c("estimand_grouped", "equal", "custom"))
 			formulas = run_all_inference_normalize_formulas(formulas)
 			if (!screen && !html) {
 				stop("InferenceSuite$run_all_inference: at least one of `screen`/`html` must be TRUE.")
@@ -1622,11 +2213,52 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			response_type   = design_meta$response_type
 			cls_names       = if (is.null(classes)) self$applicable_design_classes else classes
 			cls_names       = setdiff(cls_names, exclude_classes)
-			tasks           = run_all_inference_build_tasks(cls_names, formulas)
+			if (should_run_asserts()) {
+				if (!is.null(combined_evidence_estimands)) {
+					known_estimands = unique(stats::na.omit(vapply(cls_names, function(nm) {
+						get_inference_class_metadata(nm)$estimand %||% NA_character_
+					}, character(1L))))
+					unknown_e = setdiff(combined_evidence_estimands, known_estimands)
+					if (length(unknown_e) > 0L) {
+						stop(sprintf(
+							"InferenceSuite$run_all_inference: unknown `combined_evidence_estimands` value(s): %s\n  Declared estimands among these classes: %s",
+							paste(unknown_e, collapse = ", "),
+							if (length(known_estimands)) paste(known_estimands, collapse = ", ") else "(none declared)"
+						))
+					}
+				}
+				if (identical(combined_evidence_weighting, "custom")) {
+					if (is.null(combined_evidence_weights) || is.null(names(combined_evidence_weights)) ||
+							any(names(combined_evidence_weights) == "")) {
+						stop(
+							"InferenceSuite$run_all_inference: combined_evidence_weighting = \"custom\" requires ",
+							"`combined_evidence_weights`, a named numeric vector (inference class name -> weight)."
+						)
+					}
+					assertNumeric(combined_evidence_weights, any.missing = FALSE)
+					if (any(combined_evidence_weights < 0)) {
+						stop("InferenceSuite$run_all_inference: `combined_evidence_weights` must be non-negative.")
+					}
+					unknown_w = setdiff(names(combined_evidence_weights), cls_names)
+					if (length(unknown_w) > 0L) {
+						stop(sprintf(
+							"InferenceSuite$run_all_inference: `combined_evidence_weights` names not among the classes being fit: %s",
+							paste(unknown_w, collapse = ", ")
+						))
+					}
+				} else if (!is.null(combined_evidence_weights)) {
+					stop(
+						"InferenceSuite$run_all_inference: `combined_evidence_weights` is only used when ",
+						"combined_evidence_weighting = \"custom\"; got weighting = \"", combined_evidence_weighting, "\"."
+					)
+				}
+			}
+			tasks           = run_all_inference_build_tasks(cls_names, formulas, methods)
 			n_total         = length(tasks)
 			t_start         = Sys.time()
 			results         = vector("list", n_total)
 			names(results)  = vapply(tasks, `[[`, character(1L), "result_name")
+			live_header     = if (screen && n_total > 0L) run_all_inference_build_live_table_header(tasks, des_obj) else NULL
 
 			use_fork_cluster = num_cores > 1L && .Platform$OS.type == "unix"
 			if (num_cores > 1L && !use_fork_cluster) {
@@ -1646,7 +2278,10 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				# worker has finished, so there is no meaningful per-row ETA to show
 				# (deliberate design decision, not an oversight -- see
 				# inference_suite_inspect.md's TODO-13).
-				if (screen) cat(sprintf("Fitting %d task(s) across %d parallel workers...\n", n_total, num_cores))
+				if (screen) {
+					cat(sprintf("Fitting %d task(s) across %d parallel workers...\n", n_total, num_cores))
+					cat(live_header$header_lines, sep = "\n")
+				}
 				cl = parallel::makeForkCluster(num_cores)
 				on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
 				worker_fn = function(task) {
@@ -1655,7 +2290,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 						params$model_formula = task$model_formula
 					}
 					run_all_inference_one_class(
-						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class
+						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method
 					)
 				}
 				results_list = parallel::clusterApply(cl, tasks, worker_fn)
@@ -1663,12 +2298,31 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				results = results_list
 				if (screen) {
 					for (i in seq_along(tasks)) {
-						run_all_inference_print_row(i, n_total, results[[i]])
+						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths)
 					}
-					cat(sprintf("Completed %d task(s) in %s.\n", n_total, run_all_inference_fmt_secs(as.numeric(difftime(Sys.time(), t_start, units = "secs")))))
+					cat(strrep("-", live_header$total_width), "\n", sep = "")
+					run_all_inference_print_live_cov_key(live_header$cov_key)
+					cat(sprintf(
+						"Status: Completed in %s.\n",
+						run_all_inference_fmt_completed_secs(as.numeric(difftime(Sys.time(), t_start, units = "secs")))
+					))
 				}
 			} else {
 				elapsed_secs_so_far = numeric(n_total)
+				# Single progress bar lives at the bottom of the screen, redrawn
+				# in place via "\r\033[K" (return to line start, clear it) as each
+				# class completes; each just-finished class's result row prints
+				# above it and scrolls into normal terminal history -- never a
+				# separate bar line per row (per user request, 2026-08-19). The
+				# header/rule print once, before the loop, using widths already
+				# computed from the full task list -- estimand-grouped mid-stream
+				# break lines are deliberately not attempted (rows stream in
+				# completion order, not estimand order; see TODO-16a's own
+				# "can't pre-sort without buffering" reasoning).
+				if (screen) {
+					cat(live_header$header_lines, sep = "\n")
+					cat(run_all_inference_progress_bar_line(0L, n_total, elapsed_secs_so_far))
+				}
 				for (i in seq_along(tasks)) {
 					task     = tasks[[i]]
 					params   = private$inference_params[[task$cls_name]] %||% list()
@@ -1676,26 +2330,40 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 						params$model_formula = task$model_formula
 					}
 					results[[i]] = run_all_inference_one_class(
-						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class
+						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method
 					)
 					elapsed_secs_so_far[[i]] = results[[i]]$fit_secs
 					if (screen) {
-						run_all_inference_print_row(i, n_total, results[[i]])
-						cat(run_all_inference_progress_bar_line(i, n_total, elapsed_secs_so_far), "\n")
+						cat("\r\033[K")
+						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths)
+						cat(run_all_inference_progress_bar_line(i, n_total, elapsed_secs_so_far))
 					}
+				}
+				if (screen) {
+					cat("\r\033[K")
+					if (n_total > 0L) {
+						cat(strrep("-", live_header$total_width), "\n", sep = "")
+						run_all_inference_print_live_cov_key(live_header$cov_key)
+					}
+					cat(sprintf(
+						"Status: Completed in %s.\n",
+						run_all_inference_fmt_completed_secs(as.numeric(difftime(Sys.time(), t_start, units = "secs")))
+					))
 				}
 			}
 			if (screen) {
 				n_unavail = length(self$unavailable_due_to_missing_packages)
-				cat(sprintf(
-					"\nThe following Inference %s unavailable:\n",
-					if (n_unavail == 1L) "class is" else "classes are"
-				))
-				cat(paste0("  ", run_all_inference_unavailable_footer_lines(self$unavailable_due_to_missing_packages)), sep = "\n")
+				if (n_unavail > 0L) {
+					cat(sprintf(
+						"\nThe following Inference %s unavailable:\n",
+						if (n_unavail == 1L) "class is" else "classes are"
+					))
+					cat(paste0("  ", run_all_inference_unavailable_footer_lines(self$unavailable_due_to_missing_packages)), sep = "\n")
+				}
 			}
 			results_table = do.call(rbind.data.frame, lapply(results, function(r) {
 				data.frame(
-					inference_class = r$inference_class, cov_model = r$cov_model,
+					inference_class = r$inference_class, method = r$method, cov_model = r$cov_model,
 					response_type = r$response_type,
 					design_family = r$design_family, likelihood_tier = r$likelihood_tier,
 					estimate = r$estimate, se = r$se,
@@ -1707,7 +2375,28 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				)
 			}))
 			rownames(results_table) = NULL
-			results_table$weight = run_all_inference_estimand_grouped_weights(results_table)
+			results_table$weight = run_all_inference_compute_combined_evidence_weights(
+				results_table, combined_evidence_weighting,
+				estimands = combined_evidence_estimands, custom_weights = combined_evidence_weights
+			)
+			# `row_ids` (== `names(results)`) rather than `results_table$inference_class`
+			# because `formulas` can produce more than one row per class --
+			# `results`'s own "<class>[<formula>]" disambiguation is the only
+			# per-row-unique identifier available. Computed before the TODO-16a
+			# estimand sort below, then reordered by the same index, so it stays
+			# aligned to `results_table`'s rows however they end up ordered.
+			row_ids = names(results)
+			# TODO-16a: results_table (and, downstream, the html report's table)
+			# is sorted/grouped by estimand -- NA_character_ last as its own
+			# group -- with a secondary sort by inference_class within each
+			# group. `results` (the list) deliberately stays in computation
+			# order; only this data.frame's row order changes.
+			sort_idx = order(results_table$estimand, results_table$inference_class, na.last = TRUE)
+			results_table = results_table[sort_idx, , drop = FALSE]
+			row_ids = row_ids[sort_idx]
+			rownames(results_table) = NULL
+			combined_usable = !is.na(results_table$weight)
+			combined = run_all_inference_combine_pvalues(results_table$pval, results_table$weight)
 			out = list(
 				results = results,
 				results_table = results_table,
@@ -1717,6 +2406,17 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				),
 				alpha = alpha,
 				unavailable_due_to_missing_packages = self$unavailable_due_to_missing_packages,
+				combined_evidence = list(
+					pval = combined$pval,
+					stat = combined$stat,
+					method = "cauchy_combination",
+					n_classes_used = combined$n_used,
+					n_estimand_groups = length(unique(stats::na.omit(results_table$estimand[combined_usable]))),
+					estimands_used = sort(unique(stats::na.omit(results_table$estimand[combined_usable]))),
+					weighting = combined_evidence_weighting,
+					weights_used = stats::setNames(results_table$weight, row_ids),
+					classes_used = row_ids[combined_usable]
+				),
 				plots = list(estimates = NULL, ci_forest = NULL),
 				files = list(html = NULL, pdf = NULL, json = NULL),
 				timestamp = format(Sys.time(), "%Y%m%d_%H%M%S"),
@@ -1724,6 +2424,13 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				edi_version = as.character(utils::packageVersion("EDI"))
 			)
 			class(out) = c("EDIInferenceSuiteResults", "list")
+			if (screen) {
+				breakdown = run_all_inference_per_estimand_breakdown_lines(results_table)
+				if (length(breakdown) > 0L) {
+					cat("\n", paste(breakdown, collapse = "\n"), "\n", sep = "")
+				}
+				cat("\n", run_all_inference_combined_evidence_summary_line(out$combined_evidence), "\n", sep = "")
+			}
 			if (plots || pdf || html) {
 				out$plots = run_all_inference_build_plots(results_table, alpha)
 			}
@@ -1794,6 +2501,11 @@ print.EDIInferenceSuiteResults = function(x, ...) {
 		x$design$design_family, x$design$n
 	))
 	cat(run_all_inference_format_pretty_table(x$results_table), sep = "\n")
+	breakdown = run_all_inference_per_estimand_breakdown_lines(x$results_table)
+	if (length(breakdown) > 0L) {
+		cat("\n", paste(breakdown, collapse = "\n"), "\n", sep = "")
+	}
+	cat("\n", run_all_inference_combined_evidence_summary_line(x$combined_evidence), "\n", sep = "")
 	invisible(x)
 }
 

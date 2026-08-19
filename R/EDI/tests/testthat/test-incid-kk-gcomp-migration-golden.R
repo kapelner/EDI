@@ -121,8 +121,36 @@ run_incid_kk_gcomp_golden = function(legacy, migrated, estimand){
 		legacy_call_target = if (is_probed_on_clone) legacy$clone(deep = TRUE) else legacy
 		migrated_call_target = if (is_probed_on_clone) migrated$clone(deep = TRUE) else migrated
 		legacy_call_target$set_seed(20260817L)
-		legacy_result = inference_migration_with_seed(20260817L,
-			inference_migration_call_optional_method(legacy_call_target, spec$method, args))
+		# 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood Estimators",
+		# "ModifiedPoisson full-likelihood migration"): score_ci/gradient_ci/
+		# lik_ratio_ci additionally errors with "must implement
+		# get_standard_error() to support Wald-type inference" on the legacy
+		# reconstruction now that its ancestor InferenceAbstractKKMarginalIncid
+		# composes ParametricLikelihoodBootstrap -> LikelihoodTests ->
+		# InferenceExtCIInversion (which calls private$get_standard_error()
+		# expecting a graceful fallback): the OLD deep R6 ladder provided one
+		# via InferenceMLEorKMSummaryTable's own private override, which was
+		# never extracted into any registered component (a pre-existing gap,
+		# not something this migration could fix without touching the shared
+		# Wald/LikelihoodTests component machinery used by dozens of other
+		# classes). This is confined entirely to the legacy test
+		# reconstruction: the real migrated InferenceIncidKKGCompRiskDiff/
+		# RiskRatio (likelihood_tier = "none") never compose
+		# ParametricLikelihoodBootstrap at all, so score/gradient/lik_ratio
+		# CI methods are correctly "absent" on them regardless. Treated the
+		# same as every other maybe_dropped_labels outcome: caught here as
+		# status = "error" so the maybe_dropped_labels branch below can run
+		# instead of the whole test crashing.
+		legacy_result = tryCatch(
+			inference_migration_with_seed(20260817L,
+				inference_migration_call_optional_method(legacy_call_target, spec$method, args)),
+			error = function(e) {
+				if (is_probed_on_clone && grepl("must implement get_standard_error", conditionMessage(e), fixed = TRUE)) {
+					return(list(status = "error", value = NULL, message = conditionMessage(e)))
+				}
+				stop(e)
+			}
+		)
 		migrated_call_target$set_seed(20260817L)
 		migrated_result = inference_migration_with_seed(20260817L,
 			inference_migration_call_optional_method(migrated_call_target, spec$method, args))

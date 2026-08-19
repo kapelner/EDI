@@ -79,6 +79,28 @@ attempt.
   continuous-outcome model's p-value would not be valid, since a real
   effect on one with none on the other is entirely plausible). That
   precondition is guaranteed here structurally, not by caller discipline.
+
+\strong{Combined Evidence interpretation caveat (read before using
+\code{combined_evidence$pval}):} the Cauchy combination test is a
+union-intersection test of \eqn{H_0: \theta_1 = 0 \cap \theta_2 = 0 \cap
+\dots \cap \theta_k = 0} against the alternative that \strong{at least
+one} \eqn{\theta_i \neq 0}. A significant \code{combined_evidence$pval}
+is therefore \strong{evidence of an effect in at least one of these
+senses, not evidence for a specific estimate or direction} -- it does
+not say which class's estimand is nonzero, nor does a small combined
+p-value imply every (or even most) constituent p-values were small. Do
+not report \code{combined_evidence$pval} as if it estimated a single
+effect size, and do not treat it as validating any one class's estimate
+over another's; its only valid use is as evidence that *some* legitimate
+way of looking for a treatment effect on this outcome found one.
+
+This same-\code{Y} precondition is guaranteed \emph{within} one
+\code{InferenceSuite} instance structurally (one \code{Design}, one
+\code{response_type}), but the architecture cannot stop a caller from
+manually combining raw \code{pval}s pulled from two separate
+\code{InferenceSuite} objects' \code{results_table}s outside
+\code{cct_combine_pvalues()} -- doing so is outside this function's
+validity guarantee and is not a supported use of this metric.
 }
 \examples{
 \donttest{
@@ -223,7 +245,11 @@ Defaults to an empty list (no extra arguments for any class).}
   exclude_classes = character(),
   max_secs_per_class = NULL,
   num_cores = 1L,
-  formulas = NULL
+  formulas = NULL,
+  methods = NULL,
+  combined_evidence_estimands = NULL,
+  combined_evidence_weighting = c("estimand_grouped", "equal", "custom"),
+  combined_evidence_weights = NULL
 )}
     \if{html}{\out{</div>}}
   }
@@ -305,17 +331,45 @@ once, ignoring \code{formulas}. Note this is a syntactic check
 (does the constructor accept one), not a semantic one (does the fit
 actually use it) -- some classes accept-and-ignore \code{model_formula}
 (e.g. \code{InferenceAllSimpleMeanDiff}'s unadjusted Welch's t-test);
-see \code{fix_inference_hierarchy.md}'s open
-\code{adjusts_for_covariates} registry-metadata audit TODO, which
-would let this argument (and the \code{cov_model} column) become
-semantics-aware once landed.}
+see \code{fix_inference_hierarchy.md}'s
+\code{adjusts_for_covariates} registry-metadata audit, which makes
+the \code{cov_model} column semantics-aware wherever that audit has
+landed.}
+      \item{\code{combined_evidence_estimands}}{\code{NULL} (default: include every
+declared \code{estimand}), or a character vector of \code{estimand}
+values to restrict the Combined Evidence p-value/weights to.
+Validated argument-time against the \code{estimand} values actually
+declared among \code{classes}/\code{exclude_classes}-filtered
+candidates.}
+      \item{\code{combined_evidence_weighting}}{One of \code{"estimand_grouped"}
+(default -- \code{w_i = 1 / (G * m_i)}), \code{"equal"} (flat
+\code{w_i = 1/k}), or \code{"custom"} (caller supplies
+\code{combined_evidence_weights}). See
+\code{inference_suite_inspect.md}'s TODO-15.}
+      \item{\code{combined_evidence_weights}}{Named numeric vector
+(\code{inference_class} name -> weight), required when and only
+when \code{combined_evidence_weighting = "custom"}. Names must be a
+subset of the classes being fit; an unnamed usable class defaults to
+weight \code{0} (excluded). Need not pre-sum to 1.}
     }
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
     Invisibly, an object of class \code{c("EDIInferenceSuiteResults", "list")}
   with elements \code{results} (one named sub-list per class, in computation
-  order), \code{results_table} (the same rows as a flat \code{data.frame}),
+  order), \code{results_table} (the same rows as a flat \code{data.frame},
+  sorted/grouped by \code{estimand} -- \code{NA_character_} last -- with a
+  secondary sort by \code{inference_class}; includes the \code{weight}
+  column driven by \code{combined_evidence_weighting}/
+  \code{combined_evidence_estimands}), \code{combined_evidence}
+  (\code{list(pval, stat, method = "cauchy_combination", n_classes_used,
+  n_estimand_groups, estimands_used, weighting, weights_used,
+  classes_used)} -- the Cauchy-combination-test p-value/statistic
+  across all usable rows under the resolved weighting policy;
+  \code{weights_used}/\code{classes_used} are keyed/valued by each
+  row's \code{results} name, not \code{results_table$inference_class}
+  directly, since that column can repeat under \code{formulas};
+  \code{pval = stat = NA_real_} if fewer than 2 rows are usable),
   \code{design}, \code{alpha}, \code{unavailable_due_to_missing_packages},
   \code{plots} (\code{list(estimates, ci_forest)}, each a \code{ggplot} object
   or \code{NULL}), \code{files} (\code{list(html, pdf, json)}, each a path or

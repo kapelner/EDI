@@ -1271,13 +1271,13 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceOrdinalKKCondAdjCatLogitRegr.Rd`
 
-- [ ] TODO #515: Method `InferenceOrdinalKKCondAdjCatLogitRegr$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #516: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_asymp_confidence_interval()` (current description `43` chars).
-- [ ] TODO #517: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_asymp_two_sided_pval()` (current description `128` chars).
-- [ ] TODO #518: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_estimate_with_bootstrap_weights()` (current description `53` chars).
-- [ ] TODO #519: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_estimate()` (current description `38` chars).
-- [ ] TODO #520: Method `InferenceOrdinalKKCondAdjCatLogitRegr$new()` (current description `131` chars).
-- [ ] TODO #521: Topic `InferenceOrdinalKKCondAdjCatLogitRegr` (current description `260` chars).
+- [x] TODO #515: Method `InferenceOrdinalKKCondAdjCatLogitRegr$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars). Newly ungated 2026-08-19 (class migrated to `inherit = Inference`); method is provided by the already well-documented `KKPassThrough` component (`inference_mixin_kk_passthrough.R`) — no change needed, doc propagates automatically.
+- [x] TODO #516: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_asymp_confidence_interval()` (current description `43` chars). Documented Wald CI contract.
+- [x] TODO #517: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_asymp_two_sided_pval()` (current description `128` chars). Already adequate; no change needed.
+- [x] TODO #518: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_estimate_with_bootstrap_weights()` (current description `53` chars). Documented the weighted-surrogate-fit approximation (not an exact reweighted expanded-data refit).
+- [x] TODO #519: Method `InferenceOrdinalKKCondAdjCatLogitRegr$compute_estimate()` (current description `38` chars). Documented the stacked-binary-expansion + conditional-logit fit.
+- [x] TODO #520: Method `InferenceOrdinalKKCondAdjCatLogitRegr$new()` (current description `131` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #521: Topic `InferenceOrdinalKKCondAdjCatLogitRegr` (current description `260` chars). Full model/estimand/likelihood-tier doc added, contrasted with the non-KK `InferenceOrdinalAdjCatLogitRegr` sibling; added Agresti (2010) and KK14 `@references`, `REFERENCES.md` updated (`[Agresti2010Ordinal]` and `[KK14]` "Used by" lists).
 
 ### `InferenceOrdinalKKGEE.Rd`
 

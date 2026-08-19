@@ -1,10 +1,48 @@
 #' Abstract class for all-subject marginal incidence inference in KK designs
 #'
 #' @keywords internal
-InferenceAbstractKKMarginalIncid = R6::R6Class("InferenceAbstractKKMarginalIncid",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
-	public = utils::modifyList(as.list(InferenceMixinKKPassThrough$public), list(
+InferenceAbstractKKMarginalIncid = define_inference_class(
+	classname = "InferenceAbstractKKMarginalIncid",
+	inherit = Inference,
+	# 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood Estimators",
+	# "ModifiedPoisson full-likelihood migration"): flipped from the
+	# raw-splice `utils::modifyList(as.list(InferenceMixinKKPassThrough$
+	# public/private), list(...))` state (manual harvesting of the
+	# `KKPassThrough` raw source under `inherit = InferenceParamBootstrap`,
+	# not even a `define_inference_class()` call) to composing the
+	# registered `KKPassThrough` component directly, plus
+	# `BayesianBootstrap`/`ParametricLikelihoodBootstrap` -- same
+	# hybrid-state fix as every other KK GLMM/GEE/partial-likelihood class
+	# migrated this stretch. `ParametricLikelihoodBootstrap` (not
+	# Wald-only) because this base's real concrete descendant,
+	# `InferenceAbstractKKModifiedPoisson`/`InferenceIncidKKModifiedPoisson`,
+	# overrides `supports_likelihood_tests()`/`supports_lik_ratio_param_
+	# bootstrap()` to `TRUE` with its own real `get_likelihood_test_spec()`/
+	# `simulate_under_lik_null()` -- unlike `InferenceOrdinalKKCondAdjCatLogitRegr`/
+	# `InferenceAbstractKKOrdinalCLMM` earlier this stretch, which both hard-
+	# disable likelihood tests. This base's OWN `supports_likelihood_tests()`
+	# stays `FALSE` (its default, overridden by the ModifiedPoisson
+	# descendant); `InferenceIncidKKGCompAbstract` (a sibling descendant,
+	# `likelihood_tier = "none"`, already migrated to its own
+	# `define_inference_class()` composing `IncidenceKKGComputation`
+	# directly per the "KK And IVWC Estimators" section) is deliberately
+	# left as a real R6 generator still inheriting this class -- its own
+	# component harvest (`inference_component_source_parts()`) only
+	# captures its own directly-defined layer, not anything inherited, so
+	# this migration does not affect it (verified: no `super$...()` calls
+	# anywhere in inference_incidence_KK_gcomp_abstract.R).
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKPassThrough"),
+	# capabilities = "likelihood_ratio" is required explicitly -- same
+	# rationale as every class composing ParametricLikelihoodBootstrap
+	# directly (bypassing StandardModelCache) this stretch.
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	public = list(
+		# Pinned from InferenceRandCI (confirmed via the pre-migration R6
+		# ancestor walk documented in test-incid-kk-gcomp-migration-golden.R:
+		# this class's legacy ladder InferenceParamBootstrap -> ... ->
+		# InferenceRandCI resolves to InferenceRandCI's version, which
+		# handles incidence data; InferenceRand's raw version refuses it).
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize the shared KK marginal-incidence inference base,
 		#'   validate the binary matched/reservoir design, and prepare caches used by
 		#'   \code{\link[EDI:InferenceAbstractKKMarginalIncid]{InferenceAbstractKKMarginalIncid}}.
@@ -25,8 +63,8 @@ InferenceAbstractKKMarginalIncid = R6::R6Class("InferenceAbstractKKMarginalIncid
 			}
 			private$init_kk_passthrough(des_obj)
 		}
-	)),
-	private = utils::modifyList(as.list(InferenceMixinKKPassThrough$private), list(
+	),
+	private = list(
 		is_a_kk_marginal_incid = function() TRUE,
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		supports_likelihood_tests = function() FALSE,
@@ -70,5 +108,41 @@ InferenceAbstractKKMarginalIncid = R6::R6Class("InferenceAbstractKKMarginalIncid
 			}
 			cluster_id
 		}
-	))
+	),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval",
+			"get_supported_testing_types",
+			"approximate_bootstrap_distribution_beta_hat_T",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"compute_basic_match_data",
+			"supports_likelihood_tests",
+			"resolve_jackknife_unit",
+			"jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker",
+			"create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"compute_treatment_estimate_during_randomization_inference",
+			"get_standard_error",
+			"get_degrees_of_freedom",
+			"assert_finite_se",
+			"supports_lik_ratio_param_bootstrap",
+			"supports_information_preference",
+			"supports_observed_information",
+			"get_supported_information_preferences_impl",
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx",
+			"get_likelihood_test_spec",
+			"simulate_under_lik_null",
+			"shared",
+			"get_complexity_tier"
+		)
+	)
 )

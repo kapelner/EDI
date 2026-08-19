@@ -4,9 +4,28 @@
 \alias{InferenceOrdinalKKCondAdjCatLogitRegr}
 \title{Adjacent Category Logit Inference for KK Matching-on-the-fly Designs}
 \description{
-Fits a conditional adjacent category logit model for ordinal responses
-under a KK matching-on-the-fly design. This model is implemented via data
-expansion and conditional logistic regression.
+Fits a conditional (stratified) adjacent-category logit model for ordinal
+responses under a KK matching-on-the-fly design:
+\deqn{\log\frac{\Pr(Y_i = j+1 \mid Y_i \in \{j, j+1\})}{\Pr(Y_i = j \mid Y_i
+\in \{j, j+1\})} = \alpha_j + \beta_T W_i + X_i^\top \gamma,} for adjacent
+category comparisons \eqn{j = 1, \dots, K-1}, with cut-specific intercepts
+\eqn{\alpha_j} and a treatment coefficient \eqn{\beta_T} constrained equal
+across all cuts (the parallel/proportional adjacent-category assumption).
+\eqn{\exp(\hat\beta_T)} is the common adjacent-category odds ratio. Fitting
+proceeds by \code{\link{expand_adjacent_category_data_cpp}}'s stacked-binary
+expansion (each subject contributes a 0/1 row per adjacent cut they border,
+stratified by matched pair) followed by conditional logistic regression on
+the expanded data — the matched-pair identity becomes the conditioning
+stratum, so the pair's shared nuisance intercept is conditioned out exactly
+as in a single binary conditional-logit KK model, and reservoir (unmatched)
+subjects each form their own singleton stratum. \code{likelihood_tier =
+"partial"} (a conditional/partial likelihood, matched-set effects are
+profiled out rather than estimated); \code{supports_likelihood_tests()} is
+hard \code{FALSE} — only Wald inference is exposed, not likelihood-ratio,
+score, or gradient tests. Validity requires the adjacent-category
+proportionality assumption (a common \eqn{\beta_T} across all \eqn{K-1}
+cuts) in addition to the usual conditional-logit exchangeability-within-strata
+assumption induced by the KK design.
 }
 \examples{
 \donttest{
@@ -19,8 +38,22 @@ inf = InferenceOrdinalKKCondAdjCatLogitRegr$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{InferenceOrdinalKKCondAdjCatLogitRegr}
+\references{
+Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
+  (2nd ed.). Wiley, for the adjacent-category logit model family; Kapelner,
+  A. and Krieger, A. M. (2014). "Matching on-the-fly: Sequential allocation
+  with higher power and efficiency." \emph{Biometrics}, 70(2), 378-388,
+  \doi{10.1111/biom.12148}, for the KK matching-on-the-fly design this
+  class is built for.
+}
+\seealso{
+\code{\link[EDI:InferenceOrdinalAdjCatLogitRegr]{InferenceOrdinalAdjCatLogitRegr}}
+  for the non-KK analog. See also:
+  \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal regression}
+  (Wikipedia).
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceOrdinalKKCondAdjCatLogitRegr}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -33,95 +66,7 @@ inf$compute_estimate()
     \item \href{#method-InferenceOrdinalKKCondAdjCatLogitRegr-clone}{\code{InferenceOrdinalKKCondAdjCatLogitRegr$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsympLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_confidence_interval'><code>InferenceAsympLik$compute_gradient_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_two_sided_pval'><code>InferenceAsympLik$compute_gradient_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_confidence_interval'><code>InferenceAsympLik$compute_score_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_two_sided_pval'><code>InferenceAsympLik$compute_score_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -147,9 +92,12 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceOrdinalKKCondAdjCatLogitRegr-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKCondAdjCatLogitRegr-initialize}{}}}
 \subsection{\code{InferenceOrdinalKKCondAdjCatLogitRegr$new()}}{
-  Initialize KK adjacent-category conditional-logit inference
-  for ordinal responses and prepare the fitted ordinal likelihood used by
-  \code{\link[EDI:InferenceOrdinalKKCondAdjCatLogitRegr]{InferenceOrdinalKKCondAdjCatLogitRegr}}.
+  Initialize inference for the conditional adjacent-category
+  logit model \eqn{\log(\Pr(Y_i = j+1 \mid Y_i \in \{j,j+1\}) / \Pr(Y_i =
+  j \mid Y_i \in \{j,j+1\})) = \alpha_j + \beta_T W_i + X_i^\top \gamma}
+  and prepare KK matched-pair structure for the stratified conditional-logit
+  fit. Does not fit the model; the fit is deferred to the first call to
+  \code{compute_estimate()} or a method that requires it.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKCondAdjCatLogitRegr$new(
@@ -164,7 +112,8 @@ inf$compute_estimate()
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{des_obj}}{A completed KK \code{DesignSeqOneByOne} object.}
+      \item{\code{des_obj}}{A completed KK \code{DesignSeqOneByOne} object with an
+ordinal response.}
       \item{\code{verbose}}{Flag for progress messages.}
       \item{\code{harden}}{Whether to apply robustness measures.}
       \item{\code{model_formula}}{Optional formula for covariate adjustment.}
@@ -178,7 +127,10 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceOrdinalKKCondAdjCatLogitRegr-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKCondAdjCatLogitRegr-compute_estimate}{}}}
 \subsection{\code{InferenceOrdinalKKCondAdjCatLogitRegr$compute_estimate()}}{
-  Returns the treatment effect estimate.
+  Fits the conditional adjacent-category logit model via
+  stacked-binary expansion (\code{\link{expand_adjacent_category_data_cpp}})
+  plus conditional logistic regression, and returns the shared
+  log-odds-ratio estimate \eqn{\hat\beta_T}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKCondAdjCatLogitRegr$compute_estimate(estimate_only = FALSE)}
@@ -187,7 +139,9 @@ inf$compute_estimate()
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{If \code{TRUE}, skip standard-error computation and
+cache only the point estimate; used by randomization and bootstrap
+resampling paths.}
     }
     \if{html}{\out{</div>}}
   }
@@ -197,8 +151,19 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceOrdinalKKCondAdjCatLogitRegr-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKCondAdjCatLogitRegr-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceOrdinalKKCondAdjCatLogitRegr$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the KK conditional adjacent-category-logit
-  estimate under Bayesian-bootstrap weights.
+  Recomputes the treatment estimate under subject/block-level
+  bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
+  weights, expanded to row level via
+  \code{private$expand_subject_or_block_weights_to_row_weights()}). When
+  weights are effectively constant, this collapses to the unweighted
+  \code{compute_estimate()} call. Otherwise, rather than refitting the
+  full expanded conditional-logit model under weights, it calls
+  \code{weighted_ordinal_bootstrap_surrogate_fit()} — a fast weighted
+  ordinal-logistic surrogate fit on the raw (unexpanded) design matrix —
+  as an approximation to the weighted adjacent-category likelihood; this
+  trades exact reweighted refitting for speed across many bootstrap
+  replicates. No standard error is computed (\code{s_beta_hat_T} is
+  always \code{NA}); the surrogate returns \code{NA} if the fit fails.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKCondAdjCatLogitRegr$compute_estimate_with_bootstrap_weights(
@@ -223,7 +188,11 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceOrdinalKKCondAdjCatLogitRegr-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKCondAdjCatLogitRegr-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceOrdinalKKCondAdjCatLogitRegr$compute_asymp_confidence_interval()}}{
-  Returns the asymptotic confidence interval.
+  Wald confidence interval for the shared adjacent-category
+  log-odds-ratio \eqn{\beta_T}, using the conditional-logit model's
+  standard error; see \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}
+  for the shared Wald contract. Fits the model first if not already
+  cached.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKCondAdjCatLogitRegr$compute_asymp_confidence_interval(
@@ -234,7 +203,8 @@ estimate.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Confidence level.}
+      \item{\code{alpha}}{Two-sided miscoverage rate; the returned interval targets
+\code{1 - alpha} coverage.}
     }
     \if{html}{\out{</div>}}
   }

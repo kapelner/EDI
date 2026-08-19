@@ -246,6 +246,22 @@ ticked in their **owning plans**; this list is the release index.
   TODO-2 extracts shared ingestion logic from the frozen
   `DesignSeqOneByOne$add_one_subject()` path — behavior-preserving under
   golden test, per the additive constraint below.
+- [ ] TODO-15c: **`dead` → `uncensored` rename** (added 2026-08-19, user
+  decision): `../finished_features/interval_censored_survival_response.md →
+  TODO-29` — rename the survival event/censoring indicator `dead` to
+  `uncensored` (R, C++, docs, Python binding), now that left-/
+  interval-censoring means `dead` no longer accurately describes the field.
+  Wide blast radius (~576 R occurrences, `src/*.cpp`/`*.h`, Python
+  binding). **Scoping decided (2026-08-19, user decision): full rename** —
+  R, C++, and Python binding identifiers/args/columns all renamed from
+  `dead` to `uncensored` (not R-layer-only); no `spec$dead` backward-compat
+  alias — a hard break, since the package is still pre-1.0.0-frozen public
+  API territory for this field. Touched `.cpp`/`.h` files must be
+  recompiled per this repo's targeted-compile-only rule (never a full
+  `R CMD INSTALL`/`pkgbuild::compile_dll()`/`load_all(compile=TRUE)`).
+  Additive-adjacent but touches shared survival files, so avoid
+  interleaving with TODO-6's response-type track or TODO-12's
+  interval-censored second wave on the same files at the same time.
 - [ ] TODO-16: **Release mechanics** (owned by this file): CHANGELOG 1.1.0
   entry written when the batch closes (dated at submission, house
   convention); version bump; re-run the `release_v1_0_0.md` Release Gate

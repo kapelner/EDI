@@ -21,7 +21,6 @@ alternative.
     \item \href{#method-InferenceSurvivalKKClaytonCopulaOneLik-compute_estimate}{\code{InferenceSurvivalKKClaytonCopulaOneLik$compute_estimate()}}
     \item \href{#method-InferenceSurvivalKKClaytonCopulaOneLik-compute_asymp_confidence_interval}{\code{InferenceSurvivalKKClaytonCopulaOneLik$compute_asymp_confidence_interval()}}
     \item \href{#method-InferenceSurvivalKKClaytonCopulaOneLik-compute_asymp_two_sided_pval}{\code{InferenceSurvivalKKClaytonCopulaOneLik$compute_asymp_two_sided_pval()}}
-    \item \href{#method-InferenceSurvivalKKClaytonCopulaOneLik-approximate_bootstrap_distribution_beta_hat_T}{\code{InferenceSurvivalKKClaytonCopulaOneLik$approximate_bootstrap_distribution_beta_hat_T()}}
     \item \href{#method-InferenceSurvivalKKClaytonCopulaOneLik-duplicate}{\code{InferenceSurvivalKKClaytonCopulaOneLik$duplicate()}}
     \item \href{#method-InferenceSurvivalKKClaytonCopulaOneLik-clone}{\code{InferenceSurvivalKKClaytonCopulaOneLik$clone()}}
   }
@@ -99,6 +98,7 @@ alternative.
 </details>
 <details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
 <ul>
+  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
@@ -239,37 +239,6 @@ confidence interval is 1 - \code{alpha}. The default is 0.05.}
       \item{\code{delta}}{The null difference to test against. Default is 0.}
     }
     \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalKKClaytonCopulaOneLik-approximate_bootstrap_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalKKClaytonCopulaOneLik-approximate_bootstrap_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceSurvivalKKClaytonCopulaOneLik$approximate_bootstrap_distribution_beta_hat_T()}}{
-  Uses the shared nonparametric bootstrap distribution contract; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalKKClaytonCopulaOneLik$approximate_bootstrap_distribution_beta_hat_T(
-  B = 501,
-  show_progress = TRUE,
-  debug = FALSE,
-  bootstrap_type = NULL
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{B}}{Number of bootstrap samples.}
-      \item{\code{show_progress}}{Whether to show a progress bar.}
-      \item{\code{debug}}{Whether to return diagnostics.}
-      \item{\code{bootstrap_type}}{Optional resampling scheme.}
-    }
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    A numeric vector of bootstrap estimates.
   }
 }
 

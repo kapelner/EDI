@@ -20,6 +20,36 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 	lock_objects = FALSE,
 	inherit = InferenceAbstractKKMarginalIncid,
 	public = list(
+		# 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood Estimators",
+		# "ModifiedPoisson full-likelihood migration"): this class's own
+		# `super$compute_bootstrap_confidence_interval()`/`super$compute_
+		# bootstrap_two_sided_pval()`/`super$compute_bayesian_bootstrap_*()`/
+		# `super$compute_jackknife_wald_*()` calls below were valid under the
+		# old deep R6 ladder (reaching InferenceNonParamBootstrap/
+		# InferenceBayesianBootstrap/InferenceJackknife's real generic
+		# dispatch through true multi-level inheritance) but silently became
+		# infinite self-recursion once its parent
+		# `InferenceAbstractKKMarginalIncid` was migrated to flat
+		# composition, where `super$X()` on a class with no further real R6
+		# ancestor layer above the composed one can loop back into `self`
+		# rather than erroring outright. Same "generic self-aliased
+		# overrides" pattern already used by this file's separately-
+		# harvested `IncidenceKKGComputationSource`/
+		# `incidence_kk_gcomp_generic_alias_overrides` (which `modifyList()`s
+		# these exact same aliases on top of this class's harvested body for
+		# the real migrated `InferenceIncidKKGCompRiskDiff`/`RiskRatio`
+		# classes -- unaffected either way, since its override already wins)
+		# -- applying it here too makes this class self-sufficient
+		# regardless of its ancestor's composition state, which also fixes
+		# the test-only legacy R6 reconstruction in
+		# test-incid-kk-gcomp-migration-golden.R that inherits this class
+		# directly.
+		compute_bootstrap_confidence_interval_generic = InferenceNonParamBootstrap$public_methods$compute_bootstrap_confidence_interval,
+		compute_bootstrap_two_sided_pval_generic = InferenceNonParamBootstrap$public_methods$compute_bootstrap_two_sided_pval,
+		compute_bayesian_bootstrap_two_sided_pval_generic = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_two_sided_pval,
+		compute_bayesian_bootstrap_confidence_interval_generic = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_confidence_interval,
+		compute_jackknife_wald_two_sided_pval_generic = InferenceJackknife$public_methods$compute_jackknife_wald_two_sided_pval,
+		compute_jackknife_wald_confidence_interval_generic = InferenceJackknife$public_methods$compute_jackknife_wald_confidence_interval,
 		#' @description Compute the KK g-computation treatment estimate by fitting the
 		#'   logistic working model and standardizing predicted all-treated and
 		#'   all-control risks over the empirical covariate distribution.
@@ -105,7 +135,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "basic")) {
 				return(private$compute_rr_bootstrap_basic_confidence_interval(alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples))
 			}
-			super$compute_bootstrap_confidence_interval(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
+			self$compute_bootstrap_confidence_interval_generic(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
 		},
 		#' @description Compute bootstrap two sided pval
 		#' @param delta The null treatment effect (default 0).
@@ -117,7 +147,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			if (is.null(delta)){
 				delta = private$default_null_value()
 			}
-			super$compute_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
+			self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
 		},
 		#' @description Compute Bayesian-bootstrap two sided pval
 		#' @param delta The null treatment effect. Defaults to 0 for RD and 1 for RR.
@@ -129,7 +159,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			if (is.null(delta)){
 				delta = private$default_null_value()
 			}
-			super$compute_bayesian_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
+			self$compute_bayesian_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
 		},
 		#' @description Compute Bayesian-bootstrap confidence interval
 		#' @param alpha The significance level (default 0.05).
@@ -142,7 +172,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			if (identical(private$get_estimand_type(), "RR") && type_resolved %in% c("basic", "wald")) {
 				return(private$compute_rr_bayesian_bootstrap_log_confidence_interval(alpha = alpha, B = B, type = type_resolved, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
 			}
-			super$compute_bayesian_bootstrap_confidence_interval(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
+			self$compute_bayesian_bootstrap_confidence_interval_generic(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
 		},
 		#' @description Compute jackknife-Wald two sided pval
 		#' @param delta The null treatment effect. Defaults to 0 for RD and 1 for RR.
@@ -154,7 +184,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			if (identical(private$get_estimand_type(), "RR")) {
 				return(private$compute_rr_jackknife_wald_two_sided_pval(delta = delta, unit = unit))
 			}
-			super$compute_jackknife_wald_two_sided_pval(delta = delta, unit = unit)
+			self$compute_jackknife_wald_two_sided_pval_generic(delta = delta, unit = unit)
 		},
 		#' @description Compute jackknife-Wald confidence interval
 		#' @param alpha Significance level. Default \code{0.05}.
@@ -163,7 +193,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			if (identical(private$get_estimand_type(), "RR")) {
 				return(private$compute_rr_jackknife_wald_confidence_interval(alpha = alpha, unit = unit))
 			}
-			super$compute_jackknife_wald_confidence_interval(alpha = alpha, unit = unit)
+			self$compute_jackknife_wald_confidence_interval_generic(alpha = alpha, unit = unit)
 		}
 	),
 	private = list(

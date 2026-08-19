@@ -108,55 +108,16 @@ Rules of use:
 
 ## Phase 0 — Decision batch (ask the user; no code)
 
-One sitting; every gated plan's TODO-1. Decisions cascade, so take them in
-this order:
+One sitting; every gated plan's TODO-1, decisions taken in cascade order.
+**Full item list: `release_v1_1_0.md → TODO-1`** (that file is now the
+source of truth for this batch's order and per-item status — do not
+maintain a second copy here).
 
-1. **[x] `marginal_estimand_report.md → TODO-1` — DONE (2026-08-18, user
-   decision): yes, pursue `set_estimand()`.** Release-scoped (see the
-   release line note above and `release_v1_0_0.md`'s item 14) — its
-   implementation is v1.0.0-gated, not deferred, since
-   `inference_suite_inspect.md`'s Combined Evidence Metric default
-   weighting policy needs a real, package-wide `estimand` concept behind
-   it. See `marginal_estimand_report.md`'s own "Recommended execution
-   order" note for its TODO-3/6/8 (done, ungated) vs. TODO-4/5/7/9
-   (gated on `fix_inference_hierarchy.md`'s Full-Likelihood Estimators
-   remainder) split.
-
-   `expanded_estimate_report.md → TODO-1` (the orthogonal `estimate_type`
-   design — **blocks the API shape** of every estimate-correction plan in
-   Phase 5A) was originally spliced with the above for a joint decision;
-   **moved back to v1.1.0 (2026-08-18, user decision, undecided)** — see
-   `release_v1_1_0.md → TODO-1` step 1. Whenever it is decided, check
-   which `estimand` values `marginal_estimand_report.md → TODO-3` lands on
-   first, so neither enum absorbs the other's values.
-2. `firth_penalties_report.md → TODO-1` **[spliced with]**
-   `l1_l2_penalties_all_likelihood_paths_report.md → TODO-1` — one joint
-   decision; both plans share the penalized-fitting inference-semantics
-   question (their Phase-2s are the same decision).
-3. `median_bias_correction_likelihood_paths_report.md → TODO-1` — take
-   *after* the Firth decision (the report recommends Firth first).
-4. `bias_correction_cox_snell.md → TODO-1` **[spliced with]**
-   `cordeiro_mccullagh_bias_correction_report.md → TODO-1` — same Easy-tier
-   machinery; decide as one project.
-5. `modified_profile_likelihood_report.md → TODO-1`.
-6. `likrat_correction_bartlett.md → TODO-1` — whether to extend exact
-   Bartlett, and the ordering across
-   `score_correction_cordeiro_ferrari.md`/`gradient_correction_lemonte.md`
-   (shared cumulant machinery — see Phase 5A step 3).
-7. `bootstrap_calibrated_lr_report.md → TODO-2` — Difficult-tier families
-   yes/no.
-8. Response types, in one pass:
-   `nominal_response_type_report.md → TODO-1` (+ its estimand question),
-   `rank_choice_response_type_report.md → TODO-1`,
-   `semi_continuous_response_type_report.md → TODO-1` (+ point-mass vs.
-   censoring question), `multivariate_response_type_report.md → TODO-1`,
-   `compositional_response_type_report.md → TODO-1` (+ estimand question),
-   `longitudinal_repeated_measures_response_type_report.md → TODO-1`
-   (+ estimand question).
-9. `gpu_optimizations.md → TODO-1` and `→ TODO-7` (backend/build story).
-10. `interval_censored_survival_response_type_report.md → TODO-1` —
-    second-wave semiparametric (NPMLE/Turnbull, stratified-Cox icenReg
-    delegation) yes/no.
+Status not repeated in the release file: `marginal_estimand_report.md →
+TODO-1` is **[x] DONE (2026-08-18, user decision: yes, pursue
+`set_estimand()`)** and was pulled out of this batch entirely into the
+v1.0.0 line (see the release-line note above and `release_v1_0_0.md`'s item
+14) — it is not one of `release_v1_1_0.md → TODO-1`'s items.
 
 ---
 
@@ -347,28 +308,12 @@ proceed now, in parallel with the tail of Phase 1D.
 
 ## Phase 2 — Diagnostics chain (strictly ordered)
 
-1. `optimizer_diagnostics_report.md → TODO-1` (Phase 1: free diagnostics via
-   flat `edi::ResultMap` fields; shared separation threshold; eigenvalue-cost
-   decision).
-2. `optimizer_diagnostics_report.md → TODO-2` (Phase 1b targeted hardening).
-3. `optimizer_diagnostics_report.md → TODO-3` (Phase 2: `SolverDiagnostics`
-   component) — **prerequisite for Firth in Phase 5A**.
-4. **[x] DONE (2026-08-17)** `optimizer_diagnostics_report.md → TODO-4`
-   (Phase 3: redefine `converged` as gradient-norm-based with an
-   LBFGS-specific OR-fallback, `hit_iteration_cap` split out, every caller
-   audited; a `fast_gaussian_lmm_cpp` segfault found and fixed along the
-   way) — this also closes release amendment 11's decision gate. Then
-   `→ TODO-5` (Phase 4, lower priority, still open).
-5. `public_diagnostics_api_spec.md → TODO-1..4` (Phase 1 wrapper + result
-   object), then `→ TODO-5..8` (core-path integration, after Phase 1D
-   settles the families), then `→ TODO-9..12` (consumes step 1–4 output),
-   then `→ TODO-13..16` (audit/report integration).
-6. `public_diagnostics_api_spec.md → TODO-17, TODO-18` — the re-homed
-   m-out-of-n/PRW diagnostics wiring; ticking these also closes
-   `prw_subsampling_implementation_spec.md → TODO-14..17` **[spliced]**.
-   `prw_subsampling_implementation_spec.md → TODO-20` (low-estimability
-   summaries in the path audit) is *not* covered by those two — do it
-   alongside as a small separate item.
+**Full item list: `release_v1_1_0.md → TODO-3`.** Status not repeated
+there: step 4 (`optimizer_diagnostics_report.md → TODO-4`) is **[x] DONE
+(2026-08-17)** — `converged` redefined as gradient-norm-based with an
+LBFGS-specific OR-fallback, `hit_iteration_cap` split out, every caller
+audited, plus an unrelated `fast_gaussian_lmm_cpp` segfault found and fixed
+along the way; this also closed release amendment 11's decision gate.
 
 ---
 
@@ -387,21 +332,10 @@ proceed now, in parallel with the tail of Phase 1D.
 ## Phase 4 — Independent kernel/perf lane (parallel with Phases 2–3)
 
 No dependency on the decision batch; only on already-available SEXP
-conventions.
-
-1. **[x] DONE (2026-08-16)** `multi_arm_designs.md → TODO-6` — the
-   `InferenceIncidCMH` non-blocking balance-guard gap. A live two-arm
-   correctness bug; done first in this lane, as planned.
-2. `robust_regression_perf_optimization_spec.md → TODO-1..4` (profile-first
-   discipline per the spec).
-3. `quantile_regression_cpp_kernel_spec.md → its TODO list` — kernel +
-   integration for the already-migrated quantile classes; the KK-quantile
-   wiring waits for Phase 1D.2.
-4. `ordinal_gee_cpp_kernel_spec.md → TODO-1..2` (kernel + parity tests);
-   `→ TODO-3..5` (R integration) after Phase 1D.2 settles
-   `InferenceOrdinalKKGEE`.
-5. `cold_starts.md → TODO-1..14` (documentation/audit of the cold-start
-   policy tables).
+conventions. **Full item list: `release_v1_1_0.md → TODO-4`.** Status not
+repeated there: step 1 (`multi_arm_designs.md → TODO-6`, the
+`InferenceIncidCMH` non-blocking balance-guard gap) is **[x] DONE
+(2026-08-16)**.
 
 ---
 
@@ -409,144 +343,27 @@ conventions.
 
 Each track starts only on a "yes" from Phase 0, and assumes Phase 1 is done
 (shallow hierarchy is the substrate every new class/capability lands on).
+**Full item lists now live in `release_v1_1_0.md`, one TODO per track —
+this section only records the track → TODO mapping and any dependency not
+already stated there:**
 
-### 5A. Corrections track (ordered; shared machinery flows downward)
-
-1. **Release-scoped (amended 2026-08-18, user decision — see
-   `release_v1_0_0.md`'s item 14; this is the only step of Phase 5A that
-   is, the rest of this phase stays v1.1.0):**
-   `marginal_estimand_report.md → TODO-3..8` — the `set_estimand()`
-   switch (same get/set/supported-values/cache-key architecture; its
-   TODO-1 decided **yes** 2026-08-18, its TODO-2 doc sharpening is
-   **done**). `expanded_estimate_report.md → TODO-2..5` (`estimate_type`)
-   was originally sequenced as this step's first half; **moved back to
-   v1.1.0 the same day (user decision)** — see `release_v1_1_0.md →
-   TODO-5` step 1.
-   **Sub-sequencing within this step (verified/updated 2026-08-18 — see
-   `marginal_estimand_report.md`'s own "Recommended execution order"
-   note):** `→ TODO-4` (ZOIB), `→ TODO-5` (ZIP/hurdle), `→ TODO-7`
-   (randomization/bootstrap dispatch — has no independent architecture,
-   rides along with TODO-4/5/9 as their consequence, not a separate gate),
-   and `→ TODO-9` (logistic/Poisson/beta-regression) are genuinely gated
-   on this phase's own still-open "Full-Likelihood Estimators" remainder
-   (item 3 below) — every target class
-   (`InferencePropZeroOneInflatedBetaRegr`,
-   `InferenceCountZeroInflatedPoisson`/`NegBin`,
-   `InferenceCountHurdlePoisson`/`NegBin`,
-   `InferenceCountZeroAugmentedPoissonAbstract`, `InferenceIncidLogit`,
-   `InferenceCountPoisson`, `InferenceProportionBeta`,
-   `InferenceIncidBinomialIdentity`) still `inherit =` a legacy
-   deep-hierarchy base. `→ TODO-3/6/8` are **done** (2026-08-18) and
-   touched no unmigrated class.
-2. `bias_correction_cox_snell.md → TODO-2..5` **[spliced with]**
-   `cordeiro_mccullagh_bias_correction_report.md → TODO-2..4` — one project:
-   shared `X'WX`/information helper, one component registration, Easy-tier
-   GLMs first, one inference-policy write-up.
-3. Higher-order test-correction batch, in this order (shared
-   `apply_bartlett_type_polynomial_correction()` helper and GLM cumulant
-   machinery built exactly once):
-   1. `score_correction_cordeiro_ferrari.md → Phase 0..5` (mdscore
-      reference implementation makes it the anchor),
-   2. `gradient_correction_lemonte.md → Phase 0..4` (reuses score's helper;
-      its own transcription-check gate),
-   3. `likrat_correction_bartlett.md → exact-rollout TODO-2` (Phase-2 tier
-      via the now-shared cumulant helper).
-4. `firth_penalties_report.md → TODO-2..5` (requires Phase 2 step 3)
-   **[spliced with]** `l1_l2_penalties_all_likelihood_paths_report.md →
-   TODO-3` (the joint semantics decision is recorded once, in both plans).
-5. `l1_l2_penalties_all_likelihood_paths_report.md → TODO-2` (ridge Phase 1
-   families) and later `→ TODO-4` (structured models).
-6. `median_bias_correction_likelihood_paths_report.md → TODO-3..4` (only
-   after Firth ships and the decision holds).
-7. `modified_profile_likelihood_report.md → TODO-2..4`.
-8. `bootstrap_calibrated_lr_report.md → Difficult-tier work` (if Phase 0
-   step 7 said yes).
-
-### 5B. Response-type track
-
-1. `nominal_response_type_report.md → TODO-2 (Stage 1)` **[spliced with]**
-   `rank_choice_response_type_report.md → TODO-2 (Stage 1)` — literally the
-   same stage; admit `nominal` once.
-2. `nominal_response_type_report.md → TODO-3..4`, then
-   `rank_choice_response_type_report.md → TODO-3` (conditional logit), and
-   `→ TODO-4` (rankings) only under its own sub-decision.
-3. `semi_continuous_response_type_report.md → TODO-2`, then `→ TODO-6` (the
-   point-mass-vs-censoring modeling question — its plan requires it before
-   Stage 2), then `→ TODO-3..5`.
-4. `multivariate_response_type_report.md → TODO-2..4` (orchestration only;
-   its TODO-5 is a standing constraint — no native joint modeling without a
-   fresh decision — not a step).
-5. `compositional_response_type_report.md → TODO-5` (estimand question,
-   required before Stage 2), then `→ TODO-2..4` (vector storage is its own
-   sub-project — schedule last among scalar-adjacent types).
-6. `longitudinal_repeated_measures_response_type_report.md → TODO-5`
-   (estimand question, before Stage 2), then `→ TODO-2..4` — Stage 1
-   extracts the clustered-fit core from the `KKGEE` component, so it must
-   follow Phase 1D.2.
-
-### 5C. Censored-response track (after Phase 1C/1F)
-
-1. `censored_continuous_response.md → TODO-1..` (its TODO-1 generalizes the
-   Design-layer bounds schema; everything downstream keys off it).
-2. `censored_count_response.md → TODO-1..` (its TODO-1 becomes a one-line
-   addition once 5C.1 lands).
-3. `betaregscale_duplication.md → TODO-1..` (reuses 5C.1's censored-quantile
-   machinery for the proportion path).
-
-### 5D. Multi-arm track
-
-1. `multi_arm_designs.md → TODO-1` (Phase 1a design side — needs Phase 1E's
-   capability metadata; register `supports("multi_arm")` per its updated §3c).
-2. `→ TODO-2` (Phase 1b arm selection), `→ TODO-3` (Phase 2 KK simulation
-   prototype), `→ TODO-4` (Phase 3a orchestration; coordinate with 5B.4's
-   composite layer — same orchestration shape), `→ TODO-5` (Phase 3b native,
-   demand-gated).
-
-### 5E. GPU track (if Phase 0 step 9 said yes)
-
-1. `gpu_optimizations.md → TODO-7` (backend/build design) then `→ TODO-2..5`
-   (the three prototypes plus the GLMM reassessment, in the report's order),
-   each gated by `→ TODO-6`'s benchmark matrix before merge.
-
-### 5F. Sequential many-by-many design family (added 2026-08-17; v1.1.0)
-
-Not Phase-0 gated (its only decisions are internal to its own TODO-1, which
-can join any decision sitting); needs only the shipped 1.0.0 shallow design
-hierarchy, so it may run in parallel with any other Phase 5 track.
-
-1. `design_seq_many_by_many.md → TODO-1` (decision batch: Atkinson rule
-   (a)/(b), bootstrap shape, rerandomization threshold schedule, Blocking
-   carry-over queues), then
-   `→ TODO-2` (the behavior-preserving shared-ingestion extraction from the
-   frozen `DesignSeqOneByOne$add_one_subject()`, golden-tested first), then
-   `→ TODO-3..6` (abstract + the five classes: Bernoulli, CRD, Blocking
-   (TODO-4b, added 2026-08-18), Rerandomization per Zhou et al. 2018,
-   Atkinson-type), then `→ TODO-7..9`
-   (inference battery, discovery/`run_all_inference()` verification, docs/API
-   bookkeeping), with `→ TODO-10` recording the named follow-ups only.
-
-### 5G. KK one-stage Beta-regression estimator (added 2026-08-18; v1.1.0)
-
-Not Phase-0 gated; additive on top of `InferencePropBetaRegr` and the
-existing `InferenceMixinKKGLMMShared` mixin. Needs Phase 1D.2's KK-hierarchy
-migration landed (reads `KKstats`/`compute_basic_match_data()` conventions
-from the migrated classes), so it may run in parallel with any other Phase 5
-track once that dependency is met.
-
-1. `kk_beta_regression_one_lik_derivation.md → TODO-1` (prototype
-   validation: simulate and check the quadrature likelihood/score/Hessian,
-   and the `sigma_b^2 -> 0` degeneracy claim, before any production code),
-   then `→ TODO-2..3` (cheap path: a `glmmTMB::beta_family()` leaf class
-   reusing `InferenceMixinKKGLMMShared`, plus its golden tests — ships
-   first), then `→ TODO-4..5` (exact path: the `fast_beta_regression_glmm_cpp`
-   Gauss-Hermite backend and its `OneLik` class, mirroring
-   `InferenceContinKKGLMM`'s own `use_rcpp` history), then `→ TODO-6`
-   (boundary LRT correction for `sigma_b^2 = 0`), `→ TODO-7` (pairs-only/
-   reservoir-only IVWC comparator), `→ TODO-8` (identifiability + complexity
-   tier), `→ TODO-9` (simulation-study arm, folds into
-   `../new_research_ideas/KK_followup_research_plan.md`), `→ TODO-10` (docs/
-   release mechanics, coordinate merge order with `betaregscale_duplication.md`
-   if both touch `fast_beta_regression.cpp` in the same release window).
+- **5A. Corrections track** → `release_v1_1_0.md → TODO-5`. Note:
+  `marginal_estimand_report.md → TODO-3..8` (the `set_estimand()` switch)
+  is **not** part of this track — it was pulled out into the v1.0.0 line
+  (amended 2026-08-18, user decision; see `release_v1_0_0.md`'s item 14).
+- **5B. Response-type track** → `release_v1_1_0.md → TODO-6`.
+- **5C. Censored-response track** (after Phase 1C/1F) →
+  `release_v1_1_0.md → TODO-7`.
+- **5D. Multi-arm track** → `release_v1_1_0.md → TODO-8`.
+- **5E. GPU track** (if Phase 0 step 9 said yes) → `release_v1_1_0.md →
+  TODO-9`.
+- **5F. Sequential many-by-many design family** (added 2026-08-17) →
+  `release_v1_1_0.md → TODO-15`.
+- **5G. KK one-stage Beta-regression estimator** (added 2026-08-18) →
+  `release_v1_1_0.md → TODO-15b`.
+- **5H. `dead` → `uncensored` rename** (added 2026-08-19) →
+  `release_v1_1_0.md → TODO-15c`. Source TODO:
+  `../finished_features/interval_censored_survival_response.md → TODO-29`.
 
 ---
 
@@ -554,6 +371,7 @@ track once that dependency is met.
 
 1. `sequential_inference.md` — after Phase 1E.4 delivers the public accessors
    its architecture depends on; it remains a research scoping doc until then.
+   Scoped as `release_v1_1_0.md → TODO-13`.
 2. `save_load_api.md → all TODOs` — after Phase 1E.3, when
    `EDI_DESIGN_COMPONENTS`' `owns_state` makes the serialization audit
    scriptable. Done (2026-08-17): every TODO closed (version stamp +
@@ -563,27 +381,20 @@ track once that dependency is met.
    loading" section, and `test-save-load-design.R`); moved to
    `../finished_features/save_load_api.md`.
 3. `interval_censored_survival_response_type_report.md → second wave` — per
-   Phase 0 step 10, tracked in `interval_censored_survival_response.md`.
+   Phase 0 step 10; scoped as `release_v1_1_0.md → TODO-12`.
 4. `response_types_landscape_report.md → its remaining open TODOs` — refresh
-   the landscape after any 5B track ships.
-5. `local_machine_optimization.md → TODO-1..12` — explicit v1.1.0 target
-   (added 2026-08-17): `optimize_EDI_locally()`, a user-invoked benchmark
-   tuner that recomputes the machine-dependent `globals.R` policy defaults
-   (cold starts, warm starts + n-thresholds, optimizer algorithm, parallel
-   crossover/core counts) on the user's own hardware, persists them to
-   `tools::R_user_dir("EDI", "config")`, and has `.onLoad()` import them.
-   Its TODO-2 (lifting the hardcoded sample-size-conditioned warm-start
-   layer out of `edi_warm_start_dispatch_policy()` into the overridable
-   config table) is valuable standalone and may be pulled earlier into a
-   1.0.x. Sequence after `cold_starts.md`'s documentation audit (Phase 4
-   step 5).
-6. `design_fixed_greedy_pair_switch_merge.md → TODO-1..10` — explicit
-   post-1.0.0 target (user instruction, 2026-08-16). Sequenced after
-   `fix_design_hierarchy.md`'s Stage-2 shared-engine extraction (Follow-Ups)
-   and, ideally, after `design_fixed_optimal.md`'s own implementation ships
-   (reuses its TODO-1b shared validation/`P`/`H` helper rather than
-   duplicating it). Deletes `DesignFixedGreedy`/`DesignFixedGreedyDOptimal`,
-   replacing both with `DesignFixedGreedyPairSwitch`.
+   the landscape after any 5B track ships; scoped as
+   `release_v1_1_0.md → TODO-14`.
+5. `local_machine_optimization.md` — explicit v1.1.0 target (added
+   2026-08-17): `optimize_EDI_locally()`, a user-invoked benchmark tuner
+   for the machine-dependent `globals.R` policy defaults. TODO-2 already
+   shipped in a 1.0.x patch; the rest is scoped as
+   `release_v1_1_0.md → TODO-10`.
+6. `design_fixed_greedy_pair_switch_merge.md` — explicit post-1.0.0 target
+   (user instruction, 2026-08-16); deletes `DesignFixedGreedy`/
+   `DesignFixedGreedyDOptimal`, replacing both with
+   `DesignFixedGreedyPairSwitch`. Full item list:
+   `release_v1_1_0.md → TODO-11`.
 
 ---
 

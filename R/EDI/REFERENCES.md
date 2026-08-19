@@ -87,7 +87,9 @@ gaps" at the bottom).
   Wald/score/likelihood-ratio/gradient inference for the shared treatment
   coefficient), `InferenceIncidKKCondLogitOneLik` (single combined
   conditional-logistic matched-pair / ordinary-logistic reservoir
-  likelihood, joint MLE of one shared treatment log-odds-ratio).
+  likelihood, joint MLE of one shared treatment log-odds-ratio),
+  `InferenceOrdinalKKCondAdjCatLogitRegr` (KK matching-on-the-fly design this
+  class's conditional adjacent-category logit model is built for).
 - **[Greevy2004]** Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P.
   (2004). "Optimal multivariate matching before randomization."
   *Biostatistics*, 5(2), 263-275. doi:10.1093/biostatistics/5.2.263. — Used
@@ -286,7 +288,9 @@ files' `@references`) if/when it becomes available.
   on), `InferenceOrdinalCloglogRegr` (cumulative-link model family).
 - **[Agresti2010Ordinal]** Agresti, A. (2010). *Analysis of Ordinal
   Categorical Data* (2nd ed.). Wiley. — Used by: `InferenceOrdinalCauchitRegr`,
-  `InferenceOrdinalCloglogRegr` (cumulative-link model chapters).
+  `InferenceOrdinalCloglogRegr` (cumulative-link model chapters),
+  `InferenceOrdinalKKCondAdjCatLogitRegr` (adjacent-category logit model
+  chapter).
 - **[PetersonHarrell1990]** Peterson, B., and Harrell, F. E. (1990).
   "Partial Proportional Odds Models for Ordinal Response Variables."
   *Journal of the Royal Statistical Society, Series C (Applied

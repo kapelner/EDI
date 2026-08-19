@@ -69,10 +69,16 @@ test_that("static cleanup guardrail prevents new eval(body(Inference...)) usage"
 	# are now migrated) -- entry removed entirely.
 	# inference_incidence_KK_cond_logit.R dropped to 0 at the 2026-08-19
 	# InferenceIncidKKCondLogitOneLik migration -- entry removed entirely.
-	expected = c(
-		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 1L,
-		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 1L
-	)
+	# inference_survival_KK_clayton_copula.R and
+	# inference_survival_KK_weibull_frailty.R both dropped to 0 at 2026-08-19
+	# (fix_inference_hierarchy.md "Static Cleanup", "Ban eval(body(Inference...))"):
+	# their `approximate_bootstrap_distribution_beta_hat_T` restatements
+	# inside the `...LegacyRaw` harvesting classes were verified no-ops
+	# (both classes already splice `InferenceMixinKKPassThrough$public`
+	# directly, so the raw source's own method was already present) --
+	# both entries removed entirely, leaving no eval(body(Inference...))
+	# usage anywhere in the tree.
+	expected = integer(0)
 
 	expect_identical(static_cleanup_file_counts(matches), expected[sort(names(expected))])
 })
@@ -107,6 +113,25 @@ test_that("static cleanup guardrail prevents new raw component splicing", {
 	# `utils::modifyList(as.list(InferenceMixinKKGLMMShared$public/private),
 	# ...)` splices were replaced by composing the registered `KKGLMM`
 	# component directly -- entry removed entirely.
+	# inference_survival_KK_clayton_copula.R and
+	# inference_survival_KK_weibull_frailty.R both dropped 3->2 at
+	# 2026-08-19 (fix_inference_hierarchy.md "Static Cleanup", "Ban
+	# eval(body(Inference...))"): each file's `...LegacyRaw` class's
+	# `eval(body(InferenceMixinKKPassThrough$public$...))` restatement --
+	# itself a second, redundant textual reference to
+	# `InferenceMixinKKPassThrough$public` beyond the class's own top-level
+	# `modifyList(as.list(InferenceMixinKKPassThrough$public), ...)` splice
+	# -- was removed as a verified no-op, dropping one match per file. The
+	# structural splice itself remains (these `...LegacyRaw` classes are
+	# still the harvesting source for the `SurvivalKKClaytonCopulaOneLik`/
+	# `SurvivalKKWeibullFrailtyOneLik` components, awaiting the base-
+	# deletion phase), so 2 occurrences remain in each file.
+	# inference_incidence_KK_marginal_abstract.R dropped to 0 at 2026-08-19
+	# (fix_inference_hierarchy.md "Full-Likelihood Estimators", "ModifiedPoisson
+	# full-likelihood migration"): InferenceAbstractKKMarginalIncid's raw
+	# `utils::modifyList(as.list(InferenceMixinKKPassThrough$public/private),
+	# list(...))` splices were replaced by composing the registered
+	# `KKPassThrough` component directly -- entry removed entirely.
 	expected = c(
 		"R/EDI/R/inference_all_abstract_KK_passthrough_compound.R" = 4L,
 		"R/EDI/R/inference_all_abstract_asymp_lik.R" = 1L,
@@ -116,9 +141,8 @@ test_that("static cleanup guardrail prevents new raw component splicing", {
 		"R/EDI/R/inference_all_abstract_param_boot.R" = 1L,
 		"R/EDI/R/inference_all_abstract_rand.R" = 1L,
 		"R/EDI/R/inference_count_composite_likelihood.R" = 2L,
-		"R/EDI/R/inference_incidence_KK_marginal_abstract.R" = 2L,
-		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 3L,
-		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 3L
+		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 2L,
+		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 2L
 	)
 
 	expect_identical(static_cleanup_file_counts(matches), expected[sort(names(expected))])

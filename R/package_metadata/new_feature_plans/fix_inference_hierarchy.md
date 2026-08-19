@@ -1915,9 +1915,68 @@ their own `[x]` entries above; they are not part of this count.)
   their concrete classes.
 - [x] Migrate non-KK partial-likelihood classes to `Inference` plus
   `LikelihoodTests`, `StandardModelCache`, and family-specific components.
-- [ ] Migrate KK partial-likelihood classes only after `KKPassThrough` and
+- [x] Migrate KK partial-likelihood classes only after `KKPassThrough` and
   `KKCompound` host contracts pass collision and dependency validation.
-  **Progress 2026-08-18: `InferenceSurvivalKKLWACoxPHOneLik` migrated** —
+  **Completed 2026-08-19: `InferenceOrdinalKKCondAdjCatLogitRegr` and the
+  `InferenceAbstractKKOrdinalCLMM` family migrated**, closing out this item
+  (verified via the migration manifest: the only remaining `"pending"`
+  `likelihood_tier = "partial"` entries afterward are
+  `InferenceIncidKKCondLogitGLMMIVWC`/`...OneLik`, which are the expected
+  parent-heuristic artifact of already-migrated plain-R6 leaves, not real
+  unmigrated classes -- same as every other `InferenceAsympLikStdModCache`-
+  style leaf).
+  - `InferenceOrdinalKKCondAdjCatLogitRegr`
+    (`inference_ordinal_KK_cond_adj_cat_logit.R`) was already a
+    `define_inference_class()` call composing the right domain components
+    (`OrdinalConditionalLogitPartialLikelihood`, `KKPassThrough`), but still
+    `inherit = InferenceAsympLik` -- the same hybrid half-migrated state as
+    the KKGLMM family. Flipped to `inherit = Inference` with `Wald` composed
+    explicitly (not `ParametricLikelihoodBootstrap`: this class's
+    `supports_likelihood_tests()` is hard-`FALSE`, so it never gets Wald
+    transitively through `ParametricLikelihoodBootstrap`'s `LikelihoodTests`
+    dependency the way the KKGLMM family does -- confirmed by grepping every
+    other Wald-only KK IVWC class's `components =` list for the same
+    explicit `"Wald"` entry). `compute_rand_two_sided_pval` pinned from
+    `InferenceRandCI` (confirmed via the pre-migration R6 ancestor walk,
+    not assumed from the KKGLMM-family precedent).
+  - `InferenceAbstractKKOrdinalCLMM` (`inference_ordinal_KK_clmm_abstract.R`)
+    was in the identical hybrid state (`inherit = InferenceAsympLik,
+    components = "KKPassThrough"`), with 4 concrete plain-R6 leaves
+    (`InferenceOrdinalKKCLMM`, `...Probit`, `...Cauchit`, `...Cloglog`) --
+    migrating the shared abstract base once fixed all four, same pattern as
+    the `InferenceAbstractKKCondLogitGLMM` trio earlier this stretch. Same
+    `Wald`-not-`ParametricLikelihoodBootstrap` and `InferenceRandCI` pin
+    reasoning as the AdjCatLogit class above.
+  - **Golden-test discovery, both classes**: calling
+    `compute_score_two_sided_pval()`/`compute_gradient_confidence_interval()`/
+    `compute_lik_ratio_*()` *directly* (bypassing `set_testing_type()`, which
+    correctly throws "does not support testing_type" on both legacy and
+    migrated, confirming the class's own designed API is unchanged) reached
+    leaked `InferenceAsympLik`-ladder plumbing on the pre-migration legacy
+    classes that silently returned `NA` -- or, for one label (`score_ci`),
+    silently fell back to the exact Wald CI -- rather than erroring. The
+    migrated (flat composition, no `LikelihoodTests` component) classes
+    don't expose these methods at all. Verified via the same
+    `maybe_dropped_labels` + degenerate-or-Wald-fallback verification
+    pattern established by `test-incid-kk-cond-logit-ivwc-migration-golden.R`
+    (checks the *value*, not just the presence/absence, so a real dropped
+    result would fail loudly) rather than blindly accepting the status
+    mismatch.
+  - Golden tests added: `test-ordinal-kk-cond-adj-cat-logit-migration-golden.R`
+    (fixture `fixtures/legacy_ordinal_kk_cond_adj_cat_logit.R`) and
+    `test-ordinal-kk-clmm-migration-golden.R` (all 4 link-function leaves,
+    fixture `fixtures/legacy_ordinal_kk_clmm.R` covering the abstract base
+    plus all four leaves) -- all passing.
+  - Fixed the same class of stale `infer_inference_direct_components()`
+    registry-switch-entry gap hit repeatedly this stretch, for both
+    `InferenceOrdinalKKCondAdjCatLogitRegr` and
+    `InferenceAbstractKKOrdinalCLMM`.
+  - Full regression battery (`test-mixin-contracts.R`,
+    `test-static-cleanup-guardrails.R`,
+    `test-parametric-bootstrap-lr-all-capable-classes.R`,
+    `test-partial-likelihood-migration-baseline.R`, plus both new golden
+    files) green.
+  **Earlier progress 2026-08-18: `InferenceSurvivalKKLWACoxPHOneLik` migrated** —
   the LWA Cox OneLik sibling of the `InferenceSurvivalKKLWACoxPHIVWC`
   migration earlier this stretch. Same two-layer shape (abstract
   `InferenceAbstractKKLWACoxOneLik` on `InferenceParamBootstrap`,
@@ -3209,6 +3268,106 @@ their own `[x]` entries above; they are not part of this count.)
   this would be a from-scratch full-likelihood-tier migration. Belongs with
   the "Full-Likelihood Estimators" / KK one-likelihood work below, not this
   section; not started.
+  - [x] **Completed 2026-08-19.** Migrated by migrating the shared
+    grandparent `InferenceAbstractKKMarginalIncid`
+    (`inference_incidence_KK_marginal_abstract.R`) rather than
+    `InferenceAbstractKKModifiedPoisson`/`InferenceIncidKKModifiedPoisson`
+    directly -- same "migrate the shared base" strategy as the
+    `InferenceAbstractKKCondLogitGLMM`/`InferenceAbstractKKOrdinalCLMM`
+    families. Flipped from the raw-splice `utils::modifyList(as.list(
+    InferenceMixinKKPassThrough$public/private), list(...))` state (manual
+    harvesting under `inherit = InferenceParamBootstrap`, not even a
+    `define_inference_class()` call) to `inherit = Inference` with
+    `components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap",
+    "KKPassThrough")` -- `ParametricLikelihoodBootstrap`, not Wald-only,
+    confirming the scoping note's own reasoning: `InferenceAbstractKKModifiedPoisson`
+    genuinely needs it for its real `get_likelihood_test_spec()`/
+    `simulate_under_lik_null()`. `InferenceAbstractKKModifiedPoisson` and
+    `InferenceIncidKKModifiedPoisson` themselves needed zero changes (no
+    `super$...()` calls in either body) -- confirming the scoping note's
+    "not a same-shape continuation" framing was about the *target*
+    composition shape, not extra work needed in these two files themselves.
+    - **Correction to this scoping note**: the non-KK sibling
+      `InferenceIncidModifiedPoisson` was mischaracterized above as "also
+      still unmigrated" -- re-investigated 2026-08-19 and found it's
+      actually already in the same accepted terminal state as every other
+      `InferenceAsympLikStdModCache`-leaf class (e.g. `InferenceIncidProbitRegr`):
+      a plain `R6::R6Class` leaf off an already-composed base, correctly
+      "pending" in the migration manifest by the heuristic's own design (only
+      auto-detects "migrated" when a class's *immediate* parent is
+      `"Inference"` itself), not a genuine gap. It additionally serves as the
+      harvesting source for `IncidenceModifiedPoissonLikelihoodSource`
+      (`inference_component_source_parts(InferenceIncidModifiedPoisson)`),
+      used by nothing yet but structurally analogous to every other
+      Source-harvesting pattern in this file. No changes needed or made to
+      it.
+    - **Two real bugs found and fixed in the previously-untouched
+      `InferenceIncidKKGCompAbstract`** (a *sibling* descendant of
+      `InferenceAbstractKKMarginalIncid` -- already migrated to its own
+      `define_inference_class()` via `IncidenceKKGComputation` in the "KK And
+      IVWC Estimators" section, but deliberately kept as a real R6 generator
+      both for component harvesting and as the ancestor of
+      `test-incid-kk-gcomp-migration-golden.R`'s legacy fixture -- discovered
+      only because that golden test re-ran cleanly as a regression check
+      after this migration):
+      1. Six `super$compute_bootstrap_confidence_interval()`/`compute_bootstrap_
+         two_sided_pval()`/`compute_bayesian_bootstrap_*()`/`compute_jackknife_
+         wald_*()` calls in `InferenceIncidKKGCompAbstract`'s *own* class body
+         (distinct from its separately-harvested `IncidenceKKGComputationSource`,
+         which already had the fix via `incidence_kk_gcomp_generic_alias_overrides`)
+         were valid under the old deep R6 ladder but became **infinite
+         self-recursion** once their parent flattened. Fixed by applying the
+         identical generic-self-aliased-override pattern directly to this
+         class's own body (six new `..._generic` pins, six `super$...()`
+         call sites rewritten to `self$..._generic()`) -- zero risk to the
+         already-migrated `InferenceIncidKKGCompRiskDiff`/`RiskRatio`, whose
+         harvested-then-`modifyList()`-overridden version already won
+         either way.
+      2. `InferenceExtCIInversion`'s `private$get_standard_error()` call
+         (reached via `ParametricLikelihoodBootstrap` -> `LikelihoodTests`,
+         now genuinely composed on the ancestor) hits `Wald`'s raw
+         `stop()`-throwing stub instead of a graceful NA-returning
+         fallback, because `InferenceMLEorKMSummaryTable`'s private
+         override (which provided that gracefully under the old deep
+         ladder: `InferenceAsympLik -> InferenceMLEorKMSummaryTable ->
+         InferenceAsymp`) was **never extracted into any registered
+         component** -- a real, pre-existing architectural gap in the
+         component system. Confirmed confined entirely to
+         `test-incid-kk-gcomp-migration-golden.R`'s legacy-only
+         `score_ci`/`gradient_ci`/`lik_ratio_ci` probes (already in that
+         file's `maybe_dropped_labels` list): the real migrated GComp
+         classes (`likelihood_tier = "none"`) never compose
+         `ParametricLikelihoodBootstrap` at all, so those methods are
+         correctly `"absent"` on them regardless. Tolerated at the test
+         level (a new `tryCatch` around the legacy call, scoped to
+         `maybe_dropped_labels`, converting this specific error message to
+         `status = "error"` so the existing degenerate/wald-fallback check
+         can run instead of the whole test crashing) rather than fixed at
+         the component level -- doing the latter would mean adding a
+         graceful `get_standard_error` to the shared `Wald`/`LikelihoodTests`
+         components themselves, affecting every class that composes them,
+         far beyond this migration's scope.
+    - Golden test added: `test-incid-kk-modified-poisson-migration-golden.R`,
+      fixture `fixtures/legacy_incid_kk_modified_poisson.R` (the
+      pre-migration `InferenceAbstractKKMarginalIncid` from git HEAD plus
+      the *unchanged* `InferenceAbstractKKModifiedPoisson`/
+      `InferenceIncidKKModifiedPoisson`, re-parented) -- 51/51 passing.
+      `test-incid-kk-gcomp-migration-golden.R` (both RD and RR, RR forced
+      on locally since it's `skip_on_cran()`-gated) re-verified green after
+      both `InferenceIncidKKGCompAbstract` fixes.
+    - Fixed the same class of stale/missing `infer_inference_direct_components()`
+      registry-switch gap for `InferenceAbstractKKMarginalIncid` (this one
+      had no entry at all, not merely a stale one, since it was never
+      composed via the registry before) and the corresponding
+      `test-static-cleanup-guardrails.R` raw-splicing count (this file's
+      entry dropped to 0 -- removed entirely, not just decremented).
+    - Full regression battery (`test-incid-kk-modified-poisson-migration-golden.R`,
+      `test-incid-kk-gcomp-migration-golden.R`, `test-mixin-contracts.R`,
+      `test-static-cleanup-guardrails.R`,
+      `test-parametric-bootstrap-lr-all-capable-classes.R`,
+      `test-full-likelihood-migration-baseline.R`,
+      `test-gcomp-cache-readiness.R`, `test-gcomp-boot-warm-start-chaining.R`)
+      green after all fixes above.
 - [x] Migrate KK one-likelihood classes to `Inference` plus `KKPassThrough`,
   `LikelihoodTests`, `ParametricLikelihoodBootstrap` when warranted, and
   estimator-specific likelihood components. **Completed 2026-08-19**: the
@@ -4709,7 +4868,7 @@ here (2026-08-13) rather than left as prose-only notes.
   `InferenceAbstractKKOrdinalCLMM` now composes `KKPassThrough` through the
   factory with its weighted-estimate and match-data overrides declared,
   removing two more raw splices.
-- [ ] Ban `eval(body(Inference...))`. **Progress 2026-08-16:** removed two
+- [x] Ban `eval(body(Inference...))`. **Progress 2026-08-16:** removed two
   redundant leaf copies from `InferenceContinKKOLSIVWC` and
   `InferenceAbstractKKQuantileRegrIVWC`; both now inherit the same shared
   bootstrap implementation from
@@ -4722,6 +4881,28 @@ here (2026-08-13) rather than left as prose-only notes.
   shared KK compound composition, covering both its parametric-bootstrap and
   no-parametric-bootstrap generators. The structural regression verifies body
   identity for all seven directly composed hosts.
+  **Completed 2026-08-19**: removed the last two occurrences in the whole
+  tree, both inside the `...LegacyRaw` harvesting classes for
+  `InferenceSurvivalKKClaytonCopulaOneLik`/
+  `InferenceSurvivalKKWeibullFrailtyOneLik`
+  (`inference_survival_KK_clayton_copula.R`,
+  `inference_survival_KK_weibull_frailty.R`) -- same verified-no-op
+  reasoning as every prior removal (each class already splices
+  `InferenceMixinKKPassThrough$public` directly, so the raw source's own
+  `approximate_bootstrap_distribution_beta_hat_T` was already present
+  without the explicit re-evaluated copy). `test-static-cleanup-
+  guardrails.R`'s expected count for this pattern is now `integer(0)` --
+  zero occurrences anywhere in the package. (The separate raw-splicing
+  guardrail still shows 2 occurrences in each of those two files, down from
+  3: the structural `modifyList(as.list(InferenceMixinKKPassThrough$public),
+  ...)` splice itself remains, since these `...LegacyRaw` classes are still
+  the harvesting source for their components, pending the Base Deletion
+  phase -- only the redundant *second* textual reference from the removed
+  `eval(body(...))` line went away.) Verified via
+  `test-survival-kk-clayton-copula-onelik-migration-golden.R`/
+  `test-survival-kk-weibull-frailty-onelik-migration-golden.R` (no behavior
+  change) plus the full mixin-contracts/parametric-bootstrap/full-
+  likelihood-baseline battery, all green.
 - [x] Ban `$private` reads from R6 generator symbols. Enforced by the
   zero-tolerance source scan in `test-static-cleanup-guardrails.R`.
 - [ ] Ban semantic classification through private method-name sniffing.
@@ -4936,7 +5117,7 @@ here (2026-08-13) rather than left as prose-only notes.
     `R/EDI/R/*.R` (verified exhaustively by diffing the full class-name list
     against the two audited lists — 0 unaccounted concrete classes remain)
     is in the FALSE or TRUE list above.
-- [ ] **Implement `get_estimand_type()` across every concrete `Inference`
+- [x] **Implement `get_estimand_type()` across every concrete `Inference`
   class, not just the incidence g-computation family (`InferenceIncidGCompAbstract`/
   `InferenceIncidKKGCompAbstract`, `inference_incidence_gcomp.R`,
   `inference_incidence_KK_marginal.R`, returning `"RD"`/`"RR"`) -- this is
@@ -4982,6 +5163,397 @@ here (2026-08-13) rather than left as prose-only notes.
   `inference_suite_inspect.md` TODO-15a itself, and re-open discussion of
   whether `"estimand_grouped"` weighting (TODO-15) is then safe to default
   to.
+  **Done 2026-08-19:** Modeled directly on the `adjusts_for_covariates`
+  audit above (same file, same day): a flat name -> tag map
+  (`EDI_INFERENCE_ESTIMAND_TAGS` in `inference_class_registry.R`), consulted
+  by `infer_inference_estimand_type(generator, name)` before it falls back
+  to the existing generator `private_methods$get_estimand_type()` walk (so
+  the two already-implemented g-computation families,
+  `InferenceIncidGCompAbstract`/`InferenceIncidKKGCompAbstract`, keep their
+  own real implementation as the source of truth and this audit's tags for
+  those four leaf classes -- confirmed matching, `"RD"`/`"RR"` -- are purely
+  redundant confirmation, not an override). No existing taxonomy string list
+  was found in `marginal_estimand_report.md`/`expanded_estimate_report.md`
+  for this specific field (those documents define an orthogonal
+  conditional-vs-marginal `set_estimand()`/`get_estimand()` *switch*
+  component with its own `"conditional"`/`"marginal_mean_diff"`/
+  `"marginal_ratio"` values -- a different, later-landing mechanism, not
+  `get_estimand_type()`'s fixed per-class declaration), so a new small
+  taxonomy was defined here, kept response-type-grounded and explicit about
+  marginal-vs-conditional noncollapsibility per the TODO's own guidance.
+  Audited every concrete class's `compute_estimate()` fit code and its own
+  `@description` roxygen (not name patterns); exhaustively checked against
+  the full concrete-class census already established for the
+  `adjusts_for_covariates` audit (same 99-class list; zero classes
+  unaccounted for -- every class is either tagged below or explicitly
+  placed in the NA list with a reason).
+  - **Tagged (88 classes)**, by estimand:
+    - `mean_difference` (linear location-shift, collapsible so no
+      marginal/conditional split needed): `SimpleMeanDiff`/
+      `SimpleMeanDiffPooledVar`/`KKMeanDiffIVWC`, `ContinOLS`/`ContinLin`/
+      `ContinRobustRegr`/`ContinKKOLSIVWC`/`ContinKKOLSOneLik`/
+      `ContinKKRobustRegrIVWC`/`ContinKKRobustRegrOneLik`/`ContinKKGLMM`,
+      `BaiAdjustedTKK14`/`BaiAdjustedTKK21`, `OrdinalGCompMeanDiff`,
+      `PropGCompMeanDiff`.
+    - `hodges_lehmann_shift` (rank-based location shift):
+      `SimpleWilcox`/`KKWilcoxIVWC`.
+    - `RD` (risk difference): `IncidBinomialIdentityRiskDiff`,
+      `IncidRiskDiff`, `IncidWald`, `IncidCMH` (confirmed via its own
+      `SimpleMeanDifference` direct component -- a blocked mean-difference
+      estimator on the 0/1 outcome, not a common-odds-ratio test),
+      `IncidExtendedRobins` (own roxygen: "simple mean-difference point
+      estimate with a block-stratified standard error"),
+      `IncidMiettinenNurminenRiskDiff`, `IncidNewcombeRiskDiff`,
+      `IncidKKNewcombeRiskDiff`, `IncidGCompRiskDiff`,
+      `IncidKKGCompRiskDiff` (both already real overrides).
+    - `RR` (risk/rate ratio): `IncidLogBinomial`, `IncidModifiedPoisson`,
+      `IncidKKModifiedPoisson`, `IncidGCompRiskRatio`,
+      `IncidKKGCompRiskRatio` (both already real overrides).
+    - `log_odds_ratio_marginal` (population-averaged logistic effect):
+      `IncidLogRegr`, `IncidKKGEE`.
+    - `probit_effect_marginal`: `IncidProbitRegr`.
+    - `log_odds_ratio_conditional` (matched-set/exact-conditional log-OR --
+      noncollapsibility means this is NOT the same asymptotic quantity as
+      `log_odds_ratio_marginal` even though both come from "a logistic
+      model"): `IncidExactFisher` (own roxygen: conditional-MLE/common
+      odds ratio), `IncidExactBinomial`/`IncidExactZhang` (own roxygen:
+      matched-pair log odds ratio), `IncidKKCondLogitIVWC`/
+      `IncidKKCondLogitOneLik`/`IncidKKCondLogitGLMMIVWC`/
+      `IncidKKCondLogitGLMMOneLik`.
+    - `log_rate_ratio_marginal`: `CountPoisson`/`CountNegBin`/
+      `CountQuasiPoisson`/`CountRobustPoisson`/`CountPoissonKKGEE`.
+    - `log_rate_ratio_conditional` (matched-pair random-intercept/
+      conditional-likelihood count models, split from the marginal tag for
+      the same noncollapsibility reason as incidence): `CountKKGLMM`,
+      `CountKKCondPoissonOneLik`.
+    - Ordinal link-function families kept maximally separated per the
+      TODO's explicit warning that ordinal has the *most* estimand groups,
+      not the fewest -- each is its own tag, marginal vs. `_conditional`
+      (mixed-model/matched) split the same way as incidence/count:
+      `log_odds_ratio_proportional` (`OrdinalPropOddsRegr`, `OrdinalKKGEE`)
+      / `log_odds_ratio_proportional_conditional` (`OrdinalKKCLMM`,
+      `OrdinalKKGLMM`); `log_odds_ratio_adjacent_category`
+      (`OrdinalAdjCatLogitRegr`) / `_conditional`
+      (`OrdinalKKCondAdjCatLogitRegr`); `cauchit_link_effect`
+      (`OrdinalCauchitRegr`) / `_conditional` (`OrdinalKKCLMMCauchit`);
+      `cloglog_link_effect` (`OrdinalCloglogRegr`) / `_conditional`
+      (`OrdinalKKCLMMCloglog`); `probit_effect_ordinal`
+      (`OrdinalOrderedProbitRegr`) / `_conditional`
+      (`OrdinalKKCLMMProbit`); `stereotype_link_effect`
+      (`OrdinalStereotypeLogitRegr`); `log_odds_ratio_continuation_ratio`
+      (`OrdinalContRatioRegr`); `log_odds_ratio_partial_proportional`
+      (`OrdinalPartialProportionalOddsRegr`); `mann_whitney_effect`
+      (`OrdinalRidit`); `stochastic_ordering_trend`
+      (`OrdinalJonckheereTerpstraTest`); `sign_test_effect`
+      (`OrdinalPairedSignTest`).
+    - `logit_effect_proportion_mean` (logit-link mean-proportion models --
+      beta regression and fractional logit target the same practical
+      question on the same scale, so they share one tag per the TODO's
+      "different link/model, same question" rule): `PropBetaRegr`,
+      `PropFractionalLogit`, `PropKKGEE`; conditional/mixed-model variant
+      `logit_effect_proportion_mean_conditional`: `PropKKGLMM`.
+    - `hazard_ratio` (Cox partial-likelihood log-HR; stratified/LWA/KK
+      variants share this tag -- Cox HRs are conditional-on-covariates by
+      construction across all of them, so this split does not apply the
+      same way it does to logistic/Poisson/ordinal): `SurvivalCoxPHRegr`,
+      `SurvivalStratCoxPHRegr`, `SurvivalKKLWACoxPHIVWC`/
+      `SurvivalKKLWACoxPHOneLik`, `SurvivalKKStratCoxPHIVWC`/
+      `SurvivalKKStratCoxPHOneLik`.
+    - `log_time_ratio` (Weibull AFT scale, own roxygen confirms "log-time
+      ratio"/"log-time-ratio scale" for every one of these):
+      `SurvivalWeibullRegr`, `SurvivalKKWeibullMarginal`,
+      `SurvivalKKWeibullFrailtyIVWC`/`SurvivalKKWeibullFrailtyOneLik`,
+      `SurvivalKKClaytonCopulaIVWC`/`SurvivalKKClaytonCopulaOneLik`.
+    - `gehan_wilcoxon_statistic` (Peto-Prentice generalized-Wilcoxon rank
+      statistic -- deliberately given its own tag, distinct from
+      `log_rank_martingale_difference`, since the two use different
+      within-stratum weighting and are not the same scientific question):
+      `SurvivalGehanWilcox`, `SurvivalKKRankRegrIVWC`.
+    - `log_rank_martingale_difference` (own roxygen: "difference in mean
+      martingale residuals between the treatment and control" -- not
+      literally a hazard-ratio point estimate): `SurvivalLogRank`.
+    - `survival_median_difference`: `SurvivalKMDiff`.
+    - `restricted_mean_survival_time_difference`: `SurvivalRestrictedMeanDiff`.
+  - **Left `NA_character_` (14 classes), genuinely undetermined, not
+    skipped**:
+    - Zero-inflated/hurdle count and ZOIB proportion models -- a
+      structural-zero component and a separate rate/mean component, with
+      no single agreed scalar "the treatment effect" without picking which
+      part is meant (per the TODO's own explicit warning not to force a
+      single tag here): `CountHurdlePoisson`, `CountHurdleNegBin`,
+      `CountZeroInflatedPoisson`, `CountZeroInflatedNegBin`,
+      `CountKKHurdlePoissonIVWC`, `CountKKHurdlePoissonOneLik`,
+      `PropZeroOneInflatedBetaRegr`.
+    - Quantile regression across every family that offers it -- the target
+      is tau-indexed, not a fixed per-class scalar, and
+      `get_estimand_type()` is called argument-less on the bare generator
+      (same safe-invoke-without-construction contract as
+      `infer_inference_requires_blocking_design()`), so it structurally
+      cannot depend on a per-call tau: `ContinQuantileRegr`,
+      `ContinKKQuantileRegrIVWC`, `ContinKKQuantileRegrOneLik`,
+      `PropQuantileRegr`, `PropKKQuantileRegrIVWC`,
+      `PropKKQuantileRegrOneLik`.
+    - `SurvivalDepCensTransformRegr`: bivariate transformation model for
+      dependent censoring; its treatment-coefficient scale was not
+      confidently identified from source reading alone within this audit's
+      scope -- left unaudited rather than guessed.
+  - **TODO-15a closed.** `inference_suite_inspect.md`'s TODO-15a is marked
+    done, pointing here. `"estimand_grouped"` weighting (TODO-15) is closer
+    to safe to default but not yet fully unblocked: the 14 `NA`-estimand
+    classes above still need an explicit policy decision (own singleton
+    group per TODO-15a's own question, vs. excluded with a `warning()`)
+    before a default weighting policy can treat every `status == "ok"` row
+    consistently -- that policy decision is left to TODO-15 itself, not
+    decided by this audit.
+- [x] **Give `RandomizationBootstrapCI` its own `provides_capabilities`
+  string in `contracts_mixins.R`, instead of the empty
+  `character()` it declares today, so `run_all_inference()`'s `methods`
+  argument (`inference_suite_inspect.md`; `rand_bootstrap` sentinel) can
+  gate the CI side precisely instead of via a loose capability proxy.**
+  Found while auditing `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`'s
+  `rand_bootstrap` entry (2026-08-19): every other CI/p-value split in
+  that table has its own distinct capability string on each side --
+  e.g. `RandomizationTest` provides `"randomization_test"` (p-value) and
+  the separate `RandomizationCI` component provides its own
+  `"randomization_ci"` (CI), so checking `"randomization_ci" %in%
+  caps` correctly implies the CI method specifically exists. The
+  `rand_bootstrap` sentinel does not follow this pattern:
+  `RandomizationBootstrap` provides `"randomization_bootstrap"` (gates
+  `compute_rand_bootstrap_two_sided_pval`), but its CI extension,
+  `RandomizationBootstrapCI` (`dependencies = "RandomizationBootstrap"`,
+  provides `compute_rand_bootstrap_confidence_interval`), declares
+  `provides_capabilities = character()` -- it contributes no capability
+  string of its own, so nothing distinguishes "has the p-value method"
+  from "has the p-value *and* CI methods" via `capabilities()` alone.
+  **This is not hypothetical**: `inference_class_registry.R:827-828`
+  shows `InferenceAllSimpleWilcox`/`InferenceAllKKWilcoxIVWC` compose
+  `RandomizationBootstrap` *without* `RandomizationBootstrapCI` --
+  concrete classes with the p-value method but not the CI method, exactly
+  the case this capability gap can't distinguish. Consequence today: not
+  a crash (`run_all_inference_call_ci_for_method()`'s call is
+  `tryCatch()`-wrapped, so a missing method degrades to a clean `NA`
+  either way), but the capability *pre-check*
+  (`inference_class_has_method()`/
+  `run_all_inference_class_applicable_methods()`, used to decide which
+  method-sentinel rows to even build *before* construction) will
+  incorrectly think these two classes have an applicable `rand_bootstrap`
+  CI when they don't -- an imprecision, not a bug, but worth fixing at
+  the source rather than working around in `inference_suite.R`.
+  **Scope**: (1) add a new capability string (e.g.
+  `"randomization_bootstrap_ci"`) to `RandomizationBootstrapCI`'s
+  `provides_capabilities` in `contracts_mixins.R`, mirroring
+  `RandomizationCI`'s `"randomization_ci"` precedent exactly; (2) register
+  it in `capability_requires` (a `capabilities = "randomization_bootstrap"`
+  dependency, same shape as `randomization_ci`'s own `capabilities =
+  "randomization_test"` entry); (3) add a `public_methods_for_capability`
+  entry (`randomization_bootstrap_ci = "compute_rand_bootstrap_confidence_interval"`)
+  so contract validation actually enforces the method's presence when the
+  capability is declared, same as every other capability key; (4) update
+  `inference_suite.R`'s `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`'s
+  `rand_bootstrap` row to key off the new capability instead of
+  `"randomization_bootstrap"`. **Do this in `contracts_mixins.R`, not as a
+  component-membership special case inside `inference_suite.R`** (an
+  earlier draft of this fix reached for `get_effective_components(nm)`
+  directly as a workaround -- rejected, per user direction 2026-08-19: the
+  capability system is the correct, load-bearing abstraction every other
+  sentinel already uses, and patching around a capability gap from the
+  consumer side just re-hides the same gap instead of closing it).
+  Run `EDI_VALIDATE_INFERENCE_CONTRACTS=true` strict load after, to
+  confirm the new capability/contract entries don't break existing
+  validation for any class currently composing `RandomizationBootstrapCI`.
+  **Completed 2026-08-19.** Implemented all four scoped steps exactly as
+  specified in `contracts_mixins.R`/`inference_suite.R`. Running the
+  strict `EDI_VALIDATE_INFERENCE_CONTRACTS=true` load surfaced real,
+  previously-invisible gaps (exactly the kind of thing that flag exists to
+  catch), all fixed:
+  - `EDI_SIMPLE_ESTIMATOR_TARGETS`'s `intentional_capabilities` lists for
+    `InferenceAllSimpleMeanDiff`/`InferenceAllSimpleMeanDiffPooledVar`/
+    `InferenceAllKKMeanDiffIVWC` (all compose `BayesianBootstrap`, which
+    depends on `RandomizationBootstrapCI` transitively) never accounted
+    for `compute_rand_bootstrap_confidence_interval`, since no capability
+    existed to recognize it until now -- added
+    `"randomization_bootstrap_ci"` to each. Same fix needed in
+    `build_simple_estimator_behavior_record()`'s own hardcoded capability
+    whitelist (`inference_class_registry.R`), which filters "current
+    public methods" down to "accounted-for optional surface" and was
+    missing the new capability key entirely.
+  - **The task's own motivating example turned out to be based on stale
+    registry data, caught by re-verifying against the real source rather
+    than trusting the write-up**: `InferenceAllSimpleWilcox`/
+    `InferenceAllKKWilcoxIVWC` were cited as "compose `RandomizationBootstrap`
+    without `RandomizationBootstrapCI`" (from `inference_class_registry.R`'s
+    `infer_inference_direct_components()` switch table), but their real
+    `define_inference_class()` calls (`inference_all_simple_wilcox.R`,
+    `inference_all_KK_wilcox_ivwc.R`) both compose
+    `"RandomizationBootstrapCI"` directly -- the switch table entries were
+    stale (same class of gap fixed repeatedly elsewhere in this document
+    this stretch), not the classes' real capability shape. Fixed both: the
+    switch table entries (`"RandomizationBootstrap"` ->
+    `"RandomizationBootstrapCI"`) and their `EDI_SIMPLE_ESTIMATOR_TARGETS`
+    `intentional_capabilities` (added `"randomization_bootstrap_ci"`, same
+    as the mean-difference family). Confirmed via a grep across every
+    `components = c(...)` call in the tree that no class currently
+    composes `"RandomizationBootstrap"` without also composing (or being
+    composed alongside) `"RandomizationBootstrapCI"` -- so there is no
+    live example today of a class with the p-value method but not the CI
+    method, but the capability distinction is still the architecturally
+    correct fix (matches every other CI/p-value split in the priority
+    table) and closes the imprecision for whenever such a class is added.
+  - Verified: `EDI_VALIDATE_INFERENCE_CONTRACTS=true` strict load passes
+    cleanly; `test-mixin-contracts.R`, `test-inference-class-registry.R`,
+    `test-parametric-bootstrap-lr-all-capable-classes.R`,
+    `test-static-cleanup-guardrails.R` all green.
+    `test-simple-estimator-migration-baseline.R`'s pre-existing
+    `private_owner_names` count failures (confirmed via `git stash`
+    to reproduce identically with none of this turn's changes applied)
+    are unrelated drift from a concurrent process's in-progress work in
+    this same repo, not caused by this change.
+- [ ] **`compute_lik_ratio_bartlett_exact_two_sided_pval()`/
+  `compute_lik_ratio_bartlett_exact_confidence_interval()` (and their
+  `_approx` siblings) are not gated by any registered capability at all --
+  a second, related gap found in the same 2026-08-19 sentinel audit as the
+  `RandomizationBootstrapCI` item just above.** Both method pairs are
+  defined directly on `InferenceAsympLik` (`inference_all_abstract_asymp_
+  lik.R:185-230`) -- Bartlett-corrected variants of the likelihood-ratio
+  test (`approx`: Monte Carlo-estimated correction factor, `B` replicates;
+  `exact`: closed-form). Checked `contracts_mixins.R` for what capability
+  might gate them: there is a `BartlettApproximation` component
+  (`provides_capabilities = "bartlett_approximation"`), but it only
+  contributes *private* helpers (`get_bartlett_factor_approx`,
+  `supports_bartlett_likelihood_ratio_approx`) that the already-defined
+  `_approx` method consumes internally -- `provides_public_methods =
+  character()`, so `"bartlett_approximation"` is never registered as
+  gating any public method in `public_methods_for_capability`, and the
+  `_exact` method has no associated component/capability declaration
+  anywhere that grep found. Practical consequence: **every**
+  `InferenceAsympLik`-descended class reports these methods as present
+  (they're unconditionally defined on the base class), regardless of
+  whether that class's actual likelihood machinery can support a
+  meaningful Bartlett correction for it -- there is currently no way to
+  ask "does capability X exist" for either of these two tests the way
+  `run_all_inference()`'s `methods` sentinel design (and every other
+  capability-gated dispatch in the package) expects to be able to.
+  **Scope**: audit whether `_approx`/`_exact` should each get their own
+  registered capability (e.g. `"lik_ratio_bartlett_approx"`/
+  `"lik_ratio_bartlett_exact"`, following the same
+  `provides_capabilities`/`capability_requires`/`public_methods_for_
+  capability` three-part registration pattern the item above scopes for
+  `RandomizationBootstrapCI`), or whether -- since both are defined
+  unconditionally on `InferenceAsympLik` itself rather than composed
+  in/out per class -- the right fix is instead a private guard method
+  (mirroring `supports_bartlett_likelihood_ratio_approx`'s existing
+  pattern) that the methods themselves check and `NA`-out on when the
+  correction isn't meaningful for that class, rather than a capability
+  gate at all. Decide which shape is correct before implementing either.
+  Once resolved, add `"lik_ratio_bartlett_approx"`/
+  `"lik_ratio_bartlett_exact"` sentinels to `inference_suite.R`'s
+  `EDI_INFERENCE_SUITE_METHOD_SENTINELS`
+  (`inference_suite_inspect.md`-adjacent `run_all_inference()` `methods`
+  argument), which currently has no way to request either test.
+- [ ] **Add real `get_supported_*_types()` accessor methods to the
+  bootstrap-family components (`NonparametricBootstrap`,
+  `BayesianBootstrap`, `RandomizationBootstrap`), mirroring
+  `likelihood_tests`'s existing `get_supported_testing_types()`/
+  `get_supported_information_preferences()` pattern -- blocking
+  prerequisite for `run_all_inference()`'s planned `methods` argument
+  redesign (list-of-sentinel -> requested `type` values, default all
+  types for all methods; `inference_suite_inspect.md`-adjacent), which is
+  itself blocked on this TODO per explicit user decision (2026-08-19: do
+  not ship the type-fanout feature against a hardcoded, drift-prone type
+  table -- wait for real introspection).** Found during that feature's
+  design (2026-08-19): each bootstrap-family method's valid `type` values
+  are hardcoded inside its own body via `assertChoice(type, c(...))`, with
+  no declarative registry anywhere -- and the CI-side and p-value-side
+  choice sets for the *same* sentinel are not even identical, confirmed by
+  reading source directly rather than assumed:
+  - `compute_bootstrap_confidence_interval()`'s `type` (`inference_all_
+    abstract_non_param_boot.R:836-847`): `"percentile"`, `"basic"`,
+    `"studentized"`, `"bootstrap-t"`, `"symmetric-percentile-t"`,
+    `"bca"`, `"prepivoted"`, `"double-bootstrap"`, `"calibrated"`,
+    `"smoothed"` (10 values) vs. `compute_bootstrap_two_sided_pval()`'s
+    (`inference_all_abstract_non_param_boot.R:673-685`): `"percentile"`,
+    `"symmetric"`, `"studentized"`, `"bootstrap-t"`, `"bca"` (5 values --
+    note `"symmetric"` here, not `"symmetric-percentile-t"`, and neither
+    `"basic"` nor the other CI-only variants are pval-side options).
+  - `compute_bayesian_bootstrap_confidence_interval()`'s `type`
+    (`inference_all_abstract_bayesian_bootstrap.R:391-400`):
+    `"percentile"`, `"basic"`, `"wald"`, `"studentized"`,
+    `"bootstrap-t"`, `"bca"` vs. `compute_bayesian_bootstrap_two_sided_
+    pval()`'s (`inference_all_abstract_bayesian_bootstrap.R:261-271`):
+    `"percentile"`, `"symmetric"`, `"wald"`, `"studentized"`,
+    `"bootstrap-t"`, `"bca"` -- again `"basic"`/`"symmetric"` swap
+    between the two sides.
+  - `compute_rand_bootstrap_confidence_interval()`/`compute_rand_
+    bootstrap_two_sided_pval()` (`inference_all_abstract_rand_bootstrap_
+    ci.R:79-88`, `inference_all_abstract_rand_bootstrap.R`): both sides
+    agree -- `"percentile"`, `"studentized"`, `"symmetric-percentile-t"`,
+    `"smoothed"` -- the one sentinel of the three where CI and pval
+    happen to already match exactly.
+  **Scope**: for each of the three components, add a public accessor
+  (e.g. `get_supported_bootstrap_ci_types()`/
+  `get_supported_bootstrap_pval_types()`, split by side given the
+  confirmed asymmetry above -- do not assume a single shared list is
+  sufficient for any of the three) that returns the exact character
+  vector its own `assertChoice()` already hardcodes, so the two stay
+  mechanically in sync (ideally by having the method's own
+  `assertChoice()` call read from the same constant the accessor
+  returns, rather than two independently-maintained literals). Register
+  each new accessor in `contracts_mixins.R`'s
+  `public_methods_for_capability` under the relevant capability
+  (`nonparametric_bootstrap`, `bayesian_bootstrap`,
+  `randomization_bootstrap`), same registration mechanics as every other
+  public method in that table. Once landed, `run_all_inference()`'s
+  `methods` argument can call these accessors at runtime per class
+  instead of consulting any hardcoded type table in `inference_suite.R`.
+- [ ] **Audit `contracts_mixins.R`'s `public_methods_for_capability` for
+  completeness against every `compute_*_two_sided_pval()`/
+  `compute_*_confidence_interval()` method actually defined in the
+  codebase -- currently a hand-maintained 12-key list with no mechanism
+  forcing it to stay exhaustive, and it is demonstrably not exhaustive
+  today.** Blocking prerequisite for `inference_suite_plan.md`'s planned
+  TODO to derive `run_all_inference()`'s method-sentinel list via
+  introspection of this registry instead of a hardcoded constant in
+  `inference_suite.R` -- introspecting an incomplete registry just moves
+  the staleness risk from one hardcoded list to another, so this must
+  close first. Found via two rounds of manual `grep`-auditing while
+  designing `run_all_inference()`'s `methods` argument (2026-08-19), each
+  round turning up gaps the previous one missed -- itself the proof this
+  needs a systematic, not ad hoc, audit:
+  - `RandomizationBootstrapCI`'s `compute_rand_bootstrap_confidence_interval`
+    is real but ungated (own TODO above, already scoped).
+  - `compute_lik_ratio_bartlett_approx_two_sided_pval`/
+    `_confidence_interval` and `_exact` are real but ungated (own TODO
+    above, already scoped) -- and a **third** variant exists that neither
+    of those TODOs mentions: `compute_lik_ratio_bartlett_two_sided_pval`
+    (no suffix, `inference_all_abstract_asymp_lik.R:261`), a "best
+    available" dispatcher that auto-selects exact-over-approx (its own
+    roxygen: "uses the exact... factor if this class implements one,
+    otherwise falls back to the approximate... factor"); this plain
+    dispatcher is plausibly the *right* single sentinel for ordinary use
+    (with `_approx`/`_exact` as opt-in overrides for reproducibility, per
+    its own docs), fold that judgment call into the existing Bartlett TODO
+    when it's picked up.
+  - `compute_m_out_of_n_bootstrap_two_sided_pval`/
+    `compute_subsampling_two_sided_pval` (`NonparametricBootstrap`
+    component) are real, distinct resampling-scheme methods not listed
+    under the `nonparametric_bootstrap` key's method set at all (only the
+    3 canonical bootstrap methods are) -- an open scope question (own
+    method-family or extra `type` values?), not yet decided.
+  **Scope**: enumerate every `compute_*_two_sided_pval`/
+  `compute_*_confidence_interval` method definition across `R/EDI/R/*.R`
+  (a full grep, not spot-checks), cross-reference each against
+  `public_methods_for_capability`'s existing 12 keys, and for every
+  orphan found (the ones above, and any this pass turns up that the two
+  prior manual rounds didn't) either fold it into an existing capability
+  key, give it a new one, or explicitly document why it's deliberately
+  uncatalogued (e.g. an internal dispatcher whose target methods are
+  already separately registered, like `compute_likelihood_test_two_sided_pval`'s
+  `testing_type`-parameterized dispatch into `score`/`lik_ratio`/
+  `gradient`, already covered under `likelihood_tests`). Land as a
+  regression-tested invariant (e.g. a test asserting the grep-derived
+  method-name set is a subset of the registry's), not just a one-time
+  manual pass, so this can't silently go stale again the way the
+  hand-maintained list already has.
 
 ## Definition of Done
 

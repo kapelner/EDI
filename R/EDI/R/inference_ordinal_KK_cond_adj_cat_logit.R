@@ -1,8 +1,39 @@
 #' Adjacent Category Logit Inference for KK Matching-on-the-fly Designs
 #'
-#' Fits a conditional adjacent category logit model for ordinal responses
-#' under a KK matching-on-the-fly design. This model is implemented via data
-#' expansion and conditional logistic regression.
+#' Fits a conditional (stratified) adjacent-category logit model for ordinal
+#' responses under a KK matching-on-the-fly design:
+#' \deqn{\log\frac{\Pr(Y_i = j+1 \mid Y_i \in \{j, j+1\})}{\Pr(Y_i = j \mid Y_i
+#' \in \{j, j+1\})} = \alpha_j + \beta_T W_i + X_i^\top \gamma,} for adjacent
+#' category comparisons \eqn{j = 1, \dots, K-1}, with cut-specific intercepts
+#' \eqn{\alpha_j} and a treatment coefficient \eqn{\beta_T} constrained equal
+#' across all cuts (the parallel/proportional adjacent-category assumption).
+#' \eqn{\exp(\hat\beta_T)} is the common adjacent-category odds ratio. Fitting
+#' proceeds by \code{\link{expand_adjacent_category_data_cpp}}'s stacked-binary
+#' expansion (each subject contributes a 0/1 row per adjacent cut they border,
+#' stratified by matched pair) followed by conditional logistic regression on
+#' the expanded data — the matched-pair identity becomes the conditioning
+#' stratum, so the pair's shared nuisance intercept is conditioned out exactly
+#' as in a single binary conditional-logit KK model, and reservoir (unmatched)
+#' subjects each form their own singleton stratum. \code{likelihood_tier =
+#' "partial"} (a conditional/partial likelihood, matched-set effects are
+#' profiled out rather than estimated); \code{supports_likelihood_tests()} is
+#' hard \code{FALSE} — only Wald inference is exposed, not likelihood-ratio,
+#' score, or gradient tests. Validity requires the adjacent-category
+#' proportionality assumption (a common \eqn{\beta_T} across all \eqn{K-1}
+#' cuts) in addition to the usual conditional-logit exchangeability-within-strata
+#' assumption induced by the KK design.
+#'
+#' @references Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
+#'   (2nd ed.). Wiley, for the adjacent-category logit model family; Kapelner,
+#'   A. and Krieger, A. M. (2014). "Matching on-the-fly: Sequential allocation
+#'   with higher power and efficiency." \emph{Biometrics}, 70(2), 378-388,
+#'   \doi{10.1111/biom.12148}, for the KK matching-on-the-fly design this
+#'   class is built for.
+#'
+#' @seealso \code{\link[EDI:InferenceOrdinalAdjCatLogitRegr]{InferenceOrdinalAdjCatLogitRegr}}
+#'   for the non-KK analog. See also:
+#'   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal regression}
+#'   (Wikipedia).
 #'
 #' @examples
 #' \donttest{
@@ -44,10 +75,14 @@ InferenceOrdinalKKCondAdjCatLogitRegr = define_inference_class(
 		# pin is chosen to exactly match the confirmed legacy resolution,
 		# not assumed equivalent.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
-		#' @description Initialize KK adjacent-category conditional-logit inference
-		#'   for ordinal responses and prepare the fitted ordinal likelihood used by
-		#'   \code{\link[EDI:InferenceOrdinalKKCondAdjCatLogitRegr]{InferenceOrdinalKKCondAdjCatLogitRegr}}.
-		#' @param des_obj A completed KK \code{DesignSeqOneByOne} object.
+		#' @description Initialize inference for the conditional adjacent-category
+		#'   logit model \eqn{\log(\Pr(Y_i = j+1 \mid Y_i \in \{j,j+1\}) / \Pr(Y_i =
+		#'   j \mid Y_i \in \{j,j+1\})) = \alpha_j + \beta_T W_i + X_i^\top \gamma}
+		#'   and prepare KK matched-pair structure for the stratified conditional-logit
+		#'   fit. Does not fit the model; the fit is deferred to the first call to
+		#'   \code{compute_estimate()} or a method that requires it.
+		#' @param des_obj A completed KK \code{DesignSeqOneByOne} object with an
+		#'   ordinal response.
 		#' @param model_formula   Optional formula for covariate adjustment.
 		#' @param verbose Flag for progress messages.
 		#' @param smart_cold_start_default Whether to use smart cold start values by default.
@@ -56,14 +91,30 @@ InferenceOrdinalKKCondAdjCatLogitRegr = define_inference_class(
 			super$initialize(des_obj, verbose = verbose, harden = harden, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			private$init_kk_passthrough(des_obj)
 		},
-		#' @description Returns the treatment effect estimate.
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @description Fits the conditional adjacent-category logit model via
+		#'   stacked-binary expansion (\code{\link{expand_adjacent_category_data_cpp}})
+		#'   plus conditional logistic regression, and returns the shared
+		#'   log-odds-ratio estimate \eqn{\hat\beta_T}.
+		#' @param estimate_only If \code{TRUE}, skip standard-error computation and
+		#'   cache only the point estimate; used by randomization and bootstrap
+		#'   resampling paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the KK conditional adjacent-category-logit
-		#'   estimate under Bayesian-bootstrap weights.
+		#' @description Recomputes the treatment estimate under subject/block-level
+		#'   bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
+		#'   weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}). When
+		#'   weights are effectively constant, this collapses to the unweighted
+		#'   \code{compute_estimate()} call. Otherwise, rather than refitting the
+		#'   full expanded conditional-logit model under weights, it calls
+		#'   \code{weighted_ordinal_bootstrap_surrogate_fit()} — a fast weighted
+		#'   ordinal-logistic surrogate fit on the raw (unexpanded) design matrix —
+		#'   as an approximation to the weighted adjacent-category likelihood; this
+		#'   trades exact reweighted refitting for speed across many bootstrap
+		#'   replicates. No standard error is computed (\code{s_beta_hat_T} is
+		#'   always \code{NA}); the surrogate returns \code{NA} if the fit fails.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
 		#' @param estimate_only If \code{TRUE}, compute only the weighted point
@@ -84,8 +135,13 @@ InferenceOrdinalKKCondAdjCatLogitRegr = define_inference_class(
 			private$cached_values$s_beta_hat_T = NA_real_
 			private$cached_values$beta_hat_T
 		},
-		#' @description Returns the asymptotic confidence interval.
-		#' @param alpha Confidence level.
+		#' @description Wald confidence interval for the shared adjacent-category
+		#'   log-odds-ratio \eqn{\beta_T}, using the conditional-logit model's
+		#'   standard error; see \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}
+		#'   for the shared Wald contract. Fits the model first if not already
+		#'   cached.
+		#' @param alpha Two-sided miscoverage rate; the returned interval targets
+		#'   \code{1 - alpha} coverage.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared()
 			ordinal_cond_clogit_assert_finite_se(private, class(self)[1])

@@ -144,6 +144,13 @@ capability_requires = list(
 	randomization_bootstrap = list(
 		capabilities = c("randomization_test", "nonparametric_bootstrap")
 	),
+	# 2026-08-19 (inference_suite_inspect.md audit): same shape as
+	# randomization_ci's own "capabilities = randomization_test" entry
+	# above -- RandomizationBootstrapCI depends on RandomizationBootstrap,
+	# so its capability requires that one.
+	randomization_bootstrap_ci = list(
+		capabilities = "randomization_bootstrap"
+	),
 	jackknife = list(),
 	wald = list(),
 	likelihood_tests = list(
@@ -206,6 +213,9 @@ public_methods_for_capability = list(
 	randomization_bootstrap = c(
 		"approximate_rand_bootstrap_distribution_beta_hat_T",
 		"compute_rand_bootstrap_two_sided_pval"
+	),
+	randomization_bootstrap_ci = c(
+		"compute_rand_bootstrap_confidence_interval"
 	),
 	jackknife = c(
 		"approximate_jackknife_distribution_beta_hat_T",
@@ -413,7 +423,18 @@ EDI_COMPONENT_SPECS = list(
 			"expand_rand_bootstrap_bound",
 			"invert_rand_bootstrap_test_bisection"
 		),
-		provides_capabilities = character(),
+		# 2026-08-19 (inference_suite_inspect.md audit): gives this
+		# component its own distinct capability string, mirroring
+		# RandomizationCI's "randomization_ci" precedent, so
+		# "randomization_bootstrap_ci" %in% caps precisely implies
+		# compute_rand_bootstrap_confidence_interval exists -- before this,
+		# the CI side contributed no capability of its own, so nothing
+		# distinguished "has the p-value method" (RandomizationBootstrap's
+		# "randomization_bootstrap") from "has the p-value *and* CI
+		# methods" (concrete classes composing RandomizationBootstrap
+		# without RandomizationBootstrapCI exist, e.g.
+		# InferenceAllSimpleWilcox/InferenceAllKKWilcoxIVWC).
+		provides_capabilities = "randomization_bootstrap_ci",
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
 		declare_body_references_optional = TRUE
 	),

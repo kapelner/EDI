@@ -96,9 +96,10 @@ EDI_SIMPLE_ESTIMATOR_TARGETS = list(
 		),
 		intentional_capabilities = c(
 			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
-			"randomization_bootstrap", "bayesian_bootstrap", "jackknife", "wald"
+			"randomization_bootstrap", "randomization_bootstrap_ci",
+			"bayesian_bootstrap", "jackknife", "wald"
 		),
-		notes = "Closed-form mean-difference estimator keeps randomization, randomization-CI, nonparametric bootstrap, randomization-bootstrap, Bayesian-bootstrap, jackknife, and Wald APIs; likelihood-test and parametric-likelihood-bootstrap APIs are legacy surface."
+		notes = "Closed-form mean-difference estimator keeps randomization, randomization-CI, nonparametric bootstrap, randomization-bootstrap (p-value and CI), Bayesian-bootstrap, jackknife, and Wald APIs; likelihood-test and parametric-likelihood-bootstrap APIs are legacy surface."
 	),
 	InferenceAllSimpleMeanDiffPooledVar = list(
 		family = "simple_mean_difference",
@@ -109,7 +110,8 @@ EDI_SIMPLE_ESTIMATOR_TARGETS = list(
 		),
 		intentional_capabilities = c(
 			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
-			"randomization_bootstrap", "bayesian_bootstrap", "jackknife", "wald"
+			"randomization_bootstrap", "randomization_bootstrap_ci",
+			"bayesian_bootstrap", "jackknife", "wald"
 		),
 		notes = "Pooled-variance mean-difference estimator keeps the same no-likelihood resampling/Wald APIs as the base simple mean-difference estimator; likelihood-test and parametric-likelihood-bootstrap APIs are legacy surface."
 	),
@@ -123,7 +125,8 @@ EDI_SIMPLE_ESTIMATOR_TARGETS = list(
 		),
 		intentional_capabilities = c(
 			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
-			"randomization_bootstrap", "bayesian_bootstrap", "jackknife", "wald",
+			"randomization_bootstrap", "randomization_bootstrap_ci",
+			"bayesian_bootstrap", "jackknife", "wald",
 			"kk_passthrough", "kk_compound"
 		),
 		notes = "KK IVWC mean-difference estimator keeps no-likelihood resampling/Wald APIs plus KK pass-through and compound behavior; likelihood-test APIs are legacy surface."
@@ -136,9 +139,9 @@ EDI_SIMPLE_ESTIMATOR_TARGETS = list(
 		),
 		intentional_capabilities = c(
 			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
-			"randomization_bootstrap", "jackknife", "wald"
+			"randomization_bootstrap", "randomization_bootstrap_ci", "jackknife", "wald"
 		),
-		notes = "Simple Wilcoxon/Hodges-Lehmann estimator keeps randomization, randomization-CI, nonparametric bootstrap, randomization-bootstrap, jackknife stubs, and Wald/asymptotic rank APIs; Bayesian-bootstrap, likelihood-test, and parametric-likelihood-bootstrap APIs are legacy surface."
+		notes = "Simple Wilcoxon/Hodges-Lehmann estimator keeps randomization, randomization-CI, nonparametric bootstrap, randomization-bootstrap (p-value and CI), jackknife stubs, and Wald/asymptotic rank APIs; Bayesian-bootstrap, likelihood-test, and parametric-likelihood-bootstrap APIs are legacy surface."
 	),
 	InferenceAllKKWilcoxIVWC = list(
 		family = "wilcoxon_rank",
@@ -149,9 +152,10 @@ EDI_SIMPLE_ESTIMATOR_TARGETS = list(
 		),
 		intentional_capabilities = c(
 			"randomization_test", "randomization_ci", "nonparametric_bootstrap",
-			"randomization_bootstrap", "jackknife", "wald", "kk_passthrough", "kk_compound"
+			"randomization_bootstrap", "randomization_bootstrap_ci",
+			"jackknife", "wald", "kk_passthrough", "kk_compound"
 		),
-		notes = "KK Wilcoxon IVWC estimator keeps rank randomization/resampling APIs plus KK pass-through and compound behavior; Bayesian-bootstrap and likelihood-test APIs are legacy surface."
+		notes = "KK Wilcoxon IVWC estimator keeps rank randomization/resampling APIs (p-value and CI) plus KK pass-through and compound behavior; Bayesian-bootstrap and likelihood-test APIs are legacy surface."
 	)
 )
 
@@ -567,6 +571,121 @@ infer_inference_requires_blocking_design = function(generator) {
 	FALSE
 }
 
+# TODO-15a (inference_suite_inspect.md) audit, 2026-08-19: what scientific
+# quantity each concrete class's compute_estimate() targets, read from each
+# class's own fit code / @description (not guessed from name patterns), so
+# EDI_INFERENCE_ESTIMAND_TAGS[[name]] can be consulted by
+# infer_inference_estimand_type() below before falling back to the
+# per-generator private_methods$get_estimand_type() walk (which only the two
+# g-computation abstract families implement directly). Deliberately a flat
+# name -> tag map, same discipline as EDI_INFERENCE_CLASSES_USING_COVARIATES
+# above: distinguishes "different scientific question" (e.g. log-odds-ratio
+# vs. risk difference) from "different link/model for the same question" (two
+# GLM links both estimating a mean difference share one tag), and marks
+# marginal vs. conditional variants separately wherever noncollapsibility makes
+# them different asymptotic quantities (logistic/Poisson conditional-vs-marginal
+# families; NOT linear mean-difference families, which are collapsible). Classes
+# not listed here are left NA_character_ (the existing default) because their
+# target quantity is genuinely undetermined, not because they were skipped:
+# zero-inflated/hurdle count models and ZOIB proportion regression (structural-
+# zero component vs. count/mean-rate component -- no single agreed-upon scalar
+# target), quantile regression across all three families that offer it (target
+# is tau-indexed, not a fixed per-class scalar; get_estimand_type() is called
+# argument-less on the bare generator so it cannot depend on a per-call tau),
+# and InferenceSurvivalDepCensTransformRegr (bivariate transformation model
+# whose treatment-coefficient scale was not confidently identified without a
+# deeper model derivation than this audit's time budget covered).
+EDI_INFERENCE_ESTIMAND_TAGS = list(
+	InferenceAllKKMeanDiffIVWC = "mean_difference",
+	InferenceAllKKWilcoxIVWC = "hodges_lehmann_shift",
+	InferenceAllSimpleMeanDiff = "mean_difference",
+	InferenceAllSimpleMeanDiffPooledVar = "mean_difference",
+	InferenceAllSimpleWilcox = "hodges_lehmann_shift",
+	InferenceBaiAdjustedTKK14 = "mean_difference",
+	InferenceBaiAdjustedTKK21 = "mean_difference",
+	InferenceContinKKGLMM = "mean_difference",
+	InferenceContinKKOLSIVWC = "mean_difference",
+	InferenceContinKKOLSOneLik = "mean_difference",
+	InferenceContinKKRobustRegrIVWC = "mean_difference",
+	InferenceContinKKRobustRegrOneLik = "mean_difference",
+	InferenceContinLin = "mean_difference",
+	InferenceContinOLS = "mean_difference",
+	InferenceContinRobustRegr = "mean_difference",
+	InferenceCountKKCondPoissonOneLik = "log_rate_ratio_conditional",
+	InferenceCountKKGLMM = "log_rate_ratio_conditional",
+	InferenceCountNegBin = "log_rate_ratio_marginal",
+	InferenceCountPoisson = "log_rate_ratio_marginal",
+	InferenceCountPoissonKKGEE = "log_rate_ratio_marginal",
+	InferenceCountQuasiPoisson = "log_rate_ratio_marginal",
+	InferenceCountRobustPoisson = "log_rate_ratio_marginal",
+	InferenceIncidBinomialIdentityRiskDiff = "RD",
+	InferenceIncidCMH = "RD",
+	InferenceIncidExactBinomial = "log_odds_ratio_conditional",
+	InferenceIncidExactFisher = "log_odds_ratio_conditional",
+	InferenceIncidExactZhang = "log_odds_ratio_conditional",
+	InferenceIncidExtendedRobins = "RD",
+	InferenceIncidGCompRiskDiff = "RD",
+	InferenceIncidGCompRiskRatio = "RR",
+	InferenceIncidKKCondLogitGLMMIVWC = "log_odds_ratio_conditional",
+	InferenceIncidKKCondLogitGLMMOneLik = "log_odds_ratio_conditional",
+	InferenceIncidKKCondLogitIVWC = "log_odds_ratio_conditional",
+	InferenceIncidKKCondLogitOneLik = "log_odds_ratio_conditional",
+	InferenceIncidKKGCompRiskDiff = "RD",
+	InferenceIncidKKGCompRiskRatio = "RR",
+	InferenceIncidKKGEE = "log_odds_ratio_marginal",
+	InferenceIncidKKModifiedPoisson = "RR",
+	InferenceIncidKKNewcombeRiskDiff = "RD",
+	InferenceIncidLogBinomial = "RR",
+	InferenceIncidLogRegr = "log_odds_ratio_marginal",
+	InferenceIncidMiettinenNurminenRiskDiff = "RD",
+	InferenceIncidModifiedPoisson = "RR",
+	InferenceIncidNewcombeRiskDiff = "RD",
+	InferenceIncidProbitRegr = "probit_effect_marginal",
+	InferenceIncidRiskDiff = "RD",
+	InferenceIncidWald = "RD",
+	InferenceOrdinalAdjCatLogitRegr = "log_odds_ratio_adjacent_category",
+	InferenceOrdinalCauchitRegr = "cauchit_link_effect",
+	InferenceOrdinalCloglogRegr = "cloglog_link_effect",
+	InferenceOrdinalContRatioRegr = "log_odds_ratio_continuation_ratio",
+	InferenceOrdinalGCompMeanDiff = "mean_difference",
+	InferenceOrdinalJonckheereTerpstraTest = "stochastic_ordering_trend",
+	InferenceOrdinalKKCLMM = "log_odds_ratio_proportional_conditional",
+	InferenceOrdinalKKCLMMCauchit = "cauchit_link_effect_conditional",
+	InferenceOrdinalKKCLMMCloglog = "cloglog_link_effect_conditional",
+	InferenceOrdinalKKCLMMProbit = "probit_effect_ordinal_conditional",
+	InferenceOrdinalKKCondAdjCatLogitRegr = "log_odds_ratio_adjacent_category_conditional",
+	InferenceOrdinalKKGEE = "log_odds_ratio_proportional",
+	InferenceOrdinalKKGLMM = "log_odds_ratio_proportional_conditional",
+	InferenceOrdinalOrderedProbitRegr = "probit_effect_ordinal",
+	InferenceOrdinalPairedSignTest = "sign_test_effect",
+	InferenceOrdinalPartialProportionalOddsRegr = "log_odds_ratio_partial_proportional",
+	InferenceOrdinalPropOddsRegr = "log_odds_ratio_proportional",
+	InferenceOrdinalRidit = "mann_whitney_effect",
+	InferenceOrdinalStereotypeLogitRegr = "stereotype_link_effect",
+	InferencePropBetaRegr = "logit_effect_proportion_mean",
+	InferencePropFractionalLogit = "logit_effect_proportion_mean",
+	InferencePropGCompMeanDiff = "mean_difference",
+	InferencePropKKGEE = "logit_effect_proportion_mean",
+	InferencePropKKGLMM = "logit_effect_proportion_mean_conditional",
+	InferenceSurvivalCoxPHRegr = "hazard_ratio",
+	InferenceSurvivalGehanWilcox = "gehan_wilcoxon_statistic",
+	InferenceSurvivalKKClaytonCopulaIVWC = "log_time_ratio",
+	InferenceSurvivalKKClaytonCopulaOneLik = "log_time_ratio",
+	InferenceSurvivalKKLWACoxPHIVWC = "hazard_ratio",
+	InferenceSurvivalKKLWACoxPHOneLik = "hazard_ratio",
+	InferenceSurvivalKKRankRegrIVWC = "gehan_wilcoxon_statistic",
+	InferenceSurvivalKKStratCoxPHIVWC = "hazard_ratio",
+	InferenceSurvivalKKStratCoxPHOneLik = "hazard_ratio",
+	InferenceSurvivalKKWeibullFrailtyIVWC = "log_time_ratio",
+	InferenceSurvivalKKWeibullFrailtyOneLik = "log_time_ratio",
+	InferenceSurvivalKKWeibullMarginal = "log_time_ratio",
+	InferenceSurvivalKMDiff = "survival_median_difference",
+	InferenceSurvivalLogRank = "log_rank_martingale_difference",
+	InferenceSurvivalRestrictedMeanDiff = "restricted_mean_survival_time_difference",
+	InferenceSurvivalStratCoxPHRegr = "hazard_ratio",
+	InferenceSurvivalWeibullRegr = "log_time_ratio"
+)
+
 #' What treatment-effect quantity a concrete `Inference` generator's
 #' `compute_estimate()` reports (e.g. `"mean_difference"`, `"log_odds_ratio"`,
 #' `"hazard_ratio"`), for `InferenceSuite$run_all_inference()`'s Combined
@@ -580,7 +699,17 @@ infer_inference_requires_blocking_design = function(generator) {
 #'
 #' @keywords internal
 #' @noRd
-infer_inference_estimand_type = function(generator) {
+infer_inference_estimand_type = function(generator, name = generator$classname) {
+	# TODO-15a audit map takes priority: covers every class this audit
+	# confidently tagged, including classes with no get_estimand_type()
+	# private method of their own (the vast majority -- only the two
+	# g-computation abstract families implement it directly). Falls through
+	# to the generator private_methods walk below so the g-computation
+	# classes' own real implementation stays authoritative if this map and
+	# that implementation were ever to disagree.
+	if (!is.null(name) && name %in% names(EDI_INFERENCE_ESTIMAND_TAGS)) {
+		return(EDI_INFERENCE_ESTIMAND_TAGS[[name]])
+	}
 	current = generator
 	while (!is.null(current)) {
 		fn = current$private_methods$get_estimand_type
@@ -699,8 +828,16 @@ infer_inference_direct_components = function(name) {
 		InferenceContinKKQuantileRegrIVWC = c("BayesianBootstrap", "Wald", "KKQuantileRegrIVWC"),
 		InferencePropKKQuantileRegrIVWC = c("BayesianBootstrap", "Wald", "KKQuantileRegrIVWC"),
 		InferenceBaiAdjustedTKK21 = c("BayesianBootstrap", "Wald", "BaiAdjustedT"),
-		InferenceAllSimpleWilcox = c("RandomizationBootstrap", "Wald", "SimpleWilcox"),
-		InferenceAllKKWilcoxIVWC = c("RandomizationBootstrap", "Wald", "KKWilcoxIVWC"),
+		# 2026-08-19 (inference_suite_inspect.md audit, RandomizationBootstrapCI
+		# capability item): corrected from the stale "RandomizationBootstrap"
+		# (p-value only) -- both real factory calls compose
+		# "RandomizationBootstrapCI" directly (which pulls RandomizationBootstrap
+		# in transitively via its own dependency), giving both classes
+		# compute_rand_bootstrap_confidence_interval genuinely. Only surfaced
+		# now because RandomizationBootstrapCI previously provided no
+		# capability of its own, so this mismatch was invisible.
+		InferenceAllSimpleWilcox = c("RandomizationBootstrapCI", "Wald", "SimpleWilcox"),
+		InferenceAllKKWilcoxIVWC = c("RandomizationBootstrapCI", "Wald", "KKWilcoxIVWC"),
 		# Both Cox entries list BayesianBootstrap explicitly: their factory calls
 		# compose c("BayesianBootstrap", <cox component>) (the bootstrap layer is
 		# NOT in the Cox components' dependency chains -- see the 2026-08-17
@@ -760,7 +897,26 @@ infer_inference_direct_components = function(name) {
 		InferenceAbstractQuantileRandCI = "QuantileRandomizationCI",
 		InferenceCustomAsymp = c("Wald", "NonparametricBootstrap"),
 		InferenceCustomBoot = "NonparametricBootstrap",
-		InferenceAbstractKKOrdinalCLMM = "KKPassThrough",
+		# Updated 2026-08-19 (fix_inference_hierarchy.md "Partial-Likelihood
+		# Estimators", "Migrate KK partial-likelihood classes"): mirrors the
+		# factory reality after flipping from `inherit = InferenceAsympLik`
+		# to `inherit = Inference` with `BayesianBootstrap`/`Wald` composed
+		# explicitly. Resolved transitively into the four concrete leaves
+		# (InferenceOrdinalKKCLMM/...Probit/...Cauchit/...Cloglog) via
+		# resolve_inference_components()'s parent-chain walk (none of them
+		# have their own direct_components entry, by design).
+		InferenceAbstractKKOrdinalCLMM = c("BayesianBootstrap", "Wald", "KKPassThrough"),
+		# Added 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
+		# Estimators", "ModifiedPoisson full-likelihood migration"): this
+		# class was previously plain R6 (raw-splicing InferenceMixinKKPassThrough,
+		# `inherit = InferenceParamBootstrap`), never registered in this
+		# switch at all -- now composes registered components directly, so
+		# needs an explicit entry mirroring the factory call exactly.
+		# Resolved transitively into InferenceAbstractKKModifiedPoisson/
+		# InferenceIncidKKModifiedPoisson and InferenceIncidKKGCompAbstract
+		# (both plain-R6 descendants) via resolve_inference_components()'s
+		# parent-chain walk.
+		InferenceAbstractKKMarginalIncid = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKPassThrough"),
 		InferenceIncidMiettinenNurminenRiskDiff = c("BayesianBootstrap", "Wald"),
 		InferenceIncidGCompRiskDiff = c("BayesianBootstrap", "Jackknife", "IncidenceGComputation"),
 		InferenceIncidGCompRiskRatio = c("BayesianBootstrap", "Jackknife", "IncidenceGComputation"),
@@ -1461,6 +1617,16 @@ build_simple_estimator_behavior_record = function(name) {
 			"randomization_ci",
 			"nonparametric_bootstrap",
 			"randomization_bootstrap",
+			# 2026-08-19 (inference_suite_inspect.md audit): added when
+			# RandomizationBootstrapCI was given its own
+			# "randomization_bootstrap_ci" capability (previously
+			# character()) -- compute_rand_bootstrap_confidence_interval
+			# was always genuinely present on every class transitively
+			# composing BayesianBootstrap (which depends on
+			# RandomizationBootstrapCI), but this whitelist had no
+			# capability key to recognize it as accounted-for optional
+			# surface until now.
+			"randomization_bootstrap_ci",
 			"bayesian_bootstrap",
 			"jackknife",
 			"wald",
@@ -1965,7 +2131,7 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				excluded_capabilities = EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES[[name]] %||% character(),
 				supports_general_censoring = infer_inference_supports_general_censoring(obj),
 				requires_blocking_design = infer_inference_requires_blocking_design(obj),
-				estimand = infer_inference_estimand_type(obj),
+				estimand = infer_inference_estimand_type(obj, name),
 				adjusts_for_covariates = infer_inference_adjusts_for_covariates(name)
 			),
 			direct_components = infer_inference_direct_components(name)

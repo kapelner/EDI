@@ -428,7 +428,7 @@ outside `cct_combine_pvalues()` — worth one explicit sentence in the
 roxygen (folded into TODO-19) precisely because the architecture prevents
 it internally but can't stop a user from doing that by hand externally.
 
-### Weighting — open design question, not yet decided
+### Weighting — resolved (TODO-15/TODO-15a); kept below as design rationale
 
 Equal weighting (`w_i = 1/k`) is the CCT default and is fine when every row
 tests a genuinely distinct estimand. But several rows in the same table can
@@ -857,7 +857,7 @@ before/around the same release:
   property the plan cites as the reason CCT was chosen over
   Fisher's/Stouffer's/minP, confirmed empirically rather than assumed from
   the literature.
-- [ ] TODO-15: **User-facing weighting arguments on `run_all_inference()` —
+- [x] TODO-15: **User-facing weighting arguments on `run_all_inference()` —
   the user decides, the package does not silently pick a policy** (revised
   2026-08-18, per user request: weighting must be an argument the caller
   controls, not a hardcoded internal choice). Add:
@@ -948,6 +948,36 @@ before/around the same release:
   `1/(G * m_i)` vector from `results_table$estimand` (for `status == "ok"`
   rows with non-`NA` `pval` only) and passes it in as `weights`.
 
+  **Done 2026-08-19:** `run_all_inference()` gained
+  `combined_evidence_estimands`/`combined_evidence_weighting`/
+  `combined_evidence_weights` exactly as scoped above, argument-time
+  validated (`inference_suite.R`): `combined_evidence_estimands` checked
+  against the `estimand` values actually declared (via
+  `get_inference_class_metadata(nm)$estimand`) among the
+  `classes`/`exclude_classes`-filtered candidates -- given TODO-15a is
+  **not actually finished** despite a doc note elsewhere claiming
+  otherwise (see that entry), this filter is only usable today for the
+  incidence g-comp/marginal families, which is the honest current state,
+  not a bug. `combined_evidence_weighting = "custom"` requires
+  `combined_evidence_weights` (named numeric, class name -> weight,
+  non-negative, names a subset of the classes being fit) and errors if
+  supplied under any other policy, rather than silently ignoring it.
+  New `run_all_inference_compute_combined_evidence_weights()`
+  (`inference_suite.R`) dispatches all three policies over the
+  (`estimands`-filtered) usable set and now drives `results_table$weight`
+  directly, replacing the previously-hardcoded `"estimand_grouped"`-only
+  `run_all_inference_estimand_grouped_weights()` call (that function is
+  kept, unused by `run_all_inference()` itself now, as the narrower
+  building block the new dispatcher's `"estimand_grouped"` branch
+  reimplements inline). **Verified**: all three policies smoke-tested by
+  sourcing the real functions directly out of `inference_suite.R` against
+  a 5-row/3-estimand-group mock table -- `"estimand_grouped"` reproduces
+  this section's own worked example's weight ratios exactly (`1/9`/`1/9`/
+  `1/9`/`1/3`/`1/3` for a 3/1/1 group-size split under `G=3`); `"equal"`
+  gives flat `1/5`; `"custom"` respects named weights and zeroes unnamed
+  classes; restricting via `estimands` correctly recomputes `G` over only
+  the retained groups. Full package `parse()` clean.
+
 **Infrastructure landed (2026-08-19, user decision — before this,
 `get_estimand_type()` was only a private-instance-method convention two
 gcomp classes happened to follow, with no registry presence and no
@@ -1018,7 +1048,7 @@ family (the actual work TODO-15a's audit would motivate) can proceed in
 parallel with Phase 1D, the same way `inference_suite_inspect.md`'s own
 TODO-1..8 did.
 
-- [ ] TODO-15a: **Audit `estimand`/`get_estimand_type()` tagging across
+- [x] TODO-15a: **Audit `estimand`/`get_estimand_type()` tagging across
   every response-type family before `"estimand_grouped"` ships as the
   default.** `"estimand_grouped"`'s correctness depends entirely on
   `estimand` actually distinguishing "different scientific question" (logit
@@ -1088,7 +1118,27 @@ TODO-1..8 did.
     "does treatment shift the median"), so this alone can turn what looks
     like one model into several estimand groups depending on
     configuration, even within an otherwise-small response-type family.
-- [ ] TODO-16: Wire `combined_evidence` (including `n_estimand_groups`/
+
+  **Done 2026-08-19, see `fix_inference_hierarchy.md`'s matching checklist
+  item for the full class-by-class audit table** (verified real this time
+  after an earlier, unrelated stale doc claim of "done" was checked and
+  found false, then corrected — see that file's own note): a flat
+  `EDI_INFERENCE_ESTIMAND_TAGS` name -> estimand-string map in
+  `inference_class_registry.R`, consulted by `infer_inference_estimand_type()`
+  before falling back to the two g-comp families' own real
+  `get_estimand_type()` method overrides (kept as the source of truth for
+  those four leaf classes, confirmed matching). 88 of ~99 concrete classes
+  tagged by auditing each one's actual `compute_estimate()` fit code and
+  `@description` roxygen, not name patterns. `NA_character_` retained for
+  the genuinely hard cases the "do not force a single tag" guidance above
+  flagged in advance: zero-inflated/hurdle/ZOIB models (structural-zero vs.
+  rate-process ambiguity) and τ-indexed quantile regression (each τ is its
+  own question) — both confirmed non-collapsible during the audit, not
+  simply unaudited. `"estimand_grouped"` (TODO-15) is now safe to default
+  to for every class that *is* tagged; `NA`-estimand classes still need the
+  explicit singleton-group-vs-excluded-with-warning policy decision this
+  TODO's own text called for — that decision remains open.
+- [x] TODO-16: Wire `combined_evidence` (including `n_estimand_groups`/
   `estimands_used`, per "Output wiring" above) into `run_all_inference()`'s
   return object and into the `screen`/`html` summary line beneath the
   per-class table (only over `status == "ok"` rows with non-`NA` `pval`,
@@ -1097,7 +1147,37 @@ TODO-1..8 did.
   `combined_evidence_estimands` here, not at discovery/fit time — these
   arguments only affect which usable rows feed the combination and how,
   never which classes get constructed/fitted in the first place.
-- [ ] TODO-16a: **Organize the per-class table by `estimand`, not just
+
+  **Done 2026-08-19:** `out$combined_evidence` now matches the "Output
+  wiring" section's full shape: `list(pval, stat, method =
+  "cauchy_combination", n_classes_used, n_estimand_groups, estimands_used,
+  weighting, weights_used, classes_used)`. `stat` required widening
+  `cct_combine_pvalues()`'s internals -- added `cct_combine_pvalues_full()`
+  returning `list(pval, stat)`, with `cct_combine_pvalues()` now a thin
+  `$pval`-only wrapper around it (unchanged external contract), and
+  `run_all_inference_combine_pvalues()` widened the same way to
+  `list(pval, stat, n_used)`. One deliberate deviation from the original
+  spec text, necessitated by the `formulas` argument added earlier this
+  same session (after TODO-16 was originally scoped): `weights_used`/
+  `classes_used` are keyed/valued by each row's `results` name
+  (`"<class>[<formula>]"` when `formulas` produced more than one row for a
+  class, else the plain class name) rather than
+  `results_table$inference_class` directly, since that column can now
+  repeat within one fit. New shared
+  `run_all_inference_combined_evidence_summary_line()` renders exactly the
+  spec's line format (`"Combined evidence across G = <n> estimands (k = <n>
+  classes, weighting = <weighting>): p = <value>"`) and is called from all
+  three places TODO-16 named: `run_all_inference(screen = TRUE)`'s live
+  output (right after `class(out) = c("EDIInferenceSuiteResults", "list")`),
+  `run_all_inference_render_html()` (new `<p>` beneath the results table),
+  and `print.EDIInferenceSuiteResults()` (beneath the pretty-printed table,
+  for a later reprint of a saved result). **Verified**: sourced the real
+  functions directly out of `inference_suite.R` against a 3-row mock table
+  and confirmed the summary line renders correctly and appears in the
+  rendered HTML; full-file `parse()` clean; `test-inference-suite-run-all-
+  inference.R`'s `names(res)` structural assertion updated to include
+  `combined_evidence`.
+- [x] TODO-16a: **Organize the per-class table by `estimand`, not just
   computation order** (added 2026-08-18, per user request). Two separate
   surfaces, resolved differently:
   - **`results_table` (the final, complete data.frame) and the `html`
@@ -1130,6 +1210,33 @@ TODO-1..8 did.
     necessarily replaying `screen`'s original streaming order.
   - Already consistent with this direction and needing no change: the two
     ggplot2 visualizations (TODO-7, shipped) already facet by `estimand`.
+
+  **Done 2026-08-19:** `results_table` (and, via the shared
+  `run_all_inference_build_display_table()`, the `html` report's table)
+  now sorts by `order(estimand, inference_class, na.last = TRUE)` right
+  after the `weight` column is computed in `run_all_inference()`, before
+  `combined_evidence` is built -- `row_ids` (the `results`-name vector
+  `weights_used`/`classes_used` key off) is reordered by the identical sort
+  index so it stays aligned. `results` (the list) is untouched, still
+  computation order, per this TODO's own explicit contract. New
+  `run_all_inference_per_estimand_breakdown_lines()` prints one line per
+  `estimand` group (`"<estimand> (k = <n>): p = <within-group CCT
+  p-value>"`, equal-weighted within the group) immediately above the
+  overall Combined Evidence summary line, in both `screen`'s live output
+  and `print.EDIInferenceSuiteResults()` -- `screen`'s per-row streaming
+  itself is unchanged (still completion order), exactly as scoped.
+  `print.EDIInferenceSuiteResults()` (referenced above as "TODO-10, not yet
+  implemented") now exists and does print in the same `estimand`-grouped
+  order as `results_table`, via `run_all_inference_format_pretty_table()`.
+  **Verified**: sourced the real functions directly out of
+  `inference_suite.R` against a 4-row mock table with a
+  `status = "nonest"` row mixed in -- confirmed the sort correctly moves
+  `NA`-`pval` rows out of the way while still respecting `estimand`
+  grouping (the `nonest` row's `estimand` is non-`NA`, so it sorts inside
+  its group, not excluded from grouping -- only excluded from weighting/
+  combination), the per-estimand breakdown gives `NA` for the
+  singleton-class group and a real combined p for the 2-class group, and
+  the HTML output contains the summary line; full-file `parse()` clean.
 - [x] TODO-17: `run_all_inference_combine_pvalues(pvals, weights = NULL,
   pval_eps = 1e-4)` implemented in `inference_suite.R`, wrapping
   `cct_combine_pvalues()` (TODO-14): drops `NA` p-values (with aligned
@@ -1187,7 +1294,7 @@ TODO-1..8 did.
   diagnostics indicate a boundary/separation fit before it contributes to
   `combined_evidence`, both at the per-class and per-`estimand`-group
   level.
-- [ ] TODO-18: Tests — simulate iid Uniform(0,1) p-values under a true
+- [x] TODO-18: Tests — simulate iid Uniform(0,1) p-values under a true
   global null and confirm `combined_pval` is calibrated (roughly uniform,
   not anti-conservative); simulate p-values sharing common data-driven
   correlation (e.g. bootstrap-derived, same underlying dataset) and confirm
@@ -1196,12 +1303,54 @@ TODO-1..8 did.
   simulation check, not just a unit test of the formula; all TODO-17 edge
   cases; whichever weighting policy TODO-15 resolves to, including the
   redundant-method-family scenario that motivated the question.
-- [ ] TODO-19: Docs — roxygen section on `combined_evidence` stating the
+
+  **Done 2026-08-19:** New `test-cct-combine-pvalues.R`
+  (`R/EDI/tests/testthat/`), four `test_that()` blocks against the
+  standalone combiner/weighting functions directly (no `Inference`/
+  `Design` objects involved -- the property under test is the combiner's
+  own statistical behavior): (1) 2000-replication global-null calibration
+  check (`k = 5` iid `Unif(0,1)` p-values per replication) -- rejection
+  rate at `alpha = 0.05` and a KS-test-against-uniform goodness-of-fit
+  check, both with Monte Carlo tolerance, not an exact-uniformity
+  assertion; (2) 2000-replication correlated-null check, p-values derived
+  from a shared latent factor (`rho = 0.6`) via the probability integral
+  transform, confirming the combined p-value does not spuriously reject at
+  an inflated rate despite correlated inputs -- CCT's defining
+  arbitrary-dependence-validity property; (3) all TODO-17 edge cases
+  (`NA`-dropping with weight realignment, <2-usable degenerate case at
+  `n = 1`/`n = 0`/all-`NA`, `0`/`1` p-value clipping avoiding non-finite
+  `atan()` output, the four-identical-p-values mathematical identity,
+  `pval_eps` genuinely changing clipping behavior); (4) all three TODO-15
+  weighting policies (`"estimand_grouped"`'s ratios checked against this
+  same file's own worked example, `"equal"`, `"custom"` with unnamed-class
+  zeroing, `estimands`-filtered `G` recomputation, and a non-usable-row
+  guard). **Verified**: every assertion validated by sourcing the real
+  functions directly out of `inference_suite.R` (not a standalone
+  reimplementation) before committing the test file -- global-null
+  rejection rate `0.0565` (threshold `0.075`), correlated-null rejection
+  rate `0.0555` (threshold `0.10`), KS `p = 0.227` (threshold `0.001`), all
+  edge-case and weighting-policy values matched exactly. Full test-file
+  `parse()` clean; not yet run through `testthat::test_file()` against a
+  loaded package build (per this repo's no-full-rebuild rule -- the user's
+  own build tooling should run it).
+- [x] TODO-19: Docs — roxygen section on `combined_evidence` stating the
   interpretation caveat verbatim ("evidence of an effect in at least one of
   these senses, not evidence for a specific estimate or direction"), the
   union-intersection-null framing, and the Liu & Xie (2020) citation.
   Cross-reference `JSS_paper_research_plan.md` §3.5b/§4 item 7 so the paper
   and the roxygen state the same caveat consistently.
+
+  **Done 2026-08-19:** New "Combined Evidence interpretation caveat"
+  paragraph added to `InferenceSuite`'s class-level roxygen
+  (`inference_suite.R`), immediately before the existing `@references`
+  block (which already carries the Liu & Xie 2020 citation, landed under
+  TODO-20) -- states the union-intersection-test framing
+  (\eqn{H_0: \theta_1=0 \cap \dots \cap \theta_k=0} vs. "at least one
+  \eqn{\theta_i \neq 0}") and the exact verbatim caveat sentence this
+  TODO specifies. `JSS_paper_research_plan.md`'s §3.5b interpretive-caveat
+  bullet updated to use the identical verbatim sentence (previously a
+  differently-worded paraphrase), with an explicit cross-reference note
+  pointing each document at the other so they don't drift apart again.
 - [x] TODO-20: `@references` added to `InferenceSuite`'s class-level
   roxygen in `inference_suite.R` (Madigan/Ryan/Schuemie 2013 + Liu/Xie
   2020), and both added to `REFERENCES.md` under a new "Inference
@@ -1240,10 +1389,116 @@ TODO-1..8 did.
   pre-existing, unrelated failure — everything this TODO touched is
   clean. Full test suite still passes, package still loads via
   `pkgload::load_all(compile = FALSE)`, zero stray files.
-- [ ] TODO-21: `smoke_test_run_comprehensive_suite.R`
+- [x] TODO-21: `smoke_test_run_comprehensive_suite.R`
   (`R/package_tests/`) — check whether this comprehensive smoke test
   exercises `InferenceSuite$run_all_inference()`, and if so, extend its
   coverage to include the new `combined_evidence` element (present with a
   non-`NA` `pval` when >=2 usable classes, `NA` and documented otherwise)
   so a future regression in the Cauchy-combination wiring surfaces there,
   not only in TODO-18's unit tests.
+
+  **Done 2026-08-19: checked, does not apply.** Read
+  `smoke_test_run_comprehensive_suite.R` directly -- it drives
+  `run_comprehensive_suite.R`'s unrelated dependency-gate/argument-
+  combinations/comprehensive-harness/public-workflow-coverage/internal-
+  safety-nets pipeline for one hardcoded class
+  (`InferenceAllSimpleMeanDiff`), and never constructs an `InferenceSuite`
+  or calls `run_all_inference()` anywhere. TODO-21's own conditional ("if
+  so, extend") does not trigger the extend branch, so no change was made
+  to this file -- adding an `InferenceSuite`-specific check here would be
+  scope creep into a harness that tests something else entirely.
+  `combined_evidence` regression coverage instead lives where it actually
+  belongs: `test-inference-suite-run-all-inference.R`'s structural
+  `names(res)` assertion (includes `"combined_evidence"`) and TODO-18's new
+  `test-cct-combine-pvalues.R`.
+
+- [ ] TODO-22: **Redesign `run_all_inference()`'s `methods` argument from a
+  flat character vector of sentinels to a named list, `sentinel ->
+  character vector of requested "type" values` (e.g. `list(bootstrap =
+  c("percentile", "bca"), rand_bootstrap = NULL)`), with `NULL` (the
+  default) meaning every sentinel, every valid `type` within each --
+  "truly all the possible methods *and* all their resampling flavors."
+  Blocked, by explicit user decision (2026-08-19), on `fix_inference_
+  hierarchy.md`'s new `get_supported_*_types()` accessor-methods TODO
+  (bootstrap-family components) -- do not ship this against a hardcoded,
+  drift-prone `type`-choices table in `inference_suite.R`; wait for real
+  runtime introspection.**
+
+  Motivation: `EDI_INFERENCE_SUITE_METHOD_SENTINELS` (TODO-15-adjacent,
+  11 sentinels as of 2026-08-19) covers *which testing procedure*
+  (`wald`/`exact`/`rand`/`rand_bootstrap`/`jackknife`/`score`/
+  `lik_ratio`/`gradient`/`param_boot`/`bayes_boot`/`bootstrap`), but three
+  of those sentinels (`bootstrap`, `bayes_boot`, `rand_bootstrap`) each
+  gate a method that itself takes a `type` argument selecting among
+  several distinct resampling/CI-construction flavors (percentile,
+  BCa, studentized, symmetric, smoothed, etc.) -- a second, currently
+  invisible fan-out axis `run_all_inference()` has no way to request today
+  (every bootstrap-family row silently uses whatever `type` the method's
+  own default resolves to). Confirmed by reading source directly
+  (`fix_inference_hierarchy.md`'s new TODO has the full per-method,
+  per-side `type` value lists): the CI-side and p-value-side `type` choice
+  sets are **not identical** for `bootstrap`/`bayes_boot` (e.g.
+  `compute_bootstrap_confidence_interval()` accepts `"basic"` where
+  `compute_bootstrap_two_sided_pval()` instead accepts `"symmetric"`), so
+  this redesign must handle CI/pval `type` validity independently per
+  sentinel, the same way `ci_method`/`pval_method` already resolve
+  independently per row today. `rand_bootstrap` is the one sentinel where
+  CI and pval already agree on the same four `type` values.
+
+  Once unblocked: extend `run_all_inference_build_tasks()`'s fan-out to a
+  third dimension (class x formula x method x type), disambiguating
+  `results`/`results_table` row names with a `"<class>{<method>:<type>}"`
+  tag when a class contributes more than one `type` for a given sentinel;
+  add a `type` column to `results_table` alongside `method`; thread
+  `type` through `run_all_inference_call_ci_for_method()`/
+  `run_all_inference_call_pval_for_method()`, passing it to the
+  underlying `compute_*` call only when that method actually accepts a
+  `type` argument for that side (returning `NA` for a `type` value valid
+  on one side but not the other, mirroring the existing "capability
+  doesn't apply to this row" pattern rather than erroring). Full roxygen
+  on the new `methods` shape, explaining every sentinel's valid `type`
+  values (or "no type axis" for the eight non-resampling sentinels),
+  analogous to the existing per-sentinel `\describe{}` block.
+
+- [ ] TODO-23: **Derive `EDI_INFERENCE_SUITE_METHOD_SENTINELS`/
+  `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`/
+  `EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY` via introspection of
+  `contracts_mixins.R`'s `public_methods_for_capability` registry at
+  load/call time, instead of keeping them as hand-maintained constants in
+  `inference_suite.R` that can silently drift out of sync with the real
+  capability registry. Blocked on `fix_inference_hierarchy.md`'s new
+  "audit `public_methods_for_capability` for completeness" TODO --
+  introspecting an incomplete registry only moves the staleness risk
+  from one hardcoded list to another, so that audit must land and make
+  the registry genuinely exhaustive first.**
+
+  Motivation: the current 11-sentinel list was assembled by hand
+  (2026-08-19), cross-checked against `public_methods_for_capability`'s
+  12 keys at the time -- and even that manual cross-check needed two
+  separate follow-up passes to catch real gaps the first pass missed
+  (`RandomizationBootstrapCI`'s ungated CI capability, three separate
+  ungated Bartlett-correction method variants, `m_out_of_n_bootstrap`/
+  `subsampling` methods absent from the registry's own method-name
+  lists entirely -- see `fix_inference_hierarchy.md`'s TODOs for the
+  full detail on each). A hand-maintained constant has no way to notice
+  when a new capability/method pair is added to `contracts_mixins.R`
+  later and nobody remembers to mirror it here -- exactly the failure
+  mode that produced this session's gaps in the first place, just
+  discovered proactively this time instead of by a user hitting a
+  silently-missing sentinel later.
+
+  Once unblocked: replace the three hardcoded constants with a function
+  (e.g. `run_all_inference_derive_method_sentinels()`) that reads
+  `public_methods_for_capability` (by then complete, per the blocking
+  audit) directly -- one sentinel per registered
+  `compute_*_two_sided_pval`/`compute_*_confidence_interval` method pair,
+  auto-deriving the sentinel label from the capability key (collapsing
+  known intentional duplicates like `likelihood_ratio`/
+  `estimating_equation_likelihood_ratio` onto `likelihood_tests`'s own
+  `lik_ratio` sub-procedure, the same merge the current hand-built list
+  already does manually) -- so adding a new capability/method pair to
+  `contracts_mixins.R` automatically surfaces as a new `run_all_inference()`
+  sentinel with no `inference_suite.R` change required. Keep the CI-side/
+  p-value-side asymmetry TODO-22 already established (independent
+  capability checks per side) rather than assuming a single shared
+  capability suffices for every future sentinel derived this way.
