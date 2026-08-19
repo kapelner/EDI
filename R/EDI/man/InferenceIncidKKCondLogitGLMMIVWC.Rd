@@ -4,10 +4,24 @@
 \alias{InferenceIncidKKCondLogitGLMMIVWC}
 \title{Conditional Logistic Plus GLMM IVWC Inference for KK Designs}
 \description{
-Fits one likelihood with a conditional-logistic contribution from discordant
-matched pairs and a random-intercept logistic GLMM contribution from concordant
-matched pairs. The treatment effect is estimated by the conditional-logistic
-component; the GLMM component includes only the intercept and covariates.
+Fits a combined conditional-logit-plus-random-intercept-GLMM likelihood for
+incidence responses under a KK matching-on-the-fly design, where
+\strong{reservoir (unmatched) subjects are excluded from the GLMM
+component} (\code{private$combine_reservoir_into_glmm() == FALSE}): only
+concordant matched pairs contribute their random-intercept GLMM likelihood
+alongside the discordant-pair conditional-logit term, both sharing a single
+treatment coefficient \eqn{\beta_T}. See
+\code{\link[EDI:InferencePropKKGLMM]{InferencePropKKGLMM}} for the full
+model form (conditional-logit-on-discordant plus random-intercept-GLMM,
+jointly maximized) and
+\code{\link[EDI:InferenceAbstractKKCondLogitGLMM]{InferenceAbstractKKCondLogitGLMM}}
+for the shared fitting/caching contract. Contrast with the sibling
+\code{\link[EDI:InferenceIncidKKCondLogitGLMMOneLik]{InferenceIncidKKCondLogitGLMMOneLik}},
+which instead includes reservoir subjects in the GLMM component
+(\code{combine_reservoir_into_glmm() == TRUE}) — this class's naming
+("IVWC") reflects that reservoir information, when used, is intended to be
+combined with this fit's estimate via inverse-variance weighting rather
+than folded into the same likelihood.
 }
 \details{
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
@@ -20,7 +34,7 @@ for (i in 1:10) {
   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
 }
 seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
-inf = InferenceIncidKKCondLogitGLMMOneLik$new(seq_des)
+inf = InferenceIncidKKCondLogitGLMMIVWC$new(seq_des)
 inf$compute_estimate()
 }
 }
@@ -90,7 +104,13 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_last_param_bootstrap_estimate_diagnostics'><code>InferenceAbstractKKCondLogitGLMM$get_last_param_bootstrap_estimate_diagnostics()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_mod'><code>InferenceAbstractKKCondLogitGLMM$get_mod()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_summary'><code>InferenceAbstractKKCondLogitGLMM$get_summary()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bayesian_bootstrap_ci_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bayesian_bootstrap_pval_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bootstrap_ci_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bootstrap_pval_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bootstrap_pval_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_information_preferences'><code>InferenceAbstractKKCondLogitGLMM$get_supported_information_preferences()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_rand_bootstrap_ci_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_rand_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_rand_bootstrap_pval_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_rand_bootstrap_pval_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_testing_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_testing_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_testing_type'><code>InferenceAbstractKKCondLogitGLMM$get_testing_type()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-initialize'><code>InferenceAbstractKKCondLogitGLMM$initialize()</code></a></li>

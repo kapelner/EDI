@@ -4,10 +4,19 @@
 \alias{InferenceIncidKKCondLogitGLMMOneLik}
 \title{Conditional Logistic Plus GLMM Combined-Likelihood Inference for KK Designs}
 \description{
-Fits one likelihood with a conditional-logistic contribution from discordant
-matched pairs and a random-intercept logistic GLMM contribution from concordant
-matched pairs. The treatment effect is estimated by the conditional-logistic
-component; the GLMM component includes only the intercept and covariates.
+Fits a combined conditional-logit-plus-random-intercept-GLMM likelihood for
+incidence responses under a KK matching-on-the-fly design, where
+\strong{reservoir (unmatched) subjects are included in the GLMM component}
+(\code{private$combine_reservoir_into_glmm() == TRUE}), so all subjects
+(discordant matched pairs, concordant matched pairs, and reservoir) enter
+one joint likelihood with a single treatment coefficient \eqn{\beta_T}. See
+\code{\link[EDI:InferencePropKKGLMM]{InferencePropKKGLMM}} for the full
+model form (conditional-logit-on-discordant plus random-intercept-GLMM,
+jointly maximized) and
+\code{\link[EDI:InferenceAbstractKKCondLogitGLMM]{InferenceAbstractKKCondLogitGLMM}}
+for the shared fitting/caching contract. Contrast with the sibling
+\code{\link[EDI:InferenceIncidKKCondLogitGLMMIVWC]{InferenceIncidKKCondLogitGLMMIVWC}},
+which excludes reservoir subjects from the GLMM component.
 }
 \examples{
 \donttest{
@@ -86,7 +95,13 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_last_param_bootstrap_estimate_diagnostics'><code>InferenceAbstractKKCondLogitGLMM$get_last_param_bootstrap_estimate_diagnostics()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_mod'><code>InferenceAbstractKKCondLogitGLMM$get_mod()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_summary'><code>InferenceAbstractKKCondLogitGLMM$get_summary()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bayesian_bootstrap_ci_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bayesian_bootstrap_pval_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bootstrap_ci_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bootstrap_pval_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bootstrap_pval_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_information_preferences'><code>InferenceAbstractKKCondLogitGLMM$get_supported_information_preferences()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_rand_bootstrap_ci_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_rand_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_rand_bootstrap_pval_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_rand_bootstrap_pval_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_testing_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_testing_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_testing_type'><code>InferenceAbstractKKCondLogitGLMM$get_testing_type()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-select_optimal_b_subsampling'><code>InferenceAbstractKKCondLogitGLMM$select_optimal_b_subsampling()</code></a></li>
@@ -123,9 +138,12 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceIncidKKCondLogitGLMMOneLik-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidKKCondLogitGLMMOneLik-initialize}{}}}
 \subsection{\code{InferenceIncidKKCondLogitGLMMOneLik$new()}}{
-  Initialize KK conditional-logit GLMM one-likelihood
-  incidence inference and configure the combined likelihood used by
-  \code{\link[EDI:InferenceIncidKKCondLogitGLMMOneLik]{InferenceIncidKKCondLogitGLMMOneLik}}.
+  Initialize inference for the combined conditional-logit
+  (discordant matched pairs) plus random-intercept-GLMM (concordant pairs
+  and reservoir subjects) incidence model; see
+  \code{\link[EDI:InferenceIncidKKCondLogitGLMMOneLik]{InferenceIncidKKCondLogitGLMMOneLik}}
+  for the model form. Does not fit the model; the fit is deferred to the
+  first call to \code{compute_estimate()} or a method that requires it.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidKKCondLogitGLMMOneLik$new(

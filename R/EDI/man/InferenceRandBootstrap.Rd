@@ -80,6 +80,7 @@ seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = 501)
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceRandBootstrap-get_supported_rand_bootstrap_pval_types}{\code{InferenceRandBootstrap$get_supported_rand_bootstrap_pval_types()}}
     \item \href{#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T}{\code{InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()}}
     \item \href{#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval}{\code{InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()}}
     \item \href{#method-InferenceRandBootstrap-clone}{\code{InferenceRandBootstrap$clone()}}
@@ -97,6 +98,8 @@ seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = 501)
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_ci_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_pval_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_pval_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
 </ul>
@@ -140,6 +143,19 @@ seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = 501)
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceRandBootstrap-get_supported_rand_bootstrap_pval_types"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceRandBootstrap-get_supported_rand_bootstrap_pval_types}{}}}
+\subsection{\code{InferenceRandBootstrap$get_supported_rand_bootstrap_pval_types()}}{
+  Returns the \code{type} values
+  \code{compute_rand_bootstrap_two_sided_pval()} accepts.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceRandBootstrap$get_supported_rand_bootstrap_pval_types()}
+    \if{html}{\out{</div>}}
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T}{}}}

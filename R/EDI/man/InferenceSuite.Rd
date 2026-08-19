@@ -247,6 +247,7 @@ Defaults to an empty list (no extra arguments for any class).}
   num_cores = 1L,
   formulas = NULL,
   methods = NULL,
+  basic_bootstrap = FALSE,
   combined_evidence_estimands = NULL,
   combined_evidence_weighting = c("estimand_grouped", "equal", "custom"),
   combined_evidence_weights = NULL
@@ -335,6 +336,172 @@ see \code{fix_inference_hierarchy.md}'s
 \code{adjusts_for_covariates} registry-metadata audit, which makes
 the \code{cov_model} column semantics-aware wherever that audit has
 landed.}
+      \item{\code{methods}}{\code{NULL} (default), a character vector of method
+sentinel strings, or (TODO-22) a named list \code{sentinel ->
+character vector of requested \code{type} values, or \code{NULL}}
+restricting which inference method(s) -- and, for the three
+resampling sentinels marked "typed" below, which resampling/CI-
+construction \code{type} flavor(s) -- get fit and reported per
+class. \code{NULL} means \strong{every} sentinel in
+\code{EDI_INFERENCE_SUITE_METHOD_SENTINELS}, and for each typed
+sentinel, \strong{every} \code{type} value that class supports
+(queried at runtime via its own \code{get_supported_bootstrap_
+{pval,ci}_types()} / \code{get_supported_bayesian_bootstrap_
+{pval,ci}_types()} / \code{get_supported_rand_bootstrap_
+{pval,ci}_types()} accessor -- never a hardcoded type table in this
+package) -- i.e. truly all possible methods and all their
+resampling flavors, not a single "best available" pick (per user
+request, 2026-08-19, replacing the earlier design where each class
+contributed exactly one row via a fixed wald-first cascade).
+List-shaped example: \code{methods = list(bootstrap = c("percentile",
+"bca"), rand_bootstrap = NULL)} fits only \code{"bootstrap"}
+(restricted to the \code{"percentile"}/\code{"bca"} types that class
+actually supports) and \code{"rand_bootstrap"} (every type that
+class supports); a sentinel present as a list name with value
+\code{NULL} still means "every valid type" for it, exactly like the
+flat-vector shape -- to \emph{not} fit a sentinel at all, simply
+don't name it. Requesting a \code{type} for a sentinel with no
+\code{type} axis (any sentinel not marked "typed" below) errors.
+Valid sentinels, each corresponding to one asymptotic/exact/
+randomization/resampling inference family a class may (or may not)
+implement:
+\describe{
+  \item{\code{"wald"}}{Asymptotic Wald inference --
+    \code{compute_asymp_confidence_interval()}/
+    \code{compute_asymp_two_sided_pval()} (capability
+    \code{"wald"}). The standard closed-form normal-approximation
+    CI/test.}
+  \item{\code{"exact"}}{Exact inference --
+    \code{compute_exact_confidence_interval()}/
+    \code{compute_exact_two_sided_pval_for_treatment_effect()}
+    (capability \code{"exact_test"}). Finite-sample-exact methods
+    (e.g. Fisher's exact test, exact binomial).}
+  \item{\code{"rand"}}{Randomization inference --
+    \code{compute_rand_confidence_interval()}/
+    \code{compute_rand_two_sided_pval()} (capabilities
+    \code{"randomization_ci"}/\code{"randomization_test"} --
+    distinct capability names for the CI vs. p-value side, since a
+    class can support one without the other). Design-based
+    inference via re-randomizing the observed treatment
+    assignment.}
+  \item{\code{"rand_bootstrap"} (typed)}{Randomization-bootstrap
+    inference -- \code{compute_rand_bootstrap_confidence_interval()}/
+    \code{compute_rand_bootstrap_two_sided_pval()} (capabilities
+    \code{"randomization_bootstrap_ci"}/\code{"randomization_bootstrap"} --
+    distinct capability names for the CI vs. p-value side, since a
+    class can support one without the other). Resamples under the
+    randomization null rather than the usual iid-resampling
+    bootstrap. \code{type} (both sides agree on the same four
+    values, unlike \code{"bootstrap"}/\code{"bayes_boot"} below):
+    \code{"percentile"}, \code{"studentized"},
+    \code{"symmetric-percentile-t"}, \code{"smoothed"}.}
+  \item{\code{"jackknife"}}{Jackknife-Wald inference --
+    \code{compute_jackknife_wald_confidence_interval()}/
+    \code{compute_jackknife_wald_two_sided_pval()} (capability
+    \code{"jackknife"}). Leave-one-out variance estimate feeding a
+    Wald-style CI/test.}
+  \item{\code{"score"}}{Score (Rao) test -- \code{compute_score_confidence_interval()}/
+    \code{compute_score_two_sided_pval()} (capability
+    \code{"likelihood_tests"}, one of its three independent
+    sub-procedures).}
+  \item{\code{"lik_ratio"}}{Likelihood-ratio test --
+    \code{compute_lik_ratio_confidence_interval()}/
+    \code{compute_lik_ratio_two_sided_pval()} (capability
+    \code{"likelihood_tests"}).}
+  \item{\code{"gradient"}}{Gradient test --
+    \code{compute_gradient_confidence_interval()}/
+    \code{compute_gradient_two_sided_pval()} (capability
+    \code{"likelihood_tests"}).}
+  (The plain, "best available" auto-selecting
+  \code{compute_lik_ratio_bartlett_two_sided_pval()}/
+  \code{compute_lik_ratio_bartlett_confidence_interval()}
+  dispatcher is deliberately not its own sentinel -- it only picks
+  between the two explicit variants below depending on which this
+  class implements, so it is never a distinct inference procedure.)
+  \item{\code{"lik_ratio_bartlett_approx"}}{Bartlett-corrected
+    likelihood-ratio test, Monte-Carlo-approximated correction factor
+    pinned explicitly (for reproducibility) --
+    \code{compute_lik_ratio_bartlett_approx_confidence_interval()}/
+    \code{compute_lik_ratio_bartlett_approx_two_sided_pval()}
+    (capability \code{"likelihood_tests"}; degrades to \code{NA} for
+    classes without an approximate Bartlett factor).}
+  \item{\code{"lik_ratio_bartlett_exact"}}{Bartlett-corrected
+    likelihood-ratio test, closed-form analytic correction factor
+    pinned explicitly -- \code{compute_lik_ratio_bartlett_exact_confidence_interval()}/
+    \code{compute_lik_ratio_bartlett_exact_two_sided_pval()}
+    (capability \code{"likelihood_tests"}; degrades to \code{NA} for
+    classes without an exact Bartlett factor).}
+  \item{\code{"param_boot"}}{Bootstrap-calibrated likelihood-ratio
+    test -- \code{compute_lik_ratio_bootstrap_confidence_interval()}/
+    \code{compute_lik_ratio_bootstrap_two_sided_pval()} (capability
+    \code{"parametric_likelihood_bootstrap"}).}
+  \item{\code{"param_boot_direct"}}{Direct parametric-bootstrap
+    estimate/CI/pval for the treatment coefficient itself --
+    \code{compute_param_bootstrap_confidence_interval()}/
+    \code{compute_param_bootstrap_pval()} (capability
+    \code{"parametric_likelihood_bootstrap"}; distinct from
+    \code{"param_boot"} above, which is a bootstrap-calibrated
+    likelihood-ratio \emph{test}, not a direct estimate).}
+  \item{\code{"bayes_boot"} (typed)}{Bayesian bootstrap inference --
+    \code{compute_bayesian_bootstrap_confidence_interval()}/
+    \code{compute_bayesian_bootstrap_two_sided_pval()} (capability
+    \code{"bayesian_bootstrap"}). CI-side \code{type}:
+    \code{"percentile"}, \code{"basic"}, \code{"wald"},
+    \code{"studentized"}, \code{"bootstrap-t"}, \code{"bca"};
+    pval-side \code{type} swaps \code{"basic"} for
+    \code{"symmetric"} (all others the same).}
+  \item{\code{"bootstrap"} (typed)}{Nonparametric bootstrap
+    inference -- \code{compute_bootstrap_confidence_interval()}/
+    \code{compute_bootstrap_two_sided_pval()} (capability
+    \code{"nonparametric_bootstrap"}). CI-side \code{type}:
+    \code{"percentile"}, \code{"basic"}, \code{"studentized"},
+    \code{"bootstrap-t"}, \code{"symmetric-percentile-t"},
+    \code{"bca"}, \code{"prepivoted"}, \code{"double-bootstrap"},
+    \code{"calibrated"}, \code{"smoothed"}; pval-side \code{type}
+    is a smaller set -- \code{"percentile"}, \code{"symmetric"},
+    \code{"studentized"}, \code{"bootstrap-t"}, \code{"bca"} --
+    neither \code{"basic"} nor the other CI-only variants apply on
+    the pval side.}
+}
+For the three "typed" sentinels above, an exhaustive \code{type}
+list is documented here for orientation only -- the actual set
+consulted at runtime always comes from that class's own accessor
+(see the top of this section), so a class need not support every
+value listed.
+(\code{"likelihood_ratio"}/\code{"estimating_equation_likelihood_ratio"}
+are deliberately not separate sentinels -- both capabilities gate
+the exact same method pair \code{"lik_ratio"} above already covers.)
+For each class, only sentinels the class has \emph{any} CI or
+p-value capability for (among the requested \code{methods}) get a
+row; for a typed sentinel, one row per \code{type} that class
+actually supports (intersected with any requested type subset) --
+a class with zero applicable sentinels, or a typed sentinel with
+zero resulting types, still gets exactly one row with
+\code{method}/\code{type = NA_character_} (mirrors the
+pre-\code{methods} "no capability" row) rather than being silently
+dropped. A class contributing more than one applicable-sentinel row
+is disambiguated in \code{results}/\code{results_table} by
+\code{"<class>{<method>}"} or \code{"<class>{<method>:<type>}"}
+(or with a \code{"[<formula>]"} tag too under simultaneous
+\code{formulas} fan-out) names. Unlike the removed cascade,
+\code{ci_method}/\code{pval_method} on a given row now always
+match that row's own \code{method} (or are \code{NA} if this class
+lacks that half of the sentinel's capability, \strong{including}
+when \code{type} is valid on one side but not the other) --
+there is no fallback to a different sentinel within one row.}
+      \item{\code{basic_bootstrap}}{\code{FALSE} (default). Convenience flag: when
+\code{TRUE}, restricts every typed sentinel (\code{"bootstrap"}/
+\code{"bayes_boot"}/\code{"rand_bootstrap"}) to just that class's
+first (i.e. default) \code{type} value instead of fitting every
+\code{type} it supports -- "just run the default bootstrap flavor
+for nonparametric/Bayesian/randomization resampling" without
+having to spell out \code{methods = list(bootstrap = ..., bayes_boot
+= ..., rand_bootstrap = ...)} by hand. Only takes effect for a
+typed sentinel the caller didn't already restrict via an explicit
+\code{methods} list entry -- an explicit \code{type} request there
+always wins over this flag. No effect on non-typed sentinels
+(\code{"param_boot"}/\code{"param_boot_direct"} included -- neither
+has a \code{type} axis, so they already run their one procedure).}
       \item{\code{combined_evidence_estimands}}{\code{NULL} (default: include every
 declared \code{estimand}), or a character vector of \code{estimand}
 values to restrict the Combined Evidence p-value/weights to.
@@ -371,9 +538,16 @@ weight \code{0} (excluded). Need not pre-sum to 1.}
   directly, since that column can repeat under \code{formulas};
   \code{pval = stat = NA_real_} if fewer than 2 rows are usable),
   \code{design}, \code{alpha}, \code{unavailable_due_to_missing_packages},
-  \code{plots} (\code{list(estimates, ci_forest)}, each a \code{ggplot} object
-  or \code{NULL}), \code{files} (\code{list(html, pdf, json)}, each a path or
-  \code{NULL}), \code{timestamp}, \code{total_secs}, and \code{edi_version}.
+  \code{plots} (\code{list(estimates, ci_forest)}; each of those is itself a
+  named list of one \code{ggplot} object per \code{estimand} -- possibly
+  empty -- rather than a single plot, since each visualization is now
+  split one-per-estimand, per user request, 2026-08-19),
+  \code{files} (\code{list(html, pdf, json)}; \code{html}/\code{json} are
+  each a path or \code{NULL}, \code{pdf} is itself
+  \code{list(estimates, ci_forest)} of two paths (or \code{NULL}s) --
+  \strong{two separate PDF files}, one per visualization, each a
+  multi-page PDF with one page per estimand), \code{timestamp},
+  \code{total_secs}, and \code{edi_version}.
   }
 }
 

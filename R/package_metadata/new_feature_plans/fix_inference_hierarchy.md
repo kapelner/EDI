@@ -2733,10 +2733,24 @@ their own `[x]` entries above; they are not part of this count.)
   `test-parametric-bootstrap-lr-all-capable-classes.R`, `test-quasi-robust-
   migration-baseline.R`) — all green, no behavior change (this item is pure
   static-contract documentation; no method bodies were touched).
-- [ ] Remove all direct `InferenceMixinKKPassThrough$public` and
+- [x] Remove all direct `InferenceMixinKKPassThrough$public` and
   `InferenceMixinKKPassThrough$private` splices from concrete classes.
-- [ ] Replace every `eval(body(InferenceMixinKKPassThrough$...))` usage with a
-  named component override or helper.
+  **Verified done 2026-08-19** (stale duplicate of the Static Cleanup "Ban
+  raw component splicing" effort, never synced here): `grep -rn
+  "InferenceMixinKKPassThrough\$public\|InferenceMixinKKPassThrough\$private"
+  R/*.R` returns zero matches outside `inference_mixin_kk_passthrough.R`
+  itself. The one remaining `InferenceMixinKKPassThrough[["public"]]`/
+  `[["private"]]` bracket-notation usage (`inference_all_KK_wilcox_ivwc.R`)
+  assembles the `KKWilcoxIVWCSource` harvesting-source object, not a splice
+  into a concrete class -- the same accepted pattern as every other
+  `*Source` object in the codebase (`CountCompositeLikelihoodSource`,
+  `KKQuantileRegrIVWCSource`, etc.).
+- [x] Replace every `eval(body(InferenceMixinKKPassThrough$...))` usage with a
+  named component override or helper. **Verified done 2026-08-19** (stale
+  duplicate of the same Static Cleanup item, "Ban `eval(body(Inference...))`",
+  completed 2026-08-19 above): `grep -rn "eval\s*\(\s*body\s*\(\s*
+  InferenceMixinKKPassThrough" R/*.R` returns only comment lines (7 matches,
+  all `#`-prefixed); zero live code occurrences.
 - [ ] Migrate KK IVWC classes to `Inference` plus `KKPassThrough`,
   `KKCompound`, and estimator-specific components.
   **Progress 2026-08-17: `InferenceIncidKKNewcombeRiskDiff` migrated** —

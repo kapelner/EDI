@@ -1107,12 +1107,12 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidKKCondLogitGLMMIVWC.Rd`
 
-- [ ] TODO #426: Topic `InferenceIncidKKCondLogitGLMMIVWC` (current description `368` chars).
+- [x] TODO #426: Topic `InferenceIncidKKCondLogitGLMMIVWC` (current description `368` chars). Newly ungated 2026-08-19 (shared base `InferenceAbstractKKCondLogitGLMM` migrated to `inherit = Inference`); documented combined conditional-logit-plus-GLMM model, contrasted with the OneLik sibling (reservoir excluded from GLMM here), fixed a mislabeled example (called `...OneLik$new()` instead of `...IVWC$new()`); `REFERENCES.md` updated (`[BreslowClayton1993]`, `[KK14]`).
 
 ### `InferenceIncidKKCondLogitGLMMOneLik.Rd`
 
-- [ ] TODO #427: Method `InferenceIncidKKCondLogitGLMMOneLik$new()` (current description `122` chars).
-- [ ] TODO #428: Topic `InferenceIncidKKCondLogitGLMMOneLik` (current description `383` chars).
+- [x] TODO #427: Method `InferenceIncidKKCondLogitGLMMOneLik$new()` (current description `122` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #428: Topic `InferenceIncidKKCondLogitGLMMOneLik` (current description `383` chars). Documented combined conditional-logit-plus-GLMM model with reservoir included in the GLMM component; contrasted with the IVWC sibling.
 
 ### `InferenceIncidKKGCompRiskDiff.Rd`
 
@@ -1251,23 +1251,23 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceOrdinalKKCLMM.Rd`
 
-- [ ] TODO #507: Method `InferenceOrdinalKKCLMM$new()` (current description `98` chars).
-- [ ] TODO #508: Topic `InferenceOrdinalKKCLMM` (current description `186` chars).
+- [x] TODO #507: Method `InferenceOrdinalKKCLMM$new()` (current description `98` chars). Newly ungated 2026-08-19 (shared base `InferenceAbstractKKOrdinalCLMM` migrated to `inherit = Inference`); documented logit-link CLMM model form.
+- [x] TODO #508: Topic `InferenceOrdinalKKCLMM` (current description `186` chars). Full model doc added; cross-referenced the 3 link-function siblings.
 
 ### `InferenceOrdinalKKCLMMCauchit.Rd`
 
-- [ ] TODO #509: Method `InferenceOrdinalKKCLMMCauchit$new()` (current description `100` chars).
-- [ ] TODO #510: Topic `InferenceOrdinalKKCLMMCauchit` (current description `85` chars).
+- [x] TODO #509: Method `InferenceOrdinalKKCLMMCauchit$new()` (current description `100` chars). Fixed a mislabeled `@description` (previously said "cloglog-link", should say "cauchit-link" — a pre-existing copy-paste bug found while documenting).
+- [x] TODO #510: Topic `InferenceOrdinalKKCLMMCauchit` (current description `85` chars). Documented cauchit-link CLMM model form and its heavy-tailed-robustness rationale.
 
 ### `InferenceOrdinalKKCLMMCloglog.Rd`
 
-- [ ] TODO #511: Method `InferenceOrdinalKKCLMMCloglog$new()` (current description `100` chars).
-- [ ] TODO #512: Topic `InferenceOrdinalKKCLMMCloglog` (current description `113` chars).
+- [x] TODO #511: Method `InferenceOrdinalKKCLMMCloglog$new()` (current description `100` chars). Fixed a mislabeled `@description` (previously said "cauchit-link", should say "cloglog-link" — same pre-existing copy-paste bug as the Cauchit class, swapped with each other).
+- [x] TODO #512: Topic `InferenceOrdinalKKCLMMCloglog` (current description `113` chars). Documented complementary-log-log-link CLMM model form and its asymmetric-link rationale.
 
 ### `InferenceOrdinalKKCLMMProbit.Rd`
 
-- [ ] TODO #513: Method `InferenceOrdinalKKCLMMProbit$new()` (current description `99` chars).
-- [ ] TODO #514: Topic `InferenceOrdinalKKCLMMProbit` (current description `83` chars).
+- [x] TODO #513: Method `InferenceOrdinalKKCLMMProbit$new()` (current description `99` chars). Also fixed a mislabeled `@examples` block (called `InferenceOrdinalKKCLMMCauchit$new()` instead of `...Probit$new()` — pre-existing copy-paste bug).
+- [x] TODO #514: Topic `InferenceOrdinalKKCLMMProbit` (current description `83` chars). Documented probit-link CLMM model form. `REFERENCES.md` updated for all 4 CLMM classes (`[KK14]` "Used by" list).
 
 ### `InferenceOrdinalKKCondAdjCatLogitRegr.Rd`
 
@@ -1380,8 +1380,8 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferencePropKKGLMM.Rd`
 
-- [ ] TODO #585: Method `InferencePropKKGLMM$new()` (current description `95` chars).
-- [ ] TODO #586: Topic `InferencePropKKGLMM` (current description `194` chars).
+- [x] TODO #585: Method `InferencePropKKGLMM$new()` (current description `95` chars). Newly ungated 2026-08-19 (shared base `InferenceAbstractKKCondLogitGLMM` migrated to `inherit = Inference`); documented model form and deferred-fit behavior.
+- [x] TODO #586: Topic `InferencePropKKGLMM` (current description `194` chars). Full model doc added (combined conditional-logit-plus-GLMM likelihood, shared with the incidence siblings); added Breslow & Clayton (1993) and KK14 `@references`, `REFERENCES.md` updated (new `[BreslowClayton1993]` entry, `[KK14]` "Used by" list).
 
 ### `InferencePropKKQuantileRegrIVWC.Rd`
 

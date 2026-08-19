@@ -89,18 +89,47 @@ InferencePropKKGEE = define_inference_class(
 )
 #' KK GLMM Inference for Proportion Responses
 #'
-#' Fits a logistic GLMM-style combined likelihood for KK designs with
-#' proportion responses, combining matched-pair and reservoir information in
-#' one model.
+#' Fits a combined conditional-logit-plus-random-intercept-GLMM likelihood for
+#' proportion responses under a KK matching-on-the-fly design. Matched pairs
+#' with a discordant pair-difference are handled by a conditional (fixed
+#' pair-effect) logistic term, while concordant/reservoir subjects are handled
+#' by a random-intercept logistic mixed model with intercept
+#' \eqn{b_g \sim N(0, \sigma_b^2)} per matched-set/reservoir group \eqn{g};
+#' both terms share the same treatment coefficient \eqn{\beta_T}, jointly
+#' maximized by the internal \code{fast_clogit_plus_glmm_cpp} routine. This combines the
+#' design-exact conditional-logit treatment of matched pairs (no nuisance
+#' pair-intercept to estimate) with a GLMM's ability to still contribute
+#' information from concordant pairs and reservoir subjects, which a pure
+#' conditional-logit-on-discordant-pairs-only approach would discard.
+#' \eqn{\exp(\hat\beta_T)} is the common treatment odds ratio.
+#' \code{likelihood_tier = "full"}: likelihood-ratio, score, and Wald tests
+#' are all available when the model converges. See
+#' \code{\link[EDI:InferenceAbstractKKCondLogitGLMM]{InferenceAbstractKKCondLogitGLMM}}
+#' for the shared model-fitting and caching contract used by this class's
+#' incidence-response siblings
+#' (\code{\link[EDI:InferenceIncidKKCondLogitGLMMIVWC]{InferenceIncidKKCondLogitGLMMIVWC}},
+#' \code{\link[EDI:InferenceIncidKKCondLogitGLMMOneLik]{InferenceIncidKKCondLogitGLMMOneLik}}).
+#'
+#' @references Kapelner, A. and Krieger, A. M. (2014). "Matching on-the-fly:
+#'   Sequential allocation with higher power and efficiency." \emph{Biometrics},
+#'   70(2), 378-388, \doi{10.1111/biom.12148}, for the KK matching-on-the-fly
+#'   design this class is built for; Breslow, N. E., and Clayton, D. G. (1993).
+#'   "Approximate Inference in Generalized Linear Mixed Models." \emph{Journal
+#'   of the American Statistical Association}, 88(421), 9-25,
+#'   \doi{10.2307/2290687}, for the GLMM likelihood framework combined with the
+#'   conditional-logit term here.
 #'
 #' @export
 InferencePropKKGLMM = R6::R6Class("InferencePropKKGLMM",
 	lock_objects = FALSE,
 	inherit = InferenceAbstractKKCondLogitGLMM,
 	public = list(
-		#' @description Initialize KK proportion-response GLMM inference and prepare
-		#'   the mixed-model likelihood used by
-		#'   \code{\link[EDI:InferencePropKKGLMM]{InferencePropKKGLMM}}.
+		#' @description Initialize inference for the combined conditional-logit
+		#'   (discordant matched pairs) plus random-intercept-GLMM (concordant
+		#'   pairs/reservoir) proportion model; see
+		#'   \code{\link[EDI:InferencePropKKGLMM]{InferencePropKKGLMM}} for the model
+		#'   form. Does not fit the model; the fit is deferred to the first call to
+		#'   \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with a proportion response.
 		#' @param model_formula Optional formula for covariate adjustment.
 		#' @param max_abs_reasonable_coef Cap for reasonable coefficient estimates.

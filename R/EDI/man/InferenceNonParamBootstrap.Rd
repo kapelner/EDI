@@ -199,6 +199,8 @@ Politis, D. N., Romano, J. P., and Wolf, M. (1999).
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceNonParamBootstrap-get_supported_bootstrap_pval_types}{\code{InferenceNonParamBootstrap$get_supported_bootstrap_pval_types()}}
+    \item \href{#method-InferenceNonParamBootstrap-get_supported_bootstrap_ci_types}{\code{InferenceNonParamBootstrap$get_supported_bootstrap_ci_types()}}
     \item \href{#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T}{\code{InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()}}
     \item \href{#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval}{\code{InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()}}
     \item \href{#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval}{\code{InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()}}
@@ -253,6 +255,32 @@ Politis, D. N., Romano, J. P., and Wolf, M. (1999).
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceNonParamBootstrap-get_supported_bootstrap_pval_types"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceNonParamBootstrap-get_supported_bootstrap_pval_types}{}}}
+\subsection{\code{InferenceNonParamBootstrap$get_supported_bootstrap_pval_types()}}{
+  Returns the \code{type} values
+  \code{compute_bootstrap_two_sided_pval()} accepts.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceNonParamBootstrap$get_supported_bootstrap_pval_types()}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceNonParamBootstrap-get_supported_bootstrap_ci_types"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceNonParamBootstrap-get_supported_bootstrap_ci_types}{}}}
+\subsection{\code{InferenceNonParamBootstrap$get_supported_bootstrap_ci_types()}}{
+  Returns the \code{type} values
+  \code{compute_bootstrap_confidence_interval()} accepts.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceNonParamBootstrap$get_supported_bootstrap_ci_types()}
+    \if{html}{\out{</div>}}
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T}{}}}

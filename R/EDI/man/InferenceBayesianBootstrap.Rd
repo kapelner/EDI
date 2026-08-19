@@ -14,6 +14,8 @@ top of the existing nonparametric bootstrap infrastructure.
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_pval_types}{\code{InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_pval_types()}}
+    \item \href{#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_ci_types}{\code{InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_ci_types()}}
     \item \href{#method-InferenceBayesianBootstrap-compute_estimate_with_bootstrap_weights}{\code{InferenceBayesianBootstrap$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T}{\code{InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()}}
     \item \href{#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval}{\code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()}}
@@ -24,12 +26,14 @@ top of the existing nonparametric bootstrap infrastructure.
 \if{html}{\out{<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
 <ul>
   <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-get_supported_rand_bootstrap_ci_types'><code>InferenceRandBootstrapCI$get_supported_rand_bootstrap_ci_types()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
 <ul>
   <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-get_supported_rand_bootstrap_pval_types'><code>InferenceRandBootstrap$get_supported_rand_bootstrap_pval_types()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
@@ -44,6 +48,8 @@ top of the existing nonparametric bootstrap infrastructure.
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_ci_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_pval_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_pval_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
 </ul>
@@ -87,6 +93,32 @@ top of the existing nonparametric bootstrap infrastructure.
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_pval_types"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_pval_types}{}}}
+\subsection{\code{InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_pval_types()}}{
+  Returns the \code{type} values
+  \code{compute_bayesian_bootstrap_two_sided_pval()} accepts.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_pval_types()}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_ci_types"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_ci_types}{}}}
+\subsection{\code{InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_ci_types()}}{
+  Returns the \code{type} values
+  \code{compute_bayesian_bootstrap_confidence_interval()} accepts.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_ci_types()}
+    \if{html}{\out{</div>}}
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceBayesianBootstrap-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceBayesianBootstrap-compute_estimate_with_bootstrap_weights}{}}}

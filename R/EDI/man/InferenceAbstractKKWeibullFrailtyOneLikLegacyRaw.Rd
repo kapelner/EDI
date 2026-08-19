@@ -91,17 +91,21 @@ Clayton copula model implemented by
   <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_ci_types'><code>InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_pval_types'><code>InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
 <ul>
   <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-get_supported_rand_bootstrap_ci_types'><code>InferenceRandBootstrapCI$get_supported_rand_bootstrap_ci_types()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
 <ul>
   <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-get_supported_rand_bootstrap_pval_types'><code>InferenceRandBootstrap$get_supported_rand_bootstrap_pval_types()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
@@ -116,6 +120,8 @@ Clayton copula model implemented by
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_ci_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_pval_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_pval_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
   <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
 </ul>

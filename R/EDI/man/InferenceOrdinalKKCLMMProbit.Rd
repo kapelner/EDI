@@ -4,7 +4,18 @@
 \alias{InferenceOrdinalKKCLMMProbit}
 \title{Ordinal KK CLMM (Probit link)}
 \description{
-Cumulative-probit mixed model for ordinal KK designs.
+Cumulative-link random-intercept mixed model for ordinal responses under a
+KK matching-on-the-fly design, using the probit link:
+\eqn{\Phi^{-1}(P(Y_i \le k)) = \alpha_k - (\beta_T W_i + X_i^\top \gamma) -
+b_{g(i)}}, \eqn{b_g \sim N(0, \sigma_b^2)}, where \eqn{\Phi} is the standard
+normal CDF and \eqn{g(i)} is subject \eqn{i}'s matched-pair group id. Unlike
+the logit-link sibling, \eqn{\hat\beta_T} here is not an odds-ratio scale
+parameter; it is the treatment's effect on the latent standard-normal index
+underlying the ordinal categories. See
+\code{\link[EDI:InferenceAbstractKKOrdinalCLMM]{InferenceAbstractKKOrdinalCLMM}}
+for the shared model-fitting, caching, and likelihood-tier contract common
+to all four link-function siblings; this class supplies only the
+link-function choice (\code{private$clmm_link() == "probit"}).
 }
 \examples{
 \donttest{
@@ -13,7 +24,7 @@ for (i in 1:10) {
   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
 }
 seq_des$add_all_subject_responses(sample(1:4, 10, replace = TRUE))
-inf = InferenceOrdinalKKCLMMCauchit$new(seq_des)
+inf = InferenceOrdinalKKCLMMProbit$new(seq_des)
 inf$compute_estimate()
 }
 }
@@ -62,6 +73,12 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-compute_wald_two_sided_pval'><code>InferenceAbstractKKOrdinalCLMM$compute_wald_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_mod'><code>InferenceAbstractKKOrdinalCLMM$get_mod()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_summary'><code>InferenceAbstractKKOrdinalCLMM$get_summary()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_bayesian_bootstrap_ci_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_bayesian_bootstrap_pval_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_bootstrap_ci_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_bootstrap_pval_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_bootstrap_pval_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_rand_bootstrap_ci_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_rand_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_rand_bootstrap_pval_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_rand_bootstrap_pval_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_testing_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_testing_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-select_optimal_b_subsampling'><code>InferenceAbstractKKOrdinalCLMM$select_optimal_b_subsampling()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-select_optimal_m_out_of_n_bootstrap'><code>InferenceAbstractKKOrdinalCLMM$select_optimal_m_out_of_n_bootstrap()</code></a></li>

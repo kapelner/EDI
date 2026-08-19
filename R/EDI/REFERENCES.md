@@ -89,7 +89,13 @@ gaps" at the bottom).
   conditional-logistic matched-pair / ordinary-logistic reservoir
   likelihood, joint MLE of one shared treatment log-odds-ratio),
   `InferenceOrdinalKKCondAdjCatLogitRegr` (KK matching-on-the-fly design this
-  class's conditional adjacent-category logit model is built for).
+  class's conditional adjacent-category logit model is built for),
+  `InferencePropKKGLMM`, `InferenceIncidKKCondLogitGLMMIVWC`,
+  `InferenceIncidKKCondLogitGLMMOneLik` (KK matching-on-the-fly design behind
+  the combined conditional-logit-plus-GLMM likelihood), `InferenceOrdinalKKCLMM`,
+  `InferenceOrdinalKKCLMMProbit`, `InferenceOrdinalKKCLMMCauchit`,
+  `InferenceOrdinalKKCLMMCloglog` (KK matching-on-the-fly design behind the
+  ordinal cumulative-link mixed model).
 - **[Greevy2004]** Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P.
   (2004). "Optimal multivariate matching before randomization."
   *Biostatistics*, 5(2), 263-275. doi:10.1093/biostatistics/5.2.263. — Used
@@ -224,6 +230,12 @@ files' `@references`) if/when it becomes available.
   — Used by: `InferenceOrdinalKKGEE` (the local-odds-ratio GEE solver,
   `multgee::ordLORgee`, this class's one documented exception to the
   shared binomial/Rcpp GEE path).
+- **[BreslowClayton1993]** Breslow, N. E., and Clayton, D. G. (1993).
+  "Approximate Inference in Generalized Linear Mixed Models." *Journal of
+  the American Statistical Association*, 88(421), 9-25.
+  doi:10.2307/2290687. — Used by: `InferencePropKKGLMM`,
+  `InferenceIncidKKCondLogitGLMMIVWC`, `InferenceIncidKKCondLogitGLMMOneLik`
+  (combined conditional-logit-plus-random-intercept-GLMM likelihood family).
 
 ### Incidence / binary
 

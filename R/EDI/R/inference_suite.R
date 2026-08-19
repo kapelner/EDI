@@ -1348,15 +1348,33 @@ run_all_inference_render_html = function(out) {
 		"The following Inference %s unavailable",
 		if (length(out$unavailable_due_to_missing_packages) == 1L) "class is" else "classes are"
 	)
-	n_ci_rows = sum(out$results_table$status == "ok" &
-		is.finite(out$results_table$ci_a) & is.finite(out$results_table$ci_b))
-	b64_estimates = run_all_inference_plot_to_base64_png(out$plots$estimates)
-	b64_ci_forest = run_all_inference_plot_to_base64_png(
-		out$plots$ci_forest, height = max(6, 0.5 * n_ci_rows + 1.5)
-	)
+	# One image per estimand for each visualization (TODO, 2026-08-19: matches
+	# the "one PDF per estimand" split -- see `run_all_inference_plot_
+	# estimates()`/`run_all_inference_plot_ci_forest()`'s docs), each sized
+	# independently from its own content (`run_all_inference_plot_to_
+	# base64_png()`'s `width = NULL` default; CI forest height still scales
+	# from that one estimand's row count only, never summed across estimands
+	# -- the fix for the `ggsave()` "Dimensions exceed 50 inches" error).
+	estimates_html = vapply(names(out$plots$estimates), function(e) {
+		b64 = run_all_inference_plot_to_base64_png(out$plots$estimates[[e]])
+		if (is.null(b64)) return("")
+		sprintf(
+			'<h3>%s</h3>\n<img src="data:image/png;base64,%s" alt="Estimate number line -- %s" style="max-width:100%%;">',
+			htmltools_escape_or_identity(e), b64, htmltools_escape_or_identity(e)
+		)
+	}, character(1L), USE.NAMES = FALSE)
+	ci_forest_html = vapply(names(out$plots$ci_forest), function(e) {
+		p = out$plots$ci_forest[[e]]
+		b64 = run_all_inference_plot_to_base64_png(p, height = min(48, max(6, 0.35 * nrow(p$data) + 1.5)))
+		if (is.null(b64)) return("")
+		sprintf(
+			'<h3>%s</h3>\n<img src="data:image/png;base64,%s" alt="CI forest plot -- %s" style="max-width:100%%;">',
+			htmltools_escape_or_identity(e), b64, htmltools_escape_or_identity(e)
+		)
+	}, character(1L), USE.NAMES = FALSE)
 	images_html = paste0(c(
-		if (!is.null(b64_estimates)) sprintf('<h2>Estimates</h2>\n<img src="data:image/png;base64,%s" alt="Estimate number line" style="max-width:100%%;">', b64_estimates),
-		if (!is.null(b64_ci_forest)) sprintf('<h2>Confidence intervals</h2>\n<img src="data:image/png;base64,%s" alt="CI forest plot" style="max-width:100%%;">', b64_ci_forest)
+		if (any(nzchar(estimates_html))) c("<h2>Estimates</h2>", estimates_html[nzchar(estimates_html)]),
+		if (any(nzchar(ci_forest_html))) c("<h2>Confidence intervals</h2>", ci_forest_html[nzchar(ci_forest_html)])
 	), collapse = "\n")
 	design = out$design
 	sprintf('<!DOCTYPE html>
@@ -1416,18 +1434,14 @@ htmltools_escape_or_identity = function(x) {
 #' `plots`/`pdf`/`html` output (see `inference_suite_inspect.md`'s
 #' Visualizations section): every `status == "ok"` class's point estimate on
 #' one shared axis, its class name and CI/p-value method labeled above the
-#' dot at 45 degrees, and a box-and-whisker summary of the estimate values
-#' underneath, faceted by `estimand` (`"estimand unspecified"` for the
-#' majority of classes -- only a handful declare a private
-#' `get_estimand_type()`, see `run_all_inference_estimand()`) so estimates on
-#' different scales never share an axis. Returns `NULL` if there is nothing
-#' plottable (no `status == "ok"` rows with a finite estimate). Label
-#' collisions are not auto-resolved in this first pass (no `ggrepel`
-#' dependency added) -- a known limitation for designs with many
-#' tightly-clustered estimates, noted in the plan doc.
+#' dot, and a box-and-whisker summary of the estimate values underneath,
+#' faceted by `estimand` (`"estimand unspecified"` for the majority of
+#' classes -- only a handful declare a private `get_estimand_type()`, see
+#' `run_all_inference_estimand()`) so estimates on different scales never
+#' share an axis. Label collisions are not auto-resolved in this first pass
+#' (no `ggrepel` dependency added) -- a known limitation for designs with
+#' many tightly-clustered estimates, noted in the plan doc.
 #'
-#' @keywords internal
-#' @noRd
 #' Returns a **named list** of one ggplot per `estimand` (name = the raw
 #' `estimand` value, `"estimand unspecified"` for `NA`), not a single
 #' faceted plot -- per user request, 2026-08-19 ("one PDF per estimand"),
@@ -1492,17 +1506,12 @@ run_all_inference_plot_estimates = function(results_table) {
 #' `status == "ok"` class with a finite CI, one horizontal segment each,
 #' p-value printed left of the segment, CI width printed right of it, class
 #' name and CI/p-value method printed underneath, segment color keyed to
-#' significance at `alpha`, and a reference line at the null value. Faceted
-#' by `estimand` like `run_all_inference_plot_estimates()`, for the same
-#' reason (CI widths aren't comparable across scales). **Known limitation:**
-#' the null-value reference line is always drawn at zero -- ratio-scale
-#' nulls (e.g. 1, or zero on a log scale) would need a per-class scale
-#' declaration that does not exist package-wide yet (same gap as
-#' `estimand`). Returns `NULL` if there is nothing plottable (no
-#' `status == "ok"` row has a finite CI).
+#' significance at `alpha`, and a reference line at the null value.
+#' **Known limitation:** the null-value reference line is always drawn at
+#' zero -- ratio-scale nulls (e.g. 1, or zero on a log scale) would need a
+#' per-class scale declaration that does not exist package-wide yet (same
+#' gap as `estimand`).
 #'
-#' @keywords internal
-#' @noRd
 #' Returns a **named list** of one CI forest ggplot per `estimand` (name =
 #' the raw `estimand` value, `"estimand unspecified"` for `NA`), not a
 #' single faceted plot -- per user request, 2026-08-19 ("one PDF per
@@ -1630,16 +1639,65 @@ run_all_inference_build_plots = function(results_table, alpha) {
 #'
 #' @keywords internal
 #' @noRd
+#' Longest text label actually drawn on plot `p` (its `method_label`/
+#' `pval_label`/`width_label` columns, whichever are present) -- used to
+#' size a plot's page/image width from its real content instead of a flat
+#' constant, per user request, 2026-08-19 ("the PDFs don't have to be
+#' regular width size -- they can be cropped to whatever the width truly
+#' is"). Returns `0L` if `p` has none of those columns.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_plot_max_label_chars = function(p) {
+	d = p$data
+	label_cols = intersect(c("method_label", "pval_label", "width_label"), names(d))
+	if (length(label_cols) == 0L) return(0L)
+	max(vapply(label_cols, function(cn) max(nchar(as.character(d[[cn]])), 0L), integer(1L)))
+}
+
+#' Saves `run_all_inference()`'s plots to **two** separate timestamped
+#' multi-page PDFs -- `path_estimates` (one page per estimand's estimates
+#' plot) and `path_ci_forest` (one page per estimand's CI forest plot) --
+#' per user request, 2026-08-19 ("one PDF per estimand for estimates ...
+#' one PDF per estimand for CI"), replacing the earlier single two-page PDF.
+#' A `pdf()` device can't vary page size page-to-page without reopening the
+#' file (which would truncate pages already written), so all pages within
+#' one file share that file's single page height/width -- height for
+#' `path_estimates` is always a fixed 6in (the estimates plot never stacks
+#' rows vertically, so it doesn't need to scale with row count at all); for
+#' `path_ci_forest` it's sized from the \emph{largest single estimand's} row
+#' count (not summed across estimands, unlike the old design -- the actual
+#' cause of the `ggplot2::ggsave()` "Dimensions exceed 50 inches" error the
+#' user hit, since a page's height only ever needs to fit one estimand's
+#' rows now), capped at 48in to stay under `ggsave()`-style size sanity
+#' limits even for a single very-large estimand. Width for both files is
+#' likewise sized from real content (`run_all_inference_plot_max_label_
+#' chars()`'s longest on-page text label, the widest the estimates plot's
+#' rotated-vertical labels ever need since they no longer run diagonally
+#' outward) rather than a flat constant (per the same request).
+#'
+#' @param plots `run_all_inference_build_plots()`'s return value (named
+#'   lists of ggplots, one per estimand, possibly empty).
+#' @param path_estimates,path_ci_forest File paths for the two PDFs.
+#' @return Invisibly, `NULL`. Skips writing a file for a plot list that's
+#'   empty (nothing plottable for that visualization).
+#'
+#' @keywords internal
+#' @noRd
 run_all_inference_save_plots_pdf = function(plots, path_estimates, path_ci_forest) {
 	if (length(plots$estimates) > 0L) {
-		grDevices::pdf(path_estimates, width = 8, height = 6, onefile = TRUE)
+		max_chars = max(vapply(plots$estimates, run_all_inference_plot_max_label_chars, integer(1L)))
+		width = min(10, max(5, 4 + 0.03 * max_chars))
+		grDevices::pdf(path_estimates, width = width, height = 6, onefile = TRUE)
 		for (p in plots$estimates) print(p)
 		grDevices::dev.off()
 	}
 	if (length(plots$ci_forest) > 0L) {
 		ci_rows = vapply(plots$ci_forest, function(p) nrow(p$data), integer(1L))
 		height = min(48, max(6, 0.35 * max(ci_rows) + 1.5))
-		grDevices::pdf(path_ci_forest, width = 8, height = height, onefile = TRUE)
+		max_chars = max(vapply(plots$ci_forest, run_all_inference_plot_max_label_chars, integer(1L)))
+		width = min(14, max(6, 3 + 0.09 * max_chars))
+		grDevices::pdf(path_ci_forest, width = width, height = height, onefile = TRUE)
 		for (p in plots$ci_forest) print(p)
 		grDevices::dev.off()
 	}
@@ -1654,8 +1712,15 @@ run_all_inference_save_plots_pdf = function(plots, path_estimates, path_ci_fores
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_plot_to_base64_png = function(plot, width = 8, height = 6) {
+run_all_inference_plot_to_base64_png = function(plot, width = NULL, height = 6) {
 	if (is.null(plot) || !requireNamespace("jsonlite", quietly = TRUE)) return(NULL)
+	if (is.null(width)) {
+		# Per-image sizing from real content (unlike a shared PDF page, each
+		# HTML `<img>` is its own independent `ggsave()` call, so it can be
+		# cropped to exactly what this one plot needs -- per user request,
+		# 2026-08-19).
+		width = min(14, max(6, 3 + 0.09 * run_all_inference_plot_max_label_chars(plot)))
+	}
 	tmp = tempfile(fileext = ".png")
 	on.exit(unlink(tmp), add = TRUE)
 	ggplot2::ggsave(tmp, plot = plot, width = width, height = height, dpi = 110, bg = "white")
@@ -2827,9 +2892,16 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   directly, since that column can repeat under \code{formulas};
 		#'   \code{pval = stat = NA_real_} if fewer than 2 rows are usable),
 		#'   \code{design}, \code{alpha}, \code{unavailable_due_to_missing_packages},
-		#'   \code{plots} (\code{list(estimates, ci_forest)}, each a \code{ggplot} object
-		#'   or \code{NULL}), \code{files} (\code{list(html, pdf, json)}, each a path or
-		#'   \code{NULL}), \code{timestamp}, \code{total_secs}, and \code{edi_version}.
+		#'   \code{plots} (\code{list(estimates, ci_forest)}; each of those is itself a
+		#'   named list of one \code{ggplot} object per \code{estimand} -- possibly
+		#'   empty -- rather than a single plot, since each visualization is now
+		#'   split one-per-estimand, per user request, 2026-08-19),
+		#'   \code{files} (\code{list(html, pdf, json)}; \code{html}/\code{json} are
+		#'   each a path or \code{NULL}, \code{pdf} is itself
+		#'   \code{list(estimates, ci_forest)} of two paths (or \code{NULL}s) --
+		#'   \strong{two separate PDF files}, one per visualization, each a
+		#'   multi-page PDF with one page per estimand), \code{timestamp},
+		#'   \code{total_secs}, and \code{edi_version}.
 		run_all_inference = function(screen = TRUE, html = FALSE, alpha = 0.05, save_results_as_JSON = FALSE, plots = screen, pdf = FALSE,
 				classes = NULL, exclude_classes = character(), max_secs_per_class = NULL, num_cores = 1L, formulas = NULL,
 				methods = NULL, basic_bootstrap = FALSE,
@@ -3134,8 +3206,8 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					weights_used = stats::setNames(results_table$weight, row_ids),
 					classes_used = row_ids[combined_usable]
 				),
-				plots = list(estimates = NULL, ci_forest = NULL),
-				files = list(html = NULL, pdf = NULL, json = NULL),
+				plots = list(estimates = list(), ci_forest = list()),
+				files = list(html = NULL, pdf = list(estimates = NULL, ci_forest = NULL), json = NULL),
 				timestamp = format(Sys.time(), "%Y%m%d_%H%M%S"),
 				total_secs = as.numeric(difftime(Sys.time(), t_start, units = "secs")),
 				edi_version = as.character(utils::packageVersion("EDI"))
@@ -3152,19 +3224,17 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				out$plots = run_all_inference_build_plots(results_table, alpha)
 			}
 			if (plots) {
-				if (!is.null(out$plots$estimates)) {
-					tryCatch(print(out$plots$estimates), error = function(e) invisible(NULL))
-				}
-				if (!is.null(out$plots$ci_forest)) {
-					tryCatch(print(out$plots$ci_forest), error = function(e) invisible(NULL))
-				}
+				for (p in out$plots$estimates) tryCatch(print(p), error = function(e) invisible(NULL))
+				for (p in out$plots$ci_forest) tryCatch(print(p), error = function(e) invisible(NULL))
 			}
-			if (pdf && (!is.null(out$plots$estimates) || !is.null(out$plots$ci_forest))) {
-				pdf_path = file.path(getwd(), sprintf("inference_suite_results_plots_%s.pdf", out$timestamp))
-				n_ci_rows = sum(results_table$status == "ok" &
-					is.finite(results_table$ci_a) & is.finite(results_table$ci_b))
-				run_all_inference_save_plots_pdf(out$plots, pdf_path, n_ci_rows)
-				out$files$pdf = pdf_path
+			if (pdf && (length(out$plots$estimates) > 0L || length(out$plots$ci_forest) > 0L)) {
+				pdf_path_estimates = file.path(getwd(), sprintf("inference_suite_results_estimates_%s.pdf", out$timestamp))
+				pdf_path_ci_forest = file.path(getwd(), sprintf("inference_suite_results_ci_forest_%s.pdf", out$timestamp))
+				run_all_inference_save_plots_pdf(out$plots, pdf_path_estimates, pdf_path_ci_forest)
+				out$files$pdf = list(
+					estimates = if (length(out$plots$estimates) > 0L) pdf_path_estimates else NULL,
+					ci_forest = if (length(out$plots$ci_forest) > 0L) pdf_path_ci_forest else NULL
+				)
 			}
 			if (html) {
 				html_path = file.path(getwd(), sprintf("inference_suite_results_%s.html", out$timestamp))

@@ -448,8 +448,21 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 )
 #' Ordinal KK CLMM (Proportional Odds / logit link)
 #'
-#' Cumulative-logit mixed model for ordinal KK designs.
-#' Random intercept per matched pair, treatment + optional covariates as fixed effects.
+#' Cumulative-link random-intercept mixed model for ordinal responses under a
+#' KK matching-on-the-fly design, using the logit link (proportional odds):
+#' \eqn{\mathrm{logit}(P(Y_i \le k)) = \alpha_k - (\beta_T W_i + X_i^\top
+#' \gamma) - b_{g(i)}}, \eqn{b_g \sim N(0, \sigma_b^2)}, where \eqn{g(i)} is
+#' subject \eqn{i}'s matched-pair group id (reservoir subjects get singleton
+#' groups). \eqn{\exp(\hat\beta_T)} is the (conditional-on-\eqn{b_g}) treatment
+#' odds ratio. See
+#' \code{\link[EDI:InferenceAbstractKKOrdinalCLMM]{InferenceAbstractKKOrdinalCLMM}}
+#' for the shared model-fitting, caching, and likelihood-tier contract common
+#' to all four link-function siblings
+#' (\code{\link[EDI:InferenceOrdinalKKCLMMProbit]{...Probit}},
+#' \code{\link[EDI:InferenceOrdinalKKCLMMCauchit]{...Cauchit}},
+#' \code{\link[EDI:InferenceOrdinalKKCLMMCloglog]{...Cloglog}}); this class
+#' supplies only the link-function choice (\code{private$clmm_link() ==
+#' "logit"}).
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'ordinal')
@@ -483,7 +496,18 @@ InferenceOrdinalKKCLMM = R6::R6Class("InferenceOrdinalKKCLMM",
 )
 #' Ordinal KK CLMM (Probit link)
 #'
-#' Cumulative-probit mixed model for ordinal KK designs.
+#' Cumulative-link random-intercept mixed model for ordinal responses under a
+#' KK matching-on-the-fly design, using the probit link:
+#' \eqn{\Phi^{-1}(P(Y_i \le k)) = \alpha_k - (\beta_T W_i + X_i^\top \gamma) -
+#' b_{g(i)}}, \eqn{b_g \sim N(0, \sigma_b^2)}, where \eqn{\Phi} is the standard
+#' normal CDF and \eqn{g(i)} is subject \eqn{i}'s matched-pair group id. Unlike
+#' the logit-link sibling, \eqn{\hat\beta_T} here is not an odds-ratio scale
+#' parameter; it is the treatment's effect on the latent standard-normal index
+#' underlying the ordinal categories. See
+#' \code{\link[EDI:InferenceAbstractKKOrdinalCLMM]{InferenceAbstractKKOrdinalCLMM}}
+#' for the shared model-fitting, caching, and likelihood-tier contract common
+#' to all four link-function siblings; this class supplies only the
+#' link-function choice (\code{private$clmm_link() == "probit"}).
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'ordinal')
@@ -491,7 +515,7 @@ InferenceOrdinalKKCLMM = R6::R6Class("InferenceOrdinalKKCLMM",
 #'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
 #' }
 #' seq_des$add_all_subject_responses(sample(1:4, 10, replace = TRUE))
-#' inf = InferenceOrdinalKKCLMMCauchit$new(seq_des)
+#' inf = InferenceOrdinalKKCLMMProbit$new(seq_des)
 #' inf$compute_estimate()
 #' }
 #' @export
@@ -517,7 +541,17 @@ InferenceOrdinalKKCLMMProbit = R6::R6Class("InferenceOrdinalKKCLMMProbit",
 )
 #' Ordinal KK CLMM (Cauchit link)
 #'
-#' Cumulative-cauchit mixed model for ordinal KK designs.
+#' Cumulative-link random-intercept mixed model for ordinal responses under a
+#' KK matching-on-the-fly design, using the cauchit (inverse-Cauchy-CDF) link:
+#' \eqn{\tan(\pi (P(Y_i \le k) - 1/2)) = \alpha_k - (\beta_T W_i + X_i^\top
+#' \gamma) - b_{g(i)}}, \eqn{b_g \sim N(0, \sigma_b^2)}, where \eqn{g(i)} is
+#' subject \eqn{i}'s matched-pair group id. The cauchit link's heavy-tailed
+#' latent distribution makes it more robust than logit/probit to a small
+#' number of subjects near the response's extreme categories. See
+#' \code{\link[EDI:InferenceAbstractKKOrdinalCLMM]{InferenceAbstractKKOrdinalCLMM}}
+#' for the shared model-fitting, caching, and likelihood-tier contract common
+#' to all four link-function siblings; this class supplies only the
+#' link-function choice (\code{private$clmm_link() == "cauchit"}).
 #'
 #' @examples
 #' \donttest{
@@ -534,7 +568,7 @@ InferenceOrdinalKKCLMMCauchit = R6::R6Class("InferenceOrdinalKKCLMMCauchit",
 	lock_objects = FALSE,
 	inherit = InferenceAbstractKKOrdinalCLMM,
 	public = list(
-		#' @description Initialize the cloglog-link ordinal KK CLMM subclass; see the
+		#' @description Initialize the cauchit-link ordinal KK CLMM subclass; see the
 		#'   shared ordinal mixed-model contract in
 		#'   \code{\link[EDI:InferenceAbstractKKOrdinalCLMM]{InferenceAbstractKKOrdinalCLMM}}.
 		#' @param des_obj A completed \code{Design} object.
@@ -552,7 +586,18 @@ InferenceOrdinalKKCLMMCauchit = R6::R6Class("InferenceOrdinalKKCLMMCauchit",
 )
 #' Ordinal KK CLMM (Complementary log-log link)
 #'
-#' Cumulative complementary-log-log mixed model for ordinal KK designs.
+#' Cumulative-link random-intercept mixed model for ordinal responses under a
+#' KK matching-on-the-fly design, using the complementary log-log link:
+#' \eqn{\log(-\log(1 - P(Y_i \le k))) = \alpha_k - (\beta_T W_i + X_i^\top
+#' \gamma) - b_{g(i)}}, \eqn{b_g \sim N(0, \sigma_b^2)}, where \eqn{g(i)} is
+#' subject \eqn{i}'s matched-pair group id. Unlike the symmetric logit/probit/
+#' cauchit links, the cloglog link is asymmetric, making it appropriate when
+#' the ordinal categories arise from an underlying continuous-time
+#' proportional-hazards process discretized into intervals. See
+#' \code{\link[EDI:InferenceAbstractKKOrdinalCLMM]{InferenceAbstractKKOrdinalCLMM}}
+#' for the shared model-fitting, caching, and likelihood-tier contract common
+#' to all four link-function siblings; this class supplies only the
+#' link-function choice (\code{private$clmm_link() == "cloglog"}).
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'ordinal')
@@ -568,7 +613,7 @@ InferenceOrdinalKKCLMMCloglog = R6::R6Class("InferenceOrdinalKKCLMMCloglog",
 	lock_objects = FALSE,
 	inherit = InferenceAbstractKKOrdinalCLMM,
 	public = list(
-		#' @description Initialize the cauchit-link ordinal KK CLMM subclass; see the
+		#' @description Initialize the cloglog-link ordinal KK CLMM subclass; see the
 		#'   shared ordinal mixed-model contract in
 		#'   \code{\link[EDI:InferenceAbstractKKOrdinalCLMM]{InferenceAbstractKKOrdinalCLMM}}.
 		#' @param des_obj A completed \code{Design} object.

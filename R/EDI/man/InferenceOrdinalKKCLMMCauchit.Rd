@@ -4,7 +4,17 @@
 \alias{InferenceOrdinalKKCLMMCauchit}
 \title{Ordinal KK CLMM (Cauchit link)}
 \description{
-Cumulative-cauchit mixed model for ordinal KK designs.
+Cumulative-link random-intercept mixed model for ordinal responses under a
+KK matching-on-the-fly design, using the cauchit (inverse-Cauchy-CDF) link:
+\eqn{\tan(\pi (P(Y_i \le k) - 1/2)) = \alpha_k - (\beta_T W_i + X_i^\top
+\gamma) - b_{g(i)}}, \eqn{b_g \sim N(0, \sigma_b^2)}, where \eqn{g(i)} is
+subject \eqn{i}'s matched-pair group id. The cauchit link's heavy-tailed
+latent distribution makes it more robust than logit/probit to a small
+number of subjects near the response's extreme categories. See
+\code{\link[EDI:InferenceAbstractKKOrdinalCLMM]{InferenceAbstractKKOrdinalCLMM}}
+for the shared model-fitting, caching, and likelihood-tier contract common
+to all four link-function siblings; this class supplies only the
+link-function choice (\code{private$clmm_link() == "cauchit"}).
 }
 \examples{
 \donttest{
@@ -62,6 +72,12 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-compute_wald_two_sided_pval'><code>InferenceAbstractKKOrdinalCLMM$compute_wald_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_mod'><code>InferenceAbstractKKOrdinalCLMM$get_mod()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_summary'><code>InferenceAbstractKKOrdinalCLMM$get_summary()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_bayesian_bootstrap_ci_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_bayesian_bootstrap_pval_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_bootstrap_ci_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_bootstrap_pval_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_bootstrap_pval_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_rand_bootstrap_ci_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_rand_bootstrap_ci_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_rand_bootstrap_pval_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_rand_bootstrap_pval_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-get_supported_testing_types'><code>InferenceAbstractKKOrdinalCLMM$get_supported_testing_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-select_optimal_b_subsampling'><code>InferenceAbstractKKOrdinalCLMM$select_optimal_b_subsampling()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-select_optimal_m_out_of_n_bootstrap'><code>InferenceAbstractKKOrdinalCLMM$select_optimal_m_out_of_n_bootstrap()</code></a></li>
@@ -95,7 +111,7 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceOrdinalKKCLMMCauchit-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKCLMMCauchit-initialize}{}}}
 \subsection{\code{InferenceOrdinalKKCLMMCauchit$new()}}{
-  Initialize the cloglog-link ordinal KK CLMM subclass; see the
+  Initialize the cauchit-link ordinal KK CLMM subclass; see the
   shared ordinal mixed-model contract in
   \code{\link[EDI:InferenceAbstractKKOrdinalCLMM]{InferenceAbstractKKOrdinalCLMM}}.
   \subsection{Usage}{
