@@ -3395,8 +3395,48 @@ their own `[x]` entries above; they are not part of this count.)
       `test-mixin-contracts.R`, `test-static-cleanup-guardrails.R`,
       `test-parametric-bootstrap-lr-all-capable-classes.R`) green after all
       fixes above.
-- [ ] Add focused KK regression tests for matched-set weights, IVWC weighting,
+- [x] Add focused KK regression tests for matched-set weights, IVWC weighting,
   rank reduction, nonestimable fits, and block/cluster edge cases.
+  **Completed 2026-08-19** (scoped with the user to one representative class
+  family covering all five behaviors authentically, rather than spreading
+  thin across ~40 KK/IVWC classes): `InferenceContinKKOLSIVWC`
+  (`inference_continuous_KK_ols_ivwc.R`) chosen because its point estimate
+  is a genuine inverse-variance-weighted combination of a matched-pair-
+  differenced OLS fit and a reservoir OLS fit
+  (`w_star = ssq_r / (ssq_r + ssq_m)`), sharing the `reduce_design_matrix_once`/
+  `only_matches`/`only_reservoir` compound dispatch machinery
+  (`inference_mixin_kk_passthrough_compound.R`) used by every other KK
+  compound estimator. New file `test-kk-ivwc-compound-focused-regression.R`,
+  4 `test_that()` blocks / 19 assertions, all against empirically-found
+  fixed-seed KK design configurations (`DesignSeqOneByOneKK14`'s adaptive
+  Mahalanobis caliper isn't analytically invertible, so configurations were
+  found by sweeping seed/covariate-spread/drift and checking the resulting
+  `KKstats$m`/`nRT`/`nRC`, then locked in with an explicit assertion on
+  those counts so a future change in matching behavior fails loudly at that
+  assertion instead of silently testing the wrong code path):
+  - IVWC weighting: a balanced design (`m=3, nRT=7, nRC=7`) verifying the
+    combined estimate equals the `w_star` formula exactly and lies between
+    the two sub-estimates.
+  - Matched-set weights / block edge case: a design with exactly one
+    matched pair (`m=1`, zero within-pair-differenced-regression df) --
+    confirms `ssq_beta_T_matched` is correctly `NA` and the combined
+    estimate falls back to the reservoir estimate exactly.
+  - Rank reduction: covariates with `x2 = 2*x1 + tiny noise` (exact
+    collinearity breaks the design's own Mahalanobis covariance inversion
+    at construction time, so a small noise term was needed to keep design
+    construction well-posed while the OLS design matrix stays numerically
+    rank-deficient) -- cross-checked by calling the class's own
+    `reduce_design_matrix_once()` directly (not a hand-reimplementation of
+    its pivot logic) on a fresh copy of the design matrix, then a plain
+    `lm.fit()` on the reduced result, confirming it matches the class's
+    cached coefficient.
+  - Nonestimable fits / block edge case: `n=3` is too small for
+    `DesignSeqOneByOneKK14` to ever form a matched pair (`m=0`) and leaves a
+    reservoir with fewer rows than predictor columns -- confirms
+    `compute_estimate()`/`compute_asymp_confidence_interval()`/
+    `compute_asymp_two_sided_pval()` all return clean `NA` rather than
+    erroring.
+  All passing, stable across repeated runs (no RNG flakiness).
 
 #### Base Deletion
 
@@ -4812,7 +4852,7 @@ here (2026-08-13) rather than left as prose-only notes.
   risks clobbering concurrent sessions' own in-flight doc changes in this
   shared repo (see this doc's standing DLL-desync notes); leave this
   mechanical step for a dedicated, coordinated roxygenize pass.
-- [ ] **Audit which `Inference` classes actually use their `model_formula`
+- [x] **Audit which `Inference` classes actually use their `model_formula`
   in the fit vs. merely accept-and-ignore it, and record the answer as
   real registry metadata (e.g. an `adjusts_for_covariates` field next to
   `likelihood_tier`/`response_types`/`requires_blocking_design` in
@@ -4847,6 +4887,44 @@ here (2026-08-13) rather than left as prose-only notes.
   registry entry says `adjusts_for_covariates = FALSE`, matching the
   already-agreed design ("formula is blank for classes that don't take a
   formula") from `inference_suite_inspect.md`'s discussion of this column.
+  **Done 2026-08-19:** Added `adjusts_for_covariates` (logical, `NA` default
+  = unaudited) to the registry record in `inference_class_registry.R`
+  (default in `register_inference_class()`, validated in
+  `validate_inference_class_metadata()`), and a new
+  `infer_inference_adjusts_for_covariates(name)` populate-time helper backed
+  by two explicit audited name lists (`EDI_INFERENCE_CLASSES_IGNORING_COVARIATES`,
+  `EDI_INFERENCE_CLASSES_USING_COVARIATES`) rather than a regex, since this
+  question cannot be answered from name patterns alone. `run_all_inference_one_class()`
+  in `inference_suite.R` now reports `cov_model = NA_character_` whenever
+  `get_inference_class_metadata(cls_name)$adjusts_for_covariates` is
+  `FALSE`; `TRUE`/`NA` classes keep reporting the real formula string.
+  Audited by reading each concrete class's own fit-path code (and, where the
+  fit lives on an abstract parent, that parent's code) for
+  `private$X`/`private$get_X()`/`model.matrix` usage:
+  - **FALSE** (18 classes, closed-form/nonparametric, fit never reads X):
+    `SimpleMeanDiff`/`SimpleMeanDiffPooledVar`/`SimpleWilcox`/
+    `KKMeanDiffIVWC`/`KKWilcoxIVWC`, `IncidCMH`, `IncidExtendedRobins`,
+    `IncidMiettinenNurminenRiskDiff`, `IncidNewcombeRiskDiff`, `IncidWald`,
+    `IncidExactFisher`, `IncidExactZhang`, `SurvivalGehanWilcox`,
+    `SurvivalKMDiff`, `SurvivalLogRank`, `SurvivalRestrictedMeanDiff`,
+    `OrdinalJonckheereTerpstraTest`, `OrdinalRidit`.
+  - **TRUE** (~79 classes): every regression/likelihood/GEE/GLMM/Cox/
+    quantile-regression/robust-regression/g-computation class (OLS, logistic,
+    probit, log-binomial, modified-Poisson, binomial-identity, Poisson/
+    NegBin/hurdle/zero-inflated/quasi/robust-Poisson, ordinal
+    adjacent-category/cauchit/cloglog/stereotype/continuation-ratio/
+    ordered-probit/proportional-odds/partial-proportional-odds/CLMM, beta/
+    fractional-logit/zero-one-inflated-beta, Cox/stratified-Cox/Weibull/
+    dep-cens-transform/Clayton-copula/Weibull-frailty survival classes, and
+    their KK/IVWC/OneLik counterparts) plus `IncidRiskDiff` (covariates enter
+    `build_design_matrix()`) and the KK "matching" classes
+    `IncidKKNewcombeRiskDiff`/`IncidExactBinomial` (covariates feed
+    `compute_zhang_match_data_cpp(private$get_X(), ...)`, which changes the
+    match/weighting scheme and therefore the estimate).
+  - **NA** (unaudited, left as-is): `InferenceCustomAsymp`/`InferenceCustomRand`/
+    `InferenceCustomBoot` (user-extensible extension bases -- whether the
+    formula is used depends on the subclass a caller writes, not on this
+    class itself) and any concrete class not named in either list above.
 
 ## Definition of Done
 

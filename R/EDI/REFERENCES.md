@@ -292,6 +292,11 @@ files' `@references`) if/when it becomes available.
   *Journal of the Royal Statistical Society, Series C (Applied
   Statistics)*, 39(2), 205-217. doi:10.2307/2347760. — Used by:
   `InferenceOrdinalPartialProportionalOddsRegr`.
+- **[HedekerGibbons1994]** Hedeker, D., and Gibbons, R. D. (1994). "A
+  Random-Effects Ordinal Regression Model for Multilevel Analysis."
+  *Biometrics*, 50(4), 933-944. doi:10.2307/2533433. — Used by:
+  `InferenceOrdinalKKGLMM` (the random-intercept cumulative-logit model this
+  class fits).
 
 ### Survival
 
@@ -395,8 +400,8 @@ files' `@references`) if/when it becomes available.
   "Approximations to the Log-Likelihood Function in the Nonlinear
   Mixed-Effects Model." *Journal of Computational and Graphical
   Statistics*, 4(1), 12-35. doi:10.1080/10618600.1995.10474663. — Used by:
-  `fast_ordinal_glmm_cpp`, and (by the same shared quadrature engine — see
-  `vignette("backend-contracts")`) `fast_poisson_glmm`,
+  `fast_ordinal_glmm_cpp`, `InferenceOrdinalKKGLMM`, and (by the same shared
+  quadrature engine — see `vignette("backend-contracts")`) `fast_poisson_glmm`,
   `fast_logistic_glmm`, `fast_weibull_frailty`, `fast_gaussian_lmm`,
   `fast_hurdle_poisson_glmm`, `fast_clogit_plus_glmm`.
 

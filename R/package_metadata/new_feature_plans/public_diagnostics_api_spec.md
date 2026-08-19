@@ -101,7 +101,7 @@ Required top-level fields:
 ```r
 list(
   value = <numeric result>,
-  status = "ok" | "nonestimable" | "error",
+  status = "ok" | "no_estimate" | "no_se" | "unsupported" | "invalid_argument" | "error",
   target = "estimate" | "pval" | "ci",
   method = <character scalar>,
   inference_class = <character scalar>,
@@ -127,10 +127,23 @@ For non-estimable cases:
 `status` meanings:
 
 - `ok`: the returned value is finite and usable.
-- `nonestimable`: the path completed and returned a typed non-estimable state.
-- `error`: an unexpected exception occurred. The debug API may catch and return
-  this as a structured debug result, but the existing scalar API behavior
-  should remain unchanged unless explicitly changed elsewhere.
+- `no_estimate`: the path completed and returned a typed non-estimable state.
+- `no_se`: the estimate was computed and finite, but the standard error stage
+  was never attempted or did not produce a value. Distinct from `ok`: callers
+  must not assume `se` is present just because `status` isn't an error/no_estimate
+  state. See TODO-20.
+- `unsupported`: the method/argument combination is deliberately unimplemented
+  for this class (e.g. "not implemented", "only supported", "does not
+  support" style exceptions) -- a known, permanent limitation, not a runtime
+  failure.
+- `invalid_argument`: the caller passed arguments the method rejects by
+  design (e.g. out-of-range `alpha`, malformed `delta`) -- a caller error,
+  not a numerical or estimability failure.
+- `error`: catch-all for any other unexpected exception -- one that doesn't
+  match a typed reason above. The debug API may catch and return this as a
+  structured debug result, but the existing scalar API behavior should
+  remain unchanged unless explicitly changed elsewhere. See TODO-21 for the
+  classification mechanism.
 
 `stage` should use the package's existing stages where possible:
 
@@ -487,6 +500,29 @@ After the optimizer diagnostics layer is implemented:
    expansion never changes its shape or breaks JSON consumers
    (`save_results_as_JSON` output included). v1.1.0 scope, sequenced with
    this Phase 3.
+- [ ] TODO-20 (added 2026-08-19): a class that computes an estimate but never
+   attempts (or fails to produce) a standard error currently still reports
+   `status = "ok"`, so callers can't distinguish "fully computed" from
+   "estimate only, `se` missing." Fix by returning the new `status = "no_se"`
+   sentinel (estimate present and finite, SE stage not attempted / produced
+   no value) instead of `"ok"` in that case. Audit every class that can
+   currently return an estimate without a computed `se` to confirm they
+   adopt the new status. Depends on the `status` enum rename in this spec
+   ("nonestimable" → "no_estimate", this update) landing first so the two
+   sentinels are consistent.
+- [ ] TODO-21 (added 2026-08-19): `status = "error"` is currently a single
+   bucket for every unexpected exception, which is uninformative for callers
+   triaging failures. Split it into typed statuses -- `unsupported` (method/
+   argument combination deliberately unimplemented), `invalid_argument`
+   (caller passed rejected arguments), and `error` as the true catch-all for
+   anything else -- using message-pattern classification. Reuse the existing
+   `classify_method_error()` logic in
+   [run_public_workflow_coverage.R](../../package_tests/run_public_workflow_coverage.R)
+   (lines ~318-323) as the starting taxonomy/regexes rather than designing a
+   new one from scratch; that function already separates `unsupported` /
+   `nonestimable` / `exempted` / `error` for a different (test-coverage)
+   purpose, so port the applicable patterns and rename its `nonestimable`
+   analogue here to line up with this spec's `no_estimate`/`no_se` statuses.
 
 ### Phase 4: Audit/report integration
 
@@ -526,16 +562,32 @@ or comparable tooling.
 
 ## Error Handling
 
-Debug methods should catch unexpected errors and return:
+Debug methods should catch unexpected errors, classify the exception message
+against a stable set of typed patterns, and return:
 
 ```r
-status = "error"
+status = "unsupported" | "invalid_argument" | "error"
 value = NA_real_ # or c(NA_real_, NA_real_) for CI
 stage = <best known stage>
-reason = "unexpected_error"
+reason = <typed reason string, e.g. "not_implemented", "invalid_alpha", "unexpected_error">
 message = conditionMessage(e)
 errors = conditionMessage(e)
 ```
+
+Classification should reuse the pattern already established by
+`classify_method_error()` in
+[run_public_workflow_coverage.R](../../package_tests/run_public_workflow_coverage.R)
+(message-regex matching into `unsupported` / `nonestimable` / `exempted` /
+`error` buckets), rather than inventing a second taxonomy:
+
+- messages matching "not implemented", "must implement", "only supported",
+  "not supported", "does not support" → `status = "unsupported"`
+- messages matching known invalid-argument patterns (argument name/range
+  validation failures raised before any computation starts) → `status =
+  "invalid_argument"`
+- anything else → `status = "error"` (true catch-all; do not expand this
+  list to the point where `"error"` never fires -- an empty catch-all is a
+  sign the classifier is silently misclassifying real unexpected failures)
 
 This is a diagnostic API difference from the scalar API. Scalar methods should
 keep their current behavior unless a separate API decision changes it.
@@ -570,7 +622,7 @@ Example non-estimable output:
 ```r
 list(
   value = NA_real_,
-  status = "nonestimable",
+  status = "no_estimate",
   target = "pval",
   method = "lik_ratio_bartlett_approx",
   stage = "se",

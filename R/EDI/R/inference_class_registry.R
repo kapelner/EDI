@@ -429,6 +429,83 @@ infer_inference_likelihood_tier = function(name) {
 	"none"
 }
 
+# Audited 2026-08-19 (fix_inference_hierarchy.md, "Audit which `Inference`
+# classes actually use their `model_formula` in the fit..."): per-class
+# TRUE/FALSE answer to "does this class's fit path actually read
+# private$X`/`private$get_X()` (i.e. is the reported estimate/SE/CI/pval a
+# function of the stored `model_formula`/covariates), or does it merely
+# accept-and-ignore the formula like `SimpleMeanDifferenceSource`. Determined
+# by reading each concrete class's own fit-path code (compute_estimate/
+# compute_asymp_confidence_interval/compute_asymp_two_sided_pval and any
+# abstract parent it inherits fit logic from), not guessed from class name.
+# Any concrete class not listed here was not confidently audited and stays
+# `NA` (unaudited) via the fallback below -- do not add entries from pattern
+# matching alone.
+EDI_INFERENCE_CLASSES_IGNORING_COVARIATES = c(
+	# Closed-form/nonparametric estimators whose fit never reads private$X:
+	# confirmed by grep for `private$X`/`get_X()`/`model.matrix` returning zero
+	# hits in the defining file, cross-checked against the class's own
+	# compute_estimate()/shared() fit code.
+	"InferenceAllSimpleMeanDiff", "InferenceAllSimpleMeanDiffPooledVar",
+	"InferenceAllSimpleWilcox", "InferenceAllKKMeanDiffIVWC", "InferenceAllKKWilcoxIVWC",
+	"InferenceIncidCMH", "InferenceIncidExtendedRobins",
+	"InferenceIncidMiettinenNurminenRiskDiff", "InferenceIncidNewcombeRiskDiff",
+	"InferenceIncidWald", "InferenceIncidExactFisher", "InferenceIncidExactZhang",
+	"InferenceSurvivalGehanWilcox", "InferenceSurvivalKMDiff", "InferenceSurvivalLogRank",
+	"InferenceSurvivalRestrictedMeanDiff", "InferenceOrdinalJonckheereTerpstraTest",
+	"InferenceOrdinalRidit"
+)
+
+EDI_INFERENCE_CLASSES_USING_COVARIATES = c(
+	# Regression/likelihood/GEE/GLMM/Cox/quantile-regression/g-computation
+	# estimators confirmed to read private$X/private$get_X() (directly or via
+	# an abstract parent's shared fit code) -- the formula causally affects
+	# the reported estimate. Includes KK/IVWC "matching" classes
+	# (compute_zhang_match_data_cpp(private$get_X(), ...)) where covariates
+	# feed the matching/weighting scheme and therefore the estimate.
+	"InferenceIncidRiskDiff", "InferenceIncidKKNewcombeRiskDiff", "InferenceIncidExactBinomial",
+	"InferenceContinOLS", "InferenceContinLin", "InferenceContinQuantileRegr",
+	"InferenceContinRobustRegr", "InferenceContinKKOLSIVWC", "InferenceContinKKOLSOneLik",
+	"InferenceContinKKQuantileRegrIVWC", "InferenceContinKKQuantileRegrOneLik",
+	"InferenceContinKKRobustRegrIVWC", "InferenceContinKKRobustRegrOneLik",
+	"InferenceBaiAdjustedTKK14", "InferenceBaiAdjustedTKK21",
+	"InferenceCountPoisson", "InferenceCountNegBin", "InferenceCountQuasiPoisson",
+	"InferenceCountRobustPoisson", "InferenceCountHurdlePoisson", "InferenceCountHurdleNegBin",
+	"InferenceCountZeroInflatedPoisson", "InferenceCountZeroInflatedNegBin",
+	"InferenceCountPoissonKKGEE", "InferenceCountKKCondPoissonOneLik",
+	"InferenceCountKKHurdlePoissonIVWC", "InferenceCountKKHurdlePoissonOneLik",
+	"InferenceIncidLogRegr", "InferenceIncidProbitRegr", "InferenceIncidLogBinomial",
+	"InferenceIncidModifiedPoisson", "InferenceIncidBinomialIdentityRiskDiff",
+	"InferenceIncidGCompRiskDiff", "InferenceIncidGCompRiskRatio",
+	"InferenceIncidKKGCompRiskDiff", "InferenceIncidKKGCompRiskRatio",
+	"InferenceIncidKKModifiedPoisson", "InferenceIncidKKCondLogitIVWC",
+	"InferenceIncidKKCondLogitOneLik", "InferenceIncidKKCondLogitGLMMIVWC",
+	"InferenceIncidKKCondLogitGLMMOneLik", "InferenceIncidKKGEE",
+	"InferenceOrdinalAdjCatLogitRegr", "InferenceOrdinalCauchitRegr",
+	"InferenceOrdinalCloglogRegr", "InferenceOrdinalContRatioRegr",
+	"InferenceOrdinalStereotypeLogitRegr", "InferenceOrdinalOrderedProbitRegr",
+	"InferenceOrdinalPropOddsRegr", "InferenceOrdinalPartialProportionalOddsRegr",
+	"InferenceOrdinalGCompMeanDiff", "InferenceOrdinalKKGEE",
+	"InferenceOrdinalKKCondAdjCatLogitRegr", "InferenceOrdinalKKCLMM",
+	"InferenceOrdinalKKCLMMProbit", "InferenceOrdinalKKCLMMCauchit", "InferenceOrdinalKKCLMMCloglog",
+	"InferencePropBetaRegr", "InferencePropFractionalLogit", "InferencePropZeroOneInflatedBetaRegr",
+	"InferencePropQuantileRegr", "InferencePropGCompMeanDiff", "InferencePropKKGEE",
+	"InferencePropKKGLMM", "InferencePropKKQuantileRegrIVWC", "InferencePropKKQuantileRegrOneLik",
+	"InferenceSurvivalCoxPHRegr", "InferenceSurvivalStratCoxPHRegr", "InferenceSurvivalWeibullRegr",
+	"InferenceSurvivalDepCensTransformRegr", "InferenceSurvivalKKLWACoxPHIVWC",
+	"InferenceSurvivalKKLWACoxPHOneLik", "InferenceSurvivalKKStratCoxPHIVWC",
+	"InferenceSurvivalKKStratCoxPHOneLik", "InferenceSurvivalKKRankRegrIVWC",
+	"InferenceSurvivalKKWeibullMarginal", "InferenceSurvivalKKWeibullFrailtyIVWC",
+	"InferenceSurvivalKKWeibullFrailtyOneLik", "InferenceSurvivalKKClaytonCopulaIVWC",
+	"InferenceSurvivalKKClaytonCopulaOneLik"
+)
+
+infer_inference_adjusts_for_covariates = function(name) {
+	if (name %in% EDI_INFERENCE_CLASSES_IGNORING_COVARIATES) return(FALSE)
+	if (name %in% EDI_INFERENCE_CLASSES_USING_COVARIATES) return(TRUE)
+	NA
+}
+
 infer_inference_abstract = function(name) {
 	identical(name, "Inference") ||
 		name %in% EDI_INFERENCE_ABSTRACT_CLASS_NAMES ||
@@ -750,6 +827,11 @@ validate_inference_class_metadata = function(metadata) {
 	if (!is.character(metadata$excluded_capabilities %||% character())) {
 		stop(sprintf("Inference metadata for %s has invalid `excluded_capabilities`.", metadata$name), call. = FALSE)
 	}
+	adjusts_for_covariates = metadata$adjusts_for_covariates
+	if (!is.null(adjusts_for_covariates) &&
+			(!is.logical(adjusts_for_covariates) || length(adjusts_for_covariates) != 1L)) {
+		stop(sprintf("Inference metadata for %s has invalid `adjusts_for_covariates`.", metadata$name), call. = FALSE)
+	}
 	invisible(TRUE)
 }
 
@@ -770,7 +852,8 @@ register_inference_class = function(name, parent = NULL, metadata = list(), dire
 			excluded_capabilities = character(),
 			supports_general_censoring = FALSE,
 			requires_blocking_design = FALSE,
-			estimand = NA_character_
+			estimand = NA_character_,
+			adjusts_for_covariates = NA
 		),
 		metadata
 	)
@@ -1865,7 +1948,8 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				excluded_capabilities = EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES[[name]] %||% character(),
 				supports_general_censoring = infer_inference_supports_general_censoring(obj),
 				requires_blocking_design = infer_inference_requires_blocking_design(obj),
-				estimand = infer_inference_estimand_type(obj)
+				estimand = infer_inference_estimand_type(obj),
+				adjusts_for_covariates = infer_inference_adjusts_for_covariates(name)
 			),
 			direct_components = infer_inference_direct_components(name)
 		)

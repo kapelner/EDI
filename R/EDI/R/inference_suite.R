@@ -247,6 +247,90 @@ run_all_inference_estimand = function(cls_name) {
 #' (e.g. many bootstrap/randomization replicates, each its own R-level
 #' call) but may not interrupt one very slow single native fit.
 #'
+#' Whether inference class `nm`'s constructor syntactically accepts a
+#' `model_formula` argument, checked via `formals()` on the R6 generator's
+#' `$new()` (auto-derived from `initialize()`'s own formals -- an R6
+#' generator's `$new` always mirrors its `initialize` method's signature).
+#' Purely syntactic: `TRUE` does not mean the class's fit actually reads the
+#' formula, only that a caller may legally pass one at construction time --
+#' see `fix_inference_hierarchy.md`'s open `adjusts_for_covariates`
+#' registry-metadata audit TODO for that separate, harder, not-yet-answered
+#' question. Backs `run_all_inference_build_tasks()`'s `formulas` fan-out.
+#'
+#' @keywords internal
+#' @noRd
+inference_class_accepts_model_formula = function(nm) {
+	cls = get(nm, envir = getNamespace("EDI"))
+	"model_formula" %in% names(formals(cls$new))
+}
+
+#' Normalizes `InferenceSuite$run_all_inference()`'s `formulas` argument
+#' into `NULL` or a plain list of `formula` objects, accepting every input
+#' shape a caller might reasonably pass: a single bare formula (`~ .`), a
+#' character formula string (`"~ ."`), or a collection of either --
+#' including `c(~ 1, ~ .)`, which base R already returns as a plain `list`
+#' of two `formula` objects (formulas have no `c()` method of their own), so
+#' no special-casing is needed for that shape specifically. Character
+#' elements are converted via `stats::as.formula()`; formula elements pass
+#' through unchanged. Does not validate -- `run_all_inference()` asserts the
+#' *pre*-normalization input shape itself (so a malformed element reports
+#' clearly against what the caller actually typed).
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_normalize_formulas = function(formulas) {
+	if (is.null(formulas)) return(NULL)
+	if (inherits(formulas, "formula")) formulas = list(formulas)
+	formulas = as.list(formulas)
+	lapply(formulas, function(f) if (is.character(f)) stats::as.formula(f) else f)
+}
+
+#' Expands `cls_names` x `formulas` into one fitting task per (class,
+#' formula) pair, for `InferenceSuite$run_all_inference()`'s `formulas`
+#' argument. `formulas = NULL` (the default) returns one task per class with
+#' `model_formula = NULL` -- identical to pre-`formulas` behavior, since
+#' `model_formula = NULL` at construction already resolves to
+#' `des_obj$get_design_formula()` (default `~ .`). When `formulas` is
+#' non-`NULL` (already normalized to a list of `formula` objects by
+#' `run_all_inference_normalize_formulas()`): classes for which
+#' `inference_class_accepts_model_formula()` is `TRUE` get one task per
+#' formula in `formulas`; classes for which it is `FALSE` still get exactly
+#' one task (formulas has no applicable argument slot to fan out over), with
+#' `model_formula = NULL`, ignoring `formulas` entirely for that class. Each
+#' task's `result_name` is the plain class name when a class contributes
+#' exactly one task (the common case), or `"<class>[<deparsed formula>]"`
+#' when a class contributes more than one, so `results`/`results_table` row
+#' identifiers stay unique.
+#'
+#' @param cls_names Character vector of class names to build tasks for.
+#' @param formulas `NULL`, or a list of `formula` objects (see
+#'   `run_all_inference_normalize_formulas()`).
+#' @return A list of `list(cls_name, model_formula, result_name)`.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_build_tasks = function(cls_names, formulas) {
+	if (is.null(formulas)) {
+		return(lapply(cls_names, function(nm) {
+			list(cls_name = nm, model_formula = NULL, result_name = nm)
+		}))
+	}
+	tasks = list()
+	for (nm in cls_names) {
+		if (inference_class_accepts_model_formula(nm)) {
+			for (f in formulas) {
+				tasks[[length(tasks) + 1L]] = list(
+					cls_name = nm, model_formula = f,
+					result_name = sprintf("%s[%s]", nm, deparse1(f))
+				)
+			}
+		} else {
+			tasks[[length(tasks) + 1L]] = list(cls_name = nm, model_formula = NULL, result_name = nm)
+		}
+	}
+	tasks
+}
+
 #' @keywords internal
 #' @noRd
 run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class = NULL) {
@@ -299,9 +383,17 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 			# SimpleMeanDifferenceSource -- that accept a model_formula argument
 			# but never actually use it in the fit). Reporting it here is a
 			# statement of "what formula this instance was constructed with," not
-			# a claim that every class's fit is a function of it -- which classes
-			# actually use their formula is not yet audited/flagged separately.
-			cov_model = tryCatch(deparse1(inf_obj$get_model_formula()), error = function(e) NA_character_)
+			# a claim that every class's fit is a function of it. Classes whose
+			# registry `adjusts_for_covariates` is confirmed `FALSE` (audited in
+			# fix_inference_hierarchy.md, 2026-08-19) report a blank formula here
+			# instead, matching inference_suite_inspect.md's agreed design
+			# ("formula is blank for classes that don't take a formula"). `TRUE`/
+			# `NA` (unaudited) classes keep reporting the real formula string.
+			cov_model = if (isFALSE(get_inference_class_metadata(cls_name)$adjusts_for_covariates)) {
+				NA_character_
+			} else {
+				tryCatch(deparse1(inf_obj$get_model_formula()), error = function(e) NA_character_)
+			}
 			if (isTRUE(inf_obj$is_nonestimable("any"))) {
 				list(
 					status = "nonest", cov_model = cov_model,
@@ -1097,6 +1189,29 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   summary line (a deliberate design choice, not a degraded default -- see
 		#'   \code{inference_suite_inspect.md}'s TODO-13). Default \code{1L}
 		#'   (sequential, with the normal incremental streaming/progress bar).
+		#' @param formulas \code{NULL} (default), a single formula (\code{~ .}), a
+		#'   single formula string (\code{"~ ."}), or a collection of either --
+		#'   including \code{c(~ 1, ~ .)}, which base R already returns as a plain
+		#'   \code{list} of \code{formula} objects (formulas have no \code{c()}
+		#'   method of their own), or a character vector
+		#'   (\code{c("~ .", "~ age + sex * smoking")}). \code{NULL}
+		#'   means each class fits once with its own default formula -- identical
+		#'   to omitting this argument entirely, since \code{model_formula = NULL}
+		#'   at construction already resolves to \code{des_obj$get_design_formula()}
+		#'   (default \code{~ .}). When non-\code{NULL}, only classes whose
+		#'   constructor \strong{syntactically} accepts a \code{model_formula}
+		#'   argument are fit once per formula in \code{formulas} (one
+		#'   \code{results_table} row each, disambiguated in \code{results} by
+		#'   \code{"<class>[<formula>]"} names); classes without a
+		#'   \code{model_formula} constructor argument at all still fit exactly
+		#'   once, ignoring \code{formulas}. Note this is a syntactic check
+		#'   (does the constructor accept one), not a semantic one (does the fit
+		#'   actually use it) -- some classes accept-and-ignore \code{model_formula}
+		#'   (e.g. \code{InferenceAllSimpleMeanDiff}'s unadjusted Welch's t-test);
+		#'   see \code{fix_inference_hierarchy.md}'s open
+		#'   \code{adjusts_for_covariates} registry-metadata audit TODO, which
+		#'   would let this argument (and the \code{cov_model} column) become
+		#'   semantics-aware once landed.
 		#' @return Invisibly, an object of class \code{c("EDIInferenceSuiteResults", "list")}
 		#'   with elements \code{results} (one named sub-list per class, in computation
 		#'   order), \code{results_table} (the same rows as a flat \code{data.frame}),
@@ -1105,7 +1220,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   or \code{NULL}), \code{files} (\code{list(html, pdf, json)}, each a path or
 		#'   \code{NULL}), \code{timestamp}, \code{total_secs}, and \code{edi_version}.
 		run_all_inference = function(screen = TRUE, html = FALSE, alpha = 0.05, save_results_as_JSON = FALSE, plots = screen, pdf = FALSE,
-				classes = NULL, exclude_classes = character(), max_secs_per_class = NULL, num_cores = 1L) {
+				classes = NULL, exclude_classes = character(), max_secs_per_class = NULL, num_cores = 1L, formulas = NULL) {
 			if (should_run_asserts()) {
 				assertFlag(screen)
 				assertFlag(html)
@@ -1117,7 +1232,23 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				assertCharacter(exclude_classes)
 				assertNumber(max_secs_per_class, lower = 0, null.ok = TRUE)
 				assertCount(num_cores, positive = TRUE)
+				if (!is.null(formulas)) {
+					formulas_check = if (inherits(formulas, "formula")) list(formulas) else as.list(formulas)
+					if (length(formulas_check) == 0L) {
+						stop("InferenceSuite$run_all_inference: `formulas` must have at least one element if not NULL.")
+					}
+					for (f in formulas_check) {
+						if (!inherits(f, "formula") && !(is.character(f) && length(f) == 1L && !is.na(f))) {
+							stop(
+								"InferenceSuite$run_all_inference: every element of `formulas` must be a formula ",
+								"object or a single formula string, e.g. formulas = c(~ 1, ~ .) or ",
+								"formulas = c(\"~ 1\", \"~ .\")."
+							)
+						}
+					}
+				}
 			}
+			formulas = run_all_inference_normalize_formulas(formulas)
 			if (!screen && !html) {
 				stop("InferenceSuite$run_all_inference: at least one of `screen`/`html` must be TRUE.")
 			}
@@ -1145,10 +1276,11 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			response_type   = design_meta$response_type
 			cls_names       = if (is.null(classes)) self$applicable_design_classes else classes
 			cls_names       = setdiff(cls_names, exclude_classes)
-			n_total         = length(cls_names)
+			tasks           = run_all_inference_build_tasks(cls_names, formulas)
+			n_total         = length(tasks)
 			t_start         = Sys.time()
 			results         = vector("list", n_total)
-			names(results)  = cls_names
+			names(results)  = vapply(tasks, `[[`, character(1L), "result_name")
 
 			use_fork_cluster = num_cores > 1L && .Platform$OS.type == "unix"
 			if (num_cores > 1L && !use_fork_cluster) {
@@ -1168,35 +1300,41 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				# worker has finished, so there is no meaningful per-row ETA to show
 				# (deliberate design decision, not an oversight -- see
 				# inference_suite_inspect.md's TODO-13).
-				if (screen) cat(sprintf("Fitting %d classes across %d parallel workers...\n", n_total, num_cores))
+				if (screen) cat(sprintf("Fitting %d task(s) across %d parallel workers...\n", n_total, num_cores))
 				cl = parallel::makeForkCluster(num_cores)
 				on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
-				worker_fn = function(cls_name) {
-					params = private$inference_params[[cls_name]] %||% list()
+				worker_fn = function(task) {
+					params = private$inference_params[[task$cls_name]] %||% list()
+					if (!is.null(task$model_formula)) {
+						params$model_formula = task$model_formula
+					}
 					run_all_inference_one_class(
-						cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class
+						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class
 					)
 				}
-				results_list = parallel::clusterApply(cl, cls_names, worker_fn)
-				names(results_list) = cls_names
+				results_list = parallel::clusterApply(cl, tasks, worker_fn)
+				names(results_list) = names(results)
 				results = results_list
 				if (screen) {
-					for (i in seq_along(cls_names)) {
-						run_all_inference_print_row(i, n_total, results[[cls_names[[i]]]])
+					for (i in seq_along(tasks)) {
+						run_all_inference_print_row(i, n_total, results[[i]])
 					}
-					cat(sprintf("Completed %d classes in %s.\n", n_total, run_all_inference_fmt_secs(as.numeric(difftime(Sys.time(), t_start, units = "secs")))))
+					cat(sprintf("Completed %d task(s) in %s.\n", n_total, run_all_inference_fmt_secs(as.numeric(difftime(Sys.time(), t_start, units = "secs")))))
 				}
 			} else {
 				elapsed_secs_so_far = numeric(n_total)
-				for (i in seq_along(cls_names)) {
-					cls_name = cls_names[[i]]
-					params   = private$inference_params[[cls_name]] %||% list()
-					results[[cls_name]] = run_all_inference_one_class(
-						cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class
+				for (i in seq_along(tasks)) {
+					task     = tasks[[i]]
+					params   = private$inference_params[[task$cls_name]] %||% list()
+					if (!is.null(task$model_formula)) {
+						params$model_formula = task$model_formula
+					}
+					results[[i]] = run_all_inference_one_class(
+						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class
 					)
-					elapsed_secs_so_far[[i]] = results[[cls_name]]$fit_secs
+					elapsed_secs_so_far[[i]] = results[[i]]$fit_secs
 					if (screen) {
-						run_all_inference_print_row(i, n_total, results[[cls_name]])
+						run_all_inference_print_row(i, n_total, results[[i]])
 						cat(run_all_inference_progress_bar_line(i, n_total, elapsed_secs_so_far), "\n")
 					}
 				}
