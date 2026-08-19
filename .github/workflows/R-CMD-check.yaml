@@ -63,14 +63,16 @@ jobs:
 
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
 
-    # Every leg normally finishes in well under an hour (macOS ~32s of that
-    # is examples; the slowest observed full leg, windows-latest, took
-    # 42m54s). 90 gives headroom for normal variance while still catching a
-    # genuine hang long before GitHub's own 6h hard kill -- see the
-    # 2026-08-10 incident where ubuntu-latest (oldrel-1) and the sibling
-    # R-CMD-check-no-suggests job below both sat stuck in check-r-package
-    # for 4+ hours with no timeout to stop them.
-    timeout-minutes: 90
+    # Originally 90 (see the 2026-08-10 incident where ubuntu-latest
+    # (oldrel-1) and the sibling R-CMD-check-no-suggests job below both sat
+    # stuck in check-r-package for 4+ hours with no timeout to stop them).
+    # Raised to 150 after the 2026-08-19 inference-hierarchy expansion (140
+    # of 267 testthat files touched in the preceding days) pushed every
+    # matrix leg's "checking tests" step past 90 minutes legitimately (not a
+    # hang -- windows-latest/ubuntu-latest(release)/macos-latest all hit the
+    # literal 90-minute cutoff mid-testthat run). 150 still catches a
+    # genuine hang well before GitHub's own 6h hard kill.
+    timeout-minutes: 150
 
     strategy:
       fail-fast: false
@@ -187,8 +189,10 @@ jobs:
     name: ubuntu-latest (release, no Suggests)
 
     # See R-CMD-check's identical timeout-minutes comment above -- this job
-    # hit the same 4+ hour stuck-in-check-r-package incident on 2026-08-10.
-    timeout-minutes: 90
+    # hit the same 4+ hour stuck-in-check-r-package incident on 2026-08-10,
+    # and the same 2026-08-19 test-suite-growth timeout (1h13m56s, exit 143)
+    # that raised R-CMD-check's cap to 150.
+    timeout-minutes: 150
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -332,24 +336,25 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # rocker/r-devel's Debian sid apt sources routinely go through short
-      # windows where the archive is internally inconsistent (e.g. valgrind's
-      # sid build still pins an older libc6-dbg than the libc6 that's already
-      # current), which apt's solver reports as "Reached two conflicting
-      # decisions" even with --allow-downgrades -- see the 2026-08-17
-      # R-devel (valgrind) job failure this was written to fix. This is
-      # archive skew, not something under our control, and it normally
-      # clears within minutes as the mirror finishes syncing, so retry
-      # apt-get update+install a few times with a short backoff instead of
-      # failing the job outright on a transient mismatch.
+      # valgrind has no versioned dependency on libc6-dbg (any version
+      # satisfies it), but apt's solver still tries the *older* of the two
+      # available libc6-dbg candidates first; that older libc6-dbg has a
+      # hard, exact-version dependency on a matching (older) libc6, so apt
+      # then tries to downgrade the already-installed (newer) libc6 -- which
+      # something else in the image blocks even with --allow-downgrades,
+      # producing "Reached two conflicting decisions". This isn't transient
+      # mirror lag (confirmed unchanged across 2026-08-17 and 2026-08-19 runs
+      # 2 days apart, same exact versions both times, 5 retries with 60s
+      # backoff didn't help either -- see the 2026-08-17 and 2026-08-19
+      # R-devel (valgrind) job failures this was written to fix). The fix is
+      # to pre-select the libc6-dbg version that already matches the
+      # container's installed libc6, so apt never needs to downgrade
+      # anything to satisfy valgrind's unversioned libc6-dbg dependency.
       - name: Install valgrind and libuv (libuv is a system dependency of the 'fs' package, itself a transitive dependency of testthat via pkgload -- rocker/r-devel is a bare-bones image that doesn't include it, see the sanitizers job's Install libuv step for the failure this causes if skipped)
         run: |
-          for attempt in 1 2 3 4 5; do
-            apt-get update && apt-get install -y --allow-downgrades valgrind libuv1-dev && exit 0
-            echo "apt-get install failed (attempt $attempt/5), retrying after archive sync delay..."
-            sleep 60
-          done
-          exit 1
+          apt-get update
+          libc6_version="$(dpkg-query -W -f='${Version}' libc6)"
+          apt-get install -y --allow-downgrades "libc6-dbg=${libc6_version}" valgrind libuv1-dev
 
       # Matrix is listed explicitly (even though it's not a direct EDI
       # dependency) because survival Imports it, and rocker/r-devel doesn't
