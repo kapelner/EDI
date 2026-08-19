@@ -222,7 +222,8 @@ Defaults to an empty list (no extra arguments for any class).}
   classes = NULL,
   exclude_classes = character(),
   max_secs_per_class = NULL,
-  num_cores = 1L
+  num_cores = 1L,
+  formulas = NULL
 )}
     \if{html}{\out{</div>}}
   }
@@ -285,6 +286,29 @@ then every result row together once complete, then a total-elapsed-time
 summary line (a deliberate design choice, not a degraded default -- see
 \code{inference_suite_inspect.md}'s TODO-13). Default \code{1L}
 (sequential, with the normal incremental streaming/progress bar).}
+      \item{\code{formulas}}{\code{NULL} (default), a single formula (\code{~ .}), a
+single formula string (\code{"~ ."}), or a collection of either --
+including \code{c(~ 1, ~ .)}, which base R already returns as a plain
+\code{list} of \code{formula} objects (formulas have no \code{c()}
+method of their own), or a character vector
+(\code{c("~ .", "~ age + sex * smoking")}). \code{NULL}
+means each class fits once with its own default formula -- identical
+to omitting this argument entirely, since \code{model_formula = NULL}
+at construction already resolves to \code{des_obj$get_design_formula()}
+(default \code{~ .}). When non-\code{NULL}, only classes whose
+constructor \strong{syntactically} accepts a \code{model_formula}
+argument are fit once per formula in \code{formulas} (one
+\code{results_table} row each, disambiguated in \code{results} by
+\code{"<class>[<formula>]"} names); classes without a
+\code{model_formula} constructor argument at all still fit exactly
+once, ignoring \code{formulas}. Note this is a syntactic check
+(does the constructor accept one), not a semantic one (does the fit
+actually use it) -- some classes accept-and-ignore \code{model_formula}
+(e.g. \code{InferenceAllSimpleMeanDiff}'s unadjusted Welch's t-test);
+see \code{fix_inference_hierarchy.md}'s open
+\code{adjusts_for_covariates} registry-metadata audit TODO, which
+would let this argument (and the \code{cov_model} column) become
+semantics-aware once landed.}
     }
     \if{html}{\out{</div>}}
   }

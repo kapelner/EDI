@@ -6,7 +6,14 @@
 \code{run_all_inference()} call -- the same table \code{screen = TRUE} prints during
 the call itself, so a user who assigned the return value and later types its name
 (or calls \code{print()} on it) sees a readable table rather than a raw nested list
-dump.}
+dump. The table itself is rendered by
+\code{run_all_inference_format_pretty_table()}: rows sorted by
+\code{estimand}, with a double rule under the header and a single rule
+between \code{estimand} groups and at the bottom, class names and
+\code{estimand} values shortened for display (never the underlying
+\code{results_table} values), and a \code{cov_model} letter-key legend
+appended when applicable -- see that function's own documentation for
+the exact column-by-column rendering rules.}
 \usage{
 \method{print}{EDIInferenceSuiteResults}(x, ...)
 }
@@ -24,5 +31,12 @@ Prints the results table from an \code{\link[EDI:InferenceSuite]{InferenceSuite}
 \code{run_all_inference()} call -- the same table \code{screen = TRUE} prints during
 the call itself, so a user who assigned the return value and later types its name
 (or calls \code{print()} on it) sees a readable table rather than a raw nested list
-dump.
+dump. The table itself is rendered by
+\code{run_all_inference_format_pretty_table()}: rows sorted by
+\code{estimand}, with a double rule under the header and a single rule
+between \code{estimand} groups and at the bottom, class names and
+\code{estimand} values shortened for display (never the underlying
+\code{results_table} values), and a \code{cov_model} letter-key legend
+appended when applicable -- see that function's own documentation for
+the exact column-by-column rendering rules.
 }

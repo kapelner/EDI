@@ -37,12 +37,9 @@
 #' 378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
 #'
 #' @seealso Analogous Python API for Poisson/count GLMs:
-#'   \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
-#'   discrete models}.
-#'   \href{https://en.wikipedia.org/wiki/Generalized_linear_model}{Generalized
-#'   linear model} and
-#'   \href{https://en.wikipedia.org/wiki/Gauss%E2%80%93Hermite_quadrature}{Gauss-Hermite
-#'   quadrature} (orientation).
+#'   \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels discrete models}.
+#'   \href{https://en.wikipedia.org/wiki/Generalized_linear_model}{Generalized linear model} and
+#'   \href{https://en.wikipedia.org/wiki/Gauss–Hermite_quadrature}{Gauss-Hermite quadrature} (orientation).
 #'
 #' @examples
 #' \donttest{

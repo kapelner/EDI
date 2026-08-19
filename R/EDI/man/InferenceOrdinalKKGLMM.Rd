@@ -4,13 +4,40 @@
 \alias{InferenceOrdinalKKGLMM}
 \title{GLMM Inference for KK Designs with Ordinal Response}
 \description{
-Fits a cumulative-logit mixed model (proportional odds) for ordinal responses
-under a KK matching-on-the-fly design. The random intercept per matched pair is
-integrated out via Gauss-Hermite quadrature.
+Fits a cumulative-logit random-intercept mixed model (proportional odds) for
+ordinal responses under a KK matching-on-the-fly design:
+\eqn{\mathrm{logit}(P(Y_i \le k \mid W_i, X_i, b_{g(i)})) = \alpha_k - (\beta_T
+W_i + X_i^\top \gamma) - b_{g(i)}}, for cutpoints \eqn{\alpha_1 < \cdots <
+\alpha_{K-1}}, treatment indicator \eqn{W_i}, covariates \eqn{X_i}, and a
+matched-pair random intercept \eqn{b_g \sim N(0, \sigma_b^2)} that is
+integrated out of the marginal likelihood (either by adaptive Gauss-Hermite
+quadrature when \code{use_rcpp = TRUE}, the default; see
+\code{\link{fast_ordinal_glmm_cpp}} for the quadrature order and optimizer
+details, or by \pkg{glmmTMB}'s Laplace approximation when \code{use_rcpp =
+FALSE}). \eqn{g(i)} is subject \eqn{i}'s matched-pair group id; reservoir
+(unmatched) subjects each get their own singleton group, contributing no
+within-group correlation but still entering the joint likelihood. The
+treatment coefficient \eqn{\beta_T} is a log-odds-ratio: \eqn{\exp(\beta_T)}
+is the (conditional-on-\eqn{b_g}) odds ratio of being at or above any given
+response category. \code{likelihood_tier = "full"}: likelihood-ratio, score,
+Wald, and gradient tests are available when \code{use_rcpp = TRUE} and the
+fit converges; \code{use_rcpp = FALSE} disables likelihood-test support
+(\code{private$supports_likelihood_tests()} returns \code{FALSE}) because
+\pkg{glmmTMB}'s Laplace-approximate likelihood is not wired into this
+package's score/gradient/LR machinery. Validity requires the random-intercept
+structure to correctly capture the design's matching dependence, proportional
+odds (the treatment/covariate effect is constant across cutpoints), and
+correct specification of the fixed-effects formula.
 
-When \code{use_rcpp = TRUE} (default) the likelihood is maximised by an internal
-Rcpp/L-BFGS routine that requires no external packages. Set \code{use_rcpp = FALSE}
-to fall back to \pkg{glmmTMB}.
+This differs from the GEE sibling
+\code{\link[EDI:InferenceOrdinalKKGEE]{InferenceOrdinalKKGEE}} (documented
+above) in estimand and inference basis: the GLMM's \eqn{\beta_T} is a
+subject-specific (conditional) log-odds-ratio with model-likelihood-based
+inference, while the GEE's is a population-averaged (marginal) log-odds-ratio
+with sandwich-based inference; the two need not numerically agree even on the
+same data, and the correct choice depends on whether a
+subject-specific/conditional or population-averaged/marginal treatment
+effect is of interest.
 }
 \examples{
 \donttest{
@@ -23,8 +50,27 @@ inf = InferenceOrdinalKKGLMM$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}} -> \code{InferenceOrdinalKKGLMM}
+\references{
+Hedeker, D., and Gibbons, R. D. (1994). "A Random-Effects
+  Ordinal Regression Model for Multilevel Analysis." \emph{Biometrics},
+  50(4), 933-944, \doi{10.2307/2533433}, for the random-effects
+  cumulative-logit model; Pinheiro, J. C., and Bates, D. M. (1995).
+  "Approximations to the Log-Likelihood Function in the Nonlinear
+  Mixed-Effects Model." \emph{Journal of Computational and Graphical
+  Statistics}, 4(1), 12-35, \doi{10.1080/10618600.1995.10474663}, for the
+  adaptive Gauss-Hermite quadrature approximation used to integrate out the
+  random intercept.
+}
+\seealso{
+Comparable Python API:
+  \href{https://www.statsmodels.org/stable/mixed_linear.html}{statsmodels
+  MixedLM} (continuous analog; no ordinal-GLMM in \pkg{statsmodels}).
+  See also: \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal
+  regression} and \href{https://en.wikipedia.org/wiki/Mixed_model}{Mixed
+  model} (Wikipedia).
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceOrdinalKKGLMM}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -37,106 +83,7 @@ inf$compute_estimate()
     \item \href{#method-InferenceOrdinalKKGLMM-clone}{\code{InferenceOrdinalKKGLMM$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_lik_ratio_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_lik_ratio_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_lik_ratio_bootstrap_two_sided_pval'><code>InferenceParamBootstrap$compute_lik_ratio_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_param_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_estimate'><code>InferenceParamBootstrap$compute_param_bootstrap_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_pval'><code>InferenceParamBootstrap$compute_param_bootstrap_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_diagnostics()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_estimate_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_estimate_diagnostics()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsympLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_confidence_interval'><code>InferenceAsympLik$compute_gradient_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_two_sided_pval'><code>InferenceAsympLik$compute_gradient_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_confidence_interval'><code>InferenceAsympLik$compute_score_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_two_sided_pval'><code>InferenceAsympLik$compute_score_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -162,9 +109,12 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceOrdinalKKGLMM-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGLMM-initialize}{}}}
 \subsection{\code{InferenceOrdinalKKGLMM$new()}}{
-  Initialize KK ordinal GLMM inference, validate the ordinal
-  matched/reservoir design, and prepare the mixed-model likelihood used by
-  \code{\link[EDI:InferenceOrdinalKKGLMM]{InferenceOrdinalKKGLMM}}.
+  Initialize inference for the cumulative-logit random-intercept
+  mixed model \eqn{\mathrm{logit}(P(Y_i \le k)) = \alpha_k - (\beta_T W_i +
+  X_i^\top \gamma) - b_{g(i)}}, \eqn{b_g \sim N(0, \sigma_b^2)}, where
+  \eqn{g(i)} is subject \eqn{i}'s matched-pair group id (reservoir subjects
+  get singleton groups). Does not fit the model; the fit is deferred to
+  the first call to \code{compute_estimate()} or a method that requires it.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKGLMM$new(
@@ -196,8 +146,17 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalKKGLMM-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGLMM-compute_estimate}{}}}
 \subsection{\code{InferenceOrdinalKKGLMM$compute_estimate()}}{
-  Computes the class-specific treatment-effect estimate; see
-  \code{\link[EDI:Inference]{Inference}}.
+  Fits the cumulative-logit random-intercept mixed model by
+  (adaptive-Gauss-Hermite- or Laplace-)approximate maximum likelihood and
+  returns \eqn{\hat\beta_T}, the estimated treatment log-odds-ratio,
+  conditional on the matched-pair random intercept. Caches the fitted
+  model object, full parameter vector, and (when \code{estimate_only =
+  FALSE}) the standard error and degrees of freedom for reuse by
+  \code{compute_asymp_confidence_interval()},
+  \code{compute_asymp_two_sided_pval()}, and likelihood-test methods; a
+  fit that fails to converge or produces a coefficient magnitude beyond
+  \code{private$max_abs_reasonable_coef} is cached as nonestimable rather
+  than returned.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKGLMM$compute_estimate(estimate_only = FALSE)}
@@ -206,7 +165,10 @@ design's imputed covariates.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{If \code{TRUE}, skip standard-error/variance-component
+computation and cache only the point estimate; used by randomization and
+bootstrap resampling paths where only \eqn{\hat\beta_T} is needed per
+replicate.}
     }
     \if{html}{\out{</div>}}
   }
@@ -216,8 +178,12 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalKKGLMM-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGLMM-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceOrdinalKKGLMM$compute_asymp_confidence_interval()}}{
-  Uses the shared asymptotic confidence-interval contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Wald confidence interval for \eqn{\beta_T} using the fitted
+  model's standard error and degrees of freedom; see
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  \eqn{\hat\beta_T \pm t_{\alpha/2, df} \cdot \widehat{se}(\hat\beta_T)}
+  (or z-based when \code{df = Inf}) contract. Fits the model first if not
+  already cached.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKGLMM$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -226,7 +192,8 @@ design's imputed covariates.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Confidence level.}
+      \item{\code{alpha}}{Two-sided miscoverage rate; the returned interval targets
+\code{1 - alpha} coverage.}
     }
     \if{html}{\out{</div>}}
   }
@@ -236,8 +203,12 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalKKGLMM-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGLMM-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceOrdinalKKGLMM$compute_asymp_two_sided_pval()}}{
-  Uses the shared asymptotic two-sided p-value contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+  Two-sided Wald test of \eqn{H_0: \beta_T = \code{delta}}
+  against \eqn{H_1: \beta_T \ne \code{delta}}, using the fitted model's
+  standard error and degrees of freedom; see
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  \eqn{t}/\eqn{z} test contract. Fits the model first if not already
+  cached.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKGLMM$compute_asymp_two_sided_pval(delta = 0)}
@@ -246,7 +217,7 @@ design's imputed covariates.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{delta}}{Treatment log-odds-ratio value under the null hypothesis.}
     }
     \if{html}{\out{</div>}}
   }
@@ -256,8 +227,22 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalKKGLMM-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGLMM-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceOrdinalKKGLMM$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the KK ordinal GLMM treatment estimate under
-  Bayesian-bootstrap weights.
+  Refits the mixed model with subject/block-level weights
+  applied to each row's contribution to the marginal likelihood
+  (Bayesian-bootstrap or nonparametric-bootstrap draw weights, expanded
+  from subject/block level to individual rows via
+  \code{private$expand_subject_or_block_weights_to_row_weights()}) and
+  returns the reweighted estimate \eqn{\hat\beta_T^{(w)}}. Uses
+  \code{\link{fast_ordinal_regression_weighted_cpp}} — an ordinary
+  (non-mixed-effects) weighted cumulative-logit fit, not a reweighted
+  GLMM refit — as a fast approximation to the weighted marginal
+  likelihood; this trades exact random-effects refitting for speed across
+  many bootstrap replicates. When weights are effectively constant, this
+  collapses to the unweighted \code{compute_estimate()} call (returns
+  \code{df = Inf} to signal a degenerate/skipped bootstrap replicate
+  rather than refitting). Rows with non-finite or non-positive weight, or
+  non-finite response, are dropped from the weighted fit; if no rows
+  remain, the estimate is \code{NA}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKGLMM$compute_estimate_with_bootstrap_weights(

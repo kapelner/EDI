@@ -54,7 +54,7 @@ Oakes, D. (1989). "Bivariate survival models induced by frailties."
 \seealso{
 Analogous Python API for AFT/copula survival models:
   \href{https://lifelines.readthedocs.io/en/latest/fitters/regression/WeibullAFTFitter.html}{lifelines
-  WeibullAFTFitter}, \href{https://copulas.readthedocs.io/}{copulas}.
+  WeibullAFTFitter}, \href{https://sdv.dev/Copulas/}{copulas}.
   \href{https://en.wikipedia.org/wiki/Copula_(probability_theory)}{Copula
   (probability theory)} (orientation).
 }

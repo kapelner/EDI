@@ -15,35 +15,11 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceOrdinalKKCondAdjCatLogitRegr = define_inference_class(
+InferenceOrdinalKKCondAdjCatLogitRegrLegacyOrig = define_inference_class(
 	classname = "InferenceOrdinalKKCondAdjCatLogitRegr",
-	inherit = Inference,
-	# 2026-08-19 (fix_inference_hierarchy.md "Partial-Likelihood Estimators",
-	# "Migrate KK partial-likelihood classes"): flipped from the hybrid
-	# `define_inference_class(inherit = InferenceAsympLik, components =
-	# c("OrdinalConditionalLogitPartialLikelihood", "KKPassThrough"))` state
-	# (already a factory call composing the right domain components, but
-	# still R6-inheriting the deep InferenceAsympLik/InferenceAsymp/.../Wald
-	# ladder for compute_z_or_t_*/get_standard_error/etc.) to `inherit =
-	# Inference` with `Wald` composed explicitly -- unlike the KKGLMM-family
-	# migrations earlier this stretch, `supports_likelihood_tests()` is
-	# hard-`FALSE` here (this class never gets ParametricLikelihoodBootstrap,
-	# whose LikelihoodTests dependency pulls Wald in transitively), so Wald
-	# must be listed directly, same as every other Wald-only KK IVWC class
-	# (e.g. InferenceAllKKMeanDiffIVWC's `c("BayesianBootstrap", "Wald",
-	# "KKMeanDifferenceIVWC")`).
-	components = c("BayesianBootstrap", "Wald", "OrdinalConditionalLogitPartialLikelihood", "KKPassThrough"),
+	inherit = InferenceAsympLik,
+	components = c("OrdinalConditionalLogitPartialLikelihood", "KKPassThrough"),
 	public = list(
-		# Pinned from InferenceRandCI (confirmed via the pre-migration R6
-		# ancestor walk, same verification step as the KKCondLogitGLMM
-		# family's identical pin) -- not InferenceRand's raw version, even
-		# though this class is ordinal (not incidence): InferenceRandCI's
-		# wrapper still resolves correctly here since
-		# should_use_zhang_incidence_randomization() is false for ordinal
-		# responses, falling through to the same core permutation logic: the
-		# pin is chosen to exactly match the confirmed legacy resolution,
-		# not assumed equivalent.
-		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize KK adjacent-category conditional-logit inference
 		#'   for ordinal responses and prepare the fitted ordinal likelihood used by
 		#'   \code{\link[EDI:InferenceOrdinalKKCondAdjCatLogitRegr]{InferenceOrdinalKKCondAdjCatLogitRegr}}.
@@ -114,25 +90,8 @@ InferenceOrdinalKKCondAdjCatLogitRegr = define_inference_class(
 		}
 	),
 	overrides = list(
-		public = c(
-			"compute_estimate",
-			"compute_estimate_with_bootstrap_weights",
-			"compute_asymp_confidence_interval",
-			"compute_asymp_two_sided_pval",
-			"compute_rand_two_sided_pval",
-			"approximate_bootstrap_distribution_beta_hat_T"
-		),
-		private = c(
-			"compute_basic_match_data",
-			"resolve_jackknife_unit",
-			"jackknife_block_size_gt_one_unsupported",
-			"mark_jackknife_nonestimable_if_block_unsupported",
-			"supports_reusable_bootstrap_worker",
-			"create_bootstrap_worker_state",
-			"load_bootstrap_sample_into_worker",
-			"compute_bootstrap_worker_estimate",
-			"get_supported_testing_types_impl"
-		)
+		public = "compute_estimate_with_bootstrap_weights",
+		private = "compute_basic_match_data"
 	),
 	metadata = list(likelihood_tier = "partial")
 )

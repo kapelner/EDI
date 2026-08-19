@@ -1,27 +1,11 @@
 #' Abstract class for ordinal CLMM-based Inference in KK designs
 #'
 #' @keywords internal
-InferenceAbstractKKOrdinalCLMM = define_inference_class(
+InferenceAbstractKKOrdinalCLMMLegacyOrig = define_inference_class(
 	classname = "InferenceAbstractKKOrdinalCLMM",
-	inherit = Inference,
-	# 2026-08-19 (fix_inference_hierarchy.md "Partial-Likelihood Estimators",
-	# "Migrate KK partial-likelihood classes"): flipped from the hybrid
-	# `define_inference_class(inherit = InferenceAsympLik, components =
-	# "KKPassThrough")` state to `inherit = Inference` with `Wald` composed
-	# explicitly -- same fix, same rationale, as
-	# InferenceOrdinalKKCondAdjCatLogitRegr above (this class's
-	# `supports_likelihood_tests()` is also hard-`FALSE`, so it never gets
-	# ParametricLikelihoodBootstrap's transitive Wald). 4 concrete leaves
-	# (InferenceOrdinalKKCLMM, ...Probit, ...Cauchit, ...Cloglog) inherit
-	# this abstract base as plain R6::R6Class -- none call `super$...()`
-	# anywhere in their own bodies (verified by grep), so migrating this one
-	# definition fixes all four at once, same as the KKCondLogitGLMM family.
-	components = c("BayesianBootstrap", "Wald", "KKPassThrough"),
+	inherit = InferenceAsympLik,
+	components = "KKPassThrough",
 	public = list(
-		# Pinned from InferenceRandCI (confirmed via the pre-migration R6
-		# ancestor walk, same verification step and same resolution as
-		# InferenceOrdinalKKCondAdjCatLogitRegr's identical pin above).
-		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize KK cumulative-link mixed-model inference for
 		#'   ordinal responses, validate the matched design, and prepare the ordinal
 		#'   likelihood used by \code{\link[EDI:InferenceAbstractKKOrdinalCLMM]{InferenceAbstractKKOrdinalCLMM}}.
@@ -423,26 +407,8 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		}
 	),
 	overrides = list(
-		public = c(
-			"compute_estimate",
-			"compute_estimate_with_bootstrap_weights",
-			"compute_asymp_confidence_interval",
-			"compute_asymp_two_sided_pval",
-			"compute_rand_two_sided_pval",
-			"approximate_bootstrap_distribution_beta_hat_T"
-		),
-		private = c(
-			"compute_basic_match_data",
-			"resolve_jackknife_unit",
-			"jackknife_block_size_gt_one_unsupported",
-			"mark_jackknife_nonestimable_if_block_unsupported",
-			"supports_reusable_bootstrap_worker",
-			"create_bootstrap_worker_state",
-			"load_bootstrap_sample_into_worker",
-			"compute_bootstrap_worker_estimate",
-			"get_supported_testing_types_impl",
-			"compute_treatment_estimate_during_randomization_inference"
-		)
+		public = "compute_estimate_with_bootstrap_weights",
+		private = "compute_basic_match_data"
 	),
 	metadata = list(likelihood_tier = "full")
 )
@@ -461,9 +427,9 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceOrdinalKKCLMM = R6::R6Class("InferenceOrdinalKKCLMM",
+InferenceOrdinalKKCLMMLegacyOrig = R6::R6Class("InferenceOrdinalKKCLMM",
 	lock_objects = FALSE,
-	inherit = InferenceAbstractKKOrdinalCLMM,
+	inherit = InferenceAbstractKKOrdinalCLMMLegacyOrig,
 	public = list(
 		#' @description Initialize the logit-link ordinal KK CLMM subclass; see the
 		#'   shared ordinal mixed-model contract in
@@ -495,9 +461,9 @@ InferenceOrdinalKKCLMM = R6::R6Class("InferenceOrdinalKKCLMM",
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceOrdinalKKCLMMProbit = R6::R6Class("InferenceOrdinalKKCLMMProbit",
+InferenceOrdinalKKCLMMProbitLegacyOrig = R6::R6Class("InferenceOrdinalKKCLMMProbit",
 	lock_objects = FALSE,
-	inherit = InferenceAbstractKKOrdinalCLMM,
+	inherit = InferenceAbstractKKOrdinalCLMMLegacyOrig,
 	public = list(
 		#' @description Initialize the probit-link ordinal KK CLMM subclass; see the
 		#'   shared ordinal mixed-model contract in
@@ -530,9 +496,9 @@ InferenceOrdinalKKCLMMProbit = R6::R6Class("InferenceOrdinalKKCLMMProbit",
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceOrdinalKKCLMMCauchit = R6::R6Class("InferenceOrdinalKKCLMMCauchit",
+InferenceOrdinalKKCLMMCauchitLegacyOrig = R6::R6Class("InferenceOrdinalKKCLMMCauchit",
 	lock_objects = FALSE,
-	inherit = InferenceAbstractKKOrdinalCLMM,
+	inherit = InferenceAbstractKKOrdinalCLMMLegacyOrig,
 	public = list(
 		#' @description Initialize the cloglog-link ordinal KK CLMM subclass; see the
 		#'   shared ordinal mixed-model contract in
@@ -564,9 +530,9 @@ InferenceOrdinalKKCLMMCauchit = R6::R6Class("InferenceOrdinalKKCLMMCauchit",
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceOrdinalKKCLMMCloglog = R6::R6Class("InferenceOrdinalKKCLMMCloglog",
+InferenceOrdinalKKCLMMCloglogLegacyOrig = R6::R6Class("InferenceOrdinalKKCLMMCloglog",
 	lock_objects = FALSE,
-	inherit = InferenceAbstractKKOrdinalCLMM,
+	inherit = InferenceAbstractKKOrdinalCLMMLegacyOrig,
 	public = list(
 		#' @description Initialize the cauchit-link ordinal KK CLMM subclass; see the
 		#'   shared ordinal mixed-model contract in

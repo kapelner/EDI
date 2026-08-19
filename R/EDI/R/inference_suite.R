@@ -253,8 +253,8 @@ run_all_inference_estimand = function(cls_name) {
 #' generator's `$new` always mirrors its `initialize` method's signature).
 #' Purely syntactic: `TRUE` does not mean the class's fit actually reads the
 #' formula, only that a caller may legally pass one at construction time --
-#' see `fix_inference_hierarchy.md`'s open `adjusts_for_covariates`
-#' registry-metadata audit TODO for that separate, harder, not-yet-answered
+#' see the `adjusts_for_covariates` registry field (audited in full in
+#' `fix_inference_hierarchy.md`, 2026-08-19) for that separate, harder
 #' question. Backs `run_all_inference_build_tasks()`'s `formulas` fan-out.
 #'
 #' @keywords internal
@@ -524,11 +524,13 @@ run_all_inference_unavailable_footer_lines = function(unavailable_due_to_missing
 
 #' Renders a self-contained (no JS, no external assets) HTML report for
 #' `run_all_inference()`'s `html = TRUE` mode: the results table (via
-#' `knitr::kable()`, an already-Suggested dependency -- see
-#' `inference_suite_inspect.md`'s Implementation Notes), the design
-#' metadata, the unavailable-classes footer, and -- when `out$plots`
-#' contains built ggplot objects -- both visualizations embedded as
-#' base64-inlined PNGs (`run_all_inference_plot_to_base64_png()`), so the
+#' `run_all_inference_format_html_table()`, which shares its row order and
+#' per-cell display formatting exactly with
+#' `run_all_inference_format_pretty_table()`'s text/screen rendering -- see
+#' `run_all_inference_build_display_table()`, the one shared builder both
+#' call), the design metadata, the unavailable-classes footer, and -- when
+#' `out$plots` contains built ggplot objects -- both visualizations embedded
+#' as base64-inlined PNGs (`run_all_inference_plot_to_base64_png()`), so the
 #' page stays offline-renderable. Silently omits the Visualizations section
 #' if `ggplot2`/`jsonlite` weren't available to build/encode them (already
 #' warned about upstream in `run_all_inference_build_plots()`), rather than
@@ -537,10 +539,9 @@ run_all_inference_unavailable_footer_lines = function(unavailable_due_to_missing
 #' @keywords internal
 #' @noRd
 run_all_inference_render_html = function(out) {
-	if (!requireNamespace("knitr", quietly = TRUE)) {
-		stop("InferenceSuite$run_all_inference: html = TRUE requires the 'knitr' package.")
-	}
-	table_html = knitr::kable(out$results_table, format = "html", table.attr = "class=\"results\"", row.names = FALSE)
+	html_table = run_all_inference_format_html_table(out$results_table)
+	table_html = html_table$table_html
+	cov_key_html = html_table$key_html
 	footer_lines = run_all_inference_unavailable_footer_lines(out$unavailable_due_to_missing_packages)
 	footer_html = paste0("<li>", vapply(footer_lines, htmltools_escape_or_identity, character(1L)), "</li>", collapse = "\n")
 	unavailable_heading = sprintf(
@@ -569,7 +570,8 @@ h1 { font-size: 1.3rem; }
 h2 { font-size: 1.05rem; margin-top: 2rem; }
 table.results { border-collapse: collapse; width: 100%%; font-size: 0.85rem; }
 table.results th, table.results td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; white-space: nowrap; }
-table.results th { background: #f0f0f0; }
+table.results th { background: #f0f0f0; border-bottom: 3px double #888; }
+table.results tr.group-start td { border-top: 2px solid #888; }
 tr:nth-child(even) { background: #fafafa; }
 .meta { color: #555; font-size: 0.9rem; }
 .status-error { color: #b00020; }
@@ -585,6 +587,7 @@ total time %.2fs&nbsp;&middot;&nbsp; EDI %s
 </p>
 %s
 %s
+%s
 <h2>%s</h2>
 <ul>
 %s
@@ -592,7 +595,7 @@ total time %.2fs&nbsp;&middot;&nbsp; EDI %s
 </body>
 </html>
 ', out$timestamp, design$design_class, design$response_type, design$design_family, design$n,
-		out$alpha, out$timestamp, out$total_secs, out$edi_version, table_html, images_html,
+		out$alpha, out$timestamp, out$total_secs, out$edi_version, table_html, cov_key_html, images_html,
 		unavailable_heading, footer_html)
 }
 
@@ -836,6 +839,349 @@ run_all_inference_plot_to_base64_png = function(plot, width = 8, height = 6) {
 #'   `status`, `pval`, and `estimand` columns.
 #' @return A numeric vector the same length/order as `results_table`'s rows.
 #'
+#' Acronyms `inference_class_wordify()` treats as atomic tokens rather than
+#' splitting letter-by-letter -- both when they stand alone inside an
+#' otherwise all-caps run with no case transition to key off (e.g. the `KK`
+#' in `KKGLMM`, or the `T`/`KK` in `AdjustedTKK`) and as a whitelist so a
+#' *known* multi-letter acronym is never itself broken apart.
+#'
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_CLASS_ACRONYMS = c("GLMM", "IVWC", "KK", "OLS", "GEE", "CMH", "RD", "RR", "T")
+
+#' Response-family/cross-response-type name prefixes
+#' `inference_class_short_label()` strips (after the shared `"Inference"`
+#' prefix), matching the same vocabulary `infer_inference_response_types()`
+#' (`inference_class_registry.R`) uses to *classify* a class by response
+#' type -- but tuned for "what's a redundant prefix to a human reading a
+#' results table," not for response-type regex matching, so this list is
+#' deliberately its own copy rather than reused from that function (e.g.
+#' `Bai` needs no entry here since `InferenceBaiAdjustedTKK14` already reads
+#' fine as `Bai Adjusted T KK` without stripping anything first).
+#'
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_CLASS_PREFIXES = c("Contin", "Count", "Incidence", "Incid", "Ordinal", "Prop", "Survival", "All")
+
+#' Splits an all-caps run with no internal case transition (e.g. `"KKGLMM"`,
+#' or the `"TKK"` left over from `"AdjustedTKK"`) into its constituent
+#' `EDI_INFERENCE_CLASS_ACRONYMS` tokens, greedily matching the longest
+#' acronym at each position. A character with no acronym match at its
+#' position falls through as its own single-character token.
+#'
+#' @keywords internal
+#' @noRd
+inference_class_split_caps_run = function(run) {
+	out = character(0)
+	i = 1L
+	n = nchar(run)
+	while (i <= n) {
+		matched = FALSE
+		for (a in EDI_INFERENCE_CLASS_ACRONYMS) {
+			la = nchar(a)
+			if (i + la - 1L <= n && substr(run, i, i + la - 1L) == a) {
+				out = c(out, a); i = i + la; matched = TRUE; break
+			}
+		}
+		if (!matched) { out = c(out, substr(run, i, i)); i = i + 1L }
+	}
+	out
+}
+
+#' Splits a `PascalCase`/acronym-bearing class-name remainder (post
+#' `"Inference"`-and-prefix stripping, e.g. `"SimpleMeanDiff"`, `"KKGLMM"`,
+#' `"BaiAdjustedTKK"`) into space-separated words for display. Two boundary
+#' rules run first (standard camelCase splitting: lower-to-upper, and
+#' acronym-to-capitalized-word), which alone resolves most cases (e.g.
+#' `"KKMeanDiff"` -> `"KK Mean Diff"`); any leftover all-caps run with no
+#' case transition at all (e.g. `"GLMM"` glued directly onto another
+#' acronym, or `"TKK"`) is then split via
+#' `inference_class_split_caps_run()`'s acronym dictionary, since case
+#' patterns alone can't disambiguate that case.
+#'
+#' @keywords internal
+#' @noRd
+inference_class_wordify = function(label) {
+	parts = strsplit(label, "(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", perl = TRUE)[[1]]
+	words = character(0)
+	for (p in parts) {
+		if (grepl("^[A-Z]{2,}$", p) && !(p %in% EDI_INFERENCE_CLASS_ACRONYMS)) {
+			words = c(words, inference_class_split_caps_run(p))
+		} else {
+			words = c(words, p)
+		}
+	}
+	paste(words, collapse = " ")
+}
+
+#' Short, human-readable display label for inference class `name`: strips
+#' the shared `"Inference"` prefix, strips one leading
+#' `EDI_INFERENCE_CLASS_PREFIXES` response-family segment if present,
+#' collapses a trailing `KK14`/`KK21` design-variant suffix to a bare `KK`
+#' (safe because those variants are mutually exclusive per design -- see
+#' `is_inference_class_compatible_with_design_metadata()`'s KK-matching
+#' gate -- so they never collide within one results table), then
+#' word-splits the remainder via `inference_class_wordify()`. Falls back to
+#' the `"Inference"`-stripped name alone (word-split) if no known prefix
+#' matches, rather than guessing at an unfamiliar naming convention. Purely
+#' cosmetic: never touches `results_table$inference_class` itself, which
+#' stays the real, `EDI::`-resolvable class name for programmatic use.
+#'
+#' @keywords internal
+#' @noRd
+inference_class_short_label = function(name) {
+	rest = sub("^Inference", "", name)
+	for (p in EDI_INFERENCE_CLASS_PREFIXES) {
+		if (startsWith(rest, p)) { rest = substring(rest, nchar(p) + 1L); break }
+	}
+	# "Simple" (e.g. the leftover from InferenceAllSimpleMeanDiff after "All"
+	# is stripped above) carries no information once the response-family
+	# prefix is already gone -- every remaining class name in this family is
+	# implicitly "simple" relative to its KK/GEE/GLMM-adjusted counterparts.
+	if (startsWith(rest, "Simple")) rest = substring(rest, nchar("Simple") + 1L)
+	rest = sub("KK(14|21)$", "KK", rest)
+	inference_class_wordify(rest)
+}
+
+#' Short display form of an `estimand` registry value: underscores to
+#' spaces, then a small fixed set of word abbreviations
+#' (`difference`->`diff`, `stochastic`->`stoch`, `superiority`->`super`).
+#' `NA_character_` passes through unchanged. Purely cosmetic, like
+#' `inference_class_short_label()` -- never touches
+#' `results_table$estimand` itself, which stays the canonical registry
+#' string used for `"estimand_grouped"` weighting/grouping logic.
+#'
+#' @keywords internal
+#' @noRd
+estimand_short_label = function(estimand) {
+	vapply(estimand, function(e) {
+		if (is.na(e)) return(NA_character_)
+		s = gsub("_", " ", e, fixed = TRUE)
+		s = gsub("difference", "diff", s, fixed = TRUE)
+		s = gsub("stochastic", "stoch", s, fixed = TRUE)
+		s = gsub("superiority", "super", s, fixed = TRUE)
+		s
+	}, character(1L), USE.NAMES = FALSE)
+}
+
+#' Short display form for a vector of `cov_model` values (deparsed formula
+#' strings, or `NA`): the treatment-only (`"~1"`) and all-covariates
+#' (`"~.""`) sentinels are shown as-is; every other distinct formula string
+#' is assigned a letter (`"(A)"`, `"(B)"`, ...) in first-encountered order,
+#' with the full mapping returned separately as `key` so the caller can
+#' print a legend once rather than repeating long formula strings on every
+#' row. `NA` displays as an empty string (blank), unlike every other
+#' display column in `run_all_inference_format_pretty_table()`, which use
+#' the literal string `"NA"` -- `cov_model` is blank specifically because a
+#' missing value here means "no formula applies to this class" (e.g.
+#' `SimpleMeanDiff`), a structurally different fact than "this class has a
+#' formula but the value came back missing," so it reads better as an
+#' absence than as an explicit `NA`.
+#'
+#' @param cov_models Character vector (may contain `NA`) of deparsed
+#'   formula strings, e.g. `results_table$cov_model`.
+#' @return `list(disp = <character vector, same length as cov_models>, key
+#'   = <named character vector: formula string -> letter>)`.
+#'
+#' @keywords internal
+#' @noRd
+cov_model_display = function(cov_models) {
+	key = character(0)
+	disp = character(length(cov_models))
+	sentinels = c("~1", "~.")
+	for (i in seq_along(cov_models)) {
+		f = cov_models[[i]]
+		if (is.na(f)) { disp[[i]] = ""; next }
+		if (f %in% sentinels) { disp[[i]] = f; next }
+		if (!(f %in% names(key))) {
+			key[f] = LETTERS[length(key) + 1L]
+		}
+		disp[[i]] = sprintf("(%s)", key[[f]])
+	}
+	list(disp = disp, key = key)
+}
+
+#' Rounds `x` to `n` significant figures and formats as a fixed-point
+#' string by default (used for e.g. the `weight` column, whose values are
+#' always in `(0, 1]` and read more naturally as `"0.031"` than
+#' `"3.1e-02"`), or compact scientific notation when `scientific = TRUE`
+#' (used for `pval`, where fixed-point at 3 significant figures would
+#' otherwise force long strings like `"0.0000120"` for a small p-value).
+#' `NA` passes through as the string `"NA"` either way.
+#'
+#' @param scientific If `TRUE`, format as `<mantissa>e<exponent>` (e.g.
+#'   `"1.2e-05"`) instead of fixed-point.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_sigfig = function(x, n = 2L, scientific = FALSE) {
+	vapply(x, function(v) {
+		if (is.na(v)) return("NA")
+		if (v == 0) return(if (scientific) "0e+00" else "0.0")
+		if (scientific) return(formatC(v, digits = n - 1L, format = "e"))
+		d = n - 1L - floor(log10(abs(v)))
+		formatC(round(v, d), digits = max(d, 0L), format = "f")
+	}, character(1L), USE.NAMES = FALSE)
+}
+
+#' Builds the single shared display representation both
+#' `run_all_inference_format_pretty_table()` (text/screen) and
+#' `run_all_inference_format_html_table()` (HTML report) render from --
+#' guarantees the two surfaces show identical row order and identical
+#' per-cell display strings, since neither computes its own version of
+#' either. Rows sorted by (real, underscored) `estimand`; every display-only
+#' transform used by both renderers is applied here once: `inference_class`
+#' via `inference_class_short_label()`, `estimand` via
+#' `estimand_short_label()`, `cov_model` via `cov_model_display()`,
+#' `estimate`/`se`/`ci_a`/`ci_b`/`weight` via `run_all_inference_sigfig()`
+#' (3 significant figures, fixed-point; 2 for `weight`), `pval` via the same
+#' helper with `scientific = TRUE` (fixed-point at 3 significant figures
+#' would otherwise force long strings like `"0.0000120"` for small
+#' p-values). Never mutates `results_table` itself. `NA`/`NA_real_`/
+#' `NA_character_` all display as the literal string `"NA"` (except
+#' `cov_model`, which displays blank -- see `cov_model_display()`).
+#'
+#' @param results_table A `run_all_inference()`-shaped results table.
+#' @return `NULL` if `results_table` has zero rows, else
+#'   `list(tbl = <results_table, sorted>, display = <data.frame, same
+#'   sorted row order, all-character display columns>, cov_key = <named
+#'   character vector: formula string -> letter, possibly empty>)`.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_build_display_table = function(results_table) {
+	tbl = results_table
+	if (nrow(tbl) == 0L) return(NULL)
+	tbl = tbl[order(tbl$estimand, na.last = TRUE), , drop = FALSE]
+
+	cov = cov_model_display(tbl$cov_model)
+	na_chr = function(x) ifelse(is.na(x), "NA", x)
+
+	display = data.frame(
+		`inference class` = vapply(tbl$inference_class, inference_class_short_label, character(1L)),
+		`cov mod`          = cov$disp,
+		estimand           = na_chr(estimand_short_label(tbl$estimand)),
+		estimate           = run_all_inference_sigfig(tbl$estimate, 3L),
+		se                 = run_all_inference_sigfig(tbl$se, 3L),
+		ci_a               = run_all_inference_sigfig(tbl$ci_a, 3L),
+		ci_b               = run_all_inference_sigfig(tbl$ci_b, 3L),
+		ci_method          = na_chr(tbl$ci_method),
+		pval               = run_all_inference_sigfig(tbl$pval, 3L, scientific = TRUE),
+		pval_method        = na_chr(tbl$pval_method),
+		weight             = run_all_inference_sigfig(tbl$weight, 2L),
+		status             = tbl$status,
+		check.names = FALSE, stringsAsFactors = FALSE
+	)
+
+	list(tbl = tbl, display = display, cov_key = cov$key)
+}
+
+#' Renders `results_table` as an aligned, left-justified text table for
+#' `print.EDIInferenceSuiteResults()`, from the shared display built by
+#' `run_all_inference_build_display_table()`: a double-rule (`=`) under the
+#' header, a single rule (`-`) between `estimand` groups and once more at
+#' the bottom, and a `cov_model` letter-key legend appended after the table
+#' when non-empty -- see `run_all_inference_build_display_table()`'s own
+#' documentation for the per-column display transforms, which this function
+#' does not duplicate.
+#'
+#' @param results_table A `run_all_inference()`-shaped results table.
+#' @return A character vector, one table line per element (plus a blank
+#'   line and legend lines at the end if any `cov_model` value needed a
+#'   letter key). `"(no rows)"` if `results_table` has zero rows.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_format_pretty_table = function(results_table) {
+	built = run_all_inference_build_display_table(results_table)
+	if (is.null(built)) return("(no rows)")
+	tbl = built$tbl; display = built$display; cov_key = built$cov_key
+
+	headers = names(display)
+	widths = vapply(seq_along(headers), function(i) {
+		max(nchar(headers[[i]]), if (nrow(display) > 0L) max(nchar(display[[i]])) else 0L)
+	}, integer(1L))
+	fmt_row = function(vals) paste(mapply(function(v, w) formatC(v, width = -w), vals, widths), collapse = "  ")
+
+	header_line = fmt_row(headers)
+	total_width = nchar(header_line)
+	lines = c(header_line, strrep("=", total_width))
+	prev_estimand = NULL
+	for (i in seq_len(nrow(display))) {
+		if (!is.null(prev_estimand) && !identical(tbl$estimand[[i]], prev_estimand)) {
+			lines = c(lines, strrep("-", total_width))
+		}
+		lines = c(lines, fmt_row(as.character(display[i, ])))
+		prev_estimand = tbl$estimand[[i]]
+	}
+	lines = c(lines, strrep("-", total_width))
+
+	if (length(cov_key) > 0L) {
+		lines = c(lines, "", "Cov mod key:")
+		for (f in names(cov_key)) {
+			lines = c(lines, sprintf('  (%s)  "%s"', cov_key[[f]], f))
+		}
+	}
+	lines
+}
+
+#' Renders `results_table` as an HTML `<table>` for
+#' `run_all_inference()`'s `html = TRUE` report, from the exact same shared
+#' display (`run_all_inference_build_display_table()`) and row order
+#' `run_all_inference_format_pretty_table()` renders as text -- same
+#' `estimand` sort, same per-column abbreviations/formatting, same
+#' `cov_model` letter key. The visual equivalent of the text renderer's
+#' rules: the first row of each new `estimand` group (after the first) gets
+#' CSS class `group-start` (a top border, via `table.results
+#' tr.group-start td` in `run_all_inference_render_html()`'s `<style>`)
+#' mirroring the single `-` rule between groups in the text version; the
+#' header/bottom rules are plain CSS on `table.results th`/the table's own
+#' border, needing no per-row class. Every cell is HTML-escaped via
+#' `htmltools_escape_or_identity()`. Returns `list(table_html, key_html)` --
+#' `key_html` is `""` when no `cov_model` letter key was needed, matching
+#' the text renderer's "omit the legend entirely" behavior.
+#'
+#' @param results_table A `run_all_inference()`-shaped results table.
+#' @return `list(table_html = <character(1)>, key_html = <character(1)>)`.
+#'   `table_html` is a `"(no rows)"` `<p>` and `key_html` is `""` if
+#'   `results_table` has zero rows.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_format_html_table = function(results_table) {
+	built = run_all_inference_build_display_table(results_table)
+	if (is.null(built)) return(list(table_html = "<p>(no rows)</p>", key_html = ""))
+	tbl = built$tbl; display = built$display; cov_key = built$cov_key
+
+	esc = function(x) htmltools_escape_or_identity(as.character(x))
+	header_html = paste0("<th>", esc(names(display)), "</th>", collapse = "")
+	prev_estimand = NULL
+	row_html = vapply(seq_len(nrow(display)), function(i) {
+		group_start = !is.null(prev_estimand) && !identical(tbl$estimand[[i]], prev_estimand)
+		prev_estimand <<- tbl$estimand[[i]]
+		cls = paste(c(
+			paste0("status-", tbl$status[[i]]),
+			if (group_start) "group-start"
+		), collapse = " ")
+		cells = paste0("<td>", esc(display[i, ]), "</td>", collapse = "")
+		sprintf('<tr class="%s">%s</tr>', cls, cells)
+	}, character(1L))
+	table_html = sprintf(
+		'<table class="results">\n<thead><tr>%s</tr></thead>\n<tbody>\n%s\n</tbody>\n</table>',
+		header_html, paste(row_html, collapse = "\n")
+	)
+
+	key_html = if (length(cov_key) > 0L) {
+		items = vapply(names(cov_key), function(f) {
+			sprintf("<li>(%s)&nbsp;&nbsp;<code>%s</code></li>", esc(cov_key[[f]]), esc(f))
+		}, character(1L), USE.NAMES = FALSE)
+		sprintf("<h2>Cov mod key</h2>\n<ul>\n%s\n</ul>", paste(items, collapse = "\n"))
+	} else {
+		""
+	}
+	list(table_html = table_html, key_html = key_html)
+}
+
 #' @keywords internal
 #' @noRd
 run_all_inference_estimand_grouped_weights = function(results_table) {
@@ -1428,7 +1774,14 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 #' \code{run_all_inference()} call -- the same table \code{screen = TRUE} prints during
 #' the call itself, so a user who assigned the return value and later types its name
 #' (or calls \code{print()} on it) sees a readable table rather than a raw nested list
-#' dump.
+#' dump. The table itself is rendered by
+#' \code{run_all_inference_format_pretty_table()}: rows sorted by
+#' \code{estimand}, with a double rule under the header and a single rule
+#' between \code{estimand} groups and at the bottom, class names and
+#' \code{estimand} values shortened for display (never the underlying
+#' \code{results_table} values), and a \code{cov_model} letter-key legend
+#' appended when applicable -- see that function's own documentation for
+#' the exact column-by-column rendering rules.
 #' @param x An \code{EDIInferenceSuiteResults} object, as returned by
 #'   \code{InferenceSuite$run_all_inference()}.
 #' @param ... Ignored; present for S3 consistency with the generic.
@@ -1440,7 +1793,7 @@ print.EDIInferenceSuiteResults = function(x, ...) {
 		nrow(x$results_table), x$design$design_class, x$design$response_type,
 		x$design$design_family, x$design$n
 	))
-	print(x$results_table)
+	cat(run_all_inference_format_pretty_table(x$results_table), sep = "\n")
 	invisible(x)
 }
 

@@ -35,16 +35,32 @@ TallyReporter <- R6::R6Class("TallyReporter",
 		errors_path = NULL,
 		last_draw_time = 0,
 		interactive_tty = FALSE,
+		out_con = NULL,
 
-		initialize = function(interactive_tty = FALSE, ...) {
+		initialize = function(interactive_tty = FALSE, out_con = stderr(), ...) {
 			super$initialize(...)
 			self$start_time <- Sys.time()
 			self$interactive_tty <- interactive_tty
+			self$out_con <- out_con
 			# Resolved now, while cwd is still R/EDI/tests: test_dir() setwd()s
 			# into testthat/ before end_reporter fires, so a relative path there
 			# would land one directory too deep.
 			self$timings_path <- file.path(getwd(), "prepush_test_timings.csv")
 			self$errors_path <- file.path(getwd(), ".prepush_errors")
+		},
+
+		# A manually opened file() connection (self$out_con may be one -- see
+		# the /dev/stderr setup near the bottom of this script) is buffered
+		# and only flushes on its own schedule (buffer-full, or close()),
+		# unlike the special stdout()/stderr() connections. Left unflushed,
+		# writes here can sit in that buffer and surface later, out of order
+		# relative to whatever else is writing to the same underlying fd --
+		# confirmed in practice: an unflushed first status line showed up
+		# truncated and out of sequence. Flush after every write so this
+		# reporter's own output reaches the terminal immediately, in order.
+		write_out = function(...) {
+			cat(..., file = self$out_con)
+			flush(self$out_con)
 		},
 
 		start_file = function(filename) {
@@ -100,7 +116,7 @@ TallyReporter <- R6::R6Class("TallyReporter",
 			had_issues <- self$write_errors()
 			self$write_timings()
 			if (had_issues) {
-				cat(sprintf("test output can be found in %s\n", self$errors_path), file = stderr())
+				self$write_out(sprintf("test output can be found in %s\n", self$errors_path))
 			}
 		},
 
@@ -154,12 +170,12 @@ TallyReporter <- R6::R6Class("TallyReporter",
 			write.csv(timings, self$timings_path, row.names = FALSE)
 			total <- sum(timings$elapsed_secs)
 			top <- head(timings, 10)
-			cat(sprintf("Per-file timings (%d files, %.0fs total) written to %s\n",
-				nrow(timings), total, self$timings_path), file = stderr())
-			cat(sprintf("Slowest files (top %d = %.0f%% of total):\n",
-				nrow(top), 100 * sum(top$elapsed_secs) / max(total, .Machine$double.eps)), file = stderr())
-			cat(sprintf("  %8.1fs  %s\n", top$elapsed_secs, top$file), sep = "", file = stderr())
-			cat("\n", file = stderr())
+			self$write_out(sprintf("Per-file timings (%d files, %.0fs total) written to %s\n",
+				nrow(timings), total, self$timings_path))
+			self$write_out(sprintf("Slowest files (top %d = %.0f%% of total):\n",
+				nrow(top), 100 * sum(top$elapsed_secs) / max(total, .Machine$double.eps)))
+			self$write_out(sprintf("  %8.1fs  %s\n", top$elapsed_secs, top$file), sep = "")
+			self$write_out("\n")
 		},
 
 		draw = function(force = FALSE) {
@@ -173,16 +189,22 @@ TallyReporter <- R6::R6Class("TallyReporter",
 			# single line rewritten in place with a bare carriage return +
 			# clear-line -- but that still broke, because test bodies and
 			# package code (e.g. inference constructors' verbose=TRUE logging,
-			# WIP test-helper debug cat()/print() calls) share the same stdout
-			# stream and have no coordination with this reporter: whatever
-			# they print lands wherever our cursor happens to be. The actual
-			# fix is upstream of draw() -- the top-level script sinks stdout
-			# (and message()/warning() traffic) to a log file for the
-			# duration of the run, so nothing but this reporter's own status
-			# reaches the terminal. This method writes to stderr, which that
-			# sink leaves untouched, using self$interactive_tty (captured
-			# before sinking started, since sink() would make isatty(stdout())
-			# report the log file's tty-ness instead of the real terminal's).
+			# WIP test-helper debug cat()/print() calls, and
+			# simulations_framework.R's own progress-bar/status helpers, which
+			# write straight to stderr via cat(file = stderr())) share the
+			# same streams and have no coordination with this reporter:
+			# whatever they print lands wherever our cursor happens to be.
+			# The actual fix is upstream of draw() -- the top-level script
+			# sinks BOTH stdout and the message stream (which also redirects
+			# explicit cat(file = stderr()) calls, not just message()/
+			# warning()) to a log file for the run. Since that means even
+			# stderr() itself is no longer safe for this reporter's own
+			# output, self$out_con is a connection opened directly against
+			# the OS-level stderr device before any sinking started (see the
+			# bottom of this script), which sink() cannot redirect.
+			# self$interactive_tty is likewise captured before sinking, since
+			# sink() would otherwise make isatty(stdout()) report the log
+			# file's tty-ness instead of the real terminal's.
 			min_interval <- if (self$interactive_tty) 0.1 else 5
 			now <- as.numeric(Sys.time())
 			if (!force && (now - self$last_draw_time) < min_interval) {
@@ -197,9 +219,9 @@ TallyReporter <- R6::R6Class("TallyReporter",
 				status, elapsed, self$n_ok, self$n_fail, self$n_warn, self$n_skip, self$current_file
 			)
 			if (self$interactive_tty) {
-				cat("\r\033[2K", line, if (force) "\n" else "", sep = "", file = stderr())
+				self$write_out("\r\033[2K", line, if (force) "\n" else "", sep = "")
 			} else {
-				cat(line, "\n", sep = "", file = stderr())
+				self$write_out(line, "\n", sep = "")
 			}
 		}
 	)
@@ -209,33 +231,55 @@ TallyReporter <- R6::R6Class("TallyReporter",
 # isatty(stdout()) would report the log file's tty-ness (always FALSE), not
 # the real terminal's.
 interactive_tty <- isatty(stderr())
-reporter <- TallyReporter$new(interactive_tty = interactive_tty)
-withr::local_envvar(TESTTHAT_IS_CHECKING = "true")
 
-# Test bodies and package code (e.g. a verbose=TRUE inference constructor's
-# logging, WIP test-helper debug cat()/print() calls) write to stdout with no
-# coordination with this reporter's live status line -- left alone, that
-# output lands wherever the reporter's cursor happens to be and breaks the
-# single-line-in-place redraw. Divert it to a gitignored log file for the
-# duration of the run instead; TallyReporter's own status writes go to
-# stderr (see draw()), which a type="output"-only sink leaves untouched --
-# a type="message" sink was tried too (to also catch message()/warning()
-# noise) but verified by hand that it ALSO redirects explicit
-# cat(file=stderr()) once active, silently swallowing this reporter's own
-# output into the log. Not worth that interaction: the noise actually
-# observed in practice has been plain cat()/print(), which type="output"
-# alone already handles.
+# Test bodies and package code write chatter to stdout (cat()/print()),
+# message()/warning(), and in simulations_framework.R's case, straight to
+# stderr via cat(file = stderr()) for its own progress bars -- all with no
+# coordination with this reporter's live status line, so left alone it lands
+# wherever the reporter's cursor happens to be and breaks the
+# single-line-in-place redraw (confirmed in practice: a first pass only
+# sinking type="output" still let simulations_framework.R's stderr-targeted
+# "Compressing results into a bz2 file..." messages through). Divert
+# everything -- both sink types -- to a gitignored log file for the
+# duration of the run. That also means stderr() itself is no longer a safe
+# channel for this reporter's OWN output (a type="message" sink redirects
+# explicit cat(file = stderr()) calls too, not just message()/warning()), so
+# open a direct connection to the OS-level stderr device first, before any
+# sinking starts -- sink() has no way to redirect that, since it isn't going
+# through R's stdout()/stderr() connection objects at all.
 stdout_log_path <- file.path(getwd(), ".prepush_test_stdout.log")
 stdout_log_con <- file(stdout_log_path, open = "wt")
+real_stderr_con <- tryCatch(file("/dev/stderr", open = "wt", raw = TRUE), error = function(e) NULL)
+using_direct_stderr <- !is.null(real_stderr_con)
+if (!using_direct_stderr) {
+	# No /dev/stderr (e.g. native Windows R, not WSL) -- fall back to
+	# stderr() itself. This reporter's output will then be vulnerable to the
+	# same message-sink interaction described above, so skip sinking
+	# type="message" in that case; type="output" alone (this reporter's own
+	# writes are unaffected by that one) still covers plain cat()/print().
+	real_stderr_con <- stderr()
+}
+reporter <- TallyReporter$new(interactive_tty = interactive_tty, out_con = real_stderr_con)
+withr::local_envvar(TESTTHAT_IS_CHECKING = "true")
+
 sink(stdout_log_con, type = "output")
+if (using_direct_stderr) {
+	sink(stdout_log_con, type = "message")
+}
 
 run_error <- tryCatch({
 	testthat::test_dir("testthat", package = "EDI", reporter = reporter, load_package = "installed", stop_on_failure = FALSE)
 	NULL
 }, error = function(e) e)
 
+if (using_direct_stderr) {
+	sink(type = "message")
+}
 sink(type = "output")
 close(stdout_log_con)
+if (using_direct_stderr) {
+	close(real_stderr_con)
+}
 
 if (!is.null(run_error)) {
 	cat(sprintf(

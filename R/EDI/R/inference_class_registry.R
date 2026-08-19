@@ -453,7 +453,12 @@ EDI_INFERENCE_CLASSES_IGNORING_COVARIATES = c(
 	"InferenceIncidWald", "InferenceIncidExactFisher", "InferenceIncidExactZhang",
 	"InferenceSurvivalGehanWilcox", "InferenceSurvivalKMDiff", "InferenceSurvivalLogRank",
 	"InferenceSurvivalRestrictedMeanDiff", "InferenceOrdinalJonckheereTerpstraTest",
-	"InferenceOrdinalRidit"
+	"InferenceOrdinalRidit",
+	# InferenceOrdinalPairedSignTest: sign test on within-pair y-differences
+	# (private$cached_values$KKstats$y_matched_diffs); private$X/get_X() never
+	# read anywhere in its shared()/compute_estimate_with_bootstrap_weights()
+	# fit path (inference_ordinal_paired_sign_test.R).
+	"InferenceOrdinalPairedSignTest"
 )
 
 EDI_INFERENCE_CLASSES_USING_COVARIATES = c(
@@ -481,6 +486,12 @@ EDI_INFERENCE_CLASSES_USING_COVARIATES = c(
 	"InferenceIncidKKModifiedPoisson", "InferenceIncidKKCondLogitIVWC",
 	"InferenceIncidKKCondLogitOneLik", "InferenceIncidKKCondLogitGLMMIVWC",
 	"InferenceIncidKKCondLogitGLMMOneLik", "InferenceIncidKKGEE",
+	# ContinKKGLMM/CountKKGLMM/OrdinalKKGLMM: KKGLMM component's shared fit
+	# builds X_fit via private$create_design_matrix()/glmm_predictors_df()
+	# (inference_continuous_KK_glmm.R, inference_count_KK_combined.R,
+	# inference_ordinal_KK_combined.R) -- covariates enter the mixed-model
+	# fixed effects directly.
+	"InferenceContinKKGLMM", "InferenceCountKKGLMM", "InferenceOrdinalKKGLMM",
 	"InferenceOrdinalAdjCatLogitRegr", "InferenceOrdinalCauchitRegr",
 	"InferenceOrdinalCloglogRegr", "InferenceOrdinalContRatioRegr",
 	"InferenceOrdinalStereotypeLogitRegr", "InferenceOrdinalOrderedProbitRegr",
@@ -729,7 +740,13 @@ infer_inference_direct_components = function(name) {
 		InferenceAbstractKKCondLogitGLMM = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKPassThrough"),
 		InferenceSurvivalGehanWilcox = c("BayesianBootstrap", "Wald"),
 		InferenceIncidCMH = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
-		InferenceOrdinalKKCondAdjCatLogitRegr = c("OrdinalConditionalLogitPartialLikelihood", "KKPassThrough"),
+		# Updated 2026-08-19 (fix_inference_hierarchy.md "Partial-Likelihood
+		# Estimators", "Migrate KK partial-likelihood classes"): mirrors the
+		# factory reality after flipping from `inherit = InferenceAsympLik`
+		# to `inherit = Inference` with `BayesianBootstrap`/`Wald` composed
+		# explicitly (same class of stale-switch-entry gap fixed repeatedly
+		# this stretch for the KKGLMM family).
+		InferenceOrdinalKKCondAdjCatLogitRegr = c("BayesianBootstrap", "Wald", "OrdinalConditionalLogitPartialLikelihood", "KKPassThrough"),
 		InferenceOrdinalRidit = c("BayesianBootstrap", "Wald"),
 		InferenceOrdinalGCompMeanDiff = c("BayesianBootstrap", "Wald"),
 		InferenceSurvivalRestrictedMeanDiff = c("BayesianBootstrap", "Wald"),

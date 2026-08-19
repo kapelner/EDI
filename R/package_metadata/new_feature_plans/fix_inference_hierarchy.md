@@ -4901,14 +4901,15 @@ here (2026-08-13) rather than left as prose-only notes.
   Audited by reading each concrete class's own fit-path code (and, where the
   fit lives on an abstract parent, that parent's code) for
   `private$X`/`private$get_X()`/`model.matrix` usage:
-  - **FALSE** (18 classes, closed-form/nonparametric, fit never reads X):
+  - **FALSE** (19 classes, closed-form/nonparametric, fit never reads X):
     `SimpleMeanDiff`/`SimpleMeanDiffPooledVar`/`SimpleWilcox`/
     `KKMeanDiffIVWC`/`KKWilcoxIVWC`, `IncidCMH`, `IncidExtendedRobins`,
     `IncidMiettinenNurminenRiskDiff`, `IncidNewcombeRiskDiff`, `IncidWald`,
     `IncidExactFisher`, `IncidExactZhang`, `SurvivalGehanWilcox`,
     `SurvivalKMDiff`, `SurvivalLogRank`, `SurvivalRestrictedMeanDiff`,
-    `OrdinalJonckheereTerpstraTest`, `OrdinalRidit`.
-  - **TRUE** (~79 classes): every regression/likelihood/GEE/GLMM/Cox/
+    `OrdinalJonckheereTerpstraTest`, `OrdinalRidit`, `OrdinalPairedSignTest`
+    (sign test on matched-pair `y`-differences; never reads `private$X`).
+  - **TRUE** (~82 classes): every regression/likelihood/GEE/GLMM/Cox/
     quantile-regression/robust-regression/g-computation class (OLS, logistic,
     probit, log-binomial, modified-Poisson, binomial-identity, Poisson/
     NegBin/hurdle/zero-inflated/quasi/robust-Poisson, ordinal
@@ -4917,14 +4918,70 @@ here (2026-08-13) rather than left as prose-only notes.
     fractional-logit/zero-one-inflated-beta, Cox/stratified-Cox/Weibull/
     dep-cens-transform/Clayton-copula/Weibull-frailty survival classes, and
     their KK/IVWC/OneLik counterparts) plus `IncidRiskDiff` (covariates enter
-    `build_design_matrix()`) and the KK "matching" classes
+    `build_design_matrix()`), the KK "matching" classes
     `IncidKKNewcombeRiskDiff`/`IncidExactBinomial` (covariates feed
     `compute_zhang_match_data_cpp(private$get_X(), ...)`, which changes the
-    match/weighting scheme and therefore the estimate).
-  - **NA** (unaudited, left as-is): `InferenceCustomAsymp`/`InferenceCustomRand`/
-    `InferenceCustomBoot` (user-extensible extension bases -- whether the
-    formula is used depends on the subclass a caller writes, not on this
-    class itself) and any concrete class not named in either list above.
+    match/weighting scheme and therefore the estimate), and `ContinKKGLMM`/
+    `CountKKGLMM`/`OrdinalKKGLMM` (KKGLMM component's shared fit builds
+    `X_fit` via `private$create_design_matrix()`/`glmm_predictors_df()` --
+    covariates enter the mixed-model fixed effects directly).
+  - **NA (intentionally, not a gap)**: three user-extensible extension bases
+    `InferenceCustomAsymp`/`InferenceCustomRand`/`InferenceCustomBoot`
+    (whether the formula is used depends on the subclass a caller writes,
+    not on this class itself), and three abstract hosts
+    `InferenceAbstractKKCondLogitGLMM`/`InferenceAbstractKKOrdinalCLMM`/
+    `InferenceAbstractQuantileRandCI` (never instantiated directly; every one
+    of their concrete leaf subclasses is separately audited above/below).
+    Every other `define_inference_class(...)`-defined generator in
+    `R/EDI/R/*.R` (verified exhaustively by diffing the full class-name list
+    against the two audited lists — 0 unaccounted concrete classes remain)
+    is in the FALSE or TRUE list above.
+- [ ] **Implement `get_estimand_type()` across every concrete `Inference`
+  class, not just the incidence g-computation family (`InferenceIncidGCompAbstract`/
+  `InferenceIncidKKGCompAbstract`, `inference_incidence_gcomp.R`,
+  `inference_incidence_KK_marginal.R`, returning `"RD"`/`"RR"`) -- this is
+  `inference_suite_inspect.md`'s TODO-15a, checked and confirmed **not**
+  done (2026-08-19): the base `Inference$get_estimand_type()`
+  (`inference_all_abstract.R:432-434`) still returns `NA_character_`
+  unconditionally, and every class outside the two families above inherits
+  that default -- continuous, count, ordinal, survival, and proportion
+  response types, plus the non-g-comp incidence classes, all currently
+  report `estimand = NA_character_` in `run_all_inference()`'s
+  `results_table`. TODO-15a's own text names the blocking question this
+  audit must answer per class: does `estimand` actually distinguish
+  "different scientific question" (e.g. a log-odds-ratio vs. a risk
+  difference) from "different link/model answering the same question"
+  (e.g. two different GLM links both estimating a mean difference) --
+  `"estimand_grouped"` Combined Evidence weighting (and any per-`estimand`
+  table sort/CI-inversion work, including the display-only estimand sort
+  already shipped in `run_all_inference_format_pretty_table()`/
+  `run_all_inference_format_html_table()`, 2026-08-19) is only as correct
+  as this tagging is complete and accurate. **Model this audit's process
+  and reporting shape directly on the `adjusts_for_covariates` audit just
+  above** (same file, same day) -- it is the closest completed precedent
+  for exactly this kind of "read every concrete class's own code and
+  record a real fact, not a guess from naming patterns" registry-metadata
+  audit: read each concrete class's actual estimate-contract code (whatever
+  each class documents as its `compute_estimate()`'s target quantity -- see
+  each class's own `@description` on `compute_estimate()`, which already
+  states the estimand in prose for most classes) and record the estimand
+  identity as new registry metadata (e.g. widen `get_estimand_type()`'s
+  domain past `"RD"`/`"RR"` to a real, closed enumeration covering every
+  response family: mean/median/quantile-`tau` difference, log-odds-ratio,
+  hazard-ratio, log-rate-ratio, stochastic-superiority, etc. -- coordinate
+  the enum's exact values with `marginal_estimand_report.md`/
+  `expanded_estimate_report.md`'s own estimand-related work so this audit
+  doesn't invent a second, conflicting taxonomy). Two explicit audited name
+  lists (or a name -> estimand-string map, since this field isn't boolean)
+  in `inference_class_registry.R`, not a regex over class names -- same
+  reasoning TODO-15a and the `adjusts_for_covariates` audit both already
+  established: "accepts/looks like X" is not evidence of "targets estimand
+  Y." Leave classes not yet confirmed as `NA_character_` (the existing
+  default), same unaudited-vs-confirmed distinction the
+  `adjusts_for_covariates` audit used. Once landed, close out
+  `inference_suite_inspect.md` TODO-15a itself, and re-open discussion of
+  whether `"estimand_grouped"` weighting (TODO-15) is then safe to default
+  to.
 
 ## Definition of Done
 

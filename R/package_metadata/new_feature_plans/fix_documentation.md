@@ -1291,12 +1291,12 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceOrdinalKKGLMM.Rd`
 
-- [ ] TODO #529: Method `InferenceOrdinalKKGLMM$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #530: Method `InferenceOrdinalKKGLMM$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #531: Method `InferenceOrdinalKKGLMM$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
-- [ ] TODO #532: Method `InferenceOrdinalKKGLMM$compute_estimate()` (current description `58` chars).
-- [ ] TODO #533: Method `InferenceOrdinalKKGLMM$new()` (current description `131` chars).
-- [ ] TODO #534: Topic `InferenceOrdinalKKGLMM` (current description `430` chars).
+- [x] TODO #529: Method `InferenceOrdinalKKGLMM$compute_asymp_confidence_interval()` (current description `60` chars). Newly ungated 2026-08-19 (class migrated to `inherit = Inference`); documented Wald CI contract.
+- [x] TODO #530: Method `InferenceOrdinalKKGLMM$compute_asymp_two_sided_pval()` (current description `58` chars). Documented Wald test of H0: beta_T = delta.
+- [x] TODO #531: Method `InferenceOrdinalKKGLMM$compute_estimate_with_bootstrap_weights()` (current description `55` chars). Documented the weighted-ordinary-logit (not reweighted-GLMM) fast-path approximation.
+- [x] TODO #532: Method `InferenceOrdinalKKGLMM$compute_estimate()` (current description `58` chars). Documented model fit/caching/nonestimable-caching behavior.
+- [x] TODO #533: Method `InferenceOrdinalKKGLMM$new()` (current description `131` chars). Documented random-intercept cumulative-logit model form and deferred-fit behavior.
+- [x] TODO #534: Topic `InferenceOrdinalKKGLMM` (current description `430` chars). Full model/estimand/likelihood-tier doc added, contrasted with the GEE sibling; added Hedeker & Gibbons (1994) and Pinheiro & Bates (1995) `@references`, `REFERENCES.md` updated (new `[HedekerGibbons1994]` entry, added to `[PinheiroBates1995]`'s "Used by").
 
 ### `InferenceOrdinalOrderedProbitRegr.Rd`
 
