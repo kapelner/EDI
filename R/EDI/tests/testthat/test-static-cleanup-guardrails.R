@@ -176,7 +176,16 @@ test_that("semantic classification through private is_a method probes cannot gro
 	# Ratcheted 2 -> 1 when the rand-CI seed gate moved from an is_a probe to
 	# an is.function(compute_asymp_confidence_interval) check (2026-08-17
 	# rand-CI seed fix, fix_inference_hierarchy.md Follow-Ups).
-	expected = c("R/EDI/R/inference_all_abstract_rand.R" = 1L)
+	# Ratcheted 1 -> 0 (2026-08-19, fix_inference_hierarchy.md "Static
+	# Cleanup", "Ban semantic classification through private method-name
+	# sniffing"): the last remaining probe (is_a_kk_quantile_regr_ivwc /
+	# is_a_kk_quantile_regr_one_lik in compute_treatment_estimate_during_
+	# randomization_inference()) was replaced with a "kk_quantile_regr_ivwc"
+	# capability check; the is_a_kk_quantile_regr_one_lik half was dead code
+	# (KKQuantileRegrOneLik always overrides that whole method), so no
+	# replacement capability was needed for it. Zero probes remain anywhere
+	# in the package.
+	expected = integer(0)
 	expect_identical(static_cleanup_file_counts(matches), expected)
 })
 

@@ -4905,7 +4905,7 @@ here (2026-08-13) rather than left as prose-only notes.
   likelihood-baseline battery, all green.
 - [x] Ban `$private` reads from R6 generator symbols. Enforced by the
   zero-tolerance source scan in `test-static-cleanup-guardrails.R`.
-- [ ] Ban semantic classification through private method-name sniffing.
+- [x] Ban semantic classification through private method-name sniffing.
   **Progress 2026-08-16:** randomization-CI response-transform dispatch now
   uses declared component capabilities (`standard_model_cache`, count
   likelihood, KK GEE/GLMM/pass-through) plus three explicit legacy family
@@ -4913,6 +4913,31 @@ here (2026-08-13) rather than left as prose-only notes.
   source guardrail freezes the remaining two probes in
   `inference_all_abstract_rand.R` so the debt cannot grow while that already
   modified randomization core is handled separately.
+  **Completed 2026-08-19**: closed out the last remaining probe pair in
+  `inference_all_abstract_rand.R`'s `compute_treatment_estimate_during_
+  randomization_inference()` (`is_a_kk_quantile_regr_ivwc` /
+  `is_a_kk_quantile_regr_one_lik`). Traced the full component-composition
+  chain for both `InferenceProp/ContinKKQuantileRegrIVWC` and `...OneLik`
+  (both compose `BayesianBootstrap`, which transitively depends back to
+  `RandomizationTest` -- the component this method is harvested from) and
+  confirmed the `one_lik` branch was dead code: `KKQuantileRegrOneLik`
+  always provides its own override of the entire method, so the
+  `RandomizationTest`-sourced version (and its embedded probe) never runs
+  for a OneLik-composing class. Replaced the live `ivwc` half with a new
+  `"kk_quantile_regr_ivwc"` capability, declared on the `KKQuantileRegrIVWC`
+  component spec (no `capability_requires`/`public_methods_for_capability`
+  entry needed -- a pure dispatch marker, same shape as `kk_passthrough`/
+  `kk_gee`/`kk_glmm`/`standard_model_cache`), checked via `self$capabilities()`
+  (available in private methods like every other R6 method). Removed the
+  now-fully-unused `is_a_kk_quantile_regr_ivwc`/`is_a_kk_quantile_regr_one_lik`
+  marker methods from both abstract source files and their
+  `provides_private_methods` entries in `contracts_mixins.R`. Verified via
+  `test-static-cleanup-guardrails.R` (ratcheted the probe-count guardrail
+  `1 -> 0`, now `integer(0)` package-wide), `test-mixin-contracts.R`,
+  `test-capability-tables.R`, and both KK quantile-regression golden test
+  files (`test-kk-quantile-regr-ivwc-migration-golden.R`/`...-onelik-...`,
+  including the proportion-response path this exact check gates) -- all
+  green, confirming the capability swap is behavior-preserving.
 - [ ] Ban component redeclaration of root-owned state. A 2026-08-16 guardrail
   now freezes the eight remaining legacy KK component violation sets so no new
   redeclarations can enter while those components are migrated.
@@ -5408,7 +5433,7 @@ here (2026-08-13) rather than left as prose-only notes.
     to reproduce identically with none of this turn's changes applied)
     are unrelated drift from a concurrent process's in-progress work in
     this same repo, not caused by this change.
-- [ ] **`compute_lik_ratio_bartlett_exact_two_sided_pval()`/
+- [x] **`compute_lik_ratio_bartlett_exact_two_sided_pval()`/
   `compute_lik_ratio_bartlett_exact_confidence_interval()` (and their
   `_approx` siblings) are not gated by any registered capability at all --
   a second, related gap found in the same 2026-08-19 sentinel audit as the
@@ -5450,7 +5475,47 @@ here (2026-08-13) rather than left as prose-only notes.
   `EDI_INFERENCE_SUITE_METHOD_SENTINELS`
   (`inference_suite_inspect.md`-adjacent `run_all_inference()` `methods`
   argument), which currently has no way to request either test.
-- [ ] **Add real `get_supported_*_types()` accessor methods to the
+  **Completed 2026-08-19.** Decision: **no new capability** -- the
+  "private guard method" shape was already fully implemented and working
+  (`supports_bartlett_likelihood_ratio_approx()`/`_exact()`, each
+  defaulting `FALSE` and overridden per-class; surfaced dynamically via
+  `get_supported_testing_types_with_bartlett()`, which
+  `get_supported_testing_types()` already calls). The registry-level
+  imprecision this TODO worried about ("every `InferenceAsympLik`-descended
+  class reports these methods as present") turns out to be the *same*
+  class of imprecision every other `likelihood_tests`-gated sentinel
+  (`score`/`lik_ratio`/`gradient`) already accepts by design: `run_all_
+  inference()`'s capability pre-check is deliberately registry-only/no-
+  instantiation (see `inference_class_has_method()`'s own doc comment),
+  and the real per-instance gate is the runtime guard method, checked
+  when the method is actually called and degrading to `NA` (caught by the
+  existing `tryCatch` wrapper) for classes that don't support it --
+  verified directly (`InferenceContinOLS`: `supports_..._approx() = TRUE`,
+  `supports_..._exact() = FALSE`, and calling
+  `compute_lik_ratio_bartlett_exact_two_sided_pval()` on it returns a
+  clean `NA`, not an error). Also picked up the judgment call flagged in
+  the Audit item below: added **three** sentinels, not two --
+  `"lik_ratio_bartlett"` (the "best available" auto-selecting dispatcher,
+  `compute_lik_ratio_bartlett_confidence_interval()`/`compute_lik_ratio_
+  bartlett_two_sided_pval()`) alongside `"lik_ratio_bartlett_approx"`/
+  `"lik_ratio_bartlett_exact"` (explicit pins for reproducibility) --
+  since its own roxygen frames it as the right entry point for ordinary
+  use. All three added to `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`/
+  `PVAL_METHOD_PRIORITY` (gated by `"likelihood_tests"`, same precedent as
+  `score`/`lik_ratio`/`gradient`) and `EDI_INFERENCE_SUITE_METHOD_
+  SENTINELS`, plus the `methods` argument's roxygen documentation.
+  Verified end-to-end via `InferenceSuite$new(des)$run_all_inference(methods
+  = c("wald", "lik_ratio_bartlett", "lik_ratio_bartlett_approx",
+  "lik_ratio_bartlett_exact"), classes = "InferenceContinKKOLSOneLik", ...)`
+  on a real KK OLS design: `lik_ratio_bartlett`'s p-value matched
+  `lik_ratio_bartlett_exact`'s exactly (confirming the auto-select-exact-
+  over-approx dispatch), `lik_ratio_bartlett_approx` gave a distinct
+  Monte-Carlo-based value, all four rows populated correctly in
+  `results_table`. `test-bartlett-lr-plumbing.R`/`test-bartlett-lr-ols-
+  exact.R`/`test-mixin-contracts.R` green;
+  `test-inference-suite-discovery.R`'s 2 pre-existing failures (confirmed
+  unrelated to this change earlier this stretch) unchanged.
+- [x] **Add real `get_supported_*_types()` accessor methods to the
   bootstrap-family components (`NonparametricBootstrap`,
   `BayesianBootstrap`, `RandomizationBootstrap`), mirroring
   `likelihood_tests`'s existing `get_supported_testing_types()`/
@@ -5505,7 +5570,48 @@ here (2026-08-13) rather than left as prose-only notes.
   public method in that table. Once landed, `run_all_inference()`'s
   `methods` argument can call these accessors at runtime per class
   instead of consulting any hardcoded type table in `inference_suite.R`.
-- [ ] **Audit `contracts_mixins.R`'s `public_methods_for_capability` for
+  **Completed 2026-08-19.** Implemented all 6 accessors exactly as scoped
+  (`get_supported_bootstrap_{pval,ci}_types()` on `NonparametricBootstrap`,
+  `get_supported_bayesian_bootstrap_{pval,ci}_types()` on
+  `BayesianBootstrap`, `get_supported_rand_bootstrap_{pval,ci}_types()`
+  split across `RandomizationBootstrap` (pval) and
+  `RandomizationBootstrapCI` (CI), since those are two separate R6
+  classes/files) -- each backed by a private constant field
+  (`bootstrap_pval_types`/`bootstrap_ci_types`, etc.) that the component's
+  own `assertChoice(type, ...)` call was rewritten to read from directly,
+  so the accessor and the runtime validation can never drift apart.
+  - **Two rounds of load errors, both real and both fixed, confirming why
+    this needed the explicit registration step rather than just adding
+    the R6 methods**: (1) `define_inference_class()`'s own
+    `validate_inference_class_definition()` (this check runs
+    unconditionally, not gated by `EDI_VALIDATE_INFERENCE_CONTRACTS`)
+    caught `InferenceAllKKMeanDiffIVWC` (composes `BayesianBootstrap`,
+    which pulls `RandomizationBootstrap`/`RandomizationBootstrapCI` in
+    transitively) missing the new accessor entirely -- because each
+    component's `provides_public_methods`/`owns_state` are explicit
+    harvesting whitelists, not "everything the source class defines," so
+    the six new methods plus their six backing private constant fields
+    needed adding to all four components' `provides_public_methods`/
+    `owns_state` in `contracts_mixins.R`, not just `public_methods_for_
+    capability`. (2) The lazy-component-loader's own contract check
+    (`sort(meta$provides_private_methods) == sort(names(parts$private))`,
+    always-on) then caught that the six new private constant fields also
+    needed adding to `provides_private_methods` specifically (a third,
+    separate list from `owns_state`) -- matching the existing precedent
+    already visible in `NonparametricBootstrap`'s spec, where
+    `boot_distr_cache`/`jack_distr_cache` etc. already appeared in *both*
+    lists.
+  - Verified via direct instantiation (`InferenceAllSimpleMeanDiff`): all
+    six accessors return the exact documented value sets, and passing an
+    invalid `type` to `compute_bootstrap_confidence_interval()` is still
+    correctly rejected by `assertChoice()` reading the same constant.
+    `EDI_VALIDATE_INFERENCE_CONTRACTS=true` strict load, `test-mixin-
+    contracts.R`, `test-inference-class-registry.R`, `test-parametric-
+    bootstrap-lr-all-capable-classes.R`, `test-static-cleanup-guardrails.R`,
+    `test-bartlett-lr-plumbing.R`, `test-bartlett-lr-ols-exact.R`,
+    `test-group-bootstrap-rcpp.R`, `test-m-out-of-n-prw-subsampling.R`, and
+    a full repo-wide regression sweep all green.
+- [x] **Audit `contracts_mixins.R`'s `public_methods_for_capability` for
   completeness against every `compute_*_two_sided_pval()`/
   `compute_*_confidence_interval()` method actually defined in the
   codebase -- currently a hand-maintained 12-key list with no mechanism
@@ -5554,6 +5660,66 @@ here (2026-08-13) rather than left as prose-only notes.
   method-name set is a subset of the registry's), not just a one-time
   manual pass, so this can't silently go stale again the way the
   hand-maintained list already has.
+
+  **Done (2026-08-19)**: ran a from-scratch enumeration via live R6
+  introspection over every generator in `asNamespace("EDI")` (authoritative,
+  unlike grepping `public = list(...)` text boundaries, which can't
+  distinguish a method spliced in by a component from one still defined
+  directly on an unmigrated deep-ladder base) -- filtered to public methods
+  matching `^compute_.*(two_sided_pval|_pval|confidence_interval)$` -- and
+  cross-referenced against `public_methods_for_capability`'s registered set.
+  Reconfirmed the two prior manual-audit rounds' orphans and found no
+  further ones. All folded into existing capability keys (no new capability
+  needed, matching the coarse-gate precedent `run_all_inference()` already
+  relies on for Bartlett):
+  - `compute_rand_bootstrap_confidence_interval` /
+    `get_supported_rand_bootstrap_ci_types` -> new `randomization_bootstrap_ci`
+    key (own TODO above).
+  - `compute_lik_ratio_bartlett_two_sided_pval` /
+    `compute_lik_ratio_bartlett_confidence_interval` (the plain
+    best-available dispatcher, folded into the Bartlett TODO per its own
+    judgment call) plus the `_approx`/`_exact` siblings -> `likelihood_tests`.
+  - `compute_m_out_of_n_bootstrap_two_sided_pval` /
+    `compute_m_out_of_n_bootstrap_confidence_interval` /
+    `compute_subsampling_two_sided_pval` /
+    `compute_subsampling_confidence_interval` -> resolved as extra methods
+    under `nonparametric_bootstrap` (not a new capability -- they're
+    alternate resampling schemes on the same component, same precedent as
+    folding Bartlett variants into `likelihood_tests` rather than
+    fragmenting capabilities per method variant).
+  - `compute_param_bootstrap_confidence_interval` / `compute_param_bootstrap_pval`
+    -> `parametric_likelihood_bootstrap` (real public methods on
+    `InferenceParamLikelihoodBootstrap`, previously ungated).
+  - The six new `get_supported_*_types()` accessors (own TODO above) ->
+    folded into their owning bootstrap-family capability keys.
+  Confirmed private/internal methods correctly excluded from the pattern
+  match's public surface: `compute_effect_confidence_interval`,
+  `compute_rr_bootstrap_basic_confidence_interval`,
+  `compute_rr_bayesian_bootstrap_log_confidence_interval`,
+  `compute_rr_jackknife_wald_two_sided_pval`/`_confidence_interval`,
+  `compute_kk_gee_jackknife_wald_two_sided_pval`/`_confidence_interval`, and
+  `compute_likelihood_test_two_sided_pval` (the `testing_type`-parameterized
+  dispatcher into `score`/`lik_ratio`/`gradient`, already covered under
+  `likelihood_tests` -- exactly the example the scope note called out).
+  Landed as a permanent regression test, not a one-time pass:
+  `test-capability-tables.R`'s `"public_methods_for_capability catalogs
+  every compute_*pval/confidence_interval public method"`, which re-runs
+  the same live-introspection enumeration and asserts the orphan set is
+  empty (with an explicit, currently-empty `deliberately_uncatalogued`
+  allowlist for any future dispatcher-style exception, so a deliberate
+  exclusion has to be named in code, not silently forgotten). This new
+  invariant test itself caught a pre-existing snapshot drift in
+  `test-exact-incidence-migration-baseline.R` (the 3 legacy exact-incidence
+  generator classes' hardcoded public-method-count snapshots, stale by
+  exactly the 6 new accessor methods propagating transitively through
+  `BayesianBootstrap` composition) and a fixture gap in
+  `test-capability-tables.R`'s own `parametric_likelihood_bootstrap_public()`
+  helper (missing the two newly-required param-bootstrap methods); both
+  fixed. Verified via full targeted battery plus a repo-wide regression
+  sweep (only pre-existing, unrelated failures in `test-design-inference.R`
+  and `test-inference-suite-discovery.R` remain, both caused by a
+  concurrent process editing files in the working tree during earlier
+  passes, not by this change).
 
 ## Definition of Done
 

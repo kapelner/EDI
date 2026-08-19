@@ -8,6 +8,19 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 	lock_objects = FALSE,
 	inherit = InferenceRandBootstrapCI,
 	public = list(
+		# 2026-08-19 (inference_suite_inspect.md audit): real introspection
+		# accessors, same rationale as NonparametricBootstrap's identical
+		# pair (inference_all_abstract_non_param_boot.R).
+		#' @description Returns the \code{type} values
+		#'   \code{compute_bayesian_bootstrap_two_sided_pval()} accepts.
+		get_supported_bayesian_bootstrap_pval_types = function(){
+			private$bayesian_bootstrap_pval_types
+		},
+		#' @description Returns the \code{type} values
+		#'   \code{compute_bayesian_bootstrap_confidence_interval()} accepts.
+		get_supported_bayesian_bootstrap_ci_types = function(){
+			private$bayesian_bootstrap_ci_types
+		},
 		#' @description Recomputes the treatment estimate under Bayesian-bootstrap
 		#'   subject-, block-, cluster-, or matched-set weights.
 		#'
@@ -269,7 +282,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			}
 			type = tolower(type %||% "percentile")
 			if (should_run_asserts()) {
-				assertChoice(type, c("percentile", "symmetric", "wald", "studentized", "bootstrap-t", "bca"))
+				assertChoice(type, private$bayesian_bootstrap_pval_types)
 			}
 			est = as.numeric(self$compute_estimate())[1L]
 			if (!is.finite(est)) {
@@ -398,7 +411,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			}
 			type = tolower(type %||% "percentile")
 			if (should_run_asserts()) {
-				assertChoice(type, c("percentile", "basic", "wald", "studentized", "bootstrap-t", "bca"))
+				assertChoice(type, private$bayesian_bootstrap_ci_types)
 			}
 			est = as.numeric(self$compute_estimate())[1L]
 			ci = c(NA_real_, NA_real_)
@@ -484,6 +497,15 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		supports_bayesian_bootstrap = function() TRUE,
 		current_bayesian_bootstrap_context = NULL,
 		current_bayesian_bootstrap_subject_or_block_weights = NULL,
+		# 2026-08-19 (inference_suite_inspect.md audit): single source of
+		# truth for compute_bayesian_bootstrap_two_sided_pval()/compute_
+		# bayesian_bootstrap_confidence_interval()'s own assertChoice(type,
+		# ...) calls below, also returned by the public get_supported_
+		# bayesian_bootstrap_pval_types()/get_supported_bayesian_bootstrap_
+		# ci_types() accessors -- "basic"/"symmetric" swap between the two
+		# sides, confirmed by reading source directly.
+		bayesian_bootstrap_pval_types = c("percentile", "symmetric", "wald", "studentized", "bootstrap-t", "bca"),
+		bayesian_bootstrap_ci_types = c("percentile", "basic", "wald", "studentized", "bootstrap-t", "bca"),
 		bayesian_bootstrap_cache_key = function(B, weighting_unit_type = NULL){
 			paste0(as.integer(B), "::", weighting_unit_type %||% "default")
 		},

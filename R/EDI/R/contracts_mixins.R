@@ -212,10 +212,12 @@ public_methods_for_capability = list(
 	),
 	randomization_bootstrap = c(
 		"approximate_rand_bootstrap_distribution_beta_hat_T",
-		"compute_rand_bootstrap_two_sided_pval"
+		"compute_rand_bootstrap_two_sided_pval",
+		"get_supported_rand_bootstrap_pval_types"
 	),
 	randomization_bootstrap_ci = c(
-		"compute_rand_bootstrap_confidence_interval"
+		"compute_rand_bootstrap_confidence_interval",
+		"get_supported_rand_bootstrap_ci_types"
 	),
 	jackknife = c(
 		"approximate_jackknife_distribution_beta_hat_T",
@@ -244,7 +246,22 @@ public_methods_for_capability = list(
 		"compute_lik_ratio_two_sided_pval",
 		"compute_lik_ratio_confidence_interval",
 		"compute_gradient_two_sided_pval",
-		"compute_gradient_confidence_interval"
+		"compute_gradient_confidence_interval",
+		# 2026-08-19 (inference_suite_inspect.md audit,
+		# public_methods_for_capability completeness audit): Bartlett-
+		# corrected likelihood-ratio variants, unconditionally defined on
+		# InferenceAsympLik (source of this capability) alongside score/
+		# lik_ratio/gradient above -- same "likelihood_tests" gate, same
+		# accepted imprecision (real per-instance support is checked by the
+		# private supports_bartlett_likelihood_ratio_approx()/_exact() guard
+		# methods, not a capability flag; see the Bartlett-capability TODO's
+		# own "no new capability" decision).
+		"compute_lik_ratio_bartlett_two_sided_pval",
+		"compute_lik_ratio_bartlett_confidence_interval",
+		"compute_lik_ratio_bartlett_approx_two_sided_pval",
+		"compute_lik_ratio_bartlett_approx_confidence_interval",
+		"compute_lik_ratio_bartlett_exact_two_sided_pval",
+		"compute_lik_ratio_bartlett_exact_confidence_interval"
 	),
 	likelihood_ratio = c(
 		"compute_lik_ratio_two_sided_pval",
@@ -257,17 +274,42 @@ public_methods_for_capability = list(
 	parametric_likelihood_bootstrap = c(
 		"compute_lik_ratio_bootstrap_two_sided_pval",
 		"compute_lik_ratio_bootstrap_confidence_interval",
-		"get_last_param_bootstrap_diagnostics"
+		"get_last_param_bootstrap_diagnostics",
+		# 2026-08-19 (inference_suite_inspect.md audit,
+		# public_methods_for_capability completeness audit): genuine public
+		# methods on InferenceParamBootstrap, distinct from the
+		# compute_lik_ratio_bootstrap_* pair above (a bootstrap-calibrated
+		# LR test) -- these are a direct parametric-bootstrap estimate/CI/
+		# pval for the treatment coefficient itself, previously never
+		# registered under any capability at all.
+		"compute_param_bootstrap_confidence_interval",
+		"compute_param_bootstrap_pval"
 	),
 	bayesian_bootstrap = c(
 		"approximate_bayesian_bootstrap_distribution_beta_hat_T",
 		"compute_bayesian_bootstrap_two_sided_pval",
-		"compute_bayesian_bootstrap_confidence_interval"
+		"compute_bayesian_bootstrap_confidence_interval",
+		"get_supported_bayesian_bootstrap_pval_types",
+		"get_supported_bayesian_bootstrap_ci_types"
 	),
 	nonparametric_bootstrap = c(
 		"approximate_bootstrap_distribution_beta_hat_T",
 		"compute_bootstrap_two_sided_pval",
-		"compute_bootstrap_confidence_interval"
+		"compute_bootstrap_confidence_interval",
+		"get_supported_bootstrap_pval_types",
+		"get_supported_bootstrap_ci_types",
+		# 2026-08-19 (inference_suite_inspect.md audit,
+		# public_methods_for_capability completeness audit): m-out-of-n
+		# bootstrap and subsampling are distinct resampling schemes (not
+		# `type` variations of compute_bootstrap_*), but both are
+		# unconditionally provided by the same NonparametricBootstrap
+		# component alongside the canonical bootstrap methods above, so
+		# they're folded into the same capability rather than given their
+		# own -- no class composes one without the other.
+		"compute_m_out_of_n_bootstrap_two_sided_pval",
+		"compute_m_out_of_n_bootstrap_confidence_interval",
+		"compute_subsampling_two_sided_pval",
+		"compute_subsampling_confidence_interval"
 	)
 )
 
@@ -303,7 +345,8 @@ EDI_COMPONENT_SPECS = list(
 		owns_state = c(
 			"boot_distr_cache", "jack_distr_cache",
 			"bootstrap_extreme_estimate_threshold",
-			"bootstrap_extreme_ci_width_threshold"
+			"bootstrap_extreme_ci_width_threshold",
+			"bootstrap_pval_types", "bootstrap_ci_types"
 		),
 		provides_public_methods = c(
 			"approximate_m_out_of_n_bootstrap_distribution_beta_hat_T",
@@ -317,7 +360,9 @@ EDI_COMPONENT_SPECS = list(
 			"compute_subsampling_sensitivity",
 			"approximate_bootstrap_distribution_beta_hat_T",
 			"compute_bootstrap_two_sided_pval",
-			"compute_bootstrap_confidence_interval"
+			"compute_bootstrap_confidence_interval",
+			"get_supported_bootstrap_pval_types",
+			"get_supported_bootstrap_ci_types"
 		),
 		provides_private_methods = c(
 			"bca_ci_core", "bca_pval_core", "resolve_resampling_unit",
@@ -374,7 +419,8 @@ EDI_COMPONENT_SPECS = list(
 			"ci_smoothed_bootstrap", "infer_original_se", "pval_bca",
 			"boot_distr_cache", "jack_distr_cache",
 			"bootstrap_extreme_estimate_threshold",
-			"bootstrap_extreme_ci_width_threshold"
+			"bootstrap_extreme_ci_width_threshold",
+			"bootstrap_pval_types", "bootstrap_ci_types"
 		),
 		provides_capabilities = "nonparametric_bootstrap",
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
@@ -386,10 +432,11 @@ EDI_COMPONENT_SPECS = list(
 		source_name = "InferenceRandBootstrap",
 		file = "inference_all_abstract_rand_bootstrap.R",
 		dependencies = "NonparametricBootstrap",
-		owns_state = c("rand_boot_draws_counter", "brt_mc_control"),
+		owns_state = c("rand_boot_draws_counter", "brt_mc_control", "rand_bootstrap_pval_types"),
 		provides_public_methods = c(
 			"approximate_rand_bootstrap_distribution_beta_hat_T",
-			"compute_rand_bootstrap_two_sided_pval"
+			"compute_rand_bootstrap_two_sided_pval",
+			"get_supported_rand_bootstrap_pval_types"
 		),
 		provides_private_methods = c(
 			"rand_bootstrap_transform_code", "rand_bootstrap_draw_matrices",
@@ -400,7 +447,8 @@ EDI_COMPONENT_SPECS = list(
 			"run_rand_bootstrap_iteration_with_se",
 			"compute_brt_null_statistics_with_reused_workers",
 			"compute_brt_null_statistics_with_se", "compute_two_sided_brt_pval_studentized",
-			"run_rand_bootstrap_iteration", "rand_boot_draws_counter", "brt_mc_control"
+			"run_rand_bootstrap_iteration", "rand_boot_draws_counter", "brt_mc_control",
+			"rand_bootstrap_pval_types"
 		),
 		provides_capabilities = "randomization_bootstrap",
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
@@ -412,8 +460,8 @@ EDI_COMPONENT_SPECS = list(
 		source_name = "InferenceRandBootstrapCI",
 		file = "inference_all_abstract_rand_bootstrap_ci.R",
 		dependencies = "RandomizationBootstrap",
-		owns_state = "rand_bootstrap_ci_conservative_count",
-		provides_public_methods = "compute_rand_bootstrap_confidence_interval",
+		owns_state = c("rand_bootstrap_ci_conservative_count", "rand_bootstrap_ci_types"),
+		provides_public_methods = c("compute_rand_bootstrap_confidence_interval", "get_supported_rand_bootstrap_ci_types"),
 		provides_private_methods = c(
 			"rand_bootstrap_ci_conservative_count",
 			"rand_bootstrap_ci_timeout_deadline",
@@ -421,7 +469,8 @@ EDI_COMPONENT_SPECS = list(
 			"closed_form_ci_from_affine_null_draws",
 			"compute_rand_bootstrap_ci_pval_cached",
 			"expand_rand_bootstrap_bound",
-			"invert_rand_bootstrap_test_bisection"
+			"invert_rand_bootstrap_test_bisection",
+			"rand_bootstrap_ci_types"
 		),
 		# 2026-08-19 (inference_suite_inspect.md audit): gives this
 		# component its own distinct capability string, mirroring
@@ -446,13 +495,16 @@ EDI_COMPONENT_SPECS = list(
 		dependencies = "RandomizationBootstrapCI",
 		owns_state = c(
 			"current_bayesian_bootstrap_context",
-			"current_bayesian_bootstrap_subject_or_block_weights"
+			"current_bayesian_bootstrap_subject_or_block_weights",
+			"bayesian_bootstrap_pval_types", "bayesian_bootstrap_ci_types"
 		),
 		provides_public_methods = c(
 			"compute_estimate_with_bootstrap_weights",
 			"approximate_bayesian_bootstrap_distribution_beta_hat_T",
 			"compute_bayesian_bootstrap_two_sided_pval",
-			"compute_bayesian_bootstrap_confidence_interval"
+			"compute_bayesian_bootstrap_confidence_interval",
+			"get_supported_bayesian_bootstrap_pval_types",
+			"get_supported_bayesian_bootstrap_ci_types"
 		),
 		provides_private_methods = c(
 			"supports_bayesian_bootstrap", "bayesian_bootstrap_cache_key",
@@ -466,7 +518,8 @@ EDI_COMPONENT_SPECS = list(
 			"ci_bayesian_bca", "pval_bayesian_bca",
 			"compute_bayesian_bootstrap_distribution_with_reused_workers",
 			"current_bayesian_bootstrap_context",
-			"current_bayesian_bootstrap_subject_or_block_weights"
+			"current_bayesian_bootstrap_subject_or_block_weights",
+			"bayesian_bootstrap_pval_types", "bayesian_bootstrap_ci_types"
 		),
 		provides_capabilities = "bayesian_bootstrap",
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
@@ -623,7 +676,7 @@ EDI_COMPONENT_SPECS = list(
 			"compute_asymp_two_sided_pval"
 		),
 		provides_private_methods = c(
-			"is_a_kk_quantile_regr_ivwc", "tau", "transform_y_fn_list", "m",
+			"tau", "transform_y_fn_list", "m",
 			"compute_basic_match_data", "matrix_with_n_rows",
 			"reduce_full_rank_matrix", "reduce_preserve_cols_matrix",
 			"set_colnames_safely", "shared", "quantile_for_matched_pairs",
@@ -631,7 +684,13 @@ EDI_COMPONENT_SPECS = list(
 			"compute_rand_pval_matched_pairs", "compute_rand_pval_reservoir",
 			"qr_intercept_pairs", "qr_trt_coef_reservoir"
 		),
-		provides_capabilities = character(),
+		# 2026-08-19 (fix_inference_hierarchy.md "Static Cleanup", "Ban semantic
+		# classification through private method-name sniffing"): replaces the
+		# former is_a_kk_quantile_regr_ivwc private-method marker, which existed
+		# solely so inference_all_abstract_rand.R's compute_treatment_estimate_
+		# during_randomization_inference() could sniff for it via
+		# has_private_method(); that call site now checks this capability instead.
+		provides_capabilities = "kk_quantile_regr_ivwc",
 		allowed_likelihood_tiers = "none",
 		declare_body_references_optional = TRUE
 	),
@@ -655,7 +714,7 @@ EDI_COMPONENT_SPECS = list(
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
 		),
 		provides_private_methods = c(
-			"is_a_kk_quantile_regr_one_lik", "tau", "transform_y_fn_list", "m",
+			"tau", "transform_y_fn_list", "m",
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_fast_randomization_distr", "compute_basic_match_data",
 			"assert_finite_se", "get_standard_error", "shared_combined_likelihood",

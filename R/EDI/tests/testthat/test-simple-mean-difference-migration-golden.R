@@ -61,6 +61,10 @@ test_that("migrated simple mean-difference classes expose retained APIs only", {
 			"randomization_ci",
 			"nonparametric_bootstrap",
 			"randomization_bootstrap",
+			# 2026-08-19 (RandomizationBootstrapCI capability TODO): the CI side
+			# of the randomization-bootstrap component now advertises its own
+			# capability distinct from the pval side (see contracts_mixins.R).
+			"randomization_bootstrap_ci",
 			"bayesian_bootstrap",
 			"jackknife",
 			"wald"
@@ -70,6 +74,7 @@ test_that("migrated simple mean-difference classes expose retained APIs only", {
 			"randomization_ci",
 			"nonparametric_bootstrap",
 			"randomization_bootstrap",
+			"randomization_bootstrap_ci",
 			"bayesian_bootstrap",
 			"jackknife",
 			"wald"
@@ -79,6 +84,7 @@ test_that("migrated simple mean-difference classes expose retained APIs only", {
 			"randomization_ci",
 			"nonparametric_bootstrap",
 			"randomization_bootstrap",
+			"randomization_bootstrap_ci",
 			"bayesian_bootstrap",
 			"jackknife",
 			"wald",

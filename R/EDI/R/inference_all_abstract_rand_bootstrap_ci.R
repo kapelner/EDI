@@ -28,6 +28,14 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 	lock_objects = FALSE,
 	inherit = InferenceRandBootstrap,
 	public = list(
+		# 2026-08-19 (inference_suite_inspect.md audit): real introspection
+		# accessor, CI side. See InferenceRandBootstrap's
+		# get_supported_rand_bootstrap_pval_types() for the p-value side.
+		#' @description Returns the \code{type} values
+		#'   \code{compute_rand_bootstrap_confidence_interval()} accepts.
+		get_supported_rand_bootstrap_ci_types = function(){
+			private$rand_bootstrap_ci_types
+		},
 		#' @description Computes a confidence interval by inverting the bootstrap randomization
 		#'   test over the null effect \code{delta}. For statistics that are affine in the
 		#'   additive sharp-null shift (e.g. the simple mean difference and the OLS treatment
@@ -84,7 +92,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 				assertNumeric(pval_epsilon, lower = .Machine$double.xmin, upper = 1)
 				assertCount(as.integer(max_expansions), positive = TRUE)
 				assertLogical(show_progress)
-				assertChoice(tolower(type), c("percentile", "studentized", "symmetric-percentile-t", "smoothed"))
+				assertChoice(tolower(type), private$rand_bootstrap_ci_types)
 				if (private$des_obj_priv_int$response_type == "incidence" && is.null(private$custom_randomization_statistic_function) && is.null(private[["compiled_cpp_stat_fn"]])) {
 					stop("Bootstrap randomization confidence intervals are not supported for incidence.")
 				}
@@ -303,6 +311,15 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 	),
 	private = list(
 		rand_bootstrap_ci_conservative_count = 0L,
+		# 2026-08-19 (inference_suite_inspect.md audit): single source of
+		# truth for compute_rand_bootstrap_confidence_interval()'s own
+		# assertChoice(type, ...) call below, also returned by the public
+		# get_supported_rand_bootstrap_ci_types() accessor. Identical to
+		# InferenceRandBootstrap's rand_bootstrap_pval_types (this class's
+		# own ancestor); kept as its own named constant for clarity/
+		# consistency with the other two bootstrap-family sentinels rather
+		# than relying on the inherited field under a different name.
+		rand_bootstrap_ci_types = c("percentile", "studentized", "symmetric-percentile-t", "smoothed"),
 		rand_bootstrap_ci_timeout_deadline = function(){
 			deadline = getOption("EDI.ci_timeout_deadline", default = NA_real_)
 			suppressWarnings(as.numeric(deadline)[1L])

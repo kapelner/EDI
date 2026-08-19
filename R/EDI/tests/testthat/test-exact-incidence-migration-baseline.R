@@ -45,6 +45,17 @@ exact_incidence_baseline_public_methods = c(
 	"get_optimization_alg",
 	"get_response",
 	"get_response_type",
+	# 2026-08-19 (inference_suite_inspect.md audit, "Add real
+	# get_supported_*_types() accessor methods" TODO): six new public
+	# accessors added to the NonparametricBootstrap/BayesianBootstrap/
+	# RandomizationBootstrap(CI) components, all composed transitively by
+	# every exact-incidence legacy generator here (via BayesianBootstrap).
+	"get_supported_bayesian_bootstrap_ci_types",
+	"get_supported_bayesian_bootstrap_pval_types",
+	"get_supported_bootstrap_ci_types",
+	"get_supported_bootstrap_pval_types",
+	"get_supported_rand_bootstrap_ci_types",
+	"get_supported_rand_bootstrap_pval_types",
 	"get_treatment",
 	"initialize",
 	"is_nonestimable",

@@ -75,6 +75,10 @@ test_that("migrated simple Wilcoxon exposes retained APIs only", {
 			"randomization_ci",
 			"nonparametric_bootstrap",
 			"randomization_bootstrap",
+			# 2026-08-19 (RandomizationBootstrapCI capability TODO): CI side
+			# of the randomization-bootstrap component now advertises its own
+			# capability distinct from the pval side (see contracts_mixins.R).
+			"randomization_bootstrap_ci",
 			"jackknife",
 			"wald"
 		)
@@ -114,6 +118,7 @@ test_that("migrated KK Wilcoxon exposes retained APIs only", {
 			"randomization_ci",
 			"nonparametric_bootstrap",
 			"randomization_bootstrap",
+			"randomization_bootstrap_ci",
 			"jackknife",
 			"wald",
 			"kk_passthrough",

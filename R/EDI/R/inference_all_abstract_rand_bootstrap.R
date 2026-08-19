@@ -73,6 +73,15 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 	lock_objects = FALSE,
 	inherit = InferenceNonParamBootstrap,
 	public = list(
+		# 2026-08-19 (inference_suite_inspect.md audit): real introspection
+		# accessor, same rationale as NonparametricBootstrap/BayesianBootstrap's
+		# identical pairs. See RandomizationBootstrapCI's
+		# get_supported_rand_bootstrap_ci_types() for the CI side.
+		#' @description Returns the \code{type} values
+		#'   \code{compute_rand_bootstrap_two_sided_pval()} accepts.
+		get_supported_rand_bootstrap_pval_types = function(){
+			private$rand_bootstrap_pval_types
+		},
 		#' @description Computes the bootstrap randomization null distribution of the test
 		#'   statistic under Fisher's sharp null (shifted by \code{delta}): each draw resamples
 		#'   subject rows with replacement and draws one fresh assignment vector from the design.
@@ -341,7 +350,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
 				assertNumeric(delta); assertCount(B, positive = TRUE); assertLogical(na.rm)
-				assertChoice(tolower(type), c("percentile", "studentized", "symmetric-percentile-t", "smoothed"))
+				assertChoice(tolower(type), private$rand_bootstrap_pval_types)
 			}
 			if (identical(transform_responses, "none")) {
 				transform_responses = switch(
@@ -486,6 +495,17 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 	private = list(
 		rand_boot_draws_counter = 0L,
 		brt_mc_control = NULL,
+		# 2026-08-19 (inference_suite_inspect.md audit): single source of
+		# truth for compute_rand_bootstrap_two_sided_pval()'s own
+		# assertChoice(type, ...) call below, also returned by the public
+		# get_supported_rand_bootstrap_pval_types() accessor. Identical to
+		# RandomizationBootstrapCI's rand_bootstrap_ci_types
+		# (inference_all_abstract_rand_bootstrap_ci.R) -- unlike the other
+		# two bootstrap-family sentinels, this is the one case where the CI
+		# and p-value type sets genuinely match; kept as two separate
+		# constants (one per class/file) rather than shared, since the two
+		# classes are separate R6 generators.
+		rand_bootstrap_pval_types = c("percentile", "studentized", "symmetric-percentile-t", "smoothed"),
 		# Maps (transform_responses, response_type) to the shared C++ shift code used by all
 		# BRT batch kernels: 0 = additive, 1 = multiplicative (log), 2 = logit,
 		# 4 = multiplicative with count rounding. NULL = unsupported (callers fall back).

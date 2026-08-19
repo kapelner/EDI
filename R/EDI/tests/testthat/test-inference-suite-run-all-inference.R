@@ -34,7 +34,7 @@ expect_valid_run_all_inference_report = function(des_obj, expected_design_family
 	tbl = res$results_table
 	expect_identical(
 		names(tbl),
-		c("inference_class", "method", "cov_model", "response_type", "design_family", "likelihood_tier",
+		c("inference_class", "method", "type", "cov_model", "response_type", "design_family", "likelihood_tier",
 		  "estimate", "se", "ci_a", "ci_b", "ci_method",
 		  "pval", "pval_method", "estimand", "fit_secs", "warnings",
 		  "status", "message", "weight")
@@ -500,4 +500,78 @@ test_that("run_all_inference: estimand is a registry-level fact, populated regar
 	expect_true(all(row_rr$status %in% c("ok", "nonest")))
 	# A class with no declared get_estimand_type() reports NA, not an error.
 	expect_identical(unique(row_logit$estimand), NA_character_)
+})
+
+# TODO-23 (inference_suite_plan.md): EDI_INFERENCE_SUITE_METHOD_SENTINELS/
+# _CI_METHOD_PRIORITY/_PVAL_METHOD_PRIORITY are now derived from
+# contracts_mixins.R's public_methods_for_capability registry (validated at
+# package-load time) rather than a hand-typed literal with no connection to
+# it. This is the permanent drift guard: it must return empty every time
+# these tests run, exactly like the completeness check
+# fix_inference_hierarchy.md's own test-capability-tables.R runs for the
+# registry itself -- if a future capability/method pair is added to
+# contracts_mixins.R and never mapped to a sentinel (or explicitly
+# allowlisted as deliberately uncatalogued), this fails loudly instead of
+# the gap going unnoticed.
+test_that("run_all_inference: sentinel tables stay complete against the live capability registry (TODO-23)", {
+	missing = run_all_inference_check_sentinel_completeness()
+	expect_identical(missing, character())
+})
+
+test_that("run_all_inference: methods argument accepts the TODO-22 list-of-types shape", {
+	set.seed(20260819)
+	n = 30L
+	des = DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	w = des$get_w()
+	des$add_all_subject_responses(1 + 0.5 * w + rnorm(n))
+	suite = InferenceSuite$new(des)
+
+	capture.output({
+		res <- suite$run_all_inference(
+			screen = TRUE, plots = FALSE,
+			classes = "InferenceAllSimpleMeanDiff",
+			methods = list(bootstrap = c("percentile", "bca"), wald = NULL)
+		)
+	})
+	tbl = res$results_table
+	expect_identical("type" %in% names(tbl), TRUE)
+	# Exactly 3 tasks requested: bootstrap x {percentile, bca}, plus wald
+	# (no type axis) -- one row each, all against a class that supports all
+	# three.
+	expect_identical(nrow(tbl), 3L)
+	expect_setequal(
+		paste(tbl$method, tbl$type),
+		c("bootstrap percentile", "bootstrap bca", "wald NA")
+	)
+	expect_true(all(tbl$status == "ok"))
+	# ci_method/pval_method for a typed sentinel report the type-qualified
+	# form via method_with_type_short_label() in the pretty display table,
+	# but results_table itself keeps ci_method/pval_method as plain sentinel
+	# labels (the raw method actually used) with `type` as its own column.
+	boot_rows = tbl[tbl$method == "bootstrap", , drop = FALSE]
+	expect_true(all(boot_rows$ci_method == "bootstrap"))
+	expect_true(all(boot_rows$pval_method == "bootstrap"))
+	expect_setequal(boot_rows$type, c("percentile", "bca"))
+})
+
+test_that("run_all_inference: methods list-shape rejects a type request for a non-typed sentinel", {
+	set.seed(20260819)
+	n = 20L
+	des = DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	w = des$get_w()
+	des$add_all_subject_responses(1 + 0.5 * w + rnorm(n))
+	suite = InferenceSuite$new(des)
+
+	expect_error(
+		suite$run_all_inference(
+			screen = TRUE, plots = FALSE,
+			classes = "InferenceAllSimpleMeanDiff",
+			methods = list(wald = c("percentile"))
+		),
+		"has no `type` axis"
+	)
 })

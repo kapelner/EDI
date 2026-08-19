@@ -128,6 +128,24 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		InferenceExtMOutOfNBootstrap$public,
 		InferenceExtPRWSubsampling$public,
 		list(
+		# 2026-08-19 (inference_suite_inspect.md audit): real introspection
+		# accessors for compute_bootstrap_two_sided_pval()/compute_bootstrap_
+		# confidence_interval()'s valid `type` values, mirroring likelihood_
+		# tests's existing get_supported_testing_types()/get_supported_
+		# information_preferences() pattern -- split by CI vs. p-value side
+		# since the two sets are not identical (see private$bootstrap_pval_
+		# types/bootstrap_ci_types). Blocking prerequisite for
+		# run_all_inference()'s planned `methods` argument `type` fan-out.
+		#' @description Returns the \code{type} values
+		#'   \code{compute_bootstrap_two_sided_pval()} accepts.
+		get_supported_bootstrap_pval_types = function(){
+			private$bootstrap_pval_types
+		},
+		#' @description Returns the \code{type} values
+		#'   \code{compute_bootstrap_confidence_interval()} accepts.
+		get_supported_bootstrap_ci_types = function(){
+			private$bootstrap_ci_types
+		},
 		#' @description Creates the m-out-of-n bootstrap distribution of the
 		#'   treatment-effect estimate.
 		#'
@@ -681,7 +699,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			type = tolower(private$get_bootstrap_type(type))
 			if (should_run_asserts()) {
-				assertChoice(type, c("percentile", "symmetric", "studentized", "bootstrap-t", "bca"))
+				assertChoice(type, private$bootstrap_pval_types)
 			}
 			est = as.numeric(self$compute_estimate())
 			if (length(est) == 0L || !is.finite(est[1])) {
@@ -841,11 +859,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			type = tolower(private$get_bootstrap_type(type))
 			if (should_run_asserts()) {
-				assertChoice(type, c(
-					"percentile", "basic", "studentized", "bootstrap-t",
-					"symmetric-percentile-t", "bca", "prepivoted",
-					"double-bootstrap", "calibrated", "smoothed"
-				))
+				assertChoice(type, private$bootstrap_ci_types)
 			}
 			est = as.numeric(self$compute_estimate(estimate_only = FALSE))
 			if (length(est) == 0L || !is.finite(est[1])) {
@@ -971,6 +985,20 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		jack_distr_cache = list(),
 		bootstrap_extreme_estimate_threshold = EDI_SEPARATION_THRESHOLD,
 		bootstrap_extreme_ci_width_threshold = 5,
+		# 2026-08-19 (inference_suite_inspect.md audit): the single source of
+		# truth for compute_bootstrap_two_sided_pval()/compute_bootstrap_
+		# confidence_interval()'s own assertChoice(type, ...) calls below,
+		# also returned by the public get_supported_bootstrap_pval_types()/
+		# get_supported_bootstrap_ci_types() accessors -- confirmed by
+		# reading source directly that the two sides are NOT the same set
+		# ("symmetric" pval-side vs. "symmetric-percentile-t" CI-side; CI
+		# side has 10 values, pval side has 5).
+		bootstrap_pval_types = c("percentile", "symmetric", "studentized", "bootstrap-t", "bca"),
+		bootstrap_ci_types = c(
+			"percentile", "basic", "studentized", "bootstrap-t",
+			"symmetric-percentile-t", "bca", "prepivoted",
+			"double-bootstrap", "calibrated", "smoothed"
+		),
 		assert_valid_bootstrap_type = function(bootstrap_type){
 			if (is.null(bootstrap_type)) return(invisible(NULL))
 			if (should_run_asserts()) {

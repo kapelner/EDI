@@ -169,9 +169,53 @@ unavailable_inference_classes_due_to_missing_packages_for_design = function(des_
 #' sub-procedure already covers, so they'd be a duplicate row, not a
 #' distinct test.
 #'
+#' TODO-23 (inference_suite_plan.md, unblocked 2026-08-19 once
+#' `fix_inference_hierarchy.md`'s `public_methods_for_capability`
+#' completeness audit landed a permanent regression test guaranteeing that
+#' registry is exhaustive): derives the CI-side/p-value-side method-priority
+#' specs by reading `contracts_mixins.R`'s `public_methods_for_capability`
+#' registry directly and asserting (via `stopifnot`, at package-load time)
+#' that every listed `(capability, method)` pair genuinely exists there --
+#' rather than a hand-typed literal with no connection to the registry.
+#' If a capability/method pair is ever renamed or removed from
+#' `contracts_mixins.R`, the package now fails to load with a clear error
+#' instead of `run_all_inference()` silently keeping a stale sentinel.
+#'
+#' The `(capability, method) -> label` mapping itself is still an explicit
+#' table -- this is deliberate, not a shortcoming: `contracts_mixins.R`'s
+#' registry is keyed by *capability*, and several capabilities intentionally
+#' contribute more than one sentinel (`likelihood_tests` -> `score`/
+#' `lik_ratio`/`gradient`/`lik_ratio_bartlett_approx`/
+#' `lik_ratio_bartlett_exact`) or a non-canonical method pair (`wald`
+#' capability's canonical pair is `compute_asymp_*`, not the duplicate-alias
+#' `compute_wald_*` pair also registered under the same capability) -- so
+#' "one sentinel per capability key" is not a valid auto-derivation rule on
+#' its own. `run_all_inference_check_sentinel_completeness()` below is the
+#' actual completeness guarantee: it walks every `compute_*_confidence_
+#' interval`/`compute_*_two_sided_pval*` method in the live registry and
+#' fails loudly if any of them is neither covered by this spec nor in the
+#' small, documented `EDI_INFERENCE_SUITE_DELIBERATELY_UNSENTINELED_METHODS`
+#' allowlist -- so a *new* capability/method pair added later cannot go
+#' silently unrepresented the way the original hand-maintained list could.
+#'
 #' @keywords internal
 #' @noRd
-EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY = list(
+run_all_inference_derive_method_priority = function(spec) {
+	lapply(spec, function(e) {
+		registered = public_methods_for_capability[[e$capability]]
+		if (is.null(registered) || !(e$method %in% registered)) {
+			stop(sprintf(
+				"run_all_inference: sentinel '%s' expects method '%s' registered under capability '%s' in contracts_mixins.R's public_methods_for_capability, but it is not there anymore -- update EDI_INFERENCE_SUITE_*_METHOD_PRIORITY in inference_suite.R to match the current registry.",
+				e$label, e$method, e$capability
+			))
+		}
+		e
+	})
+}
+
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY = run_all_inference_derive_method_priority(list(
 	list(capability = "wald", method = "compute_asymp_confidence_interval", label = "wald"),
 	list(capability = "exact_test", method = "compute_exact_confidence_interval", label = "exact"),
 	list(capability = "randomization_ci", method = "compute_rand_confidence_interval", label = "rand"),
@@ -191,20 +235,33 @@ EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY = list(
 	# this table's tryCatch wrapper, not a capability flag; see the
 	# "compute_lik_ratio_bartlett_exact_two_sided_pval()... not gated by
 	# any registered capability" TODO for why no new capability was added.
-	# "lik_ratio_bartlett" is the "best available" auto-selecting
-	# dispatcher (exact-over-approx); "_approx"/"_exact" are opt-in pins
-	# for reproducibility, per that TODO's own judgment call.
-	list(capability = "likelihood_tests", method = "compute_lik_ratio_bartlett_confidence_interval", label = "lik_ratio_bartlett"),
+	# The plain "lik_ratio_bartlett" auto-selecting (exact-over-approx)
+	# dispatcher is deliberately NOT its own sentinel (removed 2026-08-19,
+	# user decision) -- it is only a convenience wrapper that dispatches to
+	# whichever of the two real sentinels below is available, not a
+	# distinct inference procedure; including it would add a third row
+	# that's always a duplicate of whichever of "_exact"/"_approx" it
+	# happened to pick.
 	list(capability = "likelihood_tests", method = "compute_lik_ratio_bartlett_approx_confidence_interval", label = "lik_ratio_bartlett_approx"),
 	list(capability = "likelihood_tests", method = "compute_lik_ratio_bartlett_exact_confidence_interval", label = "lik_ratio_bartlett_exact"),
 	list(capability = "parametric_likelihood_bootstrap", method = "compute_lik_ratio_bootstrap_confidence_interval", label = "param_boot"),
+	# TODO-23 completeness pass (2026-08-19): distinct from "param_boot"
+	# above -- compute_lik_ratio_bootstrap_confidence_interval is a
+	# bootstrap-calibrated *likelihood-ratio test* CI, while
+	# compute_param_bootstrap_confidence_interval is a direct parametric-
+	# bootstrap estimate/CI/pval for the treatment coefficient itself (two
+	# genuinely different procedures on the same ParametricLikelihoodBootstrap
+	# component, both real public methods per contracts_mixins.R's
+	# completeness audit -- previously the second one was never registered
+	# under any sentinel at all).
+	list(capability = "parametric_likelihood_bootstrap", method = "compute_param_bootstrap_confidence_interval", label = "param_boot_direct"),
 	list(capability = "bayesian_bootstrap", method = "compute_bayesian_bootstrap_confidence_interval", label = "bayes_boot"),
 	list(capability = "nonparametric_bootstrap", method = "compute_bootstrap_confidence_interval", label = "bootstrap")
-)
+))
 
 #' @keywords internal
 #' @noRd
-EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY = list(
+EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY = run_all_inference_derive_method_priority(list(
 	list(capability = "wald", method = "compute_asymp_two_sided_pval", label = "wald"),
 	list(capability = "exact_test", method = "compute_exact_two_sided_pval_for_treatment_effect", label = "exact"),
 	list(capability = "randomization_test", method = "compute_rand_two_sided_pval", label = "rand"),
@@ -213,38 +270,222 @@ EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY = list(
 	list(capability = "likelihood_tests", method = "compute_score_two_sided_pval", label = "score"),
 	list(capability = "likelihood_tests", method = "compute_lik_ratio_two_sided_pval", label = "lik_ratio"),
 	list(capability = "likelihood_tests", method = "compute_gradient_two_sided_pval", label = "gradient"),
-	# See the matching CI-table entries above for why these three are
-	# gated by "likelihood_tests" (same precedent as score/lik_ratio/
-	# gradient) rather than a new capability.
-	list(capability = "likelihood_tests", method = "compute_lik_ratio_bartlett_two_sided_pval", label = "lik_ratio_bartlett"),
+	# See the matching CI-table entries above for why these are gated by
+	# "likelihood_tests" (same precedent as score/lik_ratio/gradient)
+	# rather than a new capability, and for why the plain "lik_ratio_
+	# bartlett" auto-selecting dispatcher has no entry of its own.
 	list(capability = "likelihood_tests", method = "compute_lik_ratio_bartlett_approx_two_sided_pval", label = "lik_ratio_bartlett_approx"),
 	list(capability = "likelihood_tests", method = "compute_lik_ratio_bartlett_exact_two_sided_pval", label = "lik_ratio_bartlett_exact"),
 	list(capability = "parametric_likelihood_bootstrap", method = "compute_lik_ratio_bootstrap_two_sided_pval", label = "param_boot"),
+	# See the matching CI-table entry above for why compute_param_bootstrap_pval
+	# is a distinct sentinel ("param_boot_direct") from "param_boot".
+	list(capability = "parametric_likelihood_bootstrap", method = "compute_param_bootstrap_pval", label = "param_boot_direct"),
 	list(capability = "bayesian_bootstrap", method = "compute_bayesian_bootstrap_two_sided_pval", label = "bayes_boot"),
 	list(capability = "nonparametric_bootstrap", method = "compute_bootstrap_two_sided_pval", label = "bootstrap")
-)
+))
 
 #' The full set of method sentinel strings `run_all_inference()`'s `methods`
-#' argument accepts -- one per (capability, method-pair) row of
-#' `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`/`EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY`,
-#' which in turn covers every testing-procedure capability in
-#' `contracts_mixins.R`'s `public_methods_for_capability` (11 sentinels,
-#' widened 2026-08-19 from an initial four -- `"wald"`/`"exact"`/`"rand"`/
-#' `"bootstrap"` -- that omitted most of the package's actual inference
-#' machinery, per user feedback). `methods = NULL` (the default) resolves
-#' to all eleven -- "truly all the possible methods" per user request,
-#' 2026-08-19, replacing the earlier single-cascade-winner design
-#' (`run_all_inference_select_ci()`/`run_all_inference_select_pval()`,
-#' removed the same day).
+#' argument accepts -- the union of every `label` appearing in
+#' `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`/`EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY`
+#' (TODO-23: computed from those two derived specs, not typed out a second
+#' time), which in turn covers every testing-procedure capability in
+#' `contracts_mixins.R`'s `public_methods_for_capability` (13 sentinels as of
+#' 2026-08-19, widened earlier the same day from an initial four --
+#' `"wald"`/`"exact"`/`"rand"`/`"bootstrap"` -- that omitted most of the
+#' package's actual inference machinery, per user feedback). `methods = NULL`
+#' (the default) resolves to every sentinel -- "truly all the possible
+#' methods" per user request, 2026-08-19, replacing the earlier single-
+#' cascade-winner design (`run_all_inference_select_ci()`/
+#' `run_all_inference_select_pval()`, removed the same day).
 #'
 #' @keywords internal
 #' @noRd
-EDI_INFERENCE_SUITE_METHOD_SENTINELS = c(
-	"wald", "exact", "rand", "rand_bootstrap", "jackknife",
-	"score", "lik_ratio", "gradient",
-	"lik_ratio_bartlett", "lik_ratio_bartlett_approx", "lik_ratio_bartlett_exact",
-	"param_boot", "bayes_boot", "bootstrap"
+EDI_INFERENCE_SUITE_METHOD_SENTINELS = union(
+	vapply(EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY, `[[`, character(1L), "label"),
+	vapply(EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY, `[[`, character(1L), "label")
 )
+
+#' Methods genuinely registered under `public_methods_for_capability` as a
+#' `compute_*_confidence_interval`/`compute_*_two_sided_pval*` pair but
+#' deliberately not surfaced as their own `run_all_inference()` sentinel --
+#' each with a one-line reason so this allowlist can't silently grow by
+#' accident. Consulted only by `run_all_inference_check_sentinel_
+#' completeness()` (TODO-23's drift guard, exercised by
+#' `test-inference-suite-run-all-inference.R`).
+#'
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_SUITE_DELIBERATELY_UNSENTINELED_METHODS = c(
+	# "wald" capability registers both compute_asymp_* (chosen as the
+	# canonical "wald" sentinel above) and compute_wald_* -- a duplicate
+	# alias pair on the same capability, same underlying procedure.
+	"compute_wald_confidence_interval", "compute_wald_two_sided_pval",
+	# Plain best-available (exact-over-approx) Bartlett dispatcher -- a
+	# convenience wrapper around the two real "_approx"/"_exact" sentinels
+	# above, not a distinct inference procedure (removed as its own
+	# sentinel 2026-08-19, user decision).
+	"compute_lik_ratio_bartlett_confidence_interval", "compute_lik_ratio_bartlett_two_sided_pval",
+	# Distinct resampling schemes on NonparametricBootstrap, folded into the
+	# "nonparametric_bootstrap" capability alongside the canonical bootstrap
+	# methods (fix_inference_hierarchy.md's completeness audit) but not yet
+	# given their own sentinel or `type` values -- open scope question,
+	# tracked separately, not part of TODO-22/23's scope.
+	"compute_m_out_of_n_bootstrap_confidence_interval", "compute_m_out_of_n_bootstrap_two_sided_pval",
+	"compute_subsampling_confidence_interval", "compute_subsampling_two_sided_pval"
+)
+
+#' TODO-23's drift guard: every `compute_*_confidence_interval`/
+#' `compute_*_two_sided_pval*` method registered anywhere in
+#' `public_methods_for_capability` (excluding the two capabilities --
+#' `likelihood_ratio`/`estimating_equation_likelihood_ratio` -- that
+#' register the exact same method names as `likelihood_tests`'s own
+#' `lik_ratio` sub-procedure, an intentional duplicate already covered)
+#' must be either (a) one of the methods already named in
+#' `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`/`_PVAL_METHOD_PRIORITY`, or
+#' (b) explicitly listed in
+#' `EDI_INFERENCE_SUITE_DELIBERATELY_UNSENTINELED_METHODS` with a reason.
+#' Returns the character vector of any method that is neither -- empty
+#' means the sentinel tables are complete relative to the live registry.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_check_sentinel_completeness = function() {
+	excluded_capabilities = c("likelihood_ratio", "estimating_equation_likelihood_ratio")
+	covered = union(
+		vapply(EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY, `[[`, character(1L), "method"),
+		vapply(EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY, `[[`, character(1L), "method")
+	)
+	covered = union(covered, EDI_INFERENCE_SUITE_DELIBERATELY_UNSENTINELED_METHODS)
+	all_methods = character()
+	for (cap in setdiff(names(public_methods_for_capability), excluded_capabilities)) {
+		methods = public_methods_for_capability[[cap]]
+		all_methods = c(all_methods, grep("^compute_.*(_confidence_interval|_two_sided_pval|_pval)$", methods, value = TRUE))
+	}
+	setdiff(unique(all_methods), covered)
+}
+
+#' TODO-22: sentinels that carry a second, `type`-valued fan-out axis --
+#' the three resampling method families whose CI/pval calls accept a `type`
+#' argument selecting among several distinct resampling/CI-construction
+#' flavors (percentile, BCa, studentized, symmetric, smoothed, etc.). Every
+#' other sentinel has no type axis at all. Named by CI-side accessor and
+#' pval-side accessor so `run_all_inference_probe_supported_types()` can
+#' look either up without a second hardcoded switch.
+#'
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_SUITE_TYPED_SENTINEL_ACCESSORS = list(
+	bootstrap      = list(ci = "get_supported_bootstrap_ci_types",           pval = "get_supported_bootstrap_pval_types"),
+	bayes_boot     = list(ci = "get_supported_bayesian_bootstrap_ci_types",  pval = "get_supported_bayesian_bootstrap_pval_types"),
+	rand_bootstrap = list(ci = "get_supported_rand_bootstrap_ci_types",      pval = "get_supported_rand_bootstrap_pval_types")
+)
+
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_SUITE_TYPED_SENTINELS = names(EDI_INFERENCE_SUITE_TYPED_SENTINEL_ACCESSORS)
+
+#' Real runtime introspection of class `nm`'s valid `type` values for typed
+#' sentinel `sentinel` on `side` ("ci"/"pval") -- TODO-22's explicit
+#' requirement ("query it at runtime via the ... accessors on the
+#' constructed inference object -- NOT a hardcoded table"), not a literal
+#' type-choices table in this file. These six accessors
+#' (`get_supported_bootstrap_{pval,ci}_types()` etc.) are backed by a
+#' private constant field the component's own `assertChoice(type, ...)`
+#' call reads from directly (`fix_inference_hierarchy.md`'s accessor TODO),
+#' so this can never drift from what the real `compute_*` call will accept.
+#'
+#' The field itself turns out not to be reachable off the un-instantiated
+#' R6 generator (`cls$private_fields[[...]]` is `NULL` for these -- verified
+#' directly, not assumed) even though it is a class-body literal default,
+#' so this constructs a throwaway instance of `nm` (same construction
+#' `run_all_inference_one_class()` performs for the real fit) purely to
+#' call the accessor. This is a deliberate, narrow exception to this file's
+#' otherwise-universal "discovery reads metadata, never constructors" rule
+#' (`inference_class_accepts_model_formula()`'s docs) -- the type
+#' vocabulary genuinely is only queryable off a live instance, so
+#' `run_all_inference_build_tasks()` pays one extra (cheap) construction per
+#' (class, formula-slot, typed sentinel) to plan the `type` fan-out, on top
+#' of the real fit's own construction later. Returns `character(0)`, never
+#' an error, if `nm` lacks this sentinel's capability on this side at all,
+#' or if construction fails for any reason -- mirrors this file's
+#' established "missing capability -> empty, never abort discovery"
+#' pattern; a class that can't even be probed simply contributes no typed
+#' tasks for this sentinel, the same outcome as genuinely lacking it.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_probe_supported_types = function(nm, des_obj, params, sentinel, side) {
+	accessors = EDI_INFERENCE_SUITE_TYPED_SENTINEL_ACCESSORS[[sentinel]]
+	if (is.null(accessors)) return(character())
+	accessor = accessors[[side]]
+	priority = if (side == "ci") EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY else EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY
+	entry = Find(function(e) identical(e$label, sentinel), priority)
+	if (is.null(entry) || !(entry$capability %in% get_effective_capabilities(nm))) return(character())
+	tryCatch({
+		cls = get(nm, envir = getNamespace("EDI"))
+		inf_obj = do.call(cls$new, c(list(des_obj = des_obj), params))
+		types = inf_obj[[accessor]]()
+		if (is.character(types)) types else character()
+	}, error = function(e) character())
+}
+
+#' Union of CI-side and pval-side supported `type` values for class `nm`,
+#' typed sentinel `sentinel`, intersected with `requested_types` (`NULL`
+#' means "every valid type" -- the default when `methods` doesn't request
+#' this sentinel by name, or requests it with no explicit type subset).
+#' Backs `run_all_inference_build_tasks()`'s `type` fan-out. A requested
+#' type this class doesn't support on *either* side silently drops out here
+#' (no task for it, no error) -- CI-only/pval-only support for a given type
+#' is resolved per-side later, inside `run_all_inference_call_ci_for_method()`/
+#' `run_all_inference_call_pval_for_method()`, exactly mirroring how a
+#' missing sentinel capability already degrades to `NA` there rather than
+#' erroring.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_class_typed_task_types = function(nm, des_obj, params, sentinel, requested_types, basic_only = FALSE) {
+	available = union(
+		run_all_inference_probe_supported_types(nm, des_obj, params, sentinel, "ci"),
+		run_all_inference_probe_supported_types(nm, des_obj, params, sentinel, "pval")
+	)
+	# `basic_bootstrap = TRUE` convenience flag (2026-08-19): restrict to just
+	# this class's first (i.e. default) type, the same one the underlying
+	# `compute_*` methods themselves fall back to when `type` isn't passed --
+	# only applied when the caller didn't already name explicit types for
+	# this sentinel (`requested_types` non-`NULL` always wins).
+	if (basic_only && is.null(requested_types) && length(available) > 0L) {
+		available = available[1L]
+	}
+	if (is.null(requested_types)) return(available)
+	intersect(requested_types, available)
+}
+
+#' Normalizes `run_all_inference()`'s `methods` argument (TODO-22) into
+#' `list(sentinels, type_requests)`: `sentinels` is the character vector of
+#' method sentinels to fit (unchanged meaning from before TODO-22);
+#' `type_requests` is a named list, `sentinel -> character vector of
+#' requested type values, or NULL for "every valid type"`, consulted only
+#' for `EDI_INFERENCE_SUITE_TYPED_SENTINELS`. Accepts either shape a caller
+#' passes: the legacy flat character vector of sentinels (equivalent to
+#' every sentinel getting `type_requests[[s]] = NULL`), or the new named
+#' list `list(bootstrap = c("percentile", "bca"), rand_bootstrap = NULL)`
+#' (list names are the requested sentinels -- a sentinel present as a name
+#' with value `NULL` still means "every valid type" for it, exactly like
+#' the flat-vector shape; to *not* fit a sentinel at all, simply don't name
+#' it). `NULL` (the top-level default) means every sentinel, every type.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_normalize_methods = function(methods) {
+	if (is.null(methods)) {
+		return(list(sentinels = EDI_INFERENCE_SUITE_METHOD_SENTINELS, type_requests = list()))
+	}
+	if (is.list(methods)) {
+		list(sentinels = names(methods), type_requests = methods)
+	} else {
+		list(sentinels = methods, type_requests = list())
+	}
+}
 
 #' Whether inference class `nm` has *any* capability (CI or p-value) for
 #' method sentinel `m`, checked via the registry's
@@ -287,14 +528,40 @@ run_all_inference_class_applicable_methods = function(nm, methods) {
 #' `method` is `NA_character_` only when no attempt was possible at all --
 #' `inf_obj` genuinely lacks this sentinel's CI capability.
 #'
+#' `type` (TODO-22, only consulted when `method %in%
+#' EDI_INFERENCE_SUITE_TYPED_SENTINELS`): if non-`NA` but not one of this
+#' `inf_obj`'s own `get_supported_*_ci_types()` values, the CI side simply
+#' doesn't apply for this `type` -- returns `NA_real_`/`NA_real_` with
+#' `method = entry$label` still reported (the requested `type` was valid on
+#' the pval side for this class, just not the CI side; mirrors the existing
+#' "capability doesn't apply to this row" degrade-to-`NA` pattern rather
+#' than erroring). `NA` `type` (the default, and always the case for
+#' non-typed sentinels) omits the `type` argument entirely, i.e. whatever
+#' the method's own default resolves to.
+#'
 #' @keywords internal
 #' @noRd
-run_all_inference_call_ci_for_method = function(inf_obj, alpha, method) {
+run_all_inference_call_ci_for_method = function(inf_obj, alpha, method, type = NA_character_) {
 	entry = Find(function(e) identical(e$label, method), EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY)
 	if (is.null(entry) || !(entry$capability %in% inf_obj$capabilities())) {
 		return(list(lower = NA_real_, upper = NA_real_, method = NA_character_))
 	}
-	ci = tryCatch(inf_obj[[entry$method]](alpha = alpha), error = function(e) NULL)
+	call_args = list(alpha = alpha)
+	if (!is.na(type) && method %in% EDI_INFERENCE_SUITE_TYPED_SENTINELS) {
+		ci_types = tryCatch(inf_obj[[EDI_INFERENCE_SUITE_TYPED_SENTINEL_ACCESSORS[[method]]$ci]](), error = function(e) character())
+		if (!(type %in% ci_types)) {
+			return(list(lower = NA_real_, upper = NA_real_, method = entry$label))
+		}
+		call_args$type = type
+	}
+	# Bootstrap-family methods print their own per-replicate progress bar by
+	# default (`show_progress = TRUE`), which is never cleared and clutters
+	# `run_all_inference()`'s own live table/progress bar -- suppress it
+	# whenever the underlying method actually accepts the argument.
+	if ("show_progress" %in% names(formals(inf_obj[[entry$method]]))) {
+		call_args$show_progress = FALSE
+	}
+	ci = tryCatch(do.call(inf_obj[[entry$method]], call_args), error = function(e) NULL)
 	if (!is.null(ci) && length(ci) == 2L && all(is.finite(ci))) {
 		return(list(lower = ci[[1L]], upper = ci[[2L]], method = entry$label))
 	}
@@ -309,14 +576,31 @@ run_all_inference_call_ci_for_method = function(inf_obj, alpha, method) {
 #' `list(pval, method)`; `method` is `NA_character_` only when `inf_obj`
 #' has no p-value capability for this sentinel at all (no attempt made).
 #'
+#' `type` behaves identically to `run_all_inference_call_ci_for_method()`'s
+#' own `type` argument, checked against `get_supported_*_pval_types()`
+#' instead -- see that function's docs.
+#'
 #' @keywords internal
 #' @noRd
-run_all_inference_call_pval_for_method = function(inf_obj, method) {
+run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_character_) {
 	entry = Find(function(e) identical(e$label, method), EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY)
 	if (is.null(entry) || !(entry$capability %in% inf_obj$capabilities())) {
 		return(list(pval = NA_real_, method = NA_character_))
 	}
-	pv = tryCatch(inf_obj[[entry$method]](delta = 0), error = function(e) NULL)
+	call_args = list(delta = 0)
+	if (!is.na(type) && method %in% EDI_INFERENCE_SUITE_TYPED_SENTINELS) {
+		pval_types = tryCatch(inf_obj[[EDI_INFERENCE_SUITE_TYPED_SENTINEL_ACCESSORS[[method]]$pval]](), error = function(e) character())
+		if (!(type %in% pval_types)) {
+			return(list(pval = NA_real_, method = entry$label))
+		}
+		call_args$type = type
+	}
+	# See the matching CI-side comment above: suppress bootstrap-family
+	# methods' own per-replicate progress bar, never cleared otherwise.
+	if ("show_progress" %in% names(formals(inf_obj[[entry$method]]))) {
+		call_args$show_progress = FALSE
+	}
+	pv = tryCatch(do.call(inf_obj[[entry$method]], call_args), error = function(e) NULL)
 	if (!is.null(pv) && length(pv) == 1L && is.finite(pv)) {
 		return(list(pval = pv, method = entry$label))
 	}
@@ -425,23 +709,49 @@ run_all_inference_normalize_formulas = function(formulas) {
 #' (mirrors the pre-`methods` "no capability -> NA" row, rather than
 #' silently dropping the class from the table).
 #'
+#' \strong{Type dimension} (TODO-22): for each applicable method sentinel
+#' that is one of `EDI_INFERENCE_SUITE_TYPED_SENTINELS` (`"bootstrap"`/
+#' `"bayes_boot"`/`"rand_bootstrap"`), one task per `type` value in
+#' `run_all_inference_class_typed_task_types(nm, des_obj, params, m,
+#' type_requests[[m]])` -- i.e. every `type` this class actually supports
+#' (on the CI side, the pval side, or both), intersected with
+#' `type_requests[[m]]` if the caller asked for a specific subset. A typed
+#' sentinel with zero resulting types (no capability, probe failed, or the
+#' caller's requested types don't intersect what this class supports) still
+#' gets exactly one task with `type = NA_character_` (same "no task
+#' silently dropped" rule the method dimension already follows). Non-typed
+#' sentinels always get exactly one task, `type = NA_character_`.
+#'
 #' Each task's `result_name` is the plain class name (optionally
 #' `"<class>[<deparsed formula>]"` if more than one formula-slot applies)
 #' when the class contributes exactly one task per formula-slot, or that
-#' same base with `"{<method>}"` appended when more than one method sentinel
-#' is applicable for that class, so `results`/`results_table` row
-#' identifiers stay unique.
+#' same base with `"{<method>}"` (or `"{<method>:<type>}"` for a typed
+#' sentinel with more than one resulting type) appended when more than one
+#' method/type combination is applicable for that class, so
+#' `results`/`results_table` row identifiers stay unique.
 #'
 #' @param cls_names Character vector of class names to build tasks for.
 #' @param formulas `NULL`, or a list of `formula` objects (see
 #'   `run_all_inference_normalize_formulas()`).
 #' @param methods Character vector of method sentinels (subset of
 #'   `EDI_INFERENCE_SUITE_METHOD_SENTINELS`) to fan out over.
-#' @return A list of `list(cls_name, model_formula, method, result_name)`.
+#' @param des_obj The `Design` object being fit against -- only used to
+#'   probe typed sentinels' valid `type` values (see
+#'   `run_all_inference_probe_supported_types()`'s docs on why this is a
+#'   deliberate, narrow exception to "discovery never constructs").
+#'   `NULL` is fine when no requested `methods` are typed sentinels (no
+#'   probing needed).
+#' @param inference_params Named list, class name -> constructor params
+#'   (`InferenceSuite$new()`'s own `inference_params`), used for the same
+#'   typed-sentinel probe construction.
+#' @param type_requests Named list, sentinel -> character vector of
+#'   requested `type` values or `NULL` for "every valid type" (see
+#'   `run_all_inference_normalize_methods()`).
+#' @return A list of `list(cls_name, model_formula, method, type, result_name)`.
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_build_tasks = function(cls_names, formulas, methods) {
+run_all_inference_build_tasks = function(cls_names, formulas, methods, des_obj = NULL, inference_params = list(), type_requests = list(), basic_bootstrap = FALSE) {
 	tasks = list()
 	for (nm in cls_names) {
 		formula_slots = if (is.null(formulas)) {
@@ -452,15 +762,34 @@ run_all_inference_build_tasks = function(cls_names, formulas, methods) {
 			list(list(model_formula = NULL, formula_tag = NULL))
 		}
 		applicable_methods = run_all_inference_class_applicable_methods(nm, methods)
-		method_slots = if (length(applicable_methods) == 0L) list(NA_character_) else as.list(applicable_methods)
-		multi_method = length(method_slots) > 1L
+		method_type_slots = list()
+		for (m in applicable_methods) {
+			if (m %in% EDI_INFERENCE_SUITE_TYPED_SENTINELS) {
+				params_nm = inference_params[[nm]] %||% list()
+				types = run_all_inference_class_typed_task_types(nm, des_obj, params_nm, m, type_requests[[m]], basic_only = basic_bootstrap)
+				if (length(types) == 0L) {
+					method_type_slots[[length(method_type_slots) + 1L]] = list(method = m, type = NA_character_)
+				} else {
+					for (ty in types) {
+						method_type_slots[[length(method_type_slots) + 1L]] = list(method = m, type = ty)
+					}
+				}
+			} else {
+				method_type_slots[[length(method_type_slots) + 1L]] = list(method = m, type = NA_character_)
+			}
+		}
+		if (length(method_type_slots) == 0L) method_type_slots = list(list(method = NA_character_, type = NA_character_))
+		multi_method = length(method_type_slots) > 1L
 		for (fs in formula_slots) {
-			for (m in method_slots) {
+			for (mt in method_type_slots) {
 				result_name = if (is.null(fs$formula_tag)) nm else sprintf("%s[%s]", nm, fs$formula_tag)
-				if (multi_method && !is.na(m)) result_name = sprintf("%s{%s}", result_name, m)
+				if (multi_method && !is.na(mt$method)) {
+					tag = if (!is.na(mt$type)) sprintf("%s:%s", mt$method, mt$type) else mt$method
+					result_name = sprintf("%s{%s}", result_name, tag)
+				}
 				tasks[[length(tasks) + 1L]] = list(
 					cls_name = nm, model_formula = fs$model_formula,
-					method = m, result_name = result_name
+					method = mt$method, type = mt$type, result_name = result_name
 				)
 			}
 		}
@@ -470,11 +799,12 @@ run_all_inference_build_tasks = function(cls_names, formulas, methods) {
 
 #' @keywords internal
 #' @noRd
-run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class = NULL, method = NA_character_) {
+run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class = NULL, method = NA_character_, type = NA_character_) {
 	t0 = Sys.time()
 	row = list(
 		inference_class = cls_name,
 		method          = method,
+		type            = type,
 		response_type   = response_type,
 		design_family   = design_family,
 		likelihood_tier = get_inference_class_metadata(cls_name)$likelihood_tier %||% NA_character_,
@@ -517,12 +847,12 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 			ci = if (is.na(method)) {
 				list(lower = NA_real_, upper = NA_real_, method = NA_character_)
 			} else {
-				run_all_inference_call_ci_for_method(inf_obj, alpha, method)
+				run_all_inference_call_ci_for_method(inf_obj, alpha, method, type)
 			}
 			pv = if (is.na(method)) {
 				list(pval = NA_real_, method = NA_character_)
 			} else {
-				run_all_inference_call_pval_for_method(inf_obj, method)
+				run_all_inference_call_pval_for_method(inf_obj, method, type)
 			}
 			# Always populated once construction succeeds (Inference$initialize()
 			# always sets private$model_formula, even for classes -- e.g.
@@ -620,9 +950,114 @@ run_all_inference_fmt_completed_secs = function(secs) {
 #' @keywords internal
 #' @noRd
 EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS = c(
-	"inference class", "method", "cov mod", "estimand", "estimate", "se",
-	"ci_a", "ci_b", "ci_method", "pval", "pval_method", "status"
+	"inference class", "method", "cov mod", "estimand", "est", "se",
+	"ci_a", "ci_b", "ci method", "pval", "pval method", "status"
 )
+
+#' The variable-length text columns pushed to the wrapped table's second
+#' line (see `run_all_inference_build_live_table_header()`'s two-row-wrap
+#' docs) -- `method`/`ci method`/`pval method` can carry a
+#' `"<method> (<type>)"` suffix for typed sentinels, and `status` is short
+#' but grouped alongside them since it's likewise not a number. Matched by
+#' name against both `EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS` (has
+#' `"method"`) and `run_all_inference_build_display_table()`'s `display`
+#' column names (no `"method"`, but the rest match) -- whichever of these
+#' names is present in a given header vector ends up on line 2.
+#'
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_SUITE_LIVE_TABLE_TEXT_COLS = c("method", "ci method", "pval method", "status")
+
+#' Short display form of a method-sentinel label (`EDI_INFERENCE_SUITE_METHOD_SENTINELS`
+#' value, e.g. `"rand_bootstrap"`) for the `method`/`ci_method`/`pval_method`
+#' display columns -- purely cosmetic, like `estimand_short_label()`/
+#' `inference_class_short_label()`: never touches `results_table$method`/
+#' `ci_method`/`pval_method` themselves, or the `methods` argument's actual
+#' sentinel vocabulary, only how a sentinel is printed. `NA_character_`
+#' passes through unchanged.
+#'
+#' @keywords internal
+#' @noRd
+method_short_label = function(m) {
+	vapply(m, function(x) {
+		if (is.na(x)) return(NA_character_)
+		switch(x,
+			rand_bootstrap = "rand boot",
+			lik_ratio_bartlett_exact = "LR Bartlett",
+			lik_ratio_bartlett_approx = "LR ≈Bartlett",
+			bayes_boot = "bayes boot",
+			bootstrap = "boot",
+			x
+		)
+	}, character(1L), USE.NAMES = FALSE)
+}
+
+#' Like `method_short_label()`, but appends `" (type)"` when `type` is
+#' non-`NA` for that element (TODO-22) -- used for the `ci method`/
+#' `pval method` display columns, which are what actually distinguishes
+#' e.g. `"boot (bca)"` from `"boot (percentile)"` on a given row (the row's
+#' own `method`/`type` request may name a typed sentinel with no explicit
+#' type restriction, but `ci_method`/`pval_method` always report the exact
+#' sentinel *and type actually used* once fit). `method`/`type` are
+#' recycled against each other via `mapply()`.
+#'
+#' @keywords internal
+#' @noRd
+#' Display abbreviation for a bootstrap-family `type` value, shown inside
+#' the parentheses appended by `method_with_type_short_label()` (e.g.
+#' `"boot (%ile)"`, `"bayes boot (bayes-wald)"`). `bayes_boot`'s `type`
+#' values get their own `bayes-`-prefixed abbreviations since that family
+#' alone distinguishes `"basic"` from `"wald"`; every other typed sentinel
+#' (`bootstrap`, `rand_bootstrap`) shares the plain abbreviations. Falls
+#' back to the raw `type` string for any value not in this table (e.g.
+#' `"bootstrap-t"`, `"prepivoted"`, `"double-bootstrap"`, `"calibrated"`,
+#' `"smoothed"`).
+#'
+#' @keywords internal
+#' @noRd
+type_short_label = function(method, type) {
+	if (identical(method, "bayes_boot")) {
+		switch(type,
+			percentile = "pctile",
+			symmetric = "symm",
+			basic = "basic",
+			wald = "wald",
+			bca = "bca",
+			studentized = "stud",
+			`bootstrap-t` = "t",
+			prepivoted = "prepiv",
+			`double-bootstrap` = "dbl-boot",
+			calibrated = "calib",
+			smoothed = "smth",
+			type
+		)
+	} else {
+		switch(type,
+			percentile = "%ile",
+			symmetric = "symm",
+			`symmetric-percentile-t` = "symm t",
+			basic = "basic",
+			bca = "bca",
+			studentized = "stud",
+			`bootstrap-t` = "t",
+			prepivoted = "prepiv",
+			`double-bootstrap` = "dbl-boot",
+			calibrated = "calib",
+			smoothed = "smth",
+			m_out_of_n_bootstrap = "m-out-n",
+			subsampling = "PRW-sub",
+			type
+		)
+	}
+}
+
+method_with_type_short_label = function(method, type) {
+	mapply(function(m, ty) {
+		if (is.na(m)) return(NA_character_)
+		lbl = method_short_label(m)
+		if (!is.na(ty)) sprintf("%s (%s)", lbl, type_short_label(m, ty)) else lbl
+	}, method, type, USE.NAMES = FALSE)
+}
 
 #' Per-task display fields known *before any class is constructed or
 #' fitted* -- everything derivable from `task$cls_name`/`task$model_formula`/
@@ -648,7 +1083,17 @@ run_all_inference_static_row_fields = function(task, des_obj) {
 	}
 	list(
 		inference_class_disp = inference_class_short_label(task$cls_name),
-		method_disp = if (is.na(task$method)) "NA" else task$method,
+		# TODO-22: `type` (only non-NA for the three typed sentinels) is
+		# folded into the `method` column's display string rather than
+		# given its own display column, e.g. "boot (bca)" -- `results_table`
+		# still carries a real, separate `type` column for programmatic use.
+		method_disp = if (is.na(task$method)) {
+			"NA"
+		} else if (!is.null(task$type) && !is.na(task$type)) {
+			sprintf("%s (%s)", method_short_label(task$method), type_short_label(task$method, task$type))
+		} else {
+			method_short_label(task$method)
+		},
 		cov_model_raw = cov_model_raw,
 		estimand_disp = {
 			e = run_all_inference_estimand(task$cls_name)
@@ -699,11 +1144,30 @@ run_all_inference_build_live_table_header = function(tasks, des_obj) {
 		s
 	})
 
-	max_method_label = max(nchar(EDI_INFERENCE_SUITE_METHOD_SENTINELS), nchar("NA"))
+	# TODO-22: reserve enough width for the longest possible "<method> (<type>)"
+	# string a typed sentinel's ci_method/pval_method display could produce --
+	# sized from the *abbreviated* form `type_short_label()` actually renders
+	# (not the raw `type` values), since reserving room for the long raw
+	# strings (e.g. "symmetric-percentile-t") massively over-padded these
+	# columns for every row, producing a ragged, "terrible"-looking table
+	# even when most rows just show a short label like "wald".
+	boot_raw_types = c(
+		"percentile", "basic", "studentized", "bootstrap-t", "symmetric-percentile-t",
+		"bca", "prepivoted", "double-bootstrap", "calibrated", "smoothed"
+	)
+	bayes_raw_types = c("percentile", "basic", "wald", "studentized", "bootstrap-t", "bca", "symmetric")
+	max_type_label = max(nchar(c(
+		vapply(boot_raw_types, function(ty) type_short_label("bootstrap", ty), character(1L)),
+		vapply(bayes_raw_types, function(ty) type_short_label("bayes_boot", ty), character(1L))
+	)))
+	max_method_label = max(
+		nchar(EDI_INFERENCE_SUITE_METHOD_SENTINELS), nchar("NA"),
+		nchar(method_short_label(EDI_INFERENCE_SUITE_TYPED_SENTINELS)) + nchar(" ()") + max_type_label
+	)
 	max_status_label = max(nchar(c("ok", "nonest", "error", "timeout")))
 	fixed_widths = c(
-		estimate = 10L, se = 10L, ci_a = 10L, ci_b = 10L,
-		ci_method = max_method_label, pval = 10L, pval_method = max_method_label,
+		est = 10L, se = 10L, ci_a = 10L, ci_b = 10L,
+		`ci method` = max_method_label, pval = 10L, `pval method` = max_method_label,
 		status = max_status_label
 	)
 	static_widths = c(
@@ -715,12 +1179,26 @@ run_all_inference_build_live_table_header = function(tasks, des_obj) {
 	widths = c(static_widths, fixed_widths)[EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS]
 	widths = pmax(widths, nchar(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS))
 
-	fmt_row = function(vals) paste(mapply(function(v, w) formatC(v, width = -w), vals, widths), collapse = "  ")
-	header_line = fmt_row(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS)
-	total_width = nchar(header_line)
+	# Two-row wrap (per user request, 2026-08-19: keep the table compact by
+	# splitting each record -- and the header -- across two printed lines
+	# instead of one long one). Not a mechanical half-the-columns split (that
+	# scattered the numeric columns across both lines and, combined with the
+	# wide reservation for typed-sentinel method labels, produced a
+	# "terrible", raggedly-spaced table) -- instead line 1 carries every
+	# numeric column plus the short identifying columns (readable "at a
+	# glance", per user request), and line 2 carries only the
+	# variable-length text columns (`method`/`ci method`/`pval method`/
+	# `status`) that actually cause the ragged widths.
+	idx2 = which(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS %in% EDI_INFERENCE_SUITE_LIVE_TABLE_TEXT_COLS)
+	idx1 = setdiff(seq_along(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS), idx2)
+	fmt_row = function(vals, idx) paste(mapply(function(v, w) formatC(v, width = -w), vals[idx], widths[idx]), collapse = "  ")
+	header_line1 = fmt_row(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS, idx1)
+	header_line2 = fmt_row(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS, idx2)
+	total_width = max(nchar(header_line1), nchar(header_line2))
 	list(
-		header_lines = c(header_line, strrep("=", total_width)),
-		total_width = total_width, widths = widths, statics = statics, cov_key = key
+		header_lines = c(header_line1, header_line2, strrep("=", total_width)),
+		total_width = total_width, widths = widths, statics = statics, cov_key = key,
+		idx1 = idx1, idx2 = idx2
 	)
 }
 
@@ -741,7 +1219,7 @@ run_all_inference_build_live_table_header = function(tasks, des_obj) {
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_print_row = function(r, static, widths) {
+run_all_inference_print_row = function(r, static, widths, idx1, idx2) {
 	na_chr = function(x) if (is.na(x)) "NA" else x
 	vals = c(
 		static$inference_class_disp,
@@ -752,12 +1230,16 @@ run_all_inference_print_row = function(r, static, widths) {
 		run_all_inference_sigfig(r$se, 3L),
 		run_all_inference_sigfig(r$ci_a, 3L),
 		run_all_inference_sigfig(r$ci_b, 3L),
-		na_chr(r$ci_method),
+		na_chr(method_with_type_short_label(r$ci_method, r$type %||% NA_character_)),
 		run_all_inference_sigfig(r$pval, 3L, scientific = TRUE),
-		na_chr(r$pval_method),
+		na_chr(method_with_type_short_label(r$pval_method, r$type %||% NA_character_)),
 		r$status
 	)
-	cat(paste(mapply(function(v, w) formatC(v, width = -w), vals, widths), collapse = "  "), "\n", sep = "")
+	# Two-row wrap (matches `run_all_inference_build_live_table_header()`'s
+	# header split): `idx1` (numbers + short identifying columns) on line 1,
+	# `idx2` (the variable-length text columns) on line 2.
+	fmt = function(idx) paste(mapply(function(v, w) formatC(v, width = -w), vals[idx], widths[idx]), collapse = "  ")
+	cat(fmt(idx1), "\n", fmt(idx2), "\n", sep = "")
 }
 
 #' Prints the `cov_model` letter-key legend beneath the live table's bottom
@@ -946,12 +1428,25 @@ htmltools_escape_or_identity = function(x) {
 #'
 #' @keywords internal
 #' @noRd
+#' Returns a **named list** of one ggplot per `estimand` (name = the raw
+#' `estimand` value, `"estimand unspecified"` for `NA`), not a single
+#' faceted plot -- per user request, 2026-08-19 ("one PDF per estimand"),
+#' replacing the earlier single `facet_wrap(~estimand_facet)` plot, which
+#' couldn't give each estimand its own appropriately-sized page/panel and
+#' crowded very different estimand scales onto one image. `character(0)`
+#' rows return `list()`. Method labels are rotated 90 degrees (vertical
+#' text) rather than the previous 45-degree diagonal, per the same request,
+#' so labels stack compactly instead of running diagonally into
+#' neighboring points as more classes are added.
+#'
+#' @keywords internal
+#' @noRd
 run_all_inference_plot_estimates = function(results_table) {
 	df = results_table[
 		results_table$status == "ok" & is.finite(results_table$estimate),
 		, drop = FALSE
 	]
-	if (nrow(df) == 0L) return(NULL)
+	if (nrow(df) == 0L) return(list())
 	df$estimand_facet = ifelse(is.na(df$estimand), "estimand unspecified", df$estimand)
 	df$method_label = sprintf(
 		"%s (%s)", df$inference_class,
@@ -959,30 +1454,36 @@ run_all_inference_plot_estimates = function(results_table) {
 	)
 	df$y_dot   = 1
 	df$y_label = 1.15
-	ggplot2::ggplot(df, ggplot2::aes(x = estimate)) +
-		ggplot2::geom_boxplot(
-			ggplot2::aes(y = 0), orientation = "y", width = 0.6, outlier.shape = NA
-		) +
-		ggplot2::geom_point(ggplot2::aes(y = y_dot), size = 2) +
-		ggplot2::geom_text(
-			ggplot2::aes(y = y_label, label = method_label),
-			angle = 45, hjust = 0, vjust = 0, size = 3
-		) +
-		ggplot2::facet_wrap(~estimand_facet, scales = "free_x") +
-		ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.06, 0.25))) +
-		ggplot2::scale_y_continuous(limits = c(-1, 4.5), breaks = NULL) +
-		ggplot2::coord_cartesian(clip = "off") +
-		ggplot2::labs(
-			x = "Estimate", y = NULL,
-			title = "Point estimates across applicable inference classes",
-			subtitle = "Box-and-whisker below the number line summarizes cross-estimator spread"
-		) +
-		ggplot2::theme_minimal() +
-		ggplot2::theme(
-			panel.grid.major.y = ggplot2::element_blank(),
-			panel.grid.minor.y = ggplot2::element_blank(),
-			plot.margin = ggplot2::margin(t = 5, r = 20, b = 5, l = 5, unit = "pt")
-		)
+	estimands = sort(unique(df$estimand_facet))
+	stats::setNames(lapply(estimands, function(e) {
+		d = df[df$estimand_facet == e, , drop = FALSE]
+		ggplot2::ggplot(d, ggplot2::aes(x = estimate)) +
+			ggplot2::geom_boxplot(
+				ggplot2::aes(y = 0), orientation = "y", width = 0.6, outlier.shape = NA
+			) +
+			ggplot2::geom_point(ggplot2::aes(y = y_dot), size = 2) +
+			ggplot2::geom_text(
+				ggplot2::aes(y = y_label, label = method_label),
+				angle = 90, hjust = 0, vjust = 0.5, size = 3
+			) +
+			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.15, 0.15))) +
+			ggplot2::scale_y_continuous(limits = c(-1, 6), breaks = NULL) +
+			ggplot2::coord_cartesian(clip = "off") +
+			ggplot2::labs(
+				x = "Estimate", y = NULL,
+				title = sprintf("Point estimates -- %s", e),
+				subtitle = "Box-and-whisker below the number line summarizes cross-estimator spread"
+			) +
+			ggplot2::theme_minimal() +
+			ggplot2::theme(
+				panel.grid.major.y = ggplot2::element_blank(),
+				panel.grid.minor.y = ggplot2::element_blank(),
+				# Wider left margin than the old single-plot version (was
+				# l = 5pt) -- per user request, 2026-08-19: text was getting
+				# cut off on the left.
+				plot.margin = ggplot2::margin(t = 5, r = 20, b = 5, l = 25, unit = "pt")
+			)
+	}), estimands)
 }
 
 #' Annotated CI forest plot for `run_all_inference()`'s `plots`/`pdf`/`html`
@@ -1002,16 +1503,29 @@ run_all_inference_plot_estimates = function(results_table) {
 #'
 #' @keywords internal
 #' @noRd
+#' Returns a **named list** of one CI forest ggplot per `estimand` (name =
+#' the raw `estimand` value, `"estimand unspecified"` for `NA`), not a
+#' single faceted plot -- per user request, 2026-08-19 ("one PDF per
+#' estimand"). This also directly fixes a real bug: the old single-plot,
+#' `facet_wrap(~estimand_facet)` design sized its PDF/PNG page height from
+#' the row count \strong{summed across every estimand}
+#' (`run_all_inference_save_plots_pdf()`'s old `n_ci_rows`), which could
+#' exceed `ggplot2::ggsave()`'s 50-inch `limitsize` cap once enough classes/
+#' methods/types were fit across several estimands (confirmed via the
+#' `ggsave()` error the user hit, 2026-08-19) -- splitting per estimand
+#' means each page's height only ever scales with \emph{that one
+#' estimand's} row count. `list()` if there are no plottable rows.
+#'
+#' @keywords internal
+#' @noRd
 run_all_inference_plot_ci_forest = function(results_table, alpha) {
 	df = results_table[
 		results_table$status == "ok" &
 			is.finite(results_table$ci_a) & is.finite(results_table$ci_b),
 		, drop = FALSE
 	]
-	if (nrow(df) == 0L) return(NULL)
+	if (nrow(df) == 0L) return(list())
 	df$estimand_facet = ifelse(is.na(df$estimand), "estimand unspecified", df$estimand)
-	df = df[order(df$estimand_facet, df$estimate), , drop = FALSE]
-	df$y = seq_len(nrow(df))
 	df$significant = !is.na(df$pval) & df$pval < alpha
 	df$pval_label = ifelse(
 		is.na(df$pval), "p=NA",
@@ -1022,41 +1536,57 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		"%s (%s / %s)", df$inference_class,
 		df$ci_method %||% "NA", df$pval_method %||% "NA"
 	)
-	n_rows = nrow(df)
-	ggplot2::ggplot(df, ggplot2::aes(y = y)) +
-		ggplot2::geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
-		ggplot2::geom_segment(
-			ggplot2::aes(x = ci_a, xend = ci_b, yend = y, color = significant),
-			linewidth = 1
-		) +
-		ggplot2::geom_point(ggplot2::aes(x = estimate, color = significant), size = 2) +
-		ggplot2::geom_text(ggplot2::aes(x = ci_a, label = pval_label), hjust = 1.15, size = 3) +
-		ggplot2::geom_text(ggplot2::aes(x = ci_b, label = width_label), hjust = -0.15, size = 3) +
-		ggplot2::geom_text(
-			ggplot2::aes(x = estimate, label = method_label),
-			vjust = 2.3, size = 2.7, lineheight = 0.85
-		) +
-		ggplot2::scale_color_manual(
-			values = c(`TRUE` = "#1a7a3c", `FALSE` = "#888888"), guide = "none"
-		) +
-		ggplot2::facet_wrap(~estimand_facet, scales = "free") +
-		ggplot2::scale_y_continuous(breaks = NULL, expand = ggplot2::expansion(mult = 0.15)) +
-		ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0.25)) +
-		ggplot2::labs(
-			x = "Estimate & confidence interval", y = NULL,
-			title = sprintf("%g%% confidence intervals", 100 * (1 - alpha)),
-			subtitle = sprintf("Green = significant at alpha = %g; p-value left of interval, width right of it", alpha)
-		) +
-		ggplot2::theme_minimal() +
-		ggplot2::theme(
-			panel.grid.major.y = ggplot2::element_blank(),
-			panel.grid.minor.y = ggplot2::element_blank()
-		)
+	estimands = sort(unique(df$estimand_facet))
+	stats::setNames(lapply(estimands, function(e) {
+		d = df[df$estimand_facet == e, , drop = FALSE]
+		d = d[order(d$estimate), , drop = FALSE]
+		d$y = seq_len(nrow(d))
+		ggplot2::ggplot(d, ggplot2::aes(y = y)) +
+			ggplot2::geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+			ggplot2::geom_segment(
+				ggplot2::aes(x = ci_a, xend = ci_b, yend = y, color = significant),
+				linewidth = 1
+			) +
+			ggplot2::geom_point(ggplot2::aes(x = estimate, color = significant), size = 2) +
+			ggplot2::geom_text(ggplot2::aes(x = ci_a, label = pval_label), hjust = 1.15, size = 3) +
+			ggplot2::geom_text(ggplot2::aes(x = ci_b, label = width_label), hjust = -0.15, size = 3) +
+			ggplot2::geom_text(
+				ggplot2::aes(x = estimate, label = method_label),
+				vjust = 2.3, size = 2.7, lineheight = 0.85
+			) +
+			ggplot2::scale_color_manual(
+				values = c(`TRUE` = "#1a7a3c", `FALSE` = "#888888"), guide = "none"
+			) +
+			# Less vertical space between rows than the old `mult = 0.15`
+			# (per user request, 2026-08-19).
+			ggplot2::scale_y_continuous(breaks = NULL, expand = ggplot2::expansion(mult = 0.08)) +
+			# Wider left expansion than the old symmetric `mult = 0.25` --
+			# the p-value label sits to the *left* of each segment and was
+			# getting clipped at the panel edge for the leftmost points
+			# (per user request, 2026-08-19: text cut off on the left).
+			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.35, 0.25))) +
+			ggplot2::labs(
+				x = "Estimate & confidence interval", y = NULL,
+				title = sprintf("%g%% confidence intervals -- %s", 100 * (1 - alpha), e),
+				subtitle = sprintf("Green = significant at alpha = %g; p-value left of interval, width right of it", alpha)
+			) +
+			ggplot2::theme_minimal() +
+			ggplot2::theme(
+				panel.grid.major.y = ggplot2::element_blank(),
+				panel.grid.minor.y = ggplot2::element_blank(),
+				plot.margin = ggplot2::margin(t = 5, r = 20, b = 5, l = 25, unit = "pt")
+			)
+	}), estimands)
 }
 
-#' Builds both `run_all_inference()` visualizations, or `list(estimates =
-#' NULL, ci_forest = NULL)` with a `warning()` (not an error -- per-feature
-#' decision) if the optional `ggplot2` dependency is not installed.
+#' Builds both `run_all_inference()` visualizations. Each of `estimates`/
+#' `ci_forest` is a **named list** of one ggplot per `estimand` (see
+#' `run_all_inference_plot_estimates()`/`run_all_inference_plot_ci_forest()`'s
+#' own docs -- TODO, 2026-08-19: split from a single faceted plot each, so
+#' every estimand gets its own appropriately-sized page/image), or
+#' `list(estimates = list(), ci_forest = list())` with a `warning()` (not an
+#' error -- per-feature decision) if the optional `ggplot2` dependency is
+#' not installed.
 #'
 #' @keywords internal
 #' @noRd
@@ -1067,7 +1597,7 @@ run_all_inference_build_plots = function(results_table, alpha) {
 			"skipping plots (estimate number line / CI forest). Install 'ggplot2' to enable them.",
 			call. = FALSE
 		)
-		return(list(estimates = NULL, ci_forest = NULL))
+		return(list(estimates = list(), ci_forest = list()))
 	}
 	list(
 		estimates = run_all_inference_plot_estimates(results_table),
@@ -1075,22 +1605,45 @@ run_all_inference_build_plots = function(results_table, alpha) {
 	)
 }
 
-#' Saves both `run_all_inference()` plots to one timestamped multi-page PDF
-#' (two pages, one per plot; skips a `NULL` plot). Both pages share one page
-#' height, scaled to the CI-forest plot's row count, so many applicable
-#' classes don't get compressed onto a fixed-size page (a single `pdf()`
-#' device cannot vary page size page-to-page without reopening the file,
-#' which would truncate pages already written -- sizing both pages to the
-#' taller plot's requirement avoids that entirely).
+#' Saves `run_all_inference()`'s plots to **two** separate timestamped
+#' multi-page PDFs -- `path_estimates` (one page per estimand's estimates
+#' plot) and `path_ci_forest` (one page per estimand's CI forest plot) --
+#' per user request, 2026-08-19 ("one PDF per estimand for estimates ...
+#' one PDF per estimand for CI"), replacing the earlier single two-page PDF.
+#' A `pdf()` device can't vary page size page-to-page without reopening the
+#' file (which would truncate pages already written), so all pages within
+#' one file share that file's single page height -- for `path_estimates`
+#' this is always a fixed 6in (the estimates plot never stacks rows
+#' vertically, so it doesn't need to scale with row count at all); for
+#' `path_ci_forest` it's sized from the \emph{largest single estimand's} row
+#' count (not summed across estimands, unlike the old design -- the actual
+#' cause of the `ggplot2::ggsave()` "Dimensions exceed 50 inches" error the
+#' user hit, since a page's height only ever needs to fit one estimand's
+#' rows now), capped at 48in to stay under `ggsave()`-style size sanity
+#' limits even for a single very-large estimand.
+#'
+#' @param plots `run_all_inference_build_plots()`'s return value (named
+#'   lists of ggplots, one per estimand, possibly empty).
+#' @param path_estimates,path_ci_forest File paths for the two PDFs.
+#' @return Invisibly, `NULL`. Skips writing a file for a plot list that's
+#'   empty (nothing plottable for that visualization).
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_save_plots_pdf = function(plots, path, n_ci_rows) {
-	height = max(6, 0.5 * n_ci_rows + 1.5)
-	grDevices::pdf(path, width = 8, height = height, onefile = TRUE)
-	on.exit(grDevices::dev.off(), add = TRUE)
-	if (!is.null(plots$estimates)) print(plots$estimates)
-	if (!is.null(plots$ci_forest)) print(plots$ci_forest)
+run_all_inference_save_plots_pdf = function(plots, path_estimates, path_ci_forest) {
+	if (length(plots$estimates) > 0L) {
+		grDevices::pdf(path_estimates, width = 8, height = 6, onefile = TRUE)
+		for (p in plots$estimates) print(p)
+		grDevices::dev.off()
+	}
+	if (length(plots$ci_forest) > 0L) {
+		ci_rows = vapply(plots$ci_forest, function(p) nrow(p$data), integer(1L))
+		height = min(48, max(6, 0.35 * max(ci_rows) + 1.5))
+		grDevices::pdf(path_ci_forest, width = 8, height = height, onefile = TRUE)
+		for (p in plots$ci_forest) print(p)
+		grDevices::dev.off()
+	}
+	invisible(NULL)
 }
 
 #' Base64-PNG-encodes one ggplot object for inline embedding into the
@@ -1166,7 +1719,7 @@ run_all_inference_plot_to_base64_png = function(plot, width = 8, height = 6) {
 #'
 #' @keywords internal
 #' @noRd
-EDI_INFERENCE_CLASS_ACRONYMS = c("GLMM", "IVWC", "KK", "OLS", "GEE", "CMH", "RD", "RR", "T")
+EDI_INFERENCE_CLASS_ACRONYMS = c("GLMM", "IVWC", "KK14", "KK21", "KK", "OLS", "GEE", "CMH", "RD", "RR", "T")
 
 #' Response-family/cross-response-type name prefixes
 #' `inference_class_short_label()` strips (after the shared `"Inference"`
@@ -1224,7 +1777,15 @@ inference_class_wordify = function(label) {
 	parts = strsplit(label, "(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", perl = TRUE)[[1]]
 	words = character(0)
 	for (p in parts) {
-		if (grepl("^[A-Z]{2,}$", p) && !(p %in% EDI_INFERENCE_CLASS_ACRONYMS)) {
+		# `[A-Z]{2,}[0-9]*` (not plain `[A-Z]{2,}`) so a digit-suffixed
+		# acronym run (e.g. "TKK14" -- "T" and "KK14" glued together with
+		# no case transition for the boundary regex above to catch) still
+		# gets routed through the acronym splitter, not left as one fused
+		# token. Found 2026-08-19 reverting the KK14/KK21-collapsing
+		# short-circuit that had been masking this: without that
+		# short-circuit, "BaiAdjustedTKK14" reached here and rendered as
+		# "Bai Adjusted TKK14", no space before "KK14".
+		if (grepl("^[A-Z]{2,}[0-9]*$", p) && !(p %in% EDI_INFERENCE_CLASS_ACRONYMS)) {
 			words = c(words, inference_class_split_caps_run(p))
 		} else {
 			words = c(words, p)
@@ -1258,8 +1819,37 @@ inference_class_short_label = function(name) {
 	# prefix is already gone -- every remaining class name in this family is
 	# implicitly "simple" relative to its KK/GEE/GLMM-adjusted counterparts.
 	if (startsWith(rest, "Simple")) rest = substring(rest, nchar("Simple") + 1L)
-	rest = sub("KK(14|21)$", "KK", rest)
-	inference_class_wordify(rest)
+	# Deliberately NOT collapsing a trailing KK14/KK21 suffix (e.g.
+	# BaiAdjustedTKK14/BaiAdjustedTKK21) to a bare "KK" -- reverted
+	# 2026-08-19 per user correction: the two design variants are only
+	# guaranteed not to co-occur *within a single InferenceSuite table*
+	# (mutually exclusive per design), which does not hold once results
+	# from two different runs/designs are compared side by side (saved
+	# JSON, two terminal sessions, etc.) -- collapsing the distinction
+	# there would silently make a KK14 result and a KK21 result look
+	# identical. KK14/KK21 are genuinely different designs; keep the
+	# distinction in the display name unconditionally.
+	# "OneLik" carries no information once IVWC classes are excluded from
+	# InferenceSuite discovery entirely (2026-08-19) -- every remaining
+	# KK-family class in the suite is implicitly "one likelihood," so this
+	# suffix is pure noise here; a class actually named *IVWC still says so
+	# (that word is never stripped).
+	rest = sub("OneLik$", "", rest)
+	words = strsplit(inference_class_wordify(rest), " ", fixed = TRUE)[[1]]
+	word_abbrev = c(Binomial = "Binom", Identity = "Ident")
+	words = ifelse(words %in% names(word_abbrev), word_abbrev[words], words)
+	# "Nurminen" dropped entirely (not abbreviated) from
+	# InferenceIncidMiettinenNurminenRiskDiff-style names, per user request
+	# (2026-08-19) -- "Miettinen" alone is unambiguous within this package.
+	words = words[!(words %in% c("Nurminen"))]
+	label = paste(words, collapse = " ")
+	# "Mean Diff" -> "Mean Δ" substring override (not a general "Diff"->"Δ"
+	# word rule -- that would also hit e.g. "Binom Ident Risk Diff", which
+	# was not requested), per user request (2026-08-19). Matches the "Mean
+	# Diff" word pair wherever it appears in the label, e.g. both the exact
+	# "Mean Diff" and "Mean Diff Pooled Var" (SimpleMeanDiffPooledVar).
+	label = sub("\\bMean Diff\\b", "Mean Δ", label)
+	label
 }
 
 #' Short display form of an `estimand` registry value: underscores to
@@ -1277,12 +1867,20 @@ estimand_short_label = function(estimand) {
 		if (is.na(e)) return(NA_character_)
 		if (identical(e, "RD")) return("risk diff")
 		if (identical(e, "RR")) return("risk ratio")
+		if (identical(e, "hodges_lehmann_shift")) return("HL shift")
 		s = gsub("log_odds", "logodds", e, fixed = TRUE)
 		s = gsub("_", " ", s, fixed = TRUE)
 		s = gsub("difference", "diff", s, fixed = TRUE)
 		s = gsub("stochastic", "stoch", s, fixed = TRUE)
 		s = gsub("superiority", "super", s, fixed = TRUE)
 		s = gsub("conditional", "cond", s, fixed = TRUE)
+		# Unambiguous within this package's estimand vocabulary without the
+		# trailing noun (per user request, 2026-08-19): "logodds ratio ..."
+		# is always the log-odds-ratio scale, and "probit effect ..." is
+		# always the probit-index scale -- no other estimand family uses
+		# either word, so dropping them loses no information here.
+		s = gsub("logodds ratio", "logodds", s, fixed = TRUE)
+		s = gsub("probit effect", "probit", s, fixed = TRUE)
 		s
 	}, character(1L), USE.NAMES = FALSE)
 }
@@ -1384,13 +1982,13 @@ run_all_inference_build_display_table = function(results_table) {
 		`inference class` = vapply(tbl$inference_class, inference_class_short_label, character(1L)),
 		`cov mod`          = cov$disp,
 		estimand           = na_chr(estimand_short_label(tbl$estimand)),
-		estimate           = run_all_inference_sigfig(tbl$estimate, 3L),
+		est                = run_all_inference_sigfig(tbl$estimate, 3L),
 		se                 = run_all_inference_sigfig(tbl$se, 3L),
 		ci_a               = run_all_inference_sigfig(tbl$ci_a, 3L),
 		ci_b               = run_all_inference_sigfig(tbl$ci_b, 3L),
-		ci_method          = na_chr(tbl$ci_method),
+		`ci method`        = na_chr(method_with_type_short_label(tbl$ci_method, tbl$type)),
 		pval               = run_all_inference_sigfig(tbl$pval, 3L, scientific = TRUE),
-		pval_method        = na_chr(tbl$pval_method),
+		`pval method`      = na_chr(method_with_type_short_label(tbl$pval_method, tbl$type)),
 		weight             = run_all_inference_sigfig(tbl$weight, 2L),
 		status             = tbl$status,
 		check.names = FALSE, stringsAsFactors = FALSE
@@ -1424,17 +2022,28 @@ run_all_inference_format_pretty_table = function(results_table) {
 	widths = vapply(seq_along(headers), function(i) {
 		max(nchar(headers[[i]]), if (nrow(display) > 0L) max(nchar(display[[i]])) else 0L)
 	}, integer(1L))
-	fmt_row = function(vals) paste(mapply(function(v, w) formatC(v, width = -w), vals, widths), collapse = "  ")
 
-	header_line = fmt_row(headers)
-	total_width = nchar(header_line)
-	lines = c(header_line, strrep("=", total_width))
+	# Two-row wrap (per user request, 2026-08-19: keep the table compact by
+	# splitting each record -- and the header -- across two printed lines
+	# instead of one long one): numbers + short identifying columns on line
+	# 1, the variable-length text columns on line 2, same split scheme as
+	# the live table's `run_all_inference_build_live_table_header()`/
+	# `run_all_inference_print_row()`.
+	idx2 = which(headers %in% EDI_INFERENCE_SUITE_LIVE_TABLE_TEXT_COLS)
+	idx1 = setdiff(seq_along(headers), idx2)
+	fmt_row = function(vals, idx) paste(mapply(function(v, w) formatC(v, width = -w), vals[idx], widths[idx]), collapse = "  ")
+
+	header_line1 = fmt_row(headers, idx1)
+	header_line2 = fmt_row(headers, idx2)
+	total_width = max(nchar(header_line1), nchar(header_line2))
+	lines = c(header_line1, header_line2, strrep("=", total_width))
 	prev_estimand = NULL
 	for (i in seq_len(nrow(display))) {
 		if (!is.null(prev_estimand) && !identical(tbl$estimand[[i]], prev_estimand)) {
 			lines = c(lines, strrep("-", total_width))
 		}
-		lines = c(lines, fmt_row(as.character(display[i, ])))
+		vals = as.character(display[i, ])
+		lines = c(lines, fmt_row(vals, idx1), fmt_row(vals, idx2))
 		prev_estimand = tbl$estimand[[i]]
 	}
 	lines = c(lines, strrep("-", total_width))
@@ -1477,7 +2086,22 @@ run_all_inference_format_html_table = function(results_table) {
 	tbl = built$tbl; display = built$display; cov_key = built$cov_key
 
 	esc = function(x) htmltools_escape_or_identity(as.character(x))
-	header_html = paste0("<th>", esc(names(display)), "</th>", collapse = "")
+	# Word-wraps a header/cell string onto two lines via `<br>` when it has
+	# more than one word (split as evenly as possible), e.g. `"cov mod"` ->
+	# `"cov<br>mod"`, `"Mean Diff Pooled Var"` -> `"Mean Δ<br>Pooled Var"` --
+	# keeps HTML table columns narrow without truncating any number (numeric
+	# cells are always single tokens, so never wrapped) or text (per user
+	# request, 2026-08-19: "the wrapping should be so that you can read the
+	# first row and see all the numbers -- the text should just wrap").
+	wrap_html = function(x) {
+		vapply(esc(x), function(s) {
+			words = strsplit(s, " ", fixed = TRUE)[[1]]
+			if (length(words) < 2L) return(s)
+			k = ceiling(length(words) / 2L)
+			paste0(paste(words[seq_len(k)], collapse = " "), "<br>", paste(words[(k + 1L):length(words)], collapse = " "))
+		}, character(1L), USE.NAMES = FALSE)
+	}
+	header_html = paste0("<th>", wrap_html(names(display)), "</th>", collapse = "")
 	prev_estimand = NULL
 	row_html = vapply(seq_len(nrow(display)), function(i) {
 		group_start = !is.null(prev_estimand) && !identical(tbl$estimand[[i]], prev_estimand)
@@ -1486,7 +2110,7 @@ run_all_inference_format_html_table = function(results_table) {
 			paste0("status-", tbl$status[[i]]),
 			if (group_start) "group-start"
 		), collapse = " ")
-		cells = paste0("<td>", esc(display[i, ]), "</td>", collapse = "")
+		cells = paste0("<td>", wrap_html(display[i, ]), "</td>", collapse = "")
 		sprintf('<tr class="%s">%s</tr>', cls, cells)
 	}, character(1L))
 	table_html = sprintf(
@@ -1638,11 +2262,11 @@ run_all_inference_combined_evidence_summary_line = function(combined_evidence) {
 	# itself stays "estimand_grouped" (unchanged API); only this printed
 	# line reads it as prose.
 	weighting_disp = switch(combined_evidence$weighting,
-		estimand_grouped = "grouped by estimand",
+		estimand_grouped = "uniform within estimand",
 		combined_evidence$weighting
 	)
 	sprintf(
-		"Combined evidence across G = %d estimands (k = %d classes, weighting = %s): p = %s",
+		"Combined evidence across %d estimands (%d inferences, weighting = %s): p = %s",
 		combined_evidence$n_estimand_groups, combined_evidence$n_classes_used,
 		weighting_disp,
 		if (is.na(combined_evidence$pval)) "NA" else formatC(combined_evidence$pval, digits = 3, format = "g")
@@ -1678,7 +2302,11 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 	vapply(names(groups), function(g) {
 		combined = run_all_inference_combine_pvalues(groups[[g]])
 		p_str = if (is.na(combined$pval)) "NA" else formatC(combined$pval, digits = 3, format = "g")
-		sprintf("  %s (k = %d): p = %s", g, length(groups[[g]]), p_str)
+		# Same abbreviated form as the main table's `estimand` column
+		# (per user request, 2026-08-19) -- `names(groups)` is still the
+		# raw registry `estimand` string (needed for `split()`/lookup), so
+		# abbreviate only for display here, not for the grouping itself.
+		sprintf("  %s (%d inferences): p = %s", estimand_short_label(g), length(groups[[g]]), p_str)
 	}, character(1L), USE.NAMES = FALSE)
 }
 
@@ -2001,15 +2629,35 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   \code{adjusts_for_covariates} registry-metadata audit, which makes
 		#'   the \code{cov_model} column semantics-aware wherever that audit has
 		#'   landed.
-		#' @param methods \code{NULL} (default), or a character vector of method
-		#'   sentinel strings restricting which inference method(s) get fit and
-		#'   reported per class. \code{NULL} means \strong{every} sentinel in
-		#'   \code{EDI_INFERENCE_SUITE_METHOD_SENTINELS} -- i.e. truly all
-		#'   possible methods, not a single "best available" pick (per user
+		#' @param methods \code{NULL} (default), a character vector of method
+		#'   sentinel strings, or (TODO-22) a named list \code{sentinel ->
+		#'   character vector of requested \code{type} values, or \code{NULL}}
+		#'   restricting which inference method(s) -- and, for the three
+		#'   resampling sentinels marked "typed" below, which resampling/CI-
+		#'   construction \code{type} flavor(s) -- get fit and reported per
+		#'   class. \code{NULL} means \strong{every} sentinel in
+		#'   \code{EDI_INFERENCE_SUITE_METHOD_SENTINELS}, and for each typed
+		#'   sentinel, \strong{every} \code{type} value that class supports
+		#'   (queried at runtime via its own \code{get_supported_bootstrap_
+		#'   {pval,ci}_types()} / \code{get_supported_bayesian_bootstrap_
+		#'   {pval,ci}_types()} / \code{get_supported_rand_bootstrap_
+		#'   {pval,ci}_types()} accessor -- never a hardcoded type table in this
+		#'   package) -- i.e. truly all possible methods and all their
+		#'   resampling flavors, not a single "best available" pick (per user
 		#'   request, 2026-08-19, replacing the earlier design where each class
-		#'   contributed exactly one row via a fixed wald-first cascade). Valid
-		#'   sentinels, each corresponding to one asymptotic/exact/randomization/
-		#'   resampling inference family a class may (or may not) implement:
+		#'   contributed exactly one row via a fixed wald-first cascade).
+		#'   List-shaped example: \code{methods = list(bootstrap = c("percentile",
+		#'   "bca"), rand_bootstrap = NULL)} fits only \code{"bootstrap"}
+		#'   (restricted to the \code{"percentile"}/\code{"bca"} types that class
+		#'   actually supports) and \code{"rand_bootstrap"} (every type that
+		#'   class supports); a sentinel present as a list name with value
+		#'   \code{NULL} still means "every valid type" for it, exactly like the
+		#'   flat-vector shape -- to \emph{not} fit a sentinel at all, simply
+		#'   don't name it. Requesting a \code{type} for a sentinel with no
+		#'   \code{type} axis (any sentinel not marked "typed" below) errors.
+		#'   Valid sentinels, each corresponding to one asymptotic/exact/
+		#'   randomization/resampling inference family a class may (or may not)
+		#'   implement:
 		#'   \describe{
 		#'     \item{\code{"wald"}}{Asymptotic Wald inference --
 		#'       \code{compute_asymp_confidence_interval()}/
@@ -2029,14 +2677,17 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'       class can support one without the other). Design-based
 		#'       inference via re-randomizing the observed treatment
 		#'       assignment.}
-		#'     \item{\code{"rand_bootstrap"}}{Randomization-bootstrap inference --
-		#'       \code{compute_rand_bootstrap_confidence_interval()}/
+		#'     \item{\code{"rand_bootstrap"} (typed)}{Randomization-bootstrap
+		#'       inference -- \code{compute_rand_bootstrap_confidence_interval()}/
 		#'       \code{compute_rand_bootstrap_two_sided_pval()} (capabilities
 		#'       \code{"randomization_bootstrap_ci"}/\code{"randomization_bootstrap"} --
 		#'       distinct capability names for the CI vs. p-value side, since a
 		#'       class can support one without the other). Resamples under the
 		#'       randomization null rather than the usual iid-resampling
-		#'       bootstrap.}
+		#'       bootstrap. \code{type} (both sides agree on the same four
+		#'       values, unlike \code{"bootstrap"}/\code{"bayes_boot"} below):
+		#'       \code{"percentile"}, \code{"studentized"},
+		#'       \code{"symmetric-percentile-t"}, \code{"smoothed"}.}
 		#'     \item{\code{"jackknife"}}{Jackknife-Wald inference --
 		#'       \code{compute_jackknife_wald_confidence_interval()}/
 		#'       \code{compute_jackknife_wald_two_sided_pval()} (capability
@@ -2054,14 +2705,12 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'       \code{compute_gradient_confidence_interval()}/
 		#'       \code{compute_gradient_two_sided_pval()} (capability
 		#'       \code{"likelihood_tests"}).}
-		#'     \item{\code{"lik_ratio_bartlett"}}{Bartlett-corrected likelihood-ratio
-		#'       test, "best available" variant -- \code{compute_lik_ratio_bartlett_confidence_interval()}/
-		#'       \code{compute_lik_ratio_bartlett_two_sided_pval()} (capability
-		#'       \code{"likelihood_tests"}; auto-selects the exact analytic
-		#'       correction over the Monte-Carlo approximation when this class
-		#'       implements one, else falls back to \code{"lik_ratio"}). Not
-		#'       every likelihood-tests-capable class supports a Bartlett
-		#'       correction; unsupported classes degrade to \code{NA}.}
+		#'     (The plain, "best available" auto-selecting
+		#'     \code{compute_lik_ratio_bartlett_two_sided_pval()}/
+		#'     \code{compute_lik_ratio_bartlett_confidence_interval()}
+		#'     dispatcher is deliberately not its own sentinel -- it only picks
+		#'     between the two explicit variants below depending on which this
+		#'     class implements, so it is never a distinct inference procedure.)
 		#'     \item{\code{"lik_ratio_bartlett_approx"}}{Bartlett-corrected
 		#'       likelihood-ratio test, Monte-Carlo-approximated correction factor
 		#'       pinned explicitly (for reproducibility) --
@@ -2075,35 +2724,77 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'       \code{compute_lik_ratio_bartlett_exact_two_sided_pval()}
 		#'       (capability \code{"likelihood_tests"}; degrades to \code{NA} for
 		#'       classes without an exact Bartlett factor).}
-		#'     \item{\code{"param_boot"}}{Parametric-likelihood-bootstrap
-		#'       inference -- \code{compute_lik_ratio_bootstrap_confidence_interval()}/
+		#'     \item{\code{"param_boot"}}{Bootstrap-calibrated likelihood-ratio
+		#'       test -- \code{compute_lik_ratio_bootstrap_confidence_interval()}/
 		#'       \code{compute_lik_ratio_bootstrap_two_sided_pval()} (capability
 		#'       \code{"parametric_likelihood_bootstrap"}).}
-		#'     \item{\code{"bayes_boot"}}{Bayesian bootstrap inference --
+		#'     \item{\code{"param_boot_direct"}}{Direct parametric-bootstrap
+		#'       estimate/CI/pval for the treatment coefficient itself --
+		#'       \code{compute_param_bootstrap_confidence_interval()}/
+		#'       \code{compute_param_bootstrap_pval()} (capability
+		#'       \code{"parametric_likelihood_bootstrap"}; distinct from
+		#'       \code{"param_boot"} above, which is a bootstrap-calibrated
+		#'       likelihood-ratio \emph{test}, not a direct estimate).}
+		#'     \item{\code{"bayes_boot"} (typed)}{Bayesian bootstrap inference --
 		#'       \code{compute_bayesian_bootstrap_confidence_interval()}/
 		#'       \code{compute_bayesian_bootstrap_two_sided_pval()} (capability
-		#'       \code{"bayesian_bootstrap"}).}
-		#'     \item{\code{"bootstrap"}}{Nonparametric bootstrap inference --
-		#'       \code{compute_bootstrap_confidence_interval()}/
+		#'       \code{"bayesian_bootstrap"}). CI-side \code{type}:
+		#'       \code{"percentile"}, \code{"basic"}, \code{"wald"},
+		#'       \code{"studentized"}, \code{"bootstrap-t"}, \code{"bca"};
+		#'       pval-side \code{type} swaps \code{"basic"} for
+		#'       \code{"symmetric"} (all others the same).}
+		#'     \item{\code{"bootstrap"} (typed)}{Nonparametric bootstrap
+		#'       inference -- \code{compute_bootstrap_confidence_interval()}/
 		#'       \code{compute_bootstrap_two_sided_pval()} (capability
-		#'       \code{"nonparametric_bootstrap"}).}
+		#'       \code{"nonparametric_bootstrap"}). CI-side \code{type}:
+		#'       \code{"percentile"}, \code{"basic"}, \code{"studentized"},
+		#'       \code{"bootstrap-t"}, \code{"symmetric-percentile-t"},
+		#'       \code{"bca"}, \code{"prepivoted"}, \code{"double-bootstrap"},
+		#'       \code{"calibrated"}, \code{"smoothed"}; pval-side \code{type}
+		#'       is a smaller set -- \code{"percentile"}, \code{"symmetric"},
+		#'       \code{"studentized"}, \code{"bootstrap-t"}, \code{"bca"} --
+		#'       neither \code{"basic"} nor the other CI-only variants apply on
+		#'       the pval side.}
 		#'   }
+		#'   For the three "typed" sentinels above, an exhaustive \code{type}
+		#'   list is documented here for orientation only -- the actual set
+		#'   consulted at runtime always comes from that class's own accessor
+		#'   (see the top of this section), so a class need not support every
+		#'   value listed.
 		#'   (\code{"likelihood_ratio"}/\code{"estimating_equation_likelihood_ratio"}
 		#'   are deliberately not separate sentinels -- both capabilities gate
 		#'   the exact same method pair \code{"lik_ratio"} above already covers.)
 		#'   For each class, only sentinels the class has \emph{any} CI or
 		#'   p-value capability for (among the requested \code{methods}) get a
-		#'   row -- a class with zero applicable sentinels still gets exactly
-		#'   one row with \code{method = NA_character_} (mirrors the
+		#'   row; for a typed sentinel, one row per \code{type} that class
+		#'   actually supports (intersected with any requested type subset) --
+		#'   a class with zero applicable sentinels, or a typed sentinel with
+		#'   zero resulting types, still gets exactly one row with
+		#'   \code{method}/\code{type = NA_character_} (mirrors the
 		#'   pre-\code{methods} "no capability" row) rather than being silently
 		#'   dropped. A class contributing more than one applicable-sentinel row
 		#'   is disambiguated in \code{results}/\code{results_table} by
-		#'   \code{"<class>{<method>}"} (or \code{"<class>[<formula>]{<method>}"}
-		#'   under simultaneous \code{formulas} fan-out) names. Unlike the
-		#'   removed cascade, \code{ci_method}/\code{pval_method} on a given row
-		#'   now always match that row's own \code{method} (or are \code{NA} if
-		#'   this class lacks that half of the sentinel's capability) --
+		#'   \code{"<class>{<method>}"} or \code{"<class>{<method>:<type>}"}
+		#'   (or with a \code{"[<formula>]"} tag too under simultaneous
+		#'   \code{formulas} fan-out) names. Unlike the removed cascade,
+		#'   \code{ci_method}/\code{pval_method} on a given row now always
+		#'   match that row's own \code{method} (or are \code{NA} if this class
+		#'   lacks that half of the sentinel's capability, \strong{including}
+		#'   when \code{type} is valid on one side but not the other) --
 		#'   there is no fallback to a different sentinel within one row.
+		#' @param basic_bootstrap \code{FALSE} (default). Convenience flag: when
+		#'   \code{TRUE}, restricts every typed sentinel (\code{"bootstrap"}/
+		#'   \code{"bayes_boot"}/\code{"rand_bootstrap"}) to just that class's
+		#'   first (i.e. default) \code{type} value instead of fitting every
+		#'   \code{type} it supports -- "just run the default bootstrap flavor
+		#'   for nonparametric/Bayesian/randomization resampling" without
+		#'   having to spell out \code{methods = list(bootstrap = ..., bayes_boot
+		#'   = ..., rand_bootstrap = ...)} by hand. Only takes effect for a
+		#'   typed sentinel the caller didn't already restrict via an explicit
+		#'   \code{methods} list entry -- an explicit \code{type} request there
+		#'   always wins over this flag. No effect on non-typed sentinels
+		#'   (\code{"param_boot"}/\code{"param_boot_direct"} included -- neither
+		#'   has a \code{type} axis, so they already run their one procedure).
 		#' @param combined_evidence_estimands \code{NULL} (default: include every
 		#'   declared \code{estimand}), or a character vector of \code{estimand}
 		#'   values to restrict the Combined Evidence p-value/weights to.
@@ -2141,7 +2832,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   \code{NULL}), \code{timestamp}, \code{total_secs}, and \code{edi_version}.
 		run_all_inference = function(screen = TRUE, html = FALSE, alpha = 0.05, save_results_as_JSON = FALSE, plots = screen, pdf = FALSE,
 				classes = NULL, exclude_classes = character(), max_secs_per_class = NULL, num_cores = 1L, formulas = NULL,
-				methods = NULL,
+				methods = NULL, basic_bootstrap = FALSE,
 				combined_evidence_estimands = NULL,
 				combined_evidence_weighting = c("estimand_grouped", "equal", "custom"),
 				combined_evidence_weights = NULL) {
@@ -2152,6 +2843,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				assertFlag(save_results_as_JSON)
 				assertFlag(plots)
 				assertFlag(pdf)
+				assertFlag(basic_bootstrap)
 				assertCharacter(classes, null.ok = TRUE)
 				assertCharacter(exclude_classes)
 				assertNumber(max_secs_per_class, lower = 0, null.ok = TRUE)
@@ -2171,19 +2863,43 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 						}
 					}
 				}
-				assertCharacter(methods, min.len = 1L, any.missing = FALSE, unique = TRUE, null.ok = TRUE)
-				if (!is.null(methods)) {
-					unknown_m = setdiff(methods, EDI_INFERENCE_SUITE_METHOD_SENTINELS)
-					if (length(unknown_m) > 0L) {
-						stop(sprintf(
-							"InferenceSuite$run_all_inference: unknown `methods` value(s): %s\n  Valid sentinels: %s",
-							paste(unknown_m, collapse = ", "), paste(EDI_INFERENCE_SUITE_METHOD_SENTINELS, collapse = ", ")
-						))
+				# TODO-22: `methods` accepts either the legacy flat character
+				# vector of sentinels, or a named list `sentinel -> character
+				# vector of requested type values (or NULL)` for the three typed
+				# sentinels -- see run_all_inference_normalize_methods()'s docs.
+				if (!is.null(methods) && !is.list(methods)) {
+					assertCharacter(methods, min.len = 1L, any.missing = FALSE, unique = TRUE)
+				} else if (is.list(methods)) {
+					assertList(methods, names = "unique")
+					if (length(methods) == 0L || any(names(methods) == "")) {
+						stop(
+							"InferenceSuite$run_all_inference: a list-valued `methods` must have ",
+							"every element named by the sentinel it requests, e.g. ",
+							"methods = list(bootstrap = c(\"percentile\", \"bca\"), rand_bootstrap = NULL)."
+						)
 					}
+					for (s in names(methods)) {
+						if (!is.null(methods[[s]])) assertCharacter(methods[[s]], min.len = 1L, any.missing = FALSE, unique = TRUE)
+						if (!is.null(methods[[s]]) && !(s %in% EDI_INFERENCE_SUITE_TYPED_SENTINELS)) {
+							stop(sprintf(
+								"InferenceSuite$run_all_inference: `methods` requests type value(s) for sentinel '%s', which has no `type` axis -- only %s do. Use `methods = list(%s = NULL)` (or omit `type`) to request '%s' with no type restriction.",
+								s, paste(EDI_INFERENCE_SUITE_TYPED_SENTINELS, collapse = "/"), s, s
+							))
+						}
+					}
+				}
+				unknown_m = setdiff(run_all_inference_normalize_methods(methods)$sentinels, EDI_INFERENCE_SUITE_METHOD_SENTINELS)
+				if (length(unknown_m) > 0L) {
+					stop(sprintf(
+						"InferenceSuite$run_all_inference: unknown `methods` value(s): %s\n  Valid sentinels: %s",
+						paste(unknown_m, collapse = ", "), paste(EDI_INFERENCE_SUITE_METHOD_SENTINELS, collapse = ", ")
+					))
 				}
 				assertCharacter(combined_evidence_estimands, min.len = 1L, any.missing = FALSE, null.ok = TRUE)
 			}
-			methods = methods %||% EDI_INFERENCE_SUITE_METHOD_SENTINELS
+			methods_norm = run_all_inference_normalize_methods(methods)
+			methods = methods_norm$sentinels
+			type_requests = methods_norm$type_requests
 			combined_evidence_weighting = match.arg(combined_evidence_weighting, c("estimand_grouped", "equal", "custom"))
 			formulas = run_all_inference_normalize_formulas(formulas)
 			if (!screen && !html) {
@@ -2253,7 +2969,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					)
 				}
 			}
-			tasks           = run_all_inference_build_tasks(cls_names, formulas, methods)
+			tasks           = run_all_inference_build_tasks(cls_names, formulas, methods, des_obj, private$inference_params, type_requests, basic_bootstrap)
 			n_total         = length(tasks)
 			t_start         = Sys.time()
 			results         = vector("list", n_total)
@@ -2290,7 +3006,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 						params$model_formula = task$model_formula
 					}
 					run_all_inference_one_class(
-						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method
+						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method, task$type
 					)
 				}
 				results_list = parallel::clusterApply(cl, tasks, worker_fn)
@@ -2298,7 +3014,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				results = results_list
 				if (screen) {
 					for (i in seq_along(tasks)) {
-						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths)
+						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths, live_header$idx1, live_header$idx2)
 					}
 					cat(strrep("-", live_header$total_width), "\n", sep = "")
 					run_all_inference_print_live_cov_key(live_header$cov_key)
@@ -2330,12 +3046,12 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 						params$model_formula = task$model_formula
 					}
 					results[[i]] = run_all_inference_one_class(
-						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method
+						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method, task$type
 					)
 					elapsed_secs_so_far[[i]] = results[[i]]$fit_secs
 					if (screen) {
 						cat("\r\033[K")
-						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths)
+						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths, live_header$idx1, live_header$idx2)
 						cat(run_all_inference_progress_bar_line(i, n_total, elapsed_secs_so_far))
 					}
 				}
@@ -2363,7 +3079,8 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			}
 			results_table = do.call(rbind.data.frame, lapply(results, function(r) {
 				data.frame(
-					inference_class = r$inference_class, method = r$method, cov_model = r$cov_model,
+					inference_class = r$inference_class, method = r$method, type = r$type %||% NA_character_,
+					cov_model = r$cov_model,
 					response_type = r$response_type,
 					design_family = r$design_family, likelihood_tier = r$likelihood_tier,
 					estimate = r$estimate, se = r$se,

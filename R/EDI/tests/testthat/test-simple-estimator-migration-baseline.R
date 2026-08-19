@@ -13,8 +13,8 @@ simple_estimator_expected_current = list(
 	InferenceAllSimpleMeanDiff = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 58L,
-		private_owner_count = 283L,
+		public_count = 64L,
+		private_owner_count = 304L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -26,8 +26,8 @@ simple_estimator_expected_current = list(
 	InferenceAllSimpleMeanDiffPooledVar = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 58L,
-		private_owner_count = 285L,
+		public_count = 64L,
+		private_owner_count = 306L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -39,8 +39,8 @@ simple_estimator_expected_current = list(
 	InferenceAllKKMeanDiffIVWC = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 58L,
-		private_owner_count = 300L,
+		public_count = 64L,
+		private_owner_count = 321L,
 		duplicate_private_owner_count = 1L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -53,8 +53,8 @@ simple_estimator_expected_current = list(
 	InferenceAllSimpleWilcox = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
-		public_count = 54L,
-		private_owner_count = 278L,
+		public_count = 58L,
+		private_owner_count = 288L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -65,8 +65,8 @@ simple_estimator_expected_current = list(
 	InferenceAllKKWilcoxIVWC = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
-		public_count = 54L,
-		private_owner_count = 298L,
+		public_count = 58L,
+		private_owner_count = 308L,
 		duplicate_private_owner_count = 1L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",

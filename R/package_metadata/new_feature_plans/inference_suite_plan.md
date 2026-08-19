@@ -1412,7 +1412,7 @@ TODO-1..8 did.
   `names(res)` assertion (includes `"combined_evidence"`) and TODO-18's new
   `test-cct-combine-pvalues.R`.
 
-- [ ] TODO-22: **Redesign `run_all_inference()`'s `methods` argument from a
+- [x] TODO-22: **Redesign `run_all_inference()`'s `methods` argument from a
   flat character vector of sentinels to a named list, `sentinel ->
   character vector of requested "type" values` (e.g. `list(bootstrap =
   c("percentile", "bca"), rand_bootstrap = NULL)`), with `NULL` (the
@@ -1460,7 +1460,65 @@ TODO-1..8 did.
   values (or "no type axis" for the eight non-resampling sentinels),
   analogous to the existing per-sentinel `\describe{}` block.
 
-- [ ] TODO-23: **Derive `EDI_INFERENCE_SUITE_METHOD_SENTINELS`/
+  **Done (2026-08-19), implemented once both blocking TODOs landed.**
+  `methods` now accepts either shape: the legacy flat character vector
+  (unchanged meaning), or a named list `sentinel -> character vector of
+  requested type values, or NULL` (`run_all_inference_normalize_methods()`).
+  `run_all_inference_build_tasks()` gained the third `type` fan-out
+  dimension: for each applicable typed sentinel (`"bootstrap"`/
+  `"bayes_boot"`/`"rand_bootstrap"`, `EDI_INFERENCE_SUITE_TYPED_SENTINELS`),
+  one task per `type` value the class actually supports (via
+  `run_all_inference_class_typed_task_types()`), intersected with any
+  requested subset; a typed sentinel with zero resulting types still gets
+  one task, `type = NA_character_` (mirrors the existing "no applicable
+  method -> NA row" rule). `results_table` gained a `type` column next to
+  `method`. `run_all_inference_call_ci_for_method()`/`_call_pval_for_
+  method()` both gained a `type` parameter, passed to the underlying
+  `compute_*` call only when `type %in% get_supported_*_{ci,pval}_types()`
+  for that side -- otherwise degrading to `NA` with `method` still reported,
+  exactly the existing "capability doesn't apply" pattern, never erroring.
+
+  **Real runtime introspection, not a hardcoded type table, with one
+  documented compromise**: `run_all_inference_probe_supported_types()`
+  calls each class's own `get_supported_bootstrap_{pval,ci}_types()` etc.
+  accessor (TODO-22's blocking prerequisite) on a constructed instance.
+  Verified directly that the field defaults backing those accessors
+  (`bootstrap_pval_types` etc.) are **not** reachable off the
+  un-instantiated R6 generator (`cls$private_fields[[...]]` returns `NULL`
+  for all of them, checked before writing any probing code) -- so probing
+  requires one throwaway construction per (class, formula-slot, typed
+  sentinel) during task-building, a deliberate, narrow, documented
+  exception to this file's "discovery never constructs" rule, justified
+  because the type vocabulary genuinely has no other queryable source.
+
+  Roxygen on `methods` fully rewritten: the list-shape example, the
+  "requesting `type` for a non-typed sentinel errors" rule, and each of the
+  three typed sentinels' documented CI-side/pval-side `type` value sets
+  (marked "(typed)" in the `\describe{}` block, confirming the CI/pval
+  asymmetry `fix_inference_hierarchy.md`'s accessor TODO found for
+  `"bootstrap"`/`"bayes_boot"` and the CI/pval agreement for
+  `"rand_bootstrap"`). `type` folds into the `ci method`/`pval method`
+  display columns (e.g. `"boot (bca)"`) via a new
+  `method_with_type_short_label()` helper, shared by the live table and
+  `print()`'s pretty table -- kept as its own real `type` column in
+  `results_table` for programmatic use, not display-only.
+
+  Verified via `pkgload::load_all(".", compile = FALSE)` (no full rebuild,
+  per this repo's CLAUDE.md) against a real `DesignSeqOneByOneBernoulli`/
+  `DesignFixedBernoulli` continuous fixture and `InferenceAllSimpleMeanDiff`:
+  (1) `methods = list(bootstrap = c("percentile", "bca"), wald = NULL)`
+  produced exactly 3 rows, `type` correctly `"percentile"`/`"bca"`/`NA`,
+  all `status = "ok"`; (2) `methods = list(bootstrap = NULL)` (every type,
+  no restriction) produced all 11 CI-side `type` values as separate rows,
+  all `"ok"`, `html = TRUE` report generated successfully; (3) legacy flat
+  `methods = c("wald", "rand")` unaffected, `type` correctly `NA` for both;
+  (4) `methods = list(wald = c("percentile"))` (type requested for a
+  non-typed sentinel) errors with a clear message naming the three typed
+  sentinels. Two new `test-inference-suite-run-all-inference.R` cases cover
+  (1) and (4) as permanent regressions; the existing structural
+  `names(tbl)` assertion updated to include `"type"`.
+
+- [x] TODO-23: **Derive `EDI_INFERENCE_SUITE_METHOD_SENTINELS`/
   `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`/
   `EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY` via introspection of
   `contracts_mixins.R`'s `public_methods_for_capability` registry at
@@ -1502,3 +1560,48 @@ TODO-1..8 did.
   p-value-side asymmetry TODO-22 already established (independent
   capability checks per side) rather than assuming a single shared
   capability suffices for every future sentinel derived this way.
+
+  **Done (2026-08-19).** Implemented as designed, with one adjustment found
+  necessary during implementation: a purely mechanical "one sentinel per
+  capability key" auto-derivation turned out not to be a valid rule on its
+  own (confirmed by reading the registry directly, not assumed) --
+  `"wald"` registers two duplicate-alias method pairs
+  (`compute_asymp_*`/`compute_wald_*`, same procedure), and
+  `"likelihood_tests"` legitimately fans out into five sentinels
+  (`score`/`lik_ratio`/`gradient`/`lik_ratio_bartlett_{approx,exact}`) from
+  one capability. So `(capability, method, label)` triples remain an
+  explicit spec table (matching this TODO's own text: "auto-deriving...
+  collapsing known intentional duplicates" already implies human judgment
+  stays in the loop) -- but each spec entry is now built by
+  `run_all_inference_derive_method_priority()`, which `stopifnot()`s the
+  named method is genuinely present under the named capability in the live
+  `public_methods_for_capability` at package-load time, so a future rename/
+  removal in `contracts_mixins.R` fails the package load loudly instead of
+  `run_all_inference()` silently keeping a stale sentinel.
+
+  The actual completeness guarantee is a separate function,
+  `run_all_inference_check_sentinel_completeness()`: it enumerates every
+  `compute_*_confidence_interval`/`compute_*_two_sided_pval`/`compute_*_pval`
+  method registered anywhere in `public_methods_for_capability` (excluding
+  the `likelihood_ratio`/`estimating_equation_likelihood_ratio` capabilities,
+  intentional duplicates of `likelihood_tests`'s own methods) and asserts
+  each one is either named in the CI/pval priority specs or explicitly
+  listed in `EDI_INFERENCE_SUITE_DELIBERATELY_UNSENTINELED_METHODS` with a
+  one-line reason (duplicate `wald` alias, plain Bartlett dispatcher,
+  `m_out_of_n_bootstrap`/`subsampling` — open scope question, not this
+  TODO's to resolve). Running this check against the real, current registry
+  (via `pkgload::load_all(".", compile = FALSE)`, no full rebuild) found one
+  genuine, previously-uncaught gap neither prior manual audit round caught:
+  `compute_param_bootstrap_confidence_interval`/`compute_param_bootstrap_pval`
+  (registered under `parametric_likelihood_bootstrap` alongside
+  `compute_lik_ratio_bootstrap_*`, but a distinct procedure -- a direct
+  parametric-bootstrap estimate/CI/pval for the treatment coefficient, not
+  a bootstrap-calibrated LR test) -- added as a new 14th sentinel,
+  `"param_boot_direct"`, with its own roxygen `\describe{}` entry
+  explaining the distinction from `"param_boot"`. After that fix,
+  `run_all_inference_check_sentinel_completeness()` returns `character(0)`
+  against the live registry, landed as a permanent regression test
+  (`test-inference-suite-run-all-inference.R`'s "sentinel tables stay
+  complete against the live capability registry (TODO-23)").
+  `EDI_INFERENCE_SUITE_METHOD_SENTINELS` itself is now `union()` of the two
+  derived specs' labels rather than typed out a third time.

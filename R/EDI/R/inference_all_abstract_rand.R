@@ -1087,8 +1087,17 @@ InferenceRand = R6::R6Class("InferenceRand",
 			val
 		},
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
+			# 2026-08-19 (fix_inference_hierarchy.md "Static Cleanup", "Ban semantic
+			# classification through private method-name sniffing"): only the
+			# kk_quantile_regr_ivwc capability check is live here -- classes composing
+			# the KKQuantileRegrOneLik component always override this whole method
+			# (inference_all_KK_quantile_regr_one_lik_abstract.R's own
+			# compute_treatment_estimate_during_randomization_inference wins in the
+			# component merge), so this base RandomizationTest-component version of the
+			# method never actually runs for a OneLik-composing class; the former
+			# is_a_kk_quantile_regr_one_lik probe branch was dead code.
 			if (identical(private$des_obj_priv_int$response_type, "proportion") &&
-			    (private$has_private_method("is_a_kk_quantile_regr_ivwc") || private$has_private_method("is_a_kk_quantile_regr_one_lik"))){
+			    "kk_quantile_regr_ivwc" %in% self$capabilities()){
 				private$y = .sanitize_proportion_response(private$y, interior = TRUE)
 				private$cached_values$KKstats = NULL
 				private$cached_values$beta_hat_T = NULL
