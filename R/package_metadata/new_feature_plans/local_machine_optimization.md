@@ -3,9 +3,10 @@
 > **Depends on:** `cold_starts.md` (its policy-table documentation audit should
 > land first so the benchmarked axes are correctly described), and the
 > warm-start dispatcher refactor in TODO-2 below (a prerequisite carved out of
-> this plan itself). Explicit **post-1.0.0 target: v1.1.0** — this is additive
-> API and touches no frozen public contract. (Global ordering: see
-> `_master.md`, Phase 6.)
+> this plan itself). **Moved into the v1.0.0 release line (2026-08-20, user
+> decision)** — this is additive API and touches no frozen public contract,
+> but ships alongside the 1.0.0 batch rather than deferred to 1.1.0. (Global
+> ordering: see `_master.md`, Phase 6.)
 
 ## Motivation
 

@@ -1,8 +1,40 @@
 #' Fractional Logit Inference for Proportion Responses
 #'
-#' Fits a fractional logistic regression (quasi-binomial) for proportion responses
-#' (constrained to [0, 1]) using the treatment indicator and, optionally, all
-#' recorded covariates as predictors.
+#' Fits Papke and Wooldridge's (1996) fractional logistic (quasi-binomial)
+#' regression for proportion responses \eqn{Y_i \in [0, 1]} (not restricted to
+#' \eqn{\{0, 1\}}):
+#' \eqn{E[Y_i \mid W_i, X_i] = \mathrm{logit}^{-1}(\beta_0 + \beta_T W_i +
+#' X_i^\top \gamma)}, fit by maximizing the Bernoulli quasi-log-likelihood
+#' \eqn{\sum_i \{Y_i \log \mu_i + (1 - Y_i) \log(1 - \mu_i)\}} treating
+#' \eqn{Y_i} as if it were binary (a valid estimating equation for the
+#' conditional mean even though \eqn{Y_i} is fractional — the Bernoulli
+#' log-likelihood's score is unbiased for the true mean regardless of the
+#' actual distribution of \eqn{Y_i} on \eqn{[0,1]}). \eqn{\hat\beta_T} is a
+#' log-odds-ratio on the conditional-mean scale: \eqn{\exp(\hat\beta_T)} is
+#' the odds ratio for the expected proportion. Standard errors use the
+#' model-based (non-robust/non-sandwich) Fisher information from this
+#' quasi-likelihood, matching pre-migration behavior; only Wald inference is
+#' exposed (\code{private$supports_likelihood_tests()} is hard \code{FALSE}
+#' here even though \code{likelihood_tier = "full"} metadata is set for
+#' component-composition purposes — this class deliberately does not compose
+#' \code{ParametricLikelihoodBootstrap}, so no likelihood-ratio/score/gradient
+#' test surface is exposed). Validity requires that the conditional mean is
+#' correctly specified on the logit scale; unlike beta regression, no
+#' assumption is made about the conditional variance or shape of \eqn{Y_i}'s
+#' distribution.
+#'
+#' @references Papke, L. E., and Wooldridge, J. M. (1996). "Econometric
+#'   Methods for Fractional Response Variables with an Application to 401(K)
+#'   Plan Participation Rates." \emph{Journal of Applied Econometrics}, 11(6),
+#'   619-632, \doi{10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1}.
+#'
+#' @seealso \code{\link[EDI:InferencePropBetaRegr]{InferencePropBetaRegr}} for
+#'   a proportion model that also specifies the conditional variance/shape.
+#'   Comparable Python API:
+#'   \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM}
+#'   (\code{family=Binomial()} on fractional response data). See also:
+#'   \href{https://en.wikipedia.org/wiki/Logistic_regression}{Logistic
+#'   regression} (Wikipedia).
 #'
 #' @examples
 #' \donttest{
@@ -15,10 +47,59 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferencePropFractionalLogit = R6::R6Class("InferencePropFractionalLogit",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCacheNoParamBootstrap,
+InferencePropFractionalLogit = define_inference_class(
+	classname = "InferencePropFractionalLogit",
+	inherit = Inference,
+	# 2026-08-20 (fix_inference_hierarchy.md "KK And IVWC Estimators" /
+	# per-class migration ladders): flipped from `inherit =
+	# InferenceAsympLikStdModCacheNoParamBootstrap` (a deep algorithmic-
+	# compatibility base) to composing the already-registered
+	# `StandardModelCache` component (source `StandardModelCacheSource` in
+	# inference_all_abstract_asymp_lik_std_mod_cache.R, previously registered
+	# but not yet composed by any concrete class) directly, matching the
+	# manifest's own target_components for this class. `StandardModelCache`
+	# depends on `LikelihoodTests` -> `Wald` -> `Jackknife`; `BayesianBootstrap`
+	# depends on `RandomizationBootstrapCI` -> ... -> `RandomizationTest` --
+	# together these transitively resolve to the full 10-component manifest
+	# target without listing every name directly (same shape as every other
+	# migrated class composing BayesianBootstrap + Wald).
+	components = c("BayesianBootstrap", "Wald", "StandardModelCache"),
+	# No explicit `capabilities` needed: this class does not compose
+	# ParametricLikelihoodBootstrap (the only consumer requiring
+	# "likelihood_ratio" pre-declared), and its own
+	# supports_likelihood_tests() override (below) is FALSE, matching
+	# pre-migration behavior exactly (verified: get_supported_testing_types()
+	# stays c("wald") for both legacy and migrated).
+	metadata = list(likelihood_tier = "full"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"get_supported_testing_types", "compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+			"generate_mod",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"get_likelihood_test_spec"
+		)
+	),
 	public = list(
+		# Uses the randomization-CI layer's two-sided p-value contract
+		# (InferenceRandCI's version, not InferenceRand's): same reasoning as
+		# InferenceAllSimpleMeanDiff's identical pin (inference_all_mean_diff.R)
+		# -- RandCI's version is documented safe to splice in outside the old
+		# inheritance chain and is now the default choice across migrated
+		# classes composing this bootstrap chain, not an incidence-only special
+		# case.
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize a fractional-logit inference object.
 		#' @param des_obj A completed \code{Design} object with a proportion response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),

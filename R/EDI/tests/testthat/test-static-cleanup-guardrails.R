@@ -132,6 +132,15 @@ test_that("static cleanup guardrail prevents new raw component splicing", {
 	# `utils::modifyList(as.list(InferenceMixinKKPassThrough$public/private),
 	# list(...))` splices were replaced by composing the registered
 	# `KKPassThrough` component directly -- entry removed entirely.
+	# inference_incidence_logit.R added 2026-08-20 (fix_inference_hierarchy.md
+	# "Base Deletion" / per-class migration ladders): InferenceIncidLogRegr's
+	# migration off InferenceAsympLikStdModCache hoisted its public=/private=
+	# content into named `inference_incid_log_regr_public`/`_private` list
+	# objects (harvested from directly, matching the same "static leaf-only
+	# source" pattern as every other *Source object in this table) -- 2
+	# occurrences (the definition and its one use building
+	# IncidenceLogisticLikelihoodSource), not a raw splice into another
+	# class's own definition.
 	expected = c(
 		"R/EDI/R/inference_all_abstract_KK_passthrough_compound.R" = 4L,
 		"R/EDI/R/inference_all_abstract_asymp_lik.R" = 1L,
@@ -141,6 +150,15 @@ test_that("static cleanup guardrail prevents new raw component splicing", {
 		"R/EDI/R/inference_all_abstract_param_boot.R" = 1L,
 		"R/EDI/R/inference_all_abstract_rand.R" = 1L,
 		"R/EDI/R/inference_count_composite_likelihood.R" = 2L,
+		"R/EDI/R/inference_incidence_logit.R" = 2L,
+		"R/EDI/R/inference_incidence_binomial_identity.R" = 2L,
+		"R/EDI/R/inference_ordinal_ordered_probit.R" = 2L,
+		"R/EDI/R/inference_survival_dep_cens_transform.R" = 2L,
+		"R/EDI/R/inference_survival_weibull.R" = 2L,
+		"R/EDI/R/inference_ordinal_stereotype_logit.R" = 4L,
+		"R/EDI/R/inference_incidence_log_binomial.R" = 2L,
+		"R/EDI/R/inference_incidence_modified_poisson.R" = 2L,
+		"R/EDI/R/inference_incidence_probit.R" = 2L,
 		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 2L,
 		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 2L
 	)
@@ -223,6 +241,16 @@ test_that("component redeclarations of root-owned state cannot grow", {
 		# Trimmed at the 2026-08-17 WeibullMarginal migration: the spec was
 		# reshaped leaf-only (KK state now arrives via the KKPassThrough
 		# dependency), leaving only the class-specific VC-parameter cache.
+		# SurvivalDepCensTransform added at the 2026-08-20 dependent-censoring
+		# transformation migration (fix_inference_hierarchy.md "Base
+		# Deletion" / per-class migration ladders): redeclares
+		# `cached_vc_params`, the same class-specific VC-parameter cache
+		# pattern as SurvivalKKWeibullMarginal below. `cached_mod` (this
+		# component's other new owns_state entry) is not root-owned, so it
+		# doesn't appear here. Ordered here (before SurvivalKKWeibullMarginal)
+		# to match EDI_COMPONENT_SPECS's own definition order in
+		# contracts_mixins.R, which this test's `actual` list preserves.
+		SurvivalDepCensTransform = "cached_vc_params",
 		SurvivalKKWeibullMarginal = "cached_vc_params",
 		SurvivalKKClaytonCopulaIVWC = "optimization_alg",
 		SurvivalKKClaytonCopulaOneLik = sort(c("m", "y_temp", "dead", "w", "X", "any_censoring", "optimization_alg")),

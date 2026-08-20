@@ -5,10 +5,7 @@
 #'
 #' @name InferenceOrdinalStereotypeLogitRegr
 #' @export
-InferenceOrdinalStereotypeLogitRegr = R6::R6Class("InferenceOrdinalStereotypeLogitRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
-	public = list(
+inference_ordinal_stereotype_public = list(
 		#' @description Initialize a stereotype logit inference object.
 		#' @param des_obj A completed \code{Design} object with an ordinal response.
 		#' @param model_formula   Optional formula for covariate adjustment.
@@ -51,8 +48,9 @@ InferenceOrdinalStereotypeLogitRegr = R6::R6Class("InferenceOrdinalStereotypeLog
 			private$cached_values$summary_table = NULL
 			private$cached_values$beta_hat_T
 		}
-	),
-	private = list(
+	)
+
+inference_ordinal_stereotype_private = list(
 		supports_likelihood_tests = function(){ TRUE },
 		best_Xmm_colnames = NULL,
 		get_complexity_tier = function() "heavy",
@@ -294,9 +292,43 @@ InferenceOrdinalStereotypeLogitRegr = R6::R6Class("InferenceOrdinalStereotypeLog
 			X
 		}
 	)
+
+OrdinalStereotypeLikelihoodSource = list(
+	public = inference_ordinal_stereotype_public,
+	private = inference_ordinal_stereotype_private
 )
 
-OrdinalStereotypeLikelihoodSource = inference_component_source_parts(InferenceOrdinalStereotypeLogitRegr)
+InferenceOrdinalStereotypeLogitRegr = define_inference_class(
+	classname = "InferenceOrdinalStereotypeLogitRegr",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalStereotypeLikelihood"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "ordinal"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"get_supported_testing_types", "compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+			"generate_mod", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_complexity_tier", "get_bootstrap_worker_spec"
+		)
+	),
+	public = list(
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	)
+)
 
 #' Continuation Ratio Regression Inference for Ordinal Responses
 #'
@@ -306,10 +338,7 @@ OrdinalStereotypeLikelihoodSource = inference_component_source_parts(InferenceOr
 #' @description Fits a continuation-ratio ordinal regression and reports the
 #'   treatment effect estimate on the model's coefficient scale.
 #' @export
-InferenceOrdinalContRatioRegr = R6::R6Class("InferenceOrdinalContRatioRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
-	public = list(
+inference_ordinal_contratio_public = list(
 		#' @description Initialize a continuation ratio inference object.
 		#' @param des_obj A completed \code{Design} object with an ordinal response.
 		#' @param model_formula   Optional formula for covariate adjustment.
@@ -352,8 +381,9 @@ InferenceOrdinalContRatioRegr = R6::R6Class("InferenceOrdinalContRatioRegr",
 			private$cached_values$summary_table = NULL
 			private$cached_values$beta_hat_T
 		}
-	),
-	private = list(
+	)
+
+inference_ordinal_contratio_private = list(
 		supports_likelihood_tests = function(){ TRUE },
 		best_Xmm_colnames = NULL,
 		get_complexity_tier = function() "heavy",
@@ -566,6 +596,40 @@ InferenceOrdinalContRatioRegr = R6::R6Class("InferenceOrdinalContRatioRegr",
 			X
 		}
 	)
+
+OrdinalContinuationRatioLikelihoodSource = list(
+	public = inference_ordinal_contratio_public,
+	private = inference_ordinal_contratio_private
 )
 
-OrdinalContinuationRatioLikelihoodSource = inference_component_source_parts(InferenceOrdinalContRatioRegr)
+InferenceOrdinalContRatioRegr = define_inference_class(
+	classname = "InferenceOrdinalContRatioRegr",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalContinuationRatioLikelihood"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "ordinal"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"get_supported_testing_types", "compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+			"generate_mod", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_complexity_tier"
+		)
+	),
+	public = list(
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+	)
+)

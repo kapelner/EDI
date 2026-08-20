@@ -20,7 +20,29 @@ inference_asymp_lik_std_mod_cache_public = list(
 					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
 				}
 			}
-			super$compute_asymp_confidence_interval(alpha)
+			# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+			# migration ladders): was `super$compute_asymp_confidence_interval(alpha)`,
+			# which relied on classic R6 inheritance reaching InferenceAsympLik's
+			# real switch-by-testing_type dispatch (the deep ladder this class used
+			# to sit on top of). Composed classes have no such `super$` chain --
+			# `inherit = Inference` for every migrated class, whose own stub always
+			# throws "Asymptotic inference is not implemented" -- so this silently
+			# broke every non-wald testing_type CI for every class composing this
+			# component (found migrating InferenceIncidLogRegr; confirmed the same
+			# live bug pre-existed on already-migrated InferenceOrdinalPropOddsRegr).
+			# Replaced with the same dispatch InferenceAsympLik's own public method
+			# implements (LikelihoodTests component, still transitively composed by
+			# every consumer of this component), called directly rather than via a
+			# broken inheritance link.
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_confidence_interval_impl(alpha),
+				score = private$compute_score_confidence_interval_impl(alpha),
+				gradient = private$compute_gradient_confidence_interval_impl(alpha),
+				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
+			)
 		},
 		#' @description Computes an asymptotic two-sided p-value using the configured test.
 		#' @param delta Null treatment effect to test against. Default 0.
@@ -32,7 +54,17 @@ inference_asymp_lik_std_mod_cache_public = list(
 					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
 				}
 			}
-			super$compute_asymp_two_sided_pval(delta)
+			# See compute_asymp_confidence_interval()'s comment above -- same fix,
+			# same reason.
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_two_sided_pval_impl(delta),
+				score = private$compute_score_two_sided_pval_impl(delta),
+				gradient = private$compute_gradient_two_sided_pval_impl(delta),
+				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
+			)
 		}
 	)
 	inference_asymp_lik_std_mod_cache_private = list(

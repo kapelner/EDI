@@ -587,7 +587,27 @@ run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_cha
 	if (is.null(entry) || !(entry$capability %in% inf_obj$capabilities())) {
 		return(list(pval = NA_real_, method = NA_character_))
 	}
-	call_args = list(delta = 0)
+	# Never force `delta = 0` -- let the method's own formal default govern
+	# (per user request, 2026-08-20, "is this coded somewhere in the
+	# Inference classes?"). Real bug found and fixed here: hardcoding
+	# `delta = 0` silently defeated classes like `InferenceIncidGCompRiskRatio`
+	# (a genuine raw-ratio-scale estimand -- `compute_estimate()` returns
+	# the actual ratio, confirmed by reading source) whose own
+	# `compute_asymp_two_sided_pval(delta = NULL)` resolves the omitted
+	# argument via a private `default_null_value()` (`1` for `"RR"`, `0`
+	# otherwise) -- forcing `delta = 0` from here always tested the wrong
+	# null (`RR = 0`, a degenerate/nonsensical hypothesis) instead of the
+	# correct `RR = 1`. Only exception: a method whose `delta` has *no*
+	# formal default at all (`compute_param_bootstrap_pval` is the one
+	# case in this package) must still be given something explicitly, so
+	# `0` is supplied only then -- unchanged, pre-existing behavior for
+	# that one sentinel, not made any better or worse by this fix.
+	f_formals = formals(inf_obj[[entry$method]])
+	call_args = if ("delta" %in% names(f_formals) && identical(f_formals$delta, quote(expr = ))) {
+		list(delta = 0)
+	} else {
+		list()
+	}
 	if (!is.na(type) && method %in% EDI_INFERENCE_SUITE_TYPED_SENTINELS) {
 		pval_types = tryCatch(inf_obj[[EDI_INFERENCE_SUITE_TYPED_SENTINEL_ACCESSORS[[method]]$pval]](), error = function(e) character())
 		if (!(type %in% pval_types)) {
@@ -622,6 +642,41 @@ run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_cha
 #'
 #' @keywords internal
 #' @noRd
+#' Estimand tags (the raw `EDI_INFERENCE_ESTIMAND_TAGS` values) that are
+#' genuinely on a **raw multiplicative** scale -- positive support, null
+#' effect at 1, e.g. `"RR"` (risk ratio), `"hazard_ratio"` -- as opposed to
+#' every other estimand tag in the registry, which is either already a
+#' *difference* (`"RD"`, `"mean_difference"`, ...) or already
+#' **log-transformed** by the estimator itself (`"log_odds_ratio_*"`,
+#' `"log_rate_ratio_*"`, `"log_time_ratio"`, ...) -- for those, the reported
+#' number is already an additive effect on the log scale, so a *further*
+#' log10 transform of that number would be nonsensical (and can be
+#' negative, which log10 can't even display). Per user request, 2026-08-20
+#' ("for each estimand, decide if it makes sense to display on a log10
+#' scale") -- used by `run_all_inference_plot_estimates()`/
+#' `run_all_inference_plot_ci_forest()` to pick `scale_x_log10()` (null
+#' reference line at 1) vs. linear (null at 0) per estimand, closing the
+#' "ratio-scale nulls would need a per-class scale declaration" known
+#' limitation those two functions previously documented.
+#'
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_LOG_SCALE_ESTIMANDS = c("RR", "hazard_ratio")
+
+#' Whether estimand `estimand` should render on a log10 x-axis, further
+#' gated on every value actually being finite and strictly positive (log10
+#' requires positive support -- a class that somehow reports a
+#' non-positive point estimate/CI bound for a nominally ratio-scale
+#' estimand falls back to linear rather than producing an unplottable
+#' panel).
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_estimand_use_log10 = function(estimand, values) {
+	!is.na(estimand) && estimand %in% EDI_INFERENCE_LOG_SCALE_ESTIMANDS &&
+		length(values) > 0L && all(is.finite(values)) && all(values > 0)
+}
+
 run_all_inference_estimand = function(cls_name) {
 	tryCatch(
 		get_inference_class_metadata(cls_name)$estimand %||% NA_character_,
@@ -949,24 +1004,102 @@ run_all_inference_fmt_completed_secs = function(secs) {
 #'
 #' @keywords internal
 #' @noRd
+#' `"method"` is deliberately not a display column here (never was in
+#' `print()`'s pretty table either) -- per user request, 2026-08-20:
+#' "it's not in the print table. Let's drop." `results_table$method` (the
+#' *requested* sentinel, as opposed to `ci_method`/`pval_method`'s
+#' *actually-used-per-side* outcome) remains a real column for programmatic
+#' use, just not rendered.
 EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS = c(
-	"inference class", "method", "cov mod", "estimand", "est", "se",
-	"ci_a", "ci_b", "ci method", "pval", "pval method", "status"
+	"inference class", "cov mod", "estimand", "est", "se",
+	"ci_a", "ci_b", "ci method", "pval", "pval method (if different)", "status"
 )
 
-#' The variable-length text columns pushed to the wrapped table's second
-#' line (see `run_all_inference_build_live_table_header()`'s two-row-wrap
-#' docs) -- `method`/`ci method`/`pval method` can carry a
-#' `"<method> (<type>)"` suffix for typed sentinels, and `status` is short
-#' but grouped alongside them since it's likewise not a number. Matched by
-#' name against both `EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS` (has
-#' `"method"`) and `run_all_inference_build_display_table()`'s `display`
-#' column names (no `"method"`, but the rest match) -- whichever of these
-#' names is present in a given header vector ends up on line 2.
+#' Fixed per-column character-width caps for the wrapped text table (both
+#' the live `screen = TRUE` table and `print()`'s pretty table share these).
+#' Per user request, 2026-08-19 ("imagine a row is actually two rows but
+#' each cell is wrapped -- the row length is not wrapped"): every column
+#' stays present in a single logical row -- unlike the earlier "split half
+#' the columns onto line 1, half onto line 2" design (which the user
+#' rejected as still "not the format I want") -- and any cell whose text
+#' overflows its column's cap word-wraps onto a second physical line
+#' (`run_all_inference_wrap_cell_2lines()`), so the row as a whole prints as
+#' two aligned physical lines but every column occupies the same x-position
+#' on both. Caps chosen to force wrapping for the columns that actually
+#' carry long text (`inference class`/`method`/`ci method`/`pval method`)
+#' while staying tight for short numeric columns, keeping total row width
+#' compact regardless of how long any single value gets.
 #'
 #' @keywords internal
 #' @noRd
-EDI_INFERENCE_SUITE_LIVE_TABLE_TEXT_COLS = c("method", "ci method", "pval method", "status")
+EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS = c(
+	`inference class` = 14L, `cov mod` = 7L, estimand = 10L,
+	est = 8L, se = 8L, ci_a = 8L, ci_b = 8L, `ci method` = 12L,
+	pval = 9L, `pval method (if different)` = 14L, weight = 6L, status = 7L
+)
+
+#' Word-wraps `text` to at most 2 lines no wider than `width` characters
+#' (via `strwrap()`, so it breaks at word boundaries, not mid-word -- per
+#' user request, 2026-08-19: `"inference class"` -> `"inference"` /
+#' `"class"`, `"mean diff"` -> `"mean"` / `"diff"`). `NA` displays as the
+#' literal string `"NA"` (this file's usual convention). Any content beyond
+#' the second line is folded back onto it (space-joined) and hard-truncated
+#' to `width` if it still doesn't fit -- a deliberate last resort so a
+#' single very long word never breaks the table's fixed column alignment,
+#' at the cost of that rare cell's tail being cut off.
+#'
+#' @return `c(line1, line2)`; `line2` is `""` when everything fit on line 1.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_wrap_cell_2lines = function(text, width) {
+	text = if (is.na(text)) "NA" else as.character(text)
+	if (nchar(text) <= width) return(c(text, ""))
+	words = strsplit(text, " ", fixed = TRUE)[[1]]
+	if (length(words) < 2L) {
+		# One un-splittable "word" longer than the column -- hard-wrap at
+		# `width` (rare; only very long single tokens hit this).
+		lines = strwrap(text, width = max(1L, width))
+		return(c(lines[1L], if (length(lines) > 1L) substr(paste(lines[-1L], collapse = " "), 1L, width) else ""))
+	}
+	# Split into two halves by word count (per user request, 2026-08-20:
+	# "Mean Δ Pooled Var" -> "Mean Δ" / "Pooled Var", not `strwrap()`'s
+	# greedy fill-to-width, which had packed 3 of the 4 words onto line 1
+	# and left the 4th stranded alone on line 2) -- same balanced-halves
+	# scheme `run_all_inference_format_html_table()`'s `wrap_html()` already
+	# uses for `<br>`-wrapped header/cell text.
+	k = ceiling(length(words) / 2L)
+	line1 = paste(words[seq_len(k)], collapse = " ")
+	line2 = paste(words[(k + 1L):length(words)], collapse = " ")
+	if (nchar(line2) > width) line2 = substr(line2, 1L, width)
+	c(line1, line2)
+}
+
+#' Renders one logical table row (or the header row) as two aligned
+#' physical lines, each column word-wrapped independently to its own
+#' `EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS` cap (looked up by `headers`,
+#' so the same function renders both the live table's column set -- has
+#' `"method"` -- and the pretty table's -- has `"weight"` instead). Backs
+#' both `run_all_inference_build_live_table_header()`/`run_all_inference_
+#' print_row()` and `run_all_inference_format_pretty_table()`, so the two
+#' stay visually identical (per the file's established "screen output looks
+#' identical to print()" requirement).
+#'
+#' @param vals,headers Parallel character vectors, one value/header per
+#'   column.
+#' @return `c(line1, line2)`.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_fmt_wrapped_row = function(vals, headers) {
+	widths = EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS[headers]
+	cells = mapply(run_all_inference_wrap_cell_2lines, vals, widths, SIMPLIFY = FALSE)
+	fmt = function(which_line) paste(
+		mapply(function(c, w) formatC(c[[which_line]], width = -w), cells, widths),
+		collapse = "  "
+	)
+	c(fmt(1L), fmt(2L))
+}
 
 #' Short display form of a method-sentinel label (`EDI_INFERENCE_SUITE_METHOD_SENTINELS`
 #' value, e.g. `"rand_bootstrap"`) for the `method`/`ci_method`/`pval_method`
@@ -987,6 +1120,7 @@ method_short_label = function(m) {
 			lik_ratio_bartlett_approx = "LR ≈Bartlett",
 			bayes_boot = "bayes boot",
 			bootstrap = "boot",
+			param_boot_direct = "param boot",
 			x
 		)
 	}, character(1L), USE.NAMES = FALSE)
@@ -1083,17 +1217,6 @@ run_all_inference_static_row_fields = function(task, des_obj) {
 	}
 	list(
 		inference_class_disp = inference_class_short_label(task$cls_name),
-		# TODO-22: `type` (only non-NA for the three typed sentinels) is
-		# folded into the `method` column's display string rather than
-		# given its own display column, e.g. "boot (bca)" -- `results_table`
-		# still carries a real, separate `type` column for programmatic use.
-		method_disp = if (is.na(task$method)) {
-			"NA"
-		} else if (!is.null(task$type) && !is.na(task$type)) {
-			sprintf("%s (%s)", method_short_label(task$method), type_short_label(task$method, task$type))
-		} else {
-			method_short_label(task$method)
-		},
 		cov_model_raw = cov_model_raw,
 		estimand_disp = {
 			e = run_all_inference_estimand(task$cls_name)
@@ -1144,61 +1267,23 @@ run_all_inference_build_live_table_header = function(tasks, des_obj) {
 		s
 	})
 
-	# TODO-22: reserve enough width for the longest possible "<method> (<type>)"
-	# string a typed sentinel's ci_method/pval_method display could produce --
-	# sized from the *abbreviated* form `type_short_label()` actually renders
-	# (not the raw `type` values), since reserving room for the long raw
-	# strings (e.g. "symmetric-percentile-t") massively over-padded these
-	# columns for every row, producing a ragged, "terrible"-looking table
-	# even when most rows just show a short label like "wald".
-	boot_raw_types = c(
-		"percentile", "basic", "studentized", "bootstrap-t", "symmetric-percentile-t",
-		"bca", "prepivoted", "double-bootstrap", "calibrated", "smoothed"
-	)
-	bayes_raw_types = c("percentile", "basic", "wald", "studentized", "bootstrap-t", "bca", "symmetric")
-	max_type_label = max(nchar(c(
-		vapply(boot_raw_types, function(ty) type_short_label("bootstrap", ty), character(1L)),
-		vapply(bayes_raw_types, function(ty) type_short_label("bayes_boot", ty), character(1L))
-	)))
-	max_method_label = max(
-		nchar(EDI_INFERENCE_SUITE_METHOD_SENTINELS), nchar("NA"),
-		nchar(method_short_label(EDI_INFERENCE_SUITE_TYPED_SENTINELS)) + nchar(" ()") + max_type_label
-	)
-	max_status_label = max(nchar(c("ok", "nonest", "error", "timeout")))
-	fixed_widths = c(
-		est = 10L, se = 10L, ci_a = 10L, ci_b = 10L,
-		`ci method` = max_method_label, pval = 10L, `pval method` = max_method_label,
-		status = max_status_label
-	)
-	static_widths = c(
-		`inference class` = max(nchar("inference class"), max(vapply(statics, function(s) nchar(s$inference_class_disp), integer(1L)))),
-		method = max(nchar("method"), max(vapply(statics, function(s) nchar(s$method_disp), integer(1L)))),
-		`cov mod` = max(nchar("cov mod"), max(vapply(statics, function(s) nchar(s$cov_model_disp), integer(1L)))),
-		estimand = max(nchar("estimand"), max(vapply(statics, function(s) nchar(s$estimand_disp), integer(1L))))
-	)
-	widths = c(static_widths, fixed_widths)[EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS]
-	widths = pmax(widths, nchar(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS))
-
-	# Two-row wrap (per user request, 2026-08-19: keep the table compact by
-	# splitting each record -- and the header -- across two printed lines
-	# instead of one long one). Not a mechanical half-the-columns split (that
-	# scattered the numeric columns across both lines and, combined with the
-	# wide reservation for typed-sentinel method labels, produced a
-	# "terrible", raggedly-spaced table) -- instead line 1 carries every
-	# numeric column plus the short identifying columns (readable "at a
-	# glance", per user request), and line 2 carries only the
-	# variable-length text columns (`method`/`ci method`/`pval method`/
-	# `status`) that actually cause the ragged widths.
-	idx2 = which(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS %in% EDI_INFERENCE_SUITE_LIVE_TABLE_TEXT_COLS)
-	idx1 = setdiff(seq_along(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS), idx2)
-	fmt_row = function(vals, idx) paste(mapply(function(v, w) formatC(v, width = -w), vals[idx], widths[idx]), collapse = "  ")
-	header_line1 = fmt_row(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS, idx1)
-	header_line2 = fmt_row(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS, idx2)
-	total_width = max(nchar(header_line1), nchar(header_line2))
+	# Wrapped-cell table (per user request, 2026-08-19: "imagine a row is
+	# actually two rows but each cell is wrapped -- the row length is not
+	# wrapped") -- every column stays in one logical row at a fixed
+	# character-width cap (`EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS`), and
+	# any cell whose text overflows its cap word-wraps onto that row's
+	# second physical line (`run_all_inference_fmt_wrapped_row()`). Replaces
+	# two earlier, both-rejected designs: a mechanical half-the-columns
+	# split, and (before that) growing each column to fit its longest
+	# possible value, which -- once TODO-22's typed-sentinel `"<method>
+	# (<type>)"` suffixes were accounted for -- produced a ragged, way-too-
+	# wide table.
+	widths = EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS[EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS]
+	header_lines = run_all_inference_fmt_wrapped_row(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS, EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS)
+	total_width = max(nchar(header_lines))
 	list(
-		header_lines = c(header_line1, header_line2, strrep("=", total_width)),
-		total_width = total_width, widths = widths, statics = statics, cov_key = key,
-		idx1 = idx1, idx2 = idx2
+		header_lines = c(header_lines, strrep("=", total_width)),
+		total_width = total_width, widths = widths, statics = statics, cov_key = key
 	)
 }
 
@@ -1215,31 +1300,35 @@ run_all_inference_build_live_table_header = function(tasks, des_obj) {
 #' @param r One `run_all_inference_one_class()` result row.
 #' @param static The matching element of `run_all_inference_build_live_
 #'   table_header()`'s `statics` list (same task index as `r`).
-#' @param widths Named width vector from the same header-builder call.
+#' @param widths Unused parameter kept for call-site compatibility (column
+#'   widths are now the fixed `EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS`,
+#'   looked up by `run_all_inference_fmt_wrapped_row()` itself).
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_print_row = function(r, static, widths, idx1, idx2) {
+run_all_inference_print_row = function(r, static, widths) {
 	na_chr = function(x) if (is.na(x)) "NA" else x
+	ci_disp = na_chr(method_with_type_short_label(r$ci_method, r$type %||% NA_character_))
+	pval_disp = na_chr(method_with_type_short_label(r$pval_method, r$type %||% NA_character_))
+	# `pval method (if different)` only displays when it actually differs
+	# from `ci method` (per user request, 2026-08-20) -- blank, not "NA",
+	# when it matches (the usual case) or when it's genuinely `NA`.
+	if (identical(pval_disp, ci_disp)) pval_disp = ""
 	vals = c(
 		static$inference_class_disp,
-		static$method_disp,
 		static$cov_model_disp,
 		static$estimand_disp,
 		run_all_inference_sigfig(r$estimate, 3L),
 		run_all_inference_sigfig(r$se, 3L),
 		run_all_inference_sigfig(r$ci_a, 3L),
 		run_all_inference_sigfig(r$ci_b, 3L),
-		na_chr(method_with_type_short_label(r$ci_method, r$type %||% NA_character_)),
+		ci_disp,
 		run_all_inference_sigfig(r$pval, 3L, scientific = TRUE),
-		na_chr(method_with_type_short_label(r$pval_method, r$type %||% NA_character_)),
+		pval_disp,
 		r$status
 	)
-	# Two-row wrap (matches `run_all_inference_build_live_table_header()`'s
-	# header split): `idx1` (numbers + short identifying columns) on line 1,
-	# `idx2` (the variable-length text columns) on line 2.
-	fmt = function(idx) paste(mapply(function(v, w) formatC(v, width = -w), vals[idx], widths[idx]), collapse = "  ")
-	cat(fmt(idx1), "\n", fmt(idx2), "\n", sep = "")
+	lines = run_all_inference_fmt_wrapped_row(vals, EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS)
+	cat(lines[[1L]], "\n", lines[[2L]], "\n", sep = "")
 }
 
 #' Prints the `cov_model` letter-key legend beneath the live table's bottom
@@ -1287,8 +1376,15 @@ run_all_inference_progress_bar_line = function(n_done, n_total, elapsed_secs_so_
 		"Status: Estimating..."
 	}
 	label = sprintf("Classes %d/%d", n_done, n_total)
-	label_width = 14L
-	padded_label = sprintf("%-*s", label_width, substr(label, 1, label_width))
+	# Sized to fit `n_total` (the largest either number ever gets) in full --
+	# the old fixed `label_width = 14L` combined with `substr(label, 1, 14)`
+	# silently truncated the *denominator* once task counts reached 3+
+	# digits (e.g. "Classes 107/187" -> "Classes 107/18", chopping the
+	# trailing "7" off `n_total`), which is the real bug behind the user's
+	# "the total number of classes must be >18" report, 2026-08-20 -- not a
+	# logic error in how `n_total` itself was computed.
+	label_width = max(14L, nchar(sprintf("Classes %d/%d", n_total, n_total)))
+	padded_label = sprintf("%-*s", label_width, label)
 	bar_width = max(10L, width - label_width - nchar(eta_str) - 10L)
 	pct_str = sprintf(" %d%% ", floor(prop * 100))
 	fill = max(0L, min(bar_width, floor(prop * bar_width)))
@@ -1340,7 +1436,8 @@ run_all_inference_render_html = function(out) {
 	table_html = html_table$table_html
 	cov_key_html = html_table$key_html
 	combined_evidence_html = sprintf(
-		"<p>%s</p>", htmltools_escape_or_identity(run_all_inference_combined_evidence_summary_line(out$combined_evidence))
+		"<p>%s</p>",
+		gsub("\n", "<br>", htmltools_escape_or_identity(run_all_inference_combined_evidence_summary_line(out$combined_evidence)), fixed = TRUE)
 	)
 	footer_lines = run_all_inference_unavailable_footer_lines(out$unavailable_due_to_missing_packages)
 	footer_html = paste0("<li>", vapply(footer_lines, htmltools_escape_or_identity, character(1L)), "</li>", collapse = "\n")
@@ -1355,21 +1452,25 @@ run_all_inference_render_html = function(out) {
 	# base64_png()`'s `width = NULL` default; CI forest height still scales
 	# from that one estimand's row count only, never summed across estimands
 	# -- the fix for the `ggsave()` "Dimensions exceed 50 inches" error).
+	estimand_heading = function(e) if (identical(e, "estimand unspecified")) e else estimand_short_label(e)
 	estimates_html = vapply(names(out$plots$estimates), function(e) {
-		b64 = run_all_inference_plot_to_base64_png(out$plots$estimates[[e]])
+		p = out$plots$estimates[[e]]
+		b64 = run_all_inference_plot_to_base64_png(p, height = min(48, max(6, 0.22 * nrow(p$data) + 2)))
 		if (is.null(b64)) return("")
+		h = estimand_heading(e)
 		sprintf(
 			'<h3>%s</h3>\n<img src="data:image/png;base64,%s" alt="Estimate number line -- %s" style="max-width:100%%;">',
-			htmltools_escape_or_identity(e), b64, htmltools_escape_or_identity(e)
+			htmltools_escape_or_identity(h), b64, htmltools_escape_or_identity(h)
 		)
 	}, character(1L), USE.NAMES = FALSE)
 	ci_forest_html = vapply(names(out$plots$ci_forest), function(e) {
 		p = out$plots$ci_forest[[e]]
 		b64 = run_all_inference_plot_to_base64_png(p, height = min(48, max(6, 0.35 * nrow(p$data) + 1.5)))
 		if (is.null(b64)) return("")
+		h = estimand_heading(e)
 		sprintf(
 			'<h3>%s</h3>\n<img src="data:image/png;base64,%s" alt="CI forest plot -- %s" style="max-width:100%%;">',
-			htmltools_escape_or_identity(e), b64, htmltools_escape_or_identity(e)
+			htmltools_escape_or_identity(h), b64, htmltools_escape_or_identity(h)
 		)
 	}, character(1L), USE.NAMES = FALSE)
 	images_html = paste0(c(
@@ -1386,7 +1487,7 @@ run_all_inference_render_html = function(out) {
 body { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; margin: 2rem; color: #1a1a1a; }
 h1 { font-size: 1.3rem; }
 h2 { font-size: 1.05rem; margin-top: 2rem; }
-table.results { border-collapse: collapse; width: 100%%; font-size: 0.85rem; }
+table.results { border-collapse: collapse; width: auto; margin-left: auto; margin-right: auto; font-size: 0.85rem; }
 table.results th, table.results td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; white-space: nowrap; }
 table.results th { background: #f0f0f0; border-bottom: 3px double #888; }
 table.results tr.group-start td { border-top: 2px solid #888; }
@@ -1413,7 +1514,7 @@ total time %.2fs&nbsp;&middot;&nbsp; EDI %s
 </ul>
 </body>
 </html>
-', out$timestamp, design$design_class, design$response_type, design$design_family, design$n,
+', out$timestamp, design_class_short_label(design$design_class), design$response_type, design$design_family, design$n,
 		out$alpha, out$timestamp, out$total_secs, out$edi_version, table_html, cov_key_html,
 		combined_evidence_html, images_html, unavailable_heading, footer_html)
 }
@@ -1430,17 +1531,75 @@ htmltools_escape_or_identity = function(x) {
 	x
 }
 
+#' Excel-column-style bijective base-26 letter label for position `i`
+#' (1-indexed): `1`-`26` -> `"A"`-`"Z"`, `27` -> `"AA"`, etc. -- unlike
+#' `cov_model_display()`'s plain `LETTERS[i]` (which silently produces `NA`
+#' past 26), this never runs out, needed here since an estimand can
+#' realistically accumulate more than 26 point-estimate rows across
+#' classes x formulas x methods x types.
+#'
+#' @keywords internal
+#' @noRd
+#' Substitutes `"Δ"` (used by `inference_class_short_label()`/`estimand_
+#' short_label()`, e.g. `"Mean Δ"`, `"risk Δ"`) back to plain `"diff"` for
+#' text that ends up in a `ggplot2` plot -- per user request, 2026-08-20:
+#' titles were rendering as `"mean ."` because the PDF device's default
+#' font has no glyph for the Greek capital delta, so the character prints
+#' as a `.`-shaped tofu box. The Unicode character itself renders fine in
+#' the console/HTML table (both real UTF-8 text contexts), so this is
+#' applied only at plot-label call sites, never inside
+#' `inference_class_short_label()`/`estimand_short_label()` themselves --
+#' those stay the single source of truth for the table's own display text.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_plot_safe_text = function(x) {
+	gsub("Δ", "diff", x, fixed = TRUE)
+}
+
+run_all_inference_letter_label = function(i) {
+	label = ""
+	while (i > 0L) {
+		r = (i - 1L) %% 26L
+		label = paste0(LETTERS[r + 1L], label)
+		i = (i - 1L) %/% 26L
+	}
+	label
+}
+
+#' Display label for the estimation method a class's `compute_estimate()`
+#' actually uses, shown in the estimates plot's letter key (e.g. `"(A)
+#' Logistic Regr (MLE)"`) -- per user request, 2026-08-20: "usually will be
+#' just MLE ... in future might be different (e.g. Firth)". Every class in
+#' this package fits by maximum likelihood (or an asymptotically-equivalent
+#' closed-form/M-estimator) today, so this is currently a constant; it's
+#' its own function (rather than a literal `"MLE"` inlined at the call
+#' site) so a future penalized/robust-estimator class has one place to
+#' declare its actual estimation method once it exists, without touching
+#' the plotting code.
+#'
+#' @keywords internal
+#' @noRd
+inference_class_estimation_method = function(cls_name) {
+	"MLE"
+}
+
 #' Estimate-number-line visualization for `run_all_inference()`'s
 #' `plots`/`pdf`/`html` output (see `inference_suite_inspect.md`'s
-#' Visualizations section): every `status == "ok"` class's point estimate on
-#' one shared axis, its class name and CI/p-value method labeled above the
-#' dot, and a box-and-whisker summary of the estimate values underneath,
-#' faceted by `estimand` (`"estimand unspecified"` for the majority of
-#' classes -- only a handful declare a private `get_estimand_type()`, see
-#' `run_all_inference_estimand()`) so estimates on different scales never
-#' share an axis. Label collisions are not auto-resolved in this first pass
-#' (no `ggrepel` dependency added) -- a known limitation for designs with
-#' many tightly-clustered estimates, noted in the plan doc.
+#' Visualizations section): every `status == "ok"` class's point estimate
+#' on one shared axis (a single letter marks each point -- per user
+#' request, 2026-08-20, replacing the earlier full-text-label-per-point
+#' design, which crowded/overlapped once several methods landed on nearly
+#' the same estimate -- with a `"(A) <inference class> (<estimation
+#' method>)"` key printed as the plot's caption), and a box-and-whisker
+#' summary of the estimate values underneath, faceted by `estimand`
+#' (`"estimand unspecified"` for the majority of classes -- only a handful
+#' declare a private `get_estimand_type()`, see `run_all_inference_
+#' estimand()`) so estimates on different scales never share an axis.
+#' Points whose estimates are within 1% of the estimand's value range of
+#' each other are given a small vertical jitter (per user request,
+#' 2026-08-20) so their letter markers don't sit exactly on top of one
+#' another; genuinely distinct estimates are never jittered.
 #'
 #' Returns a **named list** of one ggplot per `estimand` (name = the raw
 #' `estimand` value, `"estimand unspecified"` for `NA`), not a single
@@ -1462,36 +1621,82 @@ run_all_inference_plot_estimates = function(results_table) {
 	]
 	if (nrow(df) == 0L) return(list())
 	df$estimand_facet = ifelse(is.na(df$estimand), "estimand unspecified", df$estimand)
-	df$method_label = sprintf(
-		"%s (%s)", df$inference_class,
-		ifelse(!is.na(df$ci_method), df$ci_method, ifelse(!is.na(df$pval_method), df$pval_method, "NA"))
-	)
-	df$y_dot   = 1
-	df$y_label = 1.15
+	# Same class abbreviation as the pretty-print table (per user request,
+	# 2026-08-19: "use same abbreviations as the pretty print").
+	df$inference_class_disp = run_all_inference_plot_safe_text(vapply(df$inference_class, inference_class_short_label, character(1L)))
+	df$estimation_method = vapply(df$inference_class, inference_class_estimation_method, character(1L))
+	df$y_dot = 1
 	estimands = sort(unique(df$estimand_facet))
 	stats::setNames(lapply(estimands, function(e) {
 		d = df[df$estimand_facet == e, , drop = FALSE]
+		d = d[order(d$estimate), , drop = FALSE]
+		d$letter = vapply(seq_len(nrow(d)), run_all_inference_letter_label, character(1L))
+		# Formula in the key parenthetical when this row actually has one
+		# (per user request, 2026-08-20: "(A) Logistic Regr (MLE, ~ .)" --
+		# omit entirely, not even a trailing comma, when `cov_model` is `NA`
+		# or blank -- the same "blank means no formula" convention
+		# `cov_model_display()` already uses for the main table).
+		formula_suffix = ifelse(
+			is.na(d$cov_model) | !nzchar(d$cov_model), "",
+			paste0(", ", d$cov_model)
+		)
+		key_lines = sprintf(
+			"(%s) %s (%s%s)", d$letter, d$inference_class_disp, d$estimation_method, formula_suffix
+		)
+		# Small vertical jitter for points within 1% of the estimand's value
+		# range of each other (per user request, 2026-08-20) -- letters
+		# would otherwise sit exactly on top of one another for
+		# near-identical estimates across methods; genuinely distinct
+		# estimates (more than 1% of the range apart) are never jittered.
+		rng = diff(range(d$estimate))
+		tol = if (rng > 0) rng * 0.01 else .Machine$double.eps
+		cluster = cumsum(c(TRUE, diff(d$estimate) > tol))
+		d$y_jitter = unlist(lapply(split(seq_len(nrow(d)), cluster), function(idx) {
+			k = length(idx)
+			seq(-(k - 1L), k - 1L, by = 2L) * 0.06
+		}), use.names = FALSE)
+		e_disp = if (identical(e, "estimand unspecified")) e else run_all_inference_plot_safe_text(estimand_short_label(e))
+		use_log10 = run_all_inference_estimand_use_log10(e, d$estimate)
+		x_scale = if (use_log10) {
+			ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = c(0.15, 0.15)))
+		} else {
+			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.15, 0.15)))
+		}
 		ggplot2::ggplot(d, ggplot2::aes(x = estimate)) +
+			# Thinner box (was `width = 0.6`) sitting flush on the axis --
+			# `y = -0.22` with `width = 0.3` puts its bottom edge at exactly
+			# the plot's own lower y-limit below, so there's no visible gap
+			# between the box and the x-axis (per user request, 2026-08-20).
 			ggplot2::geom_boxplot(
-				ggplot2::aes(y = 0), orientation = "y", width = 0.6, outlier.shape = NA
+				ggplot2::aes(y = -0.22), orientation = "y", width = 0.3, outlier.shape = NA
 			) +
-			ggplot2::geom_point(ggplot2::aes(y = y_dot), size = 2) +
 			ggplot2::geom_text(
-				ggplot2::aes(y = y_label, label = method_label),
-				angle = 90, hjust = 0, vjust = 0.5, size = 3
+				ggplot2::aes(y = y_dot + y_jitter, label = letter),
+				fontface = "bold", size = 3.5
 			) +
-			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.15, 0.15))) +
-			ggplot2::scale_y_continuous(limits = c(-1, 6), breaks = NULL) +
+			x_scale +
+			# Tight y-limits (was `c(-1, y_max)`, `y_max` growing with row
+			# count to fit staircased text labels) -- letters need far less
+			# vertical room than the old full-text labels, and the lower
+			# bound now matches the box's own bottom edge exactly (per user
+			# request, 2026-08-20: "no space between box and whisker plot
+			# and x-axis"; "eliminate extra vertical space").
+			ggplot2::scale_y_continuous(limits = c(-0.37, 1.5), breaks = NULL, expand = c(0, 0)) +
 			ggplot2::coord_cartesian(clip = "off") +
+			# No title -- folded into the x-axis label instead (per user
+			# request, 2026-08-20: "risk ratio estimate", not a separate
+			# "Point estimates -- risk ratio" title), and the log10-scale
+			# transform is never named in the label even when `use_log10`
+			# is active (per the same request).
 			ggplot2::labs(
-				x = "Estimate", y = NULL,
-				title = sprintf("Point estimates -- %s", e),
-				subtitle = "Box-and-whisker below the number line summarizes cross-estimator spread"
+				x = sprintf("%s estimate", e_disp), y = NULL,
+				caption = paste(key_lines, collapse = "\n")
 			) +
 			ggplot2::theme_minimal() +
 			ggplot2::theme(
 				panel.grid.major.y = ggplot2::element_blank(),
 				panel.grid.minor.y = ggplot2::element_blank(),
+				plot.caption = ggplot2::element_text(hjust = 0, size = 7, lineheight = 1.2),
 				# Wider left margin than the old single-plot version (was
 				# l = 5pt) -- per user request, 2026-08-19: text was getting
 				# cut off on the left.
@@ -1503,14 +1708,19 @@ run_all_inference_plot_estimates = function(results_table) {
 #' Annotated CI forest plot for `run_all_inference()`'s `plots`/`pdf`/`html`
 #' output -- the merged former p-value/CI plots (user decision, 2026-08-17;
 #' see `inference_suite_inspect.md`'s Visualizations section): every
-#' `status == "ok"` class with a finite CI, one horizontal segment each,
-#' p-value printed left of the segment, CI width printed right of it, class
-#' name and CI/p-value method printed underneath, segment color keyed to
-#' significance at `alpha`, and a reference line at the null value.
-#' **Known limitation:** the null-value reference line is always drawn at
-#' zero -- ratio-scale nulls (e.g. 1, or zero on a log scale) would need a
-#' per-class scale declaration that does not exist package-wide yet (same
-#' gap as `estimand`).
+#' `status == "ok"` class with a finite CI, one horizontal segment each
+#' marked with a single letter (not per-point text -- per user request,
+#' 2026-08-20, "that will compress the vertical height of the PDFs
+#' substantially"), a `"(A) <class> (<method>): p = ..., CI width = ..."`
+#' key line per letter printed as the plot's caption, segment color keyed
+#' to significance at `alpha`, and a reference line at the null value -- drawn
+#' at 1 on a log10 x-axis for the two raw-ratio-scale estimands
+#' (`EDI_INFERENCE_LOG_SCALE_ESTIMANDS`: `"RR"`, `"hazard_ratio"`), at 0 on
+#' a linear axis for every other estimand (per user request, 2026-08-20;
+#' `run_all_inference_estimand_use_log10()`). **Remaining limitation:**
+#' this only covers those two estimand tags -- any estimand this package
+#' has not tagged as raw-ratio-scale still gets a linear axis / null-at-0,
+#' even if it turns out to also warrant a log transform.
 #'
 #' Returns a **named list** of one CI forest ggplot per `estimand` (name =
 #' the raw `estimand` value, `"estimand unspecified"` for `NA`), not a
@@ -1536,53 +1746,98 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 	if (nrow(df) == 0L) return(list())
 	df$estimand_facet = ifelse(is.na(df$estimand), "estimand unspecified", df$estimand)
 	df$significant = !is.na(df$pval) & df$pval < alpha
-	df$pval_label = ifelse(
-		is.na(df$pval), "p=NA",
-		ifelse(df$pval < 1e-4, sprintf("p=%.2e", df$pval), sprintf("p=%.4f", df$pval))
+	pval_num = ifelse(
+		is.na(df$pval), "NA",
+		ifelse(df$pval < 1e-4, sprintf("%.2e", df$pval), sprintf("%.4f", df$pval))
 	)
-	df$width_label  = sprintf("width=%.3g", df$ci_b - df$ci_a)
-	df$method_label = sprintf(
-		"%s (%s / %s)", df$inference_class,
-		df$ci_method %||% "NA", df$pval_method %||% "NA"
+	width_num = sprintf("%.3g", df$ci_b - df$ci_a)
+	# Same class/method abbreviations as the pretty-print table (per user
+	# request, 2026-08-19).
+	df$inference_class_disp = run_all_inference_plot_safe_text(vapply(df$inference_class, inference_class_short_label, character(1L)))
+	ci_disp = method_with_type_short_label(df$ci_method, df$type)
+	pval_disp = method_with_type_short_label(df$pval_method, df$type)
+	ci_disp_na = ifelse(is.na(ci_disp), "NA", ci_disp)
+	pval_disp_na = ifelse(is.na(pval_disp), "NA", pval_disp)
+	# Don't print "(jackknife / jackknife)" -- only show the pval-side
+	# method when it actually differs from the CI-side one (per user
+	# request, 2026-08-20; same "if different" rule already applied to the
+	# `pval method (if different)` table column).
+	method_paren = ifelse(ci_disp_na == pval_disp_na, ci_disp_na, sprintf("%s / %s", ci_disp_na, pval_disp_na))
+	# Per user request, 2026-08-20: replace the old per-point stacked text
+	# (class/method under each point, p-value left of it, width right of
+	# it) with a single letter marker at each point and a `"(A) <class>
+	# (<method>): p = ..., CI width = ..."` key line printed as the plot's
+	# caption -- "that will compress the vertical height of the PDFs
+	# substantially" (no more per-point text competing for vertical room).
+	df$key_line = sprintf(
+		"%s (%s): p = %s, CI width = %s", df$inference_class_disp, method_paren, pval_num, width_num
 	)
 	estimands = sort(unique(df$estimand_facet))
 	stats::setNames(lapply(estimands, function(e) {
 		d = df[df$estimand_facet == e, , drop = FALSE]
 		d = d[order(d$estimate), , drop = FALSE]
 		d$y = seq_len(nrow(d))
+		d$letter = vapply(seq_len(nrow(d)), run_all_inference_letter_label, character(1L))
+		key_lines = sprintf("(%s) %s", d$letter, d$key_line)
+		# Per-estimand Cauchy-combined p-value (per user request, 2026-08-20:
+		# "each illustration gets its own cauchy combined pval since it is
+		# its own estimand") -- unweighted combination over this estimand's
+		# own usable rows only, the same `run_all_inference_combine_
+		# pvalues()` the per-estimand breakdown lines already use
+		# (`run_all_inference_per_estimand_breakdown_lines()`), just scoped
+		# to this one plot's `d` instead of the whole results table.
+		combined = run_all_inference_combine_pvalues(d$pval[is.finite(d$pval)])
+		combined_str = if (is.na(combined$pval)) "NA" else formatC(combined$pval, digits = 3, format = "g")
+		e_disp = if (identical(e, "estimand unspecified")) e else run_all_inference_plot_safe_text(estimand_short_label(e))
+		# Per user request, 2026-08-20 ("for each estimand, decide if it
+		# makes sense to display on a log10 scale"): closes this function's
+		# previously-documented known limitation ("the null-value reference
+		# line is always drawn at zero -- ratio-scale nulls ... would need a
+		# per-class scale declaration") for the two raw-ratio-scale
+		# estimands (`EDI_INFERENCE_LOG_SCALE_ESTIMANDS`) -- log10 x-axis,
+		# null reference line at 1 instead of 0.
+		use_log10 = run_all_inference_estimand_use_log10(e, c(d$ci_a, d$ci_b, d$estimate))
+		null_x = if (use_log10) 1 else 0
+		x_scale = if (use_log10) {
+			ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = c(0.15, 0.15)))
+		} else {
+			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.15, 0.15)))
+		}
 		ggplot2::ggplot(d, ggplot2::aes(y = y)) +
-			ggplot2::geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+			ggplot2::geom_vline(xintercept = null_x, linetype = "dashed", color = "grey40") +
 			ggplot2::geom_segment(
 				ggplot2::aes(x = ci_a, xend = ci_b, yend = y, color = significant),
 				linewidth = 1
 			) +
-			ggplot2::geom_point(ggplot2::aes(x = estimate, color = significant), size = 2) +
-			ggplot2::geom_text(ggplot2::aes(x = ci_a, label = pval_label), hjust = 1.15, size = 3) +
-			ggplot2::geom_text(ggplot2::aes(x = ci_b, label = width_label), hjust = -0.15, size = 3) +
 			ggplot2::geom_text(
-				ggplot2::aes(x = estimate, label = method_label),
-				vjust = 2.3, size = 2.7, lineheight = 0.85
+				ggplot2::aes(x = estimate, label = letter, color = significant),
+				fontface = "bold", size = 3.5
 			) +
 			ggplot2::scale_color_manual(
 				values = c(`TRUE` = "#1a7a3c", `FALSE` = "#888888"), guide = "none"
 			) +
 			# Less vertical space between rows than the old `mult = 0.15`
-			# (per user request, 2026-08-19).
-			ggplot2::scale_y_continuous(breaks = NULL, expand = ggplot2::expansion(mult = 0.08)) +
-			# Wider left expansion than the old symmetric `mult = 0.25` --
-			# the p-value label sits to the *left* of each segment and was
-			# getting clipped at the panel edge for the leftmost points
-			# (per user request, 2026-08-19: text cut off on the left).
-			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.35, 0.25))) +
+			# (per user request, 2026-08-19) -- tightened further now that
+			# no per-point text needs vertical room (per user request,
+			# 2026-08-20).
+			ggplot2::scale_y_continuous(breaks = NULL, expand = ggplot2::expansion(mult = 0.05)) +
+			x_scale +
+			# Minimal title (just "95% CIs", per user request, 2026-08-20 --
+			# not the earlier "XX% confidence intervals -- <estimand>",
+			# which is now redundant with the x-axis label carrying the
+			# estimand name), and no subtitle (the significance-color
+			# explanation, removed per user request, 2026-08-20 -- the
+			# letter key's caption is now the only annotation).
 			ggplot2::labs(
-				x = "Estimate & confidence interval", y = NULL,
-				title = sprintf("%g%% confidence intervals -- %s", 100 * (1 - alpha), e),
-				subtitle = sprintf("Green = significant at alpha = %g; p-value left of interval, width right of it", alpha)
+				x = e_disp, y = NULL,
+				title = sprintf("%g%% CIs (combined p = %s)", 100 * (1 - alpha), combined_str),
+				caption = paste(key_lines, collapse = "\n")
 			) +
 			ggplot2::theme_minimal() +
 			ggplot2::theme(
 				panel.grid.major.y = ggplot2::element_blank(),
 				panel.grid.minor.y = ggplot2::element_blank(),
+				plot.caption = ggplot2::element_text(hjust = 0, size = 7, lineheight = 1.2),
 				plot.margin = ggplot2::margin(t = 5, r = 20, b = 5, l = 25, unit = "pt")
 			)
 	}), estimands)
@@ -1651,8 +1906,18 @@ run_all_inference_build_plots = function(results_table, alpha) {
 run_all_inference_plot_max_label_chars = function(p) {
 	d = p$data
 	label_cols = intersect(c("method_label", "pval_label", "width_label"), names(d))
-	if (length(label_cols) == 0L) return(0L)
-	max(vapply(label_cols, function(cn) max(nchar(as.character(d[[cn]])), 0L), integer(1L)))
+	data_max = if (length(label_cols) == 0L) {
+		0L
+	} else {
+		max(vapply(label_cols, function(cn) max(nchar(as.character(d[[cn]])), 0L), integer(1L)))
+	}
+	# The estimates plot (per user request, 2026-08-20) has no long text in
+	# its data any more -- its longest text now lives in the caption's
+	# per-line letter key (`"(A) <class> (<method>, <formula>)"`), which
+	# `p$data` doesn't capture at all.
+	caption = p$labels$caption %||% ""
+	caption_max = if (nzchar(caption)) max(nchar(strsplit(caption, "\n", fixed = TRUE)[[1L]])) else 0L
+	max(data_max, caption_max)
 }
 
 #' Saves `run_all_inference()`'s plots to **two** separate timestamped
@@ -1688,7 +1953,13 @@ run_all_inference_save_plots_pdf = function(plots, path_estimates, path_ci_fores
 	if (length(plots$estimates) > 0L) {
 		max_chars = max(vapply(plots$estimates, run_all_inference_plot_max_label_chars, integer(1L)))
 		width = min(10, max(5, 4 + 0.03 * max_chars))
-		grDevices::pdf(path_estimates, width = width, height = 6, onefile = TRUE)
+		# Scales with the largest single estimand's row count -- the
+		# staircased labels (`run_all_inference_plot_estimates()`, per user
+		# request, 2026-08-20: labels were overlapping) need proportionally
+		# more vertical room as more methods/classes land in one estimand.
+		est_rows = vapply(plots$estimates, function(p) nrow(p$data), integer(1L))
+		height = min(48, max(6, 0.22 * max(est_rows) + 2))
+		grDevices::pdf(path_estimates, width = width, height = height, onefile = TRUE)
 		for (p in plots$estimates) print(p)
 		grDevices::dev.off()
 	}
@@ -1874,6 +2145,32 @@ inference_class_wordify = function(label) {
 #'
 #' @keywords internal
 #' @noRd
+#' Short display form of a `Design` class name (`class(des_obj)[[1L]]`,
+#' e.g. `"DesignSeqOneByOneKK21"`), used wherever `run_all_inference()`
+#' reports the design being fit (`print.EDIInferenceSuiteResults()`'s
+#' summary line, the HTML report header) -- per user request, 2026-08-19:
+#' `"DesignSeqOneByOneKK21"` -> `"KK21 Seq (one by one)"`, not the raw class
+#' name. Only the `"SeqOneByOne"`/`"Fixed"` family prefixes are recognized
+#' (the two design families this package actually has); anything else falls
+#' back to the class name with just `"Design"` stripped, matching this
+#' file's established "unknown input degrades gracefully, never errors"
+#' convention rather than guessing at an unfamiliar naming scheme.
+#'
+#' @keywords internal
+#' @noRd
+design_class_short_label = function(name) {
+	rest = sub("^Design", "", name)
+	if (startsWith(rest, "SeqOneByOne")) {
+		algo = substring(rest, nchar("SeqOneByOne") + 1L)
+		return(sprintf("%s Seq (one by one)", algo))
+	}
+	if (startsWith(rest, "Fixed")) {
+		algo = substring(rest, nchar("Fixed") + 1L)
+		return(sprintf("%s Fixed", algo))
+	}
+	rest
+}
+
 inference_class_short_label = function(name) {
 	rest = sub("^Inference", "", name)
 	for (p in EDI_INFERENCE_CLASS_PREFIXES) {
@@ -1908,12 +2205,11 @@ inference_class_short_label = function(name) {
 	# (2026-08-19) -- "Miettinen" alone is unambiguous within this package.
 	words = words[!(words %in% c("Nurminen"))]
 	label = paste(words, collapse = " ")
-	# "Mean Diff" -> "Mean Δ" substring override (not a general "Diff"->"Δ"
-	# word rule -- that would also hit e.g. "Binom Ident Risk Diff", which
-	# was not requested), per user request (2026-08-19). Matches the "Mean
-	# Diff" word pair wherever it appears in the label, e.g. both the exact
-	# "Mean Diff" and "Mean Diff Pooled Var" (SimpleMeanDiffPooledVar).
-	label = sub("\\bMean Diff\\b", "Mean Δ", label)
+	# "Diff" -> "Δ" everywhere in the label (generalized 2026-08-20 from an
+	# earlier "Mean Diff"-only override, per user request: "everywhere in
+	# pretty print that says 'Diff' should be 'Δ' instead"), e.g. "Mean
+	# Diff" -> "Mean Δ", "G Comp Risk Diff" -> "G Comp Risk Δ".
+	label = gsub("\\bDiff\\b", "Δ", label)
 	label
 }
 
@@ -1930,7 +2226,7 @@ inference_class_short_label = function(name) {
 estimand_short_label = function(estimand) {
 	vapply(estimand, function(e) {
 		if (is.na(e)) return(NA_character_)
-		if (identical(e, "RD")) return("risk diff")
+		if (identical(e, "RD")) return("risk Δ")
 		if (identical(e, "RR")) return("risk ratio")
 		if (identical(e, "hodges_lehmann_shift")) return("HL shift")
 		s = gsub("log_odds", "logodds", e, fixed = TRUE)
@@ -1946,6 +2242,10 @@ estimand_short_label = function(estimand) {
 		# either word, so dropping them loses no information here.
 		s = gsub("logodds ratio", "logodds", s, fixed = TRUE)
 		s = gsub("probit effect", "probit", s, fixed = TRUE)
+		# "diff" -> "Δ" everywhere (per user request, 2026-08-20, matching
+		# `inference_class_short_label()`'s equivalent "Diff" -> "Δ" rule),
+		# e.g. "median diff" -> "median Δ".
+		s = gsub("\\bdiff\\b", "Δ", s)
 		s
 	}, character(1L), USE.NAMES = FALSE)
 }
@@ -2043,6 +2343,13 @@ run_all_inference_build_display_table = function(results_table) {
 	cov = cov_model_display(tbl$cov_model)
 	na_chr = function(x) ifelse(is.na(x), "NA", x)
 
+	ci_disp = na_chr(method_with_type_short_label(tbl$ci_method, tbl$type))
+	pval_disp = na_chr(method_with_type_short_label(tbl$pval_method, tbl$type))
+	# `pval method (if different)` only displays when it actually differs
+	# from `ci method` (per user request, 2026-08-20) -- blank, not "NA",
+	# when it matches (the usual case) or when it's genuinely `NA`.
+	pval_disp[pval_disp == ci_disp] = ""
+
 	display = data.frame(
 		`inference class` = vapply(tbl$inference_class, inference_class_short_label, character(1L)),
 		`cov mod`          = cov$disp,
@@ -2051,9 +2358,9 @@ run_all_inference_build_display_table = function(results_table) {
 		se                 = run_all_inference_sigfig(tbl$se, 3L),
 		ci_a               = run_all_inference_sigfig(tbl$ci_a, 3L),
 		ci_b               = run_all_inference_sigfig(tbl$ci_b, 3L),
-		`ci method`        = na_chr(method_with_type_short_label(tbl$ci_method, tbl$type)),
+		`ci method`        = ci_disp,
 		pval               = run_all_inference_sigfig(tbl$pval, 3L, scientific = TRUE),
-		`pval method`      = na_chr(method_with_type_short_label(tbl$pval_method, tbl$type)),
+		`pval method (if different)` = pval_disp,
 		weight             = run_all_inference_sigfig(tbl$weight, 2L),
 		status             = tbl$status,
 		check.names = FALSE, stringsAsFactors = FALSE
@@ -2084,31 +2391,23 @@ run_all_inference_format_pretty_table = function(results_table) {
 	tbl = built$tbl; display = built$display; cov_key = built$cov_key
 
 	headers = names(display)
-	widths = vapply(seq_along(headers), function(i) {
-		max(nchar(headers[[i]]), if (nrow(display) > 0L) max(nchar(display[[i]])) else 0L)
-	}, integer(1L))
 
-	# Two-row wrap (per user request, 2026-08-19: keep the table compact by
-	# splitting each record -- and the header -- across two printed lines
-	# instead of one long one): numbers + short identifying columns on line
-	# 1, the variable-length text columns on line 2, same split scheme as
-	# the live table's `run_all_inference_build_live_table_header()`/
-	# `run_all_inference_print_row()`.
-	idx2 = which(headers %in% EDI_INFERENCE_SUITE_LIVE_TABLE_TEXT_COLS)
-	idx1 = setdiff(seq_along(headers), idx2)
-	fmt_row = function(vals, idx) paste(mapply(function(v, w) formatC(v, width = -w), vals[idx], widths[idx]), collapse = "  ")
-
-	header_line1 = fmt_row(headers, idx1)
-	header_line2 = fmt_row(headers, idx2)
-	total_width = max(nchar(header_line1), nchar(header_line2))
-	lines = c(header_line1, header_line2, strrep("=", total_width))
+	# Wrapped-cell table (per user request, 2026-08-19: "imagine a row is
+	# actually two rows but each cell is wrapped -- the row length is not
+	# wrapped") -- shares `run_all_inference_fmt_wrapped_row()`/the fixed
+	# `EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS` with the live table
+	# (`run_all_inference_build_live_table_header()`/`run_all_inference_
+	# print_row()`), so the two stay visually identical.
+	header_lines = run_all_inference_fmt_wrapped_row(headers, headers)
+	total_width = max(nchar(header_lines))
+	lines = c(header_lines, strrep("=", total_width))
 	prev_estimand = NULL
 	for (i in seq_len(nrow(display))) {
 		if (!is.null(prev_estimand) && !identical(tbl$estimand[[i]], prev_estimand)) {
 			lines = c(lines, strrep("-", total_width))
 		}
 		vals = as.character(display[i, ])
-		lines = c(lines, fmt_row(vals, idx1), fmt_row(vals, idx2))
+		lines = c(lines, run_all_inference_fmt_wrapped_row(vals, headers))
 		prev_estimand = tbl$estimand[[i]]
 	}
 	lines = c(lines, strrep("-", total_width))
@@ -2330,8 +2629,9 @@ run_all_inference_combined_evidence_summary_line = function(combined_evidence) {
 		estimand_grouped = "uniform within estimand",
 		combined_evidence$weighting
 	)
+	# Multi-line wording/wrap per user request, 2026-08-20.
 	sprintf(
-		"Combined evidence across %d estimands (%d inferences, weighting = %s): p = %s",
+		"Combined evidence against the sharp null across %d estimands\n(%d inferences, weighting = %s):\np = %s",
 		combined_evidence$n_estimand_groups, combined_evidence$n_classes_used,
 		weighting_disp,
 		if (is.na(combined_evidence$pval)) "NA" else formatC(combined_evidence$pval, digits = 3, format = "g")
@@ -3086,7 +3386,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				results = results_list
 				if (screen) {
 					for (i in seq_along(tasks)) {
-						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths, live_header$idx1, live_header$idx2)
+						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths)
 					}
 					cat(strrep("-", live_header$total_width), "\n", sep = "")
 					run_all_inference_print_live_cov_key(live_header$cov_key)
@@ -3123,7 +3423,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					elapsed_secs_so_far[[i]] = results[[i]]$fit_secs
 					if (screen) {
 						cat("\r\033[K")
-						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths, live_header$idx1, live_header$idx2)
+						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths)
 						cat(run_all_inference_progress_bar_line(i, n_total, elapsed_secs_so_far))
 					}
 				}
@@ -3284,7 +3584,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 print.EDIInferenceSuiteResults = function(x, ...) {
 	cat(sprintf(
 		"<EDIInferenceSuiteResults> %d class(es) -- %s (%s, %s), n = %s\n",
-		nrow(x$results_table), x$design$design_class, x$design$response_type,
+		nrow(x$results_table), design_class_short_label(x$design$design_class), x$design$response_type,
 		x$design$design_family, x$design$n
 	))
 	cat(run_all_inference_format_pretty_table(x$results_table), sep = "\n")

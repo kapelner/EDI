@@ -14,10 +14,7 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceIncidProbitRegr = R6::R6Class("InferenceIncidProbitRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
-	public = list(
+inference_incid_probit_public = list(
 		#' @description Initialize a probit-regression inference object.
 		#' @param des_obj A completed \code{Design} object with an incidence response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
@@ -87,8 +84,15 @@ InferenceIncidProbitRegr = R6::R6Class("InferenceIncidProbitRegr",
 			)
 			private$cached_values$beta_hat_T
 		}
-	),
-	private = list(
+	)
+
+inference_incid_probit_private = list(
+		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+		# migration ladders): re-declared here even though Wald's own source
+		# already declares cached_mod = NULL -- see the identical comment on
+		# inference_incid_log_regr_private's cached_mod entry
+		# (inference_incidence_logit.R) for the full explanation.
+		cached_mod = NULL,
 		best_X_colnames = NULL,
 		max_abs_reasonable_coef = 10,
 		is_probit_fit_reasonable = function(mod){
@@ -296,6 +300,40 @@ InferenceIncidProbitRegr = R6::R6Class("InferenceIncidProbitRegr",
 			X
 		}
 	)
+
+IncidenceProbitLikelihoodSource = list(
+	public = inference_incid_probit_public,
+	private = inference_incid_probit_private
 )
 
-IncidenceProbitLikelihoodSource = inference_component_source_parts(InferenceIncidProbitRegr)
+InferenceIncidProbitRegr = define_inference_class(
+	classname = "InferenceIncidProbitRegr",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceProbitLikelihood"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"get_supported_testing_types", "compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+			"generate_mod", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_complexity_tier", "supports_fisher_information"
+		)
+	),
+	public = list(
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+	)
+)

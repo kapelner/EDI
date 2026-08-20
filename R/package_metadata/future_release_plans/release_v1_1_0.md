@@ -61,8 +61,9 @@ The diagnostics family: `optimizer_diagnostics_report.md` (TODO-1, 2, 3, 5),
 
 The kernel/perf family: `robust_regression_perf_optimization_spec.md`,
 `quantile_regression_cpp_kernel_spec.md`, `ordinal_gee_cpp_kernel_spec.md`,
-`cold_starts.md`, `local_machine_optimization.md`, `gpu_optimizations.md`
-(decision-gated).
+`cold_starts.md`, `gpu_optimizations.md` (decision-gated).
+(`local_machine_optimization.md` moved to v1.0.0 — see
+`release_v1_0_0.md`'s item 15 — 2026-08-20, user decision.)
 
 The response-type family: `nominal_response_type_report.md`,
 `rank_choice_response_type_report.md`,
@@ -125,14 +126,13 @@ ticked in their **owning plans**; this list is the release index.
      `longitudinal_repeated_measures_… → TODO-1`,
   9. `gpu_optimizations.md → TODO-1` and `→ TODO-7` (backend/build story),
   10. `interval_censored_survival_response_type_report.md → TODO-1`
-      (second-wave semiparametric yes/no),
-  11. `local_machine_optimization.md → TODO-1` remaining parts (a, b, c, e —
-      part (d) was decided 2026-08-17: tuned core count is recorded-only).
-- [ ] TODO-2: `local_machine_optimization.md → TODO-2` — the warm-start
-  dispatcher refactor (lift the hardcoded sample-size-conditioned layer of
-  `edi_warm_start_dispatch_policy()` into the overridable config table).
-  Standalone and decision-independent; explicitly allowed to land in a 1.0.x
-  patch ahead of this release. Everything in TODO-10 below builds on it.
+      (second-wave semiparametric yes/no).
+  ~~11. `local_machine_optimization.md → TODO-1` remaining parts~~ — moved
+  to v1.0.0 (2026-08-20, user decision; see `release_v1_0_0.md`'s item 15).
+- ~~TODO-2: `local_machine_optimization.md → TODO-2`~~ — moved to v1.0.0
+  along with the rest of that plan (2026-08-20, user decision; see
+  `release_v1_0_0.md`'s item 15). Already shipped in a 1.0.x patch, per
+  that item's own note.
 - [ ] TODO-3: **Diagnostics chain** (`_master.md` Phase 2, strictly ordered):
   `optimizer_diagnostics_report.md → TODO-1` (free diagnostics), `→ TODO-2`
   (hardening), `→ TODO-3` (`SolverDiagnostics` component — **prerequisite
@@ -196,13 +196,10 @@ ticked in their **owning plans**; this list is the release index.
 - [ ] TODO-9: **GPU track** (if TODO-1.9 said yes; `_master.md` Phase 5E):
   `gpu_optimizations.md → TODO-7` (backend/build design) then `→ TODO-2..5`,
   each merge gated by `→ TODO-6`'s benchmark matrix.
-- [ ] TODO-10: **Local machine optimization**:
-  `local_machine_optimization.md → TODO-3..12` (harness, per-axis tuners,
-  persistence, safety blocklist, contention guard, correctness gate,
-  `.onLoad()` import, tests, docs). After TODO-2 (its own prerequisite) and
-  after `cold_starts.md`'s audit in TODO-4; benefits from landing late in
-  the release so the tuner benchmarks the release-candidate kernels, not
-  mid-release ones.
+- ~~TODO-10: **Local machine optimization**~~ — the whole
+  `local_machine_optimization.md` plan moved to v1.0.0 (2026-08-20, user
+  decision; see `release_v1_0_0.md`'s item 15). Removed from this release's
+  scope entirely, not just resequenced.
 - [ ] TODO-11: **Greedy-design merge**:
   `design_fixed_greedy_pair_switch_merge.md → TODO-1..10` — deletes
   `DesignFixedGreedy`/`DesignFixedGreedyDOptimal`, replacing both with

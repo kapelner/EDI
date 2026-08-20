@@ -1805,6 +1805,452 @@ their own `[x]` entries above; they are not part of this count.)
   descendants each — all in the full-likelihood and KK families — so their
   deletion stays blocked on those two migration ladders, not on this
   section.
+  **Status update 2026-08-20**: full re-audit via live ancestor-chain
+  introspection (`inference_class_ancestor_names()` intersected against
+  `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES` for every non-abstract
+  registered class) found the KK and IVWC ladders are now **fully drained**
+  — zero concrete `*KK*`/`*IVWC*`-named classes retain any algorithmic
+  ancestor (confirmed both directly and via the already-shallow-composed-
+  abstract pattern, e.g. `InferenceIncidKKCondLogitGLMMIVWC`/`OneLik`/
+  `InferencePropKKGLMM`, whose shared `InferenceAbstractKKCondLogitGLMM`
+  base composes `Inference` + components even though the 3 thin leaves
+  still classically inherit it — the accepted terminal state per that
+  family's own golden test, `test-incid-kk-cond-logit-glmm-migration-
+  golden.R`'s "base is marked migrated" case). 22 pending concrete classes
+  remain package-wide, all non-KK full-likelihood-family classes:
+  `InferenceAsymp`'s only non-KK descendant `InferenceOrdinalPairedSignTest`
+  (functionally KK, tracked under "KK And IVWC Estimators" instead);
+  `InferenceAsympLikStdModCache` (12: `InferenceIncidBinomialIdentityRiskDiff`,
+  `InferenceIncidLogBinomial`, `InferenceIncidLogRegr`,
+  `InferenceIncidModifiedPoisson`, `InferenceIncidProbitRegr`,
+  `InferenceOrdinalContRatioRegr`, `InferenceOrdinalOrderedProbitRegr`,
+  `InferenceOrdinalStereotypeLogitRegr`, `InferencePropBetaRegr`,
+  `InferencePropZeroOneInflatedBetaRegr`,
+  `InferenceSurvivalDepCensTransformRegr`, `InferenceSurvivalWeibullRegr`);
+  `InferenceCountLikelihood` (3: `InferenceCountHurdleNegBin`,
+  `InferenceCountNegBin`, `InferenceCountPoisson`, plus 3 more one level
+  down via `InferenceCountZeroAugmentedPoissonAbstract`:
+  `InferenceCountHurdlePoisson`, `InferenceCountZeroInflatedNegBin`,
+  `InferenceCountZeroInflatedPoisson`); `InferenceParamBootstrap` (2:
+  `InferenceContinLin`, `InferenceContinOLS`); and (1, now closed, see
+  below) `InferenceAsympLikStdModCacheNoParamBootstrap`.
+
+  **`InferenceAsympLikStdModCacheNoParamBootstrap` fully drained and
+  removed from the bases list (2026-08-20)**: its sole pending descendant,
+  `InferencePropFractionalLogit`, migrated from `inherit =
+  InferenceAsympLikStdModCacheNoParamBootstrap` to `define_inference_class(
+  inherit = Inference, components = c("BayesianBootstrap", "Wald",
+  "StandardModelCache"))` — composing the already-registered
+  `StandardModelCache` component (source `StandardModelCacheSource` in
+  `inference_all_abstract_asymp_lik_std_mod_cache.R`, registered earlier in
+  this effort but not yet composed by any concrete class until now).
+  `StandardModelCache` -> `LikelihoodTests` -> `Wald` -> `Jackknife` and
+  `BayesianBootstrap` -> ... -> `RandomizationTest` transitively resolve
+  the full 10-component manifest target without listing every name
+  directly. Required declaring 17 component-vs-component and host-vs-
+  component collisions in `overrides` (the full likelihood-test-machinery
+  surface `StandardModelCache` and its `LikelihoodTests` dependency
+  provide, plus the jackknife/bootstrap-worker trio `Jackknife`/
+  `NonparametricBootstrap` both touch) — found iteratively via repeated
+  load-time collision errors, the same pattern established throughout this
+  whole migration effort. Also required adding
+  `InferencePropFractionalLogit`'s `direct_components` entry to
+  `infer_inference_direct_components()`'s switch (omitting it silently
+  zeroed the class's effective capabilities post-migration -- the exact
+  documented failure mode this switch's own inline comment already warns
+  about for direct-composition classes with no intermediate algorithmic
+  base). Dropped an initially-copied but unnecessary `capabilities =
+  "likelihood_ratio"` metadata declaration (only required for classes
+  composing `ParametricLikelihoodBootstrap`, which this class does not).
+  Verified via a from-source legacy-fixture comparison (git `HEAD` copy of
+  the pre-migration file, top-level binding renamed but literal classname
+  string preserved per the established dispatch-by-name-safety precedent):
+  `compute_estimate`, `compute_asymp_confidence_interval`,
+  `compute_asymp_two_sided_pval`, `compute_bootstrap_two_sided_pval`, and
+  `compute_rand_two_sided_pval` all bit-identical between legacy and
+  migrated on a seeded fixture. `mark_inference_class_migrated()` now
+  passes for `InferencePropFractionalLogit`. `InferenceAsympLikStdModCache
+  NoParamBootstrap` removed from `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_
+  BASES` (zero remaining `inherit =` references anywhere in `R/*.R`) but
+  its R6 generator itself was **not** deleted -- `test-incid-risk-diff-
+  migration-golden.R` still uses it as a legacy-comparison fixture base,
+  same precedent as `InferenceKKPassThroughCompound`'s own note below (a
+  real remaining consumer, just not a package-source one). Full battery
+  green: `test-incid-risk-diff-migration-golden.R`,
+  `test-inference-class-registry.R`, `test-mixin-contracts.R`,
+  `test-capability-tables.R`, `test-static-cleanup-guardrails.R`,
+  `test-full-likelihood-migration-baseline.R`,
+  `test-bootstrap-reused-worker-asymp-families.R`,
+  `test-bayesian-bootstrap.R`, `test-param-bootstrap-method-availability.R`.
+
+  **`InferenceIncidLogRegr` migrated (2026-08-20)**, from `inherit =
+  InferenceAsympLikStdModCache` (the "with param bootstrap" sibling of the
+  `NoParamBootstrap` base above) to composing `c("BayesianBootstrap",
+  "ParametricLikelihoodBootstrap", "IncidenceLogisticLikelihood")` directly.
+  `IncidenceLogisticLikelihood` was **already registered** (source
+  `IncidenceLogisticLikelihoodSource` in `inference_incidence_logit.R`,
+  `dependencies = "StandardModelCache"`) from earlier prep work but never
+  composed by any concrete class -- confirmed the same is true for 9 more
+  of the 12 `InferenceAsympLikStdModCache` descendants (each already has a
+  registered, unused per-class `*Likelihood` component: `IncidenceProbit
+  Likelihood`, `IncidenceLogBinomialLikelihood`,
+  `IncidenceModifiedPoissonLikelihood`,
+  `IncidenceBinomialIdentityLikelihood`,
+  `OrdinalContinuationRatioLikelihood`, `OrdinalOrderedProbitLikelihood`,
+  `OrdinalStereotypeLikelihood`, `SurvivalDepCensTransform`,
+  `SurvivalWeibullLikelihood`; only `InferencePropBetaRegr`/
+  `InferencePropZeroOneInflatedBetaRegr` have no dedicated component,
+  composing the shared chain directly). Since `inference_component_source_
+  parts()`-style post-hoc harvesting from the OLD raw class breaks once the
+  class itself is rebuilt via `define_inference_class()` (the merged
+  generator's `$public_methods`/`$private_methods` would then include every
+  composed component's own methods too), the class's `public=`/`private=`
+  content was hoisted into named `inference_incid_log_regr_public`/`_private`
+  list objects *before* the class definition, with `IncidenceLogisticLikelihood
+  Source` built from those directly and the class definition following
+  after -- the same "static leaf-only source" shape as every other
+  `*Source` object in this file (`StandardModelCacheSource`, etc.); this is
+  the reusable recipe for the remaining 8 `*Likelihood`-component siblings.
+  Registered `InferencePropFractionalLogit = c("BayesianBootstrap", "Wald",
+  "StandardModelCache")` (see immediately above) in the same switch fix;
+  `InferenceIncidLogRegr`'s own entry needed **fixing an existing stale stub**
+  at `infer_inference_direct_components()`'s switch rather than adding a
+  new one (a pre-existing `InferenceIncidLogRegr = "IncidenceLogisticLikelihood"`
+  single-name entry, apparently a placeholder from the earlier component-
+  extraction prep pass, silently zeroed the class's effective capabilities
+  post-migration until corrected to the real 3-component list) -- the same
+  9 other already-registered-but-uncomposed components have identical
+  stale single-name stub entries at that switch waiting for the same fix
+  when each is migrated. 17 component-vs-component/host-vs-component
+  collisions needed `overrides` declarations (the full `StandardModelCache`
+  + `LikelihoodTests`/`Wald`/`Jackknife` + Bartlett-plumbing surface),
+  found iteratively via load-time errors -- the same pattern applies to
+  every sibling in this family. Re-declared `cached_mod = NULL` in the
+  component's own private list (also added to its `owns_state`/
+  `provides_private_methods`): `Wald`'s own `cached_mod = NULL` declaration
+  never survives component composition because `modifyList()`-based
+  assembly drops `NULL`-valued entries for *eager* components (`keep.null`
+  is `TRUE` only for lazy ones); harmless for real package instances
+  (`lock_objects = FALSE` lets the field spring into existence on first
+  assignment) but breaks any `R6::R6Class(inherit = <migrated class>, ...)`
+  test/user subclass, which locks its own instances by default --
+  `test-bartlett-lr-plumbing.R`'s Bartlett opt-in subclasses hit "cannot
+  add bindings to a locked environment" until fixed.
+
+  **Found and fixed a separate, more serious, genuinely pre-existing bug**
+  surfaced by this migration's own test suite
+  (`test-incidence-logit-bootstrap-fast-path.R`): a `Slow*` test subclass
+  forcing `supports_reusable_bootstrap_worker() = FALSE` returned the exact
+  same constant bootstrap estimate for every replicate, regardless of the
+  resampled data -- silently wrong bootstrap inference, not a load-time or
+  test-infrastructure failure. Root cause, in `contracts_mixins.R`'s
+  `edi_rebind_lazy_components_after_clone()` (called from `Inference$
+  duplicate()`, which `bootstrap_subset_inference()`'s row-resampling relies
+  on): (1) `install_lazy_inference_component()` stores its "already
+  installed" bookkeeping marker as an **environment attribute**, not a
+  binding, whenever the instance's private environment is already locked
+  at install time (true for any `R6::R6Class(inherit = <migrated class>,
+  ...)` subclass that doesn't itself pass `lock_objects = FALSE` -- every
+  migrated class does, but a plain test/user subclass does not by default)
+  -- the rebind function's read only checked the binding form; (2) even
+  fixing that read, `self$clone()` copies environment *bindings* but does
+  **not** preserve environment-level *attributes*, so an attribute-stored
+  marker never survives cloning at all regardless of how it's read --
+  there is nothing on the clone's own private environment to find. Net
+  effect: any lazy component already installed on a locked-subclass
+  instance stayed silently un-rebound after `clone()`/`duplicate()`; its
+  methods kept resolving `self`/`private` to the pre-clone SOURCE instance,
+  so every "fresh" cloned/resampled worker silently computed against the
+  original, un-resampled data. Fixed by threading the source instance's own
+  `private` through `duplicate()` into `edi_rebind_lazy_components_after_
+  clone(i, source_private = private)`, reading the marker from the
+  reliable source (not the potentially attribute-stripped clone), and
+  re-recording it on the clone itself (binding if unlocked, else the same
+  attribute fallback) so a clone-of-a-clone also has something to read.
+  **Confirmed this is not specific to this migration**: reproduced the
+  identical bug directly against the already-migrated, already-shipped
+  `InferenceOrdinalPropOddsRegr` via the same `Slow*`-subclass-plus-row-
+  resampling-clone construction -- a real, previously-undetected latent
+  defect in the shared lazy-component/clone machinery affecting any class
+  with lazy components whenever a locked subclass of it gets cloned before
+  triggering an already-installed component's methods. Verified fixed for
+  both classes (`InferenceIncidLogRegr`'s own fast-vs-slow-path golden
+  test now passes; direct reproduction against `InferenceOrdinalPropOddsRegr`
+  now returns distinct per-replicate estimates instead of a constant).
+  Regression battery (24 test files spanning likelihood-test plumbing,
+  Bartlett correction, parametric/nonparametric bootstrap, warm-start
+  policies, capability tables, static-cleanup guardrails, and the
+  full-likelihood baseline) all green after the fix; one guardrail
+  expected-count table updated (`inference_incidence_logit.R` added to the
+  raw-splicing-pattern allowlist, 2 occurrences, matching the established
+  `*Source`-object exemption already given to every other file in that
+  table).
+
+  **`InferenceIncidProbitRegr` and `InferenceIncidLogBinomial` migrated
+  (2026-08-20)**, same recipe as `InferenceIncidLogRegr` immediately above
+  (both already had registered-but-uncomposed `IncidenceProbitLikelihood`/
+  `IncidenceLogBinomialLikelihood` components from earlier prep work; both
+  needed the same stale single-name `infer_inference_direct_components()`
+  switch entries corrected to the full 3-component list; both needed
+  `cached_mod` re-declared in their own component spec for the same eager-
+  NULL-dropping reason). `InferenceIncidLogBinomial` additionally overrides
+  `compute_score_confidence_interval`/`compute_gradient_confidence_interval`
+  with try/catch-wrapped fallback logic that called `super$compute_score_
+  confidence_interval(...)`/`super$compute_gradient_confidence_interval(...)`
+  -- the identical `super$`-through-a-composed-class breakage as the
+  `compute_asymp_confidence_interval`/`compute_asymp_two_sided_pval` fix
+  documented in `inference_all_abstract_asymp_lik_std_mod_cache.R` above,
+  just for two more of `InferenceAsympLik`'s public dispatch methods.
+  Fixed the same way: replaced each `super$...(...)` call with the private
+  impl the composed `LikelihoodTests` component's own public method
+  delegates to directly (`private$compute_score_confidence_interval_impl`/
+  `private$compute_gradient_confidence_interval_impl`) -- confirmed
+  behavior-preserving since the old ladder's `super$` call itself just
+  reached that same private impl one indirection layer up, virtually
+  dispatched to this class's own override either way. Both verified via
+  from-source legacy-fixture comparison, bit-identical across
+  `compute_estimate`/`compute_asymp_confidence_interval`/
+  `compute_asymp_two_sided_pval`/`compute_rand_two_sided_pval`/
+  `compute_lik_ratio_bootstrap_two_sided_pval`/`compute_score_two_sided_pval`
+  (plus `compute_score_confidence_interval`/`compute_gradient_confidence_
+  interval` for the log-binomial class specifically); `mark_inference_
+  class_migrated()` passes for both. Full targeted battery green for both
+  (`test-incidence-probit.R`, `test-parametric-bootstrap-lr-all-capable-
+  classes.R`, `test-full-likelihood-migration-baseline.R`, `test-bayesian-
+  bootstrap.R`, `test-incid-kk-cond-logit-glmm-migration-golden.R`,
+  `test-smart-start-inference-policies.R`, `test-bootstrap-reused-worker-
+  families.R`, `test-mixin-contracts.R`, `test-inference-class-registry.R`,
+  `test-capability-tables.R`, `test-static-cleanup-guardrails.R` -- the
+  latter's expected-count table gained both files' 2-occurrence entries,
+  same exemption as every other `*Source`-object file).
+
+  **`InferenceIncidModifiedPoisson` and `InferenceIncidBinomialIdentityRiskDiff`
+  migrated (2026-08-20)**, same recipe. `InferenceIncidModifiedPoisson`
+  already declared `supports_likelihood_tests()`/`supports_lik_ratio_
+  param_bootstrap()` as `FALSE` (Wald-only, per its pre-existing
+  `EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES` entry, left in place since
+  the class still structurally composes `ParametricLikelihoodBootstrap`
+  and just declines to use it at runtime -- exactly the case that entry's
+  own removal instruction says to *keep*, not the "no longer composes it
+  at all" case that already triggered two other entries' removal earlier
+  in this effort) and its own `compute_asymp_confidence_interval`/
+  `compute_asymp_two_sided_pval` overrides call the shared z/t helpers
+  directly rather than dispatching through `super$`, so neither needed the
+  `super$` fix. `InferenceIncidBinomialIdentityRiskDiff` overrides
+  `compute_lik_ratio_confidence_interval` (not the asymp dispatcher this
+  time) with the same `super$`-through-a-composed-class breakage, fixed
+  the same way. Both verified via from-source legacy-fixture comparison,
+  bit-identical across the same method battery as the siblings above
+  (plus `compute_lik_ratio_confidence_interval` specifically for the
+  binomial-identity class). `test-incidence-modified-poisson-bootstrap-
+  fast-path.R` -- the same fast-vs-slow-bootstrap-worker golden shape that
+  caught the lazy-component/clone bug on `InferenceIncidLogRegr` -- passed
+  clean on first run, confirming that fix generalizes. Full targeted
+  battery green for both; `test-static-cleanup-guardrails.R`'s
+  expected-count table gained both files' entries.
+
+  **`InferenceOrdinalStereotypeLogitRegr` and `InferenceOrdinalContRatioRegr`
+  migrated (2026-08-20)**, same recipe (both classes share
+  `inference_ordinal_stereotype_logit.R`; hoisted each into its own
+  `inference_ordinal_stereotype_public/private`/`inference_ordinal_
+  contratio_public/private` pair). Pinned `compute_rand_two_sided_pval`
+  from plain `InferenceRand` (not `InferenceRandCI`) -- confirmed this
+  matches every other already-migrated ordinal class in the codebase
+  (`InferenceOrdinalPropOddsRegr`/`AdjCatLogitRegr`/`CloglogRegr`/
+  `CauchitRegr` all do the same), unlike the incidence-response siblings
+  above which need `InferenceRandCI` for Zhang dispatch. Neither needed
+  the `cached_mod` fix (neither uses `private$cached_mod`). Both verified
+  bit-identical via from-source legacy-fixture comparison; full targeted
+  battery green including the stereotype/continuation-ratio kernel unit
+  tests (`test-stereotype-logit-*`, `test-continuation-ratio-*`).
+
+  **`InferenceOrdinalOrderedProbitRegr` migrated (2026-08-20)**, same
+  recipe, no new issues (no `cached_mod` usage, no `super$` overrides).
+  Verified bit-identical via legacy-fixture comparison; full targeted
+  battery green.
+
+  **`InferencePropBetaRegr` migrated (2026-08-20)**. Unlike its 10
+  `AsympLikStdModCache` siblings above, this class had **no pre-registered
+  per-class component** (no `*Source` extraction line existed in the file
+  at all), so its `public=`/`private=` content was declared inline
+  directly in the `define_inference_class()` call, composing
+  `c("BayesianBootstrap", "ParametricLikelihoodBootstrap",
+  "StandardModelCache")` with no dedicated leaf component -- no separate
+  registered-component step needed, and no `test-static-cleanup-
+  guardrails.R` raw-splicing-pattern entry needed either (no separately-
+  named `inference_*_public`/`_private` variables to match that pattern).
+  `cached_vc_params` was previously entirely undeclared (created
+  dynamically on first assignment); declared it explicitly alongside
+  `cached_mod`, for the same reason. Verified bit-identical via
+  legacy-fixture comparison; full targeted battery green.
+
+  **`InferencePropZeroOneInflatedBetaRegr` migrated (2026-08-20)**, same
+  no-pre-registered-component shape as `InferencePropBetaRegr`. Also
+  dropped a pure-passthrough `approximate_bootstrap_distribution_beta_
+  hat_T` override (`super$approximate_bootstrap_distribution_beta_hat_T(...)`
+  with no added logic) -- composed classes have no `super$` chain, and
+  since the override added no behavior, the composed `NonparametricBootstrap`
+  component's own version is used directly with no change in behavior.
+  `cached_mod`/`cached_vc_params` declared explicitly for the same reasons
+  as the sibling above. Verified bit-identical via legacy-fixture
+  comparison (including `approximate_bootstrap_distribution_beta_hat_T`
+  itself); full targeted battery green.
+
+  **`InferenceSurvivalDepCensTransformRegr` migrated (2026-08-20)** -- the
+  most complex class in this batch. Findings:
+  - The pre-registered `SurvivalDepCensTransform` component spec had
+    `dependencies = character()`, but the class's own body calls
+    `private$shared()` (from `StandardModelCache`) in four places
+    (`compute_estimate`/`compute_asymp_confidence_interval`/`compute_asymp_
+    two_sided_pval`/`get_likelihood_test_spec`). This spec had never
+    actually been composed by a concrete class before now, so the missing
+    dependency was never exercised until this migration surfaced it as
+    "attempt to apply non-function" (`private$shared` resolving to `NULL`).
+    Fixed by adding `dependencies = "StandardModelCache"`.
+  - 5 genuine `super$`-through-a-composed-class fixes (the most of any
+    class so far): `compute_bootstrap_confidence_interval`,
+    `compute_score_two_sided_pval` (two `super$` calls inside one method),
+    and `compute_lik_ratio_confidence_interval`. Unlike every prior
+    `super$` fix in this effort, `compute_bootstrap_confidence_interval`'s
+    real provider (`NonparametricBootstrap`'s own `compute_bootstrap_
+    confidence_interval`) is a full self-contained implementation, not a
+    thin wrapper around a private impl -- so there's no private helper to
+    call directly instead. Fixed by pinning the real method body from its
+    source generator (`InferenceNonParamBootstrap$public_methods$compute_
+    bootstrap_confidence_interval`) into a private helper under a
+    non-colliding name (`nonparam_boot_compute_bootstrap_confidence_
+    interval`), the same "pin from the named source generator" pattern
+    used throughout this effort for `compute_rand_two_sided_pval`, just
+    stored privately instead of publicly since this override needs to call
+    it without recursing into itself.
+  - **Confirmed two pre-existing, already-broken methods, left unchanged**:
+    `compute_bootstrap_confidence_interval_basic`/`_bca` call
+    `super$compute_bootstrap_confidence_interval_basic`/`_bca`, but no
+    class in the *entire* deep ladder (including root `Inference`) has
+    ever defined those method names -- confirmed by reproducing the
+    identical "attempt to apply non-function" error against the
+    pre-migration source directly, unmodified. Since `Inference` root
+    doesn't define them either, a composed class's own (nonexistent)
+    `super$` binding produces the exact same error, so no behavior change
+    was needed -- verified both legacy and migrated throw the identical
+    error message.
+  - **Testing methodology note**: an initial legacy-vs-migrated comparison
+    of `compute_bootstrap_confidence_interval` showed a real numeric
+    difference (migrated returned `NA`/`NA`) -- traced this to the method
+    using ambient global RNG state with no internal seeding (unlike
+    `compute_rand_two_sided_pval`/bootstrap-distribution methods elsewhere,
+    which explicitly save/restore `.Random.seed` via `private$seed`).
+    Constructing and calling methods on the `legacy` object first shifted
+    the global RNG stream before `migrated`'s call, changing which
+    bootstrap resamples succeeded for this small-B, fragile-fit model. Not
+    a migration regression: re-run with `set.seed()` immediately before
+    each object's call (matching the method's actual, undocumented
+    contract) gave bit-identical results. Also added the new `cached_
+    vc_params` entry to `test-static-cleanup-guardrails.R`'s "component
+    redeclarations of root-owned state" allowlist (root-owned, same
+    pattern as `SurvivalKKWeibullMarginal`'s existing entry; `cached_mod`
+    is not root-owned). Full targeted battery green.
+
+  **`InferenceSurvivalWeibullRegr` migrated (2026-08-20)** -- the 12th and
+  last of this family. 3 `super$`-through-a-composed-class fixes:
+  `compute_bayesian_bootstrap_two_sided_pval` (self-contained, like
+  `compute_bootstrap_confidence_interval` above -- pinned from
+  `InferenceBayesianBootstrap$public_methods$...` into a private helper),
+  `compute_lik_ratio_bartlett_approx_two_sided_pval` (thin wrapper, fixed
+  via the usual private-impl-direct-call pattern), and
+  `compute_rand_two_sided_pval` (self-contained -- pinned from plain
+  `InferenceRand$public_methods$...`, matching the established
+  plain-Cox-survival precedent, not the incidence-only `InferenceRandCI`
+  case).
+
+  **Found and fixed a third systemic gap** in the shared lazy-component
+  machinery, distinct from the earlier `cached_mod`-NULL-dropping and
+  clone-rebinding bugs: `infer_inference_supports_general_censoring()`
+  (used by `populate_inference_class_registry()` for every class) calls a
+  class's `supports_interval_or_left_censored_data()` implementation
+  **directly and unbound** (`fn()`, no `self`/`private`), on the documented
+  assumption that every implementation is a trivial, self/private-free
+  literal -- true of the literal body itself, but not of how a *lazy*
+  component's copy of it behaves before first use: a lazy component's
+  `provides_private_methods` entries are template-level install *stubs*
+  (real installation deferred to first access through a live instance),
+  and the stub's own body references `self`/`private` to perform that
+  install -- calling the stub raw and unbound throws "object 'private' not
+  found". This is the first class in the whole migration effort whose
+  composed component overrides this specific method (survival-only), so
+  the gap was never exercised until now. Fixed narrowly, not by touching
+  the shared registry helper: declared `supports_interval_or_left_
+  censored_data` directly in the class's own (always-eager) host `private=`
+  instead of inside the lazy `SurvivalWeibullLikelihood` component source,
+  so it's never wrapped in an install stub at all -- restores the "safe to
+  call raw" assumption exactly. Verified via `EDI:::inference_class_
+  registry_as_list()[["InferenceSurvivalWeibullRegr"]]$supports_general_
+  censoring == TRUE` (correctly detected) and `test-weibull-general-
+  censoring-inference.R` (the dedicated left-/interval-censoring golden
+  suite) passing clean. Verified bit-identical via legacy-fixture
+  comparison across the full method battery including all 3 fixed
+  `super$` paths; full targeted battery green (12 files).
+
+  **`InferenceAsympLikStdModCache` fully drained and removed from
+  `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES`** now that all 12
+  descendants above are migrated -- confirmed via the same live
+  ancestor-chain audit used throughout this effort (zero non-abstract
+  registered classes have it in their ancestor chain). The R6 generator
+  itself was **not** deleted: 4 already-migrated ordinal classes'
+  `...LegacyRaw`/harvesting-source objects
+  (`inference_ordinal_adj_cat_logit.R`/`cauchit.R`/`proportional_odds.R`/
+  `cloglog.R`) still classically inherit from it as their own harvesting
+  mechanism -- same "real remaining consumer, just not a package-source
+  algorithmic-ancestry one" precedent as `InferenceKKPassThroughCompound`
+  and `InferenceAsympLikStdModCacheNoParamBootstrap` above. Full targeted
+  battery green after the removal (`test-inference-class-registry.R`,
+  `test-mixin-contracts.R`, `test-static-cleanup-guardrails.R`,
+  `test-capability-tables.R`, `test-full-likelihood-migration-baseline.R`).
+
+  **Remaining pending classes package-wide: 11** (down from 22 at the
+  start of this per-class migration push): `InferenceOrdinalPairedSignTest`
+  (1, functionally KK, tracked under "KK And IVWC Estimators"),
+  `InferenceCountLikelihood` family (3: `InferenceCountHurdleNegBin`,
+  `InferenceCountNegBin`, `InferenceCountPoisson`, plus 3 more via
+  `InferenceCountZeroAugmentedPoissonAbstract`: `InferenceCountHurdlePoisson`,
+  `InferenceCountZeroInflatedNegBin`, `InferenceCountZeroInflatedPoisson`),
+  and `InferenceParamBootstrap` (2: `InferenceContinLin`,
+  `InferenceContinOLS`).
+
+  **Scoping note on the remaining 11 (2026-08-20):** all 11 remaining
+  classes sit below `InferenceParamBootstrap`
+  (`inference_all_abstract_param_boot.R`, 1076 lines,
+  `inherit = InferenceAsympLik`), not below `InferenceAsympLikStdModCache`
+  like everything migrated in this push. `InferenceCountLikelihood`
+  (`inference_all_abstract_count_likelihood.R:268`) classically
+  `inherit`s `InferenceParamBootstrap` directly, and
+  `InferenceCountZeroAugmentedPoissonAbstract`
+  (`inference_count_zero_augmented_poisson_abstract.R`, 1132 lines) sits
+  below that. `InferenceParamBootstrap` itself is substantially more
+  complex than any component migrated so far: it owns worker-clone
+  machinery for parallel bootstrap replicates
+  (`create_param_bootstrap_worker_state`/`compute_param_bootstrap_worker_lrt`,
+  which `self$duplicate()`s the whole object and mutates a clone's
+  private fields directly), deterministic-vs-stochastic RNG-seeding
+  paths, and a reusable-worker optimization -- none of which resembles
+  the `StandardModelCache`/`LikelihoodTests`/`Wald`/`Jackknife` component
+  chain used by every class migrated in this push. `CountLikelihoodPlumbing`
+  (already registered in `contracts_mixins.R`) depends only on
+  `LikelihoodTests`, not on any `ParamBootstrap`-equivalent component --
+  so composing it alone would not give `InferenceCountLikelihood` (or its
+  descendants) the `compute_lik_ratio_bootstrap_*`/
+  `compute_param_bootstrap_*` methods they currently get via classic
+  `super`. Migrating this family correctly means first designing and
+  registering a new component (something like `ParametricBootstrapCore`)
+  that wraps this worker-clone machinery, then composing it under
+  `InferenceCountLikelihood` and separately under
+  `InferenceContinLin`/`InferenceContinOLS` -- a materially larger,
+  higher-risk unit of work than any single class migrated in this push
+  (which were each a few hundred lines with a handful of `super$` calls).
+  Paused here rather than rushing a same-session redesign of shared
+  parallel/RNG-sensitive machinery without dedicated review; next step is
+  to scope the `ParametricBootstrapCore` component design explicitly
+  before touching any of these 11 classes.
 
 #### Quasi And Robust Estimators
 
@@ -5734,6 +6180,64 @@ here (2026-08-13) rather than left as prose-only notes.
   and `test-inference-suite-discovery.R` remain, both caused by a
   concurrent process editing files in the working tree during earlier
   passes, not by this change).
+
+- [ ] **Discovery-time applicability is response-type-only and name-pattern-
+  derived (`infer_inference_response_types()`), with no way to know a
+  class also requires specific *design-structure* properties (blocking,
+  block-size equality, treatment-allocation probability) -- so
+  `run_all_inference()`'s `applicable_design_classes` lists classes that
+  are guaranteed to fail construction for the actual design being fit,
+  discoverable only by constructing them and catching the `stop()`.
+  Violates this file's own "Discovery is metadata-based and side-effect
+  free" Definition-of-Done bullet.** Found 2026-08-20 via a user-reported
+  `run_all_inference()` run where `InferenceAllSimpleWilcox` and
+  `InferenceIncidCMH` both appeared as `status = "error"` rows with clear
+  messages, prompting "why is introspection returning that it's valid?".
+  Confirmed by reading source directly, not assumed -- three concrete
+  cases, each an `initialize()`-time `stop()` with no matching registry
+  metadata:
+  - `InferenceAllSimpleWilcox` (`inference_all_simple_wilcox.R:27-33`):
+    rejects `response_type == "incidence"` (Hodges-Lehmann degenerates on
+    0/1 data) -- but `infer_inference_response_types()`
+    (`inference_class_registry.R:415-426`) blanket-matches `^InferenceAll`
+    class names to *every* response type (`continuous`, `incidence`,
+    `count`, `proportion`, `survival`, `ordinal`), with no per-class
+    override table, so this genuinely-incompatible pairing is
+    indistinguishable from a genuinely-compatible one at discovery time.
+  - `InferenceIncidCMH` (`inference_incidence_cmh.R:104-113`) and
+    `InferenceIncidExtendedRobins` (`inference_incidence_extended_robins.R:
+    62-74`): both reject non-blocking designs with `prob_T != 0.5`, and
+    blocking designs with unequal block sizes or `prob_T != 0.5` -- a
+    design-*structure* requirement `infer_inference_response_types()`
+    (response-type-only) has no vocabulary for at all, regardless of
+    per-class overrides.
+  **Scope**: hoist each of these three classes' `initialize()`-time
+  compatibility checks (currently ad hoc, duplicated-in-spirit `stop()`
+  calls, one set of conditions per class) into a single reusable,
+  introspectable predicate the class exposes without constructing a full
+  instance -- e.g. a static/class-level `design_compatibility_reason(des_obj)`
+  (returns `NA_character_` if compatible, else a one-line reason, mirroring
+  `get_nonestimable_reason()`'s existing shape) that `initialize()` itself
+  calls first (so the `stop()` message and the discovery-time reason can
+  never drift apart -- single source of truth, same principle as the
+  `get_supported_*_types()` accessors reading from the same constant their
+  own `assertChoice()` validates against). Register it in
+  `contracts_mixins.R` alongside the class's other contract metadata so
+  it's enumerable, not another hand-maintained special case. Wire
+  `run_all_inference_class_applicable_methods()`/`applicable_design_classes`
+  to consult it (when present) against the actual `des_obj` being fit,
+  before listing a class as applicable -- a class that fails this check
+  should either be excluded from the results table entirely or reported as
+  a distinct `status` (e.g. `"incompatible"`, not `"error"`) with the
+  predicate's reason as `message`, so a real construction/estimation
+  failure (`status = "error"`) stays distinguishable from "this class was
+  never going to work for this design" from the very first `screen = TRUE`
+  row streamed, not discovered mid-run. Audit for further instances beyond
+  these three (grep every `initialize()` for a `stop()` gated on
+  `des_obj$is_blocking_design()`/`get_prob_T()`/`get_block_ids()`/
+  `get_response_type()` with no matching registry entry) rather than
+  hand-fixing only the two/three classes a single user run happened to
+  surface.
 
 ## Definition of Done
 

@@ -36,6 +36,7 @@ import re
 import subprocess
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -145,8 +146,25 @@ EXTERNAL_UA = (
 )
 
 
+def _ascii_url(url: str) -> str:
+    """Percent-encode a URL that may contain literal Unicode characters.
+
+    Some doc links are valid IRIs but not valid ASCII URIs -- e.g. a
+    Wikipedia link with an en-dash in the title
+    (".../wiki/Gauss–Hermite_quadrature"). urllib.request builds the raw
+    HTTP request line from the URL as-is and only supports ascii, so a
+    non-ascii character there raises UnicodeEncodeError before any request
+    is even sent. Percent-encode anything outside the standard URI character
+    set, leaving already-escaped %XX sequences and URL-structural characters
+    (: / ? # [ ] @ ! $ & ' ( ) * + , ; = %) alone.
+    """
+    return urllib.parse.quote(url, safe=":/?#[]@!$&'()*+,;=%")
+
+
 def check_external(url: str) -> str | None:
-    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": EXTERNAL_UA})
+    req = urllib.request.Request(
+        _ascii_url(url), method="HEAD", headers={"User-Agent": EXTERNAL_UA}
+    )
     try:
         with urllib.request.urlopen(req, timeout=EXTERNAL_TIMEOUT_SECS) as resp:
             if resp.status >= 400:
@@ -162,7 +180,7 @@ def check_external(url: str) -> str | None:
             # Some sites reject HEAD; retry with GET before giving up.
             try:
                 req2 = urllib.request.Request(
-                    url, method="GET", headers={"User-Agent": EXTERNAL_UA}
+                    _ascii_url(url), method="GET", headers={"User-Agent": EXTERNAL_UA}
                 )
                 with urllib.request.urlopen(req2, timeout=EXTERNAL_TIMEOUT_SECS) as resp:
                     if resp.status >= 400:

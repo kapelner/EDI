@@ -218,7 +218,7 @@ Inference = R6::R6Class("Inference",
 		#' @return 			A new \code{Inference} object with the same data
 		duplicate = function(verbose = FALSE, make_fork_cluster = FALSE){
 			i = self$clone()
-			edi_rebind_lazy_components_after_clone(i)
+			edi_rebind_lazy_components_after_clone(i, source_private = private)
 			i$.__enclos_env__$private$verbose = verbose
 			i$.__enclos_env__$private$fork_cluster = NULL
 			i$.__enclos_env__$private$cached_values = list()

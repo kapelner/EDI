@@ -15,11 +15,8 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceIncidBinomialIdentityRiskDiff = R6::R6Class("InferenceIncidBinomialIdentityRiskDiff",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
-	public = list(
-				
+inference_incid_binomial_identity_public = list(
+
 		#' @description Initialize a binomial identity-link risk-difference inference object.
 		#' @param des_obj A completed \code{Design} object with an incidence response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
@@ -97,8 +94,13 @@ InferenceIncidBinomialIdentityRiskDiff = R6::R6Class("InferenceIncidBinomialIden
 		#'   non-estimable result if the underlying computation fails.
 		#' @param alpha Significance level. Default 0.05.
 		compute_lik_ratio_confidence_interval = function(alpha = 0.05){
+			# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+			# migration ladders): was `super$compute_lik_ratio_confidence_interval(...)`
+			# -- same super$-through-a-composed-class breakage as documented in
+			# inference_all_abstract_asymp_lik_std_mod_cache.R; replaced with the
+			# private impl InferenceAsympLik's own public method delegates to.
 			tryCatch(
-				super$compute_lik_ratio_confidence_interval(alpha = alpha),
+				private$compute_lik_ratio_confidence_interval_impl(alpha),
 				error = function(e){
 					private$cache_nonestimable_se("lik_ratio_confidence_interval_unavailable")
 					ci = c(NA_real_, NA_real_)
@@ -107,8 +109,13 @@ InferenceIncidBinomialIdentityRiskDiff = R6::R6Class("InferenceIncidBinomialIden
 				}
 			)
 		}
-	),
-	private = list(
+	)
+
+inference_incid_binomial_identity_private = list(
+		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+		# migration ladders): see inference_incid_log_regr_private's cached_mod
+		# entry (inference_incidence_logit.R) for the full explanation.
+		cached_mod = NULL,
 		best_X_colnames = NULL,
 		build_design_matrix = function(){
 			X_data = private$get_X()
@@ -310,6 +317,41 @@ InferenceIncidBinomialIdentityRiskDiff = R6::R6Class("InferenceIncidBinomialIden
 			attempt$fit
 		}
 	)
+
+IncidenceBinomialIdentityLikelihoodSource = list(
+	public = inference_incid_binomial_identity_public,
+	private = inference_incid_binomial_identity_private
 )
 
-IncidenceBinomialIdentityLikelihoodSource = inference_component_source_parts(InferenceIncidBinomialIdentityRiskDiff)
+InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
+	classname = "InferenceIncidBinomialIdentityRiskDiff",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceBinomialIdentityLikelihood"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"get_supported_testing_types", "compute_estimate_with_bootstrap_weights",
+			"compute_lik_ratio_confidence_interval"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+			"generate_mod", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_complexity_tier", "supports_fisher_information"
+		)
+	),
+	public = list(
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+	)
+)

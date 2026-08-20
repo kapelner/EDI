@@ -1154,7 +1154,7 @@ for the merge and the now-seed-reproducible kernels.)
 
 - [ ] TODO #447: Method `InferenceIncidLogRegr$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
 - [ ] TODO #448: Method `InferenceIncidLogRegr$new()` (current description `50` chars).
-- [ ] TODO #449: Topic `InferenceIncidLogRegr` (current description `199` chars).
+- [x] TODO #449: Topic `InferenceIncidLogRegr` (current description `199` chars). Newly ungated 2026-08-20 (class migrated to `inherit = Inference`); full model doc added, and fixed a structural bug found while documenting: the topic-level roxygen block was sitting above the mid-refactor `inference_incid_log_regr_public` bare-list binding (not the `InferenceIncidLogRegr = define_inference_class(...)` call itself), which would have generated the Rd page under the wrong topic — moved the doc block to directly precede the `define_inference_class()` call. `REFERENCES.md` updated (new `[McCullaghNelder1989]` entry).
 
 ### `InferenceIncidMiettinenNurminenRiskDiff.Rd`
 
@@ -1362,7 +1362,7 @@ for the merge and the now-seed-reproducible kernels.)
 - [ ] TODO #573: Method `InferencePropFractionalLogit$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
 - [ ] TODO #574: Method `InferencePropFractionalLogit$compute_estimate()` (current description `58` chars).
 - [ ] TODO #575: Method `InferencePropFractionalLogit$new()` (current description `47` chars).
-- [ ] TODO #576: Topic `InferencePropFractionalLogit` (current description `241` chars).
+- [x] TODO #576: Topic `InferencePropFractionalLogit` (current description `241` chars). Newly ungated 2026-08-20 (class migrated to `inherit = Inference`); full model doc added (Papke & Wooldridge fractional-response quasi-likelihood), noted `likelihood_tier = "full"` metadata vs. hard-`FALSE` `supports_likelihood_tests()` (Wald-only). `REFERENCES.md` updated (new `[PapkeWooldridge1996]` entry).
 
 ### `InferencePropGCompMeanDiff.Rd`
 

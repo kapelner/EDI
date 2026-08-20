@@ -1,27 +1,4 @@
-#' Logistic Regression Inference for Incidence Responses
-#'
-#' Fits a logistic regression for binary (incidence) responses using the
-#' treatment indicator and, optionally, all recorded covariates as predictors.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
-#' inf = InferenceIncidLogRegr$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' \donttest{
-#' inf$set_seed(1)
-#' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
-#' }
-#' @export
-InferenceIncidLogRegr = R6::R6Class("InferenceIncidLogRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
-	public = list(
+inference_incid_log_regr_public = list(
 
 		#' @description Initialize a logistic-regression inference object.
 		#' @param des_obj A completed \code{Design} object with an incidence response.
@@ -93,8 +70,24 @@ InferenceIncidLogRegr = R6::R6Class("InferenceIncidLogRegr",
 			)
 			private$cached_values$beta_hat_T
 		}
-	),
-	private = list(
+	)
+
+inference_incid_log_regr_private = list(
+		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+		# migration ladders): re-declared here even though `Wald`'s own source
+		# (InferenceAsymp) already declares `cached_mod = NULL` and lists it in
+		# `owns_state` -- component composition merges via `modifyList()`,
+		# which silently DROPS NULL-valued entries for eager components
+		# (`keep.null` is TRUE only for lazy components), so `cached_mod` never
+		# actually lands as a real private field via Wald alone. Harmless for
+		# real package instances (`lock_objects = FALSE` lets it spring into
+		# existence on first assignment), but `test-bartlett-lr-plumbing.R`
+		# subclasses this class via plain `R6::R6Class(inherit = ...)` without
+		# its own `lock_objects = FALSE`, so the first `private$cached_mod =`
+		# write inside `shared()` hit "cannot add bindings to a locked
+		# environment". Re-declaring it here (a lazy component, so `keep.null`
+		# applies) makes it a real pre-existing binding again.
+		cached_mod = NULL,
 		best_X_colnames = NULL,
 		logit_X_full_cache = NULL,
 		logit_w_cache = NULL,
@@ -373,6 +366,103 @@ InferenceIncidLogRegr = R6::R6Class("InferenceIncidLogRegr",
 		},
 		get_complexity_tier = function() "medium"
 	)
+
+IncidenceLogisticLikelihoodSource = list(
+	public = inference_incid_log_regr_public,
+	private = inference_incid_log_regr_private
 )
 
-IncidenceLogisticLikelihoodSource = inference_component_source_parts(InferenceIncidLogRegr)
+#' Logistic Regression Inference for Incidence Responses
+#'
+#' Fits a logistic regression model for binary (incidence) responses:
+#' \eqn{\mathrm{logit}(P(Y_i = 1)) = \beta_0 + \beta_T W_i + X_i^\top \gamma},
+#' where \eqn{W_i} is the treatment indicator and \eqn{X_i} are optional
+#' recorded covariates, by maximum likelihood
+#' (\code{\link{fast_logistic_regression_cpp}}/
+#' \code{\link{fast_logistic_regression_weighted_cpp}}). \eqn{\hat\beta_T} is
+#' a log-odds-ratio: \eqn{\exp(\hat\beta_T)} is the estimated treatment odds
+#' ratio. \code{likelihood_tier = "full"}: Wald, score, gradient, and
+#' likelihood-ratio tests are all available (via the shared
+#' \code{StandardModelCache} model-caching contract), plus
+#' parametric-likelihood-bootstrap calibration of the likelihood-ratio test.
+#' A fit whose coefficients exceed
+#' \code{max_abs_reasonable_coef} in magnitude (a proxy for near-perfect
+#' separation) is cached as nonestimable rather than returned. Validity
+#' requires the usual logistic-regression assumptions: correctly specified
+#' linear predictor on the logit scale, independence across subjects
+#' conditional on covariates, and no perfect/quasi-complete separation.
+#'
+#' @references McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
+#'   Linear Models} (2nd ed.). Chapman and Hall/CRC, for the logistic
+#'   regression model and its maximum-likelihood theory.
+#'
+#' @seealso Comparable Python API:
+#'   \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM}. See
+#'   also: \href{https://en.wikipedia.org/wiki/Logistic_regression}{Logistic
+#'   regression} (Wikipedia).
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
+#' inf = InferenceIncidLogRegr$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' \donttest{
+#' inf$set_seed(1)
+#' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
+#' }
+#' @export
+InferenceIncidLogRegr = define_inference_class(
+	classname = "InferenceIncidLogRegr",
+	inherit = Inference,
+	# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+	# migration ladders): flipped from `inherit = InferenceAsympLikStdModCache`
+	# (a deep algorithmic-compatibility base) to composing the
+	# already-registered `IncidenceLogisticLikelihood` component (source
+	# extracted above as a static plain-list object -- previously harvested
+	# post-hoc via `inference_component_source_parts(InferenceIncidLogRegr)`
+	# from the raw R6 generator; that pattern breaks once the class itself is
+	# rebuilt via `define_inference_class()`, since the merged generator's
+	# `$public_methods`/`$private_methods` would then include every composed
+	# component's own methods too, not just this class's own layer -- so the
+	# public=/private= content was hoisted into named list objects above,
+	# harvested from directly instead). `IncidenceLogisticLikelihood`
+	# declares `dependencies = "StandardModelCache"`; `ParametricLikelihood
+	# Bootstrap` pulls in `LikelihoodTests` -> `Wald` -> `Jackknife`
+	# separately; `BayesianBootstrap` pulls the rand/bootstrap chain.
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogisticLikelihood"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_rand_two_sided_pval", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval", "get_supported_testing_types",
+			"compute_estimate", "compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_reusable_bootstrap_worker", "supports_likelihood_tests",
+			"generate_mod", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_complexity_tier", "supports_fisher_information"
+		)
+	),
+	# Uses the randomization-CI layer's two-sided p-value contract
+	# (InferenceRandCI's version, not InferenceRand's) for the same reason
+	# as every other migrated class this stretch -- Zhang dispatch matters
+	# doubly here since this is an incidence-response class.
+	public = list(
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+	)
+)

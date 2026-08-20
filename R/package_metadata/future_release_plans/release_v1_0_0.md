@@ -176,6 +176,25 @@ the frozen substrate makes it additive.
     should just check the first plan's chosen values so the two enums
     don't collide, per each plan's own `Depends on` header.
 
+15. **`local_machine_optimization.md`** (added 2026-08-20, user decision —
+    moved from the v1.1.0 line; was `release_v1_1_0.md → TODO-10` and part
+    of its `TODO-1` step 11). `optimize_EDI_locally()`: a user-invoked
+    benchmark tuner that measures the current machine and overrides the
+    machine-dependent performance-policy defaults hardcoded in
+    `EDI/R/globals.R` (warm-start thresholds, core count, etc.) with a
+    persisted, machine-specific config. TODO-2 (the warm-start dispatcher
+    refactor lifting the hardcoded layer into an overridable config table)
+    already shipped in a 1.0.x patch; TODO-1's remaining decision-gate parts
+    (a, b, c, e — part (d) was decided 2026-08-17: tuned core count is
+    recorded-only) and TODO-3..12 (harness, per-axis tuners, persistence,
+    safety blocklist, contention guard, correctness gate, `.onLoad()`
+    import, tests, docs) are now in scope for this release. Additive — a
+    new opt-in function and a new load-time override path, no change to any
+    frozen public contract — so it does not gate the freeze itself, but
+    ships in the same batch per the user's explicit instruction. Benefits
+    from landing late in the batch so the tuner benchmarks the
+    release-candidate kernels rather than mid-release ones.
+
 ## Deferred to 1.x (additive by construction)
 
 Everything below attaches to the frozen substrate without breaking it —

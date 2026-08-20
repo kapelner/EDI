@@ -14,10 +14,7 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceIncidLogBinomial = R6::R6Class("InferenceIncidLogBinomial",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
-	public = list(
+inference_incid_log_binomial_public = list(
 
 		#' @description Initialize a log-binomial regression inference object.
 		#' @param des_obj A completed \code{Design} object with an incidence response.
@@ -102,8 +99,17 @@ InferenceIncidLogBinomial = R6::R6Class("InferenceIncidLogBinomial",
 		#'   non-estimable result if the underlying computation fails or is degenerate.
 		#' @param alpha Significance level. Default 0.05.
 		compute_score_confidence_interval = function(alpha = 0.05){
+			# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+			# migration ladders): was `super$compute_score_confidence_interval(...)`,
+			# relying on classic R6 inheritance reaching InferenceAsympLik's real
+			# implementation. Composed classes have no such `super$` chain --
+			# calling the same private impl InferenceAsympLik's own public method
+			# delegates to directly (see that file's compute_score_confidence_
+			# interval) is the behavior-preserving replacement; same fix shape as
+			# the identical StandardModelCacheSource super$ breakage documented in
+			# inference_all_abstract_asymp_lik_std_mod_cache.R.
 			ci = tryCatch(
-				super$compute_score_confidence_interval(alpha = alpha),
+				private$compute_score_confidence_interval_impl(alpha),
 				error = function(e){
 					msg = if (length(e$message) == 0L) "" else e$message
 					if (grepl("'names' attribute", msg, fixed = TRUE) ||
@@ -124,8 +130,10 @@ InferenceIncidLogBinomial = R6::R6Class("InferenceIncidLogBinomial",
 		#'   non-estimable result if the underlying computation fails or is degenerate.
 		#' @param alpha Significance level. Default 0.05.
 		compute_gradient_confidence_interval = function(alpha = 0.05){
+			# See compute_score_confidence_interval()'s comment above -- same
+			# super$ fix, same reason.
 			ci = tryCatch(
-				super$compute_gradient_confidence_interval(alpha = alpha),
+				private$compute_gradient_confidence_interval_impl(alpha),
 				error = function(e){
 					msg = if (length(e$message) == 0L) "" else e$message
 					if (grepl("'names' attribute", msg, fixed = TRUE) ||
@@ -142,8 +150,13 @@ InferenceIncidLogBinomial = R6::R6Class("InferenceIncidLogBinomial",
 			}
 			ci
 		}
-	),
-	private = list(
+	)
+
+inference_incid_log_binomial_private = list(
+		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+		# migration ladders): see inference_incid_log_regr_private's cached_mod
+		# entry (inference_incidence_logit.R) for the full explanation.
+		cached_mod = NULL,
 		best_X_colnames = NULL,
 		logbin_X_full_cache = NULL,
 		logbin_w_cache = NULL,
@@ -440,6 +453,41 @@ InferenceIncidLogBinomial = R6::R6Class("InferenceIncidLogBinomial",
 			}
 		}
 	)
+
+IncidenceLogBinomialLikelihoodSource = list(
+	public = inference_incid_log_binomial_public,
+	private = inference_incid_log_binomial_private
 )
 
-IncidenceLogBinomialLikelihoodSource = inference_component_source_parts(InferenceIncidLogBinomial)
+InferenceIncidLogBinomial = define_inference_class(
+	classname = "InferenceIncidLogBinomial",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogBinomialLikelihood"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"get_supported_testing_types", "compute_estimate_with_bootstrap_weights",
+			"compute_score_confidence_interval", "compute_gradient_confidence_interval"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+			"generate_mod", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_complexity_tier", "compute_gradient_confidence_interval_impl"
+		)
+	),
+	public = list(
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+	)
+)

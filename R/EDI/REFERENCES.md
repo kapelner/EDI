@@ -266,6 +266,10 @@ files' `@references`) if/when it becomes available.
   Modelling*, 7(9-12), 1393-1512. doi:10.1016/0270-0255(86)90088-6. — Used
   by: `InferenceIncidKKGCompRiskDiff`, `InferenceIncidKKGCompRiskRatio`
   (g-computation/standardization estimand).
+- **[McCullaghNelder1989]** McCullagh, P., and Nelder, J. A. (1989).
+  *Generalized Linear Models* (2nd ed.). Chapman and Hall/CRC. — Used by:
+  `InferenceIncidLogRegr` (logistic regression model and maximum-likelihood
+  theory).
 
 ### Count
 
@@ -405,6 +409,13 @@ files' `@references`) if/when it becomes available.
   Applied Statistics*, 31(7), 799-815. doi:10.1080/0266476042000214501. —
   Used by: `InferencePropBetaRegr`, `fast_beta_regression_cpp` (R;
   `fast_beta_regression` in the Python bindings).
+- **[PapkeWooldridge1996]** Papke, L. E., and Wooldridge, J. M. (1996).
+  "Econometric Methods for Fractional Response Variables with an
+  Application to 401(K) Plan Participation Rates." *Journal of Applied
+  Econometrics*, 11(6), 619-632.
+  doi:10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1. —
+  Used by: `InferencePropFractionalLogit` (the fractional logistic
+  quasi-likelihood model this class fits).
 
 ## Numerical/backend utilities
 

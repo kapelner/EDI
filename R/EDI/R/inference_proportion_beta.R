@@ -14,10 +14,41 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferencePropBetaRegr = R6::R6Class("InferencePropBetaRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
+InferencePropBetaRegr = define_inference_class(
+	classname = "InferencePropBetaRegr",
+	inherit = Inference,
+	# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+	# migration ladders): unlike its 10 AsympLikStdModCache siblings, this
+	# class has no pre-registered per-class component (no `*Source`
+	# extraction line existed in this file before this migration), so its
+	# public=/private= content is declared inline directly rather than
+	# hoisted into a separate registered component.
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"get_supported_testing_types", "compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+			"generate_mod", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_complexity_tier"
+		)
+	),
 	public = list(
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize a beta-regression inference object.
 		#' @param des_obj A completed \code{Design} object with a proportion response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
@@ -138,6 +169,15 @@ InferencePropBetaRegr = R6::R6Class("InferencePropBetaRegr",
 		}
 	),
 	private = list(
+		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+		# migration ladders): see inference_incid_log_regr_private's
+		# cached_mod entry (inference_incidence_logit.R) for the eager-NULL-
+		# dropping explanation this applies to as well. cached_vc_params was
+		# previously undeclared entirely (created dynamically on first
+		# assignment, harmless only because lock_objects=FALSE let it spring
+		# into existence) -- declared explicitly for the same reason.
+		cached_mod = NULL,
+		cached_vc_params = NULL,
 		best_X_colnames = NULL,
 		get_complexity_tier = function() "heavy",
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){

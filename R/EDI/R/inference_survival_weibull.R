@@ -19,10 +19,7 @@
 #' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
 #' }
 #' @export
-InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
-	public = list(
+inference_survival_weibull_public = list(
 		#' @description Initialize a Weibull-regression inference object.
 		#' @param des_obj A completed \code{Design} object with a survival response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
@@ -109,7 +106,15 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 					"which does not apply here)."
 				)
 			}
-			super$compute_bayesian_bootstrap_two_sided_pval(
+			# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+			# migration ladders): was `super$compute_bayesian_bootstrap_two_sided_
+			# pval(...)`. BayesianBootstrap's own version is a full self-contained
+			# implementation (not a thin private-impl wrapper), so it's pinned
+			# into a private helper below (bayesian_boot_compute_bayesian_
+			# bootstrap_two_sided_pval) -- same "pin from named source generator"
+			# shape as compute_bootstrap_confidence_interval's fix in
+			# inference_survival_dep_cens_transform.R.
+			private$bayesian_boot_compute_bayesian_bootstrap_two_sided_pval(
 				delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress,
 				min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type
 			)
@@ -131,7 +136,9 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 					"threshold, not against an arbitrary observation window."
 				)
 			}
-			super$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = delta, B = B)
+			# Same super$ fix as compute_asymp_confidence_interval elsewhere in
+			# this effort -- calls the real private impl directly.
+			private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta, B = B)
 		},
 		#' @description Randomization-test two-sided p-value; see
 		#'   \code{\link[EDI:Inference]{Inference}}. A nonzero null shift
@@ -154,16 +161,28 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 					"left-/interval-censored survival data."
 				)
 			}
-			super$compute_rand_two_sided_pval(
+			# Pinned like compute_bayesian_bootstrap_two_sided_pval above --
+			# RandomizationTest's compute_rand_two_sided_pval is also a full
+			# self-contained implementation. Pinned from plain InferenceRand
+			# (not InferenceRandCI): matches the established survival-class
+			# precedent (e.g. the plain Cox survival classes), not the
+			# incidence-only Zhang-dispatch case.
+			private$rand_compute_rand_two_sided_pval(
 				r = r, delta = delta, transform_responses = transform_responses, na.rm = na.rm,
 				show_progress = show_progress, permutations = permutations, zero_one_logit_clamp = zero_one_logit_clamp
 			)
 		}
-	),
-	private = list(
+	)
+
+inference_survival_weibull_private = list(
+		bayesian_boot_compute_bayesian_bootstrap_two_sided_pval = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_two_sided_pval,
+		rand_compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		# See inference_incid_log_regr_private's cached_mod entry
+		# (inference_incidence_logit.R) for the eager-NULL-dropping
+		# explanation.
+		cached_mod = NULL,
 		best_X_colnames = NULL,
 		get_complexity_tier = function() "light",
-		supports_interval_or_left_censored_data = function() TRUE,
 		# private$y_L/private$y_R are always
 		# row-aligned with whatever y/dead this file passes in (no row
 		# reordering happens anywhere in this class), so they're safe to
@@ -418,6 +437,62 @@ InferenceSurvivalWeibullRegr = R6::R6Class("InferenceSurvivalWeibullRegr",
 			X
 		}
 	)
+
+SurvivalWeibullLikelihoodSource = list(
+	public = inference_survival_weibull_public,
+	private = inference_survival_weibull_private
 )
 
-SurvivalWeibullLikelihoodSource = inference_component_source_parts(InferenceSurvivalWeibullRegr)
+InferenceSurvivalWeibullRegr = define_inference_class(
+	classname = "InferenceSurvivalWeibullRegr",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalWeibullLikelihood"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "survival"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_bayesian_bootstrap_two_sided_pval",
+			"compute_lik_ratio_bartlett_approx_two_sided_pval",
+			"compute_rand_two_sided_pval", "get_supported_testing_types"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+			"generate_mod", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_complexity_tier"
+		)
+	),
+	private = list(
+		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+		# migration ladders): declared at the HOST level (not inside the lazy
+		# SurvivalWeibullLikelihood component source) even though it's a
+		# trivial, argument-less literal like every other implementation of
+		# this method. infer_inference_supports_general_censoring() (used by
+		# populate_inference_class_registry()) calls this function directly
+		# and unbound (`fn()`, no `self`/`private`), on the documented
+		# assumption that every implementation is self/private-free -- true
+		# for the literal body itself, but NOT true for how a LAZY
+		# component's copy of it actually behaves before first use: a lazy
+		# component's `provides_private_methods` entries are template-level
+		# STUB functions (installed for real only on first access through a
+		# live instance), and the stub's own body references `self`/
+		# `private` to perform the install -- calling that stub raw and
+		# unbound throws "object 'private' not found". Declaring it directly
+		# in the class's own (always-eager) private= here avoids ever
+		# stubbing it at all, restoring the "safe to call raw" assumption.
+		# This is the first class in this migration effort whose composed
+		# component overrides this specific method, so the gap was never
+		# exercised until now.
+		supports_interval_or_left_censored_data = function() TRUE
+	)
+)

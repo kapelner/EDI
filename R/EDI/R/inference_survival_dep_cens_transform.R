@@ -15,10 +15,7 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceSurvivalDepCensTransformRegr = R6::R6Class("InferenceSurvivalDepCensTransformRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
-	public = list(
+inference_survival_dep_cens_transform_public = list(
 		#' @description Initialize a dependent-censoring transformation inference object.
 		#' @param des_obj A completed \code{Design} object with a survival response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
@@ -140,8 +137,22 @@ InferenceSurvivalDepCensTransformRegr = R6::R6Class("InferenceSurvivalDepCensTra
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
 		#' @param type Optional bootstrap CI type. Default NULL.
 		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 1000, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE, type = NULL){
+			# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+			# migration ladders): was `super$compute_bootstrap_confidence_interval(...)`,
+			# relying on classic R6 inheritance reaching NonparametricBootstrap's
+			# real implementation. Composed classes have no `super$` chain, and
+			# NonparametricBootstrap's version is a full self-contained
+			# implementation (not a thin private-impl wrapper like the asymp/
+			# likelihood-test dispatchers elsewhere in this migration effort), so
+			# there's no private helper to call directly instead -- pinned the
+			# real method body from its source generator into a private helper
+			# below (nonparam_boot_compute_bootstrap_confidence_interval), the
+			# same "pin a method from its named source generator" pattern already
+			# used for compute_rand_two_sided_pval everywhere in this effort,
+			# just stored under a private name instead of the colliding public
+			# one so this override can call it without recursing into itself.
 			ci = private$dep_cens_validate_bootstrap_ci(
-				super$compute_bootstrap_confidence_interval(
+				private$nonparam_boot_compute_bootstrap_confidence_interval(
 					alpha = alpha, B = B, min_number_usable_samples = min_number_usable_samples,
 					show_progress = show_progress, na.rm = na.rm, type = type
 				),
@@ -244,9 +255,20 @@ InferenceSurvivalDepCensTransformRegr = R6::R6Class("InferenceSurvivalDepCensTra
 		#' @description Computes a score two-sided p-value, falling back to the asymptotic test when unavailable.
 		#' @param delta Null treatment-effect value. Default 0.
 			compute_score_two_sided_pval = function(delta = 0){
-				p = tryCatch(super$compute_score_two_sided_pval(delta = delta), error = function(e) NA_real_)
+				# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+				# migration ladders): was `super$compute_score_two_sided_pval(...)`/
+				# `super$compute_asymp_two_sided_pval(...)`; both are real methods
+				# whose public bodies just delegate straight to a private impl
+				# (see inference_all_abstract_asymp_lik.R/inference_all_abstract_
+				# asymp_lik_std_mod_cache.R) -- calling those private impls
+				# directly is the exact fix already used throughout this effort.
+				p = tryCatch(private$compute_score_two_sided_pval_impl(delta), error = function(e) NA_real_)
 				if (!is.finite(p)) return(p)
-				asymp = tryCatch(super$compute_asymp_two_sided_pval(delta = delta), error = function(e) NA_real_)
+				# self$compute_asymp_two_sided_pval() (not a private impl) since
+				# this class doesn't itself override that public method -- it's
+				# still the real StandardModelCache-provided testing_type-aware
+				# dispatcher, correct regardless of the configured testing_type.
+				asymp = tryCatch(self$compute_asymp_two_sided_pval(delta), error = function(e) NA_real_)
 				if (is.finite(asymp) && asymp > 0.05 && p < 0.01) {
 					private$cache_nonestimable_se("dep_cens_transform_score_pvalue_unstable")
 					return(NA_real_)
@@ -257,8 +279,10 @@ InferenceSurvivalDepCensTransformRegr = R6::R6Class("InferenceSurvivalDepCensTra
 			#'   unstable inversion failures as explicitly non-estimable.
 			#' @param alpha Significance level. Default 0.05.
 			compute_lik_ratio_confidence_interval = function(alpha = 0.05){
+				# Same super$-through-a-composed-class fix as elsewhere in this
+				# migration effort.
 				ci = tryCatch(
-					super$compute_lik_ratio_confidence_interval(alpha = alpha),
+					private$compute_lik_ratio_confidence_interval_impl(alpha),
 					error = function(e){
 						msg = if (length(e$message) == 0L) "" else e$message
 						if (!grepl("'names' attribute", msg, fixed = TRUE)) stop(e)
@@ -273,8 +297,20 @@ InferenceSurvivalDepCensTransformRegr = R6::R6Class("InferenceSurvivalDepCensTra
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 				ci
 			}
-		),
-	private = list(
+	)
+
+inference_survival_dep_cens_transform_private = list(
+		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+		# migration ladders): pinned method (not a private impl, since
+		# NonparametricBootstrap's compute_bootstrap_confidence_interval is a
+		# full self-contained implementation) -- see
+		# compute_bootstrap_confidence_interval's own comment above.
+		nonparam_boot_compute_bootstrap_confidence_interval = InferenceNonParamBootstrap$public_methods$compute_bootstrap_confidence_interval,
+		# See inference_incid_log_regr_private's cached_mod entry
+		# (inference_incidence_logit.R) for the eager-NULL-dropping
+		# explanation. cached_vc_params was previously undeclared entirely.
+		cached_mod = NULL,
+		cached_vc_params = NULL,
 		dep_cens_bootstrap_ci_max_abs = 2,
 		dep_cens_percentile_bootstrap_ci = function(alpha = 0.05, B = 1000, min_number_usable_samples = 10, show_progress = TRUE){
 			theta = tryCatch(
@@ -583,6 +619,46 @@ InferenceSurvivalDepCensTransformRegr = R6::R6Class("InferenceSurvivalDepCensTra
 			X
 		}
 	)
+
+SurvivalDepCensTransformSource = list(
+	public = inference_survival_dep_cens_transform_public,
+	private = inference_survival_dep_cens_transform_private
 )
 
-SurvivalDepCensTransformSource = inference_component_source_parts(InferenceSurvivalDepCensTransformRegr)
+InferenceSurvivalDepCensTransformRegr = define_inference_class(
+	classname = "InferenceSurvivalDepCensTransformRegr",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalDepCensTransform"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "survival"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_rand_two_sided_pval", "compute_rand_confidence_interval",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"get_supported_testing_types",
+			"compute_jackknife_estimate", "compute_jackknife_bias_estimate",
+			"compute_jackknife_std_error", "compute_jackknife_wald_two_sided_pval",
+			"compute_jackknife_wald_confidence_interval",
+			"compute_bootstrap_confidence_interval",
+			"compute_bootstrap_confidence_interval_basic", "compute_bootstrap_confidence_interval_bca",
+			"compute_bootstrap_confidence_interval_studentized",
+			"approximate_randomization_distribution_beta_hat_T",
+			"compute_score_two_sided_pval", "compute_lik_ratio_confidence_interval"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+			"generate_mod", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_complexity_tier"
+		)
+	)
+)

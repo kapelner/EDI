@@ -1676,7 +1676,12 @@ EDI_COMPONENT_SPECS = list(
 					dependencies = "StandardModelCache",
 					owns_state = c(
 						"best_X_colnames", "logit_X_full_cache", "logit_w_cache",
-						"max_abs_reasonable_coef"
+						"max_abs_reasonable_coef",
+						# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" /
+						# per-class migration ladders): re-declared here to survive
+						# eager-component NULL-dropping; see the comment on
+						# inference_incid_log_regr_private's own cached_mod entry.
+						"cached_mod"
 					),
 					provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
 					provides_private_methods = c(
@@ -1694,7 +1699,8 @@ EDI_COMPONENT_SPECS = list(
 						"best_X_colnames",
 						"logit_X_full_cache",
 						"logit_w_cache",
-						"max_abs_reasonable_coef"
+						"max_abs_reasonable_coef",
+						"cached_mod"
 					),
 					provides_capabilities = character(),
 					allowed_likelihood_tiers = "full",
@@ -1706,7 +1712,7 @@ EDI_COMPONENT_SPECS = list(
 					source_name = "IncidenceProbitLikelihoodSource",
 					file = "inference_incidence_probit.R",
 					dependencies = "StandardModelCache",
-					owns_state = c("best_X_colnames", "max_abs_reasonable_coef"),
+					owns_state = c("best_X_colnames", "max_abs_reasonable_coef", "cached_mod"),
 					provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
 					provides_private_methods = c(
 						"is_probit_fit_reasonable",
@@ -1721,7 +1727,8 @@ EDI_COMPONENT_SPECS = list(
 						"generate_mod",
 						"build_design_matrix",
 						"best_X_colnames",
-						"max_abs_reasonable_coef"
+						"max_abs_reasonable_coef",
+						"cached_mod"
 					),
 					provides_capabilities = character(),
 					allowed_likelihood_tiers = "full",
@@ -1735,7 +1742,7 @@ EDI_COMPONENT_SPECS = list(
 					dependencies = "StandardModelCache",
 					owns_state = c(
 						"best_X_colnames", "logbin_X_full_cache", "logbin_w_cache",
-						"max_abs_reasonable_coef"
+						"max_abs_reasonable_coef", "cached_mod"
 					),
 					provides_public_methods = c(
 						"initialize",
@@ -1758,7 +1765,8 @@ EDI_COMPONENT_SPECS = list(
 						"best_X_colnames",
 						"logbin_X_full_cache",
 						"logbin_w_cache",
-						"max_abs_reasonable_coef"
+						"max_abs_reasonable_coef",
+						"cached_mod"
 					),
 					provides_capabilities = character(),
 					allowed_likelihood_tiers = "full",
@@ -1807,7 +1815,7 @@ EDI_COMPONENT_SPECS = list(
 					source_name = "IncidenceBinomialIdentityLikelihoodSource",
 					file = "inference_incidence_binomial_identity.R",
 					dependencies = "StandardModelCache",
-					owns_state = "best_X_colnames",
+					owns_state = c("best_X_colnames", "cached_mod"),
 					provides_public_methods = c(
 						"initialize",
 						"compute_estimate_with_bootstrap_weights",
@@ -1824,7 +1832,8 @@ EDI_COMPONENT_SPECS = list(
 						"simulate_under_lik_null",
 						"get_likelihood_test_spec",
 						"generate_mod",
-						"best_X_colnames"
+						"best_X_colnames",
+						"cached_mod"
 					),
 					provides_capabilities = character(),
 					allowed_likelihood_tiers = "full",
@@ -1896,7 +1905,7 @@ EDI_COMPONENT_SPECS = list(
 					source_name = "SurvivalWeibullLikelihoodSource",
 					file = "inference_survival_weibull.R",
 					dependencies = "StandardModelCache",
-					owns_state = "best_X_colnames",
+					owns_state = c("best_X_colnames", "cached_mod"),
 					provides_public_methods = c(
 						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
 						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
@@ -1905,12 +1914,14 @@ EDI_COMPONENT_SPECS = list(
 						"compute_rand_two_sided_pval"
 					),
 					provides_private_methods = c(
-						"get_complexity_tier", "supports_interval_or_left_censored_data",
+						"bayesian_boot_compute_bayesian_bootstrap_two_sided_pval",
+						"rand_compute_rand_two_sided_pval",
+						"get_complexity_tier",
 						"weibull_kernel_fit", "weibull_kernel_score", "weibull_kernel_hessian",
 						"compute_treatment_estimate_during_randomization_inference",
 						"supports_reusable_bootstrap_worker", "supports_lik_ratio_param_bootstrap",
 						"supports_likelihood_tests", "simulate_under_lik_null", "get_likelihood_test_spec",
-						"generate_mod", "build_design_matrix", "best_X_colnames"
+						"generate_mod", "build_design_matrix", "best_X_colnames", "cached_mod"
 					),
 					provides_capabilities = character(),
 					allowed_likelihood_tiers = "full",
@@ -1921,8 +1932,17 @@ EDI_COMPONENT_SPECS = list(
 					load_policy = "lazy",
 					source_name = "SurvivalDepCensTransformSource",
 					file = "inference_survival_dep_cens_transform.R",
-					dependencies = character(),
-					owns_state = c("dep_cens_bootstrap_ci_max_abs", "best_X_colnames"),
+					# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+					# migration ladders): was `character()` -- this component's own body
+					# calls `private$shared()` (compute_estimate/compute_asymp_
+					# confidence_interval/compute_asymp_two_sided_pval/get_likelihood_
+					# test_spec all use it), which only exists via StandardModelCache.
+					# This spec had never actually been composed by a concrete class
+					# before this migration, so the missing dependency was never
+					# exercised until now (surfaced as "attempt to apply non-function"
+					# calling private$shared() -> NULL).
+					dependencies = "StandardModelCache",
+					owns_state = c("dep_cens_bootstrap_ci_max_abs", "best_X_colnames", "cached_mod", "cached_vc_params"),
 					provides_public_methods = c(
 						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
 						"compute_jackknife_estimate", "compute_jackknife_bias_estimate",
@@ -1936,13 +1956,14 @@ EDI_COMPONENT_SPECS = list(
 						"compute_score_two_sided_pval", "compute_lik_ratio_confidence_interval"
 					),
 					provides_private_methods = c(
+						"nonparam_boot_compute_bootstrap_confidence_interval",
 						"dep_cens_percentile_bootstrap_ci", "dep_cens_ci_excludes_zero",
 						"dep_cens_ci_too_wide", "dep_cens_validate_bootstrap_ci",
 						"compute_treatment_estimate_during_randomization_inference",
 						"supports_reusable_bootstrap_worker", "supports_likelihood_tests",
 						"get_likelihood_test_spec", "generate_mod", "supports_lik_ratio_param_bootstrap",
 						"simulate_under_lik_null", "build_design_matrix", "dep_cens_bootstrap_ci_max_abs",
-						"best_X_colnames"
+						"best_X_colnames", "cached_mod", "cached_vc_params"
 					),
 					provides_capabilities = character(),
 					# "full", not "none": InferenceSurvivalDepCensTransformRegr implements
@@ -2729,10 +2750,44 @@ load_inference_component = function(component_name, class_name = "<global>", ns 
 #' copies their current values correctly.
 #'
 #' @param i The freshly cloned \code{Inference} object.
-edi_rebind_lazy_components_after_clone = function(i) {
+edi_rebind_lazy_components_after_clone = function(i, source_private = NULL) {
 	i_priv = i$.__enclos_env__$private
 	loaded_marker_name = ".__loaded_lazy_components"
-	loaded = get0(loaded_marker_name, envir = i_priv, inherits = FALSE, ifnotfound = character())
+	read_marker = function(env) {
+		unique(c(
+			get0(loaded_marker_name, envir = env, inherits = FALSE, ifnotfound = character()),
+			attr(env, loaded_marker_name, exact = TRUE) %||% character()
+		))
+	}
+	# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+	# migration ladders): two compounding bugs, both found via
+	# `test-incidence-logit-bootstrap-fast-path.R` (a `Slow*` bootstrap test
+	# subclass's row-resampled clones, from bootstrap_subset_inference() /
+	# duplicate() / clone(), all returned the same constant estimate
+	# regardless of the resampled data) and confirmed to reproduce
+	# identically on the already-migrated `InferenceOrdinalPropOddsRegr` --
+	# a pre-existing gap in the lazy-component/clone interaction, not
+	# something specific to one migrated class:
+	# (1) install_lazy_inference_component() stores the "already installed"
+	#     marker as an ENVIRONMENT ATTRIBUTE (not a binding) whenever the
+	#     private environment is already LOCKED at install time -- true for
+	#     any R6 subclass that doesn't itself pass `lock_objects = FALSE`
+	#     (every migrated class does; a plain `R6::R6Class(inherit =
+	#     <migrated class>, ...)` test/user subclass does NOT by default),
+	#     since `assign()`-ing a brand-new marker NAME would otherwise fail.
+	#     This function's read used to check only the binding.
+	# (2) `self$clone()` copies environment BINDINGS but does not preserve
+	#     environment-level ATTRIBUTES, so even with (1) fixed, an
+	#     attribute-stored marker never survives the clone at all -- there
+	#     is nothing on the clone's own private env to read, regardless of
+	#     how it's read. The marker (and hence which components need
+	#     rebinding) must instead be read from the SOURCE instance's private
+	#     environment, captured before/at the point of cloning -- `source_
+	#     private` is threaded through from duplicate(), the only caller,
+	#     whose own `private` is exactly that source, still valid at the
+	#     call site regardless of what clone() did or didn't preserve.
+	loaded = read_marker(i_priv)
+	if (!is.null(source_private)) loaded = unique(c(loaded, read_marker(source_private)))
 	if (!length(loaded)) return(invisible(i))
 	new_env = i$.__enclos_env__
 	rebind_fn_env = function(env, name) {
@@ -2755,6 +2810,15 @@ edi_rebind_lazy_components_after_clone = function(i) {
 		for (name in spec$provides_private_methods %||% character()) {
 			rebind_fn_env(i_priv, name)
 		}
+	}
+	# Re-record the marker on the clone itself (as a binding if its private
+	# env isn't locked, else as the same attribute fallback
+	# install_lazy_inference_component() uses) so a clone-of-this-clone
+	# also has something to read.
+	if (!environmentIsLocked(i_priv)) {
+		assign(loaded_marker_name, loaded, envir = i_priv)
+	} else {
+		attr(i_priv, loaded_marker_name) = loaded
 	}
 	invisible(i)
 }

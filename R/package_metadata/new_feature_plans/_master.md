@@ -32,8 +32,9 @@ spliced into one step and marked **[spliced]**.
 > `../future_release_plans/release_v1_1_0.md` batches **everything open in
 > this directory that is not inside the v1.0.0 line** into the v1.1.0 scope
 > — the full Phase 0 decision batch, Phases 2 and 4 remainders, all of
-> Phase 5, and Phase 6 (including `local_machine_optimization.md` and
-> `design_fixed_greedy_pair_switch_merge.md`). This supersedes
+> Phase 5, and Phase 6 (including `design_fixed_greedy_pair_switch_merge.md`;
+> `local_machine_optimization.md` was pulled out into the v1.0.0 line — see
+> the amendment below). This supersedes
 > `release_v1_0_0.md → TODO-5`'s earlier "small first wave" guess. As with
 > the 1.0.0 file, it only draws the release line; this file remains the
 > execution order, and its TODOs are ticked in their owning plans.
@@ -73,6 +74,14 @@ spliced into one step and marked **[spliced]**.
 > these as their consequence, not a separate gate) remain gated on
 > `fix_inference_hierarchy.md`'s Full-Likelihood Estimators remainder per
 > that plan's own "Recommended execution order" note.
+>
+> **Amended 2026-08-20 (user decision):** `local_machine_optimization.md` —
+> the `optimize_EDI_locally()` benchmark tuner — moves from the v1.1.0 line
+> into the v1.0.0 line (`release_v1_0_0.md`'s item 15). It was previously
+> Phase 6 item 5 below and `release_v1_1_0.md → TODO-10`/part of `TODO-1`
+> step 11; those references are struck accordingly. Phase 6 in this file no
+> longer lists it as a phase-ordered item since it now ships with the
+> release-scoped batch, not the exploratory tail.
 >
 > **Update (2026-08-16):** two of the release-scoped plans have since
 > closed and moved to `../finished_features/`: the interval-censored
@@ -385,12 +394,7 @@ already stated there:**
 4. `response_types_landscape_report.md → its remaining open TODOs` — refresh
    the landscape after any 5B track ships; scoped as
    `release_v1_1_0.md → TODO-14`.
-5. `local_machine_optimization.md` — explicit v1.1.0 target (added
-   2026-08-17): `optimize_EDI_locally()`, a user-invoked benchmark tuner
-   for the machine-dependent `globals.R` policy defaults. TODO-2 already
-   shipped in a 1.0.x patch; the rest is scoped as
-   `release_v1_1_0.md → TODO-10`.
-6. `design_fixed_greedy_pair_switch_merge.md` — explicit post-1.0.0 target
+5. `design_fixed_greedy_pair_switch_merge.md` — explicit post-1.0.0 target
    (user instruction, 2026-08-16); deletes `DesignFixedGreedy`/
    `DesignFixedGreedyDOptimal`, replacing both with
    `DesignFixedGreedyPairSwitch`. Full item list:

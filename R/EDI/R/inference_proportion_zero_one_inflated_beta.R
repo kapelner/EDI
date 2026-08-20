@@ -31,10 +31,38 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferencePropZeroOneInflatedBetaRegr = R6::R6Class("InferencePropZeroOneInflatedBetaRegr",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
+InferencePropZeroOneInflatedBetaRegr = define_inference_class(
+	classname = "InferencePropZeroOneInflatedBetaRegr",
+	inherit = Inference,
+	# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+	# migration ladders): like InferencePropBetaRegr, no pre-registered
+	# per-class component existed for this class -- declared inline.
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"get_supported_testing_types", "compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+			"generate_mod", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_complexity_tier"
+		)
+	),
 	public = list(
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize a zero-one-inflated beta regression inference object.
 		#' @param des_obj A completed \code{Design} object with a proportion response.
 		#' @param model_formula Optional formula for covariate adjustment. If \code{NULL}
@@ -151,19 +179,23 @@ InferencePropZeroOneInflatedBetaRegr = R6::R6Class("InferencePropZeroOneInflated
 			private$cached_values$zero_coefficients = if (!is.null(zero_fit)) zero_fit$b else NULL
 			private$cached_values$one_coefficients = if (!is.null(one_fit)) one_fit$b else NULL
 			private$cached_values$beta_hat_T
-		},
-		#' @description Uses the shared nonparametric bootstrap distribution contract; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-		#' @param B  					Number of bootstrap samples.
-		#' @param show_progress Whether to show a progress bar.
-		#' @param debug         Whether to return diagnostics.
-		#' @param bootstrap_type Optional resampling scheme.
-		#' @return A numeric vector of bootstrap estimates.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug, bootstrap_type)
 		}
+		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+		# migration ladders): dropped the pure-passthrough
+		# approximate_bootstrap_distribution_beta_hat_T override (was just
+		# `super$approximate_bootstrap_distribution_beta_hat_T(...)`, no added
+		# logic) -- composed classes have no `super$` chain, and since it
+		# added no behavior, the composed NonparametricBootstrap component's
+		# own version is used directly with no change in behavior.
 	),
 	private = list(
+		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+		# migration ladders): see inference_incid_log_regr_private's
+		# cached_mod entry (inference_incidence_logit.R) for the eager-NULL-
+		# dropping explanation. cached_vc_params was previously undeclared
+		# entirely (created dynamically on first assignment).
+		cached_mod = NULL,
+		cached_vc_params = NULL,
 		best_X_colnames = NULL,
 		best_X_zero_one_colnames = NULL,
 		model_formula_zero_one = NULL,

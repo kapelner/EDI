@@ -361,8 +361,36 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 	"InferenceRandBootstrapCI",
 	"InferenceAsympLik",
 	"InferenceParamBootstrap",
-	"InferenceAsympLikStdModCache",
-	"InferenceAsympLikStdModCacheNoParamBootstrap",
+	# InferenceAsympLikStdModCache removed 2026-08-20 (fix_inference_
+	# hierarchy.md "Base Deletion" / per-class migration ladders): all 12
+	# concrete descendants migrated to compose the already-registered
+	# StandardModelCache component (plus each class's own per-class
+	# *Likelihood component, or inline content for the two classes with no
+	# pre-registered component) directly (InferenceIncidLogRegr/
+	# IncidProbitRegr/IncidLogBinomial/IncidModifiedPoisson/
+	# IncidBinomialIdentityRiskDiff/OrdinalStereotypeLogitRegr/
+	# OrdinalContRatioRegr/OrdinalOrderedProbitRegr/PropBetaRegr/
+	# PropZeroOneInflatedBetaRegr/SurvivalDepCensTransformRegr/
+	# SurvivalWeibullRegr). `grep -rn "inherit = InferenceAsympLikStdModCache
+	# \b"` still finds 4 hits, but all 4 are already-migrated classes' own
+	# `...LegacyRaw`/harvesting-source objects (inference_ordinal_adj_cat_
+	# logit.R/cauchit.R/proportional_odds.R/cloglog.R), the same "real
+	# remaining consumer, just not a package-source algorithmic-ancestry
+	# one" precedent as InferenceKKPassThroughCompound and
+	# InferenceAsympLikStdModCacheNoParamBootstrap above -- generator kept,
+	# only its algorithmic-compatibility-ladder membership retired.
+	# InferenceAsympLikStdModCacheNoParamBootstrap removed 2026-08-20
+	# (fix_inference_hierarchy.md "Base Deletion" / per-class migration
+	# ladders): its only remaining concrete descendant,
+	# InferencePropFractionalLogit, migrated to compose the already-
+	# registered StandardModelCache component directly. `grep -rn "inherit =
+	# InferenceAsympLikStdModCacheNoParamBootstrap" R/*.R` now returns
+	# nothing. The R6 generator itself is kept (not deleted) -- it is still
+	# used by test-incid-risk-diff-migration-golden.R as a legacy-comparison
+	# fixture base, same precedent as InferenceKKPassThroughCompound (see
+	# that base's own note below): a real remaining consumer, just not a
+	# package-source one, so only the algorithmic-compatibility-ladder
+	# membership is retired, not the generator.
 	"InferenceCountLikelihood",
 	"InferenceKKPassThroughCompound",
 	"InferenceKKPassThroughCompoundNoParamBootstrap",
@@ -571,6 +599,35 @@ infer_inference_requires_blocking_design = function(generator) {
 	FALSE
 }
 
+#' A concrete `Inference` generator's own `design_compatibility_reason(des_obj)`
+#' private method, if it declares one, else `NULL`. Unlike
+#' `infer_inference_supports_general_censoring()`/
+#' `infer_inference_requires_blocking_design()` above, this is not safe to
+#' invoke here (it needs a live `des_obj`, not a zero-arg literal) -- the raw
+#' function is stored on the registry record instead, and callers invoke it
+#' themselves against the actual design being fit (see
+#' `inference_class_design_compatibility_reason()` in inference_suite.R).
+#' This is the single reusable, introspectable predicate any class can opt
+#' into for a design-*structure* requirement (blocking, block-size equality,
+#' treatment-allocation probability, or a response-type restriction narrower
+#' than `response_types` already expresses) that
+#' `infer_inference_response_types()`/`requires_blocking_design` have no
+#' vocabulary for -- e.g. "even treatment allocation" or "equal block
+#' sizes", not just "blocking design or not". A class with no such
+#' requirement simply doesn't define this method, and this returns `NULL`.
+#'
+#' @keywords internal
+#' @noRd
+infer_inference_design_compatibility_reason_fn = function(generator) {
+	current = generator
+	while (!is.null(current)) {
+		fn = current$private_methods$design_compatibility_reason
+		if (!is.null(fn)) return(fn)
+		current = current$get_inherit()
+	}
+	NULL
+}
+
 # TODO-15a (inference_suite_inspect.md) audit, 2026-08-19: what scientific
 # quantity each concrete class's compute_estimate() targets, read from each
 # class's own fit code / @description (not guessed from name patterns), so
@@ -775,17 +832,17 @@ infer_inference_direct_components = function(name) {
 				"ParametricLikelihoodBootstrap",
 				"OrdinalCauchitLikelihood"
 			),
-			InferenceOrdinalStereotypeLogitRegr = "OrdinalStereotypeLikelihood",
-			InferenceOrdinalContRatioRegr = "OrdinalContinuationRatioLikelihood",
-			InferenceOrdinalOrderedProbitRegr = "OrdinalOrderedProbitLikelihood",
-			InferenceIncidLogRegr = "IncidenceLogisticLikelihood",
-			InferenceIncidProbitRegr = "IncidenceProbitLikelihood",
-			InferenceIncidLogBinomial = "IncidenceLogBinomialLikelihood",
-			InferenceIncidModifiedPoisson = "IncidenceModifiedPoissonLikelihood",
-			InferenceIncidBinomialIdentityRiskDiff = "IncidenceBinomialIdentityLikelihood",
+			InferenceOrdinalStereotypeLogitRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalStereotypeLikelihood"),
+			InferenceOrdinalContRatioRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalContinuationRatioLikelihood"),
+			InferenceOrdinalOrderedProbitRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalOrderedProbitLikelihood"),
+			InferenceIncidLogRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogisticLikelihood"),
+			InferenceIncidProbitRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceProbitLikelihood"),
+			InferenceIncidLogBinomial = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogBinomialLikelihood"),
+			InferenceIncidModifiedPoisson = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceModifiedPoissonLikelihood"),
+			InferenceIncidBinomialIdentityRiskDiff = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceBinomialIdentityLikelihood"),
 			InferenceIncidGCompAbstract = "IncidenceGComputation",
-			InferenceSurvivalWeibullRegr = "SurvivalWeibullLikelihood",
-			InferenceSurvivalDepCensTransformRegr = "SurvivalDepCensTransform",
+			InferenceSurvivalWeibullRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalWeibullLikelihood"),
+			InferenceSurvivalDepCensTransformRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalDepCensTransform"),
 			InferenceSurvivalKKWeibullMarginal = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullMarginal"),
 			InferenceSurvivalKKClaytonCopulaIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKClaytonCopulaIVWC"),
 			InferenceSurvivalKKClaytonCopulaOneLik = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalKKClaytonCopulaOneLik"),
@@ -930,6 +987,16 @@ infer_inference_direct_components = function(name) {
 		InferenceContinKKGLMM = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
 		InferenceCountKKGLMM = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
 		InferenceOrdinalKKGLMM = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
+		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
+		# migration ladders): flipped from `inherit =
+		# InferenceAsympLikStdModCacheNoParamBootstrap` (a deep algorithmic-
+		# compatibility base) to composing the already-registered
+		# StandardModelCache component directly -- must mirror the
+		# define_inference_class(components = ...) call exactly, same
+		# rationale as every other direct-composition class documented above.
+		InferencePropFractionalLogit = c("BayesianBootstrap", "Wald", "StandardModelCache"),
+		InferencePropBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache"),
+		InferencePropZeroOneInflatedBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache"),
 		character()
 	)
 }

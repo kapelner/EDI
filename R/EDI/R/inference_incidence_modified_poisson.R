@@ -16,11 +16,8 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceIncidModifiedPoisson = R6::R6Class("InferenceIncidModifiedPoisson",
-	lock_objects = FALSE,
-	inherit = InferenceAsympLikStdModCache,
-	public = list(
-				
+inference_incid_modified_poisson_public = list(
+
 		#' @description Initialize a modified Poisson regression inference object.
 		#' @param des_obj A completed \code{Design} object with an incidence response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
@@ -106,8 +103,9 @@ InferenceIncidModifiedPoisson = R6::R6Class("InferenceIncidModifiedPoisson",
 			)
 			private$cached_values$beta_hat_T
 		}
-	),
-	private = list(
+	)
+
+inference_incid_modified_poisson_private = list(
 			best_X_colnames = NULL,
 			cached_mod = NULL,
 			max_abs_reasonable_coef = 25,
@@ -313,9 +311,43 @@ InferenceIncidModifiedPoisson = R6::R6Class("InferenceIncidModifiedPoisson",
 				attempt$fit
 			}
 	)
+
+IncidenceModifiedPoissonLikelihoodSource = list(
+	public = inference_incid_modified_poisson_public,
+	private = inference_incid_modified_poisson_private
 )
 
-IncidenceModifiedPoissonLikelihoodSource = inference_component_source_parts(InferenceIncidModifiedPoisson)
+InferenceIncidModifiedPoisson = define_inference_class(
+	classname = "InferenceIncidModifiedPoisson",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceModifiedPoissonLikelihood"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"get_supported_testing_types", "compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+			"generate_mod", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_complexity_tier", "supports_fisher_information"
+		)
+	),
+	public = list(
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+	)
+)
 
 #' Multi-subject Modified Poisson Inference for Incidence Responses
 #'
