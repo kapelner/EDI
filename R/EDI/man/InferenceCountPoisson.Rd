@@ -4,8 +4,36 @@
 \alias{InferenceCountPoisson}
 \title{Poisson Regression Inference for Count Responses}
 \description{
-Fits a Poisson log-link regression for count responses using the treatment
-indicator and, optionally, all recorded covariates as predictors.
+Fits a Poisson log-link regression for count responses:
+\eqn{Y_i \mid W_i, X_i \sim \mathrm{Poisson}(\mu_i)}, \eqn{\log \mu_i =
+\beta_0 + \beta_T W_i + X_i^\top \gamma}
+(\code{\link{fast_poisson_regression_cpp}}/
+\code{\link{fast_poisson_regression_with_var_cpp}}). \eqn{\hat\beta_T} is a
+log-rate-ratio: \eqn{\exp(\hat\beta_T)} is the estimated rate ratio.
+\code{likelihood_tier = "full"}: Wald, score, gradient, and
+likelihood-ratio tests are all available, plus parametric-likelihood
+bootstrap calibration of the likelihood-ratio test (simulating new Poisson
+responses under the null).
+
+\strong{Design-conservative testing.} Every asymptotic/likelihood test
+method on this class does not report the raw model-based result directly.
+Instead, it also computes a design-based jackknife-Wald test
+(\code{compute_jackknife_wald_two_sided_pval()}/
+\code{compute_jackknife_wald_confidence_interval()}, which do not assume
+the Poisson mean-variance relationship) and combines the two
+conservatively: p-values report \eqn{\max} of the model-based and
+design-based p-values, and confidence intervals report the \emph{union} of
+the model-based and design-based intervals. This guards against the
+model-based test being anti-conservative when the Poisson equidispersion
+assumption (\eqn{\mathrm{Var}(Y_i) = E[Y_i]}) fails — a real risk for count
+data, which is frequently overdispersed (see
+\code{\link[EDI:InferenceCountNegBin]{InferenceCountNegBin}} for a model
+that estimates dispersion directly instead). If either component is
+unavailable, the available one is used alone; if neither is available, the
+result is \code{NA}. Validity requires the usual correctly-specified
+linear predictor on the log scale; unlike the raw Poisson likelihood
+alone, this class's actual reported inference degrades gracefully (rather
+than becoming anti-conservative) under mean-variance misspecification.
 }
 \examples{
 \donttest{
@@ -22,8 +50,20 @@ inf$set_seed(1)
 inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}} -> \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}} -> \code{InferenceCountPoisson}
+\references{
+Cameron, A. C., and Trivedi, P. K. (2013). \emph{Regression
+  Analysis of Count Data} (2nd ed.). Cambridge University Press, for the
+  Poisson regression model and its maximum-likelihood theory.
+}
+\seealso{
+Comparable Python API:
+  \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
+  discrete models} (\code{Poisson}). See also:
+  \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson
+  regression} (Wikipedia).
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceCountPoisson}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -45,109 +85,10 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress =
     \item \href{#method-InferenceCountPoisson-clone}{\code{InferenceCountPoisson$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceCountLikelihood</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceCountLikelihood.html#method-InferenceCountLikelihood-compute_estimate'><code>InferenceCountLikelihood$compute_estimate()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_param_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_estimate'><code>InferenceParamBootstrap$compute_param_bootstrap_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_pval'><code>InferenceParamBootstrap$compute_param_bootstrap_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_diagnostics()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_estimate_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_estimate_diagnostics()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsympLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_ci_types'><code>InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_pval_types'><code>InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-get_supported_rand_bootstrap_ci_types'><code>InferenceRandBootstrapCI$get_supported_rand_bootstrap_ci_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-get_supported_rand_bootstrap_pval_types'><code>InferenceRandBootstrap$get_supported_rand_bootstrap_pval_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_ci_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_ci_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_pval_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_pval_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -171,7 +112,13 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress =
 \if{html}{\out{<a id="method-InferenceCountPoisson-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-initialize}{}}}
 \subsection{\code{InferenceCountPoisson$new()}}{
-  Initialize a Poisson regression inference object.
+  Initialize inference for the Poisson regression model
+  \eqn{Y_i \mid W_i, X_i \sim \mathrm{Poisson}(\mu_i)}, \eqn{\log \mu_i =
+  \beta_0 + \beta_T W_i + X_i^\top \gamma}; see
+  \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+  model form and the design-conservative testing mechanism. Does not fit
+  the model; the fit is deferred to the first call to
+  \code{compute_estimate()} or a method that requires it.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$new(
@@ -203,7 +150,12 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_asymp_confidence_interval()}}{
-  Computes an asymptotic confidence interval using the configured test.
+  Design-conservative confidence interval for \eqn{\beta_T}
+  using whichever test type is configured
+  (\code{private$testing_type}: \code{"wald"}, \code{"score"},
+  \code{"gradient"}, or \code{"lik_ratio"}); see
+  \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+  union-with-jackknife-Wald combination rule.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -222,7 +174,11 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_asymp_two_sided_pval()}}{
-  Computes an asymptotic two-sided p-value using the configured test.
+  Design-conservative two-sided p-value for \eqn{H_0: \beta_T =
+  \code{delta}} using whichever test type is configured
+  (\code{private$testing_type}); see
+  \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+  max-with-jackknife-Wald combination rule.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_asymp_two_sided_pval(delta = 0)}
@@ -241,7 +197,12 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_wald_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_wald_confidence_interval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_wald_confidence_interval()}}{
-  Computes a design-conservative Wald confidence interval.
+  Wald confidence interval for \eqn{\beta_T} using the fitted
+  Poisson model's Fisher-information-based standard error, unioned with
+  the design-based jackknife-Wald interval; see
+  \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+  combination rule and \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}
+  for the underlying Wald contract.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_wald_confidence_interval(alpha = 0.05)}
@@ -260,7 +221,11 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_wald_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_wald_two_sided_pval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_wald_two_sided_pval()}}{
-  Computes a design-conservative Wald two-sided p-value.
+  Wald test of \eqn{H_0: \beta_T = \code{delta}} using the
+  fitted Poisson model's Fisher-information-based standard error, taking
+  the max with the design-based jackknife-Wald p-value; see
+  \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+  combination rule.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_wald_two_sided_pval(delta = 0)}
@@ -279,7 +244,11 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_score_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_score_confidence_interval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_score_confidence_interval()}}{
-  Computes a design-conservative score confidence interval.
+  Score-test confidence interval for \eqn{\beta_T} (inverting
+  the Poisson score test at each candidate null, no full re-fit needed at
+  the observed information), unioned with the design-based jackknife-Wald
+  interval; see \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}}
+  for the combination rule.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_score_confidence_interval(alpha = 0.05)}
@@ -298,7 +267,10 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_score_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_score_two_sided_pval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_score_two_sided_pval()}}{
-  Computes a design-conservative score two-sided p-value.
+  Score test of \eqn{H_0: \beta_T = \code{delta}}, taking the
+  max with the design-based jackknife-Wald p-value; see
+  \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+  combination rule.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_score_two_sided_pval(delta = 0)}
@@ -317,7 +289,11 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_lik_ratio_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_lik_ratio_confidence_interval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_lik_ratio_confidence_interval()}}{
-  Computes a design-conservative likelihood-ratio confidence interval.
+  Likelihood-ratio-test confidence interval for \eqn{\beta_T}
+  (test inversion, requiring a null refit at each candidate value),
+  unioned with the design-based jackknife-Wald interval; see
+  \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+  combination rule.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_lik_ratio_confidence_interval(alpha = 0.05)}
@@ -336,7 +312,10 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_lik_ratio_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_lik_ratio_two_sided_pval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_lik_ratio_two_sided_pval()}}{
-  Computes a design-conservative likelihood-ratio two-sided p-value.
+  Likelihood-ratio test of \eqn{H_0: \beta_T = \code{delta}},
+  taking the max with the design-based jackknife-Wald p-value; see
+  \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+  combination rule.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_lik_ratio_two_sided_pval(delta = 0)}
@@ -355,7 +334,11 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_gradient_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_gradient_confidence_interval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_gradient_confidence_interval()}}{
-  Computes a design-conservative gradient confidence interval.
+  Gradient-test confidence interval for \eqn{\beta_T} (a
+  score-test variant using the observed rather than expected
+  information), unioned with the design-based jackknife-Wald interval;
+  see \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for
+  the combination rule.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_gradient_confidence_interval(alpha = 0.05)}
@@ -374,7 +357,10 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_gradient_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_gradient_two_sided_pval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_gradient_two_sided_pval()}}{
-  Computes a design-conservative gradient two-sided p-value.
+  Gradient test of \eqn{H_0: \beta_T = \code{delta}}, taking
+  the max with the design-based jackknife-Wald p-value; see
+  \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+  combination rule.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_gradient_two_sided_pval(delta = 0)}
@@ -393,7 +379,12 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_lik_ratio_bootstrap_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_lik_ratio_bootstrap_two_sided_pval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_lik_ratio_bootstrap_two_sided_pval()}}{
-  Computes a design-conservative parametric LR-bootstrap p-value.
+  Parametric-likelihood-bootstrap-calibrated likelihood-ratio
+  test of \eqn{H_0: \beta_T = \code{delta}} (simulating new Poisson
+  responses from the null-constrained fit to calibrate the LR statistic's
+  null distribution), taking the max with the design-based jackknife-Wald
+  p-value; see \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}}
+  for the combination rule.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_lik_ratio_bootstrap_two_sided_pval(
@@ -422,7 +413,12 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_lik_ratio_bootstrap_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_lik_ratio_bootstrap_confidence_interval}{}}}
 \subsection{\code{InferenceCountPoisson$compute_lik_ratio_bootstrap_confidence_interval()}}{
-  Computes a design-conservative parametric LR-bootstrap CI.
+  Parametric-likelihood-bootstrap-calibrated likelihood-ratio
+  confidence interval for \eqn{\beta_T} (test inversion using the
+  bootstrap-calibrated null distribution), unioned with the design-based
+  jackknife-Wald interval; see
+  \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+  combination rule.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_lik_ratio_bootstrap_confidence_interval(
@@ -455,8 +451,15 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountPoisson-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceCountPoisson$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the class-specific treatment estimate for a bootstrap sample; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+  Refits the Poisson model with subject/block-level weights
+  applied to the fitting log-likelihood (Bayesian-bootstrap or
+  nonparametric-bootstrap draw weights, expanded to row level via
+  \code{private$expand_subject_or_block_weights_to_row_weights()}) via
+  \code{\link{fast_poisson_regression_weighted_cpp}}, and returns the
+  reweighted log-rate-ratio estimate \eqn{\hat\beta_T^{(w)}}. Uses the
+  same QR column-dropping hardening as the unweighted fit; a hardened fit
+  with a non-finite treatment coefficient is cached as nonestimable and
+  returns \code{NA}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_estimate_with_bootstrap_weights(

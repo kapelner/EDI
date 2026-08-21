@@ -16,6 +16,11 @@ SimpleMeanDifferencePooledVarSource = list(
 		#' @param smart_cold_start_default Whether to use smart cold start values.
 		#' @return A new \code{InferenceAllSimpleMeanDiffPooledVar} object.
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL){
+			if (should_run_asserts()) {
+				stop_if_design_incompatible(private$design_compatibility_reason, des_obj, list(
+					pooled_var_mean_diff_censoring_unsupported = "This type of inference is only available for uncensored responses."
+				))
+			}
 			super$initialize(
 				des_obj = des_obj,
 				verbose = verbose,
@@ -24,9 +29,6 @@ SimpleMeanDifferencePooledVarSource = list(
 				smart_cold_start_default = smart_cold_start_default
 			)
 			private$fit_warm_start_enabled = FALSE
-			if (should_run_asserts()) {
-				assertNoCensoring(private$any_censoring)
-			}
 		},
 		#' @description Computes a \eqn{1-\alpha} level confidence interval for the
 		#'   simple (unadjusted) mean-difference treatment effect
@@ -76,6 +78,26 @@ SimpleMeanDifferencePooledVarSource = list(
 		}
 	),
 	private = list(
+		# Self/private-free so it's safe to call unbound against a candidate
+		# des_obj before construction, same "safe invoke without construction"
+		# contract as design_compatibility_reason() elsewhere (Wilcox/CMH/
+		# ExtendedRobins/ExactBinomial/ExactFisher/PairedSignTest). This class
+		# blanket-matches every response type in the registry (^InferenceAll)
+		# including survival, but its own initialize() rejects *any* censoring
+		# (the old assertNoCensoring(private$any_censoring), now unified into
+		# this predicate via stop_if_design_incompatible()) -- a right-censored
+		# survival design therefore listed it applicable while construction
+		# threw, the gap the discovery audit (test-design-inference-
+		# introspection-audit.R) caught 2026-08-21. Note the registry's
+		# has_general_censoring axis only covers left/interval censoring;
+		# plain right censoring has no metadata axis, hence the per-class
+		# predicate rather than a registry flag.
+		design_compatibility_reason = function(des_obj){
+			if (isTRUE(des_obj$any_censoring())) {
+				return("pooled_var_mean_diff_censoring_unsupported")
+			}
+			NA_character_
+		},
 		get_standard_error = function(){
 			if (is.null(private$cached_values$simple_mean_diff_pooled_se)) {
 				private$compute_simple_mean_diff_pooled_components()

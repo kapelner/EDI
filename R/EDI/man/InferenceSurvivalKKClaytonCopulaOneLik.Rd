@@ -67,6 +67,7 @@ Analogous Python API for AFT/copula survival models:
     \item \href{#method-InferenceSurvivalKKClaytonCopulaOneLik-set_custom_randomization_statistic_function}{\code{InferenceSurvivalKKClaytonCopulaOneLik$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceSurvivalKKClaytonCopulaOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalKKClaytonCopulaOneLik$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceSurvivalKKClaytonCopulaOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceSurvivalKKClaytonCopulaOneLik$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceSurvivalKKClaytonCopulaOneLik-supports_rand_pval_for_incidence}{\code{InferenceSurvivalKKClaytonCopulaOneLik$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceSurvivalKKClaytonCopulaOneLik-compute_rand_two_sided_pval}{\code{InferenceSurvivalKKClaytonCopulaOneLik$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceSurvivalKKClaytonCopulaOneLik-clone}{\code{InferenceSurvivalKKClaytonCopulaOneLik$clone()}}
   }
@@ -138,6 +139,17 @@ Analogous Python API for AFT/copula survival models:
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalKKClaytonCopulaOneLik-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalKKClaytonCopulaOneLik-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceSurvivalKKClaytonCopulaOneLik$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalKKClaytonCopulaOneLik$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

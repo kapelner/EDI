@@ -128,31 +128,6 @@ inference_class_design_compatibility_reason = function(nm, des_obj) {
 #'
 #' @keywords internal
 #' @noRd
-#' Calls a class's own `design_compatibility_reason(des_obj)` predicate and,
-#' if it returns a non-`NA` reason, `stop()`s with that class's message text
-#' for the reason -- centralizing the "call the predicate, look up the
-#' message, stop()" boilerplate that would otherwise be duplicated verbatim
-#' in every `initialize()` that consults its own `design_compatibility_reason`
-#' (single source of truth with the discovery-time predicate; see
-#' `inference_class_design_compatibility_reason()` above and
-#' fix_inference_hierarchy.md). Does nothing if compatible.
-#'
-#' @param design_compatibility_reason_fn The class's own `design_compatibility_reason`
-#'   function (e.g. `private$design_compatibility_reason`), called unbound with `des_obj`.
-#' @param des_obj The design object under construction.
-#' @param reason_messages A named list/character vector mapping every reason code the
-#'   class's `design_compatibility_reason` can return to the exact `stop()` message text.
-#'
-#' @keywords internal
-#' @noRd
-stop_if_design_incompatible = function(design_compatibility_reason_fn, des_obj, reason_messages) {
-	reason = design_compatibility_reason_fn(des_obj)
-	if (!is.na(reason)) {
-		stop(reason_messages[[reason]])
-	}
-	invisible(NULL)
-}
-
 discover_applicable_inference_classes = function(des_obj) {
 	registry = inference_class_registry_as_list()
 	design_meta = normalize_inference_design_metadata(des_obj)
@@ -679,11 +654,17 @@ run_all_inference_call_ci_for_method = function(inf_obj, alpha, method, type = N
 	if ("show_progress" %in% names(formals(inf_obj[[entry$method]]))) {
 		call_args$show_progress = FALSE
 	}
-	ci = tryCatch(do.call(inf_obj[[entry$method]], call_args), error = function(e) NULL)
+	# Keep the error text (per user question, 2026-08-21: "why does Zhang
+	# produce no output but status is ok?" -- the exact CI call was erroring
+	# and this `tryCatch` swallowed it into a bare `NA`, indistinguishable
+	# from "ran fine, returned NA"). Reported back as `error` so the fit row
+	# can surface it in its `message` column.
+	err = NULL
+	ci = tryCatch(do.call(inf_obj[[entry$method]], call_args), error = function(e) { err <<- conditionMessage(e); NULL })
 	if (!is.null(ci) && length(ci) == 2L && all(is.finite(ci))) {
 		return(list(lower = ci[[1L]], upper = ci[[2L]], method = entry$label))
 	}
-	list(lower = NA_real_, upper = NA_real_, method = entry$label)
+	list(lower = NA_real_, upper = NA_real_, method = entry$label, error = err %||% if (is.null(ci)) NULL else "returned a non-finite interval")
 }
 
 #' Calls inference class `inf_obj`'s p-value method for sentinel `method`
@@ -703,6 +684,24 @@ run_all_inference_call_ci_for_method = function(inf_obj, alpha, method, type = N
 run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_character_) {
 	entry = Find(function(e) identical(e$label, method), EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY)
 	if (is.null(entry) || !(entry$capability %in% inf_obj$capabilities())) {
+		return(list(pval = NA_real_, method = NA_character_))
+	}
+	# "rand" degrades to "no capability" (not a silent NA from a caught
+	# error) when `compute_rand_two_sided_pval()` would itself `stop()` --
+	# confirmed reachable for `InferenceIncidGCompRiskDiff`/`RiskRatio`,
+	# `InferenceIncidKKNewcombeRiskDiffIVWC`, and the Miettinen-Nurminen
+	# incidence class (`fix_inference_hierarchy.md`'s method-level-`stop()`
+	# TODO, 2026-08-21: an incidence-response design that supports
+	# randomization draws but isn't `randomization_family() ==
+	# "rerandomization"` and has no custom randomization statistic hits the
+	# `stop()`, which this function's own `tryCatch` below used to swallow
+	# into `pval = NA`, `status = "ok"` -- indistinguishable from "ran fine,
+	# happened to be NA"). `supports_rand_pval_for_incidence()` is the same
+	# public accessor `compute_rand_two_sided_pval()` itself now guards
+	# with, so the two can't drift apart; only defined on `InferenceRand`
+	# subclasses, so guarded by an existence check for every other sentinel.
+	if (identical(method, "rand") && is.function(inf_obj$supports_rand_pval_for_incidence) &&
+			!isTRUE(inf_obj$supports_rand_pval_for_incidence())) {
 		return(list(pval = NA_real_, method = NA_character_))
 	}
 	# Never force `delta = 0` -- let the method's own formal default govern
@@ -738,11 +737,13 @@ run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_cha
 	if ("show_progress" %in% names(formals(inf_obj[[entry$method]]))) {
 		call_args$show_progress = FALSE
 	}
-	pv = tryCatch(do.call(inf_obj[[entry$method]], call_args), error = function(e) NULL)
+	# Keep the error text -- see the matching CI-side comment.
+	err = NULL
+	pv = tryCatch(do.call(inf_obj[[entry$method]], call_args), error = function(e) { err <<- conditionMessage(e); NULL })
 	if (!is.null(pv) && length(pv) == 1L && is.finite(pv)) {
 		return(list(pval = pv, method = entry$label))
 	}
-	list(pval = NA_real_, method = entry$label)
+	list(pval = NA_real_, method = entry$label, error = err %||% if (is.null(pv)) NULL else "returned a non-finite p-value")
 }
 
 #' Estimand label for `cls_name`, read from the class metadata registry's
@@ -771,8 +772,8 @@ run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_cha
 #' log10 transform of that number would be nonsensical (and can be
 #' negative, which log10 can't even display). Per user request, 2026-08-20
 #' ("for each estimand, decide if it makes sense to display on a log10
-#' scale") -- used by `run_all_inference_plot_estimates()`/
-#' `run_all_inference_plot_ci_forest()` to pick `scale_x_log10()` (null
+#' scale") -- used by `run_all_inference_plot_ci_forest()` to pick
+#' `scale_x_log10()` (null
 #' reference line at 1) vs. linear (null at 0) per estimand, closing the
 #' "ratio-scale nulls would need a per-class scale declaration" known
 #' limitation those two functions previously documented.
@@ -1044,15 +1045,34 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 				tryCatch(deparse1(inf_obj$get_model_formula()), error = function(e) NA_character_)
 			}
 			if (isTRUE(inf_obj$is_nonestimable("any"))) {
+				# Keep the method names on a nonestimable row too (per user
+				# request, 2026-08-21: "the name of the method should be
+				# visible even if it is producing NA's") -- the CI/pval
+				# sentinel label when an attempt was possible, else the
+				# task's own `method` sentinel, so the printout never shows
+				# a bare NA where the method column should be.
 				list(
 					status = "nonest", cov_model = cov_model,
+					ci_method = if (!is.na(ci$method)) ci$method else method,
+					pval_method = if (!is.na(pv$method)) pv$method else method,
 					message = inf_obj$get_nonestimable_reason() %||% NA_character_
 				)
 			} else {
+				# An `ok` row whose CI and/or p-value call errored (swallowed
+				# inside `run_all_inference_call_{ci,pval}_for_method()` into
+				# `NA`) now says so in `message`, naming the sentinel and the
+				# error text (per user question, 2026-08-21, re: an exact
+				# Zhang row that printed `NA` CI/p-value under `status = "ok"`
+				# with no explanation).
+				failure_notes = c(
+					if (!is.null(ci$error)) sprintf("CI (%s) failed: %s", ci$method, ci$error),
+					if (!is.null(pv$error)) sprintf("p-value (%s) failed: %s", pv$method, pv$error)
+				)
 				list(
 					status = "ok", cov_model = cov_model, estimate = as.numeric(estimate), se = se,
 					ci_a = ci$lower, ci_b = ci$upper, ci_method = ci$method,
-					pval = pv$pval, pval_method = pv$method
+					pval = pv$pval, pval_method = pv$method,
+					message = if (length(failure_notes) > 0L) paste(failure_notes, collapse = "; ") else NA_character_
 				)
 			}
 		}, error = function(e) {
@@ -1071,6 +1091,13 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 		}
 	)
 	row = utils::modifyList(row, outcome)
+	# Same "method name always visible" rule for error/timeout rows (and a
+	# belt-and-braces fallback for nonest): the task's sentinel is known
+	# even when the fit never got far enough to attempt a CI/p-value call.
+	if (!identical(row$status, "ok") && !is.na(method)) {
+		if (is.na(row$ci_method)) row$ci_method = method
+		if (is.na(row$pval_method)) row$pval_method = method
+	}
 	row$warnings  = if (length(collected_warnings) > 0L) paste(collected_warnings, collapse = "; ") else NA_character_
 	row$fit_secs  = as.numeric(difftime(Sys.time(), t0, units = "secs"))
 	row
@@ -1186,7 +1213,12 @@ run_all_inference_wrap_cell_2lines = function(text, width) {
 	# and left the 4th stranded alone on line 2) -- same balanced-halves
 	# scheme `run_all_inference_format_html_table()`'s `wrap_html()` already
 	# uses for `<br>`-wrapped header/cell text.
-	k = ceiling(length(words) / 2L)
+	# Floor (not ceiling) for odd word counts -- per user request,
+	# 2026-08-21: "Miettinen Risk Δ" (3 words) should wrap "Miettinen" /
+	# "Risk Δ" (shorter half first), not "Miettinen Risk" / "Δ". Even word
+	# counts are unaffected (floor == ceiling there), e.g. "G Comp Risk Δ"
+	# still wraps "G Comp" / "Risk Δ".
+	k = floor(length(words) / 2L)
 	line1 = paste(words[seq_len(k)], collapse = " ")
 	line2 = paste(words[(k + 1L):length(words)], collapse = " ")
 	if (nchar(line2) > width) line2 = substr(line2, 1L, width)
@@ -1481,7 +1513,7 @@ run_all_inference_print_live_cov_key = function(cov_key) {
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_progress_bar_line = function(n_done, n_total, elapsed_secs_so_far) {
+run_all_inference_progress_bar_line = function(n_done, n_total, elapsed_secs_so_far, label = "Classes") {
 	width = getOption("width", 80L)
 	if (is.null(width) || width < 40L) width = 80L
 	prop = if (n_total > 0L) n_done / n_total else 1
@@ -1493,7 +1525,17 @@ run_all_inference_progress_bar_line = function(n_done, n_total, elapsed_secs_so_
 	} else {
 		"Status: Estimating..."
 	}
-	label = sprintf("Classes %d/%d", n_done, n_total)
+	# `label` (default "Classes", the original hardcoded unit) lets other
+	# long-running screens reuse this exact bar with their own unit noun --
+	# tune_EDI_for_this_machine() passes "Cells" (local_machine_optimization.md,
+	# Architecture: "same rolling-update progress bar as run_all_inference()").
+	# Keep the noun in `label`; build the rendered "Noun i/N" string separately,
+	# because label_width below must be measured from the noun + the *largest*
+	# counter ("Noun N/N"), exactly as the original hardcoded version did --
+	# measuring it from the already-rendered "Noun i/N N/N" string (a bug caught
+	# by the tune_EDI_for_this_machine() bar-pin test, 2026-08-21) widened the
+	# label column by 4 and narrowed the bar for every caller.
+	label_str = sprintf("%s %d/%d", label, n_done, n_total)
 	# Sized to fit `n_total` (the largest either number ever gets) in full --
 	# the old fixed `label_width = 14L` combined with `substr(label, 1, 14)`
 	# silently truncated the *denominator* once task counts reached 3+
@@ -1501,8 +1543,8 @@ run_all_inference_progress_bar_line = function(n_done, n_total, elapsed_secs_so_
 	# trailing "7" off `n_total`), which is the real bug behind the user's
 	# "the total number of classes must be >18" report, 2026-08-20 -- not a
 	# logic error in how `n_total` itself was computed.
-	label_width = max(14L, nchar(sprintf("Classes %d/%d", n_total, n_total)))
-	padded_label = sprintf("%-*s", label_width, label)
+	label_width = max(14L, nchar(sprintf("%s %d/%d", label, n_total, n_total)))
+	padded_label = sprintf("%-*s", label_width, label_str)
 	bar_width = max(10L, width - label_width - nchar(eta_str) - 10L)
 	pct_str = sprintf(" %d%% ", floor(prop * 100))
 	fill = max(0L, min(bar_width, floor(prop * bar_width)))
@@ -1540,7 +1582,7 @@ run_all_inference_unavailable_footer_lines = function(unavailable_due_to_missing
 #' `run_all_inference_format_pretty_table()`'s text/screen rendering -- see
 #' `run_all_inference_build_display_table()`, the one shared builder both
 #' call), the design metadata, the unavailable-classes footer, and -- when
-#' `out$plots` contains built ggplot objects -- both visualizations embedded
+#' `out$plots` contains built ggplot objects -- the CI forest plots embedded
 #' as base64-inlined PNGs (`run_all_inference_plot_to_base64_png()`), so the
 #' page stays offline-renderable. Silently omits the Visualizations section
 #' if `ggplot2`/`jsonlite` weren't available to build/encode them (already
@@ -1563,27 +1605,19 @@ run_all_inference_render_html = function(out) {
 		"The following Inference %s unavailable",
 		if (length(out$unavailable_due_to_missing_packages) == 1L) "class is" else "classes are"
 	)
-	# One image per estimand for each visualization (TODO, 2026-08-19: matches
-	# the "one PDF per estimand" split -- see `run_all_inference_plot_
-	# estimates()`/`run_all_inference_plot_ci_forest()`'s docs), each sized
+	# One image per estimand (2026-08-19: matches the "one PDF per estimand"
+	# split -- see `run_all_inference_plot_ci_forest()`'s docs), each sized
 	# independently from its own content (`run_all_inference_plot_to_
-	# base64_png()`'s `width = NULL` default; CI forest height still scales
-	# from that one estimand's row count only, never summed across estimands
-	# -- the fix for the `ggsave()` "Dimensions exceed 50 inches" error).
+	# base64_png()`'s `width = NULL` default; height scales from that one
+	# estimand's row count only, never summed across estimands -- the fix
+	# for the `ggsave()` "Dimensions exceed 50 inches" error). The former
+	# separate "Estimates" image section is gone (per user request,
+	# 2026-08-21) -- its box-and-whisker now lives at the bottom of each CI
+	# forest plot.
 	estimand_heading = function(e) if (identical(e, "estimand unspecified")) e else estimand_short_label(e)
-	estimates_html = vapply(names(out$plots$estimates), function(e) {
-		p = out$plots$estimates[[e]]
-		b64 = run_all_inference_plot_to_base64_png(p, height = min(48, max(6, 0.22 * nrow(p$data) + 2)))
-		if (is.null(b64)) return("")
-		h = estimand_heading(e)
-		sprintf(
-			'<h3>%s</h3>\n<img src="data:image/png;base64,%s" alt="Estimate number line -- %s" style="max-width:100%%;">',
-			htmltools_escape_or_identity(h), b64, htmltools_escape_or_identity(h)
-		)
-	}, character(1L), USE.NAMES = FALSE)
 	ci_forest_html = vapply(names(out$plots$ci_forest), function(e) {
 		p = out$plots$ci_forest[[e]]
-		b64 = run_all_inference_plot_to_base64_png(p, height = min(48, max(6, 0.20 * nrow(p$data) + 1)))
+		b64 = run_all_inference_plot_to_base64_png(p, height = run_all_inference_ci_forest_height_in(run_all_inference_plot_n_rows(p)))
 		if (is.null(b64)) return("")
 		h = estimand_heading(e)
 		sprintf(
@@ -1592,7 +1626,6 @@ run_all_inference_render_html = function(out) {
 		)
 	}, character(1L), USE.NAMES = FALSE)
 	images_html = paste0(c(
-		if (any(nzchar(estimates_html))) c("<h2>Estimates</h2>", estimates_html[nzchar(estimates_html)]),
 		if (any(nzchar(ci_forest_html))) c("<h2>Confidence intervals</h2>", ci_forest_html[nzchar(ci_forest_html)])
 	), collapse = "\n")
 	design = out$design
@@ -1681,191 +1714,6 @@ run_all_inference_plot_safe_text = function(x) {
 	x
 }
 
-run_all_inference_letter_label = function(i) {
-	label = ""
-	while (i > 0L) {
-		r = (i - 1L) %% 26L
-		label = paste0(LETTERS[r + 1L], label)
-		i = (i - 1L) %/% 26L
-	}
-	label
-}
-
-#' Display label for the estimation method a class's `compute_estimate()`
-#' actually uses, shown in the estimates plot's letter key (e.g. `"(A)
-#' Logistic Regr (MLE)"`) -- per user request, 2026-08-20: "usually will be
-#' just MLE ... in future might be different (e.g. Firth)". Every class in
-#' this package fits by maximum likelihood (or an asymptotically-equivalent
-#' closed-form/M-estimator) today, so this is currently a constant; it's
-#' its own function (rather than a literal `"MLE"` inlined at the call
-#' site) so a future penalized/robust-estimator class has one place to
-#' declare its actual estimation method once it exists, without touching
-#' the plotting code.
-#'
-#' @keywords internal
-#' @noRd
-inference_class_estimation_method = function(cls_name) {
-	"MLE"
-}
-
-#' Estimate-number-line visualization for `run_all_inference()`'s
-#' `plots`/`pdf`/`html` output (see `inference_suite_inspect.md`'s
-#' Visualizations section): every `status == "ok"` class's point estimate
-#' on one shared axis (a single letter marks each point -- per user
-#' request, 2026-08-20, replacing the earlier full-text-label-per-point
-#' design, which crowded/overlapped once several methods landed on nearly
-#' the same estimate -- with a `"(A) <inference class> (<estimation
-#' method>)"` key printed as the plot's caption), and a box-and-whisker
-#' summary of the estimate values underneath, faceted by `estimand`
-#' (`"estimand unspecified"` for the majority of classes -- only a handful
-#' declare a private `get_estimand_type()`, see `run_all_inference_
-#' estimand()`) so estimates on different scales never share an axis.
-#' Points whose estimates are within 1% of the estimand's value range of
-#' each other are given a small vertical jitter (per user request,
-#' 2026-08-20) so their letter markers don't sit exactly on top of one
-#' another; genuinely distinct estimates are never jittered.
-#'
-#' Returns a **named list** of one ggplot per `estimand` (name = the raw
-#' `estimand` value, `"estimand unspecified"` for `NA`), not a single
-#' faceted plot -- per user request, 2026-08-19 ("one PDF per estimand"),
-#' replacing the earlier single `facet_wrap(~estimand_facet)` plot, which
-#' couldn't give each estimand its own appropriately-sized page/panel and
-#' crowded very different estimand scales onto one image. `character(0)`
-#' rows return `list()`. Method labels are rotated 90 degrees (vertical
-#' text) rather than the previous 45-degree diagonal, per the same request,
-#' so labels stack compactly instead of running diagonally into
-#' neighboring points as more classes are added.
-#'
-#' @keywords internal
-#' @noRd
-run_all_inference_plot_estimates = function(results_table) {
-	df = results_table[
-		results_table$status == "ok" & is.finite(results_table$estimate),
-		, drop = FALSE
-	]
-	if (nrow(df) == 0L) return(list())
-	# Dedupe by (inference_class, cov_model) -- per user request, 2026-08-21:
-	# the point estimate itself is shared across every `method` sentinel
-	# (wald/score/lik_ratio/gradient/... only differ in how the CI/p-value
-	# are computed, never the estimate) and, as of v1.0.0, across `type`
-	# too (no bootstrap-family `type` flavor changes `compute_estimate()`'s
-	# return value either) -- so plotting one point per *task* row (the
-	# `results_table` grain, which fans out over method x type) drew the
-	# exact same estimate many times over for one class/formula, cluttering
-	# the plot with duplicates that carry no new information. Keeps the
-	# first task row per (class, formula) pair; if a future estimator ever
-	# does vary its estimate by `type`, this dedupe would need to include
-	# `type` in the key too -- not done here since nothing in the package
-	# does that today (per user request: "this doesn't happen now in
-	# v1.0.0").
-	df = df[!duplicated(paste(df$inference_class, df$cov_model)), , drop = FALSE]
-	df$estimand_facet = ifelse(is.na(df$estimand), "estimand unspecified", df$estimand)
-	# Same class abbreviation as the pretty-print table (per user request,
-	# 2026-08-19: "use same abbreviations as the pretty print").
-	df$inference_class_disp = run_all_inference_plot_safe_text(vapply(df$inference_class, inference_class_short_label, character(1L)))
-	df$estimation_method = vapply(df$inference_class, inference_class_estimation_method, character(1L))
-	df$y_dot = 1
-	estimands = sort(unique(df$estimand_facet))
-	stats::setNames(lapply(estimands, function(e) {
-		d = df[df$estimand_facet == e, , drop = FALSE]
-		d = d[order(d$estimate), , drop = FALSE]
-		d$letter = vapply(seq_len(nrow(d)), run_all_inference_letter_label, character(1L))
-		# Formula in the key parenthetical when this row actually has one
-		# (per user request, 2026-08-20: "(A) Logistic Regr (MLE, ~ .)" --
-		# omit entirely, not even a trailing comma, when `cov_model` is `NA`
-		# or blank -- the same "blank means no formula" convention
-		# `cov_model_display()` already uses for the main table).
-		formula_suffix = ifelse(
-			is.na(d$cov_model) | !nzchar(d$cov_model), "",
-			paste0(", ", d$cov_model)
-		)
-		key_lines = sprintf(
-			"(%s) %s (%s%s)", d$letter, d$inference_class_disp, d$estimation_method, formula_suffix
-		)
-		# Cluster points within 1% of the estimand's value range of each
-		# other (per user request, 2026-08-20) and give each *cluster* one
-		# combined, comma-joined label (e.g. "A,C,H,K") instead of one
-		# label per point -- the individual point dots are still drawn for
-		# every row (restored, per user request, 2026-08-21: "restore the
-		# points"). A cluster label rotates 90 degrees when it actually
-		# combines more than one point (so the wider combined text doesn't
-		# collide with neighboring clusters); a singleton cluster's label
-		# stays horizontal, since there's nothing for it to collide with.
-		rng = diff(range(d$estimate))
-		tol = if (rng > 0) rng * 0.01 else .Machine$double.eps
-		cluster_id = cumsum(c(TRUE, diff(d$estimate) > tol))
-		clusters = split(seq_len(nrow(d)), cluster_id)
-		cl = do.call(rbind, lapply(clusters, function(idx) {
-			data.frame(
-				x = mean(d$estimate[idx]),
-				label = paste(d$letter[idx], collapse = ","),
-				rotated = length(idx) > 1L,
-				stringsAsFactors = FALSE
-			)
-		}))
-		max_label_chars = max(nchar(cl$label))
-		# Smaller letters (was `size = 3.5`) and tight y-limits (was
-		# `c(-1, y_max)`, `y_max` growing with row count to fit staircased
-		# text labels) -- clustering into combined labels needs far less
-		# vertical room than one label per point, and the lower bound
-		# matches the box's own bottom edge exactly (per user request,
-		# 2026-08-20/21: "no space between box and whisker plot and
-		# x-axis"; "reduce dead vertical space"). `y_max` still grows a
-		# little with the longest *rotated* label's character count, since
-		# vertical text needs proportionally more headroom.
-		y_max = if (any(cl$rotated)) max(1.4, 1.05 + 0.045 * max_label_chars) else 1.3
-		e_disp = if (identical(e, "estimand unspecified")) e else run_all_inference_plot_safe_text(estimand_short_label(e))
-		use_log10 = run_all_inference_estimand_use_log10(e, d$estimate)
-		x_scale = if (use_log10) {
-			ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = c(0.15, 0.15)))
-		} else {
-			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.15, 0.15)))
-		}
-		ggplot2::ggplot(d, ggplot2::aes(x = estimate)) +
-			# Thinner box (was `width = 0.6`) sitting flush on the axis --
-			# `y = -0.22` with `width = 0.3` puts its bottom edge at exactly
-			# the plot's own lower y-limit below, so there's no visible gap
-			# between the box and the x-axis (per user request, 2026-08-20).
-			ggplot2::geom_boxplot(
-				ggplot2::aes(y = -0.22), orientation = "y", width = 0.3, outlier.shape = NA
-			) +
-			ggplot2::geom_point(ggplot2::aes(y = y_dot), size = 1.6) +
-			ggplot2::geom_text(
-				data = cl[!cl$rotated, , drop = FALSE],
-				ggplot2::aes(x = x, y = 1.18, label = label),
-				inherit.aes = FALSE, fontface = "bold", size = 2.3
-			) +
-			ggplot2::geom_text(
-				data = cl[cl$rotated, , drop = FALSE],
-				ggplot2::aes(x = x, y = 1.18, label = label),
-				inherit.aes = FALSE, fontface = "bold", size = 2.3,
-				angle = 90, hjust = 0, vjust = 0.5
-			) +
-			x_scale +
-			ggplot2::scale_y_continuous(limits = c(-0.37, y_max), breaks = NULL, expand = c(0, 0)) +
-			ggplot2::coord_cartesian(clip = "off") +
-			# No title -- folded into the x-axis label instead (per user
-			# request, 2026-08-20: "risk ratio estimate", not a separate
-			# "Point estimates -- risk ratio" title), and the log10-scale
-			# transform is never named in the label even when `use_log10`
-			# is active (per the same request).
-			ggplot2::labs(
-				x = sprintf("%s estimate", e_disp), y = NULL,
-				caption = paste(key_lines, collapse = "\n")
-			) +
-			ggplot2::theme_minimal() +
-			ggplot2::theme(
-				panel.grid.major.y = ggplot2::element_blank(),
-				panel.grid.minor.y = ggplot2::element_blank(),
-				plot.caption = ggplot2::element_text(hjust = 0, size = 7, lineheight = 1.2),
-				# Wider left margin than the old single-plot version (was
-				# l = 5pt) -- per user request, 2026-08-19: text was getting
-				# cut off on the left.
-				plot.margin = ggplot2::margin(t = 5, r = 20, b = 5, l = 25, unit = "pt")
-			)
-	}), estimands)
-}
-
 #' Annotated CI forest plot for `run_all_inference()`'s `plots`/`pdf`/`html`
 #' output -- the merged former p-value/CI plots (user decision, 2026-08-17;
 #' see `inference_suite_inspect.md`'s Visualizations section): every
@@ -1883,8 +1731,32 @@ run_all_inference_plot_estimates = function(results_table) {
 #' has not tagged as raw-ratio-scale still gets a linear axis / null-at-0,
 #' even if it turns out to also warrant a log transform.
 #'
-#' Returns a **named list** of one CI forest ggplot per `estimand` (name =
-#' the raw `estimand` value, `"estimand unspecified"` for `NA`), not a
+#' A thin **box-and-whisker summary of the estimate values** is stacked as
+#' its own titled (`"Estimates"`) subplot directly under each forest, with
+#' a *free* x-axis (same estimand x-axis label, same log10/linear choice,
+#' but its own limits -- per user request, 2026-08-21: sharing the
+#' forest's axis, whose wide right-hand expansion reserves room for the
+#' label column, compressed the box into a sliver) -- replacing the former
+#' standalone estimate-number-line plot/PDF
+#' (`run_all_inference_plot_estimates()`, removed: the forest plot already
+#' draws every estimate as a dot, so the separate number line was
+#' redundant, and only its boxplot carried information not already on the
+#' forest plot). The boxplot is built from `results_table` rows that are
+#' `status == "ok"` with a finite `estimate` for this estimand --
+#' **collapsed over `method`/`type`**, one point per distinct
+#' (`inference_class`, `cov_model`) pair: the point estimate is shared
+#' across every `method` sentinel (wald/score/lik_ratio/gradient/... only
+#' differ in how the CI/p-value are computed, never the estimate -- they
+#' all share the same MLE) and, as of v1.0.0, across bootstrap `type` too,
+#' so counting each task row would weight one class's estimate many times
+#' over. (If a future estimator ever varies its estimate by `type`, the
+#' dedupe key would need `type` added.) Rows without a finite CI still
+#' contribute to the boxplot even though they get no forest row.
+#'
+#' Returns a **named list** of one forest+box `gtable` grob per `estimand`
+#' (name = the raw `estimand` value, `"estimand unspecified"` for `NA`;
+#' see `run_all_inference_stack_forest_and_box()` for why a grob rather than
+#' a ggplot, and how to draw/size it), not a
 #' single faceted plot -- per user request, 2026-08-19 ("one PDF per
 #' estimand"). This also directly fixes a real bug: the old single-plot,
 #' `facet_wrap(~estimand_facet)` design sized its PDF/PNG page height from
@@ -1906,6 +1778,15 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 	]
 	if (nrow(df) == 0L) return(list())
 	df$estimand_facet = ifelse(is.na(df$estimand), "estimand unspecified", df$estimand)
+	# Estimate set for the bottom box-and-whisker row: every ok/finite
+	# estimate (CI or not), collapsed over method x type to one point per
+	# (class, formula) pair -- see the roxygen block above.
+	est_df = results_table[
+		results_table$status == "ok" & is.finite(results_table$estimate),
+		, drop = FALSE
+	]
+	est_df = est_df[!duplicated(paste(est_df$inference_class, est_df$cov_model)), , drop = FALSE]
+	est_df$estimand_facet = ifelse(is.na(est_df$estimand), "estimand unspecified", est_df$estimand)
 	df$significant = !is.na(df$pval) & df$pval < alpha
 	pval_num = ifelse(
 		is.na(df$pval), "NA",
@@ -1932,6 +1813,10 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		d = df[df$estimand_facet == e, , drop = FALSE]
 		d = d[order(d$estimate), , drop = FALSE]
 		d$y = seq_len(nrow(d))
+		# Box-and-whisker subplot data (drawn as its own panel under the
+		# forest, with a free x-axis -- see the stacking below).
+		box_d = est_df[est_df$estimand_facet == e, , drop = FALSE]
+		box_d$y = 0
 		# Per user request, 2026-08-21: no more letter markers (A,B,C,...)
 		# and no more caption/key -- the full class/method label moves back
 		# into the plot area itself, as a right-aligned column (`x = Inf,
@@ -1972,7 +1857,7 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		} else {
 			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.35, 1.6)))
 		}
-		ggplot2::ggplot(d, ggplot2::aes(y = y)) +
+		forest = ggplot2::ggplot(d, ggplot2::aes(y = y)) +
 			ggplot2::geom_vline(xintercept = null_x, linetype = "dashed", color = "grey40") +
 			ggplot2::geom_segment(
 				ggplot2::aes(x = ci_a, xend = ci_b, yend = y, color = significant),
@@ -2027,17 +1912,96 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 				plot.caption = ggplot2::element_text(hjust = 0, size = 7, lineheight = 1.2),
 				plot.margin = ggplot2::margin(t = 5, r = 20, b = 5, l = 25, unit = "pt")
 			)
+		# Box-and-whisker subplot of the (method/type-collapsed) estimates
+		# -- its own panel under the forest with a *free* x-axis (per user
+		# request, 2026-08-21: the forest's wide right-hand label-column
+		# expansion compressed the box to a sliver when it shared the
+		# forest's axis), titled "Estimates", same x-axis label as the forest.
+		# Same log10/linear choice as the forest so the two axes read alike.
+		box_x_scale = if (use_log10) ggplot2::scale_x_log10() else ggplot2::scale_x_continuous()
+		box = ggplot2::ggplot(box_d, ggplot2::aes(x = estimate, y = y, group = y)) +
+			ggplot2::geom_boxplot(
+				orientation = "y", width = 0.6, outlier.size = 1,
+				color = "grey40", fill = "grey90"
+			) +
+			ggplot2::geom_point(size = 1.2, color = "grey30", alpha = 0.7) +
+			box_x_scale +
+			ggplot2::scale_y_continuous(breaks = NULL, limits = c(-0.5, 0.5), expand = c(0, 0)) +
+			ggplot2::labs(x = e_disp, y = NULL, title = "Estimates") +
+			ggplot2::theme_minimal() +
+			ggplot2::theme(
+				panel.grid.major.y = ggplot2::element_blank(),
+				panel.grid.minor.y = ggplot2::element_blank(),
+				plot.margin = ggplot2::margin(t = 5, r = 20, b = 5, l = 25, unit = "pt")
+			)
+		run_all_inference_stack_forest_and_box(forest, box, n_rows = nrow(d), max_label_chars = max(nchar(c(d$left_label, d$right_label))))
 	}), estimands)
 }
 
-#' Builds both `run_all_inference()` visualizations. Each of `estimates`/
-#' `ci_forest` is a **named list** of one ggplot per `estimand` (see
-#' `run_all_inference_plot_estimates()`/`run_all_inference_plot_ci_forest()`'s
-#' own docs -- TODO, 2026-08-19: split from a single faceted plot each, so
-#' every estimand gets its own appropriately-sized page/image), or
-#' `list(estimates = list(), ci_forest = list())` with a `warning()` (not an
-#' error -- per-feature decision) if the optional `ggplot2` dependency is
-#' not installed.
+#' Stacks one estimand's CI forest ggplot over its estimates box-and-whisker
+#' ggplot as a single `gtable` grob (forest panel on top, box panel below,
+#' left/right edges aligned via `rbind(..., size = "first")` so the two
+#' x-axes line up even though they're free/independent). Uses only `grid`
+#' and `gtable` (a hard dependency of `ggplot2`, so no new package) -- no
+#' `patchwork`/`cowplot`. The forest panel gets `n_rows` "null" height
+#' units vs. a fixed 2 for the box panel, so the box stays a thin strip and
+#' the forest's per-row spacing scales with row count exactly as before.
+#'
+#' The result is a grob, not a ggplot: draw it with
+#' `run_all_inference_draw_plot()` (`grid.newpage()` + `grid.draw()` --
+#' `print()` on a gtable only prints its layout table) or pass it to
+#' `ggplot2::ggsave(plot = )`, which accepts grobs. Row count / longest
+#' on-panel label (which `nrow(p$data)`/`p$data` used to supply for page
+#' sizing) ride along as attributes `edi_n_rows` / `edi_max_label_chars`
+#' -- read them via `run_all_inference_plot_n_rows()` /
+#' `run_all_inference_plot_max_label_chars()`.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_stack_forest_and_box = function(forest, box, n_rows, max_label_chars) {
+	gf = ggplot2::ggplotGrob(forest)
+	gb = ggplot2::ggplotGrob(box)
+	pf = gf$layout[gf$layout$name == "panel", , drop = FALSE]
+	pb = gb$layout[gb$layout$name == "panel", , drop = FALSE]
+	gf$heights[pf$t] = grid::unit(max(n_rows, 3L), "null")
+	gb$heights[pb$t] = grid::unit(2, "null")
+	g = rbind(gf, gb, size = "first")
+	attr(g, "edi_n_rows") = as.integer(n_rows)
+	attr(g, "edi_max_label_chars") = as.integer(max_label_chars)
+	g
+}
+
+#' Draws one `run_all_inference_plot_ci_forest()` grob on the current
+#' device (new page + `grid.draw()`; a gtable's `print()` method only
+#' prints its layout table, it does not draw).
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_draw_plot = function(p) {
+	grid::grid.newpage()
+	grid::grid.draw(p)
+	invisible(NULL)
+}
+
+#' Number of CI rows in one `run_all_inference_plot_ci_forest()` grob (the
+#' `edi_n_rows` attribute set by `run_all_inference_stack_forest_and_box()`)
+#' -- used for page/image height sizing.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_plot_n_rows = function(p) {
+	as.integer(attr(p, "edi_n_rows") %||% 0L)
+}
+
+#' Builds `run_all_inference()`'s visualization. `ci_forest` is a **named
+#' list** of one forest+box grob per `estimand` (see
+#' `run_all_inference_plot_ci_forest()`'s own docs -- split from a single
+#' faceted plot, 2026-08-19, so every estimand gets its own
+#' appropriately-sized page/image), or `list(ci_forest = list())` with a
+#' `warning()` (not an error -- per-feature decision) if the optional
+#' `ggplot2` dependency is not installed. (The former second visualization,
+#' a standalone estimate number line, was folded into the CI forest plot as
+#' a bottom box-and-whisker row -- per user request, 2026-08-21.)
 #'
 #' @keywords internal
 #' @noRd
@@ -2045,122 +2009,77 @@ run_all_inference_build_plots = function(results_table, alpha) {
 	if (!requireNamespace("ggplot2", quietly = TRUE)) {
 		warning(
 			"InferenceSuite$run_all_inference: the 'ggplot2' package is not installed -- ",
-			"skipping plots (estimate number line / CI forest). Install 'ggplot2' to enable them.",
+			"skipping plots (CI forest). Install 'ggplot2' to enable them.",
 			call. = FALSE
 		)
-		return(list(estimates = list(), ci_forest = list()))
+		return(list(ci_forest = list()))
 	}
-	list(
-		estimates = run_all_inference_plot_estimates(results_table),
-		ci_forest = run_all_inference_plot_ci_forest(results_table, alpha)
-	)
+	list(ci_forest = run_all_inference_plot_ci_forest(results_table, alpha))
 }
 
-#' Saves `run_all_inference()`'s plots to **two** separate timestamped
-#' multi-page PDFs -- `path_estimates` (one page per estimand's estimates
-#' plot) and `path_ci_forest` (one page per estimand's CI forest plot) --
-#' per user request, 2026-08-19 ("one PDF per estimand for estimates ...
-#' one PDF per estimand for CI"), replacing the earlier single two-page PDF.
-#' A `pdf()` device can't vary page size page-to-page without reopening the
-#' file (which would truncate pages already written), so all pages within
-#' one file share that file's single page height -- for `path_estimates`
-#' this is always a fixed 6in (the estimates plot never stacks rows
-#' vertically, so it doesn't need to scale with row count at all); for
-#' `path_ci_forest` it's sized from the \emph{largest single estimand's} row
-#' count (not summed across estimands, unlike the old design -- the actual
-#' cause of the `ggplot2::ggsave()` "Dimensions exceed 50 inches" error the
-#' user hit, since a page's height only ever needs to fit one estimand's
-#' rows now), capped at 48in to stay under `ggsave()`-style size sanity
-#' limits even for a single very-large estimand.
-#'
-#' @param plots `run_all_inference_build_plots()`'s return value (named
-#'   lists of ggplots, one per estimand, possibly empty).
-#' @param path_estimates,path_ci_forest File paths for the two PDFs.
-#' @return Invisibly, `NULL`. Skips writing a file for a plot list that's
-#'   empty (nothing plottable for that visualization).
-#'
-#' @keywords internal
-#' @noRd
-#' Longest text label actually drawn on plot `p` (its `method_label`/
-#' `pval_label`/`width_label` columns, whichever are present) -- used to
-#' size a plot's page/image width from its real content instead of a flat
-#' constant, per user request, 2026-08-19 ("the PDFs don't have to be
-#' regular width size -- they can be cropped to whatever the width truly
-#' is"). Returns `0L` if `p` has none of those columns.
+#' Longest text label actually drawn on one `run_all_inference_plot_ci_
+#' forest()` grob (its `edi_max_label_chars` attribute, set from the
+#' forest's `left_label`/`right_label` columns by `run_all_inference_stack_
+#' forest_and_box()`) -- used to size a plot's page/image width from its
+#' real content instead of a flat constant, per user request, 2026-08-19
+#' ("the PDFs don't have to be regular width size -- they can be cropped to
+#' whatever the width truly is"). Returns `0L` if the attribute is absent.
 #'
 #' @keywords internal
 #' @noRd
 run_all_inference_plot_max_label_chars = function(p) {
-	d = p$data
-	label_cols = intersect(c("left_label", "right_label"), names(d))
-	data_max = if (length(label_cols) == 0L) {
-		0L
-	} else {
-		max(vapply(label_cols, function(cn) max(nchar(as.character(d[[cn]])), 0L), integer(1L)))
-	}
-	# The estimates plot (per user request, 2026-08-20) has no long text in
-	# its data any more -- its longest text now lives in the caption's
-	# per-line letter key (`"(A) <class> (<method>, <formula>)"`), which
-	# `p$data` doesn't capture at all.
-	caption = p$labels$caption %||% ""
-	caption_max = if (nzchar(caption)) max(nchar(strsplit(caption, "\n", fixed = TRUE)[[1L]])) else 0L
-	max(data_max, caption_max)
+	as.integer(attr(p, "edi_max_label_chars") %||% 0L)
 }
 
-#' Saves `run_all_inference()`'s plots to **two** separate timestamped
-#' multi-page PDFs -- `path_estimates` (one page per estimand's estimates
-#' plot) and `path_ci_forest` (one page per estimand's CI forest plot) --
-#' per user request, 2026-08-19 ("one PDF per estimand for estimates ...
-#' one PDF per estimand for CI"), replacing the earlier single two-page PDF.
-#' A `pdf()` device can't vary page size page-to-page without reopening the
-#' file (which would truncate pages already written), so all pages within
-#' one file share that file's single page height/width -- height for
-#' `path_estimates` is always a fixed 6in (the estimates plot never stacks
-#' rows vertically, so it doesn't need to scale with row count at all); for
-#' `path_ci_forest` it's sized from the \emph{largest single estimand's} row
-#' count (not summed across estimands, unlike the old design -- the actual
-#' cause of the `ggplot2::ggsave()` "Dimensions exceed 50 inches" error the
-#' user hit, since a page's height only ever needs to fit one estimand's
-#' rows now), capped at 48in to stay under `ggsave()`-style size sanity
-#' limits even for a single very-large estimand. Width for both files is
-#' likewise sized from real content (`run_all_inference_plot_max_label_
-#' chars()`'s longest on-page text label, the widest the estimates plot's
-#' rotated-vertical labels ever need since they no longer run diagonally
-#' outward) rather than a flat constant (per the same request).
-#'
-#' @param plots `run_all_inference_build_plots()`'s return value (named
-#'   lists of ggplots, one per estimand, possibly empty).
-#' @param path_estimates,path_ci_forest File paths for the two PDFs.
-#' @return Invisibly, `NULL`. Skips writing a file for a plot list that's
-#'   empty (nothing plottable for that visualization).
+#' Page height (inches) for one CI forest plot with `n_rows` CI rows --
+#' shared by the PDF writer and the HTML embed so the two stay in step.
+#' Per-row height shrunk (was `0.35 * ... + 1.5`) per user request,
+#' 2026-08-21 ("reduce the vertical space between the ci lines as much as
+#' possible"); the intercept covers the forest's title and x-axis plus the
+#' separate "Estimates" box-and-whisker subplot stacked underneath it
+#' (`run_all_inference_stack_forest_and_box()`: its own title, panel, and
+#' x-axis, ~1.8in). Capped at 48in to stay under `ggsave()`-style size
+#' sanity limits even for a single very-large estimand.
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_save_plots_pdf = function(plots, path_estimates, path_ci_forest) {
-	if (length(plots$estimates) > 0L) {
-		max_chars = max(vapply(plots$estimates, run_all_inference_plot_max_label_chars, integer(1L)))
-		width = min(10, max(5, 4 + 0.03 * max_chars))
-		# Scales with the largest single estimand's row count -- the
-		# staircased labels (`run_all_inference_plot_estimates()`, per user
-		# request, 2026-08-20: labels were overlapping) need proportionally
-		# more vertical room as more methods/classes land in one estimand.
-		est_rows = vapply(plots$estimates, function(p) nrow(p$data), integer(1L))
-		height = min(48, max(6, 0.22 * max(est_rows) + 2))
-		grDevices::pdf(path_estimates, width = width, height = height, onefile = TRUE)
-		for (p in plots$estimates) print(p)
-		grDevices::dev.off()
-	}
+run_all_inference_ci_forest_height_in = function(n_rows) {
+	min(48, max(6, 0.20 * n_rows + 2.6))
+}
+
+#' Saves `run_all_inference()`'s CI forest plots to one timestamped
+#' multi-page PDF (one page per estimand -- per user request, 2026-08-19,
+#' "one PDF per estimand for CI"). A `pdf()` device can't vary page size
+#' page-to-page without reopening the file (which would truncate pages
+#' already written), so all pages share one page height/width -- height is
+#' sized from the \emph{largest single estimand's} row count (not summed
+#' across estimands, unlike the old faceted design -- the actual cause of
+#' the `ggplot2::ggsave()` "Dimensions exceed 50 inches" error the user
+#' hit, since a page's height only ever needs to fit one estimand's rows
+#' now; `run_all_inference_ci_forest_height_in()`), width from real content
+#' (`run_all_inference_plot_max_label_chars()`'s longest on-page text
+#' label) rather than a flat constant (per the same request). The former
+#' second PDF (the standalone estimates number line) is gone -- per user
+#' request, 2026-08-21, its box-and-whisker is now a row at the bottom of
+#' the CI forest plot itself.
+#'
+#' @param plots `run_all_inference_build_plots()`'s return value
+#'   (`list(ci_forest = <named list of ggplots, one per estimand>)`,
+#'   possibly empty).
+#' @param path File path for the PDF.
+#' @return Invisibly, `NULL`. Skips writing the file if there's nothing
+#'   plottable.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_save_plots_pdf = function(plots, path) {
 	if (length(plots$ci_forest) > 0L) {
-		ci_rows = vapply(plots$ci_forest, function(p) nrow(p$data), integer(1L))
-		# Per-row height shrunk (was `0.35 * ... + 1.5`) -- per user request,
-		# 2026-08-21 ("reduce the vertical space between the ci lines as
-		# much as possible"); each row is just one line + its restored
-		# flanking numbers now, no stacked text underneath any more.
-		height = min(48, max(6, 0.20 * max(ci_rows) + 1))
+		ci_rows = vapply(plots$ci_forest, run_all_inference_plot_n_rows, integer(1L))
+		height = run_all_inference_ci_forest_height_in(max(ci_rows))
 		max_chars = max(vapply(plots$ci_forest, run_all_inference_plot_max_label_chars, integer(1L)))
 		width = min(14, max(6, 3 + 0.09 * max_chars))
-		grDevices::pdf(path_ci_forest, width = width, height = height, onefile = TRUE)
-		for (p in plots$ci_forest) print(p)
+		grDevices::pdf(path, width = width, height = height, onefile = TRUE)
+		for (p in plots$ci_forest) run_all_inference_draw_plot(p)
 		grDevices::dev.off()
 	}
 	invisible(NULL)
@@ -2408,6 +2327,13 @@ inference_class_short_label = function(name) {
 	# pretty print that says 'Diff' should be 'Δ' instead"), e.g. "Mean
 	# Diff" -> "Mean Δ", "G Comp Risk Diff" -> "G Comp Risk Δ".
 	label = gsub("\\bDiff\\b", "Δ", label)
+	# "Log Regr" -> "Logist Regr" (InferenceIncidLogRegr specifically, per
+	# user request, 2026-08-21) -- an exact-label override, not a general
+	# "Log"->"Logist" word rule: "Log Binomial"/"Log Rank" (InferenceIncid
+	# LogBinomial/InferenceSurvivalLogRank) are unrelated models (log-link
+	# binomial regression, the log-rank test) where "Logist" would be
+	# actively wrong, not just imprecise.
+	if (identical(label, "Log Regr")) label = "Logist Regr"
 	label
 }
 
@@ -2659,7 +2585,12 @@ run_all_inference_format_html_table = function(results_table) {
 		vapply(esc(x), function(s) {
 			words = strsplit(s, " ", fixed = TRUE)[[1]]
 			if (length(words) < 2L) return(s)
-			k = ceiling(length(words) / 2L)
+			# Floor (not ceiling) for odd word counts -- per user request,
+	# 2026-08-21: "Miettinen Risk Δ" (3 words) should wrap "Miettinen" /
+	# "Risk Δ" (shorter half first), not "Miettinen Risk" / "Δ". Even word
+	# counts are unaffected (floor == ceiling there), e.g. "G Comp Risk Δ"
+	# still wraps "G Comp" / "Risk Δ".
+	k = floor(length(words) / 2L)
 			paste0(paste(words[seq_len(k)], collapse = " "), "<br>", paste(words[(k + 1L):length(words)], collapse = " "))
 		}, character(1L), USE.NAMES = FALSE)
 	}
@@ -3126,19 +3057,21 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   installed, a \code{warning()} is issued and this artifact is skipped rather
 		#'   than erroring. Default \code{FALSE}.
 		#' @param plots If \code{TRUE}, build and display (on the current graphics
-		#'   device) two \pkg{ggplot2} visualizations: an estimate number line
-		#'   (class/method labels above each point at 45 degrees, a box-and-whisker
-		#'   summary underneath) and an annotated confidence-interval forest plot
-		#'   (p-value left of each interval, interval width right of it, class/method
-		#'   labeled underneath, color-keyed to significance at \code{alpha}). Requires
-		#'   the optional \pkg{ggplot2} package; if it is not installed, a
-		#'   \code{warning()} is issued and plotting is skipped rather than erroring.
-		#'   Defaults to the value of \code{screen}.
-		#' @param pdf If \code{TRUE}, save both visualizations to one timestamped,
-		#'   two-page PDF file in the current working directory (page height scales
-		#'   with the number of classes in the CI forest plot). Same \pkg{ggplot2}
-		#'   dependency and missing-package handling as \code{plots}. Default
-		#'   \code{FALSE}.
+		#'   device) one \pkg{ggplot2} visualization per estimand: an annotated
+		#'   confidence-interval forest plot (p-value left of each interval, interval
+		#'   width right of it, class/method label right-aligned on each row,
+		#'   color-keyed to significance at \code{alpha}) with a thin box-and-whisker
+		#'   summary of the point estimates -- one point per inference class/formula,
+		#'   collapsed over method/type since those share one estimate -- along its
+		#'   bottom edge, labeled \dQuote{all estimates}. Requires the optional
+		#'   \pkg{ggplot2} package; if it is not installed, a \code{warning()} is
+		#'   issued and plotting is skipped rather than erroring. Defaults to the
+		#'   value of \code{screen}.
+		#' @param pdf If \code{TRUE}, save the visualization to one timestamped
+		#'   multi-page PDF file in the current working directory (one page per
+		#'   estimand; page height scales with the largest estimand's number of CI
+		#'   rows). Same \pkg{ggplot2} dependency and missing-package handling as
+		#'   \code{plots}. Default \code{FALSE}.
 		#' @param classes Optional character vector restricting which applicable
 		#'   classes to fit -- e.g. re-running against only the few classes a user is
 		#'   actually deciding between, without reconstructing the suite. Every name
@@ -3390,16 +3323,17 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   directly, since that column can repeat under \code{formulas};
 		#'   \code{pval = stat = NA_real_} if fewer than 2 rows are usable),
 		#'   \code{design}, \code{alpha}, \code{unavailable_due_to_missing_packages},
-		#'   \code{plots} (\code{list(estimates, ci_forest)}; each of those is itself a
-		#'   named list of one \code{ggplot} object per \code{estimand} -- possibly
-		#'   empty -- rather than a single plot, since each visualization is now
-		#'   split one-per-estimand, per user request, 2026-08-19),
-		#'   \code{files} (\code{list(html, pdf, json)}; \code{html}/\code{json} are
-		#'   each a path or \code{NULL}, \code{pdf} is itself
-		#'   \code{list(estimates, ci_forest)} of two paths (or \code{NULL}s) --
-		#'   \strong{two separate PDF files}, one per visualization, each a
-		#'   multi-page PDF with one page per estimand), \code{timestamp},
-		#'   \code{total_secs}, and \code{edi_version}.
+		#'   \code{plots} (\code{list(ci_forest)}; \code{ci_forest} is a named list
+		#'   of one \pkg{gtable} grob per \code{estimand} -- the CI forest
+		#'   stacked over its \dQuote{Estimates} box-and-whisker subplot; draw
+		#'   with \code{grid::grid.draw()} or pass to \code{ggplot2::ggsave()} --
+		#'   possibly empty -- rather than a single plot, since the visualization
+		#'   is split one-per-estimand, per user request, 2026-08-19; the former
+		#'   separate \code{estimates} plot became that subplot, 2026-08-21),
+		#'   \code{files} (\code{list(html, pdf, json)}, each a
+		#'   path or \code{NULL}; \code{pdf} is one multi-page PDF with one page
+		#'   per estimand), \code{timestamp}, \code{total_secs}, and
+		#'   \code{edi_version}.
 		run_all_inference = function(screen = TRUE, html = FALSE, alpha = 0.05, save_results_as_JSON = FALSE, plots = screen, pdf = FALSE,
 				classes = NULL, exclude_classes = character(), max_secs_per_class = NULL, num_cores = 1L, formulas = NULL,
 				methods = NULL, basic_bootstrap = FALSE,
@@ -3556,19 +3490,29 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			}
 
 			if (use_fork_cluster && n_total > 0L) {
-				# Fork clusters (parallel::makeForkCluster()) inherit the master
-				# process's entire memory via copy-on-write, so this closure needs no
-				# clusterExport() -- des_obj/alpha/etc. are already in its enclosing
-				# frame. Screen output cannot stream per-class as it completes here:
-				# clusterApply() is a single blocking call that returns only once every
-				# worker has finished, so there is no meaningful per-row ETA to show
-				# (deliberate design decision, not an oversight -- see
+				# Fork clusters inherit the master process's entire memory via
+				# copy-on-write, so this closure needs no clusterExport() --
+				# des_obj/alpha/etc. are already in its enclosing frame. Screen
+				# output cannot stream per-class as it completes here:
+				# clusterApply() is a single blocking call that returns only once
+				# every worker has finished, so there is no meaningful per-row ETA
+				# to show (deliberate design decision, not an oversight -- see
 				# inference_suite_inspect.md's TODO-13).
+				#
+				# Cluster creation goes through the package's own
+				# make_configured_fork_cluster() (globals.R) -- the same helper
+				# set_num_cores()/get_global_fork_cluster() use -- rather than a
+				# raw parallel::makeForkCluster() call, so this path gets the same
+				# OMP/BLAS/data.table single-threading on every worker (avoids
+				# oversubscription: num_cores forked workers each spawning their
+				# own OpenMP thread pool), port-retry, and PSOCK fallback as every
+				# other fork-cluster user in the package (see
+				# parallel_fork_cluster_test_safety.md's TODO-4).
 				if (screen) {
 					cat(sprintf("Fitting %d task(s) across %d parallel workers...\n", n_total, num_cores))
 					cat(live_header$header_lines, sep = "\n")
 				}
-				cl = parallel::makeForkCluster(num_cores)
+				cl = make_configured_fork_cluster(num_cores)
 				on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
 				worker_fn = function(task) {
 					params = private$inference_params[[task$cls_name]] %||% list()
@@ -3704,8 +3648,8 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					weights_used = stats::setNames(results_table$weight, row_ids),
 					classes_used = row_ids[combined_usable]
 				),
-				plots = list(estimates = list(), ci_forest = list()),
-				files = list(html = NULL, pdf = list(estimates = NULL, ci_forest = NULL), json = NULL),
+				plots = list(ci_forest = list()),
+				files = list(html = NULL, pdf = NULL, json = NULL),
 				timestamp = format(Sys.time(), "%Y%m%d_%H%M%S"),
 				total_secs = as.numeric(difftime(Sys.time(), t_start, units = "secs")),
 				edi_version = as.character(utils::packageVersion("EDI"))
@@ -3722,17 +3666,12 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				out$plots = run_all_inference_build_plots(results_table, alpha)
 			}
 			if (plots) {
-				for (p in out$plots$estimates) tryCatch(print(p), error = function(e) invisible(NULL))
-				for (p in out$plots$ci_forest) tryCatch(print(p), error = function(e) invisible(NULL))
+				for (p in out$plots$ci_forest) tryCatch(run_all_inference_draw_plot(p), error = function(e) invisible(NULL))
 			}
-			if (pdf && (length(out$plots$estimates) > 0L || length(out$plots$ci_forest) > 0L)) {
-				pdf_path_estimates = file.path(getwd(), sprintf("inference_suite_results_estimates_%s.pdf", out$timestamp))
-				pdf_path_ci_forest = file.path(getwd(), sprintf("inference_suite_results_ci_forest_%s.pdf", out$timestamp))
-				run_all_inference_save_plots_pdf(out$plots, pdf_path_estimates, pdf_path_ci_forest)
-				out$files$pdf = list(
-					estimates = if (length(out$plots$estimates) > 0L) pdf_path_estimates else NULL,
-					ci_forest = if (length(out$plots$ci_forest) > 0L) pdf_path_ci_forest else NULL
-				)
+			if (pdf && length(out$plots$ci_forest) > 0L) {
+				pdf_path = file.path(getwd(), sprintf("inference_suite_results_ci_forest_%s.pdf", out$timestamp))
+				run_all_inference_save_plots_pdf(out$plots, pdf_path)
+				out$files$pdf = pdf_path
 			}
 			if (html) {
 				html_path = file.path(getwd(), sprintf("inference_suite_results_%s.html", out$timestamp))

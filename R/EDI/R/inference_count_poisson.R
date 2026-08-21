@@ -1,7 +1,45 @@
 #' Poisson Regression Inference for Count Responses
 #'
-#' Fits a Poisson log-link regression for count responses using the treatment
-#' indicator and, optionally, all recorded covariates as predictors.
+#' Fits a Poisson log-link regression for count responses:
+#' \eqn{Y_i \mid W_i, X_i \sim \mathrm{Poisson}(\mu_i)}, \eqn{\log \mu_i =
+#' \beta_0 + \beta_T W_i + X_i^\top \gamma}
+#' (\code{\link{fast_poisson_regression_cpp}}/
+#' \code{\link{fast_poisson_regression_with_var_cpp}}). \eqn{\hat\beta_T} is a
+#' log-rate-ratio: \eqn{\exp(\hat\beta_T)} is the estimated rate ratio.
+#' \code{likelihood_tier = "full"}: Wald, score, gradient, and
+#' likelihood-ratio tests are all available, plus parametric-likelihood
+#' bootstrap calibration of the likelihood-ratio test (simulating new Poisson
+#' responses under the null).
+#'
+#' \strong{Design-conservative testing.} Every asymptotic/likelihood test
+#' method on this class does not report the raw model-based result directly.
+#' Instead, it also computes a design-based jackknife-Wald test
+#' (\code{compute_jackknife_wald_two_sided_pval()}/
+#' \code{compute_jackknife_wald_confidence_interval()}, which do not assume
+#' the Poisson mean-variance relationship) and combines the two
+#' conservatively: p-values report \eqn{\max} of the model-based and
+#' design-based p-values, and confidence intervals report the \emph{union} of
+#' the model-based and design-based intervals. This guards against the
+#' model-based test being anti-conservative when the Poisson equidispersion
+#' assumption (\eqn{\mathrm{Var}(Y_i) = E[Y_i]}) fails — a real risk for count
+#' data, which is frequently overdispersed (see
+#' \code{\link[EDI:InferenceCountNegBin]{InferenceCountNegBin}} for a model
+#' that estimates dispersion directly instead). If either component is
+#' unavailable, the available one is used alone; if neither is available, the
+#' result is \code{NA}. Validity requires the usual correctly-specified
+#' linear predictor on the log scale; unlike the raw Poisson likelihood
+#' alone, this class's actual reported inference degrades gracefully (rather
+#' than becoming anti-conservative) under mean-variance misspecification.
+#'
+#' @references Cameron, A. C., and Trivedi, P. K. (2013). \emph{Regression
+#'   Analysis of Count Data} (2nd ed.). Cambridge University Press, for the
+#'   Poisson regression model and its maximum-likelihood theory.
+#'
+#' @seealso Comparable Python API:
+#'   \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
+#'   discrete models} (\code{Poisson}). See also:
+#'   \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson
+#'   regression} (Wikipedia).
 #'
 #' @examples
 #' \donttest{
@@ -52,7 +90,13 @@ InferenceCountPoisson = define_inference_class(
 		)
 	),
 	public = list(
-		#' @description Initialize a Poisson regression inference object.
+		#' @description Initialize inference for the Poisson regression model
+		#'   \eqn{Y_i \mid W_i, X_i \sim \mathrm{Poisson}(\mu_i)}, \eqn{\log \mu_i =
+		#'   \beta_0 + \beta_T W_i + X_i^\top \gamma}; see
+		#'   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+		#'   model form and the design-conservative testing mechanism. Does not fit
+		#'   the model; the fit is deferred to the first call to
+		#'   \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with a count response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -70,7 +114,12 @@ InferenceCountPoisson = define_inference_class(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Computes an asymptotic confidence interval using the configured test.
+		#' @description Design-conservative confidence interval for \eqn{\beta_T}
+		#'   using whichever test type is configured
+		#'   (\code{private$testing_type}: \code{"wald"}, \code{"score"},
+		#'   \code{"gradient"}, or \code{"lik_ratio"}); see
+		#'   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+		#'   union-with-jackknife-Wald combination rule.
 		#' @param alpha Significance level. Default 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -85,7 +134,11 @@ InferenceCountPoisson = define_inference_class(
 				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha = alpha)
 			)
 		},
-		#' @description Computes an asymptotic two-sided p-value using the configured test.
+		#' @description Design-conservative two-sided p-value for \eqn{H_0: \beta_T =
+		#'   \code{delta}} using whichever test type is configured
+		#'   (\code{private$testing_type}); see
+		#'   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+		#'   max-with-jackknife-Wald combination rule.
 		#' @param delta Null treatment effect. Default 0.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -100,7 +153,12 @@ InferenceCountPoisson = define_inference_class(
 				lik_ratio = self$compute_lik_ratio_two_sided_pval(delta = delta)
 			)
 		},
-		#' @description Computes a design-conservative Wald confidence interval.
+		#' @description Wald confidence interval for \eqn{\beta_T} using the fitted
+		#'   Poisson model's Fisher-information-based standard error, unioned with
+		#'   the design-based jackknife-Wald interval; see
+		#'   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+		#'   combination rule and \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}
+		#'   for the underlying Wald contract.
 		#' @param alpha Significance level. Default 0.05.
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -110,7 +168,11 @@ InferenceCountPoisson = define_inference_class(
 			ci_model = private$compute_wald_confidence_interval_impl(alpha)
 			private$design_conservative_ci(ci_model, alpha = alpha)
 		},
-		#' @description Computes a design-conservative Wald two-sided p-value.
+		#' @description Wald test of \eqn{H_0: \beta_T = \code{delta}} using the
+		#'   fitted Poisson model's Fisher-information-based standard error, taking
+		#'   the max with the design-based jackknife-Wald p-value; see
+		#'   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+		#'   combination rule.
 		#' @param delta Null treatment effect. Default 0.
 		compute_wald_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -120,7 +182,11 @@ InferenceCountPoisson = define_inference_class(
 			p_model = private$compute_wald_two_sided_pval_impl(delta)
 			private$design_conservative_pval(p_model, delta = delta)
 		},
-		#' @description Computes a design-conservative score confidence interval.
+		#' @description Score-test confidence interval for \eqn{\beta_T} (inverting
+		#'   the Poisson score test at each candidate null, no full re-fit needed at
+		#'   the observed information), unioned with the design-based jackknife-Wald
+		#'   interval; see \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}}
+		#'   for the combination rule.
 		#' @param alpha Significance level. Default 0.05.
 		compute_score_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -130,7 +196,10 @@ InferenceCountPoisson = define_inference_class(
 			ci_model = private$compute_score_confidence_interval_impl(alpha)
 			private$design_conservative_ci(ci_model, alpha = alpha)
 		},
-		#' @description Computes a design-conservative score two-sided p-value.
+		#' @description Score test of \eqn{H_0: \beta_T = \code{delta}}, taking the
+		#'   max with the design-based jackknife-Wald p-value; see
+		#'   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+		#'   combination rule.
 		#' @param delta Null treatment effect. Default 0.
 		compute_score_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -140,7 +209,11 @@ InferenceCountPoisson = define_inference_class(
 			p_model = private$compute_score_two_sided_pval_impl(delta)
 			private$design_conservative_pval(p_model, delta = delta)
 		},
-		#' @description Computes a design-conservative likelihood-ratio confidence interval.
+		#' @description Likelihood-ratio-test confidence interval for \eqn{\beta_T}
+		#'   (test inversion, requiring a null refit at each candidate value),
+		#'   unioned with the design-based jackknife-Wald interval; see
+		#'   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+		#'   combination rule.
 		#' @param alpha Significance level. Default 0.05.
 		compute_lik_ratio_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -150,7 +223,10 @@ InferenceCountPoisson = define_inference_class(
 			ci_model = private$compute_lik_ratio_confidence_interval_impl(alpha)
 			private$design_conservative_ci(ci_model, alpha = alpha)
 		},
-		#' @description Computes a design-conservative likelihood-ratio two-sided p-value.
+		#' @description Likelihood-ratio test of \eqn{H_0: \beta_T = \code{delta}},
+		#'   taking the max with the design-based jackknife-Wald p-value; see
+		#'   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+		#'   combination rule.
 		#' @param delta Null treatment effect. Default 0.
 		compute_lik_ratio_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -160,7 +236,11 @@ InferenceCountPoisson = define_inference_class(
 			p_model = private$compute_lik_ratio_two_sided_pval_impl(delta)
 			private$design_conservative_pval(p_model, delta = delta)
 		},
-		#' @description Computes a design-conservative gradient confidence interval.
+		#' @description Gradient-test confidence interval for \eqn{\beta_T} (a
+		#'   score-test variant using the observed rather than expected
+		#'   information), unioned with the design-based jackknife-Wald interval;
+		#'   see \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for
+		#'   the combination rule.
 		#' @param alpha Significance level. Default 0.05.
 		compute_gradient_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -170,7 +250,10 @@ InferenceCountPoisson = define_inference_class(
 			ci_model = private$compute_gradient_confidence_interval_impl(alpha)
 			private$design_conservative_ci(ci_model, alpha = alpha)
 		},
-		#' @description Computes a design-conservative gradient two-sided p-value.
+		#' @description Gradient test of \eqn{H_0: \beta_T = \code{delta}}, taking
+		#'   the max with the design-based jackknife-Wald p-value; see
+		#'   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+		#'   combination rule.
 		#' @param delta Null treatment effect. Default 0.
 		compute_gradient_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -180,7 +263,12 @@ InferenceCountPoisson = define_inference_class(
 			p_model = private$compute_gradient_two_sided_pval_impl(delta)
 			private$design_conservative_pval(p_model, delta = delta)
 		},
-		#' @description Computes a design-conservative parametric LR-bootstrap p-value.
+		#' @description Parametric-likelihood-bootstrap-calibrated likelihood-ratio
+		#'   test of \eqn{H_0: \beta_T = \code{delta}} (simulating new Poisson
+		#'   responses from the null-constrained fit to calibrate the LR statistic's
+		#'   null distribution), taking the max with the design-based jackknife-Wald
+		#'   p-value; see \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}}
+		#'   for the combination rule.
 		#' @param delta Null treatment effect. Default 0.
 		#' @param B Number of bootstrap replicates.
 		#' @param show_progress Whether to show progress.
@@ -197,7 +285,12 @@ InferenceCountPoisson = define_inference_class(
 			)
 			private$design_conservative_pval(p_model, delta = delta)
 		},
-		#' @description Computes a design-conservative parametric LR-bootstrap CI.
+		#' @description Parametric-likelihood-bootstrap-calibrated likelihood-ratio
+		#'   confidence interval for \eqn{\beta_T} (test inversion using the
+		#'   bootstrap-calibrated null distribution), unioned with the design-based
+		#'   jackknife-Wald interval; see
+		#'   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
+		#'   combination rule.
 		#' @param alpha Significance level. Default 0.05.
 		#' @param B Number of bootstrap replicates.
 		#' @param show_progress Whether to show progress.
@@ -218,8 +311,15 @@ InferenceCountPoisson = define_inference_class(
 			)
 			private$design_conservative_ci(ci_model, alpha = alpha)
 		},
-		#' @description Recomputes the class-specific treatment estimate for a bootstrap sample; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+		#' @description Refits the Poisson model with subject/block-level weights
+		#'   applied to the fitting log-likelihood (Bayesian-bootstrap or
+		#'   nonparametric-bootstrap draw weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}) via
+		#'   \code{\link{fast_poisson_regression_weighted_cpp}}, and returns the
+		#'   reweighted log-rate-ratio estimate \eqn{\hat\beta_T^{(w)}}. Uses the
+		#'   same QR column-dropping hardening as the unweighted fit; a hardened fit
+		#'   with a non-finite treatment coefficient is cached as nonestimable and
+		#'   returns \code{NA}.
 		#' @param subject_or_block_weights Row weights for the bootstrap sample.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){

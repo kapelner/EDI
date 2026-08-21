@@ -35,6 +35,22 @@
 #' \eqn{w}) while the observed statistic drifts into the tail — that asymmetry is the
 #' intended source of power, independent of the open validity question below.
 #'
+#' \strong{Why this outgrew its original motivation.} This construction was originally
+#' implemented for a narrow reason: it works even when \eqn{w} is deterministic or
+#' near-deterministic, exactly the degenerate case Kallus (2018) needed it for (see
+#' \code{@references}). It turns out to be useful well beyond that: (1) it is
+#' design-agnostic for free, since it calls \code{draw_ws_according_to_design()} on the
+#' resampled data rather than enumerating a permutation space -- for the matching-on-the-fly
+#' designs (\code{DesignSeqOneByOneKK14}/\code{KK21}/\code{KK21stepwise}), that permutation
+#' space depends on the whole sequential arrival/matching history and has no closed form
+#' worth enumerating, so a classic randomization test would need bespoke combinatorics this
+#' construction avoids entirely; (2) it generalizes the inferential target from
+#' finite-population (conditional on exactly these \eqn{n} subjects) to superpopulation,
+#' independent of the degenerate-design motivation; (3) it inherits the rest of the
+#' inference machinery (CI inversion, the estimand/testing-type axes) automatically by
+#' living in the same class hierarchy as everything else, rather than being a bolted-on
+#' special case usable only for the one scenario that motivated it.
+#'
 #' \strong{How it differs from the pure randomization test.} The classic randomization
 #' test conditions on the realized sample (the "science table") and is exact for any
 #' \eqn{n}. The BRT is unconditional: it targets the distribution of the statistic over

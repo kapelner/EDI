@@ -267,26 +267,31 @@ here.
 
 ## Visualizations (ggplot2)
 
-Two companion plots, generated with `ggplot2` from the same result
+One plot per estimand, generated with `ggplot2` from the result
 data.frame (only `status == "ok"` rows; classes on the y-axis, sorted by
-estimate; consistent theming across both). An earlier draft had a third
-standalone log10 p-value number line; it was merged into the forest plot
-(user decision, 2026-08-17) — its information survives as per-row printed
-p-values plus significance-driven segment styling.
+estimate). An earlier draft had a standalone log10 p-value number line;
+it was merged into the forest plot (user decision, 2026-08-17) — its
+information survives as per-row printed p-values plus
+significance-driven segment styling. A second standalone plot/PDF, an
+**estimate number line**, was likewise folded into the forest plot (user
+decision, 2026-08-21): the forest plot already draws every estimate as a
+dot, so the number line was redundant — only its box-and-whisker carried
+new information, and that now lives at the bottom of the forest plot.
 
-1. **Estimate number line** — every class's point estimate on one shared
-   horizontal axis (`geom_point`), with:
-   - each dot labeled **above it at a 45° angle** with the class name and
-     its estimate method (`geom_text(angle = 45, hjust = 0)` or
-     `ggrepel`-style nudging if labels collide — decide during
-     implementation; the 45° angle is the requested default),
-   - a **box-and-whisker plot of the estimate values underneath** the
-     number line (same x-axis, compressed y-band below the dots), giving
-     an at-a-glance summary of the spread/consensus of estimates across
-     classes and flagging outlier estimators.
-   Facet by `estimand` so estimates on different scales are never drawn
-   on one shared axis (the boxplot is per-facet too — a spread summary
-   across mixed scales would be meaningless).
+1. **Box-and-whisker of all estimates** — a thin subplot titled
+   "Estimates" stacked directly under each forest plot (same x-axis
+   label, same log10/linear choice, but a *free* x-axis — sharing the
+   forest's axis, whose wide right-hand expansion reserves the label
+   column, squashed the box into a sliver; user decision, 2026-08-21),
+   giving an at-a-glance summary of the spread/consensus of estimates
+   across classes and flagging outlier estimators. Stacked with
+   `gtable`'s `rbind` (no `patchwork`/`cowplot` dependency), so
+   `plots$ci_forest[[estimand]]` is a gtable grob, not a bare ggplot
+   (`grid::grid.draw()` it; `ggsave()` accepts it). **Collapsed over method /
+   type**: one point per distinct (inference class, formula) pair, since
+   Wald/score/LR/gradient/... all share the same MLE and no bootstrap
+   `type` changes the estimate — counting every task row would weight a
+   class many times over.
 2. **Annotated CI forest plot** (merges the former p-value and CI plots)
    — every class's `(1 - alpha)`-level `[ci_a, ci_b]` as a
    horizontal segment with a point at the estimate, and per row:

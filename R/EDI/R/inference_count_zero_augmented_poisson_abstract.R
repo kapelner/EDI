@@ -14,10 +14,7 @@
 #'
 #' @keywords internal
 #' @noRd
-InferenceCountZeroAugmentedPoissonAbstract = R6::R6Class("InferenceCountZeroAugmentedPoissonAbstract",
-	lock_objects = FALSE,
-	inherit = InferenceCountLikelihood,
-	public = list(
+inference_count_za_public = list(
 				
 		#' @description Initialize zero-augmented count-likelihood inference, prepare
 		#'   the conditional count and zero/hurdle auxiliary model formulas, and set
@@ -174,30 +171,43 @@ InferenceCountZeroAugmentedPoissonAbstract = R6::R6Class("InferenceCountZeroAugm
 				private$cache_nonestimable_se("zero_augmented_poisson_jackknife_not_supported")
 				return(NA_real_)
 			}
-			super$compute_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
+			private$nonparam_boot_compute_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
 		},
 		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L){
 			if (!is.null(type) && identical(tolower(type), "bca")) {
 				return(private$missing_bootstrap_ci(alpha, "zero_augmented_poisson_jackknife_not_supported", stage = "se"))
 			}
-			super$compute_bootstrap_confidence_interval(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
+			private$nonparam_boot_compute_bootstrap_confidence_interval(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
 		},
 		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 			if (!is.null(type) && identical(tolower(type), "bca")) {
 				private$cache_nonestimable_se("zero_augmented_poisson_jackknife_not_supported")
 				return(NA_real_)
 			}
-			super$compute_bayesian_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
+			private$bayesian_boot_compute_bayesian_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
 		},
 		compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 			if (!is.null(type) && identical(tolower(type), "bca")) {
 				return(private$missing_bootstrap_ci(alpha, "zero_augmented_poisson_jackknife_not_supported", stage = "se"))
 			}
-			super$compute_bayesian_bootstrap_confidence_interval(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
+			private$bayesian_boot_compute_bayesian_bootstrap_confidence_interval(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
 		}
-	),
-		private = list(
+)
+
+inference_count_za_private = list(
 		is_a_count_zero_augmented_poisson = function() TRUE,
+		# Pinned from their real source generators: composed classes have no
+		# real super$ chain, so the 4 super$compute_bootstrap_*/
+		# compute_bayesian_bootstrap_* calls above are replaced with calls to
+		# these -- the real, self-contained implementations, pinned under
+		# non-colliding private names (same pattern used throughout this
+		# migration, e.g. InferenceSurvivalDepCensTransformRegr's
+		# nonparam_boot_compute_bootstrap_confidence_interval pin).
+		nonparam_boot_compute_bootstrap_two_sided_pval = InferenceNonParamBootstrap$public_methods$compute_bootstrap_two_sided_pval,
+		nonparam_boot_compute_bootstrap_confidence_interval = InferenceNonParamBootstrap$public_methods$compute_bootstrap_confidence_interval,
+		bayesian_boot_compute_bayesian_bootstrap_two_sided_pval = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_two_sided_pval,
+		bayesian_boot_compute_bayesian_bootstrap_confidence_interval = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_confidence_interval,
+		cached_vc_params = NULL,
 		supports_reusable_bootstrap_worker = function(){
 			TRUE
 		},
@@ -1127,6 +1137,61 @@ InferenceCountZeroAugmentedPoissonAbstract = R6::R6Class("InferenceCountZeroAugm
 			)
 		}
 		)
-	)
 
-ZeroAugmentedCountLikelihoodSource = inference_component_source_parts(InferenceCountZeroAugmentedPoissonAbstract)
+ZeroAugmentedCountLikelihoodSource = list(
+	public = inference_count_za_public,
+	private = inference_count_za_private
+)
+
+InferenceCountZeroAugmentedPoissonAbstract = define_inference_class(
+	classname = "InferenceCountZeroAugmentedPoissonAbstract",
+	inherit = Inference,
+	# 2026-08-21 (fix_inference_hierarchy.md per-class migration ladder):
+	# composes the already-registered ZeroAugmentedCountLikelihood component
+	# (source built from inference_count_za_public/_private above as a
+	# static plain-list object -- the pre-existing inference_component_
+	# source_parts(InferenceCountZeroAugmentedPoissonAbstract) post-hoc
+	# harvesting this file used to end with breaks once the class itself is
+	# rebuilt via define_inference_class(), since the merged generator's
+	# $public_methods/$private_methods would then include every composed
+	# component's own methods too -- same fix as InferenceIncidLogRegr's
+	# migration earlier in this push). ZeroAugmentedCountLikelihood already
+	# declares dependencies = "CountLikelihoodPlumbing"; ParametricLikelihood
+	# Bootstrap pulls in LikelihoodTests -> Wald -> Jackknife separately;
+	# BayesianBootstrap pulls the rand/bootstrap chain.
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "ZeroAugmentedCountLikelihood"),
+	metadata = list(abstract = TRUE, likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "count"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval", "get_supported_testing_types",
+			"compute_wald_two_sided_pval", "compute_wald_confidence_interval",
+			"compute_score_two_sided_pval", "compute_score_confidence_interval",
+			"compute_lik_ratio_two_sided_pval", "compute_lik_ratio_confidence_interval",
+			"compute_gradient_two_sided_pval", "compute_gradient_confidence_interval",
+			"compute_lik_ratio_bootstrap_two_sided_pval", "compute_lik_ratio_bootstrap_confidence_interval",
+			"compute_jackknife_estimate", "compute_jackknife_bias_estimate",
+			"compute_jackknife_std_error", "compute_jackknife_wald_two_sided_pval",
+			"compute_jackknife_wald_confidence_interval",
+			"compute_bootstrap_two_sided_pval", "compute_bootstrap_confidence_interval",
+			"compute_bayesian_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_confidence_interval"
+		),
+		private = c(
+			"cached_mod", "cached_vc_params", "supports_lik_ratio_param_bootstrap", "supports_likelihood_tests",
+			"supports_lik_ratio_param_bootstrap_confidence_interval",
+			"simulate_under_lik_null", "get_likelihood_test_spec",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_standard_error", "get_degrees_of_freedom",
+			"compute_score_two_sided_pval_impl", "compute_score_confidence_interval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_gradient_confidence_interval_impl",
+			"compute_lik_ratio_two_sided_pval_impl", "compute_lik_ratio_confidence_interval_impl",
+			"compute_treatment_estimate_during_randomization_inference", "get_complexity_tier"
+		)
+	)
+)

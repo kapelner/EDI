@@ -150,6 +150,7 @@ test_that("static cleanup guardrail prevents new raw component splicing", {
 		"R/EDI/R/inference_all_abstract_param_boot.R" = 1L,
 		"R/EDI/R/inference_all_abstract_rand.R" = 1L,
 		"R/EDI/R/inference_count_composite_likelihood.R" = 2L,
+		"R/EDI/R/inference_count_zero_augmented_poisson_abstract.R" = 2L,
 		"R/EDI/R/inference_incidence_logit.R" = 2L,
 		"R/EDI/R/inference_incidence_binomial_identity.R" = 2L,
 		"R/EDI/R/inference_ordinal_ordered_probit.R" = 2L,
@@ -238,6 +239,17 @@ test_that("component redeclarations of root-owned state cannot grow", {
 		# also owns_state on this component but are NOT root-owned (not in
 		# Inference$private_fields), so they don't appear here.
 		SurvivalKKStratCoxOneLikPartialLikelihood = "optimization_alg",
+		# ZeroAugmentedCountLikelihood added at the 2026-08-21 zero-augmented
+		# count abstract migration (fix_inference_hierarchy.md per-class
+		# migration ladders): redeclares `cached_vc_params` (the ZINB path
+		# caches log-theta/zero-model params there for randomization-inference
+		# warm starts), the same class-specific VC-parameter cache pattern as
+		# SurvivalDepCensTransform/SurvivalKKWeibullMarginal below. Its other
+		# owns_state entries (cached_mod, za_X_cov_all, etc.) are not
+		# root-owned, so they don't appear here. Ordered before
+		# SurvivalDepCensTransform to match EDI_COMPONENT_SPECS's own
+		# definition order in contracts_mixins.R.
+		ZeroAugmentedCountLikelihood = "cached_vc_params",
 		# Trimmed at the 2026-08-17 WeibullMarginal migration: the spec was
 		# reshaped leaf-only (KK state now arrives via the KKPassThrough
 		# dependency), leaving only the class-specific VC-parameter cache.

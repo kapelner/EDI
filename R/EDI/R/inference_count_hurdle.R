@@ -46,15 +46,39 @@ InferenceCountHurdlePoisson = R6::R6Class("InferenceCountHurdlePoisson",
 )
 #' Hurdle Negative Binomial Regression Inference for Count Responses
 #'
-#' Fits a hurdle negative binomial regression for count responses using the
-#' treatment indicator and, optionally, all recorded covariates as predictors.
-#' The reported treatment effect is the coefficient from the conditional
+#' Fits a hurdle negative binomial regression for count responses: a binary
+#' hurdle submodel \eqn{P(Y_i > 0) = \mathrm{logit}^{-1}(X_i^{h\top}
+#' \gamma^h)} (fit jointly with the count submodel) crossed with a
+#' zero-truncated negative-binomial count submodel for \eqn{Y_i \mid Y_i > 0}:
+#' \eqn{\log E[Y_i \mid Y_i > 0, W_i, X_i] = \beta_0 + \beta_T W_i + X_i^\top
+#' \gamma}, \eqn{\mathrm{Var}(Y_i \mid Y_i > 0) = \mu_i + \mu_i^2 / \theta}
+#' (\code{fast_hurdle_negbin_cpp}/
+#' \code{\link{fast_hurdle_negbin_with_var_cpp}}). The hurdle and count
+#' submodels may use different covariate formulas
+#' (\code{model_formula}/\code{model_formula_hurdle}). The reported treatment
+#' effect is the coefficient from the conditional
 #' (truncated, \eqn{Y > 0}) count component, on the log-rate scale,
 #' \strong{conditional on clearing the hurdle}: it is not the effect on the
 #' unconditional mean \eqn{E[Y]}, which also depends on how treatment shifts
 #' the hurdle-crossing probability. A marginal (unconditional-mean) estimand
 #' is not yet implemented for this class (see
-#' \code{marginal_estimand_report.md}).
+#' \code{marginal_estimand_report.md}). \code{likelihood_tier = "full"}:
+#' Wald, gradient, and (bootstrap-calibrated) likelihood-ratio tests are
+#' available for the count submodel's treatment coefficient; a plain score
+#' test is not exposed. \strong{Jackknife inference is not supported}:
+#' delete-one refits of this two-part model with a jointly-estimated
+#' dispersion parameter are numerically unstable, so
+#' \code{compute_jackknife_estimate()} and related methods report explicit
+#' non-estimability rather than attempting delete-one refits.
+#'
+#' @references Mullahy, J. (1986). "Specification and Testing of Some
+#'   Modified Count Data Models." \emph{Journal of Econometrics}, 33(3),
+#'   341-365, \doi{10.1016/0304-4076(86)90002-3}, for the hurdle count-model
+#'   framework.
+#'
+#' @seealso \code{\link[EDI:InferenceCountNegBin]{InferenceCountNegBin}} for
+#'   the single-part negative binomial model this class's count submodel
+#'   generalizes to two parts.
 #'
 #' @examples
 #' \donttest{
@@ -104,10 +128,12 @@ InferenceCountHurdleNegBin = define_inference_class(
 		)
 	),
 	public = list(
-		#' @description Initialize hurdle negative-binomial MLE inference for count
-		#'   responses and prepare the conditional count and hurdle submodels. See
-		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}
-		#'   for shared likelihood-test methods.
+		#' @description Initialize inference for the two-part hurdle negative
+		#'   binomial model (binary hurdle submodel plus zero-truncated
+		#'   negative-binomial count submodel); see
+		#'   \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}}
+		#'   for the model form. Does not fit the model; the fit is deferred to the
+		#'   first call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object.
 		#' @param model_formula Optional formula for covariate adjustment.
 		#' @param model_formula_hurdle Formula for the hurdle submodel. If
@@ -165,7 +191,11 @@ InferenceCountHurdleNegBin = define_inference_class(
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Compute gradient / likelihood-based alternatives
+		#' @description Gradient test of \eqn{H_0: \beta_T = \code{delta}} on the
+		#'   truncated count submodel's treatment coefficient (a score-test variant
+		#'   using the observed rather than expected information); see
+		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}
+		#'   for the shared likelihood-test dispatch.
 		#' @param delta The null treatment effect (default 0).
 		compute_gradient_two_sided_pval = function(delta = 0){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
@@ -182,8 +212,18 @@ InferenceCountHurdleNegBin = define_inference_class(
 			}
 			private$invert_test_pval_confidence_interval(alpha)
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#' @description Refits the hurdle negative-binomial model with subject/
+		#'   block-level weights (Bayesian-bootstrap or nonparametric-bootstrap draw
+		#'   weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}) via
+		#'   \pkg{glmmTMB}'s \code{glmmTMB(family = truncated_nbinom2())} (not the
+		#'   package's internal C++ solver, which has no weighted variant for this
+		#'   model), and returns the reweighted conditional-count log-rate-ratio
+		#'   estimate \eqn{\hat\beta_T^{(w)}}. Requires the \pkg{glmmTMB} package;
+		#'   errors if unavailable. No standard error is computed
+		#'   (\code{s_beta_hat_T} is always \code{NA}). A fit that fails, or whose
+		#'   fitted treatment coefficient is missing or non-finite, is cached as
+		#'   nonestimable and returns \code{NA}.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){

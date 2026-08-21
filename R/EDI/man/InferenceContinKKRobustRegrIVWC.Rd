@@ -29,6 +29,7 @@ inf$compute_estimate()
     \item \href{#method-InferenceContinKKRobustRegrIVWC-set_custom_randomization_statistic_function}{\code{InferenceContinKKRobustRegrIVWC$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceContinKKRobustRegrIVWC-set_custom_randomization_statistic_cpp}{\code{InferenceContinKKRobustRegrIVWC$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceContinKKRobustRegrIVWC-approximate_randomization_distribution_beta_hat_T}{\code{InferenceContinKKRobustRegrIVWC$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceContinKKRobustRegrIVWC-supports_rand_pval_for_incidence}{\code{InferenceContinKKRobustRegrIVWC$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceContinKKRobustRegrIVWC-compute_rand_two_sided_pval}{\code{InferenceContinKKRobustRegrIVWC$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceContinKKRobustRegrIVWC-clone}{\code{InferenceContinKKRobustRegrIVWC$clone()}}
   }
@@ -98,6 +99,17 @@ inf$compute_estimate()
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceContinKKRobustRegrIVWC-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceContinKKRobustRegrIVWC-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceContinKKRobustRegrIVWC$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceContinKKRobustRegrIVWC$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

@@ -33,6 +33,7 @@ inf$compute_estimate()
     \item \href{#method-InferenceOrdinalAdjCatLogitRegr-set_custom_randomization_statistic_function}{\code{InferenceOrdinalAdjCatLogitRegr$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceOrdinalAdjCatLogitRegr-set_custom_randomization_statistic_cpp}{\code{InferenceOrdinalAdjCatLogitRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceOrdinalAdjCatLogitRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceOrdinalAdjCatLogitRegr$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceOrdinalAdjCatLogitRegr-supports_rand_pval_for_incidence}{\code{InferenceOrdinalAdjCatLogitRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceOrdinalAdjCatLogitRegr-compute_rand_two_sided_pval}{\code{InferenceOrdinalAdjCatLogitRegr$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceOrdinalAdjCatLogitRegr-clone}{\code{InferenceOrdinalAdjCatLogitRegr$clone()}}
   }
@@ -102,6 +103,17 @@ inf$compute_estimate()
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceOrdinalAdjCatLogitRegr-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalAdjCatLogitRegr-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceOrdinalAdjCatLogitRegr$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceOrdinalAdjCatLogitRegr$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

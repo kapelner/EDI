@@ -39,6 +39,7 @@ Cox, D. R. (1972). "Regression Models and Life-Tables."
     \item \href{#method-InferenceSurvivalKKLWACoxPHOneLik-set_custom_randomization_statistic_function}{\code{InferenceSurvivalKKLWACoxPHOneLik$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceSurvivalKKLWACoxPHOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalKKLWACoxPHOneLik$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceSurvivalKKLWACoxPHOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceSurvivalKKLWACoxPHOneLik$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceSurvivalKKLWACoxPHOneLik-supports_rand_pval_for_incidence}{\code{InferenceSurvivalKKLWACoxPHOneLik$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceSurvivalKKLWACoxPHOneLik-compute_rand_two_sided_pval}{\code{InferenceSurvivalKKLWACoxPHOneLik$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceSurvivalKKLWACoxPHOneLik-clone}{\code{InferenceSurvivalKKLWACoxPHOneLik$clone()}}
   }
@@ -108,6 +109,17 @@ Cox, D. R. (1972). "Regression Models and Life-Tables."
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalKKLWACoxPHOneLik-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalKKLWACoxPHOneLik-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceSurvivalKKLWACoxPHOneLik$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalKKLWACoxPHOneLik$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

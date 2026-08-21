@@ -130,24 +130,29 @@ test_that("concrete migration targets are shallow and component-backed", {
 	}
 })
 
-test_that("remaining algorithmic compatibility descendants are explicitly tracked", {
+test_that("no concrete class descends from an algorithmic compatibility base", {
+	# Flipped from "remaining algorithmic compatibility descendants are
+	# explicitly tracked" (which asserted pending_algorithmic was NON-empty,
+	# the correct invariant while the per-class migration ladder was being
+	# drained) on 2026-08-21, when the last such class
+	# (InferenceOrdinalPairedSignTest) migrated to shallow composition --
+	# this is the final strict gate fix_inference_hierarchy.md's "Base
+	# Deletion" section always named as the end state ("Add the final strict
+	# test that no concrete class descends from an algorithmic compatibility
+	# base"). Any regression that re-introduces a deep algorithmic ancestor
+	# on a concrete class now fails here. The still-"pending" manifest
+	# records are the documented accepted terminal states (thin classic
+	# leaves of already-composed abstracts), which by construction have zero
+	# algorithmic ancestors -- also asserted below.
 	EDI:::populate_inference_class_registry()
 	manifest = EDI:::inference_hierarchy_migration_manifest_as_list()
-	pending = Filter(function(record) {
-		identical(record$migration_status, "pending")
+	concrete = Filter(function(record) {
+		!isTRUE(record$current_abstract)
 	}, manifest)
-	pending_algorithmic = Filter(function(record) {
-		length(record$algorithmic_compatibility_ancestors) > 0L
-	}, pending)
 
-	expect_gt(length(pending), 0L)
-	expect_gt(length(pending_algorithmic), 0L)
-	for (record in pending_algorithmic) {
-		expect_gt(length(record$algorithmic_compatibility_ancestors), 0L)
-		expect_true(all(
-			record$algorithmic_compatibility_ancestors %in%
-				EDI:::EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES
-		))
+	expect_gt(length(concrete), 0L)
+	for (record in concrete) {
+		expect_length(record$algorithmic_compatibility_ancestors, 0L)
 	}
 })
 
@@ -435,7 +440,14 @@ test_that("migration order lists leaf concrete classes before concrete parents",
 	expect_false("InferenceTemporaryAbstractChild" %in% order)
 })
 
-test_that("strict shallow hierarchy flag fails when concrete classes are pending", {
+test_that("strict shallow hierarchy flag fails when concrete classes have algorithmic ancestors", {
+	# Rekeyed 2026-08-21 alongside assert_shallow_inference_hierarchy_
+	# complete() itself (see that function's comment): the gate now checks
+	# `algorithmic_compatibility_ancestors`, not `migration_status ==
+	# "pending"` -- a "pending" thin classic leaf of an already-composed
+	# abstract (the accepted terminal state) has zero algorithmic ancestors
+	# and must pass; a class with any algorithmic ancestor must fail
+	# regardless of its status label.
 	old_value = Sys.getenv("EDI_REQUIRE_SHALLOW_INFERENCE_HIERARCHY", unset = NA_character_)
 	on.exit({
 		if (is.na(old_value)) {
@@ -446,10 +458,11 @@ test_that("strict shallow hierarchy flag fails when concrete classes are pending
 	}, add = TRUE)
 
 	manifest = list(
-		InferenceTemporaryPending = list(
-			name = "InferenceTemporaryPending",
+		InferenceTemporaryDeep = list(
+			name = "InferenceTemporaryDeep",
 			current_abstract = FALSE,
-			migration_status = "pending"
+			migration_status = "pending",
+			algorithmic_compatibility_ancestors = "InferenceAsympLik"
 		)
 	)
 
@@ -461,10 +474,12 @@ test_that("strict shallow hierarchy flag fails when concrete classes are pending
 	expect_true(EDI:::edi_require_shallow_inference_hierarchy())
 	expect_error(
 		EDI:::assert_shallow_inference_hierarchy_complete(manifest),
-		"still pending migration"
+		"still descend through algorithmic compatibility bases"
 	)
 
-	manifest$InferenceTemporaryPending$migration_status = "migrated"
+	# An accepted-terminal-state thin leaf: still "pending" by the status
+	# heuristic, but with zero algorithmic ancestors -- must pass.
+	manifest$InferenceTemporaryDeep$algorithmic_compatibility_ancestors = character()
 	expect_silent(EDI:::assert_shallow_inference_hierarchy_complete(manifest))
 })
 

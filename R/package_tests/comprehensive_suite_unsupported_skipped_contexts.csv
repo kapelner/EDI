@@ -1,30 +1,4 @@
 "source","tier","target","status","reason","duration_time_sec"
-"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","smoke","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_combinations","ci","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","known slow path below allowed tier: resampling_count, higher_tier_values",0
-"public_argument_coverage","","InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval","skipped_slow","skipped_slow_cases=25",NA
 "public_workflow_coverage","smoke","create_model_matrix_from_features","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","generate_covariate_dataset","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","get_bootstrap_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA

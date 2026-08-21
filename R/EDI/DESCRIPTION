@@ -268,8 +268,11 @@ Collate:
     'RcppExports.R'
     'simulations_framework.R'
     'simulation_framework_report.R'
-    'tuning_synthetic_fixtures.R'
+    'local_machine_tuning_synthetic_fixtures.R'
     'local_machine_tuning_harness.R'
+    'local_machine_tuning_axes.R'
+    'local_machine_tuning_persistence.R'
+    'local_machine_tuning.R'
     'zzz.R'
 URL: https://github.com/kapelner/EDI,
     https://pypi.org/project/edi_kernels/

@@ -57,6 +57,7 @@ Comparable Python API:
     \item \href{#method-InferenceIncidLogRegr-set_custom_randomization_statistic_function}{\code{InferenceIncidLogRegr$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceIncidLogRegr-set_custom_randomization_statistic_cpp}{\code{InferenceIncidLogRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceIncidLogRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceIncidLogRegr$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceIncidLogRegr-supports_rand_pval_for_incidence}{\code{InferenceIncidLogRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceIncidLogRegr-clone}{\code{InferenceIncidLogRegr$clone()}}
   }
 }
@@ -125,6 +126,17 @@ Comparable Python API:
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidLogRegr-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidLogRegr-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceIncidLogRegr$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidLogRegr$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

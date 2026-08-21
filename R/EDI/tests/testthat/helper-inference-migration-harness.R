@@ -1,6 +1,6 @@
 # inference_migration_with_seed(), inference_migration_add_subjects(), and
 # inference_migration_complete_design() moved to
-# R/EDI/R/tuning_synthetic_fixtures.R (package-internal, so
+# R/EDI/R/local_machine_tuning_synthetic_fixtures.R (package-internal, so
 # local_machine_optimization.md's benchmark tuner can reuse the exact same
 # synthetic-data recipe instead of maintaining a second, driftable copy).
 # Everything below still calls them unqualified -- they resolve via the

@@ -32,10 +32,13 @@ For non-blocking designs, the "balanced design" precondition above requires
 the observed treatment allocation to be \emph{exactly} balanced
 (\eqn{n_T = n_C}), not merely drawn from a \eqn{prob\_T = 0.5} mechanism --
 e.g. plain Bernoulli randomization has \eqn{prob\_T = 0.5} but does not
-guarantee an exactly balanced realized allocation. The constructor issues a
-warning (not an error) when this is violated, since erroring would make
-this class unusable with Bernoulli-style non-blocking designs entirely; the
-warning tells the caller the reported standard error may be miscalibrated.
+guarantee an exactly balanced realized allocation. A warning (not an error)
+is issued once, the first time the standard error is actually computed
+(i.e. on the first confidence-interval / p-value / standard-error request,
+not at construction or for estimate-only use), when this is violated --
+erroring would make this class unusable with Bernoulli-style non-blocking
+designs entirely; the warning tells the caller the reported standard error
+may be miscalibrated.
 }
 \examples{
 \dontrun{

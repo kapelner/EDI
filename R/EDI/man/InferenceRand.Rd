@@ -16,6 +16,7 @@ Abstract class for randomization-based inference.
     \item \href{#method-InferenceRand-set_custom_randomization_statistic_function}{\code{InferenceRand$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceRand-set_custom_randomization_statistic_cpp}{\code{InferenceRand$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceRand-approximate_randomization_distribution_beta_hat_T}{\code{InferenceRand$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceRand-supports_rand_pval_for_incidence}{\code{InferenceRand$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceRand-compute_rand_two_sided_pval}{\code{InferenceRand$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceRand-clone}{\code{InferenceRand$clone()}}
   }
@@ -157,6 +158,35 @@ values. Runs serially. Default \code{FALSE}.}
   iteration), \code{num_errors}, \code{num_warnings},
   \code{prop_iterations_with_errors}, \code{prop_iterations_with_warnings}, and
   \code{prop_illegal_values}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceRand-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceRand-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceRand$supports_rand_pval_for_incidence()}}{
+  Whether \code{compute_rand_two_sided_pval()} is actually
+  usable on this instance right now -- \code{FALSE} exactly when it
+  would \code{stop()}: an \code{incidence}-response instance with no
+  custom randomization statistic and a design not eligible for
+  design-randomization-based incidence inference (see
+  \code{private$should_use_design_randomization_for_incidence()}).
+  \code{TRUE} for every other case, including every non-incidence
+  response type. Public, self-contained (only reads already-set
+  instance state, no side effects), so \code{InferenceSuite} can
+  check this before attempting the sentinel instead of relying on
+  the \code{stop()} being silently swallowed into a \code{pval = NA}
+  "ok" row -- the single source of truth for both this check and
+  \code{compute_rand_two_sided_pval()}'s own guard, so the two can
+  never drift apart (\code{fix_inference_hierarchy.md}'s
+  method-level-`stop()` TODO, 2026-08-21).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceRand$supports_rand_pval_for_incidence()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A single logical.
   }
 }
 

@@ -1436,12 +1436,34 @@ EDI_COMPONENT_SPECS = list(
 			),
 			ZeroAugmentedCountLikelihood = list(
 				status = "active",
-				load_policy = "lazy",
+				# Eager, not lazy (unlike every other per-class *Likelihood
+				# component in this migration): this component's own
+				# `initialize` is a real, always-bound method here rather than
+				# a lazy install-stub because InferenceCountZeroAugmentedPoisson
+				# Abstract has real classic-inheritance subclasses
+				# (InferenceCountHurdlePoisson/ZeroInflatedNegBin/
+				# ZeroInflatedPoisson, the "thin leaf of an already-composed
+				# abstract" pattern) whose own initialize() calls
+				# super$initialize(...) -- that resolves to whatever's bound as
+				# this abstract's own `initialize` method. A lazy stub's
+				# install-then-redispatch body (`install_lazy_inference_
+				# component(self, private, class(self)[1L], .component_name);
+				# self[[.method_name]](...)`) uses class(self)[1L], which for a
+				# leaf instance is the LEAF's class name, not the abstract's --
+				# install_lazy_inference_component() has no dispatch entry
+				# keyed by the leaf, so this either fails outright or
+				# recurses (found 2026-08-21 constructing
+				# InferenceCountHurdlePoisson: "unused argument" / "infinite
+				# recursion" depending on install state). No other component
+				# in this migration has real classic-inheritance subclasses
+				# below it, so this is the first time the lazy-stub-as-
+				# initialize pattern (already used safely by e.g.
+				# IncidenceLogisticLikelihood, which has no subclasses) breaks.
 				source_name = "ZeroAugmentedCountLikelihoodSource",
 				file = "inference_count_zero_augmented_poisson_abstract.R",
 				dependencies = "CountLikelihoodPlumbing",
 				owns_state = c(
-					"cached_mod", "za_X_cov_all", "za_Xzi_cov_all",
+					"cached_mod", "cached_vc_params", "za_X_cov_all", "za_Xzi_cov_all",
 					"best_X_colnames", "best_Xzi_colnames", "use_rcpp",
 					"model_formula_zero"
 				),
@@ -1491,7 +1513,12 @@ EDI_COMPONENT_SPECS = list(
 					"supports_lik_ratio_param_bootstrap",
 					"supports_lik_ratio_param_bootstrap_confidence_interval",
 					"simulate_under_lik_null",
+					"nonparam_boot_compute_bootstrap_two_sided_pval",
+					"nonparam_boot_compute_bootstrap_confidence_interval",
+					"bayesian_boot_compute_bayesian_bootstrap_two_sided_pval",
+					"bayesian_boot_compute_bayesian_bootstrap_confidence_interval",
 					"cached_mod",
+					"cached_vc_params",
 					"za_X_cov_all",
 					"za_Xzi_cov_all",
 					"best_X_colnames",

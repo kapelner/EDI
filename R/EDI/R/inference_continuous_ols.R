@@ -1,9 +1,29 @@
 #' OLS Inference for Continuous Responses
 #'
-#' Fits an ordinary least squares regression for continuous responses using the
-#' treatment indicator and, optionally, all recorded covariates as predictors.
-#' Note that warm starts are disabled for this class as OLS is a closed-form
-#' estimator and does not benefit from initialization.
+#' Fits an ordinary least squares regression for continuous responses:
+#' \eqn{Y_i = \beta_0 + \beta_T W_i + X_i^\top \gamma + \epsilon_i}, using the
+#' treatment indicator and, optionally, all recorded covariates as predictors
+#' (uncentered, no treatment-covariate interactions — see
+#' \code{\link[EDI:InferenceContinLin]{InferenceContinLin}} for the
+#' centered-covariate, interacted variant). \eqn{\hat\beta_T} is a mean
+#' difference on the response's natural scale. \code{likelihood_tier =
+#' "full"}: Wald, score, gradient, and likelihood-ratio tests are all
+#' available (\code{\link{fast_ols_cpp}}/\code{\link{fast_ols_with_var_cpp}}),
+#' with the parametric-likelihood bootstrap using the OLS Gaussian-errors
+#' model as the generative null. Standard errors are the closed-form OLS
+#' variance under homoskedastic errors (unlike
+#' \code{\link[EDI:InferenceContinLin]{InferenceContinLin}}'s HC2
+#' heteroskedasticity-robust SE). Warm starts are disabled
+#' (\code{fit_warm_start_enabled = FALSE} set at construction) because OLS is
+#' a closed-form estimator and gains nothing from an iterative optimizer's
+#' warm-started initial values. Validity requires the usual OLS assumptions:
+#' correctly specified linear predictor, and (for the asymptotic/likelihood
+#' inference path specifically) homoskedastic, approximately normal errors;
+#' the randomization-inference path relies only on randomization of \eqn{W}.
+#'
+#' @references Rosenbaum, P. R. (2002). \emph{Observational Studies} (2nd
+#'   ed.). Springer, for the OLS mean-difference estimator's design-based
+#'   justification under randomization.
 #'
 #' @examples
 #' \donttest{
@@ -16,11 +36,37 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceContinOLS = R6::R6Class("InferenceContinOLS",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
+InferenceContinOLS = define_inference_class(
+	classname = "InferenceContinOLS",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "continuous"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval", "get_supported_testing_types"
+		),
+		private = c(
+			"cached_mod", "supports_lik_ratio_param_bootstrap", "supports_likelihood_tests",
+			"simulate_under_lik_null", "get_likelihood_test_spec", "shared",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_standard_error", "get_degrees_of_freedom"
+		)
+	),
 	public = list(
-		#' @description Initialize an OLS inference object.
+		#' @description Initialize inference for the OLS model \eqn{Y_i = \beta_0 +
+		#'   \beta_T W_i + X_i^\top \gamma + \epsilon_i}; see
+		#'   \code{\link[EDI:InferenceContinOLS]{InferenceContinOLS}} for the model
+		#'   form. Disables warm-started optimizer initial values (not applicable to
+		#'   this closed-form estimator). Does not fit the model; the fit is
+		#'   deferred to the first call to \code{compute_estimate()} or a method
+		#'   that requires it.
 		#' @param des_obj A completed \code{Design} object with a continuous response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -44,7 +90,13 @@ InferenceContinOLS = R6::R6Class("InferenceContinOLS",
 			
 			private$max_resample_attempts = max_resample_attempts
 		},
-		#' @description Computes the OLS estimate of the treatment effect.
+		#' @description Fits the OLS model
+		#'   (\code{\link{fast_ols_cpp}}/\code{\link{fast_ols_with_var_cpp}}) and
+		#'   returns \eqn{\hat\beta_T}. If not hardened
+		#'   (\code{private$harden == FALSE}), fits directly on the full design
+		#'   matrix; otherwise uses QR column-dropping hardening to handle
+		#'   rank-deficient designs. A fit with a non-finite treatment coefficient
+		#'   is cached as nonestimable rather than returned.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			cv = private$cached_values
@@ -54,8 +106,16 @@ InferenceContinOLS = R6::R6Class("InferenceContinOLS",
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#' @description Refits the OLS model with subject/block-level weights applied
+		#'   to a weighted least-squares fit (\code{stats::lm.wfit}) — Bayesian-bootstrap
+		#'   or nonparametric-bootstrap draw weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()} — and
+		#'   returns the reweighted estimate \eqn{\hat\beta_T^{(w)}}. When
+		#'   \code{estimate_only = FALSE}, also computes a weighted-residual variance
+		#'   estimate for internal bootstrap diagnostics. Rows with non-finite or
+		#'   non-positive weight, or non-finite response, are dropped from the
+		#'   weighted fit; if no rows remain, or the fit fails, the estimate is
+		#'   \code{NA}.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -136,6 +196,7 @@ InferenceContinOLS = R6::R6Class("InferenceContinOLS",
 		}
 	),
 	private = list(
+		cached_mod = NULL,
 		max_resample_attempts = NULL,
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
 			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)

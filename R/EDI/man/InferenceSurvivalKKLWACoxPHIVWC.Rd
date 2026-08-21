@@ -47,6 +47,7 @@ Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type
     \item \href{#method-InferenceSurvivalKKLWACoxPHIVWC-set_custom_randomization_statistic_function}{\code{InferenceSurvivalKKLWACoxPHIVWC$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceSurvivalKKLWACoxPHIVWC-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalKKLWACoxPHIVWC$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceSurvivalKKLWACoxPHIVWC-approximate_randomization_distribution_beta_hat_T}{\code{InferenceSurvivalKKLWACoxPHIVWC$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceSurvivalKKLWACoxPHIVWC-supports_rand_pval_for_incidence}{\code{InferenceSurvivalKKLWACoxPHIVWC$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceSurvivalKKLWACoxPHIVWC-compute_rand_two_sided_pval}{\code{InferenceSurvivalKKLWACoxPHIVWC$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceSurvivalKKLWACoxPHIVWC-clone}{\code{InferenceSurvivalKKLWACoxPHIVWC$clone()}}
   }
@@ -116,6 +117,17 @@ Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalKKLWACoxPHIVWC-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalKKLWACoxPHIVWC-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceSurvivalKKLWACoxPHIVWC$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalKKLWACoxPHIVWC$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

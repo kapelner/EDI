@@ -64,6 +64,7 @@ McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
     \item \href{#method-InferenceIncidLogBinomial-set_custom_randomization_statistic_function}{\code{InferenceIncidLogBinomial$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceIncidLogBinomial-set_custom_randomization_statistic_cpp}{\code{InferenceIncidLogBinomial$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceIncidLogBinomial-approximate_randomization_distribution_beta_hat_T}{\code{InferenceIncidLogBinomial$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceIncidLogBinomial-supports_rand_pval_for_incidence}{\code{InferenceIncidLogBinomial$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceIncidLogBinomial-clone}{\code{InferenceIncidLogBinomial$clone()}}
   }
 }
@@ -132,6 +133,17 @@ McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidLogBinomial-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidLogBinomial-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceIncidLogBinomial$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidLogBinomial$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

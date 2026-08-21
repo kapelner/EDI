@@ -63,6 +63,7 @@ McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
     \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-set_custom_randomization_statistic_function}{\code{InferenceIncidBinomialIdentityRiskDiff$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-set_custom_randomization_statistic_cpp}{\code{InferenceIncidBinomialIdentityRiskDiff$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-approximate_randomization_distribution_beta_hat_T}{\code{InferenceIncidBinomialIdentityRiskDiff$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-supports_rand_pval_for_incidence}{\code{InferenceIncidBinomialIdentityRiskDiff$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-clone}{\code{InferenceIncidBinomialIdentityRiskDiff$clone()}}
   }
 }
@@ -133,6 +134,17 @@ McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidBinomialIdentityRiskDiff-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidBinomialIdentityRiskDiff-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceIncidBinomialIdentityRiskDiff$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidBinomialIdentityRiskDiff$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

@@ -16,12 +16,14 @@ ExactBinomialIncidenceSource = list(
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "incidence")
 			}
+			if (should_run_asserts()) {
+				stop_if_design_incompatible(private$design_compatibility_reason, des_obj, list(
+					exact_binomial_requires_matching_design = "Exact binomial incidence inference requires DesignFixedBinaryMatch or KK matching designs."
+				))
+			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
-			}
-			if (!private$design_supports_exact_binomial()) {
-				stop("Exact binomial incidence inference requires DesignFixedBinaryMatch or KK matching designs.")
 			}
 			# Unconditional: ensure_matching_structure_computed() is a no-op by default
 			# (DesignMatching's base implementation) and only DesignFixedBinaryMatch
@@ -104,6 +106,22 @@ ExactBinomialIncidenceSource = list(
 		},
 		design_supports_exact_binomial = function(){
 			private$des_obj$is_a_kk_matching_capable()
+		},
+		# Self/private-free so it's safe to call unbound against a candidate
+		# des_obj before construction, same "safe invoke without construction"
+		# contract as design_compatibility_reason() elsewhere (Wilcox/CMH/
+		# ExtendedRobins). Mirrors design_supports_exact_binomial()'s own
+		# condition exactly (both read only des_obj$is_a_kk_matching_capable(),
+		# which DesignFixedBinaryMatch and every KK design override to TRUE) --
+		# kept separate since that one is a private *instance* method (reads
+		# private$des_obj) while this one takes des_obj as a parameter. See
+		# infer_inference_design_compatibility_reason_fn() in
+		# inference_class_registry.R.
+		design_compatibility_reason = function(des_obj){
+			if (!isTRUE(des_obj$is_a_kk_matching_capable())) {
+				return("exact_binomial_requires_matching_design")
+			}
+			NA_character_
 		},
 		pval_exact_binomial = function(delta_0){
 			stats = private$get_exact_binomial_stats()

@@ -105,6 +105,31 @@ stop_bayesian_bootstrap_for_bai = function(self_obj = NULL) {
   )
 }
 
+#' Calls a class's own `design_compatibility_reason(des_obj)` predicate and,
+#' if it returns a non-`NA` reason, `stop()`s with that class's message text
+#' for the reason -- centralizing the "call the predicate, look up the
+#' message, stop()" boilerplate that would otherwise be duplicated verbatim
+#' in every `initialize()` that consults its own `design_compatibility_reason`
+#' (single source of truth with the discovery-time predicate; see
+#' `inference_class_design_compatibility_reason()` in inference_suite.R and
+#' fix_inference_hierarchy.md). Does nothing if compatible.
+#'
+#' @param design_compatibility_reason_fn The class's own `design_compatibility_reason`
+#'   function (e.g. `private$design_compatibility_reason`), called unbound with `des_obj`.
+#' @param des_obj The design object under construction.
+#' @param reason_messages A named list/character vector mapping every reason code the
+#'   class's `design_compatibility_reason` can return to the exact `stop()` message text.
+#'
+#' @keywords internal
+#' @noRd
+stop_if_design_incompatible = function(design_compatibility_reason_fn, des_obj, reason_messages) {
+  reason = design_compatibility_reason_fn(des_obj)
+  if (!is.na(reason)) {
+    stop(reason_messages[[reason]])
+  }
+  invisible(NULL)
+}
+
 # Bayesian bootstrap helpers were removed to allow Jackknife support across all paths.
 
 weighted_ordinal_bootstrap_surrogate_fit = function(X, y, row_weights, method = c("logistic", "probit", "cauchit", "cloglog"), warm_start_params = NULL) {

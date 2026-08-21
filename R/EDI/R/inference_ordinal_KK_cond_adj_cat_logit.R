@@ -88,6 +88,11 @@ InferenceOrdinalKKCondAdjCatLogitRegr = define_inference_class(
 		#' @param smart_cold_start_default Whether to use smart cold start values by default.
 		#' @param harden Whether to apply robustness measures.
 		initialize = function(des_obj, verbose = FALSE, harden = TRUE, model_formula = NULL, smart_cold_start_default = NULL){
+			# No per-class assertResponseType() here: the root
+			# Inference$initialize() enforces the registry's response_types
+			# metadata for every class uniformly (2026-08-21 -- this class was
+			# one of four the discovery-vs-constructibility audit caught with
+			# the per-class assert missing, which motivated the root-level gate).
 			super$initialize(des_obj, verbose = verbose, harden = harden, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			private$init_kk_passthrough(des_obj)
 		},

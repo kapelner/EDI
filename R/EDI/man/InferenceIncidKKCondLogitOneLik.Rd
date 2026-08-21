@@ -65,6 +65,7 @@ Analogous Python API for conditional logistic regression:
     \item \href{#method-InferenceIncidKKCondLogitOneLik-set_custom_randomization_statistic_function}{\code{InferenceIncidKKCondLogitOneLik$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceIncidKKCondLogitOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceIncidKKCondLogitOneLik$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceIncidKKCondLogitOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceIncidKKCondLogitOneLik$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceIncidKKCondLogitOneLik-supports_rand_pval_for_incidence}{\code{InferenceIncidKKCondLogitOneLik$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceIncidKKCondLogitOneLik-clone}{\code{InferenceIncidKKCondLogitOneLik$clone()}}
   }
 }
@@ -133,6 +134,17 @@ Analogous Python API for conditional logistic regression:
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidKKCondLogitOneLik-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidKKCondLogitOneLik-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceIncidKKCondLogitOneLik$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidKKCondLogitOneLik$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

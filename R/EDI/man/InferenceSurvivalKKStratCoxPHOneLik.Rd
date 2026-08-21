@@ -35,6 +35,7 @@ Observations." In Survival Analysis: State of the Art, 237-247. Springer.
     \item \href{#method-InferenceSurvivalKKStratCoxPHOneLik-set_custom_randomization_statistic_function}{\code{InferenceSurvivalKKStratCoxPHOneLik$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceSurvivalKKStratCoxPHOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalKKStratCoxPHOneLik$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceSurvivalKKStratCoxPHOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceSurvivalKKStratCoxPHOneLik$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceSurvivalKKStratCoxPHOneLik-supports_rand_pval_for_incidence}{\code{InferenceSurvivalKKStratCoxPHOneLik$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceSurvivalKKStratCoxPHOneLik-compute_rand_two_sided_pval}{\code{InferenceSurvivalKKStratCoxPHOneLik$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceSurvivalKKStratCoxPHOneLik-clone}{\code{InferenceSurvivalKKStratCoxPHOneLik$clone()}}
   }
@@ -104,6 +105,17 @@ Observations." In Survival Analysis: State of the Art, 237-247. Springer.
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalKKStratCoxPHOneLik-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalKKStratCoxPHOneLik-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceSurvivalKKStratCoxPHOneLik$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalKKStratCoxPHOneLik$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

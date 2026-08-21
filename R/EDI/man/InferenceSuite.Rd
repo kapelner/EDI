@@ -270,19 +270,21 @@ directory. Requires the optional \pkg{jsonlite} package; if it is not
 installed, a \code{warning()} is issued and this artifact is skipped rather
 than erroring. Default \code{FALSE}.}
       \item{\code{plots}}{If \code{TRUE}, build and display (on the current graphics
-device) two \pkg{ggplot2} visualizations: an estimate number line
-(class/method labels above each point at 45 degrees, a box-and-whisker
-summary underneath) and an annotated confidence-interval forest plot
-(p-value left of each interval, interval width right of it, class/method
-labeled underneath, color-keyed to significance at \code{alpha}). Requires
-the optional \pkg{ggplot2} package; if it is not installed, a
-\code{warning()} is issued and plotting is skipped rather than erroring.
-Defaults to the value of \code{screen}.}
-      \item{\code{pdf}}{If \code{TRUE}, save both visualizations to one timestamped,
-two-page PDF file in the current working directory (page height scales
-with the number of classes in the CI forest plot). Same \pkg{ggplot2}
-dependency and missing-package handling as \code{plots}. Default
-\code{FALSE}.}
+device) one \pkg{ggplot2} visualization per estimand: an annotated
+confidence-interval forest plot (p-value left of each interval, interval
+width right of it, class/method label right-aligned on each row,
+color-keyed to significance at \code{alpha}) with a thin box-and-whisker
+summary of the point estimates -- one point per inference class/formula,
+collapsed over method/type since those share one estimate -- along its
+bottom edge, labeled \dQuote{all estimates}. Requires the optional
+\pkg{ggplot2} package; if it is not installed, a \code{warning()} is
+issued and plotting is skipped rather than erroring. Defaults to the
+value of \code{screen}.}
+      \item{\code{pdf}}{If \code{TRUE}, save the visualization to one timestamped
+multi-page PDF file in the current working directory (one page per
+estimand; page height scales with the largest estimand's number of CI
+rows). Same \pkg{ggplot2} dependency and missing-package handling as
+\code{plots}. Default \code{FALSE}.}
       \item{\code{classes}}{Optional character vector restricting which applicable
 classes to fit -- e.g. re-running against only the few classes a user is
 actually deciding between, without reconstructing the suite. Every name
@@ -538,16 +540,15 @@ weight \code{0} (excluded). Need not pre-sum to 1.}
   directly, since that column can repeat under \code{formulas};
   \code{pval = stat = NA_real_} if fewer than 2 rows are usable),
   \code{design}, \code{alpha}, \code{unavailable_due_to_missing_packages},
-  \code{plots} (\code{list(estimates, ci_forest)}; each of those is itself a
-  named list of one \code{ggplot} object per \code{estimand} -- possibly
-  empty -- rather than a single plot, since each visualization is now
-  split one-per-estimand, per user request, 2026-08-19),
-  \code{files} (\code{list(html, pdf, json)}; \code{html}/\code{json} are
-  each a path or \code{NULL}, \code{pdf} is itself
-  \code{list(estimates, ci_forest)} of two paths (or \code{NULL}s) --
-  \strong{two separate PDF files}, one per visualization, each a
-  multi-page PDF with one page per estimand), \code{timestamp},
-  \code{total_secs}, and \code{edi_version}.
+  \code{plots} (\code{list(ci_forest)}; \code{ci_forest} is a named list
+  of one \code{ggplot} object per \code{estimand} -- possibly empty --
+  rather than a single plot, since the visualization is split
+  one-per-estimand, per user request, 2026-08-19; the former separate
+  \code{estimates} plot was folded into it as a bottom box-and-whisker
+  row, 2026-08-21), \code{files} (\code{list(html, pdf, json)}, each a
+  path or \code{NULL}; \code{pdf} is one multi-page PDF with one page
+  per estimand), \code{timestamp}, \code{total_secs}, and
+  \code{edi_version}.
   }
 }
 

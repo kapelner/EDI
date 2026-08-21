@@ -33,6 +33,7 @@ Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
     \item \href{#method-InferenceOrdinalCloglogRegr-set_custom_randomization_statistic_function}{\code{InferenceOrdinalCloglogRegr$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceOrdinalCloglogRegr-set_custom_randomization_statistic_cpp}{\code{InferenceOrdinalCloglogRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceOrdinalCloglogRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceOrdinalCloglogRegr$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceOrdinalCloglogRegr-supports_rand_pval_for_incidence}{\code{InferenceOrdinalCloglogRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceOrdinalCloglogRegr-compute_rand_two_sided_pval}{\code{InferenceOrdinalCloglogRegr$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceOrdinalCloglogRegr-clone}{\code{InferenceOrdinalCloglogRegr$clone()}}
   }
@@ -102,6 +103,17 @@ Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceOrdinalCloglogRegr-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalCloglogRegr-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceOrdinalCloglogRegr$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceOrdinalCloglogRegr$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

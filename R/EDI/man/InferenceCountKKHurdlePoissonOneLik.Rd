@@ -74,6 +74,7 @@ Analogous Python API for hurdle/zero-truncated count models:
     \item \href{#method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_function}{\code{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceCountKKHurdlePoissonOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceCountKKHurdlePoissonOneLik$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-supports_rand_pval_for_incidence}{\code{InferenceCountKKHurdlePoissonOneLik$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_rand_two_sided_pval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceCountKKHurdlePoissonOneLik-clone}{\code{InferenceCountKKHurdlePoissonOneLik$clone()}}
   }
@@ -143,6 +144,17 @@ Analogous Python API for hurdle/zero-truncated count models:
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceCountKKHurdlePoissonOneLik$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountKKHurdlePoissonOneLik$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

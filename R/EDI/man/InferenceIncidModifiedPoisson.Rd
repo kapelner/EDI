@@ -69,6 +69,7 @@ Zou, G. (2004). "A Modified Poisson Regression Approach to
     \item \href{#method-InferenceIncidModifiedPoisson-set_custom_randomization_statistic_function}{\code{InferenceIncidModifiedPoisson$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceIncidModifiedPoisson-set_custom_randomization_statistic_cpp}{\code{InferenceIncidModifiedPoisson$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceIncidModifiedPoisson-approximate_randomization_distribution_beta_hat_T}{\code{InferenceIncidModifiedPoisson$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceIncidModifiedPoisson-supports_rand_pval_for_incidence}{\code{InferenceIncidModifiedPoisson$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceIncidModifiedPoisson-clone}{\code{InferenceIncidModifiedPoisson$clone()}}
   }
 }
@@ -137,6 +138,17 @@ Zou, G. (2004). "A Modified Poisson Regression Approach to
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidModifiedPoisson-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidModifiedPoisson-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceIncidModifiedPoisson$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidModifiedPoisson$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

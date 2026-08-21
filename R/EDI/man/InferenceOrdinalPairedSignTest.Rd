@@ -4,10 +4,34 @@
 \alias{InferenceOrdinalPairedSignTest}
 \title{Paired Sign Test Inference for KK Designs with Ordinal Response}
 \description{
-Fits a paired sign test for ordinal responses under a KK matching-on-the-fly
-design that stores ordinary matched pairs. For matched pairs, it considers the
-sign of the within-pair differences. Reservoir subjects are not included in this
-simple paired test.
+Fits the classical paired sign test for ordinal responses under a KK
+matching-on-the-fly design. For each matched pair \eqn{i} with treated
+member response \eqn{Y_{i,T}} and control member response \eqn{Y_{i,C}},
+only the sign of the within-pair difference \eqn{Y_{i,T} - Y_{i,C}} is
+used; tied pairs (\eqn{Y_{i,T} = Y_{i,C}}) are dropped from the effective
+sample. The estimand is \eqn{\theta = P(Y_T > Y_C \mid \text{pair
+untied})}, and the reported treatment effect is \eqn{\hat\beta_T = \hat p -
+0.5}, where \eqn{\hat p} is the sample proportion of untied pairs favoring
+treatment; \eqn{\beta_T = 0} corresponds to \eqn{\theta = 0.5} (no
+directional preference). The standard error is the usual binomial-proportion
+formula \eqn{\sqrt{\hat p (1 - \hat p) / n_{\text{eff}}}}, where
+\eqn{n_{\text{eff}}} is the number of untied pairs.
+\strong{Reservoir (unmatched) subjects are not included} — this is a purely
+within-pair test, unlike the IVWC-style classes elsewhere in the KK family
+that combine matched-pair and reservoir information.
+\code{likelihood_tier = "none"} (\code{supports_likelihood_tests()} is hard
+\code{FALSE}): only Wald inference on the proportion scale is exposed.
+Bootstrap and jackknife are deliberately unsupported and throw explicit
+errors (see \code{approximate_bootstrap_distribution_beta_hat_T()} and
+\code{approximate_jackknife_distribution_beta_hat_T()}), since subject-level
+resampling or deletion would violate the matched-pair design's dependence
+structure; randomization inference (\code{compute_rand_two_sided_pval()})
+remains available since it permutes treatment assignment within the design's
+own randomization mechanism rather than resampling subjects. Requires a KK
+matching-on-the-fly design (\code{DesignSeqOneByOneKK14}/\code{KK21}) or
+\code{DesignFixedBinaryMatch}; a design with no discordant (untied) pairs is
+cached as nonestimable for the standard error (point estimate \code{0}) or
+fully nonestimable, per \code{harden}.
 }
 \examples{
 set.seed(1)
@@ -26,8 +50,21 @@ infer <- InferenceOrdinalPairedSignTest$
 infer
 
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{InferenceOrdinalPairedSignTest}
+\references{
+Dixon, W. J., and Mood, A. M. (1946). "The Statistical Sign
+  Test." \emph{Journal of the American Statistical Association}, 41(236),
+  557-566, \doi{10.2307/2280577}, for the classical paired sign test;
+  Kapelner, A. and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
+  allocation with higher power and efficiency." \emph{Biometrics}, 70(2),
+  378-388, \doi{10.1111/biom.12148}, for the KK matching-on-the-fly design
+  this class is built for.
+}
+\seealso{
+\href{https://en.wikipedia.org/wiki/Sign_test}{Sign test}
+  (Wikipedia).
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceOrdinalPairedSignTest}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -42,99 +79,7 @@ infer
     \item \href{#method-InferenceOrdinalPairedSignTest-clone}{\code{InferenceOrdinalPairedSignTest$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsympLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_confidence_interval'><code>InferenceAsympLik$compute_gradient_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_two_sided_pval'><code>InferenceAsympLik$compute_gradient_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_confidence_interval'><code>InferenceAsympLik$compute_score_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_two_sided_pval'><code>InferenceAsympLik$compute_score_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_ci_types'><code>InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_pval_types'><code>InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-get_supported_rand_bootstrap_ci_types'><code>InferenceRandBootstrapCI$get_supported_rand_bootstrap_ci_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-get_supported_rand_bootstrap_pval_types'><code>InferenceRandBootstrap$get_supported_rand_bootstrap_pval_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_ci_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_ci_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_pval_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_pval_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -160,9 +105,21 @@ infer
 \if{html}{\out{<a id="method-InferenceOrdinalPairedSignTest-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPairedSignTest-initialize}{}}}
 \subsection{\code{InferenceOrdinalPairedSignTest$new()}}{
-  Initialize the paired sign-test inference object for ordinal
-  matched responses and prepare the sign-test statistic used by
-  \code{\link[EDI:InferenceOrdinalPairedSignTest]{InferenceOrdinalPairedSignTest}}.
+  Uses the shared randomization-test two-sided p-value
+  contract; see \code{\link[EDI:InferenceRand]{InferenceRand}}.
+  Pinned from plain \code{InferenceRand} (not \code{InferenceRandCI})
+  per the established ordinal-class precedent -- Zhang dispatch is
+  incidence-only.
+
+
+  Initialize inference for the paired sign test on within-pair
+  response differences \eqn{Y_{i,T} - Y_{i,C}}; see
+  \code{\link[EDI:InferenceOrdinalPairedSignTest]{InferenceOrdinalPairedSignTest}}
+  for the model form. Requires a KK matching-on-the-fly design
+  (\code{DesignSeqOneByOneKK14}/\code{KK21}) or
+  \code{DesignFixedBinaryMatch}. Does not compute the sign-test statistic;
+  that is deferred to the first call to \code{compute_estimate()} or a
+  method that requires it.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPairedSignTest$new(
@@ -183,6 +140,13 @@ reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
       \item{\code{verbose}}{Whether to print progress messages.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
+      \item{\code{r}}{Number of randomization draws.}
+      \item{\code{delta}}{Null treatment effect.}
+      \item{\code{transform_responses}}{Optional response transformation.}
+      \item{\code{na.rm}}{Whether to drop non-finite draws.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{permutations}}{Optional pre-computed permutations.}
+      \item{\code{zero_one_logit_clamp}}{Clamp for logit transforms.}
     }
     \if{html}{\out{</div>}}
   }
@@ -192,7 +156,13 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalPairedSignTest-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPairedSignTest-compute_estimate}{}}}
 \subsection{\code{InferenceOrdinalPairedSignTest$compute_estimate()}}{
-  Returns the estimated treatment effect (proportion of pairs where T > C).
+  Computes the pair-sign counts (\code{pos}/\code{neg}, ties
+  dropped) from the design's matched-pair structure and returns
+  \eqn{\hat\beta_T = \hat p - 0.5}, where \eqn{\hat p} is the proportion
+  of untied pairs favoring treatment. If every pair is tied, the
+  estimate is \code{0} (no directional preference) and the fit is
+  cached as standard-error-nonestimable (or fully nonestimable when
+  \code{harden = FALSE}).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPairedSignTest$compute_estimate(estimate_only = FALSE)}
@@ -201,7 +171,8 @@ design's imputed covariates.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{If TRUE, skip the standard-error computation and
+cache only the point estimate.}
     }
     \if{html}{\out{</div>}}
   }
@@ -211,8 +182,16 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceOrdinalPairedSignTest-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPairedSignTest-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceOrdinalPairedSignTest$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the paired-sign treatment estimate under
-  Bayesian-bootstrap weights.
+  Recomputes \eqn{\hat\beta_T} under subject/block-level
+  bootstrap weights (Bayesian-bootstrap draw weights, expanded to row
+  level via
+  \code{private$expand_subject_or_block_weights_to_row_weights()}): for
+  each matched pair, a weighted vote is cast toward whichever member has
+  the higher response, using the mean bootstrap weight of the pair's two
+  rows; \eqn{\hat\beta_T^{(w)}} is the weighted proportion of
+  treatment-favoring pairs minus \code{0.5}. No standard error is
+  computed (\code{s_beta_hat_T} is always \code{NA}). Pairs with no
+  discordant (untied) weighted votes are cached as nonestimable.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPairedSignTest$compute_estimate_with_bootstrap_weights(
@@ -237,7 +216,12 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceOrdinalPairedSignTest-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPairedSignTest-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceOrdinalPairedSignTest$compute_asymp_confidence_interval()}}{
-  Computes the confidence interval for the probability P(T > C).
+  Wald confidence interval for \eqn{\beta_T = \theta - 0.5}
+  (equivalently, for \eqn{\theta = P(Y_T > Y_C \mid \text{pair
+  untied})}), using the binomial-proportion standard error; see
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald
+  contract. Fits (computes the pair-sign counts) first if not already
+  cached.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPairedSignTest$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -246,7 +230,8 @@ estimate.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{The significance level.}
+      \item{\code{alpha}}{Two-sided miscoverage rate; the returned interval
+targets \code{1 - alpha} coverage.}
     }
     \if{html}{\out{</div>}}
   }
@@ -256,7 +241,13 @@ estimate.}
 \if{html}{\out{<a id="method-InferenceOrdinalPairedSignTest-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalPairedSignTest-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceOrdinalPairedSignTest$compute_asymp_two_sided_pval()}}{
-  Computes the p-value for the sign test.
+  Two-sided Wald test of \eqn{H_0: \theta = 0.5} (equal
+  chance of favoring treatment vs. control among untied pairs) against
+  \eqn{H_1: \theta \ne 0.5}, using the binomial-proportion standard
+  error; see \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the
+  shared Wald contract. Only \code{delta = 0} is supported (the sign
+  test's null is fixed at no directional preference; a non-zero
+  \code{delta} throws).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPairedSignTest$compute_asymp_two_sided_pval(delta = 0)}
@@ -265,7 +256,7 @@ estimate.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{The null difference (must be 0 for sign test).}
+      \item{\code{delta}}{The null value for \eqn{\beta_T}; must be \code{0}.}
     }
     \if{html}{\out{</div>}}
   }

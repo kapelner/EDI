@@ -863,21 +863,21 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceContinLin.Rd`
 
-- [ ] TODO #260: Method `InferenceContinLin$compute_asymp_confidence_interval()` (current description `73` chars).
-- [ ] TODO #261: Method `InferenceContinLin$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #262: Method `InferenceContinLin$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #263: Method `InferenceContinLin$compute_estimate()` (current description `48` chars).
-- [ ] TODO #264: Method `InferenceContinLin$new()` (current description `41` chars).
-- [ ] TODO #265: Topic `InferenceContinLin` (current description `360` chars).
+- [x] TODO #260: Method `InferenceContinLin$compute_asymp_confidence_interval()` (current description `73` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented HC2 Wald CI contract.
+- [x] TODO #261: Method `InferenceContinLin$compute_asymp_two_sided_pval()` (current description `58` chars). Documented HC2 Wald test.
+- [x] TODO #262: Method `InferenceContinLin$compute_estimate_with_bootstrap_weights()` (current description `77` chars). Documented weighted-least-squares refit.
+- [x] TODO #263: Method `InferenceContinLin$compute_estimate()` (current description `48` chars). Documented fit/caching/nonestimable behavior.
+- [x] TODO #264: Method `InferenceContinLin$new()` (current description `41` chars). Documented deferred-fit behavior.
+- [x] TODO #265: Topic `InferenceContinLin` (current description `360` chars). Full model doc added (centered-covariate/interaction design, HC2 SE, Freedman-critique rationale); added Lin (2013) `@references`, `REFERENCES.md` updated (new `[Lin2013]` entry, extended `[MacKinnonWhite1985]` "Used by").
 
 ### `InferenceContinOLS.Rd`
 
-- [ ] TODO #266: Method `InferenceContinOLS$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #267: Method `InferenceContinOLS$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #268: Method `InferenceContinOLS$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #269: Method `InferenceContinOLS$compute_estimate()` (current description `50` chars).
-- [ ] TODO #270: Method `InferenceContinOLS$new()` (current description `35` chars).
-- [ ] TODO #271: Topic `InferenceContinOLS` (current description `317` chars).
+- [x] TODO #266: Method `InferenceContinOLS$compute_asymp_confidence_interval()` (current description `60` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); already-adequate doc pointing to shared `InferenceAsymp` contract, left as-is.
+- [x] TODO #267: Method `InferenceContinOLS$compute_asymp_two_sided_pval()` (current description `58` chars). Already adequate, left as-is.
+- [x] TODO #268: Method `InferenceContinOLS$compute_estimate_with_bootstrap_weights()` (current description `77` chars). Documented weighted-least-squares refit.
+- [x] TODO #269: Method `InferenceContinOLS$compute_estimate()` (current description `50` chars). Documented fit/hardening/nonestimable behavior.
+- [x] TODO #270: Method `InferenceContinOLS$new()` (current description `35` chars). Documented model form, warm-start-disabled rationale, deferred-fit behavior.
+- [x] TODO #271: Topic `InferenceContinOLS` (current description `317` chars). Full model doc added (uncentered mean-difference OLS, closed-form homoskedastic SE, contrasted with the Lin/HC2 sibling); added Rosenbaum (2002) `@references`, `REFERENCES.md` updated (new `[Rosenbaum2002]` entry).
 
 ### `InferenceContinQuantileRegr.Rd`
 
@@ -900,18 +900,18 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceCountHurdleNegBin.Rd`
 
-- [ ] TODO #285: Method `InferenceCountHurdleNegBin$compute_asymp_confidence_interval()` (current description `156` chars).
-- [ ] TODO #286: Method `InferenceCountHurdleNegBin$compute_asymp_two_sided_pval()` (current description `172` chars).
-- [ ] TODO #287: Method `InferenceCountHurdleNegBin$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #288: Method `InferenceCountHurdleNegBin$compute_gradient_confidence_interval()` (current description `145` chars).
-- [ ] TODO #289: Method `InferenceCountHurdleNegBin$compute_gradient_two_sided_pval()` (current description `48` chars).
-- [ ] TODO #290: Method `InferenceCountHurdleNegBin$compute_jackknife_bias_estimate()` (current description `166` chars).
-- [ ] TODO #291: Method `InferenceCountHurdleNegBin$compute_jackknife_estimate()` (current description `59` chars).
-- [ ] TODO #292: Method `InferenceCountHurdleNegBin$compute_jackknife_std_error()` (current description `167` chars).
-- [ ] TODO #293: Method `InferenceCountHurdleNegBin$compute_jackknife_wald_confidence_interval()` (current description `63` chars).
-- [ ] TODO #294: Method `InferenceCountHurdleNegBin$compute_jackknife_wald_two_sided_pval()` (current description `62` chars).
-- [ ] TODO #295: Method `InferenceCountHurdleNegBin$new()` (current description `154` chars).
-- [ ] TODO #296: Topic `InferenceCountHurdleNegBin` (current description `214` chars).
+- [x] TODO #285: Method `InferenceCountHurdleNegBin$compute_asymp_confidence_interval()` (current description `156` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); already adequate, left as-is.
+- [x] TODO #286: Method `InferenceCountHurdleNegBin$compute_asymp_two_sided_pval()` (current description `172` chars). Already adequate, left as-is.
+- [x] TODO #287: Method `InferenceCountHurdleNegBin$compute_estimate_with_bootstrap_weights()` (current description `77` chars). Documented glmmTMB-based weighted refit path (no internal-solver weighted variant exists for this model).
+- [x] TODO #288: Method `InferenceCountHurdleNegBin$compute_gradient_confidence_interval()` (current description `145` chars). Already adequate, left as-is.
+- [x] TODO #289: Method `InferenceCountHurdleNegBin$compute_gradient_two_sided_pval()` (current description `48` chars). Rewrote (was generic placeholder text "Compute gradient / likelihood-based alternatives").
+- [x] TODO #290: Method `InferenceCountHurdleNegBin$compute_jackknife_bias_estimate()` (current description `166` chars). Already adequate, left as-is.
+- [x] TODO #291: Method `InferenceCountHurdleNegBin$compute_jackknife_estimate()` (current description `59` chars). Already adequate, left as-is.
+- [x] TODO #292: Method `InferenceCountHurdleNegBin$compute_jackknife_std_error()` (current description `167` chars). Already adequate, left as-is.
+- [x] TODO #293: Method `InferenceCountHurdleNegBin$compute_jackknife_wald_confidence_interval()` (current description `63` chars). Already adequate, left as-is.
+- [x] TODO #294: Method `InferenceCountHurdleNegBin$compute_jackknife_wald_two_sided_pval()` (current description `62` chars). Already adequate, left as-is.
+- [x] TODO #295: Method `InferenceCountHurdleNegBin$new()` (current description `154` chars). Documented two-part model form and deferred-fit behavior.
+- [x] TODO #296: Topic `InferenceCountHurdleNegBin` (current description `214` chars). Full model doc added (hurdle + truncated-NB count submodels, jackknife-unsupported rationale, contrasted with `InferenceCountNegBin`); added Mullahy (1986) `@references`, `REFERENCES.md` updated (extended `[Mullahy1986]` "Used by", updated "Coverage gaps" section to reflect this class's migration).
 
 ### `InferenceCountHurdlePoisson.Rd`
 
@@ -971,32 +971,32 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceCountNegBin.Rd`
 
-- [ ] TODO #341: Method `InferenceCountNegBin$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #342: Method `InferenceCountNegBin$compute_jackknife_bias_estimate()` (current description `158` chars).
-- [ ] TODO #343: Method `InferenceCountNegBin$compute_jackknife_estimate()` (current description `52` chars).
-- [ ] TODO #344: Method `InferenceCountNegBin$compute_jackknife_std_error()` (current description `159` chars).
-- [ ] TODO #345: Method `InferenceCountNegBin$compute_jackknife_wald_confidence_interval()` (current description `63` chars).
-- [ ] TODO #346: Method `InferenceCountNegBin$compute_jackknife_wald_two_sided_pval()` (current description `62` chars).
-- [ ] TODO #347: Method `InferenceCountNegBin$new()` (current description `59` chars).
-- [ ] TODO #348: Topic `InferenceCountNegBin` (current description `200` chars).
+- [x] TODO #341: Method `InferenceCountNegBin$compute_estimate_with_bootstrap_weights()` (current description `77` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented weighted refit + Poisson-GLM fallback.
+- [x] TODO #342: Method `InferenceCountNegBin$compute_jackknife_bias_estimate()` (current description `158` chars). Already adequate (explicit non-estimability documented), left as-is.
+- [x] TODO #343: Method `InferenceCountNegBin$compute_jackknife_estimate()` (current description `52` chars). Already adequate, left as-is.
+- [x] TODO #344: Method `InferenceCountNegBin$compute_jackknife_std_error()` (current description `159` chars). Already adequate, left as-is.
+- [x] TODO #345: Method `InferenceCountNegBin$compute_jackknife_wald_confidence_interval()` (current description `63` chars). Already adequate, left as-is.
+- [x] TODO #346: Method `InferenceCountNegBin$compute_jackknife_wald_two_sided_pval()` (current description `62` chars). Already adequate, left as-is.
+- [x] TODO #347: Method `InferenceCountNegBin$new()` (current description `59` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #348: Topic `InferenceCountNegBin` (current description `200` chars). Full model doc added (NB2 mean-variance form, overdispersion vs. Poisson, jackknife-unsupported rationale); added Cameron & Trivedi (2013) `@references`, `REFERENCES.md` updated (new `[CameronTrivedi2013]` entry).
 
 ### `InferenceCountPoisson.Rd`
 
-- [ ] TODO #349: Method `InferenceCountPoisson$compute_asymp_confidence_interval()` (current description `69` chars).
-- [ ] TODO #350: Method `InferenceCountPoisson$compute_asymp_two_sided_pval()` (current description `67` chars).
-- [ ] TODO #351: Method `InferenceCountPoisson$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #352: Method `InferenceCountPoisson$compute_gradient_confidence_interval()` (current description `60` chars).
-- [ ] TODO #353: Method `InferenceCountPoisson$compute_gradient_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #354: Method `InferenceCountPoisson$compute_lik_ratio_bootstrap_confidence_interval()` (current description `58` chars).
-- [ ] TODO #355: Method `InferenceCountPoisson$compute_lik_ratio_bootstrap_two_sided_pval()` (current description `63` chars).
-- [ ] TODO #356: Method `InferenceCountPoisson$compute_lik_ratio_confidence_interval()` (current description `68` chars).
-- [ ] TODO #357: Method `InferenceCountPoisson$compute_lik_ratio_two_sided_pval()` (current description `66` chars).
-- [ ] TODO #358: Method `InferenceCountPoisson$compute_score_confidence_interval()` (current description `57` chars).
-- [ ] TODO #359: Method `InferenceCountPoisson$compute_score_two_sided_pval()` (current description `55` chars).
-- [ ] TODO #360: Method `InferenceCountPoisson$compute_wald_confidence_interval()` (current description `56` chars).
-- [ ] TODO #361: Method `InferenceCountPoisson$compute_wald_two_sided_pval()` (current description `54` chars).
-- [ ] TODO #362: Method `InferenceCountPoisson$new()` (current description `49` chars).
-- [ ] TODO #363: Topic `InferenceCountPoisson` (current description `189` chars).
+- [x] TODO #349: Method `InferenceCountPoisson$compute_asymp_confidence_interval()` (current description `69` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented configured-test dispatch + design-conservative union rule.
+- [x] TODO #350: Method `InferenceCountPoisson$compute_asymp_two_sided_pval()` (current description `67` chars). Documented configured-test dispatch + design-conservative max rule.
+- [x] TODO #351: Method `InferenceCountPoisson$compute_estimate_with_bootstrap_weights()` (current description `76` chars). Documented weighted refit + hardening.
+- [x] TODO #352: Method `InferenceCountPoisson$compute_gradient_confidence_interval()` (current description `60` chars). Documented gradient-test CI + design-conservative union.
+- [x] TODO #353: Method `InferenceCountPoisson$compute_gradient_two_sided_pval()` (current description `58` chars). Documented gradient test + design-conservative max.
+- [x] TODO #354: Method `InferenceCountPoisson$compute_lik_ratio_bootstrap_confidence_interval()` (current description `58` chars). Documented PB-calibrated LR CI + design-conservative union.
+- [x] TODO #355: Method `InferenceCountPoisson$compute_lik_ratio_bootstrap_two_sided_pval()` (current description `63` chars). Documented PB-calibrated LR test + design-conservative max.
+- [x] TODO #356: Method `InferenceCountPoisson$compute_lik_ratio_confidence_interval()` (current description `68` chars). Documented LR-test CI + design-conservative union.
+- [x] TODO #357: Method `InferenceCountPoisson$compute_lik_ratio_two_sided_pval()` (current description `66` chars). Documented LR test + design-conservative max.
+- [x] TODO #358: Method `InferenceCountPoisson$compute_score_confidence_interval()` (current description `57` chars). Documented score-test CI + design-conservative union.
+- [x] TODO #359: Method `InferenceCountPoisson$compute_score_two_sided_pval()` (current description `55` chars). Documented score test + design-conservative max.
+- [x] TODO #360: Method `InferenceCountPoisson$compute_wald_confidence_interval()` (current description `56` chars). Documented Wald CI + design-conservative union.
+- [x] TODO #361: Method `InferenceCountPoisson$compute_wald_two_sided_pval()` (current description `54` chars). Documented Wald test + design-conservative max.
+- [x] TODO #362: Method `InferenceCountPoisson$new()` (current description `49` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #363: Topic `InferenceCountPoisson` (current description `189` chars). Full model doc added, including the notable design-conservative test-combination mechanism (union CI / max p-value with jackknife-Wald, guarding against equidispersion-assumption failure); added Cameron & Trivedi (2013) `@references` (shared `[CameronTrivedi2013]` entry added earlier for `InferenceCountNegBin`, extended "Used by" here).
 
 ### `InferenceCountPoissonKKGEE.Rd`
 
@@ -1306,14 +1306,14 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceOrdinalPairedSignTest.Rd`
 
-- [ ] TODO #538: Method `InferenceOrdinalPairedSignTest$approximate_bootstrap_distribution_beta_hat_T()` (current description `182` chars).
-- [ ] TODO #539: Method `InferenceOrdinalPairedSignTest$approximate_jackknife_distribution_beta_hat_T()` (current description `162` chars).
-- [ ] TODO #540: Method `InferenceOrdinalPairedSignTest$compute_asymp_confidence_interval()` (current description `62` chars).
-- [ ] TODO #541: Method `InferenceOrdinalPairedSignTest$compute_asymp_two_sided_pval()` (current description `39` chars).
-- [ ] TODO #542: Method `InferenceOrdinalPairedSignTest$compute_estimate_with_bootstrap_weights()` (current description `51` chars).
-- [ ] TODO #543: Method `InferenceOrdinalPairedSignTest$compute_estimate()` (current description `73` chars).
-- [ ] TODO #544: Method `InferenceOrdinalPairedSignTest$new()` (current description `122` chars).
-- [ ] TODO #545: Topic `InferenceOrdinalPairedSignTest` (current description `320` chars).
+- [x] TODO #538: Method `InferenceOrdinalPairedSignTest$approximate_bootstrap_distribution_beta_hat_T()` (current description `182` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`, last concrete class off `InferenceAsympLik`); already-adequate explicit-error doc, no change needed.
+- [x] TODO #539: Method `InferenceOrdinalPairedSignTest$approximate_jackknife_distribution_beta_hat_T()` (current description `162` chars). Already-adequate explicit-error doc, no change needed.
+- [x] TODO #540: Method `InferenceOrdinalPairedSignTest$compute_asymp_confidence_interval()` (current description `62` chars). Documented Wald CI on the theta-0.5 proportion scale.
+- [x] TODO #541: Method `InferenceOrdinalPairedSignTest$compute_asymp_two_sided_pval()` (current description `39` chars). Documented H0: theta=0.5 Wald test, delta-must-be-0 constraint.
+- [x] TODO #542: Method `InferenceOrdinalPairedSignTest$compute_estimate_with_bootstrap_weights()` (current description `51` chars). Documented the weighted-vote pair-sign approximation.
+- [x] TODO #543: Method `InferenceOrdinalPairedSignTest$compute_estimate()` (current description `73` chars). Documented pair-sign-count fit and nonestimable/all-tied handling.
+- [x] TODO #544: Method `InferenceOrdinalPairedSignTest$new()` (current description `122` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #545: Topic `InferenceOrdinalPairedSignTest` (current description `320` chars). Full model/estimand doc added (classical paired sign test, reservoir subjects excluded, bootstrap/jackknife deliberately unsupported); added Dixon & Mood (1946) and KK14 `@references`, `REFERENCES.md` updated (new `[DixonMood1946]` entry, `[KK14]` "Used by" list).
 
 ### `InferenceOrdinalPartialProportionalOddsRegr.Rd`
 

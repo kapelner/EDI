@@ -42,6 +42,35 @@ Inference = R6::R6Class("Inference",
 				assertFlag(smart_cold_start_default)
 				des_obj$assert_all_responses_recorded()
 				assertFormulaContext(model_formula, data = NULL, context = "model_formula")
+				# Root-level response-type gate (per user request, 2026-08-21:
+				# "can this be ascertainable from the name of the class itself?
+				# Then be placed in the root class Inference?") -- enforced once
+				# here from the registry's own response_types metadata (itself
+				# name-derived via infer_inference_response_types(), the exact
+				# same source discovery/applicable_inference_class_names()
+				# filters on), so construction and discovery are structurally
+				# unable to disagree on this axis. Replaces the per-class
+				# assertResponseType() calls concrete initializers carry, which
+				# proved forgettable: the discovery-vs-constructibility audit
+				# (test-design-inference-introspection-audit.R) found four
+				# classes missing theirs in one 2026-08-21 sweep
+				# (OrdinalKKCondAdjCatLogitRegr, BaiAdjustedTKK14/21,
+				# PropKKGLMM). Skipped for classes absent from the registry
+				# (ad hoc test generators, user extensions) or registered with
+				# empty response_types -- no metadata means no name-derivable
+				# claim to enforce, matching discovery's own behavior for them.
+				registered_response_types = tryCatch(
+					get_inference_class_metadata(class(self)[1L])$response_types %||% character(),
+					error = function(e) character()
+				)
+				if (length(registered_response_types) > 0L &&
+						!(des_obj$get_response_type() %in% registered_response_types)) {
+					stop(
+						class(self)[1L], " does not support response type '",
+						des_obj$get_response_type(), "' (supports: ",
+						paste(registered_response_types, collapse = ", "), ")."
+					)
+				}
 			}
 			private$harden = harden
 			private$smart_cold_start_default = smart_cold_start_default

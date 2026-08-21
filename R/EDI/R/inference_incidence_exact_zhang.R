@@ -14,6 +14,9 @@ ExactZhangIncidenceSource = list(
 		initialize = function(des_obj, model_formula = NULL,  verbose = FALSE, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "incidence")
+				stop_if_design_incompatible(private$design_compatibility_reason, des_obj, list(
+					exact_zhang_requires_bernoulli_or_matching_design = "Zhang incidence inference requires Bernoulli or matching designs."
+				))
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			if (should_run_asserts()) {
@@ -59,6 +62,25 @@ ExactZhangIncidenceSource = list(
 	),
 	private = list(
 		default_exact_type = "Zhang",
+		# Self/private-free so it's safe to call unbound against a candidate
+		# des_obj before construction, same "safe invoke without construction"
+		# contract as design_compatibility_reason() elsewhere (Wilcox/CMH/
+		# ExtendedRobins/ExactBinomial/ExactFisher/PairedSignTest). Mirrors
+		# zhang_assert_exact_inference_params()'s own compute-time gate
+		# (`is_a_bernoulli_capable() || has_match_structure`, where
+		# has_match_structure is verbatim des_obj$is_a_kk_matching_capable())
+		# -- found 2026-08-21 via a user-reported run_all_inference() row on
+		# an ObservationalDesignBlocks design where this class constructed
+		# and estimated fine but every exact CI/p-value silently degraded to
+		# NA (the compute-time stop() swallowed by the suite's tryCatch),
+		# exactly the ExactFisher shape. The compute-time gate remains as
+		# defense-in-depth for directly-constructed instances.
+		design_compatibility_reason = function(des_obj){
+			if (!isTRUE(des_obj$is_a_bernoulli_capable()) && !isTRUE(des_obj$is_a_kk_matching_capable())) {
+				return("exact_zhang_requires_bernoulli_or_matching_design")
+			}
+			NA_character_
+		},
 		supports_bayesian_bootstrap = function() FALSE,
 		resolve_exact_type = function(type){
 			if (is.null(type)) type = private$default_exact_type

@@ -28,10 +28,13 @@
 #' the observed treatment allocation to be \emph{exactly} balanced
 #' (\eqn{n_T = n_C}), not merely drawn from a \eqn{prob\_T = 0.5} mechanism --
 #' e.g. plain Bernoulli randomization has \eqn{prob\_T = 0.5} but does not
-#' guarantee an exactly balanced realized allocation. The constructor issues a
-#' warning (not an error) when this is violated, since erroring would make
-#' this class unusable with Bernoulli-style non-blocking designs entirely; the
-#' warning tells the caller the reported standard error may be miscalibrated.
+#' guarantee an exactly balanced realized allocation. A warning (not an error)
+#' is issued once, the first time the standard error is actually computed
+#' (i.e. on the first confidence-interval / p-value / standard-error request,
+#' not at construction or for estimate-only use), when this is violated --
+#' erroring would make this class unusable with Bernoulli-style non-blocking
+#' designs entirely; the warning tells the caller the reported standard error
+#' may be miscalibrated.
 #'
 #' @examples
 #' \dontrun{
@@ -116,23 +119,6 @@ InferenceIncidCMH = define_inference_class(
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
 			}
-			if (!des_obj$is_blocking_design()) {
-				n_T = sum(private$w)
-				n_C = private$n - n_T
-				if (n_T != n_C) {
-					# The SE formula's "for a balanced design" precondition (see @details) requires
-					# E_w[y'w] = 0, which needs the *realized* observed allocation to be exactly
-					# balanced -- prob_T = 0.5 alone only guarantees this in expectation (e.g. plain
-					# Bernoulli randomization). Under realized imbalance, compute_estimate()'s group
-					# mean-difference and get_standard_error()'s (2/n)*y'w-based SE describe different
-					# estimators, so warn rather than silently reporting a miscalibrated SE.
-					warning(
-						"InferenceIncidCMH: this non-blocking design's realized treatment allocation ",
-						"is not exactly balanced (n_T = ", n_T, ", n_C = ", n_C, "); the standard error ",
-						"formula assumes exact balance and may be miscalibrated."
-					)
-				}
-			}
 			private$se_est_num_vectors = as.integer(se_est_num_vectors)
 		}
 	),
@@ -161,6 +147,7 @@ InferenceIncidCMH = define_inference_class(
 			NA_character_
 		},
 		se_est_num_vectors = NULL,
+		warned_realized_imbalance = FALSE,
 		supports_lik_ratio_param_bootstrap = function() FALSE,
 		supports_likelihood_tests = function() FALSE,
 		get_supported_testing_types_impl = function(){
@@ -180,6 +167,26 @@ InferenceIncidCMH = define_inference_class(
 					private$des_obj_priv_int$n
 				)
 			} else {
+				# The SE formula's "for a balanced design" precondition (see @details) requires
+				# E_w[y'w] = 0, which needs the *realized* observed allocation to be exactly
+				# balanced -- prob_T = 0.5 alone only guarantees this in expectation (e.g. plain
+				# Bernoulli randomization). Under realized imbalance, compute_estimate()'s group
+				# mean-difference and this (2/n)*y'w-based SE describe different estimators, so
+				# warn rather than silently reporting a miscalibrated SE. Emitted here (once, the
+				# first time the SE is actually computed) rather than at construction, so
+				# estimate-only use and construction-only sweeps (InferenceSuite discovery,
+				# the introspection audit) stay quiet while any SE/CI/p-value consumer still
+				# sees it -- and InferenceSuite records it in its per-row `warnings` column.
+				n_T = sum(private$w)
+				n_C = private$n - n_T
+				if (n_T != n_C && !isTRUE(private$warned_realized_imbalance)) {
+					private$warned_realized_imbalance = TRUE
+					warning(
+						"InferenceIncidCMH: this non-blocking design's realized treatment allocation ",
+						"is not exactly balanced (n_T = ", n_T, ", n_C = ", n_C, "); the standard error ",
+						"formula assumes exact balance and may be miscalibrated."
+					)
+				}
 				# get_cmh_se_w_mat() is an optional blocking-layer precompute; after the
 				# design-hierarchy rework non-blocking designs (e.g. DesignFixedBernoulli,
 				# now Design -> DesignFixed with no blocking ancestor) no longer carry the

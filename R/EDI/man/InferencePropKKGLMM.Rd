@@ -116,6 +116,7 @@ Kapelner, A. and Krieger, A. M. (2014). "Matching on-the-fly:
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-set_custom_randomization_statistic_function'><code>InferenceAbstractKKCondLogitGLMM$set_custom_randomization_statistic_function()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-set_information_preference'><code>InferenceAbstractKKCondLogitGLMM$set_information_preference()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-set_testing_type'><code>InferenceAbstractKKCondLogitGLMM$set_testing_type()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-supports_rand_pval_for_incidence'><code>InferenceAbstractKKCondLogitGLMM$supports_rand_pval_for_incidence()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from Inference</summary>

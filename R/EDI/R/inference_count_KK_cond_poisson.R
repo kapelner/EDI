@@ -525,6 +525,14 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "count")
 				assertFlag(use_rcpp)
+				# Same KK-design guard as InferenceCountKKCondPoisson /
+				# init_kk_passthrough(): this class was registry-marked inapplicable
+				# to non-KK designs yet constructed fine on them (surfaced by
+				# test-design-inference-introspection-audit.R, 2026-08-21), so
+				# discovery and construction disagreed.
+				if (!des_obj$is_a_kk_matching_capable()){
+					stop(class(self)[1], " requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.")
+				}
 			}
 			self$set_optimization_alg(optimization_alg, allow_irls = FALSE)
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)

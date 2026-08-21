@@ -55,6 +55,7 @@ McCullagh, P. (1980). "Regression Models for Ordinal Data."
     \item \href{#method-InferenceOrdinalOrderedProbitRegr-set_custom_randomization_statistic_function}{\code{InferenceOrdinalOrderedProbitRegr$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceOrdinalOrderedProbitRegr-set_custom_randomization_statistic_cpp}{\code{InferenceOrdinalOrderedProbitRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceOrdinalOrderedProbitRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceOrdinalOrderedProbitRegr$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceOrdinalOrderedProbitRegr-supports_rand_pval_for_incidence}{\code{InferenceOrdinalOrderedProbitRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceOrdinalOrderedProbitRegr-compute_rand_two_sided_pval}{\code{InferenceOrdinalOrderedProbitRegr$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceOrdinalOrderedProbitRegr-clone}{\code{InferenceOrdinalOrderedProbitRegr$clone()}}
   }
@@ -124,6 +125,17 @@ McCullagh, P. (1980). "Regression Models for Ordinal Data."
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceOrdinalOrderedProbitRegr-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalOrderedProbitRegr-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceOrdinalOrderedProbitRegr$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceOrdinalOrderedProbitRegr$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

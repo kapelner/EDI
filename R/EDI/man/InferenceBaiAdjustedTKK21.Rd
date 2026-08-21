@@ -46,6 +46,7 @@ inf$compute_estimate()
     \item \href{#method-InferenceBaiAdjustedTKK21-set_custom_randomization_statistic_function}{\code{InferenceBaiAdjustedTKK21$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceBaiAdjustedTKK21-set_custom_randomization_statistic_cpp}{\code{InferenceBaiAdjustedTKK21$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceBaiAdjustedTKK21-approximate_randomization_distribution_beta_hat_T}{\code{InferenceBaiAdjustedTKK21$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceBaiAdjustedTKK21-supports_rand_pval_for_incidence}{\code{InferenceBaiAdjustedTKK21$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceBaiAdjustedTKK21-compute_rand_two_sided_pval}{\code{InferenceBaiAdjustedTKK21$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceBaiAdjustedTKK21-clone}{\code{InferenceBaiAdjustedTKK21$clone()}}
   }
@@ -115,6 +116,17 @@ inf$compute_estimate()
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceBaiAdjustedTKK21-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceBaiAdjustedTKK21-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceBaiAdjustedTKK21$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceBaiAdjustedTKK21$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

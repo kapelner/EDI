@@ -88,6 +88,7 @@ Abstract class for all-subject modified-Poisson inference in KK designs
   <li><a href='../../EDI/html/InferenceAbstractKKMarginalIncid.html#method-InferenceAbstractKKMarginalIncid-set_custom_randomization_statistic_function'><code>InferenceAbstractKKMarginalIncid$set_custom_randomization_statistic_function()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKMarginalIncid.html#method-InferenceAbstractKKMarginalIncid-set_information_preference'><code>InferenceAbstractKKMarginalIncid$set_information_preference()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKMarginalIncid.html#method-InferenceAbstractKKMarginalIncid-set_testing_type'><code>InferenceAbstractKKMarginalIncid$set_testing_type()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKMarginalIncid.html#method-InferenceAbstractKKMarginalIncid-supports_rand_pval_for_incidence'><code>InferenceAbstractKKMarginalIncid$supports_rand_pval_for_incidence()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from Inference</summary>

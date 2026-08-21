@@ -248,6 +248,6 @@ write_internal_surfaces = function(surfaces = build_internal_surfaces(), path = 
 }
 
 args = commandArgs(trailingOnly = TRUE)
-output_path = args[1] %||% paths$default_output
+output_path = if (length(args) >= 1L && !is.na(args[1L]) && nzchar(args[1L])) args[1L] else paths$default_output
 surfaces = write_internal_surfaces(path = output_path)
 message("wrote ", nrow(surfaces), " internal safety-net surface rows to ", output_path)

@@ -61,6 +61,52 @@ test_that("edi_tuning_interleaved_ab() validates its inputs", {
 	expect_error(edi_tuning_interleaved_ab("not a function", function() NULL, reps = 1L))
 })
 
+test_that("edi_tuning_interleaved_ab() captures each call's return value in call order", {
+	res = edi_tuning_interleaved_ab(function() "a-result", function() "b-result", reps = 3L)
+	expect_equal(res$results_a, list("a-result", "a-result", "a-result"))
+	expect_equal(res$results_b, list("b-result", "b-result", "b-result"))
+})
+
+test_that("edi_tuning_blocked_ab() runs all of A then all of B (or reversed) as contiguous blocks, not interleaved", {
+	order_log = character(0)
+	fn_a = function() { order_log <<- c(order_log, "a"); Sys.sleep(0.001) }
+	fn_b = function() { order_log <<- c(order_log, "b"); Sys.sleep(0.001) }
+
+	order_log = character(0)
+	res1 = edi_tuning_blocked_ab(fn_a, fn_b, reps = 3L, a_first = TRUE)
+	expect_equal(order_log, c("a", "a", "a", "b", "b", "b"))
+	expect_length(res1$times_a, 3L)
+	expect_length(res1$times_b, 3L)
+
+	order_log = character(0)
+	res2 = edi_tuning_blocked_ab(fn_a, fn_b, reps = 2L, a_first = FALSE)
+	expect_equal(order_log, c("b", "b", "a", "a"))
+})
+
+test_that("edi_tuning_blocked_ab() calls each side's setup exactly once, before that side's block", {
+	log = character(0)
+	res = edi_tuning_blocked_ab(
+		fn_a = function() log <<- c(log, "a-call"),
+		fn_b = function() log <<- c(log, "b-call"),
+		reps = 3L,
+		a_first = TRUE,
+		setup_a = function() log <<- c(log, "setup-a"),
+		setup_b = function() log <<- c(log, "setup-b")
+	)
+	expect_equal(log, c("setup-a", "a-call", "a-call", "a-call", "setup-b", "b-call", "b-call", "b-call"))
+})
+
+test_that("edi_tuning_blocked_ab() reports correct medians/IQRs and validates its inputs", {
+	res = edi_tuning_blocked_ab(function() Sys.sleep(0.001), function() Sys.sleep(0.02), reps = 4L)
+	expect_equal(res$median_a, stats::median(res$times_a))
+	expect_equal(res$median_b, stats::median(res$times_b))
+	expect_equal(res$iqr_a, stats::IQR(res$times_a))
+	expect_equal(res$iqr_b, stats::IQR(res$times_b))
+	expect_lt(res$median_a, res$median_b)
+	expect_error(edi_tuning_blocked_ab(function() NULL, function() NULL, reps = 0L))
+	expect_error(edi_tuning_blocked_ab(function() NULL, function() NULL, a_first = "not a flag"))
+})
+
 test_that("edi_tuning_accept_candidate() accepts a clean win past both the 5% and 2xIQR thresholds", {
 	baseline = c(1.00, 1.02, 0.98, 1.01, 0.99)
 	candidate = c(0.80, 0.81, 0.79, 0.80, 0.80)

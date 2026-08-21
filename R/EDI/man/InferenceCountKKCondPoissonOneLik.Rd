@@ -71,6 +71,7 @@ Analogous Python API for count models:
     \item \href{#method-InferenceCountKKCondPoissonOneLik-set_custom_randomization_statistic_function}{\code{InferenceCountKKCondPoissonOneLik$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceCountKKCondPoissonOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceCountKKCondPoissonOneLik$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceCountKKCondPoissonOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceCountKKCondPoissonOneLik$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceCountKKCondPoissonOneLik-supports_rand_pval_for_incidence}{\code{InferenceCountKKCondPoissonOneLik$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceCountKKCondPoissonOneLik-compute_rand_two_sided_pval}{\code{InferenceCountKKCondPoissonOneLik$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceCountKKCondPoissonOneLik-clone}{\code{InferenceCountKKCondPoissonOneLik$clone()}}
   }
@@ -140,6 +141,17 @@ Analogous Python API for count models:
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountKKCondPoissonOneLik-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountKKCondPoissonOneLik-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceCountKKCondPoissonOneLik$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountKKCondPoissonOneLik$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

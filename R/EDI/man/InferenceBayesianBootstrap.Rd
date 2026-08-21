@@ -65,6 +65,7 @@ top of the existing nonparametric bootstrap infrastructure.
   <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
   <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
   <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
+  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-supports_rand_pval_for_incidence'><code>InferenceRand$supports_rand_pval_for_incidence()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from Inference</summary>

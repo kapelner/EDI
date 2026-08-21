@@ -29,6 +29,15 @@ NULL
 	# OpenMP/BLAS thread count in sync from the start, until/unless the user
 	# explicitly opts into more via set_num_cores().
 	set_package_threads(1L)
+
+	# Import this machine's saved performance-policy tuning, if any
+	# (local_machine_optimization.md TODO-9). Fail-open by construction:
+	# no file -> silent no-op; unreadable/incompatible/unapplicable file ->
+	# ignored entirely (policies reset to shipped defaults) plus one
+	# packageStartupMessage; hardware-changed -> applied plus a suggestion to
+	# re-run. Never errors at load, and never touches the active core count
+	# (the parallel diff is recorded-only). EDI_SKIP_LOCAL_TUNING=1 disables it.
+	edi_tuning_import_saved_policies(quiet = FALSE)
 }
 
 .onAttach = function(libname, pkgname){

@@ -34,6 +34,7 @@ Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
     \item \href{#method-InferenceOrdinalCauchitRegr-set_custom_randomization_statistic_function}{\code{InferenceOrdinalCauchitRegr$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceOrdinalCauchitRegr-set_custom_randomization_statistic_cpp}{\code{InferenceOrdinalCauchitRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceOrdinalCauchitRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceOrdinalCauchitRegr$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceOrdinalCauchitRegr-supports_rand_pval_for_incidence}{\code{InferenceOrdinalCauchitRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceOrdinalCauchitRegr-compute_rand_two_sided_pval}{\code{InferenceOrdinalCauchitRegr$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceOrdinalCauchitRegr-clone}{\code{InferenceOrdinalCauchitRegr$clone()}}
   }
@@ -103,6 +104,17 @@ Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceOrdinalCauchitRegr-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalCauchitRegr-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceOrdinalCauchitRegr$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceOrdinalCauchitRegr$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

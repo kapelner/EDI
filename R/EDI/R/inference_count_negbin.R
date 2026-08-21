@@ -1,7 +1,36 @@
 #' Negative Binomial Regression Inference for Count Responses
 #'
-#' Fits a negative binomial regression for count responses using the treatment
-#' indicator and, optionally, all recorded covariates as predictors.
+#' Fits a negative binomial regression for count responses:
+#' \eqn{Y_i \mid W_i, X_i \sim \mathrm{NegBin}(\mu_i, \theta)}, \eqn{\log
+#' \mu_i = \beta_0 + \beta_T W_i + X_i^\top \gamma}, \eqn{\mathrm{Var}(Y_i) =
+#' \mu_i + \mu_i^2 / \theta}, jointly maximizing over the regression
+#' coefficients and the dispersion parameter \eqn{\theta}
+#' (\code{\link{fast_neg_bin_cpp}}/\code{\link{fast_neg_bin_with_var_cpp}}).
+#' \eqn{\hat\beta_T} is a log-rate-ratio: \eqn{\exp(\hat\beta_T)} is the
+#' estimated rate ratio. Unlike \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}},
+#' the negative-binomial model allows overdispersion (\eqn{\mathrm{Var}(Y_i) >
+#' E[Y_i]}) via \eqn{\theta}; smaller \eqn{\theta} indicates more
+#' overdispersion, and the model converges to Poisson as \eqn{\theta \to
+#' \infty}. \code{likelihood_tier = "full"}: Wald, score, gradient, and
+#' likelihood-ratio tests are all available, plus parametric-likelihood
+#' bootstrap calibration of the likelihood-ratio test (simulating new
+#' responses from \eqn{\mathrm{NegBin}(\hat\mu_i, \hat\theta)} under the null).
+#' \strong{Jackknife inference is not supported}: delete-one refits of a
+#' jointly-estimated dispersion parameter are numerically unstable, so
+#' \code{compute_jackknife_estimate()} and related methods report explicit
+#' non-estimability rather than attempting delete-one refits. Validity
+#' requires the negative-binomial mean-variance relationship to hold and the
+#' usual correctly-specified-linear-predictor-on-the-log-scale assumption.
+#'
+#' @references Cameron, A. C., and Trivedi, P. K. (2013). \emph{Regression
+#'   Analysis of Count Data} (2nd ed.). Cambridge University Press, for the
+#'   negative binomial regression model and its maximum-likelihood theory.
+#'
+#' @seealso Comparable Python API:
+#'   \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
+#'   discrete models} (\code{NegativeBinomial}). See also:
+#'   \href{https://en.wikipedia.org/wiki/Negative_binomial_distribution}{Negative
+#'   binomial distribution} (Wikipedia).
 #'
 #' @examples
 #' \donttest{
@@ -51,7 +80,12 @@ InferenceCountNegBin = define_inference_class(
 	),
 	public = list(
 
-		#' @description Initialize a negative binomial regression inference object.
+		#' @description Initialize inference for the negative binomial regression
+		#'   model \eqn{Y_i \mid W_i, X_i \sim \mathrm{NegBin}(\mu_i, \theta)},
+		#'   \eqn{\log \mu_i = \beta_0 + \beta_T W_i + X_i^\top \gamma}; see
+		#'   \code{\link[EDI:InferenceCountNegBin]{InferenceCountNegBin}} for the
+		#'   model form. Does not fit the model; the fit is deferred to the first
+		#'   call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with a count response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -70,8 +104,18 @@ InferenceCountNegBin = define_inference_class(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#' @description Refits the negative binomial model with subject/block-level
+		#'   weights applied to the fitting log-likelihood (Bayesian-bootstrap or
+		#'   nonparametric-bootstrap draw weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}) via
+		#'   \code{\link{fast_neg_bin_weighted_cpp}}, and returns the reweighted
+		#'   log-rate-ratio estimate \eqn{\hat\beta_T^{(w)}}. If the weighted
+		#'   negative-binomial fit fails to converge, falls back to a weighted
+		#'   Poisson GLM (\code{stats::glm(family = poisson())}) as an
+		#'   estimating-equation-consistent point estimate of the same mean
+		#'   structure (this fallback does not itself estimate \eqn{\theta}, so no
+		#'   standard error is computed in that path); no standard error is computed
+		#'   in either path (\code{s_beta_hat_T} is always \code{NA}).
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){

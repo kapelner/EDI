@@ -15,6 +15,9 @@ ExactFisherIncidenceSource = list(
 		initialize = function(des_obj, model_formula = NULL,  verbose = FALSE, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "incidence")
+				stop_if_design_incompatible(private$design_compatibility_reason, des_obj, list(
+					exact_fisher_requires_ibcrd_blocking_or_matching_design = "Fisher exact inference requires iBCRD, blocking, or matching designs."
+				))
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			if (should_run_asserts()) {
@@ -97,6 +100,21 @@ ExactFisherIncidenceSource = list(
 			isTRUE(private$des_obj$randomization_family() %in% c(
 				"complete_randomization", "blocked", "spbr", "random_block_size"
 			)) || private$has_match_structure
+		},
+		# Self/private-free so it's safe to call unbound against a candidate
+		# des_obj before construction (private$has_match_structure above is
+		# itself just des_obj$is_a_kk_matching_capable(), set verbatim from the
+		# constructor argument -- confirmed by reading Inference$initialize(),
+		# not assumed). Mirrors design_supports_exact_fisher()'s own condition
+		# exactly; kept separate since that one is a private *instance* method
+		# while this one takes des_obj as a parameter. See infer_inference_
+		# design_compatibility_reason_fn() in inference_class_registry.R.
+		design_compatibility_reason = function(des_obj){
+			eligible = isTRUE(des_obj$randomization_family() %in% c(
+				"complete_randomization", "blocked", "spbr", "random_block_size"
+			)) || isTRUE(des_obj$is_a_kk_matching_capable())
+			if (!eligible) return("exact_fisher_requires_ibcrd_blocking_or_matching_design")
+			NA_character_
 		},
 		pval_exact_fisher = function(delta_0){
 			as.numeric(private$get_exact_fisher_htest(delta_0 = delta_0)$p.value)

@@ -95,7 +95,9 @@ gaps" at the bottom).
   the combined conditional-logit-plus-GLMM likelihood), `InferenceOrdinalKKCLMM`,
   `InferenceOrdinalKKCLMMProbit`, `InferenceOrdinalKKCLMMCauchit`,
   `InferenceOrdinalKKCLMMCloglog` (KK matching-on-the-fly design behind the
-  ordinal cumulative-link mixed model).
+  ordinal cumulative-link mixed model), `InferenceOrdinalPairedSignTest` (KK
+  matching-on-the-fly design behind the matched pairs the sign test is
+  computed on).
 - **[Greevy2004]** Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P.
   (2004). "Optimal multivariate matching before randomization."
   *Biostatistics*, 5(2), 263-275. doi:10.1093/biostatistics/5.2.263. — Used
@@ -183,7 +185,16 @@ files' `@references`) if/when it becomes available.
   Finite Sample Properties." *Journal of Econometrics*, 29(3), 305-325.
   doi:10.1016/0304-4076(85)90158-7. — Used by: `ols_hc2_post_fit_cpp` and
   the HC2 sandwich estimator generally (see
-  `vignette("backend-contracts")`).
+  `vignette("backend-contracts")`), `InferenceContinLin` (its HC2 standard
+  error).
+- **[Lin2013]** Lin, W. (2013). "Agnostic notes on regression adjustments to
+  experimental data: Reexamining Freedman's critique." *The Annals of
+  Applied Statistics*, 7(1), 295-318. doi:10.1214/12-AOAS583. — Used by:
+  `InferenceContinLin` (the centered-covariate, treatment-interacted OLS
+  estimator this class fits).
+- **[Rosenbaum2002]** Rosenbaum, P. R. (2002). *Observational Studies* (2nd
+  ed.). Springer. — Used by: `InferenceContinOLS` (design-based
+  justification of the OLS mean-difference estimator under randomization).
 
 ### Quantile regression
 
@@ -300,13 +311,23 @@ files' `@references`) if/when it becomes available.
   341-365. doi:10.1016/0304-4076(86)90002-3. — Used by:
   `InferenceCountKKHurdlePoissonOneLik` (two-part hurdle model: a binary
   zero-vs-positive submodel combined with a zero-truncated Poisson
-  submodel for the positive counts). See also the "Coverage gaps" section
-  below for the still-gated `InferenceCountHurdlePoisson`/
-  `InferenceCountHurdleNegBin` siblings this citation also applies to once
-  they migrate.
+  submodel for the positive counts), `InferenceCountHurdleNegBin`
+  (hurdle negative-binomial variant). See also the "Coverage gaps" section
+  below for the still-gated `InferenceCountHurdlePoisson` sibling this
+  citation also applies to once it migrates.
+- **[CameronTrivedi2013]** Cameron, A. C., and Trivedi, P. K. (2013).
+  *Regression Analysis of Count Data* (2nd ed.). Cambridge University
+  Press. — Used by: `InferenceCountNegBin`, `InferenceCountPoisson`
+  (negative binomial and Poisson regression models and their
+  maximum-likelihood theory).
 
 ### Ordinal
 
+- **[DixonMood1946]** Dixon, W. J., and Mood, A. M. (1946). "The
+  Statistical Sign Test." *Journal of the American Statistical
+  Association*, 41(236), 557-566. doi:10.2307/2280577. — Used by:
+  `InferenceOrdinalPairedSignTest` (classical paired sign test on
+  within-matched-pair response differences).
 - **[Jonckheere1954]** Jonckheere, A. R. (1954). "A Distribution-Free
   k-Sample Test Against Ordered Alternatives." *Biometrika*, 41(1-2),
   133-145. doi:10.1093/biomet/41.1-2.133. — Used by:
@@ -490,26 +511,26 @@ logit — `InferenceOrdinalAdjCatLogitRegr`; its continuation-ratio and
 stereotype-logit siblings, `InferenceOrdinalContRatioRegr` and
 `InferenceOrdinalStereotypeLogitRegr`, migrated 2026-08-21 and now carry
 `[Agresti2010Ordinal]`/`[Anderson1984]` respectively) and
-four count-response classes likewise (zero-inflated Poisson/NegBin, hurdle
-Poisson/NegBin — `InferenceCountZeroInflatedPoisson`,
-`InferenceCountZeroInflatedNegBin`, `InferenceCountHurdlePoisson`,
-`InferenceCountHurdleNegBin`) whose class-level `@details` prose names the
-method but does not (yet) carry a formal `@references` block. These five
-are **not** a documentation oversight: all five classes are still on the
-pre-migration `R6::R6Class(inherit = <OldLadderBase>)` hierarchy rather than
-the shallow `define_inference_class(inherit = Inference, ...)` form (see
+three count-response classes likewise (zero-inflated Poisson/NegBin, hurdle
+Poisson — `InferenceCountZeroInflatedPoisson`,
+`InferenceCountZeroInflatedNegBin`, `InferenceCountHurdlePoisson`) whose
+class-level `@details` prose names the method but does not (yet) carry a
+formal `@references` block. (`InferenceCountHurdleNegBin` migrated
+2026-08-21 and now carries `[Mullahy1986]`.) These four are **not** a
+documentation oversight: all four classes are still on the pre-migration
+`R6::R6Class(inherit = <OldLadderBase>)` hierarchy rather than the shallow
+`define_inference_class(inherit = Inference, ...)` form (see
 `fix_inference_hierarchy.md`), and are deliberately left untouched while
 that migration is in progress — adding polished documentation to a class
 whose structure is about to change risks exactly the kind of silent
 reversion `fix_inference_hierarchy.md`'s own migration notes describe
 happening to `InferenceIncidGCompRiskDiff` earlier in this effort. Revisit
-this list once each of those five classes migrates (their `inherit=`
+this list once each of those four classes migrates (their `inherit=`
 becomes `Inference` directly), and add the canonical citation then: Lambert
 (1992, *Technometrics* 34(1), 1-14, doi:10.2307/1269547) for zero-inflated
 Poisson; Mullahy (1986, *Journal of Econometrics* 33(3), 341-365,
-doi:10.1016/0304-4076(86)90002-3) for hurdle count models — already
-identified, just not yet addable to a class whose current form is about to
-be replaced.
+doi:10.1016/0304-4076(86)90002-3) for hurdle Poisson — already identified,
+just not yet addable to a class whose current form is about to be replaced.
 
 When a new `@references` block is added anywhere in the package, add the
 corresponding entry here in the same commit/session — `Rscript

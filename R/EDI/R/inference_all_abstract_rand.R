@@ -331,6 +331,27 @@ InferenceRand = R6::R6Class("InferenceRand",
 			if (!is.numeric(beta_hat_T_diff_ws)) beta_hat_T_diff_ws = as.numeric(beta_hat_T_diff_ws)
 			beta_hat_T_diff_ws
 		},
+		#' @description Whether \code{compute_rand_two_sided_pval()} is actually
+		#'   usable on this instance right now -- \code{FALSE} exactly when it
+		#'   would \code{stop()}: an \code{incidence}-response instance with no
+		#'   custom randomization statistic and a design not eligible for
+		#'   design-randomization-based incidence inference (see
+		#'   \code{private$should_use_design_randomization_for_incidence()}).
+		#'   \code{TRUE} for every other case, including every non-incidence
+		#'   response type. Public, self-contained (only reads already-set
+		#'   instance state, no side effects), so \code{InferenceSuite} can
+		#'   check this before attempting the sentinel instead of relying on
+		#'   the \code{stop()} being silently swallowed into a \code{pval = NA}
+		#'   "ok" row -- the single source of truth for both this check and
+		#'   \code{compute_rand_two_sided_pval()}'s own guard, so the two can
+		#'   never drift apart (\code{fix_inference_hierarchy.md}'s
+		#'   method-level-`stop()` TODO, 2026-08-21).
+		#' @return A single logical.
+		supports_rand_pval_for_incidence = function(){
+			!(private$des_obj_priv_int$response_type == "incidence" &&
+				is.null(private$custom_randomization_statistic_function) &&
+				!private$should_use_design_randomization_for_incidence())
+		},
 		#' @description Computes a randomization-based p-value.
 		#' @param r  	Number of randomization vectors.
 		#' @param delta  				Null difference.
@@ -344,9 +365,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertLogical(na.rm)
-				if (private$des_obj_priv_int$response_type == "incidence" &&
-						is.null(private$custom_randomization_statistic_function) &&
-						!private$should_use_design_randomization_for_incidence()) {
+				if (!self$supports_rand_pval_for_incidence()) {
 					stop("Randomization tests are not supported for incidence. Use Zhang method.")
 				}
 			}

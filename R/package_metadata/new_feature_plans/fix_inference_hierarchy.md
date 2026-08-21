@@ -1788,9 +1788,16 @@ their own `[x]` entries above; they are not part of this count.)
   no-likelihood class `migrated`.
 - [x] Require private-state owner snapshots to pass before marking any
   no-likelihood class `migrated`.
-- [ ] After all no-likelihood classes are migrated, delete no-longer-used
+- [x] After all no-likelihood classes are migrated, delete no-longer-used
   algorithmic bases in this family and remove them from
-  `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES`. **Status update 2026-08-17
+  `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES`. **Closed 2026-08-21**: all
+  family-specific bases were drained and removed from the list one by one
+  (see the per-removal notes threaded through this item and the "Base
+  Deletion" section); the 12 remaining list entries are the shared
+  rand/bootstrap/Wald/KK-compound ladder, resolved as kept-and-converted
+  internal component sources with the always-on strict gate making them
+  unusable as concrete parents -- see the Base Deletion endgame items'
+  2026-08-21 closure notes for the full disposition. **Status update 2026-08-17
   (superseding the stale "none of which are migrated yet" note):** every
   concrete class in the "Asymptotic (Wald) No-Likelihood Migration" section
   is now migrated and passes `mark_inference_class_migrated()` (see that
@@ -2391,16 +2398,230 @@ their own `[x]` entries above; they are not part of this count.)
   (also confirmed unrelated via the same clean-baseline `git stash`
   re-run).
 
-  **Remaining pending classes: 9** -- `InferenceOrdinalPairedSignTest`
-  (1), `InferenceCountLikelihood` family (1 direct: `InferenceCountHurdleNegBin`;
-  3 via `InferenceCountZeroAugmentedPoissonAbstract`:
-  `InferenceCountHurdlePoisson`, `InferenceCountZeroInflatedNegBin`,
-  `InferenceCountZeroInflatedPoisson`), `InferenceParamBootstrap` direct (2:
-  `InferenceContinLin`, `InferenceContinOLS`). `InferenceCountHurdleNegBin`
-  should follow the exact same recipe just established for
-  `InferenceCountNegBin` (now that the component-level bug is fixed, no
-  per-class `CountLikelihoodPlumbing` workaround should be needed for it
-  either, matching NegBin not Poisson).
+  **`InferenceCountHurdleNegBin` migrated (2026-08-21)**, same recipe as
+  `InferenceCountNegBin` (composing `CountLikelihoodPlumbing`'s now-fixed
+  public dispatch methods directly rather than self-overriding them, since
+  this class's own `public=` only supplies `initialize`,
+  `compute_estimate_with_bootstrap_weights`, and the 5 "jackknife not
+  supported" stub overrides -- it also self-overrides
+  `compute_asymp_confidence_interval`/`_two_sided_pval` and
+  `compute_gradient_confidence_interval`/`_two_sided_pval`, all
+  self-contained with no `super$`, so those needed declaring in
+  `overrides$public` but no per-class fix). Declared `cached_vc_params`
+  explicitly (`cached_mod` was already explicit in the pre-migration
+  source); `supports_lik_ratio_param_bootstrap` was NOT overridden by this
+  class (unlike NegBin), so it's a component-vs-component-only collision,
+  declared without a host override needed. Verified bit-identical via
+  legacy-fixture comparison across the same method battery as
+  `InferenceCountNegBin`. **Blocked mid-verification by the same
+  transient package-wide C++ symbol-not-found issue as earlier in this
+  session** (missing `.so`, `library(EDI)` construction failing
+  package-wide) -- per this file's own CLAUDE.md instructions, stopped and
+  reported rather than attempting any compile step; resumed cleanly after
+  the user's own concurrent build/reinstall completed and confirmed
+  working.
+
+  **Found and fixed a second pre-existing issue while re-verifying**,
+  surfaced by a new test file that landed concurrently
+  (`test-design-compatibility-reason.R`, regression coverage for the
+  `design_compatibility_reason()` discovery-time-applicability feature
+  from earlier in this session): (1) it read
+  `EDI:::InferenceIncidCMH$private_methods$design_compatibility_reason`/
+  etc. directly (hardcoded-class-name reflection), tripping
+  `test-static-cleanup-guardrails.R`'s "bans R6 generator private member
+  reads" guardrail -- fixed by using the actual registry helper,
+  `infer_inference_design_compatibility_reason_fn(EDI:::ClassName)`,
+  instead (more idiomatic, and the guardrail's own intent is clearly
+  hardcoded-class-name reflection, not the generic walk-any-generator
+  pattern the registry code itself already uses). (2) one assertion
+  incorrectly expected `InferenceIncidExtendedRobins` to appear in
+  `incompatible_inference_classes_due_to_design_structure()` for a
+  non-blocking design -- wrong, since that design is already excluded by
+  the pre-existing coarse `requires_blocking_design` registry filter
+  before `design_compatibility_reason()` is ever consulted, so it's never
+  added to that bucket (which only holds classes that pass the coarse
+  filter but fail the finer-grained predicate, e.g. CMH's block-size-
+  inequality case); removed the incorrect assertion with an explanatory
+  comment. Both fixes verified: `test-design-compatibility-reason.R` and
+  `test-static-cleanup-guardrails.R` full green.
+
+  **Remaining pending classes: 8** -- `InferenceOrdinalPairedSignTest`
+  (1), `InferenceCountLikelihood` family (3 via
+  `InferenceCountZeroAugmentedPoissonAbstract`: `InferenceCountHurdlePoisson`,
+  `InferenceCountZeroInflatedNegBin`, `InferenceCountZeroInflatedPoisson`),
+  `InferenceParamBootstrap` direct (2: `InferenceContinLin`,
+  `InferenceContinOLS`). All 3 `InferenceCountZeroAugmentedPoissonAbstract`
+  descendants share one abstract base (1132 lines, not yet migrated) --
+  migrating that single abstract should resolve all 3 leaves at once,
+  matching the "thin leaf of an already-composed abstract" pattern
+  established earlier in this file (`InferenceAbstractKKCondLogitGLMM`
+  precedent). `InferenceContinLin`/`InferenceContinOLS` should follow the
+  same `ParametricLikelihoodBootstrap`-composing recipe as the count
+  family (not a new component, per the correction above).
+
+  **`InferenceContinLin` and `InferenceContinOLS` migrated (2026-08-21)**,
+  composing `c("BayesianBootstrap", "ParametricLikelihoodBootstrap")` --
+  simpler than the count family: neither class ever composed
+  `CountLikelihoodPlumbing` (no count-specific plumbing needed), so
+  `compute_wald_*`/`compute_score_*`/`compute_lik_ratio_*`/
+  `compute_gradient_*`/`compute_lik_ratio_bootstrap_*` all come straight
+  from `ParametricLikelihoodBootstrap`'s own `LikelihoodTests` -> `Wald`
+  -> `Jackknife` dependency chain with **no `super$` fixes needed at
+  all** -- neither class's pre-migration source overrode any of those
+  methods itself (only `compute_asymp_confidence_interval`/
+  `_two_sided_pval`, both already self-contained). Both classes loaded
+  clean on the first `pkgload::load_all()` attempt with only the
+  overrides list carried over from the count-family recipe (no new
+  collisions found), and both verified bit-identical via legacy-fixture
+  comparison across the full method battery (`compute_estimate`,
+  `compute_asymp_confidence_interval`/`_two_sided_pval`,
+  `compute_wald_two_sided_pval`, `compute_score_two_sided_pval`,
+  `compute_lik_ratio_two_sided_pval`, `compute_gradient_confidence_interval`,
+  `compute_rand_two_sided_pval`, `compute_lik_ratio_bootstrap_two_sided_pval`,
+  `compute_bayesian_bootstrap_two_sided_pval`) with zero deviation from
+  the recipe. `mark_inference_class_migrated()` passes for both. Full
+  targeted battery green for both (12 files each); only the same
+  pre-existing, unrelated `test-parametric-bootstrap-lr-all-capable-
+  classes.R` failure recurs.
+
+  **Remaining pending classes: 4** -- `InferenceOrdinalPairedSignTest`
+  (1, functionally KK, tracked under "KK And IVWC Estimators"),
+  `InferenceCountLikelihood` family (3 via
+  `InferenceCountZeroAugmentedPoissonAbstract`: `InferenceCountHurdlePoisson`,
+  `InferenceCountZeroInflatedNegBin`, `InferenceCountZeroInflatedPoisson`).
+  This is the last remaining item in this per-class migration push:
+  migrating `InferenceCountZeroAugmentedPoissonAbstract` (1132 lines, raw
+  R6, `inherit = InferenceCountLikelihood`) once should resolve all 3
+  leaves via the "thin leaf of an already-composed abstract" pattern.
+
+  **`InferenceCountZeroAugmentedPoissonAbstract` migrated (2026-08-21)** --
+  the last item in this push. Composes `c("BayesianBootstrap",
+  "ParametricLikelihoodBootstrap", "ZeroAugmentedCountLikelihood")` (the
+  latter already registered, `dependencies = "CountLikelihoodPlumbing"`).
+  Its 3 classic-inheritance leaves (`InferenceCountHurdlePoisson`,
+  `InferenceCountZeroInflatedNegBin`, `InferenceCountZeroInflatedPoisson`)
+  stay thin leaves per the accepted terminal-state pattern -- all 3 now sit
+  in the same manifest "pending" bucket as the KK thin leaves, documented
+  as correct, not a gap. Key findings:
+  - The file's `public=`/`private=` content was hoisted into
+    `inference_count_za_public`/`_private` named lists and
+    `ZeroAugmentedCountLikelihoodSource` rebuilt from those statically
+    (replacing the old `inference_component_source_parts(<generator>)`
+    post-hoc harvest, which breaks once the generator itself is composed
+    -- same fix as `InferenceIncidLogRegr`).
+  - Fixed 4 `super$`-through-a-composed-class calls
+    (`compute_bootstrap_two_sided_pval`/`_confidence_interval`,
+    `compute_bayesian_bootstrap_two_sided_pval`/`_confidence_interval`,
+    all bca-gate wrappers) via pins from
+    `InferenceNonParamBootstrap`/`InferenceBayesianBootstrap`'s source
+    generators; declared the 4 pin names + `cached_vc_params` in the
+    component spec's `provides_private_methods`/`owns_state`.
+  - **Found a fourth systemic lazy-component gap**: a lazy component whose
+    `provides_public_methods` includes `initialize` breaks any
+    classic-inheritance SUBCLASS of the composed class -- the leaf's
+    `super$initialize(...)` hits the lazy install-stub, whose body keys
+    `install_lazy_inference_component()` off `class(self)[1L]` = the
+    LEAF's name, which has no component-composition entry ("unused
+    argument" errors / infinite recursion). No prior migrated class had
+    classic subclasses, so this never surfaced. Fixed by making
+    `ZeroAugmentedCountLikelihood` **eager** (`load_policy` default)
+    rather than patching the shared stub machinery -- full rationale
+    comment on the spec in `contracts_mixins.R`.
+  - All 3 leaves verified bit-identical vs. legacy fixtures across
+    estimate/asymp CI+pval/wald/rand/bootstrap/bayesian-bootstrap/
+    LR-bootstrap (ZINB's NA cases match legacy exactly, including the
+    identical fallback warnings). Guardrail tables updated (raw-splicing
+    count for the new hoisted lists; root-owned-state entry
+    `ZeroAugmentedCountLikelihood = "cached_vc_params"`);
+    `test-full-likelihood-migration-baseline.R`'s lazy-policy assertion
+    updated to eager with rationale. Full battery green (14 files); only
+    the known pre-existing `test-parametric-bootstrap-lr-all-capable-
+    classes.R` error remains.
+
+  **Per-class migration push COMPLETE.** Remaining manifest "pending"
+  entries (12) are all documented accepted terminal states: 11 thin
+  leaves of already-composed abstracts (KK CLMM/GLMM families + the 3
+  zero-augmented count leaves above) plus `InferenceOrdinalPairedSignTest`
+  (tracked under "KK And IVWC Estimators").
+
+  **`InferenceParamBootstrap` and `InferenceCountLikelihood` drained and
+  removed from `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES` (2026-08-21)**,
+  closing out this push's base-deletion ladder. Confirmed via the same
+  live ancestor-chain audit used throughout (`inference_class_ancestor_
+  names()` intersected against the bases list for every non-abstract
+  registered class): zero concrete descendants remain for either base
+  after the Contin/count-family migrations. Both R6 generators KEPT (not
+  deleted), per the established precedent:
+  - `InferenceParamBootstrap`: still has real classic inheritors -- the
+    kept harvesting-source generators `InferenceAsympLikStdModCache`/
+    `InferenceKKPassThroughCompound`/`InferenceCountLikelihood`, plus the
+    `InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw`/
+    `InferenceSurvivalKKClaytonCopulaOneLikLegacyRaw` legacy-comparison
+    fixtures. It also remains the pin source for the
+    `param_boot_compute_lik_ratio_bootstrap_*` private helpers on
+    `InferenceCountPoisson` and `CountLikelihoodPlumbingSource`'s
+    `cl_plumbing_param_boot_*` pins.
+  - `InferenceCountLikelihood`: zero `inherit =` consumers remain
+    anywhere, but the generator stays as the roxygen `@name` anchor for
+    the shared count-likelihood docs and as the classic-ladder reference
+    the `CountLikelihoodPlumbingSource` composition-safe overrides are
+    defined against.
+  Post-removal, the full re-audit shows exactly one concrete class
+  package-wide with any algorithmic-compatibility ancestor:
+  `InferenceOrdinalPairedSignTest` (the deliberately-deferred class above)
+  -- so the remaining 12 bases in the list are held open only by that one
+  class plus the abstract ladder itself. Targeted battery green after the
+  removal (`test-inference-class-registry.R`, `test-mixin-contracts.R`,
+  `test-static-cleanup-guardrails.R`, `test-capability-tables.R`,
+  `test-full-likelihood-migration-baseline.R`,
+  `test-bootstrap-reused-worker-families.R`,
+  `test-parametric-bootstrap-lr-smoke-families.R` -- all zero
+  failed/error/warning).
+
+  **`InferenceOrdinalPairedSignTest` migrated (2026-08-21) -- the LAST
+  concrete class package-wide with any algorithmic-compatibility
+  ancestor.** Flipped from the hybrid `define_inference_class(inherit =
+  InferenceAsympLik, components = "KKPassThrough")` state to full shallow
+  composition: `inherit = Inference, components = c("BayesianBootstrap",
+  "Wald", "KKPassThrough")`. The class never used any `InferenceAsympLik`
+  likelihood machinery (its `supports_likelihood_tests()` has always been
+  `FALSE`; its own `compute_asymp_*` methods call the z/t helpers
+  directly, which live on `InferenceAsymp` = the `Wald` component's
+  source), so `Wald` fully replaces the deep ladder's contribution.
+  Pinned `compute_rand_two_sided_pval` from plain `InferenceRand` (not
+  `InferenceRandCI`), matching every other migrated ordinal class. No
+  `super$` fixes needed (the class's own `initialize` calls
+  `super$initialize()` which now correctly resolves to root `Inference`,
+  and `private$init_kk_passthrough(des_obj)` was already called explicitly
+  per the KK recipe). Standard collision-declaration rounds only.
+  Verified bit-identical via legacy-fixture comparison on a
+  `DesignSeqOneByOneKK21` ordinal fixture: `compute_estimate`,
+  `compute_asymp_confidence_interval`/`_two_sided_pval`,
+  `compute_rand_two_sided_pval`,
+  `compute_bayesian_bootstrap_two_sided_pval`, plus identical error
+  messages for the deliberately-disabled bootstrap/jackknife methods and
+  the no-context `compute_estimate_with_bootstrap_weights` guard.
+  `mark_inference_class_migrated()` passes.
+
+  **MILESTONE: zero concrete classes package-wide now descend from any
+  algorithmic-compatibility base** (live ancestor-chain audit, all
+  non-abstract registered classes). The manifest's 11 remaining "pending"
+  records are all the documented accepted-terminal-state thin leaves of
+  already-composed abstracts (KK CLMM/GLMM families + 3 zero-augmented
+  count leaves), each with zero algorithmic ancestors by construction.
+  Landed the endgame's final strict gate in the same change:
+  `test-inference-class-registry.R`'s "remaining algorithmic compatibility
+  descendants are explicitly tracked" test (which asserted the
+  pending-with-ancestors set was NON-empty -- correct while draining, now
+  the opposite of the invariant) was flipped into "no concrete class
+  descends from an algorithmic compatibility base", asserting every
+  concrete manifest record has `length(algorithmic_compatibility_ancestors)
+  == 0L` -- the exact test the "Base Deletion" section's last TODO called
+  for. Full battery green (`test-bayesian-bootstrap.R`,
+  `test-mixin-contracts.R`, `test-inference-class-registry.R`,
+  `test-capability-tables.R`, `test-static-cleanup-guardrails.R`,
+  `test-full-likelihood-migration-baseline.R` -- all zero
+  failed/error/warning).
 
 #### Quasi And Robust Estimators
 
@@ -4209,20 +4430,96 @@ their own `[x]` entries above; they are not part of this count.)
 
 #### Base Deletion
 
-- [ ] After a current algorithmic base has no concrete descendants, convert it
-  into an internal component source or delete it.
-- [ ] Delete `InferenceRand`, `InferenceRandCI`, `InferenceNonParamBootstrap`,
+- [x] After a current algorithmic base has no concrete descendants, convert it
+  into an internal component source or delete it. **Done 2026-08-21 -- the
+  "convert" branch, taken for all 12 remaining bases.** With zero concrete
+  descendants package-wide (see the milestone note above), every base in
+  `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES` now serves exclusively as
+  internal migration infrastructure. A per-base consumer inventory
+  (component `source_name` harvest + `$public_methods$` pins + `inherit =`
+  refs, comment lines excluded) confirms none is deletable and none needs
+  further conversion -- each already IS the internal component source the
+  TODO asked for:
+  - `InferenceAsymp` (Wald source; 3 pins; 2 fixture inherits),
+    `InferenceJackknife` (6 pins), `InferenceNonParamBootstrap` (13 pins),
+    `InferenceBayesianBootstrap` (9 pins), `InferenceRand` (61 pins),
+    `InferenceRandCI` (21 pins), `InferenceRandBootstrap`/
+    `InferenceRandBootstrapCI` (harvest-only), `InferenceAsympLik`
+    (LikelihoodTests source; 24 pins; 9 inherits from kept
+    harvesting-generators/LegacyRaw fixtures) -- all 9 are live
+    `source_name` targets for the very components that replaced them
+    (lazy/eager harvest reads their generator methods at load), so
+    deleting any would break the composed classes themselves.
+  - `InferenceKKPassThroughCompound`/`...NoParamBootstrap` -- built via
+    `compose_inference_mixins()` (the KK mixin machinery's own reference
+    composition) and used by golden-test legacy fixtures (`test-contin-kk-
+    ols-onelik-`/`test-incid-kk-newcombe-`/`test-contin-kk-ols-ivwc-`/
+    `test-incid-kk-cond-logit-ivwc-migration-golden.R`) plus
+    `inference_all_abstract_quantile_rand_ci.R`'s kept harvesting ladder.
+  - `InferenceMLEorKMSummaryTable` -- `InferenceAsympLik`'s own ladder
+    parent plus two direct `test-mle-km-summary-table.R` fixture
+    subclasses.
+  (`InferenceExact` from the original wish-list was already deleted in an
+  earlier phase; `InferenceAsympLikStdModCache`, count-likelihood, and KK
+  compound bases were retired from the list family-by-family above.)
+- [x] Delete `InferenceRand`, `InferenceRandCI`, `InferenceNonParamBootstrap`,
   `InferenceRandBootstrap`, `InferenceRandBootstrapCI`,
   `InferenceBayesianBootstrap`, `InferenceJackknife`, `InferenceExact`,
   `InferenceAsymp`, `InferenceAsympLik`, `InferenceParamBootstrap`,
   `InferenceAsympLikStdModCache`, count likelihood bases, and KK compound bases
-  only after no concrete class inherits from them.
-- [ ] Remove the base from `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES` in the
-  same change that deletes or converts it.
-- [ ] Enable `EDI_REQUIRE_SHALLOW_INFERENCE_HIERARCHY` in normal tests once all
-  concrete classes are migrated.
-- [ ] Add the final strict test that no concrete class descends from an
-  algorithmic compatibility base.
+  only after no concrete class inherits from them. **Resolved 2026-08-21 as
+  deliberately NOT-deleted** (the TODO's own "only after" precondition is
+  met -- zero concrete inheritors -- but the previous item's "convert"
+  disposition supersedes deletion): these generators are the live harvest
+  sources for their replacement components and the pin sources for 130+
+  `$public_methods$` method pins across the migrated classes; deleting them
+  would require first rewriting every component to a static `*Source` list
+  and every pin to a static copy, a large mechanical churn with no
+  behavioral payoff now that the strict gate (below) makes them unusable as
+  concrete-class parents.
+- [x] Remove the base from `EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES` in the
+  same change that deletes or converts it. **Superseded/absorbed 2026-08-21**:
+  every family-specific base that got individually drained WAS removed from
+  the list in its own draining change (`InferenceAsympLikStdModCache`/
+  `...NoParamBootstrap`, `InferenceCountLikelihood`,
+  `InferenceParamBootstrap` -- see their per-removal notes). The 12
+  remaining entries stay in the list ON PURPOSE: the list is now the
+  denylist the strict gate and the flipped registry test check concrete
+  ancestor chains against, so emptying it would disarm the very invariant
+  it powers.
+- [x] Enable `EDI_REQUIRE_SHALLOW_INFERENCE_HIERARCHY` in normal tests once all
+  concrete classes are migrated. **Done 2026-08-21.** Two-part change:
+  (1) `assert_shallow_inference_hierarchy_complete()` rekeyed from
+  `migration_status == "pending"` to
+  `length(algorithmic_compatibility_ancestors) > 0L` -- the "pending"
+  proxy was correct while draining, but the accepted-terminal-state thin
+  leaves (status "pending", zero algorithmic ancestors) must pass the
+  gate, and a hypothetical deep class must fail it regardless of status
+  label (its fixture unit test in `test-inference-class-registry.R`
+  rekeyed to match, including an explicit thin-leaf-passes case); the
+  assert is now also invoked at the end of
+  `populate_inference_class_registry()` (no-op unless the env var is set,
+  so plain `library(EDI)` is unaffected). (2) New
+  `tests/testthat/setup-shallow-hierarchy.R` sets
+  `EDI_REQUIRE_SHALLOW_INFERENCE_HIERARCHY=true` (and the design twin
+  `EDI_REQUIRE_SHALLOW_DESIGN_HIERARCHY=true`, whose gate was documented
+  as opt-in-for-CI since fix_design_hierarchy.md TODO-39) for every test
+  run, and fail-fast asserts both gates once at setup. Verified: gates
+  pass end-to-end with both flags enabled; 9-file battery green with the
+  flag confirmed active during the run (`test-inference-class-registry.R`,
+  `test-mixin-contracts.R`, `test-capability-tables.R`,
+  `test-static-cleanup-guardrails.R`,
+  `test-full-likelihood-migration-baseline.R`, two KK migration goldens,
+  `test-design-class-registry.R`, `test-bayesian-bootstrap.R`).
+- [x] Add the final strict test that no concrete class descends from an
+  algorithmic compatibility base. **Done 2026-08-21** (with the
+  `InferenceOrdinalPairedSignTest` migration, the last class holding this
+  open): `test-inference-class-registry.R`'s
+  "no concrete class descends from an algorithmic compatibility base"
+  test -- flipped from the draining-era "remaining algorithmic
+  compatibility descendants are explicitly tracked" assertion into the
+  strict zero-ancestors invariant over every concrete manifest record.
+  See the "Base Deletion" section's 2026-08-21 milestone note.
 
 The manifest records 106 concrete generators as `pending` because they still
 inherit through algorithmic compatibility bases. The final strict gate, `no
@@ -6572,17 +6869,34 @@ here (2026-08-13) rather than left as prose-only notes.
     exercises this mixin with incidence response -- would need re-checking
     if a future KK-GEE incidence class is added without the matching
     requirement.
-  **Remaining scope** (only the first bullet is still open): decide the
-  fix for `inference_all_abstract_rand.R:347-350`'s reachable silent-NA
-  path -- either a per-capability predicate (mirroring
-  `design_compatibility_reason()` but scoped to
-  "randomization-test-for-incidence available", consulted by
-  `InferenceSuite` before attempting the method) or surfacing the caught
-  error onto `results_table$message` in
-  `run_all_inference_call_ci_for_method()`'s inner `tryCatch` (today only
-  the outer `run_all_inference_one_class()` catch populates that column).
-  Not implemented this session -- needs a design decision on which
-  approach, out of scope for the reachability-confirmation pass requested.
+  **Fixed 2026-08-21** (the first bullet's reachable silent-NA path; the
+  other two closed as not-reachable above needed no code change). Took
+  the per-capability-predicate approach: added a public
+  `InferenceRand$supports_rand_pval_for_incidence()` accessor
+  (`inference_all_abstract_rand.R`) that returns exactly the same
+  condition `compute_rand_two_sided_pval()`'s own guard now calls instead
+  of duplicating (`!self$supports_rand_pval_for_incidence()` replaces the
+  old inline three-clause condition -- same single-source-of-truth
+  discipline as the class-level `design_compatibility_reason()` fix
+  above). `run_all_inference_call_pval_for_method()`
+  (`inference_suite.R`) checks it for the `"rand"` sentinel specifically,
+  guarded by `is.function()` since only `InferenceRand` subclasses have
+  it: when `FALSE`, degrades to the existing `list(pval = NA_real_,
+  method = NA_character_)` "no capability" shape used everywhere else in
+  this file (not an attempted-and-failed row), so a `"rand"` pval that
+  will provably `stop()` is never attempted at all, matching this file's
+  "only methods that are supported are run" principle rather than being
+  caught and swallowed into a misleadingly plain `pval = NA` on a
+  `status = "ok"` row. No discovery-time (pre-construction) filter was
+  needed -- unlike `design_compatibility_reason()`, this condition only
+  needs `des_obj`-level facts (`response_type`, `randomization_family()`)
+  plus `custom_randomization_statistic_function`, which is always `NULL`
+  through `InferenceSuite`'s own construction path -- but implemented as
+  a post-construction accessor check anyway, for parity with how every
+  other per-row capability check in `run_all_inference_call_ci_for_
+  method()`/`_call_pval_for_method()` already works (typed-sentinel
+  `type` probing included), rather than introducing a second, differently
+  -shaped discovery mechanism for one sentinel.
 
 ## Definition of Done
 

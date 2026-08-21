@@ -1,9 +1,37 @@
 #' Lin (2013) Covariate-Adjusted OLS Inference for Continuous Responses
 #'
-#' Fits the Lin (2013) covariate-adjusted linear estimator for continuous responses.
-#' The working model includes an intercept, treatment indicator and, optionally,
-#' centered covariates and treatment-by-centered-covariate interactions.
-#' Inference uses HC2 heteroskedasticity-robust standard errors.
+#' Fits Lin's (2013) covariate-adjusted linear estimator for continuous
+#' responses: OLS of \eqn{Y_i} on \eqn{[1, W_i, X_i^c, W_i X_i^c]}, where
+#' \eqn{X_i^c = X_i - \bar X} are covariates centered at their sample means
+#' and \eqn{W_i X_i^c} are treatment-by-centered-covariate interactions
+#' (omitted when there are no covariates, reducing to plain OLS with
+#' \eqn{\hat\beta_T} the simple mean difference). Centering makes
+#' \eqn{\hat\beta_T} interpretable as the average treatment effect regardless
+#' of whether interactions are included, following the design-based
+#' reinterpretation of Freedman's critique of ANCOVA in randomized
+#' experiments. Standard errors use the HC2 heteroskedasticity-consistent
+#' (Huber-White-type) covariance estimator (\code{\link{ols_hc2_post_fit_cpp}}),
+#' not classical OLS SEs assuming homoskedasticity — this is the estimator
+#' Lin (2013) recommends since it remains conservative under treatment-effect
+#' heterogeneity, unlike the classical or HC0 sandwich variants.
+#' \code{likelihood_tier = "full"}: Wald, score, gradient, and
+#' likelihood-ratio tests are all available, with the parametric-likelihood
+#' bootstrap using the OLS Gaussian-errors model
+#' (\eqn{Y_i \mid X_i \sim N(X_i^\top \beta, \sigma^2)}) as the generative
+#' null even though the design-based HC2 standard error does not itself
+#' assume homoskedastic Gaussian errors — the likelihood-ratio/score/gradient
+#' machinery is a secondary, model-based inference path alongside the primary
+#' HC2-Wald and randomization paths. Validity of \eqn{\hat\beta_T} as an
+#' average-treatment-effect estimator relies on randomization (of \eqn{W}),
+#' not on any particular outcome model; the working linear model need not be
+#' correctly specified.
+#'
+#' @references Lin, W. (2013). "Agnostic notes on regression adjustments to
+#'   experimental data: Reexamining Freedman's critique." \emph{The Annals of
+#'   Applied Statistics}, 7(1), 295-318, \doi{10.1214/12-AOAS583}.
+#'
+#' @seealso \code{\link[EDI:InferenceContinOLS]{InferenceContinOLS}} for the
+#'   uncentered, non-interacted OLS estimator this class generalizes.
 #'
 #' @examples
 #' \donttest{
@@ -16,11 +44,37 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceContinLin = R6::R6Class("InferenceContinLin",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
+InferenceContinLin = define_inference_class(
+	classname = "InferenceContinLin",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "continuous"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_rand_two_sided_pval", "get_supported_testing_types"
+		),
+		private = c(
+			"cached_mod", "supports_lik_ratio_param_bootstrap", "supports_likelihood_tests",
+			"simulate_under_lik_null", "get_likelihood_test_spec", "shared",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_standard_error", "get_degrees_of_freedom",
+			"compute_treatment_estimate_during_randomization_inference"
+		)
+	),
 	public = list(
-		#' @description Initialize a Lin (2013) inference object.
+		#' @description Initialize inference for Lin's (2013) covariate-adjusted OLS
+		#'   estimator (intercept, treatment, centered covariates, and
+		#'   treatment-by-centered-covariate interactions); see
+		#'   \code{\link[EDI:InferenceContinLin]{InferenceContinLin}} for the model
+		#'   form. Does not fit the model; the fit is deferred to the first call to
+		#'   \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with a continuous response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -39,14 +93,30 @@ InferenceContinLin = R6::R6Class("InferenceContinLin",
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Computes Lin's estimate of the treatment effect.
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @description Fits Lin's covariate-adjusted OLS model
+		#'   (\code{\link{stats}}'s \code{lm.fit} on the centered-covariate design
+		#'   matrix) and returns \eqn{\hat\beta_T}, the estimated average treatment
+		#'   effect. A design matrix that is rank-deficient or has fewer usable rows
+		#'   than columns, or a fit with non-finite coefficients, is cached as
+		#'   nonestimable rather than returned.
+		#' @param estimate_only If \code{TRUE}, skip HC2 variance computation and
+		#'   cache only the point estimate; used by randomization and bootstrap
+		#'   resampling paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#' @description Refits Lin's model with subject/block-level weights applied
+		#'   to a weighted least-squares fit (\code{stats::lm.wfit}) — Bayesian-bootstrap
+		#'   or nonparametric-bootstrap draw weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()} — and
+		#'   returns the reweighted estimate \eqn{\hat\beta_T^{(w)}}. When
+		#'   \code{estimate_only = FALSE}, also computes a weighted-residual variance
+		#'   estimate (not the HC2 estimator used by
+		#'   \code{compute_asymp_confidence_interval()}) for internal bootstrap
+		#'   diagnostics. Rows with non-finite or non-positive weight, or non-finite
+		#'   response, are dropped from the weighted fit; if no rows remain, or the
+		#'   fit fails, the estimate is \code{NA}.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -91,7 +161,12 @@ InferenceContinLin = R6::R6Class("InferenceContinLin",
 			}
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes a 1 - \code{alpha} confidence interval using HC2 robust standard error.
+		#' @description Wald confidence interval for \eqn{\beta_T} using the HC2
+		#'   heteroskedasticity-robust standard error
+		#'   (\code{\link{ols_hc2_post_fit_cpp}}); see
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   \eqn{t}/\eqn{z} interval contract. Fits the model first if not already
+		#'   cached.
 		#' @param alpha The confidence level. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
@@ -103,8 +178,11 @@ InferenceContinLin = R6::R6Class("InferenceContinLin",
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
+		#' @description Two-sided Wald test of \eqn{H_0: \beta_T = \code{delta}}
+		#'   using the HC2 heteroskedasticity-robust standard error; see
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   \eqn{t}/\eqn{z} test contract. Fits the model first if not already
+		#'   cached.
 		#' @param delta The null treatment effect. Defaults to 0.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -118,6 +196,7 @@ InferenceContinLin = R6::R6Class("InferenceContinLin",
 		}
 	),
 	private = list(
+		cached_mod = NULL,
 		get_standard_error = function(){
 			if (is.null(private$cached_values$s_beta_hat_T)) private$shared()
 			private$cached_values$s_beta_hat_T

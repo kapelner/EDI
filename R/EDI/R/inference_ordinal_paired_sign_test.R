@@ -1,9 +1,44 @@
 #' Paired Sign Test Inference for KK Designs with Ordinal Response
 #'
-#' Fits a paired sign test for ordinal responses under a KK matching-on-the-fly
-#' design that stores ordinary matched pairs. For matched pairs, it considers the
-#' sign of the within-pair differences. Reservoir subjects are not included in this
-#' simple paired test.
+#' Fits the classical paired sign test for ordinal responses under a KK
+#' matching-on-the-fly design. For each matched pair \eqn{i} with treated
+#' member response \eqn{Y_{i,T}} and control member response \eqn{Y_{i,C}},
+#' only the sign of the within-pair difference \eqn{Y_{i,T} - Y_{i,C}} is
+#' used; tied pairs (\eqn{Y_{i,T} = Y_{i,C}}) are dropped from the effective
+#' sample. The estimand is \eqn{\theta = P(Y_T > Y_C \mid \text{pair
+#' untied})}, and the reported treatment effect is \eqn{\hat\beta_T = \hat p -
+#' 0.5}, where \eqn{\hat p} is the sample proportion of untied pairs favoring
+#' treatment; \eqn{\beta_T = 0} corresponds to \eqn{\theta = 0.5} (no
+#' directional preference). The standard error is the usual binomial-proportion
+#' formula \eqn{\sqrt{\hat p (1 - \hat p) / n_{\text{eff}}}}, where
+#' \eqn{n_{\text{eff}}} is the number of untied pairs.
+#' \strong{Reservoir (unmatched) subjects are not included} — this is a purely
+#' within-pair test, unlike the IVWC-style classes elsewhere in the KK family
+#' that combine matched-pair and reservoir information.
+#' \code{likelihood_tier = "none"} (\code{supports_likelihood_tests()} is hard
+#' \code{FALSE}): only Wald inference on the proportion scale is exposed.
+#' Bootstrap and jackknife are deliberately unsupported and throw explicit
+#' errors (see \code{approximate_bootstrap_distribution_beta_hat_T()} and
+#' \code{approximate_jackknife_distribution_beta_hat_T()}), since subject-level
+#' resampling or deletion would violate the matched-pair design's dependence
+#' structure; randomization inference (\code{compute_rand_two_sided_pval()})
+#' remains available since it permutes treatment assignment within the design's
+#' own randomization mechanism rather than resampling subjects. Requires a KK
+#' matching-on-the-fly design (\code{DesignSeqOneByOneKK14}/\code{KK21}) or
+#' \code{DesignFixedBinaryMatch}; a design with no discordant (untied) pairs is
+#' cached as nonestimable for the standard error (point estimate \code{0}) or
+#' fully nonestimable, per \code{harden}.
+#'
+#' @references Dixon, W. J., and Mood, A. M. (1946). "The Statistical Sign
+#'   Test." \emph{Journal of the American Statistical Association}, 41(236),
+#'   557-566, \doi{10.2307/2280577}, for the classical paired sign test;
+#'   Kapelner, A. and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
+#'   allocation with higher power and efficiency." \emph{Biometrics}, 70(2),
+#'   378-388, \doi{10.1111/biom.12148}, for the KK matching-on-the-fly design
+#'   this class is built for.
+#'
+#' @seealso \href{https://en.wikipedia.org/wiki/Sign_test}{Sign test}
+#'   (Wikipedia).
 #'
 #' @export
 #' @examples
@@ -23,12 +58,39 @@
 #' infer
 #'
 InferenceOrdinalPairedSignTest = define_inference_class("InferenceOrdinalPairedSignTest",
-	inherit = InferenceAsympLik,
-	components = "KKPassThrough",
+	inherit = Inference,
+	# 2026-08-21 (fix_inference_hierarchy.md per-class migration ladders):
+	# flipped from `inherit = InferenceAsympLik` (the last concrete class
+	# package-wide still descending through the algorithmic-compatibility
+	# ladder) to composing the rand/bootstrap chain via `BayesianBootstrap`
+	# and the z/t Wald helpers via `Wald` (source `InferenceAsymp` -- this
+	# class's own compute_asymp_* methods call
+	# private$compute_z_or_t_{ci,two_sided_pval}_from_s_and_df directly and
+	# never used any InferenceAsympLik likelihood machinery; its
+	# supports_likelihood_tests() has always been FALSE).
+	components = c("BayesianBootstrap", "Wald", "KKPassThrough"),
 	public = list(
-		#' @description Initialize the paired sign-test inference object for ordinal
-		#'   matched responses and prepare the sign-test statistic used by
-		#'   \code{\link[EDI:InferenceOrdinalPairedSignTest]{InferenceOrdinalPairedSignTest}}.
+		#' @description Uses the shared randomization-test two-sided p-value
+		#'   contract; see \code{\link[EDI:InferenceRand]{InferenceRand}}.
+		#'   Pinned from plain \code{InferenceRand} (not \code{InferenceRandCI})
+		#'   per the established ordinal-class precedent -- Zhang dispatch is
+		#'   incidence-only.
+		#' @param r Number of randomization draws.
+		#' @param delta Null treatment effect.
+		#' @param transform_responses Optional response transformation.
+		#' @param na.rm Whether to drop non-finite draws.
+		#' @param show_progress Whether to show a progress bar.
+		#' @param permutations Optional pre-computed permutations.
+		#' @param zero_one_logit_clamp Clamp for logit transforms.
+		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		#' @description Initialize inference for the paired sign test on within-pair
+		#'   response differences \eqn{Y_{i,T} - Y_{i,C}}; see
+		#'   \code{\link[EDI:InferenceOrdinalPairedSignTest]{InferenceOrdinalPairedSignTest}}
+		#'   for the model form. Requires a KK matching-on-the-fly design
+		#'   (\code{DesignSeqOneByOneKK14}/\code{KK21}) or
+		#'   \code{DesignFixedBinaryMatch}. Does not compute the sign-test statistic;
+		#'   that is deferred to the first call to \code{compute_estimate()} or a
+		#'   method that requires it.
 		#' @param  des_obj  	A completed KK matching-on-the-fly design object.
 		#' @param  verbose  		Whether to print progress messages.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
@@ -39,18 +101,38 @@ InferenceOrdinalPairedSignTest = define_inference_class("InferenceOrdinalPairedS
 		initialize = function(des_obj, model_formula = NULL,  verbose = FALSE, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "ordinal")
+				stop_if_design_incompatible(private$design_compatibility_reason, des_obj, list(
+					paired_sign_test_requires_matching_design = paste0(
+						class(self)[1], " requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch."
+					)
+				))
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			private$init_kk_passthrough(des_obj)
 		},
-		#' @description Returns the estimated treatment effect (proportion of pairs where T > C).
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @description Computes the pair-sign counts (\code{pos}/\code{neg}, ties
+		#'   dropped) from the design's matched-pair structure and returns
+		#'   \eqn{\hat\beta_T = \hat p - 0.5}, where \eqn{\hat p} is the proportion
+		#'   of untied pairs favoring treatment. If every pair is tied, the
+		#'   estimate is \code{0} (no directional preference) and the fit is
+		#'   cached as standard-error-nonestimable (or fully nonestimable when
+		#'   \code{harden = FALSE}).
+		#' @param estimate_only If TRUE, skip the standard-error computation and
+		#'   cache only the point estimate.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the paired-sign treatment estimate under
-		#'   Bayesian-bootstrap weights.
+		#' @description Recomputes \eqn{\hat\beta_T} under subject/block-level
+		#'   bootstrap weights (Bayesian-bootstrap draw weights, expanded to row
+		#'   level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}): for
+		#'   each matched pair, a weighted vote is cast toward whichever member has
+		#'   the higher response, using the mean bootstrap weight of the pair's two
+		#'   rows; \eqn{\hat\beta_T^{(w)}} is the weighted proportion of
+		#'   treatment-favoring pairs minus \code{0.5}. No standard error is
+		#'   computed (\code{s_beta_hat_T} is always \code{NA}). Pairs with no
+		#'   discordant (untied) weighted votes are cached as nonestimable.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
 		#' @param estimate_only If \code{TRUE}, compute only the weighted point
@@ -100,14 +182,26 @@ InferenceOrdinalPairedSignTest = define_inference_class("InferenceOrdinalPairedS
 			private$cached_values$df = NA_real_
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes the confidence interval for the probability P(T > C).
-		#' @param  alpha  				The significance level.
+		#' @description Wald confidence interval for \eqn{\beta_T = \theta - 0.5}
+		#'   (equivalently, for \eqn{\theta = P(Y_T > Y_C \mid \text{pair
+		#'   untied})}), using the binomial-proportion standard error; see
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald
+		#'   contract. Fits (computes the pair-sign counts) first if not already
+		#'   cached.
+		#' @param  alpha  				Two-sided miscoverage rate; the returned interval
+		#'   targets \code{1 - alpha} coverage.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Computes the p-value for the sign test.
-		#' @param  delta  				The null difference (must be 0 for sign test).
+		#' @description Two-sided Wald test of \eqn{H_0: \theta = 0.5} (equal
+		#'   chance of favoring treatment vs. control among untied pairs) against
+		#'   \eqn{H_1: \theta \ne 0.5}, using the binomial-proportion standard
+		#'   error; see \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the
+		#'   shared Wald contract. Only \code{delta = 0} is supported (the sign
+		#'   test's null is fixed at no directional preference; a non-zero
+		#'   \code{delta} throws).
+		#' @param  delta  				The null value for \eqn{\beta_T}; must be \code{0}.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta)
@@ -138,6 +232,24 @@ InferenceOrdinalPairedSignTest = define_inference_class("InferenceOrdinalPairedS
 		}
 	),
 	private = list(
+		# Self/private-free so it's safe to call unbound against a candidate
+		# des_obj before construction, same "safe invoke without construction"
+		# contract as design_compatibility_reason() elsewhere (Wilcox/CMH/
+		# ExtendedRobins/ExactBinomial/ExactFisher). Mirrors the shared
+		# KKPassThrough mixin's own init_kk_passthrough() guard exactly (both
+		# read only des_obj$is_a_kk_matching_capable()) -- this class is the
+		# one KKPassThrough-composing class whose name doesn't contain "KK",
+		# so the registry's name-based requires_kk filter misses it, which is
+		# exactly why this class-level predicate is needed here specifically
+		# even though every other KKPassThrough-composing class is already
+		# covered by that name heuristic. See infer_inference_design_
+		# compatibility_reason_fn() in inference_class_registry.R.
+		design_compatibility_reason = function(des_obj){
+			if (!isTRUE(des_obj$is_a_kk_matching_capable())) {
+				return("paired_sign_test_requires_matching_design")
+			}
+			NA_character_
+		},
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		supports_likelihood_tests = function() FALSE,
 		shared = function(estimate_only = FALSE){
@@ -180,8 +292,19 @@ InferenceOrdinalPairedSignTest = define_inference_class("InferenceOrdinalPairedS
 	overrides = list(
 		public = c(
 			"approximate_bootstrap_distribution_beta_hat_T",
-			"compute_estimate_with_bootstrap_weights"
+			"compute_estimate_with_bootstrap_weights",
+			"compute_rand_two_sided_pval",
+			"approximate_jackknife_distribution_beta_hat_T",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_estimate"
 		),
-		private = "compute_basic_match_data"
+		private = c(
+			"compute_basic_match_data",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl"
+		)
 	)
 )

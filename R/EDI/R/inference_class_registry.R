@@ -360,7 +360,21 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 	"InferenceRandBootstrap",
 	"InferenceRandBootstrapCI",
 	"InferenceAsympLik",
-	"InferenceParamBootstrap",
+	# InferenceParamBootstrap removed 2026-08-21 (fix_inference_hierarchy.md
+	# "Base Deletion" / per-class migration ladders): the live ancestor-chain
+	# audit (inference_class_ancestor_names() intersected against this list
+	# for every non-abstract registered class) finds zero concrete
+	# descendants after the InferenceContinLin/InferenceContinOLS and count-
+	# family migrations. The R6 generator itself is kept (not deleted) -- it
+	# still has real classic inheritors: the kept harvesting-source
+	# generators InferenceAsympLikStdModCache/InferenceKKPassThroughCompound/
+	# InferenceCountLikelihood (each retired from this list but kept for
+	# their own consumers, see their notes), plus the
+	# InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw/
+	# InferenceSurvivalKKClaytonCopulaOneLikLegacyRaw legacy-comparison
+	# fixtures -- the same "real remaining consumer, just not a
+	# package-source algorithmic-ancestry one" precedent as every prior
+	# removal below.
 	# InferenceAsympLikStdModCache removed 2026-08-20 (fix_inference_
 	# hierarchy.md "Base Deletion" / per-class migration ladders): all 12
 	# concrete descendants migrated to compose the already-registered
@@ -391,7 +405,23 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 	# that base's own note below): a real remaining consumer, just not a
 	# package-source one, so only the algorithmic-compatibility-ladder
 	# membership is retired, not the generator.
-	"InferenceCountLikelihood",
+	# InferenceCountLikelihood removed 2026-08-21 (fix_inference_hierarchy.md
+	# "Base Deletion" / per-class migration ladders): all 6 concrete
+	# descendants migrated to compose the already-registered
+	# CountLikelihoodPlumbing component directly (InferenceCountPoisson/
+	# CountNegBin/CountHurdleNegBin) or via the now-composed
+	# InferenceCountZeroAugmentedPoissonAbstract's ZeroAugmentedCountLikelihood
+	# component (InferenceCountHurdlePoisson/CountZeroInflatedNegBin/
+	# CountZeroInflatedPoisson, thin leaves of that abstract). `grep -rn
+	# "inherit = InferenceCountLikelihood\b" R/*.R` now returns nothing. The
+	# R6 generator itself is kept (not deleted): it is the roxygen @name
+	# anchor for the shared count-likelihood documentation and remains the
+	# classic-ladder reference implementation whose
+	# inference_count_likelihood_public/_private lists (with genuine super$
+	# resolution) CountLikelihoodPlumbingSource's composition-safe overrides
+	# are defined against -- see that Source's own comment in
+	# inference_all_abstract_count_likelihood.R. Only the algorithmic-
+	# compatibility-ladder membership is retired.
 	"InferenceKKPassThroughCompound",
 	"InferenceKKPassThroughCompoundNoParamBootstrap",
 	"InferenceMLEorKMSummaryTable"
@@ -809,7 +839,7 @@ infer_inference_direct_components = function(name) {
 		InferenceAsympLikStdModCache = "StandardModelCache",
 		InferenceAsympLikStdModCacheNoParamBootstrap = "StandardModelCache",
 			InferenceCountLikelihood = "CountLikelihoodPlumbing",
-			InferenceCountZeroAugmentedPoissonAbstract = "ZeroAugmentedCountLikelihood",
+			InferenceCountZeroAugmentedPoissonAbstract = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "ZeroAugmentedCountLikelihood"),
 			InferenceCountQuasiPoisson = c("Wald", "CountCompositeLikelihood"),
 			InferenceCountRobustPoisson = c("Wald", "CountCompositeLikelihood", "RobustSandwich"),
 			InferenceOrdinalPropOddsRegr = c(
@@ -1000,6 +1030,13 @@ infer_inference_direct_components = function(name) {
 		InferenceCountPoisson = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
 		InferenceCountNegBin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
 		InferenceCountHurdleNegBin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
+		InferenceContinLin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap"),
+		InferenceContinOLS = c("BayesianBootstrap", "ParametricLikelihoodBootstrap"),
+		# 2026-08-21: the last per-class-ladder migration -- flipped from
+		# `inherit = InferenceAsympLik, components = "KKPassThrough"` (the
+		# hybrid state) to full shallow composition; must mirror the
+		# define_inference_class(components = ...) call exactly.
+		InferenceOrdinalPairedSignTest = c("BayesianBootstrap", "Wald", "KKPassThrough"),
 		character()
 	)
 }
@@ -1575,14 +1612,28 @@ edi_require_shallow_inference_hierarchy = function() {
 
 assert_shallow_inference_hierarchy_complete = function(manifest = inference_hierarchy_migration_manifest_as_list(), require = edi_require_shallow_inference_hierarchy()) {
 	if (!isTRUE(require)) return(invisible(TRUE))
-	pending = Filter(function(record) {
-		identical(record$migration_status, "pending") && !isTRUE(record$current_abstract)
+	# Rekeyed 2026-08-21 from `migration_status == "pending"` to
+	# `algorithmic_compatibility_ancestors` (fix_inference_hierarchy.md "Base
+	# Deletion", the same flip as test-inference-class-registry.R's "no
+	# concrete class descends from an algorithmic compatibility base" strict
+	# test): "pending" was the correct proxy while the per-class ladder was
+	# being drained, but the accepted terminal state deliberately leaves thin
+	# classic leaves of already-composed abstracts (e.g.
+	# InferenceCountHurdlePoisson under
+	# InferenceCountZeroAugmentedPoissonAbstract) with status "pending" and
+	# ZERO algorithmic ancestors -- exactly the shallow shape this gate
+	# exists to protect, so they must not trip it. The invariant actually
+	# being enforced is "no concrete class descends through any
+	# EDI_INFERENCE_ALGORITHM_COMPATIBILITY_BASES member".
+	deep = Filter(function(record) {
+		!isTRUE(record$current_abstract) &&
+			length(record$algorithmic_compatibility_ancestors %||% character()) > 0L
 	}, manifest)
-	if (length(pending) > 0L) {
+	if (length(deep) > 0L) {
 		stop(sprintf(
-			"EDI_REQUIRE_SHALLOW_INFERENCE_HIERARCHY is enabled, but %d concrete inference class(es) are still pending migration: %s",
-			length(pending),
-			paste(utils::head(sort(names(pending)), 10L), collapse = ", ")
+			"EDI_REQUIRE_SHALLOW_INFERENCE_HIERARCHY is enabled, but %d concrete inference class(es) still descend through algorithmic compatibility bases: %s",
+			length(deep),
+			paste(utils::head(sort(names(deep)), 10L), collapse = ", ")
 		), call. = FALSE)
 	}
 	invisible(TRUE)
@@ -2216,6 +2267,12 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 	populate_inference_hierarchy_migration_manifest()
 	mark_custom_randomization_classes_migrated()
 	mark_simple_estimator_classes_migrated()
+	# Opt-in strict gate (EDI_REQUIRE_SHALLOW_INFERENCE_HIERARCHY, enabled
+	# for every normal test run via tests/testthat/setup-shallow-hierarchy.R
+	# since 2026-08-21): errors at registry-population time if any concrete
+	# class descends through an algorithmic compatibility base. A no-op
+	# unless the env var is set, so plain library(EDI) loads are unaffected.
+	assert_shallow_inference_hierarchy_complete()
 	invisible(EDI_INFERENCE_CLASS_REGISTRY)
 }
 

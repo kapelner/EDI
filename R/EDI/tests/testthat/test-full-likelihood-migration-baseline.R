@@ -457,7 +457,16 @@ test_that("full-likelihood zero-augmented count behavior is component sourced", 
 	expect_identical(component$file, "inference_count_zero_augmented_poisson_abstract.R")
 	expect_identical(component$dependencies, "CountLikelihoodPlumbing")
 	expect_identical(component$provides_capabilities, character())
-	expect_identical(component$component_loader$load_policy, "lazy")
+	# Eager, not lazy (2026-08-21, fix_inference_hierarchy.md): this
+	# component's own `initialize` must be a real, always-bound method, not
+	# a lazy install-stub, because InferenceCountZeroAugmentedPoissonAbstract
+	# has real classic-inheritance subclasses whose own initialize() calls
+	# super$initialize(...) -- a lazy stub's install-then-redispatch body
+	# keys off class(self)[1L], which for a leaf instance is the leaf's own
+	# class name, not the abstract's, so it cannot find the abstract's
+	# component-composition entry. See contracts_mixins.R's
+	# ZeroAugmentedCountLikelihood spec for the full writeup.
+	expect_identical(component$component_loader$load_policy, "eager")
 	expect_identical(sort(component$provides_public_methods), sort(names(EDI:::ZeroAugmentedCountLikelihoodSource$public)))
 	expect_identical(sort(component$provides_private_methods), sort(names(EDI:::ZeroAugmentedCountLikelihoodSource$private)))
 	expect_identical(loaded_component$component_loader$load_policy, "eager")

@@ -19,6 +19,7 @@ for the frailty-distribution details and contrast with the gamma-frailty
     \item \href{#method-InferenceSurvivalKKWeibullFrailtyOneLik-set_custom_randomization_statistic_function}{\code{InferenceSurvivalKKWeibullFrailtyOneLik$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceSurvivalKKWeibullFrailtyOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalKKWeibullFrailtyOneLik$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceSurvivalKKWeibullFrailtyOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceSurvivalKKWeibullFrailtyOneLik$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceSurvivalKKWeibullFrailtyOneLik-supports_rand_pval_for_incidence}{\code{InferenceSurvivalKKWeibullFrailtyOneLik$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceSurvivalKKWeibullFrailtyOneLik-compute_rand_two_sided_pval}{\code{InferenceSurvivalKKWeibullFrailtyOneLik$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceSurvivalKKWeibullFrailtyOneLik-clone}{\code{InferenceSurvivalKKWeibullFrailtyOneLik$clone()}}
   }
@@ -90,6 +91,17 @@ for the frailty-distribution details and contrast with the gamma-frailty
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalKKWeibullFrailtyOneLik-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalKKWeibullFrailtyOneLik-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceSurvivalKKWeibullFrailtyOneLik$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalKKWeibullFrailtyOneLik$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

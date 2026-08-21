@@ -24,7 +24,7 @@ test_that("InferenceIncidCMH: design_compatibility_reason matches real throw beh
 	des_ok$assign_w_to_all_subjects()
 	des_ok$add_all_subject_responses(rbinom(n, 1, 0.4))
 
-	reason_fn = EDI:::InferenceIncidCMH$private_methods$design_compatibility_reason
+	reason_fn = EDI:::infer_inference_design_compatibility_reason_fn(EDI:::InferenceIncidCMH)
 	expect_true(is.na(reason_fn(des_ok)))
 	expect_no_error(InferenceIncidCMH$new(des_ok))
 	expect_true("InferenceIncidCMH" %in% des_ok$applicable_inference_class_names())
@@ -52,7 +52,7 @@ test_that("InferenceIncidCMH: design_compatibility_reason matches real throw beh
 	des_bad$assign_w_to_all_subjects(w_precomputed = w)
 	des_bad$add_all_subject_responses(rbinom(n, 1, 0.4))
 
-	reason_fn = EDI:::InferenceIncidCMH$private_methods$design_compatibility_reason
+	reason_fn = EDI:::infer_inference_design_compatibility_reason_fn(EDI:::InferenceIncidCMH)
 	expect_identical(reason_fn(des_bad), "cmh_requires_even_allocation")
 	expect_error(InferenceIncidCMH$new(des_bad), "even treatment allocation")
 	expect_false("InferenceIncidCMH" %in% des_bad$applicable_inference_class_names())
@@ -66,7 +66,7 @@ test_that("InferenceIncidExtendedRobins: design_compatibility_reason matches rea
 	des_ok$assign_w_to_all_subjects()
 	des_ok$add_all_subject_responses(rbinom(n, 1, 0.4))
 
-	reason_fn = EDI:::InferenceIncidExtendedRobins$private_methods$design_compatibility_reason
+	reason_fn = EDI:::infer_inference_design_compatibility_reason_fn(EDI:::InferenceIncidExtendedRobins)
 	expect_true(is.na(reason_fn(des_ok)))
 	expect_no_error(InferenceIncidExtendedRobins$new(des_ok))
 	expect_true("InferenceIncidExtendedRobins" %in% des_ok$applicable_inference_class_names())
@@ -81,8 +81,14 @@ test_that("InferenceIncidExtendedRobins: design_compatibility_reason matches rea
 	expect_identical(reason_bad, "extended_robins_requires_blocking_design")
 	expect_error(InferenceIncidExtendedRobins$new(des_bad), "blocking design")
 	expect_false("InferenceIncidExtendedRobins" %in% des_bad$applicable_inference_class_names())
-	incompatible = des_bad$incompatible_inference_classes_due_to_design_structure()
-	expect_identical(incompatible[["InferenceIncidExtendedRobins"]], "extended_robins_requires_blocking_design")
+	# Not asserted via incompatible_inference_classes_due_to_design_structure()
+	# here: this des_bad is non-blocking, so the pre-existing coarse
+	# requires_blocking_design registry filter (is_inference_class_compatible_
+	# with_design_metadata()) already excludes this class before
+	# design_compatibility_reason() is ever consulted -- that bucket only
+	# holds classes that pass the coarse filter but fail the finer-grained
+	# predicate (see the CMH block-size-inequality case above, which is
+	# blocking and does reach this bucket).
 })
 
 test_that("InferenceAllSimpleWilcox: design_compatibility_reason matches real throw behavior", {
@@ -92,7 +98,7 @@ test_that("InferenceAllSimpleWilcox: design_compatibility_reason matches real th
 	des_ok$assign_w_to_all_subjects()
 	des_ok$add_all_subject_responses(rnorm(n))
 
-	reason_fn = EDI:::InferenceAllSimpleWilcox$private_methods$design_compatibility_reason
+	reason_fn = EDI:::infer_inference_design_compatibility_reason_fn(EDI:::InferenceAllSimpleWilcox)
 	expect_true(is.na(reason_fn(des_ok)))
 	expect_no_error(InferenceAllSimpleWilcox$new(des_ok))
 	expect_true("InferenceAllSimpleWilcox" %in% des_ok$applicable_inference_class_names())
@@ -135,4 +141,48 @@ test_that("Every class with a design_compatibility_reason predicate is excluded 
 			expect_false(nm %in% applicable, info = nm)
 		}
 	}
+})
+
+# Regression coverage for the method-level (not class-construction-level) fix
+# to fix_inference_hierarchy.md's "method-level stop()s" TODO: InferenceRand's
+# plain compute_rand_two_sided_pval() throws for an incidence-response
+# instance with no custom randomization statistic on a design whose
+# randomization_family() isn't "rerandomization" -- confirmed reachable for
+# InferenceIncidGCompRiskRatio/RiskDiff (this class pins InferenceRand's own
+# method rather than a Zhang-dispatching override). Before the fix,
+# InferenceSuite's run_all_inference_call_pval_for_method() caught this stop()
+# and silently degraded to pval = NA while still reporting status = "ok" and
+# method = "rand" -- indistinguishable from a genuine (if unlucky) NA result.
+# After the fix, the "rand" sentinel is recognized as inapplicable up front
+# (mirroring the "no capability" shape used everywhere else in this file):
+# pval_method is NA, not "rand", on the returned row.
+test_that("InferenceRand: supports_rand_pval_for_incidence() matches real throw behavior", {
+	n = 20L
+	des = DesignSeqOneByOneBernoulli$new(n = n, response_type = "incidence", verbose = FALSE)
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	des$add_all_subject_responses(rbinom(n, 1, 0.4))
+	expect_identical(des$randomization_family(), "bernoulli")
+
+	inf = InferenceIncidGCompRiskRatio$new(des)
+	expect_false(inf$supports_rand_pval_for_incidence())
+	expect_error(inf$compute_rand_two_sided_pval(r = 51), "incidence")
+})
+
+test_that("run_all_inference(): 'rand' pval degrades to unavailable (not a masked NA) for an unsupported incidence design", {
+	n = 20L
+	des = DesignSeqOneByOneBernoulli$new(n = n, response_type = "incidence", verbose = FALSE)
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	des$add_all_subject_responses(rbinom(n, 1, 0.4))
+
+	suite = InferenceSuite$new(des)
+	res = suite$run_all_inference(
+		screen = TRUE, html = FALSE, plots = FALSE, pdf = FALSE,
+		save_results_as_JSON = FALSE, methods = c("rand"),
+		classes = c("InferenceIncidGCompRiskRatio")
+	)
+	row = res$results_table[res$results_table$inference_class == "InferenceIncidGCompRiskRatio", ]
+	expect_identical(nrow(row), 1L)
+	expect_identical(row$status, "ok")
+	expect_true(is.na(row$pval))
+	expect_true(is.na(row$pval_method))
 })

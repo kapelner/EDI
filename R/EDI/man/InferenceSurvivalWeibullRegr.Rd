@@ -59,6 +59,7 @@ Comparable Python API:
     \item \href{#method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_function}{\code{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceSurvivalWeibullRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceSurvivalWeibullRegr$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceSurvivalWeibullRegr-supports_rand_pval_for_incidence}{\code{InferenceSurvivalWeibullRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceSurvivalWeibullRegr-clone}{\code{InferenceSurvivalWeibullRegr$clone()}}
   }
 }
@@ -127,6 +128,17 @@ Comparable Python API:
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceSurvivalWeibullRegr$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalWeibullRegr$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

@@ -48,6 +48,7 @@ Robins, J. (1986). A new approach to causal inference in
     \item \href{#method-InferenceIncidKKGCompRiskRatio-set_custom_randomization_statistic_function}{\code{InferenceIncidKKGCompRiskRatio$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceIncidKKGCompRiskRatio-set_custom_randomization_statistic_cpp}{\code{InferenceIncidKKGCompRiskRatio$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceIncidKKGCompRiskRatio-approximate_randomization_distribution_beta_hat_T}{\code{InferenceIncidKKGCompRiskRatio$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceIncidKKGCompRiskRatio-supports_rand_pval_for_incidence}{\code{InferenceIncidKKGCompRiskRatio$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceIncidKKGCompRiskRatio-clone}{\code{InferenceIncidKKGCompRiskRatio$clone()}}
   }
 }
@@ -116,6 +117,17 @@ Robins, J. (1986). A new approach to causal inference in
   debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidKKGCompRiskRatio-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidKKGCompRiskRatio-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceIncidKKGCompRiskRatio$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidKKGCompRiskRatio$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

@@ -4,7 +4,7 @@
 #' (\code{local_machine_optimization.md}, TODO-4): registry-driven family
 #' enumeration, synthetic-data generation per family (delegating to
 #' \code{inference_migration_complete_design()} in
-#' \code{tuning_synthetic_fixtures.R} -- the same recipe the migration golden
+#' \code{local_machine_tuning_synthetic_fixtures.R} -- the same recipe the migration golden
 #' tests use), interleaved A/B timing with median + IQR, the acceptance rule,
 #' and the \code{effort} tiering presets. Nothing here fits a model or reads
 #' the real dispatch-policy config tables -- that wiring is TODO-4/5. Nothing
@@ -91,13 +91,15 @@ edi_tuning_interleaved_ab = function(fn_a, fn_b, reps = 5L) {
 
 	times_a = numeric(reps)
 	times_b = numeric(reps)
+	results_a = vector("list", reps)
+	results_b = vector("list", reps)
 	for (i in seq_len(reps)) {
 		t0 = proc.time()[["elapsed"]]
-		fn_a()
+		results_a[[i]] = fn_a()
 		times_a[i] = proc.time()[["elapsed"]] - t0
 
 		t0 = proc.time()[["elapsed"]]
-		fn_b()
+		results_b[[i]] = fn_b()
 		times_b[i] = proc.time()[["elapsed"]] - t0
 	}
 	list(
@@ -106,7 +108,89 @@ edi_tuning_interleaved_ab = function(fn_a, fn_b, reps = 5L) {
 		median_a = stats::median(times_a),
 		median_b = stats::median(times_b),
 		iqr_a = stats::IQR(times_a),
-		iqr_b = stats::IQR(times_b)
+		iqr_b = stats::IQR(times_b),
+		# results_a/results_b: each fn_*()'s return value per replicate, in
+		# call order. Most axes (cold/warm start) don't need these -- only
+		# axes that must gate on more than timing (e.g. the optimizer axis's
+		# all-replicates-converge guard) read them.
+		results_a = results_a,
+		results_b = results_b
+	)
+}
+
+#' Time two candidate settings blocked (all of A, then all of B, or vice
+#' versa) -- for settings whose own setup cost would swamp per-replicate
+#' interleaving
+#'
+#' \code{\link{edi_tuning_interleaved_ab}} is the default because
+#' interleaving decorrelates thermal/frequency drift from the A-vs-B
+#' comparison. But some settings carry real \strong{one-time setup cost}
+#' that must be paid once and amortized across many replicates to measure
+#' fairly -- most notably parallel core count, where each distinct core
+#' count means creating (or tearing down) a real OS fork cluster
+#' (\code{parallel::makeForkCluster()}), and alternating that setup on
+#' every single timed replicate would measure cluster-startup noise
+#' instead of steady-state throughput. For those settings, block the
+#' replicates instead: run all of one setting's reps together (paying its
+#' setup cost once), then all of the other's. To avoid systematically
+#' favoring whichever setting warms up the CPU for the other, \code{a_first}
+#' lets the caller alternate which setting goes first across different
+#' cells (e.g. by parity of a loop index) -- a coarser-grained decorrelation
+#' than true interleaving, but the best available once per-candidate setup
+#' cost rules out replicate-level interleaving.
+#'
+#' @param fn_a,fn_b Zero-argument thunks for settings A and B. Each is
+#'   called \code{reps} times, but as one contiguous block, not
+#'   alternating with the other.
+#' @param reps Number of timed replicates per setting (>= 1).
+#' @param a_first If \code{TRUE} (default), the A block runs before the B
+#'   block; if \code{FALSE}, B runs first. Callers benchmarking many cells
+#'   should alternate this across cells.
+#' @param setup_a,setup_b Optional zero-argument thunks called \strong{once},
+#'   immediately before their block starts (not per replicate) -- this is
+#'   the hook for real one-time setup, e.g. \code{set_num_cores(k)}, so it
+#'   runs once per block rather than once per replicate. \code{NULL}
+#'   (default) means no setup for that side.
+#' @return Same shape as \code{\link{edi_tuning_interleaved_ab}}.
+#' @keywords internal
+#' @noRd
+edi_tuning_blocked_ab = function(fn_a, fn_b, reps = 5L, a_first = TRUE, setup_a = NULL, setup_b = NULL) {
+	checkmate::assertFunction(fn_a, nargs = 0L)
+	checkmate::assertFunction(fn_b, nargs = 0L)
+	checkmate::assertCount(reps, positive = TRUE)
+	checkmate::assertFlag(a_first)
+	if (!is.null(setup_a)) checkmate::assertFunction(setup_a, nargs = 0L)
+	if (!is.null(setup_b)) checkmate::assertFunction(setup_b, nargs = 0L)
+
+	run_block = function(fn, setup) {
+		if (!is.null(setup)) setup()
+		times = numeric(reps)
+		results = vector("list", reps)
+		for (i in seq_len(reps)) {
+			t0 = proc.time()[["elapsed"]]
+			results[[i]] = fn()
+			times[i] = proc.time()[["elapsed"]] - t0
+		}
+		list(times = times, results = results)
+	}
+
+	if (a_first) {
+		block_a = run_block(fn_a, setup_a)
+		block_b = run_block(fn_b, setup_b)
+	} else {
+		block_b = run_block(fn_b, setup_b)
+		block_a = run_block(fn_a, setup_a)
+	}
+
+	list(
+		times_a = block_a$times,
+		times_b = block_b$times,
+		median_a = stats::median(block_a$times),
+		median_b = stats::median(block_b$times),
+		iqr_a = stats::IQR(block_a$times),
+		iqr_b = stats::IQR(block_b$times),
+		results_a = block_a$results,
+		results_b = block_b$results
 	)
 }
 

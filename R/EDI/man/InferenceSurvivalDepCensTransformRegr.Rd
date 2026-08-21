@@ -67,6 +67,7 @@ inf$compute_estimate()
   \itemize{
     \item \href{#method-InferenceSurvivalDepCensTransformRegr-set_custom_randomization_statistic_function}{\code{InferenceSurvivalDepCensTransformRegr$set_custom_randomization_statistic_function()}}
     \item \href{#method-InferenceSurvivalDepCensTransformRegr-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalDepCensTransformRegr$set_custom_randomization_statistic_cpp()}}
+    \item \href{#method-InferenceSurvivalDepCensTransformRegr-supports_rand_pval_for_incidence}{\code{InferenceSurvivalDepCensTransformRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceSurvivalDepCensTransformRegr-clone}{\code{InferenceSurvivalDepCensTransformRegr$clone()}}
   }
 }
@@ -118,6 +119,17 @@ inf$compute_estimate()
     \preformatted{InferenceSurvivalDepCensTransformRegr$set_custom_randomization_statistic_cpp(
   fn
 )}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalDepCensTransformRegr-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalDepCensTransformRegr-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceSurvivalDepCensTransformRegr$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalDepCensTransformRegr$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }
