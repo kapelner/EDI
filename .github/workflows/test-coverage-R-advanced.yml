@@ -88,11 +88,28 @@ jobs:
       # comprehensive_suite_registry.R and audit_comprehensive_suite_baseline.R both
       # read public_argument_combination_coverage.csv (just rebuilt above), so they
       # have to run after the argument-combination family, not before it.
-      - name: Rebuild registry + baseline audit
+      # audit_comprehensive_suite_baseline.R must run BEFORE comprehensive_suite_registry.R:
+      # the registry script reads comprehensive_suite_baseline_audit.csv as an input, and
+      # the baseline-audit script is what regenerates that file from the current
+      # public_api_inventory.csv. Running them in the other order silently builds the
+      # registry from a stale baseline audit (missing any API added/changed since that
+      # file was last committed) and was the root cause of a mass of spurious
+      # "public_api_missing_from_registry" hard-gate failures.
+      - name: Rebuild baseline audit + registry
         working-directory: R
         run: |
-          Rscript package_tests/comprehensive_suite_registry.R
           Rscript package_tests/audit_comprehensive_suite_baseline.R
+          Rscript package_tests/comprehensive_suite_registry.R
+
+      # comprehensive_suite_internal_surfaces.R reads comprehensive_suite_baseline_audit.csv
+      # and comprehensive_suite_registry.csv (both just rebuilt above), so it has to run
+      # after them. It maps internal (non-exported) symbols to the testthat files that
+      # exercise them; letting it drift after baseline_audit/registry regenerate produces
+      # spurious "internal_safety_net_missing" hard-gate failures for any newly added
+      # internal testthat coverage.
+      - name: Rebuild internal safety-net surfaces
+        working-directory: R
+        run: Rscript package_tests/comprehensive_suite_internal_surfaces.R
 
       # Fail the build if regenerating from current source produced anything different
       # from what's committed -- the actual "did someone forget to refresh these after
@@ -124,6 +141,7 @@ jobs:
             package_tests/public_argument_combination_quality_gate_summary.csv
             package_tests/comprehensive_suite_registry.csv
             package_tests/comprehensive_suite_baseline_audit.csv
+            package_tests/comprehensive_suite_internal_surfaces.csv
           )
           if ! git diff --exit-code -- "${drift_files[@]}"; then
             echo "::error::package_tests/ generated artifacts are stale relative to current source (diff above). Regenerate locally (see the 'Rebuild ...' steps in this workflow, or R/package_tests/public_argument_combination_runner.md) and commit the updated CSVs."
