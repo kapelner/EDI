@@ -1,31 +1,19 @@
-#' Modified Poisson Regression Inference for Incidence Responses
-#'
-#' Fits a modified Poisson regression (Zou 2004) for binary (incidence) responses
-#' using the treatment indicator and, optionally, all recorded covariates as
-#' predictors. This model provides an alternative to log-binomial regression for
-#' estimating risk ratios.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
-#' inf = InferenceIncidModifiedPoisson$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' @export
 inference_incid_modified_poisson_public = list(
 
-		#' @description Initialize a modified Poisson regression inference object.
-		#' @param des_obj A completed \code{Design} object with an incidence response.
-		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-		#'   the formula from the design object is used and its pre-computed design matrix is
-		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
-		#' @param verbose  		Whether to print progress messages.
-		#' @param harden  		Whether to apply robustness measures.
+			#' @description Initialize inference for the modified Poisson model
+			#'   \eqn{\log E[Y_i \mid W_i, X_i] = \beta_0 + \beta_T W_i + X_i^\top
+			#'   \gamma}; see
+			#'   \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}
+			#'   for the model form and the non-robust-SE caveat. Does not fit the
+			#'   model; the fit is deferred to the first call to
+			#'   \code{compute_estimate()} or a method that requires it.
+			#' @param des_obj A completed \code{Design} object with an incidence response.
+			#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
+			#'   the formula from the design object is used and its pre-computed design matrix is
+			#'   reused. If a formula is provided, a new design matrix is constructed from the
+			#'   design's imputed covariates.
+			#' @param verbose  		Whether to print progress messages.
+			#' @param harden  		Whether to apply robustness measures.
 			#' @param smart_cold_start_default   Whether to use smart cold start values.
 			#' @param max_abs_reasonable_coef Cap for reasonable modified-Poisson coefficients.
 			#' @param max_abs_reasonable_linear_predictor Cap for reasonable fitted log means.
@@ -40,29 +28,46 @@ inference_incid_modified_poisson_public = list(
 					assertNoCensoring(private$any_censoring)
 				}
 		},
-		#' @description Computes the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @description Fits the modified Poisson model by maximizing the Poisson
+		#'   working log-likelihood on the binary response and returns the
+		#'   log-risk-ratio estimate \eqn{\hat\beta_T}.
+		#' @param estimate_only If TRUE, skip standard-error computation and cache
+		#'   only the point estimate; used by randomization and bootstrap resampling
+		#'   paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param alpha Confidence level.
+		#' @description Wald confidence interval for \eqn{\beta_T} using the
+		#'   model-based (non-robust) Poisson-working-likelihood standard error; see
+		#'   \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}'s
+		#'   non-robust-SE caveat and
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald
+		#'   contract.
+		#' @param alpha Two-sided miscoverage rate; the returned interval targets
+		#'   \code{1 - alpha} coverage.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta Null treatment effect value.
+		#' @description Two-sided Wald test of \eqn{H_0: \beta_T = \code{delta}}
+		#'   using the model-based (non-robust) Poisson-working-likelihood standard
+		#'   error; see
+		#'   \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}'s
+		#'   non-robust-SE caveat.
+		#' @param delta Log-risk-ratio value under the null hypothesis.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Recomputes the class-specific treatment estimate for a bootstrap sample; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+		#' @description Refits the modified Poisson model with subject/block-level
+		#'   weights applied to the working log-likelihood (Bayesian-bootstrap or
+		#'   nonparametric-bootstrap draw weights) via
+		#'   \code{\link{fast_poisson_regression_weighted_cpp}}, and returns the
+		#'   reweighted log-risk-ratio estimate \eqn{\hat\beta_T^{(w)}}. Uses the
+		#'   same QR column-dropping hardening and fit-reasonableness check as
+		#'   \code{compute_estimate()}; a hardened-but-still-unreasonable fit is
+		#'   cached as nonestimable and returns \code{NA}.
 		#' @param subject_or_block_weights Row weights for the bootstrap sample.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -317,6 +322,62 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 	private = inference_incid_modified_poisson_private
 )
 
+#' Modified Poisson Regression Inference for Incidence Responses
+#'
+#' Fits Zou's (2004) modified Poisson regression for binary (incidence)
+#' responses: \eqn{\log E[Y_i \mid W_i, X_i] = \beta_0 + \beta_T W_i +
+#' X_i^\top \gamma}, fit by maximizing the ordinary Poisson log-likelihood
+#' treating the binary \eqn{Y_i} as if it were Poisson-distributed (a valid
+#' estimating equation for the conditional mean regardless of the true
+#' outcome distribution, exactly as
+#' \code{\link[EDI:InferencePropFractionalLogit]{InferencePropFractionalLogit}}'s
+#' quasi-binomial fit is for fractional responses). \eqn{\hat\beta_T} is a
+#' \strong{log risk ratio}: \eqn{\exp(\hat\beta_T)} is the estimated treatment
+#' relative risk, the same estimand as
+#' \code{\link[EDI:InferenceIncidLogBinomial]{InferenceIncidLogBinomial}}'s
+#' log-binomial model, but modified Poisson never produces a fit failure from
+#' the \eqn{[0,1]}-probability constraint that a genuine binomial log-link
+#' model can hit. \strong{Caveat:} this implementation's standard error comes
+#' from the ordinary (model-based) Poisson Fisher information
+#' (\code{\link{fast_poisson_regression_with_var_cpp}}'s \code{ssq_b_j}), not
+#' a robust/sandwich correction — Zou's (2004) original proposal specifically
+#' pairs the misspecified Poisson working model with a robust sandwich
+#' variance estimator to obtain valid standard errors under the resulting
+#' overdispersion; users needing the fully robust modified-Poisson variance
+#' should treat this class's standard errors/CIs/p-values as approximate.
+#' \code{likelihood_tier = "full"} metadata is set for component-composition
+#' purposes, but \code{private$supports_likelihood_tests()} is hard
+#' \code{FALSE} — only Wald inference is exposed
+#' (\code{get_supported_testing_types_impl()} returns \code{"wald"} only), not
+#' likelihood-ratio/score/gradient tests. Fits with implausible coefficients
+#' or fitted linear predictors (checked via
+#' \code{private$is_modified_poisson_fit_reasonable()}, capped by
+#' \code{max_abs_reasonable_coef}/\code{max_abs_reasonable_linear_predictor})
+#' are cached as nonestimable rather than returned.
+#'
+#' @references Zou, G. (2004). "A Modified Poisson Regression Approach to
+#'   Prospective Studies with Binary Data." \emph{American Journal of
+#'   Epidemiology}, 159(7), 702-706, \doi{10.1093/aje/kwh090}.
+#'
+#' @seealso \code{\link[EDI:InferenceIncidLogBinomial]{InferenceIncidLogBinomial}}
+#'   for the genuine log-binomial alternative with the same log-risk-ratio
+#'   estimand. Comparable Python API:
+#'   \href{https://www.statsmodels.org/stable/discretemod.html}{statsmodels
+#'   discrete models} (\code{Poisson} family on binary data). See also:
+#'   \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson
+#'   regression} (Wikipedia).
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
+#' inf = InferenceIncidModifiedPoisson$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' @export
 InferenceIncidModifiedPoisson = define_inference_class(
 	classname = "InferenceIncidModifiedPoisson",
 	inherit = Inference,

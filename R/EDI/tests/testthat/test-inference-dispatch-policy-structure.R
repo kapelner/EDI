@@ -11,6 +11,12 @@ inference_policy_override_tables = function() {
 	for (operation in setdiff(names(warm), "default")) {
 		tables[[paste0("warm_start.", operation, ".inference_class_overrides")]] =
 			warm[[operation]]$inference_class_overrides
+		n_conditioned = warm[[operation]]$n_conditioned_overrides
+		if (length(n_conditioned) > 0L) {
+			patterns = vapply(n_conditioned, function(rule) rule$pattern, character(1))
+			tables[[paste0("warm_start.", operation, ".n_conditioned_overrides")]] =
+				stats::setNames(vapply(n_conditioned, function(rule) rule$value, logical(1)), patterns)
+		}
 	}
 	for (design_name in names(bootstrap$design_class_overrides)) {
 		tables[[paste0("bootstrap.design_class_overrides.", design_name)]] =

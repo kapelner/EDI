@@ -258,10 +258,114 @@ inference_count_likelihood_public = list(
 			}
 		)
 
+	# CountLikelihoodPlumbingSource intentionally does NOT reuse
+	# inference_count_likelihood_public/_private verbatim (unlike every other
+	# already-registered per-class *Likelihood component in this migration
+	# effort) -- inference_count_likelihood_public's compute_asymp_*/
+	# compute_wald_*/compute_score_*/compute_lik_ratio_*/compute_gradient_*/
+	# compute_lik_ratio_bootstrap_* methods all call super$compute_X(...) as
+	# either a fallback (asymp) or their entire body (the rest), and
+	# inference_count_likelihood_public/_private are also still used AS-IS by
+	# the classic (not-yet-migrated) InferenceCountLikelihood R6 generator
+	# below, where super$ genuinely resolves through the deep ladder -- so
+	# those two objects cannot be edited without breaking every class still
+	# classically inheriting InferenceCountLikelihood. Instead, this Source's
+	# public list overrides just those 12 methods with composition-safe
+	# versions (private$..._impl direct calls, matching the thin-wrapper shape
+	# every LikelihoodTests/Wald descendant already uses; the two
+	# compute_lik_ratio_bootstrap_* methods and the two asymp dispatchers are
+	# self-contained real implementations with no _impl equivalent, so those
+	# are pinned from their real source generators instead -- same "pin from
+	# the named source generator" pattern used throughout this migration for
+	# compute_rand_two_sided_pval/compute_bayesian_bootstrap_two_sided_pval).
+	# Found via InferenceCountPoisson's migration (2026-08-21): that class
+	# happens to fully self-override all 12 of these itself, so it never
+	# exercised this bug; InferenceCountNegBin and every count class after it
+	# do not self-override them, so this fix is required at the component
+	# level, not per-class.
 	CountLikelihoodPlumbingSource = list(
-		public = inference_count_likelihood_public,
+		public = utils::modifyList(inference_count_likelihood_public, list(
+			compute_asymp_confidence_interval = function(alpha = 0.05){
+				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
+				if (private$testing_type == "wald") {
+					private$shared(estimate_only = FALSE)
+					if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+						return(private$compute_z_or_t_ci_from_s_and_df(alpha))
+					}
+				}
+				private$cl_plumbing_asymp_lik_compute_asymp_confidence_interval(alpha)
+			},
+			compute_asymp_two_sided_pval = function(delta = 0){
+				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+				if (private$testing_type == "wald") {
+					private$shared(estimate_only = FALSE)
+					if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+						return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
+					}
+				}
+				private$cl_plumbing_asymp_lik_compute_asymp_two_sided_pval(delta)
+			},
+			compute_wald_two_sided_pval = function(delta = 0){
+				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+				private$compute_wald_two_sided_pval_impl(delta)
+			},
+			compute_wald_confidence_interval = function(alpha = 0.05){
+				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
+				private$compute_wald_confidence_interval_impl(alpha)
+			},
+			compute_score_two_sided_pval = function(delta = 0){
+				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+				private$compute_score_two_sided_pval_impl(delta)
+			},
+			compute_score_confidence_interval = function(alpha = 0.05){
+				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
+				private$compute_score_confidence_interval_impl(alpha)
+			},
+			compute_lik_ratio_two_sided_pval = function(delta = 0){
+				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+				private$compute_lik_ratio_two_sided_pval_impl(delta)
+			},
+			compute_lik_ratio_confidence_interval = function(alpha = 0.05){
+				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
+				private$compute_lik_ratio_confidence_interval_impl(alpha)
+			},
+			compute_gradient_two_sided_pval = function(delta = 0){
+				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+				private$compute_gradient_two_sided_pval_impl(delta)
+			},
+			compute_gradient_confidence_interval = function(alpha = 0.05){
+				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
+				private$compute_gradient_confidence_interval_impl(alpha)
+			},
+			compute_lik_ratio_bootstrap_two_sided_pval = function(delta = 0, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
+				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+				private$cl_plumbing_param_boot_compute_lik_ratio_bootstrap_two_sided_pval(
+					delta = delta,
+					B = B,
+					show_progress = show_progress,
+					min_number_usable_samples = min_number_usable_samples,
+					max_attempts_per_replicate = max_attempts_per_replicate
+				)
+			},
+			compute_lik_ratio_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L, root_tolerance = NULL, max_root_iterations = 8L){
+				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
+				private$cl_plumbing_param_boot_compute_lik_ratio_bootstrap_confidence_interval(
+					alpha = alpha,
+					B = B,
+					show_progress = show_progress,
+					min_number_usable_samples = min_number_usable_samples,
+					max_attempts_per_replicate = max_attempts_per_replicate,
+					root_tolerance = root_tolerance,
+					max_root_iterations = max_root_iterations
+				)
+			}
+		)),
 		private = c(inference_count_likelihood_private, list(
-			is_a_count_likelihood = function() TRUE
+			is_a_count_likelihood = function() TRUE,
+			cl_plumbing_asymp_lik_compute_asymp_confidence_interval = InferenceAsympLik$public_methods$compute_asymp_confidence_interval,
+			cl_plumbing_asymp_lik_compute_asymp_two_sided_pval = InferenceAsympLik$public_methods$compute_asymp_two_sided_pval,
+			cl_plumbing_param_boot_compute_lik_ratio_bootstrap_two_sided_pval = InferenceParamBootstrap$public_methods$compute_lik_ratio_bootstrap_two_sided_pval,
+			cl_plumbing_param_boot_compute_lik_ratio_bootstrap_confidence_interval = InferenceParamBootstrap$public_methods$compute_lik_ratio_bootstrap_confidence_interval
 		))
 	)
 	

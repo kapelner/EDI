@@ -182,9 +182,13 @@ the frozen substrate makes it additive.
     benchmark tuner that measures the current machine and overrides the
     machine-dependent performance-policy defaults hardcoded in
     `EDI/R/globals.R` (warm-start thresholds, core count, etc.) with a
-    persisted, machine-specific config. TODO-2 (the warm-start dispatcher
-    refactor lifting the hardcoded layer into an overridable config table)
-    already shipped in a 1.0.x patch. **TODO-1 (the remaining decision-gate
+    persisted, machine-specific config. **TODO-2 (the warm-start dispatcher
+    refactor lifting the hardcoded n-conditioned layer into an overridable
+    config table) done (2026-08-21):** see `local_machine_optimization.md`'s
+    own TODO-2 for the full writeup, including the golden-equivalence test
+    (4,875 combinations, zero mismatches) and the `set_warm_start_dispatch_policy()`
+    `modifyList()`-on-unnamed-lists bug it caught and fixed along the way.
+    **TODO-1 (the remaining decision-gate
     parts a, b, c, e — part (d) was decided 2026-08-17: tuned core count is
     recorded-only) done (2026-08-21, user decision):** name
     `tune_EDI_for_this_machine()`; storage via
@@ -192,9 +196,17 @@ the frozen substrate makes it additive.
     persistence merged via existing setters; Python twin deferred to a
     later release. TODO-3..12 (harness, per-axis tuners, persistence, safety
     blocklist, contention guard, correctness gate, `.onLoad()` import,
-    tests, docs) are now unblocked and in scope for this release — still
-    gated on `cold_starts.md → TODO-4` (the missing ZINB heuristic-table
-    row) per this plan's own `Depends on` header. Additive — a new opt-in
+    tests, docs) are now unblocked and in scope for this release.
+    **TODO-3 (the benchmark harness) done (2026-08-21):** see
+    `local_machine_optimization.md`'s own TODO-3 for the full writeup —
+    registry-driven family enumeration, interleaved A/B timing, the
+    noise-margin acceptance rule, and effort presets, plus moving the
+    synthetic-data generator out of test-only helpers into shipped package
+    code (`R/EDI/R/tuning_synthetic_fixtures.R`) so both the tuner and the
+    migration golden tests share one recipe. Remaining sequencing note:
+    `cold_starts.md → TODO-4` (the missing ZINB heuristic-table row), the
+    remaining item named in this plan's own `Depends on` header, is
+    **done (2026-08-21)**. Additive — a new opt-in
     function and a new load-time override path, no change to any frozen
     public contract — so it does not gate the freeze itself, but ships in
     the same batch per the user's explicit instruction. Benefits from

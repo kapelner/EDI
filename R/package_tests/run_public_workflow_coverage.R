@@ -161,7 +161,7 @@ complete_design_workflow = function(class_name) {
 	if (grepl("^DesignSeqOneByOne", class_name)) {
 		for (i in seq_len(n)) {
 			des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
-			des$add_one_subject_response(i, y[i], 1)
+			des$add_one_subject_response(i, y = y[i])
 		}
 	} else {
 		des$add_all_subjects_to_experiment(X)

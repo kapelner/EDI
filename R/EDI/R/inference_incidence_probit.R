@@ -1,21 +1,9 @@
-#' Probit Regression Inference for Incidence Responses
-#'
-#' Fits a probit regression for binary (incidence) responses using the treatment
-#' indicator and, optionally, all recorded covariates as predictors.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
-#' inf = InferenceIncidProbitRegr$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' @export
 inference_incid_probit_public = list(
-		#' @description Initialize a probit-regression inference object.
+		#' @description Initialize inference for the probit regression model
+		#'   \eqn{\Phi^{-1}(P(Y_i = 1)) = \beta_0 + \beta_T W_i + X_i^\top \gamma};
+		#'   see \code{\link[EDI:InferenceIncidProbitRegr]{InferenceIncidProbitRegr}}
+		#'   for the model form. Does not fit the model; the fit is deferred to the
+		#'   first call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with an incidence response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -38,8 +26,16 @@ inference_incid_probit_public = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the class-specific treatment estimate for a bootstrap sample; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+		#' @description Refits the probit model with subject/block-level weights
+		#'   applied to the fitting log-likelihood (Bayesian-bootstrap or
+		#'   nonparametric-bootstrap draw weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}) via
+		#'   \code{fast_probit_regression_weighted_cpp}, and returns the
+		#'   reweighted estimate \eqn{\hat\beta_T^{(w)}} on the latent
+		#'   standard-normal-index scale. Uses the same QR column-dropping hardening
+		#'   and fit-reasonableness check as \code{compute_estimate()}; a
+		#'   hardened-but-still-unreasonable fit is cached as nonestimable and
+		#'   returns \code{NA}.
 		#' @param subject_or_block_weights Row weights for the bootstrap sample.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -306,6 +302,50 @@ IncidenceProbitLikelihoodSource = list(
 	private = inference_incid_probit_private
 )
 
+#' Probit Regression Inference for Incidence Responses
+#'
+#' Fits a probit regression model for binary (incidence) responses:
+#' \eqn{\Phi^{-1}(P(Y_i = 1)) = \beta_0 + \beta_T W_i + X_i^\top \gamma},
+#' where \eqn{\Phi} is the standard normal CDF, \eqn{W_i} is the treatment
+#' indicator, and \eqn{X_i} are optional recorded covariates, by maximum
+#' likelihood (\code{\link{fast_probit_regression_cpp}}/
+#' \code{fast_probit_regression_weighted_cpp}). Unlike
+#' \code{\link[EDI:InferenceIncidLogRegr]{InferenceIncidLogRegr}}'s logit
+#' link, \eqn{\hat\beta_T} here is not an odds-ratio scale parameter: it is
+#' the treatment's additive effect on the latent standard-normal index
+#' underlying the binary outcome. \code{likelihood_tier = "full"}: Wald,
+#' score, gradient, and likelihood-ratio tests are all available when the
+#' model converges, plus parametric-likelihood-bootstrap calibration of the
+#' likelihood-ratio test. A fit whose coefficients exceed
+#' \code{max_abs_reasonable_coef} in magnitude (a proxy for near-perfect
+#' separation) is cached as nonestimable rather than returned. Validity
+#' requires the usual probit assumptions: correctly specified linear
+#' predictor on the latent-normal scale, independence across subjects
+#' conditional on covariates, and no perfect/quasi-complete separation.
+#'
+#' @references McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
+#'   Linear Models} (2nd ed.). Chapman and Hall/CRC, for the binomial GLM
+#'   family and probit link.
+#'
+#' @seealso \code{\link[EDI:InferenceIncidLogRegr]{InferenceIncidLogRegr}}
+#'   for the logit-link alternative with a log-odds-ratio estimand.
+#'   Comparable Python API:
+#'   \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM}
+#'   (\code{family=Binomial(link=probit())}). See also:
+#'   \href{https://en.wikipedia.org/wiki/Probit_model}{Probit model}
+#'   (Wikipedia).
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
+#' inf = InferenceIncidProbitRegr$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' @export
 InferenceIncidProbitRegr = define_inference_class(
 	classname = "InferenceIncidProbitRegr",
 	inherit = Inference,

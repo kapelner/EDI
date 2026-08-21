@@ -3,7 +3,7 @@ if (basename(getwd()) == "package_tests") {
   setwd("..")
 }
 
-devtools::load_all("EDI")
+devtools::load_all("EDI", compile = FALSE)
 ns = getNamespace("EDI")
 all_objs = ls(ns)
 inference_classes = all_objs[grep("^Inference", all_objs)]

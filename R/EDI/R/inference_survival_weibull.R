@@ -1,26 +1,11 @@
-#' Weibull AFT Inference for Survival Responses
-#'
-#' Fits a Weibull Accelerated Failure Time (AFT) model for survival responses
-#' using the treatment indicator and, optionally, all recorded covariates as
-#' predictors. The treatment effect is reported on the log-time-ratio scale.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'survival')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(runif(10))
-#' inf = InferenceSurvivalWeibullRegr$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' \donttest{
-#' inf$set_seed(1)
-#' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
-#' }
-#' @export
 inference_survival_weibull_public = list(
-		#' @description Initialize a Weibull-regression inference object.
+		#' @description Initialize inference for the Weibull AFT model
+		#'   \eqn{\log T_i = \beta_0 + \beta_T W_i + X_i^\top \gamma + \sigma
+		#'   \epsilon_i}, \eqn{\epsilon_i \sim} standard extreme-value (so \eqn{T_i}
+		#'   is marginally Weibull); see
+		#'   \code{\link[EDI:InferenceSurvivalWeibullRegr]{InferenceSurvivalWeibullRegr}}
+		#'   for the model form. Does not fit the model; the fit is deferred to the
+		#'   first call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with a survival response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -38,15 +23,24 @@ inference_survival_weibull_public = list(
 			self$set_optimization_alg(optimization_alg, allow_irls = FALSE)
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 		},
-		#' @description Computes the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @description Fits the Weibull AFT model by maximum likelihood and returns
+		#'   the log-time-ratio estimate \eqn{\hat\beta_T}. Handles right-, left-,
+		#'   and interval-censored observations via their appropriate
+		#'   survival/density likelihood contributions.
+		#' @param estimate_only If TRUE, skip standard-error computation and cache
+		#'   only the point estimate; used by randomization and bootstrap resampling
+		#'   paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the Weibull AFT treatment estimate under
-		#'   Bayesian-bootstrap weights.
+		#' @description Recomputes the treatment estimate under subject/block-level
+		#'   Bayesian-bootstrap weights via
+		#'   \code{weighted_weibull_bootstrap_surrogate_fit()}, a fast weighted
+		#'   Weibull surrogate fit, as an approximation to the weighted AFT
+		#'   likelihood. \strong{Only supported for ordinary right-censored data}:
+		#'   throws an error for left-/interval-censored designs, since the
+		#'   surrogate fit assumes ordinary right-censoring semantics.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
 		#' @param estimate_only If \code{TRUE}, compute only the weighted point
@@ -71,16 +65,21 @@ inference_survival_weibull_public = list(
 			private$cached_values$s_beta_hat_T = NA_real_
 			private$cached_values$beta_hat_T
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param alpha Confidence level.
+		#' @description Wald confidence interval for the log-time-ratio \eqn{\beta_T}
+		#'   using the fitted model's standard error; see
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald
+		#'   contract. Fits the model first if not already cached.
+		#' @param alpha Two-sided miscoverage rate; the returned interval targets
+		#'   \code{1 - alpha} coverage.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta Null treatment effect value.
+		#' @description Two-sided Wald test of \eqn{H_0: \beta_T = \code{delta}}
+		#'   using the fitted model's standard error; see
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald
+		#'   contract. Fits the model first if not already cached.
+		#' @param delta Log-time-ratio value under the null hypothesis.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
@@ -443,6 +442,52 @@ SurvivalWeibullLikelihoodSource = list(
 	private = inference_survival_weibull_private
 )
 
+#' Weibull AFT Inference for Survival Responses
+#'
+#' Fits a Weibull Accelerated Failure Time (AFT) model for survival responses:
+#' \eqn{\log T_i = \beta_0 + \beta_T W_i + X_i^\top \gamma + \sigma \epsilon_i},
+#' \eqn{\epsilon_i \sim} standard extreme-value (Gumbel-minimum), so that
+#' \eqn{T_i} is marginally Weibull-distributed with shape \eqn{1/\sigma} and
+#' treatment-dependent scale, by maximum likelihood
+#' (\code{\link{fast_weibull_regression_cpp}}). \eqn{\hat\beta_T} is a
+#' \strong{log-time-ratio} (log acceleration factor): \eqn{\exp(\hat\beta_T)}
+#' is the estimated multiplicative effect of treatment on survival time (an
+#' AFT model, not a proportional-hazards model — the Weibull distribution is
+#' the one location where AFT and proportional-hazards parameterizations
+#' coincide, since \eqn{\exp(-\beta_T/\sigma)} also equals the treatment
+#' hazard ratio). \code{likelihood_tier = "full"}: likelihood-ratio, score,
+#' gradient, and Wald tests are all available when the model converges, plus
+#' parametric-likelihood-bootstrap calibration of the likelihood-ratio test.
+#' Right-censored and interval-censored observations enter the likelihood via
+#' their appropriate survival/density contributions. Validity requires the
+#' Weibull shape assumption for the (log-)survival-time distribution and,
+#' when interpreted causally, the usual design-based/model-based assumptions.
+#'
+#' @references Kalbfleisch, J. D., and Prentice, R. L. (2002). \emph{The
+#'   Statistical Analysis of Failure Time Data} (2nd ed.). Wiley, for the
+#'   Weibull AFT model and its equivalence to a proportional-hazards model.
+#'
+#' @seealso Comparable Python API:
+#'   \href{https://lifelines.readthedocs.io/en/latest/fitters/regression/WeibullAFTFitter.html}{lifelines
+#'   WeibullAFTFitter}. See also:
+#'   \href{https://en.wikipedia.org/wiki/Proportional_hazards_model}{Proportional
+#'   hazards model} (Wikipedia, for the AFT/PH equivalence note).
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'survival')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(runif(10))
+#' inf = InferenceSurvivalWeibullRegr$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' \donttest{
+#' inf$set_seed(1)
+#' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
+#' }
+#' @export
 InferenceSurvivalWeibullRegr = define_inference_class(
 	classname = "InferenceSurvivalWeibullRegr",
 	inherit = Inference,

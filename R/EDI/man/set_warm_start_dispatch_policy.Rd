@@ -19,36 +19,36 @@ Invisible \code{NULL} when \code{policy} is supplied (a mutation), or
   side-effect-free query/reset value.
 }
 \description{
-Overrides, queries, or resets the runtime policy consulted (as one layer of
-several — see Details) by \code{edi_warm_start_dispatch_policy()} for
-whether an inference class reuses a previous fit's parameters/curvature to
-seed the next fit during resampling; see
-\code{\link{get_warm_start_dispatch_policy}} for the built-in default table
-and its \code{jackknife}/\code{non_param_boot}/\code{bayesian_boot}/
-\code{param_boot}/\code{rand} operation schema.
+Overrides, queries, or resets the runtime policy consulted by
+\code{edi_warm_start_dispatch_policy()} for whether an inference class
+reuses a previous fit's parameters/curvature to seed the next fit during
+resampling; see \code{\link{get_warm_start_dispatch_policy}} for the
+built-in default table and its \code{jackknife}/\code{non_param_boot}/
+\code{bayesian_boot}/\code{param_boot}/\code{rand} operation schema
+(each with an \code{inference_class_overrides} layer and an
+\code{n_conditioned_overrides} layer).
 }
 \details{
 Call with no arguments (\code{policy = NULL}, \code{reset = FALSE})
   to retrieve the current configuration without changing it. Pass a named
   list to \code{policy} to merge new/overriding entries into the current
   configuration via \code{\link[utils]{modifyList}} (per-operation
-  sub-lists, e.g. \code{list(rand = list(inference_class_overrides = ...))},
-  are merged rather than replaced wholesale). Pass \code{reset = TRUE} to
-  discard any accumulated overrides and restore the package's built-in
-  default policy exactly as returned by
-  \code{\link{get_warm_start_dispatch_policy}}. \strong{This function only
-  controls the sample-size-independent pattern-table layer} of the warm-start
-  dispatcher; the additional hardcoded, sample-size-conditioned disable rules
-  documented on \code{\link{get_warm_start_dispatch_policy}} are not
-  affected by any override passed here.
+  sub-lists, e.g. \code{list(rand = list(inference_class_overrides = ...))}
+  or \code{list(rand = list(n_conditioned_overrides = ...))}, are merged
+  rather than replaced wholesale — note \code{n_conditioned_overrides} is a
+  plain list of rules, so overriding it replaces the whole list for that
+  operation, not a per-rule merge). Pass \code{reset = TRUE} to discard any
+  accumulated overrides and restore the package's built-in default policy
+  exactly as returned by \code{\link{get_warm_start_dispatch_policy}}.
+  \strong{This function controls the full dispatch policy}, including the
+  sample-size-conditioned \code{n_conditioned_overrides} layer.
 }
 \examples{
 set_warm_start_dispatch_policy(reset = TRUE)
 }
 \seealso{
-\code{\link{get_warm_start_dispatch_policy}} for the policy schema,
-  built-in defaults, and the additional sample-size-conditioned rules this
-  setter cannot override; \code{\link{set_cold_start_dispatch_policy}} for
+\code{\link{get_warm_start_dispatch_policy}} for the policy schema
+  and built-in defaults; \code{\link{set_cold_start_dispatch_policy}} for
   the analogous, simpler single-layer setter governing the initial
   cold-start heuristic.
 }

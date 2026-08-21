@@ -2252,6 +2252,156 @@ their own `[x]` entries above; they are not part of this count.)
   to scope the `ParametricBootstrapCore` component design explicitly
   before touching any of these 11 classes.
 
+  **Correction (2026-08-21): the scoping note above was wrong.** A
+  component that wraps `InferenceParamBootstrap`'s worker-clone/RNG
+  machinery already exists and is already composed by 6+ already-migrated
+  classes -- `ParametricLikelihoodBootstrap`
+  (`contracts_mixins.R`, `source_name = "InferenceParamBootstrap"`,
+  `dependencies = "LikelihoodTests"`), the exact component this note
+  claimed needed to be designed from scratch. No new component was
+  needed; the recipe is the same one used throughout this whole push:
+  compose `c("BayesianBootstrap", "ParametricLikelihoodBootstrap",
+  "CountLikelihoodPlumbing")` (the last one also already registered,
+  `source_name = "CountLikelihoodPlumbingSource"`, itself a static harvest
+  of `InferenceCountLikelihood`'s own `inference_count_likelihood_public`/
+  `_private` -- including that class's own `super$`-through-a-composed-
+  class calls, which need the same per-leaf-class fix as everywhere else
+  in this migration, not a new fix for this family).
+
+  **`InferenceCountPoisson` migrated (2026-08-21)**, composing
+  `c("BayesianBootstrap", "ParametricLikelihoodBootstrap",
+  "CountLikelihoodPlumbing")`. Fixed 2 `super$`-through-a-composed-class
+  calls (`compute_lik_ratio_bootstrap_two_sided_pval`/
+  `compute_lik_ratio_bootstrap_confidence_interval`, both self-contained --
+  pinned from `InferenceParamBootstrap$public_methods$...` into private
+  helpers, same pattern as every other bootstrap-LR pin in this effort).
+  This class's own `compute_asymp_*`/`compute_wald_*`/`compute_score_*`/
+  `compute_lik_ratio_*`/`compute_gradient_*` overrides were already fully
+  self-contained (calling `private$compute_X_impl(...)` directly, never
+  `super$`), so no fix was needed there. Required an unusually large
+  `overrides` list (13 public, 17 private) since `CountLikelihoodPlumbing`
+  is a full static harvest of `InferenceCountLikelihood`'s entire
+  public/private surface, colliding on nearly every name with
+  `LikelihoodTests`/`Wald`/`Jackknife`/`BayesianBootstrap`'s own
+  transitively-composed defaults -- found iteratively via load-time errors,
+  same methodology as every prior class, just more rounds than usual.
+  Declared `cached_mod = NULL` explicitly (collides with `Wald`'s own
+  owned field, same reason as every prior class in this push).
+  **Testing-methodology note, not a bug**: an initial legacy-vs-migrated
+  `compute_rand_two_sided_pval` comparison seeded via each object's own
+  `$set_seed()` showed a real numeric mismatch -- traced to
+  `generate_permutations()`'s `des_template$draw_ws_according_to_design()`
+  call using the ambient global RNG directly rather than `private$seed`
+  (unlike the bootstrap paths, which explicitly `set.seed(private$seed)`
+  first) -- `$set_seed()` only stores the value for later use, it does not
+  call `set.seed()` itself. Re-run with R's own `set.seed()` called
+  immediately before each isolated object's call (matching the
+  `InferenceSurvivalDepCensTransformRegr` RNG-testing lesson from earlier
+  in this push) gave bit-identical results. Verified bit-identical via
+  legacy-fixture comparison across `compute_estimate`,
+  `compute_asymp_confidence_interval`/`_two_sided_pval`,
+  `compute_wald_two_sided_pval`, `compute_gradient_confidence_interval`,
+  `compute_rand_two_sided_pval`, `compute_lik_ratio_bootstrap_two_sided_pval`,
+  and `compute_bayesian_bootstrap_two_sided_pval`. One pre-existing test
+  needed updating, not fixing: `test-bayesian-bootstrap.R`'s "jackknife
+  descendants expose Bayesian bootstrap methods" asserted
+  `inherits(inf, "InferenceJackknife")`, which is definitionally false for
+  a `define_inference_class()`-composed class (no classic inheritance) --
+  replaced with a functional check
+  (`is.function(inf$compute_jackknife_wald_two_sided_pval)`), the same
+  "check the contract, not the class name" fix pattern used for every
+  other migrated class's inheritance-based test assertions. Full targeted
+  battery green (18 files: `test-rand-bootstrap.R`,
+  `test-asymp-inference-paths.R`, `test-bartlett-lr-approx-smoke-families.R`,
+  `test-bayesian-bootstrap.R`, `test-bootstrap-reused-worker-families.R`,
+  `test-bootstrap-worker-hook-contract.R`, `test-extracted-likelihood-
+  mixin-public-contracts.R`, `test-full-likelihood-migration-baseline.R`,
+  `test-mle-km-summary-table.R`,
+  `test-parametric-bootstrap-lr-all-capable-classes.R`,
+  `test-smart-default-false.R`, `test-smart-start-warm-paths.R`,
+  `test-smart-start-inference-policies.R`,
+  `test-warm-start-dispatch-policy-refactor.R`, `test-mixin-contracts.R`,
+  `test-inference-class-registry.R`, `test-capability-tables.R`,
+  `test-static-cleanup-guardrails.R`) -- 3 pre-existing failures/errors in
+  that battery (`test-asymp-inference-paths.R`'s KK Bai-adjusted testing-
+  type message, `test-parametric-bootstrap-lr-all-capable-classes.R`'s
+  unrelated unexported-class lookup, `test-smart-default-false.R`'s design
+  assignment-overwrite assertion) confirmed unrelated via a `git stash`
+  clean-baseline re-run before investigating further. `mark_inference_
+  class_migrated()` passes for `InferenceCountPoisson`.
+
+  **Found and fixed a component-level (not per-class) bug while migrating
+  `InferenceCountNegBin` (2026-08-21)**: `CountLikelihoodPlumbingSource`
+  had been reusing `inference_count_likelihood_public`/`_private` verbatim
+  (`inference_all_abstract_count_likelihood.R`) -- 12 of those methods
+  (`compute_asymp_confidence_interval`/`_two_sided_pval`,
+  `compute_wald_*`, `compute_score_*`, `compute_lik_ratio_*`,
+  `compute_gradient_*`, `compute_lik_ratio_bootstrap_*`) call
+  `super$compute_X(...)`, which only resolves under the classic ladder
+  `InferenceCountNegBin`/`InferenceCountPoisson` used to inherit through.
+  `InferenceCountPoisson` never exercised this because it happens to fully
+  self-override all 12 methods itself; `InferenceCountNegBin` does not
+  override any of them, so composing the untouched `CountLikelihoodPlumbing`
+  would have thrown "attempt to apply non-function" on first use. Fixed at
+  the component level, not per-class, and without touching
+  `inference_count_likelihood_public`/`_private` themselves (still used
+  as-is by the classic, not-yet-migrated `InferenceCountLikelihood` R6
+  generator, where `super$` genuinely resolves) -- `CountLikelihoodPlumbingSource`
+  now `utils::modifyList()`s a composition-safe override on top of the
+  original public list: the 8 wald/score/lik_ratio/gradient methods now
+  call their `private$compute_X_impl(...)` directly (same thin-wrapper
+  shape as every `LikelihoodTests`/`Wald` descendant); the 2 asymp
+  dispatchers and the 2 bootstrap-LR methods are self-contained real
+  implementations with no `_impl` equivalent, so those are pinned from
+  their real source generators (`InferenceAsympLik$public_methods$compute_
+  asymp_confidence_interval`/`_two_sided_pval`,
+  `InferenceParamBootstrap$public_methods$compute_lik_ratio_bootstrap_
+  two_sided_pval`/`_confidence_interval`) into `cl_plumbing_`-prefixed
+  private helpers (prefixed to avoid colliding with `InferenceCountPoisson`'s
+  own differently-named pins for the same two bootstrap methods). Added
+  the 4 new private helper names to `CountLikelihoodPlumbing`'s
+  `provides_private_methods` in `contracts_mixins.R`. Re-verified
+  `InferenceCountPoisson` still bit-identical against its legacy fixture
+  after this change (it does, since its own overrides always shadow the
+  component's copies regardless).
+
+  **`InferenceCountNegBin` migrated (2026-08-21)**, composing
+  `c("BayesianBootstrap", "ParametricLikelihoodBootstrap",
+  "CountLikelihoodPlumbing")` -- the same 3-component recipe as
+  `InferenceCountPoisson`, but exercising the fixed component's public
+  dispatch methods directly rather than self-overriding them (this class's
+  own `public=` only supplies `initialize`,
+  `compute_estimate_with_bootstrap_weights`, and the 5 "jackknife not
+  supported" stub overrides -- everything else comes from the composed
+  components). Declared `cached_mod`/`cached_vc_params` explicitly (both
+  collide with `Wald`'s/other components' own owned fields, same reason as
+  every prior class). Verified bit-identical via legacy-fixture comparison
+  across `compute_estimate`, `compute_asymp_confidence_interval`/
+  `_two_sided_pval`, `compute_wald_confidence_interval`,
+  `compute_score_two_sided_pval`, `compute_lik_ratio_two_sided_pval`,
+  `compute_gradient_confidence_interval`, `compute_rand_two_sided_pval`,
+  `compute_lik_ratio_bootstrap_two_sided_pval`, and
+  `compute_bayesian_bootstrap_two_sided_pval` (RNG-sensitive methods
+  seeded via R's own `set.seed()` immediately before each isolated call,
+  per the established testing-methodology lesson). `mark_inference_class_
+  migrated()` passes. Full targeted battery green (18 files); the same 2
+  pre-existing, unrelated failures from the `InferenceCountPoisson`
+  migration recur here (confirmed already unrelated then) plus
+  `test-smart-default-false.R`'s 4 pre-existing design-assignment errors
+  (also confirmed unrelated via the same clean-baseline `git stash`
+  re-run).
+
+  **Remaining pending classes: 9** -- `InferenceOrdinalPairedSignTest`
+  (1), `InferenceCountLikelihood` family (1 direct: `InferenceCountHurdleNegBin`;
+  3 via `InferenceCountZeroAugmentedPoissonAbstract`:
+  `InferenceCountHurdlePoisson`, `InferenceCountZeroInflatedNegBin`,
+  `InferenceCountZeroInflatedPoisson`), `InferenceParamBootstrap` direct (2:
+  `InferenceContinLin`, `InferenceContinOLS`). `InferenceCountHurdleNegBin`
+  should follow the exact same recipe just established for
+  `InferenceCountNegBin` (now that the component-level bug is fixed, no
+  per-class `CountLikelihoodPlumbing` workaround should be needed for it
+  either, matching NegBin not Poisson).
+
 #### Quasi And Robust Estimators
 
 - [x] Identify all `likelihood_tier = "quasi"` concrete classes and verify
@@ -6181,7 +6331,7 @@ here (2026-08-13) rather than left as prose-only notes.
   concurrent process editing files in the working tree during earlier
   passes, not by this change).
 
-- [ ] **Discovery-time applicability is response-type-only and name-pattern-
+- [x] **Discovery-time applicability is response-type-only and name-pattern-
   derived (`infer_inference_response_types()`), with no way to know a
   class also requires specific *design-structure* properties (blocking,
   block-size equality, treatment-allocation probability) -- so
@@ -6238,6 +6388,201 @@ here (2026-08-13) rather than left as prose-only notes.
   `get_response_type()` with no matching registry entry) rather than
   hand-fixing only the two/three classes a single user run happened to
   surface.
+
+  **Done (2026-08-21)**: implemented as a universal, opt-in mechanism, not a
+  hardcoded 3-class special case -- any `Inference` generator can define a
+  self/private-free private method `design_compatibility_reason(des_obj)`
+  (returns `NA_character_` if compatible, else a one-line reason string,
+  mirroring `get_nonestimable_reason()`'s shape). Walked up the generator's
+  inheritance chain and stored on the registry record by
+  `infer_inference_design_compatibility_reason_fn()`
+  (`inference_class_registry.R`, same "safe to call unbound" pattern as
+  `infer_inference_requires_blocking_design()`/
+  `infer_inference_supports_general_censoring()`, except the raw function is
+  stored rather than invoked at registration time, since it needs a live
+  `des_obj`). Consulted by a new `inference_class_design_compatibility_
+  reason(nm, des_obj)` (`inference_suite.R`), wired into
+  `discover_applicable_inference_classes()` alongside the existing missing-
+  packages check -- a class with a non-`NA` reason is excluded from
+  `applicable` into a new `incompatible_due_to_design_structure` named list
+  (class name -> reason), the same "excluded like a missing-package class,
+  not surfaced as a construction error" resolution the scope note called
+  out as acceptable. Exposed via a new `Design$incompatible_inference_
+  classes_due_to_design_structure()` public method, mirroring
+  `unavailable_inference_classes_due_to_missing_packages()` exactly.
+  **Audit for further instances (per the scope note's own instruction) found
+  a fourth class beyond the three the user's bug report surfaced**:
+  `InferenceAllKKWilcoxIVWC` (`KKWilcoxIVWCSource` in
+  `inference_all_KK_wilcox_ivwc.R`) has the identical incidence-response and
+  censored-survival rejections as `InferenceAllSimpleWilcox` -- found via a
+  full-repo grep for `get_prob_T()`/`is_blocking_design()`/`get_block_ids()`
+  usage plus every `InferenceAll*`-file `stop()` gated on `response_type ==`/
+  `any_censoring`, not just re-checking the three named classes. (This
+  particular class is already unconditionally excluded from discovery by the
+  pre-existing `"IVWC" %in% nm` filter, so the fix is currently unreachable
+  through discovery, but it's still correct for any direct
+  `get_inference_class_metadata()` consultation and keeps the predicate
+  consistent with its sibling.) Implemented `design_compatibility_reason` on
+  all four: `SimpleWilcoxSource`/`KKWilcoxIVWCSource` (incidence + censored-
+  survival rejection, identical logic), `InferenceIncidCMH` (even allocation;
+  equal block sizes when blocking), `InferenceIncidExtendedRobins` (blocking
+  required; even allocation; equal block sizes). Verified via
+  `pkgload::load_all(compile = FALSE)` plus direct construction: an
+  incidence-response `DesignSeqOneByOneBernoulli` correctly drops
+  `InferenceAllSimpleWilcox` from `applicable_inference_class_names()` with
+  reason `"wilcoxon_incidence_response_unsupported"`; a `prob_T = 0.7` design
+  correctly drops `InferenceIncidCMH` with reason
+  `"cmh_requires_even_allocation"`; an even-allocation design correctly keeps
+  `InferenceIncidCMH` applicable; a continuous-response design correctly
+  keeps `InferenceAllSimpleWilcox` applicable. Full targeted battery green
+  (`test-mixin-contracts.R`, `test-cmh-flat-vector.R`,
+  `test-inference-class-registry.R`,
+  `test-incid-cmh-extended-robins-migration-golden.R`,
+  `test-simple-wilcox-migration-golden.R` -- all zero failed/error/warning);
+  the broader `test-inference-suite-discovery.R`/`test-inference-suite-run-
+  all-inference.R` battery was still running in the background at write time
+  (bootstrap-heavy, long-running independent of this change) and had not yet
+  reported a result.
+
+- [x] **`design_compatibility_reason()` duplicates, rather than unifies with,
+  each class's own `initialize()`-time `stop()` checks.** Found during a
+  2026-08-21 audit of the just-landed discovery-time-applicability TODO
+  above (user: "check again to ensure these design-method audits and
+  introspections are airtight"). The original scope explicitly asked for
+  `initialize()` to *call* `design_compatibility_reason()` ("so the
+  `stop()` message and the discovery-time reason can never drift apart --
+  single source of truth"), but `InferenceAllSimpleWilcox$initialize()`
+  (and, unaudited but presumably the same, `InferenceAllKKWilcoxIVWC`/
+  `InferenceIncidCMH`/`InferenceIncidExtendedRobins`) still carries its own
+  independent `stop()` conditions duplicating the exact same logic as its
+  own `design_compatibility_reason()`. The two can silently drift apart if
+  one is edited without the other (e.g. a future condition added to one
+  and forgotten in the other). **Scope**: rewrite each of these four
+  classes' `initialize()` to call `self$design_compatibility_reason(des_obj)`
+  (or the unbound function directly, same "self/private-free" contract
+  that already makes it safe to call before `super$initialize()`) and
+  `stop()` with its returned reason string when non-`NA`, deleting the
+  duplicated inline conditions. Verify the `stop()` message text callers
+  currently depend on (if any test asserts on the literal message) still
+  matches, or update those tests to match the new message derived from the
+  reason code.
+  **Done 2026-08-21.** All four classes' `initialize()` now call
+  `private$design_compatibility_reason(des_obj)` and `stop()` on its
+  reason (before `super$initialize()`, since the predicate only needs
+  `des_obj`), deleting the duplicated inline `stop()` conditions --
+  `InferenceAllSimpleWilcox`/`InferenceAllKKWilcoxIVWC` in
+  `inference_all_simple_wilcox.R`/`inference_all_KK_wilcox_ivwc.R`,
+  `InferenceIncidCMH`/`InferenceIncidExtendedRobins` in
+  `inference_incidence_cmh.R`/`inference_incidence_extended_robins.R`.
+  Per user feedback mid-implementation, the repeated "call the predicate,
+  switch on the reason, stop() with the class's message" boilerplate was
+  factored into a shared `stop_if_design_incompatible(design_compatibility_
+  reason_fn, des_obj, reason_messages)` helper (`inference_suite.R`, next
+  to `inference_class_design_compatibility_reason()`) rather than each
+  class inlining its own `switch()`/`stop()`; each class now just passes
+  its own `reason -> message` named list. All `stop()` message text was
+  preserved verbatim (including `InferenceAllKKWilcoxIVWC`'s
+  `class(self)[1]`-prefixed censoring message), so the existing literal-
+  message-asserting tests (`test-design-inference.R`'s "CMH inference
+  requires even treatment allocation"/"requires equal block sizes",
+  `test-incid-cmh-extended-robins-migration-golden.R`'s four `stop()`
+  message strings) needed no changes. All five touched files verified
+  parse-clean via `parse()` (no `R CMD INSTALL`/`load_all(compile=TRUE)`
+  run, per project rule).
+
+- [x] **Three method-level (not class-construction-level) `stop()`s on
+  incidence response are outside `design_compatibility_reason()`'s scope
+  (a whole-class applicability gate) and degrade silently instead of
+  erroring.** Found during the same 2026-08-21 audit, flagged as a related
+  but distinct, unconfirmed loose end -- not verified to actually be
+  reachable/exploitable, just noted:
+  - `inference_all_abstract_rand.R:347-350` --
+    `compute_rand_two_sided_pval()`-family: `stop("Randomization tests are
+    not supported for incidence. Use Zhang method.")`, conditional on
+    `!should_use_design_randomization_for_incidence()`.
+  - `inference_all_abstract_rand_bootstrap_ci.R:96-97` --
+    `stop("Bootstrap randomization confidence intervals are not supported
+    for incidence.")`, conditional on no custom randomization-statistic
+    function being supplied.
+  - `inference_mixin_kk_gee_shared.R:131-146` -- two related `stop()`s
+    gated on `should_use_zhang_incidence_randomization()`/
+    `should_use_design_randomization_for_incidence()`.
+  Since these are per-method (not per-class) and *conditional* on other
+  runtime state (not simply "this class never works for this response
+  type"), they don't fit `design_compatibility_reason()`'s per-class
+  return shape directly. Unlike the class-level gap above, calling these
+  methods today would hit `run_all_inference_call_ci_for_method()`/
+  `_call_pval_for_method()`'s own local `tryCatch`, which swallows the
+  error into a silent `pval`/CI `= NA` while still reporting `status =
+  "ok"` and the attempted `method` label -- the same "silently wrong
+  instead of an honest error" shape the `rand_bootstrap`-on-observational-
+  design bug had (fixed 2026-08-21 via `des_obj$supports_randomization_
+  draw()`), but this time gated on a narrower, method-specific condition
+  `InferenceSuite` has no equivalent cheap pre-check for. **Scope**: first
+  confirm whether any real design/class combination actually reaches these
+  branches through `run_all_inference()` (may already be fully covered by
+  the existing `supports_randomization_draw()` filter, in which case this
+  closes as "not reachable, no action needed" -- verify before designing a
+  fix); if reachable, decide whether a per-capability predicate (mirroring
+  `design_compatibility_reason()`'s per-class one, but scoped to a
+  capability instead) is warranted, or whether surfacing the swallowed
+  error message onto the row (e.g. into `results_table$message`, which
+  today only the outer `run_all_inference_one_class()` catch populates,
+  not this inner one) is sufficient.
+  **Reachability confirmed 2026-08-21 -- mixed, not closed.**
+  `supports_randomization_draw()` alone does NOT cover these; each needed
+  checking individually against which classes actually reach the guarded
+  branch:
+  - `inference_all_abstract_rand.R:347-350` (`InferenceRand`'s own
+    `compute_rand_two_sided_pval`, pinned via
+    `compute_rand_two_sided_pval = InferenceRand$public_methods$...`
+    rather than `InferenceRandCI`'s Zhang-dispatching override) **IS
+    reachable**: `InferenceIncidGCompRiskDiff`/`InferenceIncidGCompRiskRatio`
+    (`inference_incidence_gcomp.R`), `KKNewcombeRiskDiffIVWCSource`
+    (`inference_incidence_KK_newcombe_ivwc_univ.R`, pinned in
+    `inference_incidence_newcombe_univ.R`), and the Miettinen-Nurminen
+    incidence class in `inference_incidence_miettinen_nurminen_univ.R` all
+    support `response_type = "incidence"` and pin this exact
+    non-Zhang-dispatching method. Any incidence-response design that
+    `supports_randomization_draw()` (e.g. plain `DesignSeqOneByOneBernoulli`)
+    but is not `randomization_family() == "rerandomization"` (so
+    `should_use_design_randomization_for_incidence()` is `FALSE`) hits the
+    `stop()`, which `run_all_inference_call_ci_for_method()`'s inner
+    `tryCatch` then silently downgrades to `pval = NA`, `status = "ok"`.
+  - `inference_all_abstract_rand_bootstrap_ci.R:96-97` **is NOT reachable**:
+    grepped every class composing the `RandomizationBootstrapCI` component
+    (`compute_rand_bootstrap_confidence_interval`'s defining component) --
+    only `SimpleWilcoxSource`/`KKWilcoxIVWCSource`
+    (`inference_all_simple_wilcox.R`/`inference_all_KK_wilcox_ivwc.R`), and
+    both already reject `response_type == "incidence"` unconditionally at
+    `initialize()` (via `design_compatibility_reason()`, per the item
+    above), so no live instance of any class with this method can ever
+    have `response_type == "incidence"` when it runs. Closed, no action
+    needed.
+  - `inference_mixin_kk_gee_shared.R:131-146` **is NOT reachable** through
+    the only incidence-response class that uses this mixin,
+    `InferenceIncidKKCombined` (`inference_incidence_KK_combined.R`):
+    every KK-matching-capable design (required generically by the
+    registry's `requires_kk`/name-grep filter for any `*_KK_*` class) has
+    `des_obj$is_a_kk_matching_capable() == TRUE`, which makes
+    `should_use_zhang_incidence_randomization()`
+    (`private$has_match_structure`-gated) always `TRUE` for this class, so
+    the Zhang branch (lines 131-141) always returns before reaching the
+    guarded `stop()` at line 147. Closed for the one class that currently
+    exercises this mixin with incidence response -- would need re-checking
+    if a future KK-GEE incidence class is added without the matching
+    requirement.
+  **Remaining scope** (only the first bullet is still open): decide the
+  fix for `inference_all_abstract_rand.R:347-350`'s reachable silent-NA
+  path -- either a per-capability predicate (mirroring
+  `design_compatibility_reason()` but scoped to
+  "randomization-test-for-incidence available", consulted by
+  `InferenceSuite` before attempting the method) or surfacing the caught
+  error onto `results_table$message` in
+  `run_all_inference_call_ci_for_method()`'s inner `tryCatch` (today only
+  the outer `run_all_inference_one_class()` catch populates that column).
+  Not implemented this session -- needs a design decision on which
+  approach, out of scope for the reachability-confirmation pass requested.
 
 ## Definition of Done
 

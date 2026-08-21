@@ -1,7 +1,39 @@
 #' Beta Regression Inference for Proportion Responses
 #'
-#' Fits a beta regression for proportion responses (constrained to (0, 1)) using
-#' the treatment indicator and, optionally, all recorded covariates as predictors.
+#' Fits Ferrari and Cribari-Neto's (2004) beta regression for proportion
+#' responses \eqn{Y_i \in (0, 1)}: \eqn{\mathrm{logit}(E[Y_i \mid W_i, X_i]) =
+#' \beta_0 + \beta_T W_i + X_i^\top \gamma}, \eqn{Y_i \mid W_i, X_i \sim
+#' \mathrm{Beta}(\mu_i \phi, (1-\mu_i)\phi)} for fitted mean \eqn{\mu_i} and a
+#' single (constant, not covariate-dependent) precision parameter \eqn{\phi},
+#' by maximum likelihood (\code{\link{fast_beta_regression_cpp}}/
+#' \code{\link{fast_beta_regression_weighted_cpp}}). \eqn{\hat\beta_T} is a
+#' log-odds-ratio on the conditional-mean scale: \eqn{\exp(\hat\beta_T)} is
+#' the odds ratio for the expected proportion. Unlike
+#' \code{\link[EDI:InferencePropFractionalLogit]{InferencePropFractionalLogit}}'s
+#' quasi-likelihood (which specifies only the conditional mean), beta
+#' regression also specifies the conditional variance/shape via \eqn{\phi} —
+#' a correctly specified beta model yields a fully efficient likelihood-based
+#' fit and genuine likelihood-ratio/score/gradient tests, at the cost of
+#' requiring the beta-distribution shape assumption to actually hold.
+#' \code{likelihood_tier = "full"}: likelihood-ratio, score, gradient, and
+#' Wald tests are all available when the model converges, plus
+#' parametric-likelihood-bootstrap calibration of the likelihood-ratio test.
+#' \eqn{Y_i} values of exactly 0 or 1 are not supported by the beta density
+#' and are handled by \code{sanitize_beta_response()}'s boundary adjustment
+#' before fitting.
+#'
+#' @references Ferrari, S., and Cribari-Neto, F. (2004). "Beta regression for
+#'   modelling rates and proportions." \emph{Journal of Applied Statistics},
+#'   31(7), 799-815, \doi{10.1080/0266476042000214501}.
+#'
+#' @seealso \code{\link[EDI:InferencePropFractionalLogit]{InferencePropFractionalLogit}}
+#'   for a quasi-likelihood proportion model that specifies only the
+#'   conditional mean. Comparable Python API: no direct beta-regression
+#'   equivalent in \pkg{statsmodels}; see
+#'   \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM} for
+#'   the general exponential-family GLM framework. See also:
+#'   \href{https://en.wikipedia.org/wiki/Beta_distribution}{Beta
+#'   distribution} (Wikipedia).
 #'
 #' @examples
 #' \donttest{
@@ -49,7 +81,13 @@ InferencePropBetaRegr = define_inference_class(
 	),
 	public = list(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
-		#' @description Initialize a beta-regression inference object.
+		#' @description Initialize inference for the beta regression model
+		#'   \eqn{\mathrm{logit}(E[Y_i \mid W_i, X_i]) = \beta_0 + \beta_T W_i +
+		#'   X_i^\top \gamma}, \eqn{Y_i \sim \mathrm{Beta}(\mu_i \phi, (1-\mu_i)
+		#'   \phi)}; see
+		#'   \code{\link[EDI:InferencePropBetaRegr]{InferencePropBetaRegr}} for the
+		#'   model form. Does not fit the model; the fit is deferred to the first
+		#'   call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with a proportion response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -70,15 +108,25 @@ InferencePropBetaRegr = define_inference_class(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Computes the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only If TRUE, skip variance calculations.
+		#' @description Fits the beta regression model by maximum likelihood
+		#'   (jointly estimating the mean coefficients and the precision parameter
+		#'   \eqn{\phi}) and returns the log-odds-ratio estimate \eqn{\hat\beta_T}
+		#'   on the conditional-mean scale.
+		#' @param estimate_only If TRUE, skip standard-error computation and cache
+		#'   only the point estimate; used by randomization and bootstrap resampling
+		#'   paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#' @description Refits the beta model with subject/block-level weights
+		#'   applied to the fitting log-likelihood (Bayesian-bootstrap or
+		#'   nonparametric-bootstrap draw weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}) via
+		#'   \code{\link{fast_beta_regression_weighted_cpp}}, and returns the
+		#'   reweighted estimate \eqn{\hat\beta_T^{(w)}}. Uses the same QR
+		#'   column-dropping hardening as \code{compute_estimate()}; a
+		#'   hardened-but-still-unreasonable fit is cached as nonestimable.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){

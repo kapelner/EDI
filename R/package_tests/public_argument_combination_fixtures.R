@@ -190,13 +190,22 @@ populate_public_design = function(design, spec, covariates, response) {
 	if (identical(spec$design_type, "sequential")) {
 		for (i in seq_len(spec$n)) {
 			design$add_one_subject_to_experiment_and_assign(covariates[i, , drop = FALSE])
-			design$add_one_subject_response(i, response$y[i], response$dead[i])
+			if (isTRUE(response$dead[i] == 1)) {
+				design$add_one_subject_response(i, y = response$y[i])
+			} else {
+				design$add_one_subject_response(i, y_L = response$y[i], y_R = Inf)
+			}
 		}
 		return(invisible(design))
 	}
 	design$add_all_subjects_to_experiment(covariates)
 	design$assign_w_to_all_subjects(w_precomputed = deterministic_assignment(spec$n, spec$design_type))
-	design$add_all_subject_responses(response$y, deads = response$dead)
+	is_dead = response$dead == 1
+	design$add_all_subject_responses(
+		ys = ifelse(is_dead, response$y, NA_real_),
+		y_Ls = ifelse(is_dead, NA_real_, response$y),
+		y_Rs = ifelse(is_dead, NA_real_, Inf)
+	)
 	invisible(design)
 }
 

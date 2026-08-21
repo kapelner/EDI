@@ -18,9 +18,39 @@
 #' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
 #' }
 #' @export
-InferenceCountPoisson = R6::R6Class("InferenceCountPoisson",
-	lock_objects = FALSE,
-	inherit = InferenceCountLikelihood,
+InferenceCountPoisson = define_inference_class(
+	classname = "InferenceCountPoisson",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "count"),
+	overrides = list(
+		public = c(
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_wald_confidence_interval", "compute_wald_two_sided_pval",
+			"compute_score_confidence_interval", "compute_score_two_sided_pval",
+			"compute_lik_ratio_confidence_interval", "compute_lik_ratio_two_sided_pval",
+			"compute_gradient_confidence_interval", "compute_gradient_two_sided_pval",
+			"compute_lik_ratio_bootstrap_two_sided_pval", "compute_lik_ratio_bootstrap_confidence_interval",
+			"compute_rand_two_sided_pval", "get_supported_testing_types", "compute_estimate",
+			"compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			"cached_mod", "supports_lik_ratio_param_bootstrap", "supports_likelihood_tests",
+			"simulate_under_lik_null", "get_likelihood_test_spec",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_standard_error", "get_degrees_of_freedom",
+			"compute_score_two_sided_pval_impl", "compute_score_confidence_interval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_gradient_confidence_interval_impl",
+			"compute_lik_ratio_two_sided_pval_impl", "compute_lik_ratio_confidence_interval_impl",
+			"compute_treatment_estimate_during_randomization_inference", "get_complexity_tier",
+			"supports_fisher_information"
+		)
+	),
 	public = list(
 		#' @description Initialize a Poisson regression inference object.
 		#' @param des_obj A completed \code{Design} object with a count response.
@@ -158,7 +188,7 @@ InferenceCountPoisson = R6::R6Class("InferenceCountPoisson",
 		#' @param max_attempts_per_replicate Maximum attempts per replicate.
 		compute_lik_ratio_bootstrap_two_sided_pval = function(delta = 0, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			p_model = super$compute_lik_ratio_bootstrap_two_sided_pval(
+			p_model = private$param_boot_compute_lik_ratio_bootstrap_two_sided_pval(
 				delta = delta,
 				B = B,
 				show_progress = show_progress,
@@ -177,7 +207,7 @@ InferenceCountPoisson = R6::R6Class("InferenceCountPoisson",
 		#' @param max_root_iterations Maximum root iterations.
 		compute_lik_ratio_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L, root_tolerance = NULL, max_root_iterations = 8L){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			ci_model = super$compute_lik_ratio_bootstrap_confidence_interval(
+			ci_model = private$param_boot_compute_lik_ratio_bootstrap_confidence_interval(
 				alpha = alpha,
 				B = B,
 				show_progress = show_progress,
@@ -246,6 +276,18 @@ InferenceCountPoisson = R6::R6Class("InferenceCountPoisson",
 		}
 	),
 	private = list(
+		cached_mod = NULL,
+		# Pinned from InferenceParamBootstrap's own generator: composed
+		# classes have no real super$ chain, so the old ladder's
+		# super$compute_lik_ratio_bootstrap_two_sided_pval()/
+		# _confidence_interval() calls above are replaced with calls to
+		# these -- the real, self-contained implementations from
+		# ParametricLikelihoodBootstrap's source generator, pinned under a
+		# non-colliding private name (same pattern used throughout this
+		# migration for compute_rand_two_sided_pval/compute_bayesian_
+		# bootstrap_two_sided_pval pins).
+		param_boot_compute_lik_ratio_bootstrap_two_sided_pval = InferenceParamBootstrap$public_methods$compute_lik_ratio_bootstrap_two_sided_pval,
+		param_boot_compute_lik_ratio_bootstrap_confidence_interval = InferenceParamBootstrap$public_methods$compute_lik_ratio_bootstrap_confidence_interval,
 		best_X_colnames = NULL,
 		poisson_X_full_cache = NULL,
 		poisson_w_cache = NULL,

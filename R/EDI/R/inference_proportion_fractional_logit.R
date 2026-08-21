@@ -100,7 +100,12 @@ InferencePropFractionalLogit = define_inference_class(
 		# classes composing this bootstrap chain, not an incidence-only special
 		# case.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
-		#' @description Initialize a fractional-logit inference object.
+		#' @description Initialize inference for the fractional logit model
+		#'   \eqn{E[Y_i \mid W_i, X_i] = \mathrm{logit}^{-1}(\beta_0 + \beta_T W_i +
+		#'   X_i^\top \gamma)}; see
+		#'   \code{\link[EDI:InferencePropFractionalLogit]{InferencePropFractionalLogit}}
+		#'   for the model form. Does not fit the model; the fit is deferred to the
+		#'   first call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with a proportion response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -119,9 +124,16 @@ InferencePropFractionalLogit = define_inference_class(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Computes the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @description Fits the fractional logit model by maximizing the Bernoulli
+		#'   quasi-log-likelihood on the fractional response and returns the
+		#'   log-odds-ratio estimate \eqn{\hat\beta_T}. When \code{estimate_only =
+		#'   TRUE} and hardening is disabled (\code{harden = FALSE}), uses a fast
+		#'   path via base R's \code{glm.fit(family = quasibinomial())} instead of
+		#'   the package's own fitting routine; otherwise dispatches through the
+		#'   shared hardened-fit path.
+		#' @param estimate_only If TRUE, skip variance component calculations; when
+		#'   combined with \code{harden = FALSE}, also switches to the
+		#'   \code{quasibinomial()} fast path.
 		compute_estimate = function(estimate_only = FALSE){
 			if (estimate_only) {
 				if (!is.null(private$cached_values$beta_hat_T)) return(private$cached_values$beta_hat_T)
@@ -139,8 +151,13 @@ InferencePropFractionalLogit = define_inference_class(
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#' @description Refits the fractional logit model with subject/block-level
+		#'   weights applied to the fitting quasi-log-likelihood (Bayesian-bootstrap
+		#'   or nonparametric-bootstrap draw weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}), and
+		#'   returns the reweighted estimate \eqn{\hat\beta_T^{(w)}}. Uses the same
+		#'   QR column-dropping hardening as \code{compute_estimate()}'s hardened
+		#'   path; a hardened-but-still-unreasonable fit is cached as nonestimable.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){

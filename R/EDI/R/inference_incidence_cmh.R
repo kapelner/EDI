@@ -103,18 +103,11 @@ InferenceIncidCMH = define_inference_class(
 		#' @param verbose Logical. Whether to print progress messages.
 		#' @return A new \code{InferenceIncidCMH} object.
 		initialize = function(des_obj, model_formula = NULL, se_est_num_vectors = 5000L, verbose = FALSE){
-			if (des_obj$is_blocking_design()) {
-				if (des_obj$get_prob_T() != 0.5) {
-					stop("InferenceIncidCMH requires even treatment allocation for blocking designs.")
-				}
-				block_ids = des_obj$get_block_ids()
-				block_sizes = as.integer(table(block_ids))
-				if (length(block_sizes) > 1L && any(block_sizes != block_sizes[1L])) {
-					stop("InferenceIncidCMH requires equal block sizes for blocking designs.")
-				}
-			} else if (des_obj$get_prob_T() != 0.5) {
-				stop("InferenceIncidCMH requires even treatment allocation (prob_T = 0.5) for non-blocking designs.")
-			}
+			stop_if_design_incompatible(private$design_compatibility_reason, des_obj, list(
+				cmh_requires_even_allocation_for_blocking_design = "InferenceIncidCMH requires even treatment allocation for blocking designs.",
+				cmh_requires_equal_block_sizes = "InferenceIncidCMH requires equal block sizes for blocking designs.",
+				cmh_requires_even_allocation = "InferenceIncidCMH requires even treatment allocation (prob_T = 0.5) for non-blocking designs."
+			))
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "incidence")
 				assertCount(se_est_num_vectors, positive = TRUE)

@@ -37,12 +37,13 @@ KKWilcoxIVWCSource = list(
 		#'   design's imputed covariates.
 		#' @param smart_cold_start_default   Whether to use smart cold start values.
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL){
-			res_type = des_obj$get_response_type()
 			if (should_run_asserts()) {
-				if (res_type == "incidence"){
-					stop("Rank-based compound inference is not recommended for incidence data; clogit or compound mean difference estimators are preferred.")
-				}
+				stop_if_design_incompatible(private$design_compatibility_reason, des_obj, list(
+					wilcoxon_incidence_response_unsupported = "Rank-based compound inference is not recommended for incidence data; clogit or compound mean difference estimators are preferred.",
+					wilcoxon_censored_survival_unsupported = paste0(class(self)[1], " does not currently support censored survival data. Use restricted mean or Cox-based methods instead.")
+				))
 			}
+			res_type = des_obj$get_response_type()
 			if (should_run_asserts()) {
 				assertResponseType(res_type, c("continuous", "count", "proportion", "survival", "ordinal"))
 			}
@@ -59,11 +60,6 @@ KKWilcoxIVWCSource = list(
 				smart_cold_start_default = smart_cold_start_default
 			)
 			private$init_kk_passthrough(des_obj)
-			if (should_run_asserts()) {
-				if (private$any_censoring){
-					stop(class(self)[1], " does not currently support censored survival data. Use restricted mean or Cox-based methods instead.")
-				}
-			}
 		},
 		#' @description Returns the estimated treatment effect: an inverse-variance-weighted
 		#'   compound (IVWC) of two Hodges-Lehmann median-shift estimates.

@@ -128,6 +128,31 @@ inference_class_design_compatibility_reason = function(nm, des_obj) {
 #'
 #' @keywords internal
 #' @noRd
+#' Calls a class's own `design_compatibility_reason(des_obj)` predicate and,
+#' if it returns a non-`NA` reason, `stop()`s with that class's message text
+#' for the reason -- centralizing the "call the predicate, look up the
+#' message, stop()" boilerplate that would otherwise be duplicated verbatim
+#' in every `initialize()` that consults its own `design_compatibility_reason`
+#' (single source of truth with the discovery-time predicate; see
+#' `inference_class_design_compatibility_reason()` above and
+#' fix_inference_hierarchy.md). Does nothing if compatible.
+#'
+#' @param design_compatibility_reason_fn The class's own `design_compatibility_reason`
+#'   function (e.g. `private$design_compatibility_reason`), called unbound with `des_obj`.
+#' @param des_obj The design object under construction.
+#' @param reason_messages A named list/character vector mapping every reason code the
+#'   class's `design_compatibility_reason` can return to the exact `stop()` message text.
+#'
+#' @keywords internal
+#' @noRd
+stop_if_design_incompatible = function(design_compatibility_reason_fn, des_obj, reason_messages) {
+	reason = design_compatibility_reason_fn(des_obj)
+	if (!is.na(reason)) {
+		stop(reason_messages[[reason]])
+	}
+	invisible(NULL)
+}
+
 discover_applicable_inference_classes = function(des_obj) {
 	registry = inference_class_registry_as_list()
 	design_meta = normalize_inference_design_metadata(des_obj)
@@ -546,14 +571,64 @@ inference_class_has_method = function(nm, m) {
 		(!is.null(entry_pval) && entry_pval$capability %in% caps)
 }
 
-#' Which of `methods` (already validated against `EDI_INFERENCE_SUITE_METHOD_SENTINELS`)
-#' class `nm` has any capability for -- backs `run_all_inference_build_tasks()`'s
-#' `methods` fan-out, same registry-only, no-instantiation approach as
-#' `inference_class_accepts_model_formula()`.
+#' Sentinels whose registered capability genuinely requires the *design
+#' instance* to support drawing alternative randomizations (`des_obj$
+#' supports_randomization_draw()`), derived from `EDI_INFERENCE_SUITE_CI_
+#' METHOD_PRIORITY`/`_PVAL_METHOD_PRIORITY`'s own `capability` field --
+#' not a hand-typed sentinel-label list (per user request, 2026-08-21:
+#' "this is a hack ... this should be handled at the Design class's own
+#' introspection"; a literal `c("rand", "rand_bootstrap")` here would be
+#' exactly the same kind of hand-maintained, driftable constant TODO-23
+#' already replaced `EDI_INFERENCE_SUITE_METHOD_SENTINELS` itself with a
+#' derivation to avoid). Every capability whose name starts with
+#' `"randomization"` (`"randomization_test"`, `"randomization_ci"`,
+#' `"randomization_bootstrap"`, `"randomization_bootstrap_ci"` today --
+#' confirmed by reading `contracts_mixins.R`'s registry, not assumed) is,
+#' by that naming convention, genuinely design-randomization-dependent;
+#' this derivation picks up any future capability following the same
+#' convention automatically, with no edit needed here. The actual
+#' *design-instance* check itself already lives on `Design` (`des_obj$
+#' supports_randomization_draw()`, `ObservationalDesign` overriding it to
+#' `FALSE`) -- this constant only maps sentinel labels to "does this
+#' sentinel's capability need that check," which has to live somewhere on
+#' the `InferenceSuite` side since sentinels are an `InferenceSuite`-only
+#' concept the `Design`/`Inference` classes don't know about.
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_class_applicable_methods = function(nm, methods) {
+EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS = unique(c(
+	vapply(
+		Filter(function(e) grepl("^randomization", e$capability), EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY),
+		`[[`, character(1L), "label"
+	),
+	vapply(
+		Filter(function(e) grepl("^randomization", e$capability), EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY),
+		`[[`, character(1L), "label"
+	)
+))
+
+#' Which of `methods` (already validated against `EDI_INFERENCE_SUITE_METHOD_SENTINELS`)
+#' class `nm` has any capability for -- backs `run_all_inference_build_tasks()`'s
+#' `methods` fan-out, same registry-only, no-instantiation approach as
+#' `inference_class_accepts_model_formula()` -- except for
+#' `EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS`, filtered
+#' against the actual `des_obj` instance's `supports_randomization_draw()`
+#' (see that constant's docs) rather than purely by class-level registry
+#' metadata, since class-level capability tags can't know whether *this*
+#' `des_obj` supports randomization draws at all.
+#'
+#' @param des_obj The `Design` instance being fit against. `NULL` skips the
+#'   randomization-support filter entirely (treated as "supported") --
+#'   only used by call sites that don't have a real `des_obj` yet (there
+#'   are none in this file today; the parameter exists so this function's
+#'   contract is explicit rather than silently assuming a global).
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_class_applicable_methods = function(nm, methods, des_obj = NULL) {
+	if (!is.null(des_obj) && !isTRUE(des_obj$supports_randomization_draw())) {
+		methods = setdiff(methods, EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS)
+	}
 	Filter(function(m) inference_class_has_method(nm, m), methods)
 }
 
@@ -859,7 +934,7 @@ run_all_inference_build_tasks = function(cls_names, formulas, methods, des_obj =
 		} else {
 			list(list(model_formula = NULL, formula_tag = NULL))
 		}
-		applicable_methods = run_all_inference_class_applicable_methods(nm, methods)
+		applicable_methods = run_all_inference_class_applicable_methods(nm, methods, des_obj)
 		method_type_slots = list()
 		for (m in applicable_methods) {
 			if (m %in% EDI_INFERENCE_SUITE_TYPED_SENTINELS) {
@@ -1508,7 +1583,7 @@ run_all_inference_render_html = function(out) {
 	}, character(1L), USE.NAMES = FALSE)
 	ci_forest_html = vapply(names(out$plots$ci_forest), function(e) {
 		p = out$plots$ci_forest[[e]]
-		b64 = run_all_inference_plot_to_base64_png(p, height = min(48, max(6, 0.35 * nrow(p$data) + 1.5)))
+		b64 = run_all_inference_plot_to_base64_png(p, height = min(48, max(6, 0.20 * nrow(p$data) + 1)))
 		if (is.null(b64)) return("")
 		h = estimand_heading(e)
 		sprintf(
@@ -1583,21 +1658,27 @@ htmltools_escape_or_identity = function(x) {
 #'
 #' @keywords internal
 #' @noRd
-#' Substitutes `"Δ"` (used by `inference_class_short_label()`/`estimand_
-#' short_label()`, e.g. `"Mean Δ"`, `"risk Δ"`) back to plain `"diff"` for
-#' text that ends up in a `ggplot2` plot -- per user request, 2026-08-20:
-#' titles were rendering as `"mean ."` because the PDF device's default
-#' font has no glyph for the Greek capital delta, so the character prints
-#' as a `.`-shaped tofu box. The Unicode character itself renders fine in
-#' the console/HTML table (both real UTF-8 text contexts), so this is
+#' Substitutes non-ASCII glyphs the PDF device's default font can't render
+#' back to plain ASCII, for any text that ends up in a `ggplot2` plot --
+#' per user request, 2026-08-20/21: `"Δ"` (used by `inference_class_short_
+#' label()`/`estimand_short_label()`, e.g. `"Mean Δ"`, `"risk Δ"`) was
+#' rendering as `"mean ."`, and `"≈"` (`method_short_label()`'s
+#' `"LR ≈Bartlett"`) triggered an explicit `grid.Call.graphics()`
+#' `"conversion failure ... in 'mbcsToSbcs'"` warning -- both because the
+#' PDF device's default font has no glyph for either character, so it
+#' either drops to a `.`-shaped tofu box or warns outright. Both render
+#' fine in the console/HTML table (real UTF-8 text contexts), so this is
 #' applied only at plot-label call sites, never inside
-#' `inference_class_short_label()`/`estimand_short_label()` themselves --
-#' those stay the single source of truth for the table's own display text.
+#' `inference_class_short_label()`/`estimand_short_label()`/`method_short_
+#' label()` themselves -- those stay the single source of truth for the
+#' table's own display text.
 #'
 #' @keywords internal
 #' @noRd
 run_all_inference_plot_safe_text = function(x) {
-	gsub("Δ", "diff", x, fixed = TRUE)
+	x = gsub("Δ", "diff", x, fixed = TRUE)
+	x = gsub("≈", "~", x, fixed = TRUE)
+	x
 }
 
 run_all_inference_letter_label = function(i) {
@@ -1663,6 +1744,21 @@ run_all_inference_plot_estimates = function(results_table) {
 		, drop = FALSE
 	]
 	if (nrow(df) == 0L) return(list())
+	# Dedupe by (inference_class, cov_model) -- per user request, 2026-08-21:
+	# the point estimate itself is shared across every `method` sentinel
+	# (wald/score/lik_ratio/gradient/... only differ in how the CI/p-value
+	# are computed, never the estimate) and, as of v1.0.0, across `type`
+	# too (no bootstrap-family `type` flavor changes `compute_estimate()`'s
+	# return value either) -- so plotting one point per *task* row (the
+	# `results_table` grain, which fans out over method x type) drew the
+	# exact same estimate many times over for one class/formula, cluttering
+	# the plot with duplicates that carry no new information. Keeps the
+	# first task row per (class, formula) pair; if a future estimator ever
+	# does vary its estimate by `type`, this dedupe would need to include
+	# `type` in the key too -- not done here since nothing in the package
+	# does that today (per user request: "this doesn't happen now in
+	# v1.0.0").
+	df = df[!duplicated(paste(df$inference_class, df$cov_model)), , drop = FALSE]
 	df$estimand_facet = ifelse(is.na(df$estimand), "estimand unspecified", df$estimand)
 	# Same class abbreviation as the pretty-print table (per user request,
 	# 2026-08-19: "use same abbreviations as the pretty print").
@@ -1819,8 +1915,8 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 	# Same class/method abbreviations as the pretty-print table (per user
 	# request, 2026-08-19).
 	df$inference_class_disp = run_all_inference_plot_safe_text(vapply(df$inference_class, inference_class_short_label, character(1L)))
-	ci_disp = method_with_type_short_label(df$ci_method, df$type)
-	pval_disp = method_with_type_short_label(df$pval_method, df$type)
+	ci_disp = run_all_inference_plot_safe_text(method_with_type_short_label(df$ci_method, df$type))
+	pval_disp = run_all_inference_plot_safe_text(method_with_type_short_label(df$pval_method, df$type))
 	ci_disp_na = ifelse(is.na(ci_disp), "NA", ci_disp)
 	pval_disp_na = ifelse(is.na(pval_disp), "NA", pval_disp)
 	# Don't print "(jackknife / jackknife)" -- only show the pval-side
@@ -1828,15 +1924,7 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 	# request, 2026-08-20; same "if different" rule already applied to the
 	# `pval method (if different)` table column).
 	method_paren = ifelse(ci_disp_na == pval_disp_na, ci_disp_na, sprintf("%s / %s", ci_disp_na, pval_disp_na))
-	# Per user request, 2026-08-20: replace the old per-point stacked text
-	# (class/method under each point, p-value left of it, width right of
-	# it) with a single letter marker at each point and a `"(A) <class>
-	# (<method>): p = ..., CI width = ..."` key line printed as the plot's
-	# caption -- "that will compress the vertical height of the PDFs
-	# substantially" (no more per-point text competing for vertical room).
-	df$key_line = sprintf(
-		"%s (%s): p = %s, CI width = %s", df$inference_class_disp, method_paren, pval_num, width_num
-	)
+	df$class_method_label = sprintf("%s (%s)", df$inference_class_disp, method_paren)
 	df$pval_num = pval_num
 	df$width_num = width_num
 	estimands = sort(unique(df$estimand_facet))
@@ -1844,15 +1932,18 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		d = df[df$estimand_facet == e, , drop = FALSE]
 		d = d[order(d$estimate), , drop = FALSE]
 		d$y = seq_len(nrow(d))
-		d$letter = vapply(seq_len(nrow(d)), run_all_inference_letter_label, character(1L))
-		key_lines = sprintf("(%s) %s", d$letter, d$key_line)
-		# Restored per-line numbers (per user request, 2026-08-21) -- the
-		# letter sits "in front of" (left of) each line, combined with its
-		# p-value into one label at the left end of the segment; the width
-		# number is restored at the right end. The full class/method text
-		# stays out of the plot area itself, in the caption key only.
-		d$left_label = sprintf("%s: p=%s", d$letter, d$pval_num)
+		# Per user request, 2026-08-21: no more letter markers (A,B,C,...)
+		# and no more caption/key -- the full class/method label moves back
+		# into the plot area itself, as a right-aligned column (`x = Inf,
+		# hjust = 1`, so every row's label lines up flush against the
+		# panel's right edge regardless of that row's own CI position)
+		# rather than stacked underneath the point (the original
+		# pre-letter design) or listed separately in a caption (the
+		# letter+key design just before this one) -- both of those cost
+		# vertical room this doesn't.
+		d$left_label = sprintf("p=%s", d$pval_num)
 		d$right_label = sprintf("width=%s", d$width_num)
+		d$right_full_label = d$class_method_label
 		# Per-estimand Cauchy-combined p-value (per user request, 2026-08-20:
 		# "each illustration gets its own cauchy combined pval since it is
 		# its own estimand") -- unweighted combination over this estimand's
@@ -1872,14 +1963,14 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# null reference line at 1 instead of 0.
 		use_log10 = run_all_inference_estimand_use_log10(e, c(d$ci_a, d$ci_b, d$estimate))
 		null_x = if (use_log10) 1 else 0
-		# Wider left/right expansion than the estimates plot's -- the
-		# restored p-value/width numbers (per user request, 2026-08-21) sit
-		# just outside each segment's ends and get clipped at the panel
-		# edge for the leftmost/rightmost points without it.
+		# Wide right expansion -- per user request, 2026-08-21, reserves
+		# panel room for the right-aligned class/method label column
+		# (`x = Inf, hjust = 1` below), which needs much more horizontal
+		# space than the old numbers-only design.
 		x_scale = if (use_log10) {
-			ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = c(0.35, 0.25)))
+			ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = c(0.35, 1.6)))
 		} else {
-			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.35, 0.25)))
+			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.35, 1.6)))
 		}
 		ggplot2::ggplot(d, ggplot2::aes(y = y)) +
 			ggplot2::geom_vline(xintercept = null_x, linetype = "dashed", color = "grey40") +
@@ -1896,23 +1987,38 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 				ggplot2::aes(x = ci_b, label = right_label, color = significant),
 				hjust = -0.1, size = 2.6
 			) +
+			# Class/method label, right-aligned in a fixed column at the
+			# panel's right edge (`x = Inf, hjust = 1`) -- per user request,
+			# 2026-08-21: "move the model / function name labels back into
+			# the main plot... align the labels on the right". Sitting at
+			# each row's own `y` (not stacked above/below it) is what lets
+			# row-to-row vertical spacing stay minimal.
+			ggplot2::geom_text(
+				ggplot2::aes(x = Inf, label = right_full_label, color = significant),
+				hjust = 1, size = 2.6
+			) +
 			ggplot2::scale_color_manual(
 				values = c(`TRUE` = "#1a7a3c", `FALSE` = "#888888"), guide = "none"
 			) +
-			# Less vertical space between rows than the old `mult = 0.15`
-			# (per user request, 2026-08-19).
-			ggplot2::scale_y_continuous(breaks = NULL, expand = ggplot2::expansion(mult = 0.08)) +
+			# Minimal top/bottom padding -- per user request, 2026-08-21:
+			# "reduce the vertical space between the ci lines as much as
+			# possible". Row-to-row spacing itself is governed by the
+			# plot's overall height relative to row count
+			# (`run_all_inference_save_plots_pdf()`/the HTML embed height,
+			# both shrunk to match), not by this expansion, which only
+			# controls the panel's edge padding.
+			ggplot2::scale_y_continuous(breaks = NULL, expand = ggplot2::expansion(mult = c(0.02, 0.06))) +
 			x_scale +
 			# Minimal title (just "95% CIs", per user request, 2026-08-20 --
 			# not the earlier "XX% confidence intervals -- <estimand>",
 			# which is now redundant with the x-axis label carrying the
 			# estimand name), and no subtitle (the significance-color
-			# explanation, removed per user request, 2026-08-20 -- the
-			# letter key's caption is now the only annotation).
+			# explanation, removed per user request, 2026-08-20) or caption
+			# (the letter+key design, removed per user request, 2026-08-21 --
+			# labels are back in the plot itself now).
 			ggplot2::labs(
 				x = e_disp, y = NULL,
-				title = sprintf("%g%% CIs (combined p = %s)", 100 * (1 - alpha), combined_str),
-				caption = paste(key_lines, collapse = "\n")
+				title = sprintf("%g%% CIs (combined p = %s)", 100 * (1 - alpha), combined_str)
 			) +
 			ggplot2::theme_minimal() +
 			ggplot2::theme(
@@ -2046,7 +2152,11 @@ run_all_inference_save_plots_pdf = function(plots, path_estimates, path_ci_fores
 	}
 	if (length(plots$ci_forest) > 0L) {
 		ci_rows = vapply(plots$ci_forest, function(p) nrow(p$data), integer(1L))
-		height = min(48, max(6, 0.35 * max(ci_rows) + 1.5))
+		# Per-row height shrunk (was `0.35 * ... + 1.5`) -- per user request,
+		# 2026-08-21 ("reduce the vertical space between the ci lines as
+		# much as possible"); each row is just one line + its restored
+		# flanking numbers now, no stacked text underneath any more.
+		height = min(48, max(6, 0.20 * max(ci_rows) + 1))
 		max_chars = max(vapply(plots$ci_forest, run_all_inference_plot_max_label_chars, integer(1L)))
 		width = min(14, max(6, 3 + 0.09 * max_chars))
 		grDevices::pdf(path_ci_forest, width = width, height = height, onefile = TRUE)
@@ -2249,7 +2359,14 @@ design_class_short_label = function(name) {
 		algo = substring(rest, nchar("Fixed") + 1L)
 		return(sprintf("%s Fixed", algo))
 	}
-	rest
+	# Fallback for names with no recognized `"SeqOneByOne"`/`"Fixed"` prefix
+	# (e.g. `"ObservationalDesignBlocks"`, which doesn't even start with
+	# "Design") -- per user request, 2026-08-21: this was previously
+	# returning the raw, unformatted class name unchanged. Word-splits on
+	# camelCase boundaries the same way `inference_class_short_label()`
+	# does via `inference_class_wordify()`, e.g. `"ObservationalDesignBlocks"`
+	# -> `"Observational Design Blocks"`.
+	inference_class_wordify(rest)
 }
 
 inference_class_short_label = function(name) {

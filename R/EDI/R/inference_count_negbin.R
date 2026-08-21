@@ -14,9 +14,41 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceCountNegBin = R6::R6Class("InferenceCountNegBin",
-	lock_objects = FALSE,
-	inherit = InferenceCountLikelihood,
+InferenceCountNegBin = define_inference_class(
+	classname = "InferenceCountNegBin",
+	inherit = Inference,
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "count"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_estimate_with_bootstrap_weights", "compute_rand_two_sided_pval",
+			"get_supported_testing_types",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"compute_wald_two_sided_pval", "compute_wald_confidence_interval",
+			"compute_score_two_sided_pval", "compute_score_confidence_interval",
+			"compute_lik_ratio_two_sided_pval", "compute_lik_ratio_confidence_interval",
+			"compute_gradient_two_sided_pval", "compute_gradient_confidence_interval",
+			"compute_lik_ratio_bootstrap_two_sided_pval", "compute_lik_ratio_bootstrap_confidence_interval",
+			"compute_jackknife_estimate", "compute_jackknife_bias_estimate",
+			"compute_jackknife_std_error", "compute_jackknife_wald_two_sided_pval",
+			"compute_jackknife_wald_confidence_interval"
+		),
+		private = c(
+			"cached_mod", "cached_vc_params", "supports_lik_ratio_param_bootstrap", "supports_likelihood_tests",
+			"simulate_under_lik_null", "get_likelihood_test_spec",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"get_supported_testing_types_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_standard_error", "get_degrees_of_freedom",
+			"compute_score_two_sided_pval_impl", "compute_score_confidence_interval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_gradient_confidence_interval_impl",
+			"compute_lik_ratio_two_sided_pval_impl", "compute_lik_ratio_confidence_interval_impl",
+			"compute_treatment_estimate_during_randomization_inference", "get_complexity_tier"
+		)
+	),
 	public = list(
 
 		#' @description Initialize a negative binomial regression inference object.
@@ -170,6 +202,8 @@ InferenceCountNegBin = R6::R6Class("InferenceCountNegBin",
 		}
 	),
 	private = list(
+		cached_mod = NULL,
+		cached_vc_params = NULL,
 		best_X_colnames = NULL,
 		negbin_X_full_cache = NULL,
 		negbin_w_cache = NULL,

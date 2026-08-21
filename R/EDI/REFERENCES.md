@@ -212,6 +212,20 @@ files' `@references`) if/when it becomes available.
 - **[PolitisRomanoWolf1999]** Politis, D. N., Romano, J. P., and Wolf, M.
   (1999). *Subsampling*. Springer. — Used by: the PRW subsampling method
   (`inference_ext_prw_subsampling.R`).
+- **[Kallus2018]** Kallus, N. (2018). "Optimal a priori balance in the
+  design of controlled experiments." *Journal of the Royal Statistical
+  Society: Series B*, 80(1), 85-112. Section 5 ("Algorithms for
+  inference"), Algorithm 4 — the nearest prior appearance of the bootstrap
+  randomization test (BRT) construction (resample subjects, redraw one
+  fresh assignment from the design on the resampled covariates),
+  introduced there for the degenerate case of Kallus's a priori balancing
+  designs where the design admits only one or very few distinct
+  permutations, leaving the classic Fisher randomization test with no
+  power. Kallus himself cites Efron and Tibshirani (1993) for the
+  bootstrap ingredient and Good (2005), *Permutation, Parametric and
+  Bootstrap Tests of Hypotheses*, Springer, for the test/CI duality, and
+  states asymptotic validity as an open question. — Used by:
+  `InferenceRandBootstrap` (`inference_all_abstract_rand_bootstrap.R`).
 
 ### GEE (matched-design / correlated-data inference)
 
@@ -239,6 +253,10 @@ files' `@references`) if/when it becomes available.
 
 ### Incidence / binary
 
+- **[Zou2004]** Zou, G. (2004). "A Modified Poisson Regression Approach to
+  Prospective Studies with Binary Data." *American Journal of Epidemiology*,
+  159(7), 702-706. doi:10.1093/aje/kwh090. — Used by:
+  `InferenceIncidModifiedPoisson`.
 - **[MiettinenNurminen1985]** Miettinen, O., and Nurminen, M. (1985).
   "Comparative Analysis of Two Rates." *Statistics in Medicine*, 4(2),
   213-226. doi:10.1002/sim.4780040211. — Used by:
@@ -272,7 +290,8 @@ files' `@references`) if/when it becomes available.
   theory), `InferenceIncidBinomialIdentityRiskDiff` (binomial GLM family,
   identity-link risk-difference parameterization),
   `InferenceIncidLogBinomial` (binomial GLM family, log-link relative-risk
-  parameterization).
+  parameterization), `InferenceIncidProbitRegr` (binomial GLM family, probit
+  link).
 
 ### Count
 
@@ -304,12 +323,20 @@ files' `@references`) if/when it becomes available.
   109-142. doi:10.1111/j.2517-6161.1980.tb01109.x. — Used by:
   `InferenceOrdinalPropOddsRegr`, `InferenceOrdinalPartialProportionalOddsRegr`
   (the full proportional-odds/cumulative-logit model both classes are built
-  on), `InferenceOrdinalCloglogRegr` (cumulative-link model family).
+  on), `InferenceOrdinalCloglogRegr` (cumulative-link model family),
+  `InferenceOrdinalOrderedProbitRegr` (cumulative-link model family,
+  probit link).
 - **[Agresti2010Ordinal]** Agresti, A. (2010). *Analysis of Ordinal
   Categorical Data* (2nd ed.). Wiley. — Used by: `InferenceOrdinalCauchitRegr`,
   `InferenceOrdinalCloglogRegr` (cumulative-link model chapters),
   `InferenceOrdinalKKCondAdjCatLogitRegr` (adjacent-category logit model
+  chapter), `InferenceOrdinalContRatioRegr` (continuation-ratio model
   chapter).
+- **[Anderson1984]** Anderson, J. A. (1984). "Regression and Ordered
+  Categorical Variables." *Journal of the Royal Statistical Society, Series
+  B*, 46(1), 1-30. doi:10.1111/j.2517-6161.1984.tb01276.x. — Used by:
+  `InferenceOrdinalStereotypeLogitRegr` (the stereotype logit model this
+  class fits), `fast_stereotype_logit_cpp`.
 - **[PetersonHarrell1990]** Peterson, B., and Harrell, F. E. (1990).
   "Partial Proportional Odds Models for Ordinal Response Variables."
   *Journal of the Royal Statistical Society, Series C (Applied
@@ -323,6 +350,10 @@ files' `@references`) if/when it becomes available.
 
 ### Survival
 
+- **[KalbfleischPrentice2002]** Kalbfleisch, J. D., and Prentice, R. L.
+  (2002). *The Statistical Analysis of Failure Time Data* (2nd ed.). Wiley.
+  — Used by: `InferenceSurvivalWeibullRegr` (Weibull AFT model and its
+  equivalence to a proportional-hazards model).
 - **[Cox1972]** Cox, D. R. (1972). "Regression Models and Life-Tables."
   *Journal of the Royal Statistical Society, Series B*, 34(2), 187-220. —
   Used by: `InferenceSurvivalCoxPHRegr`, `fast_coxph_regression`,
@@ -411,7 +442,13 @@ files' `@references`) if/when it becomes available.
   "Beta regression for modelling rates and proportions." *Journal of
   Applied Statistics*, 31(7), 799-815. doi:10.1080/0266476042000214501. —
   Used by: `InferencePropBetaRegr`, `fast_beta_regression_cpp` (R;
-  `fast_beta_regression` in the Python bindings).
+  `fast_beta_regression` in the Python bindings),
+  `InferencePropZeroOneInflatedBetaRegr` (interior beta-regression submodel).
+- **[OspinaFerrari2010]** Ospina, R., and Ferrari, S. L. P. (2010). "Inflated
+  beta distributions." *Statistical Papers*, 51(1), 111-126.
+  doi:10.1007/s00362-008-0125-4. — Used by:
+  `InferencePropZeroOneInflatedBetaRegr` (the zero/one-inflated beta mixture
+  density this class fits).
 - **[PapkeWooldridge1996]** Papke, L. E., and Wooldridge, J. M. (1996).
   "Econometric Methods for Fractional Response Variables with an
   Application to 401(K) Plan Participation Rates." *Journal of Applied
@@ -447,16 +484,18 @@ files' `@references`) if/when it becomes available.
 
 This file indexes every `@references`-tagged citation currently present in
 the package's roxygen source. It does **not** mean every documented
-statistical method has one. Three ordinal-response classes have well-known
-named methods (adjacent-category logit, continuation-ratio logit, and
-Anderson's (1984) stereotype logit — `InferenceOrdinalAdjCatLogitRegr`,
-`InferenceOrdinalContRatioRegr`, `InferenceOrdinalStereotypeLogitRegr`) and
+statistical method has one. One ordinal-response class has a well-known
+named method still lacking a formal `@references` block (adjacent-category
+logit — `InferenceOrdinalAdjCatLogitRegr`; its continuation-ratio and
+stereotype-logit siblings, `InferenceOrdinalContRatioRegr` and
+`InferenceOrdinalStereotypeLogitRegr`, migrated 2026-08-21 and now carry
+`[Agresti2010Ordinal]`/`[Anderson1984]` respectively) and
 four count-response classes likewise (zero-inflated Poisson/NegBin, hurdle
 Poisson/NegBin — `InferenceCountZeroInflatedPoisson`,
 `InferenceCountZeroInflatedNegBin`, `InferenceCountHurdlePoisson`,
 `InferenceCountHurdleNegBin`) whose class-level `@details` prose names the
-method but does not (yet) carry a formal `@references` block. These seven
-are **not** a documentation oversight: all seven classes are still on the
+method but does not (yet) carry a formal `@references` block. These five
+are **not** a documentation oversight: all five classes are still on the
 pre-migration `R6::R6Class(inherit = <OldLadderBase>)` hierarchy rather than
 the shallow `define_inference_class(inherit = Inference, ...)` form (see
 `fix_inference_hierarchy.md`), and are deliberately left untouched while
@@ -464,14 +503,13 @@ that migration is in progress — adding polished documentation to a class
 whose structure is about to change risks exactly the kind of silent
 reversion `fix_inference_hierarchy.md`'s own migration notes describe
 happening to `InferenceIncidGCompRiskDiff` earlier in this effort. Revisit
-this list once each of those seven classes migrates (their `inherit=`
+this list once each of those five classes migrates (their `inherit=`
 becomes `Inference` directly), and add the canonical citation then: Lambert
 (1992, *Technometrics* 34(1), 1-14, doi:10.2307/1269547) for zero-inflated
 Poisson; Mullahy (1986, *Journal of Econometrics* 33(3), 341-365,
-doi:10.1016/0304-4076(86)90002-3) for hurdle count models; and Anderson
-(1984, *Journal of the Royal Statistical Society, Series B*, 46(1), 1-30)
-for stereotype logit — all already identified, just not yet addable to a
-class whose current form is about to be replaced.
+doi:10.1016/0304-4076(86)90002-3) for hurdle count models — already
+identified, just not yet addable to a class whose current form is about to
+be replaced.
 
 When a new `@references` block is added anywhere in the package, add the
 corresponding entry here in the same commit/session — `Rscript

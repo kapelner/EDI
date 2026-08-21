@@ -1415,7 +1415,11 @@ EDI_COMPONENT_SPECS = list(
 			"compute_lik_ratio_confidence_interval_impl",
 			"count_likelihood_block_asymp_unsupported",
 			"mark_count_likelihood_block_asymp_nonestimable",
-			"count_likelihood_missing_ci", "is_a_count_likelihood"
+			"count_likelihood_missing_ci", "is_a_count_likelihood",
+			"cl_plumbing_asymp_lik_compute_asymp_confidence_interval",
+			"cl_plumbing_asymp_lik_compute_asymp_two_sided_pval",
+			"cl_plumbing_param_boot_compute_lik_ratio_bootstrap_two_sided_pval",
+			"cl_plumbing_param_boot_compute_lik_ratio_bootstrap_confidence_interval"
 		),
 		provides_capabilities = "count_likelihood_plumbing",
 			allowed_likelihood_tiers = c("quasi", "full"),

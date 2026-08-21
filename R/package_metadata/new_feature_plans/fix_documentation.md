@@ -1144,16 +1144,16 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidLogBinomial.Rd`
 
-- [ ] TODO #442: Method `InferenceIncidLogBinomial$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #443: Method `InferenceIncidLogBinomial$compute_gradient_confidence_interval()` (current description `60` chars).
-- [ ] TODO #444: Method `InferenceIncidLogBinomial$compute_score_confidence_interval()` (current description `57` chars).
-- [ ] TODO #445: Method `InferenceIncidLogBinomial$new()` (current description `54` chars).
-- [ ] TODO #446: Topic `InferenceIncidLogBinomial` (current description `207` chars).
+- [x] TODO #442: Method `InferenceIncidLogBinomial$compute_estimate_with_bootstrap_weights()` (current description `77` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented weighted refit + hardening behavior.
+- [x] TODO #443: Method `InferenceIncidLogBinomial$compute_gradient_confidence_interval()` (current description `60` chars). Documented gradient-test-inversion contract.
+- [x] TODO #444: Method `InferenceIncidLogBinomial$compute_score_confidence_interval()` (current description `57` chars). Documented score-test-inversion contract.
+- [x] TODO #445: Method `InferenceIncidLogBinomial$new()` (current description `54` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #446: Topic `InferenceIncidLogBinomial` (current description `207` chars). Full model doc added (log-link relative-risk estimand, contrasted with logit/identity-link siblings); fixed a misplaced-doc-block bug (same pattern as `InferenceIncidLogRegr`/`InferenceIncidBinomialIdentityRiskDiff`). `REFERENCES.md` updated (`[McCullaghNelder1989]` "Used by" list).
 
 ### `InferenceIncidLogRegr.Rd`
 
-- [ ] TODO #447: Method `InferenceIncidLogRegr$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #448: Method `InferenceIncidLogRegr$new()` (current description `50` chars).
+- [x] TODO #447: Method `InferenceIncidLogRegr$compute_estimate_with_bootstrap_weights()` (current description `76` chars). Documented weighted refit + hardening behavior.
+- [x] TODO #448: Method `InferenceIncidLogRegr$new()` (current description `50` chars). Documented model form and deferred-fit behavior.
 - [x] TODO #449: Topic `InferenceIncidLogRegr` (current description `199` chars). Newly ungated 2026-08-20 (class migrated to `inherit = Inference`); full model doc added, and fixed a structural bug found while documenting: the topic-level roxygen block was sitting above the mid-refactor `inference_incid_log_regr_public` bare-list binding (not the `InferenceIncidLogRegr = define_inference_class(...)` call itself), which would have generated the Rd page under the wrong topic — moved the doc block to directly precede the `define_inference_class()` call. `REFERENCES.md` updated (new `[McCullaghNelder1989]` entry).
 
 ### `InferenceIncidMiettinenNurminenRiskDiff.Rd`
@@ -1167,12 +1167,12 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidModifiedPoisson.Rd`
 
-- [ ] TODO #456: Method `InferenceIncidModifiedPoisson$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #457: Method `InferenceIncidModifiedPoisson$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #458: Method `InferenceIncidModifiedPoisson$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #459: Method `InferenceIncidModifiedPoisson$compute_estimate()` (current description `58` chars).
-- [ ] TODO #460: Method `InferenceIncidModifiedPoisson$new()` (current description `58` chars).
-- [ ] TODO #461: Topic `InferenceIncidModifiedPoisson` (current description `316` chars).
+- [x] TODO #456: Method `InferenceIncidModifiedPoisson$compute_asymp_confidence_interval()` (current description `60` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented Wald CI + non-robust-SE caveat.
+- [x] TODO #457: Method `InferenceIncidModifiedPoisson$compute_asymp_two_sided_pval()` (current description `58` chars). Documented Wald test + non-robust-SE caveat.
+- [x] TODO #458: Method `InferenceIncidModifiedPoisson$compute_estimate_with_bootstrap_weights()` (current description `76` chars). Documented weighted refit + hardening behavior.
+- [x] TODO #459: Method `InferenceIncidModifiedPoisson$compute_estimate()` (current description `58` chars). Documented Poisson-working-likelihood fit.
+- [x] TODO #460: Method `InferenceIncidModifiedPoisson$new()` (current description `58` chars). Documented model form; also fixed a duplicate/misplaced `@description`/`@param` roxygen block left over from the class's original doc-block-above-bare-list bug.
+- [x] TODO #461: Topic `InferenceIncidModifiedPoisson` (current description `316` chars). Full model doc added, with an explicit statistical-validity caveat: this implementation uses model-based (non-robust) Poisson Fisher information for the SE rather than Zou's canonical sandwich correction — flagged as an approximate-inference caveat, not fixed (out of scope). Fixed the misplaced-doc-block bug (same pattern as prior classes this session). `REFERENCES.md` updated (new `[Zou2004]` entry).
 
 ### `InferenceIncidNewcombeRiskDiff.Rd`
 
@@ -1185,9 +1185,9 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidProbitRegr.Rd`
 
-- [ ] TODO #468: Method `InferenceIncidProbitRegr$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [ ] TODO #469: Method `InferenceIncidProbitRegr$new()` (current description `48` chars).
-- [ ] TODO #470: Topic `InferenceIncidProbitRegr` (current description `195` chars).
+- [x] TODO #468: Method `InferenceIncidProbitRegr$compute_estimate_with_bootstrap_weights()` (current description `76` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented weighted refit + hardening behavior.
+- [x] TODO #469: Method `InferenceIncidProbitRegr$new()` (current description `48` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #470: Topic `InferenceIncidProbitRegr` (current description `195` chars). Full model doc added (latent-normal-index estimand, contrasted with logit link); fixed misplaced-doc-block bug. `REFERENCES.md` updated (`[McCullaghNelder1989]` "Used by" list).
 
 ### `InferenceIncidRiskDiff.Rd`
 
@@ -1223,9 +1223,9 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceOrdinalContRatioRegr.Rd`
 
-- [ ] TODO #488: Method `InferenceOrdinalContRatioRegr$compute_estimate_with_bootstrap_weights()` (current description `58` chars).
-- [ ] TODO #489: Method `InferenceOrdinalContRatioRegr$new()` (current description `49` chars).
-- [ ] TODO #490: Topic `InferenceOrdinalContRatioRegr` (current description `182` chars).
+- [x] TODO #488: Method `InferenceOrdinalContRatioRegr$compute_estimate_with_bootstrap_weights()` (current description `58` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented weighted-surrogate-fit approximation.
+- [x] TODO #489: Method `InferenceOrdinalContRatioRegr$new()` (current description `49` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #490: Topic `InferenceOrdinalContRatioRegr` (current description `182` chars). Full model doc added (continuation-ratio stacked-binary expansion); fixed misplaced-doc-block bug plus a duplicate `@description` tag. `REFERENCES.md` updated (`[Agresti2010Ordinal]` "Used by" list).
 
 ### `InferenceOrdinalGCompMeanDiff.Rd`
 
@@ -1300,9 +1300,9 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceOrdinalOrderedProbitRegr.Rd`
 
-- [ ] TODO #535: Method `InferenceOrdinalOrderedProbitRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars).
-- [ ] TODO #536: Method `InferenceOrdinalOrderedProbitRegr$new()` (current description `46` chars).
-- [ ] TODO #537: Topic `InferenceOrdinalOrderedProbitRegr` (current description `199` chars).
+- [x] TODO #535: Method `InferenceOrdinalOrderedProbitRegr$compute_estimate_with_bootstrap_weights()` (current description `55` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented weighted-surrogate-fit approximation.
+- [x] TODO #536: Method `InferenceOrdinalOrderedProbitRegr$new()` (current description `46` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #537: Topic `InferenceOrdinalOrderedProbitRegr` (current description `199` chars). Full model doc added (cumulative-probit form, latent-normal-index estimand); fixed misplaced-doc-block bug. `REFERENCES.md` updated (`[McCullagh1980]` "Used by" list).
 
 ### `InferenceOrdinalPairedSignTest.Rd`
 
@@ -1346,22 +1346,22 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceOrdinalStereotypeLogitRegr.Rd`
 
-- [ ] TODO #566: Method `InferenceOrdinalStereotypeLogitRegr$compute_estimate_with_bootstrap_weights()` (current description `56` chars).
-- [ ] TODO #567: Method `InferenceOrdinalStereotypeLogitRegr$new()` (current description `47` chars).
-- [ ] TODO #568: Topic `InferenceOrdinalStereotypeLogitRegr` (current description `202` chars).
+- [x] TODO #566: Method `InferenceOrdinalStereotypeLogitRegr$compute_estimate_with_bootstrap_weights()` (current description `56` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented weighted-surrogate-fit approximation (does not re-estimate category scores).
+- [x] TODO #567: Method `InferenceOrdinalStereotypeLogitRegr$new()` (current description `47` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #568: Topic `InferenceOrdinalStereotypeLogitRegr` (current description `202` chars). Full model doc added (Anderson's reduced-rank stereotype-logit form, cross-referenced with `fast_stereotype_logit_cpp`'s formula). `REFERENCES.md` updated (new `[Anderson1984]` entry; also closed 2 of the file's 7 "Coverage gaps" pending-citation entries — this class and `InferenceOrdinalContRatioRegr`, both migrated this session).
 
 ### `InferencePropBetaRegr.Rd`
 
-- [ ] TODO #569: Method `InferencePropBetaRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #570: Method `InferencePropBetaRegr$compute_estimate()` (current description `58` chars).
-- [ ] TODO #571: Method `InferencePropBetaRegr$new()` (current description `46` chars).
-- [ ] TODO #572: Topic `InferencePropBetaRegr` (current description `208` chars).
+- [x] TODO #569: Method `InferencePropBetaRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented weighted refit + hardening behavior.
+- [x] TODO #570: Method `InferencePropBetaRegr$compute_estimate()` (current description `58` chars). Documented beta-likelihood joint mean/precision fit.
+- [x] TODO #571: Method `InferencePropBetaRegr$new()` (current description `46` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #572: Topic `InferencePropBetaRegr` (current description `208` chars). Full model doc added (beta likelihood vs. `InferencePropFractionalLogit`'s quasi-likelihood contrast); `REFERENCES.md` `[FerrariCribariNeto2004]` entry already covered this class.
 
 ### `InferencePropFractionalLogit.Rd`
 
-- [ ] TODO #573: Method `InferencePropFractionalLogit$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #574: Method `InferencePropFractionalLogit$compute_estimate()` (current description `58` chars).
-- [ ] TODO #575: Method `InferencePropFractionalLogit$new()` (current description `47` chars).
+- [x] TODO #573: Method `InferencePropFractionalLogit$compute_estimate_with_bootstrap_weights()` (current description `77` chars). Documented weighted refit + hardening behavior.
+- [x] TODO #574: Method `InferencePropFractionalLogit$compute_estimate()` (current description `58` chars). Documented quasi-likelihood fit + the `estimate_only`+`harden=FALSE` `glm.fit()` fast path.
+- [x] TODO #575: Method `InferencePropFractionalLogit$new()` (current description `47` chars). Documented model form and deferred-fit behavior.
 - [x] TODO #576: Topic `InferencePropFractionalLogit` (current description `241` chars). Newly ungated 2026-08-20 (class migrated to `inherit = Inference`); full model doc added (Papke & Wooldridge fractional-response quasi-likelihood), noted `likelihood_tier = "full"` metadata vs. hard-`FALSE` `supports_likelihood_tests()` (Wald-only). `REFERENCES.md` updated (new `[PapkeWooldridge1996]` entry).
 
 ### `InferencePropGCompMeanDiff.Rd`
@@ -1405,11 +1405,11 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferencePropZeroOneInflatedBetaRegr.Rd`
 
-- [ ] TODO #598: Method `InferencePropZeroOneInflatedBetaRegr$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [ ] TODO #599: Method `InferencePropZeroOneInflatedBetaRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #600: Method `InferencePropZeroOneInflatedBetaRegr$compute_estimate()` (current description `58` chars).
-- [ ] TODO #601: Method `InferencePropZeroOneInflatedBetaRegr$new()` (current description `64` chars).
-- [ ] TODO #602: Topic `InferencePropZeroOneInflatedBetaRegr` (current description `655` chars).
+- [x] TODO #598: Method `InferencePropZeroOneInflatedBetaRegr$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); method is now provided by the composed `NonparametricBootstrap` component (a pure-passthrough override was deliberately dropped during migration) — already thoroughly documented there, no change needed.
+- [x] TODO #599: Method `InferencePropZeroOneInflatedBetaRegr$compute_estimate_with_bootstrap_weights()` (current description `77` chars). Documented weighted refit + the conditional-on-interior estimand caveat.
+- [x] TODO #600: Method `InferencePropZeroOneInflatedBetaRegr$compute_estimate()` (current description `58` chars). Documented mixture-likelihood joint fit + estimand caveat.
+- [x] TODO #601: Method `InferencePropZeroOneInflatedBetaRegr$new()` (current description `64` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #602: Topic `InferencePropZeroOneInflatedBetaRegr` (current description `655` chars). Topic doc was already thorough (estimand caveat well-explained); added `@references` (Ospina & Ferrari 2010, Ferrari & Cribari-Neto 2004) and a `@seealso` link to the non-inflated `InferencePropBetaRegr` sibling. `REFERENCES.md` updated (new `[OspinaFerrari2010]` entry, extended `[FerrariCribariNeto2004]` "Used by" list).
 
 ### `InferenceSuite.Rd`
 
@@ -1425,26 +1425,26 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceSurvivalDepCensTransformRegr.Rd`
 
-- [ ] TODO #609: Method `InferenceSurvivalDepCensTransformRegr$approximate_randomization_distribution_beta_hat_T()` (current description `69` chars).
-- [ ] TODO #610: Method `InferenceSurvivalDepCensTransformRegr$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #611: Method `InferenceSurvivalDepCensTransformRegr$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #612: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_basic()` (current description `62` chars).
-- [ ] TODO #613: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_bca()` (current description `60` chars).
-- [ ] TODO #614: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_studentized()` (current description `68` chars).
-- [ ] TODO #615: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval()` (current description `56` chars).
-- [ ] TODO #616: Method `InferenceSurvivalDepCensTransformRegr$compute_estimate_with_bootstrap_weights()` (current description `58` chars).
-- [ ] TODO #617: Method `InferenceSurvivalDepCensTransformRegr$compute_estimate()` (current description `58` chars).
-- [ ] TODO #618: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_bias_estimate()` (current description `62` chars).
-- [ ] TODO #619: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_estimate()` (current description `114` chars).
-- [ ] TODO #620: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_std_error()` (current description `63` chars).
-- [ ] TODO #621: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_wald_confidence_interval()` (current description `73` chars).
-- [ ] TODO #622: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_wald_two_sided_pval()` (current description `71` chars).
-- [ ] TODO #623: Method `InferenceSurvivalDepCensTransformRegr$compute_lik_ratio_confidence_interval()` (current description `58` chars).
-- [ ] TODO #624: Method `InferenceSurvivalDepCensTransformRegr$compute_rand_confidence_interval()` (current description `72` chars).
-- [ ] TODO #625: Method `InferenceSurvivalDepCensTransformRegr$compute_rand_two_sided_pval()` (current description `122` chars).
-- [ ] TODO #626: Method `InferenceSurvivalDepCensTransformRegr$compute_score_two_sided_pval()` (current description `89` chars).
-- [ ] TODO #627: Method `InferenceSurvivalDepCensTransformRegr$new()` (current description `65` chars).
-- [ ] TODO #628: Topic `InferenceSurvivalDepCensTransformRegr` (current description `240` chars).
+- [x] TODO #609: Method `InferenceSurvivalDepCensTransformRegr$approximate_randomization_distribution_beta_hat_T()` (current description `69` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); already adequately documented ("Reports the randomization distribution as unavailable..."), no change needed.
+- [x] TODO #610: Method `InferenceSurvivalDepCensTransformRegr$compute_asymp_confidence_interval()` (current description `60` chars). Documented Wald CI contract for the event-submodel log-time-ratio.
+- [x] TODO #611: Method `InferenceSurvivalDepCensTransformRegr$compute_asymp_two_sided_pval()` (current description `58` chars). Documented Wald test contract.
+- [x] TODO #612: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_basic()` (current description `62` chars). Already adequately documented (validated/nonestimable-fallback behavior explained), no change needed.
+- [x] TODO #613: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_bca()` (current description `60` chars). Already adequately documented, no change needed.
+- [x] TODO #614: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_studentized()` (current description `68` chars). Already adequately documented, no change needed.
+- [x] TODO #615: Method `InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval()` (current description `56` chars). Already adequately documented, no change needed.
+- [x] TODO #616: Method `InferenceSurvivalDepCensTransformRegr$compute_estimate_with_bootstrap_weights()` (current description `58` chars). Documented the Cox-surrogate-fit approximation.
+- [x] TODO #617: Method `InferenceSurvivalDepCensTransformRegr$compute_estimate()` (current description `58` chars). Documented joint bivariate log-normal likelihood fit.
+- [x] TODO #618: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_bias_estimate()` (current description `62` chars). Already adequately documented (jackknife unsupported, explained), no change needed.
+- [x] TODO #619: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_estimate()` (current description `114` chars). Already adequately documented, no change needed.
+- [x] TODO #620: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_std_error()` (current description `63` chars). Already adequately documented, no change needed.
+- [x] TODO #621: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_wald_confidence_interval()` (current description `73` chars). Already adequately documented, no change needed.
+- [x] TODO #622: Method `InferenceSurvivalDepCensTransformRegr$compute_jackknife_wald_two_sided_pval()` (current description `71` chars). Already adequately documented, no change needed.
+- [x] TODO #623: Method `InferenceSurvivalDepCensTransformRegr$compute_lik_ratio_confidence_interval()` (current description `58` chars). Already adequately documented (unstable-inversion fallback explained), no change needed.
+- [x] TODO #624: Method `InferenceSurvivalDepCensTransformRegr$compute_rand_confidence_interval()` (current description `72` chars). Already adequately documented (randomization unsupported, explained), no change needed.
+- [x] TODO #625: Method `InferenceSurvivalDepCensTransformRegr$compute_rand_two_sided_pval()` (current description `122` chars). Already adequately documented, no change needed.
+- [x] TODO #626: Method `InferenceSurvivalDepCensTransformRegr$compute_score_two_sided_pval()` (current description `89` chars). Already adequately documented (asymptotic-fallback stability check explained), no change needed.
+- [x] TODO #627: Method `InferenceSurvivalDepCensTransformRegr$new()` (current description `65` chars). Documented joint model form and deferred-fit behavior.
+- [x] TODO #628: Topic `InferenceSurvivalDepCensTransformRegr` (current description `240` chars). Full model doc added: joint bivariate log-normal event/censoring transformation model with Gaussian-copula-style correlation \eqn{\rho}, contrasted with `InferenceSurvivalWeibullRegr` and the Clayton-copula KK family; explicitly documented the deliberate jackknife/randomization-unsupported limitations and the bootstrap-surrogate approximation. Fixed misplaced-doc-block bug (same pattern as other classes this session). No new `@references` added (avoided citing an unverified DOI for the specific dependent-censoring copula method; linked to the related Clayton-copula class instead).
 
 ### `InferenceSurvivalGehanWilcox.Rd`
 
@@ -1575,12 +1575,12 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceSurvivalWeibullRegr.Rd`
 
-- [ ] TODO #711: Method `InferenceSurvivalWeibullRegr$compute_asymp_confidence_interval()` (current description `60` chars).
-- [ ] TODO #712: Method `InferenceSurvivalWeibullRegr$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [ ] TODO #713: Method `InferenceSurvivalWeibullRegr$compute_estimate_with_bootstrap_weights()` (current description `51` chars).
-- [ ] TODO #714: Method `InferenceSurvivalWeibullRegr$compute_estimate()` (current description `58` chars).
-- [ ] TODO #715: Method `InferenceSurvivalWeibullRegr$new()` (current description `49` chars).
-- [ ] TODO #716: Topic `InferenceSurvivalWeibullRegr` (current description `267` chars).
+- [x] TODO #711: Method `InferenceSurvivalWeibullRegr$compute_asymp_confidence_interval()` (current description `60` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented Wald CI contract.
+- [x] TODO #712: Method `InferenceSurvivalWeibullRegr$compute_asymp_two_sided_pval()` (current description `58` chars). Documented Wald test contract.
+- [x] TODO #713: Method `InferenceSurvivalWeibullRegr$compute_estimate_with_bootstrap_weights()` (current description `51` chars). Documented the right-censoring-only limitation (throws on left-/interval-censored data).
+- [x] TODO #714: Method `InferenceSurvivalWeibullRegr$compute_estimate()` (current description `58` chars). Documented AFT likelihood fit incl. censoring handling.
+- [x] TODO #715: Method `InferenceSurvivalWeibullRegr$new()` (current description `49` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #716: Topic `InferenceSurvivalWeibullRegr` (current description `267` chars). Full model doc added (AFT form, log-time-ratio estimand, AFT/PH equivalence note); fixed misplaced-doc-block bug. `REFERENCES.md` updated (new `[KalbfleischPrentice2002]` entry).
 
 ### `ObservationalDesign.Rd`
 

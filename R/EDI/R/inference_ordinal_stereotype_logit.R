@@ -1,12 +1,41 @@
 #' Stereotype Logit Regression Inference for Ordinal Responses
 #'
-#' Fits a stereotype logit regression for ordinal responses using the treatment
-#' indicator and, optionally, all recorded covariates as predictors.
+#' Fits Anderson's (1984) stereotype logit model for ordinal responses (see
+#' \code{\link{fast_stereotype_logit_cpp}} for the full reduced-rank
+#' multinomial-softmax formula and reparameterization): a single linear
+#' predictor \eqn{\eta_i = \beta_T W_i + X_i^\top \gamma} is scaled by a
+#' category-specific \strong{score} \eqn{\phi_k \in [0,1]} (jointly estimated,
+#' monotone in \eqn{k}) in a softmax over all \eqn{K} categories, rather than
+#' assuming a single proportional/parallel effect across cuts as
+#' \code{\link[EDI:InferenceOrdinalContRatioRegr]{InferenceOrdinalContRatioRegr}}/
+#' \code{\link[EDI:InferenceOrdinalKKCondAdjCatLogitRegr]{InferenceOrdinalKKCondAdjCatLogitRegr}}
+#' do. This makes the stereotype model a genuinely more flexible
+#' (multinomial-logit-like, reduced-rank) alternative to the standard
+#' proportional-odds/adjacent-category/continuation-ratio ordinal families,
+#' at the cost of a less directly interpretable treatment coefficient
+#' (\eqn{\beta_T} enters multiplicatively through the \eqn{\phi_k} scores
+#' rather than as a single additive log-odds-ratio). \code{likelihood_tier =
+#' "full"}: likelihood-ratio, score, gradient, and Wald tests are all
+#' available when the model converges, plus parametric-likelihood-bootstrap
+#' calibration of the likelihood-ratio test.
+#'
+#' @references Anderson, J. A. (1984). "Regression and Ordered Categorical
+#'   Variables." \emph{Journal of the Royal Statistical Society, Series B},
+#'   46(1), 1-30, \doi{10.1111/j.2517-6161.1984.tb01276.x}, for the
+#'   stereotype logit model.
+#'
+#' @seealso \code{\link[EDI:InferenceOrdinalContRatioRegr]{InferenceOrdinalContRatioRegr}}
+#'   for a proportional (non-reduced-rank) ordinal alternative. See also:
+#'   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal
+#'   regression} (Wikipedia).
 #'
 #' @name InferenceOrdinalStereotypeLogitRegr
 #' @export
 inference_ordinal_stereotype_public = list(
-		#' @description Initialize a stereotype logit inference object.
+		#' @description Initialize inference for the stereotype logit model; see
+		#'   \code{\link[EDI:InferenceOrdinalStereotypeLogitRegr]{InferenceOrdinalStereotypeLogitRegr}}
+		#'   for the model form. Does not fit the model; the fit is deferred to the
+		#'   first call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with an ordinal response.
 		#' @param model_formula   Optional formula for covariate adjustment.
 		#' @param verbose Whether to print progress messages.
@@ -21,8 +50,15 @@ inference_ordinal_stereotype_public = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the stereotype-logit treatment estimate under
-		#'   Bayesian-bootstrap weights.
+		#' @description Recomputes the treatment estimate under subject/block-level
+		#'   bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
+		#'   weights). Rather than refitting the full reduced-rank stereotype model
+		#'   under weights, calls \code{weighted_ordinal_bootstrap_surrogate_fit()}
+		#'   — a fast weighted ordinal-logistic surrogate fit on the raw design
+		#'   matrix — as an approximation to the weighted stereotype likelihood; the
+		#'   surrogate does not re-estimate the \eqn{\phi_k} category scores. No
+		#'   standard error is computed (\code{s_beta_hat_T} is always \code{NA});
+		#'   the surrogate returns \code{NA} if the fit fails.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
 		#' @param estimate_only If \code{TRUE}, compute only the weighted point
@@ -330,16 +366,12 @@ InferenceOrdinalStereotypeLogitRegr = define_inference_class(
 	)
 )
 
-#' Continuation Ratio Regression Inference for Ordinal Responses
-#'
-#' Fits a continuation ratio regression for ordinal responses using the treatment
-#' indicator and, optionally, all recorded covariates as predictors.
-#'
-#' @description Fits a continuation-ratio ordinal regression and reports the
-#'   treatment effect estimate on the model's coefficient scale.
-#' @export
 inference_ordinal_contratio_public = list(
-		#' @description Initialize a continuation ratio inference object.
+		#' @description Initialize inference for the continuation-ratio ordinal
+		#'   regression model; see
+		#'   \code{\link[EDI:InferenceOrdinalContRatioRegr]{InferenceOrdinalContRatioRegr}}
+		#'   for the model form. Does not fit the model; the fit is deferred to the
+		#'   first call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with an ordinal response.
 		#' @param model_formula   Optional formula for covariate adjustment.
 		#' @param verbose Whether to print progress messages.
@@ -354,8 +386,15 @@ inference_ordinal_contratio_public = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the continuation-ratio treatment estimate under
-		#'   Bayesian-bootstrap weights.
+		#' @description Recomputes the treatment estimate under subject/block-level
+		#'   bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
+		#'   weights). Rather than refitting the full expanded conditional-logit
+		#'   model under weights, calls \code{weighted_ordinal_bootstrap_surrogate_fit()}
+		#'   — a fast weighted ordinal-logistic surrogate fit on the raw (unexpanded)
+		#'   design matrix — as an approximation to the weighted continuation-ratio
+		#'   likelihood; this trades exact reweighted refitting for speed across many
+		#'   bootstrap replicates. No standard error is computed (\code{s_beta_hat_T}
+		#'   is always \code{NA}); the surrogate returns \code{NA} if the fit fails.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
 		#' @param estimate_only If \code{TRUE}, compute only the weighted point
@@ -602,6 +641,45 @@ OrdinalContinuationRatioLikelihoodSource = list(
 	private = inference_ordinal_contratio_private
 )
 
+#' Continuation Ratio Regression Inference for Ordinal Responses
+#'
+#' Fits a conditional (stratified) continuation-ratio logit model for ordinal
+#' responses: for cut \eqn{j = 1, \dots, K-1}, among subjects who have
+#' reached at least category \eqn{j}, \deqn{\log\frac{\Pr(Y_i = j \mid Y_i
+#' \ge j)}{\Pr(Y_i > j \mid Y_i \ge j)} = \alpha_j + \beta_T W_i + X_i^\top
+#' \gamma,} a discrete-time-hazard-model analog for ordinal data, with a
+#' treatment coefficient \eqn{\beta_T} constrained equal across all cuts.
+#' \eqn{\exp(\hat\beta_T)} is the common "stop here vs. continue" odds ratio.
+#' Fitting proceeds by \code{\link{expand_continuation_ratio_data_cpp}}'s
+#' stacked-binary expansion followed by conditional logistic regression on
+#' the expanded data. \code{likelihood_tier = "full"}: likelihood-ratio,
+#' score, gradient, and Wald tests are all available when the model
+#' converges, plus parametric-likelihood-bootstrap calibration of the
+#' likelihood-ratio test. Validity requires the continuation-ratio
+#' proportionality assumption (a common \eqn{\beta_T} across all \eqn{K-1}
+#' cuts).
+#'
+#' @references Agresti, A. (2010). \emph{Analysis of Ordinal Categorical
+#'   Data} (2nd ed.). Wiley, for the continuation-ratio model family.
+#'
+#' @seealso \code{\link[EDI:InferenceOrdinalStereotypeLogitRegr]{InferenceOrdinalStereotypeLogitRegr}}
+#'   and
+#'   \code{\link[EDI:InferenceOrdinalKKCondAdjCatLogitRegr]{InferenceOrdinalKKCondAdjCatLogitRegr}}
+#'   for related ordinal-logit expansions. See also:
+#'   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal
+#'   regression} (Wikipedia).
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'ordinal')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(sample(1:4, 10, replace = TRUE))
+#' inf = InferenceOrdinalContRatioRegr$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' @export
 InferenceOrdinalContRatioRegr = define_inference_class(
 	classname = "InferenceOrdinalContRatioRegr",
 	inherit = Inference,

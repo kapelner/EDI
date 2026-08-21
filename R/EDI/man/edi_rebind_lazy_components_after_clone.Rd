@@ -5,7 +5,7 @@
 \title{Re-bind already-installed lazy-component methods on a freshly cloned
 \code{Inference} object to that clone's own \code{self}/\code{private}.}
 \usage{
-edi_rebind_lazy_components_after_clone(i)
+edi_rebind_lazy_components_after_clone(i, source_private = NULL)
 }
 \arguments{
 \item{i}{The freshly cloned \code{Inference} object.}

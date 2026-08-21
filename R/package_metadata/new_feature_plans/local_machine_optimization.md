@@ -190,25 +190,80 @@ each stored diff through the existing setters. Rules:
   `set_num_cores()`, never auto-applied at load; (e) Python-side twin:
   **deferred** — R-only for this release, a Python twin is a future plan
   item, not part of this release's scope.
-- [ ] TODO-2: **Prerequisite refactor — lift the hardcoded warm-start layer
-  into the config table.** Move the sample-size-conditioned disable rules
-  hardcoded in `edi_warm_start_dispatch_policy()`
-  (`EDI/R/globals.R:953-1201`) into the policy structure returned by
-  `get_warm_start_dispatch_policy()` — e.g. each override becomes
-  `list(value = FALSE, n_below = 200L)` instead of a bare logical — so that
-  (a) `set_warm_start_dispatch_policy()` can finally override all of it, and
-  (b) the tuner has a place to write machine-specific `n` thresholds.
-  Update the roxygen on `get_warm_start_dispatch_policy()`
-  (`EDI/R/globals.R:824-861`) and `set_warm_start_dispatch_policy()`
-  (`EDI/R/globals.R:900-951`), which currently document the hardcoded layer
-  as unreachable — that caveat disappears. Golden-test that the refactored
-  dispatcher returns identical decisions to the current one for every
-  (class, operation, n) combination exercised by existing tests. This item
-  is valuable standalone and could ship in 1.0.x ahead of the rest.
-- [ ] TODO-3: Build the benchmark harness: registry-driven family
-  enumeration, synthetic-data generation per family (reuse test fixtures),
-  interleaved A/B timing with median + IQR, the ≥5%-and-2×IQR acceptance
-  rule, and the `effort` tiering. Pure R orchestration; no new C++.
+- [x] TODO-2: **Prerequisite refactor — lift the hardcoded warm-start layer
+  into the config table. DONE (2026-08-21).** Moved all ~90
+  sample-size-conditioned disable rules out of `edi_warm_start_dispatch_policy()`'s
+  hardcoded `if` cascade into a new `n_conditioned_overrides` list per
+  operation in `get_warm_start_dispatch_policy()` (each rule:
+  `list(pattern, value, n_min, n_max)`, matched when `n_val` falls in
+  `[n_min, n_max)`). The "Global disables" (n-unconditioned hardcoded
+  blocks) were folded into the existing `inference_class_overrides` vectors.
+  `edi_warm_start_dispatch_policy()` now consults both layers generically
+  (unconditioned pattern table, then n-conditioned rules) instead of a
+  90-branch `if` cascade. `set_warm_start_dispatch_policy()` was also fixed
+  to replace `n_conditioned_overrides` wholesale on override rather than
+  routing it through `modifyList()`, which silently no-ops on unnamed lists
+  (caught by the new test below) — both layers are now genuinely
+  overridable, closing (a) and (b). Roxygen on both functions updated to
+  drop the "unreachable"/"cannot override" caveats.
+  **Verification:** a scripted golden-equivalence check compared the
+  refactored dispatcher against the pre-refactor hardcoded function across
+  4,875 (class, operation, n) combinations (every class named anywhere in
+  the old policy, all 5 operations, every n boundary ± 1) — zero mismatches.
+  That check is now a permanent regression test,
+  `test-warm-start-dispatch-policy-refactor.R` (golden-equivalence test +
+  a test confirming `set_warm_start_dispatch_policy()` can override an
+  n-conditioned rule end-to-end), plus `test-inference-dispatch-policy-structure.R`
+  extended to validate every `n_conditioned_overrides` pattern still matches
+  a live inference class name. All of `test-gcomp-boot-warm-start-chaining.R`,
+  `test-gee-warm-start.R`, `test-smart-start-warm-paths.R`,
+  `test-warm-start-weights.R` pass unchanged (no behavior regression). Pure
+  R change, no C++ touched — verified via `pkgload::load_all(compile = FALSE)`,
+  no rebuild.
+- [x] TODO-3: **Build the benchmark harness. DONE (2026-08-21).**
+  `R/EDI/R/local_machine_tuning_harness.R` (all internal, `@noRd`, no
+  exports yet — `tune_EDI_for_this_machine()` itself is TODO-4/5):
+  - `edi_tuning_live_families()` — registry-driven family enumeration:
+    iterates the live `EDI` namespace via `is_inference_r6_generator()`
+    (same pattern as `test-inference-dispatch-policy-structure.R`), keeps
+    concrete classes where `infer_inference_response_types()` resolves to
+    exactly one response type (131 live classes → 107 single-family
+    concretes; the 24 excluded are abstract/mixin bases and wildcard
+    `InferenceAll*` classes with no single synthetic-data recipe). A newly
+    added concrete inference class is picked up automatically.
+  - `edi_tuning_synthetic_experiment()` — thin wrapper around
+    `inference_migration_complete_design()`. **Literally reused, not
+    reinvented**, per this TODO's own instruction: that generator (plus its
+    `inference_migration_with_seed()`/`inference_migration_add_subjects()`/
+    `add_all_subject_responses_seq()` dependencies) was moved out of the
+    testthat-only `helper-inference-migration-harness.R`/
+    `helper-sequential-responses.R` into a new package file,
+    `R/EDI/R/tuning_synthetic_fixtures.R` — it has to live in shipped
+    package code, not `tests/testthat/`, since a real user's
+    `tune_EDI_for_this_machine()` call has no access to test helpers at
+    runtime. The two golden-test helper files now just call the package's
+    (identical, unqualified-visible-under-`load_all()`) internals instead
+    of redefining them, eliminating the drift risk of two copies. All ~30
+    dependent `*-migration-golden.R` test files verified unaffected.
+  - `edi_tuning_interleaved_ab(fn_a, fn_b, reps)` — A/B/A/B (not
+    A...A/B...B) wall-clock timing via `proc.time()[["elapsed"]]`, median +
+    IQR of each side.
+  - `edi_tuning_accept_candidate(baseline_times, candidate_times,
+    min_rel_improvement = 0.05, iqr_multiplier = 2)` — the noise-margin
+    acceptance rule: candidate must beat baseline by ≥5% median AND that
+    absolute improvement must exceed 2× the candidate's own IQR, else keep
+    the shipped default.
+  - `edi_tuning_effort_presets()` — `quick`/`standard`/`thorough` n-grid +
+    replicate-count + family-scope presets (`quick` defers *which* families
+    count as "top effect size" to TODO-4, since that needs each axis's own
+    effect-size data — this preset only fixes the axis-agnostic n-grid/reps).
+  **Tests:** `test-local-machine-tuning-harness.R` (27 assertions covering
+  family enumeration correctness/exclusions, synthetic-experiment
+  determinism and RNG-non-leakage, interleaved-timing correctness, the
+  acceptance rule's accept/reject boundaries — clean win, sub-5% win,
+  IQR-swallowed win, tie, regression — and the effort-preset ordering
+  invariants). No model fitting or real dispatch-policy wiring yet — that's
+  TODO-4. Pure R; no C++ touched.
 - [ ] TODO-4: Implement the four per-axis tuners (cold start, warm start +
   n-thresholds, optimizer algorithm with the all-replicates-converge
   guard, parallel crossover + core count). The load-time core-count

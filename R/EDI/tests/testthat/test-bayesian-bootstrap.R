@@ -39,7 +39,12 @@ make_kk_design_for_weighted_bayes_boot = function(response_type, y, n_pairs = 3L
 test_that("jackknife descendants expose Bayesian bootstrap methods", {
 	des = make_seq_design_for_bayes_boot("count", c(0L, 1L, 1L, 2L, 3L, 1L, 0L, 2L))
 	inf = InferenceCountPoisson$new(des)
-	expect_true(inherits(inf, "InferenceJackknife"))
+	# InferenceCountPoisson composes Inference + components (define_inference_class()),
+	# not classic deep inheritance -- it no longer inherits InferenceJackknife by name
+	# (fix_inference_hierarchy.md, per-class migration ladder, 2026-08-21). The
+	# functional contract this test actually cares about -- jackknife machinery is
+	# present -- is checked directly instead.
+	expect_true(is.function(inf$compute_jackknife_wald_two_sided_pval))
 	expect_true(is.function(inf$approximate_bayesian_bootstrap_distribution_beta_hat_T))
 	expect_true(is.function(inf$compute_bayesian_bootstrap_two_sided_pval))
 	expect_true(is.function(inf$compute_bayesian_bootstrap_confidence_interval))
@@ -472,6 +477,7 @@ test_that("next-wave weighted hooks return finite estimates on KK GEE paths", {
 
 test_that("Bayesian bootstrap matches mirai-backed parallel execution", {
 	skip_on_cran()
+	skip_if_prepush_no_parallel()
 	skip_if_not_installed("mirai")
 	skip_if(
 		identical(Sys.getenv("R_COVR"), "true"),

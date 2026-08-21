@@ -997,6 +997,9 @@ infer_inference_direct_components = function(name) {
 		InferencePropFractionalLogit = c("BayesianBootstrap", "Wald", "StandardModelCache"),
 		InferencePropBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache"),
 		InferencePropZeroOneInflatedBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache"),
+		InferenceCountPoisson = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
+		InferenceCountNegBin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
+		InferenceCountHurdleNegBin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
 		character()
 	)
 }

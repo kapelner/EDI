@@ -19,6 +19,7 @@ Strategies marked with "(R Standard)" have been aligned with core R functions li
  Standard) Uses uncensored observations with a Gumbel mean shift. | **Moment-based scale**: $\ln(\sigma) = 0.5 \ln(\text{resid\_var} / 1.64)$. |
 | **Beta Regression** | **OLS on $\text{logit}(y)$**: Maps (0,1) response to real line via logit. | $\ln(\phi) = 2.0$. |
 | **Ordinal Regression** | **OLS on $y$**: Uses ordinal levels as a continuous response for $\beta$. | **Quantile Mapping**: $\alpha$ intercepts set by mapping sample quantiles. |
+| **ZINB** | **Intercept-only**: count-model intercept set to $\ln(\bar{y})$ (clamped at $10^{-8}$ if $\bar{y} < 10^{-8}$); all other count-model coefficients and every zero-inflation coefficient start at 0. Not OLS-based. | $\ln(\theta) = 0$ (initial dispersion set to 1). |
 
 ---
 
@@ -71,7 +72,7 @@ For simple models with a **Strong Signal**, a naive start at zero can sometimes 
 
 ### Fix the missing ZINB row
 
-- [ ] TODO-4: Add a **ZINB** row to the "Heuristic Strategies by Model Path" table (it's benchmarked at line 39 but has no row above). Per `EDI/src/fast_zinb.cpp:175-190`, ZINB's actual smart-start is **not** OLS-based like NegBin's: the count-model intercept is set to `log(mean(y))` (clamped at `1e-8`), all other count-model and zero-inflation coefficients start at `0`, and `log(theta) = 0`. Do not describe it as "OLS on ln(y+1)" — that's NegBin's heuristic, not ZINB's.
+- [x] TODO-4: Add a **ZINB** row to the "Heuristic Strategies by Model Path" table (it's benchmarked at line 39 but has no row above). Per `EDI/src/fast_zinb.cpp:175-190`, ZINB's actual smart-start is **not** OLS-based like NegBin's: the count-model intercept is set to `log(mean(y))` (clamped at `1e-8`), all other count-model and zero-inflation coefficients start at `0`, and `log(theta) = 0`. Do not describe it as "OLS on ln(y+1)" — that's NegBin's heuristic, not ZINB's. **Done (2026-08-21):** row added, verified against `fast_zinb.cpp:184-189` (the smart_cold_start branch inside `fast_zinb_internal`).
 
 ### Expand table coverage — heuristics already implemented but undocumented
 

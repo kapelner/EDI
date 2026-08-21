@@ -278,8 +278,27 @@ if [ "$run_r_tests" = "1" ]; then
 	# comfortable headroom without turning a real hang into another
 	# multi-hour wait. --kill-after=30s escalates to SIGKILL if the process
 	# (or an orphaned parallel worker under it) ignores the initial SIGTERM.
+	#
+	# --foreground: without it, `timeout` puts Rscript in its own process
+	# group so it can reliably kill the whole subtree via --kill-after --
+	# but that also means the terminal's Ctrl+C (SIGINT, delivered to the
+	# foreground process *group*) never reaches Rscript at all, only
+	# `timeout` itself (confirmed in practice: repeated Ctrl+C during a
+	# local push did nothing, the suite kept running regardless).
+	# --foreground keeps Rscript in the same group so it gets TTY signals
+	# directly. Its tradeoff ("children of COMMAND will not be timed out")
+	# is why EDI_PREPUSH_NO_PARALLEL defaults to true below: with real
+	# multi-core/mirai worker tests skipped for this run (see
+	# helper-prepush-no-parallel.R), there generally are no orphaned worker
+	# children left for --kill-after to need to clean up in the first place.
+	# Defaults to true rather than hardcoding it, so a developer can opt
+	# back into running those tests for one push with
+	# `EDI_PREPUSH_NO_PARALLEL=false git push` -- every test gated by
+	# helper-prepush-no-parallel.R already carries its own skip_on_cran()
+	# too, so this is purely a local convenience knob, not the only place
+	# that coverage exists (see that helper's header comment).
 	r_test_timeout_secs=1200
-	if ( cd R/EDI/tests && NOT_CRAN=true timeout --kill-after=30s "${r_test_timeout_secs}s" Rscript "$repo_root/scripts/run_prepush_r_tests.R" ); then
+	if ( cd R/EDI/tests && NOT_CRAN=true EDI_PREPUSH_NO_PARALLEL="${EDI_PREPUSH_NO_PARALLEL:-true}" timeout --foreground --kill-after=30s "${r_test_timeout_secs}s" Rscript "$repo_root/scripts/run_prepush_r_tests.R" ); then
 		:
 	else
 		r_test_exit=$?

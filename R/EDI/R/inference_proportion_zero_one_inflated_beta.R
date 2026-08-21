@@ -20,6 +20,18 @@
 #' and does not represent; a marginal (unconditional-mean) estimand is not yet
 #' implemented for this class (see \code{marginal_estimand_report.md}).
 #'
+#' @references Ospina, R., and Ferrari, S. L. P. (2010). "Inflated beta
+#'   distributions." \emph{Statistical Papers}, 51(1), 111-126,
+#'   \doi{10.1007/s00362-008-0125-4}, for the zero/one-inflated beta
+#'   mixture density; Ferrari, S., and Cribari-Neto, F. (2004). "Beta
+#'   regression for modelling rates and proportions." \emph{Journal of
+#'   Applied Statistics}, 31(7), 799-815,
+#'   \doi{10.1080/0266476042000214501}, for the interior beta-regression
+#'   submodel.
+#'
+#' @seealso \code{\link[EDI:InferencePropBetaRegr]{InferencePropBetaRegr}}
+#'   for the plain (non-inflated) beta regression model.
+#'
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'proportion')
@@ -63,7 +75,13 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 	),
 	public = list(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
-		#' @description Initialize a zero-one-inflated beta regression inference object.
+		#' @description Initialize inference for the three-component zero/one-inflated
+		#'   beta mixture model; see
+		#'   \code{\link[EDI:InferencePropZeroOneInflatedBetaRegr]{InferencePropZeroOneInflatedBetaRegr}}
+		#'   for the model form and the important caveat that the reported treatment
+		#'   coefficient is conditional on the interior \eqn{(0,1)} component, not an
+		#'   unconditional-mean effect. Does not fit the model; the fit is deferred to
+		#'   the first call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with a proportion response.
 		#' @param model_formula Optional formula for covariate adjustment. If \code{NULL}
 		#'   (default), the formula from the design object is used and its pre-computed
@@ -87,15 +105,26 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			}
 			private$model_formula_zero_one = model_formula_zero_one
 		},
-		#' @description Computes the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only If TRUE, skip variance calculations.
+		#' @description Fits the zero/one-inflated beta mixture model by maximum
+		#'   likelihood (jointly the beta mean submodel, the zero/one inflation
+		#'   submodels, and the beta precision) and returns \eqn{\hat\beta_T}, the
+		#'   treatment log-odds-ratio from the beta mean submodel \strong{conditional
+		#'   on the interior \eqn{(0,1)} component} — see
+		#'   \code{\link[EDI:InferencePropZeroOneInflatedBetaRegr]{InferencePropZeroOneInflatedBetaRegr}}'s
+		#'   estimand caveat.
+		#' @param estimate_only If TRUE, skip standard-error computation and cache
+		#'   only the point estimate; used by randomization and bootstrap resampling
+		#'   paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#' @description Refits the zero/one-inflated beta model with subject/block-level
+		#'   weights applied to the fitting log-likelihood (Bayesian-bootstrap or
+		#'   nonparametric-bootstrap draw weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}), and
+		#'   returns the reweighted conditional log-odds-ratio estimate
+		#'   \eqn{\hat\beta_T^{(w)}}.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){

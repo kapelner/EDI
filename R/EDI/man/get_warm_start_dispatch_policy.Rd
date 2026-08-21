@@ -10,11 +10,12 @@ get_warm_start_dispatch_policy()
 A named list with \code{default} (logical, \code{TRUE} in the
   built-in policy) and one component per operation (\code{jackknife},
   \code{non_param_boot}, \code{bayesian_boot}, \code{param_boot},
-  \code{rand}), each itself a list containing
-  \code{inference_class_overrides} (a named logical vector: regular-expression
-  pattern names to \code{TRUE}/\code{FALSE} values, matched against the
-  inference class name) — only the first, sample-size-independent layer of
-  the full dispatch policy; see Details.
+  \code{rand}), each itself a list containing \code{inference_class_overrides}
+  (a named logical vector: regular-expression pattern names to
+  \code{TRUE}/\code{FALSE} values, matched against the inference class name,
+  applied regardless of sample size) and \code{n_conditioned_overrides} (a
+  list of \code{list(pattern, value, n_min, n_max)} rules, applied only when
+  \code{n} is supplied and falls in \code{[n_min, n_max)}); see Details.
 }
 \description{
 Returns EDI's built-in policy table for choosing whether \strong{warm starts}
@@ -25,20 +26,18 @@ inference class during a given resampling or simulation \code{operation}
 \code{"param_boot"}, or \code{"rand"}).
 }
 \details{
-\strong{This returned list is not the complete policy.} The internal
-  (non-exported) dispatcher, \code{edi_warm_start_dispatch_policy(inference_class,
-  operation, n)}, consults this table's \code{default} and
-  \code{[[operation]]$inference_class_overrides} for its base per-operation
-  pattern lookups, but also has a substantial number of additional,
-  \strong{hardcoded (not present in this returned list)} empirical
-  disable-rules layered on top — many of them further conditioned on the
-  current sample size \code{n} (e.g. certain inference-class/operation
-  combinations only disable warm starts when \code{n < 200} or \code{n <
-  500}, because the extra bookkeeping only pays off once resampling is
-  expensive enough per replicate). Calling this function therefore does
-  \strong{not} tell you the full set of classes/operations for which warm
-  starts are disabled — for that, the dispatcher function's source is
-  authoritative, not this configuration table.
+The internal (non-exported) dispatcher,
+  \code{edi_warm_start_dispatch_policy(inference_class, operation, n)},
+  consults this table's \code{default} plus, per operation, two override
+  layers: \code{inference_class_overrides} (a sample-size-independent
+  pattern table, as before) and \code{n_conditioned_overrides} (a list of
+  \code{list(pattern, value, n_min, n_max)} rules — each pattern only
+  applies when the current sample size \code{n} falls in
+  \code{[n_min, n_max)} — encoding empirical findings like "the extra
+  bookkeeping only pays off once resampling is expensive enough per
+  replicate, so disable below n=200/500/1000 for these families"). Both
+  layers are returned by this function and are both reachable via
+  \code{\link{set_warm_start_dispatch_policy}}.
 }
 \examples{
 get_warm_start_dispatch_policy()

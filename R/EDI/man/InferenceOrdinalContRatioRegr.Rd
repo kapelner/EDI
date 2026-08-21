@@ -4,139 +4,64 @@
 \alias{InferenceOrdinalContRatioRegr}
 \title{Continuation Ratio Regression Inference for Ordinal Responses}
 \description{
-Fits a continuation-ratio ordinal regression and reports the
-  treatment effect estimate on the model's coefficient scale.
+Fits a conditional (stratified) continuation-ratio logit model for ordinal
+responses: for cut \eqn{j = 1, \dots, K-1}, among subjects who have
+reached at least category \eqn{j}, \deqn{\log\frac{\Pr(Y_i = j \mid Y_i
+\ge j)}{\Pr(Y_i > j \mid Y_i \ge j)} = \alpha_j + \beta_T W_i + X_i^\top
+\gamma,} a discrete-time-hazard-model analog for ordinal data, with a
+treatment coefficient \eqn{\beta_T} constrained equal across all cuts.
+\eqn{\exp(\hat\beta_T)} is the common "stop here vs. continue" odds ratio.
+Fitting proceeds by \code{\link{expand_continuation_ratio_data_cpp}}'s
+stacked-binary expansion followed by conditional logistic regression on
+the expanded data. \code{likelihood_tier = "full"}: likelihood-ratio,
+score, gradient, and Wald tests are all available when the model
+converges, plus parametric-likelihood-bootstrap calibration of the
+likelihood-ratio test. Validity requires the continuation-ratio
+proportionality assumption (a common \eqn{\beta_T} across all \eqn{K-1}
+cuts).
 }
-\details{
-Fits a continuation ratio regression for ordinal responses using the treatment
-indicator and, optionally, all recorded covariates as predictors.
+\examples{
+\donttest{
+seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'ordinal')
+for (i in 1:10) {
+  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}} -> \code{InferenceAsympLikStdModCache} -> \code{InferenceOrdinalContRatioRegr}
+seq_des$add_all_subject_responses(sample(1:4, 10, replace = TRUE))
+inf = InferenceOrdinalContRatioRegr$new(seq_des)
+inf$compute_estimate()
+}
+}
+\references{
+Agresti, A. (2010). \emph{Analysis of Ordinal Categorical
+  Data} (2nd ed.). Wiley, for the continuation-ratio model family.
+}
+\seealso{
+\code{\link[EDI:InferenceOrdinalStereotypeLogitRegr]{InferenceOrdinalStereotypeLogitRegr}}
+  and
+  \code{\link[EDI:InferenceOrdinalKKCondAdjCatLogitRegr]{InferenceOrdinalKKCondAdjCatLogitRegr}}
+  for related ordinal-logit expansions. See also:
+  \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal
+  regression} (Wikipedia).
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceOrdinalContRatioRegr}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceOrdinalContRatioRegr-initialize}{\code{InferenceOrdinalContRatioRegr$new()}}
-    \item \href{#method-InferenceOrdinalContRatioRegr-compute_estimate_with_bootstrap_weights}{\code{InferenceOrdinalContRatioRegr$compute_estimate_with_bootstrap_weights()}}
+    \item \href{#method-InferenceOrdinalContRatioRegr-set_custom_randomization_statistic_function}{\code{InferenceOrdinalContRatioRegr$set_custom_randomization_statistic_function()}}
+    \item \href{#method-InferenceOrdinalContRatioRegr-set_custom_randomization_statistic_cpp}{\code{InferenceOrdinalContRatioRegr$set_custom_randomization_statistic_cpp()}}
+    \item \href{#method-InferenceOrdinalContRatioRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceOrdinalContRatioRegr$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceOrdinalContRatioRegr-compute_rand_two_sided_pval}{\code{InferenceOrdinalContRatioRegr$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceOrdinalContRatioRegr-clone}{\code{InferenceOrdinalContRatioRegr$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsympLikStdModCache</summary>
-<ul>
-  <li><code>InferenceAsympLikStdModCache$compute_asymp_confidence_interval()</code></li>
-  <li><code>InferenceAsympLikStdModCache$compute_asymp_two_sided_pval()</code></li>
-  <li><code>InferenceAsympLikStdModCache$compute_estimate()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_lik_ratio_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_lik_ratio_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_lik_ratio_bootstrap_two_sided_pval'><code>InferenceParamBootstrap$compute_lik_ratio_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_param_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_estimate'><code>InferenceParamBootstrap$compute_param_bootstrap_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_pval'><code>InferenceParamBootstrap$compute_param_bootstrap_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_diagnostics()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_estimate_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_estimate_diagnostics()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsympLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_confidence_interval'><code>InferenceAsympLik$compute_gradient_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_two_sided_pval'><code>InferenceAsympLik$compute_gradient_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_confidence_interval'><code>InferenceAsympLik$compute_score_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_two_sided_pval'><code>InferenceAsympLik$compute_score_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_ci_types'><code>InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_pval_types'><code>InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-get_supported_rand_bootstrap_ci_types'><code>InferenceRandBootstrapCI$get_supported_rand_bootstrap_ci_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-get_supported_rand_bootstrap_pval_types'><code>InferenceRandBootstrap$get_supported_rand_bootstrap_pval_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_ci_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_ci_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_pval_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_pval_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -150,6 +75,7 @@ indicator and, optionally, all recorded covariates as predictors.
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
@@ -157,56 +83,63 @@ indicator and, optionally, all recorded covariates as predictors.
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalContRatioRegr-initialize"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalContRatioRegr-initialize}{}}}
-\subsection{\code{InferenceOrdinalContRatioRegr$new()}}{
-  Initialize a continuation ratio inference object.
+\if{html}{\out{<a id="method-InferenceOrdinalContRatioRegr-set_custom_randomization_statistic_function"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalContRatioRegr-set_custom_randomization_statistic_function}{}}}
+\subsection{\code{InferenceOrdinalContRatioRegr$set_custom_randomization_statistic_function()}}{
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalContRatioRegr$new(
-  des_obj,
-  verbose = FALSE,
-  harden = TRUE,
-  model_formula = NULL,
-  smart_cold_start_default = NULL
+    \preformatted{InferenceOrdinalContRatioRegr$set_custom_randomization_statistic_function(
+  custom_randomization_statistic_function
 )}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{des_obj}}{A completed \code{Design} object with an ordinal response.}
-      \item{\code{verbose}}{Whether to print progress messages.}
-      \item{\code{harden}}{Whether to apply robustness measures.}
-      \item{\code{model_formula}}{Optional formula for covariate adjustment.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart cold starts.}
-    }
     \if{html}{\out{</div>}}
   }
 }
 
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalContRatioRegr-compute_estimate_with_bootstrap_weights"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalContRatioRegr-compute_estimate_with_bootstrap_weights}{}}}
-\subsection{\code{InferenceOrdinalContRatioRegr$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the continuation-ratio treatment estimate under
-  Bayesian-bootstrap weights.
+\if{html}{\out{<a id="method-InferenceOrdinalContRatioRegr-set_custom_randomization_statistic_cpp"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalContRatioRegr-set_custom_randomization_statistic_cpp}{}}}
+\subsection{\code{InferenceOrdinalContRatioRegr$set_custom_randomization_statistic_cpp()}}{
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalContRatioRegr$compute_estimate_with_bootstrap_weights(
-  subject_or_block_weights,
-  estimate_only = FALSE
+    \preformatted{InferenceOrdinalContRatioRegr$set_custom_randomization_statistic_cpp(fn)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceOrdinalContRatioRegr-approximate_randomization_distribution_beta_hat_T"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalContRatioRegr-approximate_randomization_distribution_beta_hat_T}{}}}
+\subsection{\code{InferenceOrdinalContRatioRegr$approximate_randomization_distribution_beta_hat_T()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceOrdinalContRatioRegr$approximate_randomization_distribution_beta_hat_T(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  show_progress = TRUE,
+  permutations = NULL,
+  debug = FALSE,
+  zero_one_logit_clamp = .Machine$double.eps
 )}
     \if{html}{\out{</div>}}
   }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{subject_or_block_weights}}{Subject-, block-, cluster-, or matched-set
-bootstrap weights.}
-      \item{\code{estimate_only}}{If \code{TRUE}, compute only the weighted point
-estimate.}
-    }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceOrdinalContRatioRegr-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalContRatioRegr-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceOrdinalContRatioRegr$compute_rand_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceOrdinalContRatioRegr$compute_rand_two_sided_pval(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  na.rm = TRUE,
+  show_progress = TRUE,
+  permutations = NULL,
+  zero_one_logit_clamp = .Machine$double.eps
+)}
     \if{html}{\out{</div>}}
   }
 }

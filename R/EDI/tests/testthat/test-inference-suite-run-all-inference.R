@@ -439,6 +439,7 @@ test_that("run_all_inference: max_secs_per_class actually interrupts a slow R-le
 test_that("run_all_inference: num_cores > 1 fits in parallel and produces identical rows to sequential", {
 	skip_on_cran()
 	skip_on_os("windows")
+	skip_if_prepush_no_parallel()
 	set.seed(20260818)
 	n = 20L
 	des = DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)

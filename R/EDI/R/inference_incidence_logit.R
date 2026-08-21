@@ -1,6 +1,11 @@
 inference_incid_log_regr_public = list(
 
-		#' @description Initialize a logistic-regression inference object.
+		#' @description Initialize inference for the logistic regression model
+		#'   \eqn{\mathrm{logit}(P(Y_i = 1)) = \beta_0 + \beta_T W_i + X_i^\top
+		#'   \gamma}; see
+		#'   \code{\link[EDI:InferenceIncidLogRegr]{InferenceIncidLogRegr}} for the
+		#'   model form. Does not fit the model; the fit is deferred to the first
+		#'   call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with an incidence response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -24,8 +29,16 @@ inference_incid_log_regr_public = list(
 			}
 		},
 
-		#' @description Recomputes the class-specific treatment estimate for a bootstrap sample; see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+		#' @description Refits the logistic model with subject/block-level weights
+		#'   applied to the fitting log-likelihood (Bayesian-bootstrap or
+		#'   nonparametric-bootstrap draw weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}) via
+		#'   \code{\link{fast_logistic_regression_weighted_cpp}}, and returns the
+		#'   reweighted log-odds-ratio estimate \eqn{\hat\beta_T^{(w)}}. Uses the
+		#'   same QR column-dropping hardening and fit-reasonableness check as
+		#'   \code{compute_estimate()}; a hardened-but-still-unreasonable fit
+		#'   (e.g. near-perfect separation under the resampled weights) is cached
+		#'   as nonestimable and returns \code{NA}.
 		#' @param subject_or_block_weights Row weights for the bootstrap sample.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){

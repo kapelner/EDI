@@ -4,9 +4,28 @@
 \alias{InferencePropFractionalLogit}
 \title{Fractional Logit Inference for Proportion Responses}
 \description{
-Fits a fractional logistic regression (quasi-binomial) for proportion responses
-(constrained to [0, 1]) using the treatment indicator and, optionally, all
-recorded covariates as predictors.
+Fits Papke and Wooldridge's (1996) fractional logistic (quasi-binomial)
+regression for proportion responses \eqn{Y_i \in [0, 1]} (not restricted to
+\eqn{\{0, 1\}}):
+\eqn{E[Y_i \mid W_i, X_i] = \mathrm{logit}^{-1}(\beta_0 + \beta_T W_i +
+X_i^\top \gamma)}, fit by maximizing the Bernoulli quasi-log-likelihood
+\eqn{\sum_i \{Y_i \log \mu_i + (1 - Y_i) \log(1 - \mu_i)\}} treating
+\eqn{Y_i} as if it were binary (a valid estimating equation for the
+conditional mean even though \eqn{Y_i} is fractional — the Bernoulli
+log-likelihood's score is unbiased for the true mean regardless of the
+actual distribution of \eqn{Y_i} on \eqn{[0,1]}). \eqn{\hat\beta_T} is a
+log-odds-ratio on the conditional-mean scale: \eqn{\exp(\hat\beta_T)} is
+the odds ratio for the expected proportion. Standard errors use the
+model-based (non-robust/non-sandwich) Fisher information from this
+quasi-likelihood, matching pre-migration behavior; only Wald inference is
+exposed (\code{private$supports_likelihood_tests()} is hard \code{FALSE}
+here even though \code{likelihood_tier = "full"} metadata is set for
+component-composition purposes — this class deliberately does not compose
+\code{ParametricLikelihoodBootstrap}, so no likelihood-ratio/score/gradient
+test surface is exposed). Validity requires that the conditional mean is
+correctly specified on the logit scale; unlike beta regression, no
+assumption is made about the conditional variance or shape of \eqn{Y_i}'s
+distribution.
 }
 \examples{
 \donttest{
@@ -19,8 +38,23 @@ inf = InferencePropFractionalLogit$new(seq_des)
 inf$compute_estimate()
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{InferenceAsympLikStdModCacheNoParamBootstrap} -> \code{InferencePropFractionalLogit}
+\references{
+Papke, L. E., and Wooldridge, J. M. (1996). "Econometric
+  Methods for Fractional Response Variables with an Application to 401(K)
+  Plan Participation Rates." \emph{Journal of Applied Econometrics}, 11(6),
+  619-632, \doi{10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1}.
+}
+\seealso{
+\code{\link[EDI:InferencePropBetaRegr]{InferencePropBetaRegr}} for
+  a proportion model that also specifies the conditional variance/shape.
+  Comparable Python API:
+  \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM}
+  (\code{family=Binomial()} on fractional response data). See also:
+  \href{https://en.wikipedia.org/wiki/Logistic_regression}{Logistic
+  regression} (Wikipedia).
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferencePropFractionalLogit}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -31,109 +65,11 @@ inf$compute_estimate()
     \item \href{#method-InferencePropFractionalLogit-clone}{\code{InferencePropFractionalLogit$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceAsympLikStdModCacheNoParamBootstrap</summary>
-<ul>
-  <li><code>InferenceAsympLikStdModCacheNoParamBootstrap$compute_asymp_confidence_interval()</code></li>
-  <li><code>InferenceAsympLikStdModCacheNoParamBootstrap$compute_asymp_two_sided_pval()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsympLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_confidence_interval'><code>InferenceAsympLik$compute_gradient_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_two_sided_pval'><code>InferenceAsympLik$compute_gradient_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_confidence_interval'><code>InferenceAsympLik$compute_score_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_two_sided_pval'><code>InferenceAsympLik$compute_score_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_two_sided_pval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_ci_types'><code>InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_pval_types'><code>InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-get_supported_rand_bootstrap_ci_types'><code>InferenceRandBootstrapCI$get_supported_rand_bootstrap_ci_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-get_supported_rand_bootstrap_pval_types'><code>InferenceRandBootstrap$get_supported_rand_bootstrap_pval_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_ci_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_ci_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_pval_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_pval_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -157,7 +93,12 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferencePropFractionalLogit-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferencePropFractionalLogit-initialize}{}}}
 \subsection{\code{InferencePropFractionalLogit$new()}}{
-  Initialize a fractional-logit inference object.
+  Initialize inference for the fractional logit model
+  \eqn{E[Y_i \mid W_i, X_i] = \mathrm{logit}^{-1}(\beta_0 + \beta_T W_i +
+  X_i^\top \gamma)}; see
+  \code{\link[EDI:InferencePropFractionalLogit]{InferencePropFractionalLogit}}
+  for the model form. Does not fit the model; the fit is deferred to the
+  first call to \code{compute_estimate()} or a method that requires it.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferencePropFractionalLogit$new(
@@ -189,8 +130,13 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferencePropFractionalLogit-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferencePropFractionalLogit-compute_estimate}{}}}
 \subsection{\code{InferencePropFractionalLogit$compute_estimate()}}{
-  Computes the class-specific treatment-effect estimate; see
-  \code{\link[EDI:Inference]{Inference}}.
+  Fits the fractional logit model by maximizing the Bernoulli
+  quasi-log-likelihood on the fractional response and returns the
+  log-odds-ratio estimate \eqn{\hat\beta_T}. When \code{estimate_only =
+  TRUE} and hardening is disabled (\code{harden = FALSE}), uses a fast
+  path via base R's \code{glm.fit(family = quasibinomial())} instead of
+  the package's own fitting routine; otherwise dispatches through the
+  shared hardened-fit path.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferencePropFractionalLogit$compute_estimate(estimate_only = FALSE)}
@@ -199,7 +145,9 @@ design's imputed covariates.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{If TRUE, skip variance component calculations; when
+combined with \code{harden = FALSE}, also switches to the
+\code{quasibinomial()} fast path.}
     }
     \if{html}{\out{</div>}}
   }
@@ -209,8 +157,13 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferencePropFractionalLogit-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferencePropFractionalLogit-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferencePropFractionalLogit$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the class-specific treatment estimate under bootstrap weights; see
-  \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+  Refits the fractional logit model with subject/block-level
+  weights applied to the fitting quasi-log-likelihood (Bayesian-bootstrap
+  or nonparametric-bootstrap draw weights, expanded to row level via
+  \code{private$expand_subject_or_block_weights_to_row_weights()}), and
+  returns the reweighted estimate \eqn{\hat\beta_T^{(w)}}. Uses the same
+  QR column-dropping hardening as \code{compute_estimate()}'s hardened
+  path; a hardened-but-still-unreasonable fit is cached as nonestimable.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferencePropFractionalLogit$compute_estimate_with_bootstrap_weights(

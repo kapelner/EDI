@@ -10,7 +10,7 @@ if (!dir.exists(file.path(repo_root, "EDI"))) {
 
 load_edi_namespace = function() {
 	if (requireNamespace("pkgload", quietly = TRUE)) {
-		pkgload::load_all(file.path(repo_root, "EDI"), quiet = TRUE, export_all = FALSE)
+		pkgload::load_all(file.path(repo_root, "EDI"), quiet = TRUE, export_all = FALSE, compile = FALSE)
 	} else {
 		stop("Package 'pkgload' is required for public API inventory generation.", call. = FALSE)
 	}

@@ -1,11 +1,8 @@
-#' Ordered Probit Regression Inference for Ordinal Responses
-#'
-#' Fits an ordered probit regression for ordinal responses using the treatment
-#' indicator and, optionally, all recorded covariates as predictors.
-#'
-#' @export
 inference_ordinal_ordered_probit_public = list(
-		#' @description Initialize an ordered probit inference object.
+		#' @description Initialize inference for the ordered probit model; see
+		#'   \code{\link[EDI:InferenceOrdinalOrderedProbitRegr]{InferenceOrdinalOrderedProbitRegr}}
+		#'   for the model form. Does not fit the model; the fit is deferred to the
+		#'   first call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with an ordinal response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -23,8 +20,13 @@ inference_ordinal_ordered_probit_public = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the ordinal weighted treatment estimate; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#' @description Recomputes the treatment estimate under subject/block-level
+		#'   bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
+		#'   weights) via \code{weighted_ordinal_bootstrap_surrogate_fit()}, a fast
+		#'   weighted ordinal-probit surrogate fit on the raw design matrix, as an
+		#'   approximation to the weighted ordered-probit likelihood. No standard
+		#'   error is computed (\code{s_beta_hat_T} is always \code{NA}); the
+		#'   surrogate returns \code{NA} if the fit fails.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
 		#' @param estimate_only If \code{TRUE}, compute only the weighted point
@@ -258,6 +260,48 @@ OrdinalOrderedProbitLikelihoodSource = list(
 	private = inference_ordinal_ordered_probit_private
 )
 
+#' Ordered Probit Regression Inference for Ordinal Responses
+#'
+#' Fits a cumulative-probit ("ordered probit") model for ordinal responses:
+#' \eqn{\Phi^{-1}(P(Y_i \le k)) = \alpha_k - (\beta_T W_i + X_i^\top \gamma)},
+#' for cutpoints \eqn{\alpha_1 < \cdots < \alpha_{K-1}}, where \eqn{\Phi} is
+#' the standard normal CDF, \eqn{W_i} is the treatment indicator, and
+#' \eqn{X_i} are optional recorded covariates, by maximum likelihood
+#' (\code{\link{fast_ordinal_probit_regression_cpp}}/
+#' \code{\link{fast_ordinal_probit_regression_with_var_cpp}}). As with binary
+#' probit regression, \eqn{\hat\beta_T} is not an odds-ratio-scale parameter:
+#' it is the treatment's effect on the latent standard-normal index
+#' underlying the ordinal categories. \code{likelihood_tier = "full"}:
+#' likelihood-ratio, score, gradient, and Wald tests are all available when
+#' the model converges, plus parametric-likelihood-bootstrap calibration of
+#' the likelihood-ratio test. Validity requires the proportional/parallel
+#' cutpoints assumption (a single \eqn{\beta_T} shared across all cutpoints)
+#' in addition to the usual latent-normal-index assumption.
+#'
+#' @references McCullagh, P. (1980). "Regression Models for Ordinal Data."
+#'   \emph{Journal of the Royal Statistical Society, Series B}, 42(2),
+#'   109-142, \doi{10.1111/j.2517-6161.1980.tb01109.x}, for the cumulative-link
+#'   ordinal model family this class's probit link instantiates.
+#'
+#' @seealso \code{\link[EDI:InferenceOrdinalCauchitRegr]{InferenceOrdinalCauchitRegr}},
+#'   \code{\link[EDI:InferenceOrdinalCloglogRegr]{InferenceOrdinalCloglogRegr}}
+#'   for other cumulative-link function choices on the same ordinal model
+#'   family. See also:
+#'   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal
+#'   regression} and \href{https://en.wikipedia.org/wiki/Probit_model}{Probit
+#'   model} (Wikipedia).
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'ordinal')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(sample(1:4, 10, replace = TRUE))
+#' inf = InferenceOrdinalOrderedProbitRegr$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' @export
 InferenceOrdinalOrderedProbitRegr = define_inference_class(
 	classname = "InferenceOrdinalOrderedProbitRegr",
 	inherit = Inference,

@@ -1,12 +1,4 @@
-add_all_subject_responses_seq = function(des, ys, deads = NULL){
-	if (is.null(deads)){
-		deads = rep(1, length(ys))
-	}
-	for (i in seq_along(ys)){
-		if (isTRUE(deads[i] == 1)) {
-			des$add_one_subject_response(i, y = ys[i])
-		} else {
-			des$add_one_subject_response(i, y_L = ys[i], y_R = Inf)
-		}
-	}
-}
+# add_all_subject_responses_seq() moved to R/EDI/R/tuning_synthetic_fixtures.R
+# (package-internal, so local_machine_optimization.md's benchmark tuner can
+# reuse it too) -- this file intentionally left with no definitions of its
+# own; it is retained so any explicit helper-file source order stays stable.

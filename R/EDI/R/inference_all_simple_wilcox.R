@@ -24,27 +24,25 @@ SimpleWilcoxSource = list(
 			if (should_run_asserts()) {
 				assertCount(max_resample_attempts, positive = TRUE)
 			}
-			res_type = des_obj$get_response_type()
 			if (should_run_asserts()) {
-				if (res_type == "incidence"){
-					stop(
+				stop_if_design_incompatible(private$design_compatibility_reason, des_obj, list(
+					wilcoxon_incidence_response_unsupported = paste0(
 						"Wilcoxon rank-sum inference is not implemented for incidence (binary) ",
 						"responses: the Hodges-Lehmann estimator is degenerate (almost always 0) ",
 						"on 0/1 data. Use InferenceAllSimpleMeanDiff or a clogit estimator instead."
+					),
+					wilcoxon_censored_survival_unsupported = paste0(
+						"Wilcoxon rank-sum inference does not support censored survival data. ",
+						"Use InferenceSurvivalGehanWilcox for censored survival outcomes."
 					)
-				}
+				))
 			}
+			res_type = des_obj$get_response_type()
 			if (should_run_asserts()) {
 				assertResponseType(res_type, c("continuous", "count", "proportion", "survival", "ordinal"))
 			}
 			super$initialize(des_obj = des_obj, verbose = verbose, harden = TRUE, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			private$max_resample_attempts = max_resample_attempts
-			if (private$any_censoring){
-				stop(
-					"Wilcoxon rank-sum inference does not support censored survival data. ",
-					"Use InferenceSurvivalGehanWilcox for censored survival outcomes."
-				)
-			}
 		},
 		#' @description Returns the \strong{Hodges-Lehmann} estimate of location
 		#'   shift: the median of all pairwise treatment-minus-control differences

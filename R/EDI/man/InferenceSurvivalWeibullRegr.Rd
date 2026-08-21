@@ -4,9 +4,24 @@
 \alias{InferenceSurvivalWeibullRegr}
 \title{Weibull AFT Inference for Survival Responses}
 \description{
-Fits a Weibull Accelerated Failure Time (AFT) model for survival responses
-using the treatment indicator and, optionally, all recorded covariates as
-predictors. The treatment effect is reported on the log-time-ratio scale.
+Fits a Weibull Accelerated Failure Time (AFT) model for survival responses:
+\eqn{\log T_i = \beta_0 + \beta_T W_i + X_i^\top \gamma + \sigma \epsilon_i},
+\eqn{\epsilon_i \sim} standard extreme-value (Gumbel-minimum), so that
+\eqn{T_i} is marginally Weibull-distributed with shape \eqn{1/\sigma} and
+treatment-dependent scale, by maximum likelihood
+(\code{\link{fast_weibull_regression_cpp}}). \eqn{\hat\beta_T} is a
+\strong{log-time-ratio} (log acceleration factor): \eqn{\exp(\hat\beta_T)}
+is the estimated multiplicative effect of treatment on survival time (an
+AFT model, not a proportional-hazards model — the Weibull distribution is
+the one location where AFT and proportional-hazards parameterizations
+coincide, since \eqn{\exp(-\beta_T/\sigma)} also equals the treatment
+hazard ratio). \code{likelihood_tier = "full"}: likelihood-ratio, score,
+gradient, and Wald tests are all available when the model converges, plus
+parametric-likelihood-bootstrap calibration of the likelihood-ratio test.
+Right-censored and interval-censored observations enter the likelihood via
+their appropriate survival/density contributions. Validity requires the
+Weibull shape assumption for the (log-)survival-time distribution and,
+when interpreted causally, the usual design-based/model-based assumptions.
 }
 \examples{
 \donttest{
@@ -23,128 +38,36 @@ inf$set_seed(1)
 inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
 }
 }
-\section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}} -> \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} -> \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}} -> \code{InferenceAsympLikStdModCache} -> \code{InferenceSurvivalWeibullRegr}
+\references{
+Kalbfleisch, J. D., and Prentice, R. L. (2002). \emph{The
+  Statistical Analysis of Failure Time Data} (2nd ed.). Wiley, for the
+  Weibull AFT model and its equivalence to a proportional-hazards model.
+}
+\seealso{
+Comparable Python API:
+  \href{https://lifelines.readthedocs.io/en/latest/fitters/regression/WeibullAFTFitter.html}{lifelines
+  WeibullAFTFitter}. See also:
+  \href{https://en.wikipedia.org/wiki/Proportional_hazards_model}{Proportional
+  hazards model} (Wikipedia, for the AFT/PH equivalence note).
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceSurvivalWeibullRegr}
 }
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceSurvivalWeibullRegr-initialize}{\code{InferenceSurvivalWeibullRegr$new()}}
-    \item \href{#method-InferenceSurvivalWeibullRegr-compute_estimate}{\code{InferenceSurvivalWeibullRegr$compute_estimate()}}
-    \item \href{#method-InferenceSurvivalWeibullRegr-compute_estimate_with_bootstrap_weights}{\code{InferenceSurvivalWeibullRegr$compute_estimate_with_bootstrap_weights()}}
-    \item \href{#method-InferenceSurvivalWeibullRegr-compute_asymp_confidence_interval}{\code{InferenceSurvivalWeibullRegr$compute_asymp_confidence_interval()}}
-    \item \href{#method-InferenceSurvivalWeibullRegr-compute_asymp_two_sided_pval}{\code{InferenceSurvivalWeibullRegr$compute_asymp_two_sided_pval()}}
-    \item \href{#method-InferenceSurvivalWeibullRegr-compute_bayesian_bootstrap_two_sided_pval}{\code{InferenceSurvivalWeibullRegr$compute_bayesian_bootstrap_two_sided_pval()}}
-    \item \href{#method-InferenceSurvivalWeibullRegr-compute_lik_ratio_bartlett_approx_two_sided_pval}{\code{InferenceSurvivalWeibullRegr$compute_lik_ratio_bartlett_approx_two_sided_pval()}}
-    \item \href{#method-InferenceSurvivalWeibullRegr-compute_rand_two_sided_pval}{\code{InferenceSurvivalWeibullRegr$compute_rand_two_sided_pval()}}
+    \item \href{#method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_function}{\code{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_function()}}
+    \item \href{#method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_cpp()}}
+    \item \href{#method-InferenceSurvivalWeibullRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceSurvivalWeibullRegr$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceSurvivalWeibullRegr-clone}{\code{InferenceSurvivalWeibullRegr$clone()}}
   }
 }
-\if{html}{\out{<details><summary>+ inherited public methods from InferenceParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_lik_ratio_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_lik_ratio_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_lik_ratio_bootstrap_two_sided_pval'><code>InferenceParamBootstrap$compute_lik_ratio_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_confidence_interval'><code>InferenceParamBootstrap$compute_param_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_estimate'><code>InferenceParamBootstrap$compute_param_bootstrap_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-compute_param_bootstrap_pval'><code>InferenceParamBootstrap$compute_param_bootstrap_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_diagnostics()</code></a></li>
-  <li><a href='../../EDI/html/InferenceParamBootstrap.html#method-InferenceParamBootstrap-get_last_param_bootstrap_estimate_diagnostics'><code>InferenceParamBootstrap$get_last_param_bootstrap_estimate_diagnostics()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsympLik</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_confidence_interval'><code>InferenceAsympLik$compute_gradient_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_gradient_two_sided_pval'><code>InferenceAsympLik$compute_gradient_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_approx_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_approx_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_exact_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_exact_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_bartlett_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_bartlett_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_confidence_interval'><code>InferenceAsympLik$compute_lik_ratio_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_lik_ratio_two_sided_pval'><code>InferenceAsympLik$compute_lik_ratio_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_confidence_interval'><code>InferenceAsympLik$compute_score_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_two_sided_pval'><code>InferenceAsympLik$compute_score_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceAsymp</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_confidence_interval'><code>InferenceAsymp$compute_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-compute_wald_two_sided_pval'><code>InferenceAsymp$compute_wald_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceJackknife</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-approximate_jackknife_distribution_beta_hat_T'><code>InferenceJackknife$approximate_jackknife_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_bias_estimate'><code>InferenceJackknife$compute_jackknife_bias_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_estimate'><code>InferenceJackknife$compute_jackknife_estimate()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_std_error'><code>InferenceJackknife$compute_jackknife_std_error()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_confidence_interval'><code>InferenceJackknife$compute_jackknife_wald_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceJackknife.html#method-InferenceJackknife-compute_jackknife_wald_two_sided_pval'><code>InferenceJackknife$compute_jackknife_wald_two_sided_pval()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceBayesianBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-approximate_bayesian_bootstrap_distribution_beta_hat_T'><code>InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-compute_bayesian_bootstrap_confidence_interval'><code>InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_ci_types'><code>InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceBayesianBootstrap.html#method-InferenceBayesianBootstrap-get_supported_bayesian_bootstrap_pval_types'><code>InferenceBayesianBootstrap$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrapCI</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-compute_rand_bootstrap_confidence_interval'><code>InferenceRandBootstrapCI$compute_rand_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrapCI.html#method-InferenceRandBootstrapCI-get_supported_rand_bootstrap_ci_types'><code>InferenceRandBootstrapCI$get_supported_rand_bootstrap_ci_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-approximate_rand_bootstrap_distribution_beta_hat_T'><code>InferenceRandBootstrap$approximate_rand_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-compute_rand_bootstrap_two_sided_pval'><code>InferenceRandBootstrap$compute_rand_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRandBootstrap.html#method-InferenceRandBootstrap-get_supported_rand_bootstrap_pval_types'><code>InferenceRandBootstrap$get_supported_rand_bootstrap_pval_types()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceNonParamBootstrap</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_m_out_of_n_bootstrap_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-approximate_subsampling_distribution_beta_hat_T'><code>InferenceNonParamBootstrap$approximate_subsampling_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_confidence_interval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_m_out_of_n_bootstrap_two_sided_pval'><code>InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_confidence_interval'><code>InferenceNonParamBootstrap$compute_subsampling_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_sensitivity'><code>InferenceNonParamBootstrap$compute_subsampling_sensitivity()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-compute_subsampling_two_sided_pval'><code>InferenceNonParamBootstrap$compute_subsampling_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_ci_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_ci_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-get_supported_bootstrap_pval_types'><code>InferenceNonParamBootstrap$get_supported_bootstrap_pval_types()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_b_subsampling'><code>InferenceNonParamBootstrap$select_optimal_b_subsampling()</code></a></li>
-  <li><a href='../../EDI/html/InferenceNonParamBootstrap.html#method-InferenceNonParamBootstrap-select_optimal_m_out_of_n_bootstrap'><code>InferenceNonParamBootstrap$select_optimal_m_out_of_n_bootstrap()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRandCI</summary>
-<ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from InferenceRand</summary>
-<ul>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
-</ul>
-</details>
-<details><summary>+ inherited public methods from Inference</summary>
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -158,6 +81,7 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress =
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
@@ -165,225 +89,44 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress =
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-initialize"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-initialize}{}}}
-\subsection{\code{InferenceSurvivalWeibullRegr$new()}}{
-  Initialize a Weibull-regression inference object.
+\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_function"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_function}{}}}
+\subsection{\code{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_function()}}{
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalWeibullRegr$new(
-  des_obj,
-  model_formula = NULL,
-  verbose = FALSE,
-  smart_cold_start_default = NULL,
-  optimization_alg = NULL
+    \preformatted{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_function(
+  custom_randomization_statistic_function
 )}
     \if{html}{\out{</div>}}
   }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{des_obj}}{A completed \code{Design} object with a survival response.}
-      \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
-the formula from the design object is used and its pre-computed design matrix is
-reused. If a formula is provided, a new design matrix is constructed from the
-design's imputed covariates.}
-      \item{\code{verbose}}{Whether to print progress messages.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart optimizer start values by default.}
-      \item{\code{optimization_alg}}{Character scalar specifying the optimization algorithm. 
-Default is dispatched via policy.}
-    }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_cpp"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_cpp}{}}}
+\subsection{\code{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_cpp()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_cpp(fn)}
     \if{html}{\out{</div>}}
   }
 }
 
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-compute_estimate"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-compute_estimate}{}}}
-\subsection{\code{InferenceSurvivalWeibullRegr$compute_estimate()}}{
-  Computes the class-specific treatment-effect estimate; see
-  \code{\link[EDI:Inference]{Inference}}.
+\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-approximate_randomization_distribution_beta_hat_T"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-approximate_randomization_distribution_beta_hat_T}{}}}
+\subsection{\code{InferenceSurvivalWeibullRegr$approximate_randomization_distribution_beta_hat_T()}}{
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalWeibullRegr$compute_estimate(estimate_only = FALSE)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-compute_estimate_with_bootstrap_weights"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-compute_estimate_with_bootstrap_weights}{}}}
-\subsection{\code{InferenceSurvivalWeibullRegr$compute_estimate_with_bootstrap_weights()}}{
-  Recomputes the Weibull AFT treatment estimate under
-  Bayesian-bootstrap weights.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalWeibullRegr$compute_estimate_with_bootstrap_weights(
-  subject_or_block_weights,
-  estimate_only = FALSE
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{subject_or_block_weights}}{Subject-, block-, cluster-, or matched-set
-bootstrap weights.}
-      \item{\code{estimate_only}}{If \code{TRUE}, compute only the weighted point
-estimate.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-compute_asymp_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-compute_asymp_confidence_interval}{}}}
-\subsection{\code{InferenceSurvivalWeibullRegr$compute_asymp_confidence_interval()}}{
-  Uses the shared asymptotic confidence-interval contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalWeibullRegr$compute_asymp_confidence_interval(alpha = 0.05)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{Confidence level.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-compute_asymp_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-compute_asymp_two_sided_pval}{}}}
-\subsection{\code{InferenceSurvivalWeibullRegr$compute_asymp_two_sided_pval()}}{
-  Uses the shared asymptotic two-sided p-value contract; see
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalWeibullRegr$compute_asymp_two_sided_pval(delta = 0)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Null treatment effect value.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-compute_bayesian_bootstrap_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-compute_bayesian_bootstrap_two_sided_pval}{}}}
-\subsection{\code{InferenceSurvivalWeibullRegr$compute_bayesian_bootstrap_two_sided_pval()}}{
-  Bayesian-bootstrap two-sided p-value; see
-  \code{\link[EDI:Inference]{Inference}}. Blocked outright (rather than
-  letting the underlying weighted re-estimate fail once per replicate,
-  inside a per-iteration \code{tryCatch} that silently converts the
-  \code{stop()} in \code{compute_estimate_with_bootstrap_weights()} into an
-  all-\code{NA} bootstrap distribution) under left-/interval-censored data.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalWeibullRegr$compute_bayesian_bootstrap_two_sided_pval(
-  delta = 0,
-  B = 501,
-  type = NULL,
-  na.rm = FALSE,
-  show_progress = TRUE,
-  min_number_usable_samples = 5L,
-  weighting_unit_type = NULL
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Null treatment effect value.}
-      \item{\code{B}}{Number of Bayesian-bootstrap replicates.}
-      \item{\code{type}}{Bootstrap p-value type.}
-      \item{\code{na.rm}}{Whether to drop non-finite replicate estimates.}
-      \item{\code{show_progress}}{Whether to print a progress bar.}
-      \item{\code{min_number_usable_samples}}{Minimum number of finite replicates required.}
-      \item{\code{weighting_unit_type}}{Resampling unit type for the bootstrap weights.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-compute_lik_ratio_bartlett_approx_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-compute_lik_ratio_bartlett_approx_two_sided_pval}{}}}
-\subsection{\code{InferenceSurvivalWeibullRegr$compute_lik_ratio_bartlett_approx_two_sided_pval()}}{
-  Bartlett-corrected likelihood-ratio two-sided p-value; see
-  \code{\link[EDI:Inference]{Inference}}. Blocked outright under left-/
-  interval-censored data for the same reason as
-  \code{compute_bayesian_bootstrap_two_sided_pval()}: the underlying
-  \code{simulate_under_lik_null()} guard would otherwise only surface as a
-  silently all-\code{NA} calibration distribution.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalWeibullRegr$compute_lik_ratio_bartlett_approx_two_sided_pval(
-  delta = 0,
-  B = 99
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{delta}}{Null treatment effect value.}
-      \item{\code{B}}{Number of parametric-bootstrap replicates used for the correction.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-compute_rand_two_sided_pval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-compute_rand_two_sided_pval}{}}}
-\subsection{\code{InferenceSurvivalWeibullRegr$compute_rand_two_sided_pval()}}{
-  Randomization-test two-sided p-value; see
-  \code{\link[EDI:Inference]{Inference}}. A nonzero null shift
-  (\code{delta != 0}) is blocked outright under left-/interval-censored
-  data for the same reason as the other bootstrap guards in this class:
-  the underlying shift-template guard in
-  \code{setup_randomization_template_and_shifts()} would otherwise only
-  surface as a silently all-\code{NA} randomization distribution.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalWeibullRegr$compute_rand_two_sided_pval(
+    \preformatted{InferenceSurvivalWeibullRegr$approximate_randomization_distribution_beta_hat_T(
   r = 501,
   delta = 0,
   transform_responses = "none",
-  na.rm = TRUE,
   show_progress = TRUE,
   permutations = NULL,
+  debug = FALSE,
   zero_one_logit_clamp = .Machine$double.eps
 )}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{r}}{Number of randomization replicates.}
-      \item{\code{delta}}{Null treatment effect shift.}
-      \item{\code{transform_responses}}{Response transform used for the randomization statistic.}
-      \item{\code{na.rm}}{Whether to drop non-finite replicate statistics.}
-      \item{\code{show_progress}}{Whether to print a progress bar.}
-      \item{\code{permutations}}{Optional pre-generated permutation matrix.}
-      \item{\code{zero_one_logit_clamp}}{Clamp used for logit-transformed responses.}
-    }
     \if{html}{\out{</div>}}
   }
 }

@@ -98,6 +98,7 @@ Zelen, M. (1974). "The randomization and stratification of patients to
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_R'><code>Design$get_y_R()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-get_y_original'><code>Design$get_y_original()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-has_general_censoring'><code>Design$has_general_censoring()</code></a></li>
+  <li><a href='../../EDI/html/Design.html#method-Design-incompatible_inference_classes_due_to_design_structure'><code>Design$incompatible_inference_classes_due_to_design_structure()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_bernoulli_capable'><code>Design$is_a_bernoulli_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_cluster_capable'><code>Design$is_a_cluster_capable()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-is_a_kk_matching_capable'><code>Design$is_a_kk_matching_capable()</code></a></li>

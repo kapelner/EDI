@@ -153,6 +153,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \item \href{#method-Design-supports}{\code{Design$supports()}}
     \item \href{#method-Design-applicable_inference_class_names}{\code{Design$applicable_inference_class_names()}}
     \item \href{#method-Design-unavailable_inference_classes_due_to_missing_packages}{\code{Design$unavailable_inference_classes_due_to_missing_packages()}}
+    \item \href{#method-Design-incompatible_inference_classes_due_to_design_structure}{\code{Design$incompatible_inference_classes_due_to_design_structure()}}
     \item \href{#method-Design-randomization_family}{\code{Design$randomization_family()}}
     \item \href{#method-Design-supports_resampling}{\code{Design$supports_resampling()}}
     \item \href{#method-Design-supports_randomization_draw}{\code{Design$supports_randomization_draw()}}
@@ -755,6 +756,33 @@ interval upper bound.}
   \subsection{Returns}{
     A named list, class name -> missing package names; empty list
   if none.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-incompatible_inference_classes_due_to_design_structure"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-incompatible_inference_classes_due_to_design_structure}{}}}
+\subsection{\code{Design$incompatible_inference_classes_due_to_design_structure()}}{
+  Companion to \code{applicable_inference_class_names()}:
+  returns the subset of otherwise design-compatible \code{Inference}
+  classes that are excluded because they declared a
+  \code{design_compatibility_reason} predicate (a design-*structure*
+  requirement, e.g. even treatment allocation or equal block sizes,
+  beyond what response type/KK/blocking/censoring metadata alone can
+  express) and this design object fails it, as a named list (class
+  name -> one-line reason string) -- kept separate from plain design
+  incompatibility and from a missing package for the same reason
+  \code{unavailable_inference_classes_due_to_missing_packages()} is
+  kept separate: so callers can tell exactly why a class is missing
+  from \code{applicable_inference_class_names()} instead of only
+  discovering it as a construction-time error.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$incompatible_inference_classes_due_to_design_structure()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A named list, class name -> reason string; empty list if none.
   }
 }
 

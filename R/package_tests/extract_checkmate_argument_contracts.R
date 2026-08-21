@@ -28,7 +28,7 @@ supported_assertions = c(
 
 load_edi_namespace = function() {
 	if (requireNamespace("pkgload", quietly = TRUE)) {
-		pkgload::load_all(file.path(repo_root, "EDI"), quiet = TRUE, export_all = FALSE)
+		pkgload::load_all(file.path(repo_root, "EDI"), quiet = TRUE, export_all = FALSE, compile = FALSE)
 	} else {
 		stop("Package 'pkgload' is required for checkmate contract extraction.", call. = FALSE)
 	}

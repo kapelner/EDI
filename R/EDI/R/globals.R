@@ -830,29 +830,28 @@ edi_cold_start_dispatch_policy = function(inference_class) {
 #' (one of \code{"jackknife"}, \code{"non_param_boot"}, \code{"bayesian_boot"},
 #' \code{"param_boot"}, or \code{"rand"}).
 #'
-#' @details \strong{This returned list is not the complete policy.} The internal
-#'   (non-exported) dispatcher, \code{edi_warm_start_dispatch_policy(inference_class,
-#'   operation, n)}, consults this table's \code{default} and
-#'   \code{[[operation]]$inference_class_overrides} for its base per-operation
-#'   pattern lookups, but also has a substantial number of additional,
-#'   \strong{hardcoded (not present in this returned list)} empirical
-#'   disable-rules layered on top — many of them further conditioned on the
-#'   current sample size \code{n} (e.g. certain inference-class/operation
-#'   combinations only disable warm starts when \code{n < 200} or \code{n <
-#'   500}, because the extra bookkeeping only pays off once resampling is
-#'   expensive enough per replicate). Calling this function therefore does
-#'   \strong{not} tell you the full set of classes/operations for which warm
-#'   starts are disabled — for that, the dispatcher function's source is
-#'   authoritative, not this configuration table.
+#' @details The internal (non-exported) dispatcher,
+#'   \code{edi_warm_start_dispatch_policy(inference_class, operation, n)},
+#'   consults this table's \code{default} plus, per operation, two override
+#'   layers: \code{inference_class_overrides} (a sample-size-independent
+#'   pattern table, as before) and \code{n_conditioned_overrides} (a list of
+#'   \code{list(pattern, value, n_min, n_max)} rules — each pattern only
+#'   applies when the current sample size \code{n} falls in
+#'   \code{[n_min, n_max)} — encoding empirical findings like "the extra
+#'   bookkeeping only pays off once resampling is expensive enough per
+#'   replicate, so disable below n=200/500/1000 for these families"). Both
+#'   layers are returned by this function and are both reachable via
+#'   \code{\link{set_warm_start_dispatch_policy}}.
 #'
 #' @return A named list with \code{default} (logical, \code{TRUE} in the
 #'   built-in policy) and one component per operation (\code{jackknife},
 #'   \code{non_param_boot}, \code{bayesian_boot}, \code{param_boot},
-#'   \code{rand}), each itself a list containing
-#'   \code{inference_class_overrides} (a named logical vector: regular-expression
-#'   pattern names to \code{TRUE}/\code{FALSE} values, matched against the
-#'   inference class name) — only the first, sample-size-independent layer of
-#'   the full dispatch policy; see Details.
+#'   \code{rand}), each itself a list containing \code{inference_class_overrides}
+#'   (a named logical vector: regular-expression pattern names to
+#'   \code{TRUE}/\code{FALSE} values, matched against the inference class name,
+#'   applied regardless of sample size) and \code{n_conditioned_overrides} (a
+#'   list of \code{list(pattern, value, n_min, n_max)} rules, applied only when
+#'   \code{n} is supplied and falls in \code{[n_min, n_max)}); see Details.
 #' @seealso \code{\link{get_cold_start_dispatch_policy}} for the analogous
 #'   (simpler, single-layer) policy governing the initial cold-start heuristic
 #'   rather than cross-replicate warm-starting; \code{\link{set_warm_start_dispatch_policy}}
@@ -861,36 +860,161 @@ edi_cold_start_dispatch_policy = function(inference_class) {
 #' get_warm_start_dispatch_policy()
 #' @export
 get_warm_start_dispatch_policy = function() {
+  wn = function(pattern, value = FALSE, n_min = -Inf, n_max = Inf) {
+    list(pattern = pattern, value = value, n_min = n_min, n_max = n_max)
+  }
   list(
     default = TRUE,
     jackknife = list(
       inference_class_overrides = c(
         "^InferenceSurvivalKKLWACoxPHIVWC$" = FALSE,
         "^InferenceSurvivalCoxPHRegr$" = FALSE,
-        "^InferenceSurvivalStratCoxPHRegr$" = FALSE
+        "^InferenceSurvivalStratCoxPHRegr$" = FALSE,
+        "^InferenceOrdinalContRatioRegr$" = FALSE,
+        "^InferenceOrdinalAdjCatLogitRegr$" = FALSE,
+        "^InferenceSurvivalRestrictedMeanDiff$" = FALSE
+      ),
+      n_conditioned_overrides = list(
+        wn("^InferenceSurvivalGehanWilcox$", n_max = 200L),
+        wn("^InferenceSurvivalLogRank$", n_max = 500L),
+        wn("^InferenceContinKKGLMM$", n_max = 500L),
+        wn("^InferenceOrdinalCauchitRegr$", n_max = 500L),
+        wn("^InferencePropBetaRegr$", n_max = 500L),
+        wn("^InferenceIncidKKCondLogitGLMMIVWC$", n_min = 200L, n_max = 500L),
+        wn("^InferenceCountNegBin$", n_max = 1000L),
+        wn("^InferenceContinQuantileRegr$", n_min = 500L),
+        wn("^InferenceOrdinalGCompMeanDiff$", n_min = 500L),
+        wn("^InferenceSurvivalKKClaytonCopulaIVWC$", n_min = 1000L),
+        wn("^InferenceOrdinalOrderedProbitRegr$", n_min = 1000L),
+        wn("^InferenceSurvivalDepCensTransformRegr$", n_min = 1000L),
+        wn("^InferenceSurvivalGehanWilcox$", n_min = 1000L),
+        wn("^InferenceSurvivalWeibullRegr$", n_min = 1000L)
       )
     ),
     non_param_boot = list(
       inference_class_overrides = c(
         "^InferenceCountNegBin$" = FALSE,
         "^InferenceSurvivalCoxPHRegr$" = FALSE,
-        "^InferenceSurvivalStratCoxPHRegr$" = FALSE
+        "^InferenceSurvivalStratCoxPHRegr$" = FALSE,
+        "^InferencePropZeroOneInflatedBetaRegr$" = FALSE
+      ),
+      n_conditioned_overrides = list(
+        wn("^InferenceOrdinalContRatioRegr$", n_max = 200L),
+        wn("^InferenceOrdinalKKCLMMCauchit$", n_max = 200L),
+        wn("^InferencePropKKGEE$", n_max = 200L),
+        wn("^InferenceOrdinalKKCondAdjCatLogitRegr$", n_max = 200L),
+        wn("^InferenceCountQuasiPoisson$", n_max = 200L),
+        wn("^InferencePropKKQuantileRegrOneLik$", n_max = 200L),
+        wn("^InferenceCountHurdlePoisson$", n_max = 200L),
+        wn("^InferenceCountZeroInflatedPoisson$", n_max = 200L),
+        wn("^InferenceIncidBinomialIdentityRiskDiff$", n_max = 200L),
+        wn("^InferenceIncidGCompRiskRatio$", n_max = 200L),
+        wn("^InferenceIncidKKGEE$", n_max = 200L),
+        wn("^InferencePropBetaRegr$", n_max = 200L),
+        wn("^InferenceCountZeroInflatedNegBin$", n_max = 500L),
+        wn("^InferenceIncidLogBinomial$", n_max = 500L),
+        wn("^InferenceAllSimpleWilcox$", n_max = 500L),
+        wn("^InferenceContinKKGLMM$", n_max = 500L),
+        wn("^InferenceCountPoisson$", n_max = 500L),
+        wn("^InferenceOrdinalContRatioRegr$", n_max = 500L),
+        wn("^InferenceSurvivalDepCensTransformRegr$", n_max = 500L),
+        wn("^InferenceCountHurdleNegBin$", n_max = 1000L),
+        wn("^InferenceAllKKWilcoxIVWC$", n_min = 500L),
+        wn("^InferenceOrdinalCloglogRegr$", n_min = 500L),
+        wn("^InferenceOrdinalKKGLMM$", n_min = 500L),
+        wn("^InferencePropFractionalLogit$", n_min = 500L),
+        wn("^InferencePropKKQuantileRegrIVWC$", n_min = 500L),
+        wn("^InferenceSurvivalKMDiff$", n_min = 500L),
+        wn("^InferenceIncidKKCondLogitGLMMOneLik$", n_min = 1000L),
+        wn("^InferenceIncidKKGCompRiskDiff$", n_min = 1000L),
+        wn("^InferenceIncidRiskDiff$", n_min = 1000L),
+        wn("^InferenceOrdinalKKCLMM$", n_min = 1000L),
+        wn("^InferenceSurvivalRestrictedMeanDiff$", n_min = 1000L)
       )
     ),
     bayesian_boot = list(
       inference_class_overrides = c(
         "^InferenceCountNegBin$" = FALSE,
         "^InferenceSurvivalCoxPHRegr$" = FALSE,
-        "^InferenceSurvivalStratCoxPHRegr$" = FALSE
+        "^InferenceSurvivalStratCoxPHRegr$" = FALSE,
+        "^InferenceContinKKGLMM$" = FALSE,
+        "^InferenceSurvivalDepCensTransformRegr$" = FALSE,
+        "^InferenceOrdinalCloglogRegr$" = FALSE,
+        "^InferenceCountPoisson$" = FALSE,
+        "^InferenceOrdinalPropOddsRegr$" = FALSE,
+        "^InferenceIncidKKNewcombeRiskDiff$" = FALSE,
+        "^InferenceOrdinalJonckheereTerpstraTest$" = FALSE,
+        "^InferenceOrdinalKKCLMMProbit$" = FALSE,
+        "^InferencePropFractionalLogit$" = FALSE,
+        "^InferencePropGCompMeanDiff$" = FALSE,
+        "^InferenceSurvivalWeibullRegr$" = FALSE,
+        "^InferenceIncidBinomialIdentityRiskDiff$" = FALSE
+      ),
+      n_conditioned_overrides = list(
+        wn("^InferenceContinQuantileRegr$", n_max = 200L),
+        wn("^InferenceOrdinalKKCondAdjCatLogitRegr$", n_max = 500L),
+        wn("^InferenceSurvivalGehanWilcox$", n_max = 500L),
+        wn("^InferenceCountKKGLMM$", n_max = 500L),
+        wn("^InferenceCountHurdleNegBin$", n_max = 500L),
+        wn("^InferenceOrdinalContRatioRegr$", n_max = 500L),
+        wn("^InferenceSurvivalKKStratCoxPHOneLik$", n_max = 500L),
+        wn("^InferenceOrdinalKKCLMMCauchit$", n_max = 1000L),
+        wn("^InferenceSurvivalKKClaytonCopulaOneLik$", n_min = 500L),
+        wn("^InferenceIncidKKCondLogitGLMMOneLik$", n_min = 500L),
+        wn("^InferenceIncidModifiedPoisson$", n_min = 500L),
+        wn("^InferenceOrdinalKKCLMM$", n_min = 500L),
+        wn("^InferencePropZeroOneInflatedBetaRegr$", n_min = 500L),
+        wn("^InferenceIncidGCompRiskRatio$", n_min = 1000L),
+        wn("^InferenceContinQuantileRegr$", n_min = 1000L),
+        wn("^InferenceIncidRiskDiff$", n_min = 1000L),
+        wn("^InferenceCountQuasiPoisson$", n_min = 1000L),
+        wn("^InferenceIncidKKGCompRiskRatio$", n_min = 1000L),
+        wn("^InferenceCountKKCondPoissonOneLik$", n_min = 1000L),
+        wn("^InferenceCountKKGLMM$", n_min = 1000L),
+        wn("^InferenceCountKKHurdlePoissonOneLik$", n_min = 1000L),
+        wn("^InferenceIncidExactBinomial$", n_min = 1000L),
+        wn("^InferenceIncidProbitRegr$", n_min = 1000L),
+        wn("^InferenceIncidExactZhang$", n_min = 1000L),
+        wn("^InferenceOrdinalKKGLMM$", n_min = 1000L),
+        wn("^InferenceOrdinalOrderedProbitRegr$", n_min = 1000L)
       )
     ),
     param_boot = list(
-      inference_class_overrides = character(0)
+      inference_class_overrides = character(0),
+      n_conditioned_overrides = list()
     ),
     rand = list(
       inference_class_overrides = c(
         "^InferenceIncidKKCondLogitOneLik$" = FALSE,
-        "^InferenceAllSimpleWilcox$" = FALSE
+        "^InferenceAllSimpleWilcox$" = FALSE,
+        "^InferenceSurvivalKKLWACoxPHIVWC$" = FALSE
+      ),
+      n_conditioned_overrides = list(
+        wn("^InferencePropBetaRegr$", n_max = 200L),
+        wn("^InferenceOrdinalKKCondAdjCatLogitRegr$", n_max = 200L),
+        wn("^InferenceSurvivalKKClaytonCopulaOneLik$", n_max = 200L),
+        wn("^InferenceSurvivalKKStratCoxPHOneLik$", n_max = 200L),
+        wn("^InferenceSurvivalKKWeibullFrailtyIVWC$", n_max = 200L),
+        wn("^InferenceContinKKOLSIVWC$", n_max = 500L),
+        wn("^InferenceContinKKRobustRegrIVWC$", n_max = 500L),
+        wn("^InferencePropKKQuantileRegrIVWC$", n_max = 500L),
+        wn("^InferenceOrdinalContRatioRegr$", n_max = 500L),
+        wn("^InferenceSurvivalCoxPHRegr$", n_max = 500L),
+        wn("^InferenceIncidKKGEE$", n_max = 500L),
+        wn("^InferenceIncidLogBinomial$", n_max = 500L),
+        wn("^InferenceContinKKQuantileRegrOneLik$", n_min = 200L, n_max = 500L),
+        wn("^InferenceContinKKGLMM$", n_max = 1000L),
+        wn("^InferenceContinQuantileRegr$", n_max = 1000L),
+        wn("^InferenceIncidKKModifiedPoisson$", n_max = 1000L),
+        wn("^InferencePropGCompMeanDiff$", n_max = 1000L),
+        wn("^InferenceCountKKHurdlePoissonOneLik$", n_min = 200L),
+        wn("^InferenceContinRobustRegr$", n_min = 500L),
+        wn("^InferenceIncidBinomialIdentityRiskDiff$", n_min = 500L),
+        wn("^InferenceIncidKKCondLogitGLMMOneLik$", n_min = 500L),
+        wn("^InferenceIncidKKCondLogitGLMMIVWC$", n_min = 500L),
+        wn("^InferenceIncidGCompRiskRatio$", n_min = 500L),
+        wn("^InferenceOrdinalKKCLMM$", n_min = 500L),
+        wn("^InferenceCountPoisson$", n_min = 1000L)
       )
     )
   )
@@ -899,27 +1023,28 @@ edi_env$warm_start_dispatch_policy_config = get_warm_start_dispatch_policy()
 
 #' Update the warm-start dispatch policy
 #'
-#' Overrides, queries, or resets the runtime policy consulted (as one layer of
-#' several — see Details) by \code{edi_warm_start_dispatch_policy()} for
-#' whether an inference class reuses a previous fit's parameters/curvature to
-#' seed the next fit during resampling; see
-#' \code{\link{get_warm_start_dispatch_policy}} for the built-in default table
-#' and its \code{jackknife}/\code{non_param_boot}/\code{bayesian_boot}/
-#' \code{param_boot}/\code{rand} operation schema.
+#' Overrides, queries, or resets the runtime policy consulted by
+#' \code{edi_warm_start_dispatch_policy()} for whether an inference class
+#' reuses a previous fit's parameters/curvature to seed the next fit during
+#' resampling; see \code{\link{get_warm_start_dispatch_policy}} for the
+#' built-in default table and its \code{jackknife}/\code{non_param_boot}/
+#' \code{bayesian_boot}/\code{param_boot}/\code{rand} operation schema
+#' (each with an \code{inference_class_overrides} layer and an
+#' \code{n_conditioned_overrides} layer).
 #'
 #' @details Call with no arguments (\code{policy = NULL}, \code{reset = FALSE})
 #'   to retrieve the current configuration without changing it. Pass a named
 #'   list to \code{policy} to merge new/overriding entries into the current
 #'   configuration via \code{\link[utils]{modifyList}} (per-operation
-#'   sub-lists, e.g. \code{list(rand = list(inference_class_overrides = ...))},
-#'   are merged rather than replaced wholesale). Pass \code{reset = TRUE} to
-#'   discard any accumulated overrides and restore the package's built-in
-#'   default policy exactly as returned by
-#'   \code{\link{get_warm_start_dispatch_policy}}. \strong{This function only
-#'   controls the sample-size-independent pattern-table layer} of the warm-start
-#'   dispatcher; the additional hardcoded, sample-size-conditioned disable rules
-#'   documented on \code{\link{get_warm_start_dispatch_policy}} are not
-#'   affected by any override passed here.
+#'   sub-lists, e.g. \code{list(rand = list(inference_class_overrides = ...))}
+#'   or \code{list(rand = list(n_conditioned_overrides = ...))}, are merged
+#'   rather than replaced wholesale — note \code{n_conditioned_overrides} is a
+#'   plain list of rules, so overriding it replaces the whole list for that
+#'   operation, not a per-rule merge). Pass \code{reset = TRUE} to discard any
+#'   accumulated overrides and restore the package's built-in default policy
+#'   exactly as returned by \code{\link{get_warm_start_dispatch_policy}}.
+#'   \strong{This function controls the full dispatch policy}, including the
+#'   sample-size-conditioned \code{n_conditioned_overrides} layer.
 #'
 #' @param policy Either \code{NULL} (no change) or a named list of per-operation
 #'   policy overrides merged into the current configuration (see Details).
@@ -928,9 +1053,8 @@ edi_env$warm_start_dispatch_policy_config = get_warm_start_dispatch_policy()
 #' @return Invisible \code{NULL} when \code{policy} is supplied (a mutation), or
 #'   invisibly the current policy configuration list when called for its
 #'   side-effect-free query/reset value.
-#' @seealso \code{\link{get_warm_start_dispatch_policy}} for the policy schema,
-#'   built-in defaults, and the additional sample-size-conditioned rules this
-#'   setter cannot override; \code{\link{set_cold_start_dispatch_policy}} for
+#' @seealso \code{\link{get_warm_start_dispatch_policy}} for the policy schema
+#'   and built-in defaults; \code{\link{set_cold_start_dispatch_policy}} for
 #'   the analogous, simpler single-layer setter governing the initial
 #'   cold-start heuristic.
 #' @examples
@@ -946,7 +1070,24 @@ set_warm_start_dispatch_policy = function(policy = NULL, reset = FALSE) {
     return(invisible(edi_env$warm_start_dispatch_policy_config))
   }
   checkmate::assertList(policy, names = "named")
-  edi_env$warm_start_dispatch_policy_config = utils::modifyList(edi_env$warm_start_dispatch_policy_config, policy)
+  current = edi_env$warm_start_dispatch_policy_config
+  for (op in names(policy)) {
+    op_policy = policy[[op]]
+    if (!is.list(op_policy)) {
+      current[[op]] = op_policy
+      next
+    }
+    # n_conditioned_overrides is a plain (unnamed) list of rules -- modifyList()'s
+    # recursive merge is a silent no-op on unnamed lists, so replace it wholesale
+    # here rather than routing it through modifyList() below.
+    n_replacement = op_policy$n_conditioned_overrides
+    op_policy$n_conditioned_overrides = NULL
+    current[[op]] = utils::modifyList(current[[op]] %||% list(), op_policy)
+    if (!is.null(n_replacement)) {
+      current[[op]]$n_conditioned_overrides = n_replacement
+    }
+  }
+  edi_env$warm_start_dispatch_policy_config = current
   invisible(NULL)
 }
 
@@ -955,248 +1096,32 @@ edi_warm_start_dispatch_policy = function(inference_class, operation, n = NULL) 
   inference_class = as.character(inference_class[[1]])
   operation = as.character(operation[[1]])
   n_val = suppressWarnings(as.integer(n))
-  
+
   default_val = if (isTRUE(config$default)) TRUE else FALSE
 
-  # Global disables: consistently negative across 3-4 n values or extreme single-n anomalies
-  if (identical(operation, "bayesian_boot") &&
-      (grepl("^InferenceContinKKGLMM$",                   inference_class, perl = TRUE) ||
-       grepl("^InferenceSurvivalDepCensTransformRegr$",   inference_class, perl = TRUE) ||
-       grepl("^InferenceOrdinalCloglogRegr$",             inference_class, perl = TRUE) ||
-       grepl("^InferenceCountPoisson$",                   inference_class, perl = TRUE) ||
-       grepl("^InferenceOrdinalPropOddsRegr$",            inference_class, perl = TRUE) ||
-       grepl("^InferenceIncidKKNewcombeRiskDiff$",        inference_class, perl = TRUE) ||
-       grepl("^InferenceOrdinalJonckheereTerpstraTest$",  inference_class, perl = TRUE) ||
-       grepl("^InferenceOrdinalKKCLMMProbit$",            inference_class, perl = TRUE) ||
-       grepl("^InferencePropFractionalLogit$",            inference_class, perl = TRUE) ||
-       grepl("^InferencePropGCompMeanDiff$",              inference_class, perl = TRUE) ||
-       grepl("^InferenceSurvivalWeibullRegr$",            inference_class, perl = TRUE))) {
-    return(FALSE)
-  }
-  if (identical(operation, "bayesian_boot") &&
-      grepl("^InferenceIncidBinomialIdentityRiskDiff$", inference_class, perl = TRUE)) {
-    return(FALSE)
-  }
-  if (identical(operation, "jackknife") &&
-      (grepl("^InferenceOrdinalContRatioRegr$",      inference_class, perl = TRUE) ||
-       grepl("^InferenceOrdinalAdjCatLogitRegr$",    inference_class, perl = TRUE) ||
-       grepl("^InferenceSurvivalRestrictedMeanDiff$", inference_class, perl = TRUE))) {
-    return(FALSE)
-  }
-  if (identical(operation, "non_param_boot") &&
-      grepl("^InferencePropZeroOneInflatedBetaRegr$", inference_class, perl = TRUE)) {
-    return(FALSE)
-  }
-  if (identical(operation, "rand") &&
-      grepl("^InferenceSurvivalKKLWACoxPHIVWC$", inference_class, perl = TRUE)) {
-    return(FALSE)
-  }
+  op_cfg = config[[operation]]
+  if (!is.list(op_cfg)) return(default_val)
 
-  if (!is.na(n_val) && n_val < 200L) {
-    if (identical(operation, "non_param_boot") &&
-        (grepl("^InferenceOrdinalContRatioRegr$",         inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalKKCLMMCauchit$",         inference_class, perl = TRUE) ||
-         grepl("^InferencePropKKGEE$",                    inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalKKCondAdjCatLogitRegr$", inference_class, perl = TRUE) ||
-         grepl("^InferenceCountQuasiPoisson$",            inference_class, perl = TRUE) ||
-         grepl("^InferencePropKKQuantileRegrOneLik$",     inference_class, perl = TRUE) ||
-         grepl("^InferenceCountHurdlePoisson$",           inference_class, perl = TRUE) ||
-         grepl("^InferenceCountZeroInflatedPoisson$",     inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidBinomialIdentityRiskDiff$",inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidGCompRiskRatio$",          inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidKKGEE$",                   inference_class, perl = TRUE) ||
-         grepl("^InferencePropBetaRegr$",                 inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-    if (identical(operation, "rand") &&
-        (grepl("^InferencePropBetaRegr$",                 inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalKKCondAdjCatLogitRegr$", inference_class, perl = TRUE) ||
-         grepl("^InferenceSurvivalKKClaytonCopulaOneLik$",inference_class, perl = TRUE) ||
-         grepl("^InferenceSurvivalKKStratCoxPHOneLik$",   inference_class, perl = TRUE) ||
-         grepl("^InferenceSurvivalKKWeibullFrailtyIVWC$", inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-    if (identical(operation, "jackknife") &&
-        grepl("^InferenceSurvivalGehanWilcox$", inference_class, perl = TRUE)) {
-      return(FALSE)
-    }
-    if (identical(operation, "bayesian_boot") &&
-        grepl("^InferenceContinQuantileRegr$", inference_class, perl = TRUE)) {
-      return(FALSE)
-    }
-  }
-
-  if (!is.na(n_val) && n_val < 500L) {
-    if (identical(operation, "rand") &&
-        (grepl("^InferenceContinKKOLSIVWC$",       inference_class, perl = TRUE) ||
-         grepl("^InferenceContinKKRobustRegrIVWC$", inference_class, perl = TRUE) ||
-         grepl("^InferencePropKKQuantileRegrIVWC$", inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalContRatioRegr$",   inference_class, perl = TRUE) ||
-         grepl("^InferenceSurvivalCoxPHRegr$",      inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidKKGEE$",             inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-    if (identical(operation, "non_param_boot") &&
-        (grepl("^InferenceCountZeroInflatedNegBin$",     inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidLogBinomial$",            inference_class, perl = TRUE) ||
-         grepl("^InferenceAllSimpleWilcox$",             inference_class, perl = TRUE) ||
-         grepl("^InferenceContinKKGLMM$",               inference_class, perl = TRUE) ||
-         grepl("^InferenceCountPoisson$",               inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalContRatioRegr$",       inference_class, perl = TRUE) ||
-         grepl("^InferenceSurvivalDepCensTransformRegr$",inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-    if (identical(operation, "rand") &&
-        grepl("^InferenceIncidLogBinomial$", inference_class, perl = TRUE)) {
-      return(FALSE)
-    }
-    if (identical(operation, "bayesian_boot") &&
-        (grepl("^InferenceOrdinalKKCondAdjCatLogitRegr$", inference_class, perl = TRUE) ||
-         grepl("^InferenceSurvivalGehanWilcox$",           inference_class, perl = TRUE) ||
-         grepl("^InferenceCountKKGLMM$",                   inference_class, perl = TRUE) ||
-         grepl("^InferenceCountHurdleNegBin$",             inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalContRatioRegr$",          inference_class, perl = TRUE) ||
-         grepl("^InferenceSurvivalKKStratCoxPHOneLik$",    inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-    if (identical(operation, "jackknife") &&
-        (grepl("^InferenceSurvivalLogRank$",              inference_class, perl = TRUE) ||
-         grepl("^InferenceContinKKGLMM$",                 inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalCauchitRegr$",           inference_class, perl = TRUE) ||
-         grepl("^InferencePropBetaRegr$",                 inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-  }
-
-  if (!is.na(n_val) && n_val >= 200L && n_val < 500L) {
-    if (identical(operation, "rand") &&
-        grepl("^InferenceContinKKQuantileRegrOneLik$", inference_class, perl = TRUE)) {
-      return(FALSE)
-    }
-    if (identical(operation, "jackknife") &&
-        grepl("^InferenceIncidKKCondLogitGLMMIVWC$", inference_class, perl = TRUE)) {
-      return(FALSE)
-    }
-  }
-
-  if (!is.na(n_val) && n_val < 1000L) {
-    if (identical(operation, "rand") &&
-        (grepl("^InferenceContinKKGLMM$",         inference_class, perl = TRUE) ||
-         grepl("^InferenceContinQuantileRegr$",    inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidKKModifiedPoisson$",inference_class, perl = TRUE) ||
-         grepl("^InferencePropGCompMeanDiff$",     inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-    if (identical(operation, "bayesian_boot") &&
-        grepl("^InferenceOrdinalKKCLMMCauchit$", inference_class, perl = TRUE)) {
-      return(FALSE)
-    }
-    if (identical(operation, "jackknife") &&
-        grepl("^InferenceCountNegBin$", inference_class, perl = TRUE)) {
-      return(FALSE)
-    }
-    if (identical(operation, "non_param_boot") &&
-        grepl("^InferenceCountHurdleNegBin$", inference_class, perl = TRUE)) {
-      return(FALSE)
-    }
-  }
-
-  if (!is.na(n_val) && n_val >= 200L) {
-    # At n>=200, KKHurdlePoissonOneLik rand warm starts cause the C++ GLMM to
-    # fail convergence and fall back to slow glmmTMB (benchmark shows -75% at n=200)
-    if (identical(operation, "rand") &&
-        grepl("^InferenceCountKKHurdlePoissonOneLik$", inference_class, perl = TRUE)) {
-      return(FALSE)
-    }
-  }
-
-  if (!is.na(n_val) && n_val >= 500L) {
-    if (identical(operation, "bayesian_boot") &&
-        (grepl("^InferenceSurvivalKKClaytonCopulaOneLik$",  inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidKKCondLogitGLMMOneLik$", inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidModifiedPoisson$",           inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalKKCLMM$",                  inference_class, perl = TRUE) ||
-         grepl("^InferencePropZeroOneInflatedBetaRegr$",    inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-    if (identical(operation, "rand") &&
-        (grepl("^InferenceContinRobustRegr$",               inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidBinomialIdentityRiskDiff$",  inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidKKCondLogitGLMMOneLik$", inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidKKCondLogitGLMMIVWC$",   inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidGCompRiskRatio$",            inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalKKCLMM$",                  inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-    if (identical(operation, "non_param_boot") &&
-        (grepl("^InferenceAllKKWilcoxIVWC$",       inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalCloglogRegr$",     inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalKKGLMM$",          inference_class, perl = TRUE) ||
-         grepl("^InferencePropFractionalLogit$",    inference_class, perl = TRUE) ||
-         grepl("^InferencePropKKQuantileRegrIVWC$", inference_class, perl = TRUE) ||
-         grepl("^InferenceSurvivalKMDiff$",         inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-    if (identical(operation, "jackknife") &&
-        (grepl("^InferenceContinQuantileRegr$",  inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalGCompMeanDiff$", inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-  }
-
-  if (!is.na(n_val) && n_val >= 1000L) {
-    if (identical(operation, "rand") &&
-        grepl("^InferenceCountPoisson$", inference_class, perl = TRUE)) {
-      return(FALSE)
-    }
-    if (identical(operation, "jackknife") &&
-        (grepl("^InferenceSurvivalKKClaytonCopulaIVWC$",  inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalOrderedProbitRegr$",      inference_class, perl = TRUE) ||
-         grepl("^InferenceSurvivalDepCensTransformRegr$",  inference_class, perl = TRUE) ||
-         grepl("^InferenceSurvivalGehanWilcox$",           inference_class, perl = TRUE) ||
-         grepl("^InferenceSurvivalWeibullRegr$",           inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-    if (identical(operation, "bayesian_boot") &&
-        (grepl("^InferenceIncidGCompRiskRatio$",          inference_class, perl = TRUE) ||
-         grepl("^InferenceContinQuantileRegr$",           inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidRiskDiff$",                inference_class, perl = TRUE) ||
-         grepl("^InferenceCountQuasiPoisson$",            inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidKKGCompRiskRatio$",        inference_class, perl = TRUE) ||
-         grepl("^InferenceCountKKCondPoissonOneLik$",     inference_class, perl = TRUE) ||
-         grepl("^InferenceCountKKGLMM$",                  inference_class, perl = TRUE) ||
-         grepl("^InferenceCountKKHurdlePoissonOneLik$",   inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidExactBinomial$",           inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidProbitRegr$",              inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidExactZhang$",          inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalKKGLMM$",                inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalOrderedProbitRegr$",     inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-    if (identical(operation, "non_param_boot") &&
-        (grepl("^InferenceIncidKKCondLogitGLMMOneLik$",inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidKKGCompRiskDiff$",          inference_class, perl = TRUE) ||
-         grepl("^InferenceIncidRiskDiff$",                 inference_class, perl = TRUE) ||
-         grepl("^InferenceOrdinalKKCLMM$",                 inference_class, perl = TRUE) ||
-         grepl("^InferenceSurvivalRestrictedMeanDiff$",    inference_class, perl = TRUE))) {
-      return(FALSE)
-    }
-  }
-
-  if (operation %in% names(config)) {
-    op_cfg = config[[operation]]
-    if (is.list(op_cfg)) {
-      overrides = op_cfg$inference_class_overrides
-      if (!is.null(overrides) && length(overrides) > 0L) {
-        for (pattern in names(overrides)) {
-          if (is.na(pattern) || pattern == "") next
-          if (grepl(pattern, inference_class, perl = TRUE)) {
-            return(isTRUE(overrides[[pattern]]))
-          }
-        }
+  overrides = op_cfg$inference_class_overrides
+  if (!is.null(overrides) && length(overrides) > 0L) {
+    for (pattern in names(overrides)) {
+      if (is.na(pattern) || pattern == "") next
+      if (grepl(pattern, inference_class, perl = TRUE)) {
+        return(isTRUE(overrides[[pattern]]))
       }
     }
   }
+
+  n_overrides = op_cfg$n_conditioned_overrides
+  if (!is.na(n_val) && !is.null(n_overrides) && length(n_overrides) > 0L) {
+    for (rule in n_overrides) {
+      if (n_val >= rule$n_min && n_val < rule$n_max &&
+          grepl(rule$pattern, inference_class, perl = TRUE)) {
+        return(isTRUE(rule$value))
+      }
+    }
+  }
+
   default_val
 }
 #' Update the parallel dispatch policy

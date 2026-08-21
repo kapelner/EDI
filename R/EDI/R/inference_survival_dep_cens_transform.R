@@ -1,22 +1,10 @@
-#' Dependent-Censoring Transformation Inference for Survival Responses
-#'
-#' Fits a survival model accounting for dependent censoring via a transformation
-#' approach using the treatment indicator and, optionally, all recorded covariates
-#' as predictors.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'survival')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(runif(10))
-#' inf = InferenceSurvivalDepCensTransformRegr$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' @export
 inference_survival_dep_cens_transform_public = list(
-		#' @description Initialize a dependent-censoring transformation inference object.
+		#' @description Initialize inference for the bivariate log-normal
+		#'   dependent-censoring transformation model; see
+		#'   \code{\link[EDI:InferenceSurvivalDepCensTransformRegr]{InferenceSurvivalDepCensTransformRegr}}
+		#'   for the model form. Does not fit the model; the fit is deferred to
+		#'   the first call to \code{compute_estimate()} or a method that requires
+		#'   it.
 		#' @param des_obj A completed \code{Design} object with a survival response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -31,15 +19,23 @@ inference_survival_dep_cens_transform_public = list(
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 		},
-		#' @description Computes the class-specific treatment-effect estimate; see
-		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @description Fits the joint bivariate log-normal event/censoring
+		#'   transformation model by maximum likelihood and returns the event-time
+		#'   log-time-ratio estimate \eqn{\hat\beta_T}; see
+		#'   \code{\link[EDI:InferenceSurvivalDepCensTransformRegr]{InferenceSurvivalDepCensTransformRegr}}
+		#'   for the model form.
+		#' @param estimate_only If TRUE, skip standard-error computation and cache
+		#'   only the point estimate; used by randomization and bootstrap resampling
+		#'   paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the dependent-censoring transformation estimate
-		#'   under Bayesian-bootstrap weights.
+		#' @description Recomputes the treatment estimate under subject/block-level
+		#'   Bayesian-bootstrap weights, using \code{weighted_cox_bootstrap_surrogate_fit()}
+		#'   — a fast weighted Cox-model surrogate fit — as an approximation to the
+		#'   weighted joint dependent-censoring likelihood, rather than a full
+		#'   weighted refit of the joint bivariate model.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
 		#' @param estimate_only If \code{TRUE}, compute only the weighted point
@@ -238,16 +234,22 @@ inference_survival_dep_cens_transform_public = list(
 			private$cache_nonestimable_se("dep_cens_transform_randomization_not_supported")
 			rep(NA_real_, as.integer(r))
 		},
-		#' @description Uses the shared asymptotic confidence-interval contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param alpha Confidence level.
+		#' @description Wald confidence interval for the event-submodel log-time-ratio
+		#'   \eqn{\beta_T} using the fitted joint model's standard error; see
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald
+		#'   contract. Fits the model first if not already cached.
+		#' @param alpha Two-sided miscoverage rate; the returned interval targets
+		#'   \code{1 - alpha} coverage.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Uses the shared asymptotic two-sided p-value contract; see
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
-		#' @param delta Null treatment effect value.
+		#' @description Two-sided Wald test of \eqn{H_0: \beta_T = \code{delta}} for
+		#'   the event-submodel log-time-ratio, using the fitted joint model's
+		#'   standard error; see \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}
+		#'   for the shared Wald contract. Fits the model first if not already
+		#'   cached.
+		#' @param delta Log-time-ratio value under the null hypothesis.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
@@ -625,6 +627,62 @@ SurvivalDepCensTransformSource = list(
 	private = inference_survival_dep_cens_transform_private
 )
 
+#' Dependent-Censoring Transformation Inference for Survival Responses
+#'
+#' Fits a joint bivariate log-normal transformation model for a latent event
+#' time \eqn{T^E_i} and a latent censoring time \eqn{T^C_i} that are allowed
+#' to be \strong{dependent} (a violation of the usual independent-censoring
+#' assumption): \eqn{\log T^E_i = X_i^\top \beta_{\mathrm{event}} +
+#' \sigma_{\mathrm{event}} \epsilon^E_i}, \eqn{\log T^C_i = X_i^\top
+#' \beta_{\mathrm{cens}} + \sigma_{\mathrm{cens}} \epsilon^C_i}, with
+#' \eqn{(\epsilon^E_i, \epsilon^C_i)} jointly standard bivariate normal with
+#' correlation \eqn{\rho} (estimated via an \code{atanh}-reparameterized,
+#' clamped nuisance parameter). \eqn{X_i} includes the treatment indicator
+#' \eqn{W_i} as its first column, so \eqn{\hat\beta_T} (the first entry of
+#' \eqn{\hat\beta_{\mathrm{event}}}) is a log-time-ratio for the
+#' \strong{event} submodel, on the same AFT interpretation scale as
+#' \code{\link[EDI:InferenceSurvivalWeibullRegr]{InferenceSurvivalWeibullRegr}}
+#' but log-normal rather than Weibull, and jointly modeling the censoring
+#' mechanism rather than assuming it independent. This is the correct tool
+#' when censoring is suspected to depend on the same latent factors driving
+#' the event time (e.g. sicker patients are both more likely to be censored
+#' — dropout — and more likely to fail early), a scenario under which
+#' ordinary Kaplan-Meier/Cox/AFT methods (which assume independent
+#' censoring) are biased. \code{likelihood_tier = "full"}: likelihood-ratio,
+#' score, gradient, and Wald tests are available when the model converges,
+#' plus parametric-likelihood-bootstrap calibration of the likelihood-ratio
+#' test. \strong{Substantial method-support limitations, all deliberate}:
+#' randomization inference and jackknife bias correction/standard errors are
+#' hard-unsupported (each randomization draw would require a full
+#' dependent-censoring likelihood refit, too unstable/slow for the
+#' comprehensive test suite; jackknife bias correction is unstable for this
+#' likelihood on small censored samples) — every jackknife/randomization
+#' method returns \code{NA} and marks the result nonestimable rather than
+#' computing a value. Nonparametric-bootstrap confidence intervals are
+#' computed but additionally validated/sanity-checked (excessively wide or
+#' zero-excluding-by-construction intervals are treated as unstable and
+#' replaced with \code{NA}), and Bayesian-bootstrap weighted re-estimation
+#' uses a fast Cox-model surrogate fit (\code{weighted_cox_bootstrap_surrogate_fit()})
+#' as an approximation rather than a full weighted joint-likelihood refit.
+#'
+#' @seealso \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
+#'   for a different (Clayton-copula, KK-design) approach to dependence
+#'   between two survival-type quantities.
+#'   \href{https://en.wikipedia.org/wiki/Survival_analysis}{Survival
+#'   analysis} (Wikipedia, general orientation; no direct Wikipedia page for
+#'   dependent-censoring copula/transformation models specifically).
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'survival')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(runif(10))
+#' inf = InferenceSurvivalDepCensTransformRegr$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' @export
 InferenceSurvivalDepCensTransformRegr = define_inference_class(
 	classname = "InferenceSurvivalDepCensTransformRegr",
 	inherit = Inference,

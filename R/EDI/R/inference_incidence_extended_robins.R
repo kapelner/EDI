@@ -61,17 +61,11 @@ InferenceIncidExtendedRobins = define_inference_class(
 		#' @param verbose Logical. Whether to print progress messages.
 		#' @return A new \code{InferenceIncidExtendedRobins} object.
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE){
-			if (!des_obj$is_blocking_design()) {
-				stop("InferenceIncidExtendedRobins requires a blocking design with equal block sizes and even allocation.")
-			}
-			if (des_obj$get_prob_T() != 0.5) {
-				stop("InferenceIncidExtendedRobins requires a blocking design with even allocation.")
-			}
-			block_ids = des_obj$get_block_ids()
-			block_sizes = as.integer(table(block_ids))
-			if (length(block_sizes) > 1L && any(block_sizes != block_sizes[1L])) {
-				stop("InferenceIncidExtendedRobins requires a blocking design with equal block sizes.")
-			}
+			stop_if_design_incompatible(private$design_compatibility_reason, des_obj, list(
+				extended_robins_requires_blocking_design = "InferenceIncidExtendedRobins requires a blocking design with equal block sizes and even allocation.",
+				extended_robins_requires_even_allocation = "InferenceIncidExtendedRobins requires a blocking design with even allocation.",
+				extended_robins_requires_equal_block_sizes = "InferenceIncidExtendedRobins requires a blocking design with equal block sizes."
+			))
 
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "incidence")
