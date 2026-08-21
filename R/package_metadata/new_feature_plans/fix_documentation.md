@@ -1038,10 +1038,10 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidBinomialIdentityRiskDiff.Rd`
 
-- [ ] TODO #387: Method `InferenceIncidBinomialIdentityRiskDiff$compute_estimate_with_bootstrap_weights()` (current description `77` chars).
-- [ ] TODO #388: Method `InferenceIncidBinomialIdentityRiskDiff$compute_lik_ratio_confidence_interval()` (current description `68` chars).
-- [ ] TODO #389: Method `InferenceIncidBinomialIdentityRiskDiff$new()` (current description `69` chars).
-- [ ] TODO #390: Topic `InferenceIncidBinomialIdentityRiskDiff` (current description `282` chars).
+- [x] TODO #387: Method `InferenceIncidBinomialIdentityRiskDiff$compute_estimate_with_bootstrap_weights()` (current description `77` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented weighted refit + hardening behavior.
+- [x] TODO #388: Method `InferenceIncidBinomialIdentityRiskDiff$compute_lik_ratio_confidence_interval()` (current description `68` chars). Documented test-inversion contract.
+- [x] TODO #389: Method `InferenceIncidBinomialIdentityRiskDiff$new()` (current description `69` chars). Documented model form and deferred-fit behavior.
+- [x] TODO #390: Topic `InferenceIncidBinomialIdentityRiskDiff` (current description `282` chars). Full model doc added (identity-link risk-difference estimand, contrasted with logit/log-link siblings); fixed a misplaced-doc-block bug (roxygen block was above the bare `inference_incid_binomial_identity_public` list, not the `define_inference_class()` call — same pattern found earlier this session in `InferenceIncidLogRegr`). `REFERENCES.md` updated (`[McCullaghNelder1989]` "Used by" list).
 
 ### `InferenceIncidCMH.Rd`
 

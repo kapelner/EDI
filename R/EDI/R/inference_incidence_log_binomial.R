@@ -1,22 +1,10 @@
-#' Log-Binomial Regression Inference for Incidence Responses
-#'
-#' Fits a log-binomial regression for binary (incidence) responses using the
-#' treatment indicator and, optionally, all recorded covariates as predictors.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
-#' inf = InferenceIncidLogBinomial$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' @export
 inference_incid_log_binomial_public = list(
 
-		#' @description Initialize a log-binomial regression inference object.
+		#' @description Initialize inference for the log-link binomial risk-ratio
+		#'   model \eqn{\log P(Y_i = 1) = \beta_0 + \beta_T W_i + X_i^\top \gamma};
+		#'   see \code{\link[EDI:InferenceIncidLogBinomial]{InferenceIncidLogBinomial}}
+		#'   for the model form. Does not fit the model; the fit is deferred to the
+		#'   first call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with an incidence response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -36,8 +24,15 @@ inference_incid_log_binomial_public = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#' @description Refits the log-binomial model with subject/block-level weights
+		#'   applied to the fitting log-likelihood (Bayesian-bootstrap or
+		#'   nonparametric-bootstrap draw weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}) via
+		#'   \code{\link{fast_log_binomial_regression_weighted_cpp}}, and returns the
+		#'   reweighted log-risk-ratio estimate \eqn{\hat\beta_T^{(w)}}. Uses the same
+		#'   QR column-dropping hardening and fit-reasonableness check as
+		#'   \code{compute_estimate()}; a hardened-but-still-unreasonable fit is
+		#'   cached as nonestimable and returns \code{NA}.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -95,9 +90,13 @@ inference_incid_log_binomial_public = list(
 			private$cached_values$df = NA_real_
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes the score confidence interval, falling back to a
-		#'   non-estimable result if the underlying computation fails or is degenerate.
-		#' @param alpha Significance level. Default 0.05.
+		#' @description Score confidence interval for \eqn{\beta_T} by test inversion
+		#'   of the score test (find the set of \code{delta} not rejected at level
+		#'   \code{alpha}); see \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}}
+		#'   for the shared inversion contract. Falls back to a nonestimable result
+		#'   (\code{NA} bounds) if the underlying root-finding fails or degenerates.
+		#' @param alpha Two-sided miscoverage rate; the returned interval targets
+		#'   \code{1 - alpha} coverage.
 		compute_score_confidence_interval = function(alpha = 0.05){
 			# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
 			# migration ladders): was `super$compute_score_confidence_interval(...)`,
@@ -126,9 +125,13 @@ inference_incid_log_binomial_public = list(
 			}
 			ci
 		},
-		#' @description Computes the gradient confidence interval, falling back to a
-		#'   non-estimable result if the underlying computation fails or is degenerate.
-		#' @param alpha Significance level. Default 0.05.
+		#' @description Gradient confidence interval for \eqn{\beta_T} by test
+		#'   inversion of the gradient test; see
+		#'   \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} for the shared
+		#'   inversion contract. Falls back to a nonestimable result (\code{NA}
+		#'   bounds) if the underlying root-finding fails or degenerates.
+		#' @param alpha Two-sided miscoverage rate; the returned interval targets
+		#'   \code{1 - alpha} coverage.
 		compute_gradient_confidence_interval = function(alpha = 0.05){
 			# See compute_score_confidence_interval()'s comment above -- same
 			# super$ fix, same reason.
@@ -459,6 +462,57 @@ IncidenceLogBinomialLikelihoodSource = list(
 	private = inference_incid_log_binomial_private
 )
 
+#' Log-Binomial Regression Inference for Incidence Responses
+#'
+#' Fits a binomial regression with the \strong{log} link for binary
+#' (incidence) responses: \eqn{\log P(Y_i = 1) = \beta_0 + \beta_T W_i +
+#' X_i^\top \gamma}, where \eqn{W_i} is the treatment indicator and \eqn{X_i}
+#' are optional recorded covariates, by maximum likelihood
+#' (\code{\link{fast_log_binomial_regression_cpp}}/
+#' \code{\link{fast_log_binomial_regression_weighted_cpp}}). \eqn{\hat\beta_T}
+#' is a \strong{log risk ratio}: \eqn{\exp(\hat\beta_T)} is the estimated
+#' treatment risk ratio (relative risk) directly, unlike the log-odds-ratio
+#' from \code{\link[EDI:InferenceIncidLogRegr]{InferenceIncidLogRegr}}'s logit
+#' link. \code{likelihood_tier = "full"}: Wald, score, gradient, and
+#' likelihood-ratio tests are all available when the model converges, plus
+#' parametric-likelihood-bootstrap calibration of the likelihood-ratio test.
+#' Because the log link does not constrain fitted probabilities to
+#' \eqn{[0,1]} (only to \eqn{[0,\infty)}), fits are hardened by QR
+#' column-dropping and a coefficient-magnitude cap
+#' (\code{max_abs_reasonable_coef}) and rejected as nonestimable when the fit
+#' is implausible — the same practical limitation as the identity-link
+#' sibling \code{\link[EDI:InferenceIncidBinomialIdentityRiskDiff]{
+#' InferenceIncidBinomialIdentityRiskDiff}}, here applying to the upper rather
+#' than both tails of the probability scale. Validity requires the
+#' multiplicative log-linear risk model to be correctly specified over the
+#' covariate range observed.
+#'
+#' @references McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
+#'   Linear Models} (2nd ed.). Chapman and Hall/CRC, for the binomial GLM
+#'   family and log-link relative-risk parameterization.
+#'
+#' @seealso \code{\link[EDI:InferenceIncidLogRegr]{InferenceIncidLogRegr}}
+#'   (logit link, log-odds-ratio estimand),
+#'   \code{\link[EDI:InferenceIncidBinomialIdentityRiskDiff]{
+#'   InferenceIncidBinomialIdentityRiskDiff}} (identity link, risk-difference
+#'   estimand) for alternative link/estimand choices on the same response
+#'   type. Comparable Python API:
+#'   \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM}
+#'   (\code{family=Binomial(link=log())}). See also:
+#'   \href{https://en.wikipedia.org/wiki/Generalized_linear_model}{Generalized
+#'   linear model} (Wikipedia).
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
+#' inf = InferenceIncidLogBinomial$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' @export
 InferenceIncidLogBinomial = define_inference_class(
 	classname = "InferenceIncidLogBinomial",
 	inherit = Inference,

@@ -1,23 +1,11 @@
-#' Binomial Identity Risk Difference Inference for Incidence Responses
-#'
-#' Fits a binomial identity-link regression for binary (incidence) responses
-#' using the treatment indicator and, optionally, all recorded covariates as
-#' predictors. The treatment effect is reported as a risk difference.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
-#' inf = InferenceIncidBinomialIdentityRiskDiff$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' @export
 inference_incid_binomial_identity_public = list(
 
-		#' @description Initialize a binomial identity-link risk-difference inference object.
+		#' @description Initialize inference for the identity-link binomial risk-
+		#'   difference model \eqn{P(Y_i = 1) = \beta_0 + \beta_T W_i + X_i^\top
+		#'   \gamma}; see \code{\link[EDI:InferenceIncidBinomialIdentityRiskDiff]{
+		#'   InferenceIncidBinomialIdentityRiskDiff}} for the model form. Does not
+		#'   fit the model; the fit is deferred to the first call to
+		#'   \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with an incidence response.
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -33,8 +21,15 @@ inference_incid_binomial_identity_public = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the class-specific treatment estimate under bootstrap weights; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#' @description Refits the identity-link binomial model with subject/block-level
+		#'   weights applied to the fitting log-likelihood (Bayesian-bootstrap or
+		#'   nonparametric-bootstrap draw weights, expanded to row level via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}) via
+		#'   \code{\link{fast_identity_binomial_regression_weighted_cpp}}, and returns
+		#'   the reweighted risk-difference estimate \eqn{\hat\beta_T^{(w)}}. Uses the
+		#'   same QR column-dropping hardening and fit-reasonableness check as
+		#'   \code{compute_estimate()}; a hardened-but-still-unreasonable fit is
+		#'   cached as nonestimable and returns \code{NA}.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -90,9 +85,14 @@ inference_incid_binomial_identity_public = list(
 			private$cached_values$df = NA_real_
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes the likelihood-ratio confidence interval, falling back to a
-		#'   non-estimable result if the underlying computation fails.
-		#' @param alpha Significance level. Default 0.05.
+		#' @description Likelihood-ratio confidence interval for \eqn{\beta_T} by test
+		#'   inversion (find the set of \code{delta} not rejected at level
+		#'   \code{alpha} by the likelihood-ratio test); see
+		#'   \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} for the shared
+		#'   inversion contract. Falls back to a nonestimable result (\code{NA}
+		#'   bounds) if the underlying root-finding fails.
+		#' @param alpha Two-sided miscoverage rate; the returned interval targets
+		#'   \code{1 - alpha} coverage.
 		compute_lik_ratio_confidence_interval = function(alpha = 0.05){
 			# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
 			# migration ladders): was `super$compute_lik_ratio_confidence_interval(...)`
@@ -323,6 +323,56 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 	private = inference_incid_binomial_identity_private
 )
 
+#' Binomial Identity Risk Difference Inference for Incidence Responses
+#'
+#' Fits a binomial regression with the \strong{identity} link for binary
+#' (incidence) responses: \eqn{P(Y_i = 1) = \beta_0 + \beta_T W_i + X_i^\top
+#' \gamma}, where \eqn{W_i} is the treatment indicator and \eqn{X_i} are
+#' optional recorded covariates, by maximum likelihood
+#' (\code{\link{fast_identity_binomial_regression_cpp}}/
+#' \code{\link{fast_identity_binomial_regression_weighted_cpp}}). Because the
+#' link is the identity rather than the logit, \eqn{\hat\beta_T} is directly a
+#' \strong{risk difference} on the probability scale, not a log-odds-ratio —
+#' the class name and estimand differ from
+#' \code{\link[EDI:InferenceIncidLogRegr]{InferenceIncidLogRegr}} for exactly
+#' this reason. \code{likelihood_tier = "full"}: likelihood-ratio, score,
+#' gradient, and Wald tests are all available when the model converges, plus
+#' parametric-likelihood-bootstrap calibration of the likelihood-ratio test.
+#' Because the identity link does not constrain fitted probabilities to
+#' \eqn{[0,1]}, fits are hardened by QR column-dropping and rejected as
+#' nonestimable when the fitted linear predictor produces implausible
+#' coefficients (see \code{private$is_identity_binomial_fit_reasonable()});
+#' this is a real practical limitation of the identity link relative to
+#' logit/probit, not a bug. Validity requires the additive risk-difference
+#' model to be correctly specified over the covariate range actually observed
+#' (an identity-link fit can be well-behaved in-sample yet imply
+#' out-of-range probabilities for other covariate values).
+#'
+#' @references McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
+#'   Linear Models} (2nd ed.). Chapman and Hall/CRC, for the binomial GLM
+#'   family and identity-link risk-difference parameterization.
+#'
+#' @seealso \code{\link[EDI:InferenceIncidLogRegr]{InferenceIncidLogRegr}}
+#'   (logit link, log-odds-ratio estimand),
+#'   \code{\link[EDI:InferenceIncidLogBinomial]{InferenceIncidLogBinomial}}
+#'   (log link, log-risk-ratio estimand) for alternative link/estimand
+#'   choices on the same response type. Comparable Python API:
+#'   \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM}
+#'   (\code{family=Binomial(link=identity())}). See also:
+#'   \href{https://en.wikipedia.org/wiki/Generalized_linear_model}{Generalized
+#'   linear model} (Wikipedia).
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
+#' inf = InferenceIncidBinomialIdentityRiskDiff$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' @export
 InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 	classname = "InferenceIncidBinomialIdentityRiskDiff",
 	inherit = Inference,

@@ -88,13 +88,43 @@ missing_required_packages_for_inference_class = function(nm) {
 	Filter(function(pkg) !requireNamespace(pkg, quietly = TRUE), required)
 }
 
+#' Whether inference class `nm` has a design-*structure* incompatibility with
+#' the actual `des_obj` being fit -- a requirement beyond what
+#' `is_inference_class_compatible_with_design_metadata()`'s coarse,
+#' registry-metadata-only filters (response type, KK, blocking, censoring)
+#' can express, such as "even treatment allocation" or "equal block sizes".
+#' Consults the class's own `design_compatibility_reason` metadata (see
+#' `infer_inference_design_compatibility_reason_fn()` in
+#' inference_class_registry.R) if it declared one; classes that don't are
+#' always compatible here (`NA_character_`). Returns the reason string, or
+#' `NA_character_` if compatible (mirrors `get_nonestimable_reason()`'s
+#' shape).
+#'
+#' @keywords internal
+#' @noRd
+inference_class_design_compatibility_reason = function(nm, des_obj) {
+	fn = get_inference_class_metadata(nm)$design_compatibility_reason
+	if (is.null(fn)) return(NA_character_)
+	reason = tryCatch(fn(des_obj), error = function(e) NA_character_)
+	if (is.null(reason) || (length(reason) == 1L && is.na(reason))) return(NA_character_)
+	as.character(reason)[1L]
+}
+
 #' Splits every exported, non-abstract, design-compatible `Inference` class
-#' for `des_obj` into an `applicable` sorted character vector and an
+#' for `des_obj` into an `applicable` sorted character vector, an
 #' `unavailable_due_to_missing_packages` named list (class name -> missing
-#' package names), per the `Discovery` rules in `fix_inference_hierarchy.md`.
+#' package names), and an `incompatible_due_to_design_structure` named list
+#' (class name -> reason string, from `inference_class_design_compatibility_
+#' reason()`), per the `Discovery` rules in `fix_inference_hierarchy.md`. The
+#' latter catches design-*structure* incompatibilities (e.g. `InferenceIncidCMH`
+#' requiring even treatment allocation) that would otherwise pass the coarse
+#' response-type/KK/blocking/censoring filters and then fail at construction
+#' time as a `status = "error"` row -- excluded here the same way a missing-
+#' package class already is, rather than surfaced as a construction failure.
 #' The single implementation backing both `InferenceSuite` discovery and
 #' `Design$applicable_inference_class_names()`/
-#' `Design$unavailable_inference_classes_due_to_missing_packages()`.
+#' `Design$unavailable_inference_classes_due_to_missing_packages()`/
+#' `Design$incompatible_inference_classes_due_to_design_structure()`.
 #'
 #' @keywords internal
 #' @noRd
@@ -108,10 +138,14 @@ discover_applicable_inference_classes = function(des_obj) {
 		is_inference_class_compatible_with_design_metadata(nm, design_meta)
 	}, candidates)
 	unavailable = list()
+	incompatible = list()
 	applicable = character()
 	for (nm in design_compatible) {
+		reason = inference_class_design_compatibility_reason(nm, des_obj)
 		missing_pkgs = missing_required_packages_for_inference_class(nm)
-		if (length(missing_pkgs) > 0L) {
+		if (!is.na(reason)) {
+			incompatible[[nm]] = reason
+		} else if (length(missing_pkgs) > 0L) {
 			unavailable[[nm]] = missing_pkgs
 		} else {
 			applicable = c(applicable, nm)
@@ -119,7 +153,8 @@ discover_applicable_inference_classes = function(des_obj) {
 	}
 	list(
 		applicable = sort(applicable),
-		unavailable_due_to_missing_packages = unavailable[sort(names(unavailable))]
+		unavailable_due_to_missing_packages = unavailable[sort(names(unavailable))],
+		incompatible_due_to_design_structure = incompatible[sort(names(incompatible))]
 	)
 }
 
@@ -137,6 +172,14 @@ applicable_inference_class_names_for_design = function(des_obj) {
 #' @noRd
 unavailable_inference_classes_due_to_missing_packages_for_design = function(des_obj) {
 	discover_applicable_inference_classes(des_obj)$unavailable_due_to_missing_packages
+}
+
+#' Backs `Design$incompatible_inference_classes_due_to_design_structure()`.
+#'
+#' @keywords internal
+#' @noRd
+incompatible_inference_classes_due_to_design_structure_for_design = function(des_obj) {
+	discover_applicable_inference_classes(des_obj)$incompatible_due_to_design_structure
 }
 
 #' CI/p-value method dispatch tables backing `InferenceSuite$
@@ -1643,18 +1686,38 @@ run_all_inference_plot_estimates = function(results_table) {
 		key_lines = sprintf(
 			"(%s) %s (%s%s)", d$letter, d$inference_class_disp, d$estimation_method, formula_suffix
 		)
-		# Small vertical jitter for points within 1% of the estimand's value
-		# range of each other (per user request, 2026-08-20) -- letters
-		# would otherwise sit exactly on top of one another for
-		# near-identical estimates across methods; genuinely distinct
-		# estimates (more than 1% of the range apart) are never jittered.
+		# Cluster points within 1% of the estimand's value range of each
+		# other (per user request, 2026-08-20) and give each *cluster* one
+		# combined, comma-joined label (e.g. "A,C,H,K") instead of one
+		# label per point -- the individual point dots are still drawn for
+		# every row (restored, per user request, 2026-08-21: "restore the
+		# points"). A cluster label rotates 90 degrees when it actually
+		# combines more than one point (so the wider combined text doesn't
+		# collide with neighboring clusters); a singleton cluster's label
+		# stays horizontal, since there's nothing for it to collide with.
 		rng = diff(range(d$estimate))
 		tol = if (rng > 0) rng * 0.01 else .Machine$double.eps
-		cluster = cumsum(c(TRUE, diff(d$estimate) > tol))
-		d$y_jitter = unlist(lapply(split(seq_len(nrow(d)), cluster), function(idx) {
-			k = length(idx)
-			seq(-(k - 1L), k - 1L, by = 2L) * 0.06
-		}), use.names = FALSE)
+		cluster_id = cumsum(c(TRUE, diff(d$estimate) > tol))
+		clusters = split(seq_len(nrow(d)), cluster_id)
+		cl = do.call(rbind, lapply(clusters, function(idx) {
+			data.frame(
+				x = mean(d$estimate[idx]),
+				label = paste(d$letter[idx], collapse = ","),
+				rotated = length(idx) > 1L,
+				stringsAsFactors = FALSE
+			)
+		}))
+		max_label_chars = max(nchar(cl$label))
+		# Smaller letters (was `size = 3.5`) and tight y-limits (was
+		# `c(-1, y_max)`, `y_max` growing with row count to fit staircased
+		# text labels) -- clustering into combined labels needs far less
+		# vertical room than one label per point, and the lower bound
+		# matches the box's own bottom edge exactly (per user request,
+		# 2026-08-20/21: "no space between box and whisker plot and
+		# x-axis"; "reduce dead vertical space"). `y_max` still grows a
+		# little with the longest *rotated* label's character count, since
+		# vertical text needs proportionally more headroom.
+		y_max = if (any(cl$rotated)) max(1.4, 1.05 + 0.045 * max_label_chars) else 1.3
 		e_disp = if (identical(e, "estimand unspecified")) e else run_all_inference_plot_safe_text(estimand_short_label(e))
 		use_log10 = run_all_inference_estimand_use_log10(e, d$estimate)
 		x_scale = if (use_log10) {
@@ -1670,18 +1733,20 @@ run_all_inference_plot_estimates = function(results_table) {
 			ggplot2::geom_boxplot(
 				ggplot2::aes(y = -0.22), orientation = "y", width = 0.3, outlier.shape = NA
 			) +
+			ggplot2::geom_point(ggplot2::aes(y = y_dot), size = 1.6) +
 			ggplot2::geom_text(
-				ggplot2::aes(y = y_dot + y_jitter, label = letter),
-				fontface = "bold", size = 3.5
+				data = cl[!cl$rotated, , drop = FALSE],
+				ggplot2::aes(x = x, y = 1.18, label = label),
+				inherit.aes = FALSE, fontface = "bold", size = 2.3
+			) +
+			ggplot2::geom_text(
+				data = cl[cl$rotated, , drop = FALSE],
+				ggplot2::aes(x = x, y = 1.18, label = label),
+				inherit.aes = FALSE, fontface = "bold", size = 2.3,
+				angle = 90, hjust = 0, vjust = 0.5
 			) +
 			x_scale +
-			# Tight y-limits (was `c(-1, y_max)`, `y_max` growing with row
-			# count to fit staircased text labels) -- letters need far less
-			# vertical room than the old full-text labels, and the lower
-			# bound now matches the box's own bottom edge exactly (per user
-			# request, 2026-08-20: "no space between box and whisker plot
-			# and x-axis"; "eliminate extra vertical space").
-			ggplot2::scale_y_continuous(limits = c(-0.37, 1.5), breaks = NULL, expand = c(0, 0)) +
+			ggplot2::scale_y_continuous(limits = c(-0.37, y_max), breaks = NULL, expand = c(0, 0)) +
 			ggplot2::coord_cartesian(clip = "off") +
 			# No title -- folded into the x-axis label instead (per user
 			# request, 2026-08-20: "risk ratio estimate", not a separate
@@ -1772,6 +1837,8 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 	df$key_line = sprintf(
 		"%s (%s): p = %s, CI width = %s", df$inference_class_disp, method_paren, pval_num, width_num
 	)
+	df$pval_num = pval_num
+	df$width_num = width_num
 	estimands = sort(unique(df$estimand_facet))
 	stats::setNames(lapply(estimands, function(e) {
 		d = df[df$estimand_facet == e, , drop = FALSE]
@@ -1779,6 +1846,13 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		d$y = seq_len(nrow(d))
 		d$letter = vapply(seq_len(nrow(d)), run_all_inference_letter_label, character(1L))
 		key_lines = sprintf("(%s) %s", d$letter, d$key_line)
+		# Restored per-line numbers (per user request, 2026-08-21) -- the
+		# letter sits "in front of" (left of) each line, combined with its
+		# p-value into one label at the left end of the segment; the width
+		# number is restored at the right end. The full class/method text
+		# stays out of the plot area itself, in the caption key only.
+		d$left_label = sprintf("%s: p=%s", d$letter, d$pval_num)
+		d$right_label = sprintf("width=%s", d$width_num)
 		# Per-estimand Cauchy-combined p-value (per user request, 2026-08-20:
 		# "each illustration gets its own cauchy combined pval since it is
 		# its own estimand") -- unweighted combination over this estimand's
@@ -1798,10 +1872,14 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# null reference line at 1 instead of 0.
 		use_log10 = run_all_inference_estimand_use_log10(e, c(d$ci_a, d$ci_b, d$estimate))
 		null_x = if (use_log10) 1 else 0
+		# Wider left/right expansion than the estimates plot's -- the
+		# restored p-value/width numbers (per user request, 2026-08-21) sit
+		# just outside each segment's ends and get clipped at the panel
+		# edge for the leftmost/rightmost points without it.
 		x_scale = if (use_log10) {
-			ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = c(0.15, 0.15)))
+			ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = c(0.35, 0.25)))
 		} else {
-			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.15, 0.15)))
+			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.35, 0.25)))
 		}
 		ggplot2::ggplot(d, ggplot2::aes(y = y)) +
 			ggplot2::geom_vline(xintercept = null_x, linetype = "dashed", color = "grey40") +
@@ -1809,18 +1887,21 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 				ggplot2::aes(x = ci_a, xend = ci_b, yend = y, color = significant),
 				linewidth = 1
 			) +
+			ggplot2::geom_point(ggplot2::aes(x = estimate, color = significant), size = 1.6) +
 			ggplot2::geom_text(
-				ggplot2::aes(x = estimate, label = letter, color = significant),
-				fontface = "bold", size = 3.5
+				ggplot2::aes(x = ci_a, label = left_label, color = significant),
+				hjust = 1.1, size = 2.6
+			) +
+			ggplot2::geom_text(
+				ggplot2::aes(x = ci_b, label = right_label, color = significant),
+				hjust = -0.1, size = 2.6
 			) +
 			ggplot2::scale_color_manual(
 				values = c(`TRUE` = "#1a7a3c", `FALSE` = "#888888"), guide = "none"
 			) +
 			# Less vertical space between rows than the old `mult = 0.15`
-			# (per user request, 2026-08-19) -- tightened further now that
-			# no per-point text needs vertical room (per user request,
-			# 2026-08-20).
-			ggplot2::scale_y_continuous(breaks = NULL, expand = ggplot2::expansion(mult = 0.05)) +
+			# (per user request, 2026-08-19).
+			ggplot2::scale_y_continuous(breaks = NULL, expand = ggplot2::expansion(mult = 0.08)) +
 			x_scale +
 			# Minimal title (just "95% CIs", per user request, 2026-08-20 --
 			# not the earlier "XX% confidence intervals -- <estimand>",
@@ -1905,7 +1986,7 @@ run_all_inference_build_plots = function(results_table, alpha) {
 #' @noRd
 run_all_inference_plot_max_label_chars = function(p) {
 	d = p$data
-	label_cols = intersect(c("method_label", "pval_label", "width_label"), names(d))
+	label_cols = intersect(c("left_label", "right_label"), names(d))
 	data_max = if (length(label_cols) == 0L) {
 		0L
 	} else {

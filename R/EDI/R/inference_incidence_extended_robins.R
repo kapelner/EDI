@@ -84,6 +84,30 @@ InferenceIncidExtendedRobins = define_inference_class(
 	),
 	private = list(
 		requires_blocking_design = function() TRUE,
+		# Discovery-time counterpart of initialize()'s design-structure stop()s
+		# above (even allocation; equal block sizes) -- requires_blocking_design
+		# = TRUE above already covers "blocking or not" generically, but even
+		# allocation and equal block sizes are structure requirements neither
+		# that flag nor infer_inference_response_types() has vocabulary for.
+		# Self/private-free so it's safe to call unbound against a candidate
+		# des_obj before construction (a non-blocking des_obj is already
+		# filtered out by requires_blocking_design before this would run, but
+		# this stays defensive and correct either way). See
+		# infer_inference_design_compatibility_reason_fn() in
+		# inference_class_registry.R.
+		design_compatibility_reason = function(des_obj){
+			if (!isTRUE(des_obj$is_blocking_design())) {
+				return("extended_robins_requires_blocking_design")
+			}
+			if (!isTRUE(des_obj$get_prob_T() == 0.5)) {
+				return("extended_robins_requires_even_allocation")
+			}
+			block_sizes = as.integer(table(des_obj$get_block_ids()))
+			if (length(block_sizes) > 1L && any(block_sizes != block_sizes[1L])) {
+				return("extended_robins_requires_equal_block_sizes")
+			}
+			NA_character_
+		},
 		supports_lik_ratio_param_bootstrap = function() FALSE,
 		supports_likelihood_tests = function() FALSE,
 		get_supported_testing_types_impl = function(){

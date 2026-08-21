@@ -637,6 +637,23 @@ Design = R6::R6Class("Design",
 		unavailable_inference_classes_due_to_missing_packages = function(){
 			unavailable_inference_classes_due_to_missing_packages_for_design(self)
 		},
+		#' @description Companion to \code{applicable_inference_class_names()}:
+		#'   returns the subset of otherwise design-compatible \code{Inference}
+		#'   classes that are excluded because they declared a
+		#'   \code{design_compatibility_reason} predicate (a design-*structure*
+		#'   requirement, e.g. even treatment allocation or equal block sizes,
+		#'   beyond what response type/KK/blocking/censoring metadata alone can
+		#'   express) and this design object fails it, as a named list (class
+		#'   name -> one-line reason string) -- kept separate from plain design
+		#'   incompatibility and from a missing package for the same reason
+		#'   \code{unavailable_inference_classes_due_to_missing_packages()} is
+		#'   kept separate: so callers can tell exactly why a class is missing
+		#'   from \code{applicable_inference_class_names()} instead of only
+		#'   discovering it as a construction-time error.
+		#' @return A named list, class name -> reason string; empty list if none.
+		incompatible_inference_classes_due_to_design_structure = function(){
+			incompatible_inference_classes_due_to_design_structure_for_design(self)
+		},
 		#' @description Returns this design object's registry-backed randomization
 		#'   family (see \code{fix_design_hierarchy.md}, "Class Metadata"), e.g.
 		#'   \code{"kk14"}, \code{"bernoulli"}, \code{"rerandomization"}. Replaces

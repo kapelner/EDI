@@ -1,4 +1,4 @@
-# Local Machine Optimization: `optimize_EDI_locally()`
+# Local Machine Optimization: `tune_EDI_for_this_machine()`
 
 > **Depends on:** `cold_starts.md` (its policy-table documentation audit should
 > land first so the benchmarked axes are correctly described), and the
@@ -22,7 +22,7 @@ for bootstrap") can be net-negative elsewhere, and vice versa.
 The feature: a user-facing, explicitly-invoked tuner,
 
 ```r
-optimize_EDI_locally(effort = c("quick", "standard", "thorough"), ...)
+tune_EDI_for_this_machine(effort = c("quick", "standard", "thorough"), ...)
 ```
 
 that re-runs the same benchmarks the shipped defaults came from **on the
@@ -93,14 +93,14 @@ judgments — see "Explicitly out of scope" below):
   agrees within the solver's own convergence tolerance; the acceptance gate
   in TODO-8 makes this precise).
 - Auto-running anything at install, load, or attach time. Benchmarks run
-  **only** inside an explicit `optimize_EDI_locally()` call (CRAN policy and
+  **only** inside an explicit `tune_EDI_for_this_machine()` call (CRAN policy and
   basic courtesy). `.onLoad()` only *reads* a previously written file.
 
 ## Architecture
 
 ### The tuner
 
-`optimize_EDI_locally(effort, axes, families, n_grid, num_cores_grid, quiet, dry_run)`
+`tune_EDI_for_this_machine(effort, axes, families, n_grid, num_cores_grid, quiet, dry_run)`
 
 - `effort`: `"quick"` (~2-5 min: coarse n-grid, fewest replicates, only the
   axes/families with the largest shipped effect sizes), `"standard"`
@@ -133,7 +133,7 @@ judgments — see "Explicitly out of scope" below):
 
 - Location: `tools::R_user_dir("EDI", which = "config")` (the
   CRAN-sanctioned per-user config dir), file `machine_policies.rds`.
-  Written **only** by `optimize_EDI_locally()` (plus a
+  Written **only** by `tune_EDI_for_this_machine()` (plus a
   `clear_local_EDI_optimization()` to delete it and return to shipped
   defaults).
 - Contents:
@@ -158,7 +158,7 @@ each stored diff through the existing setters. Rules:
   `schema_version`, or a diff that fails the setters' `checkmate`
   validation → ignore the file entirely (shipped defaults stand) and emit a
   single `packageStartupMessage` telling the user to re-run
-  `optimize_EDI_locally()`. Never error at load time.
+  `tune_EDI_for_this_machine()`. Never error at load time.
 - **Fingerprint mismatch** (core count or CPU model changed since tuning):
   still apply the stored policies (they're probably better than nothing),
   but `packageStartupMessage` that the hardware appears to have changed and
@@ -179,15 +179,17 @@ each stored diff through the existing setters. Rules:
 
 ## Implementation TODOs
 
-- [ ] TODO-1: **Decision gate (ask the user, no code).** Confirm: (a) the
-  function name `optimize_EDI_locally()` (alternatives:
-  `tune_EDI_for_this_machine()`, `edi_autotune()`); (b) storage via
-  `tools::R_user_dir("EDI", "config")` + `.rds`; (c) the "store only
-  deviations, merge via existing setters" design; (d) **resolved 2026-08-17
-  (user decision)**: the tuned core count is recorded-only — applied when
-  the user opts into parallelism via `set_num_cores()`, never auto-applied
-  at load; (e) whether `optimize_EDI_locally()` also
-  gets a Python-side twin in the same release or later.
+- [x] TODO-1: **Decision gate (ask the user, no code). DONE (2026-08-21,
+  user decision).** (a) function name: **`tune_EDI_for_this_machine()`**
+  (not `optimize_EDI_locally()`/`edi_autotune()`); (b) storage: **confirmed**
+  — `tools::R_user_dir("EDI", "config")` + `.rds`; (c) persistence shape:
+  **confirmed** — store only deviations from package defaults, merged in via
+  the existing `set_*()` setters (not a full snapshot of every tunable
+  value); (d) **resolved 2026-08-17 (user decision)**: the tuned core count
+  is recorded-only — applied when the user opts into parallelism via
+  `set_num_cores()`, never auto-applied at load; (e) Python-side twin:
+  **deferred** — R-only for this release, a Python twin is a future plan
+  item, not part of this release's scope.
 - [ ] TODO-2: **Prerequisite refactor — lift the hardcoded warm-start layer
   into the config table.** Move the sample-size-conditioned disable rules
   hardcoded in `edi_warm_start_dispatch_policy()`
@@ -213,7 +215,7 @@ each stored diff through the existing setters. Rules:
   decision is settled (TODO-1(d), 2026-08-17): recorded-only, consumed by
   `set_num_cores()` when the user opts in — implement accordingly.
 - [ ] TODO-5: Implement persistence: the `.rds` schema above,
-  `optimize_EDI_locally()`'s write path,
+  `tune_EDI_for_this_machine()`'s write path,
   `clear_local_EDI_optimization()`, and a
   `get_local_EDI_optimization()` query/print method showing the active
   machine policies, their provenance, and the fingerprint.
@@ -244,7 +246,7 @@ each stored diff through the existing setters. Rules:
 - [ ] TODO-11: Documentation: full roxygen for the new exported functions;
   cross-link from every `get_*_dispatch_policy()`/`set_*_dispatch_policy()`
   roxygen block ("these defaults were computed on the maintainer's machine;
-  run `optimize_EDI_locally()` to recompute them for yours"); a short
+  run `tune_EDI_for_this_machine()` to recompute them for yours"); a short
   vignette section under the performance/vignettes umbrella; update
   `cold_starts.md`'s conclusions to note the defaults are now
   locally-recomputable. Follow the standing no-interim-roxygenize batching

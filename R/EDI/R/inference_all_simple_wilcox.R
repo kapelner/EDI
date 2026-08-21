@@ -166,6 +166,22 @@ SimpleWilcoxSource = list(
 		}
 	),
 	private = list(
+		# Discovery-time counterpart of the two initialize()-time stop()s above
+		# (incidence response, censored survival) -- self/private-free so it's
+		# safe to call unbound against a candidate des_obj before construction,
+		# same "safe invoke without construction" contract as
+		# supports_interval_or_left_censored_data()/requires_blocking_design().
+		# See infer_inference_design_compatibility_reason_fn() in
+		# inference_class_registry.R.
+		design_compatibility_reason = function(des_obj){
+			if (isTRUE(des_obj$get_response_type() == "incidence")) {
+				return("wilcoxon_incidence_response_unsupported")
+			}
+			if (isTRUE(des_obj$any_censoring())) {
+				return("wilcoxon_censored_survival_unsupported")
+			}
+			NA_character_
+		},
 		supports_bayesian_bootstrap = function() FALSE,
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
 			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)

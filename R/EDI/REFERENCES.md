@@ -269,7 +269,10 @@ files' `@references`) if/when it becomes available.
 - **[McCullaghNelder1989]** McCullagh, P., and Nelder, J. A. (1989).
   *Generalized Linear Models* (2nd ed.). Chapman and Hall/CRC. — Used by:
   `InferenceIncidLogRegr` (logistic regression model and maximum-likelihood
-  theory).
+  theory), `InferenceIncidBinomialIdentityRiskDiff` (binomial GLM family,
+  identity-link risk-difference parameterization),
+  `InferenceIncidLogBinomial` (binomial GLM family, log-link relative-risk
+  parameterization).
 
 ### Count
 

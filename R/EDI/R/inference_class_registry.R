@@ -1072,6 +1072,10 @@ validate_inference_class_metadata = function(metadata) {
 			(!is.logical(adjusts_for_covariates) || length(adjusts_for_covariates) != 1L)) {
 		stop(sprintf("Inference metadata for %s has invalid `adjusts_for_covariates`.", metadata$name), call. = FALSE)
 	}
+	design_compatibility_reason = metadata$design_compatibility_reason
+	if (!is.null(design_compatibility_reason) && !is.function(design_compatibility_reason)) {
+		stop(sprintf("Inference metadata for %s has invalid `design_compatibility_reason`.", metadata$name), call. = FALSE)
+	}
 	invisible(TRUE)
 }
 
@@ -2198,6 +2202,7 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				excluded_capabilities = EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES[[name]] %||% character(),
 				supports_general_censoring = infer_inference_supports_general_censoring(obj),
 				requires_blocking_design = infer_inference_requires_blocking_design(obj),
+				design_compatibility_reason = infer_inference_design_compatibility_reason_fn(obj),
 				estimand = infer_inference_estimand_type(obj, name),
 				adjusts_for_covariates = infer_inference_adjusts_for_covariates(name)
 			),

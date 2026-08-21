@@ -144,6 +144,29 @@ InferenceIncidCMH = define_inference_class(
 		}
 	),
 	private = list(
+		# Discovery-time counterpart of initialize()'s design-structure stop()s
+		# above (even allocation; equal block sizes when blocking) -- these are
+		# design-*structure* requirements infer_inference_response_types()/
+		# requires_blocking_design have no vocabulary for (a design can be
+		# blocking with unequal prob_T, or blocking with unequal block sizes,
+		# and still pass both of those). Self/private-free so it's safe to call
+		# unbound against a candidate des_obj before construction. See
+		# infer_inference_design_compatibility_reason_fn() in
+		# inference_class_registry.R.
+		design_compatibility_reason = function(des_obj){
+			if (isTRUE(des_obj$is_blocking_design())) {
+				if (!isTRUE(des_obj$get_prob_T() == 0.5)) {
+					return("cmh_requires_even_allocation_for_blocking_design")
+				}
+				block_sizes = as.integer(table(des_obj$get_block_ids()))
+				if (length(block_sizes) > 1L && any(block_sizes != block_sizes[1L])) {
+					return("cmh_requires_equal_block_sizes")
+				}
+			} else if (!isTRUE(des_obj$get_prob_T() == 0.5)) {
+				return("cmh_requires_even_allocation")
+			}
+			NA_character_
+		},
 		se_est_num_vectors = NULL,
 		supports_lik_ratio_param_bootstrap = function() FALSE,
 		supports_likelihood_tests = function() FALSE,

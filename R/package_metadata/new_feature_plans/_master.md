@@ -76,7 +76,7 @@ spliced into one step and marked **[spliced]**.
 > that plan's own "Recommended execution order" note.
 >
 > **Amended 2026-08-20 (user decision):** `local_machine_optimization.md` —
-> the `optimize_EDI_locally()` benchmark tuner — moves from the v1.1.0 line
+> the `tune_EDI_for_this_machine()` benchmark tuner — moves from the v1.1.0 line
 > into the v1.0.0 line (`release_v1_0_0.md`'s item 15). It was previously
 > Phase 6 item 5 below and `release_v1_1_0.md → TODO-10`/part of `TODO-1`
 > step 11; those references are struck accordingly. Phase 6 in this file no

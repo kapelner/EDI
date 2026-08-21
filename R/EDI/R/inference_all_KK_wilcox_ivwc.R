@@ -211,6 +211,22 @@ KKWilcoxIVWCSource = list(
 		}
 	),
 	private = list(
+		# Discovery-time counterpart of the two initialize()-time stop()s above
+		# (incidence response, censored survival) -- same shape/rationale as
+		# SimpleWilcoxSource's own design_compatibility_reason() in
+		# inference_all_simple_wilcox.R (this class has the identical
+		# incidence/censoring restrictions; the KK-matching-capable requirement
+		# is already covered generically by the `requires_kk` name-grep check
+		# in is_inference_class_compatible_with_design_metadata()).
+		design_compatibility_reason = function(des_obj){
+			if (isTRUE(des_obj$get_response_type() == "incidence")) {
+				return("wilcoxon_incidence_response_unsupported")
+			}
+			if (isTRUE(des_obj$any_censoring())) {
+				return("wilcoxon_censored_survival_unsupported")
+			}
+			NA_character_
+		},
 		is_a_kk_wilcox_base_ivwc = function() TRUE,
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {

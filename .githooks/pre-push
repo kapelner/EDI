@@ -269,8 +269,26 @@ if [ "$run_r_tests" = "1" ]; then
 	# that script is relative to the CWD, same as test_check()'s internal
 	# call -- R CMD check gets away with a bare "testthat" because it
 	# copies testthat.R into tests/ and runs it from there.
-	if ! ( cd R/EDI/tests && NOT_CRAN=true Rscript "$repo_root/scripts/run_prepush_r_tests.R" ); then
-		echo "pre-push: R tests FAILED -- see R/EDI/tests/.prepush_errors for failure/warning/skip detail." >&2
+	#
+	# Wrapped in `timeout`: a genuine hang in the suite (seen in practice --
+	# a parallel-worker test stalled for hours, eventually dropping git's
+	# already-open connection to the remote: "Connection to github.com
+	# closed by remote host.") would otherwise block this hook, and the
+	# push, indefinitely. A normal full run takes ~10-11 minutes; 20 gives
+	# comfortable headroom without turning a real hang into another
+	# multi-hour wait. --kill-after=30s escalates to SIGKILL if the process
+	# (or an orphaned parallel worker under it) ignores the initial SIGTERM.
+	r_test_timeout_secs=1200
+	if ( cd R/EDI/tests && NOT_CRAN=true timeout --kill-after=30s "${r_test_timeout_secs}s" Rscript "$repo_root/scripts/run_prepush_r_tests.R" ); then
+		:
+	else
+		r_test_exit=$?
+		if [ "$r_test_exit" = "124" ] || [ "$r_test_exit" = "137" ]; then
+			echo "pre-push: R tests TIMED OUT after ${r_test_timeout_secs}s -- this is a hang, not a slow-but-real run (normal full runs take ~10-11 min)." >&2
+			echo "pre-push: see R/EDI/tests/.prepush_test_stdout.log for whatever the suite printed before it was killed." >&2
+		else
+			echo "pre-push: R tests FAILED -- see R/EDI/tests/.prepush_errors for failure/warning/skip detail." >&2
+		fi
 		abort_push
 	fi
 else
