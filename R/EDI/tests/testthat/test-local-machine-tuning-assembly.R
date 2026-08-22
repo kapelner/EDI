@@ -491,3 +491,76 @@ test_that("edi_tuning_count_cells() arithmetic matches the plan shape", {
 	expect_equal(edi_tuning_count_cells(plan), 6L + 2L + (4L + 2L) + 8L)
 	expect_equal(edi_tuning_count_cells(list()), 0L)
 })
+
+# ---- TODO-10: remaining test items not already covered above ----
+# (a) round-trip, (b) corrupt/stale-schema, (c) fingerprint-mismatch, (e) TODO-6
+# assertion, and (f) dry_run are already exercised by the TODO-5/6/7/9 tests above;
+# this section closes the two still-open items: (d) unknown class patterns are
+# inert, and one explicit tune -> write -> simulate-fresh-load -> applied flow
+# tying the mocked benchmark and the .onLoad() import together end to end.
+
+test_that("(a) round-trip: tune (mocked benchmark) -> write -> simulate a fresh session -> import -> applied", {
+	with_tuning_sandbox(with_stub("edi_tuning_verify_cold_start_deviation", always_agree,
+		with_stub("edi_tuning_tune_cold_start", stub_cold, {
+			# Step 1: a real user's call, with the benchmark itself mocked (per TODO-10(a): "so CI
+			# takes seconds, not minutes") -- everything else (diff-building, the untunable gate,
+			# the correctness gate, persistence) is the real code path.
+			res = tune_EDI_for_this_machine(effort = "quick", axes = "cold_start", families = "InferenceCountPoisson",
+				n_grid = 50L, reps = 1L, quiet = TRUE)
+			expect_true(file.exists(edi_tuning_config_path()))
+			expect_true(edi_cold_start_dispatch_policy("InferenceCountPoisson"))  # applied in THIS session
+
+			# Step 2: simulate a fresh R session finding the file on disk -- reset every policy to
+			# shipped defaults first, exactly as a brand-new session would start.
+			set_cold_start_dispatch_policy(reset = TRUE)
+			set_warm_start_dispatch_policy(reset = TRUE)
+			set_optimization_dispatch_policy(reset = TRUE)
+			expect_false(edi_cold_start_dispatch_policy("InferenceCountPoisson"))  # confirms the reset took
+
+			# Step 3: the .onLoad() import path picks the saved file back up.
+			status = edi_tuning_import_saved_policies(quiet = TRUE)
+			expect_equal(status, "applied")
+			expect_true(edi_cold_start_dispatch_policy("InferenceCountPoisson"))
+			expect_false(edi_cold_start_dispatch_policy("InferenceIncidLogRegr"))  # other shipped overrides untouched
+		})
+	))
+})
+
+test_that("(d) a saved diff naming a class pattern that no longer matches anything is inert -- applies cleanly, changes nothing it doesn't name, and every live class is unaffected", {
+	with_tuning_sandbox({
+		obj = valid_saved_config(list(
+			cold_start = list(inference_class_overrides = c(
+				"^InferenceCountPoisson$" = TRUE,
+				"^InferenceTotallyMadeUpClassThatWasRenamedOrRemovedXYZ$" = TRUE
+			))
+		))
+		edi_tuning_write_config(obj)
+		status = edi_tuning_import_saved_policies(quiet = TRUE)
+		expect_equal(status, "applied")
+		# the real, still-live entry took effect...
+		expect_true(edi_cold_start_dispatch_policy("InferenceCountPoisson"))
+		# ...the phantom pattern matches no live class, so it's simply never consulted (inert, not an error)...
+		families = edi_tuning_live_families()
+		expect_false(any(grepl("^InferenceTotallyMadeUpClassThatWasRenamedOrRemovedXYZ$", families$class, perl = TRUE)))
+		# ...and every OTHER shipped cold-start override is untouched.
+		expect_false(edi_cold_start_dispatch_policy("InferenceIncidLogRegr"))
+		expect_false(edi_cold_start_dispatch_policy("InferencePropFractionalLogit"))
+	})
+})
+
+test_that("real (non-mocked) tune_EDI_for_this_machine() end-to-end run -- skip-on-CRAN, real benchmarking", {
+	skip_on_cran()
+	with_tuning_sandbox({
+		res = tune_EDI_for_this_machine(effort = "quick", axes = "cold_start",
+			families = "InferenceCountPoisson", n_grid = 15L, reps = 2L, quiet = TRUE)
+		expect_s3_class(res, "EDILocalMachineTuning")
+		expect_false(res$dry_run)
+		expect_true(file.exists(edi_tuning_config_path()))
+		# whatever it decided, the saved file round-trips through get_local_EDI_optimization()
+		# and clear_local_EDI_optimization() actually resets the live policy.
+		expect_output(saved <- get_local_EDI_optimization(), "EDI local machine tuning")
+		expect_equal(saved$schema_version, EDI_TUNING_SCHEMA_VERSION)
+		expect_true(clear_local_EDI_optimization())
+		expect_false(edi_cold_start_dispatch_policy("InferenceCountPoisson"))
+	})
+})

@@ -1184,6 +1184,14 @@ run_all_inference_fmt_completed_secs = function(secs) {
 #' *requested* sentinel, as opposed to `ci_method`/`pval_method`'s
 #' *actually-used-per-side* outcome) remains a real column for programmatic
 #' use, just not rendered.
+#' Deliberately omits `"weight"` (unlike `run_all_inference_build_display_
+#' table()`'s `display` data.frame, `print()`'s pretty table, which does
+#' show it) -- per user request, 2026-08-23 ("you can remove weight column
+#' for live printing"): `weight` is only ever known once every row has fit
+#' (`run_all_inference_compute_combined_evidence_weights()` runs over the
+#' whole table), so it can never be more than a blank placeholder cell live
+#' anyway. Briefly included as a blank column for exact visual parity with
+#' `print()` (2026-08-22), reverted per this later, more specific request.
 EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS = c(
 	"inference class", "cov mod", "estimand", "est", "se",
 	"ci_a", "ci_b", "ci method", "pval", "pval method (if different)", "status"
@@ -1229,6 +1237,18 @@ EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS = c(
 run_all_inference_wrap_cell_2lines = function(text, width) {
 	text = if (is.na(text)) "NA" else as.character(text)
 	if (nchar(text) <= width) return(c(text, ""))
+	# A `"<method> (<type>)"` cell (`method_with_type_short_label()`'s own
+	# output, e.g. `"bayes boot (%ile)"`) splits at its own natural
+	# boundary -- method on line 1, type (parens dropped) on line 2 -- per
+	# user request, 2026-08-22: the generic word-count-halving below had
+	# split it mid-phrase and then hard-truncated the trailing `)` off
+	# entirely (`"bayes boot (pctile)"` -> `"bayes"` / `"boot (pctile"`).
+	paren_match = regmatches(text, regexec("^(.*) \\(([^()]*)\\)$", text))[[1]]
+	if (length(paren_match) == 3L) {
+		line1 = paren_match[[2]]
+		line2 = paren_match[[3]]
+		if (nchar(line1) <= width && nchar(line2) <= width) return(c(line1, line2))
+	}
 	words = strsplit(text, " ", fixed = TRUE)[[1]]
 	if (length(words) < 2L) {
 		# One un-splittable "word" longer than the column -- hard-wrap at
@@ -1331,7 +1351,10 @@ method_short_label = function(m) {
 type_short_label = function(method, type) {
 	if (identical(method, "bayes_boot")) {
 		switch(type,
-			percentile = "pctile",
+			# "pctile" -> "%ile" (per user request, 2026-08-22): matches the
+			# plain-bootstrap-family abbreviation below, so the two families
+			# read consistently.
+			percentile = "%ile",
 			symmetric = "symm",
 			basic = "basic",
 			wald = "wald",
@@ -1654,9 +1677,24 @@ run_all_inference_render_html = function(out) {
 			htmltools_escape_or_identity(h), b64, htmltools_escape_or_identity(h)
 		)
 	}, character(1L), USE.NAMES = FALSE)
-	images_html = paste0(c(
-		if (any(nzchar(ci_forest_html))) c("<h2>Confidence intervals</h2>", ci_forest_html[nzchar(ci_forest_html)])
-	), collapse = "\n")
+	# No "Confidence intervals" <h2> above the images (per user request,
+	# 2026-08-22) -- each estimand's own <h3> already names it, and there's
+	# only ever this one visualization now (the estimates plot was folded
+	# into the forest plot's own "Estimates" subplot, 2026-08-21), so a
+	# section heading above it added nothing.
+	images_html = paste(ci_forest_html[nzchar(ci_forest_html)], collapse = "\n")
+	# Per-estimand Cauchy-combined p-value breakdown -- same lines the
+	# screen report already prints (per user request, 2026-08-22: "the HTML
+	# should also print this").
+	breakdown_lines = run_all_inference_per_estimand_breakdown_lines(out$results_table)
+	breakdown_html = if (length(breakdown_lines) > 0L) {
+		sprintf(
+			"<h2>Per-estimand breakdown</h2>\n<p>%s</p>",
+			paste(vapply(breakdown_lines, function(l) htmltools_escape_or_identity(trimws(l)), character(1L)), collapse = "<br>\n")
+		)
+	} else {
+		""
+	}
 	design = out$design
 	sprintf('<!DOCTYPE html>
 <html>
@@ -1688,6 +1726,7 @@ total time %.2fs&nbsp;&middot;&nbsp; EDI %s
 %s
 %s
 %s
+%s
 <h2>%s</h2>
 <ul>
 %s
@@ -1695,8 +1734,28 @@ total time %.2fs&nbsp;&middot;&nbsp; EDI %s
 </body>
 </html>
 ', out$timestamp, design_class_short_label(design$design_class), design$response_type, design$design_family, design$n,
-		out$alpha, out$timestamp, out$total_secs, out$edi_version, table_html, cov_key_html,
-		combined_evidence_html, images_html, unavailable_heading, footer_html)
+		out$alpha, run_all_inference_pretty_timestamp(out$timestamp), out$total_secs, out$edi_version, table_html, cov_key_html,
+		combined_evidence_html, breakdown_html, images_html, unavailable_heading, footer_html)
+}
+
+#' Human-readable form of `out$timestamp` (the compact
+#' `"%Y%m%d_%H%M%S"` string used for filenames) for the HTML report's
+#' "generated ..." line -- per user request, 2026-08-22:
+#' `"generated 20260822_213314"` -> `"generated August 22, 2026 21:33:14
+#' IST"`. Re-parses the compact string (in the local timezone, the same one
+#' it was originally formatted in) rather than taking a fresh
+#' \code{Sys.time()} reading, so this always names the exact moment the
+#' report was actually generated, and reports the system's real timezone
+#' abbreviation (\code{\%Z}) rather than a hardcoded one. Falls back to the
+#' raw compact string, unchanged, if it doesn't parse (never errors the
+#' whole HTML render over a display nicety).
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_pretty_timestamp = function(ts) {
+	t = tryCatch(strptime(ts, "%Y%m%d_%H%M%S"), error = function(e) NULL)
+	if (is.null(t) || is.na(t)) return(ts)
+	format(t, "%B %d, %Y %H:%M:%S %Z")
 }
 
 #' Escapes `&`, `<`, `>` for embedding free text into the HTML report
@@ -1781,6 +1840,13 @@ run_all_inference_plot_safe_text = function(x) {
 #' over. (If a future estimator ever varies its estimate by `type`, the
 #' dedupe key would need `type` added.) Rows without a finite CI still
 #' contribute to the boxplot even though they get no forest row.
+#'
+#' The subplot's own content scales with how many distinct estimates that
+#' collapse actually leaves (per user request, 2026-08-22): a single
+#' estimate skips the subplot entirely (it would just duplicate the one dot
+#' already on the forest), 2-5 shows the dots alone (a box-and-whisker over
+#' that few points is a poor summary), and only more than 5 overlays a
+#' box-and-whisker under the dots.
 #'
 #' Returns a **named list** of one forest+box `gtable` grob per `estimand`
 #' (name = the raw `estimand` value, `"estimand unspecified"` for `NA`;
@@ -1947,22 +2013,40 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# expansion compressed the box to a sliver when it shared the
 		# forest's axis), titled "Estimates", same x-axis label as the forest.
 		# Same log10/linear choice as the forest so the two axes read alike.
-		box_x_scale = if (use_log10) ggplot2::scale_x_log10() else ggplot2::scale_x_continuous()
-		box = ggplot2::ggplot(box_d, ggplot2::aes(x = estimate, y = y, group = y)) +
-			ggplot2::geom_boxplot(
-				orientation = "y", width = 0.6, outlier.size = 1,
-				color = "grey40", fill = "grey90"
-			) +
-			ggplot2::geom_point(size = 1.2, color = "grey30", alpha = 0.7) +
-			box_x_scale +
-			ggplot2::scale_y_continuous(breaks = NULL, limits = c(-0.5, 0.5), expand = c(0, 0)) +
-			ggplot2::labs(x = e_disp, y = NULL, title = "Estimates") +
-			ggplot2::theme_minimal() +
-			ggplot2::theme(
-				panel.grid.major.y = ggplot2::element_blank(),
-				panel.grid.minor.y = ggplot2::element_blank(),
-				plot.margin = ggplot2::margin(t = 5, r = 20, b = 5, l = 25, unit = "pt")
-			)
+		# Per user request, 2026-08-22, scaled to how many distinct estimates
+		# there actually are (`box_d`'s own row count -- already collapsed
+		# over method/type, one point per class/formula): a single estimate
+		# skips this subplot entirely (`box = NULL` below -- it would just
+		# duplicate the one dot the forest itself already shows), 2-5 shows
+		# the dots alone (a box-and-whisker over that few points is a poor
+		# summary), and only >5 overlays a box-and-whisker under the dots.
+		n_est = nrow(box_d)
+		box = if (n_est >= 2L) {
+			box_x_scale = if (use_log10) ggplot2::scale_x_log10() else ggplot2::scale_x_continuous()
+			p = ggplot2::ggplot(box_d, ggplot2::aes(x = estimate, y = y, group = y))
+			if (n_est > 5L) {
+				# `outlier.shape = NA` -- every point is drawn once via the
+				# `geom_point()` below; the boxplot's own default outlier
+				# markers would otherwise double-draw them.
+				p = p + ggplot2::geom_boxplot(
+					orientation = "y", width = 0.6, outlier.shape = NA,
+					color = "grey40", fill = "grey90"
+				)
+			}
+			p +
+				ggplot2::geom_point(size = 1.2, color = "grey30", alpha = 0.7) +
+				box_x_scale +
+				ggplot2::scale_y_continuous(breaks = NULL, limits = c(-0.5, 0.5), expand = c(0, 0)) +
+				ggplot2::labs(x = e_disp, y = NULL, title = "Estimates") +
+				ggplot2::theme_minimal() +
+				ggplot2::theme(
+					panel.grid.major.y = ggplot2::element_blank(),
+					panel.grid.minor.y = ggplot2::element_blank(),
+					plot.margin = ggplot2::margin(t = 5, r = 20, b = 5, l = 25, unit = "pt")
+				)
+		} else {
+			NULL
+		}
 		run_all_inference_stack_forest_and_box(forest, box, n_rows = nrow(d), max_label_chars = max(nchar(c(d$left_label, d$right_label))))
 	}), estimands)
 }
@@ -1987,14 +2071,38 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_stack_forest_and_box = function(forest, box, n_rows, max_label_chars) {
+run_all_inference_stack_forest_and_box = function(forest, box = NULL, n_rows, max_label_chars) {
+	# ggplotGrob() renders text metrics immediately (unlike building a bare
+	# ggplot object, which stays lazy until printed) -- it needs an active
+	# graphics device to do that measurement, even though nothing is
+	# actually drawn here. Most `run_all_inference()` calls never touch a
+	# graphics device at all (the caller only wants the results table/JSON),
+	# so without a device already open, R's auto-open kicks in -- which in
+	# a non-interactive session means `grDevices::pdf(file = "Rplots.pdf")`,
+	# leaving a stray, near-blank PDF in the working directory (per user
+	# report, 2026-08-22). Open a real-but-file-less null device instead
+	# whenever nothing is already open, and close only the device we opened
+	# -- never touch one the caller already had open (e.g. for on-screen
+	# `plots = TRUE` display).
+	opened_null_device = is.null(grDevices::dev.list())
+	if (opened_null_device) {
+		grDevices::pdf(NULL)
+		on.exit(grDevices::dev.off(), add = TRUE)
+	}
 	gf = ggplot2::ggplotGrob(forest)
-	gb = ggplot2::ggplotGrob(box)
 	pf = gf$layout[gf$layout$name == "panel", , drop = FALSE]
-	pb = gb$layout[gb$layout$name == "panel", , drop = FALSE]
 	gf$heights[pf$t] = grid::unit(max(n_rows, 3L), "null")
-	gb$heights[pb$t] = grid::unit(2, "null")
-	g = rbind(gf, gb, size = "first")
+	# `box = NULL` (per user request, 2026-08-22: a single-estimate estimand
+	# skips the subplot entirely) -- the forest grob alone is the result,
+	# no stacking.
+	g = if (is.null(box)) {
+		gf
+	} else {
+		gb = ggplot2::ggplotGrob(box)
+		pb = gb$layout[gb$layout$name == "panel", , drop = FALSE]
+		gb$heights[pb$t] = grid::unit(2, "null")
+		rbind(gf, gb, size = "first")
+	}
 	attr(g, "edi_n_rows") = as.integer(n_rows)
 	attr(g, "edi_max_label_chars") = as.integer(max_label_chars)
 	g
@@ -2067,13 +2175,22 @@ run_all_inference_plot_max_label_chars = function(p) {
 #' possible"); the intercept covers the forest's title and x-axis plus the
 #' separate "Estimates" box-and-whisker subplot stacked underneath it
 #' (`run_all_inference_stack_forest_and_box()`: its own title, panel, and
-#' x-axis, ~1.8in). Capped at 48in to stay under `ggsave()`-style size
-#' sanity limits even for a single very-large estimand.
+#' x-axis, ~1.8in). No lower floor beyond that intercept (removed the
+#' earlier `max(6, ...)`, per user request, 2026-08-22): a floor forced
+#' every small-row-count estimand's page to the same 6in regardless of how
+#' few rows it actually had, stretching *that* estimand's row-to-row
+#' spacing out relative to a large estimand's tightly-packed page -- since
+#' the forest panel's own height is otherwise directly proportional to
+#' `n_rows` here, dropping the floor keeps vertical spacing between CI rows
+#' uniform across every estimand's plot, PDF page heights differing is the
+#' explicit tradeoff accepted for that. Capped at 48in to stay under
+#' `ggsave()`-style size sanity limits even for a single very-large
+#' estimand.
 #'
 #' @keywords internal
 #' @noRd
 run_all_inference_ci_forest_height_in = function(n_rows) {
-	min(48, max(6, 0.20 * n_rows + 2.6))
+	min(48, 0.20 * n_rows + 2.6)
 }
 
 #' Saves `run_all_inference()`'s CI forest plots to one timestamped
@@ -2844,7 +2961,7 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 		# (per user request, 2026-08-19) -- `names(groups)` is still the
 		# raw registry `estimand` string (needed for `split()`/lookup), so
 		# abbreviate only for display here, not for the grouping itself.
-		sprintf("  %s (%d inferences): p = %s", estimand_short_label(g), length(groups[[g]]), p_str)
+		sprintf("  Estimand: %s (%d inferences): p = %s", estimand_short_label(g), length(groups[[g]]), p_str)
 	}, character(1L), USE.NAMES = FALSE)
 }
 
@@ -3108,8 +3225,11 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   box-and-whisker subplot -- a free x-axis (same label, same log10/linear
 		#'   choice as the forest, but its own limits) summarizing the point
 		#'   estimates, one point per inference class/formula, collapsed over
-		#'   method/type since those share one estimate. Built with \pkg{ggplot2}
-		#'   and stacked into a single \pkg{gtable} grob (draw with
+		#'   method/type since those share one estimate. That subplot scales with
+		#'   how many distinct estimates there are: none for a single estimate
+		#'   (redundant with the forest's own dot), dots alone for 2-5, and dots
+		#'   over a box-and-whisker for more than 5. Built with \pkg{ggplot2} and
+		#'   stacked into a single \pkg{gtable} grob (draw with
 		#'   \code{grid::grid.draw()}); requires the optional \pkg{ggplot2} package,
 		#'   if it is not installed, a \code{warning()} is issued and plotting is
 		#'   skipped rather than erroring. Defaults to the value of \code{screen}.

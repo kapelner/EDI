@@ -77,7 +77,7 @@ InferenceCountHurdlePoisson = R6::R6Class("InferenceCountHurdlePoisson",
 #' hurdle submodel \eqn{P(Y_i > 0) = \mathrm{logit}^{-1}(X_i^{h\top}
 #' \gamma^h)} (fit jointly with the count submodel) crossed with a
 #' zero-truncated negative-binomial count submodel for \eqn{Y_i \mid Y_i > 0}:
-#' \eqn{\log E[Y_i \mid Y_i > 0, W_i, X_i] = \beta_0 + \beta_T W_i + X_i^\top
+#' \eqn{\log E[Y_i \mid Y_i > 0, w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top
 #' \gamma}, \eqn{\mathrm{Var}(Y_i \mid Y_i > 0) = \mu_i + \mu_i^2 / \theta}
 #' (\code{fast_hurdle_negbin_cpp}/
 #' \code{\link{fast_hurdle_negbin_with_var_cpp}}). The hurdle and count

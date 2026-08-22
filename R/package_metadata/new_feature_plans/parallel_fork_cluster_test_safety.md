@@ -132,6 +132,23 @@ Two separable problems live in that gap:
   Scope a small spike to confirm before committing to TODO-5's
   timeout-based mitigation as the primary fix rather than a
   belt-and-suspenders backstop.
+  **In progress (2026-08-22, user decision):** (a) implemented —
+  `run_all_inference()`'s fork-cluster branch now calls
+  `make_configured_fork_cluster(num_cores)`. Verification attempted locally
+  first: full/partial `num_cores=1` vs. `num_cores=2` comparisons both timed
+  out mid-*sequential* run (this sandbox is too resource-constrained to fit
+  bootstrap-CI classes in reasonable time — inconclusive, not a hang
+  signal); a lighter isolated repro (one OpenMP kernel call, then
+  `make_configured_fork_cluster(2)` + `clusterApply()` directly) completed
+  in 0.5s with no hang, but is lighter than the real failure conditions
+  (dozens of prior OpenMP-heavy tests before the fork). Real verification
+  now running as a CI canary: `skip_on_ci()` removed from the `"num_cores >
+  1"` test (with a best-effort `setTimeLimit(90)` safety net added so a
+  repeat hang fails fast instead of re-burning the job timeout — see that
+  test's own comment in `test-inference-suite-run-all-inference.R`). Next
+  push's CI result decides this TODO: pass → mark done, keep
+  `skip_on_ci()` removed; hang/timeout → (a) alone is insufficient, re-add
+  `skip_on_ci()` and proceed to (b).
 - [ ] TODO-5: **Add a wall-clock timeout + forced kill around the
   fork-cluster path**, as a backstop regardless of TODO-4's outcome.
   `setTimeLimit()` doesn't reach into child processes, so this needs real

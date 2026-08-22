@@ -5,7 +5,7 @@
 \title{Weibull Frailty Combined-Likelihood Inference for KK Designs}
 \description{
 Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
-\code{\link[EDI:InferenceAbstractKKWeibullFrailtyOneLik]{InferenceAbstractKKWeibullFrailtyOneLik}}
+\code{\link[EDI:InferenceSurvivalKKWeibullFrailtyOneLik]{InferenceSurvivalKKWeibullFrailtyOneLik}}
 for the frailty-distribution details and contrast with the gamma-frailty
 \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
 (Clayton copula) alternative.

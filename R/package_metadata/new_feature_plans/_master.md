@@ -83,6 +83,16 @@ spliced into one step and marked **[spliced]**.
 > longer lists it as a phase-ordered item since it now ships with the
 > release-scoped batch, not the exploratory tail.
 >
+> **Amended 2026-08-23 (user decision):** `performance_profiling_and_upgrades.md`
+> — the native-kernel performance record, moved here from
+> `../audits/perf_experiments.md` on 2026-08-22 and extended with a
+> forward-looking audit plan (§8, TODO-132..179) — is written into the v1.1.0
+> scope as a second kernel/perf lane: `release_v1_1_0.md → TODO-4b`, Phase 4
+> below. Measurement-first, no Phase 0 dependency; its result-changing items
+> (libmvec exp/log, adaptive quadrature, Monte-Carlo early stopping, non-R RNG
+> streams) are gated by the release's additive/bit-for-bit rule (opt-in or a
+> documented default change).
+>
 > **Update (2026-08-16):** two of the release-scoped plans have since
 > closed and moved to `../finished_features/`: the interval-censored
 > survival (y/y_L/y_R) rework, and the SEXP/RcppEigen conversion spec
@@ -328,11 +338,13 @@ along the way; this also closed release amendment 11's decision gate.
 
 ## Phase 3 — Documentation (parallel with Phase 2)
 
-1. `fix_documentation.md → remaining R-side TODOs` in batches (per the
-   standing rule: parse checks only mid-batch, no interim roxygenize);
-   regenerate the Rd snapshot after Phase 1D/1E before starting new batches.
+1. **[x]** `fix_documentation.md → remaining R-side TODOs` in batches (per
+   the standing rule: parse checks only mid-batch, no interim roxygenize).
+   **Done (2026-08-23): 0 open R-side TODOs, plan moved to
+   `../finished_features/`.**
 2. `fix_documentation.md → TODO #758..#816` (Python docstrings) — each only
    after its R sibling's expanded documentation exists (they copy from it).
+   Unblocked now that item 1 is done.
 3. `fix_roxygenize_lazy_component_srcrefs.md → R CMD check TODO` — after the
    first large doc batch, and again after Phase 1D.4 (Base Deletion).
 
@@ -345,6 +357,16 @@ conventions. **Full item list: `release_v1_1_0.md → TODO-4`.** Status not
 repeated there: step 1 (`multi_arm_designs.md → TODO-6`, the
 `InferenceIncidCMH` non-blocking balance-guard gap) is **[x] DONE
 (2026-08-16)**.
+
+**Second lane (added 2026-08-23, user decision):
+`performance_profiling_and_upgrades.md` §8 → TODO-132..179 — full item list
+and ordering in `release_v1_1_0.md → TODO-4b`.** Independent of TODO-4's
+kernel specs (it profiles and tightens what already exists rather than adding
+kernels); runs in parallel with Phases 2–3; its parallelism sub-batch
+(TODO-147/148/174/176) should be coordinated with the
+`tune_EDI_for_this_machine()` axes (v1.0.0 item 15), and its bare-metal
+sub-batch (TODO-143/171/175 + published 135/147/148 numbers) is one rented
+`c7i.metal-48xl` session. TODOs are ticked in the owning plan.
 
 ---
 
@@ -399,6 +421,16 @@ already stated there:**
    `DesignFixedGreedyDOptimal`, replacing both with
    `DesignFixedGreedyPairSwitch`. Full item list:
    `release_v1_1_0.md → TODO-11`.
+6. `quantum_upgrade.md` (added 2026-08-22) — decision-gated scoping report
+   (its TODO-1 joins the Phase 0 decision batch, to be taken *after*
+   `gpu_optimizations.md → TODO-7`'s backend/dispatch answer, which it reuses).
+   Only realistic item is an opt-in QUBO-export + external-sampler hook on
+   `DesignFixedOptimal`'s quadratic/ratio objectives (TODO-2..5); everything
+   else in it is either not a candidate (Tier C) or — the amplitude-estimation
+   speedup for randomization p-values, bisection CI inversion and bootstrap
+   quantiles (Tier B) — a real quadratic speedup that needs fault-tolerant
+   hardware and is kept as a standing kernel-factoring constraint (its TODO-8),
+   not scheduled work.
 
 ---
 

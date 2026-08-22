@@ -16,6 +16,7 @@ Abstract class for asymptotic inference.
     \item \href{#method-InferenceAsymp-compute_asymp_confidence_interval}{\code{InferenceAsymp$compute_asymp_confidence_interval()}}
     \item \href{#method-InferenceAsymp-compute_asymp_two_sided_pval}{\code{InferenceAsymp$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferenceAsymp-get_supported_testing_types}{\code{InferenceAsymp$get_supported_testing_types()}}
+    \item \href{#method-InferenceAsymp-set_testing_type}{\code{InferenceAsymp$set_testing_type()}}
     \item \href{#method-InferenceAsymp-compute_wald_two_sided_pval}{\code{InferenceAsymp$compute_wald_two_sided_pval()}}
     \item \href{#method-InferenceAsymp-compute_wald_confidence_interval}{\code{InferenceAsymp$compute_wald_confidence_interval()}}
     \item \href{#method-InferenceAsymp-compute_estimate}{\code{InferenceAsymp$compute_estimate()}}
@@ -175,6 +176,38 @@ Abstract class for asymptotic inference.
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAsymp$get_supported_testing_types()}
     \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAsymp-set_testing_type"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAsymp-set_testing_type}{}}}
+\subsection{\code{InferenceAsymp$set_testing_type()}}{
+  Sets the asymptotic testing method used by p-values and CIs.
+  This base (Wald-only) implementation accepts only \code{"wald"} and
+  rejects everything else with a clear message; likelihood-tier classes
+  override this with a richer version supporting score/gradient/lik_ratio
+  testing types (see \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}}).
+  Without this base method, a Wald-only class (one composing only the
+  \code{Wald} component, e.g. a robust-sandwich or Bai-adjusted-t
+  estimator) has no \code{set_testing_type()} at all, so calling it
+  fails with an opaque "attempt to apply non-function" instead of a
+  clear rejection.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAsymp$set_testing_type(testing_type = "wald")}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{testing_type}}{One of \code{"wald"} for this base implementation
+(likelihood-tier subclasses accept more values).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The inference object, invisibly.
   }
 }
 

@@ -268,7 +268,17 @@ the frozen substrate makes it additive.
     35 new tests, including each `verify_*` function confirmed reachable
     (`agree = TRUE`) against a real fit, not just defined in theory. Final
     tally: correctness 35, assembly 137, harness 68, axes 68, refactor 4
-    — all green. The `.onLoad()` import hook
+    — all green. **TODO-10 also done (2026-08-22):** closed the two test
+    items not already covered as a byproduct of TODO-6/7/9 — (a) one
+    explicit round-trip chaining a mocked-benchmark tuning run → simulated
+    fresh-session policy reset → `.onLoad()` import, confirmed via the
+    live dispatcher; (d) a saved diff naming a class pattern matching no
+    live class applies cleanly and is confirmed inert, while a real
+    co-occurring entry in the same diff still takes effect — and added a
+    real (non-mocked), `skip_on_cran()`-guarded end-to-end run of
+    `tune_EDI_for_this_machine()` itself. Assembly now 155/155; full local
+    machine-tuning suite 326/326 across all four test files. The
+    `.onLoad()` import hook
     itself goes live in `library(EDI)` on the user's *next* install (their
     current one predates the `zzz.R` edit — verified via `load_all()`
     meanwhile). Two recorded boundaries: the

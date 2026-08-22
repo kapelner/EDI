@@ -6,7 +6,7 @@ Date: 2026-05-21
 
 ## Scope
 
-This report identifies places in the EDI package where GPU acceleration could plausibly speed up computations. It is based on the current native C++ and R code paths, the existing OpenMP/SIMD build setup, and the kernel timing notes in `package_metadata/perf_experiments_final.md`.
+This report identifies places in the EDI package where GPU acceleration could plausibly speed up computations. It is based on the current native C++ and R code paths, the existing OpenMP/SIMD build setup, and the kernel timing notes in `package_metadata/new_feature_plans/performance_profiling_and_upgrades.md`.
 
 The package already has meaningful CPU optimization infrastructure:
 

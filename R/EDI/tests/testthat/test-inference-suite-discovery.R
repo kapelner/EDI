@@ -104,8 +104,20 @@ test_that("InferenceSuite's requires_blocking gate actually rejects non-blocking
 	expect_false("InferenceIncidExtendedRobins" %in% classes_bernoulli)
 	expect_true("InferenceIncidCMH" %in% classes_bernoulli)
 
-	des_blocking = DesignFixedBlocking$new(n = n, response_type = "incidence", strata_cols = "x2", equal_block_sizes = FALSE)
-	X = data.frame(x1 = rnorm(n), x2 = sample(c("a", "b"), n, TRUE))
+	# `equal_block_sizes = TRUE` (not `FALSE` as originally written here):
+	# InferenceIncidCMH requires equal block sizes for blocking designs
+	# (its own initialize()-time stop(), now also a registered
+	# design_compatibility_reason() predicate -- see
+	# fix_inference_hierarchy.md's "Discovery-time applicability" entry).
+	# The original `equal_block_sizes = FALSE` + `sample(..., n, TRUE)`
+	# fixture relied on the random strata draw happening to land on equal
+	# group sizes; found stale 2026-08-22 when RNG-stream drift from the
+	# des_bernoulli block above (consuming draws before this point) shifted
+	# the draw to an unequal 7/5 split, correctly excluding CMH and failing
+	# this assertion -- not a discovery bug, the fixture's own assumption
+	# was never guaranteed.
+	des_blocking = DesignFixedBlocking$new(n = n, response_type = "incidence", strata_cols = "x2", equal_block_sizes = TRUE)
+	X = data.frame(x1 = rnorm(n), x2 = rep(c("a", "b"), n / 2))  # deterministic, guarantees equal block sizes
 	des_blocking$add_all_subjects_to_experiment(X)
 	des_blocking$assign_w_to_all_subjects()
 	des_blocking$add_all_subject_responses(rbinom(n, 1, 0.3))
@@ -237,8 +249,23 @@ test_that("InferenceSuite uses design metadata for KK compatibility", {
 	classes = InferenceSuite$new(des)$applicable_design_classes
 	expect_identical(sort(des$applicable_inference_class_names()), sort(classes))
 
-	expect_true("InferenceAllKKMeanDiffIVWC" %in% classes)
-	expect_true("InferenceContinKKOLSIVWC" %in% classes)
+	# `InferenceAllKKMeanDiffIVWC`/`InferenceContinKKOLSIVWC` are correctly
+	# ABSENT here, not present: `is_inference_class_compatible_with_design_
+	# metadata()` unconditionally excludes any class whose name contains
+	# "IVWC" from discovery (inference_suite.R's own docstring: "the legacy
+	# inverse-variance-weighted-combination KK estimators are deprecated in
+	# favor of the OneLik joint-likelihood variants and are never surfaced
+	# by InferenceSuite discovery, even though they remain independently
+	# constructible/exported for backwards compatibility") -- this
+	# assertion predated that deliberate exclusion and was never updated
+	# (found stale 2026-08-22). The OneLik sibling is the one actually
+	# discoverable for a KK-capable design.
+	expect_false("InferenceAllKKMeanDiffIVWC" %in% classes)
+	expect_false("InferenceContinKKOLSIVWC" %in% classes)
+	# The OneLik sibling is the one actually discoverable for a KK-capable
+	# design, preserving this test's original "KK compatibility surfaces
+	# something" intent.
+	expect_true("InferenceContinKKOLSOneLik" %in% classes)
 	expect_false("InferenceRandBootstrap" %in% classes)
 	expect_false("InferenceRandBootstrapCI" %in% classes)
 })
@@ -255,8 +282,12 @@ test_that("Design$applicable_inference_class_names() matches InferenceSuite for 
 		sort(InferenceSuite$new(des_bernoulli)$applicable_design_classes)
 	)
 
-	des_blocking = DesignFixedBlocking$new(n = n, response_type = "incidence", strata_cols = "x2", equal_block_sizes = FALSE)
-	X = data.frame(x1 = rnorm(n), x2 = sample(c("a", "b"), n, TRUE))
+	# equal_block_sizes = TRUE: see the identical fixture fix/rationale in
+	# the "Design$applicable_inference_class_names() matches design metadata
+	# for KK compatibility" test above (InferenceIncidCMH requires equal
+	# block sizes; found stale 2026-08-22).
+	des_blocking = DesignFixedBlocking$new(n = n, response_type = "incidence", strata_cols = "x2", equal_block_sizes = TRUE)
+	X = data.frame(x1 = rnorm(n), x2 = rep(c("a", "b"), n / 2))  # deterministic, guarantees equal block sizes
 	des_blocking$add_all_subjects_to_experiment(X)
 	des_blocking$assign_w_to_all_subjects()
 	des_blocking$add_all_subject_responses(rbinom(n, 1, 0.3))

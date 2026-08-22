@@ -761,10 +761,19 @@ edi_env$optimization_dispatch_policy_config = get_optimization_dispatch_policy()
 #'   \code{inference_class_overrides} (a named logical vector: regular-expression
 #'   pattern names to \code{TRUE}/\code{FALSE} values, matched against the
 #'   inference class name).
+#' These \code{TRUE}/\code{FALSE} defaults are empirical performance
+#' judgments computed on the maintainer's machine, not correctness facts —
+#' the same heuristic can be net-positive or net-negative depending on
+#' your hardware's core count, cache sizes, and BLAS backend. Run
+#' \code{\link{tune_EDI_for_this_machine}} to re-measure this axis on your
+#' own machine and persist any better setting it finds.
+#'
 #' @seealso \code{\link{get_bootstrap_dispatch_policy}} and
 #'   \code{\link{get_optimization_dispatch_policy}} for the analogous policies
 #'   controlling bootstrap CI type and default optimizer algorithm;
-#'   \code{\link{set_cold_start_dispatch_policy}} to override this policy at runtime.
+#'   \code{\link{set_cold_start_dispatch_policy}} to override this policy at
+#'   runtime; \code{\link{tune_EDI_for_this_machine}} to re-benchmark it on
+#'   your own hardware.
 #' @examples
 #' get_cold_start_dispatch_policy()
 #' @export
@@ -814,7 +823,9 @@ edi_env$cold_start_dispatch_policy_config = get_cold_start_dispatch_policy()
 #' @seealso \code{\link{get_cold_start_dispatch_policy}} for the policy schema
 #'   and built-in defaults; \code{\link{set_warm_start_dispatch_policy}} and
 #'   \code{\link{set_optimization_dispatch_policy}} for the analogous setters
-#'   governing warm-starting and optimizer-algorithm choice.
+#'   governing warm-starting and optimizer-algorithm choice;
+#'   \code{\link{tune_EDI_for_this_machine}}, which calls this setter with
+#'   machine-measured overrides rather than hand-picked ones.
 #' @examples
 #' set_cold_start_dispatch_policy(reset = TRUE)
 #' @export
@@ -877,10 +888,17 @@ edi_cold_start_dispatch_policy = function(inference_class) {
 #'   applied regardless of sample size) and \code{n_conditioned_overrides} (a
 #'   list of \code{list(pattern, value, n_min, n_max)} rules, applied only when
 #'   \code{n} is supplied and falls in \code{[n_min, n_max)}); see Details.
+#' Like the cold-start table, every \code{TRUE}/\code{FALSE} entry here
+#' (including the n-thresholds) is an empirical performance judgment
+#' computed on the maintainer's machine, not a correctness fact. Run
+#' \code{\link{tune_EDI_for_this_machine}} to re-measure this axis,
+#' per resampling operation and sample size, on your own machine.
+#'
 #' @seealso \code{\link{get_cold_start_dispatch_policy}} for the analogous
 #'   (simpler, single-layer) policy governing the initial cold-start heuristic
 #'   rather than cross-replicate warm-starting; \code{\link{set_warm_start_dispatch_policy}}
-#'   to override this table at runtime.
+#'   to override this table at runtime; \code{\link{tune_EDI_for_this_machine}}
+#'   to re-benchmark it on your own hardware.
 #' @examples
 #' get_warm_start_dispatch_policy()
 #' @export

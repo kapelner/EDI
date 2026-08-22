@@ -4,7 +4,7 @@
 #' excess-zero submodel \eqn{P(\text{structural zero}_i) =
 #' \mathrm{logit}^{-1}(X_i^{h\top} \gamma^h)} mixed with a (non-truncated)
 #' Poisson count submodel \eqn{\log E[Y_i \mid \text{not structural zero},
-#' W_i, X_i] = \beta_0 + \beta_T W_i + X_i^\top \gamma}. Unlike a hurdle
+#' w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top \gamma}. Unlike a hurdle
 #' model, zero counts can arise from either the structural-zero mechanism or
 #' from an ordinary Poisson draw of \eqn{0}, so the two mixture components are
 #' not identified by disjoint support. The hurdle and count submodels may use
@@ -79,7 +79,7 @@ InferenceCountZeroInflatedPoisson = R6::R6Class("InferenceCountZeroInflatedPoiss
 #' binary excess-zero submodel \eqn{P(\text{structural zero}_i) =
 #' \mathrm{logit}^{-1}(X_i^{h\top} \gamma^h)} mixed with a (non-truncated)
 #' negative-binomial count submodel \eqn{\log E[Y_i \mid \text{not structural
-#' zero}, W_i, X_i] = \beta_0 + \beta_T W_i + X_i^\top \gamma},
+#' zero}, w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top \gamma},
 #' \eqn{\mathrm{Var}(Y_i \mid \text{not structural zero}) = \mu_i + \mu_i^2 /
 #' \theta}. Unlike a hurdle model, zero counts can arise from either the
 #' structural-zero mechanism or from an ordinary negative-binomial draw of

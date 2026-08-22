@@ -1,36 +1,3 @@
-#' Stereotype Logit Regression Inference for Ordinal Responses
-#'
-#' Fits Anderson's (1984) stereotype logit model for ordinal responses (see
-#' \code{\link{fast_stereotype_logit_cpp}} for the full reduced-rank
-#' multinomial-softmax formula and reparameterization): a single linear
-#' predictor \eqn{\eta_i = \beta_T W_i + X_i^\top \gamma} is scaled by a
-#' category-specific \strong{score} \eqn{\phi_k \in [0,1]} (jointly estimated,
-#' monotone in \eqn{k}) in a softmax over all \eqn{K} categories, rather than
-#' assuming a single proportional/parallel effect across cuts as
-#' \code{\link[EDI:InferenceOrdinalContRatioRegr]{InferenceOrdinalContRatioRegr}}/
-#' \code{\link[EDI:InferenceOrdinalKKCondAdjCatLogitRegr]{InferenceOrdinalKKCondAdjCatLogitRegr}}
-#' do. This makes the stereotype model a genuinely more flexible
-#' (multinomial-logit-like, reduced-rank) alternative to the standard
-#' proportional-odds/adjacent-category/continuation-ratio ordinal families,
-#' at the cost of a less directly interpretable treatment coefficient
-#' (\eqn{\beta_T} enters multiplicatively through the \eqn{\phi_k} scores
-#' rather than as a single additive log-odds-ratio). \code{likelihood_tier =
-#' "full"}: likelihood-ratio, score, gradient, and Wald tests are all
-#' available when the model converges, plus parametric-likelihood-bootstrap
-#' calibration of the likelihood-ratio test.
-#'
-#' @references Anderson, J. A. (1984). "Regression and Ordered Categorical
-#'   Variables." \emph{Journal of the Royal Statistical Society, Series B},
-#'   46(1), 1-30, \doi{10.1111/j.2517-6161.1984.tb01276.x}, for the
-#'   stereotype logit model.
-#'
-#' @seealso \code{\link[EDI:InferenceOrdinalContRatioRegr]{InferenceOrdinalContRatioRegr}}
-#'   for a proportional (non-reduced-rank) ordinal alternative. See also:
-#'   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal
-#'   regression} (Wikipedia).
-#'
-#' @name InferenceOrdinalStereotypeLogitRegr
-#' @export
 inference_ordinal_stereotype_public = list(
 		#' @description Initialize inference for the stereotype logit model; see
 		#'   \code{\link[EDI:InferenceOrdinalStereotypeLogitRegr]{InferenceOrdinalStereotypeLogitRegr}}
@@ -334,6 +301,39 @@ OrdinalStereotypeLikelihoodSource = list(
 	private = inference_ordinal_stereotype_private
 )
 
+#' Stereotype Logit Regression Inference for Ordinal Responses
+#'
+#' Fits Anderson's (1984) stereotype logit model for ordinal responses (see
+#' \code{\link{fast_stereotype_logit_cpp}} for the full reduced-rank
+#' multinomial-softmax formula and reparameterization): a single linear
+#' predictor \eqn{\eta_i = \beta_T W_i + X_i^\top \gamma} is scaled by a
+#' category-specific \strong{score} \eqn{\phi_k \in [0,1]} (jointly estimated,
+#' monotone in \eqn{k}) in a softmax over all \eqn{K} categories, rather than
+#' assuming a single proportional/parallel effect across cuts as
+#' \code{\link[EDI:InferenceOrdinalContRatioRegr]{InferenceOrdinalContRatioRegr}}/
+#' \code{\link[EDI:InferenceOrdinalKKCondAdjCatLogitRegr]{InferenceOrdinalKKCondAdjCatLogitRegr}}
+#' do. This makes the stereotype model a genuinely more flexible
+#' (multinomial-logit-like, reduced-rank) alternative to the standard
+#' proportional-odds/adjacent-category/continuation-ratio ordinal families,
+#' at the cost of a less directly interpretable treatment coefficient
+#' (\eqn{\beta_T} enters multiplicatively through the \eqn{\phi_k} scores
+#' rather than as a single additive log-odds-ratio). \code{likelihood_tier =
+#' "full"}: likelihood-ratio, score, gradient, and Wald tests are all
+#' available when the model converges, plus parametric-likelihood-bootstrap
+#' calibration of the likelihood-ratio test.
+#'
+#' @references Anderson, J. A. (1984). "Regression and Ordered Categorical
+#'   Variables." \emph{Journal of the Royal Statistical Society, Series B},
+#'   46(1), 1-30, \doi{10.1111/j.2517-6161.1984.tb01276.x}, for the
+#'   stereotype logit model.
+#'
+#' @seealso \code{\link[EDI:InferenceOrdinalContRatioRegr]{InferenceOrdinalContRatioRegr}}
+#'   for a proportional (non-reduced-rank) ordinal alternative. See also:
+#'   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal
+#'   regression} (Wikipedia).
+#'
+#' @name InferenceOrdinalStereotypeLogitRegr
+#' @export
 InferenceOrdinalStereotypeLogitRegr = define_inference_class(
 	classname = "InferenceOrdinalStereotypeLogitRegr",
 	inherit = Inference,

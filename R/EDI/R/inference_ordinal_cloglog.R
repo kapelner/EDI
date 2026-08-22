@@ -1,8 +1,8 @@
 #' Cumulative Cloglog Inference for Ordinal Responses
 #'
 #' Complementary log-log cumulative-odds ordinal regression:
-#' \eqn{P(Y \le k \mid W, X) = 1 - \exp\{-\exp(\alpha_k - \beta_T W -
-#' \beta_X^\top X)\}}, where \eqn{\alpha_k} are category-specific cutpoints and
+#' \eqn{P(Y \le k \mid w, x) = 1 - \exp\{-\exp(\alpha_k - \beta_T w -
+#' \beta_X^\top x)\}}, where \eqn{\alpha_k} are category-specific cutpoints and
 #' \eqn{\beta_T} is the treatment coefficient on the cloglog scale. Fit by
 #' maximum likelihood. The cloglog link is asymmetric (unlike logit/probit) and
 #' is the natural ordinal generalization of a proportional-hazards/grouped

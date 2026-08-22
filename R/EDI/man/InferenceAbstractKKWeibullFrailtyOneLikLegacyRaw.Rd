@@ -5,12 +5,12 @@
 \title{Abstract class for Weibull Frailty Combined-Likelihood Inference}
 \description{
 One-likelihood (combined matched-pair + reservoir) analog of
-\code{\link[EDI:InferenceAbstractKKWeibullFrailtyIVWC]{InferenceAbstractKKWeibullFrailtyIVWC}}:
+\code{\link[EDI:InferenceSurvivalKKWeibullFrailtyIVWC]{InferenceSurvivalKKWeibullFrailtyIVWC}}:
 same Weibull-AFT-with-log-normal-random-intercept (Gaussian, Gauss-Hermite
 quadrature) frailty assumption for matched pairs, but the matched-pair and
 reservoir contributions are fit as a single combined likelihood rather than
 combined by inverse-variance weighting. See
-\code{\link[EDI:InferenceAbstractKKWeibullFrailtyIVWC]{InferenceAbstractKKWeibullFrailtyIVWC}}
+\code{\link[EDI:InferenceSurvivalKKWeibullFrailtyIVWC]{InferenceSurvivalKKWeibullFrailtyIVWC}}
 for the frailty-distribution details and its contrast with the gamma-frailty
 Clayton copula model implemented by
 \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}.

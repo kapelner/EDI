@@ -1134,7 +1134,7 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidKKModifiedPoisson.Rd`
 
-- [ ] TODO #438: Topic `InferenceIncidKKModifiedPoisson` (current description `382` chars).
+- [x] TODO #438: Topic `InferenceIncidKKModifiedPoisson` (current description `382` chars). Newly ungated 2026-08-22: `algorithmic_compatibility_ancestors` confirmed empty in the live manifest despite `migration_status == "pending"` (one-level-removed heuristic — its base `InferenceAbstractKKModifiedPoisson` is a plain R6 subclass of the already-migrated `InferenceAbstractKKMarginalIncid`). Full model doc added (Zou modified-Poisson working model, matched-pair-cluster sandwich covariance). `REFERENCES.md` updated (`[Zou2004]`/`[KK14]` "Used by" lists).
 
 ### `InferenceIncidKKNewcombeRiskDiff.Rd`
 

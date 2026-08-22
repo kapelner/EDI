@@ -896,8 +896,22 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   Low completion usually reflects finite-sample pathologies such as sparse data, separation, censoring, boundary estimates, or resampling degeneracy.
   A low rate does not by itself mean the estimator is invalid; it means the path is numerically fragile under these comprehensive-test settings.</p>'
 
+  edi_version = local({
+    candidate_description_paths = c(
+      file.path(dirname(getwd()), "EDI", "DESCRIPTION"),
+      file.path(getwd(), "EDI", "DESCRIPTION"),
+      file.path(getwd(), "DESCRIPTION")
+    )
+    found = Filter(file.exists, candidate_description_paths)
+    if (length(found) > 0) {
+      as.character(read.dcf(found[1], fields = "Version")[1])
+    } else {
+      as.character(utils::packageVersion("EDI"))
+    }
+  })
+
   html = paste0('<!DOCTYPE html><html><head><meta charset="utf-8">
-  <title>EDI Comprehensive Tests Coverage Audit</title>
+  <title>EDI v', edi_version, ' Comprehensive Tests Coverage Audit</title>
   <style>
     body{font-family:sans-serif;font-size:13px;margin:16px}
     .scroll-x-top{overflow-x:auto;overflow-y:hidden;border:1px solid #ccc;border-bottom:none;position:sticky;top:0;background:#fff;z-index:20}
@@ -940,7 +954,7 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
     });
   </script>
   </head><body>
-  <h2>EDI Comprehensive Tests Coverage Audit</h2>
+  <h2>EDI v', edi_version, ' Comprehensive Tests Coverage Audit</h2>
   <p style="color:#555">Generated ', format(Sys.Date()), '. Green-to-yellow attempted cells use empirical explicit-nonestimability rates from main
   <code>comprehensive_tests_results*.csv</code> files in <code>package_tests/</code>; focused <code>_filtered_</code> runs are excluded.
   Dark green means the method is theoretically guaranteed under the comprehensive-test contract.

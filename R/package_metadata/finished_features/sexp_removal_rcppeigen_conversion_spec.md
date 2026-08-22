@@ -20,7 +20,7 @@ in this session for the follow-up pybind11 spec.
 
 Related documents:
 
-- [perf_experiments_final.md](perf_experiments_final.md) — do not duplicate
+- [performance_profiling_and_upgrades.md](../new_feature_plans/performance_profiling_and_upgrades.md) — do not duplicate
   perf work tracked there; this spec is structural, not a performance pass.
 
 ## Motivation
@@ -73,7 +73,7 @@ The numeric logic does not need to change; only the boundary code does.
 - Do not change any numeric algorithm, tolerance, or default argument.
   Behavior must be bit-identical before/after for every migrated function
   (see Testing).
-- Do not touch `perf_experiments_final.md`-tracked optimizations; if a
+- Do not touch `new_feature_plans/performance_profiling_and_upgrades.md`-tracked optimizations; if a
   migrated file happens to also need a perf fix, track that separately.
 - Do not attempt to make RNG-dependent files produce cross-language-identical
   streams unless explicitly decided (see RNG Handling) — that is a distinct,
@@ -1012,7 +1012,7 @@ based on.
       single Rcpp-free core shared by both the R wrapper and a pybind11
       wrapper — doesn't apply; converting anyway would just add
       `ResultMap`'s measured ~8.7us double-copy overhead per call (see
-      `perf_experiments_final.md` TODO-130) on the R-only path for no
+      `new_feature_plans/performance_profiling_and_upgrades.md` TODO-130) on the R-only path for no
       benefit. Left as `List::create`, permanently, unless one of these
       files later gains a Python binding.
       **`SEXP`-argument cleanup done instead** (this MISSING part actually

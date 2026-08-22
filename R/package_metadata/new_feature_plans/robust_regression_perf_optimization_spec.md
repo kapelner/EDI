@@ -22,7 +22,7 @@ after the 2026-07-29 `use_rcpp` wiring — this pass must not regress those.
 
 Related documents:
 
-- [perf_experiments_final.md](perf_experiments_final.md) — do not duplicate
+- [performance_profiling_and_upgrades.md](performance_profiling_and_upgrades.md) — do not duplicate
   perf work already tracked there.
 - [../package_tests/path_audits_source.R](../package_tests/path_audits_source.R)
   line 34 — `InferenceContinRobustRegr` audit row: `skip_brt="ci"`, i.e. the

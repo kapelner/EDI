@@ -287,7 +287,7 @@ now just `R::pchisq`.
 replaced every `R::qnorm5`/`R::pnorm5`/`R::lbeta`/`R::dnbinom_mu` call site
 in `fast_probit_regression.cpp`, `fast_ordinal_probit_regression.cpp`,
 `fast_hurdle_negbin.cpp`, and `beta_regression_helpers.cpp` — see
-`package_metadata/perf_experiments_final.md` TODO-130.
+`package_metadata/new_feature_plans/performance_profiling_and_upgrades.md` TODO-130.
 
 **Status update (2026-07-29, follow-up):** `_glmm_links.h`'s `ProbitLink`
 (`cdf`/`pdf`/`pdf_from_cdf`/`deriv_pdf`) now calls `pnorm_fast`/`dnorm_fast`
@@ -363,7 +363,7 @@ core scope above** — flagged separately rather than folded silently into
 the 33-kernel API, per this spec's own `Non-Goals` discipline of writing
 scope changes down explicitly rather than opportunistically. It exists
 because the `R::`-replacement work above (TODO-130 and its follow-ups,
-`package_metadata/perf_experiments_final.md`) produced a complete set of
+`package_metadata/new_feature_plans/performance_profiling_and_upgrades.md`) produced a complete set of
 dependency-free `fast_*` scalar math functions as a side effect, and a
 direct question came up: are any of these fast enough on their own to be
 worth exposing as Python utilities, independent of the model-fitting

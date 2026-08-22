@@ -151,7 +151,6 @@ BaiAdjustedTSource = list(
 		},
 		#' @description Compute the Bai-adjusted two-sided p-value for the treatment
 		#'   effect using the matched-design adjusted statistic. See related
-		#'   \code{\link[EDI:InferenceBaiAdjustedT]{InferenceBaiAdjustedT}} and
 		#'   \code{\link[EDI:InferenceBaiAdjustedTKK14]{InferenceBaiAdjustedTKK14}}
 		#'   methods.
 		#'

@@ -2,28 +2,8 @@
 % Please edit documentation in R/inference_ordinal_stereotype_logit.R
 \name{InferenceOrdinalStereotypeLogitRegr}
 \alias{InferenceOrdinalStereotypeLogitRegr}
-\alias{inference_ordinal_stereotype_public}
 \title{Stereotype Logit Regression Inference for Ordinal Responses}
-\usage{
-inference_ordinal_stereotype_public
-}
 \description{
-Initialize inference for the stereotype logit model; see
-  \code{\link[EDI:InferenceOrdinalStereotypeLogitRegr]{InferenceOrdinalStereotypeLogitRegr}}
-  for the model form. Does not fit the model; the fit is deferred to the
-  first call to \code{compute_estimate()} or a method that requires it.
-
-Recomputes the treatment estimate under subject/block-level
-  bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
-  weights). Rather than refitting the full reduced-rank stereotype model
-  under weights, calls \code{weighted_ordinal_bootstrap_surrogate_fit()}
-  — a fast weighted ordinal-logistic surrogate fit on the raw design
-  matrix — as an approximation to the weighted stereotype likelihood; the
-  surrogate does not re-estimate the \eqn{\phi_k} category scores. No
-  standard error is computed (\code{s_beta_hat_T} is always \code{NA});
-  the surrogate returns \code{NA} if the fit fails.
-}
-\details{
 Fits Anderson's (1984) stereotype logit model for ordinal responses (see
 \code{\link{fast_stereotype_logit_cpp}} for the full reduced-rank
 multinomial-softmax formula and reparameterization): a single linear
@@ -54,4 +34,137 @@ Anderson, J. A. (1984). "Regression and Ordered Categorical
   for a proportional (non-reduced-rank) ordinal alternative. See also:
   \href{https://en.wikipedia.org/wiki/Ordinal_regression}{Ordinal
   regression} (Wikipedia).
+}
+\section{Super class}{
+\code{\link[EDI:Inference]{Inference}} -> \code{InferenceOrdinalStereotypeLogitRegr}
+}
+\section{Methods}{
+\subsection{Public methods}{
+  \itemize{
+    \item \href{#method-InferenceOrdinalStereotypeLogitRegr-set_custom_randomization_statistic_function}{\code{InferenceOrdinalStereotypeLogitRegr$set_custom_randomization_statistic_function()}}
+    \item \href{#method-InferenceOrdinalStereotypeLogitRegr-set_custom_randomization_statistic_cpp}{\code{InferenceOrdinalStereotypeLogitRegr$set_custom_randomization_statistic_cpp()}}
+    \item \href{#method-InferenceOrdinalStereotypeLogitRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceOrdinalStereotypeLogitRegr$approximate_randomization_distribution_beta_hat_T()}}
+    \item \href{#method-InferenceOrdinalStereotypeLogitRegr-supports_rand_pval_for_incidence}{\code{InferenceOrdinalStereotypeLogitRegr$supports_rand_pval_for_incidence()}}
+    \item \href{#method-InferenceOrdinalStereotypeLogitRegr-compute_rand_two_sided_pval}{\code{InferenceOrdinalStereotypeLogitRegr$compute_rand_two_sided_pval()}}
+    \item \href{#method-InferenceOrdinalStereotypeLogitRegr-clone}{\code{InferenceOrdinalStereotypeLogitRegr$clone()}}
+  }
+}
+\if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
+<ul>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_analysis_data'><code>Inference$get_analysis_data()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_covariates'><code>Inference$get_covariates()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_design_object'><code>Inference$get_design_object()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_model_formula'><code>Inference$get_model_formula()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-set_seed'><code>Inference$set_seed()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
+</ul>
+</details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceOrdinalStereotypeLogitRegr-set_custom_randomization_statistic_function"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalStereotypeLogitRegr-set_custom_randomization_statistic_function}{}}}
+\subsection{\code{InferenceOrdinalStereotypeLogitRegr$set_custom_randomization_statistic_function()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceOrdinalStereotypeLogitRegr$set_custom_randomization_statistic_function(
+  custom_randomization_statistic_function
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceOrdinalStereotypeLogitRegr-set_custom_randomization_statistic_cpp"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalStereotypeLogitRegr-set_custom_randomization_statistic_cpp}{}}}
+\subsection{\code{InferenceOrdinalStereotypeLogitRegr$set_custom_randomization_statistic_cpp()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceOrdinalStereotypeLogitRegr$set_custom_randomization_statistic_cpp(fn)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceOrdinalStereotypeLogitRegr-approximate_randomization_distribution_beta_hat_T"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalStereotypeLogitRegr-approximate_randomization_distribution_beta_hat_T}{}}}
+\subsection{\code{InferenceOrdinalStereotypeLogitRegr$approximate_randomization_distribution_beta_hat_T()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceOrdinalStereotypeLogitRegr$approximate_randomization_distribution_beta_hat_T(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  show_progress = TRUE,
+  permutations = NULL,
+  debug = FALSE,
+  zero_one_logit_clamp = .Machine$double.eps
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceOrdinalStereotypeLogitRegr-supports_rand_pval_for_incidence"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalStereotypeLogitRegr-supports_rand_pval_for_incidence}{}}}
+\subsection{\code{InferenceOrdinalStereotypeLogitRegr$supports_rand_pval_for_incidence()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceOrdinalStereotypeLogitRegr$supports_rand_pval_for_incidence()}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceOrdinalStereotypeLogitRegr-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalStereotypeLogitRegr-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceOrdinalStereotypeLogitRegr$compute_rand_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceOrdinalStereotypeLogitRegr$compute_rand_two_sided_pval(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  na.rm = TRUE,
+  show_progress = TRUE,
+  permutations = NULL,
+  zero_one_logit_clamp = .Machine$double.eps
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceOrdinalStereotypeLogitRegr-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceOrdinalStereotypeLogitRegr-clone}{}}}
+\subsection{\code{InferenceOrdinalStereotypeLogitRegr$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceOrdinalStereotypeLogitRegr$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
 }

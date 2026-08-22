@@ -12,6 +12,15 @@ line"** — the entire additive backlog in one release, superseding
 `release_v1_0_0.md → TODO-5`'s earlier guess that 1.1.0 would be only a small
 first wave (estimate/estimand + the Easy-tier bias corrections).
 
+Amended 2026-08-23 (user decision): `performance_profiling_and_upgrades.md`
+— the native-kernel performance record, moved from
+`audits/perf_experiments.md` on 2026-08-22 and extended with a forward-looking
+audit plan (§8, TODO-132..179: measurement infrastructure, generated-code and
+assembly-level audits, vectorization/compiler levers, allocator/layout,
+OpenMP/BLAS/fork parallelism, algorithmic work such as adaptive quadrature,
+R-layer and end-to-end profiling, a bare-metal/AWS session) — is written into
+the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
+
 ## Scope rule
 
 A plan (or plan fragment) is in scope for v1.1.0 if and only if it lives in
@@ -61,7 +70,12 @@ The diagnostics family: `optimizer_diagnostics_report.md` (TODO-1, 2, 3, 5),
 
 The kernel/perf family: `robust_regression_perf_optimization_spec.md`,
 `quantile_regression_cpp_kernel_spec.md`, `ordinal_gee_cpp_kernel_spec.md`,
-`cold_starts.md`, `gpu_optimizations.md` (decision-gated).
+`cold_starts.md`, `gpu_optimizations.md` (decision-gated),
+`quantum_upgrade.md` (decision-gated; added 2026-08-22, its TODO-1 sits
+behind `gpu_optimizations.md → TODO-7` in the Phase 0 batch),
+`performance_profiling_and_upgrades.md` (§8 "Phase 8", TODO-132..179; added
+2026-08-23, user decision — not decision-gated, measurement-first; see
+`TODO-4b`).
 (`local_machine_optimization.md` moved to v1.0.0 — see
 `release_v1_0_0.md`'s item 15 — 2026-08-20, user decision.)
 
@@ -148,6 +162,54 @@ ticked in their **owning plans**; this list is the release index.
   wirings in both wait on 1.0.0's Phase 1D.2 KK migration landing),
   `cold_starts.md → TODO-1..14` (documentation/audit — also a prerequisite
   for TODO-10, which benchmarks the axes this audit documents).
+- [ ] TODO-4b: **Performance profiling & upgrades lane**
+  (`performance_profiling_and_upgrades.md` §8 → TODO-132..179; added
+  2026-08-23, user decision; parallel with TODO-3/TODO-4, no Phase 0
+  dependency; the owning plan ticks its own TODOs — this is the index
+  entry). Run in that plan's own "Suggested order":
+  1. measurement infrastructure first — `→ TODO-132..135, 175`
+     (debug-symbol call-graph build, callgrind/cachegrind, top-down
+     microarchitecture analysis, benchmark noise floor + regression gate,
+     machine-state logging); these make every later A/B trustworthy and
+     cheap, and the plan's `profile/install_perf_tools.sh` /
+     `verify_perf_tools.sh` tool roster is already installed on the dev box
+     (§8.0.1);
+  2. generated-code audits — `→ TODO-167, 168, 166` (instruction mix,
+     compiler optimization reports, `llvm-mca`/OSACA/uiCA on the hot loops);
+  3. the large levers — `→ TODO-136, 137` (vectorized exp/log via libmvec
+     *without* `-ffast-math`) and `→ TODO-153` (adaptive Gauss–Hermite);
+  4. end-to-end and R-layer — `→ TODO-158, 177, 173, 159, 160, 161` (this
+     decides whether further kernel work moves user-visible time at all);
+  5. parallelism and BLAS — `→ TODO-147, 148, 174, 176, 149, 150` — ideally
+     alongside `tune_EDI_for_this_machine()` (v1.0.0 item 15) so its policy
+     tables benchmark the right axes (thread thresholds, OMP × BLAS × fork
+     oversubscription, BLAS backend);
+  6. `→ TODO-171` (roofline — decides where to stop), then the remainder as
+     the measurements dictate: `→ TODO-138..146, 151, 152, 154..157, 162..165,
+     169, 170, 172, 178, 179`.
+  Bare-metal sub-batch (§8.0.2/8.0.3): `→ TODO-143` (`perf c2c`/`perf mem`),
+  `→ TODO-171`, `→ TODO-175`, the Intel PT option of `→ TODO-132`, and the
+  *published* numbers for `→ TODO-135/147/148` run in one rented
+  `c7i.metal-48xl` session (single machine covers every Intel-side check;
+  AMD/ARM rows optional); everything else runs on the dev box (WSL2 caveats
+  measured and recorded in §8.0.1/8.0.2). Every fix follows the document's
+  "root cause → fix → correctness → paired ABBA/BAAB benchmark" standard and
+  this repo's targeted-compile-only rule; no timing number is cited anywhere
+  without a measurement behind it (the plan's §8.8 payoff table is explicitly
+  a-priori). **Additive-constraint gates** (see Standing constraints): `→
+  TODO-137` (libmvec, ≤4 ulp result differences) and `→ TODO-153` (adaptive
+  quadrature, changes GLMM numerics at tolerance level) break the bit-for-bit
+  default rule — each ships either opt-in (configure flag / fit argument) or
+  as an explicitly documented default change with the equivalence tests'
+  tolerances re-justified; `→ TODO-156` (Monte-Carlo early stopping) is a
+  statistical-policy change and ships **opt-in only**; `→ TODO-149` (non-R
+  RNG streams) changes draws under `set.seed()` and must be opt-in or
+  documented as a default change. Infrastructure items (`→ TODO-132..135,
+  164, 166..168, 171..179`) ship no user-facing change and need no gate.
+  Exit criterion: every one of `→ TODO-132..179` has either a measured entry
+  or a "measured and dropped" note in the owning plan (its convention), §8.8's
+  estimates are superseded by those measurements, and
+  `benchmark_model_fits.md` has been re-run under the `→ TODO-135` gate.
 - [ ] TODO-5: **Corrections track** (`_master.md` Phase 5A order, minus
   `marginal_estimand_report.md`, moved to v1.0.0, amended 2026-08-18;
   `expanded_estimate_report.md` moved back here the same day; each
@@ -278,5 +340,9 @@ classes go through `define_inference_class()`/`define_design_class()`; tick
 TODOs in owning plans). Additionally, everything in this release must be
 **additive**: default behavior with no new switches set must reproduce
 1.0.0 results bit-for-bit, except where a plan explicitly documents a
-default change (currently only TODO-11's class deletion, pending its
-deprecation decision).
+default change (currently TODO-11's class deletion, pending its
+deprecation decision, and — added 2026-08-23 — any of TODO-4b's
+result-changing performance items, `performance_profiling_and_upgrades.md
+→ TODO-137/149/153/156`, each of which must ship opt-in or as a documented
+default change with its equivalence-test tolerances re-justified; the
+measurement-only items there change nothing user-facing).

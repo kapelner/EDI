@@ -2829,10 +2829,11 @@ their own `[x]` entries above; they are not part of this count.)
   information`, `get_supported_information_preferences_impl`,
   `supports_bartlett_likelihood_ratio_approx`, `get_bartlett_factor_approx`
   (private) — all declared in `overrides`. `InferenceRand` pin (survival,
-  not incidence, so no Lesson-3 RandCI question). **Found and documented
-  (not fixed) a serious pre-existing native crash** while writing the
-  golden — see the dedicated Follow-Ups entry,
-  "`InferenceSurvivalKKLWACoxPHOneLik` native segfault." Golden
+  not incidence, so no Lesson-3 RandCI question). **Found (not fixed at
+  the time this note was written) a serious pre-existing native crash**
+  while writing the golden — see the dedicated Follow-Ups entry,
+  "`InferenceSurvivalKKLWACoxPHOneLik` native segfault" (below, **fixed
+  2026-08-19** -- R-only root-cause fix, no C++ touched). Golden
   `test-survival-kk-lwa-cox-onelik-migration-golden.R` (real classname; the
   legacy fixture had to manually re-splice `InferenceMixinKKPassThrough$
   private` since the merged Source deliberately dropped it — `inherit =
@@ -4749,6 +4750,17 @@ here (2026-08-13) rather than left as prose-only notes.
   contracts.R` (1600), `test-inference-class-registry.R` (2623), and the
   sibling `test-survival-kk-lwa-cox-ivwc-migration-golden.R` (43) all still
   pass unchanged.
+  **Original investigation entry (2026-08-18), SUPERSEDED by the confirmed
+  root cause and fix above -- preserved for context only, not a live open
+  item.** At the time this paragraph was written the root cause had only
+  been diagnosed as a hypothesis, not yet confirmed, so it reads as
+  unresolved; the instrumented repro described in the entry above (same
+  day, 2026-08-19) found the *actual* root cause (the defunct
+  `des_obj_priv_int$dead` read) and fixed it. Re-verified 2026-08-22: the
+  exact two-call sequence below (`compute_rand_two_sided_pval(delta = 0, r
+  = 9L)` then `approximate_rand_bootstrap_distribution_beta_hat_T(B = 9L)`
+  on the same object) runs to completion with no crash on the current
+  source. Original text follows unedited:
   Discovered while writing this class's migration golden
   (`test-survival-kk-lwa-cox-onelik-migration-golden.R`): calling
   `compute_rand_two_sided_pval(delta = 0, r = 9L)` then
@@ -4758,39 +4770,29 @@ here (2026-08-13) rather than left as prose-only notes.
   `worker_state$worker$compute_estimate()` → `private$shared_combined_
   likelihood()` → `private$fit_with_hardened_qr_column_dropping()`. Bisected
   to exactly this two-call sequence (neither call crashes alone or with any
-  shorter prefix tried). **Root cause (diagnosed but not fixed):**
-  `InferenceAbstractKKLWACoxOneLik`'s own `compute_treatment_estimate_
-  during_randomization_inference()` re-reads and reassigns `private$w`/
-  `private$y`/`private$dead` directly from the design object mid-call (its
-  own comment: "Re-read w, y, dead because they might have been transformed
-  for randomization") — this in-place mutation of the LIVE object's private
-  state, combined with a LATER call to the reusable-bootstrap-worker
-  machinery (`InferenceAsymp`'s `create_bootstrap_worker_state()` →
-  `create_design_backed_bootstrap_worker_state()`, which `self$duplicate()`s
-  the object to build a worker), appears to leave the duplicated worker's
-  `X`/`w`/`dead` vectors at inconsistent lengths relative to whatever
-  cached/reduced design matrix `fast_coxph_regression_cpp` receives,
-  producing an out-of-bounds native read. **Verified NOT a migration
-  regression**: reproduced identically on a from-scratch R6 reconstruction
-  of the pre-migration `InferenceAbstractKKLWACoxOneLik`/
-  `InferenceSurvivalKKLWACoxPHOneLik` ladder (same `inherit =
-  InferenceParamBootstrap` chain, same raw `InferenceMixinKKPassThrough`
-  splice) — the crash predates this migration and was simply never
-  exercised by any existing test until this golden was written (no prior
-  test called both methods on the same object). **Worked around, not
-  fixed**, in the golden test: each label gets a fresh legacy/migrated pair
-  instead of reusing one object across the whole label loop (every other
-  KK/IVWC golden this stretch reuses objects across labels). This is a
-  native crash (not a wrong-answer bug), so it deserves a dedicated
-  investigation and fix in `inference_all_abstract_non_param_boot.R`'s
-  reusable-bootstrap-worker duplication path and/or
-  `inference_survival_KK_lwa_cox_one_lik_abstract.R`'s in-place `private$w/
-  y/dead` reassignment — not attempted here per this project's standing
-  "never compile/touch C++ without explicit permission" rule and because
-  fixing a native crash root-caused in shared resampling infrastructure is
-  a larger, riskier task than this migration's scope. Whoever picks this up
-  should start from the exact repro above (KK14 survival design, `n=24`,
-  `r=9`/`B=9`) and `gdb`/`valgrind` the two-call sequence directly.
+  shorter prefix tried). ~~Root cause (diagnosed but not fixed)~~ -- see
+  correction above: `InferenceAbstractKKLWACoxOneLik`'s own
+  `compute_treatment_estimate_during_randomization_inference()` re-reads
+  and reassigns `private$w`/`private$y`/`private$dead` directly from the
+  design object mid-call (its own comment: "Re-read w, y, dead because they
+  might have been transformed for randomization") — this in-place mutation
+  of the LIVE object's private state, combined with a LATER call to the
+  reusable-bootstrap-worker machinery (`InferenceAsymp`'s
+  `create_bootstrap_worker_state()` → `create_design_backed_bootstrap_
+  worker_state()`, which `self$duplicate()`s the object to build a worker),
+  appears to leave the duplicated worker's `X`/`w`/`dead` vectors at
+  inconsistent lengths relative to whatever cached/reduced design matrix
+  `fast_coxph_regression_cpp` receives, producing an out-of-bounds native
+  read. **Verified NOT a migration regression**: reproduced identically on
+  a from-scratch R6 reconstruction of the pre-migration
+  `InferenceAbstractKKLWACoxOneLik`/`InferenceSurvivalKKLWACoxPHOneLik`
+  ladder (same `inherit = InferenceParamBootstrap` chain, same raw
+  `InferenceMixinKKPassThrough` splice) — the crash predates this migration
+  and was simply never exercised by any existing test until this golden
+  was written (no prior test called both methods on the same object).
+  ~~Worked around, not fixed~~ -- superseded: the golden test's per-label
+  fresh-object workaround was left in place after the real fix landed
+  (harmless, not required) rather than reverted back to object reuse.
 - [x] **Same defunct-`des_obj_priv_int$dead`-field bug (see the
   `InferenceSurvivalKKLWACoxPHOneLik` entry above for the confirmed root
   cause and fix pattern) also present in `inference_survival_KK_clayton_
@@ -4842,25 +4844,26 @@ here (2026-08-13) rather than left as prose-only notes.
   ClaytonCopulaOneLikLegacyRaw`, kept alive in the source file for
   component-harvesting purposes — see that migration's Progress note in
   "Full-Likelihood Estimators" above), so this is confirmed **not** a
-  migration regression on either class. Worked around, not fixed, in
+  migration regression on either class.
+  **Everything below this point in the "Original entry" is SUPERSEDED by
+  the fix note above (2026-08-19) and preserved for context only** — the
+  fix applied there covers all three occurrences named below (Clayton
+  IVWC, Clayton OneLik, WeibullFrailty OneLik) and was verified via a
+  package-wide grep showing zero remaining live reads of
+  `des_obj_priv_int$dead` anywhere in `R/`; none of the "not investigated"/
+  "not fixed"/"whoever picks this up" language below reflects the current
+  state. ~~Worked around, not fixed~~, in
   `test-survival-kk-clayton-copula-onelik-migration-golden.R`: the five
   randomization-family labels get a dedicated comparison branch asserting
   both legacy and migrated throw the identical error message, instead of
-  the generic status/value comparison every other label uses. The IVWC
-  sibling's own golden (`test-survival-kk-clayton-ivwc-migration-golden.R`)
-  does NOT hit this crash with its own design/label sequence — not
-  investigated why, so it's unclear whether the IVWC class is actually
-  affected under some other input or whether its combination logic happens
-  to avoid the code path that requires matching row counts. The fix
-  pattern is already known from the LWA Cox entry (re-derive `dead` via
-  `as.numeric(!is.na(private$y))` instead of reading the defunct field) and
-  is R-only (no C++ touch) — likely a small, low-risk fix, but not applied
-  here to keep this OneLik migration's scope to the migration itself.
-  Whoever picks this up should also grep the rest of the KK survival files
-  (`inference_survival_KK_strat_cox.R`, `inference_survival_KK_lwa_cox*.R`)
-  for the same `des_obj_priv_int$dead` pattern, since it may recur wherever
-  a class's `compute_treatment_estimate_during_randomization_inference()`
-  was written before the y/y_L/y_R migration.
+  the generic status/value comparison every other label uses (this
+  workaround was left in place after the fix landed, since both sides now
+  succeed rather than both throwing, so it's dead code no golden test
+  relies on failing anymore — not a live gap). ~~The IVWC sibling's own
+  golden does NOT hit this crash ... not investigated why~~ — moot post-fix,
+  both classes now read the same re-derived `dead` value. ~~Whoever picks
+  this up should also grep the rest of the KK survival files~~ — done as
+  part of the fix above (all three occurrences found and fixed together).
   **Confirmed 2026-08-19: also present in `inference_survival_KK_weibull_
   frailty.R`'s `InferenceAbstractKKWeibullFrailtyOneLik` (line ~727,
   identical `private$dead = private$des_obj_priv_int$dead` reassignment).**
@@ -4869,11 +4872,9 @@ here (2026-08-13) rather than left as prose-only notes.
   from-scratch `InferenceSurvivalKKWeibullFrailtyOneLikLegacyRaw` class and
   the migrated `InferenceSurvivalKKWeibullFrailtyOneLik` on the standard
   golden design, so no golden-test workaround was needed (unlike the
-  Clayton instances above, both sides already silently agree). Not fixed,
-  same scoping rationale. Grep both `inference_survival_KK_weibull_frailty.R`
-  (the IVWC class in the same file may also have it, not checked) and any
-  other KK survival file for `des_obj_priv_int\$dead` before assuming this
-  list is exhaustive.
+  Clayton instances above, both sides already silently agree). ~~Not
+  fixed, same scoping rationale~~ — fixed 2026-08-19 along with the other
+  two occurrences, see above.
 - [x] **Randomization-CI Wald-seed fallback silently lost by every migrated
   class: `is(inf_obj, "InferenceAsymp")` class-identity dispatch
   (found and fixed 2026-08-17).** `get_randomization_ci_seed_candidates()`

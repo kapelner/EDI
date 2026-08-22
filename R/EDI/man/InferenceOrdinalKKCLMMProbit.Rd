@@ -84,6 +84,7 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-select_optimal_m_out_of_n_bootstrap'><code>InferenceAbstractKKOrdinalCLMM$select_optimal_m_out_of_n_bootstrap()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-set_custom_randomization_statistic_cpp'><code>InferenceAbstractKKOrdinalCLMM$set_custom_randomization_statistic_cpp()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-set_custom_randomization_statistic_function'><code>InferenceAbstractKKOrdinalCLMM$set_custom_randomization_statistic_function()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-set_testing_type'><code>InferenceAbstractKKOrdinalCLMM$set_testing_type()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKOrdinalCLMM.html#method-InferenceAbstractKKOrdinalCLMM-supports_rand_pval_for_incidence'><code>InferenceAbstractKKOrdinalCLMM$supports_rand_pval_for_incidence()</code></a></li>
 </ul>
 </details>

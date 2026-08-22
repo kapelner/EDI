@@ -95,8 +95,8 @@ Comparable Python API:
 \if{latex}{\out{\hypertarget{method-InferenceCountNegBin-initialize}{}}}
 \subsection{\code{InferenceCountNegBin$new()}}{
   Initialize inference for the negative binomial regression
-  model \eqn{Y_i \mid W_i, X_i \sim \mathrm{NegBin}(\mu_i, \theta)},
-  \eqn{\log \mu_i = \beta_0 + \beta_T W_i + X_i^\top \gamma}; see
+  model \eqn{Y_i \mid w_i, x_i \sim \mathrm{NegBin}(\mu_i, \theta)},
+  \eqn{\log \mu_i = \beta_0 + \beta_T w_i + x_i^\top \gamma}; see
   \code{\link[EDI:InferenceCountNegBin]{InferenceCountNegBin}} for the
   model form. Does not fit the model; the fit is deferred to the first
   call to \code{compute_estimate()} or a method that requires it.

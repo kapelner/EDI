@@ -11,9 +11,9 @@ covariate-weighted matching). The point estimate and its variance are the
 closed-form Bai-adjusted-t combination of the matched-pairs mean
 difference and the unmatched-reservoir mean difference,
 inverse-variance-weighted when both are usable; see
-\code{\link[EDI:InferenceBaiAdjustedT]{InferenceBaiAdjustedT}} for the full
-formula, the pair-distance definition, and the confidence-interval/p-value
-construction shared with \code{\link[EDI:InferenceBaiAdjustedTKK14]{InferenceBaiAdjustedTKK14}}.
+\code{\link[EDI:InferenceBaiAdjustedTKK14]{InferenceBaiAdjustedTKK14}} for
+the full formula, the pair-distance definition, and the
+confidence-interval/p-value construction shared with this class.
 The two leaves differ only in how pair distance is defined during
 matching: this class (KK21) uses the design's covariate-weighted squared
 distance \eqn{\sum_j w_j (x_{1j} - x_{2j})^2}, where \eqn{w_j} are the

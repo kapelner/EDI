@@ -348,11 +348,11 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 )
 #' G-Computation Risk-Difference Inference for KK Designs with Binary Responses
 #'
-#' Fits an all-subject logistic working model \eqn{\mathrm{logit}\,P(Y=1\mid W,X) =
-#' \beta_0 + \beta_T W + \beta_X^\top X} for a KK incidence outcome using treatment
-#' \eqn{W} and, optionally, all recorded covariates \eqn{X}, then estimates the
+#' Fits an all-subject logistic working model \eqn{\mathrm{logit}\,P(Y=1\mid w,x) =
+#' \beta_0 + \beta_T w + \beta_X^\top x} for a KK incidence outcome using treatment
+#' \eqn{w} and, optionally, all recorded covariates \eqn{x}, then estimates the
 #' marginal (standardized, g-computation) risk difference
-#' \eqn{\hat\theta = n^{-1}\sum_i \{\hat p(1, X_i) - \hat p(0, X_i)\}} by averaging
+#' \eqn{\hat\theta = n^{-1}\sum_i \{\hat p(1, x_i) - \hat p(0, x_i)\}} by averaging
 #' the fitted-model predicted risks under all-treated and all-control assignments
 #' over the empirical covariate distribution (Robins 1986). Matched pairs are
 #' treated as clusters and reservoir subjects are treated as singletons when
@@ -497,11 +497,36 @@ InferenceIncidKKGCompRiskRatio = define_inference_class(
 )
 #' Modified-Poisson Inference for KK Designs with Binary Responses
 #'
-#' Fits an all-subject modified-Poisson working model for incidence outcomes under
-#' a KK matching-on-the-fly design using treatment and, optionally, all recorded
-#' covariates as predictors. Matched pairs are treated as clusters and reservoir
-#' subjects are treated as singleton clusters when computing the sandwich
-#' covariance.
+#' Fits Zou's (2004) modified-Poisson working model for binary incidence
+#' outcomes under a KK matching-on-the-fly design: a log-link Poisson model
+#' \eqn{\log E[Y_i \mid w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top \gamma}
+#' is fit to the binary (0/1) response by ordinary Poisson maximum likelihood
+#' (a working, misspecified likelihood — the true response is Bernoulli, not
+#' Poisson), and the coefficient standard errors are corrected by a
+#' cluster-robust sandwich covariance rather than the (invalid, for a
+#' misspecified likelihood) model-based Poisson information. Matched pairs
+#' are treated as clusters (2 members) and reservoir subjects as singleton
+#' clusters when computing the sandwich covariance, so the matched-pair
+#' correlation induced by the design is accounted for even though the
+#' modified-Poisson working model itself does not encode it directly.
+#' \eqn{\exp(\hat\beta_T)} is the estimated risk ratio, directly interpretable
+#' unlike a logistic regression's odds ratio (which only approximates the
+#' risk ratio when the outcome is rare). \code{likelihood_tier = "none"}
+#' (the sandwich-corrected inference is not a normalized model likelihood):
+#' only Wald inference is exposed. See
+#' \code{\link[EDI:InferenceAbstractKKMarginalIncid]{InferenceAbstractKKMarginalIncid}}
+#' for the shared marginal-incidence fitting contract.
+#'
+#' @references Zou, G. (2004). "A Modified Poisson Regression Approach to
+#'   Prospective Studies with Binary Data." \emph{American Journal of
+#'   Epidemiology}, 159(7), 702-706, \doi{10.1093/aje/kwh090}; Kapelner, A.
+#'   and Krieger, A. M. (2014). "Matching on-the-fly: Sequential allocation
+#'   with higher power and efficiency." \emph{Biometrics}, 70(2), 378-388,
+#'   \doi{10.1111/biom.12148}, for the KK matching-on-the-fly design this
+#'   class is built for.
+#'
+#' @seealso \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}
+#'   for the non-KK analog.
 #'
 #' @examples
 #' \donttest{

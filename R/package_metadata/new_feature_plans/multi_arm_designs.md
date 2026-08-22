@@ -552,7 +552,7 @@ coercion at the Rcpp boundary on *every single call* — and because the
 permutation/bootstrap inner-loop kernels (called potentially thousands of
 times per `Inference*` object, not once), that coercion cost is realized at
 exactly the call frequency this package's own performance work
-(`package_metadata/audits/perf_experiments_final.md`) has spent the most
+(`package_metadata/new_feature_plans/performance_profiling_and_upgrades.md`) has spent the most
 effort optimizing around. Storing `private$w` (and the matrices
 `draw_ws_raw()` produces) as plain R `integer` instead:
 - Eliminates that coercion for the majority (by both count and call

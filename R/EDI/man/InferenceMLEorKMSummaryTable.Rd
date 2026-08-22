@@ -50,6 +50,7 @@ seq_des_inf$compute_estimate()
   <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_mod'><code>InferenceAsymp$get_mod()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_summary'><code>InferenceAsymp$get_summary()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-get_supported_testing_types'><code>InferenceAsymp$get_supported_testing_types()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAsymp.html#method-InferenceAsymp-set_testing_type'><code>InferenceAsymp$set_testing_type()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceJackknife</summary>

@@ -21,7 +21,7 @@ heterogeneity, unlike the classical or HC0 sandwich variants.
 \code{likelihood_tier = "full"}: Wald, score, gradient, and
 likelihood-ratio tests are all available, with the parametric-likelihood
 bootstrap using the OLS Gaussian-errors model
-(\eqn{Y_i \mid X_i \sim N(X_i^\top \beta, \sigma^2)}) as the generative
+(\eqn{Y_i \mid x_i \sim N(x_i^\top \beta, \sigma^2)}) as the generative
 null even though the design-based HC2 standard error does not itself
 assume homoskedastic Gaussian errors — the likelihood-ratio/score/gradient
 machinery is a secondary, model-based inference path alongside the primary

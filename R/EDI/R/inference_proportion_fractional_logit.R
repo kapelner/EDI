@@ -3,8 +3,8 @@
 #' Fits Papke and Wooldridge's (1996) fractional logistic (quasi-binomial)
 #' regression for proportion responses \eqn{Y_i \in [0, 1]} (not restricted to
 #' \eqn{\{0, 1\}}):
-#' \eqn{E[Y_i \mid W_i, X_i] = \mathrm{logit}^{-1}(\beta_0 + \beta_T W_i +
-#' X_i^\top \gamma)}, fit by maximizing the Bernoulli quasi-log-likelihood
+#' \eqn{E[Y_i \mid w_i, x_i] = \mathrm{logit}^{-1}(\beta_0 + \beta_T w_i +
+#' x_i^\top \gamma)}, fit by maximizing the Bernoulli quasi-log-likelihood
 #' \eqn{\sum_i \{Y_i \log \mu_i + (1 - Y_i) \log(1 - \mu_i)\}} treating
 #' \eqn{Y_i} as if it were binary (a valid estimating equation for the
 #' conditional mean even though \eqn{Y_i} is fractional — the Bernoulli
@@ -101,8 +101,8 @@ InferencePropFractionalLogit = define_inference_class(
 		# case.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
 		#' @description Initialize inference for the fractional logit model
-		#'   \eqn{E[Y_i \mid W_i, X_i] = \mathrm{logit}^{-1}(\beta_0 + \beta_T W_i +
-		#'   X_i^\top \gamma)}; see
+		#'   \eqn{E[Y_i \mid w_i, x_i] = \mathrm{logit}^{-1}(\beta_0 + \beta_T w_i +
+		#'   x_i^\top \gamma)}; see
 		#'   \code{\link[EDI:InferencePropFractionalLogit]{InferencePropFractionalLogit}}
 		#'   for the model form. Does not fit the model; the fit is deferred to the
 		#'   first call to \code{compute_estimate()} or a method that requires it.

@@ -97,7 +97,8 @@ gaps" at the bottom).
   `InferenceOrdinalKKCLMMCloglog` (KK matching-on-the-fly design behind the
   ordinal cumulative-link mixed model), `InferenceOrdinalPairedSignTest` (KK
   matching-on-the-fly design behind the matched pairs the sign test is
-  computed on).
+  computed on), `InferenceIncidKKModifiedPoisson` (KK matching-on-the-fly
+  design behind the matched-pair-cluster sandwich covariance).
 - **[Greevy2004]** Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P.
   (2004). "Optimal multivariate matching before randomization."
   *Biostatistics*, 5(2), 263-275. doi:10.1093/biostatistics/5.2.263. — Used
@@ -267,7 +268,7 @@ files' `@references`) if/when it becomes available.
 - **[Zou2004]** Zou, G. (2004). "A Modified Poisson Regression Approach to
   Prospective Studies with Binary Data." *American Journal of Epidemiology*,
   159(7), 702-706. doi:10.1093/aje/kwh090. — Used by:
-  `InferenceIncidModifiedPoisson`.
+  `InferenceIncidModifiedPoisson`, `InferenceIncidKKModifiedPoisson`.
 - **[MiettinenNurminen1985]** Miettinen, O., and Nurminen, M. (1985).
   "Comparative Analysis of Two Rates." *Statistics in Medicine*, 4(2),
   213-226. doi:10.1002/sim.4780040211. — Used by:

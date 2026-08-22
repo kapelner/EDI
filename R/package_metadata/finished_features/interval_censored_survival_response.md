@@ -2137,7 +2137,7 @@ wrapping the same base engine).
   allocations `dead_to_bounds`-equivalent conversion now requires even
   for calls that are 100% exact/right-censored) — needs profiling
   (`perf record`/`perf annotate`, same method as
-  `R/package_metadata/audits/perf_experiments_final.md`) to actually
+  `R/package_metadata/new_feature_plans/performance_profiling_and_upgrades.md`) to actually
   isolate the hot line(s) before attempting a fix, not guessed at.
   README/benchmark numbers reflect this real, current behavior
   accurately (updated 2026-08-17); they are not the bug, the kernel is.

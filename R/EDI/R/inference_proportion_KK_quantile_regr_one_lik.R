@@ -76,7 +76,9 @@ InferencePropKKQuantileRegrOneLik = define_inference_class(
 		#' @description Initialize proportion-response KK combined-likelihood quantile-regression inference.
 		#'   Responses are fitted on the logit scale; the shared stacked quantile-regression
 		#'   fit is documented in
-		#'   \code{\link[EDI:InferenceAbstractKKQuantileRegrOneLik]{InferenceAbstractKKQuantileRegrOneLik}}.
+		#'   \code{\link[EDI:InferenceContinKKQuantileRegrOneLik]{InferenceContinKKQuantileRegrOneLik}}
+		#'   (this class's continuous-response sibling, sharing the same
+		#'   \code{KKQuantileRegrOneLik} component).
 		#' @param des_obj A DesignSeqOneByOne object whose entire n subjects
 		#'   are assigned and response y is recorded within.
 		#' @param tau                             The quantile level on the logit scale, strictly

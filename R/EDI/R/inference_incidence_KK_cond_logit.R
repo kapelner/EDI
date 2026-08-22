@@ -437,8 +437,8 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 #' likelihood bootstrap in addition to Wald.
 #'
 #' \strong{Estimand.} \eqn{\beta_T}, the treatment coefficient of a
-#' logistic mean model \eqn{\mathrm{logit}(P(Y=1 \mid W,X)) = \beta_0 +
-#' \beta_T W + X\beta}; \eqn{\exp(\hat\beta_T)} is the treatment-vs-control
+#' logistic mean model \eqn{\mathrm{logit}(P(Y=1 \mid w,x)) = \beta_0 +
+#' \beta_T w + x\beta}; \eqn{\exp(\hat\beta_T)} is the treatment-vs-control
 #' odds ratio.
 #'
 #' \strong{Model.} Matched pairs contribute McFadden-style conditional

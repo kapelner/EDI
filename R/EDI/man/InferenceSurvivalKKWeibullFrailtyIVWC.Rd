@@ -5,7 +5,7 @@
 \title{Weibull Frailty IVWC Inference for KK Designs}
 \description{
 Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
-\code{\link[EDI:InferenceAbstractKKWeibullFrailtyIVWC]{InferenceAbstractKKWeibullFrailtyIVWC}}
+\code{\link[EDI:InferenceSurvivalKKWeibullFrailtyIVWC]{InferenceSurvivalKKWeibullFrailtyIVWC}}
 for the frailty-distribution details and contrast with the gamma-frailty
 \code{\link[EDI:InferenceSurvivalKKClaytonCopulaIVWC]{InferenceSurvivalKKClaytonCopulaIVWC}}
 (Clayton copula) alternative.

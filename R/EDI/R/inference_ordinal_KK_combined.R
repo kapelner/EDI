@@ -227,9 +227,9 @@ InferenceOrdinalKKGEE = define_inference_class(
 #'
 #' Fits a cumulative-logit random-intercept mixed model (proportional odds) for
 #' ordinal responses under a KK matching-on-the-fly design:
-#' \eqn{\mathrm{logit}(P(Y_i \le k \mid W_i, X_i, b_{g(i)})) = \alpha_k - (\beta_T
-#' W_i + X_i^\top \gamma) - b_{g(i)}}, for cutpoints \eqn{\alpha_1 < \cdots <
-#' \alpha_{K-1}}, treatment indicator \eqn{W_i}, covariates \eqn{X_i}, and a
+#' \eqn{\mathrm{logit}(P(Y_i \le k \mid w_i, x_i, b_{g(i)})) = \alpha_k - (\beta_T
+#' w_i + x_i^\top \gamma) - b_{g(i)}}, for cutpoints \eqn{\alpha_1 < \cdots <
+#' \alpha_{K-1}}, treatment indicator \eqn{w_i}, covariates \eqn{x_i}, and a
 #' matched-pair random intercept \eqn{b_g \sim N(0, \sigma_b^2)} that is
 #' integrated out of the marginal likelihood (either by adaptive Gauss-Hermite
 #' quadrature when \code{use_rcpp = TRUE}, the default; see

@@ -415,12 +415,12 @@ SurvivalKKWeibullFrailtyIVWCSource = list(
 #' Abstract class for Weibull Frailty Combined-Likelihood Inference
 #'
 #' One-likelihood (combined matched-pair + reservoir) analog of
-#' \code{\link[EDI:InferenceAbstractKKWeibullFrailtyIVWC]{InferenceAbstractKKWeibullFrailtyIVWC}}:
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyIVWC]{InferenceSurvivalKKWeibullFrailtyIVWC}}:
 #' same Weibull-AFT-with-log-normal-random-intercept (Gaussian, Gauss-Hermite
 #' quadrature) frailty assumption for matched pairs, but the matched-pair and
 #' reservoir contributions are fit as a single combined likelihood rather than
 #' combined by inverse-variance weighting. See
-#' \code{\link[EDI:InferenceAbstractKKWeibullFrailtyIVWC]{InferenceAbstractKKWeibullFrailtyIVWC}}
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyIVWC]{InferenceSurvivalKKWeibullFrailtyIVWC}}
 #' for the frailty-distribution details and its contrast with the gamma-frailty
 #' Clayton copula model implemented by
 #' \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}.
@@ -792,7 +792,7 @@ SurvivalKKWeibullFrailtyOneLikSource = inference_component_source_parts(Inferenc
 #' Weibull Frailty IVWC Inference for KK Designs
 #'
 #' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
-#' \code{\link[EDI:InferenceAbstractKKWeibullFrailtyIVWC]{InferenceAbstractKKWeibullFrailtyIVWC}}
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyIVWC]{InferenceSurvivalKKWeibullFrailtyIVWC}}
 #' for the frailty-distribution details and contrast with the gamma-frailty
 #' \code{\link[EDI:InferenceSurvivalKKClaytonCopulaIVWC]{InferenceSurvivalKKClaytonCopulaIVWC}}
 #' (Clayton copula) alternative.
@@ -861,7 +861,7 @@ InferenceSurvivalKKWeibullFrailtyIVWC = define_inference_class(
 #' Weibull Frailty Combined-Likelihood Inference for KK Designs
 #'
 #' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
-#' \code{\link[EDI:InferenceAbstractKKWeibullFrailtyOneLik]{InferenceAbstractKKWeibullFrailtyOneLik}}
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyOneLik]{InferenceSurvivalKKWeibullFrailtyOneLik}}
 #' for the frailty-distribution details and contrast with the gamma-frailty
 #' \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
 #' (Clayton copula) alternative.
@@ -889,7 +889,7 @@ SurvivalKKWeibullFrailtyOneLikLeafSource = inference_component_source_parts(Infe
 #' Weibull Frailty Combined-Likelihood Inference for KK Designs
 #'
 #' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
-#' \code{\link[EDI:InferenceAbstractKKWeibullFrailtyOneLik]{InferenceAbstractKKWeibullFrailtyOneLik}}
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyOneLik]{InferenceSurvivalKKWeibullFrailtyOneLik}}
 #' for the frailty-distribution details and contrast with the gamma-frailty
 #' \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
 #' (Clayton copula) alternative.

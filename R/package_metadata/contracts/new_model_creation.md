@@ -15,8 +15,13 @@ them):
 
 - `package_metadata/new_feature_plans/fix_inference_hierarchy.md` — target
   class architecture, metadata, components, capabilities.
-- `package_metadata/new_feature_plans/fix_documentation.md` — the
-  documentation standard every new roxygen block must meet.
+- `package_metadata/finished_features/fix_documentation.md` — the
+  documentation standard every new roxygen block must meet. **R-side TODOs
+  done (2026-08-23): 0 open, moved to `finished_features/`.** Still apply
+  its Documentation Standard/General Instructions to any new class; the
+  Python-docstring TODOs (#758-#816) are now unblocked (each depended only
+  on its R sibling's expanded documentation existing) and remain the only
+  open item in `_master.md` Phase 3.
 - `package_metadata/new_feature_plans/python_bindings_package_spec.md` —
   Python bindings design, kernel scope, and baseline-benchmark methodology.
 - `package_metadata/new_feature_plans/cold_starts.md` and

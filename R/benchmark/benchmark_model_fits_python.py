@@ -33,6 +33,7 @@ R report and the python_bindings_package_spec.md doc both already apply.
 """
 import gc
 import os
+import re
 import sys
 import time
 import warnings
@@ -1900,6 +1901,21 @@ def sync_combined_markdown_with_python_html(html, source_path,
         f.write("\n".join(updated) + "\n")
 
 
+def edi_kernels_version():
+    pyproject_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "..", "python", "pyproject.toml"
+    )
+    try:
+        with open(pyproject_path) as f:
+            for line in f:
+                m = re.match(r'\s*version\s*=\s*"([^"]+)"', line)
+                if m:
+                    return m.group(1)
+    except OSError:
+        pass
+    return "unknown"
+
+
 def counts(rows):
     n_gap = sum(1 for r in rows if r["no_canonical"])
     n_ok = sum(1 for r in rows if not r["no_canonical"] and np.isfinite(r["canonical_ms"]))
@@ -1921,6 +1937,7 @@ def main():
     wald_excluded_html = "\n".join(f"<li><code>{cls}</code>: {note}</li>" for cls, note in WALD_EXCLUDED.items())
 
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    edi_version = edi_kernels_version()
     versions = []
     for modname in ("numpy", "scipy", "pandas", "statsmodels", "sksurv", "lifelines"):
         try:
@@ -1931,7 +1948,7 @@ def main():
 
     html = f"""<!doctype html>
 <html><head><meta charset="utf-8">
-<title>EDI Python Baseline Benchmarks</title>
+<title>EDI v{edi_version} Python Baseline Benchmarks</title>
 <style>
 :root {{ color-scheme: light dark; }}
 body {{ font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }}
@@ -1955,7 +1972,7 @@ code {{ padding: 1px 4px; border-radius: 4px; }}
 nav a {{ margin-right: 1rem; }}
 </style>
 </head><body>
-<h1>EDI Python Baseline Benchmarks</h1>
+<h1>EDI v{edi_version} Python Baseline Benchmarks</h1>
 <p><em>Generated: {generated}</em></p>
 <nav><a href="#results">Point-estimate</a><a href="#wald">Wald (full inference)</a><a href="#utility">Utility / math kernels</a></nav>
 

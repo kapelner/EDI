@@ -2211,8 +2211,8 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 #' relative to the design alone.
 #'
 #' \strong{Estimand.} \eqn{\beta_T}, the treatment coefficient in a
-#' log-linear (Poisson) mean model \eqn{E[Y \mid W, X] = \exp(\beta_0 +
-#' \beta_T W + X\beta)}, interpreted as a log rate ratio (equivalently,
+#' log-linear (Poisson) mean model \eqn{E[Y \mid w, x] = \exp(\beta_0 +
+#' \beta_T w + x\beta)}, interpreted as a log rate ratio (equivalently,
 #' \eqn{\exp(\hat\beta_T)} is the treatment-vs-control incidence rate
 #' ratio).
 #'

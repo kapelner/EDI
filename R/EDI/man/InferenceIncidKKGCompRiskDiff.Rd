@@ -4,11 +4,11 @@
 \alias{InferenceIncidKKGCompRiskDiff}
 \title{G-Computation Risk-Difference Inference for KK Designs with Binary Responses}
 \description{
-Fits an all-subject logistic working model \eqn{\mathrm{logit}\,P(Y=1\mid W,X) =
-\beta_0 + \beta_T W + \beta_X^\top X} for a KK incidence outcome using treatment
-\eqn{W} and, optionally, all recorded covariates \eqn{X}, then estimates the
+Fits an all-subject logistic working model \eqn{\mathrm{logit}\,P(Y=1\mid w,x) =
+\beta_0 + \beta_T w + \beta_X^\top x} for a KK incidence outcome using treatment
+\eqn{w} and, optionally, all recorded covariates \eqn{x}, then estimates the
 marginal (standardized, g-computation) risk difference
-\eqn{\hat\theta = n^{-1}\sum_i \{\hat p(1, X_i) - \hat p(0, X_i)\}} by averaging
+\eqn{\hat\theta = n^{-1}\sum_i \{\hat p(1, x_i) - \hat p(0, x_i)\}} by averaging
 the fitted-model predicted risks under all-treated and all-control assignments
 over the empirical covariate distribution (Robins 1986). Matched pairs are
 treated as clusters and reservoir subjects are treated as singletons when

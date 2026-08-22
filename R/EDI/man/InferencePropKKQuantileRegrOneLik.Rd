@@ -78,7 +78,9 @@ Koenker, R. (2005). \emph{Quantile Regression}. Cambridge
   Initialize proportion-response KK combined-likelihood quantile-regression inference.
   Responses are fitted on the logit scale; the shared stacked quantile-regression
   fit is documented in
-  \code{\link[EDI:InferenceAbstractKKQuantileRegrOneLik]{InferenceAbstractKKQuantileRegrOneLik}}.
+  \code{\link[EDI:InferenceContinKKQuantileRegrOneLik]{InferenceContinKKQuantileRegrOneLik}}
+  (this class's continuous-response sibling, sharing the same
+  \code{KKQuantileRegrOneLik} component).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferencePropKKQuantileRegrOneLik$new(

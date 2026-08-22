@@ -1,8 +1,8 @@
 #' Poisson Regression Inference for Count Responses
 #'
 #' Fits a Poisson log-link regression for count responses:
-#' \eqn{Y_i \mid W_i, X_i \sim \mathrm{Poisson}(\mu_i)}, \eqn{\log \mu_i =
-#' \beta_0 + \beta_T W_i + X_i^\top \gamma}
+#' \eqn{Y_i \mid w_i, x_i \sim \mathrm{Poisson}(\mu_i)}, \eqn{\log \mu_i =
+#' \beta_0 + \beta_T w_i + x_i^\top \gamma}
 #' (\code{\link{fast_poisson_regression_cpp}}/
 #' \code{\link{fast_poisson_regression_with_var_cpp}}). \eqn{\hat\beta_T} is a
 #' log-rate-ratio: \eqn{\exp(\hat\beta_T)} is the estimated rate ratio.
@@ -91,8 +91,8 @@ InferenceCountPoisson = define_inference_class(
 	),
 	public = list(
 		#' @description Initialize inference for the Poisson regression model
-		#'   \eqn{Y_i \mid W_i, X_i \sim \mathrm{Poisson}(\mu_i)}, \eqn{\log \mu_i =
-		#'   \beta_0 + \beta_T W_i + X_i^\top \gamma}; see
+		#'   \eqn{Y_i \mid w_i, x_i \sim \mathrm{Poisson}(\mu_i)}, \eqn{\log \mu_i =
+		#'   \beta_0 + \beta_T w_i + x_i^\top \gamma}; see
 		#'   \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for the
 		#'   model form and the design-conservative testing mechanism. Does not fit
 		#'   the model; the fit is deferred to the first call to

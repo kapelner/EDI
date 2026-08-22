@@ -277,8 +277,11 @@ significance at \code{alpha}) stacked over its own \dQuote{Estimates}
 box-and-whisker subplot -- a free x-axis (same label, same log10/linear
 choice as the forest, but its own limits) summarizing the point
 estimates, one point per inference class/formula, collapsed over
-method/type since those share one estimate. Built with \pkg{ggplot2}
-and stacked into a single \pkg{gtable} grob (draw with
+method/type since those share one estimate. That subplot scales with
+how many distinct estimates there are: none for a single estimate
+(redundant with the forest's own dot), dots alone for 2-5, and dots
+over a box-and-whisker for more than 5. Built with \pkg{ggplot2} and
+stacked into a single \pkg{gtable} grob (draw with
 \code{grid::grid.draw()}); requires the optional \pkg{ggplot2} package,
 if it is not installed, a \code{warning()} is issued and plotting is
 skipped rather than erroring. Defaults to the value of \code{screen}.}

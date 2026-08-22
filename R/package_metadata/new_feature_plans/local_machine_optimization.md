@@ -754,13 +754,36 @@ each stored diff through the existing setters. Rules:
   user's *current* install predates this `zzz.R` edit, so the hook is only
   live after their next install (verified here via `load_all()`, which
   runs `.onLoad()`).
-- [ ] TODO-10: Tests: (a) round-trip — tune with a mocked micro-benchmark
+- [x] TODO-10: Tests: (a) round-trip — tune with a mocked micro-benchmark
   (so CI takes seconds, not minutes), write, fresh-load-simulate, assert
   policies applied; (b) corrupt/stale-schema file → shipped defaults +
   single startup message; (c) fingerprint-mismatch message; (d) unknown
   class patterns inert; (e) TODO-6's untunable-axes assertion; (f)
   `dry_run` writes nothing. Real (non-mocked) benchmark runs are exercised
-  only in a skip-on-CRAN long test.
+  only in a skip-on-CRAN long test. **DONE (2026-08-22).** (b), (c), (e),
+  (f) were already covered as a byproduct of building TODO-6/7/9 (each
+  landed with its own tests at the time); this pass closed the two
+  genuinely open items and added the real end-to-end run: **(a)** one
+  explicit `test_that` chains all three steps in order —
+  `tune_EDI_for_this_machine()` with a stubbed cold-start tuner (mocked
+  benchmark, real diff-building/persistence/apply) → reset every policy to
+  shipped defaults (simulating a brand-new session) →
+  `edi_tuning_import_saved_policies()` picks the file back up and
+  re-applies it, confirmed via the live dispatcher, not just by reading
+  the file back. **(d)** a saved diff naming a class pattern that matches
+  no live class (standing in for one renamed/removed since the file was
+  written) applies cleanly: the real, still-live entry in the same diff
+  takes effect, the phantom pattern is confirmed absent from
+  `edi_tuning_live_families()`, and every *other* shipped override is
+  untouched — genuinely exercises the "Version skew" behavior the plan's
+  Load-time import section already claimed, rather than leaving it
+  asserted-but-untested. **Real (non-mocked) run:** a `skip_on_cran()`
+  test calls `tune_EDI_for_this_machine()` itself (not an individual axis
+  tuner — those already had their own real smoke tests from TODO-4) with
+  real benchmarking end to end, then round-trips the result through
+  `get_local_EDI_optimization()`/`clear_local_EDI_optimization()` and
+  confirms the live dispatcher actually resets. 18 new assertions;
+  `test-local-machine-tuning-assembly.R` now 155/155.
 - [ ] TODO-11: Documentation: full roxygen for the new exported functions;
   cross-link from every `get_*_dispatch_policy()`/`set_*_dispatch_policy()`
   roxygen block ("these defaults were computed on the maintainer's machine;

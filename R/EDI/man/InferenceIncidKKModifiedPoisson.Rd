@@ -4,11 +4,25 @@
 \alias{InferenceIncidKKModifiedPoisson}
 \title{Modified-Poisson Inference for KK Designs with Binary Responses}
 \description{
-Fits an all-subject modified-Poisson working model for incidence outcomes under
-a KK matching-on-the-fly design using treatment and, optionally, all recorded
-covariates as predictors. Matched pairs are treated as clusters and reservoir
-subjects are treated as singleton clusters when computing the sandwich
-covariance.
+Fits Zou's (2004) modified-Poisson working model for binary incidence
+outcomes under a KK matching-on-the-fly design: a log-link Poisson model
+\eqn{\log E[Y_i \mid w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top \gamma}
+is fit to the binary (0/1) response by ordinary Poisson maximum likelihood
+(a working, misspecified likelihood — the true response is Bernoulli, not
+Poisson), and the coefficient standard errors are corrected by a
+cluster-robust sandwich covariance rather than the (invalid, for a
+misspecified likelihood) model-based Poisson information. Matched pairs
+are treated as clusters (2 members) and reservoir subjects as singleton
+clusters when computing the sandwich covariance, so the matched-pair
+correlation induced by the design is accounted for even though the
+modified-Poisson working model itself does not encode it directly.
+\eqn{\exp(\hat\beta_T)} is the estimated risk ratio, directly interpretable
+unlike a logistic regression's odds ratio (which only approximates the
+risk ratio when the outcome is rare). \code{likelihood_tier = "none"}
+(the sandwich-corrected inference is not a normalized model likelihood):
+only Wald inference is exposed. See
+\code{\link[EDI:InferenceAbstractKKMarginalIncid]{InferenceAbstractKKMarginalIncid}}
+for the shared marginal-incidence fitting contract.
 }
 \examples{
 \donttest{
@@ -20,6 +34,19 @@ seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
 inf = InferenceIncidKKModifiedPoisson$new(seq_des)
 inf$compute_estimate()
 }
+}
+\references{
+Zou, G. (2004). "A Modified Poisson Regression Approach to
+  Prospective Studies with Binary Data." \emph{American Journal of
+  Epidemiology}, 159(7), 702-706, \doi{10.1093/aje/kwh090}; Kapelner, A.
+  and Krieger, A. M. (2014). "Matching on-the-fly: Sequential allocation
+  with higher power and efficiency." \emph{Biometrics}, 70(2), 378-388,
+  \doi{10.1111/biom.12148}, for the KK matching-on-the-fly design this
+  class is built for.
+}
+\seealso{
+\code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}
+  for the non-KK analog.
 }
 \section{Super classes}{
 \code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceAbstractKKMarginalIncid]{InferenceAbstractKKMarginalIncid}} -> \code{\link[EDI:InferenceAbstractKKModifiedPoisson]{InferenceAbstractKKModifiedPoisson}} -> \code{InferenceIncidKKModifiedPoisson}
