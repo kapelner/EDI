@@ -186,3 +186,49 @@ test_that("run_all_inference(): 'rand' pval degrades to unavailable (not a maske
 	expect_true(is.na(row$pval))
 	expect_true(is.na(row$pval_method))
 })
+
+# Regression coverage for the Bartlett-sentinel-gating fix (user report,
+# 2026-08-21: "why is Bartlett running for Probit? Bartlett exact is not
+# implemented for probit"). InferenceIncidProbitRegr's own
+# supports_bartlett_likelihood_ratio_exact() correctly defaults FALSE, and
+# get_supported_testing_types() (a real, pre-existing public accessor)
+# already excludes "lik_ratio_bartlett_exact" from its result -- but
+# run_all_inference_call_ci_for_method()/_call_pval_for_method() only
+# checked the coarse "likelihood_tests" capability (shared with plain
+# wald/score/lik_ratio/gradient) for the two Bartlett sentinels, never
+# consulting that accessor, so the sentinel was attempted anyway and
+# silently produced a status = "nonest" row instead of never being offered.
+test_that("get_supported_testing_types() excludes lik_ratio_bartlett_exact for InferenceIncidProbitRegr", {
+	n = 20L
+	des = DesignFixedBernoulli$new(n = n, response_type = "incidence", prob_T = 0.5, verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(rbinom(n, 1, plogis(0.3 * des$get_w())))
+
+	inf = InferenceIncidProbitRegr$new(des)
+	supported = inf$get_supported_testing_types()
+	expect_false("lik_ratio_bartlett_exact" %in% supported)
+})
+
+test_that("run_all_inference(): lik_ratio_bartlett_exact is never offered for InferenceIncidProbitRegr", {
+	n = 20L
+	des = DesignFixedBernoulli$new(n = n, response_type = "incidence", prob_T = 0.5, verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(rbinom(n, 1, plogis(0.3 * des$get_w())))
+
+	suite = InferenceSuite$new(des)
+	res = suite$run_all_inference(
+		screen = TRUE, html = FALSE, plots = FALSE, pdf = FALSE,
+		methods = c("lik_ratio_bartlett_exact", "lik_ratio_bartlett_approx"),
+		classes = c("InferenceIncidProbitRegr")
+	)
+	tbl = res$results_table[res$results_table$inference_class == "InferenceIncidProbitRegr", ]
+	# Bartlett-approx is genuinely supported (status can be "ok"/"nonest"
+	# depending on the fit), but bartlett-exact must never be attempted --
+	# no row should report either ci_method or pval_method as the exact
+	# sentinel, and none should be the tell-tale "nonest" row the user
+	# actually observed for it.
+	expect_false(any(tbl$ci_method == "lik_ratio_bartlett_exact", na.rm = TRUE))
+	expect_false(any(tbl$pval_method == "lik_ratio_bartlett_exact", na.rm = TRUE))
+})

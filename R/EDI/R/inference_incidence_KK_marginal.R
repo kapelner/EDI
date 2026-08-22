@@ -405,7 +405,7 @@ InferenceIncidKKGCompRiskDiff = define_inference_class(
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
 			"compute_wald_two_sided_pval", "compute_wald_confidence_interval",
 			"approximate_bootstrap_distribution_beta_hat_T", "compute_rand_two_sided_pval",
-			"get_supported_testing_types",
+			"get_supported_testing_types", "set_testing_type",
 			"compute_bootstrap_confidence_interval", "compute_bootstrap_two_sided_pval",
 			"compute_bayesian_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_confidence_interval",
 			"compute_jackknife_wald_two_sided_pval", "compute_jackknife_wald_confidence_interval"
@@ -476,7 +476,7 @@ InferenceIncidKKGCompRiskRatio = define_inference_class(
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
 			"compute_wald_two_sided_pval", "compute_wald_confidence_interval",
 			"approximate_bootstrap_distribution_beta_hat_T", "compute_rand_two_sided_pval",
-			"get_supported_testing_types",
+			"get_supported_testing_types", "set_testing_type",
 			"compute_bootstrap_confidence_interval", "compute_bootstrap_two_sided_pval",
 			"compute_bayesian_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_confidence_interval",
 			"compute_jackknife_wald_two_sided_pval", "compute_jackknife_wald_confidence_interval"

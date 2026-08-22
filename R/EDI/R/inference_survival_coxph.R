@@ -756,7 +756,7 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 			"compute_estimate",
 			"compute_asymp_confidence_interval",
 			"compute_asymp_two_sided_pval",
-			"get_supported_testing_types",
+			"get_supported_testing_types", "set_testing_type",
 			# Cox's own weighted_cox_bootstrap_surrogate_fit()-backed
 			# implementation (already correctly guards general censoring, see
 			# TODO-6) must win over BayesianBootstrap's generic default.

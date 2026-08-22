@@ -663,10 +663,66 @@ each stored diff through the existing setters. Rules:
   `edi_tuning_machine_looks_busy()` shape and threshold logic are unit-
   tested against the real function. Assembly suite now 137/137; harness
   68, axes 68, refactor 4 unchanged.
-- [ ] TODO-8: Correctness gate inside the tuner: for every cell where a
+- [x] TODO-8: Correctness gate inside the tuner: for every cell where a
   non-default setting wins, re-fit once under both settings and assert
   estimates/CIs agree within solver tolerance before the deviation is
   accepted; any disagreement discards the deviation and logs it loudly.
+  **DONE (2026-08-21).** New file `local_machine_tuning_correctness.R`.
+  What is compared differs by axis, because what varies with the setting
+  differs: cold start and optimizer algorithm change the fit path itself,
+  so the comparable deterministic quantity is the point estimate
+  (`compute_estimate()`); warm start only affects resampling replicates,
+  not a fresh fit's point estimate, so that axis instead re-runs the
+  actual resampling *operation* under both settings with the RNG reset to
+  the identical seed immediately before each call
+  (`inference_migration_with_seed()`) and compares every numeric value the
+  call returns; parallel core count changes which RNG stream a forked
+  worker uses, so a resampling CI is *expected* to differ and comparing it
+  would manufacture false disagreements — the actual core-count-invariant
+  quantity is the point estimate, so that axis compares that instead,
+  exactly like cold start/optimizer. An output that can't be extracted as
+  finite numerics (an error, empty, length-mismatched) is **unverifiable,
+  not agreement** — discarded exactly like a real disagreement, since
+  "could not check" is not evidence of safety.
+  `edi_tuning_apply_correctness_gate(deviations, verify_fn, axis_label)` is
+  the shared driver: kept vs. discarded, one loud `warning()` per discard
+  naming the class/n and both compared values. Wired into
+  `tune_EDI_for_this_machine()` right after all four axes finish and
+  before diffs are built, so a discarded deviation never reaches
+  `edi_tuning_build_policy_diffs()`/the file/the in-session apply; discards
+  are exposed on the result via `n_discarded_by_correctness_gate` and
+  `attr(x, "discarded_by_correctness_gate")`, and `print()` reports a
+  nonzero count. Two small refactors this needed, both improving reused
+  infrastructure rather than adding parallel logic: (1) factored the
+  seed formula every axis's default `seed_fn` (and the parallel tuner's
+  inline computation) already used into one `edi_tuning_default_seed()` in
+  the harness file, so the gate's re-fit reproduces the *exact* same
+  synthetic data the original benchmark saw — previously three copies of
+  the same formula existed, a real drift risk once one changed; (2) fixed
+  `edi_tuning_warm_start_run_setting()`, which was discarding the
+  resampling operation's return value (`invisible(NULL)`) — now returns
+  it, which `edi_tuning_interleaved_ab()`'s already-existing
+  `results_a`/`results_b` capture (added for the optimizer axis's
+  convergence guard) picks up for free, and which the correctness gate
+  needs to compare. Tests: 35 new assertions in
+  `test-local-machine-tuning-correctness.R` (agreement/tolerance edge
+  cases; each `verify_*` function exercised against a real
+  `InferenceCountPoisson` fit with `from == to`, confirming `agree =
+  TRUE` is actually reachable, not just theoretically defined; the gate's
+  keep/discard/warn logic with a mocked `verify_fn`), plus assembly
+  coverage (a stubbed disagreeing deviation is discarded, warned about,
+  excluded from the file, and counted/printed). One real test-design
+  lesson along the way: an assembly test using fabricated stub deviations
+  (`n = 50`, arbitrary class/n pairs not from a real timing race) hit the
+  *real* correctness gate and was correctly discarded — `InferenceCountNegBin`'s
+  jackknife estimate is genuinely `NA` at `n = 50`. That's the gate
+  working as designed on unrealistic input, not a bug; fixed by stubbing
+  the gate in tests whose purpose is diff-building/dry-run plumbing (the
+  gate has its own dedicated tests), keeping concerns separated. Shared
+  test helpers (`with_tuning_sandbox`/`with_stub`) were factored out of
+  the assembly test file into `helper-local-machine-tuning.R` so both
+  test files can use them. Final count: correctness 35, assembly 137,
+  harness 68, axes 68, refactor 4 — all green.
 - [x] TODO-9: `.onLoad()` import path in `EDI/R/zzz.R`: read, validate
   (schema version + `checkmate` on each diff), apply via setters, fail-open
   rules and the two `packageStartupMessage` cases (corrupt → re-run;

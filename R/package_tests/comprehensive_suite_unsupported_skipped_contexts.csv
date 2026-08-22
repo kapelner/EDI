@@ -20,8 +20,11 @@
 "public_workflow_coverage","smoke","InferenceContinKKRobustRegrOneLik","exempted","InferenceContinKKRobustRegrOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass).",NA
 "public_workflow_coverage","smoke","InferenceCountKKCondPoissonOneLik","exempted","InferenceCountKKCondPoissonOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceCountKKGLMM","exempted","InferenceCountKKGLMM requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceCountKKHurdlePoissonIVWC","exempted","InferenceCountKKHurdlePoissonIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceCountKKHurdlePoissonOneLik","exempted","InferenceCountKKHurdlePoissonOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceCountPoissonKKGEE","exempted","InferenceCountPoissonKKGEE requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceIncidExactBinomial","exempted","Exact binomial incidence inference requires DesignFixedBinaryMatch or KK matching designs.",NA
+"public_workflow_coverage","smoke","InferenceIncidExactFisher","exempted","Fisher exact inference requires iBCRD, blocking, or matching designs.",NA
 "public_workflow_coverage","smoke","InferenceIncidExtendedRobins","exempted","InferenceIncidExtendedRobins requires a blocking design with equal block sizes and even allocation.",NA
 "public_workflow_coverage","smoke","InferenceIncidKKCondLogitGLMMIVWC","exempted","InferenceIncidKKCondLogitGLMMIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceIncidKKCondLogitGLMMOneLik","exempted","InferenceIncidKKCondLogitGLMMOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
@@ -66,6 +69,5 @@
 "public_workflow_coverage","smoke","set_warm_start_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","summary_glm_lean","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","transform_cont_y_based_on_response_type","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
+"public_workflow_coverage","smoke","tune_EDI_for_this_machine","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","unset_num_cores","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
-"public_workflow_coverage","nightly","InferenceAllSimpleMeanDiff::compute_param_bootstrap_confidence_interval::compute_param_bootstrap_confidence_interval","unsupported","InferenceAllSimpleMeanDiff does not support parametric-bootstrap estimate bias correction. Override private$supports_param_bootstrap_estimate() and simulate_under_lik_null().",NA
-"public_workflow_coverage","nightly","InferenceAllSimpleMeanDiff::compute_param_bootstrap_pval::compute_param_bootstrap_pval","unsupported","InferenceAllSimpleMeanDiff does not support parametric-bootstrap estimate bias correction. Override private$supports_param_bootstrap_estimate() and simulate_under_lik_null().",NA

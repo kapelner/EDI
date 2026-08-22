@@ -452,7 +452,7 @@ InferenceIncidLogRegr = define_inference_class(
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval", "compute_asymp_confidence_interval",
-			"compute_asymp_two_sided_pval", "get_supported_testing_types",
+			"compute_asymp_two_sided_pval", "get_supported_testing_types", "set_testing_type",
 			"compute_estimate", "compute_estimate_with_bootstrap_weights"
 		),
 		private = c(

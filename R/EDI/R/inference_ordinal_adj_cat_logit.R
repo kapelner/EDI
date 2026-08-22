@@ -84,6 +84,14 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 	private = list(
 		supports_likelihood_tests = function(){ TRUE },
 		best_Xmm_colnames = NULL,
+		# Declared explicitly (2026-08-21 fix) so the harvested
+		# OrdinalAdjacentCategoryLikelihood component's owns_state can
+		# re-declare it too, surviving the eager-component NULL-dropping bug
+		# (Wald's own `cached_mod = NULL` never survives composition; see the
+		# component spec's comment in contracts_mixins.R). Previously created
+		# dynamically on first assignment in generate_mod() -- harmless for
+		# unlocked package instances but breaks any locked test/user subclass.
+		cached_mod = NULL,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (is.null(private$best_Xmm_colnames)){
 				private$shared(estimate_only = TRUE)
@@ -316,7 +324,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 				"compute_asymp_two_sided_pval",
 				"compute_estimate",
 				"compute_estimate_with_bootstrap_weights",
-				"get_supported_testing_types"
+				"get_supported_testing_types", "set_testing_type"
 			),
 			private = c(
 				"resolve_jackknife_unit",

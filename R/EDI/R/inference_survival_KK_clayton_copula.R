@@ -1005,7 +1005,7 @@ InferenceSurvivalKKClaytonCopulaOneLik = define_inference_class(
 			"compute_estimate_with_bootstrap_weights",
 			"compute_asymp_confidence_interval",
 			"compute_asymp_two_sided_pval",
-			"get_supported_testing_types",
+			"get_supported_testing_types", "set_testing_type",
 			"approximate_bootstrap_distribution_beta_hat_T",
 			"duplicate"
 		),

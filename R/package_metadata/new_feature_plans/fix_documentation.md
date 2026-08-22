@@ -915,8 +915,8 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceCountHurdlePoisson.Rd`
 
-- [ ] TODO #297: Method `InferenceCountHurdlePoisson$new()` (current description `45` chars).
-- [ ] TODO #298: Topic `InferenceCountHurdlePoisson` (current description `194` chars).
+- [x] TODO #297: Method `InferenceCountHurdlePoisson$new()` (current description `45` chars). Newly ungated 2026-08-21 (shared base `InferenceCountZeroAugmentedPoissonAbstract` migrated to `inherit = Inference`); documented model form and deferred-fit behavior.
+- [x] TODO #298: Topic `InferenceCountHurdlePoisson` (current description `194` chars). Full model doc added, contrasted with the NegBin sibling; also fixed a mislabeled `@examples` block (called `InferenceCountHurdleNegBin$new()` instead of `...HurdlePoisson$new()`). `REFERENCES.md` updated (`[Mullahy1986]` "Used by" list, "Coverage gaps" note corrected).
 
 ### `InferenceCountKKCondPoissonOneLik.Rd`
 
@@ -1028,13 +1028,13 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceCountZeroInflatedNegBin.Rd`
 
-- [ ] TODO #383: Method `InferenceCountZeroInflatedNegBin$new()` (current description `62` chars).
-- [ ] TODO #384: Topic `InferenceCountZeroInflatedNegBin` (current description `228` chars).
+- [x] TODO #383: Method `InferenceCountZeroInflatedNegBin$new()` (current description `62` chars). Newly ungated 2026-08-21 (shared base migrated to `inherit = Inference`); documented model form and deferred-fit behavior.
+- [x] TODO #384: Topic `InferenceCountZeroInflatedNegBin` (current description `228` chars). Full model doc added (excess-zero submodel mixed with NegBin count submodel), noted score-test availability unlike the Poisson variant. Added Lambert (1992) `@references`, `REFERENCES.md` updated (new `[Lambert1992]` entry).
 
 ### `InferenceCountZeroInflatedPoisson.Rd`
 
-- [ ] TODO #385: Method `InferenceCountZeroInflatedPoisson$new()` (current description `52` chars).
-- [ ] TODO #386: Topic `InferenceCountZeroInflatedPoisson` (current description `208` chars).
+- [x] TODO #385: Method `InferenceCountZeroInflatedPoisson$new()` (current description `52` chars). Newly ungated 2026-08-21 (shared base migrated to `inherit = Inference`); documented model form and deferred-fit behavior.
+- [x] TODO #386: Topic `InferenceCountZeroInflatedPoisson` (current description `208` chars). Full model doc added (excess-zero submodel mixed with Poisson count submodel, contrasted with the hurdle/NegBin variants); also fixed a mislabeled `@examples` block (called `InferenceCountZeroInflatedNegBin$new()` instead of `...ZeroInflatedPoisson$new()`). `REFERENCES.md` updated (`[Lambert1992]` "Used by" list).
 
 ### `InferenceIncidBinomialIdentityRiskDiff.Rd`
 

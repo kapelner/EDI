@@ -200,9 +200,16 @@ test_that("run_all_inference: per-class failure isolation is a real regression t
 	expect_identical(nrow(broken_row), 1L)
 	expect_identical(broken_row$status, "error")
 	expect_true(grepl("constructor always fails", broken_row$message, fixed = TRUE))
-	# Every other applicable class must be unaffected by the broken one.
+	# Every other applicable class must be unaffected by the broken one --
+	# "unaffected" means none of them report status = "error" because of the
+	# broken class, not that every one of ~30 diverse classes cleanly fits
+	# on this particular small (n=20) random draw. Some (Wilcoxon
+	# Hodges-Lehmann jackknife, robust-regression/quantile-regression
+	# bootstrap SE stability) legitimately and correctly report "nonest" on
+	# small samples regardless of isolation -- that's honest non-estimability
+	# reporting, not a failure this test is checking for.
 	other_rows = tbl[tbl$inference_class != "InferenceTemporaryAlwaysThrowsRunAll", , drop = FALSE]
-	expect_true(all(other_rows$status == "ok"))
+	expect_true(all(other_rows$status %in% c("ok", "nonest")))
 })
 
 test_that("run_all_inference: screen/html both FALSE is a hard error, not a silent no-op", {
@@ -343,12 +350,19 @@ test_that("run_all_inference: print()/summary() S3 methods dispatch correctly", 
 	des$add_all_subject_responses(1 + 0.5 * w + rnorm(n))
 	suite = InferenceSuite$new(des)
 	capture.output({
-		res <- suite$run_all_inference(screen = TRUE, plots = FALSE, classes = "InferenceContinOLS")
+		# methods = "wald" pins this to exactly one row: `methods = NULL`
+		# (default) fans out to one row per applicable method sentinel per
+		# class, which is beside the point for a print()/summary() dispatch
+		# check.
+		res <- suite$run_all_inference(screen = TRUE, plots = FALSE, classes = "InferenceContinOLS", methods = "wald")
 	})
 
 	printed = capture.output(print(res))
 	expect_true(any(grepl("EDIInferenceSuiteResults", printed, fixed = TRUE)))
-	expect_true(any(grepl("InferenceContinOLS", printed, fixed = TRUE)))
+	# The printed table shows EDI:::inference_class_short_label()'s
+	# abbreviation ("OLS"), not the raw class name -- deliberate, for
+	# readability.
+	expect_true(any(grepl(EDI:::inference_class_short_label("InferenceContinOLS"), printed, fixed = TRUE)))
 
 	smry = summary(res)
 	expect_s3_class(smry, "summary.EDIInferenceSuiteResults")
@@ -448,22 +462,38 @@ test_that("run_all_inference: num_cores > 1 fits in parallel and produces identi
 	skip_on_cran()
 	skip_on_os("windows")
 	skip_if_prepush_no_parallel()
-	# parallel::makeForkCluster() forks a process that, by this point in the
-	# suite, has already run OpenMP-parallel C++ kernels (EDI's src/ is
+	# `parallel::makeForkCluster()` forks a process that, by this point in
+	# the suite, has already run OpenMP-parallel C++ kernels (EDI's src/ is
 	# pervasively OpenMP-gated) -- forking while another thread holds an
 	# OpenMP/malloc-arena lock is a classic deadlock: the forked worker
 	# inherits the lock in a state that can never be released, so
 	# clusterApply() blocks forever with no path back to its on.exit()
-	# cleanup (see run_all_inference()'s fork-cluster branch). This is
-	# exactly what happened on 2026-08-21: every ubuntu/macOS/windows
-	# R-CMD-check leg hung in "checking tests" until its own job timeout
-	# killed it (skip_on_os("windows") above meant Windows hung on some
-	# other/preexisting issue, not this). skip_if_prepush_no_parallel()
-	# already covers the local pre-push hook, but CI's NOT_CRAN=true means
-	# skip_on_cran() doesn't skip this there -- skip_on_ci() closes that gap
-	# until the fork-cluster path has a real wall-clock timeout that force-
-	# kills stuck workers (see new_features/ for that follow-up plan).
-	skip_on_ci()
+	# cleanup. This is exactly what happened on 2026-08-21: every ubuntu/
+	# macOS/windows R-CMD-check leg hung in "checking tests" until its own
+	# job timeout killed it (skip_on_os("windows") above meant Windows hung
+	# on some other/preexisting issue, not this). `skip_on_ci()` was added
+	# the same day to stop the bleeding.
+	#
+	# CANARY (2026-08-22, user decision): `skip_on_ci()` removed and
+	# run_all_inference()'s fork-cluster branch switched from a raw
+	# `parallel::makeForkCluster()` call to the package's own
+	# `make_configured_fork_cluster()` (2026-08-21) -- see
+	# parallel_fork_cluster_test_safety.md's TODO-4. Sandbox testing outside
+	# CI was inconclusive (too resource-constrained to reproduce "dozens of
+	# prior OpenMP-heavy tests, then fork" in reasonable time; an isolated
+	# single-kernel-then-fork repro passed, but that's lighter than the real
+	# failure conditions) -- CI is the only environment that actually
+	# reproduces them. `setTimeLimit()` below is a best-effort safety net
+	# (same mechanism the "max_secs_per_class" test above already trusts) so
+	# a repeat hang fails *this test* in ~90s instead of re-burning the
+	# job's full multi-hour timeout budget -- not guaranteed to interrupt a
+	# genuine blocked-socket-in-forked-child deadlock, but costs nothing to
+	# try. **Outcome handling:** if this test times out or the job hangs
+	# again, the fix did not work -- re-add `skip_on_ci()` and escalate to
+	# that plan's TODO-4(b) (OpenMP thread-pool teardown before fork). If it
+	# passes, leave `skip_on_ci()` removed and mark that plan's TODO-4 done.
+	setTimeLimit(elapsed = 90, transient = TRUE)
+	on.exit(setTimeLimit(elapsed = Inf, transient = TRUE), add = TRUE)
 	set.seed(20260818)
 	n = 20L
 	des = DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
@@ -517,14 +547,15 @@ test_that("run_all_inference: estimand is a registry-level fact, populated regar
 	# registry-level, per-class fact, so it's identical across every
 	# method-row for the same class; check via unique() rather than
 	# assuming exactly one row.
-	expect_identical(unique(row_rd$estimand), "RD")
+	expect_identical(unique(row_rd$estimand), "mean_difference")
 	# The whole point of reading estimand from the class metadata registry
 	# instead of the fitted instance: it must still be populated even when
 	# status != "ok" (registry lookup needs no successful construction/fit).
 	expect_identical(unique(row_rr$estimand), "RR")
 	expect_true(all(row_rr$status %in% c("ok", "nonest")))
-	# A class with no declared get_estimand_type() reports NA, not an error.
-	expect_identical(unique(row_logit$estimand), NA_character_)
+	# Every class now has a registry-declared estimand (a later, broader
+	# taxonomy pass populated the ones that used to report NA here).
+	expect_identical(unique(row_logit$estimand), "log_odds_ratio_marginal")
 })
 
 # TODO-23 (inference_suite_plan.md): EDI_INFERENCE_SUITE_METHOD_SENTINELS/

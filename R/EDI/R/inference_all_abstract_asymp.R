@@ -43,6 +43,33 @@ InferenceAsymp = R6::R6Class("InferenceAsymp",
 		get_supported_testing_types = function(){
 			private$get_supported_testing_types_impl()
 		},
+		#' @description Sets the asymptotic testing method used by p-values and CIs.
+		#'   This base (Wald-only) implementation accepts only \code{"wald"} and
+		#'   rejects everything else with a clear message; likelihood-tier classes
+		#'   override this with a richer version supporting score/gradient/lik_ratio
+		#'   testing types (see \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}}).
+		#'   Without this base method, a Wald-only class (one composing only the
+		#'   \code{Wald} component, e.g. a robust-sandwich or Bai-adjusted-t
+		#'   estimator) has no \code{set_testing_type()} at all, so calling it
+		#'   fails with an opaque "attempt to apply non-function" instead of a
+		#'   clear rejection.
+		#' @param testing_type One of \code{"wald"} for this base implementation
+		#'   (likelihood-tier subclasses accept more values).
+		#' @return The inference object, invisibly.
+		set_testing_type = function(testing_type = "wald"){
+			if (should_run_asserts()) {
+				assertString(testing_type)
+			}
+			supported = private$get_supported_testing_types_impl()
+			if (!testing_type %in% supported) {
+				stop(
+					class(self)[1], " does not support testing_type = \"", testing_type,
+					"\". Supported values are: ", paste(supported, collapse = ", "),
+					call. = FALSE
+				)
+			}
+			invisible(self)
+		},
 		#' @description Computes the Wald two-sided p-value regardless of configured
 		#'   testing type. This directly uses the treatment estimate, its standard
 		#'   error, and the available degrees of freedom; compare with

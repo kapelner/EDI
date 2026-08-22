@@ -250,8 +250,25 @@ the frozen substrate makes it additive.
     label column from the already-rendered string, widening it by 4 and
     narrowing the bar for InferenceSuite too — caught by the new unit pin
     (the full InferenceSuite suite was too heavy for its timeout and has
-    no bar-text assertions anyway) and fixed. 137 assembly assertions + 140
-    harness/axes/refactor assertions green after the reinstall; the hook
+    no bar-text assertions anyway) and fixed. **TODO-8 also done
+    (2026-08-21):** the correctness gate — every accepted deviation is
+    re-fit once under both settings on identical synthetic data before it
+    can displace a shipped default (point estimates for cold
+    start/optimizer/parallel; the resampling operation's own RNG-matched
+    output for warm start, since a parallel axis's forked-worker CI is
+    *expected* to differ and comparing it would manufacture false
+    disagreements); disagreement or an unverifiable comparison discards
+    the deviation with a `warning()`. Two small refactors improved shared
+    infrastructure rather than adding parallel logic: one seed formula
+    (`edi_tuning_default_seed()`) now backs every axis's timing *and* the
+    gate's re-fit, replacing three independent copies; and
+    `edi_tuning_warm_start_run_setting()` was fixed to return its
+    resampling result instead of discarding it, which the timing
+    harness's already-existing result capture and the gate both need.
+    35 new tests, including each `verify_*` function confirmed reachable
+    (`agree = TRUE`) against a real fit, not just defined in theory. Final
+    tally: correctness 35, assembly 137, harness 68, axes 68, refactor 4
+    — all green. The `.onLoad()` import hook
     itself goes live in `library(EDI)` on the user's *next* install (their
     current one predates the `zzz.R` edit — verified via `load_all()`
     meanwhile). Two recorded boundaries: the

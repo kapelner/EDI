@@ -4,15 +4,29 @@
 \alias{InferenceCountZeroInflatedPoisson}
 \title{Zero-Inflated Poisson Regression Inference for Count Responses}
 \description{
-Fits a zero-inflated Poisson regression for count responses using the
-treatment indicator and, optionally, all recorded covariates as predictors.
+Fits a zero-inflated Poisson regression for count responses: a binary
+excess-zero submodel \eqn{P(\text{structural zero}_i) =
+\mathrm{logit}^{-1}(X_i^{h\top} \gamma^h)} mixed with a (non-truncated)
+Poisson count submodel \eqn{\log E[Y_i \mid \text{not structural zero},
+W_i, X_i] = \beta_0 + \beta_T W_i + X_i^\top \gamma}. Unlike a hurdle
+model, zero counts can arise from either the structural-zero mechanism or
+from an ordinary Poisson draw of \eqn{0}, so the two mixture components are
+not identified by disjoint support. The hurdle and count submodels may use
+different covariate formulas (\code{model_formula}/\code{model_formula_zero}).
 The reported treatment effect is the coefficient from the conditional count
-component, on the log-rate scale, \strong{conditional on the response coming
-from the count process, not the excess-zero-inflation mechanism}: it is not
-the effect on the unconditional mean \eqn{E[Y]}, which also depends on how
-treatment shifts the excess-zero probability. A marginal (unconditional-mean)
-estimand is not yet implemented for this class (see
-\code{marginal_estimand_report.md}).
+component, on the log-rate scale, \strong{conditional on the response
+coming from the count process, not the excess-zero-inflation mechanism}:
+it is not the effect on the unconditional mean \eqn{E[Y]}, which also
+depends on how treatment shifts the excess-zero probability. A marginal
+(unconditional-mean) estimand is not yet implemented for this class (see
+\code{marginal_estimand_report.md}). \code{likelihood_tier = "full"}:
+Wald, gradient, and (bootstrap-calibrated) likelihood-ratio tests are
+available for the count submodel's treatment coefficient; a plain score
+test is not exposed. \strong{Jackknife inference is not supported}:
+delete-one refits of this two-part mixture model are numerically
+unstable, so \code{compute_jackknife_estimate()} and related methods
+report explicit non-estimability rather than attempting delete-one
+refits.
 }
 \examples{
 \donttest{
@@ -21,9 +35,23 @@ for (i in 1:10) {
   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 }
 seq_des$add_all_subject_responses(rpois(10, 2))
-inf = InferenceCountZeroInflatedNegBin$new(seq_des)
+inf = InferenceCountZeroInflatedPoisson$new(seq_des)
 inf$compute_estimate()
 }
+}
+\references{
+Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
+  Application to Defects in Manufacturing." \emph{Technometrics}, 34(1),
+  1-14, \doi{10.2307/1269547}, for the zero-inflated count-model
+  framework.
+}
+\seealso{
+\code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for
+  the single-part Poisson model this class's count submodel generalizes;
+  \code{\link[EDI:InferenceCountHurdlePoisson]{InferenceCountHurdlePoisson}}
+  for the related hurdle (disjoint-support) variant;
+  \code{\link[EDI:InferenceCountZeroInflatedNegBin]{InferenceCountZeroInflatedNegBin}}
+  for the overdispersion-robust negative-binomial variant.
 }
 \section{Super classes}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceCountZeroAugmentedPoissonAbstract} -> \code{InferenceCountZeroInflatedPoisson}
@@ -135,7 +163,11 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceCountZeroInflatedPoisson-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountZeroInflatedPoisson-initialize}{}}}
 \subsection{\code{InferenceCountZeroInflatedPoisson$new()}}{
-  Initialize a zero-inflated Poisson inference object.
+  Initialize inference for the zero-inflated Poisson model
+  (binary excess-zero submodel mixed with a Poisson count submodel); see
+  \code{\link[EDI:InferenceCountZeroInflatedPoisson]{InferenceCountZeroInflatedPoisson}}
+  for the model form. Does not fit the model; the fit is deferred to the
+  first call to \code{compute_estimate()} or a method that requires it.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountZeroInflatedPoisson$new(

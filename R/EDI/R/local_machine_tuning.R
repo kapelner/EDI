@@ -203,6 +203,16 @@ edi_tuning_machine_looks_busy = function(load_ratio_threshold = 0.5, calib_cv_th
 #' estimated-time-left is redrawn in place as each benchmark cell completes
 #' -- the same bar \code{InferenceSuite$run_all_inference()} shows.
 #'
+#' \strong{Correctness gate.} A timing win alone does not displace a shipped
+#' default: every accepted deviation is re-fit once under \emph{both}
+#' settings on identical synthetic data and the outputs compared (point
+#' estimates for cold start/optimizer/parallel; the resampling operation's
+#' own output, RNG-matched, for warm start). A disagreement -- or an
+#' unverifiable comparison -- discards the deviation, with a
+#' \code{warning()} naming it; discarded deviations are available on the
+#' returned object via \code{attr(x, "discarded_by_correctness_gate")} and
+#' are never written to the config file or applied.
+#'
 #' \strong{The optimizer axis and \code{converged_fn}.} There is not yet a
 #' generic, class-independent accessor on an inference object that reports
 #' whether its fit converged, so the optimizer axis needs you to supply one
@@ -425,6 +435,36 @@ tune_EDI_for_this_machine = function(effort = c("standard", "quick", "thorough")
 		cat(sprintf("Status: Completed in %s.\n", run_all_inference_fmt_completed_secs(elapsed_total)))
 	}
 
+	# ---- Correctness gate (TODO-8): re-fit every accepted deviation once under
+	# both settings and require agreement before it can displace a shipped
+	# default. Disagreeing/unverifiable deviations are discarded (warning()
+	# already emitted inside the gate) and kept on the result for inspection.
+	discarded = list()
+	if (!is.null(raw$cold_start)) {
+		g = edi_tuning_apply_correctness_gate(raw$cold_start$deviations, edi_tuning_verify_cold_start_deviation, "cold start")
+		raw$cold_start$deviations = g$kept
+		discarded$cold_start = g$discarded
+	}
+	if (!is.null(raw$optimizer)) {
+		g = edi_tuning_apply_correctness_gate(raw$optimizer$deviations, edi_tuning_verify_optimizer_deviation, "optimizer")
+		raw$optimizer$deviations = g$kept
+		discarded$optimizer = g$discarded
+	}
+	if (!is.null(raw$warm_start)) {
+		discarded$warm_start = list()
+		for (op in names(raw$warm_start$deviations)) {
+			verify_fn = function(dev) edi_tuning_verify_warm_start_deviation(dev, operation = op)
+			g = edi_tuning_apply_correctness_gate(raw$warm_start$deviations[[op]], verify_fn, sprintf("warm start (%s)", op))
+			raw$warm_start$deviations[[op]] = g$kept
+			discarded$warm_start[[op]] = g$discarded
+		}
+	}
+	if (!is.null(raw$parallel)) {
+		g = edi_tuning_apply_correctness_gate(raw$parallel$deviations, edi_tuning_verify_parallel_deviation, "parallel")
+		raw$parallel$deviations = g$kept
+		discarded$parallel = g$discarded
+	}
+
 	# ---- Diffs, result, persist, apply ----
 	diffs = edi_tuning_build_policy_diffs(raw)
 	# TODO-6 hard gate: never emit a diff touching the bootstrap-CI-type policy
@@ -442,12 +482,16 @@ tune_EDI_for_this_machine = function(effort = c("standard", "quick", "thorough")
 		n_cells = n_total,
 		elapsed_secs_total = elapsed_total,
 		dry_run = dry_run,
-		config_path = edi_tuning_config_path()
+		config_path = edi_tuning_config_path(),
+		n_discarded_by_correctness_gate = length(unlist(discarded, recursive = FALSE))
 	)
 	class(result) = "EDILocalMachineTuning"
-	# The raw deviations travel on the returned object only (for inspection);
-	# the file stores the diffs + provenance (the plan's file schema).
+	# The raw deviations and the correctness-gate's discards travel on the
+	# returned object only (for inspection); the file stores the diffs +
+	# provenance (the plan's file schema) -- discarded deviations never appear
+	# there, since they were rejected specifically so they would not be applied.
 	attr(result, "raw_deviations") = raw
+	attr(result, "discarded_by_correctness_gate") = discarded
 
 	if (!dry_run) {
 		to_save = unclass(result)
@@ -501,5 +545,10 @@ print.EDILocalMachineTuning = function(x, ...) {
 		cat(sprintf("  parallel   : preferred core count = %d (recorded only; opt in via set_num_cores())\n", d$parallel$preferred_num_cores))
 	}
 	if (none) cat("  (none -- the shipped defaults already win on this machine)\n")
+	n_disc = x$n_discarded_by_correctness_gate %||% 0L
+	if (n_disc > 0L) {
+		cat(sprintf("  (%d timing win%s discarded by the correctness gate -- see attr(x, \"discarded_by_correctness_gate\"))\n",
+		            n_disc, if (n_disc == 1L) "" else "s"))
+	}
 	invisible(x)
 }

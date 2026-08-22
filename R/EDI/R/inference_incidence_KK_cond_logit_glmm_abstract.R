@@ -374,7 +374,7 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 			"compute_asymp_confidence_interval",
 			"compute_asymp_two_sided_pval",
 			"compute_rand_two_sided_pval",
-			"get_supported_testing_types",
+			"get_supported_testing_types", "set_testing_type",
 			"approximate_bootstrap_distribution_beta_hat_T"
 		),
 		private = c(

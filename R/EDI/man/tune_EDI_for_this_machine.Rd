@@ -13,7 +13,8 @@ tune_EDI_for_this_machine(
   num_cores_grid = NULL,
   converged_fn = NULL,
   quiet = FALSE,
-  dry_run = FALSE
+  dry_run = FALSE,
+  force = FALSE
 )
 }
 \arguments{
@@ -49,6 +50,12 @@ no summary).}
 
 \item{dry_run}{If \code{TRUE}, run every benchmark and print the would-be
 policy changes, but write no file and apply nothing.}
+
+\item{force}{If \code{FALSE} (default), refuse to run when the machine
+looks busy (see Details: "Idle machine") -- in an interactive session
+you are asked whether to proceed anyway; non-interactively it is an
+error. \code{TRUE} skips the check. Applies under \code{dry_run} too,
+since a dry run still benchmarks.}
 }
 \value{
 Invisibly, an \code{EDILocalMachineTuning} object: the policy
@@ -100,6 +107,16 @@ merged into (never replacing) the shipped tables.
 estimated-time-left is redrawn in place as each benchmark cell completes
 -- the same bar \code{InferenceSuite$run_all_inference()} shows.
 
+\strong{Correctness gate.} A timing win alone does not displace a shipped
+default: every accepted deviation is re-fit once under \emph{both}
+settings on identical synthetic data and the outputs compared (point
+estimates for cold start/optimizer/parallel; the resampling operation's
+own output, RNG-matched, for warm start). A disagreement -- or an
+unverifiable comparison -- discards the deviation, with a
+\code{warning()} naming it; discarded deviations are available on the
+returned object via \code{attr(x, "discarded_by_correctness_gate")} and
+are never written to the config file or applied.
+
 \strong{The optimizer axis and \code{converged_fn}.} There is not yet a
 generic, class-independent accessor on an inference object that reports
 whether its fit converged, so the optimizer axis needs you to supply one
@@ -115,7 +132,11 @@ count is \emph{recorded only} -- never applied at package load -- you
 still opt into parallelism with \code{\link{set_num_cores}}.
 
 \strong{Idle machine.} Run this on an otherwise idle machine; a tuning
-run under contention measures the contention, not the hardware.
+run under contention measures the contention, not the hardware. Before
+benchmarking, the function checks the 1-minute load average against the
+core count and times a small fixed calibration operation for noise; if
+either says the machine is busy it refuses to run (interactively, it
+asks first) unless \code{force = TRUE}.
 }
 \examples{
 \donttest{

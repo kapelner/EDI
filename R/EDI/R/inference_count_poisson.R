@@ -69,7 +69,7 @@ InferenceCountPoisson = define_inference_class(
 			"compute_lik_ratio_confidence_interval", "compute_lik_ratio_two_sided_pval",
 			"compute_gradient_confidence_interval", "compute_gradient_two_sided_pval",
 			"compute_lik_ratio_bootstrap_two_sided_pval", "compute_lik_ratio_bootstrap_confidence_interval",
-			"compute_rand_two_sided_pval", "get_supported_testing_types", "compute_estimate",
+			"compute_rand_two_sided_pval", "get_supported_testing_types", "set_testing_type", "compute_estimate",
 			"compute_estimate_with_bootstrap_weights"
 		),
 		private = c(

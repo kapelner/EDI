@@ -499,7 +499,7 @@ InferenceSurvivalWeibullRegr = define_inference_class(
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
 			"compute_bayesian_bootstrap_two_sided_pval",
 			"compute_lik_ratio_bartlett_approx_two_sided_pval",
-			"compute_rand_two_sided_pval", "get_supported_testing_types"
+			"compute_rand_two_sided_pval", "get_supported_testing_types", "set_testing_type"
 		),
 		private = c(
 			"compute_treatment_estimate_during_randomization_inference",

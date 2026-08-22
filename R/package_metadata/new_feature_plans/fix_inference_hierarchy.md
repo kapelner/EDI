@@ -2141,6 +2141,17 @@ their own `[x]` entries above; they are not part of this count.)
     `super$` binding produces the exact same error, so no behavior change
     was needed -- verified both legacy and migrated throw the identical
     error message.
+    **Fixed 2026-08-21**: replaced both broken `super$` calls with
+    `self$compute_bootstrap_confidence_interval(alpha=..., type="basic")`/
+    `type="bca"` -- `NonparametricBootstrap`'s own generic, `type`-
+    parameterized `compute_bootstrap_confidence_interval()` already
+    supports `"basic"`/`"bca"`, and calling it with the right `type` is
+    the evident original intent (validate a real basic/BCa CI for this
+    model) rather than perpetuating a crash that predates this migration
+    entirely. Verified: both methods now return real, finite CIs on a
+    representative fixture (previously always threw); `test-full-
+    likelihood-migration-baseline.R`/`test-parametric-bootstrap-lr-all-
+    capable-classes.R` green.
   - **Testing methodology note**: an initial legacy-vs-migrated comparison
     of `compute_bootstrap_confidence_interval` showed a real numeric
     difference (migrated returned `NA`/`NA`) -- traced this to the method
@@ -3648,7 +3659,25 @@ their own `[x]` entries above; they are not part of this count.)
   `private$shared_combined_bootstrap()`, which is defined **nowhere** in
   the package — the weighted-bootstrap path has always errored at runtime
   and its Bayesian-bootstrap replicates are silently all-NA; needs its own
-  fix-or-drop decision. Second named target (added 2026-08-12):
+  fix-or-drop decision.
+
+  **Fixed 2026-08-21** (`InferenceCountKKHurdlePoissonIVWC`,
+  `inference_count_KK_cond_poisson.R`): implemented `compute_estimate_with_
+  bootstrap_weights` for real rather than dropping it, combining a weighted
+  matched-pair fit and a weighted reservoir fit the same inverse-variance
+  way as `$compute_estimate()`. The reservoir (ordinary Poisson) leg uses
+  the already-existing `fast_poisson_regression_weighted_cpp()` (no new C++
+  needed); the matched-pair (hurdle-Poisson GLMM) leg has no weighted Rcpp
+  optimizer, so a caller-supplied weights vector routes through `glmmTMB`
+  (which natively accepts prior weights) instead of the unweighted-Rcpp-
+  then-glmmTMB-fallback path `$compute_estimate()` uses. `fit_hurdle_for_
+  matched_pairs()`/`fit_hurdle_for_matched_pairs_glmm_tmb()`/`fit_poisson_
+  for_reservoir()` gained an optional `weights = NULL` parameter (default
+  preserves the old unweighted call sites byte-for-byte). Verified: the
+  Bayesian-bootstrap path, previously an unconditional error, now returns
+  a real p-value end-to-end; `test-count-kk-hurdle-ivwc-migration-golden.R`
+  and `test-full-likelihood-migration-baseline.R` green. Second named
+  target (added 2026-08-12):
   `InferenceSurvivalKKWeibullMarginal`
   (`inference_survival_KK_weibull_marginal.R`) — `none`-tier (Wald-only,
   cluster-robust sandwich SE, explicitly not a true likelihood per its own
@@ -4521,10 +4550,13 @@ their own `[x]` entries above; they are not part of this count.)
   strict zero-ancestors invariant over every concrete manifest record.
   See the "Base Deletion" section's 2026-08-21 milestone note.
 
-The manifest records 106 concrete generators as `pending` because they still
-inherit through algorithmic compatibility bases. The final strict gate, `no
-concrete class descends from an algorithmic compatibility base`, becomes
-actionable after those pending records are drained family by family.
+**Stale as of 2026-08-21** -- superseded by the milestone note immediately
+above: the 106-count reflects this section's state when it was first
+written, not the current one. Zero concrete generators now inherit through
+any algorithmic compatibility base; the final strict gate described here is
+implemented and enabled (see "Base Deletion"'s 2026-08-21 closure notes).
+Left in place as a historical snapshot rather than deleted, so the
+family-by-family draining narrative below remains readable in order.
 
 - [x] **`InferenceCountCompositeLikelihood` and
   `InferenceCountLikelihoodNoParamBootstrap` deleted (2026-08-17)** — the
@@ -5219,6 +5251,27 @@ here (2026-08-13) rather than left as prose-only notes.
   are both fully clean (the latter confirms the
   `compute_rand_bootstrap_confidence_interval` restoration from the prior
   progress note actually works end-to-end).
+  **Second occurrence found and fixed 2026-08-21** (same missing-`owns_state`
+  bug family, different field than the `best_Xmm_colnames` one this box
+  originally closed): `OrdinalAdjacentCategoryLikelihood`'s `cached_mod` was
+  never declared in `owns_state`/`provides_private_methods` -- `generate_mod()`'s
+  `private$cached_mod = model_output` assignment throws "cannot add
+  bindings to a locked environment" for any `R6::R6Class(inherit =
+  InferenceOrdinalAdjCatLogitRegr, ...)` locked subclass (reproduced
+  directly). Root cause identical to every prior `cached_mod` fix this
+  session: never declared in the class's own source (created dynamically),
+  and `Wald`'s own `cached_mod = NULL` doesn't survive eager-component
+  composition. Fixed by declaring `cached_mod = NULL` explicitly in the
+  class's own private list (so the harvester captures it) and adding it to
+  `OrdinalAdjacentCategoryLikelihood`'s `owns_state`/`provides_private_methods`
+  in `contracts_mixins.R`. Confirmed the un-fixed pre-2026-08-21 state
+  reproduces the crash; confirmed the fix resolves it with byte-identical
+  unlocked-instance behavior; `test-ordinal-adj-cat-logit-migration-golden.R`/
+  `test-full-likelihood-migration-baseline.R`/`test-mixin-contracts.R`/
+  `test-static-cleanup-guardrails.R` green. Note: `test-design-inference.R`'s
+  "ordinal hardening drops QR-rank" failures for `kk_adj_hardened`
+  (`InferenceOrdinalKKCondAdjCatLogitRegr`, a *different*, still-unmigrated
+  class) remain -- confirmed unaffected by and unrelated to this fix.
 - [x] **Capability detection for unregistered `Inference` subclasses.** Moved
   here from `fix_design_hierarchy.md`'s `.valid_inference_types()` fix note,
   which found it and declared it out of scope for that plan: ad-hoc

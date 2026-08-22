@@ -51,7 +51,7 @@ InferenceCountNegBin = define_inference_class(
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights", "compute_rand_two_sided_pval",
-			"get_supported_testing_types",
+			"get_supported_testing_types", "set_testing_type",
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
 			"compute_wald_two_sided_pval", "compute_wald_confidence_interval",
 			"compute_score_two_sided_pval", "compute_score_confidence_interval",

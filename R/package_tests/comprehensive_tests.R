@@ -2355,12 +2355,24 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 	), error = function(e){ message("    Skipping design (creation error): ", e$message); NULL })
 	if (is.null(des_obj)) return(invisible(NULL))
 
+	add_response_for_subject = function(t, y_t, dead_t){
+		if (response_type == "survival"){
+			if (dead_t == 0){
+				des_obj$add_one_subject_response(t, y_L = max(y_t, .Machine$double.eps), y_R = Inf)
+			} else {
+				des_obj$add_one_subject_response(t, y = y_t)
+			}
+		} else {
+			des_obj$add_one_subject_response(t, y = y_t)
+		}
+	}
+
 	if (inherits(des_obj, "DesignSeqOneByOne")){
 		seq_ok = tryCatch({
 			for (t in 1 : n){
 				w_t = des_obj$add_one_subject_to_experiment_and_assign(X_design_sequential_strata[t, , drop = FALSE])
 				y_t = apply_treatment_effect_and_noise(y[t], w_t, response_type)
-				des_obj$add_one_subject_response(t, y_t, dead[t])
+				add_response_for_subject(t, y_t, dead[t])
 			}
 			TRUE
 		}, error = function(e){ message("    Skipping design (seq error): ", e$message); FALSE })
@@ -2376,7 +2388,7 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 		w = des_obj$get_w()
 		for (t in 1 : n){
 			y_t = apply_treatment_effect_and_noise(y[t], w[t], response_type)
-			des_obj$add_one_subject_response(t, y_t, dead[t])
+			add_response_for_subject(t, y_t, dead[t])
 		}
 	}
 

@@ -15,6 +15,23 @@
 #' @noRd
 NULL
 
+#' The default deterministic seed for one (class, n) benchmark cell
+#'
+#' A stable hash of the class name plus \code{n}, used so a class's A/B
+#' timing pair -- and, for TODO-8's correctness gate, its verification
+#' re-fit -- see identical synthetic data every time it is regenerated.
+#' Every axis engine's default \code{seed_fn} and every axis's own inline
+#' seed computation (the parallel tuner, which does not go through the
+#' \code{seed_fn} parameter) call this one function, so there is exactly
+#' one seed formula to keep in sync -- including with the correctness
+#' gate, which must reproduce the same seed to compare apples to apples.
+#'
+#' @keywords internal
+#' @noRd
+edi_tuning_default_seed = function(class, n) {
+	20260821L + (as.integer(sum(utf8ToInt(class))) %% 10000L) + as.integer(n)
+}
+
 #' Enumerate the benchmarkable inference-class families
 #'
 #' A "family" here is a single concrete, non-abstract inference class that

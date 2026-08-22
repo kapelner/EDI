@@ -4,52 +4,8 @@
 # All runs use a tempdir config dir and STUBBED axis tuners -- no real
 # benchmarking happens here (TODO-10(a)).
 
-ns = asNamespace("EDI")
-
-with_tuning_sandbox = function(code) {
-	dir = file.path(tempfile("edi-tuning-"), "config")
-	# Assign INTO the environment object, not via `ns$edi_env$x = v` -- that form
-	# parses as a replacement on `ns$edi_env` and tries to rebind the locked symbol.
-	ee = get("edi_env", envir = ns)
-	old_override = ee$tuning_config_dir_override
-	ee$tuning_config_dir_override = dir
-	# Reset on ENTRY too: once .onLoad() imports a real saved tuning (TODO-9), a
-	# developer machine with a real config file would otherwise start these tests
-	# from non-shipped policies.
-	set_cold_start_dispatch_policy(reset = TRUE)
-	set_warm_start_dispatch_policy(reset = TRUE)
-	set_optimization_dispatch_policy(reset = TRUE)
-	# The TODO-7 contention guard is a real check on the real machine -- and CI /
-	# dev boxes are often genuinely busy (it fired for real during development, on
-	# a 12-core box at load 7). Every sandboxed test here benchmarks via stubs, so
-	# contention is irrelevant to them: stub the guard to "idle" by default. The
-	# TODO-7 tests override this stub explicitly to exercise the busy path.
-	orig_busy = get("edi_tuning_machine_looks_busy", envir = ns)
-	unlockBinding("edi_tuning_machine_looks_busy", ns)
-	assign("edi_tuning_machine_looks_busy", function(...) list(busy = FALSE, load_1min = 0, cores = 1L, load_ratio = 0, calib_cv = 0, reasons = character(0)), envir = ns)
-	on.exit({
-		# An inner with_stub() on the same name re-locks the binding on its own exit,
-		# so unlock again before restoring (lockBinding/unlockBinding are idempotent).
-		unlockBinding("edi_tuning_machine_looks_busy", ns)
-		assign("edi_tuning_machine_looks_busy", orig_busy, envir = ns)
-		lockBinding("edi_tuning_machine_looks_busy", ns)
-		ee$tuning_config_dir_override = old_override
-		unlink(dirname(dir), recursive = TRUE)
-		set_cold_start_dispatch_policy(reset = TRUE)
-		set_warm_start_dispatch_policy(reset = TRUE)
-		set_optimization_dispatch_policy(reset = TRUE)
-	}, add = TRUE)
-	force(code)
-}
-
-# Replace an internal function for the duration of `code`, restoring it after.
-with_stub = function(name, fn, code) {
-	orig = get(name, envir = ns)
-	unlockBinding(name, ns)
-	assign(name, fn, envir = ns)
-	on.exit({ assign(name, orig, envir = ns); lockBinding(name, ns) }, add = TRUE)
-	force(code)
-}
+# with_tuning_sandbox() / with_stub() live in helper-local-machine-tuning.R
+# (shared with test-local-machine-tuning-correctness.R).
 
 # Stubs that return canned deviations AND fire on_cell_done once per (family, n) cell,
 # exactly as the real tuners do -- so the progress-bar cell accounting is exercised.
@@ -215,8 +171,16 @@ test_that("tune_EDI_for_this_machine() validates axes/converged_fn/parallel avai
 	})
 })
 
+always_agree = function(dev, tol) list(agree = TRUE, value_from = 0, value_to = 0)
+
 test_that("tune_EDI_for_this_machine(dry_run = TRUE) benchmarks, writes nothing, applies nothing, returns the would-be diffs", {
-	with_tuning_sandbox(with_stub("edi_tuning_tune_cold_start", stub_cold, with_stub("edi_tuning_tune_warm_start", stub_warm, {
+	# This test is about diff-building/dry-run plumbing, not TODO-8's correctness gate
+	# (that has its own dedicated tests) -- stub the gate's verify functions so the
+	# fabricated stub_cold/stub_warm deviations (arbitrary n, not a real timing race)
+	# aren't discarded by a real re-fit finding e.g. an NA jackknife estimate at n=50.
+	with_tuning_sandbox(with_stub("edi_tuning_verify_cold_start_deviation", always_agree,
+		with_stub("edi_tuning_verify_warm_start_deviation", function(dev, operation, tol) list(agree = TRUE, value_from = 0, value_to = 0),
+		with_stub("edi_tuning_tune_cold_start", stub_cold, with_stub("edi_tuning_tune_warm_start", stub_warm, {
 		res = tune_EDI_for_this_machine(effort = "quick", axes = c("cold_start", "warm_start"),
 			families = c("InferenceCountPoisson", "InferenceCountNegBin"), n_grid = c(50L, 500L), reps = 2L,
 			quiet = TRUE, dry_run = TRUE)
@@ -243,7 +207,7 @@ test_that("tune_EDI_for_this_machine(dry_run = TRUE) benchmarks, writes nothing,
 		expect_equal(cold_cells, 2L)
 		expect_equal(res$n_cells, cold_cells + warm_cells)
 		expect_lt(res$n_cells, 2L * 2L + 5L * 2L * 2L)  # i.e. the naive "every class x every op" count over-counts
-	})))
+	})))))
 })
 
 test_that("tune_EDI_for_this_machine() writes the file, applies diffs in-session, and get/clear round-trip it", {

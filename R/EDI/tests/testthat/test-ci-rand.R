@@ -374,10 +374,10 @@ test_that("Fisher exact inference is rejected for unsupported incidence designs"
 	}
 	add_all_subject_responses_seq(des, rep(c(0L, 1L), length.out = n))
 
-	inf_exact <- InferenceIncidExactFisher$new(des, verbose = FALSE)
-
+	# Design-compatibility validation now runs at construction time (fail
+	# fast), not lazily at the first exact-inference call.
 	expect_error(
-		inf_exact$compute_exact_two_sided_pval_for_treatment_effect(),
+		InferenceIncidExactFisher$new(des, verbose = FALSE),
 		"Fisher exact inference requires iBCRD, blocking, or matching designs"
 	)
 })

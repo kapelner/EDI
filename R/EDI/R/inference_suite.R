@@ -639,6 +639,26 @@ run_all_inference_call_ci_for_method = function(inf_obj, alpha, method, type = N
 	if (is.null(entry) || !(entry$capability %in% inf_obj$capabilities())) {
 		return(list(lower = NA_real_, upper = NA_real_, method = NA_character_))
 	}
+	# The "lik_ratio_bartlett_exact"/"_approx" sentinels are both gated only
+	# by the coarse "likelihood_tests" capability in the priority table
+	# above -- every likelihood_tests-capable class (wald/score/lik_ratio/
+	# gradient too) passes that check, but only classes with a real bespoke
+	# Bartlett correction factor (`supports_bartlett_likelihood_ratio_exact
+	# ()`/`_approx()`, opted into per-family) actually implement either
+	# variant. Found 2026-08-21 (user report: "why is Bartlett running for
+	# Probit? Bartlett exact is not implemented for probit" --
+	# InferenceIncidProbitRegr's own `supports_bartlett_likelihood_ratio_
+	# exact()` correctly defaults `FALSE`, but nothing upstream consulted
+	# it, so the sentinel was attempted anyway and silently degraded to
+	# `status = "nonest"` instead of never being offered). `get_supported_
+	# testing_types()` is a real, already-correct public accessor
+	# (`inference_all_abstract_asymp_lik.R`) that already encodes exactly
+	# this -- this just consults it instead of duplicating the logic.
+	if (method %in% c("lik_ratio_bartlett_exact", "lik_ratio_bartlett_approx") &&
+			is.function(inf_obj$get_supported_testing_types) &&
+			!(method %in% tryCatch(inf_obj$get_supported_testing_types(), error = function(e) character()))) {
+		return(list(lower = NA_real_, upper = NA_real_, method = NA_character_))
+	}
 	call_args = list(alpha = alpha)
 	if (!is.na(type) && method %in% EDI_INFERENCE_SUITE_TYPED_SENTINELS) {
 		ci_types = tryCatch(inf_obj[[EDI_INFERENCE_SUITE_TYPED_SENTINEL_ACCESSORS[[method]]$ci]](), error = function(e) character())
@@ -684,6 +704,15 @@ run_all_inference_call_ci_for_method = function(inf_obj, alpha, method, type = N
 run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_character_) {
 	entry = Find(function(e) identical(e$label, method), EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY)
 	if (is.null(entry) || !(entry$capability %in% inf_obj$capabilities())) {
+		return(list(pval = NA_real_, method = NA_character_))
+	}
+	# See the matching CI-side comment in run_all_inference_call_ci_for_
+	# method() -- the Bartlett sentinels are only gated by the coarse
+	# "likelihood_tests" capability there, not by whether this specific
+	# class actually implements a Bartlett correction factor.
+	if (method %in% c("lik_ratio_bartlett_exact", "lik_ratio_bartlett_approx") &&
+			is.function(inf_obj$get_supported_testing_types) &&
+			!(method %in% tryCatch(inf_obj$get_supported_testing_types(), error = function(e) character()))) {
 		return(list(pval = NA_real_, method = NA_character_))
 	}
 	# "rand" degrades to "no capability" (not a silent NA from a caught
@@ -2285,7 +2314,13 @@ design_class_short_label = function(name) {
 	# camelCase boundaries the same way `inference_class_short_label()`
 	# does via `inference_class_wordify()`, e.g. `"ObservationalDesignBlocks"`
 	# -> `"Observational Design Blocks"`.
-	inference_class_wordify(rest)
+	label = inference_class_wordify(rest)
+	# "Blocks" -> "Blocking" (per user request, 2026-08-21) -- matches the
+	# terminology `DesignFixedBlocking`'s own pretty name already uses
+	# ("Blocking Fixed"), so the observational analog reads consistently
+	# ("Observational Design Blocking") instead of the noun form.
+	label = sub("\\bBlocks\\b", "Blocking", label)
+	label
 }
 
 inference_class_short_label = function(name) {
@@ -2350,7 +2385,16 @@ inference_class_short_label = function(name) {
 estimand_short_label = function(estimand) {
 	vapply(estimand, function(e) {
 		if (is.na(e)) return(NA_character_)
-		if (identical(e, "RD")) return("risk Δ")
+		# No "RD" special case: risk difference (incidence) was merged into
+		# the shared "mean_difference" estimand tag (per user request,
+		# 2026-08-21 -- "they're the same [formula]... merge them and call
+		# them 'mean diff'": a difference of binary-response means literally
+		# is a risk difference, so grouping RD-tagged classes with
+		# continuous mean-difference classes in the Combined Evidence Metric
+		# is now correct, not a scale mismatch) -- falls through to the
+		# generic "difference" -> "diff" handling below, giving "mean diff"
+		# for every one of them. EDI_INFERENCE_ESTIMAND_TAGS
+		# (inference_class_registry.R) no longer emits "RD" at all.
 		if (identical(e, "RR")) return("risk ratio")
 		if (identical(e, "hodges_lehmann_shift")) return("HL shift")
 		s = gsub("log_odds", "logodds", e, fixed = TRUE)
@@ -3057,16 +3101,18 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   installed, a \code{warning()} is issued and this artifact is skipped rather
 		#'   than erroring. Default \code{FALSE}.
 		#' @param plots If \code{TRUE}, build and display (on the current graphics
-		#'   device) one \pkg{ggplot2} visualization per estimand: an annotated
-		#'   confidence-interval forest plot (p-value left of each interval, interval
-		#'   width right of it, class/method label right-aligned on each row,
-		#'   color-keyed to significance at \code{alpha}) with a thin box-and-whisker
-		#'   summary of the point estimates -- one point per inference class/formula,
-		#'   collapsed over method/type since those share one estimate -- along its
-		#'   bottom edge, labeled \dQuote{all estimates}. Requires the optional
-		#'   \pkg{ggplot2} package; if it is not installed, a \code{warning()} is
-		#'   issued and plotting is skipped rather than erroring. Defaults to the
-		#'   value of \code{screen}.
+		#'   device) one visualization per estimand: an annotated confidence-interval
+		#'   forest plot (p-value left of each interval, interval width right of it,
+		#'   class/method label right-aligned on each row, color-keyed to
+		#'   significance at \code{alpha}) stacked over its own \dQuote{Estimates}
+		#'   box-and-whisker subplot -- a free x-axis (same label, same log10/linear
+		#'   choice as the forest, but its own limits) summarizing the point
+		#'   estimates, one point per inference class/formula, collapsed over
+		#'   method/type since those share one estimate. Built with \pkg{ggplot2}
+		#'   and stacked into a single \pkg{gtable} grob (draw with
+		#'   \code{grid::grid.draw()}); requires the optional \pkg{ggplot2} package,
+		#'   if it is not installed, a \code{warning()} is issued and plotting is
+		#'   skipped rather than erroring. Defaults to the value of \code{screen}.
 		#' @param pdf If \code{TRUE}, save the visualization to one timestamped
 		#'   multi-page PDF file in the current working directory (one page per
 		#'   estimand; page height scales with the largest estimand's number of CI
@@ -3747,7 +3793,10 @@ summary.EDIInferenceSuiteResults = function(object, ...) {
 	ok = tbl[tbl$status == "ok", , drop = FALSE]
 	structure(
 		list(
-			n_classes = nrow(tbl),
+			# Distinct classes, not rows: `methods = NULL` (default) fans out to
+			# one row per applicable method sentinel per class, so nrow(tbl) can
+			# substantially exceed the number of classes actually fit.
+			n_classes = length(unique(tbl$inference_class)),
 			status_counts = table(factor(tbl$status, levels = c("ok", "nonest", "error", "timeout"))),
 			estimate_range = if (nrow(ok) > 0L) range(ok$estimate, na.rm = TRUE) else c(NA_real_, NA_real_),
 			alpha = object$alpha,

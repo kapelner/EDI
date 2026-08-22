@@ -272,6 +272,7 @@ Collate:
     'local_machine_tuning_harness.R'
     'local_machine_tuning_axes.R'
     'local_machine_tuning_persistence.R'
+    'local_machine_tuning_correctness.R'
     'local_machine_tuning.R'
     'zzz.R'
 URL: https://github.com/kapelner/EDI,

@@ -4,15 +4,32 @@
 \alias{InferenceCountZeroInflatedNegBin}
 \title{Zero-Inflated Negative Binomial Regression Inference for Count Responses}
 \description{
-Fits a zero-inflated negative binomial regression for count responses using
-the treatment indicator and, optionally, all recorded covariates as predictors.
-The reported treatment effect is the coefficient from the conditional count
-component, on the log-rate scale, \strong{conditional on the response coming
-from the count process, not the excess-zero-inflation mechanism}: it is not
-the effect on the unconditional mean \eqn{E[Y]}, which also depends on how
-treatment shifts the excess-zero probability. A marginal (unconditional-mean)
-estimand is not yet implemented for this class (see
-\code{marginal_estimand_report.md}).
+Fits a zero-inflated negative binomial regression for count responses: a
+binary excess-zero submodel \eqn{P(\text{structural zero}_i) =
+\mathrm{logit}^{-1}(X_i^{h\top} \gamma^h)} mixed with a (non-truncated)
+negative-binomial count submodel \eqn{\log E[Y_i \mid \text{not structural
+zero}, W_i, X_i] = \beta_0 + \beta_T W_i + X_i^\top \gamma},
+\eqn{\mathrm{Var}(Y_i \mid \text{not structural zero}) = \mu_i + \mu_i^2 /
+\theta}. Unlike a hurdle model, zero counts can arise from either the
+structural-zero mechanism or from an ordinary negative-binomial draw of
+\eqn{0}. The hurdle and count submodels may use different covariate
+formulas (\code{model_formula}/\code{model_formula_zero}). The reported
+treatment effect is the coefficient from the conditional count component,
+on the log-rate scale, \strong{conditional on the response coming from the
+count process, not the excess-zero-inflation mechanism}: it is not the
+effect on the unconditional mean \eqn{E[Y]}, which also depends on how
+treatment shifts the excess-zero probability. A marginal
+(unconditional-mean) estimand is not yet implemented for this class (see
+\code{marginal_estimand_report.md}). \code{likelihood_tier = "full"}:
+Wald, gradient, score, and (bootstrap-calibrated) likelihood-ratio tests
+are all available for the count submodel's treatment coefficient (unlike
+the Poisson variant, this class's private
+\code{get_supported_testing_types_impl()} includes \code{"score"}).
+\strong{Jackknife inference is not supported}: delete-one refits of this
+two-part mixture model with a jointly-estimated dispersion parameter are
+numerically unstable, so \code{compute_jackknife_estimate()} and related
+methods report explicit non-estimability rather than attempting
+delete-one refits.
 }
 \examples{
 \donttest{
@@ -24,6 +41,19 @@ seq_des$add_all_subject_responses(rpois(10, 2))
 inf = InferenceCountZeroInflatedNegBin$new(seq_des, model_formula = ~ x1)
 inf$compute_estimate()
 }
+}
+\references{
+Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
+  Application to Defects in Manufacturing." \emph{Technometrics}, 34(1),
+  1-14, \doi{10.2307/1269547}, for the zero-inflated count-model
+  framework.
+}
+\seealso{
+\code{\link[EDI:InferenceCountNegBin]{InferenceCountNegBin}} for
+  the single-part negative binomial model this class's count submodel
+  generalizes;
+  \code{\link[EDI:InferenceCountZeroInflatedPoisson]{InferenceCountZeroInflatedPoisson}}
+  for the Poisson (equidispersed) variant.
 }
 \section{Super classes}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceCountZeroAugmentedPoissonAbstract} -> \code{InferenceCountZeroInflatedNegBin}
@@ -135,7 +165,12 @@ inf$compute_estimate()
 \if{html}{\out{<a id="method-InferenceCountZeroInflatedNegBin-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountZeroInflatedNegBin-initialize}{}}}
 \subsection{\code{InferenceCountZeroInflatedNegBin$new()}}{
-  Initialize a zero-inflated negative binomial inference object.
+  Initialize inference for the zero-inflated negative
+  binomial model (binary excess-zero submodel mixed with a
+  negative-binomial count submodel); see
+  \code{\link[EDI:InferenceCountZeroInflatedNegBin]{InferenceCountZeroInflatedNegBin}}
+  for the model form. Does not fit the model; the fit is deferred to the
+  first call to \code{compute_estimate()} or a method that requires it.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountZeroInflatedNegBin$new(

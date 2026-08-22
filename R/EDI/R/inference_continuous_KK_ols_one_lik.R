@@ -628,7 +628,7 @@ InferenceContinKKOLSOneLik = define_inference_class(
 			"compute_asymp_two_sided_pval",
 			"get_likelihood_components",
 			"approximate_bootstrap_distribution_beta_hat_T",
-			"get_supported_testing_types"
+			"get_supported_testing_types", "set_testing_type"
 		),
 		private = c(
 			"resolve_jackknife_unit",

@@ -152,21 +152,61 @@ CountKKHurdlePoissonIVWCSource = list(
 		},
 		#' @description Recomputes the class-specific treatment estimate for a bootstrap sample; see
 		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+		#'   Combines a weighted matched-pair fit (\pkg{glmmTMB}, which natively
+		#'   supports observation weights -- no unweighted-Rcpp shortcut is
+		#'   available for the weighted matched-pair case) and a weighted
+		#'   reservoir fit (\code{fast_poisson_regression_weighted_cpp()}) the
+		#'   same inverse-variance way as \code{$compute_estimate()}.
 		#' @param subject_or_block_weights Row weights for the bootstrap sample.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			private$shared_combined_bootstrap(subject_or_block_weights, estimate_only = estimate_only)
-			private$cached_values$beta_hat_T
+			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
+			X = private$build_model_matrix()
+			split = split_kk_matched_reservoir_idx(private$m, nrow(X))
+			m_vec = split$m_vec
+			matched_idx = split$matched_idx
+			reservoir_idx = split$reservoir_idx
+
+			beta_m = NA_real_
+			ssq_m = NA_real_
+			if (length(matched_idx) > 0L){
+				res_m = private$fit_hurdle_for_matched_pairs(
+					X, matched_idx, m_vec, se = !estimate_only,
+					weights = row_weights[matched_idx]
+				)
+				beta_m = res_m$beta_hat
+				ssq_m = if (!estimate_only) res_m$se^2 else 1.0
+			}
+			m_ok = is.finite(beta_m) && is.finite(ssq_m) && ssq_m > 0
+
+			beta_r = NA_real_
+			ssq_r = NA_real_
+			if (length(reservoir_idx) > 1L && length(unique(private$w[reservoir_idx])) > 1L){
+				res_r = private$fit_poisson_for_reservoir(
+					X, reservoir_idx, estimate_only = estimate_only,
+					weights = row_weights[reservoir_idx]
+				)
+				beta_r = res_r$beta_hat
+				ssq_r = if (!estimate_only) res_r$ssq_hat else 1.0
+			}
+			r_ok = is.finite(beta_r) && is.finite(ssq_r) && ssq_r > 0
+
+			beta_hat_T = if (m_ok && r_ok) {
+				w_star = ssq_r / (ssq_r + ssq_m)
+				w_star * beta_m + (1 - w_star) * beta_r
+			} else if (m_ok) {
+				beta_m
+			} else if (r_ok) {
+				beta_r
+			} else {
+				NA_real_
+			}
+			private$cached_values$beta_hat_T = beta_hat_T
+			beta_hat_T
 		}
 		# The old evaluated-body override of the mixin's
 		# approximate_bootstrap_distribution_beta_hat_T is deliberately GONE --
 		# the KKPassThrough component supplies the real function directly.
-		# NOTE (latent pre-existing bug, preserved byte-identically): the
-		# compute_estimate_with_bootstrap_weights above calls
-		# private$shared_combined_bootstrap(), which is defined NOWHERE in the
-		# package -- the weighted-bootstrap path has always errored at runtime
-		# (Bayesian-bootstrap replicates silently all-NA). Tracked in
-		# fix_inference_hierarchy.md's KK IVWC migration entry.
 	),
 	private = list(
 		use_rcpp = TRUE,
@@ -283,7 +323,7 @@ CountKKHurdlePoissonIVWCSource = list(
 			rhs = paste(c(fixed_terms, "(1 | pair_group)"), collapse = " + ")
 			stats::as.formula(paste("y ~", rhs))
 		},
-		fit_hurdle_for_matched_pairs = function(X, matched_idx, m_vec, se = TRUE){
+		fit_hurdle_for_matched_pairs = function(X, matched_idx, m_vec, se = TRUE, weights = NULL){
 			X_matched = X[matched_idx, , drop = FALSE]
 			if (is.null(dim(X_matched)) || ncol(X_matched) < 2L) {
 				return(list(beta_hat = NA_real_, se = NA_real_))
@@ -293,7 +333,11 @@ CountKKHurdlePoissonIVWCSource = list(
 			if (is.null(X_fit) || !is.finite(reduced$j_treat) || nrow(X_fit) <= ncol(X_fit)){
 				return(list(beta_hat = NA_real_, se = NA_real_))
 			}
-			if (private$use_rcpp) {
+			# No weighted variant of the Rcpp matched-pair hurdle-GLMM optimizer
+			# exists, so a caller-supplied weights vector always routes through
+			# glmmTMB (which natively accepts prior weights), skipping the
+			# unweighted Rcpp-then-glmmTMB-fallback path entirely.
+			if (private$use_rcpp && is.null(weights)) {
 				res = private$fit_hurdle_for_matched_pairs_rcpp(
 					X_fit = X_fit,
 					y_fit = private$y[matched_idx],
@@ -309,7 +353,8 @@ CountKKHurdlePoissonIVWCSource = list(
 				X_fit = X_fit,
 				y_fit = private$y[matched_idx],
 				group_id = m_vec[matched_idx],
-				se = se
+				se = se,
+				weights = weights
 			)
 		},
 		fit_hurdle_for_matched_pairs_rcpp = function(X_fit, y_fit, group_id, j_treat, se = TRUE){
@@ -338,7 +383,7 @@ CountKKHurdlePoissonIVWCSource = list(
 			}
 			list(beta_hat = beta_hat, se = se_val)
 		},
-		fit_hurdle_for_matched_pairs_glmm_tmb = function(X_fit, y_fit, group_id, se = TRUE){
+		fit_hurdle_for_matched_pairs_glmm_tmb = function(X_fit, y_fit, group_id, se = TRUE, weights = NULL){
 			if (!check_package_installed("glmmTMB")) return(list(beta_hat = NA_real_, se = NA_real_))
 			pred_df = as.data.frame(X_fit[, -1, drop = FALSE])
 			colnames(pred_df)[1] = "w"
@@ -356,6 +401,7 @@ CountKKHurdlePoissonIVWCSource = list(
 						ziformula = stats::as.formula(sub("^y ~ ", "~ ", deparse(formula_cond))),
 						family = glmmTMB::truncated_poisson(link = "log"),
 						data = dat,
+						weights = weights,
 						control = glmm_control,
 						se = se
 					)
@@ -371,6 +417,7 @@ CountKKHurdlePoissonIVWCSource = list(
 							ziformula = ~ w + (1 | pair_group),
 							family = glmmTMB::truncated_poisson(link = "log"),
 							data = dat,
+							weights = weights,
 							control = glmm_control,
 							se = se
 						)
@@ -393,7 +440,7 @@ CountKKHurdlePoissonIVWCSource = list(
 			if (!is.finite(beta_hat) || !is.finite(se_val) || se_val <= 0) return(list(beta_hat = NA_real_, se = NA_real_))
 			list(beta_hat = beta_hat, se = se_val)
 		},
-		fit_poisson_for_reservoir = function(X, reservoir_idx, estimate_only = FALSE){
+		fit_poisson_for_reservoir = function(X, reservoir_idx, estimate_only = FALSE, weights = NULL){
 			X_res = X[reservoir_idx, , drop = FALSE]
 			if (is.null(dim(X_res)) || ncol(X_res) < 2L) {
 				return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
@@ -402,6 +449,25 @@ CountKKHurdlePoissonIVWCSource = list(
 			X_fit = reduced$X
 			if (is.null(X_fit) || !is.finite(reduced$j_treat) || nrow(X_fit) <= ncol(X_fit)){
 				return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
+			}
+			if (!is.null(weights)) {
+				mod = tryCatch(
+					fast_poisson_regression_weighted_cpp(X_fit, private$y[reservoir_idx], weights = weights),
+					error = function(e) NULL
+				)
+				if (is.null(mod) || !isTRUE(mod$converged)) return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
+				beta_hat = as.numeric(mod$b[reduced$j_treat])
+				if (estimate_only) {
+					if (!is.finite(beta_hat)) return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
+					return(list(beta_hat = beta_hat, ssq_hat = 1))
+				}
+				XtWX = mod$XtWX
+				ssq_hat = tryCatch({
+					inv_XtWX = solve(XtWX)
+					as.numeric(inv_XtWX[reduced$j_treat, reduced$j_treat])
+				}, error = function(e) NA_real_)
+				if (!is.finite(beta_hat) || !is.finite(ssq_hat) || ssq_hat <= 0) return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
+				return(list(beta_hat = beta_hat, ssq_hat = ssq_hat))
 			}
 			mod = tryCatch({
 				if (estimate_only) {
@@ -1413,7 +1479,7 @@ InferenceCountKKHurdlePoissonOneLik = define_inference_class(
 			"compute_gradient_two_sided_pval",
 			"compute_wald_confidence_interval",
 			"compute_wald_two_sided_pval",
-			"get_supported_testing_types",
+			"get_supported_testing_types", "set_testing_type",
 			"compute_score_confidence_interval_generic",
 			"compute_lik_ratio_confidence_interval_generic",
 			"compute_gradient_confidence_interval_generic",
@@ -2211,7 +2277,7 @@ InferenceCountKKCondPoissonOneLik = define_inference_class(
 			"compute_gradient_two_sided_pval",
 			"compute_wald_confidence_interval",
 			"compute_wald_two_sided_pval",
-			"get_supported_testing_types",
+			"get_supported_testing_types", "set_testing_type",
 			"compute_score_confidence_interval_generic",
 			"compute_lik_ratio_confidence_interval_generic",
 			"compute_gradient_confidence_interval_generic",

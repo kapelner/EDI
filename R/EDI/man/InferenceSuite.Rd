@@ -270,16 +270,18 @@ directory. Requires the optional \pkg{jsonlite} package; if it is not
 installed, a \code{warning()} is issued and this artifact is skipped rather
 than erroring. Default \code{FALSE}.}
       \item{\code{plots}}{If \code{TRUE}, build and display (on the current graphics
-device) one \pkg{ggplot2} visualization per estimand: an annotated
-confidence-interval forest plot (p-value left of each interval, interval
-width right of it, class/method label right-aligned on each row,
-color-keyed to significance at \code{alpha}) with a thin box-and-whisker
-summary of the point estimates -- one point per inference class/formula,
-collapsed over method/type since those share one estimate -- along its
-bottom edge, labeled \dQuote{all estimates}. Requires the optional
-\pkg{ggplot2} package; if it is not installed, a \code{warning()} is
-issued and plotting is skipped rather than erroring. Defaults to the
-value of \code{screen}.}
+device) one visualization per estimand: an annotated confidence-interval
+forest plot (p-value left of each interval, interval width right of it,
+class/method label right-aligned on each row, color-keyed to
+significance at \code{alpha}) stacked over its own \dQuote{Estimates}
+box-and-whisker subplot -- a free x-axis (same label, same log10/linear
+choice as the forest, but its own limits) summarizing the point
+estimates, one point per inference class/formula, collapsed over
+method/type since those share one estimate. Built with \pkg{ggplot2}
+and stacked into a single \pkg{gtable} grob (draw with
+\code{grid::grid.draw()}); requires the optional \pkg{ggplot2} package,
+if it is not installed, a \code{warning()} is issued and plotting is
+skipped rather than erroring. Defaults to the value of \code{screen}.}
       \item{\code{pdf}}{If \code{TRUE}, save the visualization to one timestamped
 multi-page PDF file in the current working directory (one page per
 estimand; page height scales with the largest estimand's number of CI
@@ -541,11 +543,13 @@ weight \code{0} (excluded). Need not pre-sum to 1.}
   \code{pval = stat = NA_real_} if fewer than 2 rows are usable),
   \code{design}, \code{alpha}, \code{unavailable_due_to_missing_packages},
   \code{plots} (\code{list(ci_forest)}; \code{ci_forest} is a named list
-  of one \code{ggplot} object per \code{estimand} -- possibly empty --
-  rather than a single plot, since the visualization is split
-  one-per-estimand, per user request, 2026-08-19; the former separate
-  \code{estimates} plot was folded into it as a bottom box-and-whisker
-  row, 2026-08-21), \code{files} (\code{list(html, pdf, json)}, each a
+  of one \pkg{gtable} grob per \code{estimand} -- the CI forest
+  stacked over its \dQuote{Estimates} box-and-whisker subplot; draw
+  with \code{grid::grid.draw()} or pass to \code{ggplot2::ggsave()} --
+  possibly empty -- rather than a single plot, since the visualization
+  is split one-per-estimand, per user request, 2026-08-19; the former
+  separate \code{estimates} plot became that subplot, 2026-08-21),
+  \code{files} (\code{list(html, pdf, json)}, each a
   path or \code{NULL}; \code{pdf} is one multi-page PDF with one page
   per estimand), \code{timestamp}, \code{total_secs}, and
   \code{edi_version}.

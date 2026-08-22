@@ -297,7 +297,7 @@ InferenceOrdinalCloglogRegr = define_inference_class(
 			"compute_asymp_two_sided_pval",
 			"compute_estimate",
 			"compute_estimate_with_bootstrap_weights",
-			"get_supported_testing_types"
+			"get_supported_testing_types", "set_testing_type"
 		),
 		private = c(
 			"resolve_jackknife_unit",

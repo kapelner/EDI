@@ -170,9 +170,22 @@ inference_survival_dep_cens_transform_public = list(
 		#' @param show_progress Whether to show a progress bar.
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
 		compute_bootstrap_confidence_interval_basic = function(alpha = 0.05, B = 1000, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE){
+			# `super$compute_bootstrap_confidence_interval_basic()`/`_bca()` were
+			# pre-existing, genuinely broken calls: no class anywhere in the
+			# package -- classic ladder or composed -- has ever defined those two
+			# method names (confirmed: `grep -rn
+			# "compute_bootstrap_confidence_interval_(basic|bca) = function"`
+			# matches only this file), so both always threw "attempt to apply
+			# non-function" and this class's own basic/BCa CI methods have never
+			# worked. Fixed to call the real generic `type=`-parameterized method
+			# (`NonparametricBootstrap`'s own `compute_bootstrap_confidence_
+			# interval()`, which already supports `type = "basic"`/`"bca"`) instead
+			# of the never-implemented `_basic`/`_bca` name variants -- restoring
+			# the evident intent (validate a real basic/BCa bootstrap CI for this
+			# model) rather than perpetuating the crash.
 			ci = private$dep_cens_validate_bootstrap_ci(
-				super$compute_bootstrap_confidence_interval_basic(
-					alpha = alpha, B = B, min_number_usable_samples = min_number_usable_samples,
+				self$compute_bootstrap_confidence_interval(
+					alpha = alpha, B = B, type = "basic", min_number_usable_samples = min_number_usable_samples,
 					show_progress = show_progress, na.rm = na.rm
 				),
 				alpha = alpha
@@ -193,8 +206,8 @@ inference_survival_dep_cens_transform_public = list(
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
 		compute_bootstrap_confidence_interval_bca = function(alpha = 0.05, B = 1000, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE){
 			private$dep_cens_validate_bootstrap_ci(
-				super$compute_bootstrap_confidence_interval_bca(
-					alpha = alpha, B = B, min_number_usable_samples = min_number_usable_samples,
+				self$compute_bootstrap_confidence_interval(
+					alpha = alpha, B = B, type = "bca", min_number_usable_samples = min_number_usable_samples,
 					show_progress = show_progress, na.rm = na.rm
 				),
 				alpha = alpha
@@ -693,7 +706,7 @@ InferenceSurvivalDepCensTransformRegr = define_inference_class(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights",
 			"compute_rand_two_sided_pval", "compute_rand_confidence_interval",
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
-			"get_supported_testing_types",
+			"get_supported_testing_types", "set_testing_type",
 			"compute_jackknife_estimate", "compute_jackknife_bias_estimate",
 			"compute_jackknife_std_error", "compute_jackknife_wald_two_sided_pval",
 			"compute_jackknife_wald_confidence_interval",

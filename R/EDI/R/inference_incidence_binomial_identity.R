@@ -382,7 +382,7 @@ InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 		public = c(
 			"compute_estimate", "compute_rand_two_sided_pval",
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
-			"get_supported_testing_types", "compute_estimate_with_bootstrap_weights",
+			"get_supported_testing_types", "set_testing_type", "compute_estimate_with_bootstrap_weights",
 			"compute_lik_ratio_confidence_interval"
 		),
 		private = c(

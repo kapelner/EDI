@@ -1,14 +1,37 @@
 #' Hurdle Poisson Regression Inference for Count Responses
 #'
-#' Fits a hurdle Poisson regression for count responses using the treatment
-#' indicator and, optionally, all recorded covariates as predictors. The
-#' reported treatment effect is the coefficient from the conditional
-#' (truncated, \eqn{Y > 0}) count component, on the log-rate scale,
-#' \strong{conditional on clearing the hurdle}: it is not the effect on the
-#' unconditional mean \eqn{E[Y]}, which also depends on how treatment shifts
-#' the hurdle-crossing probability. A marginal (unconditional-mean) estimand
-#' is not yet implemented for this class (see
-#' \code{marginal_estimand_report.md}).
+#' Fits a hurdle Poisson regression for count responses: a binary hurdle
+#' submodel \eqn{P(Y_i > 0) = \mathrm{logit}^{-1}(X_i^{h\top} \gamma^h)} (fit
+#' jointly with the count submodel) crossed with a zero-truncated Poisson
+#' count submodel for \eqn{Y_i \mid Y_i > 0}: \eqn{\log E[Y_i \mid Y_i > 0,
+#' W_i, X_i] = \beta_0 + \beta_T W_i + X_i^\top \gamma}. The hurdle and count
+#' submodels may use different covariate formulas
+#' (\code{model_formula}/\code{model_formula_hurdle}). The reported treatment
+#' effect is the coefficient from the conditional (truncated, \eqn{Y > 0})
+#' count component, on the log-rate scale, \strong{conditional on clearing
+#' the hurdle}: it is not the effect on the unconditional mean \eqn{E[Y]},
+#' which also depends on how treatment shifts the hurdle-crossing
+#' probability. A marginal (unconditional-mean) estimand is not yet
+#' implemented for this class (see \code{marginal_estimand_report.md}).
+#' \code{likelihood_tier = "full"}: Wald, gradient, and (bootstrap-calibrated)
+#' likelihood-ratio tests are available for the count submodel's treatment
+#' coefficient; a plain score test is not exposed. \strong{Jackknife
+#' inference is not supported}: delete-one refits of this two-part model are
+#' numerically unstable, so \code{compute_jackknife_estimate()} and related
+#' methods report explicit non-estimability rather than attempting delete-one
+#' refits. Unlike \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}},
+#' the count submodel here assumes Poisson (equidispersion) conditional on
+#' clearing the hurdle, with no separate dispersion parameter.
+#'
+#' @references Mullahy, J. (1986). "Specification and Testing of Some
+#'   Modified Count Data Models." \emph{Journal of Econometrics}, 33(3),
+#'   341-365, \doi{10.1016/0304-4076(86)90002-3}, for the hurdle count-model
+#'   framework.
+#'
+#' @seealso \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for
+#'   the single-part Poisson model this class's count submodel generalizes to
+#'   two parts; \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}}
+#'   for the overdispersion-robust negative-binomial variant.
 #'
 #' @examples
 #' \donttest{
@@ -17,7 +40,7 @@
 #'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 #' }
 #' seq_des$add_all_subject_responses(rpois(10, 2))
-#' inf = InferenceCountHurdleNegBin$new(seq_des)
+#' inf = InferenceCountHurdlePoisson$new(seq_des)
 #' inf$compute_estimate()
 #' }
 #' @export
@@ -25,7 +48,11 @@ InferenceCountHurdlePoisson = R6::R6Class("InferenceCountHurdlePoisson",
 	lock_objects = FALSE,
 	inherit = InferenceCountZeroAugmentedPoissonAbstract,
 	public = list(
-		#' @description Initialize a hurdle Poisson inference object.
+		#' @description Initialize inference for the hurdle Poisson model (binary
+		#'   hurdle submodel plus zero-truncated Poisson count submodel); see
+		#'   \code{\link[EDI:InferenceCountHurdlePoisson]{InferenceCountHurdlePoisson}}
+		#'   for the model form. Does not fit the model; the fit is deferred to the
+		#'   first call to \code{compute_estimate()} or a method that requires it.
 		#' @param des_obj A completed \code{Design} object with a count response.
 		#' @param model_formula Optional formula for the count submodel.
 		#' @param model_formula_hurdle Formula for the hurdle submodel. If
@@ -99,7 +126,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights", "compute_rand_two_sided_pval",
-			"get_supported_testing_types",
+			"get_supported_testing_types", "set_testing_type",
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
 			"compute_wald_two_sided_pval", "compute_wald_confidence_interval",
 			"compute_score_two_sided_pval", "compute_score_confidence_interval",

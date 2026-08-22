@@ -1560,7 +1560,17 @@ EDI_COMPONENT_SPECS = list(
 				source_name = "OrdinalAdjacentCategoryLikelihoodSource",
 				file = "inference_ordinal_adj_cat_logit.R",
 				dependencies = "StandardModelCache",
-				owns_state = "best_Xmm_colnames",
+				# `cached_mod` added 2026-08-21: never declared in the original
+				# class's own source (created dynamically on first assignment in
+				# generate_mod()), and Wald's own `cached_mod = NULL` declaration
+				# never survives component composition (modifyList()-based
+				# assembly drops NULL-valued entries for *eager* components).
+				# Harmless for real package instances (lock_objects = FALSE) but
+				# breaks any locked test/user subclass -- reproduced directly:
+				# `private$cached_mod = model_output` in generate_mod() threw
+				# "cannot add bindings to a locked environment". Same fix pattern
+				# as every other migrated *Likelihood component this session.
+				owns_state = c("best_Xmm_colnames", "cached_mod"),
 				provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
 				provides_private_methods = c(
 					"supports_likelihood_tests",
@@ -1572,7 +1582,8 @@ EDI_COMPONENT_SPECS = list(
 					"supports_lik_ratio_param_bootstrap",
 					"simulate_under_lik_null",
 					"build_design_matrix",
-					"best_Xmm_colnames"
+					"best_Xmm_colnames",
+					"cached_mod"
 				),
 				provides_capabilities = character(),
 				allowed_likelihood_tiers = "full",

@@ -217,7 +217,7 @@ test_that("run_all_inference(): randomization-dependent sentinels are never fann
 	expect_false(des$supports_randomization_draw())
 
 	suite = InferenceSuite$new(des)
-	res = suite$run_all_inference(screen = FALSE, html = TRUE, plots = FALSE, pdf = FALSE, classes = "InferenceAllSimpleMeanDiff")
+	res = suite$run_all_inference(screen = TRUE, html = FALSE, plots = FALSE, pdf = FALSE, classes = "InferenceAllSimpleMeanDiff")
 	expect_false(any(res$results_table$method %in% c("rand", "rand_bootstrap")))
 })
 
@@ -232,7 +232,7 @@ test_that("run_all_inference(): randomization-dependent sentinels are never fann
 # every applicable class here was observed to run past a 280s budget.
 expect_no_silently_masked_capability = function(des, label, methods = c("wald", "exact", "rand")) {
 	suite = InferenceSuite$new(des)
-	res = suite$run_all_inference(screen = FALSE, html = TRUE, plots = FALSE, pdf = FALSE, methods = methods)
+	res = suite$run_all_inference(screen = TRUE, html = FALSE, plots = FALSE, pdf = FALSE, methods = methods)
 	tbl = res$results_table
 	ok = tbl[tbl$status == "ok", , drop = FALSE]
 	if (nrow(ok) > 0L) {

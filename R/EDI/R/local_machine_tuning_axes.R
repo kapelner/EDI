@@ -70,7 +70,7 @@ edi_tuning_tune_binary_axis = function(families, n_grid, reps,
 	if (!is.null(on_cell_done)) checkmate::assertFunction(on_cell_done, nargs = 1L)
 	if (is.null(seed_fn)) {
 		seed_fn = function(class, n) {
-			20260821L + (as.integer(sum(utf8ToInt(class))) %% 10000L) + n
+			edi_tuning_default_seed(class, n)
 		}
 	}
 
@@ -274,6 +274,10 @@ edi_tuning_warm_start_run_setting = function(class, response_type, n, setting, s
 	des = edi_tuning_synthetic_experiment(response_type, n = n, seed = seed)
 	generator = get(class, envir = asNamespace("EDI"), inherits = FALSE)
 	inf = generator$new(des)
+	# Returns the operation's own result (a CI, a point estimate, ...) rather than
+	# discarding it -- edi_tuning_interleaved_ab() already captures every call's
+	# return value (results_a/results_b), and TODO-8's correctness gate needs a
+	# real fitted operation's output to compare across settings.
 	tryCatch(
 		do.call(inf[[spec$method]], spec$args),
 		error = function(e) {
@@ -284,7 +288,6 @@ edi_tuning_warm_start_run_setting = function(class, response_type, n, setting, s
 			NULL
 		}
 	)
-	invisible(NULL)
 }
 
 #' Tune the warm-start axis for one resampling operation: which classes
@@ -372,7 +375,7 @@ edi_tuning_tune_categorical_axis = function(families, n_grid, reps, candidates,
 	if (!is.null(on_cell_done)) checkmate::assertFunction(on_cell_done, nargs = 1L)
 	if (is.null(seed_fn)) {
 		seed_fn = function(class, n) {
-			20260821L + (as.integer(sum(utf8ToInt(class))) %% 10000L) + n
+			edi_tuning_default_seed(class, n)
 		}
 	}
 
@@ -662,7 +665,7 @@ edi_tuning_tune_parallel_crossover = function(operation, num_cores, n_grid = c(2
 		rt = families$response_type[[i]]
 		for (j in seq_along(n_grid)) {
 			n = n_grid[[j]]
-			seed = 20260821L + (as.integer(sum(utf8ToInt(cl))) %% 10000L) + n
+			seed = edi_tuning_default_seed(cl, n)
 			a_first = ((i + j) %% 2L) == 0L
 			t_cell = proc.time()[["elapsed"]]
 

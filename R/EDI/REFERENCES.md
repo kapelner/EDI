@@ -312,9 +312,13 @@ files' `@references`) if/when it becomes available.
   `InferenceCountKKHurdlePoissonOneLik` (two-part hurdle model: a binary
   zero-vs-positive submodel combined with a zero-truncated Poisson
   submodel for the positive counts), `InferenceCountHurdleNegBin`
-  (hurdle negative-binomial variant). See also the "Coverage gaps" section
-  below for the still-gated `InferenceCountHurdlePoisson` sibling this
-  citation also applies to once it migrates.
+  (hurdle negative-binomial variant), `InferenceCountHurdlePoisson`
+  (hurdle Poisson variant, migrated 2026-08-21).
+- **[Lambert1992]** Lambert, D. (1992). "Zero-Inflated Poisson Regression,
+  with an Application to Defects in Manufacturing." *Technometrics*, 34(1),
+  1-14. doi:10.2307/1269547. — Used by: `InferenceCountZeroInflatedPoisson`,
+  `InferenceCountZeroInflatedNegBin` (zero-inflated count-model framework;
+  both migrated 2026-08-21).
 - **[CameronTrivedi2013]** Cameron, A. C., and Trivedi, P. K. (2013).
   *Regression Analysis of Count Data* (2nd ed.). Cambridge University
   Press. — Used by: `InferenceCountNegBin`, `InferenceCountPoisson`
@@ -510,27 +514,15 @@ named method still lacking a formal `@references` block (adjacent-category
 logit — `InferenceOrdinalAdjCatLogitRegr`; its continuation-ratio and
 stereotype-logit siblings, `InferenceOrdinalContRatioRegr` and
 `InferenceOrdinalStereotypeLogitRegr`, migrated 2026-08-21 and now carry
-`[Agresti2010Ordinal]`/`[Anderson1984]` respectively) and
-three count-response classes likewise (zero-inflated Poisson/NegBin, hurdle
-Poisson — `InferenceCountZeroInflatedPoisson`,
-`InferenceCountZeroInflatedNegBin`, `InferenceCountHurdlePoisson`) whose
-class-level `@details` prose names the method but does not (yet) carry a
-formal `@references` block. (`InferenceCountHurdleNegBin` migrated
-2026-08-21 and now carries `[Mullahy1986]`.) These four are **not** a
-documentation oversight: all four classes are still on the pre-migration
-`R6::R6Class(inherit = <OldLadderBase>)` hierarchy rather than the shallow
-`define_inference_class(inherit = Inference, ...)` form (see
-`fix_inference_hierarchy.md`), and are deliberately left untouched while
-that migration is in progress — adding polished documentation to a class
-whose structure is about to change risks exactly the kind of silent
-reversion `fix_inference_hierarchy.md`'s own migration notes describe
-happening to `InferenceIncidGCompRiskDiff` earlier in this effort. Revisit
-this list once each of those four classes migrates (their `inherit=`
-becomes `Inference` directly), and add the canonical citation then: Lambert
-(1992, *Technometrics* 34(1), 1-14, doi:10.2307/1269547) for zero-inflated
-Poisson; Mullahy (1986, *Journal of Econometrics* 33(3), 341-365,
-doi:10.1016/0304-4076(86)90002-3) for hurdle Poisson — already identified,
-just not yet addable to a class whose current form is about to be replaced.
+`[Agresti2010Ordinal]`/`[Anderson1984]` respectively). The three
+count-response classes previously listed here as gated (zero-inflated
+Poisson/NegBin, hurdle Poisson — `InferenceCountZeroInflatedPoisson`,
+`InferenceCountZeroInflatedNegBin`, `InferenceCountHurdlePoisson`) have all
+now migrated (their shared base `InferenceCountZeroAugmentedPoissonAbstract`
+flipped to `define_inference_class(inherit = Inference, ...)` on
+2026-08-21) and carry `[Lambert1992]`/`[Lambert1992]`/`[Mullahy1986]`
+respectively (`InferenceCountHurdleNegBin` was migrated separately, also
+2026-08-21, and carries `[Mullahy1986]`).
 
 When a new `@references` block is added anywhere in the package, add the
 corresponding entry here in the same commit/session — `Rscript
