@@ -1,21 +1,21 @@
 library(testthat)
 library(EDI)
 
-# InferenceSurvivalKKWeibullFrailtyLoggammaIVWC migration (fix_inference_hierarchy.md,
+# InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC migration (fix_inference_hierarchy.md,
 # "KK And IVWC Estimators"): from a plain leaf on the
 # `InferenceKKPassThroughCompoundNoParamBootstrap` ladder (with an
 # `eval(body(...))` bootstrap override and a pure-passthrough `duplicate()`)
 # to `define_inference_class()` composing
-# `BayesianBootstrap`/`Wald`/`SurvivalKKWeibullFrailtyLoggammaIVWC` (static leaf
+# `BayesianBootstrap`/`Wald`/`SurvivalGLMMWeibullFrailtyLoggammaIVWC` (static leaf
 # source, `dependencies = "KKCompound"`). The legacy generator reproduces
 # the pre-migration class verbatim, evaluated-body override included, using
 # the REAL classname (see the count-KK golden for why fixtures must not use
 # a "...Legacy" suffix: name-keyed optimizer policy and capability
 # resolution).
 make_clayton_ivwc_legacy_generator = function() {
-	src = EDI:::SurvivalKKWeibullFrailtyLoggammaIVWCSource
+	src = EDI:::SurvivalGLMMWeibullFrailtyLoggammaIVWCSource
 	R6::R6Class(
-		"InferenceSurvivalKKWeibullFrailtyLoggammaIVWC",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
 		lock_objects = FALSE,
 		parent_env = asNamespace("EDI"),
 		inherit = EDI:::InferenceKKPassThroughCompoundNoParamBootstrap,
@@ -63,11 +63,11 @@ clayton_dropped_labels = c(
 	"lik_ratio_ci", "lik_ratio_pval", "param_boot_pval", "param_boot_ci"
 )
 
-test_that("InferenceSurvivalKKWeibullFrailtyLoggammaIVWC migration produces identical outputs", {
+test_that("InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC migration produces identical outputs", {
 	Legacy = make_clayton_ivwc_legacy_generator()
 	des = clayton_golden_design()
 	legacy = Legacy$new(des)
-	migrated = InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$new(des)
+	migrated = InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC$new(des)
 	for (label in names(inference_migration_method_calls)) {
 		spec = inference_migration_method_calls[[label]]
 		legacy$set_seed(20260817L)
@@ -102,10 +102,10 @@ test_that("InferenceSurvivalKKWeibullFrailtyLoggammaIVWC migration produces iden
 	}
 })
 
-test_that("InferenceSurvivalKKWeibullFrailtyLoggammaIVWC is marked migrated in the registry", {
+test_that("InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC is marked migrated in the registry", {
 	EDI:::populate_inference_class_registry()
-	metadata = EDI:::get_inference_class_metadata("InferenceSurvivalKKWeibullFrailtyLoggammaIVWC")
+	metadata = EDI:::get_inference_class_metadata("InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC")
 	expect_identical(metadata$parent, "Inference")
 	manifest = EDI:::inference_hierarchy_migration_manifest_as_list()
-	expect_identical(manifest[["InferenceSurvivalKKWeibullFrailtyLoggammaIVWC"]]$migration_status, "migrated")
+	expect_identical(manifest[["InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC"]]$migration_status, "migrated")
 })

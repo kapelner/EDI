@@ -673,7 +673,7 @@ SurvivalDepCensTransformSource = list(
 #' uses a fast Cox-model surrogate fit (\code{weighted_cox_bootstrap_surrogate_fit()})
 #' as an approximation rather than a full weighted joint-likelihood refit.
 #'
-#' @seealso \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaOneLik]{InferenceSurvivalKKWeibullFrailtyLoggammaOneLik}}
+#' @seealso \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik]{InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik}}
 #'   for a different (Clayton-copula, KK-design) approach to dependence
 #'   between two survival-type quantities.
 #'   \href{https://en.wikipedia.org/wiki/Survival_analysis}{Survival

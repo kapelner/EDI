@@ -401,12 +401,12 @@ run_likelihood_method_smoke_suite <- function(response_type_filter = NA_characte
 			"InferenceSurvivalKKLWACoxPHOneLik"
 		)
 		results$kk_survival_clayton = call_all_methods(
-			InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$new(make_kk_survival_design(n = 64L), model_formula = ~ x1, verbose = FALSE),
-			"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik"
+			InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$new(make_kk_survival_design(n = 64L), model_formula = ~ x1, verbose = FALSE),
+			"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"
 		)
 		results$kk_survival_weibull_frailty_one_lik = call_all_methods(
-			InferenceSurvivalKKWeibullFrailtyNormalOneLik$new(make_kk_survival_design(n = 64L), model_formula = ~ x1, verbose = FALSE),
-			"InferenceSurvivalKKWeibullFrailtyNormalOneLik"
+			InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$new(make_kk_survival_design(n = 64L), model_formula = ~ x1, verbose = FALSE),
+			"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik"
 		)
 	}
 	invisible(results)

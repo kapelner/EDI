@@ -1,5 +1,15 @@
 # Extending EDI with Custom R6 Inference and Design Classes
 
+> **Superseded / closed 2026-08-23.** The external extension contract in this
+> document now ships with the package as `R/EDI/vignettes/extending-edi.Rmd`
+> (`vignette("extending-edi")`, executable examples, listed in `_pkgdown.yml`),
+> and the in-package contributor material lives only in
+> `../contracts/new_model_creation.md`, which references the vignette's
+> sections rather than repeating them. This file is kept as the historical
+> record of the contract's evolution; do not edit it — update the vignette
+> (external authors) or the contract (contributors) instead. `_master.md`'s
+> standing constraint now names the vignette.
+
 > **Depends on:** none — `fix_inference_hierarchy.md` (closed 2026-08-23) and
 > `fix_design_hierarchy.md` (closed 2026-08-17), both in
 > `../finished_features/`, are the architecture this contract is written

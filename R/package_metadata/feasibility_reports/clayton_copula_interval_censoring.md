@@ -5,7 +5,7 @@
 Commissioned by TODO-11 in
 `package_metadata/finished_features/interval_censored_survival_response.md`
 ("Commission a follow-up feasibility report for
-`InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`/`OneLik` under interval censoring,
+`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`/`OneLik` under interval censoring,
 scoping how the copula's matched-pair joint-survival structure interacts
 with interval-censored marginals").
 
@@ -24,13 +24,13 @@ interval-censored. This report scopes exactly what those branches are.
 
 ## Two Classes, One Shared Bivariate Kernel
 
-`R/EDI/R/inference_survival_KK_weibull_frailty_loggamma.R` defines two classes:
+`R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R` defines two classes:
 
-- **`InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`** (line 36) — fits the
+- **`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`** (line 36) — fits the
   matched-pairs component and the reservoir component *separately*, then
   inverse-variance-weight-combines the two log-time-ratio estimates
   (`shared()`, lines 318-358).
-- **`InferenceSurvivalKKWeibullFrailtyLoggammaOneLik`** (line 468) — fits *one*
+- **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`** (line 468) — fits *one*
   combined likelihood in which matched pairs contribute the joint-copula
   term and reservoir subjects contribute as singleton (independent)
   Weibull terms in the same optimization.
@@ -133,9 +133,9 @@ Tier 1 than to TODO-10, just with roughly `9/4` the branch count and a
 
 Both classes' reservoir component fits an **ordinary, independent**
 Weibull AFT — `weibull_for_reservoir()` in the IVWC class
-(`inference_survival_KK_weibull_frailty_loggamma.R:389+`) calls
+(`inference_survival_GLMM_weibull_frailty_loggamma.R:389+`) calls
 `fast_weibull_regression_general_cpp(y=..., y_L=..., y_R=..., X=...)`
-directly (confirmed at `inference_survival_KK_weibull_frailty_loggamma.R:219-227`,
+directly (confirmed at `inference_survival_GLMM_weibull_frailty_loggamma.R:219-227`,
 the fixed-VC fast path) — **this is the exact same kernel already scoped
 as Tier 1** (`R/EDI/src/fast_weibull_regression.cpp:375`,
 `fast_weibull_regression_general_cpp`, shared verbatim with

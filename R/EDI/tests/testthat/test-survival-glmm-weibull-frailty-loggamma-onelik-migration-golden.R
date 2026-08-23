@@ -1,12 +1,12 @@
 library(testthat)
 library(EDI)
 
-# InferenceSurvivalKKWeibullFrailtyLoggammaOneLik migration (fix_inference_hierarchy.md,
+# InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik migration (fix_inference_hierarchy.md,
 # "Full-Likelihood Estimators" / "KK And IVWC Estimators"): formerly a
 # single-layer R6 leaf raw-splicing `InferenceMixinKKPassThrough$public/
 # private` onto `InferenceParamBootstrap`, no `super$` calls needing the
 # generic-`self$`-aliased-override fix (unlike the count/incidence OneLik
-# classes above). A registered component `SurvivalKKWeibullFrailtyLoggammaOneLik`
+# classes above). A registered component `SurvivalGLMMWeibullFrailtyLoggammaOneLik`
 # already existed (self-harvested, `dependencies = character()`) -- since
 # this class's public/private were built via a raw
 # `modifyList(InferenceMixinKKPassThrough$public/private, list(...))` splice
@@ -16,11 +16,11 @@ library(EDI)
 # "spliced-in" once they are merged like this, unlike the leaf-only+
 # KKPassThrough-dependency shape used for every other OneLik class this
 # stretch). The pre-migration class body itself is kept alive as the
-# non-exported `InferenceSurvivalKKWeibullFrailtyLoggammaOneLikLegacyRaw` R6 generator
+# non-exported `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLikLegacyRaw` R6 generator
 # purely so the harvest at load time has something to snapshot from -- see
 # that variable's own header comment in inference_survival_KK_clayton_
 # copula.R. Composed as `c("BayesianBootstrap", "ParametricLikelihoodBootstrap",
-# "SurvivalKKWeibullFrailtyLoggammaOneLik")` (the harvested component supplies
+# "SurvivalGLMMWeibullFrailtyLoggammaOneLik")` (the harvested component supplies
 # `get_likelihood_test_spec()` but not the public score/gradient/lik_ratio
 # dispatch methods themselves, which `ParametricLikelihoodBootstrap`'s
 # `LikelihoodTests` dependency provides). The legacy generator below simply
@@ -29,16 +29,16 @@ library(EDI)
 # never modified).
 # 2026-08-23 (fix_inference_hierarchy.md "Static Cleanup" / "Ban raw component
 # splicing"): the `...LegacyRaw` generator is gone from the package (its
-# source is now the plain leaf-only `SurvivalKKWeibullFrailtyLoggammaOneLikSource`
+# source is now the plain leaf-only `SurvivalGLMMWeibullFrailtyLoggammaOneLikSource`
 # depending on `KKPassThrough`), so -- exactly like the hurdle/cond-logit
 # OneLik goldens -- the legacy generator is rebuilt here from that source
 # plus the mixin, with the historical `optimization_alg = "lbfgs"`
 # private-list redeclaration restored so it is the pre-migration object.
 make_survival_kk_clayton_copula_onelik_legacy_generator = function() {
-	src = EDI:::SurvivalKKWeibullFrailtyLoggammaOneLikSource
+	src = EDI:::SurvivalGLMMWeibullFrailtyLoggammaOneLikSource
 	mixin = EDI:::InferenceMixinKKPassThrough
 	R6::R6Class(
-		"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
 		lock_objects = FALSE,
 		parent_env = asNamespace("EDI"),
 		inherit = EDI:::InferenceParamBootstrap,
@@ -79,11 +79,11 @@ survival_kk_clayton_copula_onelik_golden_design = function(n = 24L, seed = 20260
 # golden design; the standard comparison loop below now covers those labels
 # like any other (no special-casing needed post-fix).
 
-test_that("InferenceSurvivalKKWeibullFrailtyLoggammaOneLik migration produces identical outputs", {
+test_that("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik migration produces identical outputs", {
 	Legacy = make_survival_kk_clayton_copula_onelik_legacy_generator()
 	des = survival_kk_clayton_copula_onelik_golden_design()
 	legacy = Legacy$new(des)
-	migrated = InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$new(des)
+	migrated = InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$new(des)
 	for (label in names(inference_migration_method_calls)) {
 		spec = inference_migration_method_calls[[label]]
 		legacy$set_seed(20260817L)
@@ -103,10 +103,10 @@ test_that("InferenceSurvivalKKWeibullFrailtyLoggammaOneLik migration produces id
 	}
 })
 
-test_that("InferenceSurvivalKKWeibullFrailtyLoggammaOneLik is marked migrated", {
+test_that("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik is marked migrated", {
 	EDI:::populate_inference_class_registry()
-	metadata = EDI:::get_inference_class_metadata("InferenceSurvivalKKWeibullFrailtyLoggammaOneLik")
+	metadata = EDI:::get_inference_class_metadata("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik")
 	expect_identical(metadata$parent, "Inference")
 	manifest = EDI:::inference_hierarchy_migration_manifest_as_list()
-	expect_identical(manifest[["InferenceSurvivalKKWeibullFrailtyLoggammaOneLik"]]$migration_status, "migrated")
+	expect_identical(manifest[["InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"]]$migration_status, "migrated")
 })

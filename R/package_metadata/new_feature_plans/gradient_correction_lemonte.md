@@ -285,8 +285,8 @@ third/fourth-derivative-differentiable likelihood). Unlike that table, there is 
 | `InferenceSurvivalKKStratCoxOneLik` | `fast_stratified_coxph_regression_cpp` | Borderline | Same |
 | `InferenceSurvivalWeibullRegr` | `fast_weibull_regression_cpp` | Borderline | AFT-style location/scale, closer to NegBin/Beta in spirit |
 | `InferenceSurvivalDepCensTransformRegr` | `fast_dep_cens_transform_optim_cpp` | Difficult | Highly custom combined event/censoring likelihood |
-| `InferenceSurvivalKKWeibullFrailtyNormalOneLik` | `fast_weibull_frailty_cpp` | Difficult | Frailty integration |
-| `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | Difficult | Copula dependence |
+| `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik` | `fast_weibull_frailty_cpp` | Difficult | Frailty integration |
+| `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | Difficult | Copula dependence |
 
 **Totals**: Easy = 10, Borderline = 12, Difficult = 12 (34 paths) — same tier counts as
 both other reports, for the same structural reason.

@@ -69,8 +69,8 @@ test_that("static cleanup guardrail prevents new eval(body(Inference...)) usage"
 	# are now migrated) -- entry removed entirely.
 	# inference_incidence_KK_cond_logit.R dropped to 0 at the 2026-08-19
 	# InferenceIncidKKCondLogitOneLik migration -- entry removed entirely.
-	# inference_survival_KK_weibull_frailty_loggamma.R and
-	# inference_survival_KK_weibull_frailty_normal.R both dropped to 0 at 2026-08-19
+	# inference_survival_GLMM_weibull_frailty_loggamma.R and
+	# inference_survival_GLMM_weibull_frailty_normal.R both dropped to 0 at 2026-08-19
 	# (fix_inference_hierarchy.md "Static Cleanup", "Ban eval(body(Inference...))"):
 	# their `approximate_bootstrap_distribution_beta_hat_T` restatements
 	# inside the `...LegacyRaw` harvesting classes were verified no-ops

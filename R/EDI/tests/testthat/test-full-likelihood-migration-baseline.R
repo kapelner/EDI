@@ -42,10 +42,10 @@ full_likelihood_expected_classes = c(
 	"InferencePropKKQuantileRegrOneLik",
 	"InferencePropZeroOneInflatedBetaRegr",
 	"InferenceSurvivalDepCensTransformRegr",
-	"InferenceSurvivalKKWeibullFrailtyLoggammaIVWC",
-	"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik",
-	"InferenceSurvivalKKWeibullFrailtyNormalIVWC",
-	"InferenceSurvivalKKWeibullFrailtyNormalOneLik",
+	"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
+	"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
+	"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC",
+	"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik",
 	"InferenceSurvivalKKWeibullMarginal",
 	"InferenceSurvivalWeibullRegr"
 )
@@ -102,10 +102,10 @@ full_likelihood_expected_groups = list(
 	),
 	survival = c(
 		"InferenceSurvivalDepCensTransformRegr",
-		"InferenceSurvivalKKWeibullFrailtyLoggammaIVWC",
-		"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik",
-		"InferenceSurvivalKKWeibullFrailtyNormalIVWC",
-		"InferenceSurvivalKKWeibullFrailtyNormalOneLik",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik",
 		"InferenceSurvivalKKWeibullMarginal",
 		"InferenceSurvivalWeibullRegr"
 	),
@@ -126,10 +126,10 @@ full_likelihood_expected_groups = list(
 		"InferenceOrdinalKKGLMM",
 		"InferencePropKKGLMM",
 		"InferencePropKKQuantileRegrOneLik",
-		"InferenceSurvivalKKWeibullFrailtyLoggammaIVWC",
-		"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik",
-		"InferenceSurvivalKKWeibullFrailtyNormalIVWC",
-		"InferenceSurvivalKKWeibullFrailtyNormalOneLik",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik",
 		"InferenceSurvivalKKWeibullMarginal"
 	),
 	non_kk = c(
@@ -237,15 +237,15 @@ full_likelihood_expected_survival_components = list(
 	InferenceSurvivalDepCensTransformRegr = "SurvivalDepCensTransform",
 	InferenceSurvivalWeibullRegr = "SurvivalWeibullLikelihood",
 	InferenceSurvivalKKWeibullMarginal = "SurvivalKKWeibullMarginal",
-	InferenceSurvivalKKWeibullFrailtyLoggammaIVWC = "SurvivalKKWeibullFrailtyLoggammaIVWC",
-	InferenceSurvivalKKWeibullFrailtyLoggammaOneLik = "SurvivalKKWeibullFrailtyLoggammaOneLik",
+	InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = "SurvivalGLMMWeibullFrailtyLoggammaIVWC",
+	InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = "SurvivalGLMMWeibullFrailtyLoggammaOneLik",
 	# Merged to a single component at migration time (2026-08-18): the
 	# separate self-harvested ...IVWCLeaf component was folded into the main
 	# source, same reshaping as the Clayton IVWC entry above.
-	InferenceSurvivalKKWeibullFrailtyNormalIVWC = "SurvivalKKWeibullFrailtyNormalIVWC",
-	InferenceSurvivalKKWeibullFrailtyNormalOneLik = c(
-		"SurvivalKKWeibullFrailtyNormalOneLik",
-		"SurvivalKKWeibullFrailtyNormalOneLikLeaf"
+	InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = "SurvivalGLMMWeibullFrailtyNormalIVWC",
+	InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = c(
+		"SurvivalGLMMWeibullFrailtyNormalOneLik",
+		"SurvivalGLMMWeibullFrailtyNormalOneLikLeaf"
 	)
 )
 

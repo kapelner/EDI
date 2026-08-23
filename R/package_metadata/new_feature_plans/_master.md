@@ -10,7 +10,8 @@ spliced into one step and marked **[spliced]**.
 
 > **Release line (2026-08-15).** `release_v1_0_0.md` batches Phase 1 (both
 > hierarchy migrations, interval-censored survival, the SEXP spec), Phase 3
-> (documentation, roxygenize R CMD check), `extending-edi-r6.md`,
+> (documentation, roxygenize R CMD check), `extending-edi-r6.md` (since
+> 2026-08-23: `vignettes/extending-edi.Rmd`),
 > `save_load_api.md`, `multi_arm_designs.md → TODO-6`, and a CRAN-mechanics
 > checklist into the v1.0.0 CRAN scope — "every public contract frozen."
 > Everything in Phases 0/2/4/5/6 not named there is deferred to 1.x as
@@ -469,8 +470,13 @@ already stated there:**
 
 ## Standing constraints (apply to every phase)
 
-- `extending-edi-r6.md` must be updated whenever a phase changes the external
-  extension contract (capability registration, `lock_objects`, custom shells).
+- `R/EDI/vignettes/extending-edi.Rmd` (which replaced `extending-edi-r6.md`
+  on 2026-08-23; the md is retired to `../finished_features/`) must be updated
+  whenever a phase changes the external extension contract (capability
+  registration, `lock_objects`, custom shells) — its chunks execute at vignette
+  build, and `test-custom-extension-contract.R` pins the same promises.
+  Contributor-facing mechanics go in `contracts/new_model_creation.md`, which
+  references the vignette's sections instead of duplicating them.
 - Every new C++ kernel follows `sexp_removal_rcppeigen_conversion_spec.md`
   conventions (`Eigen::Map` params with the response/weights `SEXP` exception,
   `EDI_CORE_ONLY` + `edi::ResultMap` if Python-bound).

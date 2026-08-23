@@ -416,15 +416,26 @@ ZeroAugmentedCountLikelihoodSource = list(
 			if (is.null(response)) return(stats::as.formula(paste("~", rhs)))
 			stats::as.formula(paste(response, "~", rhs))
 		},
-		zero_augmented_sandwich_se = function(fit, X_fit, Xzi_fit, j_treat = 2L, is_hurdle = FALSE){
+		# 2026-08-23 (marginal_estimand_report.md TODO-5): factored out of
+		# zero_augmented_sandwich_se() (which used to compute the full
+		# sandwich vcov and immediately throw away every entry but
+		# [j_treat, j_treat]) so the marginal-estimand delta-method path can
+		# reuse the exact same bread/meat construction against the FULL
+		# matrix, rather than duplicating it. Poisson-family only (the score
+		# formulas below assume a plain exp()-link Poisson/hurdle-Poisson
+		# mean with no dispersion parameter) -- NOT valid for the NegBin
+		# variants (ZINB/hurdle-NegBin), which is exactly why this plan's
+		# TODO-5 wires the marginal estimand onto the two Poisson concretes
+		# only and leaves NegBin for a follow-up pass with its own,
+		# dispersion-aware score derivation.
+		zero_augmented_poisson_sandwich_vcov_full = function(fit, X_fit, Xzi_fit, is_hurdle = FALSE){
 			params = as.numeric(fit$params %||% NA_real_)
 			bread = tryCatch(as.matrix(fit$vcov), error = function(e) NULL)
-			if (is.null(bread) || !length(params) || any(!is.finite(params))) return(NA_real_)
+			if (is.null(bread) || !length(params) || any(!is.finite(params))) return(NULL)
 			total_p = ncol(X_fit) + ncol(Xzi_fit)
-			j_treat = as.integer(j_treat)[1L]
 			if (length(params) != total_p || nrow(bread) != total_p || ncol(bread) != total_p ||
-					j_treat < 1L || j_treat > ncol(X_fit) || any(!is.finite(bread))) {
-				return(NA_real_)
+					any(!is.finite(bread))) {
+				return(NULL)
 			}
 			X_fit = as.matrix(X_fit)
 			Xzi_fit = as.matrix(Xzi_fit)
@@ -464,10 +475,112 @@ ZeroAugmentedCountLikelihoodSource = list(
 				}
 			}
 			meat = crossprod(score)
-				vcov_robust = tryCatch(bread %*% meat %*% bread, error = function(e) NULL)
-				if (is.null(vcov_robust) || nrow(vcov_robust) < j_treat) return(NA_real_)
-				se = sqrt(as.numeric(vcov_robust[j_treat, j_treat]))
-				if (is.finite(se) && se > 0) se else NA_real_
+			tryCatch(bread %*% meat %*% bread, error = function(e) NULL)
+		},
+		zero_augmented_sandwich_se = function(fit, X_fit, Xzi_fit, j_treat = 2L, is_hurdle = FALSE){
+			j_treat = as.integer(j_treat)[1L]
+			if (j_treat < 1L || j_treat > ncol(X_fit)) return(NA_real_)
+			vcov_robust = private$zero_augmented_poisson_sandwich_vcov_full(fit, X_fit, Xzi_fit, is_hurdle = is_hurdle)
+			if (is.null(vcov_robust) || nrow(vcov_robust) < j_treat) return(NA_real_)
+			se = sqrt(as.numeric(vcov_robust[j_treat, j_treat]))
+			if (is.finite(se) && se > 0) se else NA_real_
+		},
+			# 2026-08-23 (marginal_estimand_report.md TODO-5): model-implied
+			# unconditional mean E[Y | x, w] for the zero-augmented Poisson
+			# family, Poisson variants only (ZIP / hurdle Poisson -- NOT
+			# NegBin, see zero_augmented_poisson_sandwich_vcov_full()'s
+			# comment for why NegBin is deliberately excluded from this
+			# pass). theta = [b_cond (p), b_zi (q)], the exact stacked
+			# layout fast_zero_augmented_poisson_cpp()'s params/vcov use
+			# (matches zero_augmented_sandwich_se()'s own parameter
+			# ordering). pi = plogis(Xzi %*% b_zi) is P(structural zero)
+			# for ZIP and P(Y = 0) (the hurdle probability) for hurdle --
+			# same convention zero_augmented_poisson_sandwich_vcov_full()
+			# already uses for its score derivation.
+			#
+			# ZIP/ZINB-style zero-inflated mean: (1 - pi) * lambda (the
+			# untruncated Poisson mean).
+			#
+			# Hurdle mean: (1 - pi) * E[Y | Y > 0], where the zero-truncated
+			# Poisson mean is lambda / (1 - exp(-lambda)) -- verified
+			# against the zero-truncated Poisson distribution's standard
+			# moment formula (e.g. Cameron & Trivedi, Regression Analysis of
+			# Count Data, ch. 4.2): for Y ~ Poisson(lambda) truncated to
+			# exclude 0, E[Y | Y > 0] = lambda / P(Y > 0) = lambda / (1 -
+			# exp(-lambda)) exactly, because truncating a Poisson does not
+			# change its mean-parameter lambda, only the normalizing
+			# constant. This Poisson-specific shortcut is NOT valid for
+			# NegBin (that family's truncated mean has no such closed form
+			# in terms of the untruncated mean alone) -- another reason
+			# NegBin needs its own dedicated pass.
+			zero_augmented_poisson_mean_from_theta = function(theta, X, Xzi, is_hurdle){
+				p = ncol(X)
+				b_cond = theta[seq_len(p)]
+				b_zi = theta[(p + 1L):length(theta)]
+				lambda = exp(pmin(as.numeric(X %*% b_cond), 700))
+				pi = stats::plogis(as.numeric(Xzi %*% b_zi))
+				if (isTRUE(is_hurdle)) {
+					trunc_mean = lambda / pmax(-expm1(-lambda), 1e-15)
+					(1 - pi) * trunc_mean
+				} else {
+					(1 - pi) * lambda
+				}
+			},
+			# G-computation average over the empirical covariate
+			# distribution, all subjects plugged in at w = 1 vs. w = 0
+			# (column 2 of both design matrices, the fixed "treatment"
+			# column convention used throughout this file, e.g.
+			# zero_augmented_sandwich_se()'s j_treat = 2L default).
+			zero_augmented_poisson_marginal_functional = function(theta, X, Xzi, is_hurdle, estimand){
+				X1 = X; X1[, 2L] = 1
+				X0 = X; X0[, 2L] = 0
+				Xzi1 = Xzi; Xzi1[, 2L] = 1
+				Xzi0 = Xzi; Xzi0[, 2L] = 0
+				mean1 = mean(private$zero_augmented_poisson_mean_from_theta(theta, X1, Xzi1, is_hurdle))
+				mean0 = mean(private$zero_augmented_poisson_mean_from_theta(theta, X0, Xzi0, is_hurdle))
+				if (identical(estimand, "marginal_ratio")) log(mean1 / mean0) else mean1 - mean0
+			},
+			# Full-fit marginal path for compute_estimate(): reuses the
+			# single cached ML fit (private$cached_mod, populated by
+			# private$shared() via generate_mod()) -- a pure post-fit
+			# transform, no refit. SE via marginal_estimand_delta_se()
+			# against the sandwich vcov (NOT fit$vcov alone -- the
+			# zero-augmented family's Wald SE is already sandwich-corrected
+			# for the conditional coefficient, per
+			# zero_augmented_sandwich_se(), so the marginal delta-method SE
+			# uses the same robust covariance for consistency). Degrees of
+			# freedom: Inf, same convention as every other delta-method/
+			# sandwich Wald path in this package (ZOIB's marginal path,
+			# InferenceIncidGCompAbstract's RD/RR paths).
+			compute_marginal_estimand_estimate = function(estimand, estimate_only = FALSE){
+				mod = private$cached_mod
+				if (is.null(mod) || is.null(mod$params) || is.null(mod$X_fit) || is.null(mod$Xzi_fit)) {
+					private$cache_nonestimable_estimate("zero_augmented_poisson_marginal_fit_unavailable")
+					return(NA_real_)
+				}
+				is_hurdle = isTRUE(mod$is_hurdle)
+				functional = function(theta) private$zero_augmented_poisson_marginal_functional(theta, mod$X_fit, mod$Xzi_fit, is_hurdle, estimand)
+				point = tryCatch(functional(mod$params), error = function(e) NA_real_)
+				if (!is.finite(point)) {
+					private$cache_nonestimable_estimate("zero_augmented_poisson_marginal_point_unavailable")
+					return(NA_real_)
+				}
+				private$cached_values$beta_hat_T = point
+				if (estimate_only) return(point)
+				vcov_robust = private$zero_augmented_poisson_sandwich_vcov_full(mod, mod$X_fit, mod$Xzi_fit, is_hurdle = is_hurdle)
+				if (is.null(vcov_robust)) {
+					private$cache_nonestimable_se("zero_augmented_poisson_marginal_vcov_unavailable")
+					return(point)
+				}
+				dm = marginal_estimand_delta_se(mod$params, vcov_robust, functional)
+				private$cached_values$df = Inf
+				if (is.finite(dm$se) && dm$se >= 0) {
+					private$cached_values$s_beta_hat_T = dm$se
+					private$clear_nonestimable_state()
+				} else {
+					private$cache_nonestimable_se("zero_augmented_poisson_marginal_se_unavailable")
+				}
+				point
 			},
 			hurdle_poisson_lambda_mle = function(mean_positive){
 				if (!is.finite(mean_positive) || mean_positive < 1) return(NA_real_)
@@ -961,10 +1074,18 @@ ZeroAugmentedCountLikelihoodSource = list(
 				}
 				
 				private$clear_nonestimable_state()
+				# 2026-08-23 (marginal_estimand_report.md TODO-5): stash the
+				# design matrices and is_hurdle flag on the cached fit itself
+				# (same pattern as ZOIB's mod$X/mod$X_zero_one, TODO-4) so the
+				# marginal-estimand post-fit path can rebuild the mean
+				# function and its delta-method gradient without a refit.
+				fit$X_fit = X_fit
+				fit$Xzi_fit = Xzi_fit
+				fit$is_hurdle = is_hurdle
 				private$cached_mod = fit
 				full_params = as.numeric(fit$params)
 				private$set_fit_warm_start(full_params, "params")
-				
+
 				private$cached_values$likelihood_test_context = list(
 					X = X_fit,
 					Xzi = Xzi_fit,

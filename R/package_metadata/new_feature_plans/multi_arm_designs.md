@@ -34,7 +34,7 @@ where the two-arm assumption is load-bearing today (§1), which concrete
 `Inference` contract's scalar shape costs a native multi-arm implementation
 (§5–§6), and proposes a concrete phased plan with file-level scope (§8).
 
-Related background: [extending-edi-r6.md](extending-edi-r6.md) (the
+Related background: [extending-edi-r6.md](../finished_features/extending-edi-r6.md) (retired 2026-08-23; the live external contract is `R/EDI/vignettes/extending-edi.Rmd`) (the
 external extension contract, whose scalar `estimate`/`se`/`df` shape is
 directly relevant to §6); [sequential_inference.md](sequential_inference.md)
 (a structurally similar feasibility document — its §5 "thin orchestration

@@ -53,9 +53,9 @@ frozen_pre_refactor_dispatch = function(inference_class, operation, n = NULL) {
 		if (identical(operation, "rand") &&
 				(grepl("^InferencePropBetaRegr$", inference_class, perl = TRUE) ||
 				 grepl("^InferenceOrdinalKKCondAdjCatLogitRegr$", inference_class, perl = TRUE) ||
-				 grepl("^InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$", inference_class, perl = TRUE) ||
+				 grepl("^InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$", inference_class, perl = TRUE) ||
 				 grepl("^InferenceSurvivalKKStratCoxPHOneLik$", inference_class, perl = TRUE) ||
-				 grepl("^InferenceSurvivalKKWeibullFrailtyNormalIVWC$", inference_class, perl = TRUE))) return(FALSE)
+				 grepl("^InferenceSurvivalGLMMWeibullFrailtyNormalIVWC$", inference_class, perl = TRUE))) return(FALSE)
 		if (identical(operation, "jackknife") &&
 				grepl("^InferenceSurvivalGehanWilcox$", inference_class, perl = TRUE)) return(FALSE)
 		if (identical(operation, "bayesian_boot") &&
@@ -122,7 +122,7 @@ frozen_pre_refactor_dispatch = function(inference_class, operation, n = NULL) {
 
 	if (!is.na(n_val) && n_val >= 500L) {
 		if (identical(operation, "bayesian_boot") &&
-				(grepl("^InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$", inference_class, perl = TRUE) ||
+				(grepl("^InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$", inference_class, perl = TRUE) ||
 				 grepl("^InferenceIncidKKCondLogitGLMMOneLik$", inference_class, perl = TRUE) ||
 				 grepl("^InferenceIncidModifiedPoisson$", inference_class, perl = TRUE) ||
 				 grepl("^InferenceOrdinalKKCLMM$", inference_class, perl = TRUE) ||
@@ -150,7 +150,7 @@ frozen_pre_refactor_dispatch = function(inference_class, operation, n = NULL) {
 		if (identical(operation, "rand") &&
 				grepl("^InferenceCountPoisson$", inference_class, perl = TRUE)) return(FALSE)
 		if (identical(operation, "jackknife") &&
-				(grepl("^InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$", inference_class, perl = TRUE) ||
+				(grepl("^InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC$", inference_class, perl = TRUE) ||
 				 grepl("^InferenceOrdinalOrderedProbitRegr$", inference_class, perl = TRUE) ||
 				 grepl("^InferenceSurvivalDepCensTransformRegr$", inference_class, perl = TRUE) ||
 				 grepl("^InferenceSurvivalGehanWilcox$", inference_class, perl = TRUE) ||
@@ -216,8 +216,8 @@ golden_classes = c(
 	"InferencePropKKGEE", "InferenceOrdinalKKCondAdjCatLogitRegr", "InferenceCountQuasiPoisson",
 	"InferencePropKKQuantileRegrOneLik", "InferenceCountHurdlePoisson", "InferenceCountZeroInflatedPoisson",
 	"InferenceIncidGCompRiskRatio", "InferenceIncidKKGEE", "InferencePropBetaRegr",
-	"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik", "InferenceSurvivalKKStratCoxPHOneLik",
-	"InferenceSurvivalKKWeibullFrailtyNormalIVWC", "InferenceSurvivalGehanWilcox", "InferenceContinQuantileRegr",
+	"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceSurvivalKKStratCoxPHOneLik",
+	"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC", "InferenceSurvivalGehanWilcox", "InferenceContinQuantileRegr",
 	"InferenceContinKKOLSIVWC", "InferenceContinKKRobustRegrIVWC", "InferencePropKKQuantileRegrIVWC",
 	"InferenceSurvivalCoxPHRegr", "InferenceCountZeroInflatedNegBin", "InferenceIncidLogBinomial",
 	"InferenceAllSimpleWilcox", "InferenceSurvivalDepCensTransformRegr", "InferenceCountKKGLMM",
@@ -226,7 +226,7 @@ golden_classes = c(
 	"InferenceCountNegBin", "InferenceCountKKHurdlePoissonOneLik", "InferenceIncidKKCondLogitGLMMOneLik",
 	"InferenceIncidModifiedPoisson", "InferenceOrdinalKKCLMM", "InferenceContinRobustRegr",
 	"InferenceAllKKWilcoxIVWC", "InferenceOrdinalKKGLMM", "InferenceSurvivalKMDiff", "InferenceOrdinalGCompMeanDiff",
-	"InferenceSurvivalKKWeibullFrailtyLoggammaIVWC", "InferenceOrdinalOrderedProbitRegr", "InferenceIncidRiskDiff",
+	"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC", "InferenceOrdinalOrderedProbitRegr", "InferenceIncidRiskDiff",
 	"InferenceIncidKKGCompRiskRatio", "InferenceCountKKCondPoissonOneLik", "InferenceIncidExactBinomial",
 	"InferenceIncidProbitRegr", "InferenceIncidExactZhang", "InferenceIncidKKGCompRiskDiff",
 	"InferenceIncidKKCondLogitOneLik", "InferenceCountBinomial", "InferenceNonExistentClass"

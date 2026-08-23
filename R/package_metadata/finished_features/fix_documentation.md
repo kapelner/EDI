@@ -1456,26 +1456,26 @@ for the merge and the now-seed-reproducible kernels.)
 - [x] TODO #634: Method `InferenceSurvivalGehanWilcox$new()` (current description `99` chars).
 - [x] TODO #635: Topic `InferenceSurvivalGehanWilcox` (current description `931` chars).
 
-### `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC.Rd`
+### `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC.Rd`
 
-- [x] TODO #636: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$approximate_bootstrap_distribution_beta_hat_T()` (reviewed: supplied by the KK component chain, not this Source; that shared implementation already documented via `KKCompound`/`KKPassThrough`).
-- [x] TODO #637: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$compute_asymp_confidence_interval()` (reviewed: `SurvivalKKWeibullFrailtyLoggammaIVWCSource` already documents params and links `InferenceAsymp`; adequate as-is).
-- [x] TODO #638: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$compute_asymp_two_sided_pval()` (reviewed: already documents the frailty/dependence-model p-value semantics; adequate as-is).
-- [x] TODO #639: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$compute_estimate_with_bootstrap_weights()` (reviewed: already documents the Bayesian-bootstrap weighted-surrogate-fit behavior and constant-weight fast path; adequate as-is).
-- [x] TODO #640: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$compute_estimate()` (reviewed: already documents log-time-ratio estimand; adequate as-is).
-- [x] TODO #641: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$duplicate()` (reviewed: intentionally not overridden by this Source per the "Static Cleanup" comment — inherited from the KK component chain, already documented there).
-- [x] TODO #642: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$new()` (reviewed: already documents params and delegation; adequate as-is).
-- [x] TODO #643: Topic `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC` (reviewed: already documents the Clayton-copula/Weibull-frailty closed form, cites Clayton 1978 and Oakes 1989, and cross-links the log-normal-frailty sibling class; adequate as-is).
+- [x] TODO #636: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC$approximate_bootstrap_distribution_beta_hat_T()` (reviewed: supplied by the KK component chain, not this Source; that shared implementation already documented via `KKCompound`/`KKPassThrough`).
+- [x] TODO #637: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC$compute_asymp_confidence_interval()` (reviewed: `SurvivalGLMMWeibullFrailtyLoggammaIVWCSource` already documents params and links `InferenceAsymp`; adequate as-is).
+- [x] TODO #638: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC$compute_asymp_two_sided_pval()` (reviewed: already documents the frailty/dependence-model p-value semantics; adequate as-is).
+- [x] TODO #639: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC$compute_estimate_with_bootstrap_weights()` (reviewed: already documents the Bayesian-bootstrap weighted-surrogate-fit behavior and constant-weight fast path; adequate as-is).
+- [x] TODO #640: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC$compute_estimate()` (reviewed: already documents log-time-ratio estimand; adequate as-is).
+- [x] TODO #641: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC$duplicate()` (reviewed: intentionally not overridden by this Source per the "Static Cleanup" comment — inherited from the KK component chain, already documented there).
+- [x] TODO #642: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC$new()` (reviewed: already documents params and delegation; adequate as-is).
+- [x] TODO #643: Topic `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` (reviewed: already documents the Clayton-copula/Weibull-frailty closed form, cites Clayton 1978 and Oakes 1989, and cross-links the log-normal-frailty sibling class; adequate as-is).
 
-### `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik.Rd`
+### `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik.Rd`
 
-- [x] TODO #644: Method `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [x] TODO #645: Method `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
-- [x] TODO #646: Method `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$compute_asymp_two_sided_pval()` (current description `122` chars).
-- [x] TODO #647: Method `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$compute_estimate()` (current description `65` chars).
-- [x] TODO #648: Method `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$duplicate()` (current description `57` chars).
-- [x] TODO #649: Method `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$new()` (current description `106` chars).
-- [x] TODO #650: Topic `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` (current description `119` chars).
+- [x] TODO #644: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #645: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #646: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$compute_asymp_two_sided_pval()` (current description `122` chars).
+- [x] TODO #647: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$compute_estimate()` (current description `65` chars).
+- [x] TODO #648: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$duplicate()` (current description `57` chars).
+- [x] TODO #649: Method `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$new()` (current description `106` chars).
+- [x] TODO #650: Topic `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` (current description `119` chars).
 
 ### `InferenceSurvivalKKLWACoxPHIVWC.Rd`
 
@@ -1511,15 +1511,15 @@ for the merge and the now-seed-reproducible kernels.)
 - [x] TODO #668: Method `InferenceSurvivalKKStratCoxPHOneLik$new()` (reviewed: already documents params and delegation; adequate as-is).
 - [x] TODO #669: Topic `InferenceSurvivalKKStratCoxPHOneLik` (was thin, only `@keywords internal`, no title/description — added a full topic doc explaining the combined-partial-likelihood model, contrasting it with the two-stage IVWC sibling, and citing Cox 1972 / Lee-Wei-Amato 1992).
 
-### `InferenceSurvivalKKWeibullFrailtyNormalIVWC.Rd`
+### `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC.Rd`
 
-- [x] TODO #670: Method `InferenceSurvivalKKWeibullFrailtyNormalIVWC$new()` (reviewed: `SurvivalKKWeibullFrailtyNormalIVWCSource$initialize` already documents params; adequate as-is).
-- [x] TODO #671: Topic `InferenceSurvivalKKWeibullFrailtyNormalIVWC` (reviewed/expanded: existing doc already had a thorough log-normal-vs-gamma-frailty model discussion; added missing `@references` for Vaupel/Manton/Stallard 1979 and Hougaard 2000, added matching `REFERENCES.md` entries).
+- [x] TODO #670: Method `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC$new()` (reviewed: `SurvivalGLMMWeibullFrailtyNormalIVWCSource$initialize` already documents params; adequate as-is).
+- [x] TODO #671: Topic `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC` (reviewed/expanded: existing doc already had a thorough log-normal-vs-gamma-frailty model discussion; added missing `@references` for Vaupel/Manton/Stallard 1979 and Hougaard 2000, added matching `REFERENCES.md` entries).
 
-### `InferenceSurvivalKKWeibullFrailtyNormalOneLik.Rd`
+### `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik.Rd`
 
-- [x] TODO #672: Method `InferenceSurvivalKKWeibullFrailtyNormalOneLik$new()` (current description `63` chars).
-- [x] TODO #673: Topic `InferenceSurvivalKKWeibullFrailtyNormalOneLik` (current description `121` chars).
+- [x] TODO #672: Method `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$new()` (current description `63` chars).
+- [x] TODO #673: Topic `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik` (current description `121` chars).
 
 ### `InferenceSurvivalKKWeibullMarginal.Rd`
 

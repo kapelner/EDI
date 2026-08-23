@@ -489,7 +489,7 @@ make_edi_bm_no_canonical = function(cls_name, d) {
         InferenceCountKKCondPoissonOneLik = quote(fast_cpoisson_combined_with_var_cpp(
             yT_v = yT_v, n_k_v = n_k_v, X_diff_v = X_diff_v, y_r = y_r, w_r = w_r, X_r = X_r, estimate_only = TRUE
         )),
-        InferenceSurvivalKKWeibullFrailtyNormalOneLik = quote(EDI:::fast_weibull_frailty_cpp(
+        InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = quote(EDI:::fast_weibull_frailty_cpp(
             X = X, y = y, dead = dead, group_id = group_id, estimate_only = TRUE
         )),
         InferencePropZeroOneInflatedBetaRegr = quote(EDI:::fast_zero_one_inflated_beta_cpp(
@@ -537,7 +537,7 @@ make_edi_wald_bm_no_canonical = function(cls_name, d) {
             se = sqrt(fit$ssq_b_j); t_stat = as.numeric(fit$b)[2] / se
             2 * stats::pnorm(-abs(t_stat))
         }),
-        InferenceSurvivalKKWeibullFrailtyNormalOneLik = quote({
+        InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = quote({
             fit = EDI:::fast_weibull_frailty_cpp(X = X, y = y, dead = dead, group_id = group_id, estimate_only = FALSE)
             se = sqrt(fit$ssq_b_T); t_stat = as.numeric(fit$b)[1] / se
             2 * stats::pnorm(-abs(t_stat))
@@ -743,7 +743,7 @@ no_r_support_specs = list(
          data_fn = function() generate_kk_incid_combined_data()),
     list(cls = "InferenceCountKKCondPoissonOneLik", pkg = "None", func = "no canonical R implementation",
          data_fn = function() generate_kk_count_combined_data()),
-    list(cls = "InferenceSurvivalKKWeibullFrailtyNormalOneLik", pkg = "None", func = "no canonical R implementation",
+    list(cls = "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", pkg = "None", func = "no canonical R implementation",
          data_fn = function() generate_kk_weibull_frailty_data()),
     list(cls = "InferencePropZeroOneInflatedBetaRegr", pkg = "None", func = "no canonical R implementation",
          data_fn = function() generate_zoib_data()),
@@ -1312,7 +1312,7 @@ no_r_support_wald_specs = list(
          data_fn = function() generate_kk_incid_combined_data(n_disc = 30, n_conc = 30, n_res = 80)),
     list(cls = "InferenceCountKKCondPoissonOneLik", pkg = "None", func = "no canonical R implementation",
          data_fn = function() generate_kk_count_combined_data(n_pairs = 60, n_res = 80)),
-    list(cls = "InferenceSurvivalKKWeibullFrailtyNormalOneLik", pkg = "None", func = "no canonical R implementation",
+    list(cls = "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", pkg = "None", func = "no canonical R implementation",
          data_fn = function() generate_kk_weibull_frailty_data(n_pairs = 50)),
     list(cls = "InferencePropZeroOneInflatedBetaRegr", pkg = "None", func = "no canonical R implementation",
          data_fn = function() generate_zoib_data(n = N_WALD)),

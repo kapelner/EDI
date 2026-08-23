@@ -16,6 +16,14 @@ test harness and path audits.
 Companion documents (read them; this contract references but does not repeat
 them):
 
+- `R/EDI/vignettes/extending-edi.Rmd` (`vignette("extending-edi")`) — the
+  user-facing primer on how EDI classes are built (factory, components,
+  capabilities, registry-only discovery), the external extension shells, and
+  the subclassing rules. **This contract does not repeat that material**: §1
+  below cites the vignette's sections and adds only what an in-package class
+  needs on top (registry lookup tables, factory arguments, Source literals,
+  Collate, capability tables). Anything that changes the external contract is
+  edited in the vignette, not here.
 - `package_metadata/finished_features/fix_inference_hierarchy.md` — the class
   architecture, metadata, components, capabilities, and Source Invariants.
   **Done (2026-08-23): 0 open items, moved to `finished_features/`.** Every
@@ -40,33 +48,32 @@ them):
 
 ## 1. Capabilities and Categorization
 
-New classes follow the shallow-hierarchy architecture in
-`fix_inference_hierarchy.md`. Do not add a new class by inheriting from an
-algorithmic base (`InferenceRand`, `InferenceAsympLikStdModCache`, etc.);
-those bases are being drained and deleted.
+The architecture (shallow inheritance, components, capabilities, the retired
+legacy ladder, registry-only discovery) is described once, for everyone, in
+`vignette("extending-edi")` § "How EDI classes are built" and § "Subclassing
+rules and capability detection"; `fix_inference_hierarchy.md`'s Architectural
+Rule and Source Invariants are the formal statement. Read those first. This
+section adds only what an **in-package** class must do beyond them.
 
-**Current state (2026-08-23): the migration is complete.** Every concrete
-class is a `define_inference_class()` call (any of them is a valid template;
+**Templates (2026-08-23, migration complete):** every concrete class is a
+`define_inference_class()` call and any is a valid template —
 `InferenceCountQuasiPoisson`, `InferenceAllSimpleWilcox`,
 `InferenceIncidLogRegr`, `InferenceSurvivalKKLWACoxPHOneLik` are compact
 examples of, respectively, quasi-likelihood, no-likelihood, full-likelihood
-GLM, and KK partial-likelihood classes). The only non-factory `Inference*`
-generators left are the retained legacy ladder (`EDI_INFERENCE_ABSTRACT_CLASS_NAMES`
-minus the root), kept purely as component sources and golden-test fixtures;
-the few `R6::R6Class("InferenceXxx", ...)` definitions you will still see at
-the top of some files are in-file *component sources* that the following
-`define_inference_class()` call composes, not templates. Never add a class
-that inherits from the ladder, never re-create a `supports_*()` flag pair,
-and never splice a component's `$public`/`$private` lists by hand — all
-three are enforced (`test-static-cleanup-guardrails.R`,
-`test-inference-class-registry.R`, factory validation).
+GLM, and KK partial-likelihood classes. The few `R6::R6Class("InferenceXxx",
+...)` definitions still at the top of some files are in-file *component
+sources* that the following factory call composes, not templates. The
+vignette's "never" rules (no ladder inheritance, no `supports_*()` flag pairs,
+no hand-splicing of component lists, no redeclared root-owned state) are
+enforced in-package by `test-static-cleanup-guardrails.R`,
+`test-inference-class-registry.R`, `test-capability-tables.R`, and factory
+validation.
 
 ### 1.1 Class identity
 
 - Parent is `Inference`, or an estimator-family base only when every child is
-  substitutable for that parent *as the same kind of estimator*. Never
-  inherit to acquire an optional algorithm (bootstrap, randomization, Wald,
-  likelihood tests, KK pass-through, GEE, GLMM, caches).
+  substitutable for that parent *as the same kind of estimator* (vignette,
+  "How EDI classes are built").
 - Define the class through `define_inference_class()` (defined in
   `EDI/R/contracts_mixins.R`; component specs in `EDI_COMPONENT_SPECS` in
   the same file; registry helpers in `EDI/R/inference_class_registry.R`) so
@@ -156,6 +163,11 @@ The record's fields are:
 
 ### 1.3 Capabilities
 
+The capability model itself (metadata-backed `capabilities()`/`supports()`,
+public method presence == capability presence, no flag pairs or throwing
+stubs) is the vignette's "How EDI classes are built"; here is what the class
+author must decide and wire:
+
 - Decide explicitly which optional inference paths the model supports:
   Wald/asymptotic, likelihood tests (LR/score/gradient), exact, randomization
   test and randomization CI, nonparametric bootstrap (and its typed flavors),
@@ -168,24 +180,24 @@ The record's fields are:
   {`partial`, `full`}, `get_likelihood_test_spec`, and
   `simulate_under_lik_null`. If you cannot write a null simulator, the class
   does not get the capability.
-- Public optional method presence must equal capabilities:
-  `public method exists <=> capability exists <=> hook exists`. No throwing
-  stubs, no `supports_*` flag pairs. Callers query
-  `obj$supports("capability")` / `obj$capabilities()`.
 - Heavy optional components (parametric bootstrap, GLMM plumbing, Bartlett)
   should be `lazy`-loaded; keep discovery and `supports()` metadata-only.
 - Structurally unsupported paths must be *intentional and documented* (e.g.
   Bayesian bootstrap is undefined for rank statistics because fractional
   weights have no meaning for the statistic) — record the reason in the
-  path-audit row `notes` (§9) and in the roxygen docs (§3).
+  path-audit row `notes` (§8.2) and in the roxygen docs (§3).
 
 ### 1.4 Discovery
 
-`InferenceSuite` must find the class from metadata alone: `abstract == FALSE`,
-`exported == TRUE`, `required_packages` available, `compatibility(design)`
-true. Verify the new class appears for compatible designs and is absent (with
-the right reason) otherwise. Never make discovery depend on constructor
-failures or private-method sniffing.
+Discovery is registry-only (vignette, "How EDI classes are built"); for an
+in-package class that means the §1.2 tables decide everything.
+`InferenceSuite`/`Design$applicable_inference_class_names()` must find the
+class from metadata alone: `abstract == FALSE`, `exported == TRUE`,
+`required_packages` available, compatibility predicates true. Verify the new
+class appears for compatible designs and is absent (with the right reason,
+e.g. in `unavailable_inference_classes_due_to_missing_packages()`) otherwise.
+Never make discovery depend on constructor failures or private-method
+sniffing.
 
 ---
 
@@ -258,11 +270,43 @@ for a new class and its public methods:
   are documented once at the highest level of the hierarchy; the new class
   links to the parent/component docs and documents only its own deltas. Do
   not repeat boilerplate.
-- References: primary method-defining paper (DOI/arXiv preferred), textbook
-  for standard theory, analogous Python API links (statsmodels, lifelines,
-  scipy) labeled as *analogs, not dependencies*, and Wikipedia only as
-  "See also" orientation. Follow the Primary Reference Hierarchy in
-  `fix_documentation.md`.
+- References: see §3.0 — every cited work goes through `R/EDI/REFERENCES.md`.
+- The rest of the standard applies verbatim even though it is not restated
+  here: numerical-implementation details (optimizer, starting values,
+  tolerances, constraints, fallbacks, warnings), computational complexity and
+  practical limits, input conventions (dimensions, coding, ties, boundary
+  cases), return-object schema for anything returning a list, lifecycle
+  status, and — for the `fast_*` backend — the backend contract of §5.1.
+
+### 3.0 References and `R/EDI/REFERENCES.md`
+
+`R/EDI/REFERENCES.md` is the package's single source of truth for primary
+citations: one entry per work, organized by method family, with a stable key
+(`[KK14]`, `[Fisher1935]`, …) and a "Used by:" line naming every class/kernel
+that cites it. It is maintained **by hand** and has no automated sync check
+(its own header says so), so a new class is responsible for keeping it true:
+
+- Cite by stable key in the roxygen `@references` block (author-year plus the
+  DOI/arXiv/book record, as the existing entries do) and link back to
+  `REFERENCES.md`; never paste a bibliography that only lives inline.
+- For every work the new class cites: if the key exists, append the class
+  (and any new `fast_*` kernel) to that key's "Used by:" line; if it is new,
+  add a full entry under the right family section (`## Inference methods` →
+  response-type subsection, `## Numerical/backend utilities` for algorithms,
+  …). Check the "Coverage gaps" section at the bottom and remove any gap the
+  new docs close.
+- Choose sources by the Primary Reference Hierarchy in `fix_documentation.md`
+  (method-defining paper → journal/arXiv → textbook/monograph → software
+  manual only as an implementation analog → Wikipedia only as orientation),
+  and cite the **numerical and statistical ingredients** too, not just the
+  method: approximations, optimizers, quadrature rules, transforms,
+  corrections, and named algorithms (Lanczos, Stirling, Gauss–Hermite,
+  LogSumExp, Bartlett, BCa, …) each get a reference.
+- Apply the three-class link policy from `fix_documentation.md`: primary
+  statistical references; analogous-software documentation (statsmodels,
+  lifelines, scipy, scikit-survival — say explicitly they are *analogs, not
+  dependencies*, and use its starter link maps); Wikipedia as "See also"
+  orientation only, never as the primary source.
 
 ### 3.1 Examples
 
@@ -367,6 +411,67 @@ after changing the class to avoid stale-pass illusions. Quality gates are
 checked by `check_comprehensive_suite_quality_gates.R` and
 `check_public_argument_combination_quality_gates.R`.
 
+### 4.4 The advanced argument-combination tests and the second post-push CI (`test-coverage-R-advanced`)
+
+Two GitHub Actions run on every push/PR to `main` that touches `R/EDI/**`
+or `R/package_tests/**`: `test-coverage-R.yaml` (covr/testthat line
+coverage) and the **second, advanced one**, `test-coverage-R-advanced.yml`,
+which is the comprehensive-test-suite gate built from
+`comprehensive_test_suite.md`. A new class is not done until its public
+methods are wired into that gate's **multi-argument (argument-combination)
+tests** and the workflow is green. Concretely, the workflow:
+
+1. installs EDI, rebuilds the live-introspection artifacts
+   (`public_api_inventory.R`, `extract_checkmate_argument_contracts.R`,
+   `public_argument_contract_registry.R`);
+2. rebuilds and runs the **argument-combination family** —
+   `generate_public_argument_combinations.R` →
+   `run_public_argument_combinations.R` (every public method of every
+   exported class is called over the valid/invalid grid of argument values
+   generated from the §2 contracts and §2.2 cross-argument constraints) →
+   `analyze_public_argument_combinations.R` →
+   `public_argument_combination_integration.R` →
+   `check_public_argument_combination_quality_gates.R report`;
+3. rebuilds the baseline audit, suite registry, and internal safety-net
+   surfaces (`audit_comprehensive_suite_baseline.R` **before**
+   `comprehensive_suite_registry.R`, then
+   `comprehensive_suite_internal_surfaces.R`);
+4. **fails if any regenerated `package_tests/*.csv` artifact differs from
+   what is committed** (`git diff --exit-code` over the inventory,
+   checkmate contracts, every `public_argument_combination_*.csv`,
+   `comprehensive_suite_registry.csv`, `comprehensive_suite_baseline_audit.csv`,
+   `comprehensive_suite_internal_surfaces.csv`);
+5. runs `run_comprehensive_suite.R smoke "" 300 --force`,
+   `analyze_comprehensive_suite.R`, and
+   `check_comprehensive_suite_quality_gates.R ci`.
+
+What this means for a new class:
+
+- **Add the class's methods to the advanced tests, don't just let them be
+  discovered.** The combination runner only knows what the §2 asserts and
+  the `package_tests/public_argument_contract_registry.R` /
+  `public_argument_combination_constraints.R` /
+  `public_argument_combination_fixtures.R` declarations tell it. Every new
+  public method with more than one argument needs its single-argument
+  domains (checkmate, §2.1) and its cross-argument constraints (§2.2)
+  declared there, plus a fixture when the method needs special construction
+  (a KK design, a censored response, an optional package). A method with an
+  undeclared constraint shows up as a spurious combination failure; a
+  declared-but-unenforced one as a missed error; an unregistered method as
+  a `public_api_missing_from_registry`/`uncovered_apis` hard-gate failure.
+- **Regenerate and commit the artifacts in the workflow's order** (it is
+  the same order as §4.3, with the argument-combination family run in full
+  and `audit_comprehensive_suite_baseline.R` strictly before
+  `comprehensive_suite_registry.R`). The drift check in step 4 is the
+  mechanism that catches "added a class, forgot the CSVs" — if you push
+  without regenerating, the second CI fails on the diff, not on your code.
+- **Run the gate locally first** — the same scripts in the same order, then
+  `check_public_argument_combination_quality_gates.R report` and
+  `check_comprehensive_suite_quality_gates.R ci` must both pass — and
+  check the workflow run after pushing; a red `test-coverage-R-advanced`
+  is a failed Definition of Done even when `R-CMD-check` and
+  `test-coverage-R` are green.
+
 ---
 
 ## 5. Core C++ Code
@@ -439,6 +544,53 @@ them directly. Therefore:
   `fast_roxygenize.R` / `Rcpp::compileAttributes`) and keep
   `NAMESPACE`/docs in sync.
 
+### 5.5 Kernel performance engineering rules (from `performance_profiling_and_upgrades.md`)
+
+`package_metadata/new_feature_plans/performance_profiling_and_upgrades.md` is
+the package's evidence record of every kernel optimization tried, retained,
+and reverted (Phases 1–8). It is not repeated here; its retained findings are
+the rules a new kernel must satisfy *before* §5.2's profiling pass, so the
+pass confirms a clean profile rather than discovering known sins:
+
+- **No allocation in the hot path.** Objective/gradient/Hessian bodies use
+  constructor-sized member scratch buffers and `.noalias()` assignments; no
+  `VectorXd::Zero(n)`, `resize()`, `auto`-captured expressions, or
+  `.transpose() * v` temporaries inside `operator()` (TODO-110 and the
+  TODO-9/13/51 family). Verify with the cheap per-file version of TODO-141:
+  a `-DEIGEN_RUNTIME_NO_MALLOC` build with `set_is_malloc_allowed(false)`
+  around the objective must not assert.
+- **Zero-copy boundary.** `Eigen::Map` over R memory (never
+  `as<Eigen::MatrixXd>` copies) on the way in; results built once, not per
+  replicate, on the way out (TODO-145).
+- **Access patterns.** No `.row(i)` on column-major matrices inside
+  per-observation loops (the 5× ZAP/ZINB regression, TODO-15/16/144); no
+  `NumericMatrix(i, j)`/jagged `std::vector<std::vector<>>` in inner loops.
+- **Special functions.** Hoist `lgamma`/`digamma`/`trigamma` and other
+  per-fit-constant terms out of the objective loop (the v2.3 ZINB retained
+  change); use the package's `fast_*` helpers (`fast_log1pexp`, `pnorm_fast`,
+  `fast_digamma`, …) rather than libm in hot loops; clamp `exp` arguments
+  algorithmically rather than relying on FTZ/DAZ (TODO-140).
+- **Work per fit.** `estimate_only` early returns that skip the Hessian/
+  variance path (Phase 4); do not evaluate `value()` and `operator()` at the
+  same point (TODO-152); solve, don't `.inverse()`, and use Cholesky where
+  the matrix is SPD (TODO-155); resampling paths warm-start from the
+  full-data fit and, where the class supports it, use the reusable bootstrap
+  worker / closed-form-CI patterns (the "BRT smoothed fast-kernel" section,
+  §7.2 here).
+- **Parallel kernels.** Per-thread accumulators are thread-local or padded to
+  a cacheline and reduced once (TODO-143); never write adjacent result
+  columns from different threads.
+- **Measure the way the record measures.** Any optimization claim uses the
+  document's format — root cause → fix → correctness → *paired* benchmark on
+  an apples-to-apples build (same flags, `EDI_UNITY`, `-march`), ABBA/BAAB
+  ordering, medians over repeated cold runs, machine state and BLAS recorded,
+  and the `perf -F 199` sampling-noise caveat in mind (TODO-129/130/135/175/
+  176). Name profiler entries `<type>_est` / `<type>_var`.
+- **Don't add to the open audits.** Run `clang-tidy -checks='performance-*'`
+  on the new file (TODO-163) and keep the kernel's `n`/`p` scaling no worse
+  than its family's (TODO-162). The rest of Phase 8 (TODO-131..179) is
+  package-wide work, not a per-kernel gate.
+
 ---
 
 ## 6. Python Bindings (`python/`, package `edi_kernels`)
@@ -476,7 +628,37 @@ Every core kernel worth exporting to Python (see
 
 ## 7. Benchmarking
 
-### 7.1 Canonical comparators
+### 7.1 Canonical comparators — model benchmarking is mandatory
+
+Every new model **must** be run through the model-fit benchmark harness on
+both sides — `benchmark/benchmark_model_fits.R` (R) and
+`benchmark/benchmark_model_fits_python.py` (Python) — so the release
+artifact (`benchmark/benchmark_model_fits.md`, regenerated from the R and
+Python HTML reports) shows an **apples-to-apples** timing of EDI's kernel
+against the canonical R package and the canonical Python package: EDI rows
+are bare-metal calls to the exported `fast_*` function with design matrices
+pre-built outside the timed region, the comparator is the package's
+*lowest-level* fit interface (`glm.fit`, `lm.fit`, `coxph.fit`, …), medians
+over repeated cold runs at the standard `n`/`p` grid, same machine, same
+compiled `EDI.so` (the report's "Compilation Context" block records the
+flags — a non-optimized build invalidates the row), with the paired timing
+p-value the harness already reports.
+
+**The row is mandatory even when no comparator exists.** If there is no
+canonical R and/or Python implementation of the model (custom joint
+likelihoods, KK matched+reservoir estimators, zero-one-inflated beta, …),
+the model still gets its row in the R and/or Python benchmark tables, timed
+EDI-only, with `Canonical Package = None`, the note
+"no canonical R implementation" / "no canonical Python implementation", and
+`Canonical Time`/`Speedup`/`Timing Pval = NA` by design — the harness
+renders these as the light-blue rows. "We couldn't find a baseline" is
+recorded in the table, not used as a reason to skip the benchmark; the
+absence of a comparator is itself information the README speed tables and
+`python_bindings_package_spec.md`'s baseline-gap analysis depend on, and the
+EDI-only timing is still the regression baseline for §5.5's paired
+before/after comparisons. When a comparator exists on one side only, the
+other side's row says so explicitly rather than borrowing the first side's
+number.
 
 - **R**: add the model to `benchmark/benchmark_model_fits.R`. Identify the
   canonical R function for this model (`glm`, `MASS::glm.nb`,
@@ -559,13 +741,165 @@ class:
    inference-paths metadata (optimization strategy, algorithm, analytic
    Hessian) — extend its `get_opt_metadata()` mapping for the new class and
    rerun it;
-5. keep `path_audits_nonestimability_defaults.csv` consistent if the class
-   introduces new nonestimability behavior.
+5. `path_audits_nonestimability_defaults.csv` is the audit's cached
+   estimability snapshot and is refreshed automatically (§8.3); do not edit
+   it by hand.
+
+### 8.3 Recommended: run `comprehensive_tests.R` on the class, then regenerate `path_audits.html` to read its estimability
+
+The audit table is more than a support matrix: every "attempted" cell is
+colored by the **observed estimability** of that class × method path in the
+comprehensive-harness results, so the cheapest way to learn where a new
+class's methods actually fail to produce a number — and whether that is by
+design or a bug — is to run the harness on it and read its row. Do this
+before declaring the class done:
+
+1. **Run the harness for the class's response type(s)** (§4.2 invocation
+   shape) on the standard datasets/designs, with enough replicates that
+   rare failures show up (`nrep` in the tens, not 1). The harness records
+   one row per (dataset × design × class × method) call in
+   `package_tests/comprehensive_tests_results_nc_<ncores>_<response>.csv`;
+   a call on an object whose `is_nonestimable()` is `TRUE` is recorded with
+   `error_message = "Explicitly non-estimable in <method>"` (and the
+   reason/stage), which is what the audit counts. Note that a run restricted
+   with the class/design filters writes a `…_filtered_…` results file that
+   `load_nonestimability_stats()` **deliberately ignores**, so results meant
+   for the audit must come from the unfiltered response-type run (the
+   filtered run is still useful for a fast first look at the raw rows).
+2. **Regenerate the audit** — `Rscript package_tests/path_audits_source.R`
+   (§8.2) — which pools every non-filtered results CSV, computes the explicit
+   non-estimable rate per (class, method), and, when the pooled row count
+   exceeds the cached snapshot's, rewrites
+   `path_audits_nonestimability_defaults.csv` itself.
+3. **Read the class's row in `path_audits.html`.** Cell meaning: green ✓ =
+   `always_numeric_methods` (closed-form, theoretically guaranteed — never
+   claim this for an optimizer-based path); "unknown" (pale green) = attempted
+   but no result rows yet (your run has not been pooled); then the observed
+   estimable-rate bins 100% → [95–100)% → [75–95)% → [25–75)% → [5–25)% →
+   [1–5)% → (0–1)% → 0% from light green through yellow to dark orange,
+   with the hover title giving the exact `nonestimable/n` counts; SLOW (light
+   red) = `slow_methods`; NTS (dark grey) = `unsupported_methods`. Paths
+   under 1% estimable are also listed in the "<1% Estimable Paths" table at
+   the bottom.
+4. **Act on what the colors say.** For each path that is not (near-)fully
+   estimable, decide and record which of these it is: (a) a legitimate
+   nonestimability of the design/data (e.g. no events, all-one-arm blocks,
+   separation, too few matched pairs) — the class must report it through
+   `is_nonestimable()`/`get_nonestimable_reason()`/`get_nonestimable_stage()`
+   with the right reason, the roxygen (§3) must say so, and the audit row
+   should list the method under `maybe_nonestimable_methods` with the
+   reason in `notes`; (b) a structural unsupported path — declare it via
+   capabilities (§1.3) and `unsupported_methods`, not by letting it fail;
+   (c) a bug — an `estimate_only` guard missing on a resampling path, a
+   variance computation failing where the estimate exists, an optimizer
+   that never converges on the standard fixtures, a wrapper that turns a
+   warning into an error — fix it and re-run. Compare against the sibling
+   classes in the same family section of the table: a new class noticeably
+   less estimable than its siblings on the same fixtures is almost always
+   (c).
+5. Record measured avg/max timings for anything you mark SLOW (§8.1), and
+   keep the Python/benchmark/path-audit rows consistent with the final
+   capability decisions.
 
 ---
 
-## 9. Definition of Done (checklist)
+## 9. Package wiring that breaks if skipped, and recommended extras
 
+### 9.1 Required — a gate, build, or test fails without each of these
+
+- **`DESCRIPTION` `Collate`.** The package declares an explicit `Collate`
+  field, so a new `R/*.R` file that is not listed is simply never sourced.
+  Add the file (after the files defining anything its `define_inference_class()`
+  call references eagerly — `inherit =`, component sources; see §1.1).
+- **Extend the enumerating tests — they fail on a new class until you do.**
+  Several suites assert "classes in my table == classes in the registry":
+  `test-parametric-bootstrap-lr-all-capable-classes.R` (a finite smoke case
+  for every class advertising `parametric_likelihood_bootstrap`, with an
+  exact registry-to-case equality guard),
+  `test-count-likelihood-families-focused.R` (every non-KK concrete
+  `InferenceCount*` class by tier), `test-full-likelihood-migration-baseline.R`
+  / `test-partial-likelihood-migration-baseline.R` (expected class lists per
+  tier and effective components), `test-inference-suite-run-all-inference.R`
+  (the InferenceSuite fixture lock: the set of classes `run_all_inference()`
+  reports on each fixture design), plus `test-inference-class-registry.R` /
+  `test-capability-tables.R` / `test-mixin-contracts.R`. Add the new class
+  to each table it belongs in — these are "extend" obligations, not "pass".
+- **Unity-build safety for the new `.cpp`.** `EDI_UNITY=1` is the default
+  build, so the file is `#include`d into a ~10-file translation unit with
+  its neighbors. Per `unity_build_collision_audit.md`: no file-scope
+  `static` names, anonymous-namespace names, or surviving `#define`s that
+  could collide with any other kernel (hoist shared helpers/structs into a
+  header such as `_glmm_engine.h`, as `GHRule` was); rely on
+  `_helper_functions.h` being the first include of every unity TU; never
+  merge `RcppExports.cpp`; and re-run a default (`EDI_UNITY=1`) build, not
+  only the per-file `EDI_UNITY=0` developer build, before declaring the
+  kernel done (that is the `R CMD check` CI builds with). Unity safety rots
+  silently — a colliding static is a link error for everyone later.
+- **pkgdown reference index.** `EDI/_pkgdown.yml` indexes inference classes
+  by name pattern (`matches("^InferenceContin")`, `^InferenceIncid`,
+  `^InferenceCount`, `^InferenceProp`, `^InferenceOrdinal`,
+  `^InferenceSurvival`) and lists cross-cutting classes and backend kernels
+  explicitly. A new exported class must fall under its family pattern or be
+  added to the right section; every new exported `fast_*` kernel goes into
+  the matching "Backend: …" list. An exported topic missing from the index
+  fails the pkgdown build.
+- **Dispatch and parallel-safety policy tables.** The policy tables in
+  `R/globals.R` are keyed by class-name regular expressions: the parallel
+  dispatch policy's forced-serial `serial_inference_class_patterns` blocklist
+  (`parallel_fork_cluster_test_safety.md` — a randomization-CI/bootstrap
+  path that oversubscribes or deadlocks under a fork cluster after OpenMP
+  must be blocklisted), and the cold-start / warm-start / optimizer dispatch
+  tables. Decide explicitly whether the new class falls under an existing
+  pattern or needs its own entry (a too-broad existing pattern silently
+  applies another family's policy), and confirm
+  `tune_EDI_for_this_machine()`'s registry-driven family enumeration handles
+  it (`test-local-machine-tuning-*.R`).
+- **`inst/NEWS.Rd`.** Add the class under the current version's NEW FEATURES
+  (the release CHANGELOG entry is written at batch close; the per-class line
+  is the author's).
+
+### 9.2 Recommended
+
+- **SimulationFramework and parallel backends.** Run the class under
+  `SimulationFramework` with `num_cores > 1` on both the fork and `mirai`
+  backends, and confirm every resampling path is seed-deterministic
+  independent of core count and backend, per the conventions in
+  `vignette("reproducibility")` (`test-simulation-framework-capability-dispatch.R`
+  is the dispatch pattern; the framework finds the class by capabilities).
+- **Validation evidence.** Add a row to `vignettes/validation-evidence.Rmd`
+  mapping the class and its kernel to the test file that proves them
+  against the canonical comparator (or closed-form/limiting case), and a
+  `vignettes/notation-glossary.Rmd` entry if the class introduces a symbol
+  or convention.
+- **Survival classes: censoring stance.** Implement
+  `supports_interval_or_left_censored_data()` deliberately (the registry
+  reads it for design compatibility) and handle `y_L`/`y_R` per
+  `interval_censored_survival_response.md`, rather than silently treating
+  every response as right-censored.
+- **Runtime budgets.** Keep the tiny roxygen example well inside CRAN check
+  time and OpenMP-light (the Windows `\donttest{}` hang in
+  `release_v1_0_0.md` is still open), and keep each method inside the
+  comprehensive-suite tier timeouts (`comprehensive_suite_runtime_tiers.csv`)
+  or mark it SLOW with measured timings (§8.1).
+- **Serializable private state.** Keep `private` fields plain R values — no
+  external pointers or environment handles (the `save_load_api.md` audit
+  found exactly that in `DesignFixedOptimal`). `Inference*` objects are
+  transient today, but keeping them plain keeps that cheap to change.
+
+---
+
+## 10. Definition of Done (checklist)
+
+- [ ] Package wiring (§9.1): `DESCRIPTION` `Collate` entry; every
+      enumerating test table extended (parametric-bootstrap smoke cases,
+      count-family focused, likelihood-tier baselines, InferenceSuite
+      fixture lock); new `.cpp` unity-safe and built with `EDI_UNITY=1`;
+      `_pkgdown.yml` index covers the class and any new kernel; dispatch /
+      parallel-safety policy patterns decided; `inst/NEWS.Rd` entry.
+- [ ] Recommended extras (§9.2) considered and either done or consciously
+      skipped: SimulationFramework multi-core/backend determinism,
+      `validation-evidence.Rmd` row, survival censoring stance, runtime
+      budgets, plain serializable private state.
 - [ ] Class defined via `define_inference_class()` with complete, validated
       metadata; correct likelihood tier; components/capabilities exact; no
       root-owned state in any new component's `owns_state`; new `*Source`
@@ -580,24 +914,45 @@ class:
       `should_run_asserts()`; cross-argument helpers in
       `additional_asserts.R`; combination constraints/fixtures declared.
 - [ ] Roxygen meets `fix_documentation.md`; tiny runnable example +
-      `\donttest{}` realistic example; references cited;
-      `Rscript fast_roxygenize.R` run; Rd non-thin.
+      `\donttest{}` realistic example; references cited by stable key and
+      `R/EDI/REFERENCES.md` updated (new entries and/or "Used by:" lines for
+      every cited work, numerical ingredients included, coverage gaps
+      re-checked); `Rscript fast_roxygenize.R` run; Rd non-thin.
 - [ ] testthat unit tests: correctness vs. canonical fitter, asserts,
       capabilities, nonestimability, finite smoke tests.
 - [ ] Prerequisite artifacts refreshed (§4.3 order) and
       `run_comprehensive_suite.R smoke` + `ci` fully `ok`.
-- [ ] C++ kernel profiled with `profile/run_edi_perf.sh` (registered in
-      `edi_kernel_profiler.R`) and optimized; clean valgrind memcheck run.
+- [ ] Advanced multi-argument tests (§4.4): new public methods declared in
+      the argument-combination registry/constraints/fixtures, the
+      argument-combination family run, all `package_tests/*.csv` artifacts
+      regenerated in workflow order and committed, both quality-gate scripts
+      passing locally, and the post-push `test-coverage-R-advanced` workflow
+      green.
+- [ ] C++ kernel obeys the §5.5 performance engineering rules (no hot-path
+      allocation — `EIGEN_RUNTIME_NO_MALLOC` clean — zero-copy boundary, no
+      strided inner-loop access, hoisted special functions, `estimate_only`
+      early returns, padded per-thread accumulators); profiled with
+      `profile/run_edi_perf.sh` (registered in `edi_kernel_profiler.R`) and
+      optimized with paired before/after benchmarks; clean valgrind memcheck
+      run; `clang-tidy performance-*` clean.
 - [ ] Core compiles under `EDI_CORE_ONLY`; `check_core_no_rcpp.sh` passes.
 - [ ] Python: pybind11 binding + `_core.pyi` stub + docstring + tests;
       `python/README.md`, `README_PYPI.md`, `CHANGELOG.md` updated with
       regenerated (not hand-edited) numbers.
-- [ ] Benchmarks: R and Python canonical-comparator entries added
-      (comparator R package in `Suggests`; R-side fallback baseline when no
-      Python canonical exists); reports regenerated.
+- [ ] Benchmarks (mandatory, §7.1): R and Python model-fit benchmark rows
+      added and run apples-to-apples against the lowest-level canonical fit
+      of the R and Python packages (comparator R package in `Suggests`;
+      R-side fallback baseline when no Python canonical exists); when no
+      canonical package exists on a side, the EDI-only row is still added
+      with `Canonical Package = None` / "no canonical … implementation" /
+      NA speedup; reports and README speed tables regenerated, not
+      hand-edited.
 - [ ] Cold-start heuristic implemented and benchmarked vs. naive; warm
       starts benchmarked for all resampling paths (optimization-based
       models).
 - [ ] `path_audits_source.R` row added with deliberate skip/slow decisions;
-      `path_audits.html` regenerated; `refresh_inference_paths_info.R`
-      mapping extended.
+      comprehensive-harness run for the class's response type(s) pooled into
+      the audit and `path_audits.html` regenerated; every non-fully-estimable
+      cell in the class's row classified as legitimate (reason reported and
+      documented), unsupported (declared), or a bug (fixed) per §8.3;
+      `refresh_inference_paths_info.R` mapping extended.

@@ -296,9 +296,9 @@ wrapping the same base engine).
 
 ### Tier 2 — Moderate, rides on Tier 1 or on delegated CRAN packages
 
-- **`InferenceAbstractKKWeibullFrailtyNormalIVWC`/`OneLik`** and their concrete
-  `InferenceSurvivalKKWeibullFrailtyNormalIVWC`/`OneLik`
-  (`R/EDI/R/inference_survival_KK_weibull_frailty_normal.R`), and
+- **`InferenceAbstractGLMMWeibullFrailtyNormalIVWC`/`OneLik`** and their concrete
+  `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC`/`OneLik`
+  (`R/EDI/R/inference_survival_GLMM_weibull_frailty_normal.R`), and
   **`InferenceSurvivalKKWeibullMarginal`**
   (`R/EDI/R/inference_survival_KK_weibull_marginal.R`) — all built on the
   same Weibull kernel as Tier 1. The frailty variants add a random-effect
@@ -358,8 +358,8 @@ wrapping the same base engine).
   censoring compose is a genuine open modeling question, not an engineering
   question — needs its own dedicated scoping pass before any TODO is
   written.
-- **`InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`/`OneLik`**
-  (`R/EDI/R/inference_survival_KK_weibull_frailty_loggamma.R`) — copula-based
+- **`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`/`OneLik`**
+  (`R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R`) — copula-based
   *dependent*-censoring model for matched pairs. Same composition problem
   as the transform-regression case above, compounded by the copula's own
   matched-pair joint-survival structure — flag as needing its own
@@ -1155,7 +1155,7 @@ wrapping the same base engine).
 - [x] TODO-9: Once TODO-6/7/8 land, verify (or extend) that
   `InferenceSurvivalKKLWACoxPHIVWC`/`OneLik`,
   `InferenceSurvivalKKStratCoxPHIVWC`/`OneLik`,
-  `InferenceSurvivalKKWeibullFrailtyNormalIVWC`/`OneLik`, and
+  `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC`/`OneLik`, and
   `InferenceSurvivalKKWeibullMarginal` correctly propagate interval
   censoring through their combined matched-set/reservoir construction —
   same OneLik-likely-free / IVWC-needs-both-components-first asymmetry
@@ -1169,7 +1169,7 @@ wrapping the same base engine).
   survival class does. Confirmed empirically for all seven
   (`InferenceSurvivalKKLWACoxPHIVWC`, `..OneLik`,
   `InferenceSurvivalKKStratCoxPHIVWC`, `..OneLik`,
-  `InferenceSurvivalKKWeibullFrailtyNormalIVWC`, `..OneLik`,
+  `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC`, `..OneLik`,
   `InferenceSurvivalKKWeibullMarginal`) on a `DesignSeqOneByOneKK14` design
   with interval-censored responses: every one `stop()`s with the guard's
   clear "does not support left- or interval-censored survival data"
@@ -1216,7 +1216,7 @@ wrapping the same base engine).
   No implementation TODOs written; the report recommends a modeling
   conversation before any further scoping.
 - [x] TODO-11 (**done 2026-08-16**): Commissioned a follow-up feasibility
-  report for `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`/`OneLik` under
+  report for `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`/`OneLik` under
   interval censoring, scoping how the copula's matched-pair
   joint-survival structure interacts with interval-censored marginals —
   see `package_metadata/feasibility_reports/clayton_copula_interval_censoring.md`.
@@ -1825,10 +1825,10 @@ wrapping the same base engine).
   right-censored rows and `y` unchanged for exact rows — exactly the
   `dead_to_bounds()` conversion, just done once at the call site instead of
   inside the kernel). Confirmed current callers, all still on `(y, dead)`:
-  - `inference_survival_KK_weibull_frailty_loggamma.R`:
+  - `inference_survival_GLMM_weibull_frailty_loggamma.R`:
     `compute_treatment_estimate_during_randomization_inference`,
     `weibull_for_reservoir`
-  - `inference_survival_KK_weibull_frailty_normal.R`:
+  - `inference_survival_GLMM_weibull_frailty_normal.R`:
     `compute_treatment_estimate_during_randomization_inference`,
     `weibull_for_reservoir`
   - `inference_survival_KK_weibull_marginal.R`:
@@ -1971,7 +1971,7 @@ wrapping the same base engine).
   `.compute_kk_basic_match_data_cached()`/`.compute_kk_lin_basic_match_data_cached()`,
   `globals.R`), or the "combined-likelihood" idiom that converts reservoir
   subjects into singleton strata rather than splitting into two index
-  vectors (`inference_survival_KK_weibull_frailty_normal.R` lines 479/543/713,
+  vectors (`inference_survival_GLMM_weibull_frailty_normal.R` lines 479/543/713,
   `inference_survival_KK_lwa_cox_one_lik_abstract.R`,
   `inference_survival_KK_strat_cox.R`'s `OneLik` class) — every "OneLik"/
   combined class uses this second idiom. Also left `inference_indicidence_exact_fisher.R`'s
@@ -1998,9 +1998,9 @@ wrapping the same base engine).
   sites: `inference_count_KK_cond_poisson.R` (3),
   `inference_incidence_KK_cond_logit.R` (1),
   `inference_survival_KK_lwa_cox_ivwc_abstract.R` (2),
-  `inference_survival_KK_weibull_frailty_loggamma.R` (2 functions, 3 call sites),
+  `inference_survival_GLMM_weibull_frailty_loggamma.R` (2 functions, 3 call sites),
   `inference_survival_KK_rank_regr_ivwc_abstract.R` (1),
-  `inference_survival_KK_weibull_frailty_normal.R` (2 functions, 3 call sites),
+  `inference_survival_GLMM_weibull_frailty_normal.R` (2 functions, 3 call sites),
   `inference_survival_KK_strat_cox.R` (1, the TODO-16 IVWC override
   itself).
 
@@ -2030,8 +2030,8 @@ wrapping the same base engine).
   entry (above, under "Tier 2 — Moderate, rides on Tier 1 or on delegated
   CRAN packages"), not a scoped, actionable item like TODO-3/4/5 were for
   plain Weibull. That survey note says
-  `InferenceAbstractKKWeibullFrailtyNormalIVWC`/`OneLik`,
-  `InferenceSurvivalKKWeibullFrailtyNormalIVWC`/`OneLik`, and
+  `InferenceAbstractGLMMWeibullFrailtyNormalIVWC`/`OneLik`,
+  `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC`/`OneLik`, and
   `InferenceSurvivalKKWeibullMarginal` all ride on the same
   `fast_weibull_regression_general_cpp` kernel TODO-3/TODO-18-21 already
   migrated (the reservoir/pooled half of these classes already calls it

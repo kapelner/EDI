@@ -1,0 +1,299 @@
+---
+title: "Extending EDI with Your Own Inference and Design Classes"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Extending EDI with Your Own Inference and Design Classes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+set.seed(20260823)
+```
+
+EDI is implemented with R6 classes. Advanced users can define their own R6
+classes outside the package and reuse EDI's design storage, response handling,
+randomization, bootstrap, and summary methods. This page is the supported
+extension contract: which base classes to build on, the one method each asks
+you to implement, and the rules that keep your class working with the rest of
+the package. It is written for authors working *outside* EDI; contributing a
+class to EDI itself is a different, heavier process (see the last section).
+
+```{r setup}
+library(EDI)
+library(R6)
+```
+
+## How EDI classes are built
+
+Both the `Inference*` and `Design*` hierarchies are shallow and
+component-based. Inheritance answers only one question — "is every child
+substitutable for this parent as the same kind of estimator / design?" — and
+every optional behavior is a registered **component** composed by a factory,
+with every optional public method backed by a **capability**:
+
+- Every inference class in the package is built by an internal factory,
+  `define_inference_class()`, from registered components (`Wald`,
+  `LikelihoodTests`, `NonparametricBootstrap`, `RandomizationTest`,
+  `BayesianBootstrap`, `Jackknife`, `ParametricLikelihoodBootstrap`, the KK
+  pass-through/GEE/GLMM engines, per-model likelihood components, …). The
+  factory validates component contracts, name collisions, and capability
+  tables at definition time. The legacy algorithmic inheritance ladder
+  (`InferenceRand`, `InferenceNonParamBootstrap`, `InferenceAsymp`,
+  `InferenceAsympLik`, `InferenceParamBootstrap`, …) survives only as internal
+  component sources with no concrete descendants — **do not inherit from those
+  classes**; they are not a supported surface and may be removed.
+- Every design class is built by `define_design_class()` over the design
+  component registry (blocking, matching, cluster, sequential-strata
+  bootstrap, batch pre-generation), with `DesignFixed` and `DesignSeqOneByOne`
+  as the two timing-family bases directly under `Design`.
+- Capabilities are metadata, queried with `obj$capabilities()` and
+  `obj$supports("<capability>")` on both `Inference` and `Design` objects.
+  Public optional method presence equals capability presence: there are no
+  `supports_*()` flag pairs or throwing stubs on concrete classes.
+- Discovery — `InferenceSuite`, `Design$applicable_inference_class_names()`,
+  `Design$unavailable_inference_classes_due_to_missing_packages()` — reads the
+  package's class registries, which are populated by scanning the **EDI
+  namespace** when the package loads.
+
+The consequence for you is simple: build on the **custom shells** below (they
+are themselves factory-built, so the components and capabilities are already
+wired), implement the one documented hook, and call your class directly —
+registry-driven discovery will never list an external class.
+
+The shells are intentionally internal while the extension contract is
+experimental. Retrieve them with `getFromNamespace()`:
+
+```{r shells}
+InferenceCustomAsymp <- getFromNamespace("InferenceCustomAsymp", "EDI")
+InferenceCustomRand <- getFromNamespace("InferenceCustomRand", "EDI")
+InferenceCustomBoot <- getFromNamespace("InferenceCustomBoot", "EDI")
+DesignFixedCustom <- getFromNamespace("DesignFixedCustom", "EDI")
+DesignCustomSequential <- getFromNamespace("DesignCustomSequential", "EDI")
+```
+
+## The inference extension contract
+
+A custom asymptotic inference class inherits from `InferenceCustomAsymp`
+(built on `Inference` with the `Wald` and `NonparametricBootstrap`
+components) and implements a public `fit(estimate_only = FALSE)` method that
+returns a named list with:
+
+- `estimate`: required numeric scalar treatment-effect estimate.
+- `se`: optional numeric scalar standard error.
+- `df`: optional degrees of freedom. Use `NA_real_` for z inference.
+- `model`: optional fitted model object retained by `get_mod()`.
+- `nonestimable_reason`: optional character scalar used when the estimate or
+  standard error is unavailable; it flows through `is_nonestimable()` /
+  `get_nonestimable_reason()` and the public methods return `NA`.
+
+When `estimate_only = TRUE` (resampling loops) only `estimate` is needed; skip
+the variance work.
+
+Read data through the public accessors, never private fields:
+`get_response()`, `get_treatment()`, `get_covariates()`,
+`get_analysis_data()`, `get_design_object()`, `get_response_type()`.
+
+```{r median-diff}
+InferenceMedianDiff <- R6Class(
+  "InferenceMedianDiff",
+  inherit = InferenceCustomAsymp,
+  # Required when subclassing EDI's factory-built classes: lazily loaded
+  # components install their real methods onto the object after construction,
+  # which needs an unlocked environment.
+  lock_objects = FALSE,
+  public = list(
+    fit = function(estimate_only = FALSE) {
+      dat <- self$get_analysis_data()
+      y_t <- dat$y[dat$w == 1]
+      y_c <- dat$y[dat$w == 0]
+
+      est <- stats::median(y_t) - stats::median(y_c)
+      if (estimate_only) {
+        return(list(estimate = est))
+      }
+
+      list(
+        estimate = est,
+        se = sqrt(stats::var(y_t) / length(y_t) + stats::var(y_c) / length(y_c)),
+        df = length(y_t) + length(y_c) - 2,
+        model = NULL
+      )
+    }
+  )
+)
+
+des <- DesignFixedBernoulli$new(n = 20, response_type = "continuous", verbose = FALSE)
+des$add_all_subjects_to_experiment(data.frame(x = seq_len(20)))
+des$overwrite_all_subject_assignments(rep(c(0, 1), each = 10))
+des$add_all_subject_responses(rnorm(20))
+
+inf <- InferenceMedianDiff$new(des)
+inf$compute_estimate()
+inf$compute_asymp_two_sided_pval()
+inf$compute_asymp_confidence_interval()
+inf$compute_bootstrap_two_sided_pval(B = 101, show_progress = FALSE)
+inf$capabilities()
+inf$supports("wald")
+```
+
+## Randomization and bootstrap shells
+
+- `InferenceCustomRand` is built on `Inference` with the `RandomizationTest`
+  component (`likelihood_tier = "none"`). Implement the same
+  `fit(estimate_only = FALSE)` and return at least `estimate`; you get
+  `compute_estimate()` plus EDI's randomization-test machinery
+  (`compute_rand_two_sided_pval()`), and nothing requires a standard error.
+- `InferenceCustomBoot` is built on `Inference` with the
+  `NonparametricBootstrap` component (which transitively brings the
+  randomization-test/CI machinery it depends on). Implement `fit()` returning
+  `estimate` (optionally `model` and `nonestimable_reason`) and you get the
+  bootstrap p-value and confidence-interval methods.
+
+```{r rand-boot}
+InferenceMedianDiffRand <- R6Class(
+  "InferenceMedianDiffRand",
+  inherit = InferenceCustomRand,
+  lock_objects = FALSE,
+  public = list(
+    fit = function(estimate_only = FALSE) {
+      dat <- self$get_analysis_data()
+      list(estimate = stats::median(dat$y[dat$w == 1]) - stats::median(dat$y[dat$w == 0]))
+    }
+  )
+)
+inf_rand <- InferenceMedianDiffRand$new(des)
+inf_rand$compute_estimate()
+inf_rand$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+inf_rand$capabilities()
+
+InferenceMedianDiffBoot <- R6Class(
+  "InferenceMedianDiffBoot",
+  inherit = InferenceCustomBoot,
+  lock_objects = FALSE,
+  public = list(
+    fit = function(estimate_only = FALSE) {
+      dat <- self$get_analysis_data()
+      list(estimate = stats::median(dat$y[dat$w == 1]) - stats::median(dat$y[dat$w == 0]))
+    }
+  )
+)
+inf_boot <- InferenceMedianDiffBoot$new(des)
+inf_boot$compute_bootstrap_confidence_interval(B = 101, show_progress = FALSE)
+```
+
+## Subclassing rules and capability detection
+
+- **Always pass `lock_objects = FALSE`** when subclassing an EDI inference or
+  design class. Inference classes use lazily loaded components that install
+  methods onto `private` after construction, and some classes create private
+  config fields inside `initialize()`; a locked subclass constructs but fails
+  at first use with a locked-binding error.
+- **Inherit only from the custom shells** (or, with care, from a concrete
+  exported class whose behavior you are specializing). Never inherit from the
+  internal legacy ladder generators or from abstract `*Abstract*` bases, and
+  never copy a component's method lists into your own class — the factory's
+  validation is the only supported way to compose components, and EDI bans
+  that pattern for its own code.
+- **External subclasses are not registered.** Only the EDI namespace is
+  scanned at load time, so your class has no record in the class registry.
+  Capability queries resolve through the **nearest registered ancestor**:
+  `capabilities()` walks `class(self)` and returns the first registered
+  class's capabilities, so an `InferenceCustomAsymp` subclass reports the
+  Wald/bootstrap family it inherited and `supports()` works. Public methods
+  you *add* on top are ordinary R6 methods — callable directly, but not
+  capabilities, so capability-driven filtering (`InferenceSuite`,
+  `SimulationFramework`) does not see them.
+- **External classes are never discovered.** `InferenceSuite` and
+  `Design$applicable_inference_class_names()` enumerate registered package
+  classes only; construct and call extension classes explicitly.
+- **Root-owned state belongs to `Inference`.** Do not redeclare private
+  fields such as `m`, `X`, `w`, `y`, `optimization_alg`, or the caches in a
+  subclass; read data through the public accessors above.
+
+```{r rules}
+# Not registered ...
+"InferenceMedianDiff" %in% des$applicable_inference_class_names()
+# ... but capabilities resolve through the registered shell it inherits from.
+identical(inf$capabilities(), InferenceCustomAsymp$new(des)$capabilities())
+```
+
+## Custom designs
+
+The design shells are factory-built bases (`DesignFixedCustom` inherits
+`DesignFixed`; `DesignCustomSequential` inherits `DesignSeqOneByOne`) that
+route all randomization through one user hook:
+
+- `DesignFixedCustom`: implement public `draw_assignments(r)` and return an
+  `n x r` 0/1 assignment matrix. EDI validates the shape and values (when
+  argument checking is enabled) and uses it for every draw, including the
+  randomization-inference draws.
+- `DesignCustomSequential`: implement public `assignment_rule()` and return a
+  scalar 0/1 assignment for the current subject.
+
+EDI handles subject storage, response recording, and validation. Pass
+`lock_objects = FALSE` here too. When your inference code needs to know what
+a design can do, use `des$capabilities()` / `des$supports()` — the vocabulary
+is `"blocking"`, `"matching"`, `"cluster"`, `"batch_w_pregeneration"`,
+`"resampling"`, `"randomization_draw"`, `"resampling_replay"` — rather than
+class-identity checks. The same unregistered-subclass fallbacks apply on this
+side: instance capability queries work for any subclass, unregistered names
+are treated as concrete (freely instantiable), and the package's inference
+classes are discoverable on a custom design exactly as on a built-in one
+because discovery keys on design metadata, not design class.
+
+```{r custom-design}
+DesignFixedAlternating <- R6Class(
+  "DesignFixedAlternating",
+  inherit = DesignFixedCustom,
+  lock_objects = FALSE,
+  public = list(
+    draw_assignments = function(r = 1) {
+      n <- self$get_n()
+      matrix(rep_len(c(0, 1), n), nrow = n, ncol = r)
+    }
+  )
+)
+des_alt <- DesignFixedAlternating$new(n = 10, response_type = "continuous", verbose = FALSE)
+des_alt$add_all_subjects_to_experiment(data.frame(x = 1:10))
+des_alt$assign_w_to_all_subjects()
+des_alt$get_w()
+des_alt$capabilities()
+des_alt$add_all_subject_responses(rnorm(10))
+head(des_alt$applicable_inference_class_names())
+
+DesignSeqEveryOther <- R6Class(
+  "DesignSeqEveryOther",
+  inherit = DesignCustomSequential,
+  lock_objects = FALSE,
+  public = list(
+    assignment_rule = function() as.numeric(self$get_t() %% 2 == 0)
+  )
+)
+des_seq <- DesignSeqEveryOther$new(n = 6, response_type = "continuous", verbose = FALSE)
+for (i in 1:6) des_seq$add_one_subject_to_experiment_and_assign(data.frame(x = i))
+des_seq$get_w()
+```
+
+## What the shells deliberately do not cover
+
+The current shell set — `DesignFixedCustom`, `DesignCustomSequential`,
+`InferenceCustomAsymp`, `InferenceCustomRand`, `InferenceCustomBoot` — is
+sufficient for the extension contract above. There is no exact-test or
+parametric-bootstrap shell: the `ExactTest` component dispatches through
+private exact-test implementations, and the `ParametricLikelihoodBootstrap`
+component requires likelihood-null simulation/refit hooks; neither is a simple
+`fit()` shell, so exposing them would need a separate API design. Likewise
+there are no response-family-specific shells — the generic analysis-data
+accessors are the intended surface.
+
+## Contributing a class to EDI itself
+
+Adding a class *inside* the package is a different contract: the class must go
+through `define_inference_class()` / `define_design_class()` with exact
+component, capability, and registry metadata, meet the package documentation
+standard, and be registered with the test harnesses, C++ kernels, Python
+bindings, and benchmarks. That process lives in the repository, in
+`R/package_metadata/contracts/new_model_creation.md`, which builds on the
+architecture summarized in this vignette rather than repeating it.

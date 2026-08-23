@@ -443,23 +443,23 @@ files' `@references`) if/when it becomes available.
   Bivariate Life Tables and Its Application in Epidemiological Studies of
   Familial Tendency in Chronic Disease Incidence." *Biometrika*, 65(1),
   141-151. doi:10.2307/2335289. — Used by:
-  `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC` (the gamma-frailty Clayton copula
-  linking matched-pair survival times), `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik`
+  `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` (the gamma-frailty Clayton copula
+  linking matched-pair survival times), `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`
   (single combined Weibull-AFT-with-Clayton-copula matched-pair /
   marginal-Weibull reservoir likelihood).
 - **[Oakes1989]** Oakes, D. (1989). "Bivariate Survival Models Induced by
   Frailties." *Journal of the American Statistical Association*, 84(406),
   487-493. doi:10.2307/2289934. — Used by:
-  `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC` (closed-form frailty integration
-  underlying the Clayton copula likelihood), `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik`.
+  `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` (closed-form frailty integration
+  underlying the Clayton copula likelihood), `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`.
 - **[VaupelMantonStallard1979]** Vaupel, J. W., Manton, K. G., and Stallard,
   E. (1979). "The Impact of Heterogeneity in Individual Frailty on the
   Dynamics of Mortality." *Demography*, 16(3), 439-454. — Used by:
-  `InferenceSurvivalKKWeibullFrailtyNormalIVWC` (contrast with the gamma-frailty
+  `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC` (contrast with the gamma-frailty
   Clayton copula model).
 - **[Hougaard2000]** Hougaard, P. (2000). *Analysis of Multivariate Survival
   Data*. Springer. doi:10.1007/978-1-4612-1304-8. — Used by:
-  `InferenceSurvivalKKWeibullFrailtyNormalIVWC` (log-normal-frailty Weibull AFT
+  `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC` (log-normal-frailty Weibull AFT
   GLMM background).
 
 ### Proportion

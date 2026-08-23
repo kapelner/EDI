@@ -21,8 +21,31 @@ treatment plus covariates in the multivariate class. The zero/one inflation
 submodels use \code{model_formula_zero_one}, which defaults to \code{~ .}
 so that treatment plus all available covariates enter those auxiliary pieces.
 See the class-level description above for what the reported coefficient does
-and does not represent; a marginal (unconditional-mean) estimand is not yet
-implemented for this class (see \code{marginal_estimand_report.md}).
+and does not represent.
+
+\strong{Marginal estimand.} This class composes
+\code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
+(\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()});
+in addition to the default \code{"conditional"} estimand described above, it
+supports \code{"marginal_mean_diff"}: the model-implied unconditional mean
+recombines all three mixture components,
+\eqn{E[Y \mid x, w] = \pi_1(x, w) \cdot 1 + (1 - \pi_0(x, w) - \pi_1(x, w))
+\cdot \mathrm{logit}^{-1}(x^\top \beta + \beta_T w)} (the zero mass
+contributes nothing), where \eqn{\pi_0}/\eqn{\pi_1} are the normalized
+zero/one-inflation mixture probabilities. The reported treatment effect
+under \code{"marginal_mean_diff"} is the g-computation average
+\eqn{\hat\tau = n^{-1} \sum_i [\hat E(Y \mid x_i, w=1) - \hat E(Y \mid x_i,
+w=0)]}, on the response's natural \eqn{[0,1]} scale (not the log-odds
+scale of the conditional estimand). Standard errors are delta-method,
+against the joint covariance of \eqn{[\beta, \log\phi, \gamma_0, \gamma_1]}
+already returned by \code{fast_zero_one_inflated_beta_cpp}, using a
+numerical (central-difference) gradient of \eqn{\hat\tau} — see
+\code{marginal_estimand_report.md → TODO-4} for why analytic
+differentiation was not used. This is a pure post-fit transform of the same
+cached maximum-likelihood fit (no refit), so only Wald-via-delta-method
+inference is available under a marginal estimand (no likelihood-ratio/
+score/gradient test — see \code{set_estimand()}'s testing-type
+interaction).
 }
 \examples{
 \donttest{
@@ -57,6 +80,8 @@ Ospina, R., and Ferrari, S. L. P. (2010). "Inflated beta
   \itemize{
     \item \href{#method-InferencePropZeroOneInflatedBetaRegr-initialize}{\code{InferencePropZeroOneInflatedBetaRegr$new()}}
     \item \href{#method-InferencePropZeroOneInflatedBetaRegr-compute_estimate}{\code{InferencePropZeroOneInflatedBetaRegr$compute_estimate()}}
+    \item \href{#method-InferencePropZeroOneInflatedBetaRegr-compute_asymp_confidence_interval}{\code{InferencePropZeroOneInflatedBetaRegr$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferencePropZeroOneInflatedBetaRegr-compute_asymp_two_sided_pval}{\code{InferencePropZeroOneInflatedBetaRegr$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferencePropZeroOneInflatedBetaRegr-compute_estimate_with_bootstrap_weights}{\code{InferencePropZeroOneInflatedBetaRegr$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferencePropZeroOneInflatedBetaRegr-clone}{\code{InferencePropZeroOneInflatedBetaRegr$clone()}}
   }
@@ -64,8 +89,6 @@ Ospina, R., and Ferrari, S. L. P. (2010). "Inflated beta
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -130,11 +153,16 @@ Defaults to \code{~ .}, meaning treatment plus all available covariates.}
 \subsection{\code{InferencePropZeroOneInflatedBetaRegr$compute_estimate()}}{
   Fits the zero/one-inflated beta mixture model by maximum
   likelihood (jointly the beta mean submodel, the zero/one inflation
-  submodels, and the beta precision) and returns \eqn{\hat\beta_T}, the
+  submodels, and the beta precision). Under the default
+  \code{estimand = "conditional"}, returns \eqn{\hat\beta_T}, the
   treatment log-odds-ratio from the beta mean submodel \strong{conditional
   on the interior \eqn{(0,1)} component} — see
   \code{\link[EDI:InferencePropZeroOneInflatedBetaRegr]{InferencePropZeroOneInflatedBetaRegr}}'s
-  estimand caveat.
+  estimand caveat. Under \code{estimand = "marginal_mean_diff"} (set via
+  \code{set_estimand()}), returns the g-computation marginal mean
+  difference instead — see the class-level \code{@details} for the
+  formula. The underlying model fit is identical either way (a pure
+  post-fit transform of the same cached fit, no refit).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferencePropZeroOneInflatedBetaRegr$compute_estimate(estimate_only = FALSE)}
@@ -146,6 +174,59 @@ Defaults to \code{~ .}, meaning treatment plus all available covariates.}
       \item{\code{estimate_only}}{If TRUE, skip standard-error computation and cache
 only the point estimate; used by randomization and bootstrap resampling
 paths.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropZeroOneInflatedBetaRegr-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropZeroOneInflatedBetaRegr-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferencePropZeroOneInflatedBetaRegr$compute_asymp_confidence_interval()}}{
+  Wald confidence interval, dispatched by
+  \code{testing_type} for the conditional estimand (score/gradient/
+  likelihood-ratio/Bartlett available; see
+  \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}}); under a
+  marginal estimand \code{testing_type} is always \code{"wald"} (the
+  only value \code{set_estimand()} permits there), so this always
+  resolves to the delta-method interval. Calls
+  \code{self$compute_estimate()} first (not
+  \code{private$shared()} directly) so the estimand-aware cache is
+  always current regardless of call order.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropZeroOneInflatedBetaRegr$compute_asymp_confidence_interval(
+  alpha = 0.05
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Two-sided miscoverage rate; the returned interval
+targets \code{1 - alpha} coverage.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropZeroOneInflatedBetaRegr-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropZeroOneInflatedBetaRegr-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferencePropZeroOneInflatedBetaRegr$compute_asymp_two_sided_pval()}}{
+  Wald two-sided p-value, dispatched by \code{testing_type}
+  exactly as \code{compute_asymp_confidence_interval()}; see that
+  method's description for the marginal-estimand always-Wald note.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropZeroOneInflatedBetaRegr$compute_asymp_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment-effect value under the current estimand
+(conditional log-odds-ratio, or marginal mean difference).}
     }
     \if{html}{\out{</div>}}
   }

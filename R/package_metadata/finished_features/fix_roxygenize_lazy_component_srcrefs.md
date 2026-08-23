@@ -263,7 +263,7 @@ wherever the owning component/class actually defines it.
     reported as "Undocumented code objects" entirely (`InferenceContinKKOLSIVWC`,
     `InferenceContinKKOLSOneLik`, `InferenceContinKKRobustRegrOneLik`,
     `InferenceCountKKHurdlePoissonIVWC`, `InferenceIncidKKCondLogitIVWC`,
-    `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`, `InferenceSurvivalKKStratCoxPHIVWC`).
+    `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`, `InferenceSurvivalKKStratCoxPHIVWC`).
     These look like fallout from `fix_inference_hierarchy.md`'s KK/IVWC
     migration work (classes renamed/merged/re-exported without every
     cross-referencing `\link[EDI:...]{}` in sibling `*Source.Rd` files being

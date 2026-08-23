@@ -222,8 +222,8 @@ verify."
 | Survival | `InferenceSurvivalKKStratCoxOneLik` | Borderline | Blocked |
 | Survival | `InferenceSurvivalWeibullRegr` | Borderline | Blocked |
 | Survival | `InferenceSurvivalDepCensTransformRegr` | Difficult | Not a realistic target |
-| Survival | `InferenceSurvivalKKWeibullFrailtyNormalOneLik` | Difficult | Not a realistic target |
-| Survival | `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` | Difficult | Not a realistic target |
+| Survival | `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik` | Difficult | Not a realistic target |
+| Survival | `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` | Difficult | Not a realistic target |
 
 **Key takeaway**: "Blocked" applies to nearly every GLM path regardless of theoretical
 tier — the theoretical tier says whether Cordeiro-style theory *exists*, not whether it
@@ -301,8 +301,8 @@ every other row in this table.
 | `InferenceSurvivalKKStratCoxOneLik` | `fast_stratified_coxph_regression_cpp` | **Borderline** | Same with stratification. |
 | `InferenceSurvivalWeibullRegr` | `fast_weibull_regression_cpp` | **Borderline** | Smooth parametric survival likelihood, but materially more bespoke than the GLM cases. |
 | `InferenceSurvivalDepCensTransformRegr` | `fast_dep_cens_transform_optim_cpp` | **Difficult** | Highly custom likelihood with coupled event/censoring structure. |
-| `InferenceSurvivalKKWeibullFrailtyNormalOneLik` | `fast_weibull_frailty_cpp` | **Difficult** | Frailty integration and extra variance structure make analytic Bartlett correction impractical. |
-| `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | **Difficult** | Copula dependence plus parametric margins plus combined design structure. |
+| `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik` | `fast_weibull_frailty_cpp` | **Difficult** | Frailty integration and extra variance structure make analytic Bartlett correction impractical. |
+| `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | **Difficult** | Copula dependence plus parametric margins plus combined design structure. |
 
 ## Easy Tier
 

@@ -383,8 +383,8 @@ only the point estimate has.
 | `InferenceSurvivalKKStratCoxOneLik` | `fast_stratified_coxph_regression_cpp` | **Borderline** | Same with stratification. |
 | `InferenceSurvivalWeibullRegr` | `fast_weibull_regression_cpp` | **Borderline** | Smooth parametric survival model, but bias formulas are materially more bespoke than basic GLMs. |
 | `InferenceSurvivalDepCensTransformRegr` | `fast_dep_cens_transform_optim_cpp` | **Difficult** | Coupled event/censoring structure is too custom. |
-| `InferenceSurvivalKKWeibullFrailtyNormalOneLik` | `fast_weibull_frailty_cpp` | **Difficult** | Frailty integration and variance terms make this a poor target for simple explicit bias correction. |
-| `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | **Difficult** | Copula dependence plus survival margins is too bespoke. |
+| `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik` | `fast_weibull_frailty_cpp` | **Difficult** | Frailty integration and variance terms make this a poor target for simple explicit bias correction. |
+| `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | **Difficult** | Copula dependence plus survival margins is too bespoke. |
 
 ## Easy Tier
 

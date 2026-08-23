@@ -3,11 +3,11 @@
 # compound layer arrives through the registered KKCompound component (this
 # component's declared dependency); this source holds only the class's own
 # estimator overrides.
-SurvivalKKWeibullFrailtyLoggammaIVWCSource = list(
+SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 	public = list(
 		#' @description Initialize KK Clayton-copula survival inference and prepare
 		#'   the matched/reservoir likelihood components used by
-		#'   \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaIVWC]{InferenceSurvivalKKWeibullFrailtyLoggammaIVWC}}.
+		#'   \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC]{InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC}}.
 		#' @param des_obj  	A DesignSeqOneByOne object (must be a KK design).
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -87,6 +87,12 @@ SurvivalKKWeibullFrailtyLoggammaIVWCSource = list(
 		# supplies the real functions directly (Static Cleanup).
 	),
 	private = list(
+		# Name-based `requires_kk` inference-discovery gate (inference_suite.R's
+		# `infer_inference_requires_kk_matching_design()`) only fires on a
+		# `"KK"`-containing class name; this class was renamed off that
+		# convention (see full_glmm_for_weibull_frailty.md) while still
+		# requiring a matched design, so the gate is declared explicitly here.
+		requires_kk_matching_design = function() TRUE,
 		best_par = NULL,
 		best_X_colnames = NULL,
 		cached_mod = NULL,
@@ -434,8 +440,8 @@ SurvivalKKWeibullFrailtyLoggammaIVWCSource = list(
 #'
 #' This is a different (and equally standard) frailty assumption from the
 #' \strong{log-normal}-frailty Weibull AFT GLMM implemented by
-#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyNormalIVWC]{InferenceSurvivalKKWeibullFrailtyNormalIVWC}} /
-#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyNormalOneLik]{InferenceSurvivalKKWeibullFrailtyNormalOneLik}},
+#' \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyNormalIVWC]{InferenceSurvivalGLMMWeibullFrailtyNormalIVWC}} /
+#' \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyNormalOneLik]{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik}},
 #' which instead places a Gaussian random intercept on the log-time (AFT) scale and
 #' integrates it out by Gauss-Hermite quadrature. Prefer this Clayton-copula class
 #' for the classic gamma-frailty / proportional-hazards dependence structure;
@@ -452,13 +458,13 @@ SurvivalKKWeibullFrailtyLoggammaIVWCSource = list(
 #' \doi{10.2307/2289934}
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
-#' @seealso \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyNormalIVWC]{InferenceSurvivalKKWeibullFrailtyNormalIVWC}}
+#' @seealso \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyNormalIVWC]{InferenceSurvivalGLMMWeibullFrailtyNormalIVWC}}
 #'   for the corresponding log-normal-frailty IVWC estimator.
 #' @export
-InferenceSurvivalKKWeibullFrailtyLoggammaIVWC = define_inference_class(
-	classname = "InferenceSurvivalKKWeibullFrailtyLoggammaIVWC",
+InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = define_inference_class(
+	classname = "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyLoggammaIVWC"),
+	components = c("BayesianBootstrap", "Wald", "SurvivalGLMMWeibullFrailtyLoggammaIVWC"),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as the
 		# other survival KK migrations (RandCI's Zhang dispatch never applies).
@@ -501,9 +507,9 @@ InferenceSurvivalKKWeibullFrailtyLoggammaIVWC = define_inference_class(
 #' Clayton Copula Combined-Likelihood Inference for KK Designs
 #'
 #' Gamma-frailty (Clayton copula) Weibull estimator; see
-#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaIVWC]{InferenceSurvivalKKWeibullFrailtyLoggammaIVWC}}
+#' \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC]{InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC}}
 #' for the frailty-distribution details and contrast with the log-normal-frailty
-#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyNormalOneLik]{InferenceSurvivalKKWeibullFrailtyNormalOneLik}}
+#' \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyNormalOneLik]{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik}}
 #' alternative.
 #'
 #' @keywords internal
@@ -512,7 +518,7 @@ InferenceSurvivalKKWeibullFrailtyLoggammaIVWC = define_inference_class(
 # internal `...LegacyRaw` R6 generator built by a raw
 # `modifyList(InferenceMixinKKPassThrough$public/private, list(...))` splice
 # and self-harvested via `inference_component_source_parts()`, which forced
-# the registered `SurvivalKKWeibullFrailtyLoggammaOneLik` component to carry the whole
+# the registered `SurvivalGLMMWeibullFrailtyLoggammaOneLik` component to carry the whole
 # flattened KK pass-through surface (and to redeclare root-owned state). It
 # is now the same plain public/private list every other OneLik component
 # uses; the KK pass-through behavior arrives through the component's
@@ -521,11 +527,11 @@ InferenceSurvivalKKWeibullFrailtyLoggammaIVWC = define_inference_class(
 # root setter. The migration golden test rebuilds the legacy generator from
 # this source plus the mixin, exactly as the hurdle/cond-logit OneLik goldens
 # do.
-SurvivalKKWeibullFrailtyLoggammaOneLikSource = list(
+SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 	public = list(
 		#' @description Initialize KK Clayton-copula one-likelihood survival
 		#'   inference and prepare the combined likelihood used by
-		#'   \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaOneLik]{InferenceSurvivalKKWeibullFrailtyLoggammaOneLik}}.
+		#'   \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik]{InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik}}.
 		#' @param des_obj  	A DesignSeqOneByOne object (must be a KK design).
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -591,6 +597,8 @@ SurvivalKKWeibullFrailtyLoggammaOneLikSource = list(
 		}
 	),
 	private = list(
+		# See the IVWC Source's identical note above.
+		requires_kk_matching_design = function() TRUE,
 		max_abs_reasonable_coef = 1e4,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			# Re-read w, y, dead because they might have been transformed for
@@ -969,11 +977,11 @@ SurvivalKKWeibullFrailtyLoggammaOneLikSource = list(
 #' @export
 # Migrated 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
 # Estimators" / "KK And IVWC Estimators"): see
-# InferenceSurvivalKKWeibullFrailtyLoggammaOneLikLegacyRaw's comment above.
-InferenceSurvivalKKWeibullFrailtyLoggammaOneLik = define_inference_class(
-	classname = "InferenceSurvivalKKWeibullFrailtyLoggammaOneLik",
+# InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLikLegacyRaw's comment above.
+InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = define_inference_class(
+	classname = "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalKKWeibullFrailtyLoggammaOneLik"),
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalGLMMWeibullFrailtyLoggammaOneLik"),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other survival KK migration this stretch.

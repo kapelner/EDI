@@ -406,16 +406,156 @@ have to land together, see the release-line note in the header above):**
   passes cleanly under normal (non-strict) conditions with the new
   component registered. **Confirmed not gated on Phase 1D**,
   per this file's own "Recommended execution order" note above.
-- [ ] TODO-4: **Gated on `fix_inference_hierarchy.md`'s still-open
-  "Full-Likelihood Estimators" remainder (`_master.md` § 1D) — verified
-  2026-08-18: `InferencePropZeroOneInflatedBetaRegr` still `inherit =
-  InferenceAsympLikStdModCache` (a legacy deep-hierarchy base), not yet
-  migrated to `Inference` + explicit components.** Sequence after that
-  migration lands, not before — wiring marginal-mean logic into a class
-  about to be restructured means redoing the wiring. ZOIB: model-implied
-  mean function, g-computation average, and delta-method SE against the
-  joint vcov already returned by `fast_zero_one_inflated_beta_cpp`; wire
-  `"marginal_mean_diff"`.
+- [x] TODO-4: **Done (2026-08-23).** Re-verified live before starting:
+  `InferencePropZeroOneInflatedBetaRegr` is `define_inference_class(inherit
+  = Inference, ...)` with zero `algorithmic_compatibility_ancestors` in the
+  live manifest — `fix_inference_hierarchy.md` closed 2026-08-23, this
+  class's own migration landed separately before that.
+
+  **Implementation.** Added `"MarginalEstimand"` to the class's
+  `components =`. Overrode private `get_supported_estimands_impl()` to
+  return `c("conditional", "marginal_mean_diff")`. The model-implied mean
+  function (`private$zoib_mean_from_coefs()`) reproduces exactly the
+  normalized-mixture-probability construction the class's own
+  `simulate_under_lik_null()` already uses to draw from this model (raw
+  `p0`/`p1` renormalized against `pmax(1 - p0 - p1, 0)` before combining —
+  not the naive `p0 + p1 + p_mid` sum, which need not equal 1 with this
+  model's parameterization): `E[Y|x,w] = p1(x,w)*1 + p_mid(x,w)*mu(x,w)`.
+  `private$zoib_marginal_mean_diff_from_coefs()` does the g-computation
+  average (every subject's design row set to `w=1` then `w=0`, treatment
+  column fixed at index 2 per `build_component_matrix()`'s convention,
+  difference of means). `private$zoib_marginal_mean_diff_functional()`
+  re-expresses the same quantity as a function of the full stacked
+  parameter vector `theta = [b_beta, log_phi, gamma_0, gamma_1]` — the
+  exact layout `fast_zero_one_inflated_beta_cpp()`'s `params`/`vcov`
+  already use.
+
+  **Gradient: numerical, not analytic (documented decision).** Given the
+  three-submodel mixture with per-observation renormalization, a
+  hand-derived analytic gradient was judged a realistic source of a silent
+  sign/index error under implementation time pressure; a new generic
+  helper (`R/helper_marginal_estimand.R`:
+  `numerical_gradient_central()`/`marginal_estimand_delta_se()`, added to
+  `DESCRIPTION`'s `Collate:` after `helper_gcomp.R`) computes a
+  central-difference gradient instead and combines it with the joint vcov
+  for the delta-method SE. **Verified**: recomputing the SE by hand outside
+  the class at two different step sizes (`eps = 1e-4` vs. `1e-6`) on a real
+  fitted model gave a relative difference of `1.5e-10` — the gradient is
+  numerically stable, not step-size-sensitive — and matched the class's own
+  cached SE to `< 1e-8` in both the ad hoc script and the new test file's
+  assertion.
+
+  **`generate_mod()` change**: the full joint `vcov` and design matrix `X`
+  returned by `fast_zero_one_inflated_beta_cpp()` were already being
+  computed (that C++ call's `estimate_only` was never set, defaulting
+  `FALSE`) but previously discarded by `generate_mod()`'s returned list —
+  added as two new fields (`vcov`, `X`), purely additive, no change to the
+  conditional path.
+
+  **Real bug found and fixed while wiring this in (not anticipated by the
+  plan text): `compute_asymp_confidence_interval()`/
+  `compute_asymp_two_sided_pval()` are NOT class-owned for this class** —
+  they were inherited from the composed `StandardModelCache` component and
+  called `private$shared()` directly, never `self$compute_estimate()`. TODO-3's
+  design (`compute_estimate()` is the sole class-owned dispatch point) is
+  correct for `compute_estimate()` itself, but doesn't reach these two
+  methods for classes that don't already override them. Fixed by overriding
+  both in this class (added to `overrides$public`, which already listed
+  both names anticipating this) with the identical `StandardModelCache`
+  switch-on-`testing_type` body, but calling `self$compute_estimate(estimate_only
+  = FALSE)` first instead of `private$shared()` directly — under a marginal
+  estimand `testing_type` is always `"wald"` (enforced by `set_estimand()`),
+  so the non-wald switch branches are unreachable there by construction and
+  the conditional-estimand dispatch (score/gradient/lik_ratio/Bartlett) is
+  preserved unchanged.
+
+  **Second real bug found and fixed: a cache-invalidation bug on
+  estimand toggling.** `compute_estimate()`'s original marginal branch only
+  overwrote `cached_values$beta_hat_T`/`s_beta_hat_T` when computing the
+  marginal branch itself; `private$shared()`'s own short-circuit guard
+  (checks those same two fields) meant that switching back to
+  `"conditional"` after having computed a marginal estimate returned the
+  *stale marginal* numbers, since `shared()` skipped re-fitting (correctly
+  — the underlying ML fit doesn't change with estimand) but nothing
+  restored the conditional values. Fixed by making the conditional branch
+  of `compute_estimate()` unconditionally re-derive `beta_hat_T`/
+  `s_beta_hat_T`/`df` from the estimand-invariant `private$cached_mod` on
+  every call (free — no refit, `cached_mod` already holds everything
+  needed) rather than trusting `cached_values` to already hold the right
+  numbers.
+
+  **`compute_estimate_with_bootstrap_weights()`**: this method does its own
+  independent reweighted fit (not calling `compute_estimate()`), already
+  producing weighted `b_zero`/`b_one`/the beta submodel's `coef_vec` for its
+  existing (conditional) point estimate — no new fitting needed for the
+  marginal branch, just a call to the same mean-difference function using
+  those already-available weighted coefficients when
+  `get_estimand() == "marginal_mean_diff"`. Point estimate only, no SE
+  (bootstrap/randomization never read `s_beta_hat_T` from a weighted-fit
+  call).
+
+  **Verification performed** (`pkgload::load_all(".", compile = FALSE)`
+  throughout, no compile step):
+  1. `roxygen2::parse_file()` and base `parse()` clean on both edited files.
+  2. Real simulated dataset (n=300, treatment-dependent zero/one-inflation
+     and interior mean): conditional estimate/CI/pval unchanged whether
+     `compute_asymp_confidence_interval()` is called directly (no prior
+     `compute_estimate()` call) or after — confirms the `private$shared()`
+     bypass fix didn't regress the conditional path, and is itself
+     call-order-independent.
+  3. Marginal-estimand call-order independence: `compute_estimate()` then
+     `compute_asymp_confidence_interval()`, vs. the reverse order, produce
+     identical point estimates and CIs.
+  4. Toggle regression test: conditional → marginal → conditional returns
+     to the exact original conditional point estimate (`tolerance = 1e-9`),
+     confirming the cache-invalidation fix.
+  5. `get_supported_testing_types()` shrinks to `"wald"` only after
+     `set_estimand("marginal_mean_diff")`; `set_estimand()` errors and rolls
+     back when `testing_type` is incompatible; `set_testing_type()` errors
+     symmetrically under a marginal estimand — all per TODO-6's already-
+     implemented mechanism, confirmed working for a real production class
+     (TODO-6 itself was previously verified only against a test-double
+     host).
+  6. Marginal-estimand bootstrap (`approximate_bootstrap_distribution_beta_hat_T`,
+     B=12/15) and randomization (`compute_rand_two_sided_pval`, r=25)
+     inference both produce finite, `[-1,1]`-bounded draws/valid p-values —
+     confirming TODO-7's "free" claim holds in practice for this class'
+     `compute_treatment_estimate_during_randomization_inference()`, which
+     does call `self$compute_estimate()` internally.
+  7. Full existing test suites re-run clean: `test-mixin-contracts.R`,
+     `test-inference-class-registry.R`,
+     `test-parametric-bootstrap-lr-all-capable-classes.R`,
+     `test-zero-one-inflated-beta-fast-math.R` (pre-existing, unrelated to
+     this change). Package also loads cleanly under
+     `EDI_VALIDATE_INFERENCE_CONTRACTS=true` (the strict parser-backed
+     body-reference/collision validation) with all the new private methods
+     and cross-references.
+  8. **Registry stale-table bug found and fixed** (the same known hazard
+     class documented repeatedly elsewhere in this migration effort):
+     `inference_class_registry.R`'s static `infer_inference_direct_components()`
+     switch table still listed this class's OLD three-component set,
+     independent of the real `components =` argument in the factory call —
+     `self$supports("marginal_estimand")` returned `FALSE` even after
+     `MarginalEstimand` was correctly composed and its methods were
+     reachable, because `get_effective_capabilities()` reads that stale
+     static table, not the live factory call. Fixed by adding
+     `"MarginalEstimand"` to that table's entry for this class. Caught only
+     by an end-to-end `self$supports("marginal_estimand")` check, not by
+     `roxygen2::parse_file()`/loading alone — worth remembering as a
+     required verification step for any future class composing a new
+     component via this registry pattern.
+  9. New focused test file:
+     `tests/testthat/test-zoib-marginal-estimand.R` (8 test blocks: default
+     estimand/supported-estimands, conditional-path preservation across
+     call orders and estimand round-trips, marginal point-estimate
+     boundedness and call-order independence, delta-method SE numerical-
+     gradient cross-check, testing-type shrink/symmetric-error behavior,
+     bootstrap and randomization sanity) — all passing.
+
+  New `@details` section added to the class's roxygen documenting the
+  marginal estimand's formula, scale, and delta-method/testing-type
+  caveats; verified with `roxygen2::parse_file()`.
+
 - [ ] TODO-5: **Gated on the same open Phase 1D item as TODO-4 — verified
   2026-08-18: `InferenceCountZeroInflatedPoisson`/`NegBin`,
   `InferenceCountHurdlePoisson`/`NegBin`, and their shared abstract
@@ -424,6 +564,170 @@ have to land together, see the release-line note in the header above):**
   Poisson (ZIP and hurdle concretes): mean functions (including the
   zero-truncated hurdle mean); wire `"marginal_ratio"` and
   `"marginal_mean_diff"`.
+
+  **Partial pass, 2026-08-23: math/plumbing groundwork done and verified in
+  isolation, but NOT wired into any public API — no behavior change to any
+  shipped class.** What landed, all in
+  `inference_count_zero_augmented_poisson_abstract.R` (plus one registry
+  fix): (1) `zero_augmented_sandwich_se()` refactored — without changing
+  its existing output for any current caller — to factor its bread/meat
+  sandwich construction into a new `zero_augmented_poisson_sandwich_vcov_full()`
+  that returns the *full* robust covariance matrix instead of throwing away
+  every entry but `[j_treat, j_treat]`; this is Poisson-only (the score
+  formulas assume a plain `exp()`-link Poisson mean with no dispersion
+  term) — confirmed by reading the function fully, matches the plan's own
+  warning. (2) `zero_augmented_poisson_mean_from_theta()`: the model-implied
+  mean, `(1 - pi) * lambda` for ZIP (untruncated Poisson mean) or
+  `(1 - pi) * lambda / (1 - exp(-lambda))` for hurdle (zero-truncated
+  Poisson mean — verified algebraically: truncating a Poisson to exclude 0
+  does not change its rate parameter, only the normalizing constant, so
+  `E[Y | Y>0] = lambda / P(Y>0)` is exact for Poisson specifically, per
+  Cameron & Trivedi ch. 4.2 — this Poisson-only shortcut does **not**
+  generalize to NegBin, confirming the plan's warning). (3)
+  `zero_augmented_poisson_marginal_functional()`: g-computation average
+  (all-treated vs. all-control design-matrix substitution, mirroring
+  ZOIB's `zoib_marginal_mean_diff_from_coefs()` pattern) for both
+  `"marginal_mean_diff"` and log-scale `"marginal_ratio"`. (4)
+  `compute_marginal_estimand_estimate()`: the post-fit dispatcher, reusing
+  `marginal_estimand_delta_se()` (TODO-4's generic helper, unchanged)
+  against the new full sandwich vcov. (5) Stashed `X_fit`/`Xzi_fit`/
+  `is_hurdle` onto the cached fit object in `generate_mod()`'s Poisson
+  branch (mirroring ZOIB's `mod$X`/`mod$X_zero_one`) so the marginal path
+  is a pure post-fit transform, no refit — confirmed this field did not
+  already exist (unlike TODO-4's ZOIB, which already had it). (6) Found
+  and fixed one real bug while wiring this in: the component registry's
+  static `ZeroAugmentedCountLikelihood` spec (`contracts_mixins.R`) lists
+  `provides_private_methods` explicitly and rejects any component-body
+  method not named there (contract rule #2) — the package failed to load
+  at all (`"has stale private method metadata"`) until the 4 new private
+  method names were added to that list. Manually smoke-tested post-fix: a
+  fresh `InferenceCountZeroInflatedPoisson` fit's existing (conditional)
+  `compute_estimate()`/`compute_asymp_confidence_interval()` behavior is
+  unchanged (spot-checked numerically, not a full golden diff).
+
+  **Deliberately NOT done — the actual public-API wiring — because of a
+  real architectural blocker found mid-implementation, not a math
+  uncertainty:** `InferenceCountZeroInflatedPoisson`/`HurdlePoisson` (and
+  their NegBin siblings) are plain `R6::R6Class(inherit =
+  InferenceCountZeroAugmentedPoissonAbstract)` leaves, not
+  `define_inference_class()` calls of their own — only the shared
+  *abstract* is factory-built. Composing a new component
+  (`"MarginalEstimand"`) is only legal through `define_inference_class()`,
+  and it can't be added at the abstract level without also silently
+  handing the (unimplemented, NegBin-invalid) capability to the NegBin
+  siblings that share that same abstract. The correct fix is converting
+  the two Poisson leaves to real `define_inference_class(inherit =
+  InferenceCountZeroAugmentedPoissonAbstract, components =
+  c("MarginalEstimand"), ...)` calls of their own (`resolve_inference_
+  components()` inherits a `define_inference_class`-built parent's
+  components automatically, so this is legal and matches how other
+  "thin leaf of an already-composed abstract" classes are migrated
+  elsewhere in this codebase) — but every such conversion done elsewhere
+  this session needed a careful, class-specific `overrides` list to
+  resolve public/private method collisions between the newly-composed
+  component and the existing inherited body, and getting that wrong
+  produces exactly the kind of silently-broken state this plan's own
+  standing instruction says to avoid. Under the time/context budget
+  available for this pass, converting two classes' inheritance shape
+  carefully enough to trust was not achievable alongside the math work
+  above without rushing one or the other — left honestly unfinished
+  rather than risk a subtly-wrong collision resolution.
+
+  **Resume instructions for whoever picks this up:** the math (items 1-5
+  above) is done, isolated, and doesn't need to be redone — only wire it
+  in. For each of `InferenceCountZeroInflatedPoisson`/`HurdlePoisson`:
+  convert `R6::R6Class(...)` to `define_inference_class(classname = "...",
+  inherit = InferenceCountZeroAugmentedPoissonAbstract, components =
+  "MarginalEstimand", public = list(...its existing public members...,
+  get_supported_estimands_impl is private, not public...), private =
+  list(get_supported_estimands_impl = function() c("conditional",
+  "marginal_ratio", "marginal_mean_diff")), overrides = list(...))`,
+  following `InferencePropZeroOneInflatedBetaRegr`'s exact `components =
+  c(..., "MarginalEstimand")` + `overrides` shape as the template. Then add
+  `compute_estimate()`/`compute_asymp_confidence_interval()`/
+  `compute_asymp_two_sided_pval()` overrides that branch on
+  `self$get_estimand()`, calling `private$compute_marginal_estimand_
+  estimate("marginal_mean_diff"/"marginal_ratio", estimate_only)` in the
+  marginal branch and the existing conditional logic otherwise — mirror
+  ZOIB's `compute_estimate()`/CI/pval bodies verbatim, just swapping the
+  functional call. NegBin variants remain out of scope (the mean-function
+  and sandwich-score derivations above are Poisson-specific by
+  construction) — do not attempt to reuse `zero_augmented_poisson_mean_
+  from_theta()`/`_sandwich_vcov_full()` for `InferenceCountZeroInflatedNegBin`/
+  `HurdleNegBin` without rederiving both for the NegBin likelihood first.
+  Add a test file mirroring `test-zoib-marginal-estimand.R`'s structure
+  once wired. Verify `self$supports("marginal_estimand")` end-to-end on a
+  real instance of both classes, not just that the package loads (this
+  pass's own registry bug, found above, is exactly the kind of thing that
+  silently breaks capability detection while the package still loads
+  fine).
+
+  Files touched this pass:
+  `R/EDI/R/inference_count_zero_augmented_poisson_abstract.R`,
+  `R/EDI/R/contracts_mixins.R` (registry fix only). No public API changed;
+  `pkgload::load_all(compile = FALSE)` succeeds; a manual smoke test of
+  `InferenceCountZeroInflatedPoisson`'s existing conditional
+  `compute_estimate()`/CI confirmed unchanged output.
+
+  **Earlier verification note (superseded by the above, kept for
+  context):** re-verified 2026-08-23, migration gating is lifted: live
+  manifest confirms
+  zero `algorithmic_compatibility_ancestors` for all four concrete classes
+  and their shared abstract (three of the four concretes show
+  `migration_status == "pending"` only because they're one level removed
+  through the abstract, the documented accepted terminal state of
+  `fix_inference_hierarchy.md` — not a real gate). **What's different from
+  TODO-4 and why this needs its own dedicated pass rather than a quick
+  extension of TODO-4's pattern:**
+  - The count family's covariance is a **sandwich (robust) estimator**
+    (`private$zero_augmented_sandwich_se()`), not a plain MLE-inverse-Hessian
+    joint vcov like ZOIB's — read that method fully before assuming
+    `marginal_estimand_delta_se()` can reuse the same joint-vcov-times-
+    gradient recipe unchanged; the sandwich matrix's exact parameter
+    ordering/dimension needs to be confirmed against whatever `generate_mod()`
+    already caches (or doesn't yet cache — check, the same "add a field
+    that's already computed but discarded" opportunity TODO-4 found may or
+    may not exist here).
+  - NegBin uses a distinct C++ path (`fast_zinb_cpp`) from Poisson
+    (`fast_zero_augmented_poisson_cpp` with an `is_hurdle` flag) —
+    confirm both return the same covariance-matrix shape/field name before
+    writing one shared mean-function helper for all four classes.
+  - Two genuinely different mean-function formulas needed, and getting them
+    right matters more here than for ZOIB since this family also needs a
+    **log-scale ratio** estimand (`"marginal_ratio"`), not just a
+    difference: zero-inflated mean is `(1 - P(structural zero)) * mu_count`
+    (untruncated Poisson/NegBin mean); hurdle mean is `P(Y>0) *
+    E[Y | Y>0]` using the **zero-truncated** count mean, which is NOT the
+    same formula as the untruncated mean divided by `P(Y>0)` for NegBin
+    (only true for Poisson) — verify the truncated-NegBin mean formula
+    against a primary source before shipping it; a plausible-looking wrong
+    formula here would be a silently-wrong-numbers bug, exactly what this
+    package's CLAUDE.md and this plan's own motivation (ICH E9(R1)/FDA
+    marginal-estimand guidance) both take most seriously.
+  - Whether one generic marginal-mean/gradient helper belongs on the shared
+    abstract `InferenceCountZeroAugmentedPoissonAbstract` (probably yes,
+    given `za_family()`/`za_description()`'s existing per-class-supplies-
+    one-hook pattern) or per-concrete-class is an open design call for
+    whoever picks this up — the abstract's `generate_mod()`/`shared()`/
+    sandwich-SE machinery is already substantially more complex and
+    interleaved (`is_hurdle` branches throughout, `record_zero_augmented_fit_summary()`,
+    fallback paths) than ZOIB's, and deserves a careful read (not a
+    skim) before deciding.
+  - Same `compute_asymp_confidence_interval`/`compute_asymp_two_sided_pval`-
+    bypass and cache-invalidation-on-toggle bugs TODO-4 found and fixed are
+    architecturally certain to recur here (same `StandardModelCache`-style
+    composition pattern) — apply the same two fixes (override both methods
+    to call `self$compute_estimate()` first; re-derive conditional values
+    from `cached_mod` unconditionally rather than trusting
+    `cached_values`) proactively rather than rediscovering them.
+  - Same registry-stale-table risk TODO-4 hit
+    (`infer_inference_direct_components()` in `inference_class_registry.R`)
+    — check `self$supports("marginal_estimand")` end-to-end on a real
+    instance of each of the four classes, not just that the package loads.
+
+  Left entirely unimplemented rather than half-wired, per this session's
+  explicit directive: a wrong truncated-mean formula shipped confidently
+  is worse than an honest "not yet done."
 - [x] TODO-6: `get_supported_testing_types_with_bartlett()`
   (`inference_all_abstract_asymp_lik.R`, the `LikelihoodTests` component's
   source) now shrinks to `"wald"` only when
@@ -492,8 +796,9 @@ have to land together, see the release-line note in the header above):**
   point" it would document doesn't exist as working code — that hook's
   exact interface is deliberately not designed until a real family
   (TODO-4's ZOIB) validates it, rather than guessing a signature nothing
-  can check against. Revisit `extending-edi-r6.md` when TODO-4 lands the
-  first real shared helper.
+  can check against. Revisit the extension contract (since 2026-08-23:
+  `R/EDI/vignettes/extending-edi.Rmd`, not the retired `extending-edi-r6.md`)
+  when TODO-4 lands the first real shared helper.
 - [ ] TODO-9: **Gated on the same open Phase 1D item as TODO-4/5 — verified
   2026-08-18: `InferenceIncidLogit`, `InferenceCountPoisson`,
   `InferenceProportionBeta`, and `InferenceIncidBinomialIdentity` all still

@@ -174,14 +174,14 @@ dominate:
    `get_weibull_regression_score_cpp` / `get_weibull_regression_hessian_cpp`
    kernels wired into `get_likelihood_test_spec()`
    ([inference_survival_weibull.R:106-222](../EDI/R/inference_survival_weibull.R)).
-   The same kernel is reused by `InferenceAbstractKKWeibullFrailtyNormalIVWC`
-   ([inference_survival_KK_weibull_frailty_normal.R:184,313](../EDI/R/inference_survival_KK_weibull_frailty_normal.R))
+   The same kernel is reused by `InferenceAbstractGLMMWeibullFrailtyNormalIVWC`
+   ([inference_survival_GLMM_weibull_frailty_normal.R:184,313](../EDI/R/inference_survival_GLMM_weibull_frailty_normal.R))
    and `InferenceSurvivalKKWeibullMarginal`
    ([inference_survival_KK_weibull_marginal.R:159](../EDI/R/inference_survival_KK_weibull_marginal.R)).
 
-A third, smaller family exists outside both: `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`
+A third, smaller family exists outside both: `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`
 (Clayton copula with Weibull AFT margins,
-[inference_survival_KK_weibull_frailty_loggamma.R:4-13](../EDI/R/inference_survival_KK_weibull_frailty_loggamma.R))
+[inference_survival_GLMM_weibull_frailty_loggamma.R:4-13](../EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R))
 and `InferenceAbstractKKSurvivalRankRegrIVWC` (rank regression,
 [inference_survival_KK_rank_regr_ivwc_abstract.R:18-20](../EDI/R/inference_survival_KK_rank_regr_ivwc_abstract.R)).
 Both are still `(y, dead)`-shaped inputs.
@@ -411,7 +411,7 @@ design:
   interval bounds as exact times
 - `InferenceAbstractKKSurvivalRankRegrIVWC` (rank regression assumes an
   orderable exact-or-right-censored time, the same problem as Cox)
-- `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC` (Weibull-margin copula — plausibly
+- `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` (Weibull-margin copula — plausibly
   extensible later using the same interval-likelihood modification as plain
   Weibull, but should reject until that extension is actually built)
 
@@ -436,7 +436,7 @@ term are already implemented for the ordinary case.
 
 ### 2. Interval-censored parametric Weibull frailty / KK-marginal variants
 
-Once the base kernel above exists, `InferenceAbstractKKWeibullFrailtyNormalIVWC`
+Once the base kernel above exists, `InferenceAbstractGLMMWeibullFrailtyNormalIVWC`
 and `InferenceSurvivalKKWeibullMarginal`, which already call the same
 `fast_weibull_regression_cpp` kernel, would need comparatively little
 additional work to accept the new likelihood branch.

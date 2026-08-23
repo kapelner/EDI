@@ -36,7 +36,7 @@ inference_class_compatibility_metadata = function(nm) {
 		abstract = isTRUE(metadata$abstract),
 		exported = isTRUE(metadata$exported),
 		response_types = metadata$response_types %||% character(),
-		requires_kk = grepl("KK", nm, fixed = TRUE),
+		requires_kk = isTRUE(metadata$requires_kk_matching_design),
 		requires_blocking = isTRUE(metadata$requires_blocking_design),
 		supports_general_censoring = isTRUE(metadata$supports_general_censoring)
 	)
@@ -46,7 +46,12 @@ inference_class_compatibility_metadata = function(nm) {
 #' `design_meta` (see `normalize_inference_design_metadata()`). A candidate is
 #' excluded if it is abstract or not exported; if it declares no compatible
 #' response types, or none match `design_meta$response_type`; if it requires
-#' KK matching (name contains `"KK"`) but the design isn't KK-capable; if its
+#' KK matching (`requires_kk_matching_design` metadata -- inferred from the
+#' class name containing `"KK"`, or from an explicit private
+#' `requires_kk_matching_design()` override for a class that needs a matched
+#' design without a `"KK"`-prefixed name, e.g. the
+#' `InferenceSurvivalGLMMWeibullFrailty*` family) but the design isn't
+#' KK-capable; if its
 #' `requires_blocking_design` metadata is `TRUE` but the design doesn't
 #' support blocking; if the design has any left-/interval-censored
 #' subjects (`has_general_censoring`) but the class's
@@ -2639,6 +2644,17 @@ cov_model_display = function(cov_models) {
 #' otherwise force long strings like `"0.0000120"` for a small p-value).
 #' `NA` passes through as the string `"NA"` either way.
 #'
+#' Falls back to scientific notation even when `scientific = FALSE`, once a
+#' value is close enough to zero that fixed-point would need an
+#' unreasonable number of decimal places -- per user request, 2026-08-23: a
+#' near-zero `ci_a` (a genuine, if numerically tiny, randomization-test CI
+#' bound) rendered as `"-0.00000000433"` in the live table (and, sharing
+#' this same helper, identically in `print()`/HTML): `d` below grows
+#' without bound as `v -> 0` at a fixed significant-figure count, so
+#' nothing capped how many decimal places fixed-point format was allowed to
+#' use. `est`/`se`/`ci_a`/`ci_b`/`weight` are the affected columns (`pval`
+#' already always requests `scientific = TRUE`).
+#'
 #' @param scientific If `TRUE`, format as `<mantissa>e<exponent>` (e.g.
 #'   `"1.2e-05"`) instead of fixed-point.
 #'
@@ -2650,6 +2666,7 @@ run_all_inference_sigfig = function(x, n = 2L, scientific = FALSE) {
 		if (v == 0) return(if (scientific) "0e+00" else "0.0")
 		if (scientific) return(formatC(v, digits = n - 1L, format = "e"))
 		d = n - 1L - floor(log10(abs(v)))
+		if (d > 6L) return(formatC(v, digits = n - 1L, format = "e"))
 		formatC(round(v, d), digits = max(d, 0L), format = "f")
 	}, character(1L), USE.NAMES = FALSE)
 }

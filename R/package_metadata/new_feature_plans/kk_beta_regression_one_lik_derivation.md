@@ -73,7 +73,7 @@ None of these is a *beta-regression-specific* one-stage estimator: something
 that reduces to `InferencePropBetaRegr`'s exact mean/precision model when
 there is no matching structure, and generalizes it to a genuine joint
 likelihood over matched pairs + reservoir the way
-`InferenceSurvivalKKWeibullFrailtyNormalOneLik` does for the Weibull AFT model.
+`InferenceSurvivalGLMMWeibullFrailtyNormalOneLik` does for the Weibull AFT model.
 This document derives that model.
 
 ## Why The Row-Stacking Mechanism Doesn't Transfer
@@ -305,7 +305,7 @@ corrected in review — see the epistemic-status paragraph below):
   `b_k` (not just Gaussian) — leaving `Logistic(eta_T - eta_C, 1/k)`, fully
   free of `b_k`. This is a genuinely different worked example of Mechanism
   A (Gumbel/Logistic rather than Gaussian), and it is the reason
-  `InferenceSurvivalKKWeibullFrailtyNormalOneLik`'s pair terms *could in
+  `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik`'s pair terms *could in
   principle* be handled by exact row-stacking rather than quadrature — a
   route worth pursuing separately for the still-open survival
   rank-regression `OneLik` gap named in `KK_followup_research_plan.md`, but
@@ -404,7 +404,7 @@ transform might also exist.
 The codebase already has a working template for exactly this situation —
 where a pair-level nuisance term cannot be eliminated in closed form from a
 nonlinear-link likelihood — in
-`InferenceSurvivalKKWeibullFrailtyNormalOneLik`/`InferenceAbstractKKCondLogitGLMM`
+`InferenceSurvivalGLMMWeibullFrailtyNormalOneLik`/`InferenceAbstractKKCondLogitGLMM`
 (`InferencePropKKGLMM`'s own base class): place a **Gaussian random
 intercept** on the linear-predictor scale, shared within a pair, and
 integrate it out numerically via **Gauss-Hermite quadrature**
@@ -434,9 +434,9 @@ y_r | mu_r, phi  ~  Beta(mu_r * phi, (1 - mu_r) * phi)
 
 **No random intercept for reservoir subjects.** This is a deliberate choice,
 not a simplification of convenience — it mirrors what
-`InferenceSurvivalKKWeibullFrailtyNormalOneLik`'s own reservoir component already
+`InferenceSurvivalGLMMWeibullFrailtyNormalOneLik`'s own reservoir component already
 does (plain Weibull AFT, no frailty term; see
-`inference_survival_KK_weibull_frailty_normal.R:L309-L341`). The random intercept
+`inference_survival_GLMM_weibull_frailty_normal.R:L309-L341`). The random intercept
 exists to model *within-pair* correlation; a reservoir singleton has no
 partner to be correlated with, so there is nothing for `b_k` to represent
 for that subject. Giving every reservoir subject its own free-standing
@@ -529,7 +529,7 @@ their own random-intercept terms (see e.g.
 accumulation, which is a direct template to adapt). The observed/Fisher
 information for the combined likelihood is the negative Hessian of `ell`,
 giving asymptotic (sandwich-free, model-based) standard errors the same way
-`InferencePropBetaRegr` and `InferenceSurvivalKKWeibullFrailtyNormalOneLik` already
+`InferencePropBetaRegr` and `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik` already
 report them; the package's existing likelihood-ratio/score/gradient testing
 machinery (`supports_likelihood_tests`, `get_likelihood_test_spec`) should
 attach without needing new inference-theory work, only the new `neg_loglik`/
@@ -575,7 +575,7 @@ both, in this order:
 ## Alternatives Considered And Rejected
 
 - **Bivariate copula with Beta margins** (mirroring
-  `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`'s Clayton-copula-with-Weibull-margins
+  `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`'s Clayton-copula-with-Weibull-margins
   construction): would avoid needing a quadrature integral, but the Beta CDF
   has no closed-form inverse (it's the regularized incomplete beta function),
   so evaluating a copula density built on Beta margins requires numerically
@@ -586,7 +586,7 @@ both, in this order:
   exists specifically because Weibull hazards are gamma-frailty-conjugate;
   no analogous closed form is known for Beta margins). Also, unlike the
   survival Clayton-copula class, which is IVWC-only in this codebase (see
-  `inference_survival_KK_weibull_frailty_loggamma.R:L1-L6` — it explicitly combines a
+  `inference_survival_GLMM_weibull_frailty_loggamma.R:L1-L6` — it explicitly combines a
   matched-pair copula estimate with a separate reservoir Weibull estimate by
   inverse-variance weighting, *not* a single joint likelihood), a genuine
   `OneLik` class needs the pair and reservoir terms to already share one
@@ -762,7 +762,7 @@ recorded. Per house convention, tick these here (this is the owning plan).
   Chronic Disease Incidence." *Biometrika*, 65(1), 141-151; Oakes, D.
   (1982). "A Model for Association in Bivariate Survival Data." *JRSS
   Series B*, 44(3), 414-422. (Cited already in
-  `inference_survival_KK_weibull_frailty_loggamma.R` for the rejected copula
+  `inference_survival_GLMM_weibull_frailty_loggamma.R` for the rejected copula
   alternative's closed-form gamma-frailty comparison.)
 - Barnard, G. A. (1963). "Some Aspects of the Fiducial Argument." *JRSS
   Series B*, 25(1), 111-114; Fraser, D. A. S. (1968). *The Structure of

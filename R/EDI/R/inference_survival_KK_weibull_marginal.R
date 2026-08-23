@@ -8,7 +8,7 @@
 #' unmatched reservoir subjects each form their own singleton cluster.
 #'
 #' @details
-#' This is the "marginal" competitor to \code{\link{InferenceSurvivalKKWeibullFrailtyNormalOneLik}}:
+#' This is the "marginal" competitor to \code{\link{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik}}:
 #' rather than modeling the within-pair correlation explicitly via a frailty
 #' term, it fits an ordinary (working-independence) Weibull AFT model and
 #' corrects the treatment-effect standard error post hoc for the within-pair

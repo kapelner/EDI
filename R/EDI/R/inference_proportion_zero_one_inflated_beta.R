@@ -17,8 +17,31 @@
 #' submodels use \code{model_formula_zero_one}, which defaults to \code{~ .}
 #' so that treatment plus all available covariates enter those auxiliary pieces.
 #' See the class-level description above for what the reported coefficient does
-#' and does not represent; a marginal (unconditional-mean) estimand is not yet
-#' implemented for this class (see \code{marginal_estimand_report.md}).
+#' and does not represent.
+#'
+#' \strong{Marginal estimand.} This class composes
+#' \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
+#' (\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()});
+#' in addition to the default \code{"conditional"} estimand described above, it
+#' supports \code{"marginal_mean_diff"}: the model-implied unconditional mean
+#' recombines all three mixture components,
+#' \eqn{E[Y \mid x, w] = \pi_1(x, w) \cdot 1 + (1 - \pi_0(x, w) - \pi_1(x, w))
+#' \cdot \mathrm{logit}^{-1}(x^\top \beta + \beta_T w)} (the zero mass
+#' contributes nothing), where \eqn{\pi_0}/\eqn{\pi_1} are the normalized
+#' zero/one-inflation mixture probabilities. The reported treatment effect
+#' under \code{"marginal_mean_diff"} is the g-computation average
+#' \eqn{\hat\tau = n^{-1} \sum_i [\hat E(Y \mid x_i, w=1) - \hat E(Y \mid x_i,
+#' w=0)]}, on the response's natural \eqn{[0,1]} scale (not the log-odds
+#' scale of the conditional estimand). Standard errors are delta-method,
+#' against the joint covariance of \eqn{[\beta, \log\phi, \gamma_0, \gamma_1]}
+#' already returned by \code{fast_zero_one_inflated_beta_cpp}, using a
+#' numerical (central-difference) gradient of \eqn{\hat\tau} — see
+#' \code{marginal_estimand_report.md → TODO-4} for why analytic
+#' differentiation was not used. This is a pure post-fit transform of the same
+#' cached maximum-likelihood fit (no refit), so only Wald-via-delta-method
+#' inference is available under a marginal estimand (no likelihood-ratio/
+#' score/gradient test — see \code{set_estimand()}'s testing-type
+#' interaction).
 #'
 #' @references Ospina, R., and Ferrari, S. L. P. (2010). "Inflated beta
 #'   distributions." \emph{Statistical Papers}, 51(1), 111-126,
@@ -49,7 +72,7 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 	# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
 	# migration ladders): like InferencePropBetaRegr, no pre-registered
 	# per-class component existed for this class -- declared inline.
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache"),
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache", "MarginalEstimand"),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
 	overrides = list(
 		public = c(
@@ -66,6 +89,7 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			"mark_jackknife_nonestimable_if_block_unsupported",
 			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
 			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_supported_estimands_impl",
 			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
 			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
 			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
@@ -107,17 +131,105 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 		},
 		#' @description Fits the zero/one-inflated beta mixture model by maximum
 		#'   likelihood (jointly the beta mean submodel, the zero/one inflation
-		#'   submodels, and the beta precision) and returns \eqn{\hat\beta_T}, the
+		#'   submodels, and the beta precision). Under the default
+		#'   \code{estimand = "conditional"}, returns \eqn{\hat\beta_T}, the
 		#'   treatment log-odds-ratio from the beta mean submodel \strong{conditional
 		#'   on the interior \eqn{(0,1)} component} — see
 		#'   \code{\link[EDI:InferencePropZeroOneInflatedBetaRegr]{InferencePropZeroOneInflatedBetaRegr}}'s
-		#'   estimand caveat.
+		#'   estimand caveat. Under \code{estimand = "marginal_mean_diff"} (set via
+		#'   \code{set_estimand()}), returns the g-computation marginal mean
+		#'   difference instead — see the class-level \code{@details} for the
+		#'   formula. The underlying model fit is identical either way (a pure
+		#'   post-fit transform of the same cached fit, no refit).
 		#' @param estimate_only If TRUE, skip standard-error computation and cache
 		#'   only the point estimate; used by randomization and bootstrap resampling
 		#'   paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
+			if (identical(self$get_estimand(), "marginal_mean_diff")) {
+				return(private$compute_marginal_mean_diff_estimate(estimate_only = estimate_only))
+			}
+			# 2026-08-23 (marginal_estimand_report.md TODO-4): re-derive the
+			# conditional beta_hat_T/s_beta_hat_T/df from the estimand-invariant
+			# private$cached_mod every call, rather than trusting
+			# private$cached_values$beta_hat_T/s_beta_hat_T to already hold the
+			# conditional values. private$shared()'s own short-circuit guard
+			# checks those same cached_values fields; if a prior call under
+			# estimand = "marginal_mean_diff" left them holding the marginal
+			# point/SE, shared() would skip re-fitting (correctly -- cached_mod
+			# doesn't need refitting when only the estimand changed) but would
+			# also skip restoring the conditional values, leaving this method
+			# returning stale marginal numbers after switching back to
+			# "conditional". Re-deriving here is free (no refit, cached_mod
+			# already holds everything needed) and makes compute_estimate()
+			# correct regardless of call order across estimand switches.
+			mod = private$cached_mod
+			if (!is.null(mod)) {
+				private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$b[2L])[1L]
+				if (!estimate_only) {
+					ssq = mod$ssq_b_2 %||% mod$ssq_b_j
+					ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
+					private$cached_values$df = mod$df %||% NA_real_
+					if (is.finite(ssq) && ssq > 0) {
+						private$cached_values$s_beta_hat_T = sqrt(ssq)
+						private$clear_nonestimable_state()
+					} else {
+						private$cache_nonestimable_se("model_standard_error_unavailable")
+					}
+				}
+			}
 			private$cached_values$beta_hat_T
+		},
+		#' @description Wald confidence interval, dispatched by
+		#'   \code{testing_type} for the conditional estimand (score/gradient/
+		#'   likelihood-ratio/Bartlett available; see
+		#'   \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}}); under a
+		#'   marginal estimand \code{testing_type} is always \code{"wald"} (the
+		#'   only value \code{set_estimand()} permits there), so this always
+		#'   resolves to the delta-method interval. Calls
+		#'   \code{self$compute_estimate()} first (not
+		#'   \code{private$shared()} directly) so the estimand-aware cache is
+		#'   always current regardless of call order.
+		#' @param alpha Two-sided miscoverage rate; the returned interval
+		#'   targets \code{1 - alpha} coverage.
+		compute_asymp_confidence_interval = function(alpha = 0.05){
+			self$compute_estimate(estimate_only = FALSE)
+			if (private$testing_type == "wald") {
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
+				}
+			}
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_confidence_interval_impl(alpha),
+				score = private$compute_score_confidence_interval_impl(alpha),
+				gradient = private$compute_gradient_confidence_interval_impl(alpha),
+				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
+			)
+		},
+		#' @description Wald two-sided p-value, dispatched by \code{testing_type}
+		#'   exactly as \code{compute_asymp_confidence_interval()}; see that
+		#'   method's description for the marginal-estimand always-Wald note.
+		#' @param delta Null treatment-effect value under the current estimand
+		#'   (conditional log-odds-ratio, or marginal mean difference).
+		compute_asymp_two_sided_pval = function(delta = 0){
+			self$compute_estimate(estimate_only = FALSE)
+			if (private$testing_type == "wald") {
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
+				}
+			}
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_two_sided_pval_impl(delta),
+				score = private$compute_score_two_sided_pval_impl(delta),
+				gradient = private$compute_gradient_two_sided_pval_impl(delta),
+				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
+			)
 		},
 		#' @description Refits the zero/one-inflated beta model with subject/block-level
 		#'   weights applied to the fitting log-likelihood (Bayesian-bootstrap or
@@ -207,6 +319,23 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			private$cached_values$summary_table = NULL
 			private$cached_values$zero_coefficients = if (!is.null(zero_fit)) zero_fit$b else NULL
 			private$cached_values$one_coefficients = if (!is.null(one_fit)) one_fit$b else NULL
+			# 2026-08-23 (marginal_estimand_report.md TODO-4): under a marginal
+			# estimand, overwrite the point estimate with the g-computation mean
+			# difference computed from these same reweighted submodel fits
+			# (b_beta from beta_fit/lm_fit above, b_zero/b_one from zero_fit/
+			# one_fit) -- point estimate only, no SE (bootstrap/randomization
+			# never read s_beta_hat_T from a weighted-fit call; the outer
+			# resampling loop supplies its own variability).
+			if (identical(self$get_estimand(), "marginal_mean_diff") &&
+			    !is.null(zero_fit) && !is.null(one_fit)) {
+				marginal_point = tryCatch(
+					private$zoib_marginal_mean_diff_from_coefs(
+						as.numeric(coef_vec), as.numeric(zero_fit$b), as.numeric(one_fit$b), X, X_zero_one
+					),
+					error = function(e) NA_real_
+				)
+				private$cached_values$beta_hat_T = marginal_point
+			}
 			private$cached_values$beta_hat_T
 		}
 		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
@@ -228,6 +357,95 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 		best_X_colnames = NULL,
 		best_X_zero_one_colnames = NULL,
 		model_formula_zero_one = NULL,
+		# 2026-08-23 (marginal_estimand_report.md TODO-4): every class composing
+		# MarginalEstimand supports only "conditional" by default (the
+		# component's own get_supported_estimands_impl()); overridden here to
+		# add "marginal_mean_diff" -- the g-computation mean difference on the
+		# response's natural (proportion) scale.
+		get_supported_estimands_impl = function(){
+			c("conditional", "marginal_mean_diff")
+		},
+		# Model-implied unconditional mean E[Y | x, w] for the ZOIB mixture,
+		# given the beta-submodel and zero/one-submodel coefficients: the same
+		# normalized-mixture-probability construction private$simulate_under_
+		# lik_null() uses to actually draw from this model (raw p0/p1 aren't
+		# guaranteed to sum to <= 1, so they're renormalized against a
+		# pmax(1 - p0 - p1, 0) "interior" mass before combining). E[Y] = p1*1 +
+		# p_mid*mu + p0*0 (the zero mass contributes 0).
+		zoib_mean_from_coefs = function(b_beta, b_zero, b_one, X, X_zero_one){
+			mu = plogis(as.numeric(X %*% b_beta))
+			p0 = plogis(as.numeric(X_zero_one %*% b_zero))
+			p1 = plogis(as.numeric(X_zero_one %*% b_one))
+			p_mid = pmax(1 - p0 - p1, 0)
+			tot = p0 + p1 + p_mid
+			tot[!is.finite(tot) | tot <= 0] = 1
+			p0 = p0 / tot; p1 = p1 / tot; p_mid = p_mid / tot
+			p1 + p_mid * mu
+		},
+		# G-computation average mean difference: every subject plugged in at
+		# w = 1 and w = 0 (column 2 of both design matrices, per
+		# build_component_matrix()'s fixed "treatment" column convention),
+		# averaged over the empirical covariate distribution.
+		zoib_marginal_mean_diff_from_coefs = function(b_beta, b_zero, b_one, X, X_zero_one){
+			X1 = X; X1[, 2L] = 1
+			X0 = X; X0[, 2L] = 0
+			XZ1 = X_zero_one; XZ1[, 2L] = 1
+			XZ0 = X_zero_one; XZ0[, 2L] = 0
+			mean(
+				private$zoib_mean_from_coefs(b_beta, b_zero, b_one, X1, XZ1) -
+				private$zoib_mean_from_coefs(b_beta, b_zero, b_one, X0, XZ0)
+			)
+		},
+		# Same functional, but as a function of the full stacked parameter
+		# vector theta = [b_beta(p), log_phi(1), b_zero(q), b_one(q)] -- the
+		# exact layout fast_zero_one_inflated_beta_cpp()'s `params`/`vcov`
+		# use -- for the delta-method gradient in marginal_estimand_delta_se().
+		# log_phi does not enter the mean function, so its gradient entry is
+		# (correctly) numerically ~0.
+		zoib_marginal_mean_diff_functional = function(theta, X, X_zero_one, p, q){
+			b_beta = theta[seq_len(p)]
+			b_zero = theta[(p + 2L):(p + 1L + q)]
+			b_one  = theta[(p + 2L + q):(p + 1L + 2L * q)]
+			private$zoib_marginal_mean_diff_from_coefs(b_beta, b_zero, b_one, X, X_zero_one)
+		},
+		# Full-fit marginal path for compute_estimate(): reuses the single
+		# cached ML fit (private$cached_mod, populated by private$shared() via
+		# generate_mod()) -- a pure post-fit transform, no refit. SE via
+		# marginal_estimand_delta_se() against the joint vcov generate_mod()
+		# now retains. Degrees of freedom: Inf (open question 2 in
+		# marginal_estimand_report.md, resolved as Inf -- same convention as
+		# every other delta-method/sandwich Wald path in this package, e.g.
+		# InferenceIncidGCompAbstract's RD/RR paths).
+		compute_marginal_mean_diff_estimate = function(estimate_only = FALSE){
+			mod = private$cached_mod
+			if (is.null(mod) || is.null(mod$params) || is.null(mod$X) || is.null(mod$X_zero_one)) {
+				private$cache_nonestimable_estimate("zoib_marginal_mean_diff_fit_unavailable")
+				return(NA_real_)
+			}
+			p = ncol(mod$X)
+			q = ncol(mod$X_zero_one)
+			functional = function(theta) private$zoib_marginal_mean_diff_functional(theta, mod$X, mod$X_zero_one, p, q)
+			point = tryCatch(functional(mod$params), error = function(e) NA_real_)
+			if (!is.finite(point)) {
+				private$cache_nonestimable_estimate("zoib_marginal_mean_diff_point_unavailable")
+				return(NA_real_)
+			}
+			private$cached_values$beta_hat_T = point
+			if (estimate_only) return(point)
+			if (is.null(mod$vcov)) {
+				private$cache_nonestimable_se("zoib_marginal_mean_diff_vcov_unavailable")
+				return(point)
+			}
+			dm = marginal_estimand_delta_se(mod$params, mod$vcov, functional)
+			private$cached_values$df = Inf
+			if (is.finite(dm$se) && dm$se >= 0) {
+				private$cached_values$s_beta_hat_T = dm$se
+				private$clear_nonestimable_state()
+			} else {
+				private$cache_nonestimable_se("zoib_marginal_mean_diff_se_unavailable")
+			}
+			point
+		},
 		build_component_matrix = function(model_formula, selected_colnames = NULL, treatment_name = "treatment"){
 			if (is.null(selected_colnames)) {
 				if (identical(model_formula, ~ .)) {
@@ -383,7 +601,16 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 							j_treat = j_treat,
 							params = as.numeric(res$params),
 						neg_loglik = as.numeric(res$neg_loglik),
-						X_zero_one = X_zero_one
+						X_zero_one = X_zero_one,
+						# 2026-08-23 (marginal_estimand_report.md TODO-4): the full
+						# joint vcov of [beta, log_phi, gamma_0, gamma_1] was already
+						# computed by fast_zero_one_inflated_beta_cpp() (estimate_only
+						# defaults FALSE in this call) but previously discarded here;
+						# retained for the marginal (g-computation/delta-method) path
+						# in compute_estimate() below. No change to the conditional
+						# path -- this is an additive field on the cached model_output.
+						vcov = res$vcov,
+						X = X_fit
 					)
 				},
 				fit_ok = function(mod, X_fit, keep){

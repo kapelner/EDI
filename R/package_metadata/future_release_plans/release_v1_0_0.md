@@ -116,7 +116,16 @@ the frozen substrate makes it additive.
    example, and points in-package authors to
    `contracts/new_model_creation.md` (itself refreshed the same day for the
    completed migration and documentation standard). Both code examples
-   verified to run on the current tree.
+   verified to run on the current tree. **Later the same day:** the external
+   contract moved into the package as `vignettes/extending-edi.Rmd`
+   (`vignette("extending-edi")`, pkgdown "Package Concepts" article,
+   executable examples, test-rendered clean), `extending-edi-r6.md` retired
+   to `../finished_features/` with a superseded banner,
+   `contracts/new_model_creation.md` de-duplicated to reference the
+   vignette's sections, `_master.md`'s standing constraint repointed at the
+   vignette, and `test-custom-extension-contract.R` extended (7 tests, 71
+   expectations) to pin the capability-resolution/discovery/lock rules the
+   vignette states.
 7. **[x] `fix_documentation.md`** — CRAN requires complete documentation, and
    the master ordering already sequences doc batches after the hierarchies
    settle (regenerate the Rd snapshot after Phases 1D/1E first). **Done
@@ -659,7 +668,7 @@ deliberately does not cover:
     full multi-platform `cibuildwheel` wheel matrix to cycle green first)
     was explicitly waived — that full-matrix validation is deferred to a
     later real CI run rather than blocking this change.
-- [ ] TODO-7: Fix the Rd cross-reference regression surfaced by
+- [x] TODO-7: Fix the Rd cross-reference regression surfaced by
   `fix_roxygenize_lazy_component_srcrefs.md`'s 2026-08-23 full local
   `R CMD check --as-cran` run (amendment 9 above): 18 `.Rd` files with
   missing/dead `\link[EDI:...]{}` targets (up from a "2 missing links"
@@ -667,12 +676,34 @@ deliberately does not cover:
   non-existent functions, and 7 `Inference*IVWC`/`OneLik` component-source
   classes (`InferenceContinKKOLSIVWC`, `InferenceContinKKOLSOneLik`,
   `InferenceContinKKRobustRegrOneLik`, `InferenceCountKKHurdlePoissonIVWC`,
-  `InferenceIncidKKCondLogitIVWC`, `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`,
-  `InferenceSurvivalKKStratCoxPHIVWC`) reported as fully undocumented. Looks
-  like `fix_inference_hierarchy.md`'s KK/IVWC migration renamed/merged
-  classes without updating every sibling `*Source.Rd` cross-reference to
-  match — not this srcref-fix plan's doing, but real and CRAN-blocking
-  (`error-on: "note"` in CI). Full file list in that plan's writeup and the
-  check log. This is the last known blocker for a clean
-  `R CMD check --as-cran` on this codebase; TODO-4's Release Gate execution
-  should not be attempted until this closes.
+  `InferenceIncidKKCondLogitIVWC`, `InferenceSurvivalKKClaytonCopulaIVWC`,
+  `InferenceSurvivalKKStratCoxPHIVWC`) reported as fully undocumented. **Done
+  (2026-08-23):** root cause confirmed as a recurring "misplaced doc block"
+  bug (same pattern found earlier in `fix_documentation.md`'s work) — each
+  of the 7 classes' real title/`@details`/`@examples`/`@export` roxygen
+  block was sitting above an intermediate bare component-source `list(...)`
+  variable instead of directly above its own `ClassName =
+  define_inference_class(...)` call, so roxygen2 never generated a real Rd
+  page for the class itself; every `\link[EDI:ClassName]{}` pointing at it
+  from a sibling doc was consequently "missing." Fixed by moving each of
+  the 7 blocks to the correct location (verified no accidental content
+  loss — each moved block's prose was preserved verbatim). The remaining
+  un-anchored/dead `\link{}` targets (5 more: `assertNoCensoring`,
+  `BayesianBootstrap`, `compute_bayesian_bootstrap_confidence_interval`,
+  `conditional_logit_fit_matched_pairs`/`_reservoir`,
+  `get_continuation_ratio_regression_hessian_cpp`,
+  `fast_probit_regression_weighted_cpp`, `gcomp_fractional_logit_post_fit_cpp`,
+  a nonexistent `OrdinalRegression` object, and one wrong package anchor —
+  `\link[base]{pnorm}` should be `\link[stats]{pnorm}`) were links to
+  internal/undocumented names or component names, not real Rd topics;
+  fixed by de-linking to plain `\code{}` (or the correct package anchor).
+  C++-sourced fixes were made in the `.cpp` roxygen source (not the
+  generated `RcppExports.R`, which was also hand-synced so it doesn't look
+  stale until the next `compileAttributes()` run). Verified with a full
+  local `R CMD build` + `R CMD check --as-cran --no-manual --no-examples
+  --no-tests --no-vignettes` (fast Rd-only pass) from a clean checkout:
+  **zero "Missing link(s)" and zero "Undocumented code objects" entries**
+  (down from 18 files / 7 classes). Remaining WARNINGs/NOTEs are the
+  already-tracked pre-existing/environmental ones (Makevars flags, `X_r`
+  usage NOTE, non-ASCII chars, missing `inst/doc`, etc.) — none are Rd
+  cross-reference issues. TODO-4's Release Gate execution is unblocked.

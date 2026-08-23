@@ -370,8 +370,8 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 	# generators InferenceAsympLikStdModCache/InferenceKKPassThroughCompound/
 	# InferenceCountLikelihood (each retired from this list but kept for
 	# their own consumers, see their notes), plus the
-	# InferenceAbstractKKWeibullFrailtyNormalOneLikLegacyRaw/
-	# InferenceSurvivalKKWeibullFrailtyLoggammaOneLikLegacyRaw legacy-comparison
+	# InferenceAbstractGLMMWeibullFrailtyNormalOneLikLegacyRaw/
+	# InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLikLegacyRaw legacy-comparison
 	# fixtures -- the same "real remaining consumer, just not a
 	# package-source algorithmic-ancestry one" precedent as every prior
 	# removal below.
@@ -565,9 +565,9 @@ EDI_INFERENCE_CLASSES_USING_COVARIATES = c(
 	"InferenceSurvivalDepCensTransformRegr", "InferenceSurvivalKKLWACoxPHIVWC",
 	"InferenceSurvivalKKLWACoxPHOneLik", "InferenceSurvivalKKStratCoxPHIVWC",
 	"InferenceSurvivalKKStratCoxPHOneLik", "InferenceSurvivalKKRankRegrIVWC",
-	"InferenceSurvivalKKWeibullMarginal", "InferenceSurvivalKKWeibullFrailtyNormalIVWC",
-	"InferenceSurvivalKKWeibullFrailtyNormalOneLik", "InferenceSurvivalKKWeibullFrailtyLoggammaIVWC",
-	"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik"
+	"InferenceSurvivalKKWeibullMarginal", "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC",
+	"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
+	"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"
 )
 
 infer_inference_adjusts_for_covariates = function(name) {
@@ -624,6 +624,31 @@ infer_inference_requires_blocking_design = function(generator) {
 		current = current$get_inherit()
 	}
 	FALSE
+}
+
+#' Whether a concrete `Inference` generator requires a KK matched design
+#' (`des_obj$is_a_kk_matching_capable()`). Same safe-invoke-without-
+#' construction approach as `infer_inference_requires_blocking_design()`
+#' above: a class declares this explicitly via a private
+#' `requires_kk_matching_design()` method when its name doesn't contain
+#' `"KK"` but it still needs a matched design (e.g. the
+#' `InferenceSurvivalGLMMWeibullFrailty{Normal,Loggamma}{IVWC,OneLik}`
+#' family, renamed off the `KK`-prefixed convention in anticipation of
+#' `full_glmm_for_weibull_frailty.md` while remaining matched-design-only).
+#' Falls back to the name-substring heuristic (`grepl("KK", name)`) for
+#' every other class, preserving existing behavior everywhere this isn't
+#' explicitly overridden.
+#'
+#' @keywords internal
+#' @noRd
+infer_inference_requires_kk_matching_design = function(generator, name) {
+	current = generator
+	while (!is.null(current)) {
+		fn = current$private_methods$requires_kk_matching_design
+		if (!is.null(fn)) return(isTRUE(fn()))
+		current = current$get_inherit()
+	}
+	grepl("KK", name, fixed = TRUE)
 }
 
 #' A concrete `Inference` generator's own `design_compatibility_reason(des_obj)`
@@ -769,15 +794,15 @@ EDI_INFERENCE_ESTIMAND_TAGS = list(
 	InferencePropKKGLMM = "logit_effect_proportion_mean_conditional",
 	InferenceSurvivalCoxPHRegr = "hazard_ratio",
 	InferenceSurvivalGehanWilcox = "gehan_wilcoxon_statistic",
-	InferenceSurvivalKKWeibullFrailtyLoggammaIVWC = "log_time_ratio",
-	InferenceSurvivalKKWeibullFrailtyLoggammaOneLik = "log_time_ratio",
+	InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = "log_time_ratio",
+	InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = "log_time_ratio",
 	InferenceSurvivalKKLWACoxPHIVWC = "hazard_ratio",
 	InferenceSurvivalKKLWACoxPHOneLik = "hazard_ratio",
 	InferenceSurvivalKKRankRegrIVWC = "gehan_wilcoxon_statistic",
 	InferenceSurvivalKKStratCoxPHIVWC = "hazard_ratio",
 	InferenceSurvivalKKStratCoxPHOneLik = "hazard_ratio",
-	InferenceSurvivalKKWeibullFrailtyNormalIVWC = "log_time_ratio",
-	InferenceSurvivalKKWeibullFrailtyNormalOneLik = "log_time_ratio",
+	InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = "log_time_ratio",
+	InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = "log_time_ratio",
 	InferenceSurvivalKKWeibullMarginal = "log_time_ratio",
 	InferenceSurvivalKMDiff = "survival_median_difference",
 	InferenceSurvivalLogRank = "log_rank_martingale_difference",
@@ -886,12 +911,12 @@ infer_inference_direct_components = function(name) {
 			InferenceSurvivalWeibullRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalWeibullLikelihood"),
 			InferenceSurvivalDepCensTransformRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalDepCensTransform"),
 			InferenceSurvivalKKWeibullMarginal = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullMarginal"),
-			InferenceSurvivalKKWeibullFrailtyLoggammaIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyLoggammaIVWC"),
-			InferenceSurvivalKKWeibullFrailtyLoggammaOneLik = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalKKWeibullFrailtyLoggammaOneLik"),
-			InferenceSurvivalKKWeibullFrailtyNormalIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyNormalIVWC"),
-			InferenceSurvivalKKWeibullFrailtyNormalOneLik = c(
+			InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = c("BayesianBootstrap", "Wald", "SurvivalGLMMWeibullFrailtyLoggammaIVWC"),
+			InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalGLMMWeibullFrailtyLoggammaOneLik"),
+			InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = c("BayesianBootstrap", "Wald", "SurvivalGLMMWeibullFrailtyNormalIVWC"),
+			InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = c(
 				"BayesianBootstrap", "ParametricLikelihoodBootstrap",
-				"SurvivalKKWeibullFrailtyNormalOneLikLeaf", "SurvivalKKWeibullFrailtyNormalOneLik"
+				"SurvivalGLMMWeibullFrailtyNormalOneLikLeaf", "SurvivalGLMMWeibullFrailtyNormalOneLik"
 			),
 			InferenceCountPoissonKKGEE = "KKGEE",
 		InferenceIncidKKGEE = "KKGEE",
@@ -1037,7 +1062,7 @@ infer_inference_direct_components = function(name) {
 		# rationale as every other direct-composition class documented above.
 		InferencePropFractionalLogit = c("BayesianBootstrap", "Wald", "StandardModelCache"),
 		InferencePropBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache"),
-		InferencePropZeroOneInflatedBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache"),
+		InferencePropZeroOneInflatedBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache", "MarginalEstimand"),
 		InferenceCountPoisson = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
 		InferenceCountNegBin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
 		InferenceCountHurdleNegBin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
@@ -1147,6 +1172,7 @@ register_inference_class = function(name, parent = NULL, metadata = list(), dire
 			excluded_capabilities = character(),
 			supports_general_censoring = FALSE,
 			requires_blocking_design = FALSE,
+			requires_kk_matching_design = FALSE,
 			estimand = NA_character_,
 			adjusts_for_covariates = NA
 		),
@@ -2267,6 +2293,7 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				excluded_capabilities = EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES[[name]] %||% character(),
 				supports_general_censoring = infer_inference_supports_general_censoring(obj),
 				requires_blocking_design = infer_inference_requires_blocking_design(obj),
+				requires_kk_matching_design = infer_inference_requires_kk_matching_design(obj, name),
 				design_compatibility_reason = infer_inference_design_compatibility_reason_fn(obj),
 				estimand = infer_inference_estimand_type(obj, name),
 				adjusts_for_covariates = infer_inference_adjusts_for_covariates(name)

@@ -8,7 +8,7 @@ Related: [sequential_inference.md](../new_feature_plans/sequential_inference.md)
 `analysis_log` ledger discussed there is the concrete trigger for this
 document — it's the first new private field proposed to be added to
 `Design` after users may already have serialized objects in the wild),
-[extending-edi-r6.md](../new_feature_plans/extending-edi-r6.md).
+[extending-edi-r6.md](extending-edi-r6.md) (retired 2026-08-23; live contract: `R/EDI/vignettes/extending-edi.Rmd`).
 
 ## Assessment (why this document exists)
 

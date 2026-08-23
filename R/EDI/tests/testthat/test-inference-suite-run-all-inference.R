@@ -1,20 +1,21 @@
 library(testthat)
 library(EDI)
 
-# TODO-9 (inference_suite_inspect.md): working/scratch subset, NOT the full
-# committed fixture grid. Per that plan's explicit gating, the full grid
-# (every response type x {iid, KK} x {BCRD, blocking, KK, greedy, D-optimal})
-# is locked until fix_inference_hierarchy.md's Phase 1D (Base Deletion etc.)
-# closes, since that phase can still shift a class's likelihood_tier/
-# optional-method columns out from under a hardcoded expectation. This file
-# stays safe to run today by asserting only STRUCTURE (schema shape,
-# design_family labeling, "at least one status == 'ok' row", return-object
-# shape) -- never a specific class's specific capability/value -- so it is
-# resilient to Phase 1D churn. It covers the full DESIGN-CLASS axis (BCRD,
-# blocking, KK, greedy, D-optimal) but only two response types (continuous,
-# incidence), not the full response-type x design-family cross product.
-# Extend to the full grid with tighter, class-specific assertions once
-# Phase 1D closes (see _master.md's Phase 1G).
+# TODO-9 (inference_suite_plan.md, tracked elsewhere as "inference_suite_
+# inspect.md" -- same plan, stale name): full grid, unlocked 2026-08-23 once
+# fix_inference_hierarchy.md's Phase 1D (Base Deletion etc.) closed, so a
+# class's likelihood_tier/optional-method columns are now stable. Covers the
+# full DESIGN-CLASS axis (BCRD, blocking, KK, greedy, D-optimal; continuous/
+# incidence only, since exercising every response type against every design
+# class is combinatorially unnecessary once both axes are independently
+# covered) x the full RESPONSE-TYPE axis (all six response types, each x
+# {iid iBCRD, KK14 matched pair}). Structural assertions
+# (`expect_valid_run_all_inference_report()`: schema shape, design_family
+# labeling, per-diagnostics shape, return-object shape) apply everywhere;
+# `expect_canonical_class_ok()` layers a tighter, class-specific check (a
+# named canonical class for that response type reports status == "ok" with a
+# finite estimate, not just "some row is ok") on the iid block of each of the
+# four newly-added response types.
 
 expect_valid_run_all_inference_report = function(des_obj, expected_design_family, alpha = 0.05) {
 	suite = InferenceSuite$new(des_obj)
@@ -81,6 +82,21 @@ expect_valid_run_all_inference_report = function(des_obj, expected_design_family
 	}
 
 	res
+}
+
+# Tighter, class-specific check layered on top of the structural helper above
+# (TODO-9's "full grid ... with tighter, class-specific assertions", now that
+# fix_inference_hierarchy.md's Phase 1D closed 2026-08-23 and a class's
+# likelihood_tier/optional-method columns are stable): asserts a specific,
+# well-known canonical class for this response type reports status == "ok"
+# with a finite estimate -- not just "some row, somewhere, is ok".
+expect_canonical_class_ok = function(res, class_name) {
+	tbl = res$results_table
+	row = tbl[tbl$inference_class == class_name, , drop = FALSE]
+	expect_gt(nrow(row), 0L, label = sprintf("%s present in results_table", class_name))
+	expect_true(any(row$status == "ok"), label = sprintf("%s has an 'ok' row", class_name))
+	ok_row = row[row$status == "ok", , drop = FALSE][1, ]
+	expect_true(is.finite(ok_row$estimate))
 }
 
 test_that("run_all_inference: continuous iBCRD (iid)", {
@@ -151,6 +167,128 @@ test_that("run_all_inference: continuous DesignFixedOptimal (iid, deterministic)
 	w = des$get_w()
 	des$add_all_subject_responses(1 + 0.5 * w + rnorm(n))
 	expect_valid_run_all_inference_report(des, "iid")
+})
+
+# ---- Full response-type grid (TODO-9, unlocked 2026-08-23) ----
+# The blocks above cover continuous/incidence x {iBCRD, blocking, KK14, greedy,
+# D-optimal}; these add the remaining four response types (count, proportion,
+# survival, ordinal) x {iBCRD (iid), KK14 (matched pair)} -- the design-class
+# axis is already exercised above, so the response-type axis is what was
+# missing. Each also asserts a canonical class's status == "ok" specifically.
+
+test_that("run_all_inference: count iBCRD (iid)", {
+	set.seed(20260823)
+	n = 40L
+	X = data.frame(x1 = rnorm(n))
+	des = DesignFixedBernoulli$new(n = n, response_type = "count", verbose = FALSE)
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	w = des$get_w()
+	des$add_all_subject_responses(rpois(n, exp(0.5 + 0.4 * w + 0.2 * X$x1)))
+	res = expect_valid_run_all_inference_report(des, "iid")
+	expect_canonical_class_ok(res, "InferenceCountPoisson")
+})
+
+test_that("run_all_inference: count KK14 (matched pair)", {
+	set.seed(20260823)
+	n = 20L
+	des = DesignSeqOneByOneKK14$new(n = n, response_type = "count", verbose = FALSE)
+	for (i in seq_len(n)) {
+		des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	}
+	des$add_all_subject_responses(rpois(n, 3))
+	expect_valid_run_all_inference_report(des, "kk_matched_pair")
+})
+
+test_that("run_all_inference: proportion iBCRD (iid)", {
+	set.seed(20260823)
+	n = 40L
+	X = data.frame(x1 = rnorm(n))
+	des = DesignFixedBernoulli$new(n = n, response_type = "proportion", verbose = FALSE)
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	w = des$get_w()
+	mu = plogis(0.3 + 0.5 * w + 0.2 * X$x1)
+	y = pmax(pmin(rbeta(n, mu * 10, (1 - mu) * 10), 1 - 1e-6), 1e-6)
+	des$add_all_subject_responses(y)
+	res = expect_valid_run_all_inference_report(des, "iid")
+	expect_canonical_class_ok(res, "InferencePropBetaRegr")
+})
+
+test_that("run_all_inference: proportion KK14 (matched pair)", {
+	set.seed(20260823)
+	n = 20L
+	des = DesignSeqOneByOneKK14$new(n = n, response_type = "proportion", verbose = FALSE)
+	for (i in seq_len(n)) {
+		des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	}
+	y = pmax(pmin(rbeta(n, 5, 5), 1 - 1e-6), 1e-6)
+	des$add_all_subject_responses(y)
+	expect_valid_run_all_inference_report(des, "kk_matched_pair")
+})
+
+test_that("run_all_inference: survival iBCRD (iid)", {
+	skip_if_not_installed("survival")
+	set.seed(20260823)
+	n = 60L
+	X = data.frame(x1 = rnorm(n))
+	des = DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	w = des$get_w()
+	y = rexp(n, 0.1 * exp(-0.3 * w + 0.1 * X$x1))
+	dead = rbinom(n, 1, 0.8)
+	y_exact = ifelse(dead == 1, y, NA_real_)
+	y_L = ifelse(dead == 1, NA_real_, y)
+	y_R = ifelse(dead == 1, NA_real_, Inf)
+	des$add_all_subject_responses(y_exact, y_L, y_R)
+	res = expect_valid_run_all_inference_report(des, "iid")
+	expect_canonical_class_ok(res, "InferenceSurvivalCoxPHRegr")
+})
+
+test_that("run_all_inference: survival KK14 (matched pair)", {
+	skip_if_not_installed("survival")
+	set.seed(20260823)
+	n = 20L
+	des = DesignSeqOneByOneKK14$new(n = n, response_type = "survival", verbose = FALSE)
+	for (i in seq_len(n)) {
+		des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	}
+	y = rexp(n, 0.2)
+	dead = rbinom(n, 1, 0.8)
+	y_exact = ifelse(dead == 1, y, NA_real_)
+	y_L = ifelse(dead == 1, NA_real_, y)
+	y_R = ifelse(dead == 1, NA_real_, Inf)
+	des$add_all_subject_responses(y_exact, y_L, y_R)
+	expect_valid_run_all_inference_report(des, "kk_matched_pair")
+})
+
+test_that("run_all_inference: ordinal iBCRD (iid)", {
+	set.seed(20260823)
+	n = 60L
+	X = data.frame(x1 = rnorm(n))
+	des = DesignFixedBernoulli$new(n = n, response_type = "ordinal", verbose = FALSE)
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	w = des$get_w()
+	y_latent = 0.6 * w + 0.3 * X$x1 + rnorm(n)
+	y = as.integer(cut(y_latent, breaks = c(-Inf, -0.5, 0.5, Inf), labels = FALSE))
+	des$add_all_subject_responses(y)
+	res = expect_valid_run_all_inference_report(des, "iid")
+	expect_canonical_class_ok(res, "InferenceOrdinalPropOddsRegr")
+})
+
+test_that("run_all_inference: ordinal KK14 (matched pair)", {
+	set.seed(20260823)
+	n = 20L
+	des = DesignSeqOneByOneKK14$new(n = n, response_type = "ordinal", verbose = FALSE)
+	for (i in seq_len(n)) {
+		des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	}
+	y_latent = rnorm(n)
+	y = as.integer(cut(y_latent, breaks = c(-Inf, -0.5, 0.5, Inf), labels = FALSE))
+	des$add_all_subject_responses(y)
+	expect_valid_run_all_inference_report(des, "kk_matched_pair")
 })
 
 test_that("run_all_inference: per-class failure isolation is a real regression test, not just dev-session verification", {

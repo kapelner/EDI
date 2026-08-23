@@ -29,7 +29,8 @@ list or its amendments. Concretely, the exclusions are:
 
 - `fix_inference_hierarchy.md` (all remaining Phase 1D work — 1.0.0 item 1;
   closed 2026-08-23 and moved to `../finished_features/`),
-- `extending-edi-r6.md` (1.0.0 item 6),
+- `extending-edi-r6.md` (1.0.0 item 6; closed 2026-08-23 — now shipped as
+  `R/EDI/vignettes/extending-edi.Rmd`, md retired to `../finished_features/`),
 - `fix_documentation.md` (1.0.0 item 7 — including the Python docstring
   TODOs, which ride the same-commit-family `edi_kernels` 1.0.0 wheel, and
   the folded-in `marginal_estimand_report.md → TODO-2` roxygen sharpening),
@@ -382,7 +383,8 @@ ticked in their **owning plans**; this list is the release index.
 ## Standing constraints
 
 All of `_master.md`'s standing constraints apply unchanged (update
-`extending-edi-r6.md` on any extension-contract change; new kernels follow
+`R/EDI/vignettes/extending-edi.Rmd` — which replaced `extending-edi-r6.md`
+on 2026-08-23 — on any extension-contract change; new kernels follow
 the SEXP/RcppEigen conventions including unity-build group membership; new
 classes go through `define_inference_class()`/`define_design_class()`; tick
 TODOs in owning plans). Additionally, everything in this release must be

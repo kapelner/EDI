@@ -655,7 +655,15 @@ EDI_COMPONENT_SPECS = list(
 			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
 			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
 		),
-		provides_capabilities = character(),
+		# "wald" -- per user request, 2026-08-23: this component provides
+		# `compute_wald_two_sided_pval`/`compute_wald_confidence_interval`
+		# and `compute_asymp_confidence_interval`/`compute_asymp_two_sided_pval`
+		# (delta-method Wald CI/pval on the log-RR scale) and they work
+		# correctly when called directly, but with no declared "wald"
+		# capability `run_all_inference()`'s method fan-out (gated on
+		# `"wald" %in% inf_obj$capabilities()`) never offered it, silently
+		# hiding a fully working method behind a missing tag.
+		provides_capabilities = "wald",
 		allowed_likelihood_tiers = "none",
 		declare_body_references_optional = TRUE
 	),
@@ -1504,6 +1512,10 @@ EDI_COMPONENT_SPECS = list(
 					"build_component_frame",
 					"build_formula_from_matrix",
 					"zero_augmented_sandwich_se",
+					"zero_augmented_poisson_sandwich_vcov_full",
+					"zero_augmented_poisson_mean_from_theta",
+					"zero_augmented_poisson_marginal_functional",
+					"compute_marginal_estimand_estimate",
 					"hurdle_poisson_lambda_mle",
 					"hurdle_poisson_neg_loglik",
 					"fit_treatment_only_hurdle_poisson_closed_form",
@@ -1942,7 +1954,14 @@ EDI_COMPONENT_SPECS = list(
 						"prob_clip_eps",
 						"max_abs_reasonable_coef"
 					),
-					provides_capabilities = character(),
+					# "wald" -- see the identical fix/rationale on
+					# `IncidenceKKGComputation` above (per user request,
+					# 2026-08-23): this component's `compute_wald_two_sided_
+					# pval`/`compute_wald_confidence_interval`/
+					# `compute_asymp_confidence_interval`/`compute_asymp_
+					# two_sided_pval` work correctly but had no declared
+					# capability, hiding them from `run_all_inference()`.
+					provides_capabilities = "wald",
 					allowed_likelihood_tiers = "none",
 					declare_body_references_optional = TRUE
 				),
@@ -2052,11 +2071,11 @@ EDI_COMPONENT_SPECS = list(
 					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE
 				),
-				SurvivalKKWeibullFrailtyLoggammaIVWC = list(
+				SurvivalGLMMWeibullFrailtyLoggammaIVWC = list(
 					status = "active",
 					load_policy = "lazy",
-					source_name = "SurvivalKKWeibullFrailtyLoggammaIVWCSource",
-					file = "inference_survival_KK_weibull_frailty_loggamma.R",
+					source_name = "SurvivalGLMMWeibullFrailtyLoggammaIVWCSource",
+					file = "inference_survival_GLMM_weibull_frailty_loggamma.R",
 					# Leaf-only since the 2026-08-17 migration: the KK compound layer
 					# arrives through the KKCompound dependency.
 					dependencies = "KKCompound",
@@ -2072,6 +2091,7 @@ EDI_COMPONENT_SPECS = list(
 						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
 					),
 					provides_private_methods = c(
+						"requires_kk_matching_design",
 						"compute_basic_match_data", "compute_treatment_estimate_during_randomization_inference",
 						"assert_finite_se", "filtered_covariate_candidates", "design_matrix_candidates",
 						"shared", "clayton_copula_for_matched_pairs", "weibull_for_reservoir",
@@ -2083,11 +2103,11 @@ EDI_COMPONENT_SPECS = list(
 					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE
 				),
-				SurvivalKKWeibullFrailtyLoggammaOneLik = list(
+				SurvivalGLMMWeibullFrailtyLoggammaOneLik = list(
 					status = "active",
 					load_policy = "lazy",
-					source_name = "SurvivalKKWeibullFrailtyLoggammaOneLikSource",
-					file = "inference_survival_KK_weibull_frailty_loggamma.R",
+					source_name = "SurvivalGLMMWeibullFrailtyLoggammaOneLikSource",
+					file = "inference_survival_GLMM_weibull_frailty_loggamma.R",
 					# 2026-08-23 (fix_inference_hierarchy.md "Static Cleanup" / "Ban
 					# raw component splicing"): the source is now leaf-only and the
 					# KK pass-through surface arrives through this dependency, like
@@ -2103,6 +2123,7 @@ EDI_COMPONENT_SPECS = list(
 						"compute_asymp_two_sided_pval", "duplicate"
 					),
 					provides_private_methods = c(
+						"requires_kk_matching_design",
 						"compute_treatment_estimate_during_randomization_inference", "get_standard_error",
 						"get_degrees_of_freedom", "assert_finite_se", "supports_likelihood_tests",
 						"get_likelihood_test_spec", "filtered_covariate_candidates", "shared",
@@ -2113,12 +2134,12 @@ EDI_COMPONENT_SPECS = list(
 					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE
 				),
-				SurvivalKKWeibullFrailtyNormalIVWC = list(
+				SurvivalGLMMWeibullFrailtyNormalIVWC = list(
 					status = "active",
 					load_policy = "lazy",
-					source_name = "SurvivalKKWeibullFrailtyNormalIVWCSource",
-					file = "inference_survival_KK_weibull_frailty_normal.R",
-					# 2026-08-18 migration (same reshaping as SurvivalKKWeibullFrailtyLoggammaIVWC):
+					source_name = "SurvivalGLMMWeibullFrailtyNormalIVWCSource",
+					file = "inference_survival_GLMM_weibull_frailty_normal.R",
+					# 2026-08-18 migration (same reshaping as SurvivalGLMMWeibullFrailtyLoggammaIVWC):
 					# previously a self-harvested abstract component paired with a
 					# separate ...IVWCLeaf component (now deleted); this is the merged
 					# abstract+leaf static source, on the KKCompound dependency chain.
@@ -2135,7 +2156,7 @@ EDI_COMPONENT_SPECS = list(
 						"compute_asymp_two_sided_pval"
 					),
 					provides_private_methods = c(
-						"is_a_kk_weibull_frailty_ivwc", "get_standard_error",
+						"is_a_kk_weibull_frailty_ivwc", "requires_kk_matching_design", "get_standard_error",
 						"compute_basic_match_data",
 						"supports_lik_ratio_param_bootstrap",
 						"compute_treatment_estimate_during_randomization_inference",
@@ -2149,11 +2170,11 @@ EDI_COMPONENT_SPECS = list(
 					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE
 				),
-				SurvivalKKWeibullFrailtyNormalOneLik = list(
+				SurvivalGLMMWeibullFrailtyNormalOneLik = list(
 					status = "active",
 					load_policy = "lazy",
-					source_name = "SurvivalKKWeibullFrailtyNormalOneLikSource",
-					file = "inference_survival_KK_weibull_frailty_normal.R",
+					source_name = "SurvivalGLMMWeibullFrailtyNormalOneLikSource",
+					file = "inference_survival_GLMM_weibull_frailty_normal.R",
 					# 2026-08-23 (fix_inference_hierarchy.md "Static Cleanup" / "Ban
 					# raw component splicing"): leaf-only source; the KK pass-through
 					# surface arrives through this dependency and root-owned state
@@ -2173,7 +2194,7 @@ EDI_COMPONENT_SPECS = list(
 						"compute_asymp_confidence_interval_generic", "compute_asymp_two_sided_pval_generic"
 					),
 					provides_private_methods = c(
-						"is_a_kk_weibull_frailty_one_lik", "shared_combined_likelihood",
+						"is_a_kk_weibull_frailty_one_lik", "requires_kk_matching_design", "shared_combined_likelihood",
 						"supports_likelihood_tests", "get_likelihood_test_spec", "get_standard_error",
 						"get_degrees_of_freedom", "assert_finite_se", "supports_lik_ratio_param_bootstrap",
 						"simulate_under_lik_null", "compute_treatment_estimate_during_randomization_inference",
@@ -2183,11 +2204,11 @@ EDI_COMPONENT_SPECS = list(
 					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE
 				),
-				SurvivalKKWeibullFrailtyNormalOneLikLeaf = list(
+				SurvivalGLMMWeibullFrailtyNormalOneLikLeaf = list(
 					status = "active",
 					load_policy = "lazy",
-					source_name = "SurvivalKKWeibullFrailtyNormalOneLikLeafSource",
-					file = "inference_survival_KK_weibull_frailty_normal.R",
+					source_name = "SurvivalGLMMWeibullFrailtyNormalOneLikLeafSource",
+					file = "inference_survival_GLMM_weibull_frailty_normal.R",
 					dependencies = character(),
 					provides_public_methods = "initialize",
 					provides_private_methods = character(),
