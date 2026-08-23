@@ -4,7 +4,8 @@
 #' quasi-likelihood based.
 #'
 #' @keywords internal
-inference_count_composite_likelihood_public = list(
+CountCompositeLikelihoodSource = list(
+	public = list(
 		#' @description Computes the treatment estimate.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
@@ -52,9 +53,8 @@ inference_count_composite_likelihood_public = list(
 			private$cached_values$s_beta_hat_T = NA_real_
 			private$cached_values$beta_hat_T
 		}
-	)
-
-inference_count_composite_likelihood_private = list(
+	),
+	private = list(
 		is_a_count_composite_likelihood = function() TRUE,
 		generate_mod = function(estimate_only = FALSE) stop(class(self)[1], " must implement generate_mod()"),
 
@@ -182,10 +182,6 @@ inference_count_composite_likelihood_private = list(
 			NULL
 		}
 	)
-
-CountCompositeLikelihoodSource = list(
-	public = inference_count_composite_likelihood_public,
-	private = inference_count_composite_likelihood_private
 )
 
 # The InferenceCountCompositeLikelihood R6 generator that used to be assembled

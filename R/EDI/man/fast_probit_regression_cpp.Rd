@@ -61,7 +61,7 @@ If \code{estimate_only = TRUE}: a list with \code{b}, \code{converged},
 Fits binary probit regression, \eqn{Y_i \sim \mathrm{Bernoulli}(\Phi(\eta_i))},
 \eqn{\eta_i = x_i^\top\beta}, by maximum likelihood, using a numerically stable
 log-scale evaluation of \eqn{\Phi} (\code{log_pnorm_lower}/\code{log_pnorm_upper},
-matching \code{\link[base]{pnorm}}'s \code{log.p = TRUE} for \eqn{|\eta| < 6} via a
+matching \code{\link[stats]{pnorm}}'s \code{log.p = TRUE} for \eqn{|\eta| < 6} via a
 \code{erfc}-based identity, and falling back to a wider-range series approximation
 beyond that). By default (\code{optimization_alg = "irls"}), fitting uses
 iteratively reweighted least squares with working weights \eqn{w_i =
@@ -92,7 +92,7 @@ function's fitting logic.
 }
 
 \seealso{
-\code{\link{fast_probit_regression_weighted_cpp}} for the observation-weighted
+\code{fast_probit_regression_weighted_cpp()} for the observation-weighted
   variant; \code{\link{fast_probit_regression_with_var_cpp}} for the variance-computing
   variant.
 }

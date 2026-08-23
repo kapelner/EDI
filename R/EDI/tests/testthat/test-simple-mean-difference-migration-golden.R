@@ -52,7 +52,7 @@ test_that("migrated simple mean-difference classes expose retained APIs only", {
 			"likelihood_tests",
 			"parametric_likelihood_bootstrap"
 		)),
-		"get_supported_testing_types"
+		c("get_supported_testing_types", "set_testing_type")
 	)
 
 	expected_capabilities = list(

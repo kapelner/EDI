@@ -1,19 +1,19 @@
 library(testthat)
 library(EDI)
 
-# InferenceSurvivalKKWeibullFrailtyOneLik migration (fix_inference_hierarchy.md,
+# InferenceSurvivalKKWeibullFrailtyNormalOneLik migration (fix_inference_hierarchy.md,
 # "Full-Likelihood Estimators" / "KK And IVWC Estimators"): same structural
-# shape as InferenceSurvivalKKClaytonCopulaOneLik's migration (see that
+# shape as InferenceSurvivalKKWeibullFrailtyLoggammaOneLik's migration (see that
 # golden's header comment for the full rationale) -- pre-existing self-
-# harvested components (`SurvivalKKWeibullFrailtyOneLik` for the abstract,
-# `SurvivalKKWeibullFrailtyOneLikLeaf` for the thin concrete leaf) already
+# harvested components (`SurvivalKKWeibullFrailtyNormalOneLik` for the abstract,
+# `SurvivalKKWeibullFrailtyNormalOneLikLeaf` for the thin concrete leaf) already
 # existed. Unlike Clayton (single layer), this was a genuine two-layer chain
-# (abstract `InferenceAbstractKKWeibullFrailtyOneLik` raw-splicing
+# (abstract `InferenceAbstractKKWeibullFrailtyNormalOneLik` raw-splicing
 # `InferenceMixinKKPassThrough$public/private` onto `InferenceParamBootstrap`,
 # plus a thin concrete leaf using TRUE R6 inheritance onto the abstract, only
 # overriding `initialize`). Both raw R6 generators are kept alive under
-# renamed, non-exported bindings (`InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw`
-# / `InferenceSurvivalKKWeibullFrailtyOneLikLegacyRaw`) purely so the
+# renamed, non-exported bindings (`InferenceAbstractKKWeibullFrailtyNormalOneLikLegacyRaw`
+# / `InferenceSurvivalKKWeibullFrailtyNormalOneLikLegacyRaw`) purely so the
 # pre-existing harvests still have something to snapshot from. Two
 # `super$compute_asymp_confidence_interval`/`super$compute_asymp_two_sided_pval`
 # fallback calls in the abstract (same "wald" fast-path/fallback-for-others
@@ -22,12 +22,41 @@ library(EDI)
 # `initialize` (`self$set_optimization_alg(optimization_alg); super$initialize(
 # ...)`) cannot reach the abstract component's initialize via `super$` under a
 # flat composition (Lesson 1 corollary) -- solved by ordering
-# `SurvivalKKWeibullFrailtyOneLikLeak` BEFORE `SurvivalKKWeibullFrailtyOneLik`
+# `SurvivalKKWeibullFrailtyNormalOneLikLeak` BEFORE `SurvivalKKWeibullFrailtyNormalOneLik`
 # in the factory's `components =` vector so the abstract's fuller initialize
 # (which already calls `set_optimization_alg()` itself, making the leaf's own
 # call redundant) resolves last and wins the collision.
+# 2026-08-23 (fix_inference_hierarchy.md "Static Cleanup" / "Ban raw component
+# splicing"): both `...LegacyRaw` generators are gone from the package (their
+# sources are now the plain leaf-only `SurvivalKKWeibullFrailtyNormalOneLikSource`
+# -- depending on `KKPassThrough` -- and `...LeafSource`), so -- exactly like
+# the hurdle/cond-logit OneLik goldens -- the legacy abstract + leaf
+# generators are rebuilt here from those sources plus the mixin, with the
+# historical `optimization_alg = "lbfgs"` private-list redeclaration
+# restored so they are the pre-migration objects.
 make_survival_kk_weibull_frailty_onelik_legacy_generator = function() {
-	EDI:::InferenceSurvivalKKWeibullFrailtyOneLikLegacyRaw
+	mixin = EDI:::InferenceMixinKKPassThrough
+	abstract_src = EDI:::SurvivalKKWeibullFrailtyNormalOneLikSource
+	leaf_src = EDI:::SurvivalKKWeibullFrailtyNormalOneLikLeafSource
+	legacy_env = new.env(parent = asNamespace("EDI"))
+	legacy_env$InferenceAbstractKKWeibullFrailtyNormalOneLikLegacy = R6::R6Class(
+		"InferenceAbstractKKWeibullFrailtyNormalOneLik",
+		lock_objects = FALSE,
+		parent_env = asNamespace("EDI"),
+		inherit = EDI:::InferenceParamBootstrap,
+		public = utils::modifyList(as.list(mixin$public), abstract_src$public),
+		private = utils::modifyList(
+			as.list(mixin$private),
+			c(list(optimization_alg = "lbfgs"), abstract_src$private)
+		)
+	)
+	R6::R6Class(
+		"InferenceSurvivalKKWeibullFrailtyNormalOneLik",
+		lock_objects = FALSE,
+		parent_env = legacy_env,
+		inherit = InferenceAbstractKKWeibullFrailtyNormalOneLikLegacy,
+		public = leaf_src$public
+	)
 }
 
 survival_kk_weibull_frailty_onelik_golden_design = function(n = 24L, seed = 20260817L) {
@@ -48,11 +77,11 @@ survival_kk_weibull_frailty_onelik_golden_design = function(n = 24L, seed = 2026
 	})
 }
 
-test_that("InferenceSurvivalKKWeibullFrailtyOneLik migration produces identical outputs", {
+test_that("InferenceSurvivalKKWeibullFrailtyNormalOneLik migration produces identical outputs", {
 	Legacy = make_survival_kk_weibull_frailty_onelik_legacy_generator()
 	des = survival_kk_weibull_frailty_onelik_golden_design()
 	legacy = Legacy$new(des)
-	migrated = InferenceSurvivalKKWeibullFrailtyOneLik$new(des)
+	migrated = InferenceSurvivalKKWeibullFrailtyNormalOneLik$new(des)
 	for (label in names(inference_migration_method_calls)) {
 		spec = inference_migration_method_calls[[label]]
 		legacy$set_seed(20260817L)
@@ -72,10 +101,10 @@ test_that("InferenceSurvivalKKWeibullFrailtyOneLik migration produces identical 
 	}
 })
 
-test_that("InferenceSurvivalKKWeibullFrailtyOneLik is marked migrated", {
+test_that("InferenceSurvivalKKWeibullFrailtyNormalOneLik is marked migrated", {
 	EDI:::populate_inference_class_registry()
-	metadata = EDI:::get_inference_class_metadata("InferenceSurvivalKKWeibullFrailtyOneLik")
+	metadata = EDI:::get_inference_class_metadata("InferenceSurvivalKKWeibullFrailtyNormalOneLik")
 	expect_identical(metadata$parent, "Inference")
 	manifest = EDI:::inference_hierarchy_migration_manifest_as_list()
-	expect_identical(manifest[["InferenceSurvivalKKWeibullFrailtyOneLik"]]$migration_status, "migrated")
+	expect_identical(manifest[["InferenceSurvivalKKWeibullFrailtyNormalOneLik"]]$migration_status, "migrated")
 })

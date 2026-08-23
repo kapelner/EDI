@@ -670,13 +670,14 @@ EDI_COMPONENT_SPECS = list(
 		# need it and neither has any reason to compose it without this
 		# component too.
 		dependencies = c("KKCompound", "QuantileRandomizationCI"),
-		owns_state = c("tau", "transform_y_fn_list", "m"),
+		owns_state = c("tau", "transform_y_fn_list"),
+		requires_state = "m",
 		provides_public_methods = c(
 			"initialize", "compute_estimate", "compute_asymp_confidence_interval",
 			"compute_asymp_two_sided_pval"
 		),
 		provides_private_methods = c(
-			"tau", "transform_y_fn_list", "m",
+			"tau", "transform_y_fn_list",
 			"compute_basic_match_data", "matrix_with_n_rows",
 			"reduce_full_rank_matrix", "reduce_preserve_cols_matrix",
 			"set_colnames_safely", "shared", "quantile_for_matched_pairs",
@@ -708,13 +709,14 @@ EDI_COMPONENT_SPECS = list(
 		# despite the "OneLik" naming, this class has no real likelihood-test
 		# surface (quantreg::rq() sandwich SEs only).
 		dependencies = c("KKCompound", "QuantileRandomizationCI"),
-		owns_state = c("tau", "transform_y_fn_list", "m"),
+		owns_state = c("tau", "transform_y_fn_list"),
+		requires_state = "m",
 		provides_public_methods = c(
 			"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
 		),
 		provides_private_methods = c(
-			"tau", "transform_y_fn_list", "m",
+			"tau", "transform_y_fn_list",
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_fast_randomization_distr", "compute_basic_match_data",
 			"assert_finite_se", "get_standard_error", "shared_combined_likelihood",
@@ -1092,7 +1094,8 @@ EDI_COMPONENT_SPECS = list(
 		# KKLWACoxIVWCPartialLikelihood entry above for the analogous IVWC
 		# reshaping earlier this stretch).
 		dependencies = c("KKPassThrough", "ParametricLikelihoodBootstrap"),
-		owns_state = c("max_abs_reasonable_coef", "optimization_alg"),
+		owns_state = "max_abs_reasonable_coef",
+		requires_state = "optimization_alg",
 		provides_public_methods = c(
 			"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
@@ -1104,7 +1107,7 @@ EDI_COMPONENT_SPECS = list(
 			"simulate_under_lik_null", "get_likelihood_test_spec",
 			"compute_treatment_estimate_during_randomization_inference",
 			"design_matrix_candidates", "shared_combined_likelihood",
-			"max_abs_reasonable_coef", "optimization_alg",
+			"max_abs_reasonable_coef",
 			"kk_lwa_cox_one_lik_get_standard_error",
 			"kk_lwa_cox_one_lik_get_degrees_of_freedom",
 			"kk_lwa_cox_one_lik_assert_finite_se",
@@ -1134,7 +1137,8 @@ EDI_COMPONENT_SPECS = list(
 		# setup rather than calling init_kk_passthrough() (preserved verbatim,
 		# no Lesson-1 fix needed here).
 		dependencies = c("KKPassThrough", "ParametricLikelihoodBootstrap"),
-		owns_state = c("m", "cached_mod", "use_rcpp", "max_abs_reasonable_coef"),
+		owns_state = c("cached_mod", "use_rcpp", "max_abs_reasonable_coef"),
+		requires_state = "m",
 		provides_public_methods = c(
 			"initialize",
 			"compute_score_confidence_interval_generic",
@@ -1151,7 +1155,7 @@ EDI_COMPONENT_SPECS = list(
 			"compute_wald_confidence_interval", "compute_wald_two_sided_pval"
 		),
 		provides_private_methods = c(
-			"m", "cached_mod", "use_rcpp", "max_abs_reasonable_coef",
+			"cached_mod", "use_rcpp", "max_abs_reasonable_coef",
 			"get_standard_error", "supports_likelihood_tests",
 			"supports_lik_ratio_param_bootstrap", "get_supported_testing_types_impl",
 			"warn_bootstrap_fallback_once", "compute_basic_match_data",
@@ -1263,14 +1267,15 @@ EDI_COMPONENT_SPECS = list(
 		# `ParametricLikelihoodBootstrap` (already depends on
 		# `LikelihoodTests` transitively).
 		dependencies = c("KKPassThrough", "ParametricLikelihoodBootstrap"),
-		owns_state = c("max_abs_reasonable_coef", "optimization_alg", "best_X_colnames"),
+		owns_state = c("max_abs_reasonable_coef", "best_X_colnames"),
+		requires_state = "optimization_alg",
 		provides_public_methods = c(
 			"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
 		),
 		provides_private_methods = c(
 			"compute_basic_match_data",
-			"max_abs_reasonable_coef", "optimization_alg", "best_X_colnames",
+			"max_abs_reasonable_coef", "best_X_colnames",
 			"design_matrix_candidates", "shared_combined_likelihood",
 			"supports_likelihood_tests", "get_likelihood_test_spec",
 			"get_standard_error", "get_degrees_of_freedom", "assert_finite_se",
@@ -1463,10 +1468,11 @@ EDI_COMPONENT_SPECS = list(
 				file = "inference_count_zero_augmented_poisson_abstract.R",
 				dependencies = "CountLikelihoodPlumbing",
 				owns_state = c(
-					"cached_mod", "cached_vc_params", "za_X_cov_all", "za_Xzi_cov_all",
+					"cached_mod", "za_X_cov_all", "za_Xzi_cov_all",
 					"best_X_colnames", "best_Xzi_colnames", "use_rcpp",
 					"model_formula_zero"
 				),
+				requires_state = "cached_vc_params",
 				provides_public_methods = c(
 					"initialize",
 					"compute_asymp_confidence_interval",
@@ -1518,7 +1524,6 @@ EDI_COMPONENT_SPECS = list(
 					"bayesian_boot_compute_bayesian_bootstrap_two_sided_pval",
 					"bayesian_boot_compute_bayesian_bootstrap_confidence_interval",
 					"cached_mod",
-					"cached_vc_params",
 					"za_X_cov_all",
 					"za_Xzi_cov_all",
 					"best_X_colnames",
@@ -1984,7 +1989,8 @@ EDI_COMPONENT_SPECS = list(
 					# exercised until now (surfaced as "attempt to apply non-function"
 					# calling private$shared() -> NULL).
 					dependencies = "StandardModelCache",
-					owns_state = c("dep_cens_bootstrap_ci_max_abs", "best_X_colnames", "cached_mod", "cached_vc_params"),
+					owns_state = c("dep_cens_bootstrap_ci_max_abs", "best_X_colnames", "cached_mod"),
+					requires_state = "cached_vc_params",
 					provides_public_methods = c(
 						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
 						"compute_jackknife_estimate", "compute_jackknife_bias_estimate",
@@ -2005,7 +2011,7 @@ EDI_COMPONENT_SPECS = list(
 						"supports_reusable_bootstrap_worker", "supports_likelihood_tests",
 						"get_likelihood_test_spec", "generate_mod", "supports_lik_ratio_param_bootstrap",
 						"simulate_under_lik_null", "build_design_matrix", "dep_cens_bootstrap_ci_max_abs",
-						"best_X_colnames", "cached_mod", "cached_vc_params"
+						"best_X_colnames", "cached_mod"
 					),
 					provides_capabilities = character(),
 					# "full", not "none": InferenceSurvivalDepCensTransformRegr implements
@@ -2028,7 +2034,8 @@ EDI_COMPONENT_SPECS = list(
 					source_name = "SurvivalKKWeibullMarginalSource",
 					file = "inference_survival_KK_weibull_marginal.R",
 					dependencies = "KKPassThrough",
-					owns_state = c("cached_vc_params", "max_abs_reasonable_coef"),
+					owns_state = "max_abs_reasonable_coef",
+					requires_state = "cached_vc_params",
 					provides_public_methods = c(
 						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
 						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval", "duplicate"
@@ -2039,26 +2046,27 @@ EDI_COMPONENT_SPECS = list(
 						"assert_finite_se", "get_standard_error", "get_degrees_of_freedom",
 						"compute_treatment_estimate_during_randomization_inference",
 						"compute_fast_rand_bootstrap_distr",
-						"cached_vc_params", "max_abs_reasonable_coef"
+						"max_abs_reasonable_coef"
 					),
 					provides_capabilities = character(),
 					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE
 				),
-				SurvivalKKClaytonCopulaIVWC = list(
+				SurvivalKKWeibullFrailtyLoggammaIVWC = list(
 					status = "active",
 					load_policy = "lazy",
-					source_name = "SurvivalKKClaytonCopulaIVWCSource",
-					file = "inference_survival_KK_clayton_copula.R",
+					source_name = "SurvivalKKWeibullFrailtyLoggammaIVWCSource",
+					file = "inference_survival_KK_weibull_frailty_loggamma.R",
 					# Leaf-only since the 2026-08-17 migration: the KK compound layer
 					# arrives through the KKCompound dependency.
 					dependencies = "KKCompound",
 					owns_state = c(
-						"optimization_alg", "best_par", "best_X_colnames", "cached_mod",
+						"best_par", "best_X_colnames", "cached_mod",
 						"best_X_colnames_matched", "best_X_colnames_reservoir",
 						"cached_vc_params_matched", "cached_vc_params_reservoir",
 						"max_abs_reasonable_coef"
 					),
+					requires_state = "optimization_alg",
 					provides_public_methods = c(
 						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
 						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
@@ -2067,7 +2075,7 @@ EDI_COMPONENT_SPECS = list(
 						"compute_basic_match_data", "compute_treatment_estimate_during_randomization_inference",
 						"assert_finite_se", "filtered_covariate_candidates", "design_matrix_candidates",
 						"shared", "clayton_copula_for_matched_pairs", "weibull_for_reservoir",
-						"optimization_alg", "best_par", "best_X_colnames", "cached_mod",
+						"best_par", "best_X_colnames", "cached_mod",
 						"best_X_colnames_matched", "best_X_colnames_reservoir",
 						"cached_vc_params_matched", "cached_vc_params_reservoir", "max_abs_reasonable_coef"
 					),
@@ -2075,57 +2083,53 @@ EDI_COMPONENT_SPECS = list(
 					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE
 				),
-				SurvivalKKClaytonCopulaOneLik = list(
+				SurvivalKKWeibullFrailtyLoggammaOneLik = list(
 					status = "active",
 					load_policy = "lazy",
-					source_name = "SurvivalKKClaytonCopulaOneLikSource",
-					file = "inference_survival_KK_clayton_copula.R",
-					dependencies = character(),
-					owns_state = c(
-						"m", "kk_passthrough", "y_temp", "dead", "w", "X",
-						"any_censoring", "optimization_alg", "best_Xmm_colnames",
-						"max_abs_reasonable_coef"
+					source_name = "SurvivalKKWeibullFrailtyLoggammaOneLikSource",
+					file = "inference_survival_KK_weibull_frailty_loggamma.R",
+					# 2026-08-23 (fix_inference_hierarchy.md "Static Cleanup" / "Ban
+					# raw component splicing"): the source is now leaf-only and the
+					# KK pass-through surface arrives through this dependency, like
+					# every other OneLik component; root-owned state is required,
+					# never redeclared (Source Invariant 15).
+					dependencies = "KKPassThrough",
+					owns_state = "max_abs_reasonable_coef",
+					requires_state = c(
+						"m", "y_temp", "dead", "w", "X", "any_censoring", "optimization_alg"
 					),
 					provides_public_methods = c(
-						"approximate_bootstrap_distribution_beta_hat_T", "compute_estimate_with_bootstrap_weights",
 						"initialize", "compute_estimate", "compute_asymp_confidence_interval",
 						"compute_asymp_two_sided_pval", "duplicate"
 					),
 					provides_private_methods = c(
-						"is_a_kk_passthrough_design", "compute_basic_match_data", "supports_information_preference",
-						"supports_observed_information", "get_supported_testing_types_impl",
-						"get_supported_information_preferences_impl", "use_reusable_kk_bootstrap_worker",
-						"init_kk_passthrough", "create_kk_bootstrap_context", "create_kk_bootstrap_worker_state",
-						"load_kk_bootstrap_sample_into_worker", "clear_kk_bootstrap_worker_design_caches",
-						"compute_kk_bootstrap_worker_estimate", "compute_kk_bootstrap_debug_with_reused_worker",
-						"compute_kk_bootstrap_distribution_with_reused_workers", "compute_basic_kk_match_data_impl",
 						"compute_treatment_estimate_during_randomization_inference", "get_standard_error",
 						"get_degrees_of_freedom", "assert_finite_se", "supports_likelihood_tests",
 						"get_likelihood_test_spec", "filtered_covariate_candidates", "shared",
-						"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null", "m",
-						"kk_passthrough", "y_temp", "dead", "w", "X", "any_censoring",
-						"optimization_alg", "best_Xmm_colnames", "max_abs_reasonable_coef"
+						"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+						"max_abs_reasonable_coef"
 					),
 					provides_capabilities = character(),
 					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE
 				),
-				SurvivalKKWeibullFrailtyIVWC = list(
+				SurvivalKKWeibullFrailtyNormalIVWC = list(
 					status = "active",
 					load_policy = "lazy",
-					source_name = "SurvivalKKWeibullFrailtyIVWCSource",
-					file = "inference_survival_KK_weibull_frailty.R",
-					# 2026-08-18 migration (same reshaping as SurvivalKKClaytonCopulaIVWC):
+					source_name = "SurvivalKKWeibullFrailtyNormalIVWCSource",
+					file = "inference_survival_KK_weibull_frailty_normal.R",
+					# 2026-08-18 migration (same reshaping as SurvivalKKWeibullFrailtyLoggammaIVWC):
 					# previously a self-harvested abstract component paired with a
 					# separate ...IVWCLeaf component (now deleted); this is the merged
 					# abstract+leaf static source, on the KKCompound dependency chain.
 					dependencies = "KKCompound",
 					owns_state = c(
-						"optimization_alg", "best_par", "best_X_colnames", "any_censoring",
-						"m", "cached_mod", "best_X_colnames_matched",
+						"best_par", "best_X_colnames",
+						"cached_mod", "best_X_colnames_matched",
 						"best_X_colnames_reservoir", "max_abs_reasonable_coef",
 						"cached_vc_params_matched", "cached_vc_params_reservoir"
 					),
+					requires_state = c("optimization_alg", "any_censoring", "m"),
 					provides_public_methods = c(
 						"initialize", "compute_estimate", "compute_asymp_confidence_interval",
 						"compute_asymp_two_sided_pval"
@@ -2136,8 +2140,8 @@ EDI_COMPONENT_SPECS = list(
 						"supports_lik_ratio_param_bootstrap",
 						"compute_treatment_estimate_during_randomization_inference",
 						"frailty_for_matched_pairs", "weibull_for_reservoir", "shared",
-						"assert_finite_se", "optimization_alg", "best_par", "best_X_colnames",
-						"any_censoring", "m", "cached_mod", "best_X_colnames_matched",
+						"assert_finite_se", "best_par", "best_X_colnames",
+						"cached_mod", "best_X_colnames_matched",
 						"best_X_colnames_reservoir", "max_abs_reasonable_coef",
 						"cached_vc_params_matched", "cached_vc_params_reservoir"
 					),
@@ -2145,19 +2149,23 @@ EDI_COMPONENT_SPECS = list(
 					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE
 				),
-				SurvivalKKWeibullFrailtyOneLik = list(
+				SurvivalKKWeibullFrailtyNormalOneLik = list(
 					status = "active",
 					load_policy = "lazy",
-					source_name = "SurvivalKKWeibullFrailtyOneLikSource",
-					file = "inference_survival_KK_weibull_frailty.R",
-					dependencies = character(),
-					owns_state = c(
-						"m", "kk_passthrough", "y_temp", "dead", "w", "X",
-						"optimization_alg", "best_Xmm_colnames", "use_rcpp",
-						"max_abs_reasonable_coef"
+					source_name = "SurvivalKKWeibullFrailtyNormalOneLikSource",
+					file = "inference_survival_KK_weibull_frailty_normal.R",
+					# 2026-08-23 (fix_inference_hierarchy.md "Static Cleanup" / "Ban
+					# raw component splicing"): leaf-only source; the KK pass-through
+					# surface arrives through this dependency and root-owned state
+					# is required, never redeclared (Source Invariant 15).
+					dependencies = "KKPassThrough",
+					owns_state = c("use_rcpp", "max_abs_reasonable_coef"),
+					requires_state = c(
+						"m", "y_temp", "dead", "w", "X", "any_censoring",
+						"optimization_alg", "cached_vc_params"
 					),
 					provides_public_methods = c(
-						"approximate_bootstrap_distribution_beta_hat_T", "compute_estimate_with_bootstrap_weights",
+						"compute_estimate_with_bootstrap_weights",
 						"initialize", "compute_estimate", "compute_asymp_confidence_interval",
 						"compute_asymp_two_sided_pval",
 						# Added 2026-08-19 migration: generic-`self$`-aliased overrides
@@ -2165,29 +2173,21 @@ EDI_COMPONENT_SPECS = list(
 						"compute_asymp_confidence_interval_generic", "compute_asymp_two_sided_pval_generic"
 					),
 					provides_private_methods = c(
-						"is_a_kk_passthrough_design", "compute_basic_match_data", "supports_information_preference",
-						"supports_observed_information", "get_supported_testing_types_impl",
-						"get_supported_information_preferences_impl", "use_reusable_kk_bootstrap_worker",
-						"init_kk_passthrough", "create_kk_bootstrap_context", "create_kk_bootstrap_worker_state",
-						"load_kk_bootstrap_sample_into_worker", "clear_kk_bootstrap_worker_design_caches",
-						"compute_kk_bootstrap_worker_estimate", "compute_kk_bootstrap_debug_with_reused_worker",
-						"compute_kk_bootstrap_distribution_with_reused_workers", "compute_basic_kk_match_data_impl",
 						"is_a_kk_weibull_frailty_one_lik", "shared_combined_likelihood",
 						"supports_likelihood_tests", "get_likelihood_test_spec", "get_standard_error",
 						"get_degrees_of_freedom", "assert_finite_se", "supports_lik_ratio_param_bootstrap",
 						"simulate_under_lik_null", "compute_treatment_estimate_during_randomization_inference",
-						"m", "kk_passthrough", "y_temp", "dead", "w", "X", "optimization_alg",
-						"best_Xmm_colnames", "use_rcpp", "max_abs_reasonable_coef"
+						"use_rcpp", "max_abs_reasonable_coef"
 					),
 					provides_capabilities = character(),
 					allowed_likelihood_tiers = "full",
 					declare_body_references_optional = TRUE
 				),
-				SurvivalKKWeibullFrailtyOneLikLeaf = list(
+				SurvivalKKWeibullFrailtyNormalOneLikLeaf = list(
 					status = "active",
 					load_policy = "lazy",
-					source_name = "SurvivalKKWeibullFrailtyOneLikLeafSource",
-					file = "inference_survival_KK_weibull_frailty.R",
+					source_name = "SurvivalKKWeibullFrailtyNormalOneLikLeafSource",
+					file = "inference_survival_KK_weibull_frailty_normal.R",
 					dependencies = character(),
 					provides_public_methods = "initialize",
 					provides_private_methods = character(),
@@ -2200,7 +2200,7 @@ EDI_COMPONENT_SPECS = list(
 					source_name = "InferenceMixinKKGEEShared",
 		file = "inference_mixin_kk_gee_shared.R",
 		dependencies = c("BayesianBootstrap", "Wald"),
-		owns_state = c("m", "use_rcpp", "max_abs_reasonable_coef", "kk_gee_engine"),
+		owns_state = c("use_rcpp", "max_abs_reasonable_coef", "kk_gee_engine"),
 		# des_obj_priv_int added 2026-08-19 (fix_inference_hierarchy.md "KK And
 		# IVWC Estimators", "finish declaring every KKPassThrough/KKCompound/
 		# KKGEE/KKGLMM host requirement"): compute_rand_two_sided_pval()
@@ -2226,7 +2226,7 @@ EDI_COMPONENT_SPECS = list(
 		# contract rather than force-declared.
 		requires_state = c(
 			"any_censoring", "cached_values", "harden", "n", "y",
-			"des_obj_priv_int"
+			"des_obj_priv_int", "m"
 		),
 		requires_public_methods = c(
 			# is_nonestimable is guarded with is.function(self$is_nonestimable)
@@ -2296,7 +2296,7 @@ EDI_COMPONENT_SPECS = list(
 		file = "inference_mixin_kk_glmm_shared.R",
 		dependencies = character(),
 		owns_state = c(
-			"m", "optimization_alg", "skip_glmm_pkg_check",
+			"skip_glmm_pkg_check",
 			"max_abs_reasonable_coef", "kk_glmm_engine"
 		),
 		provides_public_methods = c(
@@ -2304,7 +2304,7 @@ EDI_COMPONENT_SPECS = list(
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
 		),
 		provides_private_methods = c(
-			"m", "optimization_alg", "skip_glmm_pkg_check",
+			"skip_glmm_pkg_check",
 			"max_abs_reasonable_coef", "kk_glmm_engine",
 			"is_a_glmm_family", "init_kk_glmm_shared", "glmm_predictors_df",
 			"glmm_predictors_df_candidates", "get_standard_error",
@@ -2312,7 +2312,7 @@ EDI_COMPONENT_SPECS = list(
 			"fit_glmm_on_data", "fit_weighted_glmm_on_data", "fit_glmm",
 			"compute_weighted_glmm_bootstrap_estimate", ".is_usable_glmm_fit"
 		),
-		requires_state = c("any_censoring", "cached_values", "harden", "n", "y"),
+		requires_state = c("any_censoring", "cached_values", "harden", "n", "y", "m", "optimization_alg"),
 		requires_public_methods = c("get_testing_type", "num_cores"),
 		requires_private_methods = c(
 			"cache_nonestimable_estimate", "clear_nonestimable_state",
@@ -2334,12 +2334,19 @@ EDI_COMPONENT_SPECS = list(
 		source_name = "InferenceMixinKKPassThrough",
 		file = "inference_mixin_kk_passthrough.R",
 		dependencies = character(),
+		# Root-owned state (m, y_temp, dead, w, X, any_censoring, optimization_alg)
+		# is no longer redeclared here (fix_inference_hierarchy.md, Source
+		# Invariant 15, closed 2026-08-23): it is required from the root, and
+		# the historical "lbfgs" optimizer default is established through the
+		# root setter in init_kk_passthrough().
 		owns_state = c(
-			"m", "kk_passthrough", "y_temp", "dead", "w", "X",
-			"any_censoring", "best_par", "optimization_alg", "cached_mod",
+			"kk_passthrough", "best_par", "cached_mod",
 			"best_X_colnames", "best_Xmm_colnames"
 		),
-		requires_state = c("cached_values", "des_obj_priv_int", "has_match_structure", "n", "y"),
+		requires_state = c(
+			"cached_values", "des_obj_priv_int", "has_match_structure", "n", "y",
+			"m", "y_temp", "dead", "w", "X", "any_censoring", "optimization_alg"
+		),
 		requires_public_methods = c("duplicate", "num_cores"),
 		requires_private_methods = c(
 			"assert_valid_bootstrap_type", "cache_nonestimable_estimate",
@@ -3370,6 +3377,34 @@ r6_inherited_private_names = function(inherit) {
 	unique(collected)
 }
 
+#' Private state fields declared by the root of an R6 inheritance chain
+#'
+#' Walks `inherit` up through `get_inherit()` to the root generator and returns
+#' the names of that root's non-function private entries (its state fields).
+#' Used by \code{validate_inference_class_definition()} to enforce that no
+#' component redeclares root-owned state (fix_inference_hierarchy.md, Source
+#' Invariant 15). Returns \code{character()} when there is no parent.
+#' @noRd
+r6_root_private_state_names = function(inherit) {
+	if (is.null(inherit)) return(character())
+	# The legacy ladder's R6 `inherit =` expressions resolve lazily, so a
+	# class defined before its deepest ancestors are sourced cannot walk the
+	# chain yet; every inference generator roots at `Inference`, so fall back
+	# to it by name in that case.
+	root = tryCatch({
+		generator = inherit
+		while (!is.null(generator$get_inherit())) {
+			generator = generator$get_inherit()
+		}
+		generator
+	}, error = function(e) NULL)
+	if (is.null(root)) {
+		root = get0("Inference", envir = parent.env(environment()), inherits = FALSE)
+	}
+	if (is.null(root)) return(character())
+	names(root$private_fields) %||% character()
+}
+
 validate_inference_class_definition = function(
 	classname,
 	inherit = NULL,
@@ -3394,6 +3429,26 @@ validate_inference_class_definition = function(
 		component_names = resolve_component_dependencies(component_names)
 	}
 	components = lapply(component_names, get_inference_component)
+	# Source Invariant 15 (fix_inference_hierarchy.md): no component redeclares
+	# root-owned state. Every private field the root generator declares has
+	# exactly one owner -- the root -- so a component that touches it must list
+	# it under `requires_state`, never `owns_state`. Enforced here (class
+	# definition time, when the root generator is guaranteed to exist) in
+	# addition to the static guardrail in test-static-cleanup-guardrails.R.
+	root_state = r6_root_private_state_names(inherit)
+	if (length(root_state) > 0L) {
+		for (component in components) {
+			redeclared = intersect(component$owns_state %||% character(), root_state)
+			if (length(redeclared) > 0L) {
+				stop(sprintf(
+					"%s composes component %s, which redeclares root-owned state: %s. Root-owned state must be declared in `requires_state`, never `owns_state`.",
+					classname,
+					component$name,
+					paste(redeclared, collapse = ", ")
+				), call. = FALSE)
+			}
+		}
+	}
 	likelihood_tier = metadata$likelihood_tier %||% "none"
 	capabilities = unique(c(
 		as.character(unlist(lapply(components, `[[`, "provides_capabilities"), use.names = FALSE)),

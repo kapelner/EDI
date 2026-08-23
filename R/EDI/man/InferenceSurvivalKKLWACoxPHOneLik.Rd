@@ -5,7 +5,7 @@
 \title{LWA-style Marginal Cox Combined-Likelihood Inference for KK Designs}
 \description{
 Fits a single combined Cox partial likelihood
-\eqn{\lambda(t \mid W, X) = \lambda_0(t)\exp(\beta_T W + \beta_X^\top X)}
+\eqn{\lambda(t \mid w, x) = \lambda_0(t)\exp(\beta_T w + \beta_X^\top x)}
 jointly over matched-pair and reservoir subjects for KK matching-on-the-fly
 designs with survival responses (a marginal, not stratified, Cox model:
 matched pairs do not get pair-specific baseline hazards). This is the

@@ -55,7 +55,7 @@ GHRuleWF gauss_hermite_rule_wf(int n) {
 // params: [beta(p), log_sigma_eps(1), log_sigma_u(1)]
 // log_sigma_eps: log of Weibull scale (error SD on log scale)
 // log_sigma_u: log of random-intercept SD
-class WeibullFrailtyLikelihood {
+class WeibullFrailtyNormalLikelihood {
 private:
 	Eigen::VectorXd m_y;
 	Eigen::VectorXd m_dead;
@@ -125,7 +125,7 @@ private:
 	}
 
 public:
-	WeibullFrailtyLikelihood(const Eigen::Ref<const Eigen::VectorXd>& y, 
+	WeibullFrailtyNormalLikelihood(const Eigen::Ref<const Eigen::VectorXd>& y, 
 							 const Eigen::Ref<const Eigen::VectorXd>& dead, 
 							 const Eigen::Ref<const Eigen::MatrixXd>& X, 
 							 const Eigen::Ref<const Eigen::VectorXi>& group_id, 
@@ -257,7 +257,7 @@ double get_weibull_frailty_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>& X, 
 
 	
 
-	WeibullFrailtyLikelihood obj(y_vec_coerced, dead_vec_coerced, X, group_id, n_gh, max_abs_log_sigma);
+	WeibullFrailtyNormalLikelihood obj(y_vec_coerced, dead_vec_coerced, X, group_id, n_gh, max_abs_log_sigma);
 	Eigen::VectorXd grad(params.size());
 	return obj(params, grad);
 }
@@ -278,7 +278,7 @@ Eigen::VectorXd get_weibull_frailty_score_cpp(const Eigen::Map<Eigen::MatrixXd>&
 
 	
 
-	WeibullFrailtyLikelihood obj(y_vec_coerced, dead_vec_coerced, X, group_id, n_gh, max_abs_log_sigma);
+	WeibullFrailtyNormalLikelihood obj(y_vec_coerced, dead_vec_coerced, X, group_id, n_gh, max_abs_log_sigma);
 	Eigen::VectorXd grad(params.size());
 	obj(params, grad);
 	return -grad;
@@ -300,7 +300,7 @@ Eigen::MatrixXd get_weibull_frailty_hessian_cpp(const Eigen::Map<Eigen::MatrixXd
 
 	
 
-	WeibullFrailtyLikelihood obj(y_vec_coerced, dead_vec_coerced, X, group_id, n_gh, max_abs_log_sigma);
+	WeibullFrailtyNormalLikelihood obj(y_vec_coerced, dead_vec_coerced, X, group_id, n_gh, max_abs_log_sigma);
 	return -obj.hessian(params);
 }
 #endif // EDI_CORE_ONLY
@@ -326,7 +326,7 @@ edi::ResultMap fast_weibull_frailty_internal(
 	const int p     = (int)X.cols();
 	const int n_par = p + 2;
 
-	WeibullFrailtyLikelihood obj(y, dead, X, group_id, n_gh, max_abs_log_sigma);
+	WeibullFrailtyNormalLikelihood obj(y, dead, X, group_id, n_gh, max_abs_log_sigma);
 
 	Eigen::VectorXd par(n_par);
 	if (warm_start_params.has_value()) {

@@ -1,4 +1,5 @@
-inference_incid_log_binomial_public = list(
+IncidenceLogBinomialLikelihoodSource = list(
+	public = list(
 
 		#' @description Initialize inference for the log-link binomial risk-ratio
 		#'   model \eqn{\log P(Y_i = 1) = \beta_0 + \beta_T W_i + X_i^\top \gamma};
@@ -153,9 +154,8 @@ inference_incid_log_binomial_public = list(
 			}
 			ci
 		}
-	)
-
-inference_incid_log_binomial_private = list(
+	),
+	private = list(
 		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
 		# migration ladders): see inference_incid_log_regr_private's cached_mod
 		# entry (inference_incidence_logit.R) for the full explanation.
@@ -456,10 +456,6 @@ inference_incid_log_binomial_private = list(
 			}
 		}
 	)
-
-IncidenceLogBinomialLikelihoodSource = list(
-	public = inference_incid_log_binomial_public,
-	private = inference_incid_log_binomial_private
 )
 
 #' Log-Binomial Regression Inference for Incidence Responses

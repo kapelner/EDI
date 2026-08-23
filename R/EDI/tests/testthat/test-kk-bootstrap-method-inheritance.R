@@ -15,10 +15,17 @@ test_that("KK pass-through hosts retain the directly composed bootstrap implemen
 		EDI:::InferenceContinKKQuantileRegrIVWC,
 		EDI:::InferencePropKKQuantileRegrIVWC,
 		EDI:::InferenceAbstractKKCondLogitGLMM,
-		EDI:::InferenceAbstractKKLWACoxOneLik,
+		# InferenceAbstractKKLWACoxOneLik no longer exists as a generator (its
+		# body became KKLWACoxOneLikPartialLikelihoodSource); the migrated
+		# concrete class composes the same KKPassThrough body directly.
+		EDI:::InferenceSurvivalKKLWACoxPHOneLik,
 		EDI:::InferenceAbstractKKMarginalIncid,
 		EDI:::InferenceAbstractKKOrdinalCLMM,
 		EDI:::InferenceOrdinalKKCondAdjCatLogitRegr,
+		# The two retained KK compound bases are assembled through
+		# define_inference_class() since 2026-08-23 (fix_inference_hierarchy.md
+		# "Static Cleanup" / "Ban raw component splicing"); same flattened
+		# $public_methods resolution as every other composed class here.
 		EDI:::InferenceKKPassThroughCompound,
 		EDI:::InferenceKKPassThroughCompoundNoParamBootstrap
 	)) {

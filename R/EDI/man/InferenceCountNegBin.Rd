@@ -5,8 +5,8 @@
 \title{Negative Binomial Regression Inference for Count Responses}
 \description{
 Fits a negative binomial regression for count responses:
-\eqn{Y_i \mid W_i, X_i \sim \mathrm{NegBin}(\mu_i, \theta)}, \eqn{\log
-\mu_i = \beta_0 + \beta_T W_i + X_i^\top \gamma}, \eqn{\mathrm{Var}(Y_i) =
+\eqn{Y_i \mid w_i, x_i \sim \mathrm{NegBin}(\mu_i, \theta)}, \eqn{\log
+\mu_i = \beta_0 + \beta_T w_i + x_i^\top \gamma}, \eqn{\mathrm{Var}(Y_i) =
 \mu_i + \mu_i^2 / \theta}, jointly maximizing over the regression
 coefficients and the dispersion parameter \eqn{\theta}
 (\code{\link{fast_neg_bin_cpp}}/\code{\link{fast_neg_bin_with_var_cpp}}).

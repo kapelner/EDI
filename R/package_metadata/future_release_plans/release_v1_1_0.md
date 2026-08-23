@@ -27,7 +27,8 @@ A plan (or plan fragment) is in scope for v1.1.0 if and only if it lives in
 `new_feature_plans/` and is **not** named in `release_v1_0_0.md`'s "In scope"
 list or its amendments. Concretely, the exclusions are:
 
-- `fix_inference_hierarchy.md` (all remaining Phase 1D work — 1.0.0 item 1),
+- `fix_inference_hierarchy.md` (all remaining Phase 1D work — 1.0.0 item 1;
+  closed 2026-08-23 and moved to `../finished_features/`),
 - `extending-edi-r6.md` (1.0.0 item 6),
 - `fix_documentation.md` (1.0.0 item 7 — including the Python docstring
   TODOs, which ride the same-commit-family `edi_kernels` 1.0.0 wheel, and
@@ -75,7 +76,10 @@ The kernel/perf family: `robust_regression_perf_optimization_spec.md`,
 behind `gpu_optimizations.md → TODO-7` in the Phase 0 batch),
 `performance_profiling_and_upgrades.md` (§8 "Phase 8", TODO-132..179; added
 2026-08-23, user decision — not decision-gated, measurement-first; see
-`TODO-4b`).
+`TODO-4b`). `quantum_upgrade.md`'s implementable Part I items — `→ TODO-2..6`
+plus the hardware-detection / classical-fallback work `→ TODO-9..12` (§I.7,
+added 2026-08-23, user request) — are indexed as `TODO-9b` below, gated on
+its `→ TODO-1` decision (Phase 0 step 9b).
 (`local_machine_optimization.md` moved to v1.0.0 — see
 `release_v1_0_0.md`'s item 15 — 2026-08-20, user decision.)
 
@@ -139,6 +143,10 @@ ticked in their **owning plans**; this list is the release index.
      `multivariate_… → TODO-1`, `compositional_… → TODO-1`,
      `longitudinal_repeated_measures_… → TODO-1`,
   9. `gpu_optimizations.md → TODO-1` and `→ TODO-7` (backend/build story),
+  9b. `quantum_upgrade.md → TODO-1` (added 2026-08-23: vignette+hook only /
+      nothing / full A1+A3 — taken right after step 9 so it reuses the
+      backend/dispatch answer; a "yes" of either kind also commits to its
+      hardware-detection + classical-fallback spec, §I.7 there),
   10. `interval_censored_survival_response_type_report.md → TODO-1`
       (second-wave semiparametric yes/no).
   ~~11. `local_machine_optimization.md → TODO-1` remaining parts~~ — moved
@@ -258,6 +266,46 @@ ticked in their **owning plans**; this list is the release index.
 - [ ] TODO-9: **GPU track** (if TODO-1.9 said yes; `_master.md` Phase 5E):
   `gpu_optimizations.md → TODO-7` (backend/build design) then `→ TODO-2..5`,
   each merge gated by `→ TODO-6`'s benchmark matrix.
+- [ ] TODO-9b: **Quantum / QUBO track** (if TODO-1.9b said (a) vignette+hook
+  or (c) full A1+A3; `_master.md` Phase 6 item 6; added 2026-08-23, user
+  decision; amended the same day: **pure R + vendored open-source C++, no
+  Python / `reticulate` anywhere**). Part I of `quantum_upgrade.md` only —
+  Part II is recorded there as not buildable. Order: `→ TODO-2` (QUBO
+  builder + penalty + repair, brute-force-exact tests at `n ≤ 12`), `→ TODO-3`
+  (`qubo_sampler` hook, `"qubo_sampled"` certificate, provenance), then
+  **before any external backend becomes user-reachable**: `→ TODO-9`
+  (`detect_qubo_backends()` — offline-first detection of `httr2` + credentials
+  (env vars or the D-Wave INI config file, parsed in base R), optional one
+  HTTPS probe for QPU working graph / hybrid limits, session cache,
+  test-injection override), `→ TODO-10` (`qubo_backend` dispatch: default
+  `"none"` = today's MILP → SA bit-for-bit; opt-in `"auto"` chain D-Wave QPU →
+  Leap hybrid → cloud Ising → classical SA; a *named* backend falls back only
+  to classical SA, never to a different paid backend; size/embedding/time/cost
+  guards; one `warning()` per hop; `backend_requested`/`backend_used`/
+  `fallback_reason` provenance), `→ TODO-11` (R-native adapters behind one
+  `qubo_submit()` interface — Stage 1: R client for D-Wave's Solver API
+  (REST, `httr2`/`jsonlite` in Suggests) + R serializer for dimod's BQM file
+  format for the Leap hybrid solver, plus REST adapters for cloud Ising
+  services on request; Stage 2, only if TODO-5's numbers justify it: vendor
+  `minorminer`'s `busclique` (Apache-2.0 C++, attributed in `inst/COPYRIGHTS`)
+  for dense-clique embedding on the direct QPU; no gate-model adapter),
+  `→ TODO-12` (hardware-free tests: HTTP-mocked SAPI fixtures, byte-exact
+  serializer round-trips against checked-in dimod fixtures, embedding tests on
+  synthetic Pegasus/Zephyr graphs, every fallback row; paid tests only under
+  `EDI_RUN_PAID_BACKEND_TESTS=true` — never CI), `→ TODO-4` (R-only
+  vignette), `→ TODO-5` (benchmark table; decide whether a classical
+  Ising-style C++ kernel is the real follow-up), `→ TODO-6` (A3 blocks
+  encoding + CQM serializer) **only if TODO-5 is positive**. Hardware per
+  proposal is fixed in that plan's §I.6/§I.7.1 (A1: D-Wave Advantage /
+  Advantage2 direct QPU ≲170 dense vars, Leap hybrid above; A3: Leap hybrid
+  CQM; I.2: EDI's own C++ SA locally, SQBM+/Fujitsu DA/NEC VA cloud;
+  gate-model QAOA dropped from the R path). Shares the backend registry /
+  "never auto-route to a non-default backend" convention with TODO-9's
+  `gpu_optimizations.md → TODO-7`; whichever lands first sets it. `→ TODO-7/8`
+  stay explicitly unscheduled. Additive: `qubo_backend = "none"` reproduces
+  1.0.0 results bit-for-bit; nothing quantum enters `Imports` (`httr2`,
+  `httptest2`/`webfakes` in `Suggests` only; GPL-3-compatible Apache-2.0
+  vendoring with attribution).
 - ~~TODO-10: **Local machine optimization**~~ — the whole
   `local_machine_optimization.md` plan moved to v1.0.0 (2026-08-20, user
   decision; see `release_v1_0_0.md`'s item 15). Removed from this release's
@@ -345,4 +393,7 @@ deprecation decision, and — added 2026-08-23 — any of TODO-4b's
 result-changing performance items, `performance_profiling_and_upgrades.md
 → TODO-137/149/153/156`, each of which must ship opt-in or as a documented
 default change with its equivalence-test tolerances re-justified; the
-measurement-only items there change nothing user-facing).
+measurement-only items there change nothing user-facing). TODO-9b's
+`qubo_backend` defaults to `"none"`, which must reproduce 1.0.0's MILP → SA
+results bit-for-bit; every external backend is opt-in and falls back to the
+classical solver with a warning, never silently.

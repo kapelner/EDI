@@ -421,23 +421,29 @@ each stored diff through the existing setters. Rules:
   cluster end-to-end smoke test that asserts core count is back to 1
   afterward. Stable across 3 consecutive reruns. The fork cluster was
   confirmed creatable in this sandbox before wiring the real test.
-  **Scope boundary for this axis:** the plan's Architecture section lists
-  three parallel tunables — (a) crossover n (done here), (b) best *default
-  core count* per operation (not always `detectCores()`), and (c)
-  fork-cluster vs. mirai dispatch preference. Only (a) is implemented.
-  (b) would reuse `edi_tuning_tune_parallel_crossover()` swept over a
-  `num_cores_grid` rather than one fixed K, picking the K with the largest
-  improvement at a representative n — a straightforward extension left
-  for TODO-5's assembly of `tune_EDI_for_this_machine()` (which already
-  takes a `num_cores_grid` argument per the Architecture section). (c) is
-  deliberately not benchmarked: `set_num_cores()` forbids switching between
-  fork and mirai within one R session (nng is not fork-reentrant safe), so
-  A/B-ing the two backends in a single tuning run is impossible by
-  construction; it would need a subprocess per backend, which is out of
-  proportion to the value, and is recorded here as out of scope for v1.0.0.
-  **TODO-4 as a whole is now done** modulo those two recorded scope
-  boundaries ((b) deferred to TODO-5's assembly, (c) out of scope) and the
-  optimizer axis's required-`converged_fn` boundary noted above.
+  **Scope boundary for this axis (amended below once TODO-5 landed):** the
+  plan's Architecture section lists three parallel tunables — (a)
+  crossover n (done here), (b) best *default core count* per operation
+  (not always `detectCores()`), and (c) fork-cluster vs. mirai dispatch
+  preference. Only (a) was implemented at this point. (c) is deliberately
+  not benchmarked: `set_num_cores()` forbids switching between fork and
+  mirai within one R session (nng is not fork-reentrant safe), so A/B-ing
+  the two backends in a single tuning run is impossible by construction;
+  it would need a subprocess per backend, which is out of proportion to
+  the value, and is recorded here as **permanently out of scope**, not a
+  gap to close later.
+  **(b) resolved (2026-08-21): done, in TODO-5.**
+  `tune_EDI_for_this_machine()` sweeps `num_cores_grid` through
+  `edi_tuning_tune_parallel_crossover()` (one call per candidate core
+  count) and `edi_tuning_parallel_diff_from_deviations()` picks
+  `preferred_num_cores` as the K with the largest mean relative
+  improvement across its crossover wins (ties → the smaller count) — see
+  TODO-5's own writeup. Recorded-only per TODO-1(d), same as the rest of
+  this axis. **TODO-4 as a whole was done here** modulo (b) (now resolved
+  in TODO-5), (c) (permanently out of scope, by construction), and the
+  optimizer axis's required-`converged_fn` boundary (a permanent design
+  choice pending the separate, still-open `optimizer_diagnostics_report.md`
+  diagnostics chain, not a gap in this plan).
 - [x] TODO-5: Implement persistence: the `.rds` schema above,
   `tune_EDI_for_this_machine()`'s write path,
   `clear_local_EDI_optimization()`, and a
@@ -784,14 +790,72 @@ each stored diff through the existing setters. Rules:
   `get_local_EDI_optimization()`/`clear_local_EDI_optimization()` and
   confirms the live dispatcher actually resets. 18 new assertions;
   `test-local-machine-tuning-assembly.R` now 155/155.
-- [ ] TODO-11: Documentation: full roxygen for the new exported functions;
+- [x] TODO-11: Documentation: full roxygen for the new exported functions;
   cross-link from every `get_*_dispatch_policy()`/`set_*_dispatch_policy()`
   roxygen block ("these defaults were computed on the maintainer's machine;
   run `tune_EDI_for_this_machine()` to recompute them for yours"); a short
   vignette section under the performance/vignettes umbrella; update
   `cold_starts.md`'s conclusions to note the defaults are now
   locally-recomputable. Follow the standing no-interim-roxygenize batching
-  rule.
-- [ ] TODO-12: Add this plan to `_master.md` Phase 6 with its dependency
+  rule. **DONE (2026-08-23).** Full roxygen for the exported functions
+  (`tune_EDI_for_this_machine()`, `get_local_EDI_optimization()`,
+  `clear_local_EDI_optimization()`) was already written when each landed
+  in TODO-5/7/8; this pass added the cross-links and the writing-focused
+  pieces. Cross-linked all four **tunable** get/set pairs — cold start,
+  warm start, optimizer algorithm — with a sentence naming them as
+  empirical, machine-computed judgments plus a `@seealso` link both ways
+  (`tune_EDI_for_this_machine()` already linked to all four `get_*`
+  functions from TODO-5, so this closes the loop). Deliberately worded the
+  **parallel** pair's cross-link differently rather than reusing the same
+  template: `get_parallel_dispatch_policy()` is a correctness blocklist
+  (TODO-6), not a performance table, so its docs now say plainly that
+  `tune_EDI_for_this_machine()` benchmarks a related-but-separate question
+  (crossover n / core count) and will never propose un-serializing
+  anything named there — copying the "run this to recompute" line onto
+  that pair would have implied the blocklist itself is tunable, which is
+  exactly the thing TODO-6 exists to prevent. No vignette dedicated to
+  performance exists in this package; added a new section,
+  "Machine-dependent performance defaults: `tune_EDI_for_this_machine()`",
+  to `vignettes/reproducibility.Rmd` (right after its existing "Bootstrap
+  resampling" section, which already referenced
+  `get_warm_start_dispatch_policy()`/`set_warm_start_dispatch_policy()`
+  for the warm-start-is-just-caching point) — framed around this
+  vignette's own theme: tuning changes speed, never which random draws are
+  made or which estimate/CI a fit produces, and the correctness gate
+  (TODO-8) is what enforces that; also documents
+  `get_/clear_local_EDI_optimization()` and `EDI_SKIP_LOCAL_TUNING`.
+  `cold_starts.md`'s conclusion now states its own numbers (the "<0.5ms"
+  crossover in finding 3, especially) were measured on the maintainer's
+  machine and are locally recomputable, redirecting a "these numbers seem
+  wrong on my machine" report toward running the tuner rather than filing
+  it as a documentation bug. No roxygen was regenerated in this pass — per
+  the standing no-interim-roxygenize rule, `@export`/`@seealso` tags are
+  the source of truth and pick up on the next real roxygenize pass;
+  `parse()` on every touched R file confirmed no syntax was broken.
+- [x] TODO-12: Add this plan to `_master.md` Phase 6 with its dependency
   edge (TODO-2 may be pulled earlier). *(Done at plan-creation time —
   verify the entry survives the next `_master.md` regeneration.)*
+  **Superseded, not literally executed (2026-08-23):** this plan was
+  pulled out of Phase 6 entirely and moved into the v1.0.0 release line on
+  2026-08-20 (see this file's own header note and `_master.md`'s
+  2026-08-20 amendment), so a Phase 6 entry would now be actively wrong —
+  `_master.md` was edited at that time to remove the Phase 6 line rather
+  than add one. The equivalent registration for where this plan actually
+  lives is `release_v1_0_0.md`'s item 15, which has tracked every TODO's
+  completion throughout (see that file's item 15 for the final closure
+  note). Closing this TODO on that basis: the *intent* (this plan is
+  correctly registered in the document that governs its execution order)
+  is satisfied, just not via the literal Phase 6 mechanism the TODO
+  predates.
+
+## Plan status: CLOSED (2026-08-23)
+
+All twelve TODOs are done (TODO-12 superseded as noted, everything else
+implemented and tested — see each TODO's own writeup above for specifics
+and 326/326 passing tests across `test-local-machine-tuning-{harness,axes,
+correctness,assembly}.R`). The two items the plan's own text once left
+open — TODO-4's parallel axis (b)/(c) and the optimizer axis's
+`converged_fn` — are, respectively, resolved (b, in TODO-5), permanently
+out of scope by construction (c), and a permanent design choice pending a
+separate plan's diagnostics chain (`converged_fn`) — none is unfinished
+work belonging to *this* plan. Moved to `../finished_features/`.

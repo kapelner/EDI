@@ -1612,13 +1612,17 @@ run_all_inference_progress_bar_line = function(n_done, n_total, elapsed_secs_so_
 #' Formats the `unavailable_due_to_missing_packages` footer text shared by
 #' both `screen` and `html` output (see `inference_suite_inspect.md`'s
 #' Output Modes section) -- one line per otherwise-applicable class listing
-#' its missing packages, or a one-line "none" message if empty.
+#' its missing packages, or `character(0)` if empty -- both callers already
+#' guard the whole section (heading included) on a non-empty list rather
+#' than printing/rendering a "nothing is unavailable" section at all (per
+#' user request, 2026-08-23: the HTML report was missing that guard, unlike
+#' `screen`, and showed the section with just a "(none -- ...)" line).
 #'
 #' @keywords internal
 #' @noRd
 run_all_inference_unavailable_footer_lines = function(unavailable_due_to_missing_packages) {
 	if (length(unavailable_due_to_missing_packages) == 0L) {
-		return("(none -- every design-compatible class has its required packages installed)")
+		return(character(0))
 	}
 	nm = names(unavailable_due_to_missing_packages)
 	vapply(seq_along(unavailable_due_to_missing_packages), function(i) {
@@ -1651,12 +1655,22 @@ run_all_inference_render_html = function(out) {
 		"<p>%s</p>",
 		gsub("\n", "<br>", htmltools_escape_or_identity(run_all_inference_combined_evidence_summary_line(out$combined_evidence)), fixed = TRUE)
 	)
+	# No section at all when nothing is unavailable -- matches `screen`'s
+	# own `if (n_unavail > 0L)` guard (per user request, 2026-08-23: the
+	# HTML report was missing this guard and rendered a "The following
+	# Inference classes are unavailable" heading over a lone "(none -- ...)"
+	# line).
 	footer_lines = run_all_inference_unavailable_footer_lines(out$unavailable_due_to_missing_packages)
-	footer_html = paste0("<li>", vapply(footer_lines, htmltools_escape_or_identity, character(1L)), "</li>", collapse = "\n")
-	unavailable_heading = sprintf(
-		"The following Inference %s unavailable",
-		if (length(out$unavailable_due_to_missing_packages) == 1L) "class is" else "classes are"
-	)
+	unavailable_html = if (length(footer_lines) > 0L) {
+		footer_html = paste0("<li>", vapply(footer_lines, htmltools_escape_or_identity, character(1L)), "</li>", collapse = "\n")
+		unavailable_heading = sprintf(
+			"The following Inference %s unavailable",
+			if (length(out$unavailable_due_to_missing_packages) == 1L) "class is" else "classes are"
+		)
+		sprintf("<h2>%s</h2>\n<ul>\n%s\n</ul>", unavailable_heading, footer_html)
+	} else {
+		""
+	}
 	# One image per estimand (2026-08-19: matches the "one PDF per estimand"
 	# split -- see `run_all_inference_plot_ci_forest()`'s docs), each sized
 	# independently from its own content (`run_all_inference_plot_to_
@@ -1669,7 +1683,7 @@ run_all_inference_render_html = function(out) {
 	estimand_heading = function(e) if (identical(e, "estimand unspecified")) e else estimand_short_label(e)
 	ci_forest_html = vapply(names(out$plots$ci_forest), function(e) {
 		p = out$plots$ci_forest[[e]]
-		b64 = run_all_inference_plot_to_base64_png(p, height = run_all_inference_ci_forest_height_in(run_all_inference_plot_n_rows(p)))
+		b64 = run_all_inference_plot_to_base64_png(p, height = run_all_inference_plot_height_in(p))
 		if (is.null(b64)) return("")
 		h = estimand_heading(e)
 		sprintf(
@@ -1727,15 +1741,12 @@ total time %.2fs&nbsp;&middot;&nbsp; EDI %s
 %s
 %s
 %s
-<h2>%s</h2>
-<ul>
 %s
-</ul>
 </body>
 </html>
 ', out$timestamp, design_class_short_label(design$design_class), design$response_type, design$design_family, design$n,
 		out$alpha, run_all_inference_pretty_timestamp(out$timestamp), out$total_secs, out$edi_version, table_html, cov_key_html,
-		combined_evidence_html, breakdown_html, images_html, unavailable_heading, footer_html)
+		combined_evidence_html, breakdown_html, images_html, unavailable_html)
 }
 
 #' Human-readable form of `out$timestamp` (the compact
@@ -1865,6 +1876,27 @@ run_all_inference_plot_safe_text = function(x) {
 #'
 #' @keywords internal
 #' @noRd
+#' Fixed, absolute (not `ggplot2`/`grid` `"null"`-relative) row height for
+#' one CI forest row, and fixed panel height for the "Estimates"
+#' box-and-whisker subplot -- both in inches, both used directly as the
+#' forest/box panels' own row heights by `run_all_inference_stack_forest_
+#' and_box()`, per user request, 2026-08-22/23 ("the CI's should have the
+#' same vertical space between them for all estimands ... uniform vertical
+#' distances"; "the ci vertical space should be the same for all images in
+#' the html"). Absolute units guarantee this by construction: two panels
+#' set to the same number of inches per row are the same number of inches
+#' per row, regardless of how many rows either estimand has or whether its
+#' plot stacks a box subplot underneath -- no calibration against a
+#' separately-estimated total page height (the earlier, `"null"`-unit
+#' design) can drift out of sync with the actual rendered layout.
+#'
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN = 0.20
+#' @rdname EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_SUITE_BOX_PANEL_HEIGHT_IN = 1.3
 run_all_inference_plot_ci_forest = function(results_table, alpha) {
 	df = results_table[
 		results_table$status == "ok" &
@@ -1987,7 +2019,18 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 			# (`run_all_inference_save_plots_pdf()`/the HTML embed height,
 			# both shrunk to match), not by this expansion, which only
 			# controls the panel's edge padding.
-			ggplot2::scale_y_continuous(breaks = NULL, expand = ggplot2::expansion(mult = c(0.02, 0.06))) +
+			# Additive (not multiplicative) expansion -- half a row's margin
+			# on each side, in absolute data units (`y` is a 1..n_rows row
+			# index, so `0.5` is exactly half a row) -- a multiplicative
+			# `mult` expansion shrinks toward zero as `n_rows` grows small,
+			# which clipped the bottommost row's label/point right at the
+			# panel edge for small estimands; an additive margin stays the
+			# same physical size regardless of row count, matching the
+			# panel's own absolute-inches height below (`n_rows * ROW_
+			# HEIGHT_IN` panel height + 1 full row of additive margin here
+			# = exactly `(n_rows + 1) * ROW_HEIGHT_IN` inches per row,
+			# self-consistent by construction).
+			ggplot2::scale_y_continuous(breaks = NULL, expand = ggplot2::expansion(add = c(0.5, 0.5))) +
 			x_scale +
 			# Minimal title (just "95% CIs", per user request, 2026-08-20 --
 			# not the earlier "XX% confidence intervals -- <estimand>",
@@ -2091,7 +2134,18 @@ run_all_inference_stack_forest_and_box = function(forest, box = NULL, n_rows, ma
 	}
 	gf = ggplot2::ggplotGrob(forest)
 	pf = gf$layout[gf$layout$name == "panel", , drop = FALSE]
-	gf$heights[pf$t] = grid::unit(max(n_rows, 3L), "null")
+	# Absolute inches, not a "null" weight -- see
+	# `EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN`'s own docs for why.
+	# `+ 0.5` rows of breathing room (not row-count-scaled, so it never
+	# distorts row-to-row spacing) -- the bare `n_rows * ROW_HEIGHT_IN`
+	# panel occasionally clipped the bottommost row's label/point right at
+	# the panel edge.
+	# Panel spans `n_rows` data-units of row index plus the y-scale's own
+	# `add = c(0.5, 0.5)` expansion (see that scale's own comment) = exactly
+	# `n_rows + 1` row-heights -- matches this panel's absolute height
+	# below 1-for-1, so every row (including the expansion margin) really
+	# is `EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN` inches tall.
+	gf$heights[pf$t] = grid::unit((max(n_rows, 1L) + 1) * EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN, "in")
 	# `box = NULL` (per user request, 2026-08-22: a single-estimate estimand
 	# skips the subplot entirely) -- the forest grob alone is the result,
 	# no stacking.
@@ -2100,11 +2154,16 @@ run_all_inference_stack_forest_and_box = function(forest, box = NULL, n_rows, ma
 	} else {
 		gb = ggplot2::ggplotGrob(box)
 		pb = gb$layout[gb$layout$name == "panel", , drop = FALSE]
-		gb$heights[pb$t] = grid::unit(2, "null")
+		gb$heights[pb$t] = grid::unit(EDI_INFERENCE_SUITE_BOX_PANEL_HEIGHT_IN, "in")
 		rbind(gf, gb, size = "first")
 	}
 	attr(g, "edi_n_rows") = as.integer(n_rows)
 	attr(g, "edi_max_label_chars") = as.integer(max_label_chars)
+	# Every row of `g` is now an absolute unit (inches, or `ggplot2`'s own
+	# fixed-size title/axis/margin rows) -- none left as `"null"`, so `g`'s
+	# true total height can be measured directly instead of estimated by a
+	# separate formula (`run_all_inference_plot_height_in()` reads this back).
+	attr(g, "edi_height_in") = as.numeric(grid::convertHeight(sum(g$heights), "in"))
 	g
 }
 
@@ -2168,29 +2227,23 @@ run_all_inference_plot_max_label_chars = function(p) {
 	as.integer(attr(p, "edi_max_label_chars") %||% 0L)
 }
 
-#' Page height (inches) for one CI forest plot with `n_rows` CI rows --
-#' shared by the PDF writer and the HTML embed so the two stay in step.
-#' Per-row height shrunk (was `0.35 * ... + 1.5`) per user request,
-#' 2026-08-21 ("reduce the vertical space between the ci lines as much as
-#' possible"); the intercept covers the forest's title and x-axis plus the
-#' separate "Estimates" box-and-whisker subplot stacked underneath it
-#' (`run_all_inference_stack_forest_and_box()`: its own title, panel, and
-#' x-axis, ~1.8in). No lower floor beyond that intercept (removed the
-#' earlier `max(6, ...)`, per user request, 2026-08-22): a floor forced
-#' every small-row-count estimand's page to the same 6in regardless of how
-#' few rows it actually had, stretching *that* estimand's row-to-row
-#' spacing out relative to a large estimand's tightly-packed page -- since
-#' the forest panel's own height is otherwise directly proportional to
-#' `n_rows` here, dropping the floor keeps vertical spacing between CI rows
-#' uniform across every estimand's plot, PDF page heights differing is the
-#' explicit tradeoff accepted for that. Capped at 48in to stay under
-#' `ggsave()`-style size sanity limits even for a single very-large
-#' estimand.
+#' True page height (inches) of one `run_all_inference_plot_ci_forest()`
+#' grob -- its `edi_height_in` attribute, measured directly by
+#' `run_all_inference_stack_forest_and_box()` via `grid::convertHeight()`
+#' rather than estimated by a separate formula (an earlier design's
+#' `"null"`-unit panel heights made the actual rendered height a moving
+#' target that a formula could only approximate; every row is an absolute
+#' unit now, so the true height is knowable exactly -- per user request,
+#' 2026-08-22/23, "uniform vertical distances"/"the ci vertical space
+#' should be the same for all images in the html"). Shared by the PDF
+#' writer and the HTML embed so the two stay in step. Capped at 48in to
+#' stay under `ggsave()`-style size sanity limits even for a single
+#' very-large estimand.
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_ci_forest_height_in = function(n_rows) {
-	min(48, 0.20 * n_rows + 2.6)
+run_all_inference_plot_height_in = function(p) {
+	min(48, as.numeric(attr(p, "edi_height_in") %||% 6))
 }
 
 #' Saves `run_all_inference()`'s CI forest plots to one timestamped
@@ -2202,7 +2255,7 @@ run_all_inference_ci_forest_height_in = function(n_rows) {
 #' across estimands, unlike the old faceted design -- the actual cause of
 #' the `ggplot2::ggsave()` "Dimensions exceed 50 inches" error the user
 #' hit, since a page's height only ever needs to fit one estimand's rows
-#' now; `run_all_inference_ci_forest_height_in()`), width from real content
+#' now; `run_all_inference_plot_height_in()`), width from real content
 #' (`run_all_inference_plot_max_label_chars()`'s longest on-page text
 #' label) rather than a flat constant (per the same request). The former
 #' second PDF (the standalone estimates number line) is gone -- per user
@@ -2220,8 +2273,14 @@ run_all_inference_ci_forest_height_in = function(n_rows) {
 #' @noRd
 run_all_inference_save_plots_pdf = function(plots, path) {
 	if (length(plots$ci_forest) > 0L) {
-		ci_rows = vapply(plots$ci_forest, run_all_inference_plot_n_rows, integer(1L))
-		height = run_all_inference_ci_forest_height_in(max(ci_rows))
+		# One shared page height for the whole (multi-page) file -- the
+		# largest true height among this file's estimands (see
+		# `run_all_inference_plot_height_in()`'s own docs); a page for a
+		# shorter estimand just leaves blank space below its own content
+		# (absolute-unit panels never stretch to fill extra canvas), rather
+		# than distorting that estimand's row spacing to fill the shared
+		# page.
+		height = max(vapply(plots$ci_forest, run_all_inference_plot_height_in, numeric(1L)))
 		max_chars = max(vapply(plots$ci_forest, run_all_inference_plot_max_label_chars, integer(1L)))
 		width = min(14, max(6, 3 + 0.09 * max_chars))
 		grDevices::pdf(path, width = width, height = height, onefile = TRUE)
@@ -2650,6 +2709,15 @@ run_all_inference_build_display_table = function(results_table) {
 		status             = tbl$status,
 		check.names = FALSE, stringsAsFactors = FALSE
 	)
+	# `pval method (if different)` only earns a column at all when at least
+	# one row actually has something to show there -- per user request,
+	# 2026-08-23: a column that's blank on every single row (the common
+	# case: `pval_method` almost always matches `ci_method`) is dead weight
+	# on both the text and HTML tables, which share this `display` (that's
+	# the whole point of building it once, here).
+	if (!any(nzchar(display[["pval method (if different)"]]))) {
+		display[["pval method (if different)"]] = NULL
+	}
 
 	list(tbl = tbl, display = display, cov_key = cov$key)
 }

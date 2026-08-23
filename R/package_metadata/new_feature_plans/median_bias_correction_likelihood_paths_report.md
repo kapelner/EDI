@@ -275,8 +275,8 @@ correction alone does not automatically provide.
 | `InferenceSurvivalKKStratCoxOneLik` | `fast_stratified_coxph_regression_cpp` | **Difficult** | Same with stratification. |
 | `InferenceSurvivalWeibullRegr` | `fast_weibull_regression_cpp` | **Borderline** | Smooth parametric survival model, but substantially more bespoke than Gaussian and basic GLMs. |
 | `InferenceSurvivalDepCensTransformRegr` | `fast_dep_cens_transform_optim_cpp` | **Difficult** | Coupled event/censoring structure is too custom. |
-| `InferenceSurvivalKKWeibullFrailtyOneLik` | `fast_weibull_frailty_cpp` | **Difficult** | Frailty integration and variance terms are too bespoke. |
-| `InferenceSurvivalKKClaytonCopulaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | **Difficult** | Copula dependence plus survival margins is too specialized. |
+| `InferenceSurvivalKKWeibullFrailtyNormalOneLik` | `fast_weibull_frailty_cpp` | **Difficult** | Frailty integration and variance terms are too bespoke. |
+| `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | **Difficult** | Copula dependence plus survival margins is too specialized. |
 
 ## Easy Tier
 

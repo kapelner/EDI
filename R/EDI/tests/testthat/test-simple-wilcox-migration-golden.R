@@ -63,7 +63,7 @@ test_that("migrated simple Wilcoxon exposes retained APIs only", {
 			"likelihood_tests",
 			"parametric_likelihood_bootstrap"
 		)),
-		"get_supported_testing_types"
+		c("get_supported_testing_types", "set_testing_type")
 	)
 
 	expect_true(all(retained_methods %in% methods))
@@ -106,7 +106,7 @@ test_that("migrated KK Wilcoxon exposes retained APIs only", {
 			"likelihood_tests",
 			"parametric_likelihood_bootstrap"
 		)),
-		"get_supported_testing_types"
+		c("get_supported_testing_types", "set_testing_type")
 	)
 
 	expect_true(all(retained_methods %in% methods))

@@ -870,8 +870,8 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		"InferenceCountPoissonKKGEE",
 		"InferenceCountKKGLMM",
 		"InferenceContinMultGLS",
-		"InferenceSurvivalKKClaytonCopulaOneLik",
-		"InferenceAbstractKKWeibullFrailtyOneLik",
+		"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik",
+		"InferenceAbstractKKWeibullFrailtyNormalOneLik",
 		"InferenceIncidExactZhang",
 		"InferenceIncidExactZhangAbstract",
 		"InferenceOrdinalPairedSignTest",
@@ -896,9 +896,9 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	# Per-operation slow skips. These are class+method only; no design,
 	# dataset, formula, or response-specific slow gates.
 	skip_rand_slow            = is_exact_inference_class(c("InferenceContinKKGLMM"))
-	skip_rand_ci_slow         = is_exact_inference_class(c("InferenceSurvivalWeibullRegr", "InferenceSurvivalKKClaytonCopulaOneLik", "InferenceSurvivalKKWeibullFrailtyOneLik", "InferenceSurvivalKKWeibullMarginal", "InferencePropQuantileRegr", "InferencePropKKGEE", "InferencePropBetaRegr"))  # PropBetaRegr rand CI avg 32.3s / p80 43.6s / max 2035.9s at n=334; SurvivalKKWeibullMarginal rand CI avg 32.2s
-	skip_score_ci_slow        = is_exact_inference_class(c("InferenceSurvivalKKWeibullFrailtyOneLik"))  # score CI avg 50.1s / max 324.8s at n=13
-	skip_lik_ratio_ci_slow    = is_exact_inference_class(c("InferenceSurvivalKKClaytonCopulaOneLik", "InferenceSurvivalDepCensTransformRegr"))  # lik-ratio CI avg 39s / max 234s at n=6; DepCensTransformRegr max 9546.6s
+	skip_rand_ci_slow         = is_exact_inference_class(c("InferenceSurvivalWeibullRegr", "InferenceSurvivalKKWeibullFrailtyLoggammaOneLik", "InferenceSurvivalKKWeibullFrailtyNormalOneLik", "InferenceSurvivalKKWeibullMarginal", "InferencePropQuantileRegr", "InferencePropKKGEE", "InferencePropBetaRegr"))  # PropBetaRegr rand CI avg 32.3s / p80 43.6s / max 2035.9s at n=334; SurvivalKKWeibullMarginal rand CI avg 32.2s
+	skip_score_ci_slow        = is_exact_inference_class(c("InferenceSurvivalKKWeibullFrailtyNormalOneLik"))  # score CI avg 50.1s / max 324.8s at n=13
+	skip_lik_ratio_ci_slow    = is_exact_inference_class(c("InferenceSurvivalKKWeibullFrailtyLoggammaOneLik", "InferenceSurvivalDepCensTransformRegr"))  # lik-ratio CI avg 39s / max 234s at n=6; DepCensTransformRegr max 9546.6s
 	skip_bbt_pval_slow        = is_exact_inference_class(c("InferenceIncidKKCondLogitGLMMOneLik"))  # Bayesian bootstrap pval avg 32.4s / p80 40.6s / max 68.4s at n=32
 	skip_bbt_pval_symmetric_slow = is_exact_inference_class(c("InferenceIncidKKCondLogitGLMMOneLik"))  # Bayesian bootstrap symmetric pval avg 30.6s / max 54.9s at n=18
 	skip_bbt_pval_wald_slow   = is_exact_inference_class(c("InferenceIncidKKCondLogitGLMMOneLik"))  # Bayesian bootstrap Wald pval avg 39.0s / p80 58.4s / max 58.6s
@@ -912,8 +912,8 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	skip_boot_pval_stud_slow  = is_exact_inference_class(c("InferenceAllSimpleMeanDiff", "InferenceIncidExactFisher", "InferenceSurvivalGehanWilcox", "InferenceOrdinalKKGEE"))  # SimpleMeanDiff bootstrap studentized pval avg 178.8s / max 2001.5s at n=12; IncidExactFisher avg 30.9s / max 50.8s; GehanWilcox avg 73.6s; OrdinalKKGEE avg 34.6s
 	skip_boot_pval_symmetric_slow = is_exact_inference_class(c("InferenceIncidKKGCompRiskRatio"))  # bootstrap symmetric pval max 10456.5s
 	skip_boot_ci_slow         = FALSE
-	skip_jack_slow            = is_exact_inference_class(c("InferenceSurvivalKKClaytonCopulaOneLik", "InferenceContinKKGLMM"))  # ClaytonCopula frailty refits; ContinKKGLMM jackknife estimate avg 54s / max 102s
-	skip_pboot_ci_slow        = is_exact_inference_class(c("InferenceSurvivalKKClaytonCopulaOneLik"))
+	skip_jack_slow            = is_exact_inference_class(c("InferenceSurvivalKKWeibullFrailtyLoggammaOneLik", "InferenceContinKKGLMM"))  # WeibullFrailtyLoggamma frailty refits; ContinKKGLMM jackknife estimate avg 54s / max 102s
+	skip_pboot_ci_slow        = is_exact_inference_class(c("InferenceSurvivalKKWeibullFrailtyLoggammaOneLik"))
 	skip_lik_ratio_bootstrap_pval_slow = is_exact_inference_class(c("InferenceSurvivalStratCoxPHRegr"))  # LR param bootstrap pval avg 73.6s / max 76.4s
 	skip_param_bootstrap_estimate_slow = is_exact_inference_class(c("InferenceSurvivalStratCoxPHRegr"))  # param bootstrap estimate avg 73.0s / max 77.5s
 	skip_param_bootstrap_pval_slow = is_exact_inference_class(c("InferenceSurvivalStratCoxPHRegr"))  # param bootstrap pval avg 80.2s / max 183.9s
@@ -926,7 +926,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	skip_brt_ci_smoothed_slow   = is_exact_inference_class(c("InferenceAllSimpleWilcox", "InferencePropKKQuantileRegrOneLik"))  # smoothed CI avg 94s / 32s
 	skip_brt_ci_typed_slow      = is_exact_inference_class(c("InferencePropKKQuantileRegrOneLik"))  # studentized CI avg 34s
 	skip_m_out_of_n_slow = is_exact_inference_class(c(
-		"InferenceSurvivalKKClaytonCopulaOneLik",  # m-out-of-n CI avg 196.1s / p80 408.5s / max 634.0s at n=137
+		"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik",  # m-out-of-n CI avg 196.1s / p80 408.5s / max 634.0s at n=137
 		"InferencePropZeroOneInflatedBetaRegr",
 		"InferenceSurvivalWeibullRegr",
 		"InferenceSurvivalStratCoxPHRegr",
@@ -943,7 +943,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		"InferencePropKKGEE"
 	))
 	skip_subsampling_slow = is_exact_inference_class(c(
-		"InferenceSurvivalKKClaytonCopulaOneLik",  # subsampling CI avg 183.7s / p80 366.7s / max 718.8s at n=137
+		"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik",  # subsampling CI avg 183.7s / p80 366.7s / max 718.8s at n=137
 		"InferenceCountHurdleNegBin",
 		"InferenceCountPoissonKKGEE"
 	))
@@ -1001,7 +1001,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$should_use_design_randomization_for_incidence(), error = function(e) FALSE))
 	skip_rand      = is(seq_des_inf, "InferenceIncidExactZhang") || is(seq_des_inf, "InferenceIncidExactZhangAbstract") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferenceOrdinalPairedSignTest") || is(seq_des_inf, "InferenceOrdinalKKCondAdjCatLogitRegr") || is(seq_des_inf, "InferenceOrdinalGCompMeanDiff") || is(seq_des_inf, "InferenceOrdinalGCompMeanDiff") || is(seq_des_inf, "InferenceOrdinalCloglogRegr") || is(seq_des_inf, "InferenceOrdinalOrderedProbitRegr") || is(seq_des_inf, "InferenceOrdinalOrderedProbitRegr") || is(seq_des_inf, "InferenceOrdinalCauchitRegr") || is(seq_des_inf, "InferenceOrdinalCauchitRegr") || is(seq_des_inf, "InferenceOrdinalKKCondAdjCatLogitRegr")
 	skip_mle_pval  = FALSE
-	skip_rand_pval = is(seq_des_inf, "InferenceContinMultGLS") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferenceSurvivalKKClaytonCopulaOneLik")
+	skip_rand_pval = is(seq_des_inf, "InferenceContinMultGLS") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferenceSurvivalKKWeibullFrailtyLoggammaOneLik")
 	skip_regular_rand_pval = skip_rand_pval || !supports_incidence_rand_pval
 	skip_custom_rand_pval = skip_regular_rand_pval || response_type == "incidence"
 	skip_ci_rand   = is_any_inference_class(c(
@@ -1022,7 +1022,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		"InferenceCountKKHurdlePoissonOneLik"
 	)) || response_type == "count" ||
 		(response_type != "continuous" && is(seq_des_inf, "InferenceAllSimpleMeanDiff"))
-	skip_ci_rand_custom = is_exact_inference_class(c("InferenceContinKKRobustRegrOneLik", "InferenceSurvivalKKClaytonCopulaOneLik"))  # custom rand CI slow: robust avg 336.6s / max 1994.8s at n=6; Clayton avg 41.9s / max 1993.3s at n=53
+	skip_ci_rand_custom = is_exact_inference_class(c("InferenceContinKKRobustRegrOneLik", "InferenceSurvivalKKWeibullFrailtyLoggammaOneLik"))  # custom rand CI slow: robust avg 336.6s / max 1994.8s at n=6; Clayton avg 41.9s / max 1993.3s at n=53
 	supports_jackknife = is(seq_des_inf, "InferenceJackknife") ||
 		(
 			"compute_jackknife_wald_two_sided_pval" %in% names(seq_des_inf) &&
@@ -2104,8 +2104,8 @@ COVERAGE_MC_SPEC = list(
 	InferenceSurvivalDepCensTransformRegr = list(rt = "survival",  design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalDepCensTransformRegr), mc_n = 20000L),
 	InferenceSurvivalKKLWACoxPHOneLik    = list(rt = "survival",   design = quote(DesignFixedBinaryMatch),  gen = quote(InferenceSurvivalKKLWACoxPHOneLik),    mc_n = 3000L),
 	InferenceSurvivalKKStratCoxPHOneLik  = list(rt = "survival",   design = quote(DesignFixedBinaryMatch),  gen = quote(InferenceSurvivalKKStratCoxPHOneLik),  mc_n = 3000L),
-	InferenceSurvivalKKClaytonCopulaOneLik  = list(rt = "survival", design = quote(DesignFixedBinaryMatch), gen = quote(InferenceSurvivalKKClaytonCopulaOneLik),  mc_n = 3000L),
-	InferenceSurvivalKKWeibullFrailtyOneLik = list(rt = "survival", design = quote(DesignFixedBinaryMatch), gen = quote(InferenceSurvivalKKWeibullFrailtyOneLik), mc_n = 3000L),
+	InferenceSurvivalKKWeibullFrailtyLoggammaOneLik  = list(rt = "survival", design = quote(DesignFixedBinaryMatch), gen = quote(InferenceSurvivalKKWeibullFrailtyLoggammaOneLik),  mc_n = 3000L),
+	InferenceSurvivalKKWeibullFrailtyNormalOneLik = list(rt = "survival", design = quote(DesignFixedBinaryMatch), gen = quote(InferenceSurvivalKKWeibullFrailtyNormalOneLik), mc_n = 3000L),
 	InferenceSurvivalKKWeibullMarginal   = list(rt = "survival",   design = quote(DesignFixedBinaryMatch), gen = quote(InferenceSurvivalKKWeibullMarginal),  mc_n = 3000L)
 )
 
@@ -2532,10 +2532,10 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 			}
 			for (kk_surv_class in Filter(function(class_gen) should_run_inference_label(class_gen$classname), list(
 				InferenceSurvivalKKWeibullMarginal,
-				InferenceSurvivalKKClaytonCopulaOneLik,
+				InferenceSurvivalKKWeibullFrailtyLoggammaOneLik,
 				InferenceSurvivalKKLWACoxPHOneLik,
 				InferenceSurvivalKKStratCoxPHOneLik,
-				InferenceSurvivalKKWeibullFrailtyOneLik
+				InferenceSurvivalKKWeibullFrailtyNormalOneLik
 			))){
 				class_name = kk_surv_class$classname
 				inference_banner(class_name)

@@ -7,7 +7,9 @@
 > (TODO-7 there) and should reuse whatever answer that plan records. (Global ordering:
 > see `_master.md`, Phase 6.)
 
-Date: 2026-08-22
+Date: 2026-08-22 (§I.7 hardware-detection/fallback spec and TODO-9..12 added 2026-08-23; **amended the same day, user decision: no Python / `reticulate` anywhere — every backend is reached from R directly (REST) or via vendored open-source C++**; earlier mentions of `reticulate`/`dimod`/`neal` in I.1/I.4/I.5/I.6 are superseded by §I.7 and carry an "amended" note)
+
+Release line: **v1.1.0** — `../future_release_plans/release_v1_1_0.md → TODO-9b` (Part I items TODO-2..6 and TODO-9..12; gated on TODO-1, Phase 0 step 9b there). TODOs are ticked here.
 
 ## Scope
 
@@ -150,8 +152,10 @@ Concrete integration (what the code change actually is — small):
 - The *sampling* is delegated to a user-supplied R function `qubo_sampler = function(Q_pen)
   -> integer matrix of candidate w's` (same shape contract as the annealing kernel's
   per-chain bests). EDI never depends on a quantum SDK; the vignette shows the
-  `reticulate` → `dimod`/`dwave-system` (and `neal` / `dwave-samplers` simulated
-  annealing as the no-hardware stand-in) wiring. This mirrors how `roi_solver = "gurobi"`
+  ~~`reticulate` → `dimod`/`dwave-system` (and `neal` / `dwave-samplers` simulated
+  annealing as the no-hardware stand-in)~~ — *amended 2026-08-23:* a pure-R REST
+  client for D-Wave's Solver API plus vendored C++ clique embedding; no Python
+  (§I.7) — wiring. This mirrors how `roi_solver = "gurobi"`
   is documented but not imported (`design_fixed_optimal_blocks.R:46-104`).
 - Post-process exactly as the annealing path does: recompute each returned candidate's
   objective from scratch, drop infeasible (`Σ w ≠ n_T`) samples — or repair them by the
@@ -195,8 +199,12 @@ Concrete integration (what the code change actually is — small):
   subjects, depth-1–2 QAOA, no expectation of beating classical SA. Neutral-atom
   analog devices (**QuEra Aquila**, 256 atoms, via Braket; **Pasqal**) natively solve
   unit-disk maximum-independent-set, not dense QUBO, and are not suitable.
-- *Software on the EDI side:* `reticulate` → Python (`dwave-ocean-sdk`, optionally
-  `qiskit-optimization` / `amazon-braket-sdk`); nothing quantum in `Imports`.
+- *Software on the EDI side (amended 2026-08-23):* **no Python.** An R-native client
+  for the D-Wave Solver API (REST; `httr2` + `jsonlite`, both Suggests), an R
+  serializer for dimod's documented BQM/CQM file formats (hybrid-solver uploads), and
+  the clique-embedding routine from `minorminer` (`busclique`, Apache-2.0 C++)
+  vendored into `src/` with attribution in `inst/COPYRIGHTS`. The Ocean SDK is used as
+  the *specification* of these three pieces, never imported. Details in §I.7.
 
 ### A2. Greedy D-/A-optimal and pair-switch *distributions* of local optima
 
@@ -319,16 +327,23 @@ wanted here for the reproducibility reason above.
 
 ## I.4 Suggested integration design (Part I items)
 
-- **No hard dependency.** Nothing quantum enters `Imports` or `Suggests` beyond
-  `reticulate` (Suggests) for the vignette. The hook is a plain R function argument.
-- **Python side.** `python/src/edi_kernels` (pybind11 bindings in `python/cpp/`) does
-  not need a quantum binding; if a `qubo_build_quadratic` helper is worth exposing there
-  it is a ~20-line pure-numpy function, not a kernel.
+- **No hard dependency.** Nothing quantum enters `Imports`. `Suggests` gains only
+  `httr2` (HTTP) — `jsonlite` is already there — and ~~`reticulate`~~ nothing Python
+  (amended 2026-08-23). The hook is a plain R function argument.
+- **Python side (amended 2026-08-23): none.** `python/src/edi_kernels` is untouched and
+  no Python runtime is detected, initialised, or required; the open-source vendor
+  SDKs (Ocean, openjij, Braket/Azure/Qiskit clients) are *not* used — their REST
+  protocols and file formats are reimplemented in R, and the one non-trivial
+  algorithmic piece (dense-clique minor embedding) is vendored as C++. If a
+  `qubo_build_quadratic` helper is ever wanted on the Python side it is ~20 lines of
+  numpy, not a kernel.
 - **Certificates.** `"global"` (MILP) > `"annealing_converged"` > `"qubo_sampled"`. The
   annealer path never claims optimality. Store sampler metadata (backend name, number
   of reads, chain-break fraction if reported) in the result list for provenance.
-- **Tests without hardware.** CI uses a deterministic classical sampler (`neal` via
-  `reticulate` if available, else a trivial in-R exhaustive sampler at `n ≤ 12`) so the
+- **Tests without hardware.** CI uses a deterministic classical sampler (the package's
+  own `annealing_design_search_cpp()` under a fixed seed as the second opinion, plus a
+  trivial in-R exhaustive sampler at `n ≤ 12`; ~~`neal` via `reticulate`~~ amended
+  2026-08-23) and HTTP-mocked Solver-API fixtures (§I.7.4) so the
   QUBO construction, penalty calibration, feasibility repair, and certificate plumbing
   are locked; the hardware path is vignette-only.
 - **Dispatch.** Opt-in only. Same posture as `gpu_optimizations.md`: the CPU path is the
@@ -338,7 +353,7 @@ wanted here for the reproducibility reason above.
 
 Compare, at `p = 5` with `mahal_dist` (`"quadratic"`) and the A-optimal `"ratio"`:
 
-| `n` | GLPK MILP (`ompr`) | C++ SA (`annealing_design_search_cpp`) | classical QUBO sampler (`neal` / SBM) | D-Wave hybrid BQM | D-Wave QPU direct |
+| `n` | GLPK MILP (`ompr`) | C++ SA (`annealing_design_search_cpp`) | classical Ising-service sampler (SQBM+ / Fujitsu DA via REST; ~~`neal`~~) | D-Wave hybrid BQM | D-Wave QPU direct |
 |---:|---|---|---|---|---|
 | 15 | exact, 0.4 s | — | — | — | — |
 | 20 | exact, 3.5 s | objective gap vs. exact | gap | gap, latency, $ | gap, embedding ok |
@@ -357,17 +372,90 @@ backend must beat the C++ SA on objective at *equal wall-clock* on at least the
 
 | item | what runs | exact hardware | access path | binding limit |
 |---|---|---|---|---|
-| A1 `DesignFixedOptimal` QUBO, direct QPU | one allocation, heuristic certificate | D-Wave Advantage (Pegasus, ~5k qubits) / Advantage2 (Zephyr, ~4.4k) | D-Wave Leap only (`dwave-ocean-sdk` via `reticulate`) | dense clique embedding ≈ 177 variables (Advantage) → `n ≲ 170`; coupler precision + penalty dynamic range |
+| A1 `DesignFixedOptimal` QUBO, direct QPU | one allocation, heuristic certificate | D-Wave Advantage (Pegasus, ~5k qubits) / Advantage2 (Zephyr, ~4.4k) | D-Wave Leap Solver API (REST) from R; clique embedding via vendored `minorminer` `busclique` C++ — no Python (amended 2026-08-23) | dense clique embedding ≈ 177 variables (Advantage) → `n ≲ 170`; coupler precision + penalty dynamic range |
 | A1, larger `n` | same | Leap Hybrid BQM / CQM solvers (classical decomposition + QPU sub-calls) | D-Wave Leap | ~10⁶ variables; benchmark as classical-with-QPU-assist |
-| A1, gate-model QAOA (research only) | same | Quantinuum H2 (56) / Helios (98), IonQ Forte/Tempo (all-to-all ions); IBM Heron, Rigetti Ankaa-3 (need SWAP routing) | Azure Quantum, Amazon Braket, Qiskit Runtime | `n ≲ 50`, depth 1–2; no expected win |
+| A1, gate-model QAOA (research only — **no R adapter planned**; no R circuit builder exists, and the item has no expected win) | same | Quantinuum H2 (56) / Helios (98), IonQ Forte/Tempo (all-to-all ions); IBM Heron, Rigetti Ankaa-3 (need SWAP routing) | Azure Quantum, Amazon Braket, Qiskit Runtime | `n ≲ 50`, depth 1–2; no expected win |
 | A2 annealer-sampled allocation distributions | a *distribution* of allocations | D-Wave Advantage / Advantage2 direct QPU with `num_reads`, anneal-schedule and reverse-anneal control | D-Wave Leap | same clique limit; `β_eff` must be estimated; fair-sampling bias open |
 | A3 `DesignFixedOptimalBlocks` `k ≥ 3` | one blocking | Leap Hybrid CQM solver (native one-hot / cardinality constraints); direct QPU only for `n ≲ 20` | D-Wave Leap | `n·(n/k)` densely coupled binaries |
-| I.2 quantum-inspired classical solvers | same QUBOs as A1/A3 | any CPU/GPU (`neal`, `dwave-samplers`, `openjij`, parallel tempering); Toshiba SQBM+ (GPU software); Fujitsu Digital Annealer, NEC Vector Annealing, Hitachi CMOS annealing (cloud) | pip / AWS Marketplace / vendor cloud | none that binds at EDI sizes |
+| I.2 quantum-inspired classical solvers | same QUBOs as A1/A3 | any CPU: EDI's own C++ SA (`annealing_design_search_cpp`, and a parallel-tempering/SBM kernel if TODO-5 motivates one) — ~~`neal`/`openjij`~~ not used (amended 2026-08-23); Toshiba SQBM+ (GPU software), Fujitsu Digital Annealer, NEC Vector Annealing, Hitachi CMOS annealing (cloud) | in-package / AWS Marketplace / vendor cloud, all via REST from R | none that binds at EDI sizes |
 | I.3 QRNG | randomness source | ID Quantique Quantis, Quantinuum Quantum Origin, ANU QRNG API | local device / cloud API | n/a — rejected for reproducibility |
 
 Not applicable to any Part I item: neutral-atom analog machines (QuEra Aquila, Pasqal)
 — native problem class is unit-disk MIS, not dense QUBO; photonic boson samplers;
 research-only superconducting devices without cloud access (e.g. Google Willow).
+
+## I.7 Hardware by implementable proposal — detection and classical fallback, pure R (added 2026-08-23, user request; amended the same day: no Python)
+
+I.6 says which hardware each Part I item *uses*; this section fixes, per proposal, how the package **detects** that hardware/backend at run time and what it **falls back to** when it is absent, unreachable, too small, or too slow — and, per the 2026-08-23 decision, does so **without Python or `reticulate`**: every backend is reached from R directly over its documented REST API, and the one algorithmic component that has no R implementation (dense-clique minor embedding for the direct QPU) is vendored from Apache-2.0 C++ into `src/`. Nothing here changes the posture in I.4: the classical path (`ompr`/ROI MILP for `n ≤ linearization_max_n`, else `annealing_design_search_cpp()`) stays the default, and no external backend is ever selected silently.
+
+### I.7.0 What "directly from R" means, component by component
+
+| component | open-source reference (license) | how EDI uses it | size / effort |
+|---|---|---|---|
+| D-Wave Solver API (SAPI) client — list solvers, upload/submit problems, poll/cancel, answer decoding | `dwave-cloud-client` (Apache-2.0) as the *specification*; SAPI REST is vendor-documented | **reimplemented in R** with `httr2` + `jsonlite` (Suggests): `GET {endpoint}/solvers/remote/`, `POST {endpoint}/problems/`, `GET {endpoint}/problems/{id}/`, multipart upload for hybrid problems; token from `DWAVE_API_TOKEN` or the Ocean config file (`~/.config/dwave/dwave.conf`, INI — parsed with base R, so users who already ran `dwave config create` work unchanged) | a few hundred lines of R |
+| dimod BQM / CQM file formats (what the Leap **hybrid** solvers accept as upload) | `dimod` `BinaryQuadraticModel.to_file()` / `ConstrainedQuadraticModel.to_file()` (Apache-2.0), format documented in dimod | **R serializer** writing the documented header + binary blocks (`raw` vectors); round-trip fixtures checked in (§I.7.4) | ~200 lines of R; CQM only if A3 proceeds |
+| dense-clique minor embedding on Pegasus / Zephyr working graphs (what the **direct QPU** needs; hybrid solvers do not) | `minorminer` `busclique` (Apache-2.0, C++ header-heavy) | **vendored C++** under `src/` in its own unity-build group, attribution in `inst/COPYRIGHTS` and `Authors@R` (`cph` D-Wave Systems Inc.); compiled once like every other kernel; general `find_embedding` is *not* vendored (dense `Q` is always a clique) | a few thousand lines of C++; the only non-trivial piece |
+| chain strength + unembedding | `dwave-system` `uniform_torque_compensation`, majority-vote unembed (Apache-2.0) | **reimplemented** (a formula and a vote) in R/C++ | trivial |
+| Leap hybrid BQM / CQM solvers | SAPI-documented problem types | same R client; no embedding | covered above |
+| Cloud Ising services: Toshiba SQBM+, Fujitsu Digital Annealer, NEC Vector Annealing | proprietary services with vendor-documented REST APIs (their Python clients are **not** open source and are not needed) | R REST adapters (`httr2`), endpoint + API key from env vars | ~100 lines each; implement only those a user actually asks for |
+| local classical sampler | — | EDI's own `annealing_design_search_cpp()` (terminal fallback); a parallel-tempering / SBM kernel in EDI C++ if TODO-5 motivates it. `neal`/`openjij` are not used. | already exists |
+| gate-model QAOA (Braket / Azure / Qiskit) | open clients exist, but no R circuit builder | **no adapter** — dropped from the implementable set; Part I keeps it as a research note only | — |
+
+Licensing: EDI is GPL-3; Apache-2.0 code may be included in a GPL-3 work (one-way compatible) with the Apache NOTICE/attribution preserved — same mechanism as the package's existing `inst/COPYRIGHTS`.
+
+### I.7.1 Proposal → hardware → detection → fallback
+
+| (I) proposal | hardware actually used (from I.6) | detected how (offline-first; `probe = TRUE` adds one HTTPS call) | fallback when absent / unusable |
+|---|---|---|---|
+| **A1 direct QPU** — one allocation, `n ≲ 170` dense | D-Wave Advantage / Advantage2 via Leap SAPI; embedding computed locally (vendored `busclique`) | (1) `requireNamespace("httr2")`; (2) credentials *configured*: `DWAVE_API_TOKEN` env var **or** `dwave.conf` present (also honours `DWAVE_CONFIG_FILE`, `DWAVE_API_ENDPOINT`, `DWAVE_API_SOLVER`) — presence only, no call; (3) `probe = TRUE`: `GET /solvers/remote/` → QPU solvers with `properties` (topology type/shape, active qubits, couplers); EDI then runs `busclique` on that working graph to get `largest_clique_size` — the binding `n` limit for dense `Q` (cached per solver for the session) | `n > largest_clique_size`, embedding failure, or penalty dynamic range exceeded → **A1 hybrid** if configured, else **cloud Ising service** if configured, else **classical SA** (`annealing_design_search_cpp`, certificate `"annealing_converged"`). Not configured → same chain skipping the QPU. Always a `warning()` naming requested backend, backend used, reason; never silent. |
+| **A1 hybrid** — larger `n` | Leap Hybrid BQM (`hybrid_binary_quadratic_model_version*`) | same (1)–(2); `probe = TRUE`: hybrid solvers listed with `maximum_number_of_variables`; upload is the R BQM serializer | unavailable → cloud Ising → classical SA; also subject to the time/cost guard. |
+| **A1 gate-model QAOA** | — | not detected | **not implemented** (no R adapter); naming it errors with a pointer to this section. |
+| **A2** annealer-sampled allocation *distribution* | D-Wave direct QPU with `num_reads`, schedule, reverse-anneal control | as A1 direct QPU plus a check that the solver's `properties` expose `annealing_time_range` / reverse-anneal support | **no** classical equivalent yields the same distribution; if unavailable the design class must **refuse** (error, not fallback). (A2 is not scheduled; the rule is fixed here.) |
+| **A3** `DesignFixedOptimalBlocks`, `k ≥ 3` | Leap Hybrid CQM (`hybrid_constrained_quadratic_model_version*`); direct QPU only `n ≲ 20` | as A1 hybrid; `probe = TRUE` confirms a CQM solver is listed; upload is the R CQM serializer | → classical: existing blocks solver (MILP small `n`, SA otherwise), warning. |
+| **I.2** quantum-inspired classical / Ising services | EDI C++ SA (local, always present); SQBM+ / Fujitsu DA / NEC VA (cloud, REST) | local: always available, no detection; cloud: `SQBM_ENDPOINT`+`SQBM_API_KEY`, `FUJITSU_DA_ENDPOINT`+`FUJITSU_DA_API_KEY`, `NEC_VA_ENDPOINT`+`NEC_VA_API_KEY` — configured-only unless probed (`GET` status endpoint) | cloud missing → classical SA (warning). These are the fallback targets for everything above. |
+| **I.3** QRNG | IDQ Quantis, Quantinuum Quantum Origin, ANU API | not detected — rejected (reproducibility) | n/a |
+
+### I.7.2 Detection helper (spec)
+
+One exported helper, mirroring the style of the existing `roi_solver` wiring guides in `design_fixed_optimal.R`/`design_fixed_optimal_blocks.R`:
+
+```r
+detect_qubo_backends(probe = FALSE, cache = TRUE, timeout = 10)
+#> data.frame: backend, kind, installed, configured, reachable, capability, reason, detected_via
+```
+
+- `backend` ∈ `{"dwave_qpu", "dwave_hybrid_bqm", "dwave_hybrid_cqm", "sqbm", "fujitsu_da", "nec_va", "classical_sa"}`; `kind` ∈ `{"qpu", "hybrid", "cloud_classical", "local_classical"}`. (No Python-backed rows; no gate-model rows.)
+- `installed`: `requireNamespace("httr2", quietly = TRUE)` for every remote backend (`jsonlite` is already a Suggests); `TRUE` unconditionally for `classical_sa`. The vendored embedding code is compiled into `EDI.so`, so `dwave_qpu` has no extra install condition.
+- `configured`: credential/config presence by env var or config-file existence only (table above; the D-Wave INI is parsed with base R). No network.
+- `reachable` / `capability`: `NA` unless `probe = TRUE`, in which case exactly one metadata request per *configured* remote backend with `timeout` seconds (`GET /solvers/remote/` for D-Wave, the status endpoint for the Ising services). `capability` carries the number the dispatcher needs: `largest_clique_size` (QPU — computed locally by `busclique` on the returned working graph), `maximum_number_of_variables` (hybrid / Ising services).
+- `reason`: human-readable — `"httr2 not installed"`, `"DWAVE_API_TOKEN unset and no dwave.conf"`, `"solver offline"`, `"n = 240 > largest_clique_size = 177"`, …
+- `cache = TRUE`: memoised per session (`options(EDI.qubo_backends_cache = …)`); probe results carry a timestamp and a 10-minute TTL. A `print()` method renders the table like `sessionInfo()` does for BLAS.
+- **Injectable for tests**: `options(EDI.qubo_backends_override = <data.frame>)` replaces detection wholesale so CI can assert every fallback branch with no network and no token; the HTTP layer is additionally mockable (§I.7.4). Precedent: the `EDI_*` env-var switches already used by the class registries.
+
+### I.7.3 Dispatch and fallback policy (spec)
+
+New argument on `optimal_solve_auto()` / `DesignFixedOptimal$solver_args` (and `DesignFixedOptimalBlocks` for A3):
+
+```r
+qubo_backend = c("none", "auto", "dwave_qpu", "dwave_hybrid", "sqbm", "fujitsu_da", "nec_va", "custom")
+```
+
+- **Precedence**: explicit argument > `getOption("EDI.qubo_backend")` > `Sys.getenv("EDI_QUBO_BACKEND")` > `"none"`.
+- **`"none"` (default)** — exactly today's behaviour (MILP → SA); no detection, no HTTP, no embedding code executed, results bit-for-bit identical to 1.0.0 (the release's additive rule).
+- **`"auto"`** (opt-in) — the first backend that is installed, configured, and capable for this `n`: `dwave_qpu` (if `n ≤ largest_clique_size`) → `dwave_hybrid` → cloud Ising services in the order configured → **classical SA**. Every hop emits one `warning()` (`"qubo_backend = 'auto': dwave_qpu not usable (n = 240 > largest_clique_size = 177); using dwave_hybrid"`).
+- **Named backend** — use it or fall back to classical SA **with a warning**; never substitute a *different* external backend for a named one (a user who asked for the QPU must not be billed for the hybrid solver). `"custom"` = the `qubo_sampler` R-function hook from A1 (user-supplied adapter, e.g. their own REST call; no detection).
+- **Guards** (each → next hop with a stated reason): size (`n` vs `capability`); embedding failure or chain-strength / coupler-precision range exceeded; `max_qpu_time_s` and `max_cost_usd` options (conservative defaults; refuse *before* submitting if the estimate exceeds them); per-request HTTP timeout and poll deadline; any adapter exception.
+- **Result provenance**: `certificate ∈ {"global", "annealing_converged", "qubo_sampled"}` plus `backend_requested`, `backend_used`, `fallback_reason` (`NA` if none), `solver_id`, `num_reads`, `chain_strength`, `chain_break_fraction`, `qpu_access_time`, `cost_estimate`. A fit that fell back to classical SA is labelled `"annealing_converged"` with `backend_used = "classical_sa"` — indistinguishable in *result* from a `qubo_backend = "none"` fit under the same seed, distinguishable in *provenance*.
+- **Non-goals**: `tune_EDI_for_this_machine()` never benchmarks or selects remote backends (cost, network, non-reproducibility) — at most it records `detect_qubo_backends()` output. Shares the backend-registry shape and the "CPU default, never auto-route" rule with `gpu_optimizations.md → TODO-7`; whichever lands first sets the convention.
+
+### I.7.4 Test plan for detection, serialization, embedding, and fallback (hardware-free)
+
+- `detect_qubo_backends()` unit tests: `httr2` absent (`testthat::local_mocked_bindings(requireNamespace = …)`), configured-by-env vs configured-by-INI vs unconfigured (`withr::local_envvar`, temp `HOME`), `probe = FALSE` leaves `reachable = NA`; `probe = TRUE` against **mocked HTTP** (`httptest2`/`webfakes`, Suggests) with checked-in SAPI response fixtures (solver list with a small synthetic Pegasus working graph; problem submit/poll/answer sequences, including an "offline" and a "timeout" fixture).
+- BQM/CQM serializer: byte-exact round-trip against fixture files generated once by dimod (fixtures checked in with the dimod version and a one-line provenance note; no Python in the test run).
+- Vendored `busclique`: clique embedding found on the synthetic Pegasus/Zephyr fixture graphs, `largest_clique_size` matches the value recorded from minorminer for those fixtures, chains are disjoint and cover every variable, majority-vote unembedding recovers planted solutions.
+- Dispatcher tests through `EDI.qubo_backends_override` and the HTTP mocks: every fallback row of I.7.1 exercised — warning text, `backend_used`, `fallback_reason`, and `w` equal to the `qubo_backend = "none"` result under the same seed when the last hop is classical SA; A2's refuse-don't-fallback rule; the named-backend-never-substitutes rule; the cost/time guards refusing before submission.
+- Integration tests (never in CI): D-Wave hybrid and QPU only under `DWAVE_API_TOKEN` **and** `EDI_RUN_PAID_BACKEND_TESTS=true`; Ising services likewise under their keys.
+- `n ≤ 12` exhaustive sampler (I.4) remains the deterministic stand-in for the QUBO-construction tests themselves.
 
 # Part II — What is not possible with current hardware (and how many qubits each needs)
 
@@ -739,8 +827,11 @@ outcome.
 - [ ] TODO-3: `solver = "qubo"` / `qubo_sampler` hook on `optimal_solve_auto()` and
   `DesignFixedOptimal`; certificate `"qubo_sampled"`; provenance fields; roxygen section
   mirroring the Gurobi/CPLEX install guide style in `design_fixed_optimal_blocks.R`.
-- [ ] TODO-4: `reticulate` vignette: `dimod` BQM construction, `neal` stand-in, D-Wave
-  `LeapHybridSampler` / `DWaveSampler` example; CI stays hardware-free.
+- [ ] TODO-4: vignette (amended 2026-08-23 — **R only, no `reticulate`**): QUBO
+  construction with `qubo_build_quadratic()`, `detect_qubo_backends()` output,
+  `qubo_backend = "none"` vs `"auto"` vs a named backend, the fallback warnings, and a
+  D-Wave hybrid + direct-QPU example run once with a token and checked in as static
+  output; CI stays hardware-free.
 - [ ] TODO-5: Run the benchmarking table above; record results in this file; decide
   whether a classical Ising-style kernel (parallel tempering / SBM) is the real
   follow-up.
@@ -750,6 +841,44 @@ outcome.
   class, Part I) and Tier C / II.1 / II.3 (Part II) — explicitly **not scheduled**;
   revisit A2 when a materially larger fully-connected annealer exists, and the Part II
   items against the qubit table in II.5.
+- [ ] TODO-9: **`detect_qubo_backends()`** (I.7.2; pure R): exported helper + backend
+  registry (id, kind, credential env vars / D-Wave INI config file, probe request,
+  capability field); offline-first, `probe = TRUE` opt-in with timeout, session cache
+  with TTL, `print()` method, `EDI.qubo_backends_override` injection for tests;
+  roxygen "Wiring up D-Wave Leap / SQBM+ / Fujitsu DA / NEC VA" guides in the style
+  of the Gurobi/CPLEX guides in `design_fixed_optimal.R`. `httr2` (+ `httptest2` or
+  `webfakes` for tests) added to Suggests. Depends on TODO-2/3; gated on TODO-1 =
+  (a) or (c).
+- [ ] TODO-10: **Dispatch + classical fallback policy** (I.7.3): `qubo_backend`
+  argument on `optimal_solve_auto()` / `DesignFixedOptimal` (and
+  `DesignFixedOptimalBlocks` for A3), precedence arg > option > env > `"none"`, the
+  `"auto"` chain (QPU → hybrid → cloud Ising → classical SA), named-backend-or-
+  classical rule, A2 refuse-don't-fallback rule, size / embedding / time / cost
+  guards, one `warning()` per hop, provenance fields. Default `"none"` must be
+  bit-for-bit today's MILP → SA behaviour (release additive rule).
+- [ ] TODO-11: **R-native backend adapters behind one internal interface**
+  `qubo_submit(backend, Q_pen, num_reads, ...) -> list(w_matrix, metadata)`
+  (I.7.0): **Stage 1 (no embedding needed):** R SAPI client (`httr2`/`jsonlite`) —
+  solver listing, problem submit/poll/cancel, answer decoding — and the R BQM
+  serializer for **Leap hybrid BQM**; REST adapters for the cloud Ising services a
+  user asks for (SQBM+ / Fujitsu DA / NEC VA), each ~100 lines. **Stage 2 (direct
+  QPU):** vendor `minorminer` `busclique` (Apache-2.0 C++) into `src/` in its own
+  unity-build group with `inst/COPYRIGHTS` + `Authors@R` `cph` attribution;
+  `largest_clique_size` on the live working graph; chain strength
+  (uniform-torque-compensation formula) and majority-vote unembedding; SAPI QPU
+  problem format (`qubo` on physical qubits/couplers). Stage 2 proceeds only after
+  Stage 1's TODO-5 numbers show the QPU column is worth the vendoring. The CQM
+  serializer is part of TODO-6 (A3). No gate-model adapter.
+- [ ] TODO-12: **Hardware-free tests** (I.7.4): detection unit tests (env/INI/absent
+  `httr2`); HTTP-mocked SAPI fixtures (solver list with synthetic Pegasus/Zephyr
+  working graphs, submit/poll/answer, offline, timeout); byte-exact BQM/CQM
+  serializer round-trips against checked-in dimod-generated fixtures (no Python at
+  test time); `busclique` embedding tests on the fixture graphs; dispatcher tests
+  through `EDI.qubo_backends_override` + mocks covering every fallback row of
+  I.7.1 (warning text, provenance, result-equality with `qubo_backend = "none"`
+  when the last hop is classical SA); paid integration tests only under
+  `DWAVE_API_TOKEN` / service keys **and** `EDI_RUN_PAID_BACKEND_TESTS=true`
+  (never CI).
 - [ ] TODO-8: Tier B / II.2 (QAE for randomization p-values, bisection CI inversion, and
   bootstrap quantiles; qubit budgets in II.5) — **not buildable now, but a standing design constraint**: any
   future refactor of the linear-statistic resampling kernels (mean difference,

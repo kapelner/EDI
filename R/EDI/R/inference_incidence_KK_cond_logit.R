@@ -526,45 +526,6 @@ InferenceIncidKKCondLogitOneLik = define_inference_class(
 	)
 )
 
-#' Conditional Logistic IVWC Inference (KK Designs, Binary Response)
-#'
-#' Inverse-variance-weighted combination (IVWC) of two independently fit
-#' conditional-likelihood pieces for KK matched-pair-plus-reservoir binary
-#' designs: matched pairs are analyzed with exact conditional logistic
-#' regression (\code{\link{conditional_logit_fit_matched_pairs}}, which
-#' conditions out the pair-specific nuisance intercept and estimates only the
-#' treatment log-odds-ratio \eqn{\beta_T} from discordant pairs, or the joint
-#' \code{clogit}-style likelihood when covariates are present), and reservoir
-#' subjects are analyzed with ordinary logistic regression
-#' (\code{\link{conditional_logit_fit_reservoir}}). If \eqn{\hat\beta_m,
-#' \hat\sigma^2_m} and \eqn{\hat\beta_r, \hat\sigma^2_r} are the matched-pair
-#' and reservoir estimates and their variances, the combined estimate is the
-#' variance-weighted average
-#' \deqn{\hat\beta_T = w^\star \hat\beta_m + (1-w^\star) \hat\beta_r, \quad
-#' w^\star = \frac{\hat\sigma^2_r}{\hat\sigma^2_r + \hat\sigma^2_m},}
-#' with combined variance \eqn{\hat\sigma^2_m \hat\sigma^2_r / (\hat\sigma^2_m
-#' + \hat\sigma^2_r)}. This is the classical fixed-effects inverse-variance
-#' meta-analysis pooling formula (see Cochrane Handbook / DerSimonian-Laird),
-#' applied here to combine the two conditionally-independent likelihood
-#' contributions of a KK design rather than to pool separate studies. When
-#' only one of the two components is estimable the combined estimate falls
-#' back to that component alone. Contrast this with
-#' \code{InferenceIncidKKCondLogitOneLik}, which instead fits a single joint
-#' likelihood over both pieces (see that class's documentation) --
-#' \code{likelihood_tier = "partial"} here reflects that the matched-pair
-#' piece is a genuine conditional (partial) likelihood, but the two-piece
-#' combination itself is a closed-form Wald/meta-analytic step, not a further
-#' likelihood evaluation.
-#'
-#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
-#'
-#' @seealso \code{\link[EDI:InferenceIncidKKCondLogitOneLik]{InferenceIncidKKCondLogitOneLik}}
-#'   for the one-likelihood alternative combining strategy.
-#' @references
-#' Fleiss, J.L., Levin, B., Paik, M.C. (2003). \emph{Statistical Methods for
-#' Rates and Proportions}, 3rd ed. Wiley. (conditional logistic regression for
-#' matched pairs)
-#' @export
 # Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
 # IVWC Estimators"): formerly a plain leaf on
 # `InferenceKKPassThroughCompoundNoParamBootstrap`; the KK compound layer now
@@ -701,6 +662,44 @@ IncidKKCondLogitIVWCSource = list(
 	)
 )
 
+#' Conditional Logistic IVWC Inference (KK Designs, Binary Response)
+#'
+#' Inverse-variance-weighted combination (IVWC) of two independently fit
+#' conditional-likelihood pieces for KK matched-pair-plus-reservoir binary
+#' designs: matched pairs are analyzed with exact conditional logistic
+#' regression (\code{conditional_logit_fit_matched_pairs()}, which
+#' conditions out the pair-specific nuisance intercept and estimates only the
+#' treatment log-odds-ratio \eqn{\beta_T} from discordant pairs, or the joint
+#' \code{clogit}-style likelihood when covariates are present), and reservoir
+#' subjects are analyzed with ordinary logistic regression
+#' (\code{conditional_logit_fit_reservoir()}). If \eqn{\hat\beta_m,
+#' \hat\sigma^2_m} and \eqn{\hat\beta_r, \hat\sigma^2_r} are the matched-pair
+#' and reservoir estimates and their variances, the combined estimate is the
+#' variance-weighted average
+#' \deqn{\hat\beta_T = w^\star \hat\beta_m + (1-w^\star) \hat\beta_r, \quad
+#' w^\star = \frac{\hat\sigma^2_r}{\hat\sigma^2_r + \hat\sigma^2_m},}
+#' with combined variance \eqn{\hat\sigma^2_m \hat\sigma^2_r / (\hat\sigma^2_m
+#' + \hat\sigma^2_r)}. This is the classical fixed-effects inverse-variance
+#' meta-analysis pooling formula (see Cochrane Handbook / DerSimonian-Laird),
+#' applied here to combine the two conditionally-independent likelihood
+#' contributions of a KK design rather than to pool separate studies. When
+#' only one of the two components is estimable the combined estimate falls
+#' back to that component alone. Contrast this with
+#' \code{InferenceIncidKKCondLogitOneLik}, which instead fits a single joint
+#' likelihood over both pieces (see that class's documentation) --
+#' \code{likelihood_tier = "partial"} here reflects that the matched-pair
+#' piece is a genuine conditional (partial) likelihood, but the two-piece
+#' combination itself is a closed-form Wald/meta-analytic step, not a further
+#' likelihood evaluation.
+#'
+#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+#'
+#' @seealso \code{\link[EDI:InferenceIncidKKCondLogitOneLik]{InferenceIncidKKCondLogitOneLik}}
+#'   for the one-likelihood alternative combining strategy.
+#' @references
+#' Fleiss, J.L., Levin, B., Paik, M.C. (2003). \emph{Statistical Methods for
+#' Rates and Proportions}, 3rd ed. Wiley. (conditional logistic regression for
+#' matched pairs)
 #' @export
 InferenceIncidKKCondLogitIVWC = define_inference_class(
 	classname = "InferenceIncidKKCondLogitIVWC",

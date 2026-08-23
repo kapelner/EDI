@@ -1,6 +1,9 @@
 # Contract: Creating a New Inferential Model
 
-Date: 2026-08-12
+Date: 2026-08-12 (updated 2026-08-23: `fix_inference_hierarchy.md` and
+`fix_documentation.md` are both finished, so the "migration in progress"
+caveats below are gone and the registry mechanics are described as they
+actually are).
 
 This is the end-to-end contract for adding a new `Inference*` model to EDI.
 A new model is not "done" when its point estimate is correct. It is done when
@@ -13,8 +16,13 @@ test harness and path audits.
 Companion documents (read them; this contract references but does not repeat
 them):
 
-- `package_metadata/new_feature_plans/fix_inference_hierarchy.md` — target
-  class architecture, metadata, components, capabilities.
+- `package_metadata/finished_features/fix_inference_hierarchy.md` — the class
+  architecture, metadata, components, capabilities, and Source Invariants.
+  **Done (2026-08-23): 0 open items, moved to `finished_features/`.** Every
+  concrete inference class is factory-built; the legacy algorithmic ladder
+  is retained only as internal component sources with zero concrete
+  descendants; raw component splicing and component redeclaration of
+  root-owned state are banned by guardrail tests and factory validation.
 - `package_metadata/finished_features/fix_documentation.md` — the
   documentation standard every new roxygen block must meet. **R-side TODOs
   done (2026-08-23): 0 open, moved to `finished_features/`.** Still apply
@@ -37,13 +45,21 @@ New classes follow the shallow-hierarchy architecture in
 algorithmic base (`InferenceRand`, `InferenceAsympLikStdModCache`, etc.);
 those bases are being drained and deleted.
 
-**Current state (2026-08):** the migration is in progress. Most existing
-classes are still raw `R6Class("Inference...")` definitions carrying legacy
-`supports_*()` flag methods and algorithmic-base ancestry (the manifest
-tracks the pending set). Migrated classes (e.g.
-`InferenceCountQuasiPoisson`, `InferenceAllSimpleWilcox`) go through the
-factory. **Do not copy a legacy class as a template for a new one** — copy a
-factory-defined class.
+**Current state (2026-08-23): the migration is complete.** Every concrete
+class is a `define_inference_class()` call (any of them is a valid template;
+`InferenceCountQuasiPoisson`, `InferenceAllSimpleWilcox`,
+`InferenceIncidLogRegr`, `InferenceSurvivalKKLWACoxPHOneLik` are compact
+examples of, respectively, quasi-likelihood, no-likelihood, full-likelihood
+GLM, and KK partial-likelihood classes). The only non-factory `Inference*`
+generators left are the retained legacy ladder (`EDI_INFERENCE_ABSTRACT_CLASS_NAMES`
+minus the root), kept purely as component sources and golden-test fixtures;
+the few `R6::R6Class("InferenceXxx", ...)` definitions you will still see at
+the top of some files are in-file *component sources* that the following
+`define_inference_class()` call composes, not templates. Never add a class
+that inherits from the ladder, never re-create a `supports_*()` flag pair,
+and never splice a component's `$public`/`$private` lists by hand — all
+three are enforced (`test-static-cleanup-guardrails.R`,
+`test-inference-class-registry.R`, factory validation).
 
 ### 1.1 Class identity
 
@@ -52,21 +68,76 @@ factory-defined class.
   inherit to acquire an optional algorithm (bootstrap, randomization, Wald,
   likelihood tests, KK pass-through, GEE, GLMM, caches).
 - Define the class through `define_inference_class()` (defined in
-  `EDI/R/mixin_contracts.R`; registry helpers in
-  `EDI/R/inference_class_registry.R`) so contracts are validated at
-  definition time. Its actual signature is
+  `EDI/R/contracts_mixins.R`; component specs in `EDI_COMPONENT_SPECS` in
+  the same file; registry helpers in `EDI/R/inference_class_registry.R`) so
+  contracts are validated at definition time. Its actual signature is
   `define_inference_class(classname, inherit, components, public, private,
   active, metadata, overrides, public_methods_for_capability,
-  lock_objects = FALSE)` — note `classname`/`inherit`, not the
+  lock_objects = FALSE, ...)` — note `classname`/`inherit`, not the
   `name`/`parent` spelling used in `fix_inference_hierarchy.md`'s
-  illustrative sketch, and `lock_objects = FALSE` is enforced. Raw component
-  splicing outside the factory is forbidden.
+  illustrative sketch, and `lock_objects = FALSE` is enforced. `components`
+  lists only what the class adds (a component's declared dependencies are
+  resolved for you; listing a dependency alongside the component that pulls
+  it in is an error); `metadata$likelihood_tier` (and
+  `metadata$capabilities` when a capability such as `"likelihood_ratio"` is
+  not provided by any composed component) feed the capability-table
+  validation; `overrides` must name every intentional public/private
+  collision. Raw component splicing outside the factory is forbidden, and a
+  component's `owns_state` may never contain root-owned private fields
+  (`m`, `X`, `w`, `y`, `dead`, `y_temp`, `any_censoring`, `optimization_alg`,
+  `cached_vc_params`, …) — declare those in `requires_state`; the factory
+  rejects both. If the class needs a new component (a per-model
+  `*Likelihood` source is the usual case), define it as a plain
+  `XxxSource = list(public = list(...), private = list(...))` literal in the
+  class's file, register a spec in `EDI_COMPONENT_SPECS`, and let only the
+  factory consume it (a `*Source` may be referenced by name only from the
+  registry or its own file). The factory resolves `inherit` eagerly, so a
+  class whose parent is defined in another file must come after it in
+  `DESCRIPTION`'s `Collate`.
 
 ### 1.2 Metadata record (mandatory, immutable)
 
-The factory's `metadata =` argument registers exactly one metadata record
-per class (via `register_inference_class()`; validators live in
-`EDI/R/inference_class_registry.R`) with all mandatory fields:
+Exactly one metadata record per class lives in `EDI_INFERENCE_CLASS_REGISTRY`
+(validated by `validate_inference_class_metadata()`,
+`EDI/R/inference_class_registry.R`). It is **not** registered by the factory
+call: `populate_inference_class_registry()` scans the package namespace at
+load time and builds the record from the generator plus a set of lookup
+tables in that file, so a new class must feed every one of them (the
+registry/manifest tests fail otherwise):
+
+- `response_types` — inferred from the **class-name prefix**
+  (`InferenceContin*`/`InferenceBai*` → continuous, `InferenceCount*`,
+  `InferenceIncid*`, `InferenceOrdinal*`, `InferenceProp*`,
+  `InferenceSurvival*`, `InferenceAll*` → every type). A class named outside
+  that convention gets no response types and is never discovered;
+- `likelihood_tier` — inferred from name tokens
+  (`infer_inference_likelihood_tier()`: `GEE|Quasi|Robust|Composite` →
+  quasi, `Cox|CondLogit|CondAdjCat|LWA` → partial, the GLM/AFT/GLMM/CLMM
+  token list → full, otherwise none). Name the class so the inferred tier
+  equals the `metadata$likelihood_tier` you pass to the factory; if no
+  existing token fits, add one to that function in the same change;
+- `direct_components` — add an entry to the `infer_inference_direct_components()`
+  switch that **mirrors the factory's `components =` vector exactly**;
+- `abstract` — any name containing `Abstract` (or listed in
+  `EDI_INFERENCE_ABSTRACT_CLASS_NAMES`) is abstract and excluded from
+  discovery; concrete classes must not use that token;
+- `estimand` — add the class to `EDI_INFERENCE_ESTIMAND_TAGS` (or implement
+  a private `get_estimand_type()`); `adjusts_for_covariates` — add it to
+  `EDI_INFERENCE_CLASSES_USING_COVARIATES` or
+  `EDI_INFERENCE_CLASSES_IGNORING_COVARIATES`;
+- design compatibility beyond response type — implement the private hooks
+  the scan reads without instantiating: `requires_blocking_design()`,
+  `supports_interval_or_left_censored_data()`, and, for structural
+  requirements (even allocation, equal block sizes, …),
+  `design_compatibility_reason(des_obj)` returning a reason string or
+  `NA_character_`; KK/matching compatibility follows from composing
+  `KKPassThrough`/`KKGEE`/`KKGLMM`;
+- `required_packages`/optional packages — declare `optional_packages` on the
+  lazily loaded component spec that needs them, so
+  `Design$unavailable_inference_classes_due_to_missing_packages()` can
+  report the class instead of discovery failing at construction.
+
+The record's fields are:
 
 - `name`, `parent`, `abstract`, `exported`;
 - `response_types` — one or more of `continuous`, `incidence`, `proportion`,
@@ -78,7 +149,9 @@ per class (via `register_inference_class()`; validators live in
 - `likelihood_tier` — `none`, `quasi`, `partial`, or `full`, classified by
   the **implemented objective**, not the class name;
 - `direct_components` — only the components this class *adds* (parents'
-  components are inherited automatically; re-listing is an error);
+  components are inherited automatically; re-listing is an error) — kept in
+  lock-step with the factory call by the `infer_inference_direct_components()`
+  entry above;
 - `required_packages` — optional packages needed to instantiate or execute.
 
 ### 1.3 Capabilities
@@ -160,11 +233,12 @@ failures or private-method sniffing.
 ## 3. Roxygen Documentation Contract
 
 Follow the full documentation standard in `fix_documentation.md` §"General
-Instructions". **Note:** that standard is a target, not yet the state of the
-existing `man/` pages — most current Rd topics are still on the thin-
-description TODO list, so do *not* treat an existing class's roxygen as an
-exemplar of adequate depth. New models must meet the standard from day one.
-Non-negotiables for a new class and its public methods:
+Instructions". **As of 2026-08-23 that standard *is* the state of the
+existing `man/` pages** — all 821 R-side TODOs across the whole `Inference*`
+family are closed — so any recently documented exported class (its class
+block, `initialize`, and `compute_*` methods) is a fair exemplar of adequate
+depth; new models must meet the same standard from day one. Non-negotiables
+for a new class and its public methods:
 
 - State the estimand and its **scale** (mean difference, risk difference,
   log odds ratio, log hazard ratio, …), the model/likelihood/estimating
@@ -493,7 +567,14 @@ class:
 ## 9. Definition of Done (checklist)
 
 - [ ] Class defined via `define_inference_class()` with complete, validated
-      metadata; correct likelihood tier; components/capabilities exact.
+      metadata; correct likelihood tier; components/capabilities exact; no
+      root-owned state in any new component's `owns_state`; new `*Source`
+      literals consumed only through the registry.
+- [ ] Registry lookup tables fed (§1.2): name prefix/tier token,
+      `infer_inference_direct_components()` entry mirroring `components =`,
+      `EDI_INFERENCE_ESTIMAND_TAGS`, covariate-use table, compatibility
+      hooks; `test-inference-class-registry.R`, `test-mixin-contracts.R`,
+      `test-capability-tables.R`, `test-static-cleanup-guardrails.R` green.
 - [ ] Discovered by `InferenceSuite` for exactly the compatible designs.
 - [ ] All single-argument checkmate asserts present and gated on
       `should_run_asserts()`; cross-argument helpers in

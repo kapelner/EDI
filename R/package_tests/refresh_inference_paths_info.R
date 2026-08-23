@@ -136,14 +136,14 @@ get_opt_metadata = function(res_type, base_name) {
     via = "ourself/Rcpp dependent-censoring transformation"
     alg = "L-BFGS"
     has_analytic_hess = "Y"
-  } else if (grepl("ClaytonCopula", base_name)) {
+  } else if (grepl("WeibullFrailtyLoggamma", base_name)) {
     via = "ourself/Rcpp Clayton copula Weibull AFT"
     alg = "L-BFGS"
   } else if (base_name == "WeibullRegr") {
     via = "ourself/Rcpp Weibull AFT"
     alg = "L-BFGS"
     has_analytic_hess = "Y"
-  } else if (grepl("WeibullFrailty", base_name)) {
+  } else if (grepl("WeibullFrailtyNormal", base_name)) {
     via = "ourself/Rcpp Weibull frailty"
     alg = "L-BFGS"
   } else if (grepl("RankRegr", base_name)) {
@@ -169,7 +169,7 @@ get_opt_metadata = function(res_type, base_name) {
        irls_avail = "Y"
     } else if (base_name == "HurdleNegBin") {
        irls_avail = "Y" # Hurdle models use IRLS for at least one component
-    } else if (base_name %in% c("NegBin", "BetaRegr", "ZeroOneInflatedBetaRegr", "CoxPHRegr", "WeibullRegr", "DepCensTransformRegr") || grepl("ClaytonCopula", base_name) || grepl("LWACox", base_name) || grepl("StratCox", base_name) || grepl("CondLogit", base_name)) {
+    } else if (base_name %in% c("NegBin", "BetaRegr", "ZeroOneInflatedBetaRegr", "CoxPHRegr", "WeibullRegr", "DepCensTransformRegr") || grepl("WeibullFrailtyLoggamma", base_name) || grepl("LWACox", base_name) || grepl("StratCox", base_name) || grepl("CondLogit", base_name)) {
        irls_avail = "N"
     } else if (base_name %in% c("CauchitRegr", "CloglogRegr", "OrderedProbitRegr", "PropOddsRegr")) {
        irls_avail = "N" # Usually NR for cumulative link

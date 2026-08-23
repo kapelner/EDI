@@ -4,8 +4,8 @@
 \alias{InferenceOrdinalCauchitRegr}
 \title{Cauchit Regression Inference for Ordinal Responses}
 \description{
-Cauchit-link cumulative-odds ordinal regression: \eqn{P(Y \le k \mid W, X) =
-F_{\mathrm{Cauchy}}(\alpha_k - \beta_T W - \beta_X^\top X)}, where
+Cauchit-link cumulative-odds ordinal regression: \eqn{P(Y \le k \mid w, x) =
+F_{\mathrm{Cauchy}}(\alpha_k - \beta_T w - \beta_X^\top x)}, where
 \eqn{F_{\mathrm{Cauchy}}} is the standard Cauchy CDF, \eqn{\alpha_k} are
 category-specific cutpoints, and \eqn{\beta_T} is the treatment log-odds
 coefficient on the cauchit scale (proportional-odds-style shift common to all

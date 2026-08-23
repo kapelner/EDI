@@ -6,7 +6,7 @@
 \description{
 Fits a compound (IVWC) estimator for KK matching-on-the-fly designs with
 survival responses: matched pairs are analyzed with a marginal Cox model
-\eqn{\lambda(t \mid W) = \lambda_0(t)\exp(\beta_T W)} whose robust variance
+\eqn{\lambda(t \mid w) = \lambda_0(t)\exp(\beta_T w)} whose robust variance
 uses the Lee-Wei-Amato (1992) cluster-robust sandwich (treating each matched
 pair as an independent cluster of correlated failure times), while reservoir
 subjects are analyzed with a standard (independent-subjects) Cox partial

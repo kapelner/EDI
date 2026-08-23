@@ -1,34 +1,3 @@
-#' Stratified Cox / Standard Cox Compound Inference for KK Designs
-#'
-#' This class implements a compound estimator for KK matching-on-the-fly designs with
-#' survival responses. For matched pairs, it uses stratified Cox proportional hazards
-#' regression (each pair is a stratum). For reservoir subjects, it uses standard Cox
-#' regression. The two estimates (both log-hazard ratios) are combined via a
-#' variance-weighted linear combination.
-#'
-#' Under \code{harden = TRUE}, multivariate fits preserve the treatment column and
-#' progressively retry reduced covariate sets after QR-based rank reduction and
-#' correlation-based pruning. Extreme finite coefficients / standard errors are
-#' rejected and treated as non-estimable.
-#'
-#' The matched-pair sub-estimate treats each pair as its own stratum (a
-#' pair-specific baseline hazard, exactly canceling shared-frailty effects
-#' within the pair via Cox's partial likelihood) and is a special case of the
-#' Lee-Wei-Amato (1992) large-numbers-of-small-groups stratified Cox approach;
-#' the reservoir sub-estimate is a standard unstratified Cox partial-likelihood
-#' fit (Cox 1972). The two log-hazard-ratio estimates are combined by
-#' inverse-variance weighting, the same rule used throughout the KK IVWC family.
-#'
-#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
-#' @references
-#' Cox, D. R. (1972). "Regression Models and Life-Tables." Journal of the
-#' Royal Statistical Society, Series B, 34(2), 187-220.
-#'
-#' Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type Regression
-#' Analysis for Large Numbers of Small Groups of Correlated Failure Time
-#' Observations." In Survival Analysis: State of the Art, 237-247. Springer.
-#' \doi{10.1007/978-94-015-7983-4_14}
-#' @export
 # Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
 # IVWC Estimators"): formerly a plain leaf on
 # `InferenceKKPassThroughCompoundNoParamBootstrap`; the KK compound layer now
@@ -309,6 +278,36 @@ SurvivalKKStratCoxIVWCSource = list(
 	)
 )
 
+#' Stratified Cox / Standard Cox Compound Inference for KK Designs
+#'
+#' This class implements a compound estimator for KK matching-on-the-fly designs with
+#' survival responses. For matched pairs, it uses stratified Cox proportional hazards
+#' regression (each pair is a stratum). For reservoir subjects, it uses standard Cox
+#' regression. The two estimates (both log-hazard ratios) are combined via a
+#' variance-weighted linear combination.
+#'
+#' Under \code{harden = TRUE}, multivariate fits preserve the treatment column and
+#' progressively retry reduced covariate sets after QR-based rank reduction and
+#' correlation-based pruning. Extreme finite coefficients / standard errors are
+#' rejected and treated as non-estimable.
+#'
+#' The matched-pair sub-estimate treats each pair as its own stratum (a
+#' pair-specific baseline hazard, exactly canceling shared-frailty effects
+#' within the pair via Cox's partial likelihood) and is a special case of the
+#' Lee-Wei-Amato (1992) large-numbers-of-small-groups stratified Cox approach;
+#' the reservoir sub-estimate is a standard unstratified Cox partial-likelihood
+#' fit (Cox 1972). The two log-hazard-ratio estimates are combined by
+#' inverse-variance weighting, the same rule used throughout the KK IVWC family.
+#'
+#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+#' @references
+#' Cox, D. R. (1972). "Regression Models and Life-Tables." Journal of the
+#' Royal Statistical Society, Series B, 34(2), 187-220.
+#'
+#' Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type Regression
+#' Analysis for Large Numbers of Small Groups of Correlated Failure Time
+#' Observations." In Survival Analysis: State of the Art, 237-247. Springer.
+#' \doi{10.1007/978-94-015-7983-4_14}
 #' @export
 InferenceSurvivalKKStratCoxPHIVWC = define_inference_class(
 	classname = "InferenceSurvivalKKStratCoxPHIVWC",
@@ -469,7 +468,6 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		max_abs_reasonable_coef = 1e4,
 		best_X_colnames = NULL,
-		optimization_alg = "lbfgs",
 		design_matrix_candidates = function(){
 			X_full = matrix(private$w, ncol = 1)
 			colnames(X_full) = "w"

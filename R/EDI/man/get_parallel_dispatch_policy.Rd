@@ -13,6 +13,16 @@ A named list with two components, \code{bootstrap} and \code{rand_ci},
   class name) and \code{serial_response_types} (a character vector of exact
   response-type strings) — any match in either forces that operation to run
   serially rather than in parallel.
+Unlike \code{\link{get_cold_start_dispatch_policy}},
+\code{\link{get_warm_start_dispatch_policy}}, and
+\code{\link{get_optimization_dispatch_policy}}, this table is a
+\strong{correctness} fact, not a performance one — every entry exists
+because that operation is not currently parallel-safe for that class or
+response type, not because it happens to be slower in parallel.
+\code{\link{tune_EDI_for_this_machine}} benchmarks a related but
+separate question — at what sample size parallel execution starts to
+beat serial, and which core count wins — and will never propose
+un-serializing anything named here.
 }
 \description{
 Returns EDI's built-in \strong{blocklist-first} policy table, consulted by an
@@ -47,5 +57,8 @@ get_parallel_dispatch_policy()
   \code{\link{get_cold_start_dispatch_policy}}, and
   \code{\link{get_optimization_dispatch_policy}} for the analogous policies
   controlling bootstrap CI type, cold-start behavior, and default optimizer
-  algorithm (none of which control parallel-vs-serial dispatch).
+  algorithm (none of which control parallel-vs-serial dispatch);
+  \code{\link{tune_EDI_for_this_machine}} for the machine-dependent
+  parallel-crossover/core-count benchmark this blocklist constrains but
+  is never itself a target of.
 }

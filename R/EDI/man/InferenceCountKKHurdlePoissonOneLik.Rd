@@ -41,7 +41,7 @@ interval / larger p-value of the two is returned (see
 \code{.conservative_kk_onelik_ci()}/\code{.conservative_kk_onelik_pval()}),
 so the model-based test is never anti-conservative relative to the design.
 The Wald confidence interval and p-value fall back to the
-\code{\link[EDI:BayesianBootstrap]{BayesianBootstrap}} component's
+\code{BayesianBootstrap} component's
 bootstrap distribution when the model-based standard error is unavailable
 or non-finite (e.g. a boundary/separation fit).
 

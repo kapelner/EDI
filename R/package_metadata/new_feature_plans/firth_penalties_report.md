@@ -572,8 +572,8 @@ mathematical existence for arbitrary symbolic differentiation.
 | `InferenceSurvivalKKStratCoxOneLik` | `fast_stratified_coxph_regression_cpp` | **Borderline** | Same as above with strata-specific risk sets. |
 | `InferenceSurvivalWeibullRegr` | `fast_weibull_regression_cpp` | **Borderline** | Smooth parametric survival likelihood, but materially more bespoke than the GLM cases. |
 | `InferenceSurvivalDepCensTransformRegr` | `fast_dep_cens_transform_optim_cpp` | **No** | Bespoke transformation likelihood with coupled event/censoring parameter blocks. |
-| `InferenceSurvivalKKWeibullFrailtyOneLik` | `fast_weibull_frailty_cpp` | **No** | Frailty integration and variance parameter make analytic Firth support impractical. |
-| `InferenceSurvivalKKClaytonCopulaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | **No** | Copula dependence parameter plus Weibull margins plus combined design structure. |
+| `InferenceSurvivalKKWeibullFrailtyNormalOneLik` | `fast_weibull_frailty_cpp` | **No** | Frailty integration and variance parameter make analytic Firth support impractical. |
+| `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | **No** | Copula dependence parameter plus Weibull margins plus combined design structure. |
 
 ## Concrete Conclusions
 

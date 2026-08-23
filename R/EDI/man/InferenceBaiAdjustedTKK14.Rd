@@ -9,10 +9,10 @@ Continuous-response mean-difference inference for designs assigned by
 Kapelner-Krieger 2014 sequential matching-on-the-fly design). The point
 estimate and its variance are the closed-form Bai-adjusted-t combination of
 the matched-pairs mean difference and the unmatched-reservoir mean
-difference, inverse-variance-weighted when both are usable; see
-\code{\link[EDI:InferenceBaiAdjustedT]{InferenceBaiAdjustedT}} for the full
-formula, the pair-distance definition, and the confidence-interval/p-value
-construction shared with \code{\link[EDI:InferenceBaiAdjustedTKK21]{InferenceBaiAdjustedTKK21}}.
+difference, inverse-variance-weighted when both are usable; the full
+formula, pair-distance definition, and confidence-interval/p-value
+construction are shared with
+\code{\link[EDI:InferenceBaiAdjustedTKK21]{InferenceBaiAdjustedTKK21}}.
 The two leaves differ only in how pair distance is defined during matching:
 this class (KK14) uses the plain squared Euclidean distance
 \eqn{\sum_j (x_{1j} - x_{2j})^2} between candidate subjects' covariate

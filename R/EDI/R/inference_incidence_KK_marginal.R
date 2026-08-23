@@ -365,7 +365,7 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 #' sandwich/bootstrap-based, not likelihood-based. \code{compute_estimate()} fits
 #' the model and returns \eqn{\hat\theta} on the risk-difference (probability)
 #' scale; \code{compute_estimate_with_bootstrap_weights()} refits under
-#' Bayesian-bootstrap subject weights for \code{\link{compute_bayesian_bootstrap_confidence_interval}}.
+#' Bayesian-bootstrap subject weights for \code{compute_bayesian_bootstrap_confidence_interval()}.
 #' Jackknife deletes one cluster (matched pair or singleton reservoir subject) at
 #' a time. If the working model fails to converge or the design has no
 #' treatment-arm variation, the estimate is marked non-estimable via

@@ -30,7 +30,7 @@ matching-on-the-fly or binary-match design form size-2 clusters, and
 unmatched reservoir subjects each form their own singleton cluster.
 
 
-This is the "marginal" competitor to \code{\link{InferenceSurvivalKKWeibullFrailtyOneLik}}:
+This is the "marginal" competitor to \code{\link{InferenceSurvivalKKWeibullFrailtyNormalOneLik}}:
 rather than modeling the within-pair correlation explicitly via a frailty
 term, it fits an ordinary (working-independence) Weibull AFT model and
 corrects the treatment-effect standard error post hoc for the within-pair

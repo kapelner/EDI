@@ -8,7 +8,7 @@
 #' unmatched reservoir subjects each form their own singleton cluster.
 #'
 #' @details
-#' This is the "marginal" competitor to \code{\link{InferenceSurvivalKKWeibullFrailtyOneLik}}:
+#' This is the "marginal" competitor to \code{\link{InferenceSurvivalKKWeibullFrailtyNormalOneLik}}:
 #' rather than modeling the within-pair correlation explicitly via a frailty
 #' term, it fits an ordinary (working-independence) Weibull AFT model and
 #' corrects the treatment-effect standard error post hoc for the within-pair
@@ -120,7 +120,6 @@ SurvivalKKWeibullMarginalSource = list(
 	private = list(
 		# cached_mod / best_X_colnames are owned (and NULL-initialized) by the
 		# KKPassThrough component; only leaf-specific state is declared here.
-		cached_vc_params = NULL,
 		max_abs_reasonable_coef = 1e4,
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		# Wald only: this class fits a working-independence AFT and corrects the SE post hoc,

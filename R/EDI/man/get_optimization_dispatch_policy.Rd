@@ -12,6 +12,14 @@ A named list with components \code{default_alg} (the fallback
   \code{inference_class_overrides} (a named character vector: regular-expression
   pattern names to algorithm-name values, matched against the inference class
   name).
+Which algorithm converges fastest/most reliably per family is partly a
+hardware fact (relative cost of Hessian solves vs. L-BFGS iterations
+depends on BLAS and cache), so these defaults, computed on the
+maintainer's machine, are not necessarily optimal on yours. Run
+\code{\link{tune_EDI_for_this_machine}} to re-measure this axis on your
+own machine — it will only switch a family's algorithm when the
+candidate converges on every benchmark replicate, never trading speed
+for a convergence failure.
 }
 \description{
 Returns EDI's built-in policy table, consulted by the internal (non-exported)
@@ -42,5 +50,7 @@ get_optimization_dispatch_policy()
   \code{\link{get_cold_start_dispatch_policy}} for the analogous policies
   controlling bootstrap CI type and cold-start behavior;
   \code{\link{.normalize_optimizer_algorithm}} for how a resolved algorithm
-  string is validated/normalized before being passed to a C++ backend.
+  string is validated/normalized before being passed to a C++ backend;
+  \code{\link{tune_EDI_for_this_machine}} to re-benchmark this policy on
+  your own hardware.
 }

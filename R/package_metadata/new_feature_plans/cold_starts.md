@@ -58,6 +58,18 @@ For simple models with a **Strong Signal**, a naive start at zero can sometimes 
 
 **Conclusion:** EDI implements **Smart Starts** as the global default because the reliability gain (ensuring convergence on difficult data) far outweighs the sub-millisecond overhead in simple cases.
 
+**These per-family findings, and the shipped `smart_cold_start`
+overrides they justify (`get_cold_start_dispatch_policy()`), were all
+measured on the maintainer's development machine** — the "<0.5ms" crossover
+in finding 3 is exactly the kind of number that moves with core count,
+cache size, and BLAS backend. As of `local_machine_optimization.md`, these
+defaults are no longer fixed at build time: `tune_EDI_for_this_machine()`
+re-runs this same cold-start benchmark (along with the warm-start,
+optimizer-algorithm, and parallel-crossover axes) on the user's own
+hardware and persists whichever setting actually wins there. Users who
+suspect the shipped cold-start policy is wrong for their machine should
+run it rather than file it as a bug against the numbers in this document.
+
 ---
 
 ## Implementation TODOs
@@ -84,7 +96,7 @@ Every one of these families already has a working `smart_cold_start` branch in i
 - [ ] TODO-8: **Probit Regression** (incidence) — `EDI/src/fast_probit_regression.cpp:138`.
 - [ ] TODO-9: **Robust Regression** (continuous, M-estimator) — `EDI/src/fast_robust_regression.cpp:101`.
 - [ ] TODO-10: **Cox PH** and **Stratified Cox PH** (survival) — `EDI/src/fast_coxph_regression.cpp:267,433`.
-- [ ] TODO-11: **General parametric survival models** (used by `InferenceSurvivalKKClaytonCopulaOneLik` and related KK survival paths) — `EDI/src/fast_survival_models_optim.cpp:681`.
+- [ ] TODO-11: **General parametric survival models** (used by `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` and related KK survival paths) — `EDI/src/fast_survival_models_optim.cpp:681`.
 - [ ] TODO-12: **Logistic GLMM** and **Poisson GLMM** (KK-design mixed models) — `EDI/src/fast_logistic_glmm.cpp:481`, `EDI/src/fast_poisson_glmm.cpp:380`.
 - [ ] TODO-13: **Ordinal GLMM**, **Ordinal Cauchit**, **Ordinal Cloglog**, **Ordinal Ordered Probit**, **Adjacent-Category Logit**, **Continuation-Ratio Regression**, **Stereotype Logit** — these are distinct ordinal link functions/models, each with its own kernel and its own `smart_cold_start` branch; the current single "Ordinal Regression" row (OLS on `y`, quantile-mapped intercepts) only documents the proportional-odds kernel (`EDI/src/fast_ordinal_regression.cpp:167`) and should not be assumed to generalize. Sources: `EDI/src/fast_ordinal_glmm.cpp:271`, `EDI/src/fast_ordinal_cauchit_regression.cpp`, `EDI/src/fast_ordinal_cloglog_regression.cpp`, `EDI/src/fast_ordinal_probit_regression.cpp`, `EDI/src/fast_adjacent_category_logit.cpp:216`, `EDI/src/fast_continuation_ratio_regression.cpp:149`, `EDI/src/fast_stereotype_logit.cpp`.
 - [ ] TODO-14: **GEE paths** (`InferenceCountKKGEE`, ordinal/incidence KK-GEE families) — add a table row noting that GEE's initial fit reuses the Logistic/Poisson smart-start heuristic unconditionally: `EDI/src/fast_gee.cpp:131-132` calls `fast_logistic_regression_internal`/`fast_poisson_regression_internal` with `smart_cold_start` hardcoded to `true` (not policy-gated the way the standalone Logistic/Poisson paths are per TODO-1 — GEE does not expose its own toggle at all).

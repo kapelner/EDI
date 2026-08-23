@@ -14,7 +14,8 @@
 #'
 #' @keywords internal
 #' @noRd
-inference_count_za_public = list(
+ZeroAugmentedCountLikelihoodSource = list(
+	public = list(
 				
 		#' @description Initialize zero-augmented count-likelihood inference, prepare
 		#'   the conditional count and zero/hurdle auxiliary model formulas, and set
@@ -192,9 +193,8 @@ inference_count_za_public = list(
 			}
 			private$bayesian_boot_compute_bayesian_bootstrap_confidence_interval(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
 		}
-)
-
-inference_count_za_private = list(
+	),
+	private = list(
 		is_a_count_zero_augmented_poisson = function() TRUE,
 		# Pinned from their real source generators: composed classes have no
 		# real super$ chain, so the 4 super$compute_bootstrap_*/
@@ -207,7 +207,6 @@ inference_count_za_private = list(
 		nonparam_boot_compute_bootstrap_confidence_interval = InferenceNonParamBootstrap$public_methods$compute_bootstrap_confidence_interval,
 		bayesian_boot_compute_bayesian_bootstrap_two_sided_pval = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_two_sided_pval,
 		bayesian_boot_compute_bayesian_bootstrap_confidence_interval = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_confidence_interval,
-		cached_vc_params = NULL,
 		supports_reusable_bootstrap_worker = function(){
 			TRUE
 		},
@@ -1136,11 +1135,7 @@ inference_count_za_private = list(
 				}
 			)
 		}
-		)
-
-ZeroAugmentedCountLikelihoodSource = list(
-	public = inference_count_za_public,
-	private = inference_count_za_private
+	)
 )
 
 InferenceCountZeroAugmentedPoissonAbstract = define_inference_class(

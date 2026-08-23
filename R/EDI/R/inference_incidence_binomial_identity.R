@@ -1,4 +1,5 @@
-inference_incid_binomial_identity_public = list(
+IncidenceBinomialIdentityLikelihoodSource = list(
+	public = list(
 
 		#' @description Initialize inference for the identity-link binomial risk-
 		#'   difference model \eqn{P(Y_i = 1) = \beta_0 + \beta_T W_i + X_i^\top
@@ -109,9 +110,8 @@ inference_incid_binomial_identity_public = list(
 				}
 			)
 		}
-	)
-
-inference_incid_binomial_identity_private = list(
+	),
+	private = list(
 		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
 		# migration ladders): see inference_incid_log_regr_private's cached_mod
 		# entry (inference_incidence_logit.R) for the full explanation.
@@ -317,10 +317,6 @@ inference_incid_binomial_identity_private = list(
 			attempt$fit
 		}
 	)
-
-IncidenceBinomialIdentityLikelihoodSource = list(
-	public = inference_incid_binomial_identity_public,
-	private = inference_incid_binomial_identity_private
 )
 
 #' Binomial Identity Risk Difference Inference for Incidence Responses

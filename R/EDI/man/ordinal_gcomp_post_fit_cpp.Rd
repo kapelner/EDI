@@ -46,7 +46,7 @@ scores \code{mean1}, \code{mean0}, and their difference \code{md} are formed
 exactly as in \code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}}, and
 then:
 \itemize{
-  \item An \code{\link[=OrdinalRegression]{OrdinalRegression}} log-likelihood
+  \item An ordinal-regression log-likelihood
     Hessian is evaluated at \eqn{[\hat\alpha, \hat\beta]} and inverted (with a
     symmetrization step and a finiteness check) to give the
     \strong{model-based} (non-sandwich) variance-covariance matrix of the full

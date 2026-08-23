@@ -1,4 +1,5 @@
-inference_incid_modified_poisson_public = list(
+IncidenceModifiedPoissonLikelihoodSource = list(
+	public = list(
 
 			#' @description Initialize inference for the modified Poisson model
 			#'   \eqn{\log E[Y_i \mid w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top
@@ -108,9 +109,8 @@ inference_incid_modified_poisson_public = list(
 			)
 			private$cached_values$beta_hat_T
 		}
-	)
-
-inference_incid_modified_poisson_private = list(
+	),
+	private = list(
 			best_X_colnames = NULL,
 			cached_mod = NULL,
 			max_abs_reasonable_coef = 25,
@@ -316,10 +316,6 @@ inference_incid_modified_poisson_private = list(
 				attempt$fit
 			}
 	)
-
-IncidenceModifiedPoissonLikelihoodSource = list(
-	public = inference_incid_modified_poisson_public,
-	private = inference_incid_modified_poisson_private
 )
 
 #' Modified Poisson Regression Inference for Incidence Responses

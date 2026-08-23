@@ -2,20 +2,17 @@
 % Please edit documentation in R/inference_all_abstract_count_likelihood.R
 \name{InferenceCountLikelihood}
 \alias{InferenceCountLikelihood}
-\alias{inference_count_likelihood_public}
+\alias{CountLikelihoodPlumbingSource}
 \title{Count-Specific Likelihood Inference}
 \usage{
-inference_count_likelihood_public
-}
-\value{
-A confidence interval.
-
-The asymptotic p-value.
+CountLikelihoodPlumbingSource
 }
 \description{
-Intermediate base class for count-based likelihood families
-(Poisson, Negative Binomial, Zero-Inflated, Hurdle). This class centralizes
-count-specific parameter packing, warm starts, and likelihood dispatch.
+Component source (\code{CountLikelihoodPlumbingSource}) for the
+count-based likelihood families (Poisson, Negative Binomial, Zero-Inflated,
+Hurdle): centralizes count-specific parameter packing, warm starts, and
+likelihood dispatch. Composed by every count class through the registered
+\code{CountLikelihoodPlumbing} component.
 
 Computes the treatment-effect estimate using the underlying
   count likelihood model. Concrete subclasses fit a Poisson, negative
@@ -23,38 +20,5 @@ Computes the treatment-effect estimate using the underlying
   the treatment coefficient for related
   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}
   p-value and confidence-interval methods.
-
-Computes an asymptotic confidence interval for the treatment
-  effect using the configured count-likelihood test. Wald intervals use the
-  fitted count-model coefficient and standard error; score,
-  likelihood-ratio, gradient, and bootstrap-calibrated paths delegate to
-  \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} or
-  \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}}.
-
-Computes an asymptotic two-sided p-value for the treatment
-  effect using the configured count-likelihood test. Wald tests compare
-  the fitted count-model treatment coefficient to \code{delta}; score,
-  likelihood-ratio, and gradient tests evaluate the corresponding
-  null-restricted likelihood statistic.
-
-Computes the Wald two-sided p-value regardless of configured testing type.
-
-Computes the Wald confidence interval regardless of configured testing type.
-
-Computes the score two-sided p-value regardless of configured testing type.
-
-Computes the score confidence interval regardless of configured testing type.
-
-Computes the likelihood-ratio two-sided p-value regardless of configured testing type.
-
-Computes the likelihood-ratio confidence interval regardless of configured testing type.
-
-Computes the gradient two-sided p-value regardless of configured testing type.
-
-Computes the gradient confidence interval regardless of configured testing type.
-
-Computes a parametric likelihood-ratio bootstrap p-value.
-
-Computes a parametric likelihood-ratio bootstrap CI.
 }
 \keyword{internal}

@@ -52,7 +52,7 @@ inf$compute_estimate()
 }
 }
 \seealso{
-\code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
+\code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaOneLik]{InferenceSurvivalKKWeibullFrailtyLoggammaOneLik}}
   for a different (Clayton-copula, KK-design) approach to dependence
   between two survival-type quantities.
   \href{https://en.wikipedia.org/wiki/Survival_analysis}{Survival

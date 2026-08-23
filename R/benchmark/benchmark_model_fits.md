@@ -99,7 +99,7 @@ All benchmarks were performed on a synthetic clinical-trial-scale dataset genera
     <tr style="background-color: #d9fdd3;"><td>InferencePropGCompMeanDiff</td><td>proportion</td><td>0.24</td><td>stats</td><td>glm.fit(quasi)+gcomp</td><td>1.97</td><td>8.07x</td><td>2.41e-22</td><td>***</td></tr>
     <tr style="background-color: #cfe2ff;"><td>InferencePropZeroOneInflatedBetaRegr</td><td>proportion</td><td>7.71</td><td>None</td><td>no canonical R implementation</td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
     <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalCoxPHRegr</td><td>survival</td><td>0.41</td><td>survival</td><td>coxph.fit(breslow)</td><td>0.68</td><td>1.68x</td><td>9.57e-23</td><td>***</td></tr>
-    <tr style="background-color: #cfe2ff;"><td>InferenceSurvivalKKWeibullFrailtyOneLik</td><td>survival</td><td>3.74</td><td>None</td><td>no canonical R implementation</td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
+    <tr style="background-color: #cfe2ff;"><td>InferenceSurvivalKKWeibullFrailtyNormalOneLik</td><td>survival</td><td>3.74</td><td>None</td><td>no canonical R implementation</td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
     <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalKMDiff</td><td>survival</td><td>0.02</td><td>survival</td><td>survfit(median)</td><td>4.66</td><td>223.63x</td><td>2.07e-27</td><td>***</td></tr>
     <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalLogRank</td><td>survival</td><td>0.03</td><td>survival</td><td>survdiff</td><td>3.35</td><td>118.09x</td><td>7.7e-19</td><td>***</td></tr>
     <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalRestrictedMeanDiff</td><td>survival</td><td>0.02</td><td>survival</td><td>survfit(rmean)</td><td>3.88</td><td>186.91x</td><td>2.38e-29</td><td>***</td></tr>
@@ -166,7 +166,7 @@ EDI regression models (Logistic, Poisson) are benchmarked using the **IRLS** opt
     <tr style="background-color: #cfe2ff;"><td>InferencePropZeroOneInflatedBetaRegr</td><td>proportion</td><td>1.14</td><td>None</td><td>no canonical R implementation</td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
     <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalCoxPHRegr</td><td>survival</td><td>0.21</td><td>survival</td><td>coxph.fit(breslow)+Wald</td><td>0.60</td><td>2.81x</td><td>1.46e-30</td><td>***</td></tr>
     <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalGehanWilcox</td><td>survival</td><td>0.02</td><td>survival</td><td>survdiff(rho=1)</td><td>2.20</td><td>136.34x</td><td>2.04e-31</td><td>***</td></tr>
-    <tr style="background-color: #cfe2ff;"><td>InferenceSurvivalKKWeibullFrailtyOneLik</td><td>survival</td><td>1.38</td><td>None</td><td>no canonical R implementation</td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
+    <tr style="background-color: #cfe2ff;"><td>InferenceSurvivalKKWeibullFrailtyNormalOneLik</td><td>survival</td><td>1.38</td><td>None</td><td>no canonical R implementation</td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
     <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalLogRank</td><td>survival</td><td>0.14</td><td>survival</td><td>survdiff</td><td>5.38</td><td>39.73x</td><td>2.54e-26</td><td>***</td></tr>
     <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalStratCoxPHRegr</td><td>survival</td><td>0.54</td><td>survival</td><td>coxph.fit(strat)+Wald</td><td>0.80</td><td>1.48x</td><td>8.88e-16</td><td>***</td></tr>
     <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalWeibullRegr</td><td>survival</td><td>0.09</td><td>survival</td><td>survreg+summary</td><td>4.03</td><td>46.66x</td><td>9.22e-26</td><td>***</td></tr>
@@ -306,7 +306,7 @@ line in different places.)</p>
 <li><code>InferenceOrdinalGLMM (pairs)</code> (future kernel <code>fast_ordinal_glmm</code>): Proportional-odds ordinal GLMM with a random intercept: no pure-Python package offers ML ordinal-GLMM fitting with adaptive quadrature.</li>
 <li><code>InferenceOrdinalStereotypeLogitRegr</code> (future kernel <code>fast_stereotype_logit</code>): Stereotype logit ordinal regression: R uses VGAM::vglm(multinomial(...)) style fitting; no identified Python package implements the stereotype-logit link specifically.</li>
 <li><code>InferencePropZeroOneInflatedBetaRegr</code> (future kernel <code>fast_zero_one_inflated_beta</code>): Zero-one-inflated beta regression: no canonical package in either R or Python.</li>
-<li><code>InferenceSurvivalKKWeibullFrailtyOneLik</code> (future kernel <code>fast_weibull_frailty</code>): Weibull AFT with shared log-normal frailty: no clean Python package (R side notes only a partial/PH-parameterized frailtypack analog).</li>
+<li><code>InferenceSurvivalKKWeibullFrailtyNormalOneLik</code> (future kernel <code>fast_weibull_frailty</code>): Weibull AFT with shared log-normal frailty: no clean Python package (R side notes only a partial/PH-parameterized frailtypack analog).</li>
 </ul>
 <table>
 <thead><tr><th>Class</th><th>Response</th><th>EDI Time (ms)</th><th>Canonical Pkg</th><th>Canonical Func</th><th>Canonical Time (ms)</th><th>Speedup</th><th>Timing Pval</th><th></th></tr></thead>
@@ -351,7 +351,7 @@ line in different places.)</p>
 <tr style="background-color: #d9fdd3;"><td>InferencePropGCompMeanDiff</td><td>proportion</td><td>0.26</td><td>statsmodels</td><td>GLM(Binomial)+gcomp</td><td>4.04</td><td>15.60x</td><td>6.39e-27</td><td>***</td></tr>
 <tr style="background-color: #cfe2ff;"><td>InferencePropZeroOneInflatedBetaRegr</td><td>proportion</td><td>7.72</td><td>None</td><td></td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalCoxPHRegr</td><td>survival</td><td>0.50</td><td>scikit-survival</td><td>CoxPHSurvivalAnalysis</td><td>51.62</td><td>102.32x</td><td>1.41e-32</td><td>***</td></tr>
-<tr style="background-color: #cfe2ff;"><td>InferenceSurvivalKKWeibullFrailtyOneLik</td><td>survival</td><td>NA</td><td>None</td><td></td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
+<tr style="background-color: #cfe2ff;"><td>InferenceSurvivalKKWeibullFrailtyNormalOneLik</td><td>survival</td><td>NA</td><td>None</td><td></td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalKMDiff</td><td>survival</td><td>0.02</td><td>lifelines</td><td>KaplanMeierFitter(median)</td><td>26.52</td><td>1647.81x</td><td>9.24e-32</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalLogRank</td><td>survival</td><td>0.12</td><td>lifelines</td><td>statistics.logrank_test</td><td>26.28</td><td>212.34x</td><td>6.36e-29</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalRestrictedMeanDiff</td><td>survival</td><td>0.01</td><td>lifelines</td><td>utils.restricted_mean_survival_time</td><td>19.30</td><td>1460.28x</td><td>9.43e-36</td><td>***</td></tr>
@@ -384,7 +384,7 @@ line in different places.)</p>
 <li><code>InferenceOrdinalGLMM (pairs)</code> (future kernel <code>fast_ordinal_glmm</code>): Proportional-odds ordinal GLMM with a random intercept: no pure-Python package offers ML ordinal-GLMM fitting with adaptive quadrature.</li>
 <li><code>InferenceOrdinalStereotypeLogitRegr</code> (future kernel <code>fast_stereotype_logit_with_var</code>): Stereotype logit ordinal regression: R uses VGAM::vglm(multinomial(...)) style fitting; no identified Python package implements the stereotype-logit link specifically.</li>
 <li><code>InferencePropZeroOneInflatedBetaRegr</code> (future kernel <code>fast_zero_one_inflated_beta</code>): Zero-one-inflated beta regression: no canonical package in either R or Python.</li>
-<li><code>InferenceSurvivalKKWeibullFrailtyOneLik</code> (future kernel <code>fast_weibull_frailty</code>): Weibull AFT with shared log-normal frailty: no clean Python package (R side notes only a partial/PH-parameterized frailtypack analog).</li>
+<li><code>InferenceSurvivalKKWeibullFrailtyNormalOneLik</code> (future kernel <code>fast_weibull_frailty</code>): Weibull AFT with shared log-normal frailty: no clean Python package (R side notes only a partial/PH-parameterized frailtypack analog).</li>
 </ul></details>
 <table>
 <thead><tr><th>Class</th><th>Response</th><th>EDI Time (ms)</th><th>Canonical Pkg</th><th>Canonical Func</th><th>Canonical Time (ms)</th><th>Speedup</th><th>Timing Pval</th><th></th></tr></thead>
@@ -428,7 +428,7 @@ line in different places.)</p>
 <tr style="background-color: #cfe2ff;"><td>InferencePropZeroOneInflatedBetaRegr</td><td>proportion</td><td>NA</td><td>None</td><td></td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalCoxPHRegr</td><td>survival</td><td>0.67</td><td>lifelines</td><td>CoxPHFitter+summary</td><td>94.54</td><td>140.77x</td><td>1.8e-30</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalGehanWilcox</td><td>survival</td><td>0.12</td><td>lifelines</td><td>statistics.logrank_test(weightings='wilcoxon')</td><td>25.92</td><td>216.39x</td><td>7.63e-35</td><td>***</td></tr>
-<tr style="background-color: #cfe2ff;"><td>InferenceSurvivalKKWeibullFrailtyOneLik</td><td>survival</td><td>NA</td><td>None</td><td></td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
+<tr style="background-color: #cfe2ff;"><td>InferenceSurvivalKKWeibullFrailtyNormalOneLik</td><td>survival</td><td>NA</td><td>None</td><td></td><td>NA</td><td>NA</td><td>NA</td><td></td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalLogRank</td><td>survival</td><td>0.12</td><td>lifelines</td><td>statistics.logrank_test</td><td>25.78</td><td>208.80x</td><td>2.72e-31</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalStratCoxPHRegr</td><td>survival</td><td>0.60</td><td>lifelines</td><td>CoxPHFitter(strata=)</td><td>242.86</td><td>402.50x</td><td>1.4e-28</td><td>***</td></tr>
 <tr style="background-color: #d9fdd3;"><td>InferenceSurvivalWeibullRegr</td><td>survival</td><td>0.23</td><td>lifelines</td><td>WeibullAFTFitter+summary</td><td>184.05</td><td>815.03x</td><td>4.7e-30</td><td>***</td></tr>

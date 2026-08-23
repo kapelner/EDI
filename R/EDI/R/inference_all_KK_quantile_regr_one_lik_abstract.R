@@ -149,7 +149,6 @@ KKQuantileRegrOneLikSource = list(
 	private = list(
 		tau = NULL,
 		transform_y_fn_list = NULL,  # list(fn = ...) wrapping avoids R6 treating function as a locked method
-		m = NULL,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			private$shared_combined_likelihood(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T

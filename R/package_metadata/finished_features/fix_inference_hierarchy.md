@@ -2566,8 +2566,8 @@ their own `[x]` entries above; they are not part of this count.)
   - `InferenceParamBootstrap`: still has real classic inheritors -- the
     kept harvesting-source generators `InferenceAsympLikStdModCache`/
     `InferenceKKPassThroughCompound`/`InferenceCountLikelihood`, plus the
-    `InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw`/
-    `InferenceSurvivalKKClaytonCopulaOneLikLegacyRaw` legacy-comparison
+    `InferenceAbstractKKWeibullFrailtyNormalOneLikLegacyRaw`/
+    `InferenceSurvivalKKWeibullFrailtyLoggammaOneLikLegacyRaw` legacy-comparison
     fixtures. It also remains the pin source for the
     `param_boot_compute_lik_ratio_bootstrap_*` private helpers on
     `InferenceCountPoisson` and `CountLikelihoodPlumbingSource`'s
@@ -3200,11 +3200,11 @@ their own `[x]` entries above; they are not part of this count.)
   `make_kk_incidence_design()` helper. `test-parametric-bootstrap-lr-all-
   capable-classes.R` already listed this class as a target — no change
   needed. Full regression battery green.
-  **Progress 2026-08-19: `InferenceSurvivalKKClaytonCopulaOneLik` migrated**
+  **Progress 2026-08-19: `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` migrated**
   — single-layer raw-splice class, no `super$` calls needing the
   generic-`self$`-aliased-override fix (unlike the count/incidence OneLik
   classes above). **Structurally different from every other migration this
-  stretch**: a registered component `SurvivalKKClaytonCopulaOneLik` already
+  stretch**: a registered component `SurvivalKKWeibullFrailtyLoggammaOneLik` already
   existed (self-harvested via `inference_component_source_parts()`,
   `dependencies = character()`) — because this class's public/private were
   built via a raw `modifyList(InferenceMixinKKPassThrough$public/private,
@@ -3215,21 +3215,21 @@ their own `[x]` entries above; they are not part of this count.)
   a leaf-only-plus-`KKPassThrough`-dependency component (the shape every
   other migration this stretch used), the pre-migration class body is kept
   alive as-is under a renamed, non-exported binding
-  (`InferenceSurvivalKKClaytonCopulaOneLikLegacyRaw`, same class-name
+  (`InferenceSurvivalKKWeibullFrailtyLoggammaOneLikLegacyRaw`, same class-name
   *string* passed to `R6::R6Class()` so any class-identity-keyed dispatch —
   e.g. `globals.R`'s optimizer policy — stays correct if the raw generator
   is ever touched) purely so the pre-existing harvest at load time still
-  has something to snapshot from; `InferenceSurvivalKKClaytonCopulaOneLik`
+  has something to snapshot from; `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik`
   itself is now the `define_inference_class()` factory, composing
   `c("BayesianBootstrap", "ParametricLikelihoodBootstrap",
-  "SurvivalKKClaytonCopulaOneLik")` (the harvested component supplies
+  "SurvivalKKWeibullFrailtyLoggammaOneLik")` (the harvested component supplies
   `get_likelihood_test_spec()` but not the public score/gradient/lik_ratio
   dispatch methods, which arrive via `ParametricLikelihoodBootstrap`'s
   `LikelihoodTests` dependency). This class already called `private$
   init_kk_passthrough(des_obj)` explicitly, so no Lesson-1 fix was needed.
   **Consequence of keeping the raw class alive**: unlike every other
   migration this stretch, `test-static-cleanup-guardrails.R`'s eval(body(...))
-  and raw-splice per-file counts for `inference_survival_KK_clayton_copula.R`
+  and raw-splice per-file counts for `inference_survival_KK_weibull_frailty_loggamma.R`
   did **not** need to decrease (the pattern-matched text is still physically
   present in the file, just inside a renamed, non-exported binding used only
   for harvesting) — verified counts unchanged (1 and 3 respectively) and
@@ -3246,7 +3246,7 @@ their own `[x]` entries above; they are not part of this count.)
   randomization-family method (`randomization_distr`/`_ci`/`_pval`/
   `_bootstrap_distr`/`_bootstrap_pval`) on the standard golden design,
   reproduced identically on the from-scratch
-  `InferenceSurvivalKKClaytonCopulaOneLikLegacyRaw` class (confirming not a
+  `InferenceSurvivalKKWeibullFrailtyLoggammaOneLikLegacyRaw` class (confirming not a
   migration regression). The already-migrated IVWC sibling has the
   textually identical reassignment but its own golden's design/label
   sequence doesn't trigger this specific crash path — not investigated
@@ -3258,18 +3258,18 @@ their own `[x]` entries above; they are not part of this count.)
   rather than the generic pass/fail-status comparison every other label
   uses) instead of silently skipping them: all green. Static tables
   updated: registry direct-components mapping (`infer_inference_direct_
-  components()`, was still the single stale `"SurvivalKKClaytonCopulaOneLik"`
+  components()`, was still the single stale `"SurvivalKKWeibullFrailtyLoggammaOneLik"`
   entry from before this migration). `test-full-likelihood-migration-
   baseline.R`'s survival-components test, `test-mixin-contracts.R`
   (component was already in the canonical list), `helper-likelihood-method-
   smoke.R` (class was already present), and `test-parametric-bootstrap-lr-
   all-capable-classes.R` (already listed) needed no changes. Full
   regression battery green.
-  **Progress 2026-08-19: `InferenceSurvivalKKWeibullFrailtyOneLik`
+  **Progress 2026-08-19: `InferenceSurvivalKKWeibullFrailtyNormalOneLik`
   migrated** — same structural shape as the Clayton Copula OneLik migration
   above (pre-existing self-harvested components, raw R6 generators kept
   alive under renamed non-exported bindings purely for harvesting), but a
-  genuine **two-layer chain** (abstract `InferenceAbstractKKWeibullFrailtyOneLik`
+  genuine **two-layer chain** (abstract `InferenceAbstractKKWeibullFrailtyNormalOneLik`
   raw-splicing `InferenceMixinKKPassThrough$public/private` onto
   `InferenceParamBootstrap`, plus a thin concrete leaf using TRUE R6
   inheritance onto the abstract, overriding only `initialize`) rather than
@@ -3285,8 +3285,8 @@ their own `[x]` entries above; they are not part of this count.)
   flat composition (Lesson 1 corollary — first hit as a genuine bug, not
   just a theoretical concern, via a real "unused argument (use_rcpp =
   use_rcpp)" load-time-adjacent runtime error on first `$new()`); solved by
-  ordering `SurvivalKKWeibullFrailtyOneLikLeaf` BEFORE
-  `SurvivalKKWeibullFrailtyOneLik` in the factory's `components =` vector
+  ordering `SurvivalKKWeibullFrailtyNormalOneLikLeaf` BEFORE
+  `SurvivalKKWeibullFrailtyNormalOneLik` in the factory's `components =` vector
   so the abstract's fuller initialize (which already calls
   `set_optimization_alg()` itself with `allow_irls = FALSE`, making the
   leaf's own pre-call redundant either way) resolves last and wins the
@@ -3305,14 +3305,14 @@ their own `[x]` entries above; they are not part of this count.)
   class on the standard golden design — no special golden-test handling
   needed since both sides already agree. Static tables updated: registry
   direct-components mapping (was still the stale single-component
-  `"SurvivalKKWeibullFrailtyOneLikLeaf"` entry); the `SurvivalKKWeibullFrailtyOneLik`
+  `"SurvivalKKWeibullFrailtyNormalOneLikLeaf"` entry); the `SurvivalKKWeibullFrailtyNormalOneLik`
   component's `provides_public_methods` (added the two new generic
   aliases). `test-full-likelihood-migration-baseline.R`, `test-mixin-
   contracts.R`, and `test-static-cleanup-guardrails.R` needed no changes
   (same reasoning as Clayton: components/canonical names were already
   present, and the guardrail pattern-matched text is still physically
   present in the file inside the renamed non-exported bindings). Added an
-  `InferenceSurvivalKKWeibullFrailtyOneLik` entry to `helper-likelihood-
+  `InferenceSurvivalKKWeibullFrailtyNormalOneLik` entry to `helper-likelihood-
   method-smoke.R`'s `should_run("survival")` block (this one was NOT
   already present, unlike Clayton), reusing `make_kk_survival_design()`.
   `test-parametric-bootstrap-lr-all-capable-classes.R` already listed this
@@ -3377,7 +3377,7 @@ their own `[x]` entries above; they are not part of this count.)
   Cauchit/Cloglog entries above were checked off individually). The KK/IVWC
   full-likelihood family (the survival IVWC classes carrying
   `likelihood_tier = "full"` metadata for baseline consistency —
-  `InferenceSurvivalKKClaytonCopulaIVWC`, `InferenceSurvivalKKWeibullFrailtyIVWC`,
+  `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`, `InferenceSurvivalKKWeibullFrailtyNormalIVWC`,
   `InferenceSurvivalKKWeibullMarginal` — plus `InferenceContinKKOLSIVWC`/
   `InferenceCountKKHurdlePoissonIVWC`) is already migrated to `Inference` as
   of the "KK And IVWC Estimators" work earlier this stretch, even though
@@ -3487,8 +3487,8 @@ their own `[x]` entries above; they are not part of this count.)
   exercised via `test-likelihood-method-smoke.R`) and
   `test-parametric-bootstrap-lr-all-capable-classes.R`. The other 5
   migrated-to-`Inference` classes (`InferenceContinKKOLSIVWC`,
-  `InferenceCountKKHurdlePoissonIVWC`, `InferenceSurvivalKKClaytonCopulaIVWC`,
-  `InferenceSurvivalKKWeibullFrailtyIVWC`,
+  `InferenceCountKKHurdlePoissonIVWC`, `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`,
+  `InferenceSurvivalKKWeibullFrailtyNormalIVWC`,
   `InferenceSurvivalKKWeibullMarginal`) deliberately do not compose
   `LikelihoodTests` and have no real score/gradient/LR-test surface to
   smoke-test; they are already verified via their own dedicated
@@ -3580,8 +3580,17 @@ their own `[x]` entries above; they are not part of this count.)
   completed 2026-08-19 above): `grep -rn "eval\s*\(\s*body\s*\(\s*
   InferenceMixinKKPassThrough" R/*.R` returns only comment lines (7 matches,
   all `#`-prefixed); zero live code occurrences.
-- [ ] Migrate KK IVWC classes to `Inference` plus `KKPassThrough`,
-  `KKCompound`, and estimator-specific components.
+- [x] Migrate KK IVWC classes to `Inference` plus `KKPassThrough`,
+  `KKCompound`, and estimator-specific components -- or, for thin leaves of
+  an already-migrated KK abstract, to that abstract.
+  **Closed 2026-08-23 (user decision):** every per-class sub-item below is
+  `[x]` and the live manifest (`inference_hierarchy_migration_summary()`)
+  shows zero concrete classes with algorithmic-compatibility ancestors. The
+  only IVWC class not directly on `inherit = Inference` is
+  `InferenceIncidKKCondLogitGLMMIVWC`, a thin leaf of the already-migrated
+  `InferenceAbstractKKCondLogitGLMM` -- one of the 11 "pending" thin leaves
+  the Base Deletion milestone records as the accepted terminal state; the
+  item's wording is amended above to say so, and the stance is final.
   **Progress 2026-08-17: `InferenceIncidKKNewcombeRiskDiff` migrated** —
   first KK/IVWC leaf moved by this effort, establishing the working recipe
   from the already-migrated `InferenceAllKKMeanDiffIVWC` template:
@@ -3717,13 +3726,13 @@ their own `[x]` entries above; they are not part of this count.)
   baseline's only failures remain the two reverted ordinal classes
   (pre-existing, tracked separately).
   **Also migrated 2026-08-17 (unnamed, found via the same audit):
-  `InferenceSurvivalKKClaytonCopulaIVWC`** — plain leaf on
+  `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`** — plain leaf on
   `InferenceKKPassThroughCompoundNoParamBootstrap` (not a raw-splice class
   like the two named targets, but the same `eval(body(...))` bootstrap
   override and a pure-passthrough `duplicate()` override). Same static-leaf
-  shape: `SurvivalKKClaytonCopulaIVWCSource` narrowed to leaf-only
+  shape: `SurvivalKKWeibullFrailtyLoggammaIVWCSource` narrowed to leaf-only
   (`dependencies = "KKCompound"`), factory composition
-  `c("BayesianBootstrap", "Wald", "SurvivalKKClaytonCopulaIVWC")` with the
+  `c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyLoggammaIVWC")` with the
   `InferenceRand` pin, `eval(body(` count 12 → 11. Golden
   `test-survival-kk-clayton-ivwc-migration-golden.R`: legacy generator uses
   the real classname (not `...Legacy`) per the naming lesson below;
@@ -3939,14 +3948,14 @@ their own `[x]` entries above; they are not part of this count.)
   dropped-labels pattern incl. the collapsed-onto-estimate degenerate
   form): all green on the first run; mixin-contracts + registry +
   partial-likelihood baseline green.
-- [x] **Progress 2026-08-18: `InferenceSurvivalKKWeibullFrailtyIVWC`
+- [x] **Progress 2026-08-18: `InferenceSurvivalKKWeibullFrailtyNormalIVWC`
   migrated** — same reshaping as the Clayton copula IVWC migration: the
-  abstract `InferenceAbstractKKWeibullFrailtyIVWC` (previously
+  abstract `InferenceAbstractKKWeibullFrailtyNormalIVWC` (previously
   self-harvested via `inference_component_source_parts()`) and its thin leaf
-  (previously the separate self-harvested `SurvivalKKWeibullFrailtyIVWCLeaf`
+  (previously the separate self-harvested `SurvivalKKWeibullFrailtyNormalIVWCLeaf`
   component, now **deleted**) were merged into a static
-  `SurvivalKKWeibullFrailtyIVWCSource`; spec `dependencies` → "KKCompound";
-  composition `c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyIVWC")`,
+  `SurvivalKKWeibullFrailtyNormalIVWCSource`; spec `dependencies` → "KKCompound";
+  composition `c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyNormalIVWC")`,
   tier "full", `InferenceRand` pin, Lesson-5 `get_standard_error`, and both
   the no-op `eval(body(...))` bootstrap override and the pure-passthrough
   public `duplicate` dropped (Clayton precedent). Static expectations
@@ -4796,23 +4805,23 @@ here (2026-08-13) rather than left as prose-only notes.
 - [x] **Same defunct-`des_obj_priv_int$dead`-field bug (see the
   `InferenceSurvivalKKLWACoxPHOneLik` entry above for the confirmed root
   cause and fix pattern) also present in `inference_survival_KK_clayton_
-  copula.R`, in BOTH `InferenceSurvivalKKClaytonCopulaIVWC` and
-  `InferenceSurvivalKKClaytonCopulaOneLik`, and in
-  `inference_survival_KK_weibull_frailty.R`'s
-  `InferenceAbstractKKWeibullFrailtyOneLik` (found 2026-08-19, FIXED
+  copula.R`, in BOTH `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC` and
+  `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik`, and in
+  `inference_survival_KK_weibull_frailty_normal.R`'s
+  `InferenceAbstractKKWeibullFrailtyNormalOneLik` (found 2026-08-19, FIXED
   2026-08-19).** Applied the same fix pattern as the LWA Cox entry to all
   three occurrences: `private$dead = private$des_obj_priv_int$dead` →
   `private$dead = as.numeric(!is.na(private$y))` (re-deriving the value the
   same way `Design$get_effective_dead()` does), in
-  `inference_survival_KK_clayton_copula.R` lines ~147 (IVWC) and ~600
+  `inference_survival_KK_weibull_frailty_loggamma.R` lines ~147 (IVWC) and ~600
   (OneLik, inside the `...LegacyRaw` raw class that both the legacy golden
   fixture and the migrated component's harvest source share) and
-  `inference_survival_KK_weibull_frailty.R` line ~727 (also inside a
+  `inference_survival_KK_weibull_frailty_normal.R` line ~727 (also inside a
   `...LegacyRaw` raw class). R-only, no C++ touched. Verified: the
   previously-crashing Clayton OneLik randomization-family methods
   (`compute_rand_two_sided_pval` etc., "Clayton copula fit inputs must have
   matching row counts") now return finite/NA values without error on both
-  legacy and migrated sides; the WeibullFrailty OneLik previously-silent-NA
+  legacy and migrated sides; the WeibullFrailtyNormal OneLik previously-silent-NA
   case also unaffected (still NA, now confirmed via the fixed code path
   rather than an accidental NULL-propagation). Simplified
   `test-survival-kk-clayton-copula-onelik-migration-golden.R` back to the
@@ -4841,14 +4850,14 @@ here (2026-08-13) rather than left as prose-only notes.
   variants) on the standard 24-subject golden design used throughout this
   stretch — confirmed to reproduce identically on a from-scratch
   reconstruction of the pre-migration OneLik class (`InferenceSurvivalKK
-  ClaytonCopulaOneLikLegacyRaw`, kept alive in the source file for
+  WeibullFrailtyLoggammaOneLikLegacyRaw`, kept alive in the source file for
   component-harvesting purposes — see that migration's Progress note in
   "Full-Likelihood Estimators" above), so this is confirmed **not** a
   migration regression on either class.
   **Everything below this point in the "Original entry" is SUPERSEDED by
   the fix note above (2026-08-19) and preserved for context only** — the
   fix applied there covers all three occurrences named below (Clayton
-  IVWC, Clayton OneLik, WeibullFrailty OneLik) and was verified via a
+  IVWC, Clayton OneLik, WeibullFrailtyNormal OneLik) and was verified via a
   package-wide grep showing zero remaining live reads of
   `des_obj_priv_int$dead` anywhere in `R/`; none of the "not investigated"/
   "not fixed"/"whoever picks this up" language below reflects the current
@@ -4865,12 +4874,12 @@ here (2026-08-13) rather than left as prose-only notes.
   this up should also grep the rest of the KK survival files~~ — done as
   part of the fix above (all three occurrences found and fixed together).
   **Confirmed 2026-08-19: also present in `inference_survival_KK_weibull_
-  frailty.R`'s `InferenceAbstractKKWeibullFrailtyOneLik` (line ~727,
+  frailty.R`'s `InferenceAbstractKKWeibullFrailtyNormalOneLik` (line ~727,
   identical `private$dead = private$des_obj_priv_int$dead` reassignment).**
   Here it manifests as a silent `NA` from `compute_rand_two_sided_pval()`
   rather than a hard error or crash — verified identical on both the
-  from-scratch `InferenceSurvivalKKWeibullFrailtyOneLikLegacyRaw` class and
-  the migrated `InferenceSurvivalKKWeibullFrailtyOneLik` on the standard
+  from-scratch `InferenceSurvivalKKWeibullFrailtyNormalOneLikLegacyRaw` class and
+  the migrated `InferenceSurvivalKKWeibullFrailtyNormalOneLik` on the standard
   golden design, so no golden-test workaround was needed (unlike the
   Clayton instances above, both sides already silently agree). ~~Not
   fixed, same scoping rationale~~ — fixed 2026-08-19 along with the other
@@ -5810,7 +5819,43 @@ here (2026-08-13) rather than left as prose-only notes.
 
 ### Static Cleanup
 
-- [ ] Ban raw component splicing outside `define_inference_class()`.
+- [x] Ban raw component splicing outside `define_inference_class()`.
+  **Completed 2026-08-23.** The guardrail's frozen 20-file count table is
+  gone; `test-static-cleanup-guardrails.R` ("static cleanup guardrail bans
+  raw component splicing") now asserts a structural invariant with no
+  counts in it: (1) `InferenceMixin*$public/private`, legacy
+  `inference_*_components$...` compositions, and hoisted
+  `inference_*_private` lists are spliced nowhere (`integer(0)`); (2) each
+  `InferenceExt*` list is a single-host file-split (spliced into exactly
+  one file, and only a file defining a retained legacy ladder generator --
+  the registry's `EDI_INFERENCE_ABSTRACT_CLASS_NAMES` minus the root, the
+  same enumeration `test-inference-class-registry.R`'s new "retained legacy
+  ladder generators are enumerated, real, and have no concrete
+  descendants" test pins); (3) a component `*Source` is consumed only by
+  the factory or by its own defining file. What was eliminated: the 11
+  hoisted `inference_<x>_public/_private` list objects
+  (stereotype/contratio, modified Poisson, composite likelihood,
+  zero-augmented count, binomial identity, logit, probit, log-binomial,
+  ordered probit, dependent-censoring transform, Weibull) inlined into
+  their one `*Source` literal; the `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik`
+  and `InferenceAbstractKKWeibullFrailtyNormalOneLik`/leaf `...LegacyRaw`
+  generators turned into plain leaf-only Sources depending on
+  `KKPassThrough` (their migration goldens rebuild the legacy generators
+  from source + mixin, as the hurdle/cond-logit OneLik goldens already
+  did); the classic `InferenceCountLikelihood` ladder generator (zero
+  inheritors) deleted and `CountLikelihoodPlumbingSource` collapsed to one
+  literal (the `@name InferenceCountLikelihood` roxygen topic kept on the
+  Source so cross-references stay valid); the two StandardModelCache bases
+  mounted from their own canonical `StandardModelCacheSource`; and the two
+  KK compound bases (`InferenceKKPassThroughCompound`/`...NoParamBootstrap`)
+  assembled through `define_inference_class(inherit = <ladder>, components
+  = "KKCompound", ...)` instead of `compose_inference_mixins()` +
+  `$public`/`$private` splicing (their Collate position, with
+  `inference_all_abstract_quantile_rand_ci.R`, moved after
+  `inference_all_abstract.R` because the factory resolves `inherit`
+  eagerly). The only hand-assembly left in the package is the retained
+  legacy ladder's own `InferenceExt*` file-splits, which is exactly what
+  invariant (2) permits and nothing else.
   **Progress 2026-08-16:** `InferenceOrdinalPairedSignTest` now composes
   `KKPassThrough` through the factory with explicit public/private overrides,
   removing both of its raw generator-slot splices. `InferenceContinKKGLMM` now
@@ -5844,10 +5889,10 @@ here (2026-08-13) rather than left as prose-only notes.
   identity for all seven directly composed hosts.
   **Completed 2026-08-19**: removed the last two occurrences in the whole
   tree, both inside the `...LegacyRaw` harvesting classes for
-  `InferenceSurvivalKKClaytonCopulaOneLik`/
-  `InferenceSurvivalKKWeibullFrailtyOneLik`
-  (`inference_survival_KK_clayton_copula.R`,
-  `inference_survival_KK_weibull_frailty.R`) -- same verified-no-op
+  `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik`/
+  `InferenceSurvivalKKWeibullFrailtyNormalOneLik`
+  (`inference_survival_KK_weibull_frailty_loggamma.R`,
+  `inference_survival_KK_weibull_frailty_normal.R`) -- same verified-no-op
   reasoning as every prior removal (each class already splices
   `InferenceMixinKKPassThrough$public` directly, so the raw source's own
   `approximate_bootstrap_distribution_beta_hat_T` was already present
@@ -5899,9 +5944,35 @@ here (2026-08-13) rather than left as prose-only notes.
   files (`test-kk-quantile-regr-ivwc-migration-golden.R`/`...-onelik-...`,
   including the proportion-response path this exact check gates) -- all
   green, confirming the capability swap is behavior-preserving.
-- [ ] Ban component redeclaration of root-owned state. A 2026-08-16 guardrail
-  now freezes the eight remaining legacy KK component violation sets so no new
-  redeclarations can enter while those components are migrated.
+- [x] Ban component redeclaration of root-owned state. A 2026-08-16 guardrail
+  froze the eight remaining legacy KK component violation sets so no new
+  redeclarations could enter while those components were migrated.
+  **Completed 2026-08-23.** The frozen set (16 components at its last
+  ratchet: `m`, `optimization_alg`, `cached_vc_params`, and the KK
+  pass-through family's `y_temp`/`dead`/`w`/`X`/`any_censoring`) is empty:
+  every root-owned field was removed from its component source and moved
+  from `owns_state` to `requires_state` (`KKPassThrough`, `KKGLMM`, `KKGEE`,
+  `KKQuantileRegrIVWC/OneLik`, `KKLWACoxOneLikPartialLikelihood`,
+  `CountKKHurdlePoissonOneLikLikelihood`,
+  `SurvivalKKStratCoxOneLikPartialLikelihood`, `ZeroAugmentedCountLikelihood`,
+  `SurvivalDepCensTransform`, `SurvivalKKWeibullMarginal`, the four
+  `SurvivalKKWeibullFrailtyLoggamma*/WeibullFrailtyNormal*` components). The one
+  behavior-bearing redeclaration -- the `optimization_alg = "lbfgs"`
+  private-list default the KK pass-through/GLMM/OneLik sources carried
+  (read directly by their C++ fit calls, and not otherwise set by hosts
+  that never call `set_optimization_alg()`) -- is now established through
+  the root's own setter (`set_optimization_alg(NULL, default = "lbfgs")`,
+  only when still `NULL`) at the top of `init_kk_passthrough()` /
+  `init_kk_glmm_shared()`, so hosts that choose an optimizer first keep
+  it. Enforced twice: `validate_inference_class_definition()` now rejects
+  any class composing a component whose `owns_state` intersects the root
+  generator's private fields (walking `inherit` to the root, falling back
+  to `Inference` by name during the lazy-ladder Collate window), and
+  `test-static-cleanup-guardrails.R` ("no component redeclares root-owned
+  state") asserts the empty intersection for every spec and every lazy
+  source plus the factory rejection on a throwaway component. The
+  Definition-of-Done bullet "every mutable field has one owner" (Source
+  Invariant 15) is now met.
 - [x] Ban scaffold components in effective component sets. Enforced by
   `test-mixin-contracts.R` for both direct and dependency-resolved components.
 - [x] Ban implicit method and state collisions. Factory validation rejects
@@ -5910,9 +5981,12 @@ here (2026-08-13) rather than left as prose-only notes.
 
 ### Regression Gates
 
-- [ ] Before migrating a family, add focused golden tests for estimates,
+- [x] Before migrating a family, add focused golden tests for estimates,
   standard errors, confidence intervals, p-values, and applicable bootstrap or
-  randomization distributions.
+  randomization distributions. **Verified 2026-08-23:** every migrated family
+  landed with a `tests/testthat/test-*-migration-golden.R` file (40+ such
+  files, simple mean-diff/Wilcox through every KK/IVWC/OneLik family), and
+  the per-class migration push is complete (see "Base Deletion" milestone).
 - [x] Add finite smoke tests for every class with
   `parametric_likelihood_bootstrap`. **Completed 2026-08-17:** added a
   registry-driven, table-based finite likelihood-ratio bootstrap smoke case for
@@ -5928,12 +6002,48 @@ here (2026-08-13) rather than left as prose-only notes.
   tree without recompilation: the every-class suite passed 259 expectations,
   the existing focused family suite passed 100 expectations, and the inference
   registry suite passed with no failures or warnings.
-- [ ] Add focused tests for count likelihood families, standard-model-cache
+- [x] Add focused tests for count likelihood families, standard-model-cache
   families, KK pass-through families, KK compound families, and likelihood-test
-  families.
-- [ ] Run `Rscript fast_roxygenize.R` after exported API, class name,
-  inheritance, or roxygen changes.
-- [ ] Keep package load and targeted tests passing after each migrated family.
+  families. **Completed 2026-08-23.** KK compound
+  (`test-kk-compound-merged-pass.R`,
+  `test-kk-ivwc-compound-focused-regression.R`), KK pass-through (the KK
+  `*-migration-golden.R` files), likelihood-test families
+  (`test-likelihood-test-memoization.R`, `test-ext-likelihood-test-memoization.R`),
+  standard-model-cache (`test-ordinal-{cloglog,cauchit,prop-odds}-migration-golden.R`)
+  and count KK families (`test-count-kk-*-migration-golden.R`) already
+  existed; the missing piece -- the *non-KK* count likelihood families --
+  landed as `test-count-likelihood-families-focused.R` (31 tests, 874
+  expectations, ~35s): for InferenceCountPoisson/NegBin/HurdlePoisson/
+  HurdleNegBin/ZeroInflatedPoisson/ZeroInflatedNegBin (full tier) plus a
+  lighter QuasiPoisson/RobustPoisson block, it checks estimate/SE/CI/p
+  well-formedness and Wald consistency (half-width = z x SE, p =
+  2*pnorm(-|est/se|), shifted-null p = 1 at the estimate and 0.05 at the
+  CI bound, the design-conservative public CI/p = union/max with jackknife
+  where available), score/LR/gradient p-values and CIs against the Wald
+  ones, a B = 5 parametric LR bootstrap, seed-deterministic nonparametric
+  bootstrap and randomization distributions, external references
+  (`stats::glm` Poisson to 1e-6; `MASS::glm.nb`; `pscl::hurdle`/`zeroinfl`
+  count-part coefficients, skipped if pscl is absent; HC0 sandwich for
+  RobustPoisson), and a registry guard that the covered set equals the
+  registry's non-KK concrete `InferenceCount*` classes by tier. Observed
+  while writing it, recorded rather than pinned: the family CIs depend on
+  the configured testing type (default "wald" returns the Wald interval);
+  HurdleNegBin/zero-augmented `compute_asymp_*` ignore the testing type;
+  HurdlePoisson's Rcpp hurdle part stores logit P(Y = 0) while its roxygen
+  says P(Y > 0) (pscl reports the opposite sign); HurdlePoisson/ZIP
+  `get_standard_error()` is a sandwich SE while the summary table is
+  model-based.
+- [x] Run `Rscript fast_roxygenize.R` after exported API, class name,
+  inheritance, or roxygen changes. **Verified current 2026-08-23:** an
+  independent `fast_roxygenize.R` run in an isolated copy of `R/EDI`
+  regenerated `man/`, `NAMESPACE`, and both `RcppExports` files with zero
+  diff against the working tree.
+- [x] Keep package load and targeted tests passing after each migrated family.
+  **Verified 2026-08-23** (`pkgload::load_all(compile = FALSE)` on the
+  current tree): `test-inference-class-registry.R` (24 tests incl. "no
+  concrete class descends from an algorithmic compatibility base"),
+  `test-static-cleanup-guardrails.R` (5), `test-mixin-contracts.R` (26),
+  `test-capability-tables.R` (6) -- all zero failed/error/warning.
 
 ### Design-Side Discovery API
 
@@ -6010,7 +6120,12 @@ here (2026-08-13) rather than left as prose-only notes.
   survival data" sub-case is not yet covered by a dedicated test — no
   existing test file in this package currently builds a `y_R`-bearing
   interval-censored design fixture; adding one is a larger, separate task.
-- [ ] Document and export the method, and run `Rscript fast_roxygenize.R`.
+- [x] Document and export the method, and run `Rscript fast_roxygenize.R`.
+  **Verified done 2026-08-23:** `man/Design.Rd` now carries both
+  `applicable_inference_class_names()` and
+  `unavailable_inference_classes_due_to_missing_packages()` method sections,
+  and the regenerated docs match the tree (see the Regression Gates
+  roxygenize item above).
   **Partially done 2026-08-16:** both new `Design` methods are fully
   roxygen-documented (`@description`/`@param`/`@return`); no separate
   `@export` tag is needed since they're public methods on the
@@ -6248,8 +6363,8 @@ here (2026-08-13) rather than left as prose-only notes.
     - `log_time_ratio` (Weibull AFT scale, own roxygen confirms "log-time
       ratio"/"log-time-ratio scale" for every one of these):
       `SurvivalWeibullRegr`, `SurvivalKKWeibullMarginal`,
-      `SurvivalKKWeibullFrailtyIVWC`/`SurvivalKKWeibullFrailtyOneLik`,
-      `SurvivalKKClaytonCopulaIVWC`/`SurvivalKKClaytonCopulaOneLik`.
+      `SurvivalKKWeibullFrailtyNormalIVWC`/`SurvivalKKWeibullFrailtyNormalOneLik`,
+      `SurvivalKKWeibullFrailtyLoggammaIVWC`/`SurvivalKKWeibullFrailtyLoggammaOneLik`.
     - `gehan_wilcoxon_statistic` (Peto-Prentice generalized-Wilcoxon rank
       statistic -- deliberately given its own tag, distinct from
       `log_rank_martingale_difference`, since the two use different

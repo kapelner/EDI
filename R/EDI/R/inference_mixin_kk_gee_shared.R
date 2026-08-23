@@ -206,7 +206,6 @@ InferenceMixinKKGEEShared = list(
 		}
 	),
 	private = list(
-		m = NULL,
 		use_rcpp = TRUE,
 		max_abs_reasonable_coef = 1e4,
 		kk_gee_engine = TRUE,

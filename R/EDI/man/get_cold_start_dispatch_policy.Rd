@@ -12,6 +12,12 @@ A named list with \code{default} (logical, the fallback when no
   \code{inference_class_overrides} (a named logical vector: regular-expression
   pattern names to \code{TRUE}/\code{FALSE} values, matched against the
   inference class name).
+These \code{TRUE}/\code{FALSE} defaults are empirical performance
+judgments computed on the maintainer's machine, not correctness facts —
+the same heuristic can be net-positive or net-negative depending on
+your hardware's core count, cache sizes, and BLAS backend. Run
+\code{\link{tune_EDI_for_this_machine}} to re-measure this axis on your
+own machine and persist any better setting it finds.
 }
 \description{
 Returns EDI's built-in policy table, consulted by the internal (non-exported)
@@ -39,5 +45,7 @@ get_cold_start_dispatch_policy()
 \code{\link{get_bootstrap_dispatch_policy}} and
   \code{\link{get_optimization_dispatch_policy}} for the analogous policies
   controlling bootstrap CI type and default optimizer algorithm;
-  \code{\link{set_cold_start_dispatch_policy}} to override this policy at runtime.
+  \code{\link{set_cold_start_dispatch_policy}} to override this policy at
+  runtime; \code{\link{tune_EDI_for_this_machine}} to re-benchmark it on
+  your own hardware.
 }

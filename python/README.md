@@ -104,7 +104,7 @@ speed-gains table above since there's nothing to compare to:
 | `InferenceOrdinalGLMM (pairs)` | Proportional-odds ordinal GLMM, random intercept | same — no pure-Python ML ordinal-GLMM fitter |
 | `InferenceOrdinalStereotypeLogitRegr` | Stereotype logit ordinal regression | R uses `VGAM::vglm(multinomial(...))`-style fitting; no Python package implements this link |
 | `InferencePropZeroOneInflatedBetaRegr` | Zero-one-inflated beta regression (proportions) | no canonical package in either R or Python |
-| `InferenceSurvivalKKWeibullFrailtyOneLik` | Weibull AFT with shared log-normal frailty | no clean Python package (even the R side only has a partial/PH-parameterized `frailtypack` analog) |
+| `InferenceSurvivalKKWeibullFrailtyNormalOneLik` | Weibull AFT with shared log-normal frailty | no clean Python package (even the R side only has a partial/PH-parameterized `frailtypack` analog) |
 
 ## Install
 

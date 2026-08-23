@@ -5,8 +5,8 @@
 \title{Beta Regression Inference for Proportion Responses}
 \description{
 Fits Ferrari and Cribari-Neto's (2004) beta regression for proportion
-responses \eqn{Y_i \in (0, 1)}: \eqn{\mathrm{logit}(E[Y_i \mid W_i, X_i]) =
-\beta_0 + \beta_T W_i + X_i^\top \gamma}, \eqn{Y_i \mid W_i, X_i \sim
+responses \eqn{Y_i \in (0, 1)}: \eqn{\mathrm{logit}(E[Y_i \mid w_i, x_i]) =
+\beta_0 + \beta_T w_i + x_i^\top \gamma}, \eqn{Y_i \mid w_i, x_i \sim
 \mathrm{Beta}(\mu_i \phi, (1-\mu_i)\phi)} for fitted mean \eqn{\mu_i} and a
 single (constant, not covariate-dependent) precision parameter \eqn{\phi},
 by maximum likelihood (\code{\link{fast_beta_regression_cpp}}/
@@ -93,8 +93,8 @@ Ferrari, S., and Cribari-Neto, F. (2004). "Beta regression for
 \if{latex}{\out{\hypertarget{method-InferencePropBetaRegr-initialize}{}}}
 \subsection{\code{InferencePropBetaRegr$new()}}{
   Initialize inference for the beta regression model
-  \eqn{\mathrm{logit}(E[Y_i \mid W_i, X_i]) = \beta_0 + \beta_T W_i +
-  X_i^\top \gamma}, \eqn{Y_i \sim \mathrm{Beta}(\mu_i \phi, (1-\mu_i)
+  \eqn{\mathrm{logit}(E[Y_i \mid w_i, x_i]) = \beta_0 + \beta_T w_i +
+  x_i^\top \gamma}, \eqn{Y_i \sim \mathrm{Beta}(\mu_i \phi, (1-\mu_i)
   \phi)}; see
   \code{\link[EDI:InferencePropBetaRegr]{InferencePropBetaRegr}} for the
   model form. Does not fit the model; the fit is deferred to the first

@@ -267,8 +267,8 @@ ships a checkable reference implementation.
 | `InferenceSurvivalKKStratCoxOneLik` | `fast_stratified_coxph_regression_cpp` | Borderline | No — same |
 | `InferenceSurvivalWeibullRegr` | `fast_weibull_regression_cpp` | Borderline | No — AFT-style location/scale structure, closer in spirit to NegBin/Beta than to a plain GLM |
 | `InferenceSurvivalDepCensTransformRegr` | `fast_dep_cens_transform_optim_cpp` | Difficult | No — highly custom combined event/censoring likelihood |
-| `InferenceSurvivalKKWeibullFrailtyOneLik` | `fast_weibull_frailty_cpp` | Difficult | No — frailty integration |
-| `InferenceSurvivalKKClaytonCopulaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | Difficult | No — copula dependence |
+| `InferenceSurvivalKKWeibullFrailtyNormalOneLik` | `fast_weibull_frailty_cpp` | Difficult | No — frailty integration |
+| `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | Difficult | No — copula dependence |
 
 **Totals**: Easy = 10, Borderline = 12, Difficult = 12 (34 paths) — identical tier counts
 to the Bartlett report, since the same structural conditions gate both corrections. The

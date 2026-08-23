@@ -50,5 +50,7 @@ set_warm_start_dispatch_policy(reset = TRUE)
 \code{\link{get_warm_start_dispatch_policy}} for the policy schema
   and built-in defaults; \code{\link{set_cold_start_dispatch_policy}} for
   the analogous, simpler single-layer setter governing the initial
-  cold-start heuristic.
+  cold-start heuristic; \code{\link{tune_EDI_for_this_machine}}, which
+  calls this setter with machine-measured overrides rather than
+  hand-picked ones.
 }

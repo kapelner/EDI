@@ -558,11 +558,25 @@ unset_num_cores = function() {
 #'   class name) and \code{serial_response_types} (a character vector of exact
 #'   response-type strings) — any match in either forces that operation to run
 #'   serially rather than in parallel.
+#' Unlike \code{\link{get_cold_start_dispatch_policy}},
+#' \code{\link{get_warm_start_dispatch_policy}}, and
+#' \code{\link{get_optimization_dispatch_policy}}, this table is a
+#' \strong{correctness} fact, not a performance one — every entry exists
+#' because that operation is not currently parallel-safe for that class or
+#' response type, not because it happens to be slower in parallel.
+#' \code{\link{tune_EDI_for_this_machine}} benchmarks a related but
+#' separate question — at what sample size parallel execution starts to
+#' beat serial, and which core count wins — and will never propose
+#' un-serializing anything named here.
+#'
 #' @seealso \code{\link{get_bootstrap_dispatch_policy}},
 #'   \code{\link{get_cold_start_dispatch_policy}}, and
 #'   \code{\link{get_optimization_dispatch_policy}} for the analogous policies
 #'   controlling bootstrap CI type, cold-start behavior, and default optimizer
-#'   algorithm (none of which control parallel-vs-serial dispatch).
+#'   algorithm (none of which control parallel-vs-serial dispatch);
+#'   \code{\link{tune_EDI_for_this_machine}} for the machine-dependent
+#'   parallel-crossover/core-count benchmark this blocklist constrains but
+#'   is never itself a target of.
 #' @examples
 #' get_parallel_dispatch_policy()
 #' @export
@@ -694,11 +708,22 @@ edi_env$bootstrap_dispatch_policy_config = get_bootstrap_dispatch_policy()
 #'   \code{inference_class_overrides} (a named character vector: regular-expression
 #'   pattern names to algorithm-name values, matched against the inference class
 #'   name).
+#' Which algorithm converges fastest/most reliably per family is partly a
+#' hardware fact (relative cost of Hessian solves vs. L-BFGS iterations
+#' depends on BLAS and cache), so these defaults, computed on the
+#' maintainer's machine, are not necessarily optimal on yours. Run
+#' \code{\link{tune_EDI_for_this_machine}} to re-measure this axis on your
+#' own machine — it will only switch a family's algorithm when the
+#' candidate converges on every benchmark replicate, never trading speed
+#' for a convergence failure.
+#'
 #' @seealso \code{\link{get_bootstrap_dispatch_policy}} and
 #'   \code{\link{get_cold_start_dispatch_policy}} for the analogous policies
 #'   controlling bootstrap CI type and cold-start behavior;
 #'   \code{\link{.normalize_optimizer_algorithm}} for how a resolved algorithm
-#'   string is validated/normalized before being passed to a C++ backend.
+#'   string is validated/normalized before being passed to a C++ backend;
+#'   \code{\link{tune_EDI_for_this_machine}} to re-benchmark this policy on
+#'   your own hardware.
 #' @examples
 #' get_optimization_dispatch_policy()
 #' @export
@@ -708,8 +733,8 @@ get_optimization_dispatch_policy = function() {
     inference_class_overrides = c(
       "^InferenceCountKKGLMM$"  = "newton_raphson",
       "KKGLMM$"                 = "lbfgs",
-      "KKWeibullFrailtyIVWC$"   = "lbfgs",
-      "KKWeibullFrailtyOneLik$" = "lbfgs",
+      "KKWeibullFrailtyNormalIVWC$"   = "lbfgs",
+      "KKWeibullFrailtyNormalOneLik$" = "lbfgs",
       "KKHurdlePoissonIVWC$"    = "lbfgs",
       "KKHurdlePoissonOneLik$"  = "lbfgs",
       "KKCondPoissonOneLik$"       = "lbfgs",
@@ -731,7 +756,7 @@ get_optimization_dispatch_policy = function() {
       "InferenceOrdinalCloglogRegr$" = "lbfgs",
       "InferenceSurvivalWeibullRegr$" = "lbfgs",
       "InferenceSurvivalStratCoxPHRegr$" = "newton_raphson",
-      "InferenceSurvivalKKClaytonCopulaOneLik$" = "lbfgs",
+      "InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$" = "lbfgs",
       "InferenceIncidKKCondLogitGLMMOneLik$"   = "lbfgs"
     )
   )
@@ -927,7 +952,7 @@ get_warm_start_dispatch_policy = function() {
         wn("^InferenceCountNegBin$", n_max = 1000L),
         wn("^InferenceContinQuantileRegr$", n_min = 500L),
         wn("^InferenceOrdinalGCompMeanDiff$", n_min = 500L),
-        wn("^InferenceSurvivalKKClaytonCopulaIVWC$", n_min = 1000L),
+        wn("^InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$", n_min = 1000L),
         wn("^InferenceOrdinalOrderedProbitRegr$", n_min = 1000L),
         wn("^InferenceSurvivalDepCensTransformRegr$", n_min = 1000L),
         wn("^InferenceSurvivalGehanWilcox$", n_min = 1000L),
@@ -1002,7 +1027,7 @@ get_warm_start_dispatch_policy = function() {
         wn("^InferenceOrdinalContRatioRegr$", n_max = 500L),
         wn("^InferenceSurvivalKKStratCoxPHOneLik$", n_max = 500L),
         wn("^InferenceOrdinalKKCLMMCauchit$", n_max = 1000L),
-        wn("^InferenceSurvivalKKClaytonCopulaOneLik$", n_min = 500L),
+        wn("^InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$", n_min = 500L),
         wn("^InferenceIncidKKCondLogitGLMMOneLik$", n_min = 500L),
         wn("^InferenceIncidModifiedPoisson$", n_min = 500L),
         wn("^InferenceOrdinalKKCLMM$", n_min = 500L),
@@ -1035,9 +1060,9 @@ get_warm_start_dispatch_policy = function() {
       n_conditioned_overrides = list(
         wn("^InferencePropBetaRegr$", n_max = 200L),
         wn("^InferenceOrdinalKKCondAdjCatLogitRegr$", n_max = 200L),
-        wn("^InferenceSurvivalKKClaytonCopulaOneLik$", n_max = 200L),
+        wn("^InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$", n_max = 200L),
         wn("^InferenceSurvivalKKStratCoxPHOneLik$", n_max = 200L),
-        wn("^InferenceSurvivalKKWeibullFrailtyIVWC$", n_max = 200L),
+        wn("^InferenceSurvivalKKWeibullFrailtyNormalIVWC$", n_max = 200L),
         wn("^InferenceContinKKOLSIVWC$", n_max = 500L),
         wn("^InferenceContinKKRobustRegrIVWC$", n_max = 500L),
         wn("^InferencePropKKQuantileRegrIVWC$", n_max = 500L),
@@ -1099,7 +1124,9 @@ edi_env$warm_start_dispatch_policy_config = get_warm_start_dispatch_policy()
 #' @seealso \code{\link{get_warm_start_dispatch_policy}} for the policy schema
 #'   and built-in defaults; \code{\link{set_cold_start_dispatch_policy}} for
 #'   the analogous, simpler single-layer setter governing the initial
-#'   cold-start heuristic.
+#'   cold-start heuristic; \code{\link{tune_EDI_for_this_machine}}, which
+#'   calls this setter with machine-measured overrides rather than
+#'   hand-picked ones.
 #' @examples
 #' set_warm_start_dispatch_policy(reset = TRUE)
 #' @export
@@ -1210,8 +1237,13 @@ edi_warm_start_dispatch_policy = function(inference_class, operation, n = NULL) 
 #'   invisibly the current policy configuration list when called for its
 #'   side-effect-free query/reset value.
 #' @seealso \code{\link{get_parallel_dispatch_policy}} for the policy schema and
-#'   built-in defaults; \code{\link{set_num_cores}} for setting the actual
-#'   worker-count upper bound this policy operates within.
+#'   built-in defaults (including why this table is a safety blocklist, not
+#'   a performance one); \code{\link{set_num_cores}} for setting the actual
+#'   worker-count upper bound this policy operates within;
+#'   \code{\link{tune_EDI_for_this_machine}} for the separate,
+#'   machine-dependent question of when parallel execution is
+#'   \emph{worthwhile} (never applied here — this policy is only ever
+#'   overridden explicitly, by you).
 #' @examples
 #' set_parallel_dispatch_policy(reset = TRUE)
 #'
@@ -1276,7 +1308,10 @@ set_parallel_dispatch_policy = function(policy = NULL, reset = FALSE) {
 #' @seealso \code{\link{get_optimization_dispatch_policy}} for the policy
 #'   schema and built-in defaults; \code{\link{set_cold_start_dispatch_policy}}
 #'   and \code{\link{set_warm_start_dispatch_policy}} for the analogous setters
-#'   governing cold-start and warm-start behavior.
+#'   governing cold-start and warm-start behavior;
+#'   \code{\link{tune_EDI_for_this_machine}}, which calls this setter with
+#'   machine-measured, convergence-checked overrides rather than
+#'   hand-picked ones.
 #' @examples
 #' set_optimization_dispatch_policy(reset = TRUE)
 #' @export

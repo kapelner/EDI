@@ -44,5 +44,7 @@ set_cold_start_dispatch_policy(reset = TRUE)
 \code{\link{get_cold_start_dispatch_policy}} for the policy schema
   and built-in defaults; \code{\link{set_warm_start_dispatch_policy}} and
   \code{\link{set_optimization_dispatch_policy}} for the analogous setters
-  governing warm-starting and optimizer-algorithm choice.
+  governing warm-starting and optimizer-algorithm choice;
+  \code{\link{tune_EDI_for_this_machine}}, which calls this setter with
+  machine-measured overrides rather than hand-picked ones.
 }

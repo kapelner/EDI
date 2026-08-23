@@ -26,8 +26,8 @@
 #' shared \code{Gamma(1/theta, 1/theta)} term and has a closed-form marginal
 #' survival function via the frailty's Laplace transform. That model is implemented
 #' in this package as the \strong{Clayton copula} of
-#' \code{\link[EDI:InferenceSurvivalKKClaytonCopulaIVWC]{InferenceSurvivalKKClaytonCopulaIVWC}} /
-#' \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaIVWC]{InferenceSurvivalKKWeibullFrailtyLoggammaIVWC}} /
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaOneLik]{InferenceSurvivalKKWeibullFrailtyLoggammaOneLik}}
 #' (the Clayton copula with Weibull margins is exactly the closed-form bivariate
 #' survival function obtained by integrating a shared gamma frailty out of two
 #' conditionally-independent Weibull hazards). Prefer this log-normal-frailty class
@@ -43,26 +43,26 @@
 #' native Rcpp likelihood with covariate adjustment, dropping rank-deficient
 #' columns when needed.
 #'
-#' @seealso \code{\link[EDI:InferenceSurvivalKKClaytonCopulaIVWC]{InferenceSurvivalKKClaytonCopulaIVWC}}
+#' @seealso \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaIVWC]{InferenceSurvivalKKWeibullFrailtyLoggammaIVWC}}
 #'   for the corresponding gamma-frailty (Clayton copula) IVWC estimator.
 #' @keywords internal
 # Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
-# IVWC Estimators", same reshaping as SurvivalKKClaytonCopulaIVWC): this block
-# previously defined the abstract base `InferenceAbstractKKWeibullFrailtyIVWC`
+# IVWC Estimators", same reshaping as SurvivalKKWeibullFrailtyLoggammaIVWC): this block
+# previously defined the abstract base `InferenceAbstractKKWeibullFrailtyNormalIVWC`
 # on `InferenceKKPassThroughCompoundNoParamBootstrap` (self-harvested into the
 # registered component via inference_component_source_parts()), whose only
-# descendant was the thin `InferenceSurvivalKKWeibullFrailtyIVWC` leaf (an
+# descendant was the thin `InferenceSurvivalKKWeibullFrailtyNormalIVWC` leaf (an
 # optimization_alg setter + delegation, self-harvested as the separate
 # now-deleted ...IVWCLeaf component). Abstract + leaf are merged into this
 # static source; the leaf's factory call sits where the concrete R6 class used
 # to be, further down this file. The abstract's `eval(body(...))` bootstrap
 # override and its pure-passthrough public `duplicate` were both dropped
 # (same verified-no-op/passthrough argument as the Clayton IVWC migration).
-SurvivalKKWeibullFrailtyIVWCSource = list(
+SurvivalKKWeibullFrailtyNormalIVWCSource = list(
 	public = list(
 		#' @description Initialize KK Weibull-frailty IVWC survival inference and
 		#'   prepare matched/reservoir parametric survival components used by
-		#'   \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyIVWC]{InferenceSurvivalKKWeibullFrailtyIVWC}}.
+		#'   \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyNormalIVWC]{InferenceSurvivalKKWeibullFrailtyNormalIVWC}}.
 		#' @param des_obj  	A DesignSeqOneByOne object (must be a KK design).
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
@@ -132,11 +132,8 @@ SurvivalKKWeibullFrailtyIVWCSource = list(
 			se = private$cached_values$s_beta_hat_T
 			if (is.null(se) || length(se) != 1L) NA_real_ else se
 		},
-		optimization_alg = NULL,
 		best_par = NULL,
 		best_X_colnames = NULL,
-		any_censoring = NULL,
-		m = NULL,
 		cached_mod = NULL,
 		best_X_colnames_matched = NULL,
 		best_X_colnames_reservoir = NULL,
@@ -415,47 +412,45 @@ SurvivalKKWeibullFrailtyIVWCSource = list(
 #' Abstract class for Weibull Frailty Combined-Likelihood Inference
 #'
 #' One-likelihood (combined matched-pair + reservoir) analog of
-#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyIVWC]{InferenceSurvivalKKWeibullFrailtyIVWC}}:
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyNormalIVWC]{InferenceSurvivalKKWeibullFrailtyNormalIVWC}}:
 #' same Weibull-AFT-with-log-normal-random-intercept (Gaussian, Gauss-Hermite
 #' quadrature) frailty assumption for matched pairs, but the matched-pair and
 #' reservoir contributions are fit as a single combined likelihood rather than
 #' combined by inverse-variance weighting. See
-#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyIVWC]{InferenceSurvivalKKWeibullFrailtyIVWC}}
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyNormalIVWC]{InferenceSurvivalKKWeibullFrailtyNormalIVWC}}
 #' for the frailty-distribution details and its contrast with the gamma-frailty
 #' Clayton copula model implemented by
-#' \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}.
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaOneLik]{InferenceSurvivalKKWeibullFrailtyLoggammaOneLik}}.
 #'
-#' @seealso \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
+#' @seealso \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaOneLik]{InferenceSurvivalKKWeibullFrailtyLoggammaOneLik}}
 #'   for the corresponding gamma-frailty (Clayton copula) combined-likelihood estimator.
 #' @keywords internal
-# Kept as real (internal, non-exported) R6 generators purely so the
-# pre-existing self-harvests below (`inference_component_source_parts()`)
-# can snapshot their content at load time -- migration 2026-08-19
-# (fix_inference_hierarchy.md "Full-Likelihood Estimators" / "KK And IVWC
-# Estimators"), same shape as InferenceSurvivalKKClaytonCopulaOneLik's
-# migration (see that class's header comment in
-# inference_survival_KK_clayton_copula.R for the full rationale): this
-# abstract's public/private were built via a raw
-# `modifyList(InferenceMixinKKPassThrough$public/private, list(...))`
-# splice, so the harvest necessarily captures the full flattened surface.
-# The concrete leaf below uses TRUE R6 inheritance onto this abstract (not
-# a splice), so its own harvest correctly captures only its own `initialize`
-# override. Two `super$compute_asymp_confidence_interval`/
-# `super$compute_asymp_two_sided_pval` fallback calls (reaching
-# InferenceAsympLik's generic switch dispatch, same "wald" fast-path/
-# fallback-for-others shape as InferenceIncidKKCondLogitOneLik) are rewritten
-# to `self$..._generic()` aliases -- see that class's Source header comment
-# for the full generic-`self$`-aliased-override rationale.
-InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw = R6::R6Class("InferenceAbstractKKWeibullFrailtyOneLik",
-	lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
-	public = as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(
+# Leaf-only component source (2026-08-23, fix_inference_hierarchy.md "Static
+# Cleanup" / "Ban raw component splicing"). Until 2026-08-23 this abstract
+# was an internal `...LegacyRaw` R6 generator built by a raw
+# `modifyList(InferenceMixinKKPassThrough$public/private, list(...))` splice
+# and self-harvested via `inference_component_source_parts()`, so the
+# registered `SurvivalKKWeibullFrailtyNormalOneLik` component carried the whole
+# flattened KK pass-through surface (and redeclared root-owned state). It is
+# now the same plain public/private list every other OneLik component uses;
+# KK pass-through behavior arrives through `dependencies = "KKPassThrough"`,
+# and the historical `optimization_alg = "lbfgs"` default is established by
+# `init_kk_passthrough()` through the root setter (the concrete leaf's own
+# `initialize` still calls `set_optimization_alg()` first, as before). The
+# two `super$compute_asymp_confidence_interval`/`super$compute_asymp_two_
+# sided_pval` fallback calls (reaching InferenceAsympLik's generic switch
+# dispatch) remain rewritten to `self$..._generic()` aliases -- see
+# InferenceIncidKKCondLogitOneLik's Source header comment for that rationale.
+# The migration golden test rebuilds the legacy generators from these
+# sources plus the mixin, exactly as the hurdle/cond-logit OneLik goldens do.
+SurvivalKKWeibullFrailtyNormalOneLikSource = list(
+	public = list(
 		# Generic-`self$`-aliased overrides -- see this file's header comment.
 		compute_asymp_confidence_interval_generic = InferenceAsympLik$public_methods$compute_asymp_confidence_interval,
 		compute_asymp_two_sided_pval_generic = InferenceAsympLik$public_methods$compute_asymp_two_sided_pval,
 		#' @description Initialize KK Weibull-frailty one-likelihood survival
 		#'   inference and prepare the combined parametric survival likelihood used by
-		#'   \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyOneLik]{InferenceSurvivalKKWeibullFrailtyOneLik}}.
+		#'   \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyNormalOneLik]{InferenceSurvivalKKWeibullFrailtyNormalOneLik}}.
 		#' @param des_obj A completed KK survival design object.
 		#' @param model_formula Optional formula for covariate adjustment.
 		#' @param use_rcpp Logical. If \code{TRUE}, use the internal Rcpp backend.
@@ -534,23 +529,16 @@ InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw = R6::R6Class("InferenceAbstrac
 		# eval(body(InferenceMixinKKPassThrough$public$approximate_bootstrap_
 		# distribution_beta_hat_T)) }` restatement -- verified no-op, same as
 		# every other KK leaf this stretch and the identical fix in
-		# inference_survival_KK_clayton_copula.R: this class already splices
+		# inference_survival_KK_weibull_frailty_loggamma.R: this class already splices
 		# `InferenceMixinKKPassThrough$public` via
 		# `as.list(modifyList(as.list(InferenceMixinKKPassThrough$public), list(...)))`
 		# below, so the raw source's own
 		# `approximate_bootstrap_distribution_beta_hat_T` is already present
 		# without this explicit re-evaluated copy.
-	))),
-	private = as.list(modifyList(as.list(InferenceMixinKKPassThrough$private), list(
+	),
+	private = list(
 		is_a_kk_weibull_frailty_one_lik = function() TRUE,
-		cached_mod = NULL,
-		best_X_colnames = NULL,
-		optimization_alg = "lbfgs",
-		best_par = NULL,
-		any_censoring = NULL,
-		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		use_rcpp = TRUE,
-		cached_vc_params = NULL,
 		max_abs_reasonable_coef = 1e4,
 		shared_combined_likelihood = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
@@ -784,31 +772,29 @@ InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw = R6::R6Class("InferenceAbstrac
 			if (is.null(fit) || !isTRUE(fit$converged) || length(fit$b) < 1L || !is.finite(fit$b[1L])) return(NA_real_)
 			as.numeric(fit$b[1L])
 		}
-		)))
 	)
-
-SurvivalKKWeibullFrailtyOneLikSource = inference_component_source_parts(InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw)
+)
 
 #' Weibull Frailty IVWC Inference for KK Designs
 #'
 #' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
-#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyIVWC]{InferenceSurvivalKKWeibullFrailtyIVWC}}
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyNormalIVWC]{InferenceSurvivalKKWeibullFrailtyNormalIVWC}}
 #' for the frailty-distribution details and contrast with the gamma-frailty
-#' \code{\link[EDI:InferenceSurvivalKKClaytonCopulaIVWC]{InferenceSurvivalKKClaytonCopulaIVWC}}
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaIVWC]{InferenceSurvivalKKWeibullFrailtyLoggammaIVWC}}
 #' (Clayton copula) alternative.
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "KK And IVWC Estimators"):
 # formerly a thin R6 leaf on the abstract base
-# `InferenceAbstractKKWeibullFrailtyIVWC`; abstract + leaf were merged into
-# the static `SurvivalKKWeibullFrailtyIVWCSource` earlier in this file and
+# `InferenceAbstractKKWeibullFrailtyNormalIVWC`; abstract + leaf were merged into
+# the static `SurvivalKKWeibullFrailtyNormalIVWCSource` earlier in this file and
 # the separate self-harvested ...IVWCLeaf component was deleted (same
 # reshaping as the Clayton copula IVWC migration).
-InferenceSurvivalKKWeibullFrailtyIVWC = define_inference_class(
-	classname = "InferenceSurvivalKKWeibullFrailtyIVWC",
+InferenceSurvivalKKWeibullFrailtyNormalIVWC = define_inference_class(
+	classname = "InferenceSurvivalKKWeibullFrailtyNormalIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyIVWC"),
+	components = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyNormalIVWC"),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as the
 		# other survival KK migrations (RandCI's Zhang dispatch never applies).
@@ -861,15 +847,16 @@ InferenceSurvivalKKWeibullFrailtyIVWC = define_inference_class(
 #' Weibull Frailty Combined-Likelihood Inference for KK Designs
 #'
 #' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
-#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyOneLik]{InferenceSurvivalKKWeibullFrailtyOneLik}}
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyNormalOneLik]{InferenceSurvivalKKWeibullFrailtyNormalOneLik}}
 #' for the frailty-distribution details and contrast with the gamma-frailty
-#' \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaOneLik]{InferenceSurvivalKKWeibullFrailtyLoggammaOneLik}}
 #' (Clayton copula) alternative.
 #' @keywords internal
-# Kept alive as a non-exported R6 generator for harvesting purposes -- see
-# InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw's header comment above.
-InferenceSurvivalKKWeibullFrailtyOneLikLegacyRaw = R6::R6Class("InferenceSurvivalKKWeibullFrailtyOneLik",
-	inherit = InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw,
+# Leaf-only component source for the concrete class's own `initialize`
+# (2026-08-23; until then an internal `...LegacyRaw` R6 generator inheriting
+# the abstract `...LegacyRaw` above and self-harvested -- see the
+# SurvivalKKWeibullFrailtyNormalOneLikSource header comment for the rationale).
+SurvivalKKWeibullFrailtyNormalOneLikLeafSource = list(
 	public = list(
 		#' @description Initialize the one-likelihood Weibull-frailty inference object.
 		#' @param des_obj A completed KK survival design object.
@@ -881,29 +868,28 @@ InferenceSurvivalKKWeibullFrailtyOneLikLegacyRaw = R6::R6Class("InferenceSurviva
 			self$set_optimization_alg(optimization_alg)
 			super$initialize(des_obj = des_obj, model_formula = model_formula, use_rcpp = use_rcpp, verbose = verbose)
 		}
-		)
-	)
-
-SurvivalKKWeibullFrailtyOneLikLeafSource = inference_component_source_parts(InferenceSurvivalKKWeibullFrailtyOneLikLegacyRaw)
+	),
+	private = list()
+)
 
 #' Weibull Frailty Combined-Likelihood Inference for KK Designs
 #'
 #' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
-#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyOneLik]{InferenceSurvivalKKWeibullFrailtyOneLik}}
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyNormalOneLik]{InferenceSurvivalKKWeibullFrailtyNormalOneLik}}
 #' for the frailty-distribution details and contrast with the gamma-frailty
-#' \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
+#' \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaOneLik]{InferenceSurvivalKKWeibullFrailtyLoggammaOneLik}}
 #' (Clayton copula) alternative.
 #' @export
 # Migrated 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
 # Estimators" / "KK And IVWC Estimators"): see
-# InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw's header comment above.
-InferenceSurvivalKKWeibullFrailtyOneLik = define_inference_class(
-	classname = "InferenceSurvivalKKWeibullFrailtyOneLik",
+# InferenceAbstractKKWeibullFrailtyNormalOneLikLegacyRaw's header comment above.
+InferenceSurvivalKKWeibullFrailtyNormalOneLik = define_inference_class(
+	classname = "InferenceSurvivalKKWeibullFrailtyNormalOneLik",
 	inherit = Inference,
 	components = c(
 		"BayesianBootstrap", "ParametricLikelihoodBootstrap",
-		# Component order is load-bearing here: SurvivalKKWeibullFrailtyOneLikLeaf
-		# is listed BEFORE SurvivalKKWeibullFrailtyOneLik so the abstract's
+		# Component order is load-bearing here: SurvivalKKWeibullFrailtyNormalOneLikLeaf
+		# is listed BEFORE SurvivalKKWeibullFrailtyNormalOneLik so the abstract's
 		# fuller initialize() (which handles use_rcpp/optimization_alg/
 		# init_kk_passthrough) resolves LAST and wins the collision -- the
 		# leaf's own initialize() was a `self$set_optimization_alg(...)` call
@@ -912,7 +898,7 @@ InferenceSurvivalKKWeibullFrailtyOneLik = define_inference_class(
 		# initialize (Lesson 1 corollary); the leaf's own pre-call is also
 		# redundant regardless, since the abstract's initialize calls
 		# set_optimization_alg() itself (with allow_irls = FALSE) right after.
-		"SurvivalKKWeibullFrailtyOneLikLeaf", "SurvivalKKWeibullFrailtyOneLik"
+		"SurvivalKKWeibullFrailtyNormalOneLikLeaf", "SurvivalKKWeibullFrailtyNormalOneLik"
 	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every

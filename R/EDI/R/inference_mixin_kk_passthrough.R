@@ -276,16 +276,9 @@ InferenceMixinKKPassThrough = list(
 		}
 	),
 	private = list(
-		m = NULL,
 		kk_passthrough = TRUE,
 		is_a_kk_passthrough_design = function() TRUE,
-		y_temp = NULL,
-		dead = NULL,
-		w = NULL,
-		X = NULL,
-		any_censoring = NULL,
 		best_par = NULL,
-		optimization_alg = "lbfgs",
 		cached_mod = NULL,
 		best_X_colnames = NULL,
 		best_Xmm_colnames = NULL,
@@ -310,6 +303,16 @@ InferenceMixinKKPassThrough = list(
 			FALSE
 		},
 		init_kk_passthrough = function(des_obj){
+			# Root-owned state is never redeclared by this component (fix_inference_
+			# hierarchy.md, Source Invariant 15): the optimizer default the KK
+			# pass-through classes historically carried as a private-list
+			# redeclaration (`optimization_alg = "lbfgs"`) is established here,
+			# through the root's own setter, only when the host has not already
+			# chosen one (hosts that call `set_optimization_alg()` before this
+			# keep their choice).
+			if (is.null(private$optimization_alg)) {
+				self$set_optimization_alg(NULL, default = "lbfgs")
+			}
 			if (should_run_asserts()) {
 				if (!des_obj$is_a_kk_matching_capable()) {
 					stop(class(self)[1], " requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.")

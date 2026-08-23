@@ -19,7 +19,7 @@ the frozen substrate makes it additive.
 
 ## In scope
 
-1. **`fix_inference_hierarchy.md`** — the class architecture, component and
+1. **[x] `fix_inference_hierarchy.md`** — the class architecture, component and
    capability model, and discovery API. Both hierarchy plans justify deleting
    legacy names with "the package is unreleased"; that argument expires at
    v1.0.0, so the migration must be complete before it. **Progress
@@ -31,6 +31,45 @@ the frozen substrate makes it additive.
    Wald/KK/IVWC/full-likelihood families, then **Base Deletion** — retiring
    the legacy mixin machinery — then Discovery/Static Cleanup/Regression
    Gates), which is the bulk of this item's remaining scope.
+   **Done (2026-08-23): 0 open items, moved to `../finished_features/`.**
+   The 2026-08-23 verification audit found Phase 1D's migration complete
+   (every per-class item `[x]`; live manifest: zero concrete classes with
+   algorithmic-compatibility ancestors; the retained legacy ladder kept on
+   purpose as internal component sources; 11 thin leaves of migrated
+   abstracts "pending" as the documented accepted terminal state) and four
+   items still open, all closed the same day (user decision): (a) raw
+   component splicing is now banned outright — the guardrail's 20-file
+   frozen count table is gone, replaced by a structural invariant (no
+   `InferenceMixin*`/legacy-composition/hoisted-list splices anywhere;
+   `InferenceExt*` lists are single-host file-splits of the enumerated
+   retained legacy ladder; a `*Source` is consumed only by the factory or
+   its own file), after inlining the 11 hoisted source lists, turning the
+   two `...LegacyRaw` survival KK generators into plain leaf-only sources,
+   deleting the inheritor-less `InferenceCountLikelihood` generator,
+   mounting the StandardModelCache bases from their canonical Source, and
+   assembling the two KK compound bases through `define_inference_class()`;
+   (b) component redeclaration of root-owned state is banned — the frozen
+   16-component set is empty, every root-owned field moved from
+   `owns_state` to `requires_state`, the KK `optimization_alg = "lbfgs"`
+   default now set through the root setter in `init_kk_passthrough()`/
+   `init_kk_glmm_shared()`, and `validate_inference_class_definition()`
+   rejects any recurrence (Source Invariant 15 / the "every mutable field
+   has one owner" Definition-of-Done bullet now met); (c) the KK IVWC
+   parent item reworded to cover thin leaves of migrated KK abstracts and
+   closed; (d) focused non-KK count likelihood family tests added
+   (`test-count-likelihood-families-focused.R`, 874 expectations).
+   Verified on the current tree without recompilation: registry (25
+   tests), mixin-contracts (26), capability-tables (6), static-cleanup
+   guardrails (5, now real bans), all 45 KK test files, and 32 of 36
+   non-KK migration/bootstrap/suite files green; the 4 remaining failing
+   files (`test-design-inference.R`, `test-design-inference-introspection-
+   audit.R`, `test-simple-mean-difference-migration-golden.R`,
+   `test-simple-wilcox-migration-golden.R`) fail the same way on a HEAD
+   snapshot run against the same compiled `.so` (identical failing test
+   names for the three quick files, the same single failure for the
+   audit), i.e. pre-existing and unrelated to this closure. Roxygen
+   regenerated (`fast_roxygenize.R`; no new warning classes vs. baseline).
+   Item 6 (`extending-edi-r6.md`) is now unblocked on the inference side.
 2. **[x] `fix_design_hierarchy.md`** — same contract-freeze argument, and its
    `owns_state` metadata is the prerequisite for the serialization audit
    (item 5). **Done (2026-08-17): 0 open TODOs, moved to
@@ -63,11 +102,34 @@ the frozen substrate makes it additive.
    real non-serializable-XPtr bug in `DesignFixedOptimal`'s custom-objective
    path — roxygen "Saving and loading" section, `test-save-load-design.R`),
    moved to `../finished_features/`.**
-6. **`extending-edi-r6.md`** — the external extension contract; it freezes
+6. **[x] `extending-edi-r6.md`** — the external extension contract; it freezes
    when the hierarchy plans do, per the standing constraint in `_master.md`.
-7. **`fix_documentation.md`** — CRAN requires complete documentation, and
+   **Done (2026-08-23):** rewritten against the finished shallow-hierarchy
+   architecture (both hierarchy plans closed): documents how package classes
+   are now factory-built (`define_inference_class()`/`define_design_class()`,
+   components, capability metadata, registry-only discovery), keeps the
+   three inference shells and two design shells as the sole supported
+   extension surface, states the updated subclassing rules
+   (`lock_objects = FALSE`; `capabilities()` resolves through the nearest
+   registered ancestor; external classes are never discovered; no ladder
+   inheritance, no list splicing, no root-owned state), adds a custom-design
+   example, and points in-package authors to
+   `contracts/new_model_creation.md` (itself refreshed the same day for the
+   completed migration and documentation standard). Both code examples
+   verified to run on the current tree.
+7. **[x] `fix_documentation.md`** — CRAN requires complete documentation, and
    the master ordering already sequences doc batches after the hierarchies
-   settle (regenerate the Rd snapshot after Phases 1D/1E first).
+   settle (regenerate the Rd snapshot after Phases 1D/1E first). **Done
+   (2026-08-23): 0 open R-side TODOs (all 821 closed across the whole
+   Inference* class family, tracking `fix_inference_hierarchy.md`'s
+   migration as each class became ungated), moved to
+   `../finished_features/`.** **The Python-docstring TODOs (#758-#816) are
+   also done (2026-08-23):** verified against the real
+   `python/cpp/bindings_*.cpp` pybind11 docstrings, not just the
+   checkboxes — all 59 are genuinely expanded. One stale function name
+   found and fixed (TODO #803 named a nonexistent `fast_weibull_regression`;
+   the real binding, `fast_weibull_regression_general`, already had a full
+   docstring). Item 7 is now **fully closed**, no open remainder.
 
 ### Amendments (added to the seven-plan batch)
 
@@ -79,10 +141,27 @@ the frozen substrate makes it additive.
    non-blocking branch (mirroring the blocking branch), plus a `warning()`
    for realized-allocation imbalance even at `prob_T = 0.5`. See
    `multi_arm_designs.md`'s TODO-6 for the full writeup.
-9. **`fix_roxygenize_lazy_component_srcrefs.md → R CMD check TODO`** — a
+9. **[x] `fix_roxygenize_lazy_component_srcrefs.md → R CMD check TODO`** — a
    clean `R CMD check --as-cran` is the literal gate to CRAN; it runs inside
    the release batch (after the first large doc batch, and again after Base
-   Deletion), not adjacent to it.
+   Deletion), not adjacent to it. **Done (2026-08-23):** ran a full local
+   `R CMD build` + `R CMD check --as-cran --no-manual` from a clean copy of
+   the working tree (see the plan's own writeup for the `.claude`
+   device-file build gotcha and full breakdown). Confirms the srcref fix
+   holds under the real checker. Result: 1 ERROR (environmental —
+   `tune_EDI_for_this_machine()`'s `\donttest{}` example correctly refused
+   to run under the check run's own CPU contention; re-run idle), 11
+   WARNINGs/4 NOTEs, most already tracked below. **Not yet "clean"** — see
+   the plan's writeup for a new finding this run surfaced: 18 `.Rd` files
+   (up from the "2 missing links" baseline below) now have missing/dead
+   `\link[EDI:...]{}` cross-references, plus 7 `Inference*IVWC`/`OneLik`
+   component-source classes reported as fully undocumented — looks like
+   `fix_inference_hierarchy.md`'s KK/IVWC migration fallout, not this
+   plan's doing, but it's real and CRAN-blocking (`error-on: "note"` in
+   CI). Needs its own cleanup pass before this checklist can be marked
+   clean; moved to `../finished_features/` since this plan's own scope
+   (the srcref fix + verifying it under a real check) is done — the
+   cross-reference cleanup is tracked as a new TODO-16 below instead.
 10. **CRAN submission mechanics** (owned by this file; no other plan covers
     them) — see the Release Gate checklist below.
 12. **[x] `design_fixed_optimal.md`** (added 2026-08-16, user decision) — the
@@ -176,7 +255,7 @@ the frozen substrate makes it additive.
     should just check the first plan's chosen values so the two enums
     don't collide, per each plan's own `Depends on` header.
 
-15. **`local_machine_optimization.md`** (added 2026-08-20, user decision —
+15. **[x] `local_machine_optimization.md`** (added 2026-08-20, user decision —
     moved from the v1.1.0 line; was `release_v1_1_0.md → TODO-10` and part
     of its `TODO-1` step 11). `tune_EDI_for_this_machine()`: a user-invoked
     benchmark tuner that measures the current machine and overrides the
@@ -292,7 +371,27 @@ the frozen substrate makes it additive.
     public contract — so it does not gate the freeze itself, but ships in
     the same batch per the user's explicit instruction. Benefits from
     landing late in the batch so the tuner benchmarks the release-candidate
-    kernels rather than mid-release ones.
+    kernels rather than mid-release ones. **TODO-11 done (2026-08-23):**
+    roxygen cross-linked both ways between `tune_EDI_for_this_machine()`
+    and the four *tunable* `get_*`/`set_*_dispatch_policy()` pairs
+    (cold start, warm start, optimizer); the parallel pair's cross-link was
+    deliberately worded differently — that table is TODO-6's correctness
+    blocklist, not a performance one, so its docs say the tuner benchmarks
+    a related-but-separate question (crossover n/core count) and will
+    never propose un-serializing anything named there. A new
+    "Machine-dependent performance defaults" section was added to
+    `vignettes/reproducibility.Rmd` (no dedicated performance vignette
+    existed), framed on that vignette's own theme — tuning changes speed,
+    never which draws are made or which estimate a fit produces, per the
+    TODO-8 correctness gate. `cold_starts.md`'s conclusion now points a
+    "these numbers look wrong on my machine" report at the tuner rather
+    than at the document. **TODO-12 closed as superseded, and the plan is
+    fully done (2026-08-23):** all twelve TODOs are `[x]`; TODO-4's two
+    once-open scope boundaries are resolved (best-default-core-count, done
+    in TODO-5) or permanently out of scope by construction (fork-vs-mirai
+    A/B, and the optimizer axis's `converged_fn` requirement, both recorded
+    as such rather than left as unfinished work). Moved to
+    `../finished_features/local_machine_optimization.md`.
 
 16. **`parallel_fork_cluster_test_safety.md`** (added 2026-08-21, user
     decision). `InferenceSuite$run_all_inference(num_cores > 1)` — item 13's
@@ -560,3 +659,20 @@ deliberately does not cover:
     full multi-platform `cibuildwheel` wheel matrix to cycle green first)
     was explicitly waived — that full-matrix validation is deferred to a
     later real CI run rather than blocking this change.
+- [ ] TODO-7: Fix the Rd cross-reference regression surfaced by
+  `fix_roxygenize_lazy_component_srcrefs.md`'s 2026-08-23 full local
+  `R CMD check --as-cran` run (amendment 9 above): 18 `.Rd` files with
+  missing/dead `\link[EDI:...]{}` targets (up from a "2 missing links"
+  baseline on 2026-08-15), 7 files with un-anchored `\link{}` targets to
+  non-existent functions, and 7 `Inference*IVWC`/`OneLik` component-source
+  classes (`InferenceContinKKOLSIVWC`, `InferenceContinKKOLSOneLik`,
+  `InferenceContinKKRobustRegrOneLik`, `InferenceCountKKHurdlePoissonIVWC`,
+  `InferenceIncidKKCondLogitIVWC`, `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`,
+  `InferenceSurvivalKKStratCoxPHIVWC`) reported as fully undocumented. Looks
+  like `fix_inference_hierarchy.md`'s KK/IVWC migration renamed/merged
+  classes without updating every sibling `*Source.Rd` cross-reference to
+  match — not this srcref-fix plan's doing, but real and CRAN-blocking
+  (`error-on: "note"` in CI). Full file list in that plan's writeup and the
+  check log. This is the last known blocker for a clean
+  `R CMD check --as-cran` on this codebase; TODO-4's Release Gate execution
+  should not be attempted until this closes.

@@ -154,7 +154,7 @@ is a systemic issue (39 of ~41 registered inference mixin components use a
 `define_inference_class(...)` call sites across 24 files are potentially affected, not
 just this one class) that blocks regenerating **any** `man/*.Rd` file from source, and
 therefore blocks verifying the numbered TODOs below against the real generator rather
-than by hand. See `package_metadata/new_feature_plans/fix_roxygenize_lazy_component_srcrefs.md`
+than by hand. See `package_metadata/finished_features/fix_roxygenize_lazy_component_srcrefs.md`
 for the full root-cause analysis and proposed fix. These three items are prerequisites
 for reliably finishing the rest of this document and must be done first.
 
@@ -1456,26 +1456,26 @@ for the merge and the now-seed-reproducible kernels.)
 - [x] TODO #634: Method `InferenceSurvivalGehanWilcox$new()` (current description `99` chars).
 - [x] TODO #635: Topic `InferenceSurvivalGehanWilcox` (current description `931` chars).
 
-### `InferenceSurvivalKKClaytonCopulaIVWC.Rd`
+### `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC.Rd`
 
-- [x] TODO #636: Method `InferenceSurvivalKKClaytonCopulaIVWC$approximate_bootstrap_distribution_beta_hat_T()` (reviewed: supplied by the KK component chain, not this Source; that shared implementation already documented via `KKCompound`/`KKPassThrough`).
-- [x] TODO #637: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_asymp_confidence_interval()` (reviewed: `SurvivalKKClaytonCopulaIVWCSource` already documents params and links `InferenceAsymp`; adequate as-is).
-- [x] TODO #638: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_asymp_two_sided_pval()` (reviewed: already documents the frailty/dependence-model p-value semantics; adequate as-is).
-- [x] TODO #639: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_estimate_with_bootstrap_weights()` (reviewed: already documents the Bayesian-bootstrap weighted-surrogate-fit behavior and constant-weight fast path; adequate as-is).
-- [x] TODO #640: Method `InferenceSurvivalKKClaytonCopulaIVWC$compute_estimate()` (reviewed: already documents log-time-ratio estimand; adequate as-is).
-- [x] TODO #641: Method `InferenceSurvivalKKClaytonCopulaIVWC$duplicate()` (reviewed: intentionally not overridden by this Source per the "Static Cleanup" comment — inherited from the KK component chain, already documented there).
-- [x] TODO #642: Method `InferenceSurvivalKKClaytonCopulaIVWC$new()` (reviewed: already documents params and delegation; adequate as-is).
-- [x] TODO #643: Topic `InferenceSurvivalKKClaytonCopulaIVWC` (reviewed: already documents the Clayton-copula/Weibull-frailty closed form, cites Clayton 1978 and Oakes 1989, and cross-links the log-normal-frailty sibling class; adequate as-is).
+- [x] TODO #636: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$approximate_bootstrap_distribution_beta_hat_T()` (reviewed: supplied by the KK component chain, not this Source; that shared implementation already documented via `KKCompound`/`KKPassThrough`).
+- [x] TODO #637: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$compute_asymp_confidence_interval()` (reviewed: `SurvivalKKWeibullFrailtyLoggammaIVWCSource` already documents params and links `InferenceAsymp`; adequate as-is).
+- [x] TODO #638: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$compute_asymp_two_sided_pval()` (reviewed: already documents the frailty/dependence-model p-value semantics; adequate as-is).
+- [x] TODO #639: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$compute_estimate_with_bootstrap_weights()` (reviewed: already documents the Bayesian-bootstrap weighted-surrogate-fit behavior and constant-weight fast path; adequate as-is).
+- [x] TODO #640: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$compute_estimate()` (reviewed: already documents log-time-ratio estimand; adequate as-is).
+- [x] TODO #641: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$duplicate()` (reviewed: intentionally not overridden by this Source per the "Static Cleanup" comment — inherited from the KK component chain, already documented there).
+- [x] TODO #642: Method `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC$new()` (reviewed: already documents params and delegation; adequate as-is).
+- [x] TODO #643: Topic `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC` (reviewed: already documents the Clayton-copula/Weibull-frailty closed form, cites Clayton 1978 and Oakes 1989, and cross-links the log-normal-frailty sibling class; adequate as-is).
 
-### `InferenceSurvivalKKClaytonCopulaOneLik.Rd`
+### `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik.Rd`
 
-- [x] TODO #644: Method `InferenceSurvivalKKClaytonCopulaOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [x] TODO #645: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
-- [x] TODO #646: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_asymp_two_sided_pval()` (current description `122` chars).
-- [x] TODO #647: Method `InferenceSurvivalKKClaytonCopulaOneLik$compute_estimate()` (current description `65` chars).
-- [x] TODO #648: Method `InferenceSurvivalKKClaytonCopulaOneLik$duplicate()` (current description `57` chars).
-- [x] TODO #649: Method `InferenceSurvivalKKClaytonCopulaOneLik$new()` (current description `106` chars).
-- [x] TODO #650: Topic `InferenceSurvivalKKClaytonCopulaOneLik` (current description `119` chars).
+- [x] TODO #644: Method `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #645: Method `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #646: Method `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$compute_asymp_two_sided_pval()` (current description `122` chars).
+- [x] TODO #647: Method `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$compute_estimate()` (current description `65` chars).
+- [x] TODO #648: Method `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$duplicate()` (current description `57` chars).
+- [x] TODO #649: Method `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik$new()` (current description `106` chars).
+- [x] TODO #650: Topic `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` (current description `119` chars).
 
 ### `InferenceSurvivalKKLWACoxPHIVWC.Rd`
 
@@ -1511,15 +1511,15 @@ for the merge and the now-seed-reproducible kernels.)
 - [x] TODO #668: Method `InferenceSurvivalKKStratCoxPHOneLik$new()` (reviewed: already documents params and delegation; adequate as-is).
 - [x] TODO #669: Topic `InferenceSurvivalKKStratCoxPHOneLik` (was thin, only `@keywords internal`, no title/description — added a full topic doc explaining the combined-partial-likelihood model, contrasting it with the two-stage IVWC sibling, and citing Cox 1972 / Lee-Wei-Amato 1992).
 
-### `InferenceSurvivalKKWeibullFrailtyIVWC.Rd`
+### `InferenceSurvivalKKWeibullFrailtyNormalIVWC.Rd`
 
-- [x] TODO #670: Method `InferenceSurvivalKKWeibullFrailtyIVWC$new()` (reviewed: `SurvivalKKWeibullFrailtyIVWCSource$initialize` already documents params; adequate as-is).
-- [x] TODO #671: Topic `InferenceSurvivalKKWeibullFrailtyIVWC` (reviewed/expanded: existing doc already had a thorough log-normal-vs-gamma-frailty model discussion; added missing `@references` for Vaupel/Manton/Stallard 1979 and Hougaard 2000, added matching `REFERENCES.md` entries).
+- [x] TODO #670: Method `InferenceSurvivalKKWeibullFrailtyNormalIVWC$new()` (reviewed: `SurvivalKKWeibullFrailtyNormalIVWCSource$initialize` already documents params; adequate as-is).
+- [x] TODO #671: Topic `InferenceSurvivalKKWeibullFrailtyNormalIVWC` (reviewed/expanded: existing doc already had a thorough log-normal-vs-gamma-frailty model discussion; added missing `@references` for Vaupel/Manton/Stallard 1979 and Hougaard 2000, added matching `REFERENCES.md` entries).
 
-### `InferenceSurvivalKKWeibullFrailtyOneLik.Rd`
+### `InferenceSurvivalKKWeibullFrailtyNormalOneLik.Rd`
 
-- [x] TODO #672: Method `InferenceSurvivalKKWeibullFrailtyOneLik$new()` (current description `63` chars).
-- [x] TODO #673: Topic `InferenceSurvivalKKWeibullFrailtyOneLik` (current description `121` chars).
+- [x] TODO #672: Method `InferenceSurvivalKKWeibullFrailtyNormalOneLik$new()` (current description `63` chars).
+- [x] TODO #673: Topic `InferenceSurvivalKKWeibullFrailtyNormalOneLik` (current description `121` chars).
 
 ### `InferenceSurvivalKKWeibullMarginal.Rd`
 
@@ -1767,7 +1767,7 @@ function.
 - [x] TODO #800: Python function `edi_kernels.fast_trigamma()` — expand docstring from its R sibling's documentation.
 - [x] TODO #801: Python function `edi_kernels.fast_truncated_negbin_count()` — expand docstring from its R sibling's documentation.
 - [x] TODO #802: Python function `edi_kernels.fast_weibull_frailty()` — expand docstring from its R sibling's documentation.
-- [x] TODO #803: Python function `edi_kernels.fast_weibull_regression()` — expand docstring from its R sibling's documentation.
+- [x] TODO #803: Python function `edi_kernels.fast_weibull_regression()` — expand docstring from its R sibling's documentation. **Name correction (2026-08-23, found during a #758-816 completion audit):** there is no Python-exposed `fast_weibull_regression`; the actual binding is `fast_weibull_regression_general` (`python/cpp/bindings_survival.cpp`). Its docstring is fully expanded (AFT parameterization, censoring convention, `optimization_alg`, cross-reference to `survival::survreg`/lifelines' `WeibullAFTFitter`) — the underlying doc work this TODO tracked is done; only the function name in this line was stale.
 - [x] TODO #804: Python function `edi_kernels.fast_zero_augmented_poisson()` — expand docstring from its R sibling's documentation.
 - [x] TODO #805: Python function `edi_kernels.fast_zero_augmented_poisson_with_var()` — expand docstring from its R sibling's documentation.
 - [x] TODO #806: Python function `edi_kernels.fast_zero_one_inflated_beta()` — expand docstring from its R sibling's documentation.

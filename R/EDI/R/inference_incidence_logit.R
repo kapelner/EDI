@@ -1,4 +1,5 @@
-inference_incid_log_regr_public = list(
+IncidenceLogisticLikelihoodSource = list(
+	public = list(
 
 		#' @description Initialize inference for the logistic regression model
 		#'   \eqn{\mathrm{logit}(P(Y_i = 1)) = \beta_0 + \beta_T W_i + X_i^\top
@@ -83,9 +84,8 @@ inference_incid_log_regr_public = list(
 			)
 			private$cached_values$beta_hat_T
 		}
-	)
-
-inference_incid_log_regr_private = list(
+	),
+	private = list(
 		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
 		# migration ladders): re-declared here even though `Wald`'s own source
 		# (InferenceAsymp) already declares `cached_mod = NULL` and lists it in
@@ -379,10 +379,6 @@ inference_incid_log_regr_private = list(
 		},
 		get_complexity_tier = function() "medium"
 	)
-
-IncidenceLogisticLikelihoodSource = list(
-	public = inference_incid_log_regr_public,
-	private = inference_incid_log_regr_private
 )
 
 #' Logistic Regression Inference for Incidence Responses

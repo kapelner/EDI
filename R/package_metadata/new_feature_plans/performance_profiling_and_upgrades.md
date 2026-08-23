@@ -122,7 +122,7 @@ Dominated by logistic math and matrix-vector products. SIMD already active; the 
 
 ### Weibull frailty
 
-Top symbols: `WeibullFrailtyLikelihood::operator()`, vectorized Eigen packet math, Eigen GEMV, vectorized exponentials.
+Top symbols: `WeibullFrailtyNormalLikelihood::operator()`, vectorized Eigen packet math, Eigen GEMV, vectorized exponentials.
 High-throughput numeric kernel; remaining payoff is from dataflow simplification and fewer materialized temporaries.
 
 ### Clogit-plus-GLMM
@@ -497,7 +497,7 @@ Estimate-only and full-path timing are nearly identical: the numerical Hessian (
 
 | % samples | Symbol |
 |---:|---|
-| 41.11% | `WeibullFrailtyLikelihood::operator()` |
+| 41.11% | `WeibullFrailtyNormalLikelihood::operator()` |
 | 26.29% | `__ieee754_exp_fma` |
 | 14.04% | `exp@@GLIBC_2.29` |
 | 1.36% | `exp@plt` |
@@ -2520,7 +2520,7 @@ If budget allows a second day, `c7a.metal-48xl` adds the AMD cost model (EDI use
 
 - [ ] **TODO-147: Thread-scaling curves for every OpenMP kernel.** 86 files carry OpenMP pragmas and none has a published speedup curve. For each parallel export, time at `OMP_NUM_THREADS ∈ {1, 2, 4, 8, ncores}` at two sizes (the benchmark default and 10×), with `OMP_PROC_BIND=close OMP_PLACES=cores` vs unset, report parallel efficiency, and identify (a) kernels that are *slower* with threads at small `n` (region spin-up + fork/join dominate — need an `if(n > threshold)` clause on the pragma, with the threshold a `globals.R` policy that `tune_EDI_for_this_machine()` can set), (b) kernels that plateau early (load imbalance or a serial reduction — revisit `schedule(static)` vs `schedule(dynamic, chunk)`; currently 28 static / 12 dynamic with no recorded rationale), (c) kernels whose speedup exceeds efficiency 1.0 (cache effects — note for TODO-143). Tools: `vtune -collect threading` (or `hpc-performance`) reports spin/wait time and effective CPU utilization per region directly; `mpstat -P ALL 1` / `pidstat -t 1` show idle cores during a supposedly parallel region; `perf sched record` + `perf sched latency` show thread wake-up latency; `lstopo` to interpret results against the cache/SMT topology.
 
-- [ ] **TODO-148: Oversubscription audit: OpenMP × BLAS threads × forked R workers.** EDI kernels spawn OpenMP threads; OpenBLAS/MKL spawn their own for any Eigen→BLAS or LAPACK call; `parallel::mclapply` / fork clusters in the R layer (`benchmark_simple_bootstrap_parallel_cores.R`, `benchmark_ols_bootstrap_cores.R`) multiply both. Measure a bootstrap workflow at (workers × OMP × BLAS) ∈ {(8,1,1), (1,8,1), (8,8,8), (4,2,1), …} and document the winning configuration and the losing ones; also `OMP_WAIT_POLICY=PASSIVE` vs `ACTIVE` and `GOMP_SPINCOUNT` — libgomp's default spin-wait keeps OMP threads burning CPU for ~ms after every short region, which is invisible in a single-process benchmark but steals cores from sibling forked workers (watch with `top -H`/`pidstat -t`). Whatever `tune_EDI_for_this_machine()` (see `new_feature_plans/local_machine_optimization.md`) picks should be informed by this table, and `.onLoad()` should set `RhpcBLASctl::blas_set_num_threads(1)`/`omp_set_num_threads` inside forked workers if the measurements say so.
+- [ ] **TODO-148: Oversubscription audit: OpenMP × BLAS threads × forked R workers.** EDI kernels spawn OpenMP threads; OpenBLAS/MKL spawn their own for any Eigen→BLAS or LAPACK call; `parallel::mclapply` / fork clusters in the R layer (`benchmark_simple_bootstrap_parallel_cores.R`, `benchmark_ols_bootstrap_cores.R`) multiply both. Measure a bootstrap workflow at (workers × OMP × BLAS) ∈ {(8,1,1), (1,8,1), (8,8,8), (4,2,1), …} and document the winning configuration and the losing ones; also `OMP_WAIT_POLICY=PASSIVE` vs `ACTIVE` and `GOMP_SPINCOUNT` — libgomp's default spin-wait keeps OMP threads burning CPU for ~ms after every short region, which is invisible in a single-process benchmark but steals cores from sibling forked workers (watch with `top -H`/`pidstat -t`). Whatever `tune_EDI_for_this_machine()` (see `finished_features/local_machine_optimization.md`) picks should be informed by this table, and `.onLoad()` should set `RhpcBLASctl::blas_set_num_threads(1)`/`omp_set_num_threads` inside forked workers if the measurements say so.
 
 - [ ] **TODO-149: RNG throughput and thread-safety in resampling kernels.** 15 files call `R::unif_rand`/`R::runif`/`R::rbinom` etc. (all outside the model-fitting core per TODO-130, but squarely on the bootstrap/permutation/rerandomization hot paths). Audit: (a) confirm none is reachable from inside an `omp parallel` region (R's RNG is not thread-safe) — `valgrind --tool=drd`/`helgrind` or a TSan/Archer build of the resampling files (TODO-174) catches it mechanically; (b) measure what fraction of `generate_permutations_cpp`, `bootstrap_indices_cpp`, `fast_shuffle_cpp`, `rerandomization_search_cpp` time is RNG (`perf` symbol `unif_rand`/`MT_genrand`, or `uftrace` call counts); (c) if material, prototype a per-thread counter-based or xoshiro256++ stream seeded from R's RNG once per call (as `dqrng` does), which both removes the R-RNG bottleneck and makes the draws parallelizable — with reproducibility under a fixed `set.seed()` preserved and documented as a behavior change.
 

@@ -69,8 +69,6 @@ InferenceMixinKKGLMMShared = list(
 		}
 	),
 	private = list(
-		m = NULL,
-		optimization_alg = "lbfgs",
 		# Subclasses that provide their own Rcpp fitter set this to TRUE before
 		# calling super$initialize() to suppress the glmmTMB package check.
 		skip_glmm_pkg_check = FALSE,
@@ -78,6 +76,12 @@ InferenceMixinKKGLMMShared = list(
 		kk_glmm_engine = TRUE,
 		is_a_glmm_family = function() TRUE,
 		init_kk_glmm_shared = function(des_obj){
+			# Same root-owned-state rule as KKPassThrough's init_kk_passthrough():
+			# the GLMM engine's historical "lbfgs" private-list redeclaration is
+			# now set through the root setter unless the host already chose.
+			if (is.null(private$optimization_alg)) {
+				self$set_optimization_alg(NULL, default = "lbfgs")
+			}
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), private$glmm_response_type())
 			}

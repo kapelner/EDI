@@ -1,36 +1,3 @@
-#' OLS IVWC Compound Inference for KK Designs
-#'
-#' Fits a variance-weighted compound estimator for KK matching-on-the-fly designs
-#' with continuous responses using OLS regression for matched-pair differences
-#' and reservoir outcomes, with the treatment indicator and, optionally, all
-#' recorded covariates as predictors.
-#' Note that warm starts are disabled for this class as OLS is a closed-form
-#' estimator and does not benefit from initialization.
-#'
-#' The point estimate \eqn{\hat\beta_T} is the inverse-variance-weighted
-#' combination of an OLS fit on matched-pair within-pair differences and an
-#' OLS fit on reservoir (unmatched) subjects' outcomes, falling back to
-#' whichever sub-fit is usable if the other is not — the same compound
-#' combination rule used by
-#' \code{\link[EDI:InferenceAllKKMeanDiffIVWC]{InferenceAllKKMeanDiffIVWC}},
-#' generalized here to allow covariate adjustment via \code{model_formula}.
-#' \code{likelihood_tier = "none"}: this is an estimating-equation (least
-#' squares) estimator, not a fitted likelihood, so only Wald-type asymptotic
-#' inference is available (no likelihood-ratio or score test).
-#'
-#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(rnorm(10))
-#' inf = InferenceContinKKOLSIVWC$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' @export
 # Static leaf source (2026-08-18 migration, same shape as the other five KK
 # leaves migrated this week): the legacy class never defined compute_estimate/
 # compute_asymp_confidence_interval/compute_asymp_two_sided_pval/duplicate
@@ -259,6 +226,38 @@ ContinKKOLSIVWCSource = list(
 	)
 )
 
+#' OLS IVWC Compound Inference for KK Designs
+#'
+#' Fits a variance-weighted compound estimator for KK matching-on-the-fly designs
+#' with continuous responses using OLS regression for matched-pair differences
+#' and reservoir outcomes, with the treatment indicator and, optionally, all
+#' recorded covariates as predictors.
+#' Note that warm starts are disabled for this class as OLS is a closed-form
+#' estimator and does not benefit from initialization.
+#'
+#' The point estimate \eqn{\hat\beta_T} is the inverse-variance-weighted
+#' combination of an OLS fit on matched-pair within-pair differences and an
+#' OLS fit on reservoir (unmatched) subjects' outcomes, falling back to
+#' whichever sub-fit is usable if the other is not — the same compound
+#' combination rule used by
+#' \code{\link[EDI:InferenceAllKKMeanDiffIVWC]{InferenceAllKKMeanDiffIVWC}},
+#' generalized here to allow covariate adjustment via \code{model_formula}.
+#' \code{likelihood_tier = "none"}: this is an estimating-equation (least
+#' squares) estimator, not a fitted likelihood, so only Wald-type asymptotic
+#' inference is available (no likelihood-ratio or score test).
+#'
+#' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(rnorm(10))
+#' inf = InferenceContinKKOLSIVWC$new(seq_des)
+#' inf$compute_estimate()
+#' }
 #' @export
 InferenceContinKKOLSIVWC = define_inference_class(
 	classname = "InferenceContinKKOLSIVWC",

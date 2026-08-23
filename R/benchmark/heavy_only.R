@@ -18,8 +18,8 @@ heavy_classes = c(
     "InferenceIncidKKCondLogitIVWC", "InferenceIncidKKCondLogitOneLik", "InferenceIncidKKGCompRiskDiff", "InferenceIncidKKGCompRiskRatio", "InferenceIncidKKGEE", "InferenceIncidKKModifiedPoisson",
     "InferenceIncidKKNewcombeRiskDiff", "InferenceOrdinalKKCLMM", "InferenceOrdinalKKCondAdjCatLogitRegr", "InferenceOrdinalKKGEE", "InferenceOrdinalKKGLMM",
     "InferencePropKKGEE", "InferencePropKKQuantileRegrIVWC", "InferencePropKKQuantileRegrOneLik",
-    "InferenceSurvivalKKClaytonCopulaIVWC", "InferenceSurvivalKKClaytonCopulaOneLik", "InferenceSurvivalKKLWACoxIVWC", "InferenceSurvivalKKLWACoxOneLik", "InferenceSurvivalKKRankRegrIVWC",
-    "InferenceSurvivalKKStratCoxOneLik", "InferenceSurvivalKKWeibullFrailtyIVWC", "InferenceSurvivalKKWeibullFrailtyOneLik"
+    "InferenceSurvivalKKWeibullFrailtyLoggammaIVWC", "InferenceSurvivalKKWeibullFrailtyLoggammaOneLik", "InferenceSurvivalKKLWACoxIVWC", "InferenceSurvivalKKLWACoxOneLik", "InferenceSurvivalKKRankRegrIVWC",
+    "InferenceSurvivalKKStratCoxOneLik", "InferenceSurvivalKKWeibullFrailtyNormalIVWC", "InferenceSurvivalKKWeibullFrailtyNormalOneLik"
 )
 
 infer_metadata = function(class_name) {

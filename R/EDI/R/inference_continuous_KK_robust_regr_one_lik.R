@@ -1,41 +1,3 @@
-#' Robust-Regression Combined-Likelihood Inference for KK Designs
-#'
-#' Fits a single stacked robust regression over matched-pair differences and reservoir
-#' observations for KK matching-on-the-fly designs with continuous responses.
-#'
-#' @details
-#' \strong{Model.} Analogous to
-#' \code{\link[EDI:InferenceContinKKOLSOneLik]{InferenceContinKKOLSOneLik}}'s single
-#' stacked design (matched-pair difference rows plus reservoir rows fit in one
-#' regression, treatment coefficient \eqn{\beta_T}), but fit with a robust
-#' M/MM-estimator (\code{MASS::rlm}, or an internal Rcpp IRLS kernel when
-#' \code{use_rcpp = TRUE}) instead of ordinary least squares. \code{"MM"} (the
-#' default \code{method}) starts from an LQS-based high-breakdown fit; \code{"M"}
-#' can warm-start from OLS (\code{start_with_ols = TRUE}).
-#'
-#' \strong{Likelihood tier.} \code{likelihood_tier = "quasi"}: the robust
-#' objective is not a normalized likelihood, so only Wald-type asymptotic
-#' inference is available (\code{compute_wald_confidence_interval()}/
-#' \code{compute_wald_two_sided_pval()}, aliased by the standard
-#' \code{compute_asymp_*} names) — no score/gradient/likelihood-ratio testing
-#' types, unlike the OLS one-likelihood sibling.
-#'
-#' \strong{Assumptions.} Continuous response; independent matched pairs and/or
-#' independent reservoir subjects; no censoring; a KK matching-on-the-fly
-#' design. Robust regression trades some efficiency under exactly-Gaussian
-#' errors for resistance to outliers and heavy tails.
-#'
-#' @references
-#' Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
-#' allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
-#' 378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
-#'
-#' @seealso \code{\link[EDI:InferenceContinKKRobustRegrIVWC]{InferenceContinKKRobustRegrIVWC}}
-#'   for the inverse-variance-weighted-combination alternative to this
-#'   one-likelihood combined-fit approach. Analogous Python API:
-#'   \href{https://www.statsmodels.org/stable/rlm.html}{statsmodels RLM}.
-#'
-#' @keywords internal
 # Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md
 # "Quasi And Robust Estimators" / "KK And IVWC Estimators"): formerly a
 # plain R6 leaf using real R6 inheritance (not a raw mixin splice) on the
@@ -591,6 +553,43 @@ ContinKKRobustRegrOneLikSource = list(
 	)
 )
 
+#' Robust-Regression Combined-Likelihood Inference for KK Designs
+#'
+#' Fits a single stacked robust regression over matched-pair differences and reservoir
+#' observations for KK matching-on-the-fly designs with continuous responses.
+#'
+#' @details
+#' \strong{Model.} Analogous to
+#' \code{\link[EDI:InferenceContinKKOLSOneLik]{InferenceContinKKOLSOneLik}}'s single
+#' stacked design (matched-pair difference rows plus reservoir rows fit in one
+#' regression, treatment coefficient \eqn{\beta_T}), but fit with a robust
+#' M/MM-estimator (\code{MASS::rlm}, or an internal Rcpp IRLS kernel when
+#' \code{use_rcpp = TRUE}) instead of ordinary least squares. \code{"MM"} (the
+#' default \code{method}) starts from an LQS-based high-breakdown fit; \code{"M"}
+#' can warm-start from OLS (\code{start_with_ols = TRUE}).
+#'
+#' \strong{Likelihood tier.} \code{likelihood_tier = "quasi"}: the robust
+#' objective is not a normalized likelihood, so only Wald-type asymptotic
+#' inference is available (\code{compute_wald_confidence_interval()}/
+#' \code{compute_wald_two_sided_pval()}, aliased by the standard
+#' \code{compute_asymp_*} names) — no score/gradient/likelihood-ratio testing
+#' types, unlike the OLS one-likelihood sibling.
+#'
+#' \strong{Assumptions.} Continuous response; independent matched pairs and/or
+#' independent reservoir subjects; no censoring; a KK matching-on-the-fly
+#' design. Robust regression trades some efficiency under exactly-Gaussian
+#' errors for resistance to outliers and heavy tails.
+#'
+#' @references
+#' Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
+#' allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
+#' 378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
+#'
+#' @seealso \code{\link[EDI:InferenceContinKKRobustRegrIVWC]{InferenceContinKKRobustRegrIVWC}}
+#'   for the inverse-variance-weighted-combination alternative to this
+#'   one-likelihood combined-fit approach. Analogous Python API:
+#'   \href{https://www.statsmodels.org/stable/rlm.html}{statsmodels RLM}.
+#'
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "Quasi And Robust
 # Estimators" / "KK And IVWC Estimators"): see

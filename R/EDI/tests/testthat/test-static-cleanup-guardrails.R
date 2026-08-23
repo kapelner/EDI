@@ -69,8 +69,8 @@ test_that("static cleanup guardrail prevents new eval(body(Inference...)) usage"
 	# are now migrated) -- entry removed entirely.
 	# inference_incidence_KK_cond_logit.R dropped to 0 at the 2026-08-19
 	# InferenceIncidKKCondLogitOneLik migration -- entry removed entirely.
-	# inference_survival_KK_clayton_copula.R and
-	# inference_survival_KK_weibull_frailty.R both dropped to 0 at 2026-08-19
+	# inference_survival_KK_weibull_frailty_loggamma.R and
+	# inference_survival_KK_weibull_frailty_normal.R both dropped to 0 at 2026-08-19
 	# (fix_inference_hierarchy.md "Static Cleanup", "Ban eval(body(Inference...))"):
 	# their `approximate_bootstrap_distribution_beta_hat_T` restatements
 	# inside the `...LegacyRaw` harvesting classes were verified no-ops
@@ -83,88 +83,84 @@ test_that("static cleanup guardrail prevents new eval(body(Inference...)) usage"
 	expect_identical(static_cleanup_file_counts(matches), expected[sort(names(expected))])
 })
 
-test_that("static cleanup guardrail prevents new raw component splicing", {
+#' The generators that may still be assembled by hand from lists: the retained
+#' legacy inheritance ladder (fix_inference_hierarchy.md "Base Deletion": the
+#' algorithmic-compatibility bases plus InferenceParamBootstrap and the two
+#' StandardModelCache bases), kept purely as internal component sources and as
+#' `inherit =` targets for the migration golden tests' legacy generators. This
+#' is the registry's own abstract-class list minus the root -- a package-level
+#' constant, not a per-file count table -- so the allowance is enumerated, and
+#' test-inference-class-registry.R separately proves none of them has a
+#' concrete descendant.
+static_cleanup_retained_legacy_generator_files = function(files = static_cleanup_source_files()) {
+	generators = setdiff(EDI:::EDI_INFERENCE_ABSTRACT_CLASS_NAMES, "Inference")
+	pattern = paste0("^\\s*(", paste(generators, collapse = "|"), ")\\s*=\\s*(R6::R6Class|define_inference_class)\\(")
+	defining = vapply(files, function(file) {
+		any(grepl(pattern, readLines(file, warn = FALSE), perl = TRUE))
+	}, logical(1L))
+	file.path("R", "EDI", "R", basename(files[defining]))
+}
+
+test_that("static cleanup guardrail bans raw component splicing", {
 	skip_if(
 		length(static_cleanup_source_files()) == 0L,
 		"no readable per-file .R source found from this test's working directory (e.g. covr's --install-tests copy, or a check flavor whose test dir isn't under the source checkout) -- this guardrail can't verify anything without it"
 	)
-	matches = static_cleanup_matches(
-		"\\b(Inference(?:Ext|Mixin)[A-Za-z0-9_]+\\$(public|private)|inference_[A-Za-z0-9_]+_(?:components\\$(?:public|private)|private))\\b"
-	)
-	# Counts ratcheted down 2026-08-17/18 by the KK/IVWC migrations
-	# (fix_inference_hierarchy.md "KK And IVWC Estimators"): each migrated
-	# IVWC class's raw mixin splices were replaced by registered-component
-	# composition; the remaining counts are the unmigrated OneLik siblings
-	# and the compound/abstract bases still awaiting the base-deletion phase.
-	# inference_survival_KK_strat_cox.R dropped to 0 at the 2026-08-18
-	# InferenceSurvivalKKStratCoxPHOneLik migration (its raw
-	# InferenceMixinKKPassThrough$public/private splices were replaced by
-	# composing the KKPassThrough component via the new
-	# SurvivalKKStratCoxOneLikPartialLikelihood component's dependency) --
-	# entry removed entirely.
-	# inference_count_KK_cond_poisson.R dropped to 0 at the 2026-08-19
-	# InferenceCountKKCondPoissonOneLik migration (both classes in that file
-	# are now migrated) -- entry removed entirely.
-	# inference_incidence_KK_cond_logit.R dropped to 0 at the 2026-08-19
-	# InferenceIncidKKCondLogitOneLik migration -- entry removed entirely.
-	# inference_ordinal_KK_combined.R dropped to 0 at the 2026-08-19
-	# InferenceOrdinalKKGLMM migration (fix_inference_hierarchy.md "KK And
-	# IVWC Estimators", "Migrate KK GEE and GLMM classes"): its raw
-	# `utils::modifyList(as.list(InferenceMixinKKGLMMShared$public/private),
-	# ...)` splices were replaced by composing the registered `KKGLMM`
-	# component directly -- entry removed entirely.
-	# inference_survival_KK_clayton_copula.R and
-	# inference_survival_KK_weibull_frailty.R both dropped 3->2 at
-	# 2026-08-19 (fix_inference_hierarchy.md "Static Cleanup", "Ban
-	# eval(body(Inference...))"): each file's `...LegacyRaw` class's
-	# `eval(body(InferenceMixinKKPassThrough$public$...))` restatement --
-	# itself a second, redundant textual reference to
-	# `InferenceMixinKKPassThrough$public` beyond the class's own top-level
-	# `modifyList(as.list(InferenceMixinKKPassThrough$public), ...)` splice
-	# -- was removed as a verified no-op, dropping one match per file. The
-	# structural splice itself remains (these `...LegacyRaw` classes are
-	# still the harvesting source for the `SurvivalKKClaytonCopulaOneLik`/
-	# `SurvivalKKWeibullFrailtyOneLik` components, awaiting the base-
-	# deletion phase), so 2 occurrences remain in each file.
-	# inference_incidence_KK_marginal_abstract.R dropped to 0 at 2026-08-19
-	# (fix_inference_hierarchy.md "Full-Likelihood Estimators", "ModifiedPoisson
-	# full-likelihood migration"): InferenceAbstractKKMarginalIncid's raw
-	# `utils::modifyList(as.list(InferenceMixinKKPassThrough$public/private),
-	# list(...))` splices were replaced by composing the registered
-	# `KKPassThrough` component directly -- entry removed entirely.
-	# inference_incidence_logit.R added 2026-08-20 (fix_inference_hierarchy.md
-	# "Base Deletion" / per-class migration ladders): InferenceIncidLogRegr's
-	# migration off InferenceAsympLikStdModCache hoisted its public=/private=
-	# content into named `inference_incid_log_regr_public`/`_private` list
-	# objects (harvested from directly, matching the same "static leaf-only
-	# source" pattern as every other *Source object in this table) -- 2
-	# occurrences (the definition and its one use building
-	# IncidenceLogisticLikelihoodSource), not a raw splice into another
-	# class's own definition.
-	expected = c(
-		"R/EDI/R/inference_all_abstract_KK_passthrough_compound.R" = 4L,
-		"R/EDI/R/inference_all_abstract_asymp_lik.R" = 1L,
-		"R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R" = 4L,
-		"R/EDI/R/inference_all_abstract_count_likelihood.R" = 3L,
-		"R/EDI/R/inference_all_abstract_non_param_boot.R" = 7L,
-		"R/EDI/R/inference_all_abstract_param_boot.R" = 1L,
-		"R/EDI/R/inference_all_abstract_rand.R" = 1L,
-		"R/EDI/R/inference_count_composite_likelihood.R" = 2L,
-		"R/EDI/R/inference_count_zero_augmented_poisson_abstract.R" = 2L,
-		"R/EDI/R/inference_incidence_logit.R" = 2L,
-		"R/EDI/R/inference_incidence_binomial_identity.R" = 2L,
-		"R/EDI/R/inference_ordinal_ordered_probit.R" = 2L,
-		"R/EDI/R/inference_survival_dep_cens_transform.R" = 2L,
-		"R/EDI/R/inference_survival_weibull.R" = 2L,
-		"R/EDI/R/inference_ordinal_stereotype_logit.R" = 4L,
-		"R/EDI/R/inference_incidence_log_binomial.R" = 2L,
-		"R/EDI/R/inference_incidence_modified_poisson.R" = 2L,
-		"R/EDI/R/inference_incidence_probit.R" = 2L,
-		"R/EDI/R/inference_survival_KK_clayton_copula.R" = 2L,
-		"R/EDI/R/inference_survival_KK_weibull_frailty.R" = 2L
-	)
+	# Closed 2026-08-23 (fix_inference_hierarchy.md "Static Cleanup", "Ban raw
+	# component splicing outside define_inference_class()"). Until then this
+	# test froze a per-file count table (20 files at its last ratchet). Every
+	# remaining occurrence was eliminated: the 11 hoisted
+	# `inference_<x>_public/_private` list objects were inlined into their
+	# one `*Source` literal; the two `...LegacyRaw` survival KK generators
+	# became plain leaf-only sources depending on `KKPassThrough`; the
+	# classic `InferenceCountLikelihood` generator (zero inheritors) was
+	# deleted and CountLikelihoodPlumbingSource became one literal; the two
+	# StandardModelCache bases are mounted from their own canonical Source;
+	# and the two KK compound bases are assembled through
+	# define_inference_class() instead of compose_inference_mixins() +
+	# `$public`/`$private` splicing. What remains is a structural invariant
+	# with no counts in it, in three parts:
 
-	expect_identical(static_cleanup_file_counts(matches), expected[sort(names(expected))])
+	# (1) Mixin components, legacy mixin compositions, and hoisted private
+	#     lists: never spliced anywhere, full stop.
+	matches = static_cleanup_matches(
+		"\\b(InferenceMixin[A-Za-z0-9_]+\\$(public|private)|inference_[A-Za-z0-9_]+_(?:components\\$(?:public|private)|private))\\b"
+	)
+	expect_identical(static_cleanup_file_counts(matches), integer(0))
+
+	# (2) `InferenceExt*` lists are single-host file-splits of a retained
+	#     legacy ladder generator (contracts_mixins.R's header: "file-splits,
+	#     not components"): each one may be spliced into exactly one file,
+	#     and only a file that defines a retained legacy generator.
+	ext_matches = static_cleanup_matches("\\bInferenceExt[A-Za-z0-9_]+\\$(public|private)\\b")
+	retained_files = static_cleanup_retained_legacy_generator_files()
+	expect_gt(length(retained_files), 0L)
+	expect_identical(setdiff(unique(ext_matches$file), retained_files), character(0))
+	ext_names = regmatches(ext_matches$text, gregexpr("InferenceExt[A-Za-z0-9_]+(?=\\$(public|private))", ext_matches$text, perl = TRUE))
+	ext_hosts = split(rep(ext_matches$file, lengths(ext_names)), unlist(ext_names))
+	multi_host = names(Filter(function(files) length(unique(files)) > 1L, ext_hosts))
+	expect_identical(multi_host, character(0))
+
+	# (3) A component `*Source` is consumed only by the factory (through the
+	#     component registry) or by its own defining file (a retained legacy
+	#     generator mounted from its canonical Source, or a Source trimming
+	#     itself); no other file may reach into `XSource$public`/`$private`.
+	source_matches = static_cleanup_matches("\\b[A-Za-z0-9_]+Source\\$(public|private)\\b")
+	if (nrow(source_matches) > 0L) {
+		source_names = regmatches(source_matches$text, gregexpr("[A-Za-z0-9_]+Source(?=\\$(public|private))", source_matches$text, perl = TRUE))
+		uses = data.frame(
+			file = rep(source_matches$file, lengths(source_names)),
+			source = unlist(source_names),
+			stringsAsFactors = FALSE
+		)
+		all_lines = lapply(static_cleanup_source_files(), readLines, warn = FALSE)
+		names(all_lines) = file.path("R", "EDI", "R", basename(static_cleanup_source_files()))
+		defines = function(file, source_name) {
+			any(grepl(paste0("^\\s*", source_name, "\\s*=\\s*"), all_lines[[file]], perl = TRUE))
+		}
+		foreign = uses[!mapply(defines, uses$file, uses$source), , drop = FALSE]
+		expect_identical(nrow(foreign), 0L, info = paste(unique(paste(foreign$file, foreign$source)), collapse = "; "))
+	}
 })
 
 test_that("static cleanup guardrail bans R6 generator private member reads", {
@@ -208,69 +204,56 @@ test_that("semantic classification through private is_a method probes cannot gro
 	expect_identical(static_cleanup_file_counts(matches), expected)
 })
 
-test_that("component redeclarations of root-owned state cannot grow", {
+test_that("no component redeclares root-owned state", {
+	# Closed 2026-08-23 (fix_inference_hierarchy.md "Static Cleanup", "Ban
+	# component redeclaration of root-owned state" / Source Invariant 15).
+	# Until then this test froze a per-component table of tolerated
+	# redeclarations (16 components at its last ratchet: `m`,
+	# `optimization_alg`, `cached_vc_params`, and the KK pass-through
+	# family's y_temp/dead/w/X/any_censoring). Every one was removed from its
+	# component source and moved from `owns_state` to `requires_state`; the
+	# historical `optimization_alg = "lbfgs"` private-list default the KK
+	# pass-through/GLMM components carried is now established through the
+	# root setter in init_kk_passthrough()/init_kk_glmm_shared(). The
+	# invariant is also enforced at class-definition time by
+	# validate_inference_class_definition() (second block below).
 	root_state = names(EDI:::Inference$private_fields)
 	actual = lapply(EDI:::EDI_COMPONENT_SPECS, function(spec) {
 		sort(intersect(spec$owns_state, root_state))
 	})
 	actual = actual[lengths(actual) > 0L]
-	expected = list(
-		# KKQuantileRegrIVWC added at the 2026-08-18 quantile-regr IVWC
-		# migration: the merged abstract+leaf source redeclares `m` (KK
-		# match-vector) the same way KKPassThrough/KKGEE/KKGLMM already do.
-		KKQuantileRegrIVWC = "m",
-		# KKQuantileRegrOneLik added at the 2026-08-18/19 quantile-regr OneLik
-		# migration: same shape as the KKQuantileRegrIVWC entry above.
-		KKQuantileRegrOneLik = "m",
-		# KKLWACoxOneLikPartialLikelihood added at the 2026-08-18 LWA Cox
-		# OneLik migration: the merged abstract+leaf source redeclares
-		# `optimization_alg` (fixed "lbfgs" for this class) the same way
-		# SurvivalKKClaytonCopulaIVWC/KKGLMM already do.
-		KKLWACoxOneLikPartialLikelihood = "optimization_alg",
-		# CountKKHurdlePoissonOneLikLikelihood added at the 2026-08-19
-		# HurdlePoisson OneLik migration: redeclares "m" (of its four
-		# owns_state fields -- m, cached_mod, use_rcpp,
-		# max_abs_reasonable_coef -- only "m" is root-owned).
-		CountKKHurdlePoissonOneLikLikelihood = "m",
-		# SurvivalKKStratCoxOneLikPartialLikelihood added at the 2026-08-18
-		# StratCox OneLik migration: same shape as KKLWACoxOneLikPartialLikelihood
-		# above -- the merged source redeclares `optimization_alg` (fixed
-		# "lbfgs" for this class). max_abs_reasonable_coef/best_X_colnames are
-		# also owns_state on this component but are NOT root-owned (not in
-		# Inference$private_fields), so they don't appear here.
-		SurvivalKKStratCoxOneLikPartialLikelihood = "optimization_alg",
-		# ZeroAugmentedCountLikelihood added at the 2026-08-21 zero-augmented
-		# count abstract migration (fix_inference_hierarchy.md per-class
-		# migration ladders): redeclares `cached_vc_params` (the ZINB path
-		# caches log-theta/zero-model params there for randomization-inference
-		# warm starts), the same class-specific VC-parameter cache pattern as
-		# SurvivalDepCensTransform/SurvivalKKWeibullMarginal below. Its other
-		# owns_state entries (cached_mod, za_X_cov_all, etc.) are not
-		# root-owned, so they don't appear here. Ordered before
-		# SurvivalDepCensTransform to match EDI_COMPONENT_SPECS's own
-		# definition order in contracts_mixins.R.
-		ZeroAugmentedCountLikelihood = "cached_vc_params",
-		# Trimmed at the 2026-08-17 WeibullMarginal migration: the spec was
-		# reshaped leaf-only (KK state now arrives via the KKPassThrough
-		# dependency), leaving only the class-specific VC-parameter cache.
-		# SurvivalDepCensTransform added at the 2026-08-20 dependent-censoring
-		# transformation migration (fix_inference_hierarchy.md "Base
-		# Deletion" / per-class migration ladders): redeclares
-		# `cached_vc_params`, the same class-specific VC-parameter cache
-		# pattern as SurvivalKKWeibullMarginal below. `cached_mod` (this
-		# component's other new owns_state entry) is not root-owned, so it
-		# doesn't appear here. Ordered here (before SurvivalKKWeibullMarginal)
-		# to match EDI_COMPONENT_SPECS's own definition order in
-		# contracts_mixins.R, which this test's `actual` list preserves.
-		SurvivalDepCensTransform = "cached_vc_params",
-		SurvivalKKWeibullMarginal = "cached_vc_params",
-		SurvivalKKClaytonCopulaIVWC = "optimization_alg",
-		SurvivalKKClaytonCopulaOneLik = sort(c("m", "y_temp", "dead", "w", "X", "any_censoring", "optimization_alg")),
-		SurvivalKKWeibullFrailtyIVWC = sort(c("optimization_alg", "any_censoring", "m")),
-		SurvivalKKWeibullFrailtyOneLik = sort(c("m", "y_temp", "dead", "w", "X", "optimization_alg")),
-		KKGEE = "m",
-		KKGLMM = sort(c("m", "optimization_alg")),
-		KKPassThrough = sort(c("m", "y_temp", "dead", "w", "X", "any_censoring", "optimization_alg"))
+	expect_length(actual, 0L)
+
+	# Every mutable field has one owner: the root's private fields are never
+	# declared by a lazy component source either (owns_state mirrors the
+	# source's non-function private entries for lazy components).
+	ns = asNamespace("EDI")
+	for (component_name in names(EDI:::EDI_COMPONENT_SPECS)) {
+		spec = EDI:::EDI_COMPONENT_SPECS[[component_name]]
+		source = get(spec$source_name %||% component_name, envir = ns, inherits = TRUE)
+		private = EDI:::inference_component_source_parts(source)$private
+		fields = names(private)[!vapply(private, is.function, logical(1L))]
+		expect_true(
+			length(intersect(fields, root_state)) == 0L,
+			info = paste(component_name, "redeclares root-owned state:", paste(intersect(fields, root_state), collapse = ", "))
+		)
+	}
+
+	# And the factory refuses a component that tries.
+	on.exit(EDI:::populate_inference_component_registry(), add = TRUE)
+	EDI:::register_inference_component(EDI:::InferenceComponent(
+		name = "InferenceTemporaryRedeclaresRootState",
+		status = "active",
+		file = "test",
+		private = list(m = NULL),
+		owns_state = "m"
+	))
+	expect_error(
+		EDI:::define_inference_class(
+			classname = "InferenceTemporaryRootStateHost",
+			inherit = EDI:::Inference,
+			components = "InferenceTemporaryRedeclaresRootState"
+		),
+		"redeclares root-owned state"
 	)
-	expect_identical(actual, expected)
 })

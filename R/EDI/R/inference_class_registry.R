@@ -370,8 +370,8 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 	# generators InferenceAsympLikStdModCache/InferenceKKPassThroughCompound/
 	# InferenceCountLikelihood (each retired from this list but kept for
 	# their own consumers, see their notes), plus the
-	# InferenceAbstractKKWeibullFrailtyOneLikLegacyRaw/
-	# InferenceSurvivalKKClaytonCopulaOneLikLegacyRaw legacy-comparison
+	# InferenceAbstractKKWeibullFrailtyNormalOneLikLegacyRaw/
+	# InferenceSurvivalKKWeibullFrailtyLoggammaOneLikLegacyRaw legacy-comparison
 	# fixtures -- the same "real remaining consumer, just not a
 	# package-source algorithmic-ancestry one" precedent as every prior
 	# removal below.
@@ -414,14 +414,12 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 	# component (InferenceCountHurdlePoisson/CountZeroInflatedNegBin/
 	# CountZeroInflatedPoisson, thin leaves of that abstract). `grep -rn
 	# "inherit = InferenceCountLikelihood\b" R/*.R` now returns nothing. The
-	# R6 generator itself is kept (not deleted): it is the roxygen @name
-	# anchor for the shared count-likelihood documentation and remains the
-	# classic-ladder reference implementation whose
-	# inference_count_likelihood_public/_private lists (with genuine super$
-	# resolution) CountLikelihoodPlumbingSource's composition-safe overrides
-	# are defined against -- see that Source's own comment in
-	# inference_all_abstract_count_likelihood.R. Only the algorithmic-
-	# compatibility-ladder membership is retired.
+	# R6 generator itself was then deleted 2026-08-23 (fix_inference_
+	# hierarchy.md "Static Cleanup" / "Ban raw component splicing"): it had
+	# zero inheritors, and CountLikelihoodPlumbingSource is now one plain
+	# literal (the roxygen @name InferenceCountLikelihood topic anchor moved
+	# onto that Source so existing cross-references stay valid) -- see
+	# inference_all_abstract_count_likelihood.R.
 	"InferenceKKPassThroughCompound",
 	"InferenceKKPassThroughCompoundNoParamBootstrap",
 	"InferenceMLEorKMSummaryTable"
@@ -445,7 +443,6 @@ EDI_INFERENCE_ABSTRACT_CLASS_NAMES = c(
 	"InferenceKKPassThroughCompoundNoParamBootstrap",
 	"InferenceAsympLikStdModCache",
 	"InferenceAsympLikStdModCacheNoParamBootstrap",
-	"InferenceCountLikelihood",
 	"InferenceMLEorKMSummaryTable"
 )
 
@@ -568,9 +565,9 @@ EDI_INFERENCE_CLASSES_USING_COVARIATES = c(
 	"InferenceSurvivalDepCensTransformRegr", "InferenceSurvivalKKLWACoxPHIVWC",
 	"InferenceSurvivalKKLWACoxPHOneLik", "InferenceSurvivalKKStratCoxPHIVWC",
 	"InferenceSurvivalKKStratCoxPHOneLik", "InferenceSurvivalKKRankRegrIVWC",
-	"InferenceSurvivalKKWeibullMarginal", "InferenceSurvivalKKWeibullFrailtyIVWC",
-	"InferenceSurvivalKKWeibullFrailtyOneLik", "InferenceSurvivalKKClaytonCopulaIVWC",
-	"InferenceSurvivalKKClaytonCopulaOneLik"
+	"InferenceSurvivalKKWeibullMarginal", "InferenceSurvivalKKWeibullFrailtyNormalIVWC",
+	"InferenceSurvivalKKWeibullFrailtyNormalOneLik", "InferenceSurvivalKKWeibullFrailtyLoggammaIVWC",
+	"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik"
 )
 
 infer_inference_adjusts_for_covariates = function(name) {
@@ -682,6 +679,22 @@ infer_inference_design_compatibility_reason_fn = function(generator) {
 # and InferenceSurvivalDepCensTransformRegr (bivariate transformation model
 # whose treatment-coefficient scale was not confidently identified without a
 # deeper model derivation than this audit's time budget covered).
+#' Split from a single "RR" tag into "RR" (raw risk ratio) vs.
+#' "log_risk_ratio" -- per user decision, 2026-08-23: `InferenceIncidGCompRiskRatio`/
+#' `InferenceIncidKKGCompRiskRatio` compute the raw ratio `risk1/risk0`
+#' directly (a nonlinear function of an underlying logistic model's
+#' coefficients) and only touch log space as a delta-method device to get a
+#' positive-respecting CI/SE, exponentiating back before returning -- "RR" is
+#' their natural, directly-computed scale. `InferenceIncidModifiedPoisson`/
+#' `InferenceIncidLogBinomial`/`InferenceIncidKKModifiedPoisson` instead fit
+#' a genuine log-link regression model (Zou's modified-Poisson working
+#' likelihood, or a log-link binomial GLM) whose own coefficient *is*
+#' log(RR) by construction, with a directly-computed (non-delta-method)
+#' coefficient SE -- log(RR) is their natural scale, and "RR" is the derived
+#' quantity (`exp(coefficient)`). Both groups previously shared one "RR" tag,
+#' which put a log10 x-axis and null-reference line at 1 on what were
+#' actually already-log-scale estimates/CIs for the second group -- a
+#' genuine scale mismatch, not just a display nicety.
 EDI_INFERENCE_ESTIMAND_TAGS = list(
 	InferenceAllKKMeanDiffIVWC = "mean_difference",
 	InferenceAllKKWilcoxIVWC = "hodges_lehmann_shift",
@@ -720,12 +733,12 @@ EDI_INFERENCE_ESTIMAND_TAGS = list(
 	InferenceIncidKKGCompRiskDiff = "mean_difference",
 	InferenceIncidKKGCompRiskRatio = "RR",
 	InferenceIncidKKGEE = "log_odds_ratio_marginal",
-	InferenceIncidKKModifiedPoisson = "RR",
+	InferenceIncidKKModifiedPoisson = "log_risk_ratio",
 	InferenceIncidKKNewcombeRiskDiff = "mean_difference",
-	InferenceIncidLogBinomial = "RR",
+	InferenceIncidLogBinomial = "log_risk_ratio",
 	InferenceIncidLogRegr = "log_odds_ratio_marginal",
 	InferenceIncidMiettinenNurminenRiskDiff = "mean_difference",
-	InferenceIncidModifiedPoisson = "RR",
+	InferenceIncidModifiedPoisson = "log_risk_ratio",
 	InferenceIncidNewcombeRiskDiff = "mean_difference",
 	InferenceIncidProbitRegr = "probit_effect_marginal",
 	InferenceIncidRiskDiff = "mean_difference",
@@ -756,15 +769,15 @@ EDI_INFERENCE_ESTIMAND_TAGS = list(
 	InferencePropKKGLMM = "logit_effect_proportion_mean_conditional",
 	InferenceSurvivalCoxPHRegr = "hazard_ratio",
 	InferenceSurvivalGehanWilcox = "gehan_wilcoxon_statistic",
-	InferenceSurvivalKKClaytonCopulaIVWC = "log_time_ratio",
-	InferenceSurvivalKKClaytonCopulaOneLik = "log_time_ratio",
+	InferenceSurvivalKKWeibullFrailtyLoggammaIVWC = "log_time_ratio",
+	InferenceSurvivalKKWeibullFrailtyLoggammaOneLik = "log_time_ratio",
 	InferenceSurvivalKKLWACoxPHIVWC = "hazard_ratio",
 	InferenceSurvivalKKLWACoxPHOneLik = "hazard_ratio",
 	InferenceSurvivalKKRankRegrIVWC = "gehan_wilcoxon_statistic",
 	InferenceSurvivalKKStratCoxPHIVWC = "hazard_ratio",
 	InferenceSurvivalKKStratCoxPHOneLik = "hazard_ratio",
-	InferenceSurvivalKKWeibullFrailtyIVWC = "log_time_ratio",
-	InferenceSurvivalKKWeibullFrailtyOneLik = "log_time_ratio",
+	InferenceSurvivalKKWeibullFrailtyNormalIVWC = "log_time_ratio",
+	InferenceSurvivalKKWeibullFrailtyNormalOneLik = "log_time_ratio",
 	InferenceSurvivalKKWeibullMarginal = "log_time_ratio",
 	InferenceSurvivalKMDiff = "survival_median_difference",
 	InferenceSurvivalLogRank = "log_rank_martingale_difference",
@@ -838,7 +851,6 @@ infer_inference_direct_components = function(name) {
 		InferenceParamBootstrap = "ParametricLikelihoodBootstrap",
 		InferenceAsympLikStdModCache = "StandardModelCache",
 		InferenceAsympLikStdModCacheNoParamBootstrap = "StandardModelCache",
-			InferenceCountLikelihood = "CountLikelihoodPlumbing",
 			InferenceCountZeroAugmentedPoissonAbstract = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "ZeroAugmentedCountLikelihood"),
 			InferenceCountQuasiPoisson = c("Wald", "CountCompositeLikelihood"),
 			InferenceCountRobustPoisson = c("Wald", "CountCompositeLikelihood", "RobustSandwich"),
@@ -874,13 +886,12 @@ infer_inference_direct_components = function(name) {
 			InferenceSurvivalWeibullRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalWeibullLikelihood"),
 			InferenceSurvivalDepCensTransformRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalDepCensTransform"),
 			InferenceSurvivalKKWeibullMarginal = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullMarginal"),
-			InferenceSurvivalKKClaytonCopulaIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKClaytonCopulaIVWC"),
-			InferenceSurvivalKKClaytonCopulaOneLik = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalKKClaytonCopulaOneLik"),
-			InferenceSurvivalKKWeibullFrailtyIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyIVWC"),
-			InferenceAbstractKKWeibullFrailtyOneLik = "SurvivalKKWeibullFrailtyOneLik",
-			InferenceSurvivalKKWeibullFrailtyOneLik = c(
+			InferenceSurvivalKKWeibullFrailtyLoggammaIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyLoggammaIVWC"),
+			InferenceSurvivalKKWeibullFrailtyLoggammaOneLik = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalKKWeibullFrailtyLoggammaOneLik"),
+			InferenceSurvivalKKWeibullFrailtyNormalIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullFrailtyNormalIVWC"),
+			InferenceSurvivalKKWeibullFrailtyNormalOneLik = c(
 				"BayesianBootstrap", "ParametricLikelihoodBootstrap",
-				"SurvivalKKWeibullFrailtyOneLikLeaf", "SurvivalKKWeibullFrailtyOneLik"
+				"SurvivalKKWeibullFrailtyNormalOneLikLeaf", "SurvivalKKWeibullFrailtyNormalOneLik"
 			),
 			InferenceCountPoissonKKGEE = "KKGEE",
 		InferenceIncidKKGEE = "KKGEE",

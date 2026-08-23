@@ -1,4 +1,5 @@
-inference_survival_dep_cens_transform_public = list(
+SurvivalDepCensTransformSource = list(
+	public = list(
 		#' @description Initialize inference for the bivariate log-normal
 		#'   dependent-censoring transformation model; see
 		#'   \code{\link[EDI:InferenceSurvivalDepCensTransformRegr]{InferenceSurvivalDepCensTransformRegr}}
@@ -312,9 +313,8 @@ inference_survival_dep_cens_transform_public = list(
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 				ci
 			}
-	)
-
-inference_survival_dep_cens_transform_private = list(
+	),
+	private = list(
 		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
 		# migration ladders): pinned method (not a private impl, since
 		# NonparametricBootstrap's compute_bootstrap_confidence_interval is a
@@ -325,7 +325,6 @@ inference_survival_dep_cens_transform_private = list(
 		# (inference_incidence_logit.R) for the eager-NULL-dropping
 		# explanation. cached_vc_params was previously undeclared entirely.
 		cached_mod = NULL,
-		cached_vc_params = NULL,
 		dep_cens_bootstrap_ci_max_abs = 2,
 		dep_cens_percentile_bootstrap_ci = function(alpha = 0.05, B = 1000, min_number_usable_samples = 10, show_progress = TRUE){
 			theta = tryCatch(
@@ -634,10 +633,6 @@ inference_survival_dep_cens_transform_private = list(
 			X
 		}
 	)
-
-SurvivalDepCensTransformSource = list(
-	public = inference_survival_dep_cens_transform_public,
-	private = inference_survival_dep_cens_transform_private
 )
 
 #' Dependent-Censoring Transformation Inference for Survival Responses
@@ -678,7 +673,7 @@ SurvivalDepCensTransformSource = list(
 #' uses a fast Cox-model surrogate fit (\code{weighted_cox_bootstrap_surrogate_fit()})
 #' as an approximation rather than a full weighted joint-likelihood refit.
 #'
-#' @seealso \code{\link[EDI:InferenceSurvivalKKClaytonCopulaOneLik]{InferenceSurvivalKKClaytonCopulaOneLik}}
+#' @seealso \code{\link[EDI:InferenceSurvivalKKWeibullFrailtyLoggammaOneLik]{InferenceSurvivalKKWeibullFrailtyLoggammaOneLik}}
 #'   for a different (Clayton-copula, KK-design) approach to dependence
 #'   between two survival-type quantities.
 #'   \href{https://en.wikipedia.org/wiki/Survival_analysis}{Survival

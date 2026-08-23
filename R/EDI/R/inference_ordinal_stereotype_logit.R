@@ -1,4 +1,5 @@
-inference_ordinal_stereotype_public = list(
+OrdinalStereotypeLikelihoodSource = list(
+	public = list(
 		#' @description Initialize inference for the stereotype logit model; see
 		#'   \code{\link[EDI:InferenceOrdinalStereotypeLogitRegr]{InferenceOrdinalStereotypeLogitRegr}}
 		#'   for the model form. Does not fit the model; the fit is deferred to the
@@ -51,9 +52,8 @@ inference_ordinal_stereotype_public = list(
 			private$cached_values$summary_table = NULL
 			private$cached_values$beta_hat_T
 		}
-	)
-
-inference_ordinal_stereotype_private = list(
+	),
+	private = list(
 		supports_likelihood_tests = function(){ TRUE },
 		best_Xmm_colnames = NULL,
 		get_complexity_tier = function() "heavy",
@@ -295,10 +295,6 @@ inference_ordinal_stereotype_private = list(
 			X
 		}
 	)
-
-OrdinalStereotypeLikelihoodSource = list(
-	public = inference_ordinal_stereotype_public,
-	private = inference_ordinal_stereotype_private
 )
 
 #' Stereotype Logit Regression Inference for Ordinal Responses
@@ -366,7 +362,8 @@ InferenceOrdinalStereotypeLogitRegr = define_inference_class(
 	)
 )
 
-inference_ordinal_contratio_public = list(
+OrdinalContinuationRatioLikelihoodSource = list(
+	public = list(
 		#' @description Initialize inference for the continuation-ratio ordinal
 		#'   regression model; see
 		#'   \code{\link[EDI:InferenceOrdinalContRatioRegr]{InferenceOrdinalContRatioRegr}}
@@ -420,9 +417,8 @@ inference_ordinal_contratio_public = list(
 			private$cached_values$summary_table = NULL
 			private$cached_values$beta_hat_T
 		}
-	)
-
-inference_ordinal_contratio_private = list(
+	),
+	private = list(
 		supports_likelihood_tests = function(){ TRUE },
 		best_Xmm_colnames = NULL,
 		get_complexity_tier = function() "heavy",
@@ -635,10 +631,6 @@ inference_ordinal_contratio_private = list(
 			X
 		}
 	)
-
-OrdinalContinuationRatioLikelihoodSource = list(
-	public = inference_ordinal_contratio_public,
-	private = inference_ordinal_contratio_private
 )
 
 #' Continuation Ratio Regression Inference for Ordinal Responses

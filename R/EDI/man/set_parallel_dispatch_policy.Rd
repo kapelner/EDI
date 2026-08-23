@@ -58,6 +58,11 @@ set_parallel_dispatch_policy(reset = TRUE)
 }
 \seealso{
 \code{\link{get_parallel_dispatch_policy}} for the policy schema and
-  built-in defaults; \code{\link{set_num_cores}} for setting the actual
-  worker-count upper bound this policy operates within.
+  built-in defaults (including why this table is a safety blocklist, not
+  a performance one); \code{\link{set_num_cores}} for setting the actual
+  worker-count upper bound this policy operates within;
+  \code{\link{tune_EDI_for_this_machine}} for the separate,
+  machine-dependent question of when parallel execution is
+  \emph{worthwhile} (never applied here — this policy is only ever
+  overridden explicitly, by you).
 }

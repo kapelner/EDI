@@ -1,4 +1,5 @@
-inference_survival_weibull_public = list(
+SurvivalWeibullLikelihoodSource = list(
+	public = list(
 		#' @description Initialize inference for the Weibull AFT model
 		#'   \eqn{\log T_i = \beta_0 + \beta_T W_i + X_i^\top \gamma + \sigma
 		#'   \epsilon_i}, \eqn{\epsilon_i \sim} standard extreme-value (so \eqn{T_i}
@@ -171,9 +172,8 @@ inference_survival_weibull_public = list(
 				show_progress = show_progress, permutations = permutations, zero_one_logit_clamp = zero_one_logit_clamp
 			)
 		}
-	)
-
-inference_survival_weibull_private = list(
+	),
+	private = list(
 		bayesian_boot_compute_bayesian_bootstrap_two_sided_pval = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_two_sided_pval,
 		rand_compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
 		# See inference_incid_log_regr_private's cached_mod entry
@@ -436,10 +436,6 @@ inference_survival_weibull_private = list(
 			X
 		}
 	)
-
-SurvivalWeibullLikelihoodSource = list(
-	public = inference_survival_weibull_public,
-	private = inference_survival_weibull_private
 )
 
 #' Weibull AFT Inference for Survival Responses

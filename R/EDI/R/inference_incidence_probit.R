@@ -1,4 +1,5 @@
-inference_incid_probit_public = list(
+IncidenceProbitLikelihoodSource = list(
+	public = list(
 		#' @description Initialize inference for the probit regression model
 		#'   \eqn{\Phi^{-1}(P(Y_i = 1)) = \beta_0 + \beta_T W_i + X_i^\top \gamma};
 		#'   see \code{\link[EDI:InferenceIncidProbitRegr]{InferenceIncidProbitRegr}}
@@ -80,9 +81,8 @@ inference_incid_probit_public = list(
 			)
 			private$cached_values$beta_hat_T
 		}
-	)
-
-inference_incid_probit_private = list(
+	),
+	private = list(
 		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
 		# migration ladders): re-declared here even though Wald's own source
 		# already declares cached_mod = NULL -- see the identical comment on
@@ -296,10 +296,6 @@ inference_incid_probit_private = list(
 			X
 		}
 	)
-
-IncidenceProbitLikelihoodSource = list(
-	public = inference_incid_probit_public,
-	private = inference_incid_probit_private
 )
 
 #' Probit Regression Inference for Incidence Responses

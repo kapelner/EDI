@@ -265,8 +265,8 @@ family**, which is the gap that `InferenceParamBootstrap` needs to fill.
 | `InferenceSurvivalKKStratCoxOneLik` | `fast_stratified_coxph_regression_cpp` | **Difficult** | Same issue with stratification. Remains a direct `InferenceAsympLik` child. |
 | `InferenceSurvivalWeibullRegr` | `fast_weibull_regression_cpp` | **Borderline** | Implemented via Weibull null simulation with observed censoring carried forward. |
 | `InferenceSurvivalDepCensTransformRegr` | `fast_dep_cens_transform_optim_cpp` | **Difficult** | Highly bespoke joint event/censoring structure. Remains a direct `InferenceAsympLik` child. |
-| `InferenceSurvivalKKWeibullFrailtyOneLik` | `fast_weibull_frailty_cpp` | **Difficult** | Frailty simulation plus censoring plus repeated null refits is too heavy for a first generic rollout. Remains a direct `InferenceAsympLik` child. |
-| `InferenceSurvivalKKClaytonCopulaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | **Difficult** | Copula-based survival simulation is possible in principle but too bespoke package-wide. Remains a direct `InferenceAsympLik` child. |
+| `InferenceSurvivalKKWeibullFrailtyNormalOneLik` | `fast_weibull_frailty_cpp` | **Difficult** | Frailty simulation plus censoring plus repeated null refits is too heavy for a first generic rollout. Remains a direct `InferenceAsympLik` child. |
+| `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | **Difficult** | Copula-based survival simulation is possible in principle but too bespoke package-wide. Remains a direct `InferenceAsympLik` child. |
 
 ## Easy Tier
 
@@ -393,7 +393,7 @@ Abstract / infrastructure-only bootstrap descendants omitted from the concrete
 audit: `InferenceAsympLikStdModCache`, `InferenceCountLikelihood`,
 `InferenceCountCompositeLikelihood`, `InferenceCountZeroAugmentedPoissonAbstract`,
 `InferenceKKPassThroughCompound`, `InferenceAbstractKKLWACoxOneLik`, and
-`InferenceAbstractKKWeibullFrailtyOneLik`.
+`InferenceAbstractKKWeibullFrailtyNormalOneLik`.
 
 ### Likelihood-Backed Concrete Descendants
 
@@ -426,8 +426,8 @@ audit: `InferenceAsympLikStdModCache`, `InferenceCountLikelihood`,
 | `InferenceSurvivalWeibullRegr` | Supported now | Weibull null simulation implemented. |
 | `InferenceSurvivalKKLWACoxPHOneLik` | Supported now | Combined-design Cox null simulation implemented. |
 | `InferenceSurvivalKKStratCoxPHOneLik` | Supported now | Combined-design stratified Cox null simulation implemented. |
-| `InferenceSurvivalKKWeibullFrailtyOneLik` | Supported now | Rcpp-backed only; frailty simulation implemented behind `use_rcpp`. |
-| `InferenceSurvivalKKClaytonCopulaOneLik` | Supported now | Clayton-copula survival simulation implemented. |
+| `InferenceSurvivalKKWeibullFrailtyNormalOneLik` | Supported now | Rcpp-backed only; frailty simulation implemented behind `use_rcpp`. |
+| `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` | Supported now | Clayton-copula survival simulation implemented. |
 | `InferenceCountHurdleNegBin` | Disabled pending backend fixes | Bootstrap simulator code exists, but the class is kept off `InferenceParamBootstrap` until the repeated null-refit path is reliable. |
 | `InferenceIncidRiskDiff` | Intentionally unsupported | Kept off `InferenceParamBootstrap`; no likelihood-null simulator hook. |
 | `InferencePropFractionalLogit` | Intentionally unsupported | Kept off `InferenceParamBootstrap`; not yet given a generative fractional-response bootstrap path. |

@@ -147,10 +147,10 @@ are `IVWC`:
 | `InferenceSurvivalCoxPHRegr` | Survival | `InferenceSurvivalCoxPHRegr` | Weighted Cox PH surrogate via `survival::coxph` |
 | `InferenceSurvivalDepCensTransformRegr` | Survival | `InferenceSurvivalDepCensTransformRegr` | Weighted Cox-style surrogate for dependent-censoring transform estimate |
 | `InferenceSurvivalKMDiff` | Survival | `InferenceSurvivalKMDiff` | Weighted KM median difference |
-| `InferenceSurvivalKKClaytonCopulaOneLik` | Survival KK one-likelihood | `InferenceAbstractKKClaytonCopulaOneLik` | Weighted Weibull AFT surrogate over combined KK data |
+| `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` | Survival KK one-likelihood | `InferenceAbstractKKWeibullFrailtyLoggammaOneLik` | Weighted Weibull AFT surrogate over combined KK data |
 | `InferenceSurvivalKKLWACoxPHOneLik` | Survival KK one-likelihood | `InferenceAbstractKKLWACoxOneLik` | Weighted marginal Cox PH surrogate with KK clusters |
 | `InferenceSurvivalKKStratCoxPHOneLik` | Survival KK one-likelihood | `InferenceAbstractKKStratCoxOneLik` | Weighted stratified Cox PH surrogate over KK units |
-| `InferenceSurvivalKKWeibullFrailtyOneLik` | Survival KK one-likelihood | `InferenceAbstractKKWeibullFrailtyOneLik` | Weighted Weibull AFT surrogate with KK clusters |
+| `InferenceSurvivalKKWeibullFrailtyNormalOneLik` | Survival KK one-likelihood | `InferenceAbstractKKWeibullFrailtyNormalOneLik` | Weighted Weibull AFT surrogate with KK clusters |
 | `InferenceSurvivalLogRank` | Survival | `InferenceSurvivalLogRank` | Weighted log-rank score estimate |
 | `InferenceSurvivalRestrictedMeanDiff` | Survival | `InferenceSurvivalRestrictedMeanDiff` | Weighted RMST difference |
 | `InferenceSurvivalStratCoxPHRegr` | Survival | `InferenceSurvivalStratCoxPHRegr` | Weighted stratified-Cox surrogate |
@@ -233,11 +233,11 @@ a class-specific weighted re-fit. See TODO-2.
 - `InferenceIncidKKCondLogitIVWC`
 - `InferenceIncidKKCondLogitGLMMIVWC`
 - `InferencePropKKQuantileRegrIVWC`
-- `InferenceSurvivalKKClaytonCopulaIVWC`
+- `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`
 - `InferenceSurvivalKKLWACoxPHIVWC`
 - `InferenceSurvivalKKRankRegrIVWC`
 - `InferenceSurvivalKKStratCoxPHIVWC`
-- `InferenceSurvivalKKWeibullFrailtyIVWC`
+- `InferenceSurvivalKKWeibullFrailtyNormalIVWC`
 - `InferenceBaiAdjustedTKK14` (`EDI/R/inference_continuous_KK14_bai.R:19`,
   via `InferenceBaiAdjustedT` → `InferenceKKPassThroughCompoundNoParamBootstrap`)
 - `InferenceBaiAdjustedTKK21` (`EDI/R/inference_continuous_KK21_bai.R:19`,

@@ -832,7 +832,7 @@ based on.
       `y_L`/`y_R` support, migration or not, so the original "wait for the
       migration" framing was itself imprecise (nothing was ever going to
       unblock them through that path); `fast_survival_models_optim.cpp`
-      backs `InferenceSurvivalKKClaytonCopulaIVWC`/`OneLik` and
+      backs `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`/`OneLik` and
       `InferenceSurvivalDepCensTransformRegr`, both explicitly flagged in
       that same document as Tier-3 "hard, structural, second-wave" work
       needing their own future feasibility report — same conclusion.

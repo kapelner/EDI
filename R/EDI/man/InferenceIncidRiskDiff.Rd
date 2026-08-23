@@ -4,13 +4,13 @@
 \alias{InferenceIncidRiskDiff}
 \title{Risk Difference Inference for Incidence Responses}
 \description{
-Fits a linear probability model \eqn{E[Y \mid W, X] = \beta_0 + \beta_T W +
-\beta_X^\top X} via ordinary least squares for binary (incidence) responses
-\eqn{Y \in \{0,1\}}, using the treatment indicator \eqn{W} and, optionally,
-all recorded covariates \eqn{X} as predictors. \eqn{\hat\beta_T} is reported
+Fits a linear probability model \eqn{E[Y \mid w, x] = \beta_0 + \beta_T w +
+\beta_X^\top x} via ordinary least squares for binary (incidence) responses
+\eqn{Y \in \{0,1\}}, using the treatment indicator \eqn{w} and, optionally,
+all recorded covariates \eqn{x} as predictors. \eqn{\hat\beta_T} is reported
 directly as the risk-difference estimate: because \eqn{Y} is 0/1, the OLS fit
 coincides with a saturated/linear model for the conditional risk
-\eqn{P(Y=1\mid W,X)}, so the coefficient on \eqn{W} is already on the
+\eqn{P(Y=1\mid w,x)}, so the coefficient on \eqn{w} is already on the
 risk-difference (probability) scale with no back-transformation needed. This
 is a misspecified working model for a binary response (heteroskedastic,
 errors not Gaussian), so \code{likelihood_tier = "none"}: standard errors and

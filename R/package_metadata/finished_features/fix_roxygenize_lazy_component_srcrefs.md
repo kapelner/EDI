@@ -222,11 +222,60 @@ wherever the owning component/class actually defines it.
 
 ## Remaining TODOs
 
-- [ ] Run full `R CMD check` (deferred from the verification plan's item 4,
+- [x] Run full `R CMD check` (deferred from the verification plan's item 4,
   where it was noted as "recommended before the next release" but never
   scheduled) — the fix itself was verified only via `fast_roxygenize.R`
   completing plus `tools::checkRd()` on the changed `.Rd` files, so a full
   check has still never been run over the regenerated documentation set.
+  **Done (2026-08-23):** ran `R CMD build` + `R CMD check --as-cran
+  --no-manual` from a clean `rsync`-of-the-working-tree copy (excluding
+  `.claude`, which contains sandbox-artifact device files `R CMD build`
+  can't copy — same lesson already recorded in `release_v1_0_0.md`'s "build
+  release tarballs from a clean checkout" note). Confirms the srcref fix
+  itself holds under the real checker: **`roxygenize()`/`R CMD check`
+  complete without the original `lacks source references` abort**, and
+  "checking whether the package can be loaded" / "installed" both `OK`.
+  Result: **1 ERROR, 11 WARNINGs, 4 NOTEs** — none of them a recurrence of
+  this plan's bug. Breakdown, for whoever picks up the release-gate work
+  next:
+  - **The 1 ERROR is environmental, not a code bug:** the
+    `tune_EDI_for_this_machine()` `\donttest{}` example correctly refused
+    to run under contention (this very check run was pegging all 12 cores)
+    — its own load-average self-check is doing its job. Re-run on an idle
+    machine or with `force = TRUE`.
+  - **Most WARNINGs/NOTEs are pre-existing/environmental**, already
+    tracked in `release_v1_0_0.md`'s Release Gate section: non-portable
+    `-march=native` Makevars flags, missing `inst/doc` (vignettes not
+    pre-built — expected pre-CRAN-submission), the `X_r` \usage NOTE (5
+    `fast_*_binomial_regression*` files, already flagged there as "fold
+    into `fix_documentation.md`" — now stale wording since that plan is
+    closed; retarget to a fresh doc fixup), non-ASCII characters in
+    `R/inference_suite.R`, hidden `tests/.prepush_*` files needing
+    `.Rbuildignore` entries, and Wikipedia-URL/ORCID checks that failed on
+    `libcurl error code 7` (sandbox network egress blocked, not a real
+    dead link — re-run outside the sandbox to confirm).
+  - **New finding, not previously tracked — a real Rd cross-reference
+    regression:** "checking Rd cross-references" reports **18 `.Rd` files**
+    with missing `\link[EDI:ClassName]{...}` targets (up from the "2
+    missing links" baseline `release_v1_0_0.md` recorded on 2026-08-15),
+    plus 7 files with un-anchored `\link{}` targets to non-existent
+    functions, and 7 `Inference*IVWC`/`OneLik` component-source classes
+    reported as "Undocumented code objects" entirely (`InferenceContinKKOLSIVWC`,
+    `InferenceContinKKOLSOneLik`, `InferenceContinKKRobustRegrOneLik`,
+    `InferenceCountKKHurdlePoissonIVWC`, `InferenceIncidKKCondLogitIVWC`,
+    `InferenceSurvivalKKWeibullFrailtyLoggammaIVWC`, `InferenceSurvivalKKStratCoxPHIVWC`).
+    These look like fallout from `fix_inference_hierarchy.md`'s KK/IVWC
+    migration work (classes renamed/merged/re-exported without every
+    cross-referencing `\link[EDI:...]{}` in sibling `*Source.Rd` files being
+    updated to match) rather than anything this plan's srcref fix caused —
+    but they are real, CRAN-blocking issues (`R CMD check --as-cran` with
+    `error-on: "note"`, per CI config, would fail the build on these). Full
+    file list is in the check log; needs a dedicated cleanup pass (either a
+    `fix_documentation.md`-style follow-up plan, or folded into whatever
+    plan owns the KK/IVWC naming next) before CRAN submission.
+  - Full log:
+    `/tmp/claude/edi_clean_build/EDI.Rcheck/00check.log` (ephemeral sandbox
+    path — re-run to reproduce; not committed).
 
 ## Relationship to `fix_documentation.md`
 

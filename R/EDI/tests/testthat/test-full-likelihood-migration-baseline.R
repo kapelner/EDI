@@ -42,10 +42,10 @@ full_likelihood_expected_classes = c(
 	"InferencePropKKQuantileRegrOneLik",
 	"InferencePropZeroOneInflatedBetaRegr",
 	"InferenceSurvivalDepCensTransformRegr",
-	"InferenceSurvivalKKClaytonCopulaIVWC",
-	"InferenceSurvivalKKClaytonCopulaOneLik",
-	"InferenceSurvivalKKWeibullFrailtyIVWC",
-	"InferenceSurvivalKKWeibullFrailtyOneLik",
+	"InferenceSurvivalKKWeibullFrailtyLoggammaIVWC",
+	"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik",
+	"InferenceSurvivalKKWeibullFrailtyNormalIVWC",
+	"InferenceSurvivalKKWeibullFrailtyNormalOneLik",
 	"InferenceSurvivalKKWeibullMarginal",
 	"InferenceSurvivalWeibullRegr"
 )
@@ -102,10 +102,10 @@ full_likelihood_expected_groups = list(
 	),
 	survival = c(
 		"InferenceSurvivalDepCensTransformRegr",
-		"InferenceSurvivalKKClaytonCopulaIVWC",
-		"InferenceSurvivalKKClaytonCopulaOneLik",
-		"InferenceSurvivalKKWeibullFrailtyIVWC",
-		"InferenceSurvivalKKWeibullFrailtyOneLik",
+		"InferenceSurvivalKKWeibullFrailtyLoggammaIVWC",
+		"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik",
+		"InferenceSurvivalKKWeibullFrailtyNormalIVWC",
+		"InferenceSurvivalKKWeibullFrailtyNormalOneLik",
 		"InferenceSurvivalKKWeibullMarginal",
 		"InferenceSurvivalWeibullRegr"
 	),
@@ -126,10 +126,10 @@ full_likelihood_expected_groups = list(
 		"InferenceOrdinalKKGLMM",
 		"InferencePropKKGLMM",
 		"InferencePropKKQuantileRegrOneLik",
-		"InferenceSurvivalKKClaytonCopulaIVWC",
-		"InferenceSurvivalKKClaytonCopulaOneLik",
-		"InferenceSurvivalKKWeibullFrailtyIVWC",
-		"InferenceSurvivalKKWeibullFrailtyOneLik",
+		"InferenceSurvivalKKWeibullFrailtyLoggammaIVWC",
+		"InferenceSurvivalKKWeibullFrailtyLoggammaOneLik",
+		"InferenceSurvivalKKWeibullFrailtyNormalIVWC",
+		"InferenceSurvivalKKWeibullFrailtyNormalOneLik",
 		"InferenceSurvivalKKWeibullMarginal"
 	),
 	non_kk = c(
@@ -237,15 +237,15 @@ full_likelihood_expected_survival_components = list(
 	InferenceSurvivalDepCensTransformRegr = "SurvivalDepCensTransform",
 	InferenceSurvivalWeibullRegr = "SurvivalWeibullLikelihood",
 	InferenceSurvivalKKWeibullMarginal = "SurvivalKKWeibullMarginal",
-	InferenceSurvivalKKClaytonCopulaIVWC = "SurvivalKKClaytonCopulaIVWC",
-	InferenceSurvivalKKClaytonCopulaOneLik = "SurvivalKKClaytonCopulaOneLik",
+	InferenceSurvivalKKWeibullFrailtyLoggammaIVWC = "SurvivalKKWeibullFrailtyLoggammaIVWC",
+	InferenceSurvivalKKWeibullFrailtyLoggammaOneLik = "SurvivalKKWeibullFrailtyLoggammaOneLik",
 	# Merged to a single component at migration time (2026-08-18): the
 	# separate self-harvested ...IVWCLeaf component was folded into the main
 	# source, same reshaping as the Clayton IVWC entry above.
-	InferenceSurvivalKKWeibullFrailtyIVWC = "SurvivalKKWeibullFrailtyIVWC",
-	InferenceSurvivalKKWeibullFrailtyOneLik = c(
-		"SurvivalKKWeibullFrailtyOneLik",
-		"SurvivalKKWeibullFrailtyOneLikLeaf"
+	InferenceSurvivalKKWeibullFrailtyNormalIVWC = "SurvivalKKWeibullFrailtyNormalIVWC",
+	InferenceSurvivalKKWeibullFrailtyNormalOneLik = c(
+		"SurvivalKKWeibullFrailtyNormalOneLik",
+		"SurvivalKKWeibullFrailtyNormalOneLikLeaf"
 	)
 )
 
@@ -528,8 +528,8 @@ test_that("count composite likelihood behavior is component sourced", {
 	expect_identical(component$dependencies, character())
 	expect_identical(component$provides_capabilities, "count_composite_likelihood")
 	expect_identical(component$component_loader$load_policy, "eager")
-	expect_identical(component$public, EDI:::inference_count_composite_likelihood_public)
-	expect_identical(component$private, EDI:::inference_count_composite_likelihood_private)
+	expect_identical(component$public, EDI:::CountCompositeLikelihoodSource$public)
+	expect_identical(component$private, EDI:::CountCompositeLikelihoodSource$private)
 	expect_identical(sort(component$provides_public_methods), sort(names(EDI:::CountCompositeLikelihoodSource$public)))
 	expect_identical(sort(component$provides_private_methods), sort(names(EDI:::CountCompositeLikelihoodSource$private)))
 })
@@ -548,8 +548,8 @@ test_that("full-likelihood GLM-family standard-model-cache behavior is component
 	expect_identical(component$dependencies, "LikelihoodTests")
 	expect_identical(component$provides_capabilities, "standard_model_cache")
 	expect_identical(component$component_loader$load_policy, "eager")
-	expect_identical(component$public, EDI:::inference_asymp_lik_std_mod_cache_public)
-	expect_identical(component$private, EDI:::inference_asymp_lik_std_mod_cache_private)
+	expect_identical(component$public, EDI:::StandardModelCacheSource$public)
+	expect_identical(component$private, EDI:::StandardModelCacheSource$private)
 	expect_identical(sort(component$provides_public_methods), sort(names(EDI:::StandardModelCacheSource$public)))
 	expect_identical(sort(component$provides_private_methods), sort(names(EDI:::StandardModelCacheSource$private)))
 

@@ -641,3 +641,26 @@ test_that("component resolution rejects dependency cycles", {
 		"dependency cycle"
 	)
 })
+
+test_that("retained legacy ladder generators are enumerated, real, and have no concrete descendants", {
+	# 2026-08-23 (fix_inference_hierarchy.md "Static Cleanup", "Ban raw
+	# component splicing"): the only generators still assembled by hand from
+	# lists are the retained legacy ladder -- the registry's abstract-class
+	# list minus the root. test-static-cleanup-guardrails.R keys its
+	# allowance for `InferenceExt*` file-splits and `*Source` mounting on
+	# this same constant, so it must stay an exact enumeration of real,
+	# abstract, descendant-free generators.
+	EDI:::populate_inference_class_registry()
+	retained = setdiff(EDI:::EDI_INFERENCE_ABSTRACT_CLASS_NAMES, "Inference")
+	expect_gt(length(retained), 0L)
+	ns = asNamespace("EDI")
+	manifest = EDI:::inference_hierarchy_migration_manifest_as_list()
+	concrete_ancestors = unique(unlist(lapply(Filter(function(record) !isTRUE(record$current_abstract), manifest), function(record) record$current_ancestors)))
+	for (name in retained) {
+		expect_true(exists(name, envir = ns, inherits = FALSE), info = name)
+		generator = get(name, envir = ns, inherits = FALSE)
+		expect_true(EDI:::is_inference_r6_generator(generator), info = name)
+		expect_true(isTRUE(manifest[[name]]$current_abstract), info = name)
+		expect_false(name %in% concrete_ancestors, info = paste(name, "still has a concrete descendant"))
+	}
+})

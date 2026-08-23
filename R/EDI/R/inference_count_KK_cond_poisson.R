@@ -41,16 +41,6 @@
 	ci
 }
 
-#' KK Hurdle Poisson IVWC Inference for Count Responses
-#'
-#' Internal base class for KK hurdle-Poisson inverse-variance weighted combined
-#' inference. The matched-pair component is fit with a hurdle-Poisson mixed model
-#' using pair random intercepts, and the reservoir component is fit with an
-#' ordinary Poisson log-link regression. The reported treatment effect is on the
-#' log-rate scale.
-#'
-#' @keywords internal
-#' @noRd
 # Static leaf source (2026-08-17 migration, same shape as
 # SurvivalKKWeibullMarginalSource): mixin content arrives through the
 # registered KKPassThrough component (this component's declared dependency);
@@ -494,6 +484,14 @@ CountKKHurdlePoissonIVWCSource = list(
 	)
 )
 
+#' KK Hurdle Poisson IVWC Inference for Count Responses
+#'
+#' Inverse-variance weighted combined inference for count responses under a
+#' KK matching-on-the-fly design. The matched-pair component is fit with a
+#' hurdle-Poisson mixed model using pair random intercepts, and the reservoir
+#' component is fit with an ordinary Poisson log-link regression. The reported
+#' treatment effect is on the log-rate scale.
+#'
 #' @export
 InferenceCountKKHurdlePoissonIVWC = define_inference_class(
 	classname = "InferenceCountKKHurdlePoissonIVWC",
@@ -816,7 +814,6 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		# declares the collision so the KKPassThrough-supplied version wins.
 	),
 	private = list(
-		m = NULL,
 		cached_mod = NULL,
 		use_rcpp = TRUE,
 		max_abs_reasonable_coef = 1e4,
@@ -1423,7 +1420,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 #' \code{.conservative_kk_onelik_ci()}/\code{.conservative_kk_onelik_pval()}),
 #' so the model-based test is never anti-conservative relative to the design.
 #' The Wald confidence interval and p-value fall back to the
-#' \code{\link[EDI:BayesianBootstrap]{BayesianBootstrap}} component's
+#' \code{BayesianBootstrap} component's
 #' bootstrap distribution when the model-based standard error is unavailable
 #' or non-finite (e.g. a boundary/separation fit).
 #'

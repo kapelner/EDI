@@ -118,10 +118,10 @@ all_param_boot_smoke_cases <- list(
 	InferencePropKKGLMM = all_param_boot_case("proportion", kk = TRUE, constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
 	InferencePropZeroOneInflatedBetaRegr = all_param_boot_case("proportion", variant = "zero_one", constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
 	InferenceSurvivalDepCensTransformRegr = all_param_boot_case("survival", constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
-	InferenceSurvivalKKClaytonCopulaOneLik = all_param_boot_case("survival", kk = TRUE, constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
+	InferenceSurvivalKKWeibullFrailtyLoggammaOneLik = all_param_boot_case("survival", kk = TRUE, constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
 	InferenceSurvivalKKLWACoxPHOneLik = all_param_boot_case("survival", kk = TRUE, constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
 	InferenceSurvivalKKStratCoxPHOneLik = all_param_boot_case("survival", kk = TRUE, constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
-	InferenceSurvivalKKWeibullFrailtyOneLik = all_param_boot_case("survival", kk = TRUE, constructor_args = list(model_formula = ~ x1 + x2, use_rcpp = TRUE, verbose = FALSE)),
+	InferenceSurvivalKKWeibullFrailtyNormalOneLik = all_param_boot_case("survival", kk = TRUE, constructor_args = list(model_formula = ~ x1 + x2, use_rcpp = TRUE, verbose = FALSE)),
 	InferenceSurvivalWeibullRegr = all_param_boot_case("survival", constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE))
 )
 

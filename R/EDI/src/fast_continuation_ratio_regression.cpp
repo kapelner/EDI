@@ -269,7 +269,7 @@ Eigen::MatrixXd get_continuation_ratio_regression_hessian_cpp(const Eigen::Map<E
 //'   equals the continuation-ratio model's negative log-likelihood), \code{X_aug}/
 //'   \code{z} (the augmented design matrix and binary response actually fit, exposed
 //'   for reuse, e.g. by
-//'   \code{\link{get_continuation_ratio_regression_hessian_cpp}}), \code{converged}
+//'   \code{get_continuation_ratio_regression_hessian_cpp()}), \code{converged}
 //'   (logical), and \code{fisher_information} (the exact observed information
 //'   Hessian at the fitted parameters). See Details for the degenerate
 //'   fewer-than-2-categories case, which returns a reduced subset of these fields.

@@ -82,6 +82,9 @@ spliced into one step and marked **[spliced]**.
 > step 11; those references are struck accordingly. Phase 6 in this file no
 > longer lists it as a phase-ordered item since it now ships with the
 > release-scoped batch, not the exploratory tail.
+> **Closed (2026-08-23):** all twelve of that plan's TODOs done; moved to
+> `../finished_features/local_machine_optimization.md`. See
+> `release_v1_0_0.md`'s item 15 for the full closure writeup.
 >
 > **Amended 2026-08-23 (user decision):** `performance_profiling_and_upgrades.md`
 > — the native-kernel performance record, moved here from
@@ -204,11 +207,25 @@ Plan closed, all TODOs (including TODO-14's exhaustive bit-identical
 regression sweep and TODO-15's stale `dead =` cleanup) checked off; moved
 to `../finished_features/interval_censored_survival_response.md`.
 
-### 1D. Inference-hierarchy migration completion (after 1A) — **26 open items remain (2026-08-17)**
+### 1D. Inference-hierarchy migration completion (after 1A) — **DONE (2026-08-23)**
+
+Plan closed (0 open items); moved to
+`../finished_features/fix_inference_hierarchy.md`. The 2026-08-23 closure
+verified the migration complete (zero concrete classes with algorithmic-
+compatibility ancestors; the retained legacy ladder enumerated as internal
+component sources) and turned the last two Static Cleanup ratchets into real
+bans (raw component splicing; component redeclaration of root-owned state —
+Source Invariant 15), reworded/closed the KK IVWC parent item for the
+accepted thin-leaf terminal state, and added the focused non-KK count
+likelihood family tests. This unblocks item 6 (`extending-edi-r6.md`) on
+the inference side, Phase 1G's fixture lock, and the Phase 5A items gated
+on the Full-Likelihood Estimators remainder (`marginal_estimand_report.md
+→ TODO-4/5/7/9`). The historical snapshot below (as of 2026-08-17) is kept
+for the narrative:
 
 Real progress since the last pass: Wald No-Likelihood Migration is down to 1
 cleanup item, Quasi/Robust Estimators and Discovery are both fully `[x]`.
-Remaining, by section (open-item counts):
+Remaining, by section (open-item counts, 2026-08-17 snapshot):
 
 1. `fix_inference_hierarchy.md → Asymptotic (Wald) No-Likelihood Migration`
    — **1 open**: delete no-longer-used legacy scaffolding after all
@@ -342,9 +359,16 @@ along the way; this also closed release amendment 11's decision gate.
    the standing rule: parse checks only mid-batch, no interim roxygenize).
    **Done (2026-08-23): 0 open R-side TODOs, plan moved to
    `../finished_features/`.**
-2. `fix_documentation.md → TODO #758..#816` (Python docstrings) — each only
-   after its R sibling's expanded documentation exists (they copy from it).
-   Unblocked now that item 1 is done.
+2. **[x]** `fix_documentation.md → TODO #758..#816` (Python docstrings) —
+   each only after its R sibling's expanded documentation exists (they
+   copy from it). **Done (2026-08-23):** all 59 items were already `[x]`
+   in the (moved) plan; verified for real against the actual
+   `python/cpp/bindings_*.cpp` pybind11 docstrings (not just the
+   checkboxes) — every one is genuinely expanded. One labeling bug found
+   and fixed along the way: TODO #803 named a nonexistent
+   `fast_weibull_regression`; the real binding is
+   `fast_weibull_regression_general`, whose docstring was already fully
+   expanded — only the TODO's function name was stale.
 3. `fix_roxygenize_lazy_component_srcrefs.md → R CMD check TODO` — after the
    first large doc batch, and again after Phase 1D.4 (Base Deletion).
 
@@ -425,7 +449,16 @@ already stated there:**
    (its TODO-1 joins the Phase 0 decision batch, to be taken *after*
    `gpu_optimizations.md → TODO-7`'s backend/dispatch answer, which it reuses).
    Only realistic item is an opt-in QUBO-export + external-sampler hook on
-   `DesignFixedOptimal`'s quadratic/ratio objectives (TODO-2..5); everything
+   `DesignFixedOptimal`'s quadratic/ratio objectives (TODO-2..5) — plus, added
+   2026-08-23 (user request), the hardware-by-proposal map with run-time
+   detection and classical fallback (§I.7 there; TODO-9..12: `detect_qubo_backends()`,
+   the `qubo_backend` dispatch with `"none"` default and an opt-in `"auto"`
+   chain ending in classical SA, R-native backend adapters, hardware-free tests)
+   — **pure R + vendored Apache-2.0 C++ (minorminer `busclique` for QPU
+   embedding), no Python/`reticulate` anywhere** (amended 2026-08-23, user
+   decision).
+   Release index: `release_v1_1_0.md → TODO-9b` (gated on its TODO-1, Phase 0
+   step 9b); everything
    else in it is either not a candidate (Tier C) or — the amplitude-estimation
    speedup for randomization p-values, bisection CI inversion and bootstrap
    quantiles (Tier B) — a real quadratic speedup that needs fault-tolerant

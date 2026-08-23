@@ -1,12 +1,31 @@
+# Until 2026-08-23 this file hoisted `inference_count_likelihood_public/
+# _private` list objects that were spliced both into this Source (with 12
+# composition-safe public overrides layered on via `utils::modifyList()`) and
+# into the classic `InferenceCountLikelihood` R6 ladder generator, which had
+# zero remaining inheritors (every count class composes CountLikelihoodPlumbing
+# through define_inference_class()). fix_inference_hierarchy.md "Static
+# Cleanup" / "Ban raw component splicing" (2026-08-23): the ladder generator
+# is deleted, the 12 superseded base bodies (whose `super$compute_X(...)`
+# fallbacks only resolved through the deleted ladder) are dropped, and the
+# Source is now one plain literal: `compute_estimate` plus the 12
+# composition-safe methods (private$..._impl direct calls, with the two
+# compute_lik_ratio_bootstrap_* methods and the two asymp dispatchers pinned
+# from their real source generators under `cl_plumbing_*` names), plus the
+# count-specific private helpers. The `@name InferenceCountLikelihood` roxygen
+# topic is kept so existing `\link[EDI:InferenceCountLikelihood]` cross-
+# references stay valid.
 #' Count-Specific Likelihood Inference
 #'
 #' @name InferenceCountLikelihood
-#' @description Intermediate base class for count-based likelihood families
-#' (Poisson, Negative Binomial, Zero-Inflated, Hurdle). This class centralizes
-#' count-specific parameter packing, warm starts, and likelihood dispatch.
+#' @description Component source (\code{CountLikelihoodPlumbingSource}) for the
+#' count-based likelihood families (Poisson, Negative Binomial, Zero-Inflated,
+#' Hurdle): centralizes count-specific parameter packing, warm starts, and
+#' likelihood dispatch. Composed by every count class through the registered
+#' \code{CountLikelihoodPlumbing} component.
 #'
 #' @keywords internal
-inference_count_likelihood_public = list(
+CountLikelihoodPlumbingSource = list(
+	public = list(
 		#' @description Computes the treatment-effect estimate using the underlying
 		#'   count likelihood model. Concrete subclasses fit a Poisson, negative
 		#'   binomial, zero-inflated, hurdle, or combined likelihood model and cache
@@ -18,14 +37,6 @@ inference_count_likelihood_public = list(
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes an asymptotic confidence interval for the treatment
-		#'   effect using the configured count-likelihood test. Wald intervals use the
-		#'   fitted count-model coefficient and standard error; score,
-		#'   likelihood-ratio, gradient, and bootstrap-calibrated paths delegate to
-		#'   \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} or
-		#'   \code{\link[EDI:InferenceParamBootstrap]{InferenceParamBootstrap}}.
-		#' @param alpha Significance level 1 - \code{alpha}. Default 0.05.
-		#' @return A confidence interval.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
 			if (private$testing_type == "wald") {
@@ -34,15 +45,8 @@ inference_count_likelihood_public = list(
 					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
 				}
 			}
-			super$compute_asymp_confidence_interval(alpha)
+			private$cl_plumbing_asymp_lik_compute_asymp_confidence_interval(alpha)
 		},
-		#' @description Computes an asymptotic two-sided p-value for the treatment
-		#'   effect using the configured count-likelihood test. Wald tests compare
-		#'   the fitted count-model treatment coefficient to \code{delta}; score,
-		#'   likelihood-ratio, and gradient tests evaluate the corresponding
-		#'   null-restricted likelihood statistic.
-		#' @param delta Null treatment effect to test against. Default 0.
-		#' @return The asymptotic p-value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
 			if (private$testing_type == "wald") {
@@ -51,65 +55,43 @@ inference_count_likelihood_public = list(
 					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
 				}
 			}
-			super$compute_asymp_two_sided_pval(delta)
+			private$cl_plumbing_asymp_lik_compute_asymp_two_sided_pval(delta)
 		},
-		#' @description Computes the Wald two-sided p-value regardless of configured testing type.
-		#' @param delta Null treatment effect.
 		compute_wald_two_sided_pval = function(delta = 0){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			super$compute_wald_two_sided_pval(delta)
+			private$compute_wald_two_sided_pval_impl(delta)
 		},
-		#' @description Computes the Wald confidence interval regardless of configured testing type.
-		#' @param alpha Significance level. Default 0.05.
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			super$compute_wald_confidence_interval(alpha)
+			private$compute_wald_confidence_interval_impl(alpha)
 		},
-		#' @description Computes the score two-sided p-value regardless of configured testing type.
-		#' @param delta Null treatment effect.
 		compute_score_two_sided_pval = function(delta = 0){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			super$compute_score_two_sided_pval(delta)
+			private$compute_score_two_sided_pval_impl(delta)
 		},
-		#' @description Computes the score confidence interval regardless of configured testing type.
-		#' @param alpha Significance level. Default 0.05.
 		compute_score_confidence_interval = function(alpha = 0.05){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			super$compute_score_confidence_interval(alpha)
+			private$compute_score_confidence_interval_impl(alpha)
 		},
-		#' @description Computes the likelihood-ratio two-sided p-value regardless of configured testing type.
-		#' @param delta Null treatment effect.
 		compute_lik_ratio_two_sided_pval = function(delta = 0){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			super$compute_lik_ratio_two_sided_pval(delta)
+			private$compute_lik_ratio_two_sided_pval_impl(delta)
 		},
-		#' @description Computes the likelihood-ratio confidence interval regardless of configured testing type.
-		#' @param alpha Significance level. Default 0.05.
 		compute_lik_ratio_confidence_interval = function(alpha = 0.05){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			super$compute_lik_ratio_confidence_interval(alpha)
+			private$compute_lik_ratio_confidence_interval_impl(alpha)
 		},
-		#' @description Computes the gradient two-sided p-value regardless of configured testing type.
-		#' @param delta Null treatment effect.
 		compute_gradient_two_sided_pval = function(delta = 0){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			super$compute_gradient_two_sided_pval(delta)
+			private$compute_gradient_two_sided_pval_impl(delta)
 		},
-		#' @description Computes the gradient confidence interval regardless of configured testing type.
-		#' @param alpha Significance level. Default 0.05.
 		compute_gradient_confidence_interval = function(alpha = 0.05){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			super$compute_gradient_confidence_interval(alpha)
+			private$compute_gradient_confidence_interval_impl(alpha)
 		},
-		#' @description Computes a parametric likelihood-ratio bootstrap p-value.
-		#' @param delta Null treatment effect.
-		#' @param B Number of bootstrap replicates.
-		#' @param show_progress Whether to show progress.
-		#' @param min_number_usable_samples Minimum usable bootstrap samples.
-		#' @param max_attempts_per_replicate Maximum attempts per replicate.
 		compute_lik_ratio_bootstrap_two_sided_pval = function(delta = 0, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			super$compute_lik_ratio_bootstrap_two_sided_pval(
+			private$cl_plumbing_param_boot_compute_lik_ratio_bootstrap_two_sided_pval(
 				delta = delta,
 				B = B,
 				show_progress = show_progress,
@@ -117,17 +99,9 @@ inference_count_likelihood_public = list(
 				max_attempts_per_replicate = max_attempts_per_replicate
 			)
 		},
-		#' @description Computes a parametric likelihood-ratio bootstrap CI.
-		#' @param alpha Significance level. Default 0.05.
-		#' @param B Number of bootstrap replicates.
-		#' @param show_progress Whether to show progress.
-		#' @param min_number_usable_samples Minimum usable bootstrap samples.
-		#' @param max_attempts_per_replicate Maximum attempts per replicate.
-		#' @param root_tolerance Root tolerance.
-		#' @param max_root_iterations Maximum root iterations.
 		compute_lik_ratio_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L, root_tolerance = NULL, max_root_iterations = 8L){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			super$compute_lik_ratio_bootstrap_confidence_interval(
+			private$cl_plumbing_param_boot_compute_lik_ratio_bootstrap_confidence_interval(
 				alpha = alpha,
 				B = B,
 				show_progress = show_progress,
@@ -137,10 +111,8 @@ inference_count_likelihood_public = list(
 				max_root_iterations = max_root_iterations
 			)
 		}
-	)
-
-	inference_count_likelihood_private = list(
-		# --- Count-specific shared logic ---
+	),
+	private = list(
 
 		shared = function(estimate_only = FALSE){
 			if (estimate_only &&
@@ -255,127 +227,13 @@ inference_count_likelihood_public = list(
 				ci = c(NA_real_, NA_real_)
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 				ci
-			}
-		)
-
-	# CountLikelihoodPlumbingSource intentionally does NOT reuse
-	# inference_count_likelihood_public/_private verbatim (unlike every other
-	# already-registered per-class *Likelihood component in this migration
-	# effort) -- inference_count_likelihood_public's compute_asymp_*/
-	# compute_wald_*/compute_score_*/compute_lik_ratio_*/compute_gradient_*/
-	# compute_lik_ratio_bootstrap_* methods all call super$compute_X(...) as
-	# either a fallback (asymp) or their entire body (the rest), and
-	# inference_count_likelihood_public/_private are also still used AS-IS by
-	# the classic (not-yet-migrated) InferenceCountLikelihood R6 generator
-	# below, where super$ genuinely resolves through the deep ladder -- so
-	# those two objects cannot be edited without breaking every class still
-	# classically inheriting InferenceCountLikelihood. Instead, this Source's
-	# public list overrides just those 12 methods with composition-safe
-	# versions (private$..._impl direct calls, matching the thin-wrapper shape
-	# every LikelihoodTests/Wald descendant already uses; the two
-	# compute_lik_ratio_bootstrap_* methods and the two asymp dispatchers are
-	# self-contained real implementations with no _impl equivalent, so those
-	# are pinned from their real source generators instead -- same "pin from
-	# the named source generator" pattern used throughout this migration for
-	# compute_rand_two_sided_pval/compute_bayesian_bootstrap_two_sided_pval).
-	# Found via InferenceCountPoisson's migration (2026-08-21): that class
-	# happens to fully self-override all 12 of these itself, so it never
-	# exercised this bug; InferenceCountNegBin and every count class after it
-	# do not self-override them, so this fix is required at the component
-	# level, not per-class.
-	CountLikelihoodPlumbingSource = list(
-		public = utils::modifyList(inference_count_likelihood_public, list(
-			compute_asymp_confidence_interval = function(alpha = 0.05){
-				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-				if (private$testing_type == "wald") {
-					private$shared(estimate_only = FALSE)
-					if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
-						return(private$compute_z_or_t_ci_from_s_and_df(alpha))
-					}
-				}
-				private$cl_plumbing_asymp_lik_compute_asymp_confidence_interval(alpha)
 			},
-			compute_asymp_two_sided_pval = function(delta = 0){
-				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-				if (private$testing_type == "wald") {
-					private$shared(estimate_only = FALSE)
-					if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
-						return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
-					}
-				}
-				private$cl_plumbing_asymp_lik_compute_asymp_two_sided_pval(delta)
-			},
-			compute_wald_two_sided_pval = function(delta = 0){
-				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-				private$compute_wald_two_sided_pval_impl(delta)
-			},
-			compute_wald_confidence_interval = function(alpha = 0.05){
-				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-				private$compute_wald_confidence_interval_impl(alpha)
-			},
-			compute_score_two_sided_pval = function(delta = 0){
-				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-				private$compute_score_two_sided_pval_impl(delta)
-			},
-			compute_score_confidence_interval = function(alpha = 0.05){
-				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-				private$compute_score_confidence_interval_impl(alpha)
-			},
-			compute_lik_ratio_two_sided_pval = function(delta = 0){
-				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-				private$compute_lik_ratio_two_sided_pval_impl(delta)
-			},
-			compute_lik_ratio_confidence_interval = function(alpha = 0.05){
-				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-				private$compute_lik_ratio_confidence_interval_impl(alpha)
-			},
-			compute_gradient_two_sided_pval = function(delta = 0){
-				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-				private$compute_gradient_two_sided_pval_impl(delta)
-			},
-			compute_gradient_confidence_interval = function(alpha = 0.05){
-				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-				private$compute_gradient_confidence_interval_impl(alpha)
-			},
-			compute_lik_ratio_bootstrap_two_sided_pval = function(delta = 0, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
-				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-				private$cl_plumbing_param_boot_compute_lik_ratio_bootstrap_two_sided_pval(
-					delta = delta,
-					B = B,
-					show_progress = show_progress,
-					min_number_usable_samples = min_number_usable_samples,
-					max_attempts_per_replicate = max_attempts_per_replicate
-				)
-			},
-			compute_lik_ratio_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L, root_tolerance = NULL, max_root_iterations = 8L){
-				if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-				private$cl_plumbing_param_boot_compute_lik_ratio_bootstrap_confidence_interval(
-					alpha = alpha,
-					B = B,
-					show_progress = show_progress,
-					min_number_usable_samples = min_number_usable_samples,
-					max_attempts_per_replicate = max_attempts_per_replicate,
-					root_tolerance = root_tolerance,
-					max_root_iterations = max_root_iterations
-				)
-			}
-		)),
-		private = c(inference_count_likelihood_private, list(
-			is_a_count_likelihood = function() TRUE,
-			cl_plumbing_asymp_lik_compute_asymp_confidence_interval = InferenceAsympLik$public_methods$compute_asymp_confidence_interval,
-			cl_plumbing_asymp_lik_compute_asymp_two_sided_pval = InferenceAsympLik$public_methods$compute_asymp_two_sided_pval,
-			cl_plumbing_param_boot_compute_lik_ratio_bootstrap_two_sided_pval = InferenceParamBootstrap$public_methods$compute_lik_ratio_bootstrap_two_sided_pval,
-			cl_plumbing_param_boot_compute_lik_ratio_bootstrap_confidence_interval = InferenceParamBootstrap$public_methods$compute_lik_ratio_bootstrap_confidence_interval
-		))
+		is_a_count_likelihood = function() TRUE,
+		cl_plumbing_asymp_lik_compute_asymp_confidence_interval = InferenceAsympLik$public_methods$compute_asymp_confidence_interval,
+		cl_plumbing_asymp_lik_compute_asymp_two_sided_pval = InferenceAsympLik$public_methods$compute_asymp_two_sided_pval,
+		cl_plumbing_param_boot_compute_lik_ratio_bootstrap_two_sided_pval = InferenceParamBootstrap$public_methods$compute_lik_ratio_bootstrap_two_sided_pval,
+		cl_plumbing_param_boot_compute_lik_ratio_bootstrap_confidence_interval = InferenceParamBootstrap$public_methods$compute_lik_ratio_bootstrap_confidence_interval
 	)
-	
-	InferenceCountLikelihood = R6::R6Class("InferenceCountLikelihood",
-		lock_objects = FALSE,
-	inherit = InferenceParamBootstrap,
-	public = inference_count_likelihood_public,
-	private = c(inference_count_likelihood_private, list(
-		is_a_count_likelihood = function() TRUE
-	))
 )
 
 # The InferenceCountLikelihoodNoParamBootstrap R6 generator that used to be

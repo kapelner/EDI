@@ -41,7 +41,7 @@ simple_estimator_expected_current = list(
 		parent = "Inference",
 		public_count = 66L,
 		private_owner_count = 321L,
-		duplicate_private_owner_count = 1L,
+		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
 			"RandomizationBootstrap", "RandomizationBootstrapCI",
@@ -67,7 +67,7 @@ simple_estimator_expected_current = list(
 		parent = "Inference",
 		public_count = 60L,
 		private_owner_count = 309L,
-		duplicate_private_owner_count = 1L,
+		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
 			"RandomizationBootstrap", "RandomizationBootstrapCI", "Jackknife", "Wald",

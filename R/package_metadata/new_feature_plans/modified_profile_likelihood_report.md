@@ -257,8 +257,8 @@ each constrained fit visited during inversion.
 | `InferenceSurvivalKKStratCoxOneLik` | `fast_stratified_coxph_regression_cpp` | **Borderline** | Same with stratified risk sets. |
 | `InferenceSurvivalWeibullRegr` | `fast_weibull_regression_cpp` | **Easy** | Smooth parametric survival likelihood with meaningful nuisance structure. |
 | `InferenceSurvivalDepCensTransformRegr` | `fast_dep_cens_transform_optim_cpp` | **Difficult** | Coupled event/censoring parameter blocks make clean profiling very bespoke. |
-| `InferenceSurvivalKKWeibullFrailtyOneLik` | `fast_weibull_frailty_cpp` | **Difficult** | Frailty integration moves this out of the easy modified-profile regime. |
-| `InferenceSurvivalKKClaytonCopulaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | **Difficult** | Copula dependence plus parametric margins is too bespoke for a shared rollout. |
+| `InferenceSurvivalKKWeibullFrailtyNormalOneLik` | `fast_weibull_frailty_cpp` | **Difficult** | Frailty integration moves this out of the easy modified-profile regime. |
+| `InferenceSurvivalKKWeibullFrailtyLoggammaOneLik` | `fast_clayton_weibull_aft_optim_cpp` | **Difficult** | Copula dependence plus parametric margins is too bespoke for a shared rollout. |
 
 ## Easy Tier
 

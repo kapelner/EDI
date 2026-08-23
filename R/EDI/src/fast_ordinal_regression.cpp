@@ -481,7 +481,7 @@ List fast_ordinal_regression_with_var_cpp(const Rcpp::NumericMatrix& X, const Rc
 //' exactly as in \code{\link{gcomp_ordinal_proportional_odds_post_fit_cpp}}, and
 //' then:
 //' \itemize{
-//'   \item An \code{\link[=OrdinalRegression]{OrdinalRegression}} log-likelihood
+//'   \item An ordinal-regression log-likelihood
 //'     Hessian is evaluated at \eqn{[\hat\alpha, \hat\beta]} and inverted (with a
 //'     symmetrization step and a finiteness check) to give the
 //'     \strong{model-based} (non-sandwich) variance-covariance matrix of the full

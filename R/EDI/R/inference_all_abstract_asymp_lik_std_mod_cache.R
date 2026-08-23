@@ -3,7 +3,8 @@
 #' Abstract class providing MLE/KM-based inference methods for GLM and survival models.
 #'
 #' @keywords internal
-inference_asymp_lik_std_mod_cache_public = list(
+StandardModelCacheSource = list(
+	public = list(
 		#' @description Computes the treatment estimate using the underlying model.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
@@ -66,8 +67,8 @@ inference_asymp_lik_std_mod_cache_public = list(
 				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
 			)
 		}
-	)
-	inference_asymp_lik_std_mod_cache_private = list(
+	),
+	private = list(
 		supports_likelihood_tests = function(){
 			TRUE
 		},
@@ -204,18 +205,21 @@ inference_asymp_lik_std_mod_cache_public = list(
 			get_backend_warm_start_args = function(expected_length, expected_fisher_dim = expected_length) {
 				private$get_optimal_warm_start_config(expected_length, expected_fisher_dim)
 			}
-		)
-
-	StandardModelCacheSource = list(
-		public = inference_asymp_lik_std_mod_cache_public,
-		private = inference_asymp_lik_std_mod_cache_private
 	)
-	
-	InferenceAsympLikStdModCache = R6::R6Class("InferenceAsympLikStdModCache",
+)
+
+# Retained legacy ladder generators (fix_inference_hierarchy.md "Base Deletion"
+# / "Static Cleanup", 2026-08-23): mounted directly from the canonical
+# StandardModelCacheSource above (no more hoisted intermediate list objects).
+# Kept only as the `inherit =` target of the in-file legacy R6 definitions that
+# serve as component sources for the ordinal cumulative-link classes and of the
+# migration golden tests' legacy generators; zero concrete registered classes
+# descend from them (enforced by test-inference-class-registry.R).
+InferenceAsympLikStdModCache = R6::R6Class("InferenceAsympLikStdModCache",
 		lock_objects = FALSE,
 		inherit = InferenceParamBootstrap,
-	public = inference_asymp_lik_std_mod_cache_public,
-	private = c(inference_asymp_lik_std_mod_cache_private, list(
+	public = StandardModelCacheSource$public,
+	private = c(StandardModelCacheSource$private, list(
 		is_a_asymp_lik_std_mod_cache = function() TRUE
 	))
 )
@@ -231,8 +235,8 @@ inference_asymp_lik_std_mod_cache_public = list(
 InferenceAsympLikStdModCacheNoParamBootstrap = R6::R6Class("InferenceAsympLikStdModCacheNoParamBootstrap",
 	lock_objects = FALSE,
 	inherit = InferenceAsympLik,
-	public = inference_asymp_lik_std_mod_cache_public,
-	private = c(inference_asymp_lik_std_mod_cache_private, list(
+	public = StandardModelCacheSource$public,
+	private = c(StandardModelCacheSource$private, list(
 		is_a_asymp_lik_std_mod_cache_no_param_bootstrap = function() TRUE
 	))
 )

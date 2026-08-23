@@ -21,7 +21,7 @@ that `fast_weibull_regression_cpp` is still a live, load-bearing dependency
 of code that has not been migrated to pass `y_L`/`y_R`:
 
 - Three KK-combined survival `Inference` classes
-  (`inference_survival_KK_clayton_copula.R`, `inference_survival_KK_weibull_frailty.R`,
+  (`inference_survival_KK_weibull_frailty_loggamma.R`, `inference_survival_KK_weibull_frailty_normal.R`,
   `inference_survival_KK_weibull_marginal.R`) still call
   `fast_weibull_regression_cpp` directly, with a `(y, dead)` calling
   convention baked into their own logic (not just a pass-through).

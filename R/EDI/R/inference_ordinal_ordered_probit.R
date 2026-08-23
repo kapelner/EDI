@@ -1,4 +1,5 @@
-inference_ordinal_ordered_probit_public = list(
+OrdinalOrderedProbitLikelihoodSource = list(
+	public = list(
 		#' @description Initialize inference for the ordered probit model; see
 		#'   \code{\link[EDI:InferenceOrdinalOrderedProbitRegr]{InferenceOrdinalOrderedProbitRegr}}
 		#'   for the model form. Does not fit the model; the fit is deferred to the
@@ -52,9 +53,8 @@ inference_ordinal_ordered_probit_public = list(
 			private$cached_values$summary_table = NULL
 			private$cached_values$beta_hat_T
 		}
-	)
-
-inference_ordinal_ordered_probit_private = list(
+	),
+	private = list(
 		best_X_colnames = NULL,
 		get_complexity_tier = function() "heavy",
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
@@ -254,10 +254,6 @@ inference_ordinal_ordered_probit_private = list(
 			X
 		}
 	)
-
-OrdinalOrderedProbitLikelihoodSource = list(
-	public = inference_ordinal_ordered_probit_public,
-	private = inference_ordinal_ordered_probit_private
 )
 
 #' Ordered Probit Regression Inference for Ordinal Responses

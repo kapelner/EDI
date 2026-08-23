@@ -206,6 +206,44 @@ permutation-drawing logic; it duplicates the design object
   this caching does not change which random draws are made, only how fast
   each replicate's model fit converges.
 
+## Machine-dependent performance defaults: `tune_EDI_for_this_machine()`
+
+Every performance-policy default mentioned above — whether an inference
+class's C++ backend uses a `smart_cold_start` OLS warm-up or a plain zero
+start, whether resampling reuses a previous replicate's warm start (and at
+what sample size that stops paying off), which optimizer algorithm a family
+uses by default, and at what sample size parallel bootstrapping starts to
+beat serial execution — was measured empirically on the maintainer's
+machine. These are *speed* judgments, not statistical ones: core count,
+cache sizes, and BLAS backend all affect which setting wins, so a default
+that is net-positive on the maintainer's machine can be net-negative on
+yours, and vice versa.
+
+`tune_EDI_for_this_machine()` re-runs those same benchmarks on your own
+hardware, keeps only the settings that win by a real margin (median
+improvement past a noise threshold, not any transient win), and persists
+the result to a per-user config file that every subsequent `library(EDI)`
+re-applies automatically. This does not weaken anything this vignette
+documents: tuning never changes *which* random draws are made or *which*
+estimate/CI a fit produces — only how fast it gets there. Concretely, every
+accepted change is re-fit once under both settings before being kept, and
+any disagreement in the result discards that change rather than applying
+it (the same "measure, don't assume" discipline this vignette applies to
+RNG behavior, applied here to timing behavior). The one axis with a partial
+exception is the parallel/core-count benchmark itself, since forked workers
+draw from an independent RNG stream by construction — that axis compares
+the (core-count-invariant) point estimate instead of the resampling
+distribution, for exactly the reason a bootstrap CI is *expected* to differ
+across independent Monte Carlo draws.
+
+To see what has been tuned on your machine, call
+`get_local_EDI_optimization()`; to discard it and return to the shipped
+defaults, call `clear_local_EDI_optimization()`. Setting
+`EDI_SKIP_LOCAL_TUNING=1` (e.g. before `library(EDI)`) skips the automatic
+import for one session without deleting the saved file — useful when
+isolating whether a saved tuning is responsible for an observed timing
+difference.
+
 ## Simulation (`SimulationFramework`): per-replication and per-cache-job seeds
 
 `SimulationFramework$new(seed = ...)` does **not** rely on a single global

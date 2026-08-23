@@ -3,10 +3,10 @@
 %   R/inference_all_abstract_KK_passthrough_compound.R
 \name{InferenceKKPassThroughCompound}
 \alias{InferenceKKPassThroughCompound}
-\alias{inference_kk_passthrough_compound_components}
+\alias{kk_passthrough_compound_host_public}
 \title{Internal Base Class for KK Matching-on-the-Fly Designs}
 \usage{
-inference_kk_passthrough_compound_components
+kk_passthrough_compound_host_public
 }
 \description{
 Internal method.

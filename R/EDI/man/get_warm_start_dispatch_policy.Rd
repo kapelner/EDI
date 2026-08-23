@@ -16,6 +16,11 @@ A named list with \code{default} (logical, \code{TRUE} in the
   applied regardless of sample size) and \code{n_conditioned_overrides} (a
   list of \code{list(pattern, value, n_min, n_max)} rules, applied only when
   \code{n} is supplied and falls in \code{[n_min, n_max)}); see Details.
+Like the cold-start table, every \code{TRUE}/\code{FALSE} entry here
+(including the n-thresholds) is an empirical performance judgment
+computed on the maintainer's machine, not a correctness fact. Run
+\code{\link{tune_EDI_for_this_machine}} to re-measure this axis,
+per resampling operation and sample size, on your own machine.
 }
 \description{
 Returns EDI's built-in policy table for choosing whether \strong{warm starts}
@@ -46,5 +51,6 @@ get_warm_start_dispatch_policy()
 \code{\link{get_cold_start_dispatch_policy}} for the analogous
   (simpler, single-layer) policy governing the initial cold-start heuristic
   rather than cross-replicate warm-starting; \code{\link{set_warm_start_dispatch_policy}}
-  to override this table at runtime.
+  to override this table at runtime; \code{\link{tune_EDI_for_this_machine}}
+  to re-benchmark it on your own hardware.
 }

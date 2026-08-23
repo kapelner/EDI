@@ -5,8 +5,8 @@
 \title{Modified Poisson Regression Inference for Incidence Responses}
 \description{
 Fits Zou's (2004) modified Poisson regression for binary (incidence)
-responses: \eqn{\log E[Y_i \mid W_i, X_i] = \beta_0 + \beta_T W_i +
-X_i^\top \gamma}, fit by maximizing the ordinary Poisson log-likelihood
+responses: \eqn{\log E[Y_i \mid w_i, x_i] = \beta_0 + \beta_T w_i +
+x_i^\top \gamma}, fit by maximizing the ordinary Poisson log-likelihood
 treating the binary \eqn{Y_i} as if it were Poisson-distributed (a valid
 estimating equation for the conditional mean regardless of the true
 outcome distribution, exactly as

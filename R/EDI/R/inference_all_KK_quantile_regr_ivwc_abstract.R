@@ -138,7 +138,6 @@ KKQuantileRegrIVWCSource = list(
 	private = list(
 		tau = NULL,
 		transform_y_fn_list = NULL,  # list(fn = ...) wrapping avoids R6 treating function as a locked method
-		m = NULL,
 		compute_basic_match_data = function(){
 			private$cached_values$KKstats = .compute_kk_basic_match_data_cached(
 				private_env = private,

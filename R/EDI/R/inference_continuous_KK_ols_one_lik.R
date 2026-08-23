@@ -1,69 +1,3 @@
-#' OLS Combined-Likelihood Inference for KK Designs
-#'
-#' Fits a single stacked OLS regression over matched-pair differences and
-#' reservoir observations for KK matching-on-the-fly designs with continuous
-#' responses, using the treatment indicator and, optionally, all recorded
-#' covariates as predictors.
-#' Note that warm starts are disabled for this class as OLS is a closed-form
-#' estimator and does not benefit from initialization.
-#'
-#' @details
-#' \strong{Model.} Let \eqn{m} be the number of matched pairs and
-#' \eqn{n_R = n_{RT} + n_{RC}} the number of unmatched reservoir subjects. The
-#' design matrix stacks two blocks: \eqn{m} matched-pair difference rows
-#' (each row's response is the within-pair outcome difference, coded with an
-#' implicit unit treatment column and covariate differences \eqn{X_{d}}), and
-#' \eqn{n_R} reservoir rows (raw covariates plus a treatment/matching-status
-#' indicator column). The stacked regression is fit by ordinary least squares
-#' (\code{\link[stats]{lm.fit}}), and \eqn{\hat\beta_T} is the coefficient on
-#' the treatment/matched-difference column, i.e. an additive mean-difference
-#' estimand on the outcome's natural scale. If only matched pairs exist,
-#' \code{j_treat = 1}; if only reservoir data exist, \code{j_treat = 2}; if
-#' both exist, the combined design uses \code{j_treat = 2}. If neither
-#' matched pairs nor a treatment-and-control-populated reservoir exist, the
-#' estimate is marked nonestimable (\code{"no_usable_matched_or_reservoir_data"}).
-#'
-#' \strong{Variance.} Standard errors use the HC2 heteroskedasticity-consistent
-#' sandwich estimator (\code{ols_hc2_post_fit_cpp}), not the classical OLS
-#' variance, so the Wald confidence interval/p-value are robust to
-#' heteroskedasticity across the matched/reservoir blocks.
-#'
-#' \strong{Likelihood tier.} \code{likelihood_tier = "full"}: this is a genuine
-#' Gaussian likelihood (not a quasi-likelihood or partial likelihood), so
-#' score, gradient, and likelihood-ratio testing types are available in
-#' addition to Wald, and an exact (not higher-order-accurate) Bartlett
-#' correction reproduces base R's \code{lm()} classical partial F-test exactly
-#' under the classical homoskedastic-Gaussian-errors assumption (a stronger
-#' assumption than the HC2-robust Wald path uses, so the two paths need not
-#' agree numerically).
-#'
-#' \strong{Assumptions.} Continuous response; independent matched pairs and/or
-#' independent reservoir subjects; no censoring
-#' (\code{\link[EDI:assertNoCensoring]{assertNoCensoring}} is enforced); a
-#' KK matching-on-the-fly design
-#' (\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} or subclass).
-#'
-#' @references
-#' Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
-#' allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
-#' 378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
-#'
-#' @seealso \code{\link[EDI:InferenceContinKKOLSIVWC]{InferenceContinKKOLSIVWC}}
-#'   for the inverse-variance-weighted-combination alternative to this
-#'   one-likelihood combined-fit approach; analogous Python API:
-#'   \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM/OLS}.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(rnorm(10))
-#' inf = InferenceContinKKOLSOneLik$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' @keywords internal
 # Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md
 # "Full-Likelihood Estimators" / "KK And IVWC Estimators"): formerly a
 # plain R6 leaf inheriting `InferenceKKPassThroughCompound` (a real R6
@@ -600,6 +534,71 @@ ContinKKOLSOneLikLikelihoodSource = list(
 	)
 )
 
+#' OLS Combined-Likelihood Inference for KK Designs
+#'
+#' Fits a single stacked OLS regression over matched-pair differences and
+#' reservoir observations for KK matching-on-the-fly designs with continuous
+#' responses, using the treatment indicator and, optionally, all recorded
+#' covariates as predictors.
+#' Note that warm starts are disabled for this class as OLS is a closed-form
+#' estimator and does not benefit from initialization.
+#'
+#' @details
+#' \strong{Model.} Let \eqn{m} be the number of matched pairs and
+#' \eqn{n_R = n_{RT} + n_{RC}} the number of unmatched reservoir subjects. The
+#' design matrix stacks two blocks: \eqn{m} matched-pair difference rows
+#' (each row's response is the within-pair outcome difference, coded with an
+#' implicit unit treatment column and covariate differences \eqn{X_{d}}), and
+#' \eqn{n_R} reservoir rows (raw covariates plus a treatment/matching-status
+#' indicator column). The stacked regression is fit by ordinary least squares
+#' (\code{\link[stats]{lm.fit}}), and \eqn{\hat\beta_T} is the coefficient on
+#' the treatment/matched-difference column, i.e. an additive mean-difference
+#' estimand on the outcome's natural scale. If only matched pairs exist,
+#' \code{j_treat = 1}; if only reservoir data exist, \code{j_treat = 2}; if
+#' both exist, the combined design uses \code{j_treat = 2}. If neither
+#' matched pairs nor a treatment-and-control-populated reservoir exist, the
+#' estimate is marked nonestimable (\code{"no_usable_matched_or_reservoir_data"}).
+#'
+#' \strong{Variance.} Standard errors use the HC2 heteroskedasticity-consistent
+#' sandwich estimator (\code{ols_hc2_post_fit_cpp}), not the classical OLS
+#' variance, so the Wald confidence interval/p-value are robust to
+#' heteroskedasticity across the matched/reservoir blocks.
+#'
+#' \strong{Likelihood tier.} \code{likelihood_tier = "full"}: this is a genuine
+#' Gaussian likelihood (not a quasi-likelihood or partial likelihood), so
+#' score, gradient, and likelihood-ratio testing types are available in
+#' addition to Wald, and an exact (not higher-order-accurate) Bartlett
+#' correction reproduces base R's \code{lm()} classical partial F-test exactly
+#' under the classical homoskedastic-Gaussian-errors assumption (a stronger
+#' assumption than the HC2-robust Wald path uses, so the two paths need not
+#' agree numerically).
+#'
+#' \strong{Assumptions.} Continuous response; independent matched pairs and/or
+#' independent reservoir subjects; no censoring
+#' (\code{assertNoCensoring()} is enforced); a
+#' KK matching-on-the-fly design
+#' (\code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} or subclass).
+#'
+#' @references
+#' Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
+#' allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
+#' 378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
+#'
+#' @seealso \code{\link[EDI:InferenceContinKKOLSIVWC]{InferenceContinKKOLSIVWC}}
+#'   for the inverse-variance-weighted-combination alternative to this
+#'   one-likelihood combined-fit approach; analogous Python API:
+#'   \href{https://www.statsmodels.org/stable/glm.html}{statsmodels GLM/OLS}.
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(rnorm(10))
+#' inf = InferenceContinKKOLSOneLik$new(seq_des)
+#' inf$compute_estimate()
+#' }
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "Full-Likelihood
 # Estimators" / "KK And IVWC Estimators"): see
