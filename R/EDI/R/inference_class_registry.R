@@ -29,17 +29,56 @@ EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES = list(
 # artifacts: each entry records an operation that the class must not advertise
 # until its estimator-specific implementation is statistically aligned with
 # the class's primary estimator.
-EDI_INFERENCE_EXCLUDED_CAPABILITIES = list(
-	# ordLORgee supplies the primary estimate, but the current non-uniform
-	# weighted-refit hook uses a plain, non-clustered proportional-odds model.
-	# Re-enable only after the v1.1.0 weighted ordinal-GEE plan is complete.
-	InferenceOrdinalKKGEE = "bayesian_bootstrap",
-	# These likelihood classes currently replace their primary estimators with
-	# a cumulative-logit surrogate for non-uniform weighted refits. Re-enable
-	# only after their native weighted-backend plans are complete.
-	InferenceOrdinalStereotypeLogitRegr = "bayesian_bootstrap",
-	InferenceOrdinalAdjCatLogitRegr = "bayesian_bootstrap"
+# Ordinal estimators whose reported treatment effect is a model coefficient.
+# Generic randomization-CI inversion imposes a nonzero null by adding `delta`
+# to the observed ordinal category codes. That operation changes the response
+# support and is not a sharp-null transformation for any of these estimands.
+# Keep this list separate from genuinely randomization-compatible ordinal
+# statistics (rank, sign, ridit, and marginal-mean estimands).
+EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES = c(
+	"InferenceOrdinalAdjCatLogitRegr",
+	"InferenceOrdinalCauchitRegr",
+	"InferenceOrdinalCloglogRegr",
+	"InferenceOrdinalContRatioRegr",
+	"InferenceOrdinalKKCLMM",
+	"InferenceOrdinalKKCLMMCauchit",
+	"InferenceOrdinalKKCLMMCloglog",
+	"InferenceOrdinalKKCLMMProbit",
+	"InferenceOrdinalKKCondAdjCatLogitRegr",
+	"InferenceOrdinalKKGEE",
+	"InferenceOrdinalKKGLMM",
+	"InferenceOrdinalOrderedProbitRegr",
+	"InferenceOrdinalPartialProportionalOddsRegr",
+	"InferenceOrdinalPropOddsRegr",
+	"InferenceOrdinalStereotypeLogitRegr"
 )
+
+inference_is_ordinal_model_coefficient_class = function(name) {
+	length(name) == 1L && !is.na(name) &&
+		name %in% EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES
+}
+
+EDI_INFERENCE_EXCLUDED_CAPABILITIES = local({
+	exclusions = list(
+		# ordLORgee supplies the primary estimate, but the current non-uniform
+		# weighted-refit hook uses a plain, non-clustered proportional-odds model.
+		# Re-enable only after the v1.1.0 weighted ordinal-GEE plan is complete.
+		InferenceOrdinalKKGEE = "bayesian_bootstrap",
+		# These likelihood classes currently replace their primary estimators with
+		# a cumulative-logit surrogate for non-uniform weighted refits. Re-enable
+		# only after their native weighted-backend plans are complete.
+		InferenceOrdinalStereotypeLogitRegr = "bayesian_bootstrap",
+		InferenceOrdinalAdjCatLogitRegr = "bayesian_bootstrap"
+	)
+	for (class_name in EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES) {
+		exclusions[[class_name]] = unique(c(
+			exclusions[[class_name]],
+			"randomization_ci",
+			"randomization_bootstrap_ci"
+		))
+	}
+	exclusions
+})
 
 # Classes that require a KK matched design (`des_obj$is_a_kk_matching_capable()`)
 # but whose name doesn't contain `"KK"`, so `infer_inference_requires_kk_matching_design()`'s
@@ -762,10 +801,13 @@ EDI_INFERENCE_ESTIMAND_TAGS = list(
 	InferenceContinKKGLMM = "mean_difference",
 	InferenceContinKKOLSIVWC = "mean_difference",
 	InferenceContinKKOLSOneLik = "mean_difference",
+	InferenceContinKKQuantileRegrIVWC = "quantile_regression_effect",
+	InferenceContinKKQuantileRegrOneLik = "quantile_regression_effect",
 	InferenceContinKKRobustRegrIVWC = "mean_difference",
 	InferenceContinKKRobustRegrOneLik = "mean_difference",
 	InferenceContinLin = "mean_difference",
 	InferenceContinOLS = "mean_difference",
+	InferenceContinQuantileRegr = "quantile_regression_effect",
 	InferenceContinRobustRegr = "mean_difference",
 	InferenceCountKKCondPoissonOneLik = "log_rate_ratio_conditional",
 	InferenceCountKKGLMM = "log_rate_ratio_conditional",

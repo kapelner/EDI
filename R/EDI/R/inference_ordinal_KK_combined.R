@@ -12,7 +12,10 @@
 #' classes in this family (continuous/count/incidence/proportion, which use an
 #' internal Rcpp solver or \code{geepack::geeglm} with an exchangeable working
 #' correlation), this ordinal class always requires the \pkg{multgee} package
-#' and has no \code{use_rcpp} option. Inference is quasi-likelihood/
+#' and has no \code{use_rcpp} option. The raw \pkg{multgee} treatment coefficient
+#' is negated when reported so that, consistently with EDI's other ordinal
+#' estimators, a positive estimate means movement toward higher response
+#' categories. Inference is quasi-likelihood/
 #' estimating-equation based (\code{likelihood_tier = "quasi"}): standard
 #' errors are GEE sandwich (robust) standard errors, not model-likelihood-based.
 #' Bayesian-bootstrap inference is temporarily unavailable because
@@ -180,7 +183,11 @@ InferenceOrdinalKKGEE = define_inference_class(
 			beta = stats::coef(mod)
 			j_treat = private$gee_treatment_index(beta)
 			if (!is.finite(j_treat) || is.na(j_treat) || j_treat < 1L || j_treat > length(beta)) return(NA_real_)
-			as.numeric(beta[[j_treat]])
+			# multgee parameterizes cumulative links as
+			#   F^{-1}{Pr(Y <= j | x)} = alpha_j + x' beta,
+			# whereas EDI's ordinal estimand convention uses alpha_j - x' beta,
+			# so positive effects consistently mean movement toward higher categories.
+			-as.numeric(beta[[j_treat]])
 		},
 		shared_gee_dispatch = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
@@ -196,7 +203,9 @@ InferenceOrdinalKKGEE = define_inference_class(
 			private$set_fit_warm_start(beta, "beta")
 
 			j_treat = private$gee_treatment_index(beta)
-			private$cached_values$beta_hat_T = as.numeric(beta[j_treat])
+			# Convert multgee's positive-toward-lower cumulative-link coefficient
+			# to EDI's positive-toward-higher ordinal estimand convention.
+			private$cached_values$beta_hat_T = -as.numeric(beta[j_treat])
 			if (estimate_only) return(invisible(NULL))
 			vcov_robust = tryCatch(stats::vcov(mod), error = function(e) NULL)
 			if (is.null(vcov_robust)) {

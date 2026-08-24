@@ -27,7 +27,7 @@ expect_valid_run_all_inference_report = function(des_obj, expected_design_family
 	expect_true(is.list(res))
 	expect_identical(
 		names(res),
-		c("results", "results_table", "design", "alpha",
+		c("results", "results_table", "compute_conf_intervals", "design", "alpha",
 		  "unavailable_due_to_missing_packages", "combined_evidence", "plots", "files",
 		  "timestamp", "total_secs", "edi_version")
 	)
@@ -488,7 +488,7 @@ test_that("run_all_inference: plots = TRUE builds real ggplot objects when ggplo
 	null_dev = grDevices::pdf(NULL)
 	on.exit(grDevices::dev.off(), add = TRUE)
 	capture.output({
-		res <- suite$run_all_inference(screen = TRUE, plots = TRUE)
+		res <- suite$run_all_inference(screen = TRUE, plots = TRUE, compute_conf_intervals = TRUE)
 	})
 	# `plots$ci_forest` is a named list of one ggplot per estimand (the
 	# former separate `plots$estimates` was folded into it, 2026-08-21).
@@ -517,7 +517,7 @@ test_that("run_all_inference: pdf = TRUE writes a multi-page PDF", {
 	null_dev = grDevices::pdf(NULL)
 	on.exit({ grDevices::dev.off(); setwd(old_wd); unlink(tmp_dir, recursive = TRUE) }, add = TRUE)
 	capture.output({
-		res <- suite$run_all_inference(screen = TRUE, plots = TRUE, pdf = TRUE)
+		res <- suite$run_all_inference(screen = TRUE, plots = TRUE, pdf = TRUE, compute_conf_intervals = TRUE)
 	})
 
 	expect_true(!is.null(res$files$pdf))

@@ -245,7 +245,7 @@ Eigen::MatrixXd get_continuation_ratio_regression_hessian_cpp(const Eigen::Map<E
 //' orientation — numerator is the higher-category event — keeps a positive
 //' \eqn{\beta} meaning "pushes toward higher categories of \code{y}", consistent
 //' with every other ordinal estimator in the package (contrast the cumulative-logit
-//' \code{-x'beta} convention in \code{fast_ordinal_regression.cpp} and the
+//' \eqn{-x^T \beta} convention in \code{fast_ordinal_regression.cpp} and the
 //' adjacent-category model's \eqn{\Pr(Y = j+1 \mid \cdot)} numerator), and matches
 //' \code{expand_continuation_ratio_data_cpp()} (a separate, standalone
 //' row-expansion utility not used by this backend, but documenting the same

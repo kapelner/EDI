@@ -693,7 +693,7 @@ get_continuation_ratio_regression_hessian_cpp <- function(X, y, params) {
 #' orientation — numerator is the higher-category event — keeps a positive
 #' \eqn{\beta} meaning "pushes toward higher categories of \code{y}", consistent
 #' with every other ordinal estimator in the package (contrast the cumulative-logit
-#' \code{-x'beta} convention in \code{fast_ordinal_regression.cpp} and the
+#' \eqn{-x^T \beta} convention in \code{fast_ordinal_regression.cpp} and the
 #' adjacent-category model's \eqn{\Pr(Y = j+1 \mid \cdot)} numerator), and matches
 #' \code{expand_continuation_ratio_data_cpp()} (a separate, standalone
 #' row-expansion utility not used by this backend, but documenting the same
@@ -1351,7 +1351,7 @@ compute_matching_wilcox_distr_parallel_cpp <- function(w_mat, m_mat, y, delta, t
 #' standalone — independent of any optimizer run — for direct numerical
 #' diagnostics (e.g. verifying convergence) at a specific parameter value.
 #'
-#' @param X A numeric matrix of predictors.
+#' @param X_r A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
 #' @return The finite-difference-approximated score vector at \code{beta}.
@@ -1375,7 +1375,7 @@ get_log_binomial_regression_score_cpp <- function(X, y_r, beta) {
 #' Exported standalone — independent of any optimizer run — for direct numerical
 #' diagnostics at a specific parameter value.
 #'
-#' @param X A numeric matrix of predictors.
+#' @param X_r A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
 #' @return The finite-difference-approximated Hessian matrix of the log-likelihood at \code{beta}.
@@ -1402,7 +1402,7 @@ get_log_binomial_regression_hessian_cpp <- function(X, y_r, beta) {
 #' of any optimizer run — for direct numerical diagnostics at a specific
 #' parameter value.
 #'
-#' @param X A numeric matrix of predictors.
+#' @param X_r A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param weights_r A nonnegative numeric vector of observation weights.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
@@ -1429,7 +1429,7 @@ get_log_binomial_regression_weighted_score_cpp <- function(X, y_r, weights_r, be
 #' not an analytic second derivative. Exported standalone — independent of any
 #' optimizer run — for direct numerical diagnostics at a specific parameter value.
 #'
-#' @param X A numeric matrix of predictors.
+#' @param X_r A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param weights_r A nonnegative numeric vector of observation weights.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
@@ -1457,7 +1457,7 @@ get_log_binomial_regression_weighted_hessian_cpp <- function(X, y_r, weights_r, 
 #' direct numerical diagnostics (e.g. verifying convergence, or cross-checking an
 #' analytic gradient elsewhere) at a specific parameter value.
 #'
-#' @param X A numeric matrix of predictors.
+#' @param X_r A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
 #' @return The finite-difference-approximated score vector at \code{beta}.
@@ -1481,7 +1481,7 @@ get_identity_binomial_regression_score_cpp <- function(X, y_r, beta) {
 #' second derivative. Exported standalone — independent of any optimizer run —
 #' for direct numerical diagnostics at a specific parameter value.
 #'
-#' @param X A numeric matrix of predictors.
+#' @param X_r A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
 #' @return The finite-difference-approximated Hessian matrix of the log-likelihood at \code{beta}.
@@ -1508,7 +1508,7 @@ get_identity_binomial_regression_hessian_cpp <- function(X, y_r, beta) {
 #' of any optimizer run — for direct numerical diagnostics at a specific
 #' parameter value.
 #'
-#' @param X A numeric matrix of predictors.
+#' @param X_r A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param weights_r A nonnegative numeric vector of observation weights.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
@@ -1536,7 +1536,7 @@ get_identity_binomial_regression_weighted_score_cpp <- function(X, y_r, weights_
 #' independent of any optimizer run — for direct numerical diagnostics at a
 #' specific parameter value.
 #'
-#' @param X A numeric matrix of predictors.
+#' @param X_r A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param weights_r A nonnegative numeric vector of observation weights.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
@@ -1572,7 +1572,7 @@ get_identity_binomial_regression_weighted_hessian_cpp <- function(X, y_r, weight
 #' \code{\link{fast_identity_binomial_regression_cpp}}'s risk-difference scale,
 #' or a logit-link model's odds-ratio scale.
 #'
-#' @param X A numeric matrix of predictors, \eqn{n \times p}; include an
+#' @param X_r A numeric matrix of predictors, \eqn{n \times p}; include an
 #'   explicit intercept column if desired (no implicit intercept).
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param maxit Maximum number of Fisher-scoring iterations.
@@ -1623,7 +1623,7 @@ fast_log_binomial_regression_cpp <- function(X, y_r, maxit = 100L, tol = 1e-6, f
 #' \code{\link{fast_identity_binomial_regression_with_var_cpp}}'s Details for
 #' the exact mechanics, identical here up to the link function).
 #'
-#' @param X A numeric matrix of predictors, \eqn{n \times p}.
+#' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param j 1-based index (into \code{X}'s columns) of the coefficient to
 #'   compute \code{ssq_b_j} for.
@@ -1660,7 +1660,7 @@ fast_log_binomial_regression_with_var_cpp <- function(X, y_r, j = 2L, maxit = 10
 #' nonnegative row weight \code{weights_r[i]}. Setting all weights to 1
 #' recovers \code{\link{fast_log_binomial_regression_cpp}} exactly.
 #'
-#' @param X A numeric matrix of predictors, \eqn{n \times p}.
+#' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param weights_r A nonnegative numeric vector of length \eqn{n} giving each
 #'   row's weight.
@@ -1724,7 +1724,7 @@ fast_log_binomial_regression_weighted_cpp <- function(X, y_r, weights_r, maxit =
 #' constrained line search; such cases surface as \code{converged = FALSE}
 #' rather than a silently invalid (out-of-range) fitted probability.
 #'
-#' @param X A numeric matrix of predictors, \eqn{n \times p}; include an
+#' @param X_r A numeric matrix of predictors, \eqn{n \times p}; include an
 #'   explicit intercept column if desired (no implicit intercept).
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param maxit Maximum number of Fisher-scoring iterations.
@@ -1789,7 +1789,7 @@ fast_identity_binomial_regression_cpp <- function(X, y_r, maxit = 100L, tol = 1e
 #' placeholders}, on both the success and failure paths; no caller should rely
 #' on them containing actual values.
 #'
-#' @param X A numeric matrix of predictors, \eqn{n \times p}.
+#' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param j 1-based index (into \code{X}'s columns) of the coefficient to
 #'   compute \code{ssq_b_j} for.
@@ -1829,7 +1829,7 @@ fast_identity_binomial_regression_with_var_cpp <- function(X, y_r, j = 2L, maxit
 #' exactly; this is the backend used when the identity-link model must be fit on
 #' bootstrap-reweighted or otherwise weighted data.
 #'
-#' @param X A numeric matrix of predictors, \eqn{n \times p}.
+#' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param weights_r A nonnegative numeric vector of length \eqn{n} giving each
 #'   row's weight.

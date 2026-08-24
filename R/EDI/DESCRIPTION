@@ -113,6 +113,7 @@ Collate:
     'EDI.R'
     'helper_glm_fit.R'
     'globals.R'
+    'comprehensive_slow_paths.R'
     'helper_additional_asserts.R'
     'contracts_mixins.R'
     'helper_robust_sandwich.R'

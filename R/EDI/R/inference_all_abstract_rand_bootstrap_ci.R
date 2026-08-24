@@ -85,6 +85,12 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 		#'   proportion, log for count and survival). Bounds may be conservative (wider than
 		#'   necessary) when the p-value inversion cannot be completed within the search radius.
 		compute_rand_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, pval_epsilon = 0.005, show_progress = TRUE, max_expansions = 7L, bootstrap_type = NULL, zero_one_logit_clamp = .Machine$double.eps, type = "percentile"){
+			if (inference_is_ordinal_model_coefficient_class(class(self)[1L])) {
+				stop(
+					"Randomization-bootstrap confidence intervals are not implemented for ordinal model-coefficient estimands.",
+					call. = FALSE
+				)
+			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)

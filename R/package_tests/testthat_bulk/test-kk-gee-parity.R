@@ -119,7 +119,7 @@ test_that("incidence, count, and proportion KK GEE wrappers match backend fits",
 	compare_kk_gee_wrapper_paths("InferencePropKKGEE", des_prop, use_rcpp_tolerance_est = 2e-2, use_rcpp_tolerance_se = 2e-2)
 })
 
-test_that("ordinal KK GEE wrapper matches direct multgee backend fit", {
+test_that("ordinal KK GEE wrapper sign-adjusts the direct multgee backend fit", {
 	skip_if_not_installed("multgee")
 	skip_if_not_installed("geepack")
 	set.seed(20260423)
@@ -151,7 +151,9 @@ test_that("ordinal KK GEE wrapper matches direct multgee backend fit", {
 	j_treat <- priv$gee_treatment_index(beta_ref)
 	se_ref <- sqrt(as.numeric(stats::vcov(mod_ref)[j_treat, j_treat]))
 
-	expect_equal(est, as.numeric(beta_ref[j_treat]), tolerance = 1e-8)
+	# multgee uses logit Pr(Y <= j) = alpha_j + x'beta, while EDI reports
+	# ordinal effects with positive values pointing toward higher categories.
+	expect_equal(est, -as.numeric(beta_ref[j_treat]), tolerance = 1e-8)
 	expect_equal(se, se_ref, tolerance = 1e-8)
 })
 

@@ -4,10 +4,10 @@
 \alias{EDI_COMPREHENSIVE_SLOW_PATHS}
 \title{Comprehensive-test slow-path registry}
 \format{
-A named list. \code{exact_operations} contains keys of the form
-\code{response_type||InferenceClass||operation}; every other element contains
-formula-, dataset-, and design-independent concrete inference-class names for
-the named slow-path family.
+A named list. `exact_operations` contains keys of the form
+  `response_type||InferenceClass||operation`; every other element contains
+  formula-, dataset-, and design-independent concrete inference-class names
+  for the named slow-path family.
 }
 \usage{
 EDI_COMPREHENSIVE_SLOW_PATHS
@@ -20,18 +20,17 @@ high. They do not change an inference class's public capabilities and must
 not be interpreted as "not implemented" declarations.
 }
 \details{
-Rule-name prefixes use the harness vocabulary: \code{boot} is ordinary
-nonparametric bootstrap, \code{bbt} is Bayesian bootstrap, \code{brt} is
-bootstrap randomization, \code{pboot}/\code{param_bootstrap} are parametric
-bootstrap, and \code{rand} is randomization inference. Suffixes identify the
-affected CI, p-value, or typed variant. A class can appear in more than one
-category.
+Rule-name prefixes use the harness vocabulary: `boot` is ordinary
+  nonparametric bootstrap, `bbt` is Bayesian bootstrap, `brt` is bootstrap
+  randomization, `pboot`/`param_bootstrap` are parametric bootstrap, and
+  `rand` is randomization inference. Suffixes identify the affected CI,
+  p-value, or typed variant. A class can appear in more than one category.
 
-\code{InferenceSuite$run_all_inference()} also omits matching
-class/method/type combinations when its \code{methods} argument is left at
-the default \code{NULL}. Supplying \code{methods} explicitly opts into the
-requested paths even when they appear in this registry.
+`InferenceSuite$run_all_inference()` also omits matching class/method/type
+combinations when its `methods` argument is left at the default `NULL`.
+Supplying `methods` explicitly opts into the requested paths even when they
+appear in this registry.
 }
 \seealso{
-\code{\link{InferenceSuite}}
+[InferenceSuite]
 }

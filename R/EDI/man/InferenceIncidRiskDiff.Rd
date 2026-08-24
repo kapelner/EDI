@@ -13,10 +13,14 @@ coincides with a saturated/linear model for the conditional risk
 \eqn{P(Y=1\mid w,x)}, so the coefficient on \eqn{w} is already on the
 risk-difference (probability) scale with no back-transformation needed. This
 is a misspecified working model for a binary response (heteroskedastic,
-errors not Gaussian), so \code{likelihood_tier = "none"}: standard errors and
-the Wald CI use the usual OLS sandwich/homoskedastic variance of
-\eqn{\hat\beta_T}, not a binomial likelihood, and no likelihood-ratio or
-parametric-bootstrap methods are exposed.
+errors not Gaussian: \eqn{\mathrm{Var}(Y \mid w,x) = P(w,x)(1-P(w,x))} varies
+by treatment arm and covariates, so a single pooled residual variance is
+the wrong variance model), so \code{likelihood_tier = "none"}: standard
+errors and the Wald CI use the \strong{Huber-White (HC0) sandwich}
+variance of \eqn{\hat\beta_T} -- \eqn{(X'X)^{-1} X'\,\mathrm{diag}(e_i^2)\,X\,
+(X'X)^{-1}}, from the OLS residuals \eqn{e_i} -- not the classical
+homoskedastic OLS variance and not a binomial likelihood, and no
+likelihood-ratio or parametric-bootstrap methods are exposed.
 }
 \examples{
 \donttest{
@@ -142,9 +146,13 @@ simulation/randomization callers that never request inference).}
 \if{latex}{\out{\hypertarget{method-InferenceIncidRiskDiff-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceIncidRiskDiff$compute_asymp_confidence_interval()}}{
   Wald confidence interval for the risk difference,
-  \eqn{\hat\beta_T \pm t_{1-\alpha/2, df}\, \hat s(\hat\beta_T)}, using the
-  OLS standard error and residual degrees of freedom \eqn{df = n - p}
-  from the cached model fit. Interval bounds are not clamped to
+  \eqn{\hat\beta_T \pm z_{1-\alpha/2}\, \hat s(\hat\beta_T)}, using the
+  \strong{Huber-White (HC0) sandwich} standard error from the cached
+  model fit (see the class-level documentation) and a normal-quantile
+  multiplier -- \code{fast_ols_with_var_cpp()} doesn't report residual
+  degrees of freedom, so \code{private$compute_z_or_t_ci_from_s_and_df()}
+  always falls back to its \eqn{z} branch here, never a \eqn{t}
+  reference, regardless of \eqn{n}. Interval bounds are not clamped to
   \eqn{[-1, 1]}; a linear-probability model can produce out-of-range
   endpoints near the boundary of the covariate space.
   \subsection{Usage}{
@@ -167,9 +175,12 @@ coverage \eqn{1-\alpha}.}
 \if{latex}{\out{\hypertarget{method-InferenceIncidRiskDiff-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceIncidRiskDiff$compute_asymp_two_sided_pval()}}{
   Two-sided Wald test of \eqn{H_0: \beta_T = \delta} vs.
-  \eqn{H_1: \beta_T \neq \delta}, via the t-statistic
-  \eqn{(\hat\beta_T - \delta) / \hat s(\hat\beta_T)} referred to a
-  \eqn{t_{df}} distribution with the cached OLS residual degrees of freedom.
+  \eqn{H_1: \beta_T \neq \delta}, via the Wald statistic
+  \eqn{(\hat\beta_T - \delta) / \hat s(\hat\beta_T)} (\eqn{\hat s} the
+  Huber-White sandwich SE) referred to a standard normal distribution
+  -- same \eqn{z}, not \eqn{t}, reference as
+  \code{$compute_asymp_confidence_interval()}, for the same reason
+  (no residual degrees of freedom are ever cached for this class).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidRiskDiff$compute_asymp_two_sided_pval(delta = 0)}

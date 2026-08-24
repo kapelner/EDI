@@ -1,0 +1,64 @@
+name: test-bulk-non-cran
+
+# Runs the "bulk" testthat suite: R/package_tests/testthat_bulk/, the large
+# majority (267 of 274) of what used to live under R/EDI/tests/testthat/.
+# These files are pure algorithmic/statistical logic (model fitting, formula
+# checks, golden-value comparisons) with no OS-dependent behavior, so running
+# them once here -- instead of once per R-CMD-check matrix leg (5 OS/R-version
+# combos) plus R-CMD-check-no-suggests/-sanitizers/-valgrind plus
+# test-coverage-R.yaml, 9 redundant full passes of the same logic -- is what
+# made the suite fast enough to actually run. R/EDI/tests/testthat/ keeps only
+# the small platform-sensitive set (skip_on_os() users, real OS-level
+# fork/parallel tests) that still needs the OS matrix.
+#
+# Not part of `R CMD check` at all: these files live outside R/EDI/tests/, so
+# neither CRAN nor our own R-CMD-check jobs ever see them -- this workflow is
+# the only thing that runs them. (CRAN itself already skips the whole
+# testthat suite via tests/testthat.R's NOT_CRAN guard, so this move changes
+# nothing about what CRAN checks; it only removes the redundant re-runs in
+# our own CI.)
+
+on:
+  push:
+    branches: [main, master]
+    paths: &bulk-test-paths
+      - 'R/EDI/**/*.R'
+      - 'R/EDI/**/*.cpp'
+      - 'R/EDI/**/*.h'
+      - 'R/EDI/**/*.hpp'
+      - 'R/EDI/DESCRIPTION'
+      - 'R/EDI/NAMESPACE'
+      - 'R/package_tests/testthat_bulk/**'
+      - '.github/workflows/test-bulk-non-cran.yml'
+  pull_request:
+    branches: [main, master]
+    paths: *bulk-test-paths
+  workflow_dispatch: {}
+
+jobs:
+  test-bulk-non-cran:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      EDI_PORTABLE: 1
+      NOT_CRAN: true
+      CI: true
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+
+      - name: Run bulk testthat suite
+        working-directory: R
+        run: Rscript package_tests/testthat_bulk/run_bulk_tests.R

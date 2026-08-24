@@ -115,6 +115,12 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   p-value inversion cannot be completed within the search radius; see
 		#'   \code{ci_search_control} for details.
 		compute_rand_confidence_interval = function(alpha = 0.05, r = 501, pval_epsilon = 0.005, show_progress = TRUE, type = NULL, args_for_type = NULL, ci_search_control = NULL){
+			if (inference_is_ordinal_model_coefficient_class(class(self)[1L])) {
+				stop(
+					"Randomization confidence intervals are not implemented for ordinal model-coefficient estimands.",
+					call. = FALSE
+				)
+			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)

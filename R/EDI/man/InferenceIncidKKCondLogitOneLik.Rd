@@ -62,10 +62,7 @@ Analogous Python API for conditional logistic regression:
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceIncidKKCondLogitOneLik-set_custom_randomization_statistic_function}{\code{InferenceIncidKKCondLogitOneLik$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceIncidKKCondLogitOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceIncidKKCondLogitOneLik$set_custom_randomization_statistic_cpp()}}
-    \item \href{#method-InferenceIncidKKCondLogitOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceIncidKKCondLogitOneLik$approximate_randomization_distribution_beta_hat_T()}}
-    \item \href{#method-InferenceIncidKKCondLogitOneLik-supports_rand_pval_for_incidence}{\code{InferenceIncidKKCondLogitOneLik$supports_rand_pval_for_incidence()}}
+    \item \href{#method-InferenceIncidKKCondLogitOneLik-compute_rand_two_sided_pval}{\code{InferenceIncidKKCondLogitOneLik$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceIncidKKCondLogitOneLik-clone}{\code{InferenceIncidKKCondLogitOneLik$clone()}}
   }
 }
@@ -96,55 +93,22 @@ Analogous Python API for conditional logistic regression:
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidKKCondLogitOneLik-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidKKCondLogitOneLik-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceIncidKKCondLogitOneLik$set_custom_randomization_statistic_function()}}{
+\if{html}{\out{<a id="method-InferenceIncidKKCondLogitOneLik-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidKKCondLogitOneLik-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidKKCondLogitOneLik$compute_rand_two_sided_pval()}}{
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidKKCondLogitOneLik$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidKKCondLogitOneLik-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidKKCondLogitOneLik-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceIncidKKCondLogitOneLik$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidKKCondLogitOneLik$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidKKCondLogitOneLik-approximate_randomization_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidKKCondLogitOneLik-approximate_randomization_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceIncidKKCondLogitOneLik$approximate_randomization_distribution_beta_hat_T()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidKKCondLogitOneLik$approximate_randomization_distribution_beta_hat_T(
+    \preformatted{InferenceIncidKKCondLogitOneLik$compute_rand_two_sided_pval(
   r = 501,
   delta = 0,
   transform_responses = "none",
+  na.rm = TRUE,
   show_progress = TRUE,
   permutations = NULL,
-  debug = FALSE,
+  type = NULL,
+  args_for_type = NULL,
   zero_one_logit_clamp = .Machine$double.eps
 )}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidKKCondLogitOneLik-supports_rand_pval_for_incidence"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidKKCondLogitOneLik-supports_rand_pval_for_incidence}{}}}
-\subsection{\code{InferenceIncidKKCondLogitOneLik$supports_rand_pval_for_incidence()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidKKCondLogitOneLik$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
   }
 }

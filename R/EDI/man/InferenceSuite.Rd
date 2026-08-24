@@ -182,7 +182,7 @@ packages available.}
 \code{\link[methods]{is}(des_obj, "Design")} when assertions are enabled; see
 \code{\link{toggle_asserts}}).}
       \item{\code{model_formula}}{Accepted for interface/future-extension purposes but
-currently \strong{not used anywhere in this method's body} — supplying a
+currently \strong{not used anywhere in this method's body} -- supplying a
 non-\code{NULL} value has no effect on discovery, validation, or any stored
 state. Do not rely on this parameter to affect covariate adjustment; a
 design's own model formula and design matrix are what individual
@@ -192,7 +192,7 @@ suite's discovered class list.}
 constructor arguments for specific inference classes.  Each name
 must be the name of a concrete \code{Inference} subclass that is applicable
 to \code{des_obj} (checked against \code{applicable_design_classes} once
-discovered — an inapplicable class name raises an error); the
+discovered -- an inapplicable class name raises an error); the
 corresponding list contains keyword arguments (beyond
 \code{des_obj}) forwarded to that class's \code{initialize}, and every
 argument name supplied must match a formal parameter of that class's

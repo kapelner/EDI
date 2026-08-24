@@ -1423,7 +1423,7 @@ run_all_inference_fork_dispatch = function(tasks, worker_fn, num_cores, max_secs
 
 #' @keywords internal
 #' @noRd
-run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class = NULL, method = NA_character_, type = NA_character_) {
+run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class = NULL, method = NA_character_, type = NA_character_, compute_conf_intervals = TRUE) {
 	t0 = Sys.time()
 	row = list(
 		inference_class = cls_name,
@@ -1468,7 +1468,20 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 				priv = inf_obj$.__enclos_env__$private
 				if (is.function(priv$get_standard_error)) as.numeric(priv$get_standard_error()) else NA_real_
 			}, error = function(e) NA_real_)
-			ci = if (is.na(method)) {
+			# `compute_conf_intervals = FALSE` (per user request, 2026-08-24 --
+			# "the CI bisection functions are very slow") skips the CI side of
+			# every task entirely: the p-value side alone is a single
+			# evaluation of the underlying test statistic, while the CI side
+			# for several sentinels (Bartlett-approx, rand, rand_bootstrap,
+			# param_boot) re-invokes that same expensive machinery ~15-40
+			# times per bound during root-finding -- by far the dominant cost
+			# for those sentinels. `ci$method` stays `NA_character_` here
+			# (not `method`, unlike the `is.na(method)` branch above) so
+			# downstream reporting can't mistake "never attempted because CI
+			# is off for this whole run" for "attempted and unsupported."
+			ci = if (!isTRUE(compute_conf_intervals)) {
+				list(lower = NA_real_, upper = NA_real_, method = NA_character_)
+			} else if (is.na(method)) {
 				list(lower = NA_real_, upper = NA_real_, method = NA_character_)
 			} else {
 				run_all_inference_call_ci_for_method(inf_obj, alpha, method, type)
@@ -1639,7 +1652,19 @@ run_all_inference_fmt_completed_secs = function(secs) {
 #' `print()` (2026-08-22), reverted per this later, more specific request.
 EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS = c(
 	"inference class", "cov mod", "estimand", "est", "se",
-	"ci_a", "ci_b", "ci method", "pval", "pval method (if different)", "status"
+	"ci_a", "ci_b", "pval", "pval method", "ci method (if different)", "status"
+)
+
+#' The `compute_conf_intervals = FALSE` variant of
+#' `EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS` (per user request, 2026-08-24):
+#' when CI computation is skipped entirely for a run, `ci_a`/`ci_b`/`"ci
+#' method (if different)"` would only ever be blank, so they're dropped from
+#' the header rather than displayed as three permanently-empty columns.
+#'
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS_NO_CI = c(
+	"inference class", "cov mod", "estimand", "est", "se", "pval", "pval method", "status"
 )
 
 #' Fixed per-column character-width caps for the wrapped text table (both
@@ -1661,8 +1686,8 @@ EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS = c(
 #' @noRd
 EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS = c(
 	`inference class` = 14L, `cov mod` = 7L, estimand = 10L,
-	est = 8L, se = 8L, ci_a = 8L, ci_b = 8L, `ci method` = 12L,
-	pval = 9L, `pval method (if different)` = 14L, weight = 6L, status = 7L
+	est = 8L, se = 8L, ci_a = 8L, ci_b = 8L,
+	pval = 9L, `pval method` = 14L, `ci method (if different)` = 12L, weight = 6L, status = 7L
 )
 
 #' Word-wraps `text` to at most 2 lines no wider than `width` characters
@@ -1692,6 +1717,13 @@ run_all_inference_wrap_cell_2lines = function(text, width) {
 	# for unrelated, longer `"<method> (<type>)"` combinations that
 	# currently wrap correctly at the existing cap.
 	if (text %in% c("LR Bartlett", "LR \u2248Bartlett")) return(c("LR", sub("^LR ", "", text)))
+	# "Kaplan-Meier"/"Kaplan-Meier \u0394" (per user request, 2026-08-24):
+	# splits at the hyphen (keeping it on line 1, the usual English
+	# line-break convention for a hyphenated compound) rather than the
+	# generic word-boundary rules below, which only ever split on spaces
+	# and would either leave the whole hyphenated word on one line (it
+	# fits within every current column cap) or hard-truncate it.
+	if (startsWith(text, "Kaplan-Meier")) return(c("Kaplan-", sub("^Kaplan-", "", text)))
 	# Force these onto 2 lines even though they fit within the column cap
 	# (per user request, 2026-08-24), matching the wrapped look every typed
 	# sentinel already gets:
@@ -1948,7 +1980,8 @@ run_all_inference_static_row_fields = function(task, des_obj) {
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_build_live_table_header = function(tasks, des_obj) {
+run_all_inference_build_live_table_header = function(tasks, des_obj, compute_conf_intervals = TRUE) {
+	headers = if (isTRUE(compute_conf_intervals)) EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS else EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS_NO_CI
 	statics = lapply(tasks, run_all_inference_static_row_fields, des_obj = des_obj)
 	estimands_for_sort = vapply(tasks, function(t) run_all_inference_estimand(t$cls_name) %||% NA_character_, character(1L))
 	sort_idx = order(estimands_for_sort, vapply(tasks, `[[`, character(1L), "cls_name"), na.last = TRUE)
@@ -1976,12 +2009,13 @@ run_all_inference_build_live_table_header = function(tasks, des_obj) {
 	# possible value, which -- once TODO-22's typed-sentinel `"<method>
 	# (<type>)"` suffixes were accounted for -- produced a ragged, way-too-
 	# wide table.
-	widths = EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS[EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS]
-	header_lines = run_all_inference_fmt_wrapped_row(EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS, EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS)
+	widths = EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS[headers]
+	header_lines = run_all_inference_fmt_wrapped_row(headers, headers)
 	total_width = max(nchar(header_lines))
 	list(
 		header_lines = c(header_lines, strrep("=", total_width)),
-		total_width = total_width, widths = widths, statics = statics, cov_key = key
+		total_width = total_width, widths = widths, statics = statics, cov_key = key,
+		headers = headers
 	)
 }
 
@@ -2004,28 +2038,42 @@ run_all_inference_build_live_table_header = function(tasks, des_obj) {
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_print_row = function(r, static, widths) {
+run_all_inference_print_row = function(r, static, widths, headers = EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS) {
 	na_chr = function(x) if (is.na(x)) "NA" else x
-	ci_disp = na_chr(method_with_type_short_label(r$ci_method, r$type %||% NA_character_))
 	pval_disp = na_chr(method_with_type_short_label(r$pval_method, r$type %||% NA_character_))
-	# `pval method (if different)` only displays when it actually differs
-	# from `ci method` (per user request, 2026-08-20) -- blank, not "NA",
-	# when it matches (the usual case) or when it's genuinely `NA`.
-	if (identical(pval_disp, ci_disp)) pval_disp = ""
+	compute_conf_intervals = "ci_a" %in% headers
 	vals = c(
 		static$inference_class_disp,
 		static$cov_model_disp,
 		static$estimand_disp,
 		run_all_inference_sigfig(r$estimate, 3L),
-		run_all_inference_sigfig(r$se, 3L),
-		run_all_inference_sigfig(r$ci_a, 3L),
-		run_all_inference_sigfig(r$ci_b, 3L),
-		ci_disp,
-		run_all_inference_sigfig(r$pval, 3L, scientific = TRUE),
-		pval_disp,
-		r$status
+		run_all_inference_sigfig(r$se, 3L)
 	)
-	lines = run_all_inference_fmt_wrapped_row(vals, EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS)
+	if (compute_conf_intervals) {
+		ci_disp = na_chr(method_with_type_short_label(r$ci_method, r$type %||% NA_character_))
+		# `ci method (if different)` only displays when it actually differs
+		# from `pval method` (per user request, 2026-08-24, reversing which
+		# side is unconditional vs. "if different") -- blank, not "NA", when
+		# it matches (the usual case) or when it's genuinely `NA`.
+		if (identical(ci_disp, pval_disp)) ci_disp = ""
+		vals = c(
+			vals,
+			run_all_inference_sigfig(r$ci_a, 3L),
+			run_all_inference_sigfig(r$ci_b, 3L),
+			run_all_inference_sigfig(r$pval, 3L, scientific = TRUE),
+			pval_disp,
+			ci_disp,
+			r$status
+		)
+	} else {
+		vals = c(
+			vals,
+			run_all_inference_sigfig(r$pval, 3L, scientific = TRUE),
+			pval_disp,
+			r$status
+		)
+	}
+	lines = run_all_inference_fmt_wrapped_row(vals, headers)
 	cat(lines[[1L]], "\n", lines[[2L]], "\n", sep = "")
 }
 
@@ -2552,14 +2600,22 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		} else {
 			NULL
 		}
-		# Wide right expansion -- per user request, 2026-08-21, reserves
-		# panel room for the right-aligned class/method label column
-		# (`x = Inf, hjust = 1` below), which needs much more horizontal
-		# space than the old numbers-only design.
+		# Right expansion reserves panel room for the right-aligned
+		# class/method label column (`x = Inf, hjust = 1` below) -- per user
+		# request, 2026-08-21, originally much wider (`1.6`) than the old
+		# numbers-only design needed. Cut to `0.5` (per user request,
+		# 2026-08-24: "a lot of horizontal whitespace between the CI lines
+		# and the labels") -- the panel's total width already scales with
+		# label length independently (`run_all_inference_plot_save_width_
+		# in()`'s `3 + 0.09 * max_label_chars` formula), so this multiplier
+		# only controls the gap between the CI segment and the label, not
+		# whether the label fits at all (`run_all_inference_plot_to_base64_
+		# png()`/the PDF page-sizing path both derive width from
+		# `max_label_chars` directly).
 		x_scale = if (use_log10) {
-			ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = c(0.35, 1.6)))
+			ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = c(0.35, 0.5)))
 		} else {
-			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.35, 1.6)))
+			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.35, 0.5)))
 		}
 		forest = ggplot2::ggplot(d, ggplot2::aes(y = y)) +
 			ggplot2::geom_vline(xintercept = null_x, linetype = "dashed", color = "grey40") +
@@ -2953,7 +3009,7 @@ run_all_inference_plot_to_base64_png = function(plot, width = NULL, height = 6) 
 #'
 #' @keywords internal
 #' @noRd
-EDI_INFERENCE_CLASS_ACRONYMS = c("GLMM", "CLMM", "IVWC", "KK14", "KK21", "KK", "OLS", "GEE", "CMH", "RD", "RR", "T")
+EDI_INFERENCE_CLASS_ACRONYMS = c("GLMM", "CLMM", "IVWC", "KK14", "KK21", "KK", "OLS", "GEE", "CMH", "RD", "RR", "LWA", "PH", "KM", "T")
 
 #' Response-family/cross-response-type name prefixes
 #' `inference_class_short_label()` strips (after the shared `"Inference"`
@@ -3116,7 +3172,11 @@ inference_class_short_label = function(name) {
 	# same kind of claim (a class could target the mean_difference estimand
 	# via a non-mean-based estimator). "Average" avoids that false
 	# equivalence while still being immediately readable.
-	word_abbrev = c(Binomial = "Binom", Identity = "Ident", Mean = "Average")
+	# "KM" -> "Kaplan-Meier" (per user request, 2026-08-24): the bare
+	# acronym reads as unclear/ambiguous on its own (unlike KK/OLS/GEE/etc,
+	# which are unambiguous within this package's vocabulary), so it's
+	# spelled out in full rather than just correctly grouped.
+	word_abbrev = c(Binomial = "Binom", Identity = "Ident", Mean = "Average", KM = "Kaplan-Meier")
 	words = ifelse(words %in% names(word_abbrev), word_abbrev[words], words)
 	# "Nurminen" dropped entirely (not abbreviated) from
 	# InferenceIncidMiettinenNurminenRiskDiff-style names, per user request
@@ -3173,6 +3233,14 @@ estimand_short_label = function(estimand) {
 		s = gsub("stochastic", "stoch", s, fixed = TRUE)
 		s = gsub("superiority", "super", s, fixed = TRUE)
 		s = gsub("conditional", "cond", s, fixed = TRUE)
+		# Per user request, 2026-08-24: "proportional" -> "prop",
+		# "continuation" -> "cont" (only ever seen as "continuation ratio",
+		# the continuation-ratio ordinal model family) -- both are long
+		# single words that otherwise force estimand cells like "logodds
+		# partial proportional"/"logodds continuation ratio" to overflow the
+		# 2-line wrap.
+		s = gsub("proportional", "prop", s, fixed = TRUE)
+		s = gsub("continuation", "cont", s, fixed = TRUE)
 		# Unambiguous within this package's estimand vocabulary without the
 		# trailing noun (per user request, 2026-08-19): "logodds ratio ..."
 		# is always the log-odds-ratio scale, and "probit effect ..." is
@@ -3305,15 +3373,15 @@ run_all_inference_build_display_table = function(results_table) {
 	if (nrow(tbl) == 0L) return(NULL)
 	tbl = tbl[order(tbl$estimand, tbl$inference_class, na.last = TRUE), , drop = FALSE]
 
+	# Defaults TRUE for any `results_table` built before this attribute
+	# existed (e.g. a saved/reloaded JSON round-trip) -- see
+	# `InferenceSuite$run_all_inference(compute_conf_intervals = ...)`.
+	compute_conf_intervals = isTRUE(attr(results_table, "compute_conf_intervals") %||% TRUE)
+
 	cov = cov_model_display(tbl$cov_model)
 	na_chr = function(x) ifelse(is.na(x), "NA", x)
 
-	ci_disp = na_chr(method_with_type_short_label(tbl$ci_method, tbl$type))
 	pval_disp = na_chr(method_with_type_short_label(tbl$pval_method, tbl$type))
-	# `pval method (if different)` only displays when it actually differs
-	# from `ci method` (per user request, 2026-08-20) -- blank, not "NA",
-	# when it matches (the usual case) or when it's genuinely `NA`.
-	pval_disp[pval_disp == ci_disp] = ""
 
 	display = data.frame(
 		`inference class` = vapply(tbl$inference_class, inference_class_short_label, character(1L)),
@@ -3321,24 +3389,44 @@ run_all_inference_build_display_table = function(results_table) {
 		estimand           = na_chr(estimand_short_label(tbl$estimand)),
 		est                = run_all_inference_sigfig(tbl$estimate, 3L),
 		se                 = run_all_inference_sigfig(tbl$se, 3L),
-		ci_a               = run_all_inference_sigfig(tbl$ci_a, 3L),
-		ci_b               = run_all_inference_sigfig(tbl$ci_b, 3L),
-		`ci method`        = ci_disp,
-		pval               = run_all_inference_sigfig(tbl$pval, 3L, scientific = TRUE),
-		`pval method (if different)` = pval_disp,
-		weight             = run_all_inference_sigfig(tbl$weight, 2L),
-		status             = tbl$status,
 		check.names = FALSE, stringsAsFactors = FALSE
 	)
-	# `pval method (if different)` only earns a column at all when at least
-	# one row actually has something to show there -- per user request,
-	# 2026-08-23: a column that's blank on every single row (the common
-	# case: `pval_method` almost always matches `ci_method`) is dead weight
-	# on both the text and HTML tables, which share this `display` (that's
-	# the whole point of building it once, here).
-	if (!any(nzchar(display[["pval method (if different)"]]))) {
-		display[["pval method (if different)"]] = NULL
+	if (compute_conf_intervals) {
+		ci_disp = na_chr(method_with_type_short_label(tbl$ci_method, tbl$type))
+		# `ci method (if different)` only displays when it actually differs
+		# from `pval method` (per user request, 2026-08-24, reversing which
+		# side is unconditional vs. "if different") -- blank, not "NA", when
+		# it matches (the usual case) or when it's genuinely `NA`.
+		ci_disp[ci_disp == pval_disp] = ""
+		display[["ci_a"]] = run_all_inference_sigfig(tbl$ci_a, 3L)
+		display[["ci_b"]] = run_all_inference_sigfig(tbl$ci_b, 3L)
+		display[["pval"]] = run_all_inference_sigfig(tbl$pval, 3L, scientific = TRUE)
+		display[["pval method"]] = pval_disp
+		display[["ci method (if different)"]] = ci_disp
+		# `ci method (if different)` only earns a column at all when at least
+		# one row actually has something to show there -- per user request,
+		# 2026-08-23 (originally for the mirror-image `pval method (if
+		# different)` column, before the 2026-08-24 request swapped which
+		# side carries the qualifier): a column that's blank on every single
+		# row (the common case: `ci_method` almost always matches
+		# `pval_method`) is dead weight on both the text and HTML tables,
+		# which share this `display` (that's the whole point of building it
+		# once, here).
+		if (!any(nzchar(display[["ci method (if different)"]]))) {
+			display[["ci method (if different)"]] = NULL
+		}
+	} else {
+		# CI computation was skipped entirely for this run (per user request,
+		# 2026-08-24: `compute_conf_intervals = FALSE` speeds up
+		# `run_all_inference()` runs by never invoking the CI bisection
+		# machinery at all) -- `ci_a`/`ci_b`/`ci_method` are always `NA` on
+		# every row, so omit them entirely rather than showing three
+		# permanently-blank columns.
+		display[["pval"]] = run_all_inference_sigfig(tbl$pval, 3L, scientific = TRUE)
+		display[["pval method"]] = pval_disp
 	}
+	display[["weight"]] = run_all_inference_sigfig(tbl$weight, 2L)
+	display[["status"]] = tbl$status
 
 	list(tbl = tbl, display = display, cov_key = cov$key)
 }
@@ -3424,24 +3512,31 @@ run_all_inference_format_html_table = function(results_table) {
 	tbl = built$tbl; display = built$display; cov_key = built$cov_key
 
 	esc = function(x) htmltools_escape_or_identity(as.character(x))
-	# Word-wraps a header/cell string onto two lines via `<br>` when it has
-	# more than one word (split as evenly as possible), e.g. `"cov mod"` ->
-	# `"cov<br>mod"`, `"Mean Diff Pooled Var"` -> `"Mean \u0394<br>Pooled Var"` --
-	# keeps HTML table columns narrow without truncating any number (numeric
-	# cells are always single tokens, so never wrapped) or text (per user
-	# request, 2026-08-19: "the wrapping should be so that you can read the
-	# first row and see all the numbers -- the text should just wrap").
+	# Word-wraps a header/cell string onto two lines via `<br>` -- delegates
+	# to `run_all_inference_wrap_cell_2lines()` (per user request, 2026-08-24:
+	# the HTML table used to have its own, simpler floor-half-split-only
+	# implementation that had drifted from the live/print tables' special
+	# cases -- e.g. "KK CLMM Cauchit" wrapped "KK" / "CLMM Cauchit" here but
+	# "KK CLMM" / "Cauchit" on screen). `width = 10000L` disables that
+	# function's char-cap truncation (irrelevant for HTML, which has no fixed
+	# terminal column count), so only its word-boundary split logic applies.
+	# Escaping happens on each already-split line, not before splitting --
+	# HTML-escaping never introduces or removes a space, so word boundaries
+	# are identical either way.
+	#
+	# No wrapping at all when `compute_conf_intervals = FALSE` (per user
+	# request, 2026-08-24) -- the whole point of the fixed-width `<br>`
+	# 2-line wrap (here and in the live/print tables) is to keep a narrow
+	# terminal-width column readable; an HTML table has no such constraint,
+	# and dropping the CI columns already leaves plenty of room for every
+	# remaining cell to render on one line without it.
+	compute_conf_intervals = isTRUE(attr(results_table, "compute_conf_intervals") %||% TRUE)
 	wrap_html = function(x) {
-		vapply(esc(x), function(s) {
-			words = strsplit(s, " ", fixed = TRUE)[[1]]
-			if (length(words) < 2L) return(s)
-			# Floor (not ceiling) for odd word counts -- per user request,
-	# 2026-08-21: "Miettinen Risk \u0394" (3 words) should wrap "Miettinen" /
-	# "Risk \u0394" (shorter half first), not "Miettinen Risk" / "\u0394". Even word
-	# counts are unaffected (floor == ceiling there), e.g. "G Comp Risk \u0394"
-	# still wraps "G Comp" / "Risk \u0394".
-	k = floor(length(words) / 2L)
-			paste0(paste(words[seq_len(k)], collapse = " "), "<br>", paste(words[(k + 1L):length(words)], collapse = " "))
+		if (!compute_conf_intervals) return(esc(x))
+		vapply(as.character(x), function(s) {
+			parts = run_all_inference_wrap_cell_2lines(s, width = 10000L)
+			if (!nzchar(parts[[2L]])) return(esc(parts[[1L]]))
+			paste0(esc(parts[[1L]]), "<br>", esc(parts[[2L]]))
 		}, character(1L), USE.NAMES = FALSE)
 	}
 	header_html = paste0("<th>", wrap_html(names(display)), "</th>", collapse = "")
@@ -4239,7 +4334,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   \code{edi_version}.
 		run_all_inference = function(screen = TRUE, html = FALSE, alpha = 0.05, save_results_as_JSON = FALSE, plots = screen, pdf = FALSE,
 				classes = NULL, exclude_classes = character(), max_secs_per_class = NULL, num_cores = 1L, formulas = NULL,
-				methods = NULL, basic_bootstrap = FALSE,
+				methods = NULL, basic_bootstrap = FALSE, compute_conf_intervals = FALSE,
 				combined_evidence_estimands = NULL,
 				combined_evidence_weighting = c("estimand_grouped", "equal", "custom"),
 				combined_evidence_weights = NULL) {
@@ -4247,6 +4342,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				assertFlag(screen)
 				assertFlag(html)
 				assertNumber(alpha, lower = 0, upper = 1)
+				assertFlag(compute_conf_intervals)
 				assertFlag(save_results_as_JSON)
 				assertFlag(plots)
 				assertFlag(pdf)
@@ -4387,7 +4483,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			t_start         = Sys.time()
 			results         = vector("list", n_total)
 			names(results)  = vapply(tasks, `[[`, character(1L), "result_name")
-			live_header     = if (screen && n_total > 0L) run_all_inference_build_live_table_header(tasks, des_obj) else NULL
+			live_header     = if (screen && n_total > 0L) run_all_inference_build_live_table_header(tasks, des_obj, compute_conf_intervals) else NULL
 
 			use_fork_cluster = num_cores > 1L && .Platform$OS.type == "unix"
 			if (num_cores > 1L && !use_fork_cluster) {
@@ -4427,7 +4523,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 						params$model_formula = task$model_formula
 					}
 					run_all_inference_one_class(
-						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method, task$type
+						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method, task$type, compute_conf_intervals
 					)
 				}
 				# Internal test-only escape hatch (parallel_fork_cluster_test_
@@ -4459,7 +4555,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				results = results_list
 				if (screen) {
 					for (i in seq_along(tasks)) {
-						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths)
+						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths, live_header$headers)
 					}
 					cat(strrep("-", live_header$total_width), "\n", sep = "")
 					run_all_inference_print_live_cov_key(live_header$cov_key)
@@ -4491,12 +4587,12 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 						params$model_formula = task$model_formula
 					}
 					results[[i]] = run_all_inference_one_class(
-						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method, task$type
+						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method, task$type, compute_conf_intervals
 					)
 					elapsed_secs_so_far[[i]] = results[[i]]$fit_secs
 					if (screen) {
 						cat("\r\033[K")
-						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths)
+						run_all_inference_print_row(results[[i]], live_header$statics[[i]], live_header$widths, live_header$headers)
 						cat(run_all_inference_progress_bar_line(i, n_total, elapsed_secs_so_far))
 					}
 				}
@@ -4570,11 +4666,19 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			results_table = results_table[sort_idx, , drop = FALSE]
 			row_ids = row_ids[sort_idx]
 			rownames(results_table) = NULL
+			# Attached to `results_table` itself (not just `out$compute_conf_
+			# intervals` below) so every function that receives `results_table`
+			# on its own -- `run_all_inference_build_display_table()`, the HTML
+			# renderer, a user who pulls `res$results_table` out and re-prints
+			# it -- knows whether `ci_a`/`ci_b`/`ci_method` are real data or
+			# were never computed, without needing the whole `out` object too.
+			attr(results_table, "compute_conf_intervals") = compute_conf_intervals
 			combined_usable = !is.na(results_table$weight)
 			combined = run_all_inference_combine_pvalues(results_table$pval, results_table$weight)
 			out = list(
 				results = results,
 				results_table = results_table,
+				compute_conf_intervals = compute_conf_intervals,
 				design = list(
 					response_type = response_type, design_family = design_family,
 					design_class = class(des_obj)[[1L]], n = des_obj$get_n()

@@ -13,7 +13,7 @@ get_identity_binomial_regression_weighted_hessian_cpp(X, y_r, weights_r, beta)
 
 \item{beta}{A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.}
 
-\item{X}{A numeric matrix of predictors.}
+\item{X_r}{A numeric matrix of predictors.}
 }
 \value{
 The finite-difference-approximated weighted Hessian matrix at \code{beta}.
