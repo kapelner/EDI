@@ -13,7 +13,7 @@ test_that("continuation-ratio augmentation matches an R reference", {
 			c(
 				as.numeric(seq_len(n_alpha) == j),
 				X[i, ],
-				z = as.numeric(y_level == j)
+				z = as.numeric(y_level != j)
 			)
 		}))
 	})

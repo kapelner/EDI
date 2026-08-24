@@ -344,22 +344,26 @@ see \code{fix_inference_hierarchy.md}'s
 the \code{cov_model} column semantics-aware wherever that audit has
 landed.}
       \item{\code{methods}}{\code{NULL} (default), a character vector of method
-sentinel strings, or (TODO-22) a named list \code{sentinel ->
-character vector of requested \code{type} values, or \code{NULL}}
+sentinel strings, or (TODO-22) a named list, \code{sentinel} to a
+character vector of requested \code{type} values, or \code{NULL},
 restricting which inference method(s) -- and, for the three
 resampling sentinels marked "typed" below, which resampling/CI-
 construction \code{type} flavor(s) -- get fit and reported per
-class. \code{NULL} means \strong{every} sentinel in
+class. \code{NULL} considers every sentinel in
 \code{EDI_INFERENCE_SUITE_METHOD_SENTINELS}, and for each typed
-sentinel, \strong{every} \code{type} value that class supports
+sentinel, every \code{type} value that class supports
 (queried at runtime via its own \code{get_supported_bootstrap_
 {pval,ci}_types()} / \code{get_supported_bayesian_bootstrap_
 {pval,ci}_types()} / \code{get_supported_rand_bootstrap_
 {pval,ci}_types()} accessor -- never a hardcoded type table in this
-package) -- i.e. truly all possible methods and all their
-resampling flavors, not a single "best available" pick (per user
-request, 2026-08-19, replacing the earlier design where each class
-contributed exactly one row via a fixed wald-first cascade).
+package), except class/method/type combinations declared in
+\code{\link{EDI_COMPREHENSIVE_SLOW_PATHS}}. Those implemented but
+prohibitively slow paths are omitted only from this default
+selection. Supplying \code{methods} explicitly opts into the named
+sentinel/type combinations even when the registry marks them slow.
+Thus the default remains broad without allowing known multi-minute
+paths to dominate a routine report; it is not a single
+"best available" cascade.
 List-shaped example: \code{methods = list(bootstrap = c("percentile",
 "bca"), rand_bootstrap = NULL)} fits only \code{"bootstrap"}
 (restricted to the \code{"percentile"}/\code{"bca"} types that class

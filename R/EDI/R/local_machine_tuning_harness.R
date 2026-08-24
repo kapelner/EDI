@@ -49,11 +49,19 @@ edi_tuning_default_seed = function(class, n) {
 #' a design family the generic synthetic fixture below never builds) while
 #' still resolving to exactly one response type, e.g.
 #' \code{InferenceIncidKKGCompAbstract}, which needs a KK matching-on-the-fly
-#' design (per its own \code{@keywords internal} docs) but slipped through
-#' this filter and errored \code{tune_EDI_for_this_machine()}'s example on
-#' CI (2026-08-24) via \code{init_kk_passthrough()}'s design-compatibility
-#' check, since \code{edi_tuning_synthetic_experiment()} always builds a
-#' plain iid \code{DesignSeqOneByOneBernoulli}.
+#' design (per its own \code{@keywords internal} docs).
+#'
+#' A second, separate filter excludes every \emph{concrete} class for which
+#' \code{infer_inference_requires_kk_matching_design()} is \code{TRUE} (e.g.
+#' \code{InferenceIncidKKGCompRiskDiff}/\code{RiskRatio}): these are not
+#' abstract, so the first filter lets them through, but
+#' \code{edi_tuning_synthetic_experiment()} always builds a plain iid
+#' \code{DesignSeqOneByOneBernoulli} via
+#' \code{inference_migration_complete_design()}, never a KK-matching design,
+#' so any such class's \code{initialize()} always rejects it via
+#' \code{init_kk_passthrough()}'s design-compatibility check -- confirmed as
+#' the cause of \code{tune_EDI_for_this_machine()}'s example failing on CI
+#' (2026-08-24).
 #'
 #' @return A data.frame with one row per family: \code{class} (character,
 #'   the R6 classname) and \code{response_type} (character).
@@ -63,7 +71,8 @@ edi_tuning_live_families = function() {
 	ns = asNamespace("EDI")
 	names = sort(Filter(function(name) {
 		obj = get(name, envir = ns, inherits = FALSE)
-		is_inference_r6_generator(obj) && identical(obj$classname, name) && !infer_inference_abstract(name)
+		is_inference_r6_generator(obj) && identical(obj$classname, name) &&
+			!infer_inference_abstract(name) && !infer_inference_requires_kk_matching_design(name)
 	}, ls(ns, all.names = TRUE)))
 	response_types = lapply(names, infer_inference_response_types)
 	keep = lengths(response_types) == 1L

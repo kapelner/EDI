@@ -695,24 +695,28 @@ List ordinal_gcomp_post_fit_cpp(const Rcpp::NumericMatrix& X_fit,
 //' category as a sequence of conditional "continue past this cut" events, analogous
 //' to a discrete-time survival/hazard model: for cut \eqn{j = 1, \dots, K-1}, among
 //' subjects who have reached at least category \eqn{j} (\eqn{Y \ge j}),
-//' \deqn{\log\frac{\Pr(Y = j \mid Y \ge j)}{\Pr(Y > j \mid Y \ge j)} = \alpha_j + \beta^\top x,}
-//' i.e. the log-odds of "stopping" (being observed) exactly at category \eqn{j}
-//' versus "continuing" past it, given the subject has reached at least \eqn{j}, with
+//' \deqn{\log\frac{\Pr(Y > j \mid Y \ge j)}{\Pr(Y = j \mid Y \ge j)} = \alpha_j + \beta^\top x,}
+//' i.e. the log-odds of "continuing" past category \eqn{j} versus "stopping" (being
+//' observed) exactly there, given the subject has reached at least \eqn{j}, with
 //' a cut-specific intercept \eqn{\alpha_j} and covariate effects \eqn{\beta}
 //' constrained equal across cuts (the proportional continuation-ratio assumption).
-//' Unlike the adjacent-category model (which only compares the two categories
-//' immediately flanking a cut), every subject contributes to every cut up to and
-//' including the one at which they are observed to stop.
+//' This orientation — numerator is the "continue" event — keeps a positive
+//' \eqn{\beta} meaning "pushes toward higher categories of \code{y}", matching
+//' \code{\link{fast_continuation_ratio_regression_cpp}} and every other ordinal
+//' estimator in the package. Unlike the adjacent-category model (which only
+//' compares the two categories immediately flanking a cut), every subject
+//' contributes to every cut up to and including the one at which they are observed
+//' to stop.
 //'
 //' \strong{Expansion mechanics.} For each subject \eqn{i} with observed category
 //' \code{y[i]}, a stacked row is emitted for every cut
-//' \eqn{j = 1, \dots, \min(\code{y[i]}, K-1)}: the stacked binary outcome is \code{1}
-//' ("stopped here") if \code{y[i] == j}, and \code{0} ("continued past") for every
+//' \eqn{j = 1, \dots, \min(\code{y[i]}, K-1)}: the stacked binary outcome is \code{0}
+//' ("stopped here") if \code{y[i] == j}, and \code{1} ("continued past") for every
 //' earlier cut the subject passed through. A subject observed at the top category
-//' (\code{y[i] == K}) contributes a \code{0} at every one of the \code{K - 1} cuts
+//' (\code{y[i] == K}) contributes a \code{1} at every one of the \code{K - 1} cuts
 //' (having "survived" all of them without stopping); a subject observed at category
-//' \code{j <= K - 1} contributes \code{0}s for cuts \code{1:(j-1)} and a single
-//' \code{1} at cut \code{j}, then no further rows (later cuts are irrelevant once a
+//' \code{j <= K - 1} contributes \code{1}s for cuts \code{1:(j-1)} and a single
+//' \code{0} at cut \code{j}, then no further rows (later cuts are irrelevant once a
 //' subject has already stopped). As in \code{expand_adjacent_category_data_cpp()},
 //' the stacked stratum ID is \code{strata[i] + (j - 1) * num_strata} (with
 //' \code{num_strata = max(strata)}): fitting a conditional logistic regression
@@ -736,7 +740,8 @@ List ordinal_gcomp_post_fit_cpp(const Rcpp::NumericMatrix& X_fit,
 //'   Details).
 //' @param K Integer; the number of ordinal categories (so there are \code{K - 1}
 //'   continuation-ratio cuts).
-//' @return A list with components \code{y} (stacked 0/1 "stopped here" outcome),
+//' @return A list with components \code{y} (stacked 0/1 "continued past this cut"
+//'   outcome),
 //'   \code{w} (stacked covariate, passed through unchanged), and \code{strata}
 //'   (stacked combined stratum-by-cut ID); all three are integer vectors of the
 //'   same, generally-longer-than-\eqn{n} length (each subject contributes between 1
@@ -771,7 +776,11 @@ List expand_continuation_ratio_data_cpp(const Rcpp::IntegerVector& y, const Rcpp
         int si = map_strata[i];
         
         for (int j = 1; j <= std::min(yi, n_alpha); ++j) {
-            y_stack.push_back((yi == j) ? 1 : 0);
+            // 1 = "continued past this cut" (Y > j), 0 = "stopped here" (Y == j);
+            // see fast_continuation_ratio_regression.cpp's build_continuation_ratio_augmented_data
+            // for the same orientation and why (keeps a positive beta meaning
+            // "pushes toward higher categories").
+            y_stack.push_back((yi == j) ? 0 : 1);
             w_stack.push_back(wi);
             strata_stack.push_back(si + (j - 1) * num_strata);
         }

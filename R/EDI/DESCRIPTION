@@ -65,7 +65,9 @@ Suggests:
     VGAM,
     ompr,
     ompr.roi,
-    ROI.plugin.glpk
+    ROI.plugin.glpk,
+    sandwich,
+    withr
 VignetteBuilder: knitr
 Collate:
     'design_abstract.R'

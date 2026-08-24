@@ -8,6 +8,8 @@
 ^benchmark$
 check_survfit.R
 ^cran-comments\.md$
+^REFERENCES\.md$
+^_pkgdown\.yml$
 ^simulation_framework_results.*$
 ^\.mcp\.json$
 ^\.claude$

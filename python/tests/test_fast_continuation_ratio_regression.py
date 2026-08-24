@@ -49,8 +49,15 @@ def _synthetic_data():
 
 # R reference, EDI 1.0.0, computed 2026-08-04 via:
 #   EDI:::fast_continuation_ratio_regression_cpp(X, y)
-R_B = np.array([-0.634847365434558, 0.358801002565834])
-R_ALPHA = np.array([-1.01767396284275, -0.218042906987751, 0.678418178076508])
+# (2026-08-24): build_continuation_ratio_augmented_data's z now codes
+# "continued past this cut" = 1 instead of "stopped at this cut" = 1, so that
+# a positive beta means "pushes toward higher categories of y" -- consistent
+# with the package's other ordinal estimators. This is an exact elementwise
+# sign flip of the original fixture's b/alpha (fitting a logistic regression
+# on the complementary binary response negates both parameter blocks exactly;
+# neg_loglik is invariant under this reparametrization).
+R_B = np.array([0.634847365434558, -0.358801002565834])
+R_ALPHA = np.array([1.01767396284275, 0.218042906987751, -0.678418178076508])
 R_NEG_LOGLIK = 399.17351526582
 
 

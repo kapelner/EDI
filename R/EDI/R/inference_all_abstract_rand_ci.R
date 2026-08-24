@@ -176,6 +176,18 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			old_mc_control = temp_inf$.__enclos_env__$private$randomization_mc_control
 			temp_inf$.__enclos_env__$private$randomization_mc_control = ci_search_control
 			on.exit({ temp_inf$.__enclos_env__$private$randomization_mc_control = old_mc_control }, add = TRUE)
+			# Own the reusable randomization-worker cache for this whole CI
+			# search (both bounds, every bisection step -- see
+			# `compute_randomization_distr_via_reused_worker_states()`'s
+			# `reuse_key` comment): the nested `compute_two_sided_pval_with_
+			# sequential_mc()` calls this triggers (via `evaluate_pval()` ->
+			# `compute_rand_two_sided_pval()`) each register as a nested
+			# session via the depth counter and do not clear the cache
+			# themselves, so the same duplicated worker survives across the
+			# whole search instead of being rebuilt on every bisection step.
+			temp_priv = temp_inf$.__enclos_env__$private
+			temp_priv$begin_rand_worker_reuse_session()
+			on.exit(temp_priv$end_rand_worker_reuse_session(), add = TRUE)
 			precompute_permutations = !(
 				is.finite(suppressWarnings(as.numeric(ci_search_control$timeout_deadline)[1L])) &&
 				isTRUE(ci_search_control$mc_enable) &&

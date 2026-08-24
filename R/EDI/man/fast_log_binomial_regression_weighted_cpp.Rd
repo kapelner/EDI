@@ -41,7 +41,7 @@ rather than estimate.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
 
-\item{X_r}{A numeric matrix of predictors, \eqn{n \times p}.}
+\item{X}{A numeric matrix of predictors, \eqn{n \times p}.}
 }
 \value{
 A list with the same components as

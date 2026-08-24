@@ -565,12 +565,30 @@ InferenceRand = R6::R6Class("InferenceRand",
 			# Serial dispatch (chunk_n == 1L, the common case: num_cores = 1 is
 			# InferenceSuite's default) is where `create_bootstrap_worker_state()`'s
 			# `self$duplicate()` + design `duplicate()` becomes the dominant cost when
-			# this whole function is re-invoked many times for the same delta/transform
-			# (sequential-MC batches -- see `compute_two_sided_pval_with_sequential_mc()`,
-			# which owns this cache's lifetime and clears it on exit). Reuse the cached
-			# worker only when the key matches exactly; the parallel path (chunk_n > 1L,
-			# each chunk needs its own independent worker anyway) is untouched.
-			reuse_key = if (chunk_n == 1L) paste(format(as.numeric(delta), digits = 17), transform_responses, sep = "|") else NULL
+			# this whole function is re-invoked many times -- sequential-MC batches
+			# (fixed delta) and CI-search bisection steps (varying delta) alike. The
+			# key is delta-INDEPENDENT (transform_responses only, 2026-08-24 --
+			# widened from also requiring an exact delta match): `load_randomization_
+			# perm_into_worker()` unconditionally overwrites every replicate's y/w/
+			# fit_warm_start/caches from `worker_state$base_fit_warm_start` (itself
+			# always the ORIGINAL pre-loop snapshot, since `worker_state` is a plain
+			# list -- copy-on-write, not a shared mutable environment -- so per-
+			# replicate warm-start progression inside one call's own loop never
+			# writes back into this cache), so reusing the container across
+			# different delta values changes nothing about what any individual
+			# replicate computes; only the (expensive) duplicated design/inference
+			# containers are reused. Session lifetime (when to clear this so a
+			# stale worker never leaks into an unrelated later computation) is
+			# owned by whichever top-level entry point is active --
+			# `compute_two_sided_pval_with_sequential_mc()` for a standalone p-value
+			# call, `compute_rand_confidence_interval()` for a CI search (covering
+			# every bisection step across both bounds) -- via a reentrancy depth
+			# counter (`cached_values$rand_worker_reuse_depth`), since the CI-search
+			# path calls the p-value path internally and must not have the inner
+			# call's own exit handler clear the cache the outer search still needs.
+			# The parallel path (chunk_n > 1L, each chunk needs its own independent
+			# worker anyway) is untouched.
+			reuse_key = if (chunk_n == 1L) transform_responses else NULL
 			get_worker_state = function() {
 				cached = private$cached_values$reusable_rand_worker
 				if (!is.null(reuse_key) && !is.null(cached) && identical(cached$key, reuse_key)) {
@@ -837,20 +855,18 @@ InferenceRand = R6::R6Class("InferenceRand",
 			if (batch_size <= 0L || min_draws <= 0L || batch_size >= as.integer(r)) return(NULL)
 			conf_level = mc_control$mc_conf_level
 			threshold = mc_control$mc_stop_threshold
-			# This function's own `repeat` loop is the only place a reusable
-			# (serial-dispatch) randomization worker state may be carried across
-			# separate `approximate_randomization_distribution_beta_hat_T()` calls
-			# (one call per batch, same `delta`/`transform_responses` throughout) --
-			# `compute_randomization_distr_via_reused_worker_states()` checks
-			# `private$cached_values$reusable_rand_worker` and reuses it instead of
-			# re-`duplicate()`-ing the design/inference object on every batch. Scope
-			# it strictly to this call: clear before starting (defensive, in case a
-			# prior call errored out before its own cleanup ran) and on exit, so no
-			# other caller of `approximate_randomization_distribution_beta_hat_T()`
-			# (CI search's next bisection step, a direct test call, ...) can ever
-			# observe or reuse a stale worker from a different delta/computation.
-			private$cached_values$reusable_rand_worker = NULL
-			on.exit(private$cached_values$reusable_rand_worker <- NULL, add = TRUE)
+			# This is one of two top-level entry points that own the reusable
+			# randomization-worker cache's lifetime (see `compute_randomization_
+			# distr_via_reused_worker_states()`'s `reuse_key` comment) -- a
+			# standalone p-value call. The other is `compute_rand_confidence_
+			# interval()` (a CI search, which calls this function internally once
+			# per bisection step and must keep the SAME cached worker alive across
+			# all of them). The reentrancy depth counter lets either one "win":
+			# whichever is outermost clears the cache on its own entry/exit; a
+			# nested call here (inside an active CI search) just increments/
+			# decrements without disturbing it.
+			private$begin_rand_worker_reuse_session()
+			on.exit(private$end_rand_worker_reuse_session(), add = TRUE)
 			repeat {
 				t0s = private$get_randomization_distribution_prefix(
 					r = r,
@@ -906,6 +922,29 @@ InferenceRand = R6::R6Class("InferenceRand",
 		},
 		get_resampling_draw_contract = function(operation){
 			resampling_draw_contract(operation)
+		},
+		# Reentrant session boundary for `cached_values$reusable_rand_worker`
+		# (see `compute_randomization_distr_via_reused_worker_states()`'s
+		# `reuse_key` comment for why cross-delta reuse is safe). A depth
+		# counter rather than a plain begin/end pair because two top-level
+		# entry points share this cache's lifetime and can nest: a CI search
+		# (`compute_rand_confidence_interval()`) calls the p-value path
+		# (`compute_two_sided_pval_with_sequential_mc()`) once per bisection
+		# step, and only the outermost caller's exit should actually clear
+		# the cache -- an inner call clearing it on its own exit would
+		# discard the container the still-running outer search needs for
+		# its next step.
+		begin_rand_worker_reuse_session = function(){
+			depth = private$cached_values$rand_worker_reuse_depth %||% 0L
+			private$cached_values$rand_worker_reuse_depth = depth + 1L
+			if (depth == 0L) private$cached_values$reusable_rand_worker = NULL
+			invisible(NULL)
+		},
+		end_rand_worker_reuse_session = function(){
+			depth = max(0L, (private$cached_values$rand_worker_reuse_depth %||% 1L) - 1L)
+			private$cached_values$rand_worker_reuse_depth = depth
+			if (depth <= 0L) private$cached_values$reusable_rand_worker = NULL
+			invisible(NULL)
 		},
 		ensure_resampling_distribution_cache = function(operation){
 			private$cached_values = resampling_distribution_cache_ensure(

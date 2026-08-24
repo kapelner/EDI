@@ -6,6 +6,26 @@ edi_env = new.env(parent = emptyenv())
 # R CMD check's static analysis can't see that, so it must be declared here.
 utils::globalVariables(".wgt__")
 
+# `i`, `j`, `tvar`, `y`, `w` are ompr MILP modeling-DSL symbols used via NSE
+# inside `ompr::add_variable()`/`ompr::add_constraint()`/`ompr::sum_expr()`
+# calls in helper_optimal_milp_solvers.R (e.g. `add_variable(model, w[i], i =
+# 1:n, ...)`) -- ompr captures them unevaluated to build the model, they are
+# never real R objects at that call site. `ci_a`, `ci_b`, `estimate`,
+# `mid_x`, `significant`, `label_above`, and `right_full_label` are
+# data-frame column names referenced via `ggplot2::aes()` NSE inside
+# `run_all_inference_plot_ci_forest()` in inference_suite.R -- likewise real
+# `data.frame` columns at runtime, invisible to static analysis. `self`/
+# `private` are R6 method-body symbols used inside component definitions in
+# design_component_registry.R whose functions are only later bound as R6
+# methods (via the mixin/component-composition machinery in
+# contracts_mixins.R), not evaluated where they're defined.
+utils::globalVariables(c(
+	"i", "j", "tvar", "y",
+	"ci_a", "ci_b", "estimate", "mid_x", "significant",
+	"label_above", "right_full_label",
+	"self", "private"
+))
+
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
 # Coefficient/statistic magnitude beyond which a fit is treated as

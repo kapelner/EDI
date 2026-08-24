@@ -16,6 +16,10 @@ if (nzchar(edi_lib_user)) {
 	.libPaths(unique(c(edi_lib_user, .libPaths())))
 }
 suppressPackageStartupMessages(library(EDI))
+comprehensive_slow_path_rules = EDI::EDI_COMPREHENSIVE_SLOW_PATHS
+getFromNamespace("validate_comprehensive_slow_path_rules", "EDI")(
+	comprehensive_slow_path_rules
+)
 required_packages = c("doParallel", "PTE", "datasets", "qgam", "mlbench", "AppliedPredictiveModeling", "dplyr", "ggplot2", "gridExtra", "profvis", "data.table", "devtools", "R.utils")
 for (pkg in required_packages) {
 	if (!suppressPackageStartupMessages(require(pkg, character.only = TRUE, quietly = TRUE))) {
@@ -889,54 +893,8 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		"InferencePropFractionalLogit",
 		"InferenceCountHurdleNegBin"
 	))
-	# All performance-based skip rules live here. Exact-operation keys are
-	# response+class+function; all other entries are formula-free class names.
-	slow_skip_rules = list(
-		exact_operations = c(
-			"count||InferenceCountHurdleNegBin||compute_rand_two_sided_pval",
-			"proportion||InferenceAllSimpleWilcox||compute_rand_confidence_interval",
-			"incidence||InferenceIncidKKCondLogitGLMMOneLik||compute_bayesian_bootstrap_two_sided_pval_bca",
-			"count||InferenceCountHurdleNegBin||compute_rand_two_sided_pval(delta=0.5)",
-			"ordinal||InferenceOrdinalKKGEE||compute_bootstrap_confidence_interval",
-			"ordinal||InferenceOrdinalKKGLMM||compute_lik_ratio_bartlett_two_sided_pval",
-			"survival||InferenceSurvivalWeibullRegr||compute_rand_two_sided_pval(delta=0.5)",
-			"survival||InferenceSurvivalCoxPHRegr||compute_estimate"
-		),
-		bootstrap = c("InferenceContinRobustRegr", "InferenceContinKKGLMM"),
-		rand = c("InferenceContinKKGLMM"),
-		rand_ci = c("InferenceSurvivalWeibullRegr", "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", "InferenceSurvivalKKWeibullMarginal", "InferencePropQuantileRegr", "InferencePropKKGEE", "InferencePropBetaRegr"),
-		score_ci = c("InferenceSurvivalGLMMWeibullFrailtyNormalOneLik"),
-		lik_ratio_ci = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceSurvivalDepCensTransformRegr"),
-		bbt_pval = c("InferenceIncidKKCondLogitGLMMOneLik"),
-		bbt_pval_symmetric = c("InferenceIncidKKCondLogitGLMMOneLik"),
-		bbt_pval_wald = c("InferenceIncidKKCondLogitGLMMOneLik"),
-		bbt_pval_studentized = c("InferenceIncidKKCondLogitGLMMOneLik"),
-		bbt_ci = c("InferenceIncidKKCondLogitGLMMOneLik"),
-		bbt_ci_default = character(),
-		boot_ci_default = c("InferenceIncidRiskDiff", "InferenceContinKKQuantileRegrOneLik", "InferenceSurvivalDepCensTransformRegr"),
-		boot_ci_basic = character(),
-		boot_ci_bca = c("InferenceIncidKKGCompRiskDiff"),
-		boot_stud = c("InferenceIncidRiskDiff", "InferenceSurvivalGehanWilcox", "InferenceSurvivalDepCensTransformRegr", "InferenceOrdinalKKGEE", "InferenceIncidModifiedPoisson"),
-		boot_pval_stud = c("InferenceAllSimpleAverageDiff", "InferenceSurvivalGehanWilcox", "InferenceOrdinalKKGEE"),
-		boot_pval_symmetric = c("InferenceIncidKKGCompRiskRatio"),
-		boot_ci = character(),
-		jack = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceContinKKGLMM"),
-		pboot_ci = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"),
-		lik_ratio_bootstrap_pval = c("InferenceSurvivalStratCoxPHRegr"),
-		param_bootstrap_estimate = c("InferenceSurvivalStratCoxPHRegr"),
-		param_bootstrap_pval = c("InferenceSurvivalStratCoxPHRegr"),
-		param_bootstrap_ci = c("InferenceSurvivalStratCoxPHRegr"),
-		bartlett_pval = c("InferenceSurvivalStratCoxPHRegr"),
-		rand_delta_pval = c("InferenceIncidKKCondLogitGLMMOneLik", "InferenceOrdinalKKGEE"),
-		brt_pval_smoothed = c("InferenceOrdinalKKGLMM", "InferenceOrdinalContRatioRegr", "InferenceOrdinalStereotypeLogitRegr", "InferenceOrdinalAdjCatLogitRegr", "InferenceSurvivalDepCensTransformRegr"),
-		brt_pval_typed = c("InferenceCountKKHurdlePoissonOneLik", "InferenceCountKKCondPoissonOneLik"),
-		brt_ci_all = c("InferenceSurvivalGehanWilcox", "InferenceSurvivalWeibullRegr", "InferencePropBetaRegr", "InferencePropKKGEE"),
-		brt_ci_smoothed = c("InferenceAllSimpleWilcox", "InferencePropKKQuantileRegrOneLik"),
-		brt_ci_typed = c("InferencePropKKQuantileRegrOneLik"),
-		m_out_of_n = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferencePropZeroOneInflatedBetaRegr", "InferenceSurvivalWeibullRegr", "InferenceSurvivalStratCoxPHRegr", "InferenceSurvivalCoxPHRegr", "InferencePropQuantileRegr", "InferencePropBetaRegr", "InferencePropFractionalLogit", "InferenceCountHurdleNegBin", "InferenceCountPoissonKKGEE", "InferencePropKKGEE"),
-		m_out_of_n_ci = c("InferenceCountPoissonKKGEE", "InferencePropKKGEE"),
-		subsampling = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceCountHurdleNegBin", "InferenceCountPoissonKKGEE")
-	)
+	# Package-owned, public registry; formula-, dataset-, and design-independent.
+	slow_skip_rules = comprehensive_slow_path_rules
 	is_slow_class_rule = function(rule){
 		is_exact_inference_class(slow_skip_rules[[rule]])
 	}

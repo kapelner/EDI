@@ -53,6 +53,7 @@ struct ContinuationRatioFit {
     LikelihoodFitResult fit;
     Eigen::MatrixXd X_aug;
     Eigen::VectorXd z;
+    Eigen::VectorXd weights_aug;
     int n_alpha;
     int p;
 };
@@ -67,7 +68,8 @@ ContinuationRatioFit fast_continuation_ratio_internal(
     std::optional<Eigen::VectorXi> fixed_idx,
     std::optional<Eigen::VectorXd> fixed_values,
     std::string optimization_alg,
-    std::optional<Eigen::MatrixXd> warm_start_fisher_info
+    std::optional<Eigen::MatrixXd> warm_start_fisher_info,
+    std::optional<Eigen::VectorXd> subject_weights
 );
 
 edi::ResultMap fast_ordinal_regression_internal(
@@ -278,7 +280,8 @@ void bind_ordinal(py::module_& m) {
                                                     std::optional<Eigen::MatrixXd> warm_start_fisher_info) {
         ContinuationRatioFit cr = fast_continuation_ratio_internal(
             X, y, maxit, tol, warm_start_beta, smart_cold_start,
-            fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info);
+            fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info,
+            std::nullopt);
         py::dict out;
         out["b"] = Eigen::VectorXd(cr.fit.params.tail(cr.p));
         out["alpha"] = Eigen::VectorXd(cr.fit.params.head(cr.n_alpha));
@@ -300,18 +303,21 @@ void bind_ordinal(py::module_& m) {
     py::arg("optimization_alg") = "lbfgs",
     py::arg("warm_start_fisher_info") = py::none(),
     "Fits a (forward) continuation-ratio ordinal logit regression by maximum\n"
-    "likelihood via L-BFGS: for K ordinal categories, logit(P(Y_i=k | Y_i >=\n"
+    "likelihood via L-BFGS: for K ordinal categories, logit(P(Y_i>k | Y_i >=\n"
     "k, x_i)) = alpha_k + x_i^T beta for k=1..K-1 -- the discrete-time-hazard\n"
-    "analog for ordinal data, modeling the conditional \"stopping\" probability\n"
-    "at each category given the subject has reached it, sharing one beta\n"
-    "across all K-1 conditional comparisons. Internally reshapes y into the\n"
-    "stacked binary/per-cut-stratified form and fits it as a single logistic\n"
+    "analog for ordinal data, modeling the conditional \"continuing past this\n"
+    "category\" probability given the subject has reached it, sharing one beta\n"
+    "across all K-1 conditional comparisons. A positive beta therefore pushes\n"
+    "toward higher categories of y, matching the sign convention of the other\n"
+    "ordinal models below. Internally reshapes y into the stacked\n"
+    "binary/per-cut-stratified form and fits it as a single logistic\n"
     "regression with K-1 threshold intercepts, distinct from both the\n"
     "cumulative-logit proportional-odds model (fast_ordinal_regression) and\n"
     "the adjacent-category logit model (fast_adjacent_category_logit).\n"
     "Parameters sourced from R/EDI/man/ documentation for\n"
     "fast_continuation_ratio_regression_cpp. Analogous to R's\n"
-    "VGAM::vglm(family=cratio()).\n\n"
+    "VGAM::vglm(family=cratio()) (verify the reverse= setting matches this\n"
+    "continue-past-the-cut orientation before comparing coefficients).\n\n"
     "Parameters\n"
     "----------\n"
     "X : ndarray\n"

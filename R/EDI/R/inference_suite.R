@@ -341,10 +341,12 @@ EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY = run_all_inference_derive_method_prior
 #' 2026-08-19, widened earlier the same day from an initial four --
 #' `"wald"`/`"exact"`/`"rand"`/`"bootstrap"` -- that omitted most of the
 #' package's actual inference machinery, per user feedback). `methods = NULL`
-#' (the default) resolves to every sentinel -- "truly all the possible
-#' methods" per user request, 2026-08-19, replacing the earlier single-
-#' cascade-winner design (`run_all_inference_select_ci()`/
-#' `run_all_inference_select_pval()`, removed the same day).
+#' (the default) initially resolves to every sentinel, replacing the earlier
+#' single-cascade-winner design (`run_all_inference_select_ci()`/
+#' `run_all_inference_select_pval()`, removed 2026-08-19); task planning then
+#' removes class/method/type combinations declared in
+#' [EDI_COMPREHENSIVE_SLOW_PATHS]. Explicit `methods` requests bypass that
+#' performance filter.
 #'
 #' @keywords internal
 #' @noRd
@@ -727,6 +729,83 @@ run_all_inference_class_applicable_methods = function(nm, methods, des_obj = NUL
 	Filter(function(m) inference_class_has_method(nm, m), methods)
 }
 
+#' Whether one planned InferenceSuite task is listed in the public
+#' comprehensive slow-path registry.
+#'
+#' A suite task computes both the CI and p-value for one sentinel/type pair.
+#' Therefore a slow declaration on either side suppresses the whole task when
+#' `run_all_inference()` is using its default method selection. Explicitly
+#' supplied `methods` remain an opt-in escape hatch.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_task_is_comprehensive_slow_path = function(task, response_type, rules = EDI_COMPREHENSIVE_SLOW_PATHS) {
+	cls = task$cls_name
+	method = task$method
+	type = task$type
+	has_rule = function(rule_names) {
+		any(vapply(rule_names, function(rule_name) cls %in% rules[[rule_name]], logical(1L)))
+	}
+	type_is = function(types) !is.na(type) && type %in% types
+
+	# Exact operation entries use the comprehensive harness's public method
+	# labels. Match both sides of the suite task, plus its always-required
+	# point estimate. Typed default calls are represented by the unsuffixed
+	# method name; nondefault types use the harness's `_type` suffix.
+	ci_entry = Find(function(entry) identical(entry$label, method), EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY)
+	pval_entry = Find(function(entry) identical(entry$label, method), EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY)
+	operation_names = "compute_estimate"
+	for (entry in Filter(Negate(is.null), list(ci_entry, pval_entry))) {
+		if (is.na(type) || type %in% c("percentile", "default")) {
+			operation_names = c(operation_names, entry$method)
+		} else {
+			operation_names = c(operation_names, paste0(entry$method, "_", type))
+		}
+	}
+	if (method %in% c("lik_ratio_bartlett_exact", "lik_ratio_bartlett_approx")) {
+		operation_names = c(
+			operation_names,
+			"compute_lik_ratio_bartlett_confidence_interval",
+			"compute_lik_ratio_bartlett_two_sided_pval"
+		)
+	}
+	exact_keys = paste(response_type, cls, unique(operation_names), sep = "||")
+	if (any(exact_keys %in% rules$exact_operations)) return(TRUE)
+
+	family_slow = switch(
+		method,
+		bootstrap = has_rule(c("bootstrap", "boot_ci")) ||
+			has_rule(if (type_is("basic")) "boot_ci_basic" else character()) ||
+			has_rule(if (type_is("bca")) "boot_ci_bca" else character()) ||
+			has_rule(if (type_is(c("studentized", "bootstrap-t"))) c("boot_stud", "boot_pval_stud") else character()) ||
+			has_rule(if (type_is("symmetric")) "boot_pval_symmetric" else character()) ||
+			has_rule(if (is.na(type) || type_is(c("percentile", "default"))) "boot_ci_default" else character()),
+		rand = has_rule(c("rand", "rand_ci")),
+		score = has_rule("score_ci"),
+		lik_ratio = has_rule("lik_ratio_ci"),
+		# The comprehensive harness treats the class-level `bootstrap` bucket as
+		# slow for Bayesian bootstrap as well as ordinary bootstrap.
+		bayes_boot = has_rule(c("bootstrap", "bbt_pval", "bbt_ci")) ||
+			has_rule(if (type_is("symmetric")) "bbt_pval_symmetric" else character()) ||
+			has_rule(if (type_is("wald")) "bbt_pval_wald" else character()) ||
+			has_rule(if (type_is(c("studentized", "bootstrap-t"))) "bbt_pval_studentized" else character()) ||
+			has_rule(if (is.na(type) || type_is(c("percentile", "default"))) "bbt_ci_default" else character()),
+		jackknife = has_rule("jack"),
+		param_boot = has_rule(c("pboot_ci", "lik_ratio_bootstrap_pval")),
+		param_boot_direct = has_rule(c("param_bootstrap_estimate", "param_bootstrap_pval", "param_bootstrap_ci")),
+		lik_ratio_bartlett_exact = has_rule("bartlett_pval"),
+		lik_ratio_bartlett_approx = has_rule("bartlett_pval"),
+		# A suite task couples its bootstrap-randomization CI and p-value. The
+		# harness suppresses that CI for class-level bootstrap, randomization,
+		# and randomization-CI declarations, so any of those suppresses the task.
+		rand_bootstrap = has_rule(c("bootstrap", "rand", "rand_ci", "brt_ci_all")) ||
+			has_rule(if (type_is("smoothed")) c("brt_pval_smoothed", "brt_ci_smoothed") else character()) ||
+			has_rule(if (type_is(c("studentized", "symmetric-percentile-t"))) c("brt_pval_typed", "brt_ci_typed") else character()),
+		FALSE
+	)
+	isTRUE(family_slow)
+}
+
 #' Calls inference class `inf_obj`'s CI method for sentinel `method` (one of
 #' `EDI_INFERENCE_SUITE_METHOD_SENTINELS`) directly -- no cascading to a
 #' different sentinel if this one is unavailable or fails, unlike the
@@ -1070,11 +1149,14 @@ run_all_inference_normalize_formulas = function(formulas) {
 #' @param type_requests Named list, sentinel -> character vector of
 #'   requested `type` values or `NULL` for "every valid type" (see
 #'   `run_all_inference_normalize_methods()`).
+#' @param exclude_comprehensive_slow_paths If `TRUE`, remove tasks declared in
+#'   [EDI_COMPREHENSIVE_SLOW_PATHS].
+#' @param response_type Response type used to match exact-operation rules.
 #' @return A list of `list(cls_name, model_formula, method, type, result_name)`.
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_build_tasks = function(cls_names, formulas, methods, des_obj = NULL, inference_params = list(), type_requests = list(), basic_bootstrap = FALSE) {
+run_all_inference_build_tasks = function(cls_names, formulas, methods, des_obj = NULL, inference_params = list(), type_requests = list(), basic_bootstrap = FALSE, exclude_comprehensive_slow_paths = FALSE, response_type = NULL) {
 	tasks = list()
 	for (nm in cls_names) {
 		formula_slots = if (is.null(formulas)) {
@@ -1116,6 +1198,15 @@ run_all_inference_build_tasks = function(cls_names, formulas, methods, des_obj =
 				)
 			}
 		}
+	}
+	if (isTRUE(exclude_comprehensive_slow_paths)) {
+		if (is.null(response_type) && !is.null(des_obj)) response_type = des_obj$get_response_type()
+		if (length(response_type) != 1L || is.na(response_type) || !nzchar(response_type)) {
+			stop("`response_type` is required when excluding comprehensive slow paths.", call. = FALSE)
+		}
+		tasks = Filter(function(task) {
+			!run_all_inference_task_is_comprehensive_slow_path(task, response_type)
+		}, tasks)
 	}
 	tasks
 }
@@ -1600,7 +1691,34 @@ run_all_inference_wrap_cell_2lines = function(text, width) {
 	# force-wrap these two would also break the paren-split fitting check
 	# for unrelated, longer `"<method> (<type>)"` combinations that
 	# currently wrap correctly at the existing cap.
-	if (text %in% c("LR Bartlett", "LR ≈Bartlett")) return(c("LR", sub("^LR ", "", text)))
+	if (text %in% c("LR Bartlett", "LR \u2248Bartlett")) return(c("LR", sub("^LR ", "", text)))
+	# Force these onto 2 lines even though they fit within the column cap
+	# (per user request, 2026-08-24), matching the wrapped look every typed
+	# sentinel already gets:
+	# - a leading pair of back-to-back all-caps acronym words (e.g. "KK
+	#   CLMM Cauchit") reads as one glued design/model-family name, not
+	#   three independent words -- "KK CLMM" / "Cauchit", not the generic
+	#   floor-half split's "KK" / "CLMM Cauchit". Only the exact 3-word case
+	#   (acronym pair + one trailing qualifier word, e.g. the CLMM
+	#   link-function variants): a 2-word acronym pair alone already reads
+	#   fine on one line, and 4+ words fall through to the general
+	#   balanced-halves rule below.
+	# - any exact 2-word "<Word> Regr" class label (e.g. "Cloglog Regr",
+	#   "Cauchit Regr", "Probit Regr", and their siblings "Beta"/"Logist"/
+	#   "Quantile"/"Robust"/"Weibull Regr") -- "Regr" alone on its own line
+	#   reads better than packed onto one line with its model-family word.
+	early_words = strsplit(text, " ", fixed = TRUE)[[1]]
+	if (length(early_words) == 3L && grepl("^[A-Z0-9]+$", early_words[[1]]) && grepl("^[A-Z0-9]+$", early_words[[2]])) {
+		line1 = paste(early_words[1:2], collapse = " ")
+		if (nchar(line1) <= width) {
+			line2 = early_words[[3]]
+			if (nchar(line2) > width) line2 = substr(line2, 1L, width)
+			return(c(line1, line2))
+		}
+	}
+	if (length(early_words) == 2L && identical(early_words[[2]], "Regr")) {
+		return(c(early_words[[1]], "Regr"))
+	}
 	if (nchar(text) <= width) return(c(text, ""))
 	# A `"<method> (<type>)"` cell (`method_with_type_short_label()`'s own
 	# output, e.g. `"bayes boot (%ile)"`) splits at its own natural
@@ -1625,16 +1743,16 @@ run_all_inference_wrap_cell_2lines = function(text, width) {
 		return(c(lines[1L], if (length(lines) > 1L) substr(paste(lines[-1L], collapse = " "), 1L, width) else ""))
 	}
 	# Split into two halves by word count (per user request, 2026-08-20:
-	# "Mean Δ Pooled Var" -> "Mean Δ" / "Pooled Var", not `strwrap()`'s
+	# "Mean \u0394 Pooled Var" -> "Mean \u0394" / "Pooled Var", not `strwrap()`'s
 	# greedy fill-to-width, which had packed 3 of the 4 words onto line 1
 	# and left the 4th stranded alone on line 2) -- same balanced-halves
 	# scheme `run_all_inference_format_html_table()`'s `wrap_html()` already
 	# uses for `<br>`-wrapped header/cell text.
 	# Floor (not ceiling) for odd word counts -- per user request,
-	# 2026-08-21: "Miettinen Risk Δ" (3 words) should wrap "Miettinen" /
-	# "Risk Δ" (shorter half first), not "Miettinen Risk" / "Δ". Even word
-	# counts are unaffected (floor == ceiling there), e.g. "G Comp Risk Δ"
-	# still wraps "G Comp" / "Risk Δ".
+	# 2026-08-21: "Miettinen Risk \u0394" (3 words) should wrap "Miettinen" /
+	# "Risk \u0394" (shorter half first), not "Miettinen Risk" / "\u0394". Even word
+	# counts are unaffected (floor == ceiling there), e.g. "G Comp Risk \u0394"
+	# still wraps "G Comp" / "Risk \u0394".
 	k = floor(length(words) / 2L)
 	line1 = paste(words[seq_len(k)], collapse = " ")
 	line2 = paste(words[(k + 1L):length(words)], collapse = " ")
@@ -1684,7 +1802,7 @@ method_short_label = function(m) {
 		switch(x,
 			rand_bootstrap = "rand boot",
 			lik_ratio_bartlett_exact = "LR Bartlett",
-			lik_ratio_bartlett_approx = "LR ≈Bartlett",
+			lik_ratio_bartlett_approx = "LR \u2248Bartlett",
 			bayes_boot = "bayes boot",
 			bootstrap = "boot",
 			# "param_boot" (per user request, 2026-08-24): was falling through
@@ -2170,10 +2288,10 @@ htmltools_escape_or_identity = function(x) {
 #' @noRd
 #' Substitutes non-ASCII glyphs the PDF device's default font can't render
 #' back to plain ASCII, for any text that ends up in a `ggplot2` plot --
-#' per user request, 2026-08-20/21: `"Δ"` (used by `inference_class_short_
-#' label()`/`estimand_short_label()`, e.g. `"Mean Δ"`, `"risk Δ"`) was
-#' rendering as `"mean ."`, and `"≈"` (`method_short_label()`'s
-#' `"LR ≈Bartlett"`) triggered an explicit `grid.Call.graphics()`
+#' per user request, 2026-08-20/21: `"\u0394"` (used by `inference_class_short_
+#' label()`/`estimand_short_label()`, e.g. `"Mean \u0394"`, `"risk \u0394"`) was
+#' rendering as `"mean ."`, and `"\u2248"` (`method_short_label()`'s
+#' `"LR \u2248Bartlett"`) triggered an explicit `grid.Call.graphics()`
 #' `"conversion failure ... in 'mbcsToSbcs'"` warning -- both because the
 #' PDF device's default font has no glyph for either character, so it
 #' either drops to a `.`-shaped tofu box or warns outright. Both render
@@ -2186,8 +2304,8 @@ htmltools_escape_or_identity = function(x) {
 #' @keywords internal
 #' @noRd
 run_all_inference_plot_safe_text = function(x) {
-	x = gsub("Δ", "diff", x, fixed = TRUE)
-	x = gsub("≈", "~", x, fixed = TRUE)
+	x = gsub("\u0394", "diff", x, fixed = TRUE)
+	x = gsub("\u2248", "~", x, fixed = TRUE)
 	x
 }
 
@@ -2799,7 +2917,7 @@ run_all_inference_plot_to_base64_png = function(plot, width = NULL, height = 6) 
 #'
 #' Deliberately does not clip `pvals` away from exactly 0/1 or guard the
 #' <2-usable-p-values degenerate case -- that hardening is
-#' `inference_suite_inspect.md → TODO-17`, scoped separately from this
+#' `inference_suite_inspect.md -> TODO-17`, scoped separately from this
 #' formula implementation.
 #'
 #' @references Liu, Y. and Xie, J. (2020), "Cauchy combination test: a
@@ -2835,7 +2953,7 @@ run_all_inference_plot_to_base64_png = function(plot, width = NULL, height = 6) 
 #'
 #' @keywords internal
 #' @noRd
-EDI_INFERENCE_CLASS_ACRONYMS = c("GLMM", "IVWC", "KK14", "KK21", "KK", "OLS", "GEE", "CMH", "RD", "RR", "T")
+EDI_INFERENCE_CLASS_ACRONYMS = c("GLMM", "CLMM", "IVWC", "KK14", "KK21", "KK", "OLS", "GEE", "CMH", "RD", "RR", "T")
 
 #' Response-family/cross-response-type name prefixes
 #' `inference_class_short_label()` strips (after the shared `"Inference"`
@@ -3003,13 +3121,17 @@ inference_class_short_label = function(name) {
 	# "Nurminen" dropped entirely (not abbreviated) from
 	# InferenceIncidMiettinenNurminenRiskDiff-style names, per user request
 	# (2026-08-19) -- "Miettinen" alone is unambiguous within this package.
-	words = words[!(words %in% c("Nurminen"))]
+	# "Test" dropped the same way from *JonckheereTerpstraTest/*PairedSignTest
+	# (per user request, 2026-08-24) -- both are already unambiguous named
+	# tests without it ("Jonckheere Terpstra", "Paired Sign"), and it was
+	# the only thing forcing an otherwise-clean 2-word wrap onto 3 words.
+	words = words[!(words %in% c("Nurminen", "Test"))]
 	label = paste(words, collapse = " ")
-	# "Diff" -> "Δ" everywhere in the label (generalized 2026-08-20 from an
+	# "Diff" -> "\u0394" everywhere in the label (generalized 2026-08-20 from an
 	# earlier "Mean Diff"-only override, per user request: "everywhere in
-	# pretty print that says 'Diff' should be 'Δ' instead"), e.g. "Mean
-	# Diff" -> "Mean Δ", "G Comp Risk Diff" -> "G Comp Risk Δ".
-	label = gsub("\\bDiff\\b", "Δ", label)
+	# pretty print that says 'Diff' should be '\u0394' instead"), e.g. "Mean
+	# Diff" -> "Mean \u0394", "G Comp Risk Diff" -> "G Comp Risk \u0394".
+	label = gsub("\\bDiff\\b", "\u0394", label)
 	# "Log Regr" -> "Logist Regr" (InferenceIncidLogRegr specifically, per
 	# user request, 2026-08-21) -- an exact-label override, not a general
 	# "Log"->"Logist" word rule: "Log Binomial"/"Log Rank" (InferenceIncid
@@ -3057,6 +3179,11 @@ estimand_short_label = function(estimand) {
 		# always the probit-index scale -- no other estimand family uses
 		# either word, so dropping them loses no information here.
 		s = gsub("logodds ratio", "logodds", s, fixed = TRUE)
+		# "adjacent category" -> "adj cat" (per user request, 2026-08-24): the
+		# unabbreviated form let the live/print table's 2-line-wrapped
+		# `estimand` cell truncate line 2 to "adjacent c", losing "ategory"
+		# off the end -- "adj cat" fits within the wrap's char cap intact.
+		s = gsub("adjacent category", "adj cat", s, fixed = TRUE)
 		s = gsub("probit effect", "probit", s, fixed = TRUE)
 		# "logit_effect_proportion_mean_conditional" (`InferencePropKKGLMM`,
 		# the only class using this tag) -> "logit effect" -- per user
@@ -3068,10 +3195,10 @@ estimand_short_label = function(estimand) {
 		# off a hard-truncated line 2. Two words fits the wrap cleanly:
 		# "logit" / "effect".
 		s = gsub("logit effect proportion mean cond", "logit effect", s, fixed = TRUE)
-		# "diff" -> "Δ" everywhere (per user request, 2026-08-20, matching
-		# `inference_class_short_label()`'s equivalent "Diff" -> "Δ" rule),
-		# e.g. "median diff" -> "median Δ".
-		s = gsub("\\bdiff\\b", "Δ", s)
+		# "diff" -> "\u0394" everywhere (per user request, 2026-08-20, matching
+		# `inference_class_short_label()`'s equivalent "Diff" -> "\u0394" rule),
+		# e.g. "median diff" -> "median \u0394".
+		s = gsub("\\bdiff\\b", "\u0394", s)
 		s
 	}, character(1L), USE.NAMES = FALSE)
 }
@@ -3299,7 +3426,7 @@ run_all_inference_format_html_table = function(results_table) {
 	esc = function(x) htmltools_escape_or_identity(as.character(x))
 	# Word-wraps a header/cell string onto two lines via `<br>` when it has
 	# more than one word (split as evenly as possible), e.g. `"cov mod"` ->
-	# `"cov<br>mod"`, `"Mean Diff Pooled Var"` -> `"Mean Δ<br>Pooled Var"` --
+	# `"cov<br>mod"`, `"Mean Diff Pooled Var"` -> `"Mean \u0394<br>Pooled Var"` --
 	# keeps HTML table columns narrow without truncating any number (numeric
 	# cells are always single tokens, so never wrapped) or text (per user
 	# request, 2026-08-19: "the wrapping should be so that you can read the
@@ -3309,10 +3436,10 @@ run_all_inference_format_html_table = function(results_table) {
 			words = strsplit(s, " ", fixed = TRUE)[[1]]
 			if (length(words) < 2L) return(s)
 			# Floor (not ceiling) for odd word counts -- per user request,
-	# 2026-08-21: "Miettinen Risk Δ" (3 words) should wrap "Miettinen" /
-	# "Risk Δ" (shorter half first), not "Miettinen Risk" / "Δ". Even word
-	# counts are unaffected (floor == ceiling there), e.g. "G Comp Risk Δ"
-	# still wraps "G Comp" / "Risk Δ".
+	# 2026-08-21: "Miettinen Risk \u0394" (3 words) should wrap "Miettinen" /
+	# "Risk \u0394" (shorter half first), not "Miettinen Risk" / "\u0394". Even word
+	# counts are unaffected (floor == ceiling there), e.g. "G Comp Risk \u0394"
+	# still wraps "G Comp" / "Risk \u0394".
 	k = floor(length(words) / 2L)
 			paste0(paste(words[seq_len(k)], collapse = " "), "<br>", paste(words[(k + 1L):length(words)], collapse = " "))
 		}, character(1L), USE.NAMES = FALSE)
@@ -3444,7 +3571,7 @@ cct_combine_pvalues_full = function(pvals, weights = NULL) {
 
 #' Edge-case-hardened wrapper around `cct_combine_pvalues_full()` for
 #' `run_all_inference()`'s Combined Evidence Metric
-#' (`inference_suite_inspect.md → TODO-17`), wired into
+#' (`inference_suite_inspect.md -> TODO-17`), wired into
 #' `run_all_inference()`'s `combined_evidence` return element (TODO-16):
 #'
 #' - Drops non-finite p-values -- `NA`/`NaN`/`Inf`/`-Inf` (already excluded
@@ -3730,7 +3857,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   constructor arguments for specific inference classes.  Each name
 		#'   must be the name of a concrete \code{Inference} subclass that is applicable
 		#'   to \code{des_obj} (checked against \code{applicable_design_classes} once
-		#'   discovered — an inapplicable class name raises an error); the
+		#'   discovered -- an inapplicable class name raises an error); the
 		#'   corresponding list contains keyword arguments (beyond
 		#'   \code{des_obj}) forwarded to that class's \code{initialize}, and every
 		#'   argument name supplied must match a formal parameter of that class's
@@ -3738,7 +3865,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   error is raised naming the unknown argument(s) and the valid ones.
 		#'   Defaults to an empty list (no extra arguments for any class).
 		#' @param model_formula Accepted for interface/future-extension purposes but
-		#'   currently \strong{not used anywhere in this method's body} — supplying a
+		#'   currently \strong{not used anywhere in this method's body} -- supplying a
 		#'   non-\code{NULL} value has no effect on discovery, validation, or any stored
 		#'   state. Do not rely on this parameter to affect covariate adjustment; a
 		#'   design's own model formula and design matrix are what individual
@@ -3749,10 +3876,10 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				assertClass(des_obj, "Design")
 				assertList(inference_params, names = "unique")
 			}
-			# ── 1. Discover applicable classes ────────────────────────────────
+			# -- 1. Discover applicable classes --------------------------------
 			self$applicable_design_classes = des_obj$applicable_inference_class_names()
 			self$unavailable_due_to_missing_packages = des_obj$unavailable_inference_classes_due_to_missing_packages()
-			# ── 2. Validate inference_params ──────────────────────────────────
+			# -- 2. Validate inference_params ----------------------------------
 			for (cls_name in names(inference_params)) {
 				# Must be applicable for this design
 				if (should_run_asserts()) {
@@ -3898,22 +4025,26 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   the \code{cov_model} column semantics-aware wherever that audit has
 		#'   landed.
 		#' @param methods \code{NULL} (default), a character vector of method
-		#'   sentinel strings, or (TODO-22) a named list \code{sentinel ->
-		#'   character vector of requested \code{type} values, or \code{NULL}}
+		#'   sentinel strings, or (TODO-22) a named list, \code{sentinel} to a
+		#'   character vector of requested \code{type} values, or \code{NULL},
 		#'   restricting which inference method(s) -- and, for the three
 		#'   resampling sentinels marked "typed" below, which resampling/CI-
 		#'   construction \code{type} flavor(s) -- get fit and reported per
-		#'   class. \code{NULL} means \strong{every} sentinel in
+		#'   class. \code{NULL} considers every sentinel in
 		#'   \code{EDI_INFERENCE_SUITE_METHOD_SENTINELS}, and for each typed
-		#'   sentinel, \strong{every} \code{type} value that class supports
+		#'   sentinel, every \code{type} value that class supports
 		#'   (queried at runtime via its own \code{get_supported_bootstrap_
 		#'   {pval,ci}_types()} / \code{get_supported_bayesian_bootstrap_
 		#'   {pval,ci}_types()} / \code{get_supported_rand_bootstrap_
 		#'   {pval,ci}_types()} accessor -- never a hardcoded type table in this
-		#'   package) -- i.e. truly all possible methods and all their
-		#'   resampling flavors, not a single "best available" pick (per user
-		#'   request, 2026-08-19, replacing the earlier design where each class
-		#'   contributed exactly one row via a fixed wald-first cascade).
+		#'   package), except class/method/type combinations declared in
+		#'   \code{\link{EDI_COMPREHENSIVE_SLOW_PATHS}}. Those implemented but
+		#'   prohibitively slow paths are omitted only from this default
+		#'   selection. Supplying \code{methods} explicitly opts into the named
+		#'   sentinel/type combinations even when the registry marks them slow.
+		#'   Thus the default remains broad without allowing known multi-minute
+		#'   paths to dominate a routine report; it is not a single
+		#'   "best available" cascade.
 		#'   List-shaped example: \code{methods = list(bootstrap = c("percentile",
 		#'   "bca"), rand_bootstrap = NULL)} fits only \code{"bootstrap"}
 		#'   (restricted to the \code{"percentile"}/\code{"bca"} types that class
@@ -4173,6 +4304,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				}
 				assertCharacter(combined_evidence_estimands, min.len = 1L, any.missing = FALSE, null.ok = TRUE)
 			}
+			use_default_method_selection = is.null(methods)
 			methods_norm = run_all_inference_normalize_methods(methods)
 			methods = methods_norm$sentinels
 			type_requests = methods_norm$type_requests
@@ -4245,7 +4377,12 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					)
 				}
 			}
-			tasks           = run_all_inference_build_tasks(cls_names, formulas, methods, des_obj, private$inference_params, type_requests, basic_bootstrap)
+			tasks = run_all_inference_build_tasks(
+				cls_names, formulas, methods, des_obj, private$inference_params,
+				type_requests, basic_bootstrap,
+				exclude_comprehensive_slow_paths = use_default_method_selection,
+				response_type = response_type
+			)
 			n_total         = length(tasks)
 			t_start         = Sys.time()
 			results         = vector("list", n_total)
@@ -4385,8 +4522,8 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					cat(paste0("  ", run_all_inference_unavailable_footer_lines(self$unavailable_due_to_missing_packages)), sep = "\n")
 				}
 			}
-			results_table = do.call(rbind.data.frame, lapply(results, function(r) {
-				data.frame(
+			results_table = if (length(results)) {
+				do.call(rbind.data.frame, lapply(results, function(r) data.frame(
 					inference_class = r$inference_class, method = r$method, type = r$type %||% NA_character_,
 					cov_model = r$cov_model,
 					response_type = r$response_type,
@@ -4397,8 +4534,21 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					fit_secs = r$fit_secs, warnings = r$warnings,
 					status = r$status, message = r$message,
 					stringsAsFactors = FALSE
+				)))
+			} else {
+				# Default slow-path filtering can legitimately remove every task.
+				# Preserve the normal return schema without constructing or fitting a
+				# placeholder inference object.
+				data.frame(
+					inference_class = character(), method = character(), type = character(),
+					cov_model = character(), response_type = character(), design_family = character(),
+					likelihood_tier = character(), estimate = numeric(), se = numeric(),
+					ci_a = numeric(), ci_b = numeric(), ci_method = character(),
+					pval = numeric(), pval_method = character(), estimand = character(),
+					fit_secs = numeric(), warnings = character(), status = character(),
+					message = character(), stringsAsFactors = FALSE
 				)
-			}))
+			}
 			rownames(results_table) = NULL
 			results_table$weight = run_all_inference_compute_combined_evidence_weights(
 				results_table, combined_evidence_weighting,

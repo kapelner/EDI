@@ -13,7 +13,7 @@ get_log_binomial_regression_weighted_score_cpp(X, y_r, weights_r, beta)
 
 \item{beta}{A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.}
 
-\item{X_r}{A numeric matrix of predictors.}
+\item{X}{A numeric matrix of predictors.}
 }
 \value{
 The finite-difference-approximated weighted score vector at \code{beta}.

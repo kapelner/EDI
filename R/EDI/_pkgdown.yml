@@ -136,6 +136,7 @@ reference:
   - InferenceAllSimpleAverageDiffPooledVar
   - InferenceAllSimpleWilcox
   - InferenceSuite
+  - EDI_COMPREHENSIVE_SLOW_PATHS
 
 - title: "Inference: Custom Extensions"
   desc: Base classes for plugging in a user-defined asymptotic/bootstrap/randomization estimator.

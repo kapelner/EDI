@@ -59,24 +59,28 @@ A list with components \code{b} (the shared covariate coefficients
   fewer-than-2-categories case, which returns a reduced subset of these fields.
 }
 \description{
-Fits the (forward) continuation-ratio logit ordinal regression model — the same
-model documented in full at \code{expand_continuation_ratio_data_cpp()}: for cut
-\eqn{j = 1, \dots, K-1}, \eqn{\log \Pr(Y = j \mid Y \ge j) / \Pr(Y > j \mid Y \ge j)
-= \alpha_j + \beta^\top x}. Unlike the R-level stratified-conditional-logit path
-built on \code{expand_continuation_ratio_data_cpp()}'s row expansion (used
-elsewhere in the package when cut effects must be conditioned out alongside
-matched-pair or block nuisance effects), this backend fits the model as a single
-\strong{unconditional} logistic regression MLE on an internally-built augmented
-design: \code{build_continuation_ratio_augmented_data()} constructs an augmented
-matrix \code{X_aug} with one dummy column per cut (\code{n_alpha = K - 1}
-columns) followed by the original \code{p} covariate columns, and an augmented
-binary response \code{z} (1 = "stopped at this cut"), exactly as described in
-\code{expand_continuation_ratio_data_cpp()}. Because the cut effects
-\eqn{\alpha_j} are simply \code{K - 1} ordinary coefficients on dummy columns
-(not nuisance parameters requiring conditioning), an unconditional logistic fit
-on the augmented data is exactly equivalent to the continuation-ratio likelihood
-— no stratification/conditioning machinery is needed for this standalone use
-case.
+Fits the (forward) continuation-ratio logit ordinal regression model: for cut
+\eqn{j = 1, \dots, K-1}, \eqn{\log \Pr(Y > j \mid Y \ge j) / \Pr(Y = j \mid Y \ge j)
+= \alpha_j + \beta^\top x}, i.e. the log-odds of \strong{continuing past} cut
+\eqn{j} (rather than stopping there), among subjects who have reached it. This
+orientation — numerator is the higher-category event — keeps a positive
+\eqn{\beta} meaning "pushes toward higher categories of \code{y}", consistent
+with every other ordinal estimator in the package (contrast the cumulative-logit
+\code{-x'beta} convention in \code{fast_ordinal_regression.cpp} and the
+adjacent-category model's \eqn{\Pr(Y = j+1 \mid \cdot)} numerator), and matches
+\code{expand_continuation_ratio_data_cpp()} (a separate, standalone
+row-expansion utility not used by this backend, but documenting the same
+"continue past this cut" = 1 orientation). This backend fits the model as a
+single \strong{unconditional} logistic regression MLE
+on an internally-built augmented design: \code{build_continuation_ratio_augmented_data()}
+constructs an augmented matrix \code{X_aug} with one dummy column per cut
+(\code{n_alpha = K - 1} columns) followed by the original \code{p} covariate
+columns, and an augmented binary response \code{z} (1 = "continued past this
+cut", 0 = "stopped here"). Because the cut effects \eqn{\alpha_j} are simply
+\code{K - 1} ordinary coefficients on dummy columns (not nuisance parameters
+requiring conditioning), an unconditional logistic fit on the augmented data is
+exactly equivalent to the continuation-ratio likelihood — no
+stratification/conditioning machinery is needed for this standalone use case.
 }
 \details{
 \strong{Category coding.} As in \code{expand_continuation_ratio_data_cpp()},

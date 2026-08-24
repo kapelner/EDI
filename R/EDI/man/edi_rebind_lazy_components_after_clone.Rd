@@ -9,6 +9,15 @@ edi_rebind_lazy_components_after_clone(i, source_private = NULL)
 }
 \arguments{
 \item{i}{The freshly cloned \code{Inference} object.}
+
+\item{source_private}{The pre-clone source object's own \code{private}
+environment, if available (\code{NULL} if not). \code{clone()} does not
+preserve environment-level attributes, so the "already installed"
+marker for a lazy component installed while the private environment was
+locked cannot be read from the clone's own private environment; when
+supplied, it is also read from \code{source_private} so those
+attribute-only markers are not missed. See the implementation comment
+below for the full mechanism.}
 }
 \description{
 \code{install_lazy_inference_component()} permanently binds each real

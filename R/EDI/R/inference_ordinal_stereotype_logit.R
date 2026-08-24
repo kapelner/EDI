@@ -633,7 +633,9 @@ OrdinalContinuationRatioLikelihoodSource = list(
 				k = 1L
 				assigned = FALSE
 				while (k <= n_alpha){
-					if (runif(1) < plogis(alphas[k] + eta[i])){
+					# plogis(alphas[k] + eta[i]) = Pr(continue past k | reached k);
+					# stop at k (y = k) on the complementary event.
+					if (runif(1) >= plogis(alphas[k] + eta[i])){
 						y_sim[i] = k
 						assigned  = TRUE
 						break
@@ -692,11 +694,14 @@ OrdinalContinuationRatioLikelihoodSource = list(
 #'
 #' Fits a conditional (stratified) continuation-ratio logit model for ordinal
 #' responses: for cut \eqn{j = 1, \dots, K-1}, among subjects who have
-#' reached at least category \eqn{j}, \deqn{\log\frac{\Pr(Y_i = j \mid Y_i
-#' \ge j)}{\Pr(Y_i > j \mid Y_i \ge j)} = \alpha_j + \beta_T W_i + X_i^\top
+#' reached at least category \eqn{j}, \deqn{\log\frac{\Pr(Y_i > j \mid Y_i
+#' \ge j)}{\Pr(Y_i = j \mid Y_i \ge j)} = \alpha_j + \beta_T W_i + X_i^\top
 #' \gamma,} a discrete-time-hazard-model analog for ordinal data, with a
 #' treatment coefficient \eqn{\beta_T} constrained equal across all cuts.
-#' \eqn{\exp(\hat\beta_T)} is the common "stop here vs. continue" odds ratio.
+#' \eqn{\exp(\hat\beta_T)} is the common "continue vs. stop here" odds ratio:
+#' a positive \eqn{\beta_T} means treatment pushes subjects toward higher
+#' categories of \eqn{Y}, matching the sign convention of every other ordinal
+#' estimator in the package.
 #' Fitting proceeds by \code{\link{expand_continuation_ratio_data_cpp}}'s
 #' stacked-binary expansion followed by conditional logistic regression on
 #' the expanded data. \code{likelihood_tier = "full"}: likelihood-ratio,

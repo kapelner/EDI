@@ -2824,6 +2824,14 @@ load_inference_component = function(component_name, class_name = "<global>", ns 
 #' copies their current values correctly.
 #'
 #' @param i The freshly cloned \code{Inference} object.
+#' @param source_private The pre-clone source object's own \code{private}
+#'   environment, if available (\code{NULL} if not). \code{clone()} does not
+#'   preserve environment-level attributes, so the "already installed"
+#'   marker for a lazy component installed while the private environment was
+#'   locked cannot be read from the clone's own private environment; when
+#'   supplied, it is also read from \code{source_private} so those
+#'   attribute-only markers are not missed. See the implementation comment
+#'   below for the full mechanism.
 edi_rebind_lazy_components_after_clone = function(i, source_private = NULL) {
 	i_priv = i$.__enclos_env__$private
 	loaded_marker_name = ".__loaded_lazy_components"

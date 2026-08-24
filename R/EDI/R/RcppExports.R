@@ -686,24 +686,28 @@ get_continuation_ratio_regression_hessian_cpp <- function(X, y, params) {
 
 #' Fast Continuation-Ratio Regression, Direct MLE via Row Augmentation (C++ Backend)
 #'
-#' Fits the (forward) continuation-ratio logit ordinal regression model — the same
-#' model documented in full at \code{expand_continuation_ratio_data_cpp()}: for cut
-#' \eqn{j = 1, \dots, K-1}, \eqn{\log \Pr(Y = j \mid Y \ge j) / \Pr(Y > j \mid Y \ge j)
-#' = \alpha_j + \beta^\top x}. Unlike the R-level stratified-conditional-logit path
-#' built on \code{expand_continuation_ratio_data_cpp()}'s row expansion (used
-#' elsewhere in the package when cut effects must be conditioned out alongside
-#' matched-pair or block nuisance effects), this backend fits the model as a single
-#' \strong{unconditional} logistic regression MLE on an internally-built augmented
-#' design: \code{build_continuation_ratio_augmented_data()} constructs an augmented
-#' matrix \code{X_aug} with one dummy column per cut (\code{n_alpha = K - 1}
-#' columns) followed by the original \code{p} covariate columns, and an augmented
-#' binary response \code{z} (1 = "stopped at this cut"), exactly as described in
-#' \code{expand_continuation_ratio_data_cpp()}. Because the cut effects
-#' \eqn{\alpha_j} are simply \code{K - 1} ordinary coefficients on dummy columns
-#' (not nuisance parameters requiring conditioning), an unconditional logistic fit
-#' on the augmented data is exactly equivalent to the continuation-ratio likelihood
-#' — no stratification/conditioning machinery is needed for this standalone use
-#' case.
+#' Fits the (forward) continuation-ratio logit ordinal regression model: for cut
+#' \eqn{j = 1, \dots, K-1}, \eqn{\log \Pr(Y > j \mid Y \ge j) / \Pr(Y = j \mid Y \ge j)
+#' = \alpha_j + \beta^\top x}, i.e. the log-odds of \strong{continuing past} cut
+#' \eqn{j} (rather than stopping there), among subjects who have reached it. This
+#' orientation — numerator is the higher-category event — keeps a positive
+#' \eqn{\beta} meaning "pushes toward higher categories of \code{y}", consistent
+#' with every other ordinal estimator in the package (contrast the cumulative-logit
+#' \code{-x'beta} convention in \code{fast_ordinal_regression.cpp} and the
+#' adjacent-category model's \eqn{\Pr(Y = j+1 \mid \cdot)} numerator), and matches
+#' \code{expand_continuation_ratio_data_cpp()} (a separate, standalone
+#' row-expansion utility not used by this backend, but documenting the same
+#' "continue past this cut" = 1 orientation). This backend fits the model as a
+#' single \strong{unconditional} logistic regression MLE
+#' on an internally-built augmented design: \code{build_continuation_ratio_augmented_data()}
+#' constructs an augmented matrix \code{X_aug} with one dummy column per cut
+#' (\code{n_alpha = K - 1} columns) followed by the original \code{p} covariate
+#' columns, and an augmented binary response \code{z} (1 = "continued past this
+#' cut", 0 = "stopped here"). Because the cut effects \eqn{\alpha_j} are simply
+#' \code{K - 1} ordinary coefficients on dummy columns (not nuisance parameters
+#' requiring conditioning), an unconditional logistic fit on the augmented data is
+#' exactly equivalent to the continuation-ratio likelihood — no
+#' stratification/conditioning machinery is needed for this standalone use case.
 #'
 #' @details
 #' \strong{Category coding.} As in \code{expand_continuation_ratio_data_cpp()},
@@ -1347,7 +1351,7 @@ compute_matching_wilcox_distr_parallel_cpp <- function(w_mat, m_mat, y, delta, t
 #' standalone — independent of any optimizer run — for direct numerical
 #' diagnostics (e.g. verifying convergence) at a specific parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
 #' @return The finite-difference-approximated score vector at \code{beta}.
@@ -1371,7 +1375,7 @@ get_log_binomial_regression_score_cpp <- function(X, y_r, beta) {
 #' Exported standalone — independent of any optimizer run — for direct numerical
 #' diagnostics at a specific parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
 #' @return The finite-difference-approximated Hessian matrix of the log-likelihood at \code{beta}.
@@ -1398,7 +1402,7 @@ get_log_binomial_regression_hessian_cpp <- function(X, y_r, beta) {
 #' of any optimizer run — for direct numerical diagnostics at a specific
 #' parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param weights_r A nonnegative numeric vector of observation weights.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
@@ -1425,7 +1429,7 @@ get_log_binomial_regression_weighted_score_cpp <- function(X, y_r, weights_r, be
 #' not an analytic second derivative. Exported standalone — independent of any
 #' optimizer run — for direct numerical diagnostics at a specific parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param weights_r A nonnegative numeric vector of observation weights.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
@@ -1453,7 +1457,7 @@ get_log_binomial_regression_weighted_hessian_cpp <- function(X, y_r, weights_r, 
 #' direct numerical diagnostics (e.g. verifying convergence, or cross-checking an
 #' analytic gradient elsewhere) at a specific parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
 #' @return The finite-difference-approximated score vector at \code{beta}.
@@ -1477,7 +1481,7 @@ get_identity_binomial_regression_score_cpp <- function(X, y_r, beta) {
 #' second derivative. Exported standalone — independent of any optimizer run —
 #' for direct numerical diagnostics at a specific parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
 #' @return The finite-difference-approximated Hessian matrix of the log-likelihood at \code{beta}.
@@ -1504,7 +1508,7 @@ get_identity_binomial_regression_hessian_cpp <- function(X, y_r, beta) {
 #' of any optimizer run — for direct numerical diagnostics at a specific
 #' parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param weights_r A nonnegative numeric vector of observation weights.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
@@ -1532,7 +1536,7 @@ get_identity_binomial_regression_weighted_score_cpp <- function(X, y_r, weights_
 #' independent of any optimizer run — for direct numerical diagnostics at a
 #' specific parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param weights_r A nonnegative numeric vector of observation weights.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
@@ -1568,7 +1572,7 @@ get_identity_binomial_regression_weighted_hessian_cpp <- function(X, y_r, weight
 #' \code{\link{fast_identity_binomial_regression_cpp}}'s risk-difference scale,
 #' or a logit-link model's odds-ratio scale.
 #'
-#' @param X_r A numeric matrix of predictors, \eqn{n \times p}; include an
+#' @param X A numeric matrix of predictors, \eqn{n \times p}; include an
 #'   explicit intercept column if desired (no implicit intercept).
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param maxit Maximum number of Fisher-scoring iterations.
@@ -1619,7 +1623,7 @@ fast_log_binomial_regression_cpp <- function(X, y_r, maxit = 100L, tol = 1e-6, f
 #' \code{\link{fast_identity_binomial_regression_with_var_cpp}}'s Details for
 #' the exact mechanics, identical here up to the link function).
 #'
-#' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+#' @param X A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param j 1-based index (into \code{X}'s columns) of the coefficient to
 #'   compute \code{ssq_b_j} for.
@@ -1656,7 +1660,7 @@ fast_log_binomial_regression_with_var_cpp <- function(X, y_r, j = 2L, maxit = 10
 #' nonnegative row weight \code{weights_r[i]}. Setting all weights to 1
 #' recovers \code{\link{fast_log_binomial_regression_cpp}} exactly.
 #'
-#' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+#' @param X A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param weights_r A nonnegative numeric vector of length \eqn{n} giving each
 #'   row's weight.
@@ -1720,7 +1724,7 @@ fast_log_binomial_regression_weighted_cpp <- function(X, y_r, weights_r, maxit =
 #' constrained line search; such cases surface as \code{converged = FALSE}
 #' rather than a silently invalid (out-of-range) fitted probability.
 #'
-#' @param X_r A numeric matrix of predictors, \eqn{n \times p}; include an
+#' @param X A numeric matrix of predictors, \eqn{n \times p}; include an
 #'   explicit intercept column if desired (no implicit intercept).
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param maxit Maximum number of Fisher-scoring iterations.
@@ -1785,7 +1789,7 @@ fast_identity_binomial_regression_cpp <- function(X, y_r, maxit = 100L, tol = 1e
 #' placeholders}, on both the success and failure paths; no caller should rely
 #' on them containing actual values.
 #'
-#' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+#' @param X A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param j 1-based index (into \code{X}'s columns) of the coefficient to
 #'   compute \code{ssq_b_j} for.
@@ -1825,7 +1829,7 @@ fast_identity_binomial_regression_with_var_cpp <- function(X, y_r, j = 2L, maxit
 #' exactly; this is the backend used when the identity-link model must be fit on
 #' bootstrap-reweighted or otherwise weighted data.
 #'
-#' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+#' @param X A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param weights_r A nonnegative numeric vector of length \eqn{n} giving each
 #'   row's weight.
@@ -3106,24 +3110,28 @@ ordinal_gcomp_post_fit_cpp <- function(X_fit, y, coef_hat, alpha_hat, j_treat) {
 #' category as a sequence of conditional "continue past this cut" events, analogous
 #' to a discrete-time survival/hazard model: for cut \eqn{j = 1, \dots, K-1}, among
 #' subjects who have reached at least category \eqn{j} (\eqn{Y \ge j}),
-#' \deqn{\log\frac{\Pr(Y = j \mid Y \ge j)}{\Pr(Y > j \mid Y \ge j)} = \alpha_j + \beta^\top x,}
-#' i.e. the log-odds of "stopping" (being observed) exactly at category \eqn{j}
-#' versus "continuing" past it, given the subject has reached at least \eqn{j}, with
+#' \deqn{\log\frac{\Pr(Y > j \mid Y \ge j)}{\Pr(Y = j \mid Y \ge j)} = \alpha_j + \beta^\top x,}
+#' i.e. the log-odds of "continuing" past category \eqn{j} versus "stopping" (being
+#' observed) exactly there, given the subject has reached at least \eqn{j}, with
 #' a cut-specific intercept \eqn{\alpha_j} and covariate effects \eqn{\beta}
 #' constrained equal across cuts (the proportional continuation-ratio assumption).
-#' Unlike the adjacent-category model (which only compares the two categories
-#' immediately flanking a cut), every subject contributes to every cut up to and
-#' including the one at which they are observed to stop.
+#' This orientation — numerator is the "continue" event — keeps a positive
+#' \eqn{\beta} meaning "pushes toward higher categories of \code{y}", matching
+#' \code{\link{fast_continuation_ratio_regression_cpp}} and every other ordinal
+#' estimator in the package. Unlike the adjacent-category model (which only
+#' compares the two categories immediately flanking a cut), every subject
+#' contributes to every cut up to and including the one at which they are observed
+#' to stop.
 #'
 #' \strong{Expansion mechanics.} For each subject \eqn{i} with observed category
 #' \code{y[i]}, a stacked row is emitted for every cut
-#' \eqn{j = 1, \dots, \min(\code{y[i]}, K-1)}: the stacked binary outcome is \code{1}
-#' ("stopped here") if \code{y[i] == j}, and \code{0} ("continued past") for every
+#' \eqn{j = 1, \dots, \min(\code{y[i]}, K-1)}: the stacked binary outcome is \code{0}
+#' ("stopped here") if \code{y[i] == j}, and \code{1} ("continued past") for every
 #' earlier cut the subject passed through. A subject observed at the top category
-#' (\code{y[i] == K}) contributes a \code{0} at every one of the \code{K - 1} cuts
+#' (\code{y[i] == K}) contributes a \code{1} at every one of the \code{K - 1} cuts
 #' (having "survived" all of them without stopping); a subject observed at category
-#' \code{j <= K - 1} contributes \code{0}s for cuts \code{1:(j-1)} and a single
-#' \code{1} at cut \code{j}, then no further rows (later cuts are irrelevant once a
+#' \code{j <= K - 1} contributes \code{1}s for cuts \code{1:(j-1)} and a single
+#' \code{0} at cut \code{j}, then no further rows (later cuts are irrelevant once a
 #' subject has already stopped). As in \code{expand_adjacent_category_data_cpp()},
 #' the stacked stratum ID is \code{strata[i] + (j - 1) * num_strata} (with
 #' \code{num_strata = max(strata)}): fitting a conditional logistic regression
@@ -3147,7 +3155,8 @@ ordinal_gcomp_post_fit_cpp <- function(X_fit, y, coef_hat, alpha_hat, j_treat) {
 #'   Details).
 #' @param K Integer; the number of ordinal categories (so there are \code{K - 1}
 #'   continuation-ratio cuts).
-#' @return A list with components \code{y} (stacked 0/1 "stopped here" outcome),
+#' @return A list with components \code{y} (stacked 0/1 "continued past this cut"
+#'   outcome),
 #'   \code{w} (stacked covariate, passed through unchanged), and \code{strata}
 #'   (stacked combined stratum-by-cut ID); all three are integer vectors of the
 #'   same, generally-longer-than-\eqn{n} length (each subject contributes between 1
