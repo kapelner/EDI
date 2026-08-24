@@ -1482,7 +1482,7 @@ TODO-1..8 did.
   `run_comprehensive_suite.R`'s unrelated dependency-gate/argument-
   combinations/comprehensive-harness/public-workflow-coverage/internal-
   safety-nets pipeline for one hardcoded class
-  (`InferenceAllSimpleMeanDiff`), and never constructs an `InferenceSuite`
+  (`InferenceAllSimpleAverageDiff`), and never constructs an `InferenceSuite`
   or calls `run_all_inference()` anywhere. TODO-21's own conditional ("if
   so, extend") does not trigger the extend branch, so no change was made
   to this file -- adding an `InferenceSuite`-specific check here would be
@@ -1585,7 +1585,7 @@ TODO-1..8 did.
 
   Verified via `pkgload::load_all(".", compile = FALSE)` (no full rebuild,
   per this repo's CLAUDE.md) against a real `DesignSeqOneByOneBernoulli`/
-  `DesignFixedBernoulli` continuous fixture and `InferenceAllSimpleMeanDiff`:
+  `DesignFixedBernoulli` continuous fixture and `InferenceAllSimpleAverageDiff`:
   (1) `methods = list(bootstrap = c("percentile", "bca"), wald = NULL)`
   produced exactly 3 rows, `type` correctly `"percentile"`/`"bca"`/`NA`,
   all `status = "ok"`; (2) `methods = list(bootstrap = NULL)` (every type,

@@ -13,7 +13,7 @@ R_AUD = 100; B_AUD = 100; J_AUD = 20; PB_AUD = 50
 
 # Problematic classes identified for investigation
 problematic_classes = c(
-    "InferenceAllSimpleMeanDiff", "InferenceAllSimpleWilcox", "InferenceContinOLS",
+    "InferenceAllSimpleAverageDiff", "InferenceAllSimpleWilcox", "InferenceContinOLS",
     "InferenceIncidLogRegr", "InferenceIncidProbitRegr", "InferencePropGCompMeanDiff",
     "InferenceOrdinalRidit", "InferenceSurvivalKMDiff", "InferenceSurvivalLogRank"
 )

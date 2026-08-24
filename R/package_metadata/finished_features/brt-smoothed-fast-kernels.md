@@ -43,7 +43,7 @@
 | # | R class | R file | C++ export | C++ file |
 |---|---|---|---|---|
 | 1 | `InferenceAllSimpleWilcox` | `inference_all_simple_wilcox.R` | `compute_wilcox_hl_rand_bootstrap_parallel_cpp` | `fast_wilcox_hl.cpp` |
-| 2 | `InferenceAllSimpleMeanDiff` | `inference_all_mean_diff.R` | `compute_rand_bootstrap_mean_diff_parallel_cpp` | `rand_bootstrap_mean_diff_parallel.cpp` |
+| 2 | `InferenceAllSimpleAverageDiff` | `inference_all_average_diff.R` | `compute_rand_bootstrap_mean_diff_parallel_cpp` | `rand_bootstrap_mean_diff_parallel.cpp` |
 | 3 | `InferenceContinOLS` | `inference_continuous_ols.R` | `compute_rand_bootstrap_ols_parallel_cpp` | `rand_bootstrap_ols_parallel.cpp` |
 | 4 | `InferenceContinRobustRegr` | `inference_continuous_robust_regr.R` | `compute_robust_rand_bootstrap_parallel_cpp` | `fast_robust_regression.cpp` |
 | 5 | `InferenceSurvivalCoxPHRegr` | `inference_survival_coxph.R` | `compute_coxph_rand_bootstrap_parallel_cpp` | `fast_coxph_regression.cpp` |
@@ -553,7 +553,7 @@ git commit -m "BRT smoothed: noise-aware fast kernel for Wilcox HL rand-bootstra
 
 **Files:**
 - Modify: `EDI/src/rand_bootstrap_mean_diff_parallel.cpp:53-118` (7-arg exported function + its 5-arg internal-only overload)
-- Modify: `EDI/R/inference_all_mean_diff.R` (`compute_fast_rand_bootstrap_distr`)
+- Modify: `EDI/R/inference_all_average_diff.R` (`compute_fast_rand_bootstrap_distr`)
 - Test: `EDI/tests/testthat/test-brt-smoothed-mean-diff-kernel.R`
 
 **Interfaces:**
@@ -763,7 +763,7 @@ NumericVector compute_rand_bootstrap_mean_diff_parallel_cpp(
 
 - [ ] **Step 4: Update the R call site**
 
-In `EDI/R/inference_all_mean_diff.R`, replace:
+In `EDI/R/inference_all_average_diff.R`, replace:
 
 ```r
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
@@ -807,7 +807,7 @@ Expected: PASS, 1 test, 0 failures.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add EDI/src/rand_bootstrap_mean_diff_parallel.cpp EDI/R/inference_all_mean_diff.R EDI/tests/testthat/test-brt-smoothed-mean-diff-kernel.R EDI/src/RcppExports.cpp EDI/R/RcppExports.R
+git add EDI/src/rand_bootstrap_mean_diff_parallel.cpp EDI/R/inference_all_average_diff.R EDI/tests/testthat/test-brt-smoothed-mean-diff-kernel.R EDI/src/RcppExports.cpp EDI/R/RcppExports.R
 git commit -m "BRT smoothed: noise-aware fast kernel for simple mean-difference rand-bootstrap"
 ```
 

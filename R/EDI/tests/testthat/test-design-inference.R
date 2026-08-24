@@ -8,7 +8,7 @@ test_that("Inference works for continuous", {
 	add_all_subject_responses_seq(des, rnorm(n))
 
 	# Simple Mean Diff
-	inf <- InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	est <- inf$compute_estimate()
 	expect_true(is.numeric(est))
 
@@ -581,8 +581,44 @@ test_that("ordinal hardening drops QR-ranked covariates only when enabled", {
 	expect_true(is.finite(adj_raw$compute_asymp_two_sided_pval()))
 	expect_true(all(is.finite(adj_raw$compute_asymp_confidence_interval())))
 
-	kk_adj_hardened <- InferenceOrdinalKKCondAdjCatLogitRegr$new(kk_des, verbose = FALSE, harden = TRUE)
-	kk_adj_raw <- InferenceOrdinalKKCondAdjCatLogitRegr$new(kk_des, verbose = FALSE, harden = FALSE)
+	# InferenceOrdinalKKCondAdjCatLogitRegr derives all of its information from
+	# within-stratum (matched-pair) discordance, so it needs a design that
+	# guarantees every subject is actually paired. DesignSeqOneByOneKK14's
+	# greedy sequential matching on this covariate set leaves most subjects
+	# unmatched in the reservoir (each an uninformative singleton stratum),
+	# starving the conditional likelihood regardless of hardening.
+	# DesignFixedBinaryMatch instead solves an optimal non-bipartite matching
+	# over all subjects at once, so with n even every subject is paired --
+	# it still satisfies init_kk_passthrough()'s is_a_kk_matching_capable()
+	# requirement, but with guaranteed full pairing instead of greedy-sequential
+	# leftovers.
+	dat <- stats::na.omit(MASS::Cars93)
+	y_num <- dat$Price
+	qs <- stats::quantile(y_num, probs = c(0.25, 0.5, 0.75))
+	y_ord <- as.integer(cut(y_num, breaks = c(-Inf, qs, Inf), labels = FALSE))
+	x_dat <- subset(dat, select = -Price)
+	for (j in seq_len(ncol(x_dat))) {
+		if (is.numeric(x_dat[[j]])) {
+			x_dat[[j]] <- ifelse(
+				x_dat[[j]] <= stats::median(x_dat[[j]], na.rm = TRUE),
+				"low",
+				"high"
+			)
+		}
+	}
+	n_bm <- nrow(x_dat)
+	if (n_bm %% 2 == 1) {
+		x_dat <- x_dat[-n_bm, , drop = FALSE]
+		y_ord <- y_ord[-n_bm]
+		n_bm <- n_bm - 1L
+	}
+	bm_des <- DesignFixedBinaryMatch$new(n = n_bm, response_type = "ordinal", verbose = FALSE)
+	bm_des$add_all_subjects_to_experiment(x_dat)
+	bm_des$assign_w_to_all_subjects()
+	add_all_subject_responses_seq(bm_des, y_ord)
+
+	kk_adj_hardened <- InferenceOrdinalKKCondAdjCatLogitRegr$new(bm_des, verbose = FALSE, harden = TRUE)
+	kk_adj_raw <- InferenceOrdinalKKCondAdjCatLogitRegr$new(bm_des, verbose = FALSE, harden = FALSE)
 	expect_true(is.finite(kk_adj_hardened$compute_estimate()))
 	expect_true(is.finite(kk_adj_hardened$compute_asymp_two_sided_pval()))
 	expect_true(all(is.finite(kk_adj_hardened$compute_asymp_confidence_interval())))
@@ -616,7 +652,7 @@ test_that("bootstrap debug preserves per-iteration records for sequential count 
 	}
 	add_all_subject_responses_seq(des_spbr, y_count)
 
-	inf_spbr <- InferenceAllSimpleMeanDiff$new(des_spbr, verbose = FALSE)
+	inf_spbr <- InferenceAllSimpleAverageDiff$new(des_spbr, verbose = FALSE)
 	debug_spbr <- inf_spbr$approximate_bootstrap_distribution_beta_hat_T(
 		B = 12,
 		show_progress = FALSE,

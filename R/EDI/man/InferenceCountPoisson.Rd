@@ -34,6 +34,40 @@ result is \code{NA}. Validity requires the usual correctly-specified
 linear predictor on the log scale; unlike the raw Poisson likelihood
 alone, this class's actual reported inference degrades gracefully (rather
 than becoming anti-conservative) under mean-variance misspecification.
+
+\strong{Estimand.} Composes
+\code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
+(\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()}).
+Under the default \code{estimand = "conditional"}, \eqn{\hat\beta_T} is the
+log-rate-ratio above. Under \code{estimand = "marginal_mean_diff"}, the
+reported quantity is instead the g-computation marginal rate difference
+\eqn{\frac{1}{n}\sum_i \{\exp(\hat\beta_0 + \hat\beta_T + X_i^\top
+\hat\gamma) - \exp(\hat\beta_0 + X_i^\top \hat\gamma)\}}. Under
+\code{estimand = "marginal_ratio"}, the log of the corresponding marginal
+rate ratio — \strong{which is numerically identical to the conditional
+\eqn{\hat\beta_T} for this family}: because the log link is linear in
+\eqn{w_i} with no treatment-by-covariate interaction term, every subject's
+treated-vs-control mean ratio is \eqn{\exp(\hat\beta_0 + \hat\beta_T +
+X_i^\top\hat\gamma) / \exp(\hat\beta_0 + X_i^\top\hat\gamma) =
+\exp(\hat\beta_T)} exactly, so averaging over subjects before or after
+taking the ratio makes no difference. \code{"marginal_ratio"} is provided
+for estimand-API consistency with the other model families, not because it
+differs numerically from \code{"conditional"} here; \code{"marginal_mean_diff"}
+is the estimand where g-computation actually changes the reported number
+for a Poisson GLM, since a difference (unlike a ratio) does not collapse
+under a nonlinear (log) mean function. Because there is no latent submodel
+for this family (unlike e.g.
+\code{\link[EDI:InferenceCountZeroInflatedPoisson]{InferenceCountZeroInflatedPoisson}}'s
+excess-zero mixture), the marginal mean function is exactly the model's
+own fitted mean; no separate standardization step beyond the g-computation
+average is needed. Standard errors under a marginal estimand use the delta
+method against the model's coefficient covariance (degrees of freedom
+\code{Inf}), including in the design-conservative union/max combination
+above (the design-based jackknife-Wald component also refits under the
+active estimand); \code{testing_type} is restricted to \code{"wald"}
+whenever the estimand is non-conditional. The underlying model fit is
+identical regardless of estimand — switching \code{estimand} is a pure
+post-fit transform, never a refit.
 }
 \examples{
 \donttest{
@@ -69,6 +103,7 @@ Comparable Python API:
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-InferenceCountPoisson-initialize}{\code{InferenceCountPoisson$new()}}
+    \item \href{#method-InferenceCountPoisson-compute_estimate}{\code{InferenceCountPoisson$compute_estimate()}}
     \item \href{#method-InferenceCountPoisson-compute_asymp_confidence_interval}{\code{InferenceCountPoisson$compute_asymp_confidence_interval()}}
     \item \href{#method-InferenceCountPoisson-compute_asymp_two_sided_pval}{\code{InferenceCountPoisson$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferenceCountPoisson-compute_wald_confidence_interval}{\code{InferenceCountPoisson$compute_wald_confidence_interval()}}
@@ -88,7 +123,6 @@ Comparable Python API:
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -141,6 +175,35 @@ design's imputed covariates.}
       \item{\code{verbose}}{Whether to print progress messages.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default.}
       \item{\code{harden}}{Whether to apply robustness measures.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountPoisson-compute_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_estimate}{}}}
+\subsection{\code{InferenceCountPoisson$compute_estimate()}}{
+  Fits the Poisson regression model by maximum likelihood.
+  Under the default \code{estimand = "conditional"}, returns
+  \eqn{\hat\beta_T}, the treatment log-rate-ratio. Under
+  \code{estimand = "marginal_mean_diff"}/\code{"marginal_ratio"} (set
+  via \code{set_estimand()}), returns the g-computation marginal
+  rate difference/log-rate-ratio instead — see the class-level
+  \code{@details} for the formula. The underlying model fit is
+  identical either way (a pure post-fit transform of the same
+  cached fit, no refit).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountPoisson$compute_estimate(estimate_only = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimate_only}}{If TRUE, skip standard-error computation and
+cache only the point estimate; used by randomization and
+bootstrap resampling paths.}
     }
     \if{html}{\out{</div>}}
   }

@@ -147,7 +147,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 				!is.null(private[["compiled_cpp_stat_fn"]])
 			if (!isTRUE(debug) && !is.null(permutations) && !has_custom_randomization_statistic && private$has_private_method("compute_fast_randomization_distr")) {
 				fast_distr = tryCatch(
-					private$compute_fast_randomization_distr(setup$template$.__enclos_env__$private$y, permutations, delta, transform_responses, zero_one_logit_clamp),
+					private$compute_fast_randomization_distr(setup$y_delta, permutations, delta, transform_responses, zero_one_logit_clamp),
 					error = function(e) NULL
 				)
 				if (!is.null(fast_distr)) return(fast_distr)
@@ -172,7 +172,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			use_perms = !is.null(permutations) && (!is.null(permutations$w_mat) || length(permutations) >= r)
 			need_thread_objs = !(use_lightweight_custom_stat && use_perms)
 			inf_template = if (need_thread_objs) self$duplicate() else NULL
-			des_template = if (need_thread_objs) setup$template$duplicate() else NULL
+			des_template = if (need_thread_objs) setup$get_template()$duplicate() else NULL
 			# Warm up the design template cache if it uses covariates. The Design
 			# owns both the capability check and cache mutation; inference does not
 			# reach through its private environment (fix_design_hierarchy.md,
@@ -238,7 +238,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 						iter_warns = character(0)
 						iter_result = withCallingHandlers(
 							tryCatch({
-								worker_des = if (!is.null(des_template)) setup$template$duplicate() else NULL
+								worker_des = if (!is.null(des_template)) setup$get_template()$duplicate() else NULL
 								worker_inf = if (!is.null(inf_template)) self$duplicate(verbose = FALSE, make_fork_cluster = FALSE) else NULL
 								private$run_randomization_iteration(worker_des, worker_inf, if (use_perms) idx else NULL, permutations, delta, transform_responses, setup$y_delta, setup$base_template_y, setup$base_template_dead, custom_stat_analysis, setup$lightweight_custom_context, debug = TRUE, zero_one_logit_clamp = zero_one_logit_clamp)
 							}, error = function(e) list(val = NA_real_, error = conditionMessage(e))),
@@ -562,8 +562,28 @@ InferenceRand = R6::R6Class("InferenceRand",
 			chunk_id = ceiling(seq_len(nsim) / ceiling(nsim / chunk_n))
 			chunks = split(seq_len(nsim), chunk_id)
 			contract = private$get_resampling_draw_contract("rand")
+			# Serial dispatch (chunk_n == 1L, the common case: num_cores = 1 is
+			# InferenceSuite's default) is where `create_bootstrap_worker_state()`'s
+			# `self$duplicate()` + design `duplicate()` becomes the dominant cost when
+			# this whole function is re-invoked many times for the same delta/transform
+			# (sequential-MC batches -- see `compute_two_sided_pval_with_sequential_mc()`,
+			# which owns this cache's lifetime and clears it on exit). Reuse the cached
+			# worker only when the key matches exactly; the parallel path (chunk_n > 1L,
+			# each chunk needs its own independent worker anyway) is untouched.
+			reuse_key = if (chunk_n == 1L) paste(format(as.numeric(delta), digits = 17), transform_responses, sep = "|") else NULL
+			get_worker_state = function() {
+				cached = private$cached_values$reusable_rand_worker
+				if (!is.null(reuse_key) && !is.null(cached) && identical(cached$key, reuse_key)) {
+					return(cached$state)
+				}
+				state = private$create_bootstrap_worker_state()
+				if (!is.null(reuse_key)) {
+					private$cached_values$reusable_rand_worker = list(key = reuse_key, state = state)
+				}
+				state
+			}
 			run_chunk = function(idxs) {
-				worker_state = private$create_bootstrap_worker_state()
+				worker_state = get_worker_state()
 				load_draw = private[[contract$loader]]
 				estimate_draw = private[[contract$estimator]]
 				out = numeric(length(idxs))
@@ -817,6 +837,20 @@ InferenceRand = R6::R6Class("InferenceRand",
 			if (batch_size <= 0L || min_draws <= 0L || batch_size >= as.integer(r)) return(NULL)
 			conf_level = mc_control$mc_conf_level
 			threshold = mc_control$mc_stop_threshold
+			# This function's own `repeat` loop is the only place a reusable
+			# (serial-dispatch) randomization worker state may be carried across
+			# separate `approximate_randomization_distribution_beta_hat_T()` calls
+			# (one call per batch, same `delta`/`transform_responses` throughout) --
+			# `compute_randomization_distr_via_reused_worker_states()` checks
+			# `private$cached_values$reusable_rand_worker` and reuses it instead of
+			# re-`duplicate()`-ing the design/inference object on every batch. Scope
+			# it strictly to this call: clear before starting (defensive, in case a
+			# prior call errored out before its own cleanup ran) and on exit, so no
+			# other caller of `approximate_randomization_distribution_beta_hat_T()`
+			# (CI search's next bisection step, a direct test call, ...) can ever
+			# observe or reuse a stale worker from a different delta/computation.
+			private$cached_values$reusable_rand_worker = NULL
+			on.exit(private$cached_values$reusable_rand_worker <- NULL, add = TRUE)
 			repeat {
 				t0s = private$get_randomization_distribution_prefix(
 					r = r,
@@ -951,22 +985,30 @@ InferenceRand = R6::R6Class("InferenceRand",
 			y_shifted
 		},
 		setup_randomization_template_and_shifts = function(delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
-			# Use the design matrix and response vector from the design object.
-			template = private$des_obj$duplicate()
-			y_delta = template$.__enclos_env__$private$y
-			if (delta != 0){
-				if (should_run_asserts()) {
-					if (private$des_obj_priv_int$response_type == "incidence" && is.null(private$custom_randomization_statistic_function)) stop("randomization tests with delta nonzero not supported for incidence")
-					# shift_randomization_responses() below only shifts the plain
-					# y vector; for a censored subject y is NA (the value lives in
-					# y_L/y_R instead), so a nonzero-delta null shift would
-					# silently be a no-op for every censored row rather than an
-					# error. Block it explicitly instead of returning a quietly
-					# wrong null-shifted statistic.
-					if (isTRUE(private$has_general_censoring)) stop("randomization tests with delta nonzero are not yet supported for left-/interval-censored survival data.")
-				}
-				template$.__enclos_env__$private$y = private$shift_randomization_responses(
-					y = template$.__enclos_env__$private$y,
+			# `y_delta` (and the plain `base_template_y`/`base_template_dead`
+			# vectors below) are all the reused-worker fast path -- the common
+			# case, hit on every sequential-MC batch -- actually reads off this
+			# list (see `load_randomization_draw_into_worker()`). A full duplicated
+			# Design `template` object is only needed by the slower "standard"
+			# duplicate-per-iteration path and its debug/parallel-warmup variants.
+			# Compute the shift directly on the plain `y` vector (no design object
+			# needed for that), and build `template` lazily via `get_template()` so
+			# callers that never touch it -- e.g. every Poisson/NegBin/logistic/
+			# OLS-family class going through the reused-worker path -- never pay a
+			# `duplicate()` for a template they'll never use.
+			if (should_run_asserts() && delta != 0) {
+				if (private$des_obj_priv_int$response_type == "incidence" && is.null(private$custom_randomization_statistic_function)) stop("randomization tests with delta nonzero not supported for incidence")
+				# shift_randomization_responses() below only shifts the plain
+				# y vector; for a censored subject y is NA (the value lives in
+				# y_L/y_R instead), so a nonzero-delta null shift would
+				# silently be a no-op for every censored row rather than an
+				# error. Block it explicitly instead of returning a quietly
+				# wrong null-shifted statistic.
+				if (isTRUE(private$has_general_censoring)) stop("randomization tests with delta nonzero are not yet supported for left-/interval-censored survival data.")
+			}
+			y_delta = if (delta != 0) {
+				private$shift_randomization_responses(
+					y = private$y,
 					w = private$w,
 					delta = delta,
 					transform_responses = transform_responses,
@@ -974,9 +1016,18 @@ InferenceRand = R6::R6Class("InferenceRand",
 					inverse = TRUE,
 					zero_one_logit_clamp = zero_one_logit_clamp
 				)
-				y_delta = template$.__enclos_env__$private$y
+			} else {
+				private$y
 			}
-			list(template = template, y_delta = y_delta, base_template_y = private$y, base_template_dead = private$dead, lightweight_custom_context = private$des_obj_priv_int)
+			template_cache = NULL
+			get_template = function() {
+				if (is.null(template_cache)) {
+					template_cache <<- private$des_obj$duplicate()
+					template_cache$.__enclos_env__$private$y = y_delta
+				}
+				template_cache
+			}
+			list(get_template = get_template, y_delta = y_delta, base_template_y = private$y, base_template_dead = private$dead, lightweight_custom_context = private$des_obj_priv_int)
 		},
 		load_randomization_perm_into_worker = function(worker_state, perm_w, delta, transform_responses, y_delta, base_template_y, base_template_dead, zero_one_logit_clamp = .Machine$double.eps){
 			inf_priv = if (!is.null(worker_state$worker_inf)) {

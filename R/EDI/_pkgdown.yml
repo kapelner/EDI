@@ -132,8 +132,8 @@ reference:
   contents:
   - InferenceAllKKMeanDiffIVWC
   - InferenceAllKKWilcoxIVWC
-  - InferenceAllSimpleMeanDiff
-  - InferenceAllSimpleMeanDiffPooledVar
+  - InferenceAllSimpleAverageDiff
+  - InferenceAllSimpleAverageDiffPooledVar
   - InferenceAllSimpleWilcox
   - InferenceSuite
 

@@ -262,7 +262,7 @@ on day one either.
 
 ## How The Existing `inference_all_*` Paths Would Respond
 
-### Generic scalar-mean/rank paths (`InferenceAllSimpleMeanDiff`, `InferenceAllSimpleWilcox`): should reject or need a pre-aggregation step
+### Generic scalar-mean/rank paths (`InferenceAllSimpleAverageDiff`, `InferenceAllSimpleWilcox`): should reject or need a pre-aggregation step
 
 These classes have no concept of repeated observations per subject; they
 would need to either explicitly reject a repeated-measures response type,

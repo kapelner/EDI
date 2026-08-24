@@ -269,34 +269,34 @@ build_matched_incidence_fixture = function() {
 
 method_family_specs = function() {
 	list(
-		list(family = "estimate", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_estimate", args = list(), tier = "smoke", capability = "estimate"),
-		list(family = "asymptotic_wald", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_wald_two_sided_pval", args = list(delta = 0), tier = "smoke", capability = "asymp_pval"),
-		list(family = "asymptotic_wald", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_wald_confidence_interval", args = list(alpha = 0.05), tier = "smoke", capability = "asymp_ci"),
-		list(family = "asymptotic_score", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_score_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "score_pval"),
-		list(family = "asymptotic_score", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_score_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "score_ci"),
-		list(family = "asymptotic_lik_ratio", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_lik_ratio_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "lik_ratio_pval"),
-		list(family = "asymptotic_lik_ratio", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_lik_ratio_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "lik_ratio_ci"),
-		list(family = "asymptotic_gradient", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_gradient_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "gradient_pval"),
-		list(family = "asymptotic_gradient", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_gradient_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "gradient_ci"),
+		list(family = "estimate", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_estimate", args = list(), tier = "smoke", capability = "estimate"),
+		list(family = "asymptotic_wald", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_wald_two_sided_pval", args = list(delta = 0), tier = "smoke", capability = "asymp_pval"),
+		list(family = "asymptotic_wald", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_wald_confidence_interval", args = list(alpha = 0.05), tier = "smoke", capability = "asymp_ci"),
+		list(family = "asymptotic_score", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_score_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "score_pval"),
+		list(family = "asymptotic_score", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_score_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "score_ci"),
+		list(family = "asymptotic_lik_ratio", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_lik_ratio_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "lik_ratio_pval"),
+		list(family = "asymptotic_lik_ratio", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_lik_ratio_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "lik_ratio_ci"),
+		list(family = "asymptotic_gradient", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_gradient_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "gradient_pval"),
+		list(family = "asymptotic_gradient", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_gradient_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "gradient_ci"),
 		list(family = "exact", class_name = "InferenceIncidExactBinomial", response_type = "incidence", method_name = "compute_exact_two_sided_pval_for_treatment_effect", args = list(), tier = "smoke", capability = "exact_pval", fixture_kind = "matched_incidence"),
 		list(family = "exact", class_name = "InferenceIncidExactBinomial", response_type = "incidence", method_name = "compute_exact_confidence_interval", args = list(alpha = 0.05), tier = "smoke", capability = "exact_ci", fixture_kind = "matched_incidence"),
-		list(family = "bootstrap", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_bootstrap_two_sided_pval", args = list(B = 9L, delta = 0, show_progress = FALSE, min_number_usable_samples = 3L), tier = "ci", capability = "bootstrap_pval"),
-		list(family = "bootstrap", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_bootstrap_confidence_interval", args = list(B = 9L, alpha = 0.05, show_progress = FALSE, min_number_usable_samples = 3L), tier = "ci", capability = "bootstrap_ci"),
-		list(family = "bayesian_bootstrap", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_bayesian_bootstrap_two_sided_pval", args = list(B = 9L, delta = 0, show_progress = FALSE, min_number_usable_samples = 3L), tier = "ci", capability = "bayesian_bootstrap_pval"),
-		list(family = "bayesian_bootstrap", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_bayesian_bootstrap_confidence_interval", args = list(B = 9L, alpha = 0.05, show_progress = FALSE, min_number_usable_samples = 3L), tier = "ci", capability = "bayesian_bootstrap_ci"),
-		list(family = "parametric_bootstrap", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_param_bootstrap_pval", args = list(B = 9L, delta = 0, show_progress = FALSE, min_number_usable_samples = 3L), tier = "nightly", capability = "parametric_bootstrap_pval"),
-		list(family = "parametric_bootstrap", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_param_bootstrap_confidence_interval", args = list(B = 9L, alpha = 0.05, show_progress = FALSE, min_number_usable_samples = 3L), tier = "nightly", capability = "parametric_bootstrap_ci"),
-		list(family = "bartlett", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_lik_ratio_bartlett_approx_two_sided_pval", args = list(delta = 0, B = 9L), tier = "nightly", capability = "bartlett_pval"),
-		list(family = "bartlett", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_lik_ratio_bartlett_approx_confidence_interval", args = list(alpha = 0.05, B = 9L), tier = "nightly", capability = "bartlett_ci"),
-		list(family = "jackknife", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_jackknife_wald_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "jackknife_pval"),
-		list(family = "jackknife", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_jackknife_wald_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "jackknife_ci"),
-		list(family = "randomization", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_rand_two_sided_pval", args = list(r = 9L, delta = 0, show_progress = FALSE), tier = "ci", capability = "rand_pval"),
-		list(family = "randomization", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_rand_confidence_interval", args = list(r = 9L, alpha = 0.05, show_progress = FALSE), tier = "nightly", capability = "rand_ci"),
-		list(family = "randomization_bootstrap", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_rand_bootstrap_two_sided_pval", args = list(B = 9L, delta = 0, show_progress = FALSE), tier = "nightly", capability = "rand_bootstrap_pval"),
-		list(family = "randomization_bootstrap", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_rand_bootstrap_confidence_interval", args = list(B = 9L, alpha = 0.05, show_progress = FALSE), tier = "nightly", capability = "rand_bootstrap_ci"),
-		list(family = "m_out_of_n_subsampling", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_m_out_of_n_bootstrap_two_sided_pval", args = list(B = 9L, m = 4L, delta = 0, show_progress = FALSE, min_number_usable_samples = 3L), tier = "nightly", capability = "m_out_of_n_bootstrap_pval"),
-		list(family = "m_out_of_n_subsampling", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "compute_subsampling_confidence_interval", args = list(B = 9L, b = 4L, alpha = 0.05, show_progress = FALSE, min_number_usable_samples = 3L), tier = "nightly", capability = "subsampling_ci"),
-		list(family = "debug_distribution", class_name = "InferenceAllSimpleMeanDiff", response_type = "continuous", method_name = "approximate_bootstrap_distribution_beta_hat_T", args = list(B = 9L, debug = TRUE, show_progress = FALSE), tier = "nightly", capability = "bootstrap_debug")
+		list(family = "bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_bootstrap_two_sided_pval", args = list(B = 9L, delta = 0, show_progress = FALSE, min_number_usable_samples = 3L), tier = "ci", capability = "bootstrap_pval"),
+		list(family = "bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_bootstrap_confidence_interval", args = list(B = 9L, alpha = 0.05, show_progress = FALSE, min_number_usable_samples = 3L), tier = "ci", capability = "bootstrap_ci"),
+		list(family = "bayesian_bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_bayesian_bootstrap_two_sided_pval", args = list(B = 9L, delta = 0, show_progress = FALSE, min_number_usable_samples = 3L), tier = "ci", capability = "bayesian_bootstrap_pval"),
+		list(family = "bayesian_bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_bayesian_bootstrap_confidence_interval", args = list(B = 9L, alpha = 0.05, show_progress = FALSE, min_number_usable_samples = 3L), tier = "ci", capability = "bayesian_bootstrap_ci"),
+		list(family = "parametric_bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_param_bootstrap_pval", args = list(B = 9L, delta = 0, show_progress = FALSE, min_number_usable_samples = 3L), tier = "nightly", capability = "parametric_bootstrap_pval"),
+		list(family = "parametric_bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_param_bootstrap_confidence_interval", args = list(B = 9L, alpha = 0.05, show_progress = FALSE, min_number_usable_samples = 3L), tier = "nightly", capability = "parametric_bootstrap_ci"),
+		list(family = "bartlett", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_lik_ratio_bartlett_approx_two_sided_pval", args = list(delta = 0, B = 9L), tier = "nightly", capability = "bartlett_pval"),
+		list(family = "bartlett", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_lik_ratio_bartlett_approx_confidence_interval", args = list(alpha = 0.05, B = 9L), tier = "nightly", capability = "bartlett_ci"),
+		list(family = "jackknife", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_jackknife_wald_two_sided_pval", args = list(delta = 0), tier = "ci", capability = "jackknife_pval"),
+		list(family = "jackknife", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_jackknife_wald_confidence_interval", args = list(alpha = 0.05), tier = "ci", capability = "jackknife_ci"),
+		list(family = "randomization", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_rand_two_sided_pval", args = list(r = 9L, delta = 0, show_progress = FALSE), tier = "ci", capability = "rand_pval"),
+		list(family = "randomization", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_rand_confidence_interval", args = list(r = 9L, alpha = 0.05, show_progress = FALSE), tier = "nightly", capability = "rand_ci"),
+		list(family = "randomization_bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_rand_bootstrap_two_sided_pval", args = list(B = 9L, delta = 0, show_progress = FALSE), tier = "nightly", capability = "rand_bootstrap_pval"),
+		list(family = "randomization_bootstrap", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_rand_bootstrap_confidence_interval", args = list(B = 9L, alpha = 0.05, show_progress = FALSE), tier = "nightly", capability = "rand_bootstrap_ci"),
+		list(family = "m_out_of_n_subsampling", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_m_out_of_n_bootstrap_two_sided_pval", args = list(B = 9L, m = 4L, delta = 0, show_progress = FALSE, min_number_usable_samples = 3L), tier = "nightly", capability = "m_out_of_n_bootstrap_pval"),
+		list(family = "m_out_of_n_subsampling", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "compute_subsampling_confidence_interval", args = list(B = 9L, b = 4L, alpha = 0.05, show_progress = FALSE, min_number_usable_samples = 3L), tier = "nightly", capability = "subsampling_ci"),
+		list(family = "debug_distribution", class_name = "InferenceAllSimpleAverageDiff", response_type = "continuous", method_name = "approximate_bootstrap_distribution_beta_hat_T", args = list(B = 9L, debug = TRUE, show_progress = FALSE), tier = "nightly", capability = "bootstrap_debug")
 	)
 }
 
@@ -381,10 +381,10 @@ run_inference_suite_workflow = function(fixtures) {
 		suite_gen = getExportedValue("EDI", "InferenceSuite")
 		suite = suite_gen$new(
 			fixture$design,
-			inference_params = list(InferenceAllSimpleMeanDiff = list(max_resample_attempts = 5L))
+			inference_params = list(InferenceAllSimpleAverageDiff = list(max_resample_attempts = 5L))
 		)
-		if (!("InferenceAllSimpleMeanDiff" %in% suite$applicable_design_classes)) {
-			stop("InferenceSuite did not discover InferenceAllSimpleMeanDiff")
+		if (!("InferenceAllSimpleAverageDiff" %in% suite$applicable_design_classes)) {
+			stop("InferenceSuite did not discover InferenceAllSimpleAverageDiff")
 		}
 		new_coverage_row(
 			"InferenceSuite", "r6_class", "inference_suite_discovery_and_params", "ok",
@@ -412,7 +412,7 @@ run_simulation_framework_workflow = function() {
 		sim = sim_gen$new(
 			response_type = "continuous",
 			design_classes_and_params = list(getExportedValue("EDI", "DesignFixedBernoulli")),
-			inference_classes_and_params = list(getExportedValue("EDI", "InferenceAllSimpleMeanDiff")),
+			inference_classes_and_params = list(getExportedValue("EDI", "InferenceAllSimpleAverageDiff")),
 			inference_types_and_params = list(asymp_pval = list()),
 			n = 8L,
 			p = 2L,
@@ -431,14 +431,14 @@ run_simulation_framework_workflow = function() {
 			"SimulationFramework", "r6_class", "simulation_framework_smoke", "ok",
 			response_type = "continuous",
 			design_class = "DesignFixedBernoulli",
-			inference_class = "InferenceAllSimpleMeanDiff"
+			inference_class = "InferenceAllSimpleAverageDiff"
 		)
 	}, error = function(e) {
 		new_coverage_row(
 			"SimulationFramework", "r6_class", "simulation_framework_smoke", "error",
 			response_type = "continuous",
 			design_class = "DesignFixedBernoulli",
-			inference_class = "InferenceAllSimpleMeanDiff",
+			inference_class = "InferenceAllSimpleAverageDiff",
 			error_message = conditionMessage(e)
 		)
 	})
@@ -451,7 +451,7 @@ run_simulation_framework_report_workflow = function() {
 		sim = sim_gen$new(
 			response_type = "continuous",
 			design_classes_and_params = list(getExportedValue("EDI", "DesignFixedBernoulli")),
-			inference_classes_and_params = list(getExportedValue("EDI", "InferenceAllSimpleMeanDiff")),
+			inference_classes_and_params = list(getExportedValue("EDI", "InferenceAllSimpleAverageDiff")),
 			inference_types_and_params = list(asymp_pval = list()),
 			n = 8L,
 			p = 2L,
@@ -472,14 +472,14 @@ run_simulation_framework_report_workflow = function() {
 			"SimulationFrameworkReport", "r6_class", "simulation_framework_report_smoke", "ok",
 			response_type = "continuous",
 			design_class = "DesignFixedBernoulli",
-			inference_class = "InferenceAllSimpleMeanDiff"
+			inference_class = "InferenceAllSimpleAverageDiff"
 		)
 	}, error = function(e) {
 		new_coverage_row(
 			"SimulationFrameworkReport", "r6_class", "simulation_framework_report_smoke", "error",
 			response_type = "continuous",
 			design_class = "DesignFixedBernoulli",
-			inference_class = "InferenceAllSimpleMeanDiff",
+			inference_class = "InferenceAllSimpleAverageDiff",
 			error_message = conditionMessage(e)
 		)
 	})

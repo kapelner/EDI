@@ -98,7 +98,7 @@ test_that("fencing: randomization test refused, model-based estimation available
 	des = optimal_class_design(seed = 13)
 	des$assign_w_to_all_subjects()
 	des$add_all_subject_responses(rnorm(10))
-	inf = EDI:::InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf = EDI:::InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	expect_error(inf$compute_rand_two_sided_pval(r = 50), "no randomization mechanism")
 	expect_true(is.finite(inf$compute_estimate()))
 })
@@ -164,7 +164,7 @@ test_that("fencing: randomization CI is refused like the randomization test (tes
 	des = optimal_class_design(seed = 91)
 	des$assign_w_to_all_subjects()
 	des$add_all_subject_responses(rnorm(10))
-	inf = EDI:::InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf = EDI:::InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	expect_error(inf$compute_rand_confidence_interval(r = 50), "no randomization mechanism")
 })
 

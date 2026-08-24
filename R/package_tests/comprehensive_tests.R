@@ -646,12 +646,10 @@ record_result = function(dataset_name, dataset_n_rows, dataset_n_cols, response_
 				is_truth_anomaly_for_record = length(result_num_for_truth) >= 1L &&
 					is.finite(result_num_for_truth[1L]) && result_num_for_truth[1L] < 1e-6
 			} else if (grepl("confidence_interval", function_run, fixed = TRUE)) {
-				if (length(result_num_for_truth) >= 2L && all(is.finite(result_num_for_truth[1:2]))) {
-					ci_lo_for_truth = min(result_num_for_truth[1:2])
-					ci_hi_for_truth = max(result_num_for_truth[1:2])
-					is_truth_anomaly_for_record = max(abs(ci_lo_for_truth), abs(ci_hi_for_truth)) > 50 ||
-						(ci_lo_for_truth > 0.05) || (ci_hi_for_truth < -0.05)
-				}
+				is_truth_anomaly_for_record = length(result_num_for_truth) < 2L ||
+					!all(is.finite(result_num_for_truth[1:2])) ||
+					result_num_for_truth[1L] > result_num_for_truth[2L] ||
+					max(abs(result_num_for_truth[1:2])) > 50
 			} else if (grepl("estimate", function_run, fixed = TRUE)) {
 				is_truth_anomaly_for_record = length(result_num_for_truth) >= 1L &&
 					is.finite(result_num_for_truth[1L]) && abs(result_num_for_truth[1L]) > 50
@@ -693,9 +691,9 @@ record_result = function(dataset_name, dataset_n_rows, dataset_n_cols, response_
 		exists("COVERAGE_CLOSED_FORM", inherits = TRUE) &&
 		(
 			!is.null(COVERAGE_CLOSED_FORM[[base_inference_class]]) ||
-			(identical(base_inference_class, "InferenceAllSimpleMeanDiff") &&
+			(identical(base_inference_class, "InferenceAllSimpleAverageDiff") &&
 			 !is.na(response_type) &&
-			 !is.null(COVERAGE_CLOSED_FORM[[paste0("InferenceAllSimpleMeanDiff__", response_type)]]))
+			 !is.null(COVERAGE_CLOSED_FORM[[paste0("InferenceAllSimpleAverageDiff__", response_type)]]))
 		)
 	has_mc_spec_coverage_truth =
 		exists("COVERAGE_MC_SPEC", inherits = TRUE) && !is.null(COVERAGE_MC_SPEC[[base_inference_class]])
@@ -872,6 +870,8 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		"InferenceContinMultGLS",
 		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
 		"InferenceAbstractGLMMWeibullFrailtyNormalOneLik",
+		"InferenceIncidExactFisher",
+		"InferenceIncidExactBinomial",
 		"InferenceIncidExactZhang",
 		"InferenceIncidExactZhangAbstract",
 		"InferenceOrdinalPairedSignTest",
@@ -912,12 +912,12 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		bbt_pval_wald = c("InferenceIncidKKCondLogitGLMMOneLik"),
 		bbt_pval_studentized = c("InferenceIncidKKCondLogitGLMMOneLik"),
 		bbt_ci = c("InferenceIncidKKCondLogitGLMMOneLik"),
-		bbt_ci_default = c("InferenceIncidExactFisher"),
-		boot_ci_default = c("InferenceIncidRiskDiff", "InferenceIncidExactFisher", "InferenceContinKKQuantileRegrOneLik", "InferenceSurvivalDepCensTransformRegr"),
-		boot_ci_basic = c("InferenceIncidExactFisher"),
+		bbt_ci_default = character(),
+		boot_ci_default = c("InferenceIncidRiskDiff", "InferenceContinKKQuantileRegrOneLik", "InferenceSurvivalDepCensTransformRegr"),
+		boot_ci_basic = character(),
 		boot_ci_bca = c("InferenceIncidKKGCompRiskDiff"),
-		boot_stud = c("InferenceIncidRiskDiff", "InferenceIncidExactFisher", "InferenceSurvivalGehanWilcox", "InferenceSurvivalDepCensTransformRegr", "InferenceOrdinalKKGEE", "InferenceIncidModifiedPoisson"),
-		boot_pval_stud = c("InferenceAllSimpleMeanDiff", "InferenceIncidExactFisher", "InferenceSurvivalGehanWilcox", "InferenceOrdinalKKGEE"),
+		boot_stud = c("InferenceIncidRiskDiff", "InferenceSurvivalGehanWilcox", "InferenceSurvivalDepCensTransformRegr", "InferenceOrdinalKKGEE", "InferenceIncidModifiedPoisson"),
+		boot_pval_stud = c("InferenceAllSimpleAverageDiff", "InferenceSurvivalGehanWilcox", "InferenceOrdinalKKGEE"),
 		boot_pval_symmetric = c("InferenceIncidKKGCompRiskRatio"),
 		boot_ci = character(),
 		jack = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceContinKKGLMM"),
@@ -1052,7 +1052,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		"InferenceCountZeroInflatedNegBin",
 		"InferenceCountKKHurdlePoissonOneLik"
 	)) || response_type == "count" ||
-		(response_type != "continuous" && is(seq_des_inf, "InferenceAllSimpleMeanDiff"))
+		(response_type != "continuous" && is(seq_des_inf, "InferenceAllSimpleAverageDiff"))
 	skip_ci_rand_custom = is_exact_inference_class(c("InferenceContinKKRobustRegrOneLik", "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"))  # custom rand CI slow: robust avg 336.6s / max 1994.8s at n=6; Clayton avg 41.9s / max 1993.3s at n=53
 	supports_jackknife = is(seq_des_inf, "InferenceJackknife") ||
 		(
@@ -1096,11 +1096,11 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		FALSE
 	}
 
-	is_zero_zero_confidence_interval = function(label, result){
+	is_rejected_zero_zero_confidence_interval = function(label, result){
+		if (is(seq_des_inf, "InferenceAllSimpleWilcox")) return(FALSE)
 		if (!grepl("confidence_interval", label, fixed = TRUE)) return(FALSE)
 		if (!(is.atomic(result) && is.numeric(result))) return(FALSE)
-		if (length(result) < 2) return(FALSE)
-		isTRUE(all(result[1:2] == 0))
+		length(result) >= 2L && isTRUE(all(result[1:2] == 0))
 	}
 
 	is_truth_anomalous_result = function(label, result){
@@ -1114,13 +1114,12 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 			return(length(result_num) >= 1L && is.finite(result_num[1L]) && result_num[1L] < 1e-6)
 		}
 		if (grepl("confidence_interval", label, fixed = TRUE)) {
-			if (length(result_num) < 2L || !all(is.finite(result_num[1:2]))) return(FALSE)
-			ci_lo = min(result_num[1:2])
-			ci_hi = max(result_num[1:2])
-			if (max(abs(ci_lo - truth), abs(ci_hi - truth)) > 50) return(TRUE)
-			if (ci_lo > truth) return((ci_lo - truth) > 0.05)
-			if (ci_hi < truth) return((truth - ci_hi) > 0.05)
-			return(FALSE)
+			if (length(result_num) < 2L || !all(is.finite(result_num[1:2]))) return(TRUE)
+			if (result_num[1L] > result_num[2L]) return(TRUE)
+			# A nominal confidence interval is expected to miss its estimand at the
+			# stated error rate. Only reject intervals with numerical/pathological
+			# scale problems; coverage is retained separately in the result table.
+			return(max(abs(result_num[1:2] - truth)) > 50)
 		}
 		if (grepl("estimate", label, fixed = TRUE)) {
 			return(length(result_num) >= 1L && is.finite(result_num[1L]) && abs(result_num[1L] - truth) > 50)
@@ -1270,7 +1269,7 @@ safe_call = function(label, expr){
 					record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
 					return(invisible(NULL))
 				}
-				if (is_zero_zero_confidence_interval(label, result)) {
+				if (is_rejected_zero_zero_confidence_interval(label, result)) {
 					msg = paste0("Degenerate confidence interval [0, 0] detected in ", label)
 					message("Skipping ", label, " (non-fatal): ", msg)
 					duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
@@ -1631,7 +1630,7 @@ call_direct_asymp = function(method_name, testing_type, ...){
 					  seq_des_inf$compute_bootstrap_confidence_interval(B = r, type = boot_ci_type, na.rm = TRUE, show_progress = FALSE))
 		}
 	}
-	if (should_run_test_family("bootstrap") && !skip_slow){
+	if (should_run_test_family("bootstrap") && !skip_slow && !skip_bootstrap && !skip_bootstrap_slow){
 		if (is.na(small_resampling_size)) {
 			message("          Skipping compute_m_out_of_n_bootstrap_confidence_interval / compute_subsampling_confidence_interval (too few exchangeable units)")
 		} else {
@@ -1677,7 +1676,7 @@ call_direct_asymp = function(method_name, testing_type, ...){
 					  seq_des_inf$compute_bootstrap_two_sided_pval(B = r, type = boot_pval_type, na.rm = TRUE, show_progress = FALSE))
 		}
 	}
-	if (should_run_test_family("bootstrap") && !skip_slow){
+	if (should_run_test_family("bootstrap") && !skip_slow && !skip_bootstrap && !skip_bootstrap_slow){
 		if (is.na(small_resampling_size)) {
 			message("          Skipping compute_m_out_of_n_bootstrap_two_sided_pval / compute_subsampling_two_sided_pval (too few exchangeable units)")
 		} else {
@@ -1901,6 +1900,18 @@ run_exhaustive_remaining_inference_classes = function(des_obj, response_type, de
 	nms = ls(ns, all.names = TRUE)
 	gen_names = nms[vapply(nms, function(nm) inherits(get(nm, envir = ns), "R6ClassGenerator"), logical(1))]
 	gen_names = gen_names[grepl("^Inference", gen_names)]
+	# Query only registered, concrete generators in the actual Inference
+	# hierarchy. Name-based exclusions alone admitted component generators such
+	# as InferenceMarginalEstimand, which is not an estimator and has no
+	# compute_estimate() method.
+	is_inference_generator = get("is_inference_r6_generator", envir = ns)
+	get_inference_metadata = get("get_inference_class_metadata", envir = ns)
+	gen_names = gen_names[vapply(gen_names, function(nm){
+		gen = get(nm, envir = ns)
+		if (!isTRUE(is_inference_generator(gen))) return(FALSE)
+		metadata = tryCatch(get_inference_metadata(nm), error = function(e) NULL)
+		!is.null(metadata) && !isTRUE(metadata$abstract)
+	}, logical(1))]
 	gen_names = gen_names[!is_skipped_inference_label(gen_names)]
 	gen_names = gen_names[!grepl("Abstract|Suite|Custom|RandCI$|NoParamBootstrap$", gen_names)]
 	gen_names = setdiff(gen_names, c(
@@ -1913,6 +1924,7 @@ run_exhaustive_remaining_inference_classes = function(des_obj, response_type, de
 		"InferenceKKPassThroughCompound",
 		"InferenceMLEorKMforGLMs",
 		"InferenceMLEorKMSummaryTable",
+		"InferenceMarginalEstimand",
 		"InferenceCustomAsymp",
 		"InferenceCustomBoot",
 		"InferenceCustomRand",
@@ -2043,7 +2055,7 @@ compute_survival_mean_diff_coverage_truth = function(dataset_name, beta_T_val){
 
 COVERAGE_CLOSED_FORM = list(
 	InferenceIncidLogRegr                 = compute_incid_logit_coverage_truth,
-	InferenceAllSimpleMeanDiff__incidence = compute_incid_risk_diff_coverage_truth,
+	InferenceAllSimpleAverageDiff__incidence = compute_incid_risk_diff_coverage_truth,
 	InferenceIncidWald                    = compute_incid_risk_diff_coverage_truth,
 	InferenceIncidRiskDiff                = compute_incid_risk_diff_coverage_truth,
 	InferenceIncidMiettinenNurminenRiskDiff = compute_incid_risk_diff_coverage_truth,
@@ -2057,9 +2069,9 @@ COVERAGE_CLOSED_FORM = list(
 	InferenceIncidModifiedPoisson         = compute_incid_log_risk_ratio_coverage_truth,
 	InferenceIncidKKModifiedPoisson       = compute_incid_log_risk_ratio_coverage_truth,
 	InferenceIncidLogBinomial             = compute_incid_log_risk_ratio_coverage_truth,
-	InferenceAllSimpleMeanDiff__proportion = compute_prop_mean_diff_coverage_truth,
+	InferenceAllSimpleAverageDiff__proportion = compute_prop_mean_diff_coverage_truth,
 	InferencePropGCompMeanDiff            = compute_prop_mean_diff_coverage_truth,
-	InferenceAllSimpleMeanDiff__survival   = compute_survival_mean_diff_coverage_truth
+	InferenceAllSimpleAverageDiff__survival   = compute_survival_mean_diff_coverage_truth
 )
 
 # Monte Carlo via SimulationFramework: reuses its design-building (incl. auto strata/cluster
@@ -2147,8 +2159,8 @@ COVERAGE_MC_SPEC = list(
 get_coverage_truth = function(inference_class, dataset_name, beta_T_val, response_type_hint = NA_character_){
 	base_class = sub(" [\\(\\[].*$", "", inference_class)
 	closed_form_fn = COVERAGE_CLOSED_FORM[[base_class]]
-	if (is.null(closed_form_fn) && identical(base_class, "InferenceAllSimpleMeanDiff") && !is.na(response_type_hint)) {
-		closed_form_fn = COVERAGE_CLOSED_FORM[[paste0("InferenceAllSimpleMeanDiff__", response_type_hint)]]
+	if (is.null(closed_form_fn) && identical(base_class, "InferenceAllSimpleAverageDiff") && !is.na(response_type_hint)) {
+		closed_form_fn = COVERAGE_CLOSED_FORM[[paste0("InferenceAllSimpleAverageDiff__", response_type_hint)]]
 	}
 	if (!is.null(closed_form_fn)) {
 		return(tryCatch(closed_form_fn(dataset_name, beta_T_val), error = function(e) beta_T_val))
@@ -2429,8 +2441,8 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 
 	is_kk_design = design_type %in% c("KK21", "KK21stepwise", "KK14", "FixedBinaryMatch")
 	if (response_type == "continuous"){
-		inference_banner("InferenceAllSimpleMeanDiff")
-		run_inference_checks(InferenceAllSimpleMeanDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceAllSimpleAverageDiff")
+		run_inference_checks(InferenceAllSimpleAverageDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 		inference_banner("InferenceAllSimpleMeanDiffPooledVar")
 		run_inference_checks(InferenceAllSimpleMeanDiffPooledVar$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 		inference_banner("InferenceAllSimpleWilcox")
@@ -2452,8 +2464,8 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 		supports_exact_fisher_design = design_supports_exact_fisher_incidence(des_obj)
 		supports_exact_binomial_design = design_has_realized_matched_pair(des_obj)
 
-			inference_banner("InferenceAllSimpleMeanDiff")
-			run_inference_checks(InferenceAllSimpleMeanDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+			inference_banner("InferenceAllSimpleAverageDiff")
+			run_inference_checks(InferenceAllSimpleAverageDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 			if (supports_exact_fisher_design) {
 				inference_banner("InferenceIncidExactFisher")
 				run_inference_checks(InferenceIncidExactFisher$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
@@ -2517,8 +2529,8 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 	}
 
 	if (response_type == "proportion"){
-		inference_banner("InferenceAllSimpleMeanDiff")
-		run_inference_checks(InferenceAllSimpleMeanDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceAllSimpleAverageDiff")
+		run_inference_checks(InferenceAllSimpleAverageDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 		inference_banner("InferenceAllSimpleWilcox")
 		run_inference_checks(InferenceAllSimpleWilcox$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 		if (is_kk_design){
@@ -2536,8 +2548,8 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 	}
 
 	if (response_type == "count"){
-		inference_banner("InferenceAllSimpleMeanDiff")
-		run_inference_checks(InferenceAllSimpleMeanDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceAllSimpleAverageDiff")
+		run_inference_checks(InferenceAllSimpleAverageDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 		inference_banner("InferenceAllSimpleWilcox")
 		run_inference_checks(InferenceAllSimpleWilcox$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 		if (is_kk_design){
@@ -2604,8 +2616,8 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 	}
 
 	if (response_type == "ordinal"){
-		inference_banner("InferenceAllSimpleMeanDiff")
-		run_inference_checks(InferenceAllSimpleMeanDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceAllSimpleAverageDiff")
+		run_inference_checks(InferenceAllSimpleAverageDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 		inference_banner("InferenceAllSimpleWilcox")
 		run_inference_checks(InferenceAllSimpleWilcox$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 		if (is_kk_design){

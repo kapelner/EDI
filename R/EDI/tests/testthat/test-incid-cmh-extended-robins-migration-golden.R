@@ -3,7 +3,7 @@ library(EDI)
 
 # InferenceIncidCMH / InferenceIncidExtendedRobins migration
 # (fix_inference_hierarchy.md, "Asymptotic (Wald) No-Likelihood Migration"):
-# from `R6::R6Class(inherit = InferenceAllSimpleMeanDiff, ...)` to
+# from `R6::R6Class(inherit = InferenceAllSimpleAverageDiff, ...)` to
 # `define_inference_class()` composing
 # `BayesianBootstrap`/`Wald`/`SimpleMeanDifference` directly, with all prior
 # overrides preserved verbatim. These legacy generators are byte-for-byte
@@ -15,7 +15,7 @@ make_cmh_legacy_generator = function() {
 		"InferenceIncidCMHLegacy",
 		lock_objects = FALSE,
 		parent_env = asNamespace("EDI"),
-		inherit = EDI:::InferenceAllSimpleMeanDiff,
+		inherit = EDI:::InferenceAllSimpleAverageDiff,
 		public = list(
 			compute_asymp_confidence_interval = function(alpha = 0.05){
 				self$compute_estimate()
@@ -116,7 +116,7 @@ make_extended_robins_legacy_generator = function() {
 		"InferenceIncidExtendedRobinsLegacy",
 		lock_objects = FALSE,
 		parent_env = asNamespace("EDI"),
-		inherit = EDI:::InferenceAllSimpleMeanDiff,
+		inherit = EDI:::InferenceAllSimpleAverageDiff,
 		public = list(
 			compute_asymp_confidence_interval = function(alpha = 0.05){
 				private$get_standard_error()

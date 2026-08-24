@@ -31,6 +31,40 @@
 #' alone, this class's actual reported inference degrades gracefully (rather
 #' than becoming anti-conservative) under mean-variance misspecification.
 #'
+#' \strong{Estimand.} Composes
+#' \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
+#' (\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()}).
+#' Under the default \code{estimand = "conditional"}, \eqn{\hat\beta_T} is the
+#' log-rate-ratio above. Under \code{estimand = "marginal_mean_diff"}, the
+#' reported quantity is instead the g-computation marginal rate difference
+#' \eqn{\frac{1}{n}\sum_i \{\exp(\hat\beta_0 + \hat\beta_T + X_i^\top
+#' \hat\gamma) - \exp(\hat\beta_0 + X_i^\top \hat\gamma)\}}. Under
+#' \code{estimand = "marginal_ratio"}, the log of the corresponding marginal
+#' rate ratio — \strong{which is numerically identical to the conditional
+#' \eqn{\hat\beta_T} for this family}: because the log link is linear in
+#' \eqn{w_i} with no treatment-by-covariate interaction term, every subject's
+#' treated-vs-control mean ratio is \eqn{\exp(\hat\beta_0 + \hat\beta_T +
+#' X_i^\top\hat\gamma) / \exp(\hat\beta_0 + X_i^\top\hat\gamma) =
+#' \exp(\hat\beta_T)} exactly, so averaging over subjects before or after
+#' taking the ratio makes no difference. \code{"marginal_ratio"} is provided
+#' for estimand-API consistency with the other model families, not because it
+#' differs numerically from \code{"conditional"} here; \code{"marginal_mean_diff"}
+#' is the estimand where g-computation actually changes the reported number
+#' for a Poisson GLM, since a difference (unlike a ratio) does not collapse
+#' under a nonlinear (log) mean function. Because there is no latent submodel
+#' for this family (unlike e.g.
+#' \code{\link[EDI:InferenceCountZeroInflatedPoisson]{InferenceCountZeroInflatedPoisson}}'s
+#' excess-zero mixture), the marginal mean function is exactly the model's
+#' own fitted mean; no separate standardization step beyond the g-computation
+#' average is needed. Standard errors under a marginal estimand use the delta
+#' method against the model's coefficient covariance (degrees of freedom
+#' \code{Inf}), including in the design-conservative union/max combination
+#' above (the design-based jackknife-Wald component also refits under the
+#' active estimand); \code{testing_type} is restricted to \code{"wald"}
+#' whenever the estimand is non-conditional. The underlying model fit is
+#' identical regardless of estimand — switching \code{estimand} is a pure
+#' post-fit transform, never a refit.
+#'
 #' @references Cameron, A. C., and Trivedi, P. K. (2013). \emph{Regression
 #'   Analysis of Count Data} (2nd ed.). Cambridge University Press, for the
 #'   Poisson regression model and its maximum-likelihood theory.
@@ -59,7 +93,7 @@
 InferenceCountPoisson = define_inference_class(
 	classname = "InferenceCountPoisson",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing", "MarginalEstimand"),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "count"),
 	overrides = list(
 		public = c(
@@ -86,7 +120,7 @@ InferenceCountPoisson = define_inference_class(
 			"compute_gradient_two_sided_pval_impl", "compute_gradient_confidence_interval_impl",
 			"compute_lik_ratio_two_sided_pval_impl", "compute_lik_ratio_confidence_interval_impl",
 			"compute_treatment_estimate_during_randomization_inference", "get_complexity_tier",
-			"supports_fisher_information"
+			"supports_fisher_information", "get_supported_estimands_impl"
 		)
 	),
 	public = list(
@@ -113,6 +147,47 @@ InferenceCountPoisson = define_inference_class(
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
 			}
+		},
+		#' @description Fits the Poisson regression model by maximum likelihood.
+		#'   Under the default \code{estimand = "conditional"}, returns
+		#'   \eqn{\hat\beta_T}, the treatment log-rate-ratio. Under
+		#'   \code{estimand = "marginal_mean_diff"}/\code{"marginal_ratio"} (set
+		#'   via \code{set_estimand()}), returns the g-computation marginal
+		#'   rate difference/log-rate-ratio instead — see the class-level
+		#'   \code{@details} for the formula. The underlying model fit is
+		#'   identical either way (a pure post-fit transform of the same
+		#'   cached fit, no refit).
+		#' @param estimate_only If TRUE, skip standard-error computation and
+		#'   cache only the point estimate; used by randomization and
+		#'   bootstrap resampling paths.
+		compute_estimate = function(estimate_only = FALSE){
+			private$shared(estimate_only = estimate_only)
+			estimand = self$get_estimand()
+			if (estimand %in% c("marginal_mean_diff", "marginal_ratio")) {
+				return(private$compute_marginal_estimand_estimate(estimand, estimate_only = estimate_only))
+			}
+			# 2026-08-24 (marginal_estimand_report.md TODO-9): re-derive the
+			# conditional beta_hat_T/s_beta_hat_T/df from the estimand-invariant
+			# private$cached_mod every call, rather than trusting
+			# private$cached_values$beta_hat_T/s_beta_hat_T to already hold the
+			# conditional values -- same fix TODO-4/5 needed for the same
+			# reason.
+			mod = private$cached_mod
+			if (!is.null(mod)) {
+				private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$b[2L])[1L]
+				if (!estimate_only) {
+					ssq = mod$ssq_b_2 %||% mod$ssq_b_j
+					ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
+					private$cached_values$df = mod$df %||% Inf
+					if (is.finite(ssq) && ssq > 0) {
+						private$cached_values$s_beta_hat_T = sqrt(ssq)
+						private$clear_nonestimable_state()
+					} else {
+						private$cache_nonestimable_se("model_standard_error_unavailable")
+					}
+				}
+			}
+			private$cached_values$beta_hat_T
 		},
 		#' @description Design-conservative confidence interval for \eqn{\beta_T}
 		#'   using whichever test type is configured
@@ -377,6 +452,95 @@ InferenceCountPoisson = define_inference_class(
 	),
 	private = list(
 		cached_mod = NULL,
+		# 2026-08-24 (marginal_estimand_report.md TODO-9): every class
+		# composing MarginalEstimand supports only "conditional" by default;
+		# overridden here to add the g-computation marginal rate difference/
+		# ratio on the response's natural (count) scale -- there is no latent
+		# submodel to standardize over for a plain Poisson GLM, so the
+		# "marginal" mean function is exactly the model's own fitted mean
+		# exp(X %*% beta), unlike the ZOIB/zero-augmented-Poisson mixture
+		# families (TODO-4/5) where the marginal mean also has to fold in a
+		# separate inflation/hurdle submodel.
+		get_supported_estimands_impl = function(){
+			c("conditional", "marginal_mean_diff", "marginal_ratio")
+		},
+		# Standard error of beta_hat_T under the current estimand. Under
+		# "conditional", prefers the information-matrix-based SE when
+		# available (InferenceAsympLik); under a marginal estimand, always the
+		# delta-method SE cached by compute_estimate() (the information-matrix
+		# SE is for the conditional log-rate coefficient, not the
+		# g-computation functional, so it must not be substituted here). Calls
+		# self$compute_estimate() first so the estimand-aware cache is always
+		# current regardless of call order.
+		get_standard_error = function(){
+			self$compute_estimate(estimate_only = FALSE)
+			if (!identical(self$get_estimand(), "conditional")) {
+				return(private$cached_values$s_beta_hat_T)
+			}
+			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+			if (isTRUE(private$supports_information_preference())) {
+				se = tryCatch(private$compute_standard_error_from_information_matrix(), error = function(e) NA_real_)
+				if (is.finite(se)) return(se)
+			}
+			private$cached_values$s_beta_hat_T
+		},
+		# Degrees of freedom under the current estimand (Inf for a
+		# delta-method marginal SE, same convention as every other
+		# delta-method/sandwich Wald path in this package). Calls
+		# self$compute_estimate() first so the estimand-aware cache is always
+		# current regardless of call order.
+		get_degrees_of_freedom = function(){
+			self$compute_estimate(estimate_only = FALSE)
+			private$cached_values$df %||% Inf
+		},
+		# Model-implied mean E[Y | w, x] = exp(X %*% beta).
+		poisson_mean_from_coefs = function(beta, X){
+			exp(as.numeric(X %*% beta))
+		},
+		# G-computation average over the empirical covariate distribution,
+		# with every subject plugged in at treatment column (column 2, per
+		# generate_mod()'s fixed design-matrix convention) = 1 and = 0.
+		poisson_marginal_functional = function(beta, X, estimand){
+			X1 = X; X1[, 2L] = 1
+			X0 = X; X0[, 2L] = 0
+			mu1 = mean(private$poisson_mean_from_coefs(beta, X1))
+			mu0 = mean(private$poisson_mean_from_coefs(beta, X0))
+			if (identical(estimand, "marginal_ratio")) log(mu1 / mu0) else mu1 - mu0
+		},
+		# Full-fit marginal path for compute_estimate(): reuses the single
+		# cached ML fit (private$cached_mod, populated by private$shared() via
+		# generate_mod()) -- a pure post-fit transform, no refit. SE via
+		# marginal_estimand_delta_se() against the fitted vcov generate_mod()
+		# now retains. Degrees of freedom: Inf, same convention as every other
+		# delta-method/sandwich Wald path in this package.
+		compute_marginal_estimand_estimate = function(estimand, estimate_only = FALSE){
+			mod = private$cached_mod
+			if (is.null(mod) || is.null(mod$b) || is.null(mod$X)) {
+				private$cache_nonestimable_estimate("poisson_marginal_fit_unavailable")
+				return(NA_real_)
+			}
+			functional = function(theta) private$poisson_marginal_functional(theta, mod$X, estimand)
+			point = tryCatch(functional(mod$b), error = function(e) NA_real_)
+			if (!is.finite(point)) {
+				private$cache_nonestimable_estimate("poisson_marginal_point_unavailable")
+				return(NA_real_)
+			}
+			private$cached_values$beta_hat_T = point
+			if (estimate_only) return(point)
+			if (is.null(mod$vcov)) {
+				private$cache_nonestimable_se("poisson_marginal_vcov_unavailable")
+				return(point)
+			}
+			dm = marginal_estimand_delta_se(mod$b, mod$vcov, functional)
+			private$cached_values$df = Inf
+			if (is.finite(dm$se) && dm$se >= 0) {
+				private$cached_values$s_beta_hat_T = dm$se
+				private$clear_nonestimable_state()
+			} else {
+				private$cache_nonestimable_se("poisson_marginal_se_unavailable")
+			}
+			point
+		},
 		# Pinned from InferenceParamBootstrap's own generator: composed
 		# classes have no real super$ chain, so the old ladder's
 		# super$compute_lik_ratio_bootstrap_two_sided_pval()/
@@ -604,6 +768,14 @@ InferenceCountPoisson = define_inference_class(
 				}
 				private$best_X_colnames = setdiff(colnames(X_full), c("(Intercept)", "treatment"))
 				private$cached_values$likelihood_test_context = list(X = X_full, j_treat = 2L, full_neg_loglik = res$neg_ll)
+				# 2026-08-24 (marginal_estimand_report.md TODO-9): stash the
+				# exact fitting design matrix and its coefficient covariance so
+				# the marginal-estimand g-computation path (private$compute_
+				# marginal_estimand_estimate()) is a pure post-fit transform, no
+				# refit -- same convention as InferenceIncidLogRegr's mod$X/
+				# mod$vcov.
+				res$X = X_full
+				res$vcov = if (!is.null(res$XtWX)) tryCatch(solve(res$XtWX), error = function(e) NULL) else NULL
 				return(res)
 			}
 			
@@ -650,6 +822,15 @@ InferenceCountPoisson = define_inference_class(
 					j_treat = which(attempt$keep == 2L),
 					full_neg_loglik = attempt$fit$neg_ll
 				)
+				# 2026-08-24 (marginal_estimand_report.md TODO-9): see the
+				# non-hardened branch's identical comment above -- same stash,
+				# using the (possibly column-reduced) attempt$X actually fit
+				# against attempt$fit$b, so dimensions always agree. Only valid
+				# when treatment (column 2 of build_design_matrix()'s output)
+				# survived hardening's column reduction -- required_cols = 2L
+				# above guarantees this.
+				attempt$fit$X = attempt$X
+				attempt$fit$vcov = if (!is.null(attempt$fit$XtWX)) tryCatch(solve(attempt$fit$XtWX), error = function(e) NULL) else NULL
 			} else {
 				private$cached_values$likelihood_test_context = NULL
 			}

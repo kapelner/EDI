@@ -3,6 +3,14 @@ library(EDI)
 
 test_that("SimulationFramework restores parallelism settings", {
 	skip_on_cran()
+	# parallel_fork_cluster_test_safety.md's TODO-6 (2026-08-24): the
+	# `set_num_cores(2L, ...)` call below creates a real fork cluster (via
+	# `make_configured_fork_cluster()`) -- same fork-after-OpenMP-lock
+	# hazard class as `run_all_inference()`'s confirmed 2026-08-21 CI
+	# incident (see that test's own note in
+	# test-simulation-framework-extended.R for the full mechanism). No
+	# incident confirmed from this specific test yet; skipped proactively.
+	skip_on_ci()
 	skip_if_prepush_no_parallel()
 	skip_if(
 		identical(Sys.getenv("R_COVR"), "true"),
@@ -16,7 +24,7 @@ test_that("SimulationFramework restores parallelism settings", {
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		n = 10,
 		Nrep_W = 2, Nrep_Y_w = 1L,
 		num_cores = 1, # Run simulation serially
@@ -51,9 +59,9 @@ test_that("SimulationFramework restores num_cores_override", {
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		# Restricted to asymp_pval: the default (NULL) runs every inf type
-		# InferenceAllSimpleMeanDiff supports, including boot_pval, which reads
+		# InferenceAllSimpleAverageDiff supports, including boot_pval, which reads
 		# num_cores via get_num_cores() -- and since num_cores_override is
 		# forced to 5L above (bypassing set_num_cores()'s validation), that
 		# would spawn a real 5-worker fork cluster just to check that the

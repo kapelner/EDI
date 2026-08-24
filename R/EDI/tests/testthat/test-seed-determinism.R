@@ -99,8 +99,8 @@ test_that("DesignSeqOneByOne seed: duplicate() clears seed from clone", {
 
 test_that("Inference seed: same seed gives same rand p-value (serial)", {
 	des = make_completed_fixed_design(seed = NULL)
-	inf1 = InferenceAllSimpleMeanDiff$new(des); inf1$set_seed(42)
-	inf2 = InferenceAllSimpleMeanDiff$new(des); inf2$set_seed(42)
+	inf1 = InferenceAllSimpleAverageDiff$new(des); inf1$set_seed(42)
+	inf2 = InferenceAllSimpleAverageDiff$new(des); inf2$set_seed(42)
 	p1 = inf1$compute_rand_two_sided_pval(r = 49, show_progress = FALSE)
 	p2 = inf2$compute_rand_two_sided_pval(r = 49, show_progress = FALSE)
 	expect_identical(p1, p2)
@@ -110,8 +110,8 @@ test_that("Inference seed: different seeds give different bootstrap distribution
 	# Use bootstrap distribution (continuous) instead of rand p-value (discrete count)
 	# to avoid coincidental equality; exact numerical match across seeds is essentially impossible
 	des = make_completed_fixed_design(seed = NULL, n = 20)
-	inf1 = InferenceAllSimpleMeanDiff$new(des); inf1$set_seed(100)
-	inf2 = InferenceAllSimpleMeanDiff$new(des); inf2$set_seed(200)
+	inf1 = InferenceAllSimpleAverageDiff$new(des); inf1$set_seed(100)
+	inf2 = InferenceAllSimpleAverageDiff$new(des); inf2$set_seed(200)
 	d1 = inf1$approximate_bootstrap_distribution_beta_hat_T(B = 99, show_progress = FALSE)
 	d2 = inf2$approximate_bootstrap_distribution_beta_hat_T(B = 99, show_progress = FALSE)
 	expect_false(identical(d1, d2))
@@ -119,8 +119,8 @@ test_that("Inference seed: different seeds give different bootstrap distribution
 
 test_that("Inference seed: same seed gives same bootstrap CI (serial)", {
 	des = make_completed_fixed_design(seed = NULL, n = 20)
-	inf1 = InferenceAllSimpleMeanDiff$new(des); inf1$set_seed(13)
-	inf2 = InferenceAllSimpleMeanDiff$new(des); inf2$set_seed(13)
+	inf1 = InferenceAllSimpleAverageDiff$new(des); inf1$set_seed(13)
+	inf2 = InferenceAllSimpleAverageDiff$new(des); inf2$set_seed(13)
 	ci1 = inf1$compute_bootstrap_confidence_interval(B = 49, show_progress = FALSE)
 	ci2 = inf2$compute_bootstrap_confidence_interval(B = 49, show_progress = FALSE)
 	expect_identical(ci1, ci2)
@@ -134,7 +134,7 @@ test_that("SimulationFramework seed: same seed gives same estimates (serial)", {
 		sim = SimulationFramework$new(
 			response_type = "continuous",
 			design_classes_and_params = list(DesignFixedBernoulli),
-			inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+			inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 				inference_types_and_params = list(asymp_pval = list()),
 				n = 10L, Nrep_W = 1L, Nrep_Y_w = 3L, seed = 321,
 				num_cores = 1L,
@@ -155,7 +155,7 @@ test_that("SimulationFramework seed: different seeds give different estimates", 
 		sim = SimulationFramework$new(
 			response_type = "continuous",
 			design_classes_and_params = list(DesignFixedBernoulli),
-			inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+			inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 				inference_types_and_params = list(asymp_pval = list()),
 				n = 10L, Nrep_W = 1L, Nrep_Y_w = 5L, seed = seed,
 				num_cores = 1L,

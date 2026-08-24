@@ -94,7 +94,7 @@ InferencePropFractionalLogit = define_inference_class(
 	public = list(
 		# Uses the randomization-CI layer's two-sided p-value contract
 		# (InferenceRandCI's version, not InferenceRand's): same reasoning as
-		# InferenceAllSimpleMeanDiff's identical pin (inference_all_mean_diff.R)
+		# InferenceAllSimpleAverageDiff's identical pin (inference_all_average_diff.R)
 		# -- RandCI's version is documented safe to splice in outside the old
 		# inheritance chain and is now the default choice across migrated
 		# classes composing this bootstrap chain, not an incidence-only special

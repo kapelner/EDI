@@ -24,7 +24,7 @@ test_that("InferenceSuite discovers only exported concrete classes from metadata
 		suite$unavailable_due_to_missing_packages
 	)
 
-	expect_true("InferenceAllSimpleMeanDiff" %in% classes)
+	expect_true("InferenceAllSimpleAverageDiff" %in% classes)
 	expect_true("InferenceContinOLS" %in% classes)
 	expect_false("InferenceRandBootstrap" %in% classes)
 	expect_false("InferenceRandBootstrapCI" %in% classes)

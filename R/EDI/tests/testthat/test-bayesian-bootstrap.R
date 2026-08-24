@@ -255,7 +255,7 @@ test_that("Bayesian bootstrap smoke test runs on a stable first-wave family", {
 
 test_that("next-wave weighted hooks return finite estimates on simple and g-computation paths", {
 	des_cont = make_seq_design_for_bayes_boot("continuous", c(0, 1, 2, 3, 4, 5, 6, 7))
-	inf_cont = InferenceAllSimpleMeanDiff$new(des_cont)
+	inf_cont = InferenceAllSimpleAverageDiff$new(des_cont)
 	n_cont = des_cont$get_n()
 	inf_cont$.__enclos_env__$private$current_bayesian_bootstrap_context = list(
 		row_to_unit = seq_len(n_cont),

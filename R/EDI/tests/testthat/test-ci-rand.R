@@ -77,7 +77,7 @@ test_that("compute_rand_confidence_interval works for continuous response", {
 	y <- rnorm(n) + treatment * 1.0
 	add_all_subject_responses_seq(des, y)
 
-	inf <- InferenceAllSimpleMeanDiff$new(des, verbose = TRUE)
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = TRUE)
 
 	# Compute randomization CI
 	# Using small nsim for speed in tests
@@ -237,7 +237,7 @@ test_that("FixedRerandomization incidence randomization uses design draws, not Z
 	on.exit(toggle_asserts(old_asserts), add = TRUE)
 	toggle_asserts(TRUE)
 
-	inf <- InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	expect_no_error(p <- inf$compute_rand_two_sided_pval(r = 11, show_progress = FALSE))
 	expect_true(is.finite(p))
 	expect_error(

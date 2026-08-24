@@ -24,6 +24,23 @@ EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES = list(
 	InferenceIncidModifiedPoisson = "parametric_likelihood_bootstrap"
 )
 
+# Deliberate capability opt-outs for concrete shallow-composition classes.
+# Unlike EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES, these are not migration
+# artifacts: each entry records an operation that the class must not advertise
+# until its estimator-specific implementation is statistically aligned with
+# the class's primary estimator.
+EDI_INFERENCE_EXCLUDED_CAPABILITIES = list(
+	# ordLORgee supplies the primary estimate, but the current non-uniform
+	# weighted-refit hook uses a plain, non-clustered proportional-odds model.
+	# Re-enable only after the v1.1.0 weighted ordinal-GEE plan is complete.
+	InferenceOrdinalKKGEE = "bayesian_bootstrap",
+	# These likelihood classes currently replace their primary estimators with
+	# a cumulative-logit surrogate for non-uniform weighted refits. Re-enable
+	# only after their native weighted-backend plans are complete.
+	InferenceOrdinalStereotypeLogitRegr = "bayesian_bootstrap",
+	InferenceOrdinalAdjCatLogitRegr = "bayesian_bootstrap"
+)
+
 # Classes that require a KK matched design (`des_obj$is_a_kk_matching_capable()`)
 # but whose name doesn't contain `"KK"`, so `infer_inference_requires_kk_matching_design()`'s
 # name-substring fallback wouldn't otherwise catch them. A static table, not a
@@ -88,7 +105,7 @@ EDI_CUSTOM_RANDOMIZATION_TARGETS = list(
 )
 
 EDI_SIMPLE_ESTIMATOR_CLASS_NAMES = c(
-	"InferenceAllSimpleMeanDiff",
+	"InferenceAllSimpleAverageDiff",
 	"InferenceAllSimpleMeanDiffPooledVar",
 	"InferenceAllKKMeanDiffIVWC",
 	"InferenceAllSimpleWilcox",
@@ -105,7 +122,7 @@ EDI_NO_LIKELIHOOD_MIGRATION_REQUIRED_EVIDENCE = c(
 )
 
 EDI_SIMPLE_ESTIMATOR_TARGETS = list(
-	InferenceAllSimpleMeanDiff = list(
+	InferenceAllSimpleAverageDiff = list(
 		family = "simple_mean_difference",
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -523,7 +540,7 @@ EDI_INFERENCE_CLASSES_IGNORING_COVARIATES = c(
 	# confirmed by grep for `private$X`/`get_X()`/`model.matrix` returning zero
 	# hits in the defining file, cross-checked against the class's own
 	# compute_estimate()/shared() fit code.
-	"InferenceAllSimpleMeanDiff", "InferenceAllSimpleMeanDiffPooledVar",
+	"InferenceAllSimpleAverageDiff", "InferenceAllSimpleMeanDiffPooledVar",
 	"InferenceAllSimpleWilcox", "InferenceAllKKMeanDiffIVWC", "InferenceAllKKWilcoxIVWC",
 	"InferenceIncidCMH", "InferenceIncidExtendedRobins",
 	"InferenceIncidMiettinenNurminenRiskDiff", "InferenceIncidNewcombeRiskDiff",
@@ -737,7 +754,7 @@ infer_inference_design_compatibility_reason_fn = function(generator) {
 EDI_INFERENCE_ESTIMAND_TAGS = list(
 	InferenceAllKKMeanDiffIVWC = "mean_difference",
 	InferenceAllKKWilcoxIVWC = "hodges_lehmann_shift",
-	InferenceAllSimpleMeanDiff = "mean_difference",
+	InferenceAllSimpleAverageDiff = "mean_difference",
 	InferenceAllSimpleMeanDiffPooledVar = "mean_difference",
 	InferenceAllSimpleWilcox = "hodges_lehmann_shift",
 	InferenceBaiAdjustedTKK14 = "mean_difference",
@@ -916,11 +933,11 @@ infer_inference_direct_components = function(name) {
 			InferenceOrdinalStereotypeLogitRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalStereotypeLikelihood"),
 			InferenceOrdinalContRatioRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalContinuationRatioLikelihood"),
 			InferenceOrdinalOrderedProbitRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalOrderedProbitLikelihood"),
-			InferenceIncidLogRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogisticLikelihood"),
+			InferenceIncidLogRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogisticLikelihood", "MarginalEstimand"),
 			InferenceIncidProbitRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceProbitLikelihood"),
 			InferenceIncidLogBinomial = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogBinomialLikelihood"),
 			InferenceIncidModifiedPoisson = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceModifiedPoissonLikelihood"),
-			InferenceIncidBinomialIdentityRiskDiff = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceBinomialIdentityLikelihood"),
+			InferenceIncidBinomialIdentityRiskDiff = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceBinomialIdentityLikelihood", "MarginalEstimand"),
 			InferenceIncidGCompAbstract = "IncidenceGComputation",
 			InferenceSurvivalWeibullRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalWeibullLikelihood"),
 			InferenceSurvivalDepCensTransformRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalDepCensTransform"),
@@ -939,7 +956,7 @@ infer_inference_direct_components = function(name) {
 		InferenceKKPassThroughCompound = "KKCompound",
 		InferenceKKPassThroughCompoundNoParamBootstrap = "KKCompound",
 		InferenceCustomRand = "RandomizationTest",
-		InferenceAllSimpleMeanDiff = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
+		InferenceAllSimpleAverageDiff = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 		InferenceAllSimpleMeanDiffPooledVar = c("BayesianBootstrap", "Wald", "SimpleMeanDifferencePooledVar"),
 		InferenceAllKKMeanDiffIVWC = c("BayesianBootstrap", "Wald", "KKMeanDifferenceIVWC"),
 		InferenceIncidKKNewcombeRiskDiff = c("BayesianBootstrap", "Wald", "KKNewcombeRiskDiffIVWC"),
@@ -1075,7 +1092,7 @@ infer_inference_direct_components = function(name) {
 		# define_inference_class(components = ...) call exactly, same
 		# rationale as every other direct-composition class documented above.
 		InferencePropFractionalLogit = c("BayesianBootstrap", "Wald", "StandardModelCache"),
-		InferencePropBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache"),
+		InferencePropBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache", "MarginalEstimand"),
 		InferencePropZeroOneInflatedBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache", "MarginalEstimand"),
 		# 2026-08-23 (marginal_estimand_report.md TODO-5): direct component
 		# only -- ZeroAugmentedCountLikelihood/CountLikelihoodPlumbing/etc.
@@ -1086,7 +1103,7 @@ infer_inference_direct_components = function(name) {
 		# same convention as every other entry in this switch.
 		InferenceCountZeroInflatedPoisson = "MarginalEstimand",
 		InferenceCountHurdlePoisson = "MarginalEstimand",
-		InferenceCountPoisson = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
+		InferenceCountPoisson = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing", "MarginalEstimand"),
 		InferenceCountNegBin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
 		InferenceCountHurdleNegBin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
 		InferenceContinLin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap"),
@@ -2313,7 +2330,10 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				likelihood_tier = infer_inference_likelihood_tier(name),
 				required_packages = character(),
 				capabilities = character(),
-				excluded_capabilities = EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES[[name]] %||% character(),
+				excluded_capabilities = unique(c(
+					EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES[[name]] %||% character(),
+					EDI_INFERENCE_EXCLUDED_CAPABILITIES[[name]] %||% character()
+				)),
 				supports_general_censoring = infer_inference_supports_general_censoring(obj),
 				requires_blocking_design = infer_inference_requires_blocking_design(obj),
 				requires_kk_matching_design = infer_inference_requires_kk_matching_design(name),

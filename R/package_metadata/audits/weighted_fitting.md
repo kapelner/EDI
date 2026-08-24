@@ -35,7 +35,7 @@ Main discrepancies:
 
 - It said only `3` concrete paths were implemented. The current source has `84`.
 - It marked these currently implemented classes as `Not implemented`:
-  `InferenceAllSimpleMeanDiff`,
+  `InferenceAllSimpleAverageDiff`,
   `InferenceContinLin`,
   `InferenceContinOLS`,
   `InferenceCountPoisson`,
@@ -73,8 +73,8 @@ are `IVWC`:
 
 | Class | Family | Provider | Notes |
 |---|---|---|---|
-| `InferenceAllSimpleMeanDiff` | All / continuous | `InferenceAllSimpleMeanDiff` | Weighted empirical mean difference |
-| `InferenceAllSimpleMeanDiffPooledVar` | All / continuous | `InferenceAllSimpleMeanDiff` | Inherits weighted mean-difference estimate |
+| `InferenceAllSimpleAverageDiff` | All / continuous | `InferenceAllSimpleAverageDiff` | Weighted empirical mean difference |
+| `InferenceAllSimpleMeanDiffPooledVar` | All / continuous | `InferenceAllSimpleAverageDiff` | Inherits weighted mean-difference estimate |
 | `InferenceAllSimpleWilcox` | All / nonparametric | `InferenceAllSimpleWilcox` | Weighted Hodges-Lehmann surrogate via weighted pairwise-difference median |
 | `InferenceContinLin` | Continuous | `InferenceContinLin` | Weighted `lm.wfit` on Lin design |
 | `InferenceContinKKGLMM` | Continuous KK GLMM | `InferenceMixinKKGLMMShared` | Weighted `glmmTMB` random-intercept surrogate |
@@ -97,9 +97,9 @@ are `IVWC`:
 | `InferenceCountHurdlePoisson` | Count | `InferenceCountZeroAugmentedPoissonAbstract` | Weighted `glmmTMB` hurdle Poisson |
 | `InferenceCountZeroInflatedPoisson` | Count | `InferenceCountZeroAugmentedPoissonAbstract` | Weighted `glmmTMB` zero-inflated Poisson |
 | `InferenceCountZeroInflatedNegBin` | Count | `InferenceCountZeroAugmentedPoissonAbstract` | Weighted `glmmTMB` zero-inflated negative binomial |
-| `InferenceIncidCMH` | Incidence | `InferenceAllSimpleMeanDiff` | Weighted empirical contrast path |
+| `InferenceIncidCMH` | Incidence | `InferenceAllSimpleAverageDiff` | Weighted empirical contrast path |
 | `InferenceIncidBinomialIdentityRiskDiff` | Incidence | `InferenceIncidBinomialIdentityRiskDiff` | Weighted constrained identity-binomial |
-| `InferenceIncidExtendedRobins` | Incidence | `InferenceAllSimpleMeanDiff` | Weighted empirical contrast path |
+| `InferenceIncidExtendedRobins` | Incidence | `InferenceAllSimpleAverageDiff` | Weighted empirical contrast path |
 | `InferenceIncidGCompRiskDiff` | Incidence g-comp | `InferenceIncidGCompAbstract` | Weighted g-computation |
 | `InferenceIncidGCompRiskRatio` | Incidence g-comp | `InferenceIncidGCompAbstract` | Weighted g-computation |
 | `InferenceIncidKKGEE` | Incidence KK GEE | `InferenceIncidKKGEE` | Native weighted KK GEE |
@@ -116,12 +116,12 @@ are `IVWC`:
 | `InferenceIncidNewcombeRiskDiff` | Incidence | `InferenceIncidNewcombeRiskDiff` | Weighted empirical Newcombe point estimate |
 | `InferenceIncidProbitRegr` | Incidence | `InferenceIncidProbitRegr` | Weighted `glm.fit` probit surrogate |
 | `InferenceIncidRiskDiff` | Incidence | `InferenceIncidRiskDiff` | Weighted identity-scale risk difference |
-| `InferenceIncidWald` | Incidence | `InferenceAllSimpleMeanDiff` | Weighted empirical contrast path |
+| `InferenceIncidWald` | Incidence | `InferenceAllSimpleAverageDiff` | Weighted empirical contrast path |
 | `InferenceOrdinalGCompMeanDiff` | Ordinal g-comp | `InferenceOrdinalGCompMeanDiff` | Weighted ordinal g-computation |
-| `InferenceOrdinalAdjCatLogitRegr` | Ordinal | `InferenceOrdinalAdjCatLogitRegr` | Weighted cumulative-logit surrogate for adjacent-category estimate |
+| `InferenceOrdinalAdjCatLogitRegr` | Ordinal | `InferenceOrdinalAdjCatLogitRegr` | Cumulative-logit weighted comparator remains internal; Bayesian bootstrap disabled pending a native weighted adjacent-category backend |
 | `InferenceOrdinalCloglogRegr` | Ordinal | `InferenceOrdinalCloglogRegr` | Weighted cloglog ordinal surrogate |
 | `InferenceOrdinalCauchitRegr` | Ordinal | `InferenceOrdinalCauchitRegr` | Weighted cauchit ordinal surrogate |
-| `InferenceOrdinalContRatioRegr` | Ordinal | `InferenceOrdinalContRatioRegr` | Weighted ordinal surrogate for continuation-ratio estimate |
+| `InferenceOrdinalContRatioRegr` | Ordinal | `InferenceOrdinalContRatioRegr` | Native weighted continuation-ratio likelihood; subject weights are copied to every augmented binary row for that subject |
 | `InferenceOrdinalOrderedProbitRegr` | Ordinal | `InferenceOrdinalOrderedProbitRegr` | Weighted ordered-probit surrogate |
 | `InferenceOrdinalKKGEE` | Ordinal KK GEE | `InferenceOrdinalKKGEE` | Weighted ordinal surrogate path |
 | `InferenceOrdinalKKCLMM` | Ordinal KK CLMM | `InferenceAbstractKKOrdinalCLMM` | Weighted cumulative-link mixed-model surrogate with native weighted proportional-odds fallback and ordinal-link surrogates |
@@ -134,7 +134,7 @@ are `IVWC`:
 | `InferenceOrdinalPartialProportionalOddsRegr` | Ordinal | `InferenceOrdinalPartialProportionalOddsRegr` | Weighted PPO with native weighted proportional-odds fast path and weighted VGAM/CLM/POLR fallbacks |
 | `InferenceOrdinalRidit` | Ordinal | `InferenceOrdinalRidit` | Weighted empirical ridit analysis |
 | `InferenceOrdinalPropOddsRegr` | Ordinal | `InferenceOrdinalPropOddsRegr` | Weighted proportional odds |
-| `InferenceOrdinalStereotypeLogitRegr` | Ordinal | `InferenceOrdinalStereotypeLogitRegr` | Weighted cumulative-logit surrogate for stereotype-logit estimate |
+| `InferenceOrdinalStereotypeLogitRegr` | Ordinal | `InferenceOrdinalStereotypeLogitRegr` | Cumulative-logit weighted comparator remains internal; Bayesian bootstrap disabled pending a native weighted stereotype-logit backend |
 | `InferenceOrdinalPairedSignTest` | Ordinal | `InferenceOrdinalPairedSignTest` | Weighted matched-pair sign statistic |
 | `InferencePropBetaRegr` | Proportion | `InferencePropBetaRegr` | Weighted beta-regression / weighted logit fallback |
 | `InferencePropFractionalLogit` | Proportion | `InferencePropFractionalLogit` | Weighted fractional logit |
@@ -212,7 +212,7 @@ matched-pair-difference / reservoir-mean-difference surrogate combined via the
 observed-fit `w_star` weight (lines 48-86). This is the same "surrogate"
 pattern already credited as `Implemented` for ~30 other rows in the main
 table above (e.g. `InferenceIncidCMH`, `InferenceIncidWald`, all via
-`InferenceAllSimpleMeanDiff`'s "Weighted empirical contrast path"). By this
+`InferenceAllSimpleAverageDiff`'s "Weighted empirical contrast path"). By this
 document's own stated rule ("Inherited implementations from concrete or
 abstract family classes count as implemented"), these classes are
 implemented. They remain **excluded from the main table above purely for

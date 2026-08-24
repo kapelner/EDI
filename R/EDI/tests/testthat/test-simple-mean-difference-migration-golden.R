@@ -26,7 +26,7 @@ expect_simple_mean_difference_golden = function(
 	method,
 	args,
 	expected,
-	class_name = "InferenceAllSimpleMeanDiff",
+	class_name = "InferenceAllSimpleAverageDiff",
 	tolerance = 1e-8
 ) {
 	des = simple_mean_difference_golden_design()
@@ -56,7 +56,7 @@ test_that("migrated simple mean-difference classes expose retained APIs only", {
 	)
 
 	expected_capabilities = list(
-		InferenceAllSimpleMeanDiff = c(
+		InferenceAllSimpleAverageDiff = c(
 			"randomization_test",
 			"randomization_ci",
 			"nonparametric_bootstrap",

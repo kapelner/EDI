@@ -140,7 +140,7 @@ confidence interval.
 \dontrun{
 seq_des = DesignSeqOneByOneKK14$new(n = 100, response_type = "continuous")
 # ... run the experiment: add subjects and responses ...
-seq_des_inf = InferenceAllSimpleMeanDiff$new(seq_des)
+seq_des_inf = InferenceAllSimpleAverageDiff$new(seq_des)
 seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = 501)
 }
 }

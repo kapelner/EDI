@@ -22,6 +22,10 @@ rather than as a single additive log-odds-ratio). \code{likelihood_tier =
 "full"}: likelihood-ratio, score, gradient, and Wald tests are all
 available when the model converges, plus parametric-likelihood-bootstrap
 calibration of the likelihood-ratio test.
+Bayesian-bootstrap inference is temporarily unavailable because the current
+non-uniform weighted hook fits a cumulative-logit surrogate rather than the
+stereotype likelihood. It will remain disabled until the native weighted
+stereotype-logit backend described in the package implementation plan lands.
 }
 \references{
 Anderson, J. A. (1984). "Regression and Ordered Categorical

@@ -338,7 +338,7 @@ argument are fit once per formula in \code{formulas} (one
 once, ignoring \code{formulas}. Note this is a syntactic check
 (does the constructor accept one), not a semantic one (does the fit
 actually use it) -- some classes accept-and-ignore \code{model_formula}
-(e.g. \code{InferenceAllSimpleMeanDiff}'s unadjusted Welch's t-test);
+(e.g. \code{InferenceAllSimpleAverageDiff}'s unadjusted Welch's t-test);
 see \code{fix_inference_hierarchy.md}'s
 \code{adjusts_for_covariates} registry-metadata audit, which makes
 the \code{cov_model} column semantics-aware wherever that audit has

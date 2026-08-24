@@ -7,6 +7,7 @@
 #include <RcppEigen.h>
 #endif
 #include <algorithm>
+#include <cmath>
 #include <vector>
 #include <stdexcept>
 
@@ -27,31 +28,35 @@ inline Eigen::ArrayXd plogis_array_clamped(const Eigen::ArrayXd& eta) {
 struct ContinuationRatioObjective {
     const Eigen::Ref<const MatrixXd> X_aug;
     const Eigen::Ref<const VectorXd> z;
+    const Eigen::Ref<const VectorXd> weights_aug;
     VectorXd eta;
     VectorXd mu;
     VectorXd work;
     ArrayXd log_mu;
     ArrayXd log_one_minus_mu;
 
-    ContinuationRatioObjective(const Eigen::Ref<const MatrixXd>& X_aug, const Eigen::Ref<const VectorXd>& z) :
-        X_aug(X_aug), z(z), eta(X_aug.rows()), mu(X_aug.rows()), work(X_aug.rows()),
+    ContinuationRatioObjective(const Eigen::Ref<const MatrixXd>& X_aug,
+            const Eigen::Ref<const VectorXd>& z,
+            const Eigen::Ref<const VectorXd>& weights_aug) :
+        X_aug(X_aug), z(z), weights_aug(weights_aug), eta(X_aug.rows()), mu(X_aug.rows()), work(X_aug.rows()),
         log_mu(X_aug.rows()), log_one_minus_mu(X_aug.rows()) {}
 
     double operator()(const VectorXd& beta, VectorXd& grad) {
         eta.noalias() = X_aug * beta;
         mu = plogis_array_clamped(eta.array()).matrix();
-        work.noalias() = mu - z;
+        work = (weights_aug.array() * (mu - z).array()).matrix();
         grad.noalias() = X_aug.transpose() * work; // Negative log-likelihood gradient
 
         log_mu = mu.array().max(1e-12).log();
         log_one_minus_mu = (1.0 - mu.array()).max(1e-12).log();
-        return -(z.array() * log_mu + (1.0 - z.array()) * log_one_minus_mu).sum();
+        return -(weights_aug.array() *
+            (z.array() * log_mu + (1.0 - z.array()) * log_one_minus_mu)).sum();
     }
 
     MatrixXd hessian(const VectorXd& beta) {
         eta.noalias() = X_aug * beta;
         mu = plogis_array_clamped(eta.array()).matrix();
-        work = (mu.array() * (1.0 - mu.array())).matrix();
+        work = (weights_aug.array() * mu.array() * (1.0 - mu.array())).matrix();
         return weighted_crossprod(X_aug, work);
     }
 };
@@ -62,13 +67,29 @@ struct ContinuationRatioObjective {
 struct ContinuationRatioAugmentedData {
 	MatrixXd X_aug;
 	VectorXd z;
+	VectorXd weights_aug;
 	int n_alpha;
 };
 
 static ContinuationRatioAugmentedData build_continuation_ratio_augmented_data(const Eigen::Ref<const MatrixXd>& X,
-													const Eigen::Ref<const VectorXd>& y) {
+											const Eigen::Ref<const VectorXd>& y,
+											const VectorXd* subject_weights = nullptr) {
 	int n = X.rows();
 	int p = X.cols();
+	if (y.size() != n) throw std::invalid_argument("y length must equal nrow(X)");
+	if (subject_weights != nullptr) {
+		if (subject_weights->size() != n)
+			throw std::invalid_argument("weights length must equal nrow(X)");
+		double weight_sum = 0.0;
+		for (int i = 0; i < n; ++i) {
+			const double wi = (*subject_weights)[i];
+			if (!std::isfinite(wi) || wi < 0.0)
+				throw std::invalid_argument("weights must be finite and nonnegative");
+			weight_sum += wi;
+		}
+		if (!(weight_sum > 0.0))
+			throw std::invalid_argument("weights must contain at least one positive value");
+	}
 
 	std::vector<double> levels;
 	for (int i = 0; i < y.size(); ++i) {
@@ -79,7 +100,7 @@ static ContinuationRatioAugmentedData build_continuation_ratio_augmented_data(co
 	std::sort(levels.begin(), levels.end());
 	int K = levels.size();
 	if (K < 2) {
-		return ContinuationRatioAugmentedData{MatrixXd(0, p), VectorXd(0), 0};
+		return ContinuationRatioAugmentedData{MatrixXd(0, p), VectorXd(0), VectorXd(0), 0};
 	}
 	int n_alpha = K - 1;
 
@@ -93,6 +114,7 @@ static ContinuationRatioAugmentedData build_continuation_ratio_augmented_data(co
 
 	MatrixXd X_aug = MatrixXd::Zero(total_rows, n_alpha + p);
 	VectorXd z(total_rows);
+	VectorXd weights_aug(total_rows);
 	int row = 0;
 	for (int i = 0; i < n; ++i) {
 		const int yi_level = y_level[i];
@@ -101,9 +123,10 @@ static ContinuationRatioAugmentedData build_continuation_ratio_augmented_data(co
 			X_aug(row, j) = 1.0;
 			if (p > 0) X_aug.row(row).tail(p) = X.row(i);
 			z[row] = (yi_level == j) ? 1.0 : 0.0;
+			weights_aug[row] = subject_weights == nullptr ? 1.0 : (*subject_weights)[i];
 		}
 	}
-	return ContinuationRatioAugmentedData{X_aug, z, n_alpha};
+	return ContinuationRatioAugmentedData{X_aug, z, weights_aug, n_alpha};
 }
 
 } // namespace
@@ -115,6 +138,7 @@ struct ContinuationRatioFit {
 	LikelihoodFitResult fit;
 	Eigen::MatrixXd X_aug;
 	Eigen::VectorXd z;
+	Eigen::VectorXd weights_aug;
 	int n_alpha;
 	int p;
 };
@@ -129,19 +153,22 @@ ContinuationRatioFit fast_continuation_ratio_internal(
 		std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
 		std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
 		std::string optimization_alg = "lbfgs",
-		std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt) {
+		std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
+		std::optional<Eigen::VectorXd> subject_weights = std::nullopt) {
 	ContinuationRatioFit result;
 	result.p = X.cols();
-	ContinuationRatioAugmentedData aug = build_continuation_ratio_augmented_data(X, y);
+	const VectorXd* subject_weights_ptr = subject_weights.has_value() ? &(*subject_weights) : nullptr;
+	ContinuationRatioAugmentedData aug = build_continuation_ratio_augmented_data(X, y, subject_weights_ptr);
 	result.X_aug = aug.X_aug;
 	result.z = aug.z;
+	result.weights_aug = aug.weights_aug;
 	result.n_alpha = aug.n_alpha;
 	if (result.n_alpha == 0) {
 		return result;
 	}
 
 	int p_aug = result.n_alpha + result.p;
-	ContinuationRatioObjective fun(result.X_aug, result.z);
+	ContinuationRatioObjective fun(result.X_aug, result.z, result.weights_aug);
 	VectorXd beta = VectorXd::Zero(p_aug);
 	if (warm_start_beta.has_value()) {
 		beta = *warm_start_beta;
@@ -307,7 +334,7 @@ List fast_continuation_ratio_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X
             .set("alpha", VectorXd::Zero(0)));
     }
 
-    ContinuationRatioObjective fun(cr.X_aug, cr.z);
+    ContinuationRatioObjective fun(cr.X_aug, cr.z, cr.weights_aug);
     LikelihoodFitResult& fit = cr.fit;
 
     return edi::to_rcpp_list(edi::ResultMap()
@@ -318,6 +345,74 @@ List fast_continuation_ratio_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X
         .set("neg_loglik", fit.value)
         .set("X_aug", cr.X_aug)
         .set("z", cr.z)
+        .set("converged", fit.converged)
+        .set("num_iter", fit.niter)
+        .set("hit_iteration_cap", fit.hit_iteration_cap)
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
+        .set("fisher_information", fun.hessian(fit.params)));
+}
+
+//' Fast Weighted Continuation-Ratio Regression, Direct MLE (C++ Backend)
+//'
+//' Fits the same continuation-ratio likelihood as
+//' \code{fast_continuation_ratio_regression_cpp()}, weighting every augmented
+//' binary row for subject \eqn{i} by that subject's nonnegative weight
+//' \eqn{w_i}. This entry point is intended for bootstrap and other weighted
+//' refits whose estimates must retain the continuation-ratio coefficient
+//' convention.
+//'
+//' @inheritParams fast_continuation_ratio_regression_cpp
+//' @param weights A finite, nonnegative subject-level weight vector of length
+//'   \code{nrow(X)} containing at least one positive value.
+//' @return The same result fields as
+//'   \code{fast_continuation_ratio_regression_cpp()}, plus
+//'   \code{weights_aug}, the weights copied onto the augmented binary rows.
+//' @keywords internal
+// [[Rcpp::export]]
+List fast_continuation_ratio_regression_weighted_cpp(
+        const Eigen::Map<Eigen::MatrixXd>& X,
+        SEXP y,
+        const Eigen::Map<Eigen::VectorXd>& weights,
+        int maxit = 100,
+        double tol = 1e-8,
+        Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue,
+        bool smart_cold_start = true,
+        Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
+        Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
+        std::string optimization_alg = "lbfgs",
+        Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
+    NumericVector y_r(y);
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+    int p = X.cols();
+    ContinuationRatioFit cr = fast_continuation_ratio_internal(
+        X, y_vec, maxit, tol,
+        nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
+        smart_cold_start,
+        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
+        nullable_to_optional<Eigen::VectorXd>(fixed_values),
+        optimization_alg,
+        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
+        VectorXd(weights));
+    if (cr.n_alpha == 0) {
+        return edi::to_rcpp_list(edi::ResultMap()
+            .set("b", VectorXd::Zero(p))
+            .set("alpha", VectorXd::Zero(0))
+            .set("weights_aug", cr.weights_aug));
+    }
+
+    ContinuationRatioObjective fun(cr.X_aug, cr.z, cr.weights_aug);
+    LikelihoodFitResult& fit = cr.fit;
+
+    return edi::to_rcpp_list(edi::ResultMap()
+        .set("b", fit.params.tail(p))
+        .set("alpha", fit.params.head(cr.n_alpha))
+        .set("beta_full", fit.params)
+        .set("params", fit.params)
+        .set("neg_loglik", fit.value)
+        .set("X_aug", cr.X_aug)
+        .set("z", cr.z)
+        .set("weights_aug", cr.weights_aug)
         .set("converged", fit.converged)
         .set("num_iter", fit.niter)
         .set("hit_iteration_cap", fit.hit_iteration_cap)
@@ -405,7 +500,7 @@ List fast_continuation_ratio_regression_with_var_cpp( const Eigen::Map<Eigen::Ma
     int n_alpha = cr.n_alpha;
     LikelihoodFitResult& fit = cr.fit;
 
-    ContinuationRatioObjective fun(cr.X_aug, cr.z);
+    ContinuationRatioObjective fun(cr.X_aug, cr.z, cr.weights_aug);
     FixedParamSpec fixed_spec = make_fixed_param_spec(
         n_alpha + p,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),

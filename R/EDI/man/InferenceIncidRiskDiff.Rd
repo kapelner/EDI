@@ -74,7 +74,7 @@ inf$compute_estimate()
   \code{InferenceRand}'s): for incidence responses it dispatches to the
   Zhang exact randomization test rather than refusing outright, matching
   this class's pre-migration old-ladder behavior. This deliberately
-  differs from the \code{InferenceAllSimpleMeanDiff}-family precedent of
+  differs from the \code{InferenceAllSimpleAverageDiff}-family precedent of
   pinning \code{InferenceRand}'s version, which would have regressed the
   working Zhang dispatch this class had on the old ladder.
 

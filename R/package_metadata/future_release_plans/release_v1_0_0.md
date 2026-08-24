@@ -233,7 +233,7 @@ the frozen substrate makes it additive.
     zero failures). See `inference_suite_plan.md → TODO-9` for the full
     writeup.
 
-14. **`marginal_estimand_report.md`** (added 2026-08-18, user decision —
+14. **[x] `marginal_estimand_report.md`** (added 2026-08-18, user decision —
     pulled forward from the "Deferred to 1.x" list below; narrowed
     2026-08-18 to just this plan — see amendment below). The
     `set_estimand()` axis: conditional (current behavior) vs. marginal
@@ -258,10 +258,29 @@ the frozen substrate makes it additive.
     TODO-6 (estimand-aware `get_supported_testing_types()`, both setter
     directions loud-error regardless of order), TODO-8 (the
     `compute_estimate()` dispatch question resolved as part of TODO-3).
-    TODO-4/5/7/9 (the concrete ZOIB/ZIP/hurdle/logit/Poisson/beta-
-    regression wiring) remain gated on `fix_inference_hierarchy.md`'s
-    Full-Likelihood Estimators remainder. Sequenced in `_master.md`'s
-    Phase 0 and Phase 5A step 1.
+    TODO-7 was reclassified as a consequence of TODO-4/5/9, not
+    independent work (randomization/bootstrap paths inherit estimand-
+    awareness automatically from an estimand-aware `compute_estimate()`).
+    **Done (2026-08-24): TODO-4 (ZOIB), TODO-5 (ZIP/hurdle Poisson), and
+    TODO-9 (logistic/Poisson/beta-regression/identity-binomial) all
+    closed** once `fix_inference_hierarchy.md`'s Full-Likelihood
+    Estimators remainder closed (2026-08-23) unblocked them. Real bugs
+    found and fixed along the way (see `marginal_estimand_report.md` for
+    full writeups per TODO): CI/pval paths bypassing the estimand-aware
+    `compute_estimate()`; a cache-invalidation bug returning stale
+    marginal numbers after toggling back to `"conditional"`; a stale
+    registry table silently breaking `self$supports("marginal_estimand")`;
+    a truncated-NegBin mean-formula risk correctly identified and left
+    out of scope (NegBin variants deliberately not wired — Poisson-
+    specific derivations); a Fisher-information-matrix dimension bug in
+    the beta-regression wiring (caught safely by a dimension guard, no
+    wrong number shipped); and two families (`InferenceCountPoisson`'s
+    `marginal_ratio`, `InferenceIncidBinomialIdentityRiskDiff`'s
+    `marginal_mean_diff`) confirmed to numerically collapse to their
+    conditional estimate for structural reasons (log-link/identity-link
+    with no treatment interaction), documented explicitly rather than
+    left as a silent surprise. All in `_master.md`'s Phase 0/Phase 5A
+    step 1.
     **Amendment (2026-08-18, user decision):** `expanded_estimate_report.md`
     — the orthogonal `estimate_type` axis, originally pulled into this
     item alongside `marginal_estimand_report.md` for a joint decision —

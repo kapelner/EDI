@@ -14,7 +14,7 @@ not Wald intervals/tests built around the point estimate and a separately
 estimated standard error. Robust to outliers and does not assume normality or
 equal arm variances. Not supported for incidence (binary) responses (the
 Hodges-Lehmann estimator degenerates on 0/1 data — use
-\code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}} or a
+\code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}} or a
 conditional-logistic estimator instead) or censored survival data (use
 \code{\link[EDI:InferenceSurvivalGehanWilcox]{InferenceSurvivalGehanWilcox}}
 instead). This class has no likelihood tier (\code{likelihood_tier = "none"})

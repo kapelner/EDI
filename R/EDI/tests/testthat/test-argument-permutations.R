@@ -67,7 +67,7 @@ test_that("create_design_matrix consistency", {
 	for(i in 1:n) seq_des$add_one_subject_to_experiment_and_assign(X[i, , drop=FALSE])
 	add_all_subject_responses_seq(seq_des, rnorm(n))
 
-	inf_obj <- InferenceAllSimpleMeanDiff$new(seq_des)
+	inf_obj <- InferenceAllSimpleAverageDiff$new(seq_des)
 
 	# Access private$m method
 	dm <- inf_obj$.__enclos_env__$private$create_design_matrix()

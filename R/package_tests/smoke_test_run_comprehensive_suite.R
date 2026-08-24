@@ -18,14 +18,14 @@ before_rows = if (file.exists(results_path)) nrow(read.csv(results_path, strings
 
 status = system2(
 	"Rscript",
-	c(repo_path("package_tests", "run_comprehensive_suite.R"), "smoke", "InferenceAllSimpleMeanDiff", "180", "--force")
+	c(repo_path("package_tests", "run_comprehensive_suite.R"), "smoke", "InferenceAllSimpleAverageDiff", "180", "--force")
 )
 expect_true(identical(status, 0L), "Unified comprehensive suite smoke runner failed.")
 expect_true(file.exists(results_path), "Unified comprehensive suite results file was not written.")
 expect_true(file.exists(failures_path), "Unified comprehensive suite failures file was not written.")
 
 results = read.csv(results_path, stringsAsFactors = FALSE)
-selected = results[results$tier == "smoke" & results$target_filter == "InferenceAllSimpleMeanDiff", , drop = FALSE]
+selected = results[results$tier == "smoke" & results$target_filter == "InferenceAllSimpleAverageDiff", , drop = FALSE]
 required_cols = c(
 	"case_id", "tier", "target_filter", "step", "runner", "status",
 	"start_time", "end_time", "duration_time_sec", "output_file", "failure_file",
@@ -43,7 +43,7 @@ expect_true(any(selected$step == "internal_safety_nets" & selected$rows_written 
 expect_true(nrow(results) >= before_rows, "Unified results unexpectedly lost prior rows.")
 
 failures = read.csv(failures_path, stringsAsFactors = FALSE)
-selected_failures = failures[failures$tier == "smoke" & failures$target_filter == "InferenceAllSimpleMeanDiff", , drop = FALSE]
+selected_failures = failures[failures$tier == "smoke" & failures$target_filter == "InferenceAllSimpleAverageDiff", , drop = FALSE]
 expect_true(!nrow(selected_failures), "Unified smoke run wrote failure rows.")
 
 message("run_comprehensive_suite smoke test passed with ", nrow(selected), " selected step rows")

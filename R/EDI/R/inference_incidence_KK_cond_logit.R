@@ -14,11 +14,11 @@ conditional_logit_prepare_combined_design = function(private_env, KKstats) {
 		y_m = private_env$y[i_matched]
 		w_m = private_env$w[i_matched]
 		strata_m = m_vec[i_matched]
-		X_mat = if (p > 0L) as.matrix(private_env$get_X()[i_matched, , drop = FALSE]) else matrix(nrow = length(y_m), ncol = 0L)
+		X_mat = if (p > 0L) as.matrix(private_env$get_X()[i_matched, , drop = FALSE]) else matrix(numeric(0), nrow = length(y_m), ncol = 0L)
 		if (has_reservoir) {
 			y_r = KKstats$y_reservoir
 			w_r = KKstats$w_reservoir
-			X_r = if (p > 0L) as.matrix(KKstats$X_reservoir) else matrix(nrow = length(y_r), ncol = 0L)
+			X_r = if (p > 0L) as.matrix(KKstats$X_reservoir) else matrix(numeric(0), nrow = length(y_r), ncol = 0L)
 			design = build_matching_combined_clogit_design_cpp(
 				as.double(y_m), as.double(w_m), X_mat, as.integer(strata_m),
 				as.double(y_r), as.double(w_r), X_r
@@ -49,9 +49,12 @@ conditional_logit_prepare_combined_design = function(private_env, KKstats) {
 	list(X = X_comb, y = y_comb, j_beta_T = j_beta_T, has_reservoir = has_reservoir)
 }
 
-conditional_logit_weighted_combined_estimate = function(private_env, KKstats, row_weights) {
+conditional_logit_weighted_combined_estimate = function(private_env, KKstats, row_weights, estimate_only = TRUE) {
 	design = conditional_logit_prepare_combined_design(private_env, KKstats)
-	if (is.null(design$X)) return(NA_real_)
+	if (is.null(design$X)) {
+		private_env$cache_nonestimable_estimate("kk_clogit_combined_weighted_no_informative_data")
+		return(NA_real_)
+	}
 	kk_w = kk_pair_and_reservoir_bootstrap_weights(private_env, row_weights)
 	w_comb = if (isTRUE(design$has_reservoir) && KKstats$m > 0) {
 		c(kk_w$pair_weights, kk_w$reservoir_weights)
@@ -61,7 +64,10 @@ conditional_logit_weighted_combined_estimate = function(private_env, KKstats, ro
 		kk_w$reservoir_weights
 	}
 	ok = is.finite(w_comb) & w_comb > 0 & is.finite(design$y)
-	if (!any(ok)) return(NA_real_)
+	if (!any(ok)) {
+		private_env$cache_nonestimable_estimate("kk_clogit_combined_weighted_no_positive_weights")
+		return(NA_real_)
+	}
 	X_comb = design$X[ok, , drop = FALSE]
 	y_comb = design$y[ok]
 	w_comb = w_comb[ok]
@@ -77,7 +83,21 @@ conditional_logit_weighted_combined_estimate = function(private_env, KKstats, ro
 		error = function(e) NULL
 	)
 	j_beta_fit = match("beta_T", colnames(X_comb))
-	if (is.null(mod) || is.na(j_beta_fit) || length(mod$b) < j_beta_fit || !is.finite(mod$b[j_beta_fit])) return(NA_real_)
+	assessment = private_env$assess_combined_fit(
+		mod,
+		j_beta_fit,
+		require_variance = !estimate_only
+	)
+	if (!isTRUE(assessment$usable)) {
+		private_env$cache_nonestimable_estimate(paste0("kk_clogit_combined_weighted_", assessment$reason))
+		return(NA_real_)
+	}
+	private_env$set_fit_warm_start(
+		as.numeric(mod$b), "beta",
+		fisher = mod$fisher_information %||% mod$XtWX
+	)
+	private_env$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else sqrt(assessment$variance)
+	private_env$clear_nonestimable_state()
 	as.numeric(mod$b[j_beta_fit])
 }
 
@@ -197,15 +217,17 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			if (weights_are_effectively_constant(row_weights)) {
-				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
+				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = estimate_only))[1L]
 				if (is.finite(beta_hat_T)) {
 					private$cached_values$beta_hat_T = beta_hat_T
-					private$cached_values$s_beta_hat_T = NA_real_
 					return(private$cached_values$beta_hat_T)
 				}
+				return(NA_real_)
 			}
-			private$cached_values$beta_hat_T = private$compute_weighted_combined_estimate(row_weights)
-			private$cached_values$s_beta_hat_T = NA_real_
+			private$cached_values$beta_hat_T = private$compute_weighted_combined_estimate(
+				row_weights,
+				estimate_only = estimate_only
+			)
 			private$cached_values$beta_hat_T
 		},
 		#' @description Uses the shared asymptotic confidence-interval contract; see
@@ -238,8 +260,55 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 		# no-op -- InferenceMixinKKPassThrough's own default body is
 		# identical.
 		cached_mod = NULL,
-		max_abs_reasonable_coef = 1e4,
+		# Temporary class-local separation ceiling. Replace with the centralized
+		# diagnostics policy when public_diagnostics_api_spec.md is implemented.
+		max_abs_reasonable_coef = 10,
+		assess_combined_fit = function(mod, j_treat, require_variance = FALSE, check_treatment = TRUE){
+			fail = function(reason) list(usable = FALSE, reason = reason, variance = NA_real_)
+			if (is.null(mod)) return(fail("fit_unavailable"))
+			if (!isTRUE(mod$converged)) return(fail("not_converged"))
+			if (!identical(mod$hit_iteration_cap, FALSE)) return(fail("iteration_cap_reached"))
+			gradient_norm = suppressWarnings(as.numeric(mod$gradient_norm)[1L])
+			if (!is.finite(gradient_norm)) return(fail("gradient_norm_nonfinite"))
+
+			b = suppressWarnings(as.numeric(mod$b))
+			j_treat = suppressWarnings(as.integer(j_treat)[1L])
+			if (!is.finite(j_treat) || j_treat < 1L || j_treat > length(b) || any(!is.finite(b))) {
+				return(fail("coefficients_nonfinite"))
+			}
+			if (check_treatment && abs(b[j_treat]) > private$max_abs_reasonable_coef) {
+				return(fail("extreme_treatment_coefficient"))
+			}
+
+			information = mod$fisher_information %||% mod$XtWX %||% mod$information
+			information = tryCatch(as.matrix(information), error = function(e) NULL)
+			if (is.null(information) || nrow(information) < 1L ||
+					nrow(information) != ncol(information) || nrow(information) != length(b) ||
+					any(!is.finite(information))) {
+				return(fail("information_unavailable"))
+			}
+			information = (information + t(information)) / 2
+			chol_information = tryCatch(chol(information), error = function(e) NULL)
+			if (is.null(chol_information)) return(fail("information_not_positive_definite"))
+			reciprocal_condition = tryCatch(rcond(information), error = function(e) NA_real_)
+			if (!is.finite(reciprocal_condition) || reciprocal_condition <= sqrt(.Machine$double.eps)) {
+				return(fail("information_ill_conditioned"))
+			}
+
+			variance = suppressWarnings(as.numeric(mod$ssq_b_j)[1L])
+			if (!is.finite(variance) || variance <= 0) {
+				variance = tryCatch(chol2inv(chol_information)[j_treat, j_treat], error = function(e) NA_real_)
+			}
+			if (require_variance && (!is.finite(variance) || variance <= 0)) {
+				return(fail("treatment_variance_unavailable"))
+			}
+			list(usable = TRUE, reason = NA_character_, variance = variance)
+		},
 		shared_combined_likelihood = function(estimate_only = FALSE){
+			# A rejected primary fit is terminal for this inference object. Do not
+			# let a later variance, likelihood-test, or resampling request refit the
+			# same model and replace the typed nonestimable result.
+			if (isTRUE(self$is_nonestimable("estimate"))) return(invisible(NULL))
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
 			private$cached_values$likelihood_test_context = NULL
@@ -247,7 +316,10 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 				private$compute_basic_match_data()
 			}
 			KKstats = private$cached_values$KKstats
-			if (is.null(KKstats)) return(invisible(NULL))
+			if (is.null(KKstats)) {
+				private$cache_nonestimable_estimate("kk_clogit_combined_match_data_unavailable")
+				return(invisible(NULL))
+			}
 
 			design = conditional_logit_prepare_combined_design(private, KKstats)
 			X_comb = design$X
@@ -264,65 +336,67 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 				required_cols = j_beta_T,
 				fit_fun = function(X_fit){
 					j_beta_fit = match("beta_T", colnames(X_fit))
-					tryCatch(
-						if (estimate_only) {
-							fast_logistic_regression(
+					tryCatch({
+						res = if (estimate_only) {
+							fast_logistic_regression_cpp(
 								X = X_fit,
-								y = y_comb,
+								y = as.numeric(y_comb),
 								optimization_alg = private$optimization_alg,
 								warm_start_beta = private$get_fit_warm_start_for_length("beta", ncol(X_fit)),
-								warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X_fit))
+								warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X_fit)),
+								estimate_only = FALSE
 							)
 						} else {
-							fast_logistic_regression_with_var(
+							fast_logistic_regression_with_var_cpp(
 								X = X_fit,
-								y = y_comb,
+								y = as.numeric(y_comb),
 								j = j_beta_fit,
 								optimization_alg = private$optimization_alg,
 								warm_start_beta = private$get_fit_warm_start_for_length("beta", ncol(X_fit)),
 								warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X_fit))
 							)
-						},
-						error = function(e) NULL
-					)
+						}
+						res$params = as.numeric(res$b)
+						res$neg_loglik = res$neg_loglik %||% res$neg_ll
+						res
+					}, error = function(e) NULL)
 				},
 				fit_ok = function(mod, X_fit, keep){
-					if (is.null(mod)) return(FALSE)
 					j_beta_fit = match("beta_T", colnames(X_fit))
-					if (!is.finite(j_beta_fit) || is.na(j_beta_fit)) return(FALSE)
-					beta = suppressWarnings(as.numeric(mod$b[j_beta_fit]))
-					if (!is.finite(beta) || abs(beta) > private$max_abs_reasonable_coef) return(FALSE)
-					if (estimate_only) return(TRUE)
-					ssq = suppressWarnings(as.numeric(mod$ssq_b_j))
-					is.finite(ssq) && ssq > 0 && sqrt(ssq) <= private$max_abs_reasonable_coef
+					isTRUE(private$assess_combined_fit(
+						mod,
+						j_beta_fit,
+						require_variance = !estimate_only
+					)$usable)
 				}
 			)
 			mod = attempt$fit
 			j_beta_T = if (!is.null(attempt$X)) match("beta_T", colnames(attempt$X)) else NA_integer_
-			if (is.null(mod) || !is.finite(j_beta_T) || is.na(j_beta_T) || !is.finite(mod$b[j_beta_T])){
-				private$cache_nonestimable_estimate("kk_clogit_combined_fit_failed")
-				return(invisible(NULL))
-			}
-			if (max(abs(mod$b), na.rm = TRUE) > private$max_abs_reasonable_coef){
-				private$cache_nonestimable_estimate("kk_clogit_combined_extreme_coefficients")
+			assessment = private$assess_combined_fit(
+				mod,
+				j_beta_T,
+				require_variance = !estimate_only
+			)
+			if (!isTRUE(assessment$usable)){
+				private$cached_mod = NULL
+				private$cached_values$likelihood_test_context = NULL
+				private$cache_nonestimable_estimate(paste0("kk_clogit_combined_", assessment$reason))
 				return(invisible(NULL))
 			}
 
 			private$cached_values$beta_hat_T   = as.numeric(mod$b[j_beta_T])
 			private$cached_mod = mod
-			private$set_fit_warm_start(as.numeric(mod$b), "beta")
+			private$set_fit_warm_start(
+				as.numeric(mod$b), "beta",
+				fisher = mod$fisher_information %||% mod$XtWX
+			)
 			private$cached_values$likelihood_test_context = list(
 				X = attempt$X,
 				y = y_comb,
 				j_treat = j_beta_T
 			)
 			if (!estimate_only) {
-				se = sqrt(mod$ssq_b_j)
-				private$cached_values$s_beta_hat_T = if (is.finite(se) && se <= private$max_abs_reasonable_coef) se else NA_real_
-				if (!is.finite(private$cached_values$s_beta_hat_T)){
-					private$cache_nonestimable_se("kk_clogit_combined_standard_error_unavailable")
-					return(invisible(NULL))
-				}
+				private$cached_values$s_beta_hat_T = sqrt(assessment$variance)
 			}
 			private$clear_nonestimable_state()
 			private$cached_values$df = NA_real_
@@ -337,6 +411,26 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 			as.numeric(se)[1L]
 		},
 		supports_likelihood_tests = function() TRUE,
+		compute_likelihood_test_two_sided_pval = function(delta, testing_type, bartlett_B = NULL){
+			spec = private$get_likelihood_test_spec()
+			if (is.null(spec)) {
+				if (!isTRUE(self$is_nonestimable())) {
+					private$cache_nonestimable_estimate("kk_clogit_combined_likelihood_test_spec_unavailable")
+				}
+				return(NA_real_)
+			}
+			p_value = private$get_memoized_likelihood_test_pval(
+				delta = delta,
+				testing_type = testing_type,
+				spec = spec,
+				warm_cache_key = paste0("likelihood_test:", testing_type),
+				bartlett_B = bartlett_B
+			)
+			if (!is.finite(p_value) && !isTRUE(self$is_nonestimable("estimate"))) {
+				private$cache_nonestimable_se(paste0(testing_type, "_test_unavailable"))
+			}
+			p_value
+		},
 		get_likelihood_test_spec = function(){
 			private$shared_combined_likelihood(estimate_only = FALSE)
 			ctx = private$cached_values$likelihood_test_context
@@ -349,15 +443,29 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 				y = y,
 				j = j_treat,
 				full_fit = private$cached_mod,
-				fit_null = function(delta){
-					fast_logistic_regression_with_var_cpp(
-						X = X_fit,
-						y = y,
-						j = j_treat,
-						fixed_idx = j_treat,
-						fixed_values = delta
+				fit_null = function(delta, start = NULL){
+					fit = tryCatch(
+						fast_logistic_regression_with_var_cpp(
+							X = X_fit,
+							y = y,
+							j = j_treat,
+							warm_start_beta = start,
+							fixed_idx = j_treat,
+							fixed_values = delta,
+							optimization_alg = private$optimization_alg
+						),
+						error = function(e) NULL
 					)
+					assessment = private$assess_combined_fit(
+						fit,
+						j_treat,
+						require_variance = FALSE,
+						check_treatment = FALSE
+					)
+					if (!isTRUE(assessment$usable)) return(NULL)
+					fit
 				},
+				extract_start = function(fit) as.numeric(fit$b),
 				score = function(fit){
 					get_logistic_regression_score_cpp(X_fit, y, as.numeric(fit$b))
 				},
@@ -376,13 +484,21 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 			)
 		},
 		supports_lik_ratio_param_bootstrap = function() TRUE,
-		compute_weighted_combined_estimate = function(row_weights){
+		compute_weighted_combined_estimate = function(row_weights, estimate_only = TRUE){
 			if (is.null(private$cached_values$KKstats)){
 				private$compute_basic_match_data()
 			}
 			KKstats = private$cached_values$KKstats
-			if (is.null(KKstats)) return(NA_real_)
-			conditional_logit_weighted_combined_estimate(private, KKstats, row_weights)
+			if (is.null(KKstats)) {
+				private$cache_nonestimable_estimate("kk_clogit_combined_weighted_match_data_unavailable")
+				return(NA_real_)
+			}
+			conditional_logit_weighted_combined_estimate(
+				private,
+				KKstats,
+				row_weights,
+				estimate_only = estimate_only
+			)
 		},
 		simulate_under_lik_null = function(spec, delta, null_fit){
 			X = spec$X
@@ -394,22 +510,37 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 			full_res = tryCatch(
 				fast_logistic_regression_cpp(
 					X = X, y = y_sim,
-					optimization_alg = private$optimization_alg %||% "lbfgs"
+					optimization_alg = private$optimization_alg %||% "lbfgs",
+					estimate_only = FALSE
 				),
 				error = function(e) NULL
 			)
-			if (is.null(full_res) || !is.finite(full_res$b[j])) return(NULL)
+			full_assessment = private$assess_combined_fit(
+				full_res,
+				j,
+				require_variance = FALSE
+			)
+			if (!isTRUE(full_assessment$usable)) return(NULL)
 			list(
 				full_fit = full_res,
 				fit_null = function(d, start = NULL){
-					tryCatch(
+					fit = tryCatch(
 						fast_logistic_regression_with_var_cpp(
 							X = X, y = y_sim, j = j,
 							warm_start_beta = start %||% as.numeric(full_res$b),
-							fixed_idx = j, fixed_values = d
+							fixed_idx = j, fixed_values = d,
+							optimization_alg = private$optimization_alg %||% "lbfgs"
 						),
 						error = function(e) NULL
 					)
+					assessment = private$assess_combined_fit(
+						fit,
+						j,
+						require_variance = FALSE,
+						check_treatment = FALSE
+					)
+					if (!isTRUE(assessment$usable)) return(NULL)
+					fit
 				},
 				neg_loglik = function(fit){
 					conditional_logit_neg_loglik(X, y_sim, fit$b)
@@ -482,8 +613,32 @@ InferenceIncidKKCondLogitOneLik = define_inference_class(
 		# Pinned from InferenceRandCI (incidence class -- Lesson 3): the
 		# non-KK sibling InferenceIncidRiskDiff and every other incidence KK
 		# migration this stretch pin RandCI for the Zhang randomization
-		# dispatch, not InferenceRand.
-		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+		# dispatch, not InferenceRand. Preflight the observed model statistic
+		# before RandCI can take its incidence-specific Zhang shortcut: an exact
+		# p-value must not be reported for a class whose declared primary
+		# treatment statistic is nonestimable.
+		compute_rand_two_sided_pval = function(
+				r = 501, delta = 0, transform_responses = "none", na.rm = TRUE,
+				show_progress = TRUE, permutations = NULL, type = NULL,
+				args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps){
+			private$shared_combined_likelihood(estimate_only = TRUE)
+			observed = suppressWarnings(as.numeric(private$cached_values$beta_hat_T)[1L])
+			if (isTRUE(self$is_nonestimable("estimate")) || !is.finite(observed)) {
+				if (!isTRUE(self$is_nonestimable("estimate"))) {
+					private$cache_nonestimable_estimate("kk_clogit_combined_randomization_observed_statistic_unavailable")
+				}
+				return(NA_real_)
+			}
+			rand_fn = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+			environment(rand_fn) = environment()
+			rand_fn(
+				r = r, delta = delta, transform_responses = transform_responses,
+				na.rm = na.rm, show_progress = show_progress,
+				permutations = permutations, type = type,
+				args_for_type = args_for_type,
+				zero_one_logit_clamp = zero_one_logit_clamp
+			)
+		}
 	),
 	# capabilities = "likelihood_ratio" is required explicitly -- same
 	# rationale as every class composing ParametricLikelihoodBootstrap
@@ -514,6 +669,7 @@ InferenceIncidKKCondLogitOneLik = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"get_standard_error",
 			"supports_likelihood_tests",
+			"compute_likelihood_test_two_sided_pval",
 			"supports_lik_ratio_param_bootstrap",
 			"supports_information_preference",
 			"supports_observed_information",

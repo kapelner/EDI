@@ -843,21 +843,30 @@ Inference = R6::R6Class("Inference",
 			invisible(NULL)
 		},
 		stable_signature = function(obj){
+			# Memoization cache key, not a cryptographic hash -- callers combine
+			# this with other cache-key components (r, delta, design metadata,
+			# ...), so it only needs to distinguish the objects that actually get
+			# hashed side by side, not be collision-free in general. Hashing
+			# every serialized int via a sequential R `for` loop was O(length(obj))
+			# with per-element modulo arithmetic in interpreted R -- for a large
+			# permutation matrix (`build_randomization_distribution_cache_key()`
+			# hashes the whole `r`-by-`n` `w_mat`), and re-invoked on every
+			# CI-search bisection step (`compute_rand_confidence_interval()`'s
+			# root-finding calls `compute_rand_two_sided_pval()`, which rebuilds
+			# this cache key, dozens of times per call), this dominated runtime.
+			# A fixed-size strided subsample (same idea as the old h2 term, just
+			# applied to both terms) is vectorized and O(1) in the object size.
 			raw_sig = serialize(obj, NULL, xdr = FALSE)
 			ints = as.integer(raw_sig)
-			if (length(ints) == 0L) return("0:0:0")
+			n_ints = length(ints)
+			if (n_ints == 0L) return("0:0:0")
 			modulus = 2147483647
-			h1 = 0
-			h2 = 0
-			step = max(1L, floor(length(ints) / 64L))
-			for (i in seq_along(ints)) {
-				val = ints[i]
-				h1 = (h1 * 131 + val) %% modulus
-				if (i == 1L || i == length(ints) || (i %% step) == 0L) {
-					h2 = (h2 * 65599 + val + i) %% modulus
-				}
-			}
-			paste(length(ints), as.integer(h1), as.integer(h2), sep = ":")
+			step = max(1L, floor(n_ints / 256L))
+			idx = unique(c(1L, seq.int(1L, n_ints, by = step), n_ints))
+			sampled = as.numeric(ints[idx])
+			h1 = as.integer(sum(sampled * (131 + idx %% 97)) %% modulus)
+			h2 = as.integer(sum((sampled + idx) * 65599) %% modulus)
+			paste(n_ints, h1, h2, sep = ":")
 		},
 		extract_dollar_paths = function(expr){
 			paths = list()

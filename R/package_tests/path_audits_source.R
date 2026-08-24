@@ -13,7 +13,8 @@
 # paths. They are intentionally not gated as SLOW until comprehensive results show
 # that a specific class/method path is too slow.
 # Optional per-row method overrides: always_numeric_methods, maybe_nonestimable_methods, slow_methods,
-# unsupported_methods. Values should match the comprehensive_tests.R function_run labels used below.
+# unsupported_methods, not_implemented_methods. Values should match the
+# comprehensive_tests.R function_run labels used below.
 
 slow_m_out_of_n_methods = c(
   "compute_m_out_of_n_bootstrap_two_sided_pval",
@@ -38,11 +39,23 @@ slow_brt_pval_typed_methods = c(
   "compute_rand_bootstrap_two_sided_pval_studentized",
   "compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t"
 )
+bayesian_bootstrap_methods = c(
+  "compute_bayesian_bootstrap_two_sided_pval",
+  "compute_bayesian_bootstrap_confidence_interval",
+  "compute_bayesian_bootstrap_two_sided_pval_symmetric",
+  "compute_bayesian_bootstrap_confidence_interval_basic",
+  "compute_bayesian_bootstrap_two_sided_pval_wald",
+  "compute_bayesian_bootstrap_confidence_interval_wald",
+  "compute_bayesian_bootstrap_two_sided_pval_bca",
+  "compute_bayesian_bootstrap_confidence_interval_bca",
+  "compute_bayesian_bootstrap_two_sided_pval_studentized",
+  "compute_bayesian_bootstrap_confidence_interval_studentized"
+)
 
 audit_classes = list(
 
   # ── GLOBAL ──────────────────────────────────────────────────────────────────
-  list(name="InferenceAllSimpleMeanDiff",           section="Global",     resp="all",   kk=FALSE, types="wald",          skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="cp",  pboot=NA, slow_methods=c("compute_bootstrap_two_sided_pval_studentized"), notes="rci for cont only (non-cont AllSimpleMeanDiff skipped); bootstrap studentized pval avg 178.8s / max 2001.5s at n=12 slow"),
+  list(name="InferenceAllSimpleAverageDiff",           section="Global",     resp="all",   kk=FALSE, types="wald",          skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="cp",  pboot=NA, slow_methods=c("compute_bootstrap_two_sided_pval_studentized"), notes="rci for cont only (non-cont AllSimpleMeanDiff skipped); bootstrap studentized pval avg 178.8s / max 2001.5s at n=12 slow"),
   list(name="InferenceAllSimpleMeanDiffPooledVar",  section="Global",     resp="cont",  kk=FALSE, types="wald",          skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="cp",  pboot=NA, notes="inherits AllSimpleMeanDiff; tested cont only"),
   list(name="InferenceAllSimpleWilcox",             section="Global",     resp="all",   kk=FALSE, types="wald",          skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=NA,    jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="cp",  pboot=NA, slow_methods=c("compute_rand_bootstrap_confidence_interval_smoothed"), notes="boot enabled; Bayesian bootstrap structurally unsupported (fractional weights undefined for rank statistic); BRT CI smoothed avg 94s slow"),
 
@@ -68,9 +81,9 @@ audit_classes = list(
   list(name="InferenceIncidKKModifiedPoisson",          section="Incidence", resp="incid", kk=TRUE,  types="full",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="i", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AbstractKKModifiedPoisson → AbstractKKMarginalIncid → ParamBootstrap; simulate_under_lik_null: Poisson draw"),
 
   # ── INCIDENCE non-KK ──────────────────────────────────────────────────────────
-  list(name="InferenceIncidExactFisher",               section="Incidence", resp="incid", kk=FALSE, types="wald",   skip_asymp=TRUE,  skip_ci=TRUE,  skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="i", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    exact_p=TRUE, exact_c=TRUE, slow_methods=c("compute_bootstrap_confidence_interval", "compute_bootstrap_confidence_interval_basic", "compute_bootstrap_confidence_interval_studentized", "compute_bootstrap_two_sided_pval_studentized", "compute_bayesian_bootstrap_confidence_interval"), notes="InferenceExact → InferenceJackknife; runs exact pval+CI only"),
-  list(name="InferenceIncidExactBinomial",             section="Incidence", resp="incid", kk=FALSE, types="wald",   skip_asymp=TRUE,  skip_ci=TRUE,  skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="i", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    exact_p=TRUE, exact_c=TRUE, notes="InferenceExact; KK14/FixedBinaryMatch"),
-  list(name="InferenceIncidExactZhang",            section="Incidence", resp="incid", kk=FALSE, types="wald",   skip_asymp=TRUE,  skip_ci=TRUE,  skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="",  skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    exact_p=TRUE, exact_c=TRUE, notes="InferenceExact; exact Zhang disables inherited bootstrap/Bayesian bootstrap because generic resampling weights do not define a valid exact Zhang estimator"),
+  list(name="InferenceIncidExactFisher",               section="Incidence", resp="incid", kk=FALSE, types="wald",   skip_asymp=TRUE,  skip_ci=TRUE,  skip_boot=TRUE,  skip_bbt=TRUE,  jack=FALSE, skip_rand=TRUE,  rand_resp="",  skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    exact_p=TRUE, exact_c=TRUE, notes="Exact-only class; generic bootstrap, Bayesian bootstrap, m-out-of-n, subsampling, jackknife, and randomization surfaces are not supported"),
+  list(name="InferenceIncidExactBinomial",             section="Incidence", resp="incid", kk=FALSE, types="wald",   skip_asymp=TRUE,  skip_ci=TRUE,  skip_boot=TRUE,  skip_bbt=TRUE,  jack=FALSE, skip_rand=TRUE,  rand_resp="",  skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    exact_p=TRUE, exact_c=TRUE, notes="Exact-only matched-pair class; generic resampling surfaces are not supported without estimator-preserving reconstruction"),
+  list(name="InferenceIncidExactZhang",            section="Incidence", resp="incid", kk=FALSE, types="wald",   skip_asymp=TRUE,  skip_ci=TRUE,  skip_boot=TRUE,  skip_bbt=TRUE,  jack=FALSE, skip_rand=TRUE,  rand_resp="",  skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    exact_p=TRUE, exact_c=TRUE, notes="Exact-only class; generic resampling weights do not define a valid exact Zhang estimator"),
   list(name="InferenceIncidWald",                     section="Incidence", resp="incid", kk=FALSE, types="wald",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="i", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA, notes="inherits AllSimpleMeanDiff (ParamBootstrap); explicit FALSE"),
   list(name="InferenceIncidLogRegr",                  section="Incidence", resp="incid", kk=FALSE, types="full",   skip_asymp=FALSE, skip_ci=FALSE,  skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="i", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AsympLikStdModCache; approximate Bartlett-corrected LR (pval+CI) implemented via generic InferenceParamBootstrap Monte-Carlo factor"),
   list(name="InferenceIncidProbitRegr",               section="Incidence", resp="incid", kk=FALSE, types="full",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="i", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AsympLikStdModCache"),
@@ -123,7 +136,7 @@ audit_classes = list(
   list(name="InferenceSurvivalKKWeibullMarginal",      section="Survival",  resp="surv", kk=TRUE,  types="none", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=NA, slow_methods=c("compute_rand_confidence_interval"), notes="InferenceAsymp; exposes generic asymp pval/CI but no direct compute_wald_* wrappers, so direct Wald cells are NTS"),
 
   # ── ORDINAL ───────────────────────────────────────────────────────────────────
-  list(name="InferenceOrdinalKKGEE",                    section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA, slow_methods=c("compute_bootstrap_confidence_interval_studentized", "compute_bootstrap_two_sided_pval_studentized", "compute_rand_two_sided_pval(delta=0.5)"), notes="InferenceAsymp; bootstrap studentized CI avg 51.1s / p80 30.1s / max 12084.2s at n=284 slow; compute_treatment_estimate_during_randomization_inference overridden to reuse ordLORgee fit (2026-07-28 fix: inherited mixin default routed through geeglm+binomial, which errors on >2-level responses and always returned NA)"),
+  list(name="InferenceOrdinalKKGEE",                    section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA, not_implemented_methods=bayesian_bootstrap_methods, slow_methods=c("compute_bootstrap_confidence_interval_studentized", "compute_bootstrap_two_sided_pval_studentized", "compute_rand_two_sided_pval(delta=0.5)"), notes="InferenceAsymp; Bayesian bootstrap is not implemented because non-uniform weighted refits do not yet preserve the ordLORgee estimator; bootstrap studentized CI avg 51.1s / p80 30.1s / max 12084.2s at n=284 slow; compute_treatment_estimate_during_randomization_inference overridden to reuse ordLORgee fit (2026-07-28 fix: inherited mixin default routed through geeglm+binomial, which errors on >2-level responses and always returned NA)"),
   list(name="InferenceOrdinalKKGLMM",                   section="Ordinal", resp="ord", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE, slow_methods=c("compute_rand_bootstrap_two_sided_pval_smoothed"), notes="InferenceParamBootstrap; simulate_under_lik_null added; supports=isTRUE(use_rcpp); BRT pval smoothed avg 317s slow"),
   list(name="InferenceOrdinalKKCLMM",                   section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="AbstractKKOrdinalCLMM → AsympLik; supports_likelihood_tests=FALSE"),
   list(name="InferenceOrdinalKKCLMMProbit",             section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="AbstractKKOrdinalCLMM → AsympLik"),
@@ -131,8 +144,8 @@ audit_classes = list(
   list(name="InferenceOrdinalKKCLMMCloglog",            section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="AbstractKKOrdinalCLMM → AsympLik"),
   list(name="InferenceOrdinalKKCondAdjCatLogitRegr",    section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsympLik; supports_likelihood_tests=FALSE"),
   list(name="InferenceOrdinalPairedSignTest",           section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsympLik; supports_likelihood_tests=FALSE"),
-  list(name="InferenceOrdinalAdjCatLogitRegr",          section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  slow_methods=c("compute_rand_bootstrap_two_sided_pval_smoothed"), notes="AsympLikStdModCache; simulate_under_lik_null added; BRT smoothed pval avg 499s / max 2694s slow"),
-  list(name="InferenceOrdinalStereotypeLogitRegr",      section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  slow_methods=c("compute_rand_bootstrap_two_sided_pval_smoothed"), notes="AsympLikStdModCache; simulate_under_lik_null added; BRT smoothed pval avg >30s slow"),
+  list(name="InferenceOrdinalAdjCatLogitRegr",          section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  not_implemented_methods=bayesian_bootstrap_methods, slow_methods=c("compute_rand_bootstrap_two_sided_pval_smoothed"), notes="AsympLikStdModCache; Bayesian bootstrap is not implemented until native weighted adjacent-category refits replace the cumulative-logit surrogate; simulate_under_lik_null added; BRT smoothed pval avg 499s / max 2694s slow"),
+  list(name="InferenceOrdinalStereotypeLogitRegr",      section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  not_implemented_methods=bayesian_bootstrap_methods, slow_methods=c("compute_rand_bootstrap_two_sided_pval_smoothed"), notes="AsympLikStdModCache; Bayesian bootstrap is not implemented until native weighted stereotype-logit refits replace the cumulative-logit surrogate; simulate_under_lik_null added; BRT smoothed pval avg >30s slow"),
   list(name="InferenceOrdinalContRatioRegr",            section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE, slow_methods=c("compute_rand_bootstrap_two_sided_pval_smoothed"), notes="AsympLikStdModCache; simulate_under_lik_null added; BRT pval smoothed avg 66s slow"),
   list(name="InferenceOrdinalCloglogRegr",              section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AsympLikStdModCache → ParamBootstrap; pboot=TRUE even with skip_boot"),
   list(name="InferenceOrdinalCauchitRegr",              section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AsympLikStdModCache → ParamBootstrap; pboot=TRUE"),
@@ -394,6 +407,7 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
     as.character(r[[field]] %||% character())
   }
   method_status = function(r, method_id, default_status) {
+    if (method_id %in% row_methods(r, "not_implemented_methods")) return("not_implemented")
     if (method_id %in% row_methods(r, "unsupported_methods")) return("unsupported")
     if (method_id %in% row_methods(r, "slow_methods")) return("slow")
     if (method_id %in% row_methods(r, "always_numeric_methods")) return("always_numeric")
@@ -427,7 +441,7 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
 
   stable_model_based_numeric = function(r, ttype) {
     r$name %in% c(
-      "InferenceAllSimpleMeanDiff",
+      "InferenceAllSimpleAverageDiff",
       "InferenceAllSimpleMeanDiffPooledVar",
       "InferenceAllSimpleWilcox",
       "InferenceIncidWald",

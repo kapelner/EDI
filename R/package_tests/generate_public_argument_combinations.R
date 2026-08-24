@@ -19,7 +19,7 @@ rejected_path = file.path(repo_root, "package_tests", "public_argument_combinati
 coverage_path = file.path(repo_root, "package_tests", "public_argument_combination_coverage.csv")
 
 default_smoke_target_filter = paste(
-	"^InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval$",
+	"^InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval$",
 	"^DesignFixedBernoulli::add_all_subject_responses$",
 	sep = "|"
 )

@@ -25,6 +25,30 @@ parametric-likelihood-bootstrap calibration of the likelihood-ratio test.
 \eqn{Y_i} values of exactly 0 or 1 are not supported by the beta density
 and are handled by \code{sanitize_beta_response()}'s boundary adjustment
 before fitting.
+
+\strong{Estimand.} Composes
+\code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
+(\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()}).
+Under the default \code{estimand = "conditional"}, \eqn{\hat\beta_T} is the
+log-odds-ratio above. Under \code{estimand = "marginal_mean_diff"}, the
+reported quantity is instead the g-computation marginal mean difference
+\eqn{\frac{1}{n}\sum_i \{\mathrm{plogis}(\hat\beta_0 + \hat\beta_T +
+X_i^\top \hat\gamma) - \mathrm{plogis}(\hat\beta_0 + X_i^\top
+\hat\gamma)\}} (the precision parameter \eqn{\phi} does not enter the
+mean, so it plays no role in this functional). Only
+\code{"marginal_mean_diff"} is supported — a ratio of two mean
+proportions, both bounded in \eqn{[0,1]}, is not the standard estimand
+for a beta-regression treatment effect the way a rate ratio is for count
+data. Because there is no latent submodel for this family (unlike e.g.
+\code{\link[EDI:InferencePropZeroOneInflatedBetaRegr]{InferencePropZeroOneInflatedBetaRegr}}'s
+zero/one-inflation mixture), the marginal mean function is exactly the
+model's own fitted mean; no separate standardization step beyond the
+g-computation average is needed. Standard errors under the marginal
+estimand use the delta method against the mean-submodel coefficient
+covariance (degrees of freedom \code{Inf}); \code{testing_type} is
+restricted to \code{"wald"} whenever the estimand is non-conditional. The
+underlying model fit is identical regardless of estimand — switching
+\code{estimand} is a pure post-fit transform, never a refit.
 }
 \examples{
 \donttest{
@@ -60,6 +84,8 @@ Ferrari, S., and Cribari-Neto, F. (2004). "Beta regression for
   \itemize{
     \item \href{#method-InferencePropBetaRegr-initialize}{\code{InferencePropBetaRegr$new()}}
     \item \href{#method-InferencePropBetaRegr-compute_estimate}{\code{InferencePropBetaRegr$compute_estimate()}}
+    \item \href{#method-InferencePropBetaRegr-compute_asymp_confidence_interval}{\code{InferencePropBetaRegr$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferencePropBetaRegr-compute_asymp_two_sided_pval}{\code{InferencePropBetaRegr$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferencePropBetaRegr-compute_estimate_with_bootstrap_weights}{\code{InferencePropBetaRegr$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferencePropBetaRegr-clone}{\code{InferencePropBetaRegr$clone()}}
   }
@@ -67,8 +93,6 @@ Ferrari, S., and Cribari-Neto, F. (2004). "Beta regression for
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -133,8 +157,14 @@ Default is dispatched via policy.}
 \subsection{\code{InferencePropBetaRegr$compute_estimate()}}{
   Fits the beta regression model by maximum likelihood
   (jointly estimating the mean coefficients and the precision parameter
-  \eqn{\phi}) and returns the log-odds-ratio estimate \eqn{\hat\beta_T}
-  on the conditional-mean scale.
+  \eqn{\phi}). Under the default \code{estimand = "conditional"},
+  returns the log-odds-ratio estimate \eqn{\hat\beta_T} on the
+  conditional-mean scale. Under \code{estimand = "marginal_mean_diff"}
+  (set via \code{set_estimand()}), returns the g-computation
+  marginal mean difference instead — see the class-level
+  \code{@details} for the formula. The underlying model fit is
+  identical either way (a pure post-fit transform of the same
+  cached fit, no refit).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferencePropBetaRegr$compute_estimate(estimate_only = FALSE)}
@@ -146,6 +176,58 @@ Default is dispatched via policy.}
       \item{\code{estimate_only}}{If TRUE, skip standard-error computation and cache
 only the point estimate; used by randomization and bootstrap resampling
 paths.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropBetaRegr-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropBetaRegr-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferencePropBetaRegr$compute_asymp_confidence_interval()}}{
+  Wald confidence interval, dispatched by
+  \code{testing_type} for the conditional estimand (score/gradient/
+  likelihood-ratio/Bartlett available; see
+  \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}}); under a
+  marginal estimand \code{testing_type} is always \code{"wald"} (the
+  only value \code{set_estimand()} permits there), so this always
+  resolves to the delta-method interval. Calls
+  \code{self$compute_estimate()} first (not \code{private$shared()}
+  directly) so the estimand-aware cache is always current
+  regardless of call order.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropBetaRegr$compute_asymp_confidence_interval(alpha = 0.05)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Two-sided miscoverage rate; the returned interval
+targets \code{1 - alpha} coverage.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferencePropBetaRegr-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferencePropBetaRegr-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferencePropBetaRegr$compute_asymp_two_sided_pval()}}{
+  Wald two-sided p-value, dispatched by
+  \code{testing_type} exactly as
+  \code{compute_asymp_confidence_interval()}; see that method's
+  description for the marginal-estimand always-Wald note.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferencePropBetaRegr$compute_asymp_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment-effect value under the current estimand
+(conditional log-odds-ratio, or marginal mean difference).}
     }
     \if{html}{\out{</div>}}
   }

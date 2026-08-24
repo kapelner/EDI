@@ -250,7 +250,7 @@ objects, which it currently has no concept of.
 If a matrix-valued `Design` were ever introduced for true joint modeling, the
 following would need explicit new-response-shape assertions, mirroring the
 nominal report's "fence off generic paths" recommendation:
-- `InferenceAllSimpleMeanDiff` / `InferenceAllSimpleMeanDiffPooledVar` /
+- `InferenceAllSimpleAverageDiff` / `InferenceAllSimpleMeanDiffPooledVar` /
   `InferenceAllSimpleWilcox` — all currently assume `private$y` is a plain
   numeric vector; a matrix response would silently break their internal
   arithmetic (mean of a matrix column vs. mean of the whole matrix) rather

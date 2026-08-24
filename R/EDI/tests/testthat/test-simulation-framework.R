@@ -1,6 +1,6 @@
 InferenceAlwaysFailsPval <- R6::R6Class(
 	"InferenceAlwaysFailsPval",
-	inherit = InferenceAllSimpleMeanDiff,
+	inherit = InferenceAllSimpleAverageDiff,
 	public = list(
 		compute_asymp_two_sided_pval = function(...) {
 			stop("intentional p-value failure for testing")
@@ -16,7 +16,7 @@ test_that("unregistered inference subclasses inherit ancestor capabilities", {
 	des$add_all_subject_responses(c(0, 2, 1, 3))
 
 	inf = InferenceAlwaysFailsPval$new(des, verbose = FALSE)
-	expect_identical(inf$capabilities(), EDI:::get_effective_capabilities("InferenceAllSimpleMeanDiff"))
+	expect_identical(inf$capabilities(), EDI:::get_effective_capabilities("InferenceAllSimpleAverageDiff"))
 	expect_true(inf$supports("wald")[["wald"]])
 })
 
@@ -29,7 +29,7 @@ test_that("SimulationFramework accepts merged design classes and params", {
 			DesignFixedBlocking = list(B_target = 2L)
 		),
 		inference_classes_and_params = list(
-			InferenceAllSimpleMeanDiff = list(max_resample_attempts = 10L)
+			InferenceAllSimpleAverageDiff = list(max_resample_attempts = 10L)
 		),
 		n = 8L,
 		p = 2L,
@@ -101,7 +101,7 @@ test_that("SimulationFramework defaults to csv.bz2 results and rejects unsupport
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		verbose = FALSE,
 		continue_from_last_result_row = FALSE
 	)
@@ -112,7 +112,7 @@ test_that("SimulationFramework defaults to csv.bz2 results and rejects unsupport
 		SimulationFramework$new(
 			response_type = "continuous",
 			design_classes_and_params = list(DesignFixedBernoulli),
-			inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+			inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 			results_filename = tempfile(fileext = ".txt"),
 			verbose = FALSE,
 			continue_from_last_result_row = FALSE
@@ -182,7 +182,7 @@ test_that("SimulationFramework supports X_mat with DesignFixedBinaryMatch explic
 				m = m_vec
 			)
 		),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		inference_types_and_params = list(asymp_pval = list()),
 		n = 8L,
 		p = 1L,
@@ -218,7 +218,7 @@ test_that("SimulationFramework validates merged inference constructor params", {
 			response_type = "continuous",
 			design_classes_and_params = list(DesignFixedBernoulli),
 			inference_classes_and_params = list(
-				InferenceAllSimpleMeanDiff = list(not_a_constructor_arg = TRUE)
+				InferenceAllSimpleAverageDiff = list(not_a_constructor_arg = TRUE)
 			),
 			results_filename = tempfile(fileext = ".csv"),
 			continue_from_last_result_row = FALSE,
@@ -232,7 +232,7 @@ test_that("SimulationFramework validates inference type params against function 
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		inference_types_and_params = list(asymp_pval = list(not_an_arg = TRUE)),
 		n = 8L,
 		p = 2L,
@@ -251,7 +251,7 @@ test_that("SimulationFramework true mean-difference estimands match DGP scale", 
 		sim <- SimulationFramework$new(
 			response_type = response_type,
 			design_classes_and_params = list(DesignFixedBernoulli),
-			inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+			inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 			inference_types_and_params = list(asymp_pval = list(delta = 0)),
 			n = length(y_linear_model),
 			p = 1L,
@@ -299,7 +299,7 @@ test_that("SimulationFramework accepts vector grids for n, p, betaT, and cond_ex
 	sim <- suppressWarnings(SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		inference_types_and_params = list(asymp_pval = list(delta = 0)),
 		n = c(6L, 8L),
 		p = c(2L, 5L),
@@ -327,7 +327,7 @@ test_that("SimulationFramework can write and reload csv.bz2 results", {
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		inference_types_and_params = list(asymp_pval = list(delta = 0)),
 		n = 8L,
 		p = 2L,
@@ -350,7 +350,7 @@ test_that("SimulationFramework can write and reload csv.bz2 results", {
 	sim_resume <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		inference_types_and_params = list(asymp_pval = list(delta = 0)),
 		n = 8L,
 		p = 2L,
@@ -375,7 +375,7 @@ test_that("SimulationFramework persists and reuses pregenerated design cache obj
 		SimulationFramework$new(
 			response_type = "continuous",
 			design_classes_and_params = list(DesignFixedBinaryMatch),
-			inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+			inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 			inference_types_and_params = list(asymp_pval = list(delta = 0)),
 			n = 8L,
 			p = 2L,
@@ -413,7 +413,7 @@ test_that("SimulationFramework summarize preserves raw metric precision", {
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		inference_types_and_params = list(
 			asymp_ci = list(),
 			asymp_pval = list(delta = 0)
@@ -435,7 +435,7 @@ test_that("SimulationFramework summarize preserves raw metric precision", {
 		p = 1L,
 		betaT = 0,
 		design = "DesignFixedBernoulli",
-		inference = "InferenceAllSimpleMeanDiff",
+		inference = "InferenceAllSimpleAverageDiff",
 		inference_type = "asymp_pval"
 	))
 	priv$raw_results <- list(
@@ -447,7 +447,7 @@ test_that("SimulationFramework summarize preserves raw metric precision", {
 			p = 1L,
 			betaT = 0,
 			design = "DesignFixedBernoulli",
-			inference = "InferenceAllSimpleMeanDiff",
+			inference = "InferenceAllSimpleAverageDiff",
 			inference_type = "asymp_pval",
 			estimate = 1.234567,
 			ci_lo = -0.5,
@@ -463,7 +463,7 @@ test_that("SimulationFramework summarize preserves raw metric precision", {
 			p = 1L,
 			betaT = 0,
 			design = "DesignFixedBernoulli",
-			inference = "InferenceAllSimpleMeanDiff",
+			inference = "InferenceAllSimpleAverageDiff",
 			inference_type = "asymp_pval",
 			estimate = 0.111111,
 			ci_lo = 0.6,
@@ -479,7 +479,7 @@ test_that("SimulationFramework summarize preserves raw metric precision", {
 			p = 1L,
 			betaT = 0,
 			design = "DesignFixedBernoulli",
-			inference = "InferenceAllSimpleMeanDiff",
+			inference = "InferenceAllSimpleAverageDiff",
 			inference_type = "asymp_pval",
 			estimate = 0.222222,
 			ci_lo = 0.0,
@@ -527,7 +527,7 @@ test_that("SimulationFramework get_errors captures structured runtime errors whe
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
 		inference_classes_and_params = list(
-			InferenceAllSimpleMeanDiff,
+			InferenceAllSimpleAverageDiff,
 			InferenceAlwaysFailsPval
 		),
 		inference_types_and_params = list(asymp_pval = list(delta = 0)),

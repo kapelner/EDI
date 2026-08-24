@@ -915,9 +915,112 @@ have to land together, see the release-line note in the header above):**
   can check against. Revisit the extension contract (since 2026-08-23:
   `R/EDI/vignettes/extending-edi.Rmd`, not the retired `extending-edi-r6.md`)
   when TODO-4 lands the first real shared helper.
-- [ ] TODO-9: **Gated on the same open Phase 1D item as TODO-4/5 — verified
+- [x] TODO-9: **Gated on the same open Phase 1D item as TODO-4/5 — verified
   2026-08-18: `InferenceIncidLogit`, `InferenceCountPoisson`,
   `InferenceProportionBeta`, and `InferenceIncidBinomialIdentity` all still
   `inherit =` legacy deep-hierarchy bases, not yet migrated.** Sequence
   after migration. Later wave: adopt on non-collapsible single-component GLM
   families (logistic, Poisson, beta regression) via one-line mean functions.
+
+  **Done (2026-08-24).** The plan's own class names above were stale (the
+  real names are `InferenceIncidLogRegr`, `InferenceCountPoisson`,
+  `InferencePropBetaRegr`, `InferenceIncidBinomialIdentityRiskDiff`); all
+  four confirmed live (`inherit = Inference` directly, `algorithmic_
+  compatibility_ancestors` empty) before starting. All four now compose
+  `MarginalEstimand` and are fully wired, each verified against a
+  hand-computed g-computation average on a real fitted model (not just unit
+  tests) plus the full `test-mixin-contracts.R`/`test-inference-class-
+  registry.R`/`test-static-cleanup-guardrails.R` regression suites (all
+  green):
+
+  - **`InferenceIncidLogRegr`** — `"marginal_mean_diff"`/`"marginal_ratio"`
+    (marginal risk difference / log risk ratio), mean function
+    `plogis(X %*% beta)`. Point estimate matched a hand-computed g-computation
+    average to full floating-point precision on a real logistic fit.
+  - **`InferenceCountPoisson`** — `"marginal_mean_diff"`/`"marginal_ratio"`
+    (marginal rate difference / log rate ratio), mean function
+    `exp(X %*% beta)`. **Finding:** `"marginal_ratio"` is numerically
+    identical to `"conditional"` for this family — a log-link GLM with no
+    treatment-by-covariate interaction has
+    `exp(b0+bT+X'g)/exp(b0+X'g) = exp(bT)` for every subject individually,
+    so averaging before or after the ratio changes nothing;
+    `"marginal_mean_diff"` is where g-computation actually changes the
+    reported number (a difference does not collapse under the nonlinear log
+    mean the way a ratio does). Documented explicitly in the class's
+    roxygen so this isn't mistaken for a wiring bug. Also verified the
+    class's pre-existing design-conservative union-with-jackknife-Wald
+    testing machinery (unrelated to this TODO, found during TODO-9's own
+    earlier gap analysis) correctly composes with the marginal estimand —
+    the jackknife component refits under whatever estimand is active, so
+    the union/max combination rule applies transparently to marginal CIs
+    and p-values too, verified empirically (a marginal CI came back wider
+    than the pure delta-method interval, confirming the union actually
+    fired).
+  - **`InferencePropBetaRegr`** — `"marginal_mean_diff"` only (no ratio —
+    a ratio of two mean proportions, both bounded in \[0,1\], is not the
+    standard estimand for a beta-regression treatment effect the way a
+    rate ratio is for count data). Mean function `plogis(X %*% beta)`; the
+    precision parameter \eqn{\phi} does not enter the mean. **Bug found
+    and fixed while wiring:** `generate_mod()`'s Fisher information matrix
+    is sized to the *joint* `[b, log_phi]` parameter vector (verified:
+    `nrow == length(b) + 1`), not to `b` alone — naively inverting and
+    passing the full joint vcov to `marginal_estimand_delta_se()` against
+    a length-`length(b)` gradient silently returned `NA` for the SE (the
+    helper's own dimension guard caught the mismatch safely, so this
+    produced an honest `NA` rather than a wrong number, but still needed a
+    real fix). Fixed by inverting the full joint information matrix first
+    (correct — this preserves the b/log_phi covariance in the inversion)
+    and then taking only the leading `length(b) x length(b)` block,
+    matching `mod$b`'s order exactly. Verified against `betareg::betareg()`
+    on the same data: point estimate matched to ~4 decimal places (small
+    residual difference from a different optimizer/parameterization, not a
+    bug), and the corrected SE is now finite and positive.
+  - **`InferenceIncidBinomialIdentityRiskDiff`** — `"marginal_mean_diff"`
+    only, wired for estimand-API consistency. **Confirmed the anticipated
+    collapsing behavior exactly**: for an identity-link model with no
+    treatment-by-covariate interaction, the g-computation marginal risk
+    difference is algebraically \eqn{\hat\beta_T} for every subject
+    individually (not just on average), so it is numerically identical to
+    the conditional estimate — verified empirically to floating-point
+    precision (\eqn{|{\rm marginal} - {\rm conditional}| \approx 5\times
+    10^{-17}} on a real fit). Documented explicitly in the class's roxygen,
+    including the explicit warning that a user comparing estimands for
+    this class should not expect them to ever differ. The two paths'
+    standard errors are computed independently (delta method vs.
+    information matrix) and are not guaranteed to coincide even though the
+    point estimates always do, though in practice they matched closely on
+    the test fit.
+
+  **Bug-classes proactively guarded against in all four** (per TODO-4/5's
+  own findings, confirmed still architecturally relevant): (1)
+  `compute_asymp_confidence_interval()`/`compute_asymp_two_sided_pval()`
+  now call `self$compute_estimate()` first rather than `private$shared()`
+  directly, so the estimand-aware cache is always current regardless of
+  call order; found and fixed a related variant specific to this batch —
+  `get_standard_error()`'s generic body tries an information-matrix-based
+  SE first whenever `supports_information_preference()` is `TRUE` (true
+  for all four of these `likelihood_tier = "full"` classes), which would
+  silently substitute the wrong (conditional) SE for a marginal estimand
+  if left unguarded; all four classes now override `get_standard_error()`/
+  `get_degrees_of_freedom()` directly to short-circuit to the
+  estimand-aware cached values whenever the estimand is non-conditional.
+  (2) Conditional-path cache re-derivation from the estimand-invariant
+  `cached_mod` on every `compute_estimate()` call, so toggling back to
+  `"conditional"` after a marginal computation never returns stale
+  numbers — verified via an explicit round-trip check on all four classes
+  (conditional → marginal → conditional returns byte-identical values).
+  (3) `inference_class_registry.R`'s `infer_inference_direct_components()`
+  static switch-table updated for all four classes (same recurring
+  stale-table bug TODO-4/5 hit) — verified `self$supports("marginal_estimand")`
+  returns `TRUE` on real instances of all four, not just that the package
+  loads.
+
+  All edits verified with `roxygen2::parse_file()` and base `parse()`
+  (clean), `pkgload::load_all(".", compile = FALSE)` (clean, no compile
+  step used anywhere), and the full `test-mixin-contracts.R`/
+  `test-inference-class-registry.R`/`test-static-cleanup-guardrails.R`
+  suites (all green, no regressions). Files touched:
+  `R/EDI/R/inference_incidence_logit.R`, `R/EDI/R/inference_count_poisson.R`,
+  `R/EDI/R/inference_proportion_beta.R`,
+  `R/EDI/R/inference_incidence_binomial_identity.R`,
+  `R/EDI/R/inference_class_registry.R`. No commits made.

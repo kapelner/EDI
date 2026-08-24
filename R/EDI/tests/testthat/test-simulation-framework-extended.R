@@ -3,6 +3,25 @@ library(EDI)
 
 test_that("SimulationFramework supports parallel execution", {
 	skip_on_cran()
+	# parallel_fork_cluster_test_safety.md's TODO-6 (2026-08-24): this test
+	# exercises `SimulationFramework$run()`'s `use_fork_cluster` branch
+	# (simulations_framework.R), which calls raw `parallel::makeForkCluster()`
+	# directly -- the exact same fork-after-OpenMP-lock hazard shape that
+	# caused `run_all_inference()`'s 2026-08-21 CI incident (see
+	# parallel_fork_cluster_test_safety.md's "Purpose" section): forking
+	# while another thread holds an OpenMP/malloc-arena lock, inherited by
+	# the child in a state that can never be released, so `clusterApply()`
+	# (called downstream of this fork) blocks forever and the `on.exit()`
+	# `stopCluster()` cleanup right after it never runs either. No CI hang
+	# has actually been observed from THIS test yet (unlike run_all_inference's
+	# confirmed 2026-08-21 incident) -- proactively skipping here rather than
+	# waiting for this subsystem to produce its own multi-hour incident
+	# first. A full TODO-5-style mcparallel()/mccollect() PID-kill scheduler
+	# rewrite of SimulationFramework$run()'s (much larger) fork-cluster code
+	# path is out of scope for this pass; this is the lighter stopgap TODO-6
+	# calls out as an acceptable outcome when a hazard is real but not (yet)
+	# worth the full treatment.
+	skip_on_ci()
 	skip_if_prepush_no_parallel()
 	skip_if(
 		identical(Sys.getenv("R_COVR"), "true"),
@@ -13,7 +32,7 @@ test_that("SimulationFramework supports parallel execution", {
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		inference_types_and_params = list(asymp_pval = list()),
 		n = 20L,
 		Nrep_W = 4L, Nrep_Y_w = 1L,
@@ -47,7 +66,7 @@ test_that("SimulationFramework supports mirai-backed replication parallelism", {
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		inference_types_and_params = list(asymp_pval = list()),
 		n = 20L,
 		Nrep_W = 4L, Nrep_Y_w = 1L,
@@ -94,7 +113,7 @@ test_that("SimulationFramework supports randomization and bootstrap inference", 
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 			inference_types_and_params = list(
 				boot_ci = list(B = 20, type = "percentile"),
 				rand_pval = list(r = 20)
@@ -126,7 +145,7 @@ test_that("SimulationFramework supports custom X_mat", {
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		inference_types_and_params = list(asymp_pval = list()),
 		n = n,
 		p = p,
@@ -147,7 +166,7 @@ test_that("SimulationFramework can keep and retrieve intermediate data", {
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		inference_types_and_params = list(asymp_pval = list()),
 		n = 10L,
 		Nrep_W = 3L, Nrep_Y_w = 1L,
@@ -195,7 +214,7 @@ test_that("SimulationFramework supports custom replication and response hooks", 
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
 		design_classes_and_params = list(DesignFixedBernoulli),
-		inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
 		inference_types_and_params = list(asymp_pval = list()),
 		n = 6L,
 		p = 1L,

@@ -29,7 +29,7 @@ SimpleWilcoxSource = list(
 					wilcoxon_incidence_response_unsupported = paste0(
 						"Wilcoxon rank-sum inference is not implemented for incidence (binary) ",
 						"responses: the Hodges-Lehmann estimator is degenerate (almost always 0) ",
-						"on 0/1 data. Use InferenceAllSimpleMeanDiff or a clogit estimator instead."
+						"on 0/1 data. Use InferenceAllSimpleAverageDiff or a clogit estimator instead."
 					),
 					wilcoxon_censored_survival_unsupported = paste0(
 						"Wilcoxon rank-sum inference does not support censored survival data. ",
@@ -181,6 +181,15 @@ SimpleWilcoxSource = list(
 			NA_character_
 		},
 		supports_bayesian_bootstrap = function() FALSE,
+		# Self/private-free literal, same "safe invoke without construction"
+		# contract as `design_compatibility_reason()` just above -- see
+		# `inference_all_abstract_jackknife.R`'s `jackknife_always_
+		# nonestimable()` default (`FALSE`) for why this override exists:
+		# every jackknife method on this class unconditionally reports
+		# non-estimable regardless of data (the Hodges-Lehmann functional
+		# isn't smooth enough for the delete-1 jackknife), so `run_all_
+		# inference()` can skip generating that doomed task entirely.
+		jackknife_always_nonestimable = function() TRUE,
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
 			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			transform_code = private$rand_bootstrap_transform_code(transform_responses)
@@ -264,9 +273,27 @@ SimpleWilcoxSource = list(
 			return(res)
 		},
 		shared = function(estimate_only = FALSE){
-			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+			# `estimate_only = TRUE` is the hot path for randomization/bootstrap
+			# replicate workers (`compute_treatment_estimate_during_randomization_inference()`
+			# calls this once per replicate, potentially thousands of times per
+			# suite run): it must skip `stats::wilcox.test(conf.int = TRUE)`
+			# entirely, since that call runs an internal `uniroot()` search over
+			# the rank statistic and dominates runtime otherwise. The point
+			# estimate alone is available cheaply via `hl_point_estimate()`
+			# (a vectorized C++ call) independent of the CI/SE machinery below.
+			if (estimate_only) {
+				if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+				yT = private$y[private$w == 1]
+				yC = private$y[private$w == 0]
+				if (length(yT) == 0L || length(yC) == 0L){
+					private$cache_nonestimable_estimate("wilcox_empty_treatment_arm")
+					return(invisible(NULL))
+				}
+				beta = private$hl_point_estimate(private$y, private$w)
+				private$cached_values$beta_hat_T = if (length(beta) == 1L && is.finite(beta)) beta else NA_real_
+				return(invisible(NULL))
+			}
+			if (!is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
 			yT = private$y[private$w == 1]
 			yC = private$y[private$w == 0]
 			if (length(yT) == 0L || length(yC) == 0L){
@@ -343,7 +370,7 @@ SimpleWilcoxSource = list(
 #' estimated standard error. Robust to outliers and does not assume normality or
 #' equal arm variances. Not supported for incidence (binary) responses (the
 #' Hodges-Lehmann estimator degenerates on 0/1 data — use
-#' \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}} or a
+#' \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}} or a
 #' conditional-logistic estimator instead) or censored survival data (use
 #' \code{\link[EDI:InferenceSurvivalGehanWilcox]{InferenceSurvivalGehanWilcox}}
 #' instead). This class has no likelihood tier (\code{likelihood_tier = "none"})
@@ -397,6 +424,7 @@ InferenceAllSimpleWilcox = define_inference_class(
 		),
 		private = c(
 			"compute_fast_rand_bootstrap_distr",
+			"jackknife_always_nonestimable",
 			"resolve_jackknife_unit",
 			"jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",

@@ -814,7 +814,7 @@ and are not yet covered by any per-class migration checklist:
   listed last so it wins the bootstrap-worker-wiring collision, same pattern
   as `InferenceCustomAsymp`). Required overriding `compute_rand_two_sided_pval`
   (`RandomizationCI` vs `RandomizationTest` collision, resolved with
-  `InferenceRand`'s version per the `InferenceAllSimpleMeanDiff` precedent)
+  `InferenceRand`'s version per the `InferenceAllSimpleAverageDiff` precedent)
   and `resolve_jackknife_unit`/`jackknife_block_size_gt_one_unsupported`/
   `mark_jackknife_nonestimable_if_block_unsupported` (`Jackknife` vs
   `NonparametricBootstrap` collision). Also found a real bug this migration
@@ -1207,15 +1207,15 @@ and are not yet covered by any per-class migration checklist:
   `inference_hierarchy_migration_manifest_as_list()` audit as a genuinely
   unaddressed class (zero prior mentions anywhere in this doc) — not one of
   the original 19/20 enumerated at the top of this subsection. Previously
-  `R6::R6Class(inherit = InferenceAllSimpleMeanDiff, ...)`, overriding only
+  `R6::R6Class(inherit = InferenceAllSimpleAverageDiff, ...)`, overriding only
   `initialize` (adds the incidence response-type/no-censoring asserts),
   `get_standard_error`/`get_degrees_of_freedom` (unpooled Wald SE:
   \eqn{\sqrt{p_T(1-p_T)/n_T + p_C(1-p_C)/n_C}}, `df = NA`), and a private
   `compute_incidence_wald_components` helper — kept verbatim. Since it now
   composes `SimpleMeanDifference` directly (rather than inheriting the
-  already-migrated `InferenceAllSimpleMeanDiff`), its own `initialize`
+  already-migrated `InferenceAllSimpleAverageDiff`), its own `initialize`
   collides with the component's and had to be added to `overrides$public`
-  (the only new override beyond copying `InferenceAllSimpleMeanDiff`'s own
+  (the only new override beyond copying `InferenceAllSimpleAverageDiff`'s own
   full `overrides` lists verbatim). Verified via a new
   `test-incid-wald-migration-golden.R`: a byte-for-byte legacy-class copy
   compared against the migrated class two ways — (a)
@@ -1248,7 +1248,7 @@ and are not yet covered by any per-class migration checklist:
   pitfall distinct from `InferenceIncidWald`'s (which didn't override these
   two): the pre-migration bodies called `super$compute_asymp_confidence_
   interval(alpha)`/`super$compute_asymp_two_sided_pval(delta)`, relying on
-  `super$` reaching `InferenceAllSimpleMeanDiff`'s own composed
+  `super$` reaching `InferenceAllSimpleAverageDiff`'s own composed
   `SimpleMeanDifference`-sourced implementation through the old layered
   R6 inheritance chain. Under `define_inference_class()`, composed-component
   methods are flattened directly into the class's own body rather than
@@ -1332,7 +1332,7 @@ and are not yet covered by any per-class migration checklist:
   migrated-absent + legacy-degenerate-or-unsupported, so a drop of any
   *working* surface still fails loudly), plus a registry migrated-status
   check. **Randomization-dispatch decision, deliberately breaking with the
-  `InferenceAllSimpleMeanDiff` precedent:** this class pins
+  `InferenceAllSimpleAverageDiff` precedent:** this class pins
   `compute_rand_two_sided_pval = InferenceRandCI$public_methods$...` (the
   randomization-CI layer's version), **not** `InferenceRand$public_methods$...`
   — the RandCI version dispatches incidence responses to the working Zhang
@@ -1345,7 +1345,7 @@ and are not yet covered by any per-class migration checklist:
   legacy-"ok"-vs-migrated-"unsupported" status mismatch before the pin was
   corrected. **Flag for the simple-estimator migration's owner:** the
   established precedent of pinning `InferenceRand`'s version (used by
-  `InferenceAllSimpleMeanDiff` and inherited by every class built on it,
+  `InferenceAllSimpleAverageDiff` and inherited by every class built on it,
   including this session's `InferenceIncidWald`/`InferenceIncidCMH`/
   `InferenceIncidExtendedRobins` migrations, whose goldens compared against
   factory-based parents and so couldn't see it) appears to have silently
@@ -5607,17 +5607,17 @@ here (2026-08-13) rather than left as prose-only notes.
   calling `super$...` (needed because a class composed via
   `define_inference_class()` that splices this method in as a raw copy has
   no real `InferenceRand` ancestor for `super$` to resolve against), and (b)
-  switching `InferenceAllSimpleMeanDiff`'s own `compute_rand_two_sided_pval`
+  switching `InferenceAllSimpleAverageDiff`'s own `compute_rand_two_sided_pval`
   pin from `InferenceRand` to `InferenceRandCI` (needed so incidence
   responses get Zhang exact-test dispatch instead of `InferenceRand`'s
-  outright refusal). That second change fixed `InferenceAllSimpleMeanDiff`
+  outright refusal). That second change fixed `InferenceAllSimpleAverageDiff`
   itself, and since this project's golden-fixture convention has legacy test
-  generators **truly R6-inherit** `InferenceAllSimpleMeanDiff` (not copy its
+  generators **truly R6-inherit** `InferenceAllSimpleAverageDiff` (not copy its
   body), the legacy side of every affected golden picked up the corrected
   pin automatically and started producing real Zhang-dispatch values where
   it previously would have matched the (also-broken) migrated side. But
   `InferenceIncidWald`, `InferenceIncidCMH`, and `InferenceIncidExtendedRobins`
-  don't inherit `InferenceAllSimpleMeanDiff` — each independently *composes*
+  don't inherit `InferenceAllSimpleAverageDiff` — each independently *composes*
   the identical `c("BayesianBootstrap", "Wald", "SimpleMeanDifference")` and
   had its own copy of the *old* `InferenceRand` pin, so all three silently
   regressed (`compute_rand_two_sided_pval()` started throwing "Randomization
@@ -5626,11 +5626,11 @@ here (2026-08-13) rather than left as prose-only notes.
   test doesn't happen to exercise a Zhang-eligible design, so it wasn't
   caught by its own suite — found only because it shares the identical bug
   pattern as the two confirmed-broken siblings, verified by R6 ancestor walk
-  (`InferenceAllSimpleMeanDiff$get_inherit()` chain resolves `compute_rand_
+  (`InferenceAllSimpleAverageDiff$get_inherit()` chain resolves `compute_rand_
   two_sided_pval` to itself, confirming the corrected `InferenceRandCI` pin
   is what legacy fixtures actually get). Fixed by pinning all three to
   `InferenceRandCI$public_methods$compute_rand_two_sided_pval`, matching
-  `InferenceAllSimpleMeanDiff`'s already-corrected choice, with the
+  `InferenceAllSimpleAverageDiff`'s already-corrected choice, with the
   reasoning documented inline at each site. Verified: both previously-failing
   goldens (`test-incid-wald-migration-golden.R`,
   `test-incid-cmh-extended-robins-migration-golden.R`) fully green; the full
@@ -5697,7 +5697,7 @@ here (2026-08-13) rather than left as prose-only notes.
   support (the four above plus `InferenceSurvivalCoxPHRegr`) remain listed.
   Regression check: `test-inference-class-registry.R` fully clean;
   `test-inference-suite-discovery.R` shows only 2 pre-existing unrelated
-  failures (`InferenceAllSimpleMeanDiff`/`InferenceAllKKMeanDiffIVWC`
+  failures (`InferenceAllSimpleAverageDiff`/`InferenceAllKKMeanDiffIVWC`
   expected in `applicable_design_classes` but aren't — confirmed both are
   simply absent from `NAMESPACE` entirely right now, an unrelated export-
   state gap from other in-flight work, nothing this change touched);
@@ -6146,7 +6146,7 @@ here (2026-08-13) rather than left as prose-only notes.
   every class, without exception, ends up with a non-`NA`
   `get_model_formula()`. But "accepts and stores a formula" is not the
   same as "the fit is a function of it": `SimpleMeanDifferenceSource$
-  initialize()` (`inference_all_mean_diff.R:16`) takes `model_formula` and
+  initialize()` (`inference_all_average_diff.R:16`) takes `model_formula` and
   forwards it to `super$initialize()` like any other class, yet its actual
   fit (`private$shared()`, Welch's unequal-variance t-test on raw group
   means) never reads `private$X` at all -- the stored formula is
@@ -6468,7 +6468,7 @@ here (2026-08-13) rather than left as prose-only notes.
   previously-invisible gaps (exactly the kind of thing that flag exists to
   catch), all fixed:
   - `EDI_SIMPLE_ESTIMATOR_TARGETS`'s `intentional_capabilities` lists for
-    `InferenceAllSimpleMeanDiff`/`InferenceAllSimpleMeanDiffPooledVar`/
+    `InferenceAllSimpleAverageDiff`/`InferenceAllSimpleMeanDiffPooledVar`/
     `InferenceAllKKMeanDiffIVWC` (all compose `BayesianBootstrap`, which
     depends on `RandomizationBootstrapCI` transitively) never accounted
     for `compute_rand_bootstrap_confidence_interval`, since no capability
@@ -6677,7 +6677,7 @@ here (2026-08-13) rather than left as prose-only notes.
     already visible in `NonparametricBootstrap`'s spec, where
     `boot_distr_cache`/`jack_distr_cache` etc. already appeared in *both*
     lists.
-  - Verified via direct instantiation (`InferenceAllSimpleMeanDiff`): all
+  - Verified via direct instantiation (`InferenceAllSimpleAverageDiff`): all
     six accessors return the exact documented value sets, and passing an
     invalid `type` to `compute_bootstrap_confidence_interval()` is still
     correctly rejected by `assertChoice()` reading the same constant.

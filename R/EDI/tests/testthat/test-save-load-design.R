@@ -83,7 +83,7 @@ test_that("KK-matching design round-trips through saveRDS()/readRDS() with non-t
 	}
 	expect_identical(reloaded$get_t(), n)
 
-	inf = InferenceAllSimpleMeanDiff$new(reloaded, verbose = FALSE)
+	inf = InferenceAllSimpleAverageDiff$new(reloaded, verbose = FALSE)
 	est = inf$compute_estimate()
 	expect_true(is.numeric(est))
 })

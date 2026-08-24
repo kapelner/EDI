@@ -311,6 +311,19 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 					X = attempt$X,
 					j_treat = attempt$fit$j_treat
 				)
+				# 2026-08-24 (marginal_estimand_report.md TODO-9): stash the
+				# exact fitting design matrix and its coefficient covariance so
+				# the marginal-estimand g-computation path (private$compute_
+				# marginal_estimand_estimate()) is a pure post-fit transform, no
+				# refit -- same convention as InferenceIncidLogRegr's mod$X/
+				# mod$vcov. NOTE (see class-level @details): because this
+				# family uses the identity link with no treatment-by-covariate
+				# interaction, the g-computation marginal mean difference
+				# collapses algebraically to exactly attempt$fit$b[j_treat] --
+				# this stash exists for estimand-API consistency and a correct
+				# SE, not because the point estimate differs from conditional.
+				attempt$fit$X = attempt$X
+				attempt$fit$vcov = if (!is.null(attempt$fit$fisher_information)) tryCatch(solve(attempt$fit$fisher_information), error = function(e) NULL) else NULL
 			} else {
 				private$cached_values$likelihood_test_context = NULL
 			}
@@ -344,6 +357,33 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 #' (an identity-link fit can be well-behaved in-sample yet imply
 #' out-of-range probabilities for other covariate values).
 #'
+#' \strong{Estimand.} Composes
+#' \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
+#' (\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()}).
+#' \code{estimand = "marginal_mean_diff"} is supported for API consistency
+#' with the other GLM families, but \strong{it is algebraically identical to
+#' the default \code{estimand = "conditional"} for this class}: the
+#' g-computation marginal risk difference is \eqn{\frac{1}{n}\sum_i
+#' \{(\hat\beta_0 + \hat\beta_T + X_i^\top \hat\gamma) - (\hat\beta_0 +
+#' X_i^\top \hat\gamma)\}}, which simplifies to exactly \eqn{\hat\beta_T} for
+#' every subject (not merely on average) because the identity link is linear
+#' in \eqn{W_i} with no treatment-by-covariate interaction term — the
+#' per-subject treated-minus-control difference \eqn{\hat\beta_T} does not
+#' depend on \eqn{X_i} at all, so standardizing over the covariate
+#' distribution changes nothing. Contrast with
+#' \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}}'s
+#' \code{"marginal_ratio"} (also a collapsing case, for the same
+#' no-interaction reason) and \code{"marginal_mean_diff"} (which does not
+#' collapse, since a difference does not distribute through the nonlinear
+#' log-link mean). This collapsing is a genuine property of the identity-link
+#' model, not a wiring bug — it is documented here so a user comparing
+#' \code{estimand}s for this class is not surprised the two never differ.
+#' Standard errors are computed independently for each estimand (the
+#' marginal path uses the delta method against the model's coefficient
+#' covariance; the conditional path uses the model information matrix), so
+#' while the two point estimates coincide exactly, their standard errors may
+#' differ slightly by construction even though both are asymptotically valid.
+#'
 #' @references McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
 #'   Linear Models} (2nd ed.). Chapman and Hall/CRC, for the binomial GLM
 #'   family and identity-link risk-difference parameterization.
@@ -372,7 +412,7 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 	classname = "InferenceIncidBinomialIdentityRiskDiff",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceBinomialIdentityLikelihood"),
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceBinomialIdentityLikelihood", "MarginalEstimand"),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
 	overrides = list(
 		public = c(
@@ -394,10 +434,182 @@ InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
 			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
 			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
-			"get_complexity_tier", "supports_fisher_information"
+			"get_complexity_tier", "supports_fisher_information", "get_supported_estimands_impl"
 		)
 	),
 	public = list(
-		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
+		#' @description Fits the identity-link binomial regression model by
+		#'   maximum likelihood. Under the default \code{estimand =
+		#'   "conditional"}, returns \eqn{\hat\beta_T}, the risk difference
+		#'   coefficient. Under \code{estimand = "marginal_mean_diff"} (set via
+		#'   \code{set_estimand()}), returns the g-computation marginal risk
+		#'   difference — see the class-level \code{@details} for why this is
+		#'   algebraically identical to the conditional estimate for this
+		#'   family. The underlying model fit is identical either way (a pure
+		#'   post-fit transform of the same cached fit, no refit).
+		#' @param estimate_only If TRUE, skip standard-error computation and
+		#'   cache only the point estimate; used by randomization and
+		#'   bootstrap resampling paths.
+		compute_estimate = function(estimate_only = FALSE){
+			private$shared(estimate_only = estimate_only)
+			if (identical(self$get_estimand(), "marginal_mean_diff")) {
+				return(private$compute_marginal_estimand_estimate("marginal_mean_diff", estimate_only = estimate_only))
+			}
+			# 2026-08-24 (marginal_estimand_report.md TODO-9): re-derive the
+			# conditional beta_hat_T/s_beta_hat_T/df from the estimand-invariant
+			# private$cached_mod every call -- same fix TODO-4/5 needed for the
+			# same reason.
+			mod = private$cached_mod
+			if (!is.null(mod)) {
+				j_treat = mod$j_treat %||% 2L
+				private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$b[j_treat])[1L]
+				if (!estimate_only) {
+					ssq = mod$ssq_b_j
+					ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
+					private$cached_values$df = mod$df %||% Inf
+					if (is.finite(ssq) && ssq > 0) {
+						private$cached_values$s_beta_hat_T = sqrt(ssq)
+						private$clear_nonestimable_state()
+					} else {
+						private$cache_nonestimable_se("model_standard_error_unavailable")
+					}
+				}
+			}
+			private$cached_values$beta_hat_T
+		},
+		#' @description Wald confidence interval, dispatched by
+		#'   \code{testing_type} for the conditional estimand; under a
+		#'   marginal estimand \code{testing_type} is always \code{"wald"} (the
+		#'   only value \code{set_estimand()} permits there). Calls
+		#'   \code{self$compute_estimate()} first (not \code{private$shared()}
+		#'   directly) so the estimand-aware cache is always current
+		#'   regardless of call order.
+		#' @param alpha Two-sided miscoverage rate; the returned interval
+		#'   targets \code{1 - alpha} coverage.
+		compute_asymp_confidence_interval = function(alpha = 0.05){
+			self$compute_estimate(estimate_only = FALSE)
+			if (private$testing_type == "wald") {
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
+				}
+			}
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_confidence_interval_impl(alpha),
+				score = private$compute_score_confidence_interval_impl(alpha),
+				gradient = private$compute_gradient_confidence_interval_impl(alpha),
+				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
+			)
+		},
+		#' @description Wald two-sided p-value, dispatched by
+		#'   \code{testing_type} exactly as
+		#'   \code{compute_asymp_confidence_interval()}; see that method's
+		#'   description for the marginal-estimand always-Wald note.
+		#' @param delta Null treatment-effect value under the current estimand
+		#'   (both scales coincide for this family — see the class-level
+		#'   \code{@details}).
+		compute_asymp_two_sided_pval = function(delta = 0){
+			self$compute_estimate(estimate_only = FALSE)
+			if (private$testing_type == "wald") {
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
+				}
+			}
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_two_sided_pval_impl(delta),
+				score = private$compute_score_two_sided_pval_impl(delta),
+				gradient = private$compute_gradient_two_sided_pval_impl(delta),
+				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
+			)
+		}
+	),
+	private = list(
+		# 2026-08-24 (marginal_estimand_report.md TODO-9): every class
+		# composing MarginalEstimand supports only "conditional" by default;
+		# overridden here for estimand-API consistency with the other GLM
+		# families. See the class-level @details for why "marginal_mean_diff"
+		# is numerically identical to "conditional" for this family
+		# specifically (identity link, no treatment-by-covariate interaction).
+		get_supported_estimands_impl = function(){
+			c("conditional", "marginal_mean_diff")
+		},
+		# Standard error of beta_hat_T under the current estimand. Calls
+		# self$compute_estimate() first so the estimand-aware cache is always
+		# current regardless of call order.
+		get_standard_error = function(){
+			self$compute_estimate(estimate_only = FALSE)
+			if (!identical(self$get_estimand(), "conditional")) {
+				return(private$cached_values$s_beta_hat_T)
+			}
+			private$shared(estimate_only = FALSE)
+			if (isTRUE(private$supports_information_preference())) {
+				se = tryCatch(private$compute_standard_error_from_information_matrix(), error = function(e) NA_real_)
+				if (is.finite(se)) return(se)
+			}
+			private$cached_values$s_beta_hat_T
+		},
+		# Degrees of freedom under the current estimand. Calls
+		# self$compute_estimate() first so the estimand-aware cache is always
+		# current regardless of call order.
+		get_degrees_of_freedom = function(){
+			self$compute_estimate(estimate_only = FALSE)
+			private$cached_values$df %||% Inf
+		},
+		# Model-implied mean E[Y | w, x] = X %*% beta (identity link).
+		identity_binomial_mean_from_coefs = function(beta, X){
+			as.numeric(X %*% beta)
+		},
+		# G-computation average over the empirical covariate distribution,
+		# with every subject plugged in at treatment column (column 2, per
+		# build_design_matrix()'s fixed convention) = 1 and = 0. For an
+		# identity-link model with no treatment-by-covariate interaction this
+		# is algebraically exact and equal to beta[2] for every subject, not
+		# just on average -- see the class-level @details.
+		identity_binomial_marginal_functional = function(beta, X){
+			X1 = X; X1[, 2L] = 1
+			X0 = X; X0[, 2L] = 0
+			mean(private$identity_binomial_mean_from_coefs(beta, X1)) -
+				mean(private$identity_binomial_mean_from_coefs(beta, X0))
+		},
+		# Full-fit marginal path for compute_estimate(): reuses the single
+		# cached ML fit (private$cached_mod, populated by private$shared() via
+		# generate_mod()) -- a pure post-fit transform, no refit. SE via
+		# marginal_estimand_delta_se() against the fitted vcov generate_mod()
+		# now retains. Degrees of freedom: Inf, same convention as every other
+		# delta-method/sandwich Wald path in this package.
+		compute_marginal_estimand_estimate = function(estimand, estimate_only = FALSE){
+			mod = private$cached_mod
+			if (is.null(mod) || is.null(mod$b) || is.null(mod$X)) {
+				private$cache_nonestimable_estimate("identity_binomial_marginal_fit_unavailable")
+				return(NA_real_)
+			}
+			functional = function(theta) private$identity_binomial_marginal_functional(theta, mod$X)
+			point = tryCatch(functional(mod$b), error = function(e) NA_real_)
+			if (!is.finite(point)) {
+				private$cache_nonestimable_estimate("identity_binomial_marginal_point_unavailable")
+				return(NA_real_)
+			}
+			private$cached_values$beta_hat_T = point
+			if (estimate_only) return(point)
+			if (is.null(mod$vcov)) {
+				private$cache_nonestimable_se("identity_binomial_marginal_vcov_unavailable")
+				return(point)
+			}
+			dm = marginal_estimand_delta_se(mod$b, mod$vcov, functional)
+			private$cached_values$df = Inf
+			if (is.finite(dm$se) && dm$se >= 0) {
+				private$cached_values$s_beta_hat_T = dm$se
+				private$clear_nonestimable_state()
+			} else {
+				private$cache_nonestimable_se("identity_binomial_marginal_se_unavailable")
+			}
+			point
+		}
 	)
 )

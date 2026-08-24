@@ -17,7 +17,7 @@ path_lines = md[grepl("font-family:monospace", md, fixed = TRUE)]
 inf_names = unique(sub("^.*>([A-Za-z][A-Za-z0-9]+)<.*$", "\\1", path_lines))
 inf_names = inf_names[grepl("^Inference", inf_names)]
 excluded_paths = c(
-    "InferenceAllSimpleMeanDiff",
+    "InferenceAllSimpleAverageDiff",
     "InferenceAllSimpleMeanDiffPooledVar"
 )
 inf_names = setdiff(inf_names, excluded_paths)

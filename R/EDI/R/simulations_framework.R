@@ -3217,7 +3217,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           if (is.list(inf_obj) && !is.null(inf_obj$fatal_error)) return(inf_obj)
           
           if (is.null(inf_obj)) next
-          is_mean_diff = is(inf_obj, "InferenceAllSimpleMeanDiff") ||
+          is_mean_diff = is(inf_obj, "InferenceAllSimpleAverageDiff") ||
                          is(inf_obj, "InferenceIncidWald") ||
                          is(inf_obj, "InferenceIncidCMH") ||
                          is(inf_obj, "InferenceIncidExtendedRobins") ||
@@ -4221,7 +4221,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     },
     .default_inference_classes = function() {
       rt   = private$response_type_values[[1L]]
-      univ = if (!(rt == "survival" && private$prob_censoring > 0)) list(InferenceAllSimpleMeanDiff) else list()
+      univ = if (!(rt == "survival" && private$prob_censoring > 0)) list(InferenceAllSimpleAverageDiff) else list()
       type_specific = switch(rt,
         continuous = list(
           InferenceAllSimpleWilcox,

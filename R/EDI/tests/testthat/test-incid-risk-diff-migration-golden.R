@@ -181,6 +181,21 @@ risk_diff_intentionally_dropped_labels = c(
 	"lik_ratio_ci", "lik_ratio_pval", "param_boot_pval", "param_boot_ci"
 )
 
+# Labels whose *numeric value* is intentionally no longer bit-identical to the
+# legacy class (2026-08-24): `InferenceIncidRiskDiff$generate_mod()` now
+# replaces `fast_ols_with_var_cpp()`'s classical homoskedastic OLS variance
+# with a Huber-White (HC0) sandwich variance for `ssq_b_j`/`ssq_b_2` (see the
+# class-level roxygen). This is a deliberate statistical-correctness fix, not
+# a migration regression -- OLS on a binary y is a linear probability model,
+# whose conditional variance is heteroskedastic by construction
+# (Var(y|x)=p(x)(1-p(x))), so the classical SE the legacy class used is
+# misspecified. Only the four methods that read the cached standard error
+# (asymp/wald CI and pval -- "asymp" and "wald" are the same computation for
+# this class, since it only ever supports the "wald" testing type) are
+# affected; the point estimate, bootstrap, jackknife, and randomization paths
+# never touch `ssq_b_j`/`ssq_b_2` and are asserted bit-identical as before.
+risk_diff_se_formula_changed_labels = c("asymp_ci", "asymp_pval", "wald_ci", "wald_pval")
+
 # Every method call is seeded fresh on both sides (obj$set_seed + a global-RNG
 # reset) before being invoked -- see test-incid-cmh-extended-robins-migration-
 # golden.R for why this is the only safe general pattern for classes whose
@@ -216,9 +231,21 @@ expect_risk_diff_migration_outputs_equal = function(legacy_class, migrated_class
 			next
 		}
 		expect_identical(legacy_result$status, migrated_result$status, info = label)
-		if (identical(legacy_result$status, "ok")) {
-			expect_equal(migrated_result$value, legacy_result$value, tolerance = 1e-7, info = label)
+		if (!identical(legacy_result$status, "ok")) next
+		if (label %in% risk_diff_se_formula_changed_labels) {
+			legacy_value = as.numeric(legacy_result$value)
+			migrated_value = as.numeric(migrated_result$value)
+			expect_true(all(is.finite(migrated_value)), info = label)
+			if (endsWith(label, "_ci")) {
+				# Both CIs are symmetric around beta_hat_T (+-multiplier*SE), so
+				# the midpoint is SE-independent and must still match exactly;
+				# only the half-width (driven by the SE formula) is allowed to
+				# differ.
+				expect_equal(mean(migrated_value), mean(legacy_value), tolerance = 1e-7, info = label)
+			}
+			next
 		}
+		expect_equal(migrated_result$value, legacy_result$value, tolerance = 1e-7, info = label)
 	}
 }
 

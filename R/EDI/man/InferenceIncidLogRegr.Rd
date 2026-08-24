@@ -21,6 +21,28 @@ separation) is cached as nonestimable rather than returned. Validity
 requires the usual logistic-regression assumptions: correctly specified
 linear predictor on the logit scale, independence across subjects
 conditional on covariates, and no perfect/quasi-complete separation.
+
+\strong{Estimand.} Composes
+\code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
+(\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()}).
+Under the default \code{estimand = "conditional"}, \eqn{\hat\beta_T} is the
+log-odds-ratio above. Under \code{estimand = "marginal_mean_diff"}, the
+reported quantity is instead the g-computation marginal risk difference
+\eqn{\frac{1}{n}\sum_i \{\mathrm{plogis}(\hat\beta_0 + \hat\beta_T + X_i^\top
+\hat\gamma) - \mathrm{plogis}(\hat\beta_0 + X_i^\top \hat\gamma)\}} — every
+subject's covariates plugged in once under treatment and once under
+control, averaged over the empirical covariate distribution. Under
+\code{estimand = "marginal_ratio"}, the log of the corresponding marginal
+risk ratio. Because there is no latent submodel for this family (unlike
+e.g. \code{\link[EDI:InferencePropZeroOneInflatedBetaRegr]{InferencePropZeroOneInflatedBetaRegr}}'s
+zero/one-inflation mixture), the marginal mean function is exactly the
+model's own fitted mean; no separate standardization step beyond the
+g-computation average is needed. Standard errors under a marginal estimand
+use the delta method against the model's coefficient covariance (degrees
+of freedom \code{Inf}); \code{testing_type} is restricted to \code{"wald"}
+whenever the estimand is non-conditional (\code{set_testing_type()} errors
+otherwise). The underlying model fit is identical regardless of estimand —
+switching \code{estimand} is a pure post-fit transform, never a refit.
 }
 \examples{
 \donttest{
@@ -54,19 +76,15 @@ Comparable Python API:
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceIncidLogRegr-set_custom_randomization_statistic_function}{\code{InferenceIncidLogRegr$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceIncidLogRegr-set_custom_randomization_statistic_cpp}{\code{InferenceIncidLogRegr$set_custom_randomization_statistic_cpp()}}
-    \item \href{#method-InferenceIncidLogRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceIncidLogRegr$approximate_randomization_distribution_beta_hat_T()}}
-    \item \href{#method-InferenceIncidLogRegr-supports_rand_pval_for_incidence}{\code{InferenceIncidLogRegr$supports_rand_pval_for_incidence()}}
+    \item \href{#method-InferenceIncidLogRegr-compute_estimate}{\code{InferenceIncidLogRegr$compute_estimate()}}
+    \item \href{#method-InferenceIncidLogRegr-compute_asymp_confidence_interval}{\code{InferenceIncidLogRegr$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferenceIncidLogRegr-compute_asymp_two_sided_pval}{\code{InferenceIncidLogRegr$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferenceIncidLogRegr-clone}{\code{InferenceIncidLogRegr$clone()}}
   }
 }
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -88,55 +106,81 @@ Comparable Python API:
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidLogRegr-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidLogRegr-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceIncidLogRegr$set_custom_randomization_statistic_function()}}{
+\if{html}{\out{<a id="method-InferenceIncidLogRegr-compute_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidLogRegr-compute_estimate}{}}}
+\subsection{\code{InferenceIncidLogRegr$compute_estimate()}}{
+  Fits the logistic regression model by maximum
+  likelihood. Under the default \code{estimand = "conditional"},
+  returns \eqn{\hat\beta_T}, the treatment log-odds-ratio. Under
+  \code{estimand = "marginal_mean_diff"}/\code{"marginal_ratio"}
+  (set via \code{set_estimand()}), returns the g-computation
+  marginal risk difference/log-risk-ratio instead — see the
+  class-level \code{@details} for the formula. The underlying
+  model fit is identical either way (a pure post-fit transform of
+  the same cached fit, no refit).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidLogRegr$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
+    \preformatted{InferenceIncidLogRegr$compute_estimate(estimate_only = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimate_only}}{If TRUE, skip standard-error computation and
+cache only the point estimate; used by randomization and
+bootstrap resampling paths.}
+    }
     \if{html}{\out{</div>}}
   }
 }
 
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidLogRegr-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidLogRegr-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceIncidLogRegr$set_custom_randomization_statistic_cpp()}}{
+\if{html}{\out{<a id="method-InferenceIncidLogRegr-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidLogRegr-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferenceIncidLogRegr$compute_asymp_confidence_interval()}}{
+  Wald confidence interval, dispatched by
+  \code{testing_type} for the conditional estimand (score/gradient/
+  likelihood-ratio/Bartlett available); under a marginal estimand
+  \code{testing_type} is always \code{"wald"} (the only value
+  \code{set_estimand()} permits there), so this always resolves to
+  the delta-method interval. Calls \code{self$compute_estimate()}
+  first (not \code{private$shared()} directly) so the
+  estimand-aware cache is always current regardless of call order.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidLogRegr$set_custom_randomization_statistic_cpp(fn)}
+    \preformatted{InferenceIncidLogRegr$compute_asymp_confidence_interval(alpha = 0.05)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Two-sided miscoverage rate; the returned interval
+targets \code{1 - alpha} coverage.}
+    }
     \if{html}{\out{</div>}}
   }
 }
 
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidLogRegr-approximate_randomization_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidLogRegr-approximate_randomization_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceIncidLogRegr$approximate_randomization_distribution_beta_hat_T()}}{
+\if{html}{\out{<a id="method-InferenceIncidLogRegr-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidLogRegr-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidLogRegr$compute_asymp_two_sided_pval()}}{
+  Wald two-sided p-value, dispatched by
+  \code{testing_type} exactly as
+  \code{compute_asymp_confidence_interval()}; see that method's
+  description for the marginal-estimand always-Wald note.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidLogRegr$approximate_randomization_distribution_beta_hat_T(
-  r = 501,
-  delta = 0,
-  transform_responses = "none",
-  show_progress = TRUE,
-  permutations = NULL,
-  debug = FALSE,
-  zero_one_logit_clamp = .Machine$double.eps
-)}
+    \preformatted{InferenceIncidLogRegr$compute_asymp_two_sided_pval(delta = 0)}
     \if{html}{\out{</div>}}
   }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidLogRegr-supports_rand_pval_for_incidence"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidLogRegr-supports_rand_pval_for_incidence}{}}}
-\subsection{\code{InferenceIncidLogRegr$supports_rand_pval_for_incidence()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidLogRegr$supports_rand_pval_for_incidence()}
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment-effect value under the current estimand
+(conditional log-odds-ratio, or marginal risk difference/
+log-risk-ratio).}
+    }
     \if{html}{\out{</div>}}
   }
 }

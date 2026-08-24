@@ -3,7 +3,7 @@ library(EDI)
 
 # InferenceIncidWald migration (fix_inference_hierarchy.md, "Asymptotic (Wald)
 # No-Likelihood Migration"): from `R6::R6Class(inherit =
-# InferenceAllSimpleMeanDiff, ...)` to `define_inference_class()` composing
+# InferenceAllSimpleAverageDiff, ...)` to `define_inference_class()` composing
 # `BayesianBootstrap`/`Wald`/`SimpleMeanDifference` directly, with the same
 # `initialize`/`get_standard_error`/`get_degrees_of_freedom`/
 # `compute_incidence_wald_components` overrides verbatim. This legacy
@@ -14,7 +14,7 @@ make_incid_wald_legacy_generator = function() {
 		"InferenceIncidWaldLegacy",
 		lock_objects = FALSE,
 		parent_env = asNamespace("EDI"),
-		inherit = EDI:::InferenceAllSimpleMeanDiff,
+		inherit = EDI:::InferenceAllSimpleAverageDiff,
 		public = list(
 			initialize = function(des_obj, model_formula = NULL, verbose = FALSE){
 				if (EDI:::should_run_asserts()) {

@@ -80,7 +80,7 @@ Two consequences that are easy to miss:
   `EDI/R/design_abstract.R:82`), then `assert_all_subjects_arrived()` is a
   no-op, and `assert_all_responses_recorded()` only checks that responses
   are in for the subjects enrolled *so far*. In that mode,
-  **`InferenceAllSimpleMeanDiff$new(des_obj)` (or any other concrete
+  **`InferenceAllSimpleAverageDiff$new(des_obj)` (or any other concrete
   `Inference*` class) already runs successfully at any intermediate `t`**,
   today, with zero code changes.
 
@@ -235,7 +235,7 @@ is `des_obj` itself, the object they are already accruing subjects into.
 ```r
 monitor = SequentialMonitor$new(
   des_obj,                       # the live, still-enrolling Design object
-  inference_class = InferenceAllSimpleMeanDiff,
+  inference_class = InferenceAllSimpleAverageDiff,
   inference_args = list(),       # extra args forwarded to Inference$new()
   spending_function = obf_spending(),   # or "bayesian", "confidence_sequence", ...
   planned_n = 200,                # information-fraction denominator (see S6)
@@ -384,7 +384,7 @@ this section implied.
 
 - [ ] TODO-1: **Phase 0 (no core changes, proof of concept):** demonstrate
   group-sequential O'Brien-Fleming monitoring on top of
-  `InferenceAllSimpleMeanDiff` for a continuous response, using an
+  `InferenceAllSimpleAverageDiff` for a continuous response, using an
   `n = NULL` (open-accrual) `DesignSeqOneByOneBernoulli` design and manual
   per-look `Inference*$new(des_obj)` calls, validated by simulation via
   `SimulationFramework`. This exercises §2's existing loophole directly and

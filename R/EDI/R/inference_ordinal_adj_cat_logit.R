@@ -8,6 +8,11 @@
 #' (\code{likelihood_tier = "full"}) supporting score, gradient, and
 #' likelihood-ratio tests, plus parametric likelihood-ratio bootstrap
 #' calibration, in addition to Wald and resampling-based inference.
+#' Bayesian-bootstrap inference is temporarily unavailable because the current
+#' non-uniform weighted hook fits a cumulative-logit surrogate rather than the
+#' adjacent-category likelihood. It will remain disabled until the native
+#' weighted adjacent-category backend described in the package implementation
+#' plan lands.
 #'
 #' @examples
 #' \donttest{
@@ -83,6 +88,10 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 	),
 	private = list(
 		supports_likelihood_tests = function(){ TRUE },
+		# The weighted hook below is not estimator-preserving. Keep every public
+		# Bayesian-bootstrap entry point disabled until the native weighted
+		# adjacent-category backend plan is complete.
+		supports_bayesian_bootstrap = function() FALSE,
 		best_Xmm_colnames = NULL,
 		# Declared explicitly (2026-08-21 fix) so the harvested
 		# OrdinalAdjacentCategoryLikelihood component's owns_state can
@@ -327,6 +336,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 				"get_supported_testing_types", "set_testing_type"
 			),
 			private = c(
+				"supports_bayesian_bootstrap",
 				"resolve_jackknife_unit",
 				"jackknife_block_size_gt_one_unsupported",
 				"mark_jackknife_nonestimable_if_block_unsupported",

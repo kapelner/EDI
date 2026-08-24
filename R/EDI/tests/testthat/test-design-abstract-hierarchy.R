@@ -72,7 +72,7 @@ test_that("DesignFixedTestFixture supports analysis but not redraw-based resampl
 	expect_false(des$supports_resampling_replay())
 	expect_error(des$assign_w_to_all_subjects(), "draw_ws_raw must be implemented")
 
-	inf = InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf = InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	expect_equal(inf$compute_estimate(), 2)
 	expect_length(inf$compute_asymp_confidence_interval(), 2)
 	expect_true(is.finite(inf$compute_asymp_two_sided_pval()))

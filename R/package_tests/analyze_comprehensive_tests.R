@@ -100,7 +100,7 @@ X[beta_T == 1 & response_type == "continuous" &
 X[beta_T == 1 &
 	response_type == "incidence" &
 	inference_class %in% c(
-		"InferenceAllSimpleMeanDiff",
+		"InferenceAllSimpleAverageDiff",
 		"InferenceAllKKMeanDiffIVWC",
 		"InferenceIncidExactZhang",
 		"InferenceIncidKKExactZhang",
@@ -158,7 +158,7 @@ beta := {
 # proportion — simple/KK mean diff: E[e*y/(1+(e-1)*y)] - E[y]
 X[beta_T == 1 & response_type == "proportion" &
 	inference_class %in% c(
-		"InferenceAllSimpleMeanDiff",
+		"InferenceAllSimpleAverageDiff",
 		"InferenceAllKKMeanDiffIVWC",
 		"InferencePropGCompMeanDiff",
 		"InferencePropGCompMeanDiff"
@@ -187,7 +187,7 @@ inference_class %in% c("InferenceAllKKWilcoxIVWC"),
 
 # count — simple/KK mean diff: E[Y_C] * (e - 1)
 X[beta_T == 1 & response_type == "count" &
-	inference_class %in% c("InferenceAllSimpleMeanDiff", "InferenceAllKKMeanDiffIVWC"),
+	inference_class %in% c("InferenceAllSimpleAverageDiff", "InferenceAllKKMeanDiffIVWC"),
 	beta := {
 		y_c = datasets_and_response_models[[dataset]]$y_original$count
 		mean(y_c) * (e - 1)
@@ -242,7 +242,7 @@ X[beta_T == 1 & response_type == "survival" &
 # ordinal — observed-score mean difference under the rounding/flooring DGP
 X[beta_T == 1 & response_type == "ordinal" &
 	inference_class %in% c(
-		"InferenceAllSimpleMeanDiff",
+		"InferenceAllSimpleAverageDiff",
 		"InferenceAllKKMeanDiffIVWC",
 		"InferenceOrdinalGCompMeanDiff",
 		"InferenceOrdinalGCompMeanDiff"

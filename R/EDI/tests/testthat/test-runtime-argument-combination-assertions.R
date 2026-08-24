@@ -16,7 +16,7 @@ test_that("public bootstrap methods use promoted runtime argument checks", {
 	des$add_all_subjects_to_experiment(data.frame(x = 1:4))
 	des$assign_w_to_all_subjects(w_precomputed = c(0, 1, 0, 1))
 	des$add_all_subject_responses(c(1, 2, 3, 4))
-	inf = InferenceAllSimpleMeanDiff$new(des)
+	inf = InferenceAllSimpleAverageDiff$new(des)
 
 	expect_error(
 		inf$compute_bootstrap_confidence_interval(B = 2L, min_number_usable_samples = 3L, show_progress = FALSE),
@@ -40,7 +40,7 @@ test_that("formula context helper gives direct missing-variable errors", {
 	des$assign_w_to_all_subjects(w_precomputed = c(0, 1, 0, 1))
 	des$add_all_subject_responses(c(1, 2, 3, 4))
 	expect_error(
-		InferenceAllSimpleMeanDiff$new(des, model_formula = ~ missing_col),
+		InferenceAllSimpleAverageDiff$new(des, model_formula = ~ missing_col),
 		"missing_col"
 	)
 })

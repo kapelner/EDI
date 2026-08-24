@@ -250,7 +250,7 @@ not a `response_type` label addition.
 If discrete choice (a) is implemented via `nominal`, the same fencing
 requirements apply as in
 [nominal_response_type_report.md:395-414](nominal_response_type_report.md:395)
-(`InferenceAllSimpleMeanDiff`, `InferenceAllSimpleMeanDiffPooledVar`,
+(`InferenceAllSimpleAverageDiff`, `InferenceAllSimpleMeanDiffPooledVar`,
 `InferenceAllSimpleWilcox`, quantile-regression abstractions, and any
 response-type-agnostic path lacking `assertResponseType(...)`).
 

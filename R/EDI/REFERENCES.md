@@ -172,7 +172,7 @@ files' `@references`) if/when it becomes available.
 - **[Welch1947]** Welch, B. L. (1947). "The Generalization of 'Student's'
   Problem when Several Different Population Variances are Involved."
   *Biometrika*, 34(1-2), 28-35. doi:10.1093/biomet/34.1-2.28. — Used by:
-  `InferenceAllSimpleMeanDiff` (Welch/Satterthwaite unequal-variance
+  `InferenceAllSimpleAverageDiff` (Welch/Satterthwaite unequal-variance
   t-test).
 - **[HodgesLehmann1963]** Hodges, J. L., and Lehmann, E. L. (1963).
   "Estimates of Location Based on Rank Tests." *The Annals of Mathematical

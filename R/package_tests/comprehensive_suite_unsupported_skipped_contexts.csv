@@ -7,8 +7,8 @@
 "public_workflow_coverage","smoke","get_warm_start_dispatch_policy","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","InferenceAllKKMeanDiffIVWC","exempted","InferenceAllKKMeanDiffIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceAllKKWilcoxIVWC","exempted","InferenceAllKKWilcoxIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass).",NA
-"public_workflow_coverage","nightly","InferenceAllSimpleMeanDiff::compute_m_out_of_n_bootstrap_two_sided_pval::compute_m_out_of_n_bootstrap_two_sided_pval","exempted","m must satisfy 5 <= m <= 4.",NA
-"public_workflow_coverage","nightly","InferenceAllSimpleMeanDiff::compute_subsampling_confidence_interval::compute_subsampling_confidence_interval","exempted","b must satisfy 5 <= b <= 4.",NA
+"public_workflow_coverage","nightly","InferenceAllSimpleAverageDiff::compute_m_out_of_n_bootstrap_two_sided_pval::compute_m_out_of_n_bootstrap_two_sided_pval","exempted","m must satisfy 5 <= m <= 4.",NA
+"public_workflow_coverage","nightly","InferenceAllSimpleAverageDiff::compute_subsampling_confidence_interval::compute_subsampling_confidence_interval","exempted","b must satisfy 5 <= b <= 4.",NA
 "public_workflow_coverage","smoke","InferenceBaiAdjustedTKK14","exempted","InferenceBaiAdjustedTKK14 requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceBaiAdjustedTKK21","exempted","InferenceBaiAdjustedTKK21 requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceContinKKGLMM","exempted","InferenceContinKKGLMM requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14 or subclass) or DesignFixedBinaryMatch.",NA
@@ -49,13 +49,13 @@
 "public_workflow_coverage","smoke","InferencePropKKQuantileRegrOneLik","exempted","InferencePropKKQuantileRegrOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","exempted","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","exempted","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","exempted","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","exempted","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceSurvivalKKLWACoxPHIVWC","exempted","InferenceSurvivalKKLWACoxPHIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceSurvivalKKLWACoxPHOneLik","exempted","InferenceSurvivalKKLWACoxPHOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceSurvivalKKRankRegrIVWC","exempted","InferenceSurvivalKKRankRegrIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceSurvivalKKStratCoxPHIVWC","exempted","InferenceSurvivalKKStratCoxPHIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceSurvivalKKStratCoxPHOneLik","exempted","InferenceSurvivalKKStratCoxPHOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
-"public_workflow_coverage","smoke","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","exempted","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
-"public_workflow_coverage","smoke","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","exempted","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceSurvivalKKWeibullMarginal","exempted","InferenceSurvivalKKWeibullMarginal requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","inv_logit","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA
 "public_workflow_coverage","smoke","logit","exempted","Requires targeted inputs; classified for Phase 4 and deferred to focused workflow coverage.",NA

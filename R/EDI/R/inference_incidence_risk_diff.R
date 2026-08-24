@@ -9,10 +9,14 @@
 #' \eqn{P(Y=1\mid w,x)}, so the coefficient on \eqn{w} is already on the
 #' risk-difference (probability) scale with no back-transformation needed. This
 #' is a misspecified working model for a binary response (heteroskedastic,
-#' errors not Gaussian), so \code{likelihood_tier = "none"}: standard errors and
-#' the Wald CI use the usual OLS sandwich/homoskedastic variance of
-#' \eqn{\hat\beta_T}, not a binomial likelihood, and no likelihood-ratio or
-#' parametric-bootstrap methods are exposed.
+#' errors not Gaussian: \eqn{\mathrm{Var}(Y \mid w,x) = P(w,x)(1-P(w,x))} varies
+#' by treatment arm and covariates, so a single pooled residual variance is
+#' the wrong variance model), so \code{likelihood_tier = "none"}: standard
+#' errors and the Wald CI use the \strong{Huber-White (HC0) sandwich}
+#' variance of \eqn{\hat\beta_T} -- \eqn{(X'X)^{-1} X'\,\mathrm{diag}(e_i^2)\,X\,
+#' (X'X)^{-1}}, from the OLS residuals \eqn{e_i} -- not the classical
+#' homoskedastic OLS variance and not a binomial likelihood, and no
+#' likelihood-ratio or parametric-bootstrap methods are exposed.
 #'
 #' @examples
 #' \donttest{
@@ -35,7 +39,7 @@ InferenceIncidRiskDiff = define_inference_class(
 		#'   \code{InferenceRand}'s): for incidence responses it dispatches to the
 		#'   Zhang exact randomization test rather than refusing outright, matching
 		#'   this class's pre-migration old-ladder behavior. This deliberately
-		#'   differs from the \code{InferenceAllSimpleMeanDiff}-family precedent of
+		#'   differs from the \code{InferenceAllSimpleAverageDiff}-family precedent of
 		#'   pinning \code{InferenceRand}'s version, which would have regressed the
 		#'   working Zhang dispatch this class had on the old ladder.
 		#' @param r Number of randomization vectors. @param delta Null difference.
@@ -90,9 +94,13 @@ InferenceIncidRiskDiff = define_inference_class(
 			private$cached_values$beta_hat_T
 		},
 		#' @description Wald confidence interval for the risk difference,
-		#'   \eqn{\hat\beta_T \pm t_{1-\alpha/2, df}\, \hat s(\hat\beta_T)}, using the
-		#'   OLS standard error and residual degrees of freedom \eqn{df = n - p}
-		#'   from the cached model fit. Interval bounds are not clamped to
+		#'   \eqn{\hat\beta_T \pm z_{1-\alpha/2}\, \hat s(\hat\beta_T)}, using the
+		#'   \strong{Huber-White (HC0) sandwich} standard error from the cached
+		#'   model fit (see the class-level documentation) and a normal-quantile
+		#'   multiplier -- \code{fast_ols_with_var_cpp()} doesn't report residual
+		#'   degrees of freedom, so \code{private$compute_z_or_t_ci_from_s_and_df()}
+		#'   always falls back to its \eqn{z} branch here, never a \eqn{t}
+		#'   reference, regardless of \eqn{n}. Interval bounds are not clamped to
 		#'   \eqn{[-1, 1]}; a linear-probability model can produce out-of-range
 		#'   endpoints near the boundary of the covariate space.
 		#' @param alpha Two-sided miscoverage rate; the returned interval has nominal
@@ -102,9 +110,12 @@ InferenceIncidRiskDiff = define_inference_class(
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Two-sided Wald test of \eqn{H_0: \beta_T = \delta} vs.
-		#'   \eqn{H_1: \beta_T \neq \delta}, via the t-statistic
-		#'   \eqn{(\hat\beta_T - \delta) / \hat s(\hat\beta_T)} referred to a
-		#'   \eqn{t_{df}} distribution with the cached OLS residual degrees of freedom.
+		#'   \eqn{H_1: \beta_T \neq \delta}, via the Wald statistic
+		#'   \eqn{(\hat\beta_T - \delta) / \hat s(\hat\beta_T)} (\eqn{\hat s} the
+		#'   Huber-White sandwich SE) referred to a standard normal distribution
+		#'   -- same \eqn{z}, not \eqn{t}, reference as
+		#'   \code{$compute_asymp_confidence_interval()}, for the same reason
+		#'   (no residual degrees of freedom are ever cached for this class).
 		#' @param delta Null risk-difference value under \eqn{H_0} (default \code{0},
 		#'   no treatment effect).
 		compute_asymp_two_sided_pval = function(delta = 0){
@@ -286,6 +297,32 @@ InferenceIncidRiskDiff = define_inference_class(
 						res = fast_ols_with_var_cpp(X = X_fit, y = private$y, j = j_treat)
 						res$j_treat = j_treat
 						res$beta_hat_T = as.numeric(res$b[j_treat])
+						# Huber-White (HC0) sandwich variance, not
+						# `fast_ols_with_var_cpp()`'s classical homoskedastic
+						# `ssq_b_j`/`ssq_b_2` (per user request, 2026-08-24):
+						# `Var(y \mid w, x) = p(w,x)(1-p(w,x))` is inherently
+						# heteroskedastic for a binary `y`, so the classical
+						# constant-`sigma^2` OLS variance formula is
+						# misspecified here -- this class's own docs already
+						# claimed "sandwich" variance, but the code was only
+						# ever computing the homoskedastic one.
+						# `robust_sandwich_variance_from_xtwx()` (`helper_
+						# robust_sandwich.R`) is called directly as a plain
+						# function, not via composing the `RobustSandwich`
+						# *component* -- that component's `allowed_likelihood_
+						# tiers = "quasi"` would reject this class's own
+						# `likelihood_tier = "none"` at class-definition time
+						# (verified: `contracts_mixins.R`'s `"... uses
+						# component %s with disallowed likelihood tier"`
+						# check), but the underlying variance formula itself
+						# has no such restriction -- it just needs `X`, the
+						# residuals, and `X'X`, all already on hand here.
+						resid = as.numeric(private$y) - as.numeric(X_fit %*% res$b)
+						ssq_robust = robust_sandwich_variance_from_xtwx(
+							X = X_fit, residuals = resid, XtWX = res$XtX, j = j_treat
+						)
+						res$ssq_b_j = ssq_robust
+						res$ssq_b_2 = ssq_robust
 						res
 					}
 				},

@@ -767,6 +767,26 @@ fast_continuation_ratio_regression_cpp <- function(X, y, maxit = 100L, tol = 1e-
     .Call(`_EDI_fast_continuation_ratio_regression_cpp`, X, y, maxit, tol, warm_start_beta, smart_cold_start, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
 }
 
+#' Fast Weighted Continuation-Ratio Regression, Direct MLE (C++ Backend)
+#'
+#' Fits the same continuation-ratio likelihood as
+#' \code{fast_continuation_ratio_regression_cpp()}, weighting every augmented
+#' binary row for subject \eqn{i} by that subject's nonnegative weight
+#' \eqn{w_i}. This entry point is intended for bootstrap and other weighted
+#' refits whose estimates must retain the continuation-ratio coefficient
+#' convention.
+#'
+#' @inheritParams fast_continuation_ratio_regression_cpp
+#' @param weights A finite, nonnegative subject-level weight vector of length
+#'   \code{nrow(X)} containing at least one positive value.
+#' @return The same result fields as
+#'   \code{fast_continuation_ratio_regression_cpp()}, plus
+#'   \code{weights_aug}, the weights copied onto the augmented binary rows.
+#' @keywords internal
+fast_continuation_ratio_regression_weighted_cpp <- function(X, y, weights, maxit = 100L, tol = 1e-8, warm_start_beta = NULL, smart_cold_start = TRUE, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL) {
+    .Call(`_EDI_fast_continuation_ratio_regression_weighted_cpp`, X, y, weights, maxit, tol, warm_start_beta, smart_cold_start, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
+}
+
 #' Fast Continuation-Ratio Regression with Variance, Direct MLE (C++ Backend)
 #'
 #' Fits the same continuation-ratio model as

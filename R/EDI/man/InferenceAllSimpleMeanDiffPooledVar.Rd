@@ -5,7 +5,7 @@
 \title{Simple Mean-Difference Inference with Pooled Variance}
 \description{
 Fits the same unadjusted mean-difference point estimate as
-\code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}},
+\code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}},
 \eqn{\hat\beta_T = \bar y_T - \bar y_C}, but performs inference via the
 classical \strong{pooled equal-variance} Student's t-test instead of
 Welch's unequal-variance version: pooled variance \eqn{s_p^2 =
@@ -13,7 +13,7 @@ Welch's unequal-variance version: pooled variance \eqn{s_p^2 =
 \eqn{s_p\sqrt{1/n_T + 1/n_C}}, and exact degrees of freedom \eqn{n_T+n_C-2}
 — see \code{$compute_asymp_confidence_interval()} for the full formula.
 This assumes the two arms have equal population variance; prefer
-\code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}}
+\code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}
 when that assumption is doubtful, since the pooled estimator's nominal
 coverage degrades under heteroskedasticity with unequal arm sizes. This
 class does not support censored survival data (enforced at construction).

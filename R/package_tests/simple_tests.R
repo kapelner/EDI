@@ -115,7 +115,7 @@ run_tests_for_response = function(response_type, inference_classes, model_formul
 
 ##### response_type = continuous (standard)
 run_tests_for_response("continuous", list(
-  InferenceAllSimpleMeanDiff,
+  InferenceAllSimpleAverageDiff,
   list(InferenceContinOLS, model_formula = ~ 1),
   list(InferenceContinOLS, model_formula = ~ .),
   list(InferenceContinLin, model_formula = ~ .),
@@ -154,7 +154,7 @@ run_tests_for_response("incidence", list(
 
 ##### response_type = proportion
 run_tests_for_response("proportion", list(
-  InferenceAllSimpleMeanDiff,
+  InferenceAllSimpleAverageDiff,
   list(InferencePropBetaRegr, model_formula = ~ .),
   list(InferencePropFractionalLogit, model_formula = ~ .),
   list(InferencePropQuantileRegr, model_formula = ~ .),

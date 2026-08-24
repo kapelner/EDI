@@ -143,6 +143,22 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 		}
 	),
 	private = list(
+		# Whether jackknife is *permanently* unsupported for this class --
+		# a per-class constant, true for every dataset, as opposed to a
+		# particular fit happening to be data-dependently nonestimable
+		# (e.g. insufficient block structure for THIS design instance).
+		# Default `FALSE`; the Hodges-Lehmann Wilcoxon-shift families
+		# (`InferenceAllSimpleWilcox`/`InferenceAllKKWilcoxIVWC`) override
+		# `TRUE` -- their delete-1 jackknife always reports non-estimable
+		# regardless of data (the median-of-pairwise-differences functional
+		# isn't smooth enough for it), so `run_all_inference()` can skip
+		# generating a doomed "jackknife" task for them entirely (per user
+		# report, 2026-08-24: "it seems this class-method is never
+		# estimable") rather than every fit predictably landing on
+		# `status = "nonest"`.
+		jackknife_always_nonestimable = function(){
+			FALSE
+		},
 		normalize_jackknife_unit = function(unit = "auto"){
 			unit = tolower(as.character(unit)[1L])
 			valid = c("auto", "observation", "cluster", "block", "pair", "matched_set")

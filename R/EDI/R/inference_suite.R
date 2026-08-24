@@ -631,6 +631,32 @@ inference_class_supports_bartlett_exact = function(nm, des_obj, params = list())
 	}, error = function(e) FALSE)
 }
 
+#' Whether concrete class `nm` reports jackknife as *permanently*
+#' unsupported (`jackknife_always_nonestimable()`, a per-class constant --
+#' see `inference_all_abstract_jackknife.R`'s own docs), not merely
+#' nonestimable for some particular dataset. Unlike `inference_class_
+#' supports_bartlett_exact()`, safe to check via bare-generator introspection
+#' (no construction needed): every real override of this method (`Inference
+#' AllSimpleWilcox`/`InferenceAllKKWilcoxIVWC`, both `TRUE`) is a
+#' self/private-free literal defined directly in the concrete class's own
+#' eager `private = list(...)`, the same already-established "safe invoke
+#' without construction" shape as `design_compatibility_reason()` in those
+#' same files -- verified directly (not assumed) by calling it bare on both
+#' overrides and the base `FALSE` default before wiring this in.
+#'
+#' @keywords internal
+#' @noRd
+inference_class_jackknife_always_nonestimable = function(nm) {
+	generator = tryCatch(get(nm, envir = getNamespace("EDI")), error = function(e) NULL)
+	current = generator
+	while (!is.null(current)) {
+		fn = current$private_methods$jackknife_always_nonestimable
+		if (!is.null(fn)) return(isTRUE(tryCatch(fn(), error = function(e) FALSE)))
+		current = current$get_inherit()
+	}
+	FALSE
+}
+
 #' Which of `methods` (already validated against `EDI_INFERENCE_SUITE_METHOD_SENTINELS`)
 #' class `nm` has any capability for -- backs `run_all_inference_build_tasks()`'s
 #' `methods` fan-out, same registry-only, no-instantiation approach as
@@ -642,7 +668,11 @@ inference_class_supports_bartlett_exact = function(nm, des_obj, params = list())
 #' `des_obj` supports randomization draws at all; and `"lik_ratio_bartlett_
 #' exact"`, filtered against `inference_class_supports_bartlett_exact()`
 #' (see that function's own docs) for the same reason the coarser
-#' `"likelihood_tests"` capability alone over-approximates it.
+#' `"likelihood_tests"` capability alone over-approximates it; and
+#' `"jackknife"`, filtered against `inference_class_jackknife_always_
+#' nonestimable()` for classes whose jackknife is permanently unsupported
+#' regardless of data (the Hodges-Lehmann Wilcoxon-shift families), not
+#' merely nonestimable for a particular fit.
 #'
 #' @param des_obj The `Design` instance being fit against. `NULL` skips the
 #'   randomization-support filter entirely (treated as "supported") --
@@ -690,6 +720,9 @@ run_all_inference_class_applicable_methods = function(nm, methods, des_obj = NUL
 	if (!is.null(des_obj) && "lik_ratio_bartlett_exact" %in% methods &&
 			!inference_class_supports_bartlett_exact(nm, des_obj, params)) {
 		methods = setdiff(methods, "lik_ratio_bartlett_exact")
+	}
+	if ("jackknife" %in% methods && inference_class_jackknife_always_nonestimable(nm)) {
+		methods = setdiff(methods, "jackknife")
 	}
 	Filter(function(m) inference_class_has_method(nm, m), methods)
 }
@@ -1087,6 +1120,216 @@ run_all_inference_build_tasks = function(cls_names, formulas, methods, des_obj =
 	tasks
 }
 
+#' A placeholder `status = "timeout"` row for a fork-cluster task whose worker
+#' process was force-killed (`parallel_fork_cluster_test_safety.md`'s TODO-5)
+#' because it exceeded `max_secs_per_class` without ever returning to R's
+#' interpreter loop -- i.e. a genuine OS-level hang/deadlock, not merely a
+#' slow-but-alive computation (that case is already caught, per task, by
+#' `run_all_inference_one_class()`'s own internal `setTimeLimit()`, which
+#' *does* still apply inside each forked child; this row shape is only reached
+#' when even that could not fire). Mirrors `run_all_inference_one_class()`'s
+#' row shape/field set exactly -- built without ever constructing the
+#' inference object, since the class that hung can't be trusted to construct
+#' cleanly a second time in-process either.
+#' @keywords internal
+#' @noRd
+run_all_inference_fork_timeout_row = function(cls_name, design_family, response_type, max_secs_per_class, method = NA_character_, type = NA_character_) {
+	list(
+		inference_class = cls_name,
+		method          = method,
+		type            = type,
+		response_type   = response_type,
+		design_family   = design_family,
+		likelihood_tier = tryCatch(get_inference_class_metadata(cls_name)$likelihood_tier %||% NA_character_, error = function(e) NA_character_),
+		cov_model       = NA_character_,
+		estimate        = NA_real_,
+		se              = NA_real_,
+		ci_a            = NA_real_,
+		ci_b            = NA_real_,
+		ci_method       = NA_character_,
+		pval            = NA_real_,
+		pval_method     = NA_character_,
+		estimand        = tryCatch(run_all_inference_estimand(cls_name), error = function(e) NA_character_),
+		fit_secs        = as.numeric(max_secs_per_class),
+		warnings        = NA_character_,
+		status          = "timeout",
+		message         = sprintf(
+			"fork-cluster worker exceeded max_secs_per_class = %s seconds and was force-killed (no response from the worker process, not a slow-but-alive R computation)",
+			max_secs_per_class
+		),
+		diagnostics     = list(
+			converged = NA, hit_iteration_cap = NA,
+			iterations = NA_integer_, optimizer = NA_character_
+		)
+	)
+}
+
+#' Bounded-concurrency, PID-trackable fork dispatcher for
+#' `InferenceSuite$run_all_inference(num_cores > 1)`
+#' (`parallel_fork_cluster_test_safety.md`'s TODO-5).
+#'
+#' @details
+#' Deliberately does **not** use `make_configured_fork_cluster()` +
+#' `parallel::clusterApply()` (the pattern every other fork-cluster user in
+#' this package follows, and the one this function replaces just for this
+#' call site). That pattern requires exactly what a real deadlock breaks: a
+#' single blocking `clusterApply()` call that only returns once *every*
+#' worker has finished, and an `on.exit(stopCluster(cl))` cleanup that itself
+#' talks to the workers over the cluster's socket/pipe protocol -- so a
+#' single hung worker blocks the whole call AND makes the cleanup that's
+#' supposed to save you hang too (the exact 2026-08-21 CI incident this plan
+#' exists to fix; see this file's `run_all_inference()` for the still-used
+#' `clusterApply()` path retained for the un-timed-out common case... no --
+#' see note below, this function is now the *only* fork path).
+#'
+#' Instead, each task is forked as its own independent, one-shot child via
+#' `parallel::mcparallel()` (the same underlying `fork()` primitive
+#' `makeForkCluster()` uses, but with no persistent cluster/socket layer on
+#' top -- each child is a normal OS process with a real, individually
+#' trackable PID). A small scheduling loop keeps at most `num_cores` children
+#' alive at once, polling non-blockingly (`parallel::mccollect(wait = FALSE,
+#' timeout = ...)`) for completions. A task whose child has been running
+#' longer than `max_secs_per_class` is force-killed by PID
+#' (`tools::pskill(pid, tools::SIGKILL)`) -- a raw OS signal delivered by the
+#' kernel, which needs no cooperation or response from the (possibly
+#' deadlocked) child, unlike `stopCluster()`'s protocol handshake. Because
+#' there is no shared cluster object, killing one task's child has **no
+#' effect on any other task**: no cluster to "poison," nothing to recreate,
+#' concurrently-running or not-yet-dispatched tasks are entirely unaffected
+#' and simply continue/start on their own independent children. The one
+#' resource a forced kill can leak is that specific child's own open
+#' handles/partially-written memory (all copy-on-write, private to that one
+#' process) -- which the OS reclaims in full the instant the killed process
+#' exits, exactly like any other killed process; there is nothing shared
+#' with the parent or siblings to clean up.
+#'
+#' Each child sets the same single-thread env vars/options
+#' `make_configured_fork_cluster()`'s `clusterCall()` sets on persistent
+#' cluster workers (`OMP_NUM_THREADS` etc., `data.table`/`fixest` thread
+#' caps) -- but does so *inside the forked child only* (`Sys.setenv()` after
+#' `fork()`, before the real work starts), never mutating the parent's own
+#' environment, so this needs no `clusterCall()`-style round trip at all.
+#'
+#' @param tasks List of task specs (see `run_all_inference_build_tasks()`).
+#' @param worker_fn Function of one task, returning one result-row `list()`
+#'   (same contract as the `worker_fn` closures built inline in
+#'   `run_all_inference()`).
+#' @param num_cores Max concurrent forked children.
+#' @param max_secs_per_class Per-task wall-clock budget in seconds before a
+#'   still-running child is force-killed and replaced with a timeout row.
+#'   \code{NULL} disables the kill (children can still run indefinitely, same
+#'   as the old `clusterApply()` path's behavior when unset) -- included as
+#'   an explicit, deliberate opt-out, not an oversight: some users may prefer
+#'   an unbounded run over a wrong-for-their-workload arbitrary timeout.
+#' @param design_family,response_type Passed straight through into any
+#'   timeout row's fields.
+#' @return A list of result rows, same length/order/names as `tasks`.
+#' @keywords internal
+#' @noRd
+run_all_inference_fork_dispatch = function(tasks, worker_fn, num_cores, max_secs_per_class, design_family, response_type) {
+	n_total = length(tasks)
+	results = vector("list", n_total)
+	names(results) = vapply(tasks, `[[`, character(1L), "result_name")
+
+	configured_worker_fn = function(task) {
+		# Runs inside the forked child only -- see @details above.
+		Sys.setenv(
+			OMP_NUM_THREADS        = 1L,
+			MKL_NUM_THREADS        = 1L,
+			OPENBLAS_NUM_THREADS   = 1L,
+			GOTO_NUM_THREADS       = 1L,
+			VECLIB_MAXIMUM_THREADS = 1L,
+			NUMEXPR_NUM_THREADS    = 1L
+		)
+		options(mc.cores = 1L)
+		if (requireNamespace("data.table", quietly = TRUE)) data.table::setDTthreads(1L)
+		if (requireNamespace("fixest", quietly = TRUE)) suppressWarnings(try(fixest::setFixest_nthreads(1L), silent = TRUE))
+		worker_fn(task)
+	}
+
+	pending = seq_len(n_total)
+	# Each live entry: list(job = <mcparallel job>, start = <POSIXct>, idx = <task index>).
+	jobs = list()
+	poll_secs = 0.2
+
+	drain_finished = function() {
+		if (length(jobs) == 0L) return(invisible(NULL))
+		job_objs = lapply(jobs, `[[`, "job")
+		done = tryCatch(
+			parallel::mccollect(job_objs, wait = FALSE, timeout = poll_secs),
+			error = function(e) NULL
+		)
+		if (is.null(done) || length(done) == 0L) return(invisible(NULL))
+		finished_pids = names(done)
+		drained_pids = character()
+		for (pid in finished_pids) {
+			slot = which(vapply(jobs, function(j) identical(as.character(j$job$pid), pid), logical(1L)))
+			if (length(slot) != 1L) next
+			idx = jobs[[slot]]$idx
+			val = done[[pid]]
+			# mccollect() wraps a child-side error/condition as a "try-error"-like
+			# object rather than propagating it -- normalize to a proper error row
+			# instead of letting a malformed value corrupt results_table's rbind.
+			results[[idx]] <<- if (is.list(val) && !is.null(val$status)) {
+				val
+			} else {
+				list(
+					inference_class = tasks[[idx]]$cls_name, method = tasks[[idx]]$method, type = tasks[[idx]]$type,
+					response_type = response_type, design_family = design_family,
+					likelihood_tier = NA_character_, cov_model = NA_character_,
+					estimate = NA_real_, se = NA_real_, ci_a = NA_real_, ci_b = NA_real_, ci_method = NA_character_,
+					pval = NA_real_, pval_method = NA_character_, estimand = NA_character_,
+					fit_secs = NA_real_, warnings = NA_character_,
+					status = "error",
+					message = "fork worker returned an unrecognized/malformed value (possible child-side crash rather than an R-level error)",
+					diagnostics = list(converged = NA, hit_iteration_cap = NA, iterations = NA_integer_, optimizer = NA_character_)
+				)
+			}
+			drained_pids = c(drained_pids, names(jobs)[slot])
+		}
+		for (pid in drained_pids) jobs[[pid]] <<- NULL
+		invisible(NULL)
+	}
+
+	kill_timed_out = function() {
+		if (length(jobs) == 0L || is.null(max_secs_per_class)) return(invisible(NULL))
+		now = Sys.time()
+		timed_out_pids = character()
+		for (pid_chr in names(jobs)) {
+			j = jobs[[pid_chr]]
+			if (as.numeric(difftime(now, j$start, units = "secs")) <= max_secs_per_class) next
+			# Raw OS signal by PID -- needs no cooperation from the (possibly
+			# deadlocked) child, unlike stopCluster()'s protocol handshake.
+			try(tools::pskill(j$job$pid, tools::SIGKILL), silent = TRUE)
+			# Reap the now-dead child so it doesn't linger as a zombie; short
+			# timeout since SIGKILL is immediate once delivered.
+			try(parallel::mccollect(j$job, wait = TRUE, timeout = 5), silent = TRUE)
+			idx = j$idx
+			results[[idx]] <<- run_all_inference_fork_timeout_row(
+				tasks[[idx]]$cls_name, design_family, response_type, max_secs_per_class,
+				tasks[[idx]]$method, tasks[[idx]]$type
+			)
+			timed_out_pids = c(timed_out_pids, pid_chr)
+		}
+		for (pid_chr in timed_out_pids) jobs[[pid_chr]] <<- NULL
+		invisible(NULL)
+	}
+
+	while (length(pending) > 0L || length(jobs) > 0L) {
+		while (length(pending) > 0L && length(jobs) < num_cores) {
+			i = pending[1L]
+			pending = pending[-1L]
+			task_i = tasks[[i]]
+			job = parallel::mcparallel(configured_worker_fn(task_i), silent = TRUE)
+			jobs[[as.character(job$pid)]] = list(job = job, start = Sys.time(), idx = i)
+		}
+		if (length(jobs) == 0L) break
+		drain_finished()
+		kill_timed_out()
+	}
+	results
+}
+
 #' @keywords internal
 #' @noRd
 run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class = NULL, method = NA_character_, type = NA_character_) {
@@ -1347,6 +1590,17 @@ EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS = c(
 #' @noRd
 run_all_inference_wrap_cell_2lines = function(text, width) {
 	text = if (is.na(text)) "NA" else as.character(text)
+	# Force these two `method_short_label()` outputs onto 2 lines even
+	# though they fit within the column cap (per user request, 2026-08-24)
+	# -- both are two-word compound method names that happen to be just
+	# short enough to stay on one line at the current caps, but read better
+	# split onto their own lines, matching the wrapped look every typed
+	# sentinel (e.g. `"bayes boot (%ile)"`) already gets. An explicit
+	# lookup rather than a narrower column cap: shrinking the cap enough to
+	# force-wrap these two would also break the paren-split fitting check
+	# for unrelated, longer `"<method> (<type>)"` combinations that
+	# currently wrap correctly at the existing cap.
+	if (text %in% c("LR Bartlett", "LR ≈Bartlett")) return(c("LR", sub("^LR ", "", text)))
 	if (nchar(text) <= width) return(c(text, ""))
 	# A `"<method> (<type>)"` cell (`method_with_type_short_label()`'s own
 	# output, e.g. `"bayes boot (%ile)"`) splits at its own natural
@@ -1856,7 +2110,7 @@ tr:nth-child(even) { background: #fafafa; }
 <body>
 <h1>InferenceSuite$run_all_inference() results</h1>
 <p class="meta">
-Design: %s (%s, %s)&nbsp;&middot;&nbsp; n = %s&nbsp;&middot;&nbsp;
+Design: %s (response: %s)&nbsp;&middot;&nbsp; n = %s&nbsp;&middot;&nbsp;
 alpha = %s&nbsp;&middot;&nbsp; generated %s&nbsp;&middot;&nbsp;
 total time %.2fs&nbsp;&middot;&nbsp; EDI %s
 </p>
@@ -1868,7 +2122,7 @@ total time %.2fs&nbsp;&middot;&nbsp; EDI %s
 %s
 </body>
 </html>
-', out$timestamp, design_class_short_label(design$design_class), design$response_type, design$design_family, design$n,
+', out$timestamp, design_class_short_label(design$design_class), design$response_type, design$n,
 		out$alpha, run_all_inference_pretty_timestamp(out$timestamp), out$total_secs, out$edi_version, table_html, cov_key_html,
 		combined_evidence_html, breakdown_html, images_html, unavailable_html)
 }
@@ -2015,15 +2269,20 @@ run_all_inference_plot_safe_text = function(x) {
 #' design) can drift out of sync with the actual rendered layout.
 #'
 #' Bumped from `0.20` to `0.32` (per user request, 2026-08-24) to fit the
-#' p-value label now sitting *above* each row's own line (`pval_label_
-#' above`, `y + 0.32` -- see `run_all_inference_plot_ci_forest()`) without
-#' crowding the row above it; still one constant, so uniform-spacing-across-
-#' estimands (the 2026-08-22/23 requests above) holds at the new height
-#' exactly as it did at the old one.
+#' combined "pval = ..., width = ..." label now sitting *above* each row's
+#' own line (`label_above`, `y + 0.32` -- see `run_all_inference_plot_ci_
+#' forest()`) without crowding the row above it; then brought back down to
+#' `0.22` (per a later user request the same day, "reduce ... further
+#' without running over the text") -- empirically verified via direct
+#' rendering: `0.22` still leaves clear separation between a row's label
+#' and the row above it, `0.19` visibly touches it (tested both directly,
+#' not guessed). Still one constant, so uniform-spacing-across-estimands
+#' (the 2026-08-22/23 requests above) holds at the new height exactly as
+#' it did at the old one.
 #'
 #' @keywords internal
 #' @noRd
-EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN = 0.32
+EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN = 0.22
 #' @rdname EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN
 #' @keywords internal
 #' @noRd
@@ -2100,20 +2359,19 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# pre-letter design) or listed separately in a caption (the
 		# letter+key design just before this one) -- both of those cost
 		# vertical room this doesn't.
-		# Width label sits directly ON the CI line itself (a `geom_label()`,
-		# not `geom_text()` -- its background box visually "erases" the
-		# segment underneath), and the p-value sits just above it -- per
-		# user request, 2026-08-24: flanking text off the ends of the
-		# segment (the old `left_label`/`right_label`, positioned at
-		# `ci_a`/`ci_b`) went off-panel and disappeared for a long CI,
-		# exactly the outlier-width case already clipped at the axis
-		# (`is_width_outlier` below). Anchored at each row's own midpoint
-		# instead, both labels stay visible regardless of how long the
-		# segment is. `mid_x` uses the geometric mean on a log10 axis (the
+		# One combined "pval = ..., width = ..." label sits above each CI
+		# line (per user request, 2026-08-24, superseding the 2026-08-24
+		# split design that put width directly on the line via a
+		# `geom_label()` background box and p-value above it separately --
+		# now just one `geom_text()` carrying both). Anchored at each row's
+		# own midpoint, not flanking the segment's ends (the original
+		# `left_label`/`right_label`, positioned at `ci_a`/`ci_b`): those
+		# went off-panel and disappeared for a long CI, exactly the
+		# outlier-width case already clipped at the axis (`is_width_outlier`
+		# below). `mid_x` uses the geometric mean on a log10 axis (the
 		# visual midpoint of the segment as actually rendered), the
 		# arithmetic mean otherwise.
-		d$width_label = sprintf("[--%s--]", d$width_num)
-		d$pval_label_above = sprintf("pval = %s", run_all_inference_sigfig(d$pval, 3L, scientific = FALSE))
+		d$label_above = sprintf("pval = %s, width = %s", run_all_inference_sigfig(d$pval, 3L, scientific = FALSE), d$width_num)
 		d$right_full_label = d$class_method_label
 		# Per-estimand Cauchy-combined p-value (per user request, 2026-08-20:
 		# "each illustration gets its own cauchy combined pval since it is
@@ -2192,20 +2450,12 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 				linewidth = 1
 			) +
 			ggplot2::geom_point(ggplot2::aes(x = estimate, color = significant), size = 1.6) +
-			# p-value above the line, width label directly on it -- see this
-			# estimand-loop's own `d$width_label`/`d$pval_label_above`/
-			# `d$mid_x` comment above for why (per user request, 2026-08-24).
-			# `geom_label()` (not `geom_text()`) for the width specifically:
-			# its background box visually breaks the segment underneath so
-			# the bracket text stays legible sitting right on top of it.
+			# One combined "pval = ..., width = ..." label above the line --
+			# see this estimand-loop's own `d$label_above`/`d$mid_x` comment
+			# above for why (per user request, 2026-08-24).
 			ggplot2::geom_text(
-				ggplot2::aes(x = mid_x, y = y + 0.32, label = pval_label_above, color = significant),
+				ggplot2::aes(x = mid_x, y = y + 0.32, label = label_above, color = significant),
 				hjust = 0.5, size = 2.2
-			) +
-			ggplot2::geom_label(
-				ggplot2::aes(x = mid_x, label = width_label, color = significant),
-				hjust = 0.5, size = 2.2, label.size = 0, label.padding = ggplot2::unit(0.08, "lines"),
-				fill = "white"
 			) +
 			# Class/method label, right-aligned in a fixed column at the
 			# panel's right edge (`x = Inf, hjust = 1`) -- per user request,
@@ -2719,7 +2969,7 @@ inference_class_short_label = function(name) {
 	for (p in EDI_INFERENCE_CLASS_PREFIXES) {
 		if (startsWith(rest, p)) { rest = substring(rest, nchar(p) + 1L); break }
 	}
-	# "Simple" (e.g. the leftover from InferenceAllSimpleMeanDiff after "All"
+	# "Simple" (e.g. the leftover from InferenceAllSimpleAverageDiff after "All"
 	# is stripped above) carries no information once the response-family
 	# prefix is already gone -- every remaining class name in this family is
 	# implicitly "simple" relative to its KK/GEE/GLMM-adjusted counterparts.
@@ -3642,7 +3892,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   once, ignoring \code{formulas}. Note this is a syntactic check
 		#'   (does the constructor accept one), not a semantic one (does the fit
 		#'   actually use it) -- some classes accept-and-ignore \code{model_formula}
-		#'   (e.g. \code{InferenceAllSimpleMeanDiff}'s unadjusted Welch's t-test);
+		#'   (e.g. \code{InferenceAllSimpleAverageDiff}'s unadjusted Welch's t-test);
 		#'   see \code{fix_inference_hierarchy.md}'s
 		#'   \code{adjusts_for_covariates} registry-metadata audit, which makes
 		#'   the \code{cov_model} column semantics-aware wherever that audit has
@@ -4057,9 +4307,16 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				if (identical(Sys.getenv("EDI_TESTING_DISABLE_FORK_CLUSTER"), "true")) {
 					results_list = lapply(tasks, worker_fn)
 				} else {
-					cl = make_configured_fork_cluster(num_cores)
-					on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
-					results_list = parallel::clusterApply(cl, tasks, worker_fn)
+					# TODO-5 (parallel_fork_cluster_test_safety.md): per-task
+					# mcparallel()/mccollect() scheduler with PID-level force-kill
+					# on max_secs_per_class, NOT make_configured_fork_cluster() +
+					# clusterApply() -- see run_all_inference_fork_dispatch()'s own
+					# @details for why (a single hung worker can no longer block
+					# every other task, and there is no cluster-protocol cleanup
+					# step that a deadlocked worker can itself hang).
+					results_list = run_all_inference_fork_dispatch(
+						tasks, worker_fn, num_cores, max_secs_per_class, design_family, response_type
+					)
 				}
 				names(results_list) = names(results)
 				results = results_list
@@ -4257,9 +4514,9 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 #' @export
 print.EDIInferenceSuiteResults = function(x, ...) {
 	cat(sprintf(
-		"<EDIInferenceSuiteResults> %d class(es) -- %s (%s, %s), n = %s\n",
+		"<EDIInferenceSuiteResults> %d class(es) -- Design: %s (response: %s), n = %s\n",
 		nrow(x$results_table), design_class_short_label(x$design$design_class), x$design$response_type,
-		x$design$design_family, x$design$n
+		x$design$n
 	))
 	cat(run_all_inference_format_pretty_table(x$results_table), sep = "\n")
 	breakdown = run_all_inference_per_estimand_breakdown_lines(x$results_table)

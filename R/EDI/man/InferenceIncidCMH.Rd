@@ -99,10 +99,10 @@ inf$compute_estimate()
   incidence responses this dispatches to the Zhang exact randomization
   test where applicable rather than refusing outright, matching this
   class's pre-migration old-ladder behavior (it inherited from
-  \code{InferenceAllSimpleMeanDiff}, whose own pin was already
+  \code{InferenceAllSimpleAverageDiff}, whose own pin was already
   corrected to \code{InferenceRandCI} -- see that file's identical
   rationale). This class independently composes the same components
-  rather than truly inheriting \code{InferenceAllSimpleMeanDiff}, so it
+  rather than truly inheriting \code{InferenceAllSimpleAverageDiff}, so it
   had its own stale copy of the old \code{InferenceRand} pin, which
   silently regressed Zhang dispatch for the non-blocking balanced-design
   path -- found via

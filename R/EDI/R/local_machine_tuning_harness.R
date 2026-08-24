@@ -43,6 +43,18 @@ edi_tuning_default_seed = function(class, n) {
 #' added concrete inference class is picked up automatically, with no list to
 #' maintain by hand.
 #'
+#' The abstractness half of that filter is \code{infer_inference_abstract()}
+#' -- not just the response-type-count check above it. A class can be
+#' genuinely abstract (never meant to be constructed directly; e.g. requires
+#' a design family the generic synthetic fixture below never builds) while
+#' still resolving to exactly one response type, e.g.
+#' \code{InferenceIncidKKGCompAbstract}, which needs a KK matching-on-the-fly
+#' design (per its own \code{@keywords internal} docs) but slipped through
+#' this filter and errored \code{tune_EDI_for_this_machine()}'s example on
+#' CI (2026-08-24) via \code{init_kk_passthrough()}'s design-compatibility
+#' check, since \code{edi_tuning_synthetic_experiment()} always builds a
+#' plain iid \code{DesignSeqOneByOneBernoulli}.
+#'
 #' @return A data.frame with one row per family: \code{class} (character,
 #'   the R6 classname) and \code{response_type} (character).
 #' @keywords internal
@@ -51,7 +63,7 @@ edi_tuning_live_families = function() {
 	ns = asNamespace("EDI")
 	names = sort(Filter(function(name) {
 		obj = get(name, envir = ns, inherits = FALSE)
-		is_inference_r6_generator(obj) && identical(obj$classname, name)
+		is_inference_r6_generator(obj) && identical(obj$classname, name) && !infer_inference_abstract(name)
 	}, ls(ns, all.names = TRUE)))
 	response_types = lapply(names, infer_inference_response_types)
 	keep = lengths(response_types) == 1L

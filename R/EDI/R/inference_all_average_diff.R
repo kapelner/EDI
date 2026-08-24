@@ -365,15 +365,15 @@ SimpleMeanDifferenceSource = list(
 #' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 #' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
 #'
-#' seq_des_inf = InferenceAllSimpleMeanDiff$new(seq_des)
+#' seq_des_inf = InferenceAllSimpleAverageDiff$new(seq_des)
 #' seq_des_inf$compute_estimate()
 #' seq_des_inf$compute_asymp_confidence_interval()
 #' seq_des_inf$compute_asymp_two_sided_pval()
 #' }
-#' @name InferenceAllSimpleMeanDiff
+#' @name InferenceAllSimpleAverageDiff
 #' @export
-InferenceAllSimpleMeanDiff = define_inference_class(
-	classname = "InferenceAllSimpleMeanDiff",
+InferenceAllSimpleAverageDiff = define_inference_class(
+	classname = "InferenceAllSimpleAverageDiff",
 	inherit = Inference,
 	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 	public = list(

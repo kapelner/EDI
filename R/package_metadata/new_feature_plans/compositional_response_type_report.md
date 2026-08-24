@@ -278,7 +278,7 @@ later, harder additions.
 
 ## How The Existing `inference_all_*` Paths Would Respond
 
-- **`InferenceAllSimpleMeanDiff`** (mean-difference base class): would need
+- **`InferenceAllSimpleAverageDiff`** (mean-difference base class): would need
   to reject a raw `compositional` response outright, exactly as it rejects
   `nominal` today (`package_metadata/nominal_response_type_report.md:297-317`)
   — a vector has no scalar mean difference. It becomes directly usable,

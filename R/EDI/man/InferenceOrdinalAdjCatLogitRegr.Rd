@@ -12,6 +12,11 @@ recorded covariates as predictors. This is a full-likelihood class
 (\code{likelihood_tier = "full"}) supporting score, gradient, and
 likelihood-ratio tests, plus parametric likelihood-ratio bootstrap
 calibration, in addition to Wald and resampling-based inference.
+Bayesian-bootstrap inference is temporarily unavailable because the current
+non-uniform weighted hook fits a cumulative-logit surrogate rather than the
+adjacent-category likelihood. It will remain disabled until the native
+weighted adjacent-category backend described in the package implementation
+plan lands.
 }
 \examples{
 \donttest{

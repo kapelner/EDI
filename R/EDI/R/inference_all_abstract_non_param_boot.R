@@ -1318,8 +1318,32 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			chunk_n = max(1L, min(as.integer(actual_cores), as.integer(n_draws)))
 			chunk_id = ceiling(seq_len(n_draws) / ceiling(n_draws / chunk_n))
 			chunks = split(seq_len(n_draws), chunk_id)
+			# Serial dispatch only (chunk_n == 1L): reuse a cached worker across
+			# repeated calls for the SAME operation instead of re-`duplicate()`-ing
+			# the design/inference object every call. This matters for callers that
+			# invoke this function once per sequential-MC batch against a fixed,
+			# already-materialized draw list (e.g. `compute_two_sided_brt_pval_with_
+			# sequential_mc()`'s "rand_bootstrap" prefix loop) -- that caller owns
+			# this cache's lifetime and clears `private$cached_values$
+			# reusable_bootstrap_worker` on exit, so no unrelated caller (a fresh
+			# plain-bootstrap/jackknife/Bayesian-bootstrap distribution call, which
+			# already only invokes this once per computation and gets no benefit
+			# from reuse anyway) can observe a stale worker from a different
+			# operation. The parallel path (chunk_n > 1L) is untouched.
+			reuse_key = if (chunk_n == 1L) operation else NULL
+			get_worker_state = function() {
+				cached = private$cached_values$reusable_bootstrap_worker
+				if (!is.null(reuse_key) && !is.null(cached) && identical(cached$key, reuse_key)) {
+					return(cached$state)
+				}
+				state = private$create_reusable_bootstrap_worker()
+				if (!is.null(reuse_key)) {
+					private$cached_values$reusable_bootstrap_worker = list(key = reuse_key, state = state)
+				}
+				state
+			}
 			run_chunk = function(idxs) {
-				worker_state = private$create_reusable_bootstrap_worker()
+				worker_state = get_worker_state()
 				# This hot loop has already validated the state once, so resolve the
 				# estimator-specific hooks here and keep per-draw dispatch minimal.
 				load_draw = private[[contract$loader]]

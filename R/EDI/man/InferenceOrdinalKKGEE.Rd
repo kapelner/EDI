@@ -19,6 +19,11 @@ correlation), this ordinal class always requires the \pkg{multgee} package
 and has no \code{use_rcpp} option. Inference is quasi-likelihood/
 estimating-equation based (\code{likelihood_tier = "quasi"}): standard
 errors are GEE sandwich (robust) standard errors, not model-likelihood-based.
+Bayesian-bootstrap inference is temporarily unavailable because
+\code{multgee::ordLORgee} does not accept the non-uniform observation
+weights needed to refit the same clustered estimator. It will remain
+disabled until the weighted ordinal-GEE implementation planned for v1.1.0
+is complete.
 }
 \examples{
 \donttest{

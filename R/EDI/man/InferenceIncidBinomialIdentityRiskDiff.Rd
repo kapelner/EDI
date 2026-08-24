@@ -26,6 +26,33 @@ logit/probit, not a bug. Validity requires the additive risk-difference
 model to be correctly specified over the covariate range actually observed
 (an identity-link fit can be well-behaved in-sample yet imply
 out-of-range probabilities for other covariate values).
+
+\strong{Estimand.} Composes
+\code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
+(\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()}).
+\code{estimand = "marginal_mean_diff"} is supported for API consistency
+with the other GLM families, but \strong{it is algebraically identical to
+the default \code{estimand = "conditional"} for this class}: the
+g-computation marginal risk difference is \eqn{\frac{1}{n}\sum_i
+\{(\hat\beta_0 + \hat\beta_T + X_i^\top \hat\gamma) - (\hat\beta_0 +
+X_i^\top \hat\gamma)\}}, which simplifies to exactly \eqn{\hat\beta_T} for
+every subject (not merely on average) because the identity link is linear
+in \eqn{W_i} with no treatment-by-covariate interaction term — the
+per-subject treated-minus-control difference \eqn{\hat\beta_T} does not
+depend on \eqn{X_i} at all, so standardizing over the covariate
+distribution changes nothing. Contrast with
+\code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}}'s
+\code{"marginal_ratio"} (also a collapsing case, for the same
+no-interaction reason) and \code{"marginal_mean_diff"} (which does not
+collapse, since a difference does not distribute through the nonlinear
+log-link mean). This collapsing is a genuine property of the identity-link
+model, not a wiring bug — it is documented here so a user comparing
+\code{estimand}s for this class is not surprised the two never differ.
+Standard errors are computed independently for each estimand (the
+marginal path uses the delta method against the model's coefficient
+covariance; the conditional path uses the model information matrix), so
+while the two point estimates coincide exactly, their standard errors may
+differ slightly by construction even though both are asymptotically valid.
 }
 \examples{
 \donttest{
@@ -60,19 +87,15 @@ McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-set_custom_randomization_statistic_function}{\code{InferenceIncidBinomialIdentityRiskDiff$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-set_custom_randomization_statistic_cpp}{\code{InferenceIncidBinomialIdentityRiskDiff$set_custom_randomization_statistic_cpp()}}
-    \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-approximate_randomization_distribution_beta_hat_T}{\code{InferenceIncidBinomialIdentityRiskDiff$approximate_randomization_distribution_beta_hat_T()}}
-    \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-supports_rand_pval_for_incidence}{\code{InferenceIncidBinomialIdentityRiskDiff$supports_rand_pval_for_incidence()}}
+    \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-compute_estimate}{\code{InferenceIncidBinomialIdentityRiskDiff$compute_estimate()}}
+    \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-compute_asymp_confidence_interval}{\code{InferenceIncidBinomialIdentityRiskDiff$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-compute_asymp_two_sided_pval}{\code{InferenceIncidBinomialIdentityRiskDiff$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferenceIncidBinomialIdentityRiskDiff-clone}{\code{InferenceIncidBinomialIdentityRiskDiff$clone()}}
   }
 }
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
-  <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -94,57 +117,82 @@ McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidBinomialIdentityRiskDiff-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidBinomialIdentityRiskDiff-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceIncidBinomialIdentityRiskDiff$set_custom_randomization_statistic_function()}}{
+\if{html}{\out{<a id="method-InferenceIncidBinomialIdentityRiskDiff-compute_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidBinomialIdentityRiskDiff-compute_estimate}{}}}
+\subsection{\code{InferenceIncidBinomialIdentityRiskDiff$compute_estimate()}}{
+  Fits the identity-link binomial regression model by
+  maximum likelihood. Under the default \code{estimand =
+  "conditional"}, returns \eqn{\hat\beta_T}, the risk difference
+  coefficient. Under \code{estimand = "marginal_mean_diff"} (set via
+  \code{set_estimand()}), returns the g-computation marginal risk
+  difference — see the class-level \code{@details} for why this is
+  algebraically identical to the conditional estimate for this
+  family. The underlying model fit is identical either way (a pure
+  post-fit transform of the same cached fit, no refit).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidBinomialIdentityRiskDiff$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
+    \preformatted{InferenceIncidBinomialIdentityRiskDiff$compute_estimate(estimate_only = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimate_only}}{If TRUE, skip standard-error computation and
+cache only the point estimate; used by randomization and
+bootstrap resampling paths.}
+    }
     \if{html}{\out{</div>}}
   }
 }
 
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidBinomialIdentityRiskDiff-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidBinomialIdentityRiskDiff-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceIncidBinomialIdentityRiskDiff$set_custom_randomization_statistic_cpp()}}{
+\if{html}{\out{<a id="method-InferenceIncidBinomialIdentityRiskDiff-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidBinomialIdentityRiskDiff-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferenceIncidBinomialIdentityRiskDiff$compute_asymp_confidence_interval()}}{
+  Wald confidence interval, dispatched by
+  \code{testing_type} for the conditional estimand; under a
+  marginal estimand \code{testing_type} is always \code{"wald"} (the
+  only value \code{set_estimand()} permits there). Calls
+  \code{self$compute_estimate()} first (not \code{private$shared()}
+  directly) so the estimand-aware cache is always current
+  regardless of call order.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidBinomialIdentityRiskDiff$set_custom_randomization_statistic_cpp(
-  fn
+    \preformatted{InferenceIncidBinomialIdentityRiskDiff$compute_asymp_confidence_interval(
+  alpha = 0.05
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Two-sided miscoverage rate; the returned interval
+targets \code{1 - alpha} coverage.}
+    }
     \if{html}{\out{</div>}}
   }
 }
 
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidBinomialIdentityRiskDiff-approximate_randomization_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidBinomialIdentityRiskDiff-approximate_randomization_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceIncidBinomialIdentityRiskDiff$approximate_randomization_distribution_beta_hat_T()}}{
+\if{html}{\out{<a id="method-InferenceIncidBinomialIdentityRiskDiff-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidBinomialIdentityRiskDiff-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidBinomialIdentityRiskDiff$compute_asymp_two_sided_pval()}}{
+  Wald two-sided p-value, dispatched by
+  \code{testing_type} exactly as
+  \code{compute_asymp_confidence_interval()}; see that method's
+  description for the marginal-estimand always-Wald note.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidBinomialIdentityRiskDiff$approximate_randomization_distribution_beta_hat_T(
-  r = 501,
-  delta = 0,
-  transform_responses = "none",
-  show_progress = TRUE,
-  permutations = NULL,
-  debug = FALSE,
-  zero_one_logit_clamp = .Machine$double.eps
-)}
+    \preformatted{InferenceIncidBinomialIdentityRiskDiff$compute_asymp_two_sided_pval(delta = 0)}
     \if{html}{\out{</div>}}
   }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidBinomialIdentityRiskDiff-supports_rand_pval_for_incidence"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidBinomialIdentityRiskDiff-supports_rand_pval_for_incidence}{}}}
-\subsection{\code{InferenceIncidBinomialIdentityRiskDiff$supports_rand_pval_for_incidence()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidBinomialIdentityRiskDiff$supports_rand_pval_for_incidence()}
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment-effect value under the current estimand
+(both scales coincide for this family — see the class-level
+\code{@details}).}
+    }
     \if{html}{\out{</div>}}
   }
 }

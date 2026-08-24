@@ -18,7 +18,7 @@ tmp_dir = file.path(tempdir(), paste0("public_arg_runner_smoke_", Sys.getpid()))
 dir.create(tmp_dir, showWarnings = FALSE)
 cases = generate_public_argument_combinations(
 	tier = "smoke",
-	target_filter = "^InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval$|^DesignFixedBernoulli::add_all_subject_responses$",
+	target_filter = "^InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval$|^DesignFixedBernoulli::add_all_subject_responses$",
 	fixture_ids = c("fixed_bernoulli_continuous_smoke", "fixed_bernoulli_survival_censored_smoke")
 )
 cases_file = file.path(tmp_dir, "cases.csv")

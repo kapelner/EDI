@@ -2,7 +2,7 @@ library(testthat)
 library(EDI)
 
 simple_estimator_expected_classes = c(
-	"InferenceAllSimpleMeanDiff",
+	"InferenceAllSimpleAverageDiff",
 	"InferenceAllSimpleMeanDiffPooledVar",
 	"InferenceAllKKMeanDiffIVWC",
 	"InferenceAllSimpleWilcox",
@@ -10,7 +10,7 @@ simple_estimator_expected_classes = c(
 )
 
 simple_estimator_expected_current = list(
-	InferenceAllSimpleMeanDiff = list(
+	InferenceAllSimpleAverageDiff = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 66L,
@@ -86,7 +86,7 @@ test_that("simple estimator migration groups are recorded", {
 		groups$simple_mean_difference,
 		c(
 			"InferenceAllKKMeanDiffIVWC",
-			"InferenceAllSimpleMeanDiff",
+			"InferenceAllSimpleAverageDiff",
 			"InferenceAllSimpleMeanDiffPooledVar"
 		)
 	)

@@ -15,6 +15,11 @@
 #' and has no \code{use_rcpp} option. Inference is quasi-likelihood/
 #' estimating-equation based (\code{likelihood_tier = "quasi"}): standard
 #' errors are GEE sandwich (robust) standard errors, not model-likelihood-based.
+#' Bayesian-bootstrap inference is temporarily unavailable because
+#' \code{multgee::ordLORgee} does not accept the non-uniform observation
+#' weights needed to refit the same clustered estimator. It will remain
+#' disabled until the weighted ordinal-GEE implementation planned for v1.1.0
+#' is complete.
 #'
 #' @references Touloumis, A. (2015). "R Package multgee: A Generalized
 #'   Estimating Equations Solver for Multinomial Responses." \emph{Journal of
@@ -127,6 +132,11 @@ InferenceOrdinalKKGEE = define_inference_class(
 		}
 	),
 	private = list(
+		# Bayesian bootstrap is deliberately disabled for this class because the
+		# primary estimator is multgee::ordLORgee whereas non-uniform weighted
+		# refits currently use a non-GEE surrogate. See the v1.1.0 implementation
+		# plan in package_metadata/new_feature_plans.
+		supports_bayesian_bootstrap = function() FALSE,
 		gee_response_type = function() "ordinal",
 		gee_family        = function() stats::binomial(link = "logit"),
 		# Ordinal response requires ordLORgee, not geeglm.
@@ -208,6 +218,7 @@ InferenceOrdinalKKGEE = define_inference_class(
 			"compute_rand_two_sided_pval"
 		),
 		private = c(
+			"supports_bayesian_bootstrap",
 			"shared",
 			"compute_treatment_estimate_during_randomization_inference",
 			"resolve_jackknife_unit",

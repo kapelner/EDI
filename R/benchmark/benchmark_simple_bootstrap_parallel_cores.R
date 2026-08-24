@@ -46,7 +46,7 @@ for (cores in 1:6) {
 Benchmarking C++ OpenMP simple bootstrap with %d core(s) and B = %d...
 ", cores, B_samples))
 
-	set_num_cores(cores); seq_des_inf = InferenceAllSimpleMeanDiff$new(des_obj)
+	set_num_cores(cores); seq_des_inf = InferenceAllSimpleAverageDiff$new(des_obj)
 
 	start_time = proc.time()[["elapsed"]]
 

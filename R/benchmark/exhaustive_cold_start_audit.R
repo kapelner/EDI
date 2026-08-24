@@ -19,7 +19,7 @@ classes = c(
     "InferenceContinLin", "InferenceCountHurdlePoisson", "InferenceIncidProbitRegr",
     "InferenceSurvivalKMDiff", "InferenceContinKKOLSOneLik", "InferenceCountKKCondPoissonOneLik",
     "InferenceIncidKKCondLogitOneLik", "InferencePropGCompMeanDiff", "InferenceOrdinalRidit",
-    "InferenceAllSimpleMeanDiff", "InferenceAllSimpleWilcox"
+    "InferenceAllSimpleAverageDiff", "InferenceAllSimpleWilcox"
 )
 
 results_csv = "high_precision_audit_results.csv"

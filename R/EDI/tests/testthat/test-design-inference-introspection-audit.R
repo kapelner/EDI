@@ -217,7 +217,7 @@ test_that("run_all_inference(): randomization-dependent sentinels are never fann
 	expect_false(des$supports_randomization_draw())
 
 	suite = InferenceSuite$new(des)
-	res = suite$run_all_inference(screen = TRUE, html = FALSE, plots = FALSE, pdf = FALSE, classes = "InferenceAllSimpleMeanDiff")
+	res = suite$run_all_inference(screen = TRUE, html = FALSE, plots = FALSE, pdf = FALSE, classes = "InferenceAllSimpleAverageDiff")
 	expect_false(any(res$results_table$method %in% c("rand", "rand_bootstrap")))
 })
 

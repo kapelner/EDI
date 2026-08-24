@@ -19,7 +19,7 @@ test_that("Different designs work with continuous response", {
 	add_all_subject_responses_seq(des, rnorm(n))
 
 	# Check if we can run a simple inference
-	inf <- InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	expect_true(is.numeric(inf$compute_estimate()), info = paste("Design:", name))
 	}
 })
@@ -34,7 +34,7 @@ test_that("KK14 with Morrison works", {
 	}
 	add_all_subject_responses_seq(des, rnorm(n))
 
-	inf <- InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	expect_true(is.numeric(inf$compute_estimate()))
 })
 
@@ -80,7 +80,7 @@ test_that("Generated permutations support randomization p-values", {
 	}
 	add_all_subject_responses_seq(des, rnorm(n))
 
-	inf <- InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	perms <- inf$.__enclos_env__$private$generate_permutations(64)
 
 	expect_true(is.list(perms))
@@ -132,7 +132,7 @@ test_that("Debug randomization does not poison the cached p-value path", {
 	}
 	add_all_subject_responses_seq(des, rnorm(n))
 
-	inf <- InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	perms <- inf$.__enclos_env__$private$generate_permutations(32)
 
 	debug_rand <- inf$approximate_randomization_distribution_beta_hat_T(
@@ -147,7 +147,7 @@ test_that("Debug randomization does not poison the cached p-value path", {
 		permutations = perms
 	)
 
-	inf_fresh <- InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf_fresh <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	pval_fresh <- inf_fresh$compute_rand_two_sided_pval(
 		r = 32,
 		show_progress = FALSE,

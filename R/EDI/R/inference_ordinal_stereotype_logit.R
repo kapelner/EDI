@@ -39,9 +39,8 @@ OrdinalStereotypeLikelihoodSource = list(
 				X_fit = X_fit[, keep, drop = FALSE]
 			}
 			fit = weighted_ordinal_bootstrap_surrogate_fit(X_fit, private$y, row_weights, method = "logistic")
-			if (is.null(fit) || !is.finite(fit$beta_hat)) {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
+			if (is.null(fit) || !private$stereotype_treatment_estimate_is_usable(fit$beta_hat)) {
+				private$cache_nonestimable_estimate("stereotype_logit_weighted_fit_unusable")
 				private$cached_values$df = NA_real_
 				return(NA_real_)
 			}
@@ -50,13 +49,51 @@ OrdinalStereotypeLikelihoodSource = list(
 			private$cached_values$df = NA_real_
 			private$cached_values$full_coefficients = fit$coefficients
 			private$cached_values$summary_table = NULL
+			private$clear_nonestimable_state()
 			private$cached_values$beta_hat_T
 		}
 	),
 	private = list(
 		supports_likelihood_tests = function(){ TRUE },
+		# The weighted hook above is not estimator-preserving. Keep every public
+		# Bayesian-bootstrap entry point disabled until the native weighted
+		# stereotype-logit backend plan is complete.
+		supports_bayesian_bootstrap = function() FALSE,
 		best_Xmm_colnames = NULL,
 		get_complexity_tier = function() "heavy",
+		# Temporary class-local guard. Remove this when the centralized fit
+		# diagnostics/acceptance policy in public_diagnostics_api_spec.md lands.
+		stereotype_treatment_estimate_is_usable = function(beta){
+			beta = suppressWarnings(as.numeric(beta)[1L])
+			is.finite(beta) && abs(beta) <= 10
+		},
+		stereotype_fit_is_usable = function(fit, require_standard_error = FALSE, check_treatment = TRUE){
+			if (is.null(fit) || !isTRUE(fit$converged)) return(FALSE)
+			if (check_treatment) {
+				beta = suppressWarnings(as.numeric(fit$b)[1L])
+				if (!is.finite(beta) || abs(beta) > 10) return(FALSE)
+			}
+
+			information = fit$fisher_information
+			if (!is.null(information)) {
+				information = suppressWarnings(as.matrix(information))
+				if (nrow(information) < 1L || nrow(information) != ncol(information) || any(!is.finite(information))) {
+					return(FALSE)
+				}
+				information = (information + t(information)) / 2
+				is_positive_definite = !is.null(tryCatch(chol(information), error = function(e) NULL))
+				reciprocal_condition = tryCatch(rcond(information), error = function(e) NA_real_)
+				if (!is_positive_definite || !is.finite(reciprocal_condition) || reciprocal_condition <= sqrt(.Machine$double.eps)) {
+					return(FALSE)
+				}
+			}
+
+			if (require_standard_error) {
+				ssq = suppressWarnings(as.numeric(fit$ssq_b_j %||% fit$ssq_b_1)[1L])
+				if (!is.finite(ssq) || ssq <= 0) return(FALSE)
+			}
+			TRUE
+		},
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (is.null(private$best_Xmm_colnames)){
 				private$shared(estimate_only = TRUE)
@@ -88,7 +125,7 @@ OrdinalStereotypeLikelihoodSource = list(
 				),
 				error = function(e) NULL
 			)
-			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[1])){
+			if (!private$stereotype_fit_is_usable(res)){
 				return(NA_real_)
 			}
 			private$set_fit_warm_start(as.numeric(res$params), "params", fisher = ws_fisher)
@@ -112,7 +149,9 @@ OrdinalStereotypeLikelihoodSource = list(
 						warm_start_params = ws_args$start_params,
 						warm_start_fisher_info = ws_args$warm_start_fisher_info
 					)
-					list(b = res$b, ssq_b_j = NA_real_, params = res$params, fisher_information = res$fisher_information)
+					res$ssq_b_j = NA_real_
+					if (!private$stereotype_fit_is_usable(res)) return(NULL)
+					res
 				}
 			)
 		},
@@ -132,7 +171,8 @@ OrdinalStereotypeLikelihoodSource = list(
 							warm_start_params = ws_args$start_params,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info
 						)
-						list(b = res$b, ssq_b_j = NA_real_, params = res$params, fisher_information = res$fisher_information)
+						res$ssq_b_j = NA_real_
+						res
 					} else {
 						res = fast_stereotype_logit_with_var_cpp(
 							X_fit, private$y,
@@ -149,13 +189,13 @@ OrdinalStereotypeLikelihoodSource = list(
 							)
 							neg_loglik = lik_fit$neg_loglik
 						}
-						list(b = res$b, ssq_b_j = res$ssq_b_1, params = res$params, neg_loglik = neg_loglik, fisher_information = res$fisher_information)
+						res$ssq_b_j = res$ssq_b_1
+						res$neg_loglik = neg_loglik
+						res
 					}
 				},
 				fit_ok = function(mod, X_fit, keep){
-					if (is.null(mod) || length(mod$b) < 1L || !is.finite(mod$b[1])) return(FALSE)
-					if (estimate_only) return(TRUE)
-					is.finite(mod$ssq_b_j) && mod$ssq_b_j > 0
+					private$stereotype_fit_is_usable(mod, require_standard_error = !estimate_only)
 				}
 			)
 			if (!is.null(attempt$fit)){
@@ -202,7 +242,7 @@ OrdinalStereotypeLikelihoodSource = list(
 						),
 						error = function(e) NULL
 					)
-					if (is.null(res) || length(res) == 0L) return(NULL)
+					if (!private$stereotype_fit_is_usable(res, check_treatment = FALSE)) return(NULL)
 					list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik))
 				},
 				extract_start = function(fit){ as.numeric(fit$params) },
@@ -263,7 +303,7 @@ OrdinalStereotypeLikelihoodSource = list(
 				),
 				error = function(e) NULL
 			)
-			if (is.null(full) || !isTRUE(full$converged)) return(NULL)
+			if (!private$stereotype_fit_is_usable(full)) return(NULL)
 			list(
 				full_fit = full,
 				fit_null = function(d, start = NULL){
@@ -278,7 +318,7 @@ OrdinalStereotypeLikelihoodSource = list(
 						),
 						error = function(e) NULL
 					)
-					if (is.null(f2) || !isTRUE(f2$converged)) return(NULL)
+					if (!private$stereotype_fit_is_usable(f2, check_treatment = FALSE)) return(NULL)
 					f2
 				},
 				neg_loglik = function(fit) as.numeric(fit$neg_loglik %||% fit$neg_ll)
@@ -317,6 +357,10 @@ OrdinalStereotypeLikelihoodSource = list(
 #' "full"}: likelihood-ratio, score, gradient, and Wald tests are all
 #' available when the model converges, plus parametric-likelihood-bootstrap
 #' calibration of the likelihood-ratio test.
+#' Bayesian-bootstrap inference is temporarily unavailable because the current
+#' non-uniform weighted hook fits a cumulative-logit surrogate rather than the
+#' stereotype likelihood. It will remain disabled until the native weighted
+#' stereotype-logit backend described in the package implementation plan lands.
 #'
 #' @references Anderson, J. A. (1984). "Regression and Ordered Categorical
 #'   Variables." \emph{Journal of the Royal Statistical Society, Series B},
@@ -342,6 +386,7 @@ InferenceOrdinalStereotypeLogitRegr = define_inference_class(
 			"get_supported_testing_types", "set_testing_type", "compute_estimate_with_bootstrap_weights"
 		),
 		private = c(
+			"supports_bayesian_bootstrap",
 			"compute_treatment_estimate_during_randomization_inference",
 			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
 			"generate_mod", "get_likelihood_test_spec",
@@ -385,13 +430,11 @@ OrdinalContinuationRatioLikelihoodSource = list(
 		},
 		#' @description Recomputes the treatment estimate under subject/block-level
 		#'   bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
-		#'   weights). Rather than refitting the full expanded conditional-logit
-		#'   model under weights, calls \code{weighted_ordinal_bootstrap_surrogate_fit()}
-		#'   — a fast weighted ordinal-logistic surrogate fit on the raw (unexpanded)
-		#'   design matrix — as an approximation to the weighted continuation-ratio
-		#'   likelihood; this trades exact reweighted refitting for speed across many
-		#'   bootstrap replicates. No standard error is computed (\code{s_beta_hat_T}
-		#'   is always \code{NA}); the surrogate returns \code{NA} if the fit fails.
+		#'   weights). Refits the same continuation-ratio likelihood used by the
+		#'   unweighted estimator, copying each subject's weight onto all of that
+		#'   subject's augmented binary rows. No standard error is computed
+		#'   (\code{s_beta_hat_T} is always \code{NA}); returns \code{NA} if the
+		#'   weighted fit fails.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
 		#' @param estimate_only If \code{TRUE}, compute only the weighted point
@@ -403,17 +446,29 @@ OrdinalContinuationRatioLikelihoodSource = list(
 				keep = c("treatment", intersect(private$best_Xmm_colnames, colnames(X_fit)))
 				X_fit = X_fit[, keep, drop = FALSE]
 			}
-			fit = weighted_ordinal_bootstrap_surrogate_fit(X_fit, private$y, row_weights, method = "logistic")
-			if (is.null(fit) || !is.finite(fit$beta_hat)) {
+			n_params = (length(sort(unique(private$y))) - 1L) + ncol(X_fit)
+			ws_args = private$get_backend_warm_start_args(n_params)
+			res = tryCatch(
+				fast_continuation_ratio_regression_weighted_cpp(
+					X = X_fit,
+					y = as.numeric(private$y),
+					weights = row_weights,
+					warm_start_beta = ws_args$warm_start_beta,
+					warm_start_fisher_info = ws_args$warm_start_fisher_info
+				),
+				error = function(e) NULL
+			)
+			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[1L])) {
 				private$cached_values$beta_hat_T = NA_real_
 				private$cached_values$s_beta_hat_T = NA_real_
 				private$cached_values$df = NA_real_
 				return(NA_real_)
 			}
-			private$cached_values$beta_hat_T = as.numeric(fit$beta_hat)
+			private$set_fit_warm_start(res$params, "beta", fisher = res$fisher_information)
+			private$cached_values$beta_hat_T = as.numeric(res$b[1L])
 			private$cached_values$s_beta_hat_T = NA_real_
 			private$cached_values$df = NA_real_
-			private$cached_values$full_coefficients = fit$coefficients
+			private$cached_values$full_coefficients = as.numeric(res$params)
 			private$cached_values$summary_table = NULL
 			private$cached_values$beta_hat_T
 		}

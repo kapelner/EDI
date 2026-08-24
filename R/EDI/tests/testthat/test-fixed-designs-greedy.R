@@ -253,7 +253,7 @@ test_that("DesignFixedFactorial works correctly with Inference objects", {
 	y = rnorm(n) + true_effect * (des$get_w() == 1)
 	des$add_all_subject_responses(y)
 
-	inf = InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf = InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	est = inf$compute_estimate()
 	expect_true(is.finite(est))
 	expect_equal(est, mean(y[des$get_w() == 1]) - mean(y[des$get_w() == 0]))

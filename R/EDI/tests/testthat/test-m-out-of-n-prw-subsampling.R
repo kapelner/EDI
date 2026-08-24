@@ -9,7 +9,7 @@ build_resampling_smoke_inference = function(n = 20L, seed = 123L){
 	for (t in seq_len(n)) {
 		des$add_one_subject_response(t, w[t] + stats::rnorm(1, sd = 0.05))
 	}
-	inf = InferenceAllSimpleMeanDiff$new(des)
+	inf = InferenceAllSimpleAverageDiff$new(des)
 	inf$num_cores = 1L
 	inf$.__enclos_env__$private$seed = seed
 	inf

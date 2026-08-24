@@ -304,14 +304,14 @@ family.
 
 ## How The Existing `inference_all_*` Paths Would Respond
 
-### `InferenceAllSimpleMeanDiff`: should reject
+### `InferenceAllSimpleAverageDiff`: should reject
 
 This class currently computes:
 
 - mean of treated outcomes minus mean of control outcomes
 
 with no response-type assertion in the initializer; see
-[inference_all_mean_diff.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_mean_diff.R:29).
+[inference_all_average_diff.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_average_diff.R:29).
 
 That means if `nominal` were added naively and internally encoded as integers,
 this class would likely run and produce a meaningless result based on arbitrary
@@ -407,7 +407,7 @@ incorrectly list them as applicable. So explicit rejection paths are important.
 Even before implementing any nominal-specific inference, the following classes
 should likely be updated to reject nominal explicitly:
 
-- `InferenceAllSimpleMeanDiff`
+- `InferenceAllSimpleAverageDiff`
 - `InferenceAllSimpleMeanDiffPooledVar`
 - `InferenceAllSimpleWilcox`
 - any quantile-regression-based abstractions

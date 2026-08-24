@@ -468,12 +468,12 @@ Implementation notes:
 - Smoke/CI tiers run argument-combination checks, import existing `comprehensive_tests_results*.csv` harness outputs, regenerate public workflow coverage, and regenerate internal safety-net surfaces without invoking release-scale comprehensive sweeps.
 - Nightly/release tiers can invoke a selected `comprehensive_tests.R` path with bounded filters.
 - Unified outputs are `package_tests/comprehensive_suite_results.csv` and `package_tests/comprehensive_suite_failures.csv`.
-- Smoke validation for `InferenceAllSimpleMeanDiff` wrote 5 unified step rows: dependency gate 11 artifacts, 29 argument-combination rows, 56 imported comprehensive-harness rows, 277 public workflow rows, and 239 internal safety-net rows, with 0 selected failure rows.
+- Smoke validation for `InferenceAllSimpleAverageDiff` wrote 5 unified step rows: dependency gate 11 artifacts, 29 argument-combination rows, 56 imported comprehensive-harness rows, 277 public workflow rows, and 239 internal safety-net rows, with 0 selected failure rows.
 - Resumability validation passed: rerunning without `--force` skipped all five completed steps and preserved the unified ledger.
 - Validation passed:
   - `Rscript -e "invisible(parse('R/package_tests/run_comprehensive_suite.R')); invisible(parse('R/package_tests/smoke_test_run_comprehensive_suite.R')); cat('parse ok\n')"`
   - `Rscript R/package_tests/smoke_test_run_comprehensive_suite.R`
-  - `Rscript R/package_tests/run_comprehensive_suite.R smoke InferenceAllSimpleMeanDiff 180`
+  - `Rscript R/package_tests/run_comprehensive_suite.R smoke InferenceAllSimpleAverageDiff 180`
 
 ## Phase 8: Unified Analyzer
 
@@ -582,7 +582,7 @@ Implementation notes:
   - `Rscript -e "invisible(parse('R/package_tests/comprehensive_suite_runtime_tiers.R')); invisible(parse('R/package_tests/smoke_test_comprehensive_suite_runtime_tiers.R')); invisible(parse('R/package_tests/run_comprehensive_suite.R')); cat('parse ok\n')"`
   - `Rscript R/package_tests/comprehensive_suite_runtime_tiers.R R/package_tests/comprehensive_suite_runtime_tiers.csv`
   - `Rscript R/package_tests/smoke_test_comprehensive_suite_runtime_tiers.R`
-  - `Rscript R/package_tests/run_comprehensive_suite.R smoke InferenceAllSimpleMeanDiff 180 --force`
+  - `Rscript R/package_tests/run_comprehensive_suite.R smoke InferenceAllSimpleAverageDiff 180 --force`
   - `Rscript R/package_tests/smoke_test_run_comprehensive_suite.R`
 
 ## Phase 10: Quality Gates

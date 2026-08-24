@@ -763,15 +763,15 @@ for the merge and the now-seed-reproducible kernels.)
 - [x] TODO #196: Method `InferenceAllKKWilcoxIVWC$new()` (current description `118` chars).
 - [x] TODO #197: Topic `InferenceAllKKWilcoxIVWC` (current description `495` chars).
 
-### `InferenceAllSimpleMeanDiff.Rd`
+### `InferenceAllSimpleAverageDiff.Rd`
 
-- [x] TODO #198: Method `InferenceAllSimpleMeanDiff$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
-- [x] TODO #199: Method `InferenceAllSimpleMeanDiff$compute_asymp_confidence_interval()` (current description `60` chars).
-- [x] TODO #200: Method `InferenceAllSimpleMeanDiff$compute_asymp_two_sided_pval()` (current description `58` chars).
-- [x] TODO #201: Method `InferenceAllSimpleMeanDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
-- [x] TODO #202: Method `InferenceAllSimpleMeanDiff$compute_estimate()` (current description `58` chars).
-- [x] TODO #203: Method `InferenceAllSimpleMeanDiff$new()` (current description `53` chars).
-- [x] TODO #204: Topic `InferenceAllSimpleMeanDiff` (current description `285` chars).
+- [x] TODO #198: Method `InferenceAllSimpleAverageDiff$approximate_bootstrap_distribution_beta_hat_T()` (current description `66` chars).
+- [x] TODO #199: Method `InferenceAllSimpleAverageDiff$compute_asymp_confidence_interval()` (current description `60` chars).
+- [x] TODO #200: Method `InferenceAllSimpleAverageDiff$compute_asymp_two_sided_pval()` (current description `58` chars).
+- [x] TODO #201: Method `InferenceAllSimpleAverageDiff$compute_estimate_with_bootstrap_weights()` (current description `76` chars).
+- [x] TODO #202: Method `InferenceAllSimpleAverageDiff$compute_estimate()` (current description `58` chars).
+- [x] TODO #203: Method `InferenceAllSimpleAverageDiff$new()` (current description `53` chars).
+- [x] TODO #204: Topic `InferenceAllSimpleAverageDiff` (current description `285` chars).
 
 ### `InferenceAllSimpleMeanDiffPooledVar.Rd`
 

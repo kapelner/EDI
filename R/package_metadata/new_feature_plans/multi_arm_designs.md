@@ -96,11 +96,11 @@ repeated at every layer:
   that it actually is binary.
 - **Every concrete `Inference*` class's estimator** consumes that `w` via
   the literal pattern `private$w == 1` / `private$w == 0` to split the
-  sample into two groups — e.g. `InferenceAllSimpleMeanDiff$compute_estimate`
-  (`inference_all_mean_diff.R:81-82`), its bootstrap-weighted variant
-  (`inference_all_mean_diff.R:109-110`), its fast bootstrap re-draw loop
-  (`inference_all_mean_diff.R:169,186`), and the closed-form SE decomposition
-  in `private$shared()` (`inference_all_mean_diff.R:254`, which literally
+  sample into two groups — e.g. `InferenceAllSimpleAverageDiff$compute_estimate`
+  (`inference_all_average_diff.R:81-82`), its bootstrap-weighted variant
+  (`inference_all_average_diff.R:109-110`), its fast bootstrap re-draw loop
+  (`inference_all_average_diff.R:169,186`), and the closed-form SE decomposition
+  in `private$shared()` (`inference_all_average_diff.R:254`, which literally
   builds `X = cbind(1, private$w)` — a single scalar treatment column).
   Likelihood-based classes do the same thing one level up: e.g.
   `ordinal_cond_clogit_shared_multi` builds
@@ -119,7 +119,7 @@ repeated at every layer:
   simulated treatment effect via `w[i] == 1` at six call sites in
   `EDI/src/simulation_dgp.cpp:50,58,68,78,89,106`. Randomization-inference
   kernels like `compute_simple_mean_diff_parallel_cpp` (called from
-  `inference_all_mean_diff.R:193`) take a `{0,1}` `w_mat` directly. None of
+  `inference_all_average_diff.R:193`) take a `{0,1}` `w_mat` directly. None of
   these have a `K`-arm counterpart today.
 
 The upshot: "two-arm" isn't a single guard clause to relax. It's a
@@ -145,7 +145,7 @@ combination *index* (`1..num_combinations`) and overrode `get_w()` to
 return it unmodified — bypassing the `2L * private$w - 1L` transform every
 other design relies on. An empirical repro at the time confirmed this broke
 real `Inference*` objects, not just a hypothetical: pairing a 2-level
-`DesignFixedFactorial` with `InferenceAllSimpleMeanDiff` (which splits on
+`DesignFixedFactorial` with `InferenceAllSimpleAverageDiff` (which splits on
 `private$w == 1` / `private$w == 0`) silently returned `NA_real_`, since
 `w` only ever took values `{1,2}`, never `0`; pairing it with
 `InferenceContinOLS` (which regresses on raw `private$w` as a numeric
@@ -169,7 +169,7 @@ default design list (`simulations_framework.R:4120`, auto-injected as a
 single `factors = list(treatment = 2L)` two-level factor whenever a
 design's constructor takes a `factors` argument and the caller didn't
 supply one, `simulations_framework.R:2986-2987,3981`) and
-`InferenceAllSimpleMeanDiff` is in the default inference list
+`InferenceAllSimpleAverageDiff` is in the default inference list
 (`:4137`), this meant an out-of-the-box `SimulationFramework$new(...)$run()`
 call was, by default, silently producing `NA`/wrong-signed rows for that
 combination.
@@ -192,7 +192,7 @@ the original `list(A=2, B=2)` 2×2 example) is now rejected at construction
 time instead of silently producing wrong results downstream. Regression
 coverage was added directly (`test-fixed-designs-greedy.R`): the two-arm
 `{-1,+1}` balance property, the `>2`-combination rejection, and an
-end-to-end check that `InferenceAllSimpleMeanDiff`/`InferenceContinOLS`
+end-to-end check that `InferenceAllSimpleAverageDiff`/`InferenceContinOLS`
 both recover the correct, non-`NA`, matching-sign estimate against a
 `DesignFixedFactorial` design with a known injected effect.
 
@@ -368,7 +368,7 @@ dependents, everything else being indifferent or actively wasteful:
   that this change removes.
 
 **Correctness check on the estimate/SE pairing (not just the encoding):**
-both classes inherit `compute_estimate()` from `InferenceAllSimpleMeanDiff`,
+both classes inherit `compute_estimate()` from `InferenceAllSimpleAverageDiff`,
 which computes `mean(y[w==1]) - mean(y[w==0])` off `private$w` (already
 `{0,1}`, untouched by anything on `Design`'s side, before or after this
 change). Algebraically, `(2/n) * y'w_signed = mean(y_T) - mean(y_C)`
@@ -800,9 +800,9 @@ because it changes the shape of the `Inference` contract itself, not just
 what feeds it. Currently every concrete class's estimand is a numeric
 scalar — `extending-edi-r6.md:23-25`'s documented contract
 (`estimate`/`se`/`df`, all scalars) is mirrored in every concrete
-implementation, e.g. `InferenceAllSimpleMeanDiff`'s
+implementation, e.g. `InferenceAllSimpleAverageDiff`'s
 `private$cached_values$beta_hat_T`/`s_beta_hat_T` pair
-(`inference_all_mean_diff.R:86,91`). A native `K`-arm class needs either a
+(`inference_all_average_diff.R:86,91`). A native `K`-arm class needs either a
 `K-1`-vector of contrasts (each arm vs. a reference) plus a `(K-1)x(K-1)`
 covariance matrix, or an omnibus test statistic (an `F`-test / likelihood-
 ratio test across all `K` arms simultaneously, with no single "the
@@ -846,7 +846,7 @@ derives its validity from replaying the *actual* design mechanism via
 `draw_ws_according_to_design()` (`design_abstract.R:346-349`) conditional on
 the observed covariate/response history — this is the mechanism `compute_fast_randomization_distr`
 implementations consume directly (e.g.
-`inference_all_mean_diff.R:190-195`, which feeds `permutations$w_mat`
+`inference_all_average_diff.R:190-195`, which feeds `permutations$w_mat`
 straight into `compute_simple_mean_diff_parallel_cpp`). Once §3's Phase 1
 generalizes `draw_ws_according_to_design()` to `K` arms, this validity
 argument does *not* automatically carry over for free to the two-arm

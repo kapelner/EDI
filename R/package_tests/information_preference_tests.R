@@ -34,7 +34,7 @@ names(X) = paste0("x", seq_len(p))
 des_cont = build_design("continuous", DesignSeqOneByOneBernoulli, X, function(i, w_i) {
 	0.4 * w_i + X$x1[i] + rnorm(1, sd = 0.2)
 })
-inf_cont = InferenceAllSimpleMeanDiff$new(des_cont)
+inf_cont = InferenceAllSimpleAverageDiff$new(des_cont)
 stopifnot(identical(inf_cont$get_supported_information_preferences(), "auto"))
 expect_error_contains(inf_cont$set_information_preference("observed"), "does not support information_preference")
 expect_error_contains(inf_cont$set_information_preference("fisher"), "does not support information_preference")

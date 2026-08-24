@@ -371,6 +371,15 @@ IncidenceLogisticLikelihoodSource = list(
 					j_treat = match(2L, attempt$keep),
 					full_neg_loglik = attempt$fit$neg_log_lik %||% attempt$fit$neg_ll
 				)
+				# 2026-08-24 (marginal_estimand_report.md TODO-9): see the
+				# non-hardened branch's identical comment above -- same stash,
+				# using the (possibly column-reduced) attempt$X actually fit
+				# against attempt$fit$b, so dimensions always agree. Only valid
+				# when treatment (column 2 of build_design_matrix()'s output)
+				# survived hardening's column reduction -- required_cols = 2L
+				# above guarantees this.
+				attempt$fit$X = attempt$X
+				attempt$fit$vcov = if (!is.null(attempt$fit$fisher_information)) tryCatch(solve(attempt$fit$fisher_information), error = function(e) NULL) else NULL
 			} else {
 				private$cached_values$likelihood_test_context = NULL
 			}
@@ -408,6 +417,28 @@ IncidenceLogisticLikelihoodSource = list(
 #' requires the usual logistic-regression assumptions: correctly specified
 #' linear predictor on the logit scale, independence across subjects
 #' conditional on covariates, and no perfect/quasi-complete separation.
+#'
+#' \strong{Estimand.} Composes
+#' \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
+#' (\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()}).
+#' Under the default \code{estimand = "conditional"}, \eqn{\hat\beta_T} is the
+#' log-odds-ratio above. Under \code{estimand = "marginal_mean_diff"}, the
+#' reported quantity is instead the g-computation marginal risk difference
+#' \eqn{\frac{1}{n}\sum_i \{\mathrm{plogis}(\hat\beta_0 + \hat\beta_T + X_i^\top
+#' \hat\gamma) - \mathrm{plogis}(\hat\beta_0 + X_i^\top \hat\gamma)\}} — every
+#' subject's covariates plugged in once under treatment and once under
+#' control, averaged over the empirical covariate distribution. Under
+#' \code{estimand = "marginal_ratio"}, the log of the corresponding marginal
+#' risk ratio. Because there is no latent submodel for this family (unlike
+#' e.g. \code{\link[EDI:InferencePropZeroOneInflatedBetaRegr]{InferencePropZeroOneInflatedBetaRegr}}'s
+#' zero/one-inflation mixture), the marginal mean function is exactly the
+#' model's own fitted mean; no separate standardization step beyond the
+#' g-computation average is needed. Standard errors under a marginal estimand
+#' use the delta method against the model's coefficient covariance (degrees
+#' of freedom \code{Inf}); \code{testing_type} is restricted to \code{"wald"}
+#' whenever the estimand is non-conditional (\code{set_testing_type()} errors
+#' otherwise). The underlying model fit is identical regardless of estimand —
+#' switching \code{estimand} is a pure post-fit transform, never a refit.
 #'
 #' @references McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
 #'   Linear Models} (2nd ed.). Chapman and Hall/CRC, for the logistic
@@ -451,7 +482,7 @@ InferenceIncidLogRegr = define_inference_class(
 	# declares `dependencies = "StandardModelCache"`; `ParametricLikelihood
 	# Bootstrap` pulls in `LikelihoodTests` -> `Wald` -> `Jackknife`
 	# separately; `BayesianBootstrap` pulls the rand/bootstrap chain.
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogisticLikelihood"),
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogisticLikelihood", "MarginalEstimand"),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
 	overrides = list(
 		public = c(
@@ -472,7 +503,8 @@ InferenceIncidLogRegr = define_inference_class(
 			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
 			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
 			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
-			"get_complexity_tier", "supports_fisher_information"
+			"get_complexity_tier", "supports_fisher_information",
+			"get_supported_estimands_impl"
 		)
 	),
 	# Uses the randomization-CI layer's two-sided p-value contract
@@ -480,6 +512,167 @@ InferenceIncidLogRegr = define_inference_class(
 	# as every other migrated class this stretch -- Zhang dispatch matters
 	# doubly here since this is an incidence-response class.
 	public = list(
-		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
+		#' @description Fits the logistic regression model by maximum
+		#'   likelihood. Under the default \code{estimand = "conditional"},
+		#'   returns \eqn{\hat\beta_T}, the treatment log-odds-ratio. Under
+		#'   \code{estimand = "marginal_mean_diff"}/\code{"marginal_ratio"}
+		#'   (set via \code{set_estimand()}), returns the g-computation
+		#'   marginal risk difference/log-risk-ratio instead — see the
+		#'   class-level \code{@details} for the formula. The underlying
+		#'   model fit is identical either way (a pure post-fit transform of
+		#'   the same cached fit, no refit).
+		#' @param estimate_only If TRUE, skip standard-error computation and
+		#'   cache only the point estimate; used by randomization and
+		#'   bootstrap resampling paths.
+		compute_estimate = function(estimate_only = FALSE){
+			private$shared(estimate_only = estimate_only)
+			estimand = self$get_estimand()
+			if (estimand %in% c("marginal_mean_diff", "marginal_ratio")) {
+				return(private$compute_marginal_estimand_estimate(estimand, estimate_only = estimate_only))
+			}
+			# 2026-08-24 (marginal_estimand_report.md TODO-9): re-derive the
+			# conditional beta_hat_T/s_beta_hat_T/df from the estimand-invariant
+			# private$cached_mod every call, rather than trusting
+			# private$cached_values$beta_hat_T/s_beta_hat_T to already hold the
+			# conditional values -- same fix TODO-4/5 needed for the same
+			# reason (private$shared()'s short-circuit guard would otherwise
+			# return stale marginal numbers after switching back to
+			# "conditional").
+			mod = private$cached_mod
+			if (!is.null(mod)) {
+				private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$b[2L])[1L]
+				if (!estimate_only) {
+					ssq = mod$ssq_b_2 %||% mod$ssq_b_j
+					ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
+					private$cached_values$df = mod$df %||% NA_real_
+					if (is.finite(ssq) && ssq > 0) {
+						private$cached_values$s_beta_hat_T = sqrt(ssq)
+						private$clear_nonestimable_state()
+					} else {
+						private$cache_nonestimable_se("model_standard_error_unavailable")
+					}
+				}
+			}
+			private$cached_values$beta_hat_T
+		},
+		#' @description Wald confidence interval, dispatched by
+		#'   \code{testing_type} for the conditional estimand (score/gradient/
+		#'   likelihood-ratio/Bartlett available); under a marginal estimand
+		#'   \code{testing_type} is always \code{"wald"} (the only value
+		#'   \code{set_estimand()} permits there), so this always resolves to
+		#'   the delta-method interval. Calls \code{self$compute_estimate()}
+		#'   first (not \code{private$shared()} directly) so the
+		#'   estimand-aware cache is always current regardless of call order.
+		#' @param alpha Two-sided miscoverage rate; the returned interval
+		#'   targets \code{1 - alpha} coverage.
+		compute_asymp_confidence_interval = function(alpha = 0.05){
+			self$compute_estimate(estimate_only = FALSE)
+			if (private$testing_type == "wald") {
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
+				}
+			}
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_confidence_interval_impl(alpha),
+				score = private$compute_score_confidence_interval_impl(alpha),
+				gradient = private$compute_gradient_confidence_interval_impl(alpha),
+				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
+			)
+		},
+		#' @description Wald two-sided p-value, dispatched by
+		#'   \code{testing_type} exactly as
+		#'   \code{compute_asymp_confidence_interval()}; see that method's
+		#'   description for the marginal-estimand always-Wald note.
+		#' @param delta Null treatment-effect value under the current estimand
+		#'   (conditional log-odds-ratio, or marginal risk difference/
+		#'   log-risk-ratio).
+		compute_asymp_two_sided_pval = function(delta = 0){
+			self$compute_estimate(estimate_only = FALSE)
+			if (private$testing_type == "wald") {
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
+				}
+			}
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_two_sided_pval_impl(delta),
+				score = private$compute_score_two_sided_pval_impl(delta),
+				gradient = private$compute_gradient_two_sided_pval_impl(delta),
+				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
+			)
+		}
+	),
+	private = list(
+		# 2026-08-24 (marginal_estimand_report.md TODO-9): declared directly
+		# on the class (not the IncidenceLogisticLikelihood Source) so this
+		# host-level definition always wins the collision against
+		# MarginalEstimand's own default get_supported_estimands_impl()
+		# (returning just "conditional"), regardless of component list
+		# order -- same placement ZOIB (TODO-4) uses for the identical
+		# reason. There is no latent submodel to standardize over for a
+		# plain logistic GLM, so the "marginal" mean function is exactly the
+		# model's own fitted mean plogis(X %*% beta), unlike the ZOIB/
+		# zero-augmented-Poisson mixture families (TODO-4/5) where the
+		# marginal mean also has to fold in a separate inflation/hurdle
+		# submodel.
+		get_supported_estimands_impl = function(){
+			c("conditional", "marginal_mean_diff", "marginal_ratio")
+		},
+		# Model-implied mean E[Y | w, x] = plogis(X %*% beta).
+		logistic_mean_from_coefs = function(beta, X){
+			plogis(as.numeric(X %*% beta))
+		},
+		# G-computation average over the empirical covariate distribution,
+		# with every subject plugged in at treatment column (column 2, per
+		# build_design_matrix()'s fixed convention) = 1 and = 0.
+		logistic_marginal_functional = function(beta, X, estimand){
+			X1 = X; X1[, 2L] = 1
+			X0 = X; X0[, 2L] = 0
+			mu1 = mean(private$logistic_mean_from_coefs(beta, X1))
+			mu0 = mean(private$logistic_mean_from_coefs(beta, X0))
+			if (identical(estimand, "marginal_ratio")) log(mu1 / mu0) else mu1 - mu0
+		},
+		# Full-fit marginal path for compute_estimate(): reuses the single
+		# cached ML fit (private$cached_mod, populated by private$shared() via
+		# generate_mod()) -- a pure post-fit transform, no refit. SE via
+		# marginal_estimand_delta_se() against the fitted vcov generate_mod()
+		# now retains. Degrees of freedom: Inf, same convention as every other
+		# delta-method/sandwich Wald path in this package (e.g.
+		# InferenceIncidGCompAbstract's RD/RR paths, TODO-4/5's marginal
+		# paths).
+		compute_marginal_estimand_estimate = function(estimand, estimate_only = FALSE){
+			mod = private$cached_mod
+			if (is.null(mod) || is.null(mod$b) || is.null(mod$X)) {
+				private$cache_nonestimable_estimate("logistic_marginal_fit_unavailable")
+				return(NA_real_)
+			}
+			functional = function(theta) private$logistic_marginal_functional(theta, mod$X, estimand)
+			point = tryCatch(functional(mod$b), error = function(e) NA_real_)
+			if (!is.finite(point)) {
+				private$cache_nonestimable_estimate("logistic_marginal_point_unavailable")
+				return(NA_real_)
+			}
+			private$cached_values$beta_hat_T = point
+			if (estimate_only) return(point)
+			if (is.null(mod$vcov)) {
+				private$cache_nonestimable_se("logistic_marginal_vcov_unavailable")
+				return(point)
+			}
+			dm = marginal_estimand_delta_se(mod$b, mod$vcov, functional)
+			private$cached_values$df = Inf
+			if (is.finite(dm$se) && dm$se >= 0) {
+				private$cached_values$s_beta_hat_T = dm$se
+				private$clear_nonestimable_state()
+			} else {
+				private$cache_nonestimable_se("logistic_marginal_se_unavailable")
+			}
+			point
+		}
 	)
 )

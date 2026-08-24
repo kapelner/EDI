@@ -224,6 +224,15 @@ KKWilcoxIVWCSource = list(
 			NA_character_
 		},
 		is_a_kk_wilcox_base_ivwc = function() TRUE,
+		# Self/private-free literal, same "safe invoke without construction"
+		# contract as `design_compatibility_reason()` just above -- see
+		# `inference_all_abstract_jackknife.R`'s `jackknife_always_
+		# nonestimable()` default (`FALSE`) for why this override exists:
+		# every jackknife method on this class unconditionally reports
+		# non-estimable regardless of data (the Hodges-Lehmann functional
+		# isn't smooth enough for the delete-1 jackknife), so `run_all_
+		# inference()` can skip generating that doomed task entirely.
+		jackknife_always_nonestimable = function() TRUE,
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
 			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
@@ -541,6 +550,7 @@ InferenceAllKKWilcoxIVWC = define_inference_class(
 		),
 		private = c(
 			"compute_fast_rand_bootstrap_distr",
+			"jackknife_always_nonestimable",
 			"resolve_jackknife_unit",
 			"jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",

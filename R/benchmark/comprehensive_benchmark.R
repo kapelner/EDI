@@ -41,7 +41,7 @@ response_types <- c("continuous", "incidence", "count", "proportion", "survival"
 
 inf_by_res_type <- list(
 	continuous = c(
-	"InferenceAllSimpleMeanDiff",
+	"InferenceAllSimpleAverageDiff",
 	"InferenceAllKKMeanDiffIVWC",
 	"InferenceContinMultOLS",
 	"InferenceContinMultOLSKK",
@@ -49,19 +49,19 @@ inf_by_res_type <- list(
 	"InferenceBaiAdjustedTKK21"
 	),
 	incidence = c(
-	"InferenceAllSimpleMeanDiff",
+	"InferenceAllSimpleAverageDiff",
 	"InferenceAllKKMeanDiffIVWC",
 	"InferenceIncidUnivLogRegr",
 	"InferenceIncidMultiLogRegr"
 	),
 	count = c(
-	"InferenceAllSimpleMeanDiff",
+	"InferenceAllSimpleAverageDiff",
 	"InferenceAllKKMeanDiffIVWC",
 	"InferenceCountUnivNegBinRegr",
 	"InferenceCountMultiNegBinRegr"
 	),
 	proportion = c(
-	"InferenceAllSimpleMeanDiff",
+	"InferenceAllSimpleAverageDiff",
 	"InferenceAllKKMeanDiffIVWC",
 	"InferencePropUniBetaRegr",
 	"InferencePropMultiBetaRegr"

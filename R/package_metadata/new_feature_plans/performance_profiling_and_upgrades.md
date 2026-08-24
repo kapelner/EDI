@@ -2204,7 +2204,7 @@ Root cause: Each simulation iteration made 4 separate O(n) passes over `m_col`/`
 ---
 
 **TODO-110: Bootstrap randomization test (BRT) — three-tier fast-path stack** ✓ DONE
-Files: `EDI/src/rand_bootstrap_mean_diff_parallel.cpp` (new), `EDI/R/inference_all_abstract_rand_bootstrap.R`, `EDI/R/inference_all_abstract_rand_bootstrap_ci.R`, `EDI/R/inference_all_mean_diff.R`, `EDI/R/inference_continuous_ols.R`
+Files: `EDI/src/rand_bootstrap_mean_diff_parallel.cpp` (new), `EDI/R/inference_all_abstract_rand_bootstrap.R`, `EDI/R/inference_all_abstract_rand_bootstrap_ci.R`, `EDI/R/inference_all_average_diff.R`, `EDI/R/inference_continuous_ols.R`
 
 Context: the BRT (`InferenceRandBootstrap`/`InferenceRandBootstrapCI`, added 2026-07-13) resamples n rows with replacement and draws a fresh assignment from the design per replicate. The naive path duplicates the design + inference objects per replicate via `bootstrap_subset_inference()` — pure R6 overhead that dwarfs the statistic cost for closed-form estimators, and is multiplied ~25–35× by the CI's bisection inversion.
 

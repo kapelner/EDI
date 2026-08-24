@@ -5,7 +5,7 @@ test_that("jackknife public distribution API is coherent", {
 	}
 	des$add_all_subject_responses(c(0, 1, 2, 3, 4, 5, 6, 7))
 
-	inf <- InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 
 	jack <- inf$approximate_jackknife_distribution_beta_hat_T()
 	expect_length(jack, des$get_n())
@@ -37,7 +37,7 @@ test_that("clustered designs support cluster jackknife deletion", {
 	des$overwrite_all_subject_assignments(rep(c(1, 1, 0, 0), each = 2))
 	des$add_all_subject_responses(c(8, 10, 1, 3, 9, 11, 2, 4))
 
-	inf <- InferenceAllSimpleMeanDiff$new(des, verbose = FALSE)
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 	cluster_jack <- inf$approximate_jackknife_distribution_beta_hat_T(unit = "cluster")
 	expect_length(cluster_jack, 4L)
 

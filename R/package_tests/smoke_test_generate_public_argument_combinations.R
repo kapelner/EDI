@@ -15,7 +15,7 @@ expect_true = function(x, msg) {
 
 cases = generate_public_argument_combinations(
 	tier = "smoke",
-	target_filter = "^InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval$|^DesignFixedBernoulli::add_all_subject_responses$",
+	target_filter = "^InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval$|^DesignFixedBernoulli::add_all_subject_responses$",
 	fixture_ids = c("fixed_bernoulli_continuous_smoke", "fixed_bernoulli_survival_censored_smoke")
 )
 
@@ -51,7 +51,7 @@ expect_true(file.exists(file.path(tmp_dir, "coverage.csv")), "Coverage CSV was n
 
 cases_again = generate_public_argument_combinations(
 	tier = "smoke",
-	target_filter = "^InferenceAllSimpleMeanDiff::compute_bootstrap_confidence_interval$|^DesignFixedBernoulli::add_all_subject_responses$",
+	target_filter = "^InferenceAllSimpleAverageDiff::compute_bootstrap_confidence_interval$|^DesignFixedBernoulli::add_all_subject_responses$",
 	fixture_ids = c("fixed_bernoulli_continuous_smoke", "fixed_bernoulli_survival_censored_smoke")
 )
 expect_true(identical(cases, cases_again), "Generation is not deterministic.")

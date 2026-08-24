@@ -421,6 +421,62 @@ list(
 If optimizer diagnostics are not yet available for a family, set the relevant
 field to `NULL` or `NA`, not by doing expensive substitute computation.
 
+### Temporary class-local hardening to retire
+
+As of 2026-08-24, `InferenceOrdinalStereotypeLogitRegr` has a temporary,
+class-local fit-acceptance guard in
+`R/EDI/R/inference_ordinal_stereotype_logit.R`. It prevents the comprehensive
+harness and public scalar methods from reporting finite but unusable
+stereotype-logit point estimates while the centralized diagnostics layer does
+not yet exist. The guard rejects a fit when any available check fails:
+
+- the native backend does not report `converged = TRUE`;
+- the treatment coefficient is nonfinite or `abs(beta_T) > 10`;
+- the returned information matrix is nonfinite, not positive definite, or has
+  reciprocal condition number at most `sqrt(.Machine$double.eps)`; or
+- a path requiring a standard error receives a nonfinite or nonpositive
+  treatment variance.
+
+The same predicate is applied to the ordinary fit, reusable bootstrap refits,
+randomization refits, and parametric-likelihood-bootstrap full refits. Fixed-null
+likelihood fits skip the treatment-coefficient cap because their coefficient is
+the caller-supplied null value, but still require convergence and acceptable
+information when it is available. The weighted ordinal surrogate does not
+expose convergence or information diagnostics, so it currently applies only
+the `abs(beta_T) <= 10` check. Rejected primary/weighted fits are returned as
+`NA` and cached as nonestimable; rejected replicate fits contribute `NA` rather
+than an extreme finite statistic.
+
+This is deliberately temporary policy, not the public diagnostics API. During
+Phase 3, replace `stereotype_treatment_estimate_is_usable()` and
+`stereotype_fit_is_usable()` with the shared typed diagnostic classifier and
+remove both class-local helpers only after the centralized acceptance policy
+enforces equivalent convergence, conditioning, and separation decisions for
+primary and resampled fits. Preserve regression coverage for the temporary
+thresholds until that parity is demonstrated.
+
+`InferenceIncidKKCondLogitOneLik` now has the same temporary architecture in
+`R/EDI/R/inference_incidence_KK_cond_logit.R`. Its single
+`assess_combined_fit()` predicate rejects ordinary, weighted,
+randomization-statistic, fixed-null, and parametric-bootstrap refits unless the
+native backend reports convergence without an iteration-cap exit, a finite
+terminal gradient norm, finite coefficients, and positive-definite information
+whose reciprocal condition number exceeds `sqrt(.Machine$double.eps)`. The
+primary and resampled treatment coefficient is also capped at `abs(beta_T) <=
+10`; fixed-null fits omit only that caller-controlled coefficient check. Paths
+requiring uncertainty additionally require a finite positive treatment
+variance, derived from the accepted information matrix when the backend did not
+return one directly.
+
+This incidence guard also prevents the class's incidence-specific Zhang
+randomization shortcut from reporting a p-value when the declared primary model
+statistic is nonestimable. Rejected primary fits are cached once as typed
+estimate-stage nonestimability, leaving all dependent Wald, score, gradient,
+likelihood-ratio, resampling, and randomization methods to return `NA` from that
+shared state. Phase 3 must migrate `assess_combined_fit()` and the provisional
+coefficient ceiling into the centralized classifier before deleting the
+class-local implementation.
+
 ## Internal Implementation Plan
 
 ### Phase 1: Public wrapper and result object
@@ -488,6 +544,12 @@ After the optimizer diagnostics layer is implemented:
 - [ ] TODO-11: Expose `get_last_fit_diagnostics()` as planned by
    [optimizer_diagnostics_report.md](optimizer_diagnostics_report.md).
 - [ ] TODO-12: Have `compute_*_details()` pull from those caches without recomputing.
+- [ ] TODO-22 (added 2026-08-24): migrate the temporary
+   `InferenceOrdinalStereotypeLogitRegr` and
+   `InferenceIncidKKCondLogitOneLik` acceptance guards documented above to the
+   centralized typed diagnostic classifier, prove primary/refit behavior
+   remains equivalent, then remove the class-local helper methods and their
+   component-contract entries.
 - [ ] TODO-19 (added 2026-08-18, user decision): enrich
    `EDIInferenceSuiteResults`' per-class `diagnostics` element (see
    `inference_suite_inspect.md → Per-class diagnostics element`;

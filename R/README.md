@@ -75,7 +75,7 @@ for (i in seq_len(100)) des$add_one_subject_to_experiment_and_assign(X[i, , drop
 **Inference classes** — call `$set_seed()` after construction:
 
 ```r
-inf = InferenceAllSimpleMeanDiff$new(des)
+inf = InferenceAllSimpleAverageDiff$new(des)
 inf$set_seed(42)
 
 # Same seed + same num_cores → identical p-value / CI / Bayesian-bootstrap distribution
@@ -96,7 +96,7 @@ set_num_cores(4)   # or unset_num_cores() for serial
 sim = SimulationFramework$new(
     response_type = "continuous",
     design_classes_and_params = list(DesignFixedBernoulli),
-    inference_classes_and_params = list(InferenceAllSimpleMeanDiff),
+    inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
     inference_types_and_params = list(asymp_pval = list()),
     n = 50L, Nrep = 200L, seed = 321, ...
 )

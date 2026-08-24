@@ -156,7 +156,7 @@
 #' \dontrun{
 #' seq_des = DesignSeqOneByOneKK14$new(n = 100, response_type = "continuous")
 #' # ... run the experiment: add subjects and responses ...
-#' seq_des_inf = InferenceAllSimpleMeanDiff$new(seq_des)
+#' seq_des_inf = InferenceAllSimpleAverageDiff$new(seq_des)
 #' seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = 501)
 #' }
 #' @keywords internal
@@ -845,6 +845,13 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		compute_two_sided_brt_pval_with_sequential_mc = function(t, B, delta, transform_arg, y0_full, draws, zero_one_logit_clamp){
 			mc_ctrl = private$brt_mc_control
 			if (!private$sequential_mc_control_enabled(mc_ctrl)) return(NULL)
+			# Scope the reusable-worker cache (see `compute_reusable_bootstrap_worker_
+			# distribution()`) to this call's own batch loop below, exactly as
+			# `compute_two_sided_pval_with_sequential_mc()` does for the "rand"
+			# family: clear on entry (defensive) and on exit, so a later, unrelated
+			# reusable-worker call never observes a stale worker left over from here.
+			private$cached_values$reusable_bootstrap_worker = NULL
+			on.exit(private$cached_values$reusable_bootstrap_worker <- NULL, add = TRUE)
 			if (length(draws) == 0L || is.null(draws[[1L]]$w_b)) return(NULL)
 			B_int = as.integer(B)
 			batch_size = min(B_int, as.integer(mc_ctrl$mc_batch_size))

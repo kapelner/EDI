@@ -34,7 +34,7 @@ SimpleMeanDifferencePooledVarSource = list(
 		#'   simple (unadjusted) mean-difference treatment effect
 		#'   \eqn{\hat\beta_T = \bar y_T - \bar y_C}, using the classical
 		#'   \strong{pooled equal-variance} Student's t-test formula (unlike
-		#'   \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}}'s
+		#'   \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}'s
 		#'   Welch unequal-variance version): the pooled variance estimate
 		#'   \eqn{s_p^2 = \left((n_T-1)s_T^2 + (n_C-1)s_C^2\right) / (n_T+n_C-2)}
 		#'   gives standard error \eqn{\widehat{\mathrm{SE}}(\hat\beta_T) =
@@ -42,7 +42,7 @@ SimpleMeanDifferencePooledVarSource = list(
 		#'   2}; the interval is \eqn{\hat\beta_T \pm t_{\mathrm{df}, 1-\alpha/2}\,
 		#'   \widehat{\mathrm{SE}}(\hat\beta_T)}. Assumes equal population
 		#'   variances in the two arms — use
-		#'   \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}}
+		#'   \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}
 		#'   instead when that assumption is doubtful. Requires at least 2
 		#'   observations per arm; otherwise returns \code{c(NA, NA)}. See
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
@@ -155,7 +155,7 @@ SimpleMeanDifferencePooledVarSource = list(
 #' Simple Mean-Difference Inference with Pooled Variance
 #'
 #' Fits the same unadjusted mean-difference point estimate as
-#' \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}},
+#' \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}},
 #' \eqn{\hat\beta_T = \bar y_T - \bar y_C}, but performs inference via the
 #' classical \strong{pooled equal-variance} Student's t-test instead of
 #' Welch's unequal-variance version: pooled variance \eqn{s_p^2 =
@@ -163,7 +163,7 @@ SimpleMeanDifferencePooledVarSource = list(
 #' \eqn{s_p\sqrt{1/n_T + 1/n_C}}, and exact degrees of freedom \eqn{n_T+n_C-2}
 #' — see \code{$compute_asymp_confidence_interval()} for the full formula.
 #' This assumes the two arms have equal population variance; prefer
-#' \code{\link[EDI:InferenceAllSimpleMeanDiff]{InferenceAllSimpleMeanDiff}}
+#' \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}
 #' when that assumption is doubtful, since the pooled estimator's nominal
 #' coverage degrades under heteroskedasticity with unequal arm sizes. This
 #' class does not support censored survival data (enforced at construction).

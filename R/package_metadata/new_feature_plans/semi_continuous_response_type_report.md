@@ -287,7 +287,7 @@ count-specific except for the `za_family()`/kernel dispatch — see
 `InferencePropZeroOneInflatedBetaRegr` reuses `InferenceAsympLikStdModCache`
 today.
 
-### `InferenceAllSimpleMeanDiff` / `InferenceAllSimpleWilcox`: needs no new fence
+### `InferenceAllSimpleAverageDiff` / `InferenceAllSimpleWilcox`: needs no new fence
 
 Unlike `nominal`, these classes do not need a new rejection guard: they
 already operate correctly (if suboptimally — ignoring the mixture structure)

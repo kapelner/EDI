@@ -1894,7 +1894,7 @@ wrapping the same base engine).
   Python tests, an R source install, and seven focused R Weibull/bootstrap
   test files (148 expectations).
 - [x] TODO-22 (added 2026-08-14, found during TODO-15's test sweep, not
-  about interval censoring): `InferenceAllSimpleMeanDiff` (and presumably
+  about interval censoring): `InferenceAllSimpleAverageDiff` (and presumably
   every other class composing `components = c("BayesianBootstrap", ...)`)
   is missing `compute_rand_bootstrap_confidence_interval`
   (`is.function() == FALSE`) — the closed-form BRT confidence-interval
@@ -2102,7 +2102,7 @@ wrapping the same base engine).
   `sync_randomization_worker_state()`) returns a sane p-value. All three
   previously-crashing/silently-wrong code paths confirmed working. An
   intermediate full-suite run also surfaced an unrelated, pre-existing gap
-  — `InferenceAllSimpleMeanDiff` (and likely other classes) not currently
+  — `InferenceAllSimpleAverageDiff` (and likely other classes) not currently
   resolvable via `exists()` on a fresh install — confirmed unrelated to
   this fix (a class-loading/component-registry issue, `fix_inference_hierarchy.md`
   territory) and not investigated further here.

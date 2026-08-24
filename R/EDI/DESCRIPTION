@@ -158,7 +158,7 @@ Collate:
     'inference_all_KK_quantile_regr_ivwc_abstract.R'
     'inference_all_KK_quantile_regr_one_lik_abstract.R'
     'inference_all_KK_wilcox_ivwc.R'
-    'inference_all_mean_diff.R'
+    'inference_all_average_diff.R'
     'inference_all_simple_mean_diff_pooled_var.R'
     'inference_all_simple_wilcox.R'
     'inference_continuous_KK_bai_abstract.R'

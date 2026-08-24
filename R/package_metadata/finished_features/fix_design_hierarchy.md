@@ -721,8 +721,8 @@ and TODO-34 through TODO-38.
   parallel-worker copy) gated `asymp_ci`/`asymp_pval` on `is(inf_obj, "InferenceAsymp")` and
   `boot_ci`/`boot_pval` on `is(inf_obj, "InferenceNonParamBootstrap")` -- both stale class
   checks left over from the (separate, already-`[x]`-marked-done-elsewhere) Inference shallow-
-  hierarchy migration: `InferenceAllSimpleMeanDiff` and other migrated classes no longer
-  inherit those bases (chain is now `InferenceAllSimpleMeanDiff -> Inference -> R6`), so every
+  hierarchy migration: `InferenceAllSimpleAverageDiff` and other migrated classes no longer
+  inherit those bases (chain is now `InferenceAllSimpleAverageDiff -> Inference -> R6`), so every
   design/inference combo using a migrated class was silently filtered out as "invalid" with
   zero result rows -- confirmed by running the full simulation-framework test suite (not
   something design-hierarchy work would normally exercise) and finding `test-simulation-
@@ -739,7 +739,7 @@ and TODO-34 through TODO-38.
   rework), `test-simulation-framework.R` reduced to a narrower 5-failure cluster confirmed
   (by direct empirical check: `is(inf, "InferenceAsymp")` and the new capability check both
   return `FALSE` for it) to be a *different*, pre-existing gap unrelated to this fix -- a
-  test-file-local `InferenceAlwaysFailsPval` subclass of `InferenceAllSimpleMeanDiff` that
+  test-file-local `InferenceAlwaysFailsPval` subclass of `InferenceAllSimpleAverageDiff` that
   was never registered in `EDI_INFERENCE_CLASS_REGISTRY` (only the package namespace is
   scanned at registry-population time), so capability lookup for it fails and falls back to
   a `fallback_class` check that also doesn't match post-migration. That gap -- ad-hoc
@@ -902,7 +902,7 @@ than left as prose-only notes.
      "intermediate work on ... inference hierarchy migration ... y/y_L/y_R migration"
      commit -- part of that separate, in-progress migration, not this plan.
   2. & 3. `test-inference-suite-discovery.R:16` and `:79` -- expect
-     `InferenceAllSimpleMeanDiff`/`InferenceAllKKMeanDiffIVWC` to be discoverable, but
+     `InferenceAllSimpleAverageDiff`/`InferenceAllKKMeanDiffIVWC` to be discoverable, but
      both are genuinely absent from `NAMESPACE` despite carrying `@export` roxygen tags
      in their source (confirmed via `grep`). Both source files
      (`inference_all_simple_mean_diff_pooled_var.R`,
@@ -1844,7 +1844,7 @@ regardless of migration state:
 - [x] TODO-43: `inference_all_abstract.R:68` -- `inherits(des_obj, "DesignSeqOneByOneKK14")`
   cached as `private$is_KK` -> `des_obj$randomization_family() %in% c("kk14", "kk21",
   "kk21_stepwise")`. Checked all downstream reads of `private$is_KK` (8 call sites
-  across `inference_all_mean_diff.R`, `inference_ordinal_ridit.R`,
+  across `inference_all_average_diff.R`, `inference_ordinal_ridit.R`,
   `inference_all_KK_quantile_regr_ivwc_abstract.R`,
   `inference_all_KK_quantile_regr_one_lik_abstract.R`,
   `inference_all_abstract_jackknife.R`, `inference_all_simple_wilcox.R`,

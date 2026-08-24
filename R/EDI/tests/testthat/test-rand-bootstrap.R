@@ -27,7 +27,7 @@ build_brt_design = function(design_gen, effect, response_type = "continuous"){
 }
 
 new_brt_inference = function(des, seed = 42L){
-	inf = InferenceAllSimpleMeanDiff$new(des)
+	inf = InferenceAllSimpleAverageDiff$new(des)
 	inf$.__enclos_env__$private$seed = seed
 	inf$num_cores = 1L
 	inf
@@ -149,7 +149,7 @@ test_that("BRT C++ batch kernel matches the per-iteration reference path exactly
 })
 
 test_that("closed-form BRT CI: affine decomposition matches the reference iteration path", {
-	for (cls in list(InferenceAllSimpleMeanDiff, InferenceContinOLS)) {
+	for (cls in list(InferenceAllSimpleAverageDiff, InferenceContinOLS)) {
 		des = build_brt_design(function() DesignSeqOneByOneKK14$new(response_type = "continuous", n = n_brt), 1.5)
 		inf = cls$new(des)
 		inf$num_cores = 1L
@@ -250,7 +250,7 @@ test_that("BRT batch kernels match the per-iteration reference path across stati
 	check_kernel_parity(mk_inf(InferenceAllSimpleWilcox, des_cont), c(0, 0.6), "none", 8)
 	check_kernel_parity(mk_inf(InferenceContinOLS, des_cont), c(0, 0.6), "none", 8)
 	# transform codes of the mean-diff kernel (log and logit on the continuous response)
-	inf_md = mk_inf(InferenceAllSimpleMeanDiff, des_cont)
+	inf_md = mk_inf(InferenceAllSimpleAverageDiff, des_cont)
 	check_kernel_parity(inf_md, c(0.4), "log", 8)
 
 	# survival with censoring: log-rank, KM median diff, RMST diff (multiplicative shift)
@@ -419,7 +419,7 @@ test_that("Lin affine CI no-covariate case equals mean-diff closed-form CI (same
 	}
 	# Lin with no formula (uses design covariates) and mean-diff
 	inf_lin = InferenceContinLin$new(des, model_formula = ~ 1)  # intercept-only = no covariates
-	inf_md  = InferenceAllSimpleMeanDiff$new(des)
+	inf_md  = InferenceAllSimpleAverageDiff$new(des)
 	inf_lin$.__enclos_env__$private$seed = 42L
 	inf_md$.__enclos_env__$private$seed  = 42L
 	ci_lin = inf_lin$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 201, show_progress = FALSE)
@@ -497,7 +497,7 @@ test_that("studentized BRT CI covers true effect and both bounds are finite", {
 			w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 			des$add_one_subject_response(t, truth * (w_t == 1) + rnorm(1))
 		}
-		inf = InferenceAllSimpleMeanDiff$new(des)
+		inf = InferenceAllSimpleAverageDiff$new(des)
 		inf$num_cores = 1L
 		ci_stud = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 121, type = "studentized", show_progress = FALSE)
 		ci_van  = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 121, type = "percentile",    show_progress = FALSE)
@@ -518,7 +518,7 @@ test_that("studentized BRT CI returns NA (harden mode) when SE is 0 by degenerat
 	for (t in seq_len(6L)) des$add_one_subject_response(t, if (w[t] == 1) 5.0 else t * 1.0)
 	# At least some resamples will have only 1 treated obs → SE = NA per draw
 	# This test just verifies that the studentized CI still runs and gives finite or NA bounds
-	inf = InferenceAllSimpleMeanDiff$new(des)
+	inf = InferenceAllSimpleAverageDiff$new(des)
 	inf$num_cores = 1L
 	inf$.__enclos_env__$private$harden = TRUE
 	ci_s = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 51, type = "studentized", show_progress = FALSE)
@@ -573,7 +573,7 @@ test_that("symmetric-percentile-t BRT CI covers true effect", {
 			w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 			des$add_one_subject_response(t, truth * (w_t == 1) + rnorm(1))
 		}
-		inf = InferenceAllSimpleMeanDiff$new(des)
+		inf = InferenceAllSimpleAverageDiff$new(des)
 		inf$num_cores = 1L
 		ci = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 121, type = "symmetric-percentile-t", show_progress = FALSE)
 		covered[r] = is.finite(ci[1]) && ci[1] <= truth && truth <= ci[2]
@@ -613,7 +613,7 @@ test_that("smoothed BRT CI covers true effect and both bounds are finite", {
 			w_t = des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
 			des$add_one_subject_response(t, truth * (w_t == 1) + rnorm(1))
 		}
-		inf = InferenceAllSimpleMeanDiff$new(des)
+		inf = InferenceAllSimpleAverageDiff$new(des)
 		inf$num_cores = 1L
 		ci = inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 121, type = "smoothed", show_progress = FALSE)
 		covered[r] = is.finite(ci[1]) && ci[1] <= truth && truth <= ci[2]

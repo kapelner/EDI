@@ -547,7 +547,7 @@ EDI_COMPONENT_SPECS = list(
 	SimpleMeanDifference = list(
 		status = "active",
 		source_name = "SimpleMeanDifferenceSource",
-		file = "inference_all_mean_diff.R",
+		file = "inference_all_average_diff.R",
 		dependencies = character(),
 		provides_capabilities = character(),
 		allowed_likelihood_tiers = "none",
@@ -1245,9 +1245,11 @@ EDI_COMPONENT_SPECS = list(
 		# `overrides$public` so the composed KKPassThrough/BayesianBootstrap
 		# chain-vs-chain collision resolves via component order.
 		provides_private_methods = c(
-			"cached_mod", "max_abs_reasonable_coef", "shared_combined_likelihood",
+			"cached_mod", "max_abs_reasonable_coef", "assess_combined_fit",
+			"shared_combined_likelihood",
 			"get_standard_error", "supports_likelihood_tests",
-			"get_likelihood_test_spec", "supports_lik_ratio_param_bootstrap",
+			"compute_likelihood_test_two_sided_pval", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap",
 			"compute_weighted_combined_estimate", "simulate_under_lik_null"
 		),
 		provides_capabilities = character(),
@@ -1591,6 +1593,7 @@ EDI_COMPONENT_SPECS = list(
 				provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
 				provides_private_methods = c(
 					"supports_likelihood_tests",
+					"supports_bayesian_bootstrap",
 					"compute_treatment_estimate_during_randomization_inference",
 					"supports_reusable_bootstrap_worker",
 					"get_bootstrap_worker_spec",
@@ -1664,7 +1667,10 @@ EDI_COMPONENT_SPECS = list(
 				provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
 				provides_private_methods = c(
 					"supports_likelihood_tests",
+					"supports_bayesian_bootstrap",
 					"get_complexity_tier",
+					"stereotype_treatment_estimate_is_usable",
+					"stereotype_fit_is_usable",
 					"compute_treatment_estimate_during_randomization_inference",
 					"supports_reusable_bootstrap_worker",
 					"get_bootstrap_worker_spec",
