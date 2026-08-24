@@ -47,9 +47,9 @@ inference_class_compatibility_metadata = function(nm) {
 #' excluded if it is abstract or not exported; if it declares no compatible
 #' response types, or none match `design_meta$response_type`; if it requires
 #' KK matching (`requires_kk_matching_design` metadata -- inferred from the
-#' class name containing `"KK"`, or from an explicit private
-#' `requires_kk_matching_design()` override for a class that needs a matched
-#' design without a `"KK"`-prefixed name, e.g. the
+#' class name containing `"KK"`, or from
+#' `EDI_INFERENCE_REQUIRES_KK_MATCHING_DESIGN_OVERRIDES` for a class that
+#' needs a matched design without a `"KK"`-prefixed name, e.g. the
 #' `InferenceSurvivalGLMMWeibullFrailty*` family) but the design isn't
 #' KK-capable; if its
 #' `requires_blocking_design` metadata is `TRUE` but the design doesn't
@@ -587,6 +587,50 @@ EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS = unique(c(
 	)
 ))
 
+#' Whether concrete class `nm` actually implements the exact (closed-form
+#' analytic) Bartlett-corrected likelihood-ratio test/CI. Closes a real gap
+#' (per user report, 2026-08-23): `"lik_ratio_bartlett_exact"`'s
+#' `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`/`_PVAL_METHOD_PRIORITY` entries
+#' are gated by the coarser `"likelihood_tests"` capability shared with
+#' score/lik_ratio/gradient/bartlett-approx -- true for every class with
+#' *any* likelihood-test capability, even the (large majority) that never
+#' override `supports_bartlett_likelihood_ratio_exact()` away from its
+#' `FALSE` default -- so a task was being generated and then silently
+#' NA-ing at call time for every one of them.
+#'
+#' Constructs a real (disposable) instance to check, rather than a bare
+#' unconstructed-generator probe: an earlier version of this function tried
+#' the latter (mirroring `inference_class_registry.R`'s `infer_inference_
+#' requires_blocking_design()`/`infer_inference_estimand_type()`, which use
+#' it safely for methods defined directly in a class's own eager `private`
+#' block), but this specific method is sourced through this package's lazy
+#' component-loading system for most classes -- the bare generator's
+#' `private_methods` entry for it is a lazy dispatch stub, not the literal
+#' body, and invoking that stub without a bound `private` environment
+#' throws even for the one class (`InferenceContinKKOLSOneLik`) confirmed
+#' to override it `TRUE` (verified directly: the bare-generator probe
+#' returned `FALSE` for it, which is wrong). Same "pay one extra
+#' construction" cost this file already accepts elsewhere for exactly this
+#' reason (`run_all_inference_probe_supported_types()`'s own docs). Returns
+#' `FALSE` (not an error) if construction fails for any reason -- mirrors
+#' this file's established "missing capability -> empty/FALSE, never abort
+#' discovery" pattern.
+#'
+#' Deliberately does NOT extend to `supports_bartlett_likelihood_ratio_
+#' approx()`: that sentinel keeps degrading to `NA` with the method name
+#' still visible (the existing, correctly-scoped rule) rather than adding a
+#' second per-task construction to this already-per-class-construction path.
+#'
+#' @keywords internal
+#' @noRd
+inference_class_supports_bartlett_exact = function(nm, des_obj, params = list()) {
+	tryCatch({
+		cls = get(nm, envir = getNamespace("EDI"))
+		inf_obj = do.call(cls$new, c(list(des_obj = des_obj), params))
+		isTRUE(inf_obj$.__enclos_env__$private$supports_bartlett_likelihood_ratio_exact())
+	}, error = function(e) FALSE)
+}
+
 #' Which of `methods` (already validated against `EDI_INFERENCE_SUITE_METHOD_SENTINELS`)
 #' class `nm` has any capability for -- backs `run_all_inference_build_tasks()`'s
 #' `methods` fan-out, same registry-only, no-instantiation approach as
@@ -595,7 +639,10 @@ EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS = unique(c(
 #' against the actual `des_obj` instance's `supports_randomization_draw()`
 #' (see that constant's docs) rather than purely by class-level registry
 #' metadata, since class-level capability tags can't know whether *this*
-#' `des_obj` supports randomization draws at all.
+#' `des_obj` supports randomization draws at all; and `"lik_ratio_bartlett_
+#' exact"`, filtered against `inference_class_supports_bartlett_exact()`
+#' (see that function's own docs) for the same reason the coarser
+#' `"likelihood_tests"` capability alone over-approximates it.
 #'
 #' @param des_obj The `Design` instance being fit against. `NULL` skips the
 #'   randomization-support filter entirely (treated as "supported") --
@@ -605,9 +652,44 @@ EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS = unique(c(
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_class_applicable_methods = function(nm, methods, des_obj = NULL) {
-	if (!is.null(des_obj) && !isTRUE(des_obj$supports_randomization_draw())) {
-		methods = setdiff(methods, EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS)
+run_all_inference_class_applicable_methods = function(nm, methods, des_obj = NULL, params = list()) {
+	if (!is.null(des_obj)) {
+		if (!isTRUE(des_obj$supports_randomization_draw())) {
+			methods = setdiff(methods, EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS)
+		} else if (identical(des_obj$get_response_type(), "incidence")) {
+			# Design-instance-level introspection for the incidence-response
+			# case (per user request, 2026-08-23, closing "this line
+			# shouldn't happen" -- a `rand` task was being generated and then
+			# silently NA-ing at call time for designs where it could never
+			# work): mirrors `InferenceRand$should_use_zhang_incidence_
+			# randomization()`'s own design-side half exactly
+			# (`is_a_bernoulli_capable() || is_a_kk_matching_capable()`,
+			# both public `Design` methods -- no instance construction
+			# needed). Only `"rand"` itself (`compute_rand_confidence_
+			# interval()`/`compute_rand_two_sided_pval()`) has a Zhang
+			# exact-combined-test escape hatch for incidence at all -- no
+			# other randomization-dependent sentinel does (`compute_rand_
+			# bootstrap_confidence_interval()`'s own incidence guard has no
+			# such exception, an unconditional stop()) -- so a
+			# Zhang-ineligible design excludes every randomization-dependent
+			# sentinel as before, while a Zhang-eligible one only spares
+			# `"rand"`. The `custom_randomization_statistic_function`
+			# escape hatch stays a per-instance runtime nuance this
+			# pre-filter can't see (it's a constructor argument, not known
+			# until construction) -- a narrower, legitimate edge case than
+			# the common one this closes.
+			zhang_eligible = isTRUE(des_obj$is_a_bernoulli_capable()) || isTRUE(des_obj$is_a_kk_matching_capable())
+			excluded = if (zhang_eligible) {
+				setdiff(EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS, "rand")
+			} else {
+				EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS
+			}
+			methods = setdiff(methods, excluded)
+		}
+	}
+	if (!is.null(des_obj) && "lik_ratio_bartlett_exact" %in% methods &&
+			!inference_class_supports_bartlett_exact(nm, des_obj, params)) {
+		methods = setdiff(methods, "lik_ratio_bartlett_exact")
 	}
 	Filter(function(m) inference_class_has_method(nm, m), methods)
 }
@@ -969,7 +1051,7 @@ run_all_inference_build_tasks = function(cls_names, formulas, methods, des_obj =
 		} else {
 			list(list(model_formula = NULL, formula_tag = NULL))
 		}
-		applicable_methods = run_all_inference_class_applicable_methods(nm, methods, des_obj)
+		applicable_methods = run_all_inference_class_applicable_methods(nm, methods, des_obj, inference_params[[nm]] %||% list())
 		method_type_slots = list()
 		for (m in applicable_methods) {
 			if (m %in% EDI_INFERENCE_SUITE_TYPED_SENTINELS) {
@@ -1122,13 +1204,37 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 		warning = function(w) {
 			collected_warnings <<- c(collected_warnings, conditionMessage(w))
 			invokeRestart("muffleWarning")
+		},
+		# Some fit paths use `message()` (not `warning()`) for legitimate
+		# diagnostic notices -- e.g. `InferenceRandBootstrapCI`/`InferenceRandCI`'s
+		# "CI bound is conservative" notes, always emitted unconditionally,
+		# not gated by `verbose`/`show_progress` at all. Left unhandled,
+		# those printed straight to the console mid-fit and broke the live
+		# `screen = TRUE` table's `\r`-based in-place progress-bar redraw
+		# (per user report, 2026-08-24: garbled progress bar output).
+		# Collected into the same `warnings` field as real warnings (a
+		# conservative-bound notice is exactly the kind of caveat that field
+		# already exists for) and muffled the same way, rather than
+		# silently dropped -- the information isn't lost, just moved out of
+		# the live table's way and into the row's own `warnings` column.
+		message = function(m) {
+			collected_warnings <<- c(collected_warnings, trimws(conditionMessage(m)))
+			invokeRestart("muffleMessage")
 		}
 	)
 	row = utils::modifyList(row, outcome)
-	# Same "method name always visible" rule for error/timeout rows (and a
-	# belt-and-braces fallback for nonest): the task's sentinel is known
-	# even when the fit never got far enough to attempt a CI/p-value call.
-	if (!identical(row$status, "ok") && !is.na(method)) {
+	# "Method name always visible" rule, unconditional on `status` (per user
+	# request, 2026-08-23: an `ok` row can still have `ci_method`/
+	# `pval_method` come back `NA` -- e.g. `rand`'s CI succeeds but its
+	# pval legitimately doesn't apply to an incidence response
+	# (`supports_rand_pval_for_incidence()`'s documented degrade), or a
+	# sentinel with no matching capability on either side at all -- and
+	# those blanks were just as uninformative as the error/timeout case
+	# this rule already covered). The task's own requested sentinel is
+	# known regardless of what the CI/pval call attempt actually returned,
+	# so fill in only the NA side(s); a side that got a real (possibly
+	# different) method label from a successful attempt is left untouched.
+	if (!is.na(method)) {
 		if (is.na(row$ci_method)) row$ci_method = method
 		if (is.na(row$pval_method)) row$pval_method = method
 	}
@@ -1244,11 +1350,14 @@ run_all_inference_wrap_cell_2lines = function(text, width) {
 	if (nchar(text) <= width) return(c(text, ""))
 	# A `"<method> (<type>)"` cell (`method_with_type_short_label()`'s own
 	# output, e.g. `"bayes boot (%ile)"`) splits at its own natural
-	# boundary -- method on line 1, type (parens dropped) on line 2 -- per
-	# user request, 2026-08-22: the generic word-count-halving below had
+	# boundary -- method on line 1, `"(type)"` (parens kept -- per user
+	# request, 2026-08-24, reversing the initial 2026-08-22 fix's "parens
+	# dropped": `"bayes boot (%ile)"` -> `"bayes boot"` / `"(%ile)"`, not
+	# `"%ile"` alone) on line 2. The generic word-count-halving below had
 	# split it mid-phrase and then hard-truncated the trailing `)` off
-	# entirely (`"bayes boot (pctile)"` -> `"bayes"` / `"boot (pctile"`).
-	paren_match = regmatches(text, regexec("^(.*) \\(([^()]*)\\)$", text))[[1]]
+	# entirely (`"bayes boot (pctile)"` -> `"bayes"` / `"boot (pctile"`);
+	# this is what actually fixed that.
+	paren_match = regmatches(text, regexec("^(.*) (\\([^()]*\\))$", text))[[1]]
 	if (length(paren_match) == 3L) {
 		line1 = paren_match[[2]]
 		line2 = paren_match[[3]]
@@ -1324,6 +1433,16 @@ method_short_label = function(m) {
 			lik_ratio_bartlett_approx = "LR ≈Bartlett",
 			bayes_boot = "bayes boot",
 			bootstrap = "boot",
+			# "param_boot" (per user request, 2026-08-24): was falling through
+			# unabbreviated as the literal underscored sentinel name
+			# ("param_boot"), the one label in this switch with no space for
+			# `run_all_inference_wrap_cell_2lines()`'s word-based wrapping to
+			# break on at all -- unlike every other sentinel here, which
+			# already gets a space-separated label. Distinct from
+			# `param_boot_direct` below (a different sentinel, the direct
+			# parametric-bootstrap estimate/CI/pval rather than this one's
+			# bootstrap-calibrated likelihood-ratio test).
+			param_boot = "param boot",
 			param_boot_direct = "param boot",
 			x
 		)
@@ -1895,17 +2014,40 @@ run_all_inference_plot_safe_text = function(x) {
 #' separately-estimated total page height (the earlier, `"null"`-unit
 #' design) can drift out of sync with the actual rendered layout.
 #'
+#' Bumped from `0.20` to `0.32` (per user request, 2026-08-24) to fit the
+#' p-value label now sitting *above* each row's own line (`pval_label_
+#' above`, `y + 0.32` -- see `run_all_inference_plot_ci_forest()`) without
+#' crowding the row above it; still one constant, so uniform-spacing-across-
+#' estimands (the 2026-08-22/23 requests above) holds at the new height
+#' exactly as it did at the old one.
+#'
 #' @keywords internal
 #' @noRd
-EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN = 0.20
+EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN = 0.32
 #' @rdname EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN
 #' @keywords internal
 #' @noRd
 EDI_INFERENCE_SUITE_BOX_PANEL_HEIGHT_IN = 1.3
 run_all_inference_plot_ci_forest = function(results_table, alpha) {
+	# A `ci_method == "rand"` row is excluded from the plot (PDF and HTML
+	# alike, since both are built from this one function) only when its
+	# p-value is actually unsupported (`pval` is `NA` -- per user
+	# correction, 2026-08-23: "only if they're unsupported"), not every
+	# "rand" row -- most response types compute both `rand` CI and pval
+	# fine and belong in the plot same as any other row. The `NA`-pval case
+	# follows a real inconsistency found in `InferenceRand`:
+	# `compute_rand_confidence_interval()` has a Zhang-dispatch branch for
+	# matched-pair incidence designs that `compute_rand_two_sided_pval()`
+	# lacks, so a "rand" CI can come back for a row whose "rand" p-value
+	# never can (silently `NA` from `run_all_inference_call_pval_for_
+	# method()`'s incidence pre-check) -- showing that CI alone, with no
+	# p-value to go with it, in the visual report is misleading.
+	# `results_table`/`print()`/JSON are untouched -- the row (and its CI)
+	# still exists there; only the plot omits it.
 	df = results_table[
 		results_table$status == "ok" &
-			is.finite(results_table$ci_a) & is.finite(results_table$ci_b),
+			is.finite(results_table$ci_a) & is.finite(results_table$ci_b) &
+			!(!is.na(results_table$ci_method) & results_table$ci_method == "rand" & is.na(results_table$pval)),
 		, drop = FALSE
 	]
 	if (nrow(df) == 0L) return(list())
@@ -1958,8 +2100,20 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# pre-letter design) or listed separately in a caption (the
 		# letter+key design just before this one) -- both of those cost
 		# vertical room this doesn't.
-		d$left_label = sprintf("p=%s", d$pval_num)
-		d$right_label = sprintf("width=%s", d$width_num)
+		# Width label sits directly ON the CI line itself (a `geom_label()`,
+		# not `geom_text()` -- its background box visually "erases" the
+		# segment underneath), and the p-value sits just above it -- per
+		# user request, 2026-08-24: flanking text off the ends of the
+		# segment (the old `left_label`/`right_label`, positioned at
+		# `ci_a`/`ci_b`) went off-panel and disappeared for a long CI,
+		# exactly the outlier-width case already clipped at the axis
+		# (`is_width_outlier` below). Anchored at each row's own midpoint
+		# instead, both labels stay visible regardless of how long the
+		# segment is. `mid_x` uses the geometric mean on a log10 axis (the
+		# visual midpoint of the segment as actually rendered), the
+		# arithmetic mean otherwise.
+		d$width_label = sprintf("[--%s--]", d$width_num)
+		d$pval_label_above = sprintf("pval = %s", run_all_inference_sigfig(d$pval, 3L, scientific = FALSE))
 		d$right_full_label = d$class_method_label
 		# Per-estimand Cauchy-combined p-value (per user request, 2026-08-20:
 		# "each illustration gets its own cauchy combined pval since it is
@@ -1980,6 +2134,48 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# null reference line at 1 instead of 0.
 		use_log10 = run_all_inference_estimand_use_log10(e, c(d$ci_a, d$ci_b, d$estimate))
 		null_x = if (use_log10) 1 else 0
+		d$mid_x = if (use_log10) sqrt(d$ci_a * d$ci_b) else (d$ci_a + d$ci_b) / 2
+		# Outlier-width CI clipping (per user request, 2026-08-23): one row's
+		# CI can be so much wider than the rest that letting the x-axis
+		# stretch to fit it compresses every other row's CI into an
+		# unreadable sliver. Judge "wide" in the same coordinate space the
+		# axis actually renders in (log10-transformed width for log-scale
+		# estimands, raw width otherwise) -- that's what visually dominates
+		# the panel. A row more than 2 SD above the mean width (only
+		# evaluated with >= 3 finite-CI rows; meaningless below that)
+		# doesn't get a vote in the axis range: the range below is computed
+		# from every *other* row's estimate/CI plus the null line, and
+		# `coord_cartesian(xlim = ..., clip = "on")` zooms to just that --
+		# an outlier row's segment/label simply runs off the panel edge
+		# (clipped there, not re-scaled to fit everyone else around it).
+		finite_ci = is.finite(d$ci_a) & is.finite(d$ci_b)
+		width_axis = ifelse(finite_ci, if (use_log10) log10(d$ci_b) - log10(d$ci_a) else d$ci_b - d$ci_a, NA_real_)
+		# Leave-one-out mean/SD -- comparing row i's width against the
+		# mean/SD of every *other* finite-CI row, not the full sample
+		# including itself. A single extreme outlier otherwise inflates its
+		# own mean+2*SD threshold enough to mask itself (e.g. one CI 100x
+		# wider than the rest drags the sample SD up so far that "2 SD above
+		# the mean" no longer flags it) -- leave-one-out has no such
+		# self-masking, since the outlier never contributes to its own
+		# comparison baseline.
+		is_width_outlier = rep(FALSE, nrow(d))
+		if (sum(finite_ci) >= 3L) {
+			for (i in which(finite_ci)) {
+				others = width_axis[finite_ci][-match(i, which(finite_ci))]
+				w_mean = mean(others)
+				w_sd = stats::sd(others)
+				if (length(others) >= 2L && is.finite(w_sd) && w_sd > 0 && width_axis[i] > w_mean + 2 * w_sd) {
+					is_width_outlier[i] = TRUE
+				}
+			}
+		}
+		xlim_clip = if (any(is_width_outlier)) {
+			keep = c(d$estimate, d$ci_a[!is_width_outlier], d$ci_b[!is_width_outlier], null_x)
+			keep = keep[is.finite(keep)]
+			if (length(keep) > 0L) range(keep) else NULL
+		} else {
+			NULL
+		}
 		# Wide right expansion -- per user request, 2026-08-21, reserves
 		# panel room for the right-aligned class/method label column
 		# (`x = Inf, hjust = 1` below), which needs much more horizontal
@@ -1996,13 +2192,20 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 				linewidth = 1
 			) +
 			ggplot2::geom_point(ggplot2::aes(x = estimate, color = significant), size = 1.6) +
+			# p-value above the line, width label directly on it -- see this
+			# estimand-loop's own `d$width_label`/`d$pval_label_above`/
+			# `d$mid_x` comment above for why (per user request, 2026-08-24).
+			# `geom_label()` (not `geom_text()`) for the width specifically:
+			# its background box visually breaks the segment underneath so
+			# the bracket text stays legible sitting right on top of it.
 			ggplot2::geom_text(
-				ggplot2::aes(x = ci_a, label = left_label, color = significant),
-				hjust = 1.1, size = 2.6
+				ggplot2::aes(x = mid_x, y = y + 0.32, label = pval_label_above, color = significant),
+				hjust = 0.5, size = 2.2
 			) +
-			ggplot2::geom_text(
-				ggplot2::aes(x = ci_b, label = right_label, color = significant),
-				hjust = -0.1, size = 2.6
+			ggplot2::geom_label(
+				ggplot2::aes(x = mid_x, label = width_label, color = significant),
+				hjust = 0.5, size = 2.2, label.size = 0, label.padding = ggplot2::unit(0.08, "lines"),
+				fill = "white"
 			) +
 			# Class/method label, right-aligned in a fixed column at the
 			# panel's right edge (`x = Inf, hjust = 1`) -- per user request,
@@ -2055,6 +2258,9 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 				plot.caption = ggplot2::element_text(hjust = 0, size = 7, lineheight = 1.2),
 				plot.margin = ggplot2::margin(t = 5, r = 20, b = 5, l = 25, unit = "pt")
 			)
+		if (!is.null(xlim_clip)) {
+			forest = forest + ggplot2::coord_cartesian(xlim = xlim_clip, clip = "on")
+		}
 		# Box-and-whisker subplot of the (method/type-collapsed) estimates
 		# -- its own panel under the forest with a *free* x-axis (per user
 		# request, 2026-08-21: the forest's wide right-hand label-column
@@ -2095,7 +2301,11 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		} else {
 			NULL
 		}
-		run_all_inference_stack_forest_and_box(forest, box, n_rows = nrow(d), max_label_chars = max(nchar(c(d$left_label, d$right_label))))
+		# `right_full_label` (class/method, at the fixed right-edge column) is
+		# the only text left that needs reserved *horizontal* panel room --
+		# the p-value/width labels are centered on each segment now, not
+		# flanking it, so they no longer factor into page/image width sizing.
+		run_all_inference_stack_forest_and_box(forest, box, n_rows = nrow(d), max_label_chars = max(nchar(d$right_full_label)))
 	}), estimands)
 }
 
@@ -2220,7 +2430,7 @@ run_all_inference_build_plots = function(results_table, alpha) {
 
 #' Longest text label actually drawn on one `run_all_inference_plot_ci_
 #' forest()` grob (its `edi_max_label_chars` attribute, set from the
-#' forest's `left_label`/`right_label` columns by `run_all_inference_stack_
+#' forest's `right_full_label` column by `run_all_inference_stack_
 #' forest_and_box()`) -- used to size a plot's page/image width from its
 #' real content instead of a flat constant, per user request, 2026-08-19
 #' ("the PDFs don't have to be regular width size -- they can be cropped to
@@ -2531,7 +2741,14 @@ inference_class_short_label = function(name) {
 	# (that word is never stripped).
 	rest = sub("OneLik$", "", rest)
 	words = strsplit(inference_class_wordify(rest), " ", fixed = TRUE)[[1]]
-	word_abbrev = c(Binomial = "Binom", Identity = "Ident")
+	# "Mean" -> "Average" (per user request, 2026-08-24): the class-name
+	# word "Mean" (e.g. "SimpleMeanDiff") reads as if it names the same
+	# thing as the "mean_difference" *estimand* -- but a class name
+	# describes its estimator, not its estimand, and those are not the
+	# same kind of claim (a class could target the mean_difference estimand
+	# via a non-mean-based estimator). "Average" avoids that false
+	# equivalence while still being immediately readable.
+	word_abbrev = c(Binomial = "Binom", Identity = "Ident", Mean = "Average")
 	words = ifelse(words %in% names(word_abbrev), word_abbrev[words], words)
 	# "Nurminen" dropped entirely (not abbreviated) from
 	# InferenceIncidMiettinenNurminenRiskDiff-style names, per user request
@@ -2591,6 +2808,16 @@ estimand_short_label = function(estimand) {
 		# either word, so dropping them loses no information here.
 		s = gsub("logodds ratio", "logodds", s, fixed = TRUE)
 		s = gsub("probit effect", "probit", s, fixed = TRUE)
+		# "logit_effect_proportion_mean_conditional" (`InferencePropKKGLMM`,
+		# the only class using this tag) -> "logit effect" -- per user
+		# request, 2026-08-24: "proportion mean" was pure noise (this
+		# package has no other "logit effect ..." estimand to distinguish
+		# it from) and, worse, made the live/print table's 2-line-wrapped
+		# `estimand` cell (5 words at a 10-char column cap) overflow on
+		# line 1 (`"logit effect"`, uncapped) and lose "mean cond" entirely
+		# off a hard-truncated line 2. Two words fits the wrap cleanly:
+		# "logit" / "effect".
+		s = gsub("logit effect proportion mean cond", "logit effect", s, fixed = TRUE)
 		# "diff" -> "Δ" everywhere (per user request, 2026-08-20, matching
 		# `inference_class_short_label()`'s equivalent "Diff" -> "Δ" rule),
 		# e.g. "median diff" -> "median Δ".
@@ -2909,10 +3136,27 @@ run_all_inference_compute_combined_evidence_weights = function(results_table, we
 	if (identical(weighting, "equal")) {
 		w[usable] = 1 / sum(usable)
 	} else if (identical(weighting, "estimand_grouped")) {
-		est = results_table$estimand[usable]
+		# Scoped to rows with a non-NA `estimand` -- per user report,
+		# 2026-08-24 ("Combined evidence ... p = NA" despite 95 seemingly-
+		# usable inferences): a handful of classes (quantile regression --
+		# `InferenceContinQuantileRegr`/`InferenceContinKKQuantileRegrOneLik`
+		# -- deliberately have no registered `estimand` at all, since their
+		# target is tau-indexed, not a fixed scalar; see `EDI_INFERENCE_
+		# ESTIMAND_TAGS`'s own docs). `table()` silently drops `NA` entries,
+		# so `group_sizes[est]` for such a row indexed the table by `NA`
+		# and returned `NA` -- one `NA` weight among otherwise-valid ones,
+		# which then poisoned `cct_combine_pvalues_full()`'s `weights /
+		# sum(weights)` renormalization for *every* row, not just the
+		# NA-estimand ones (an `NA`-containing `sum()` is `NA`). A row with
+		# no estimand genuinely can't be placed in any estimand group, so
+		# it keeps `weight = NA` (unweighted/excluded) same as any other
+		# not-`usable` row -- this just stops it from also corrupting every
+		# other row's weight.
+		usable_grouped = usable & !is.na(results_table$estimand)
+		est = results_table$estimand[usable_grouped]
 		group_sizes = table(est)
 		G = length(group_sizes)
-		w[usable] = 1 / (G * as.numeric(group_sizes[est]))
+		w[usable_grouped] = 1 / (G * as.numeric(group_sizes[est]))
 	} else if (identical(weighting, "custom")) {
 		cw = custom_weights[results_table$inference_class[usable]]
 		cw[is.na(cw)] = 0
@@ -2953,9 +3197,26 @@ cct_combine_pvalues_full = function(pvals, weights = NULL) {
 #' (`inference_suite_inspect.md → TODO-17`), wired into
 #' `run_all_inference()`'s `combined_evidence` return element (TODO-16):
 #'
-#' - Drops `NA` p-values (already excluded from `pvals`/`weights` upstream in
-#'   the usual case, but tolerated here too).
-#' - Fewer than 2 usable p-values after dropping `NA`s: returns
+#' - Drops non-finite p-values -- `NA`/`NaN`/`Inf`/`-Inf` (already excluded
+#'   from `pvals`/`weights` upstream in the usual case, but tolerated here
+#'   too). Was `!is.na(pvals)` until 2026-08-24 (a real bug, per user
+#'   report -- "p = NA" despite 95 usable-looking inferences): that let a
+#'   stray `Inf`/`-Inf` `pval` (never `NA` itself) through as "usable" here
+#'   even though `run_all_inference_compute_combined_evidence_weights()`'s
+#'   own `usable` mask uses `is.finite()` and had already assigned that
+#'   same row `weight = NA` -- one `NA` anywhere in `weights` poisons
+#'   `cct_combine_pvalues_full()`'s `weights / sum(weights)` renormalization
+#'   entirely (an `NA`-containing sum is `NA`), turning *every* row's
+#'   weight into `NA` and the whole combined statistic into `NA`, not just
+#'   that one row's contribution. `is.finite()` here now matches the weight
+#'   function's own criteria exactly, so a row is either usable to both or
+#'   neither. The same NA-weight-poisons-everything failure mode can also
+#'   arise for a reason unrelated to the p-value itself (e.g. a quantile-
+#'   regression row's weight is `NA` because it has no registered
+#'   `estimand` to group by, even though its p-value is perfectly finite),
+#'   so `usable` also requires a finite `weight` whenever `weights` is
+#'   supplied, not just a finite `pval`.
+#' - Fewer than 2 usable p-values after dropping non-finite ones: returns
 #'   `pval = stat = NA_real_` rather than silently treating a single
 #'   p-value as if it were a combined one -- a "combination" of one
 #'   p-value is just that p-value, not a meaningful combined-evidence claim.
@@ -2963,8 +3224,8 @@ cct_combine_pvalues_full = function(pvals, weights = NULL) {
 #'   `tan((0.5 - p) * pi)` transform, avoiding the `+-Inf`/degenerate
 #'   `atan()` input a p-value of exactly 0 or 1 would otherwise produce.
 #'
-#' @param pvals Numeric vector of p-values to combine; `NA` entries are
-#'   dropped before counting/combining.
+#' @param pvals Numeric vector of p-values to combine; non-finite (`NA`/
+#'   `NaN`/`Inf`/`-Inf`) entries are dropped before counting/combining.
 #' @param weights Numeric vector the same length as `pvals`, aligned
 #'   positionally, or `NULL` for equal weights over the usable p-values.
 #'   Need not sum to 1 -- renormalized internally.
@@ -2976,7 +3237,17 @@ cct_combine_pvalues_full = function(pvals, weights = NULL) {
 #' @noRd
 run_all_inference_combine_pvalues = function(pvals, weights = NULL, pval_eps = 1e-4) {
 	pvals = as.numeric(pvals)
-	usable = !is.na(pvals)
+	usable = is.finite(pvals)
+	# Also require a finite `weight` when weights are supplied (per user
+	# report, 2026-08-24, part 2): a row can have a perfectly finite p-value
+	# but a `NA` weight for a reason unrelated to the p-value itself (e.g.
+	# `run_all_inference_compute_combined_evidence_weights()` leaves a
+	# quantile-regression row's weight `NA` because it has no registered
+	# `estimand` to group by) -- filtering on `pvals` alone let such a row's
+	# `NA` weight through into `cct_combine_pvalues_full()`'s `weights /
+	# sum(weights)`, which poisons every row's normalized weight the same
+	# way a stray non-finite p-value did (fixed separately above).
+	if (!is.null(weights)) usable = usable & is.finite(as.numeric(weights))
 	n_used = sum(usable)
 	if (n_used < 2L) return(list(pval = NA_real_, stat = NA_real_, n_used = n_used))
 	pvals = pvals[usable]
@@ -3763,8 +4034,6 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					cat(sprintf("Fitting %d task(s) across %d parallel workers...\n", n_total, num_cores))
 					cat(live_header$header_lines, sep = "\n")
 				}
-				cl = make_configured_fork_cluster(num_cores)
-				on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
 				worker_fn = function(task) {
 					params = private$inference_params[[task$cls_name]] %||% list()
 					if (!is.null(task$model_formula)) {
@@ -3774,7 +4043,24 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 						task$cls_name, des_obj, params, alpha, design_family, response_type, max_secs_per_class, task$method, task$type
 					)
 				}
-				results_list = parallel::clusterApply(cl, tasks, worker_fn)
+				# Internal test-only escape hatch (parallel_fork_cluster_test_
+				# safety.md's TODO-1): a real fork cluster is what's unsafe to
+				# spin up unconditionally in CI (see TODO-4's OpenMP-after-fork
+				# deadlock writeup), not this function's own task-building/
+				# result-reassembly/screen-output logic around it. Setting
+				# EDI_TESTING_DISABLE_FORK_CLUSTER=true (never set outside tests)
+				# swaps the real makeForkCluster()/clusterApply() pair for a
+				# same-process lapply() over the identical tasks/worker_fn, so
+				# that surrounding logic gets safe, always-on CI coverage
+				# independent of whether real OS-level forking is safe to
+				# exercise here.
+				if (identical(Sys.getenv("EDI_TESTING_DISABLE_FORK_CLUSTER"), "true")) {
+					results_list = lapply(tasks, worker_fn)
+				} else {
+					cl = make_configured_fork_cluster(num_cores)
+					on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
+					results_list = parallel::clusterApply(cl, tasks, worker_fn)
+				}
 				names(results_list) = names(results)
 				results = results_list
 				if (screen) {

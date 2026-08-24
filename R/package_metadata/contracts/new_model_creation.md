@@ -349,7 +349,10 @@ descriptions.
   errors with the documented message.
 - Capability tests: `supports()` returns exactly the declared capability set;
   no undeclared public optional method exists; lazy components are not loaded
-  until first use.
+  until first use. Note that several existing suites *enumerate* classes and
+  must be **extended**, not merely pass — the parametric-bootstrap smoke
+  table, the count-family focused tests, the likelihood-tier baselines, and
+  the InferenceSuite fixture lock; the list is in §9.1.
 - Nonestimability tests: degenerate inputs (separation, all-one-arm blocks,
   zero counts, no events) produce `is_nonestimable() == TRUE` with the right
   reason/stage rather than a crash.

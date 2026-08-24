@@ -1,3 +1,15 @@
+#' Largest divisor of n at most target (used for the default B_target of
+#' \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}, so the default always
+#' satisfies \code{equal_block_sizes = TRUE} without needing to error).
+#' @keywords internal
+#' @noRd
+largest_divisor_at_most = function(n, target) {
+	for (b in as.integer(target):1L) {
+		if (n %% b == 0L) return(b)
+	}
+	1L
+}
+
 #' A Fixed, Stratified-Block Randomized Design
 #'
 #' A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} that first partitions
@@ -81,9 +93,12 @@ DesignFixedBlocking = define_design_class(
 		#'   the total number of unique blocks beyond this target. For categorical covariates
 		#'   their natural levels are used; for continuous covariates
 		#'   `preferred_num_bins_for_continuous_covariate` quantile bins are used. Earlier columns
-		#'   are always preferred over later ones. The default is `floor(sqrt(n))` when `n`
-		#'   is known at construction time, or is resolved to `floor(sqrt(n))` when subjects
-		#'   are added. Set `B_target = NULL` to use all columns unconditionally.
+		#'   are always preferred over later ones. When `n` is known at construction time, the
+		#'   default is the largest divisor of `n` that is at most `floor(sqrt(n))` (so the
+		#'   default always satisfies `equal_block_sizes = TRUE`); if `n` is not yet known, it
+		#'   is resolved to `floor(sqrt(n))` when subjects are added. Set `B_target = NULL` to
+		#'   use all columns unconditionally. An explicitly supplied `B_target` that does not
+		#'   divide `n` still errors immediately when `equal_block_sizes = TRUE`.
 		#'   Set `exact_num_blocks = TRUE` to hard fail if the final key construction
 		#'   does not produce exactly `B_target` blocks.
 			#' @param exact_num_blocks Whether to require the greedy key construction to produce
@@ -112,7 +127,7 @@ DesignFixedBlocking = define_design_class(
 						include_is_missing_as_a_new_feature = TRUE,
 						n = NULL,
 						preferred_num_bins_for_continuous_covariate = 2,
-							B_target = if (!is.null(n)) max(1L, floor(sqrt(n))) else NA_integer_,
+							B_target = NULL,
 							exact_num_blocks = FALSE,
 							equal_block_sizes = TRUE,
 							m = NULL,
@@ -120,6 +135,13 @@ DesignFixedBlocking = define_design_class(
 					missingness_method = "impute",
 					design_formula = ~ .,
 					seed = NULL) {
+				if (missing(B_target)) {
+					B_target = if (!is.null(n)) {
+						largest_divisor_at_most(n, max(1L, floor(sqrt(n))))
+					} else {
+						NA_integer_
+					}
+				}
 				if (should_run_asserts()) {
 					if (!is.null(strata_cols)) assertCharacter(strata_cols, min.len = 1)
 				assertCount(preferred_num_bins_for_continuous_covariate, positive = TRUE)

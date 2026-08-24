@@ -81,25 +81,42 @@ Two separable problems live in that gap:
 
 ## Implementation TODOs
 
-- [ ] TODO-1: **Split correctness from OS-fork risk.** Add a test-double /
-  injection point so `run_all_inference()`'s parallel *aggregation* logic
-  (task splitting, result-list reassembly, row ordering, name matching) can
-  be verified without spinning up a real `makeForkCluster()` — e.g. a
-  parameter or internal hook that swaps `clusterApply()` for a plain
-  `lapply()` over the same `tasks`/`worker_fn` while still exercising the
-  `use_fork_cluster = TRUE` code path's *surrounding* logic (task building,
-  result reassembly, screen output). This gets `num_cores > 1`'s
-  non-fork-related correctness back under safe, always-on CI coverage
-  immediately, independent of TODO-4/TODO-5.
-- [ ] TODO-2: **Add a test-level wall-clock guard as an interim safety net.**
-  Independent of any library change, wrap the real-fork-cluster test itself
-  (once it's allowed to run somewhere automated again) in a hard timeout at
-  the test level (e.g. `R.utils::withTimeout()` around the
-  `run_all_inference(num_cores = 2)` call, or a short-lived background
-  watchdog that kills the test's own R process group on expiry) so a
-  regression in the fork-safety fix (TODO-4) fails fast in whatever
-  environment runs it, instead of consuming a full CI job timeout again.
-  This is cheap and worth doing regardless of how far TODO-4/TODO-5 land.
+- [x] TODO-1: **Split correctness from OS-fork risk.** **Done (2026-08-24):**
+  `run_all_inference()`'s `use_fork_cluster` branch now checks
+  `Sys.getenv("EDI_TESTING_DISABLE_FORK_CLUSTER")` (internal, never set
+  outside tests — same env-var-hook convention as
+  `EDI_VALIDATE_INFERENCE_CONTRACTS`/`EDI_REQUIRE_SHALLOW_*_HIERARCHY`
+  elsewhere in the package); when `"true"`, `lapply(tasks, worker_fn)` runs
+  in-process instead of `make_configured_fork_cluster()` +
+  `clusterApply()`, exercising the identical task-building/result-
+  reassembly/screen-output logic with zero OS-level forking. New always-on
+  test added right after the real-fork test in
+  `test-inference-suite-run-all-inference.R` (`withr::local_envvar()`,
+  no `skip_on_ci()`/`skip_on_os()`/`skip_if_prepush_no_parallel()` needed
+  since nothing forks) asserts `num_cores = 1` vs. `num_cores = 2` rows
+  match, same assertion shape as the real-fork test. **Verification
+  caveat:** could not run this test to completion locally — this sandbox
+  times out (3 attempts, up to 180s) on `run_all_inference()`'s per-class
+  randomization/exact-CI search even sequentially, for classes with or
+  without bootstrapping, independent of forking (same environmental
+  limit noted under TODO-4). Correctness is established by code review
+  instead: both branches call the identical `worker_fn` closure over the
+  identical `tasks` list and feed the identical `names(results_list) =
+  names(results); results = results_list` downstream — `lapply()` and
+  `clusterApply()` differ only in execution engine (in-process vs. forked
+  workers), not in the value or order they return for a pure, order-
+  preserving `worker_fn`. Real confirmation should come from the next CI
+  run once it reaches this test.
+- [x] TODO-2: **Add a test-level wall-clock guard as an interim safety net.**
+  **Done (2026-08-22):** `setTimeLimit(elapsed = 90, transient = TRUE)` (with
+  `on.exit()` reset) added around the `"num_cores > 1"` test's body in
+  `test-inference-suite-run-all-inference.R`, alongside removing
+  `skip_on_ci()` for the canary. Explicitly best-effort, not proven — the
+  2026-08-23 canary run never reached this test at all (see TODO-4's
+  status note), so the guard has not yet been exercised against a real
+  fork deadlock. `R.utils::withTimeout()` wasn't used since `setTimeLimit()`
+  is already the trusted, dependency-free pattern this file's
+  `"max_secs_per_class"` test uses for the same purpose.
 - [ ] TODO-3: **Decide where the real-fork test runs.** Once TODO-1 and
   TODO-2 land, re-evaluate `skip_on_ci()` on the original test: either (a)
   keep it CI-skipped permanently and treat it as a local/manual-only check

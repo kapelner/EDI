@@ -17,16 +17,31 @@ The reported treatment effect is the coefficient from the conditional count
 component, on the log-rate scale, \strong{conditional on the response
 coming from the count process, not the excess-zero-inflation mechanism}:
 it is not the effect on the unconditional mean \eqn{E[Y]}, which also
-depends on how treatment shifts the excess-zero probability. A marginal
-(unconditional-mean) estimand is not yet implemented for this class (see
-\code{marginal_estimand_report.md}). \code{likelihood_tier = "full"}:
+depends on how treatment shifts the excess-zero probability, under the
+default \code{estimand = "conditional"}. \code{likelihood_tier = "full"}:
 Wald, gradient, and (bootstrap-calibrated) likelihood-ratio tests are
-available for the count submodel's treatment coefficient; a plain score
-test is not exposed. \strong{Jackknife inference is not supported}:
-delete-one refits of this two-part mixture model are numerically
-unstable, so \code{compute_jackknife_estimate()} and related methods
-report explicit non-estimability rather than attempting delete-one
-refits.
+available for the count submodel's treatment coefficient under that
+estimand; a plain score test is not exposed. \strong{Jackknife inference
+is not supported}: delete-one refits of this two-part mixture model are
+numerically unstable, so \code{compute_jackknife_estimate()} and related
+methods report explicit non-estimability rather than attempting
+delete-one refits.
+
+\strong{Marginal (unconditional-mean) estimand.} Via
+\code{\link[EDI:InferenceMarginalEstimand]{set_estimand()}}, this class
+also supports \code{estimand = "marginal_mean_diff"} and
+\code{"marginal_ratio"}: the g-computation average, over the empirical
+covariate distribution, of the model-implied unconditional mean
+\eqn{E[Y_i \mid w_i, x_i] = (1 - \pi(x_i)) \lambda(x_i)} (the untruncated
+Poisson mean weighted by the non-structural-zero probability) at
+\eqn{w_i = 1} vs. \eqn{w_i = 0} — a mean difference or, on the log scale,
+a mean ratio. This is a pure post-fit transform of the same maximum-
+likelihood fit (no refit), with a delta-method standard error computed
+against the sandwich-robust covariance matrix already used for this
+class's conditional Wald inference. Only \code{"wald"}-type inference is
+available under a marginal estimand (no likelihood-ratio/score/gradient
+test, since the marginal quantity is a functional of the fitted
+parameters, not itself a likelihood).
 }
 \examples{
 \donttest{
@@ -51,7 +66,9 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
   \code{\link[EDI:InferenceCountHurdlePoisson]{InferenceCountHurdlePoisson}}
   for the related hurdle (disjoint-support) variant;
   \code{\link[EDI:InferenceCountZeroInflatedNegBin]{InferenceCountZeroInflatedNegBin}}
-  for the overdispersion-robust negative-binomial variant.
+  for the overdispersion-robust negative-binomial variant (does not
+  support a marginal estimand — the mean-function derivation here is
+  Poisson-specific).
 }
 \section{Super classes}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceCountZeroAugmentedPoissonAbstract} -> \code{InferenceCountZeroInflatedPoisson}
@@ -60,6 +77,9 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-InferenceCountZeroInflatedPoisson-initialize}{\code{InferenceCountZeroInflatedPoisson$new()}}
+    \item \href{#method-InferenceCountZeroInflatedPoisson-compute_estimate}{\code{InferenceCountZeroInflatedPoisson$compute_estimate()}}
+    \item \href{#method-InferenceCountZeroInflatedPoisson-compute_asymp_confidence_interval}{\code{InferenceCountZeroInflatedPoisson$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferenceCountZeroInflatedPoisson-compute_asymp_two_sided_pval}{\code{InferenceCountZeroInflatedPoisson$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferenceCountZeroInflatedPoisson-clone}{\code{InferenceCountZeroInflatedPoisson$clone()}}
   }
 }
@@ -72,13 +92,10 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$approximate_rand_bootstrap_distribution_beta_hat_T()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$approximate_randomization_distribution_beta_hat_T()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$approximate_subsampling_distribution_beta_hat_T()</code></li>
-  <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_asymp_confidence_interval()</code></li>
-  <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_asymp_two_sided_pval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_bayesian_bootstrap_confidence_interval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_bayesian_bootstrap_two_sided_pval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_bootstrap_confidence_interval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_bootstrap_two_sided_pval()</code></li>
-  <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_estimate()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_estimate_with_bootstrap_weights()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_gradient_confidence_interval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_gradient_two_sided_pval()</code></li>
@@ -191,6 +208,85 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
 implementation. If \code{FALSE}, use \pkg{glmmTMB}.}
       \item{\code{verbose}}{Whether to print progress messages.}
       \item{\code{optimization_alg}}{Optimization algorithm. Default is dispatched via policy.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountZeroInflatedPoisson-compute_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountZeroInflatedPoisson-compute_estimate}{}}}
+\subsection{\code{InferenceCountZeroInflatedPoisson$compute_estimate()}}{
+  Fits the zero-inflated Poisson model. Under the default
+  \code{estimand = "conditional"}, returns \eqn{\hat\beta_T}, the
+  treatment log-rate coefficient from the conditional count submodel
+  (see the class-level caveat that this is conditional on the response
+  coming from the count process, not an unconditional-mean effect).
+  Under \code{estimand = "marginal_mean_diff"} or
+  \code{"marginal_ratio"} (set via \code{set_estimand()}), returns the
+  g-computation marginal mean difference or log-scale marginal ratio
+  of the unconditional mean \eqn{E[Y \mid w, x] = (1-\pi(x))\lambda(x)}
+  instead — a pure post-fit transform of the same cached fit, no refit.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountZeroInflatedPoisson$compute_estimate(estimate_only = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimate_only}}{If TRUE, skip standard-error computation and cache
+only the point estimate; used by randomization and bootstrap
+resampling paths.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountZeroInflatedPoisson-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountZeroInflatedPoisson-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferenceCountZeroInflatedPoisson$compute_asymp_confidence_interval()}}{
+  Asymptotic confidence interval. Under the conditional
+  estimand, delegates to the shared zero-augmented count-model Wald/
+  bootstrap-fallback contract; under a marginal estimand, the
+  delta-method interval computed by \code{compute_estimate()}. Calls
+  \code{self$compute_estimate()} first (not \code{private$shared()}
+  directly) so the estimand-aware cache is always current regardless
+  of call order.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountZeroInflatedPoisson$compute_asymp_confidence_interval(
+  alpha = 0.05
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{The significance level (default 0.05).}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountZeroInflatedPoisson-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountZeroInflatedPoisson-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferenceCountZeroInflatedPoisson$compute_asymp_two_sided_pval()}}{
+  Asymptotic two-sided p-value, dispatched exactly as
+  \code{compute_asymp_confidence_interval()}; see that method's
+  description for the marginal-estimand path.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountZeroInflatedPoisson$compute_asymp_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{The null treatment effect under the current estimand
+(default 0).}
     }
     \if{html}{\out{</div>}}
   }

@@ -553,26 +553,40 @@ ZeroAugmentedCountLikelihoodSource = list(
 			# sandwich Wald path in this package (ZOIB's marginal path,
 			# InferenceIncidGCompAbstract's RD/RR paths).
 			compute_marginal_estimand_estimate = function(estimand, estimate_only = FALSE){
+				# 2026-08-23 (marginal_estimand_report.md TODO-5, wiring pass):
+				# private$cached_mod is NOT the raw backend fit -- shared()
+				# (CountLikelihoodPlumbingSource) overwrites private$cached_mod
+				# with generate_mod()'s full return value ("out": beta_hat_T/
+				# ssq_b_j/params/fisher_information/mod), clobbering the
+				# `private$cached_mod = fit` assignment generate_mod() makes
+				# internally. The X_fit/Xzi_fit/is_hurdle fields stashed for
+				# this marginal path live on the raw fit at out$mod, one level
+				# deeper than this function originally assumed (verified via a
+				# real fitted instance: mod$X_fit was NULL, mod$mod$X_fit was
+				# not). mod$params still resolves correctly at the top level
+				# too (out$params is a copy of the raw fit's params), but read
+				# it from the same raw object for consistency.
 				mod = private$cached_mod
-				if (is.null(mod) || is.null(mod$params) || is.null(mod$X_fit) || is.null(mod$Xzi_fit)) {
+				raw = mod$mod
+				if (is.null(raw) || is.null(raw$params) || is.null(raw$X_fit) || is.null(raw$Xzi_fit)) {
 					private$cache_nonestimable_estimate("zero_augmented_poisson_marginal_fit_unavailable")
 					return(NA_real_)
 				}
-				is_hurdle = isTRUE(mod$is_hurdle)
-				functional = function(theta) private$zero_augmented_poisson_marginal_functional(theta, mod$X_fit, mod$Xzi_fit, is_hurdle, estimand)
-				point = tryCatch(functional(mod$params), error = function(e) NA_real_)
+				is_hurdle = isTRUE(raw$is_hurdle)
+				functional = function(theta) private$zero_augmented_poisson_marginal_functional(theta, raw$X_fit, raw$Xzi_fit, is_hurdle, estimand)
+				point = tryCatch(functional(raw$params), error = function(e) NA_real_)
 				if (!is.finite(point)) {
 					private$cache_nonestimable_estimate("zero_augmented_poisson_marginal_point_unavailable")
 					return(NA_real_)
 				}
 				private$cached_values$beta_hat_T = point
 				if (estimate_only) return(point)
-				vcov_robust = private$zero_augmented_poisson_sandwich_vcov_full(mod, mod$X_fit, mod$Xzi_fit, is_hurdle = is_hurdle)
+				vcov_robust = private$zero_augmented_poisson_sandwich_vcov_full(raw, raw$X_fit, raw$Xzi_fit, is_hurdle = is_hurdle)
 				if (is.null(vcov_robust)) {
 					private$cache_nonestimable_se("zero_augmented_poisson_marginal_vcov_unavailable")
 					return(point)
 				}
-				dm = marginal_estimand_delta_se(mod$params, vcov_robust, functional)
+				dm = marginal_estimand_delta_se(raw$params, vcov_robust, functional)
 				private$cached_values$df = Inf
 				if (is.finite(dm$se) && dm$se >= 0) {
 					private$cached_values$s_beta_hat_T = dm$se
@@ -1103,12 +1117,23 @@ ZeroAugmentedCountLikelihoodSource = list(
 					fallback_reason = fallback_reason
 				)
 				out$beta_hat_T = beta_hat_T
+				# 2026-08-23 (marginal_estimand_report.md TODO-5, wiring pass):
+				# also stash beta_hat_T/ssq_b_j directly onto fit (== private$
+				# cached_mod), mirroring ZOIB's mod$beta_hat_T/mod$ssq_b_2
+				# (TODO-4) -- lets compute_estimate() re-derive the conditional
+				# point/SE from private$cached_mod alone (no refit) after a
+				# marginal-estimand computation has overwritten private$
+				# cached_values$beta_hat_T/s_beta_hat_T, fixing the same
+				# shared()-short-circuit-guard staleness-on-toggle bug ZOIB's
+				# own compute_estimate() comment documents.
+				fit$beta_hat_T = beta_hat_T
 				if (!estimate_only) {
 					se = private$zero_augmented_sandwich_se(fit, X_fit, Xzi_fit, j_treat = 2L, is_hurdle = is_hurdle)
 					if (!is.finite(se) || se <= 0) {
 						se = private$safe_zero_augmented_vcov_se(fit, j_treat = 2L)
 					}
 					out$ssq_b_j = if (is.finite(se) && se > 0) se^2 else NA_real_
+					fit$ssq_b_j = out$ssq_b_j
 				}
 				out$params = full_params
 				out$fisher_information = fit$fisher_information

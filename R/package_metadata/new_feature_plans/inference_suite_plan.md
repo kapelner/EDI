@@ -753,11 +753,86 @@ verified by forcing one class to error — the other 6 rows stayed `"ok"`).
      `.GlobalEnv` with an `on.exit()` cleanup, matching how a real
      extension class would actually be reachable.
 
-  **Not done:** the full grid (every response type × {iid, KK} × every
-  design class) with tighter, class-specific assertions — still
-  correctly gated on Phase 1D closing, per this file's `Depends on`
-  header and `_master.md` § 1G. Extend this file (or add
-  response-type-specific fixtures) once that lands.
+  **Update 2026-08-24: full grid completed, TODO-9 now genuinely done, not
+  just a working subset.** Phase 1D (`fix_inference_hierarchy.md`) closed
+  2026-08-23, unblocking this. Two passes landed the remaining scope:
+
+  *Response-type axis* (a concurrent pass, 2026-08-23/24): all 6 response
+  types (continuous, incidence, count, proportion, survival, ordinal) now
+  each have both an iid (`DesignFixedBernoulli`) and a KK-matched-pair
+  (`DesignSeqOneByOneKK14`) test — the original "only two response types"
+  claim above is stale, corrected here. `expect_canonical_class_ok()` was
+  added as the "tighter, class-specific assertions" layer this entry's
+  original "Not done" note asked for: it checks a named canonical class for
+  that response type (`InferenceCountPoisson`, `InferencePropBetaRegr`,
+  `InferenceSurvivalCoxPHRegr`, `InferenceOrdinalPropOddsRegr`) reports
+  `status == "ok"` with a finite estimate, not just "some row is ok"
+  anywhere in the table — applied to each new response type's iid block.
+
+  *Design-class axis* (this pass, 2026-08-24): re-audited which
+  `DesignFixed*`/`DesignSeqOneByOne*` classes appear anywhere in the file.
+  Before this pass, only `continuous` exercised more than
+  `{DesignFixedBernoulli, DesignSeqOneByOneKK14}` (it also covers
+  `DesignFixedGreedy` and `DesignFixedOptimal`), and only `incidence` had a
+  third non-Bernoulli iid design (`DesignFixedBlocking`) — every other
+  response type (count, proportion, survival, ordinal) tested exactly two
+  design classes. Interpreting the plan's literal "every response type ×
+  {iid, KK} × every design class" as (a) every response type covered under
+  both iid and KK families [already true after the response-type-axis
+  pass] and (b) every response type also gets at least one additional,
+  distinct iid-family design class beyond plain Bernoulli, to catch
+  design-specific breakage a pure-Bernoulli/KK14 pair could miss — not a
+  literal combinatorial explosion against all ~20 design subclasses in the
+  package, which would be disproportionate given the helper asserts only
+  structure, not per-class values (same rationale the "Not done" note's own
+  parent paragraph already gives for why structural-only assertions were
+  chosen). Added one `DesignFixedBlocking` (iid, non-KK, stratified) test
+  for each of count, proportion, survival, and ordinal, mirroring the
+  existing `incidence blocking design` test's shape exactly (same
+  `strata_cols`/`equal_block_sizes = FALSE` construction) and each
+  response type's own already-passing iBCRD data-generation logic.
+
+  Every distinct design *class* used anywhere in package design
+  documentation/registry as `DesignFixed*`/`DesignSeqOneByOne*` beyond
+  what's now covered (`DesignFixedBinaryMatch`,
+  `DesignFixedMatchingGreedyPairSwitching`, `DesignFixedGreedyDOptimal`,
+  `DesignFixedOptimalBlocks`, `DesignFixedCluster`,
+  `DesignFixedBlockedCluster`, `DesignFixedFactorial`,
+  `DesignFixedRerandomization`, `DesignSeqOneByOneKK21`(`stepwise`),
+  `DesignSeqOneByOneAtkinson/Efron/PocockSimon/RandomBlockSize/SPBR/Urn`,
+  `DesignSeqOneByOneiBCRD`, `DesignCustomSequential`, `DesignFixedCustom`)
+  remains untested by `run_all_inference()` specifically — deliberately:
+  `design_family` (the only field `run_all_inference()`'s own schema
+  derives from the design) is a strict binary (`is_kk` -> `"kk_matched_pair"`
+  else `"iid"`; see `inference_suite.R`'s `run_all_inference` internals),
+  so every one of those remaining classes is already represented by its
+  `design_family` bucket. Each design subclass's own construction/
+  randomization correctness is covered by that class's own dedicated
+  `test-design-*.R` file, not this integration-level suite's job to
+  re-verify.
+
+  **Verification:** package loads cleanly
+  (`pkgload::load_all(compile = FALSE)`). All 4 new blocks were manually
+  exercised outside `testthat` (constructing the same design/response/seed
+  combination and calling `InferenceSuite$run_all_inference()` directly) —
+  `count`- and `proportion`-blocking confirmed to run and produce
+  `status == "ok"` rows without error. `survival`- and `ordinal`-blocking
+  did not finish within that pass's time budget in the sandboxed
+  environment (the survival family's default randomization-CI bisection
+  search is visibly much slower under `DesignFixedBlocking`'s wider
+  treatment-effect search boundary than under `DesignFixedBernoulli`/KK14 —
+  observed many "CI bound is conservative" search-boundary log lines, not
+  an error, consistent with a slow-but-progressing search rather than a
+  hang) — no evidence of a real failure, but not empirically confirmed to
+  completion at that time. **Residual verification gap closed (2026-08-24):**
+  sourced the full test file directly (`source("tests/testthat/
+  test-inference-suite-run-all-inference.R", local = TRUE)` after
+  `pkgload::load_all(compile = FALSE)`) to completion — all blocks pass,
+  reported as three successive `testthat` batches (198 / 341 / 307
+  successes, zero failures/errors), confirming the `survival`- and
+  `ordinal`-blocking blocks are correct, just slower than the rest of the
+  suite (not hung). TODO-9 is now fully verified, not just structurally
+  plausible.
 
 ### Practitioner Follow-Ups (added 2026-08-18)
 

@@ -8,24 +8,41 @@ Fits a hurdle Poisson regression for count responses: a binary hurdle
 submodel \eqn{P(Y_i > 0) = \mathrm{logit}^{-1}(X_i^{h\top} \gamma^h)} (fit
 jointly with the count submodel) crossed with a zero-truncated Poisson
 count submodel for \eqn{Y_i \mid Y_i > 0}: \eqn{\log E[Y_i \mid Y_i > 0,
-W_i, X_i] = \beta_0 + \beta_T W_i + X_i^\top \gamma}. The hurdle and count
+w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top \gamma}. The hurdle and count
 submodels may use different covariate formulas
 (\code{model_formula}/\code{model_formula_hurdle}). The reported treatment
 effect is the coefficient from the conditional (truncated, \eqn{Y > 0})
 count component, on the log-rate scale, \strong{conditional on clearing
 the hurdle}: it is not the effect on the unconditional mean \eqn{E[Y]},
 which also depends on how treatment shifts the hurdle-crossing
-probability. A marginal (unconditional-mean) estimand is not yet
-implemented for this class (see \code{marginal_estimand_report.md}).
+probability, under the default \code{estimand = "conditional"}.
 \code{likelihood_tier = "full"}: Wald, gradient, and (bootstrap-calibrated)
 likelihood-ratio tests are available for the count submodel's treatment
-coefficient; a plain score test is not exposed. \strong{Jackknife
-inference is not supported}: delete-one refits of this two-part model are
-numerically unstable, so \code{compute_jackknife_estimate()} and related
-methods report explicit non-estimability rather than attempting delete-one
-refits. Unlike \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}},
+coefficient under that estimand; a plain score test is not exposed.
+\strong{Jackknife inference is not supported}: delete-one refits of this
+two-part model are numerically unstable, so
+\code{compute_jackknife_estimate()} and related methods report explicit
+non-estimability rather than attempting delete-one refits. Unlike
+\code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}},
 the count submodel here assumes Poisson (equidispersion) conditional on
 clearing the hurdle, with no separate dispersion parameter.
+
+\strong{Marginal (unconditional-mean) estimand.} Via
+\code{\link[EDI:InferenceMarginalEstimand]{set_estimand()}}, this class
+also supports \code{estimand = "marginal_mean_diff"} and
+\code{"marginal_ratio"}: the g-computation average, over the empirical
+covariate distribution, of the model-implied unconditional mean
+\eqn{E[Y_i \mid w_i, x_i] = (1 - \pi(x_i)) \cdot \lambda(x_i) / (1 -
+e^{-\lambda(x_i)})} — the hurdle-crossing probability times the
+\strong{zero-truncated} Poisson mean, \eqn{E[Y \mid Y>0] = \lambda / (1 -
+e^{-\lambda})} (exact for Poisson: truncating at \eqn{0} changes the
+normalizing constant but not the rate parameter \eqn{\lambda}; see
+Cameron and Trivedi, \emph{Regression Analysis of Count Data}, ch. 4.2) —
+at \eqn{w_i = 1} vs. \eqn{w_i = 0}. A pure post-fit transform of the same
+maximum-likelihood fit (no refit), with a delta-method standard error
+against the sandwich-robust covariance matrix already used for this
+class's conditional Wald inference. Only \code{"wald"}-type inference is
+available under a marginal estimand.
 }
 \examples{
 \donttest{
@@ -48,7 +65,9 @@ Mullahy, J. (1986). "Specification and Testing of Some
 \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for
   the single-part Poisson model this class's count submodel generalizes to
   two parts; \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}}
-  for the overdispersion-robust negative-binomial variant.
+  for the overdispersion-robust negative-binomial variant (does not
+  support a marginal estimand — the mean-function derivation here is
+  Poisson-specific).
 }
 \section{Super classes}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceCountZeroAugmentedPoissonAbstract} -> \code{InferenceCountHurdlePoisson}
@@ -57,6 +76,9 @@ Mullahy, J. (1986). "Specification and Testing of Some
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-InferenceCountHurdlePoisson-initialize}{\code{InferenceCountHurdlePoisson$new()}}
+    \item \href{#method-InferenceCountHurdlePoisson-compute_estimate}{\code{InferenceCountHurdlePoisson$compute_estimate()}}
+    \item \href{#method-InferenceCountHurdlePoisson-compute_asymp_confidence_interval}{\code{InferenceCountHurdlePoisson$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferenceCountHurdlePoisson-compute_asymp_two_sided_pval}{\code{InferenceCountHurdlePoisson$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferenceCountHurdlePoisson-clone}{\code{InferenceCountHurdlePoisson$clone()}}
   }
 }
@@ -69,13 +91,10 @@ Mullahy, J. (1986). "Specification and Testing of Some
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$approximate_rand_bootstrap_distribution_beta_hat_T()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$approximate_randomization_distribution_beta_hat_T()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$approximate_subsampling_distribution_beta_hat_T()</code></li>
-  <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_asymp_confidence_interval()</code></li>
-  <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_asymp_two_sided_pval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_bayesian_bootstrap_confidence_interval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_bayesian_bootstrap_two_sided_pval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_bootstrap_confidence_interval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_bootstrap_two_sided_pval()</code></li>
-  <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_estimate()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_estimate_with_bootstrap_weights()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_gradient_confidence_interval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_gradient_two_sided_pval()</code></li>
@@ -190,6 +209,83 @@ implementation. If \code{FALSE}, use \pkg{glmmTMB}.}
       \item{\code{verbose}}{Whether to print progress messages.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
       \item{\code{optimization_alg}}{Optimization algorithm. Default is dispatched via policy.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountHurdlePoisson-compute_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountHurdlePoisson-compute_estimate}{}}}
+\subsection{\code{InferenceCountHurdlePoisson$compute_estimate()}}{
+  Fits the hurdle Poisson model. Under the default
+  \code{estimand = "conditional"}, returns \eqn{\hat\beta_T}, the
+  treatment log-rate coefficient from the zero-truncated count
+  submodel (conditional on clearing the hurdle). Under
+  \code{estimand = "marginal_mean_diff"} or \code{"marginal_ratio"}
+  (set via \code{set_estimand()}), returns the g-computation
+  marginal mean difference or log-scale marginal ratio of the
+  unconditional mean instead — see the class-level \code{@details}
+  for the formula. A pure post-fit transform of the same cached
+  fit, no refit.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountHurdlePoisson$compute_estimate(estimate_only = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimate_only}}{If TRUE, skip standard-error computation and cache
+only the point estimate; used by randomization and bootstrap
+resampling paths.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountHurdlePoisson-compute_asymp_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountHurdlePoisson-compute_asymp_confidence_interval}{}}}
+\subsection{\code{InferenceCountHurdlePoisson$compute_asymp_confidence_interval()}}{
+  Asymptotic confidence interval. Under the conditional
+  estimand, delegates to the shared zero-augmented count-model Wald/
+  bootstrap-fallback contract; under a marginal estimand, the
+  delta-method interval computed by \code{compute_estimate()}. Calls
+  \code{self$compute_estimate()} first (not \code{private$shared()}
+  directly) so the estimand-aware cache is always current regardless
+  of call order.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountHurdlePoisson$compute_asymp_confidence_interval(alpha = 0.05)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{The significance level (default 0.05).}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountHurdlePoisson-compute_asymp_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountHurdlePoisson-compute_asymp_two_sided_pval}{}}}
+\subsection{\code{InferenceCountHurdlePoisson$compute_asymp_two_sided_pval()}}{
+  Asymptotic two-sided p-value, dispatched exactly as
+  \code{compute_asymp_confidence_interval()}; see that method's
+  description for the marginal-estimand path.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountHurdlePoisson$compute_asymp_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{The null treatment effect under the current estimand
+(default 0).}
     }
     \if{html}{\out{</div>}}
   }

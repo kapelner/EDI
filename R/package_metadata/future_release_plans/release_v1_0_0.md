@@ -204,7 +204,8 @@ the frozen substrate makes it additive.
     way. **Done (2026-08-17): implemented, not just recorded-as-stable.**
     See Implementation TODO-2 below for the full writeup.
 
-13. **`inference_suite_inspect.md`** (added 2026-08-17, user decision) —
+13. **[x] `inference_suite_inspect.md`** (real file: `inference_suite_plan.md`
+    — added 2026-08-17, user decision) —
     `InferenceSuite$run_all_inference()`: constructs and fits every applicable
     inference class and reports one uniform comparison schema (identical
     across response types and iid vs. KK/matched-pair designs), with
@@ -220,7 +221,17 @@ the frozen substrate makes it additive.
     `save_results_as_JSON` parameters) that must freeze at 1.0.0.
     Implementation may proceed in parallel with the tail of Phase 1D;
     only its test-fixture lock waits for Phase 1D to close (amended
-    2026-08-18, user decision) — see `_master.md` § 1G.
+    2026-08-18, user decision) — see `_master.md` § 1G. **Done
+    (2026-08-24):** Phase 1D closed 2026-08-23, unblocking `TODO-9`'s
+    "full grid" test-fixture lock — the plan's own status note (claiming
+    only 2 response types covered) was stale; the real gap was the
+    design-class axis (only `continuous`/`incidence` had more than
+    `{Bernoulli, KK14}` coverage). Added a `DesignFixedBlocking` (iid,
+    non-KK) test for each of count/proportion/survival/ordinal, verified
+    the entire test file (`test-inference-suite-run-all-inference.R`) runs
+    clean end-to-end (three `testthat` batches, 198/341/307 successes,
+    zero failures). See `inference_suite_plan.md → TODO-9` for the full
+    writeup.
 
 14. **`marginal_estimand_report.md`** (added 2026-08-18, user decision —
     pulled forward from the "Deferred to 1.x" list below; narrowed

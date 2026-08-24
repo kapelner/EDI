@@ -37,7 +37,7 @@ BaiAdjustedTSource = list(
 		#'   combination of the Bai et al
 		#' matched pairs estimate with the reservoir estimate, or just the Bai et al estimate by its self.
 		#'
-		initialize = function(des_obj, model_formula = NULL, verbose = TRUE, convex_flag = FALSE){
+		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, convex_flag = FALSE){
 			if (should_run_asserts()) {
 				if (!check_package_installed("nbpMatching")) {
 				stop("Package 'nbpMatching' is required for InferenceBaiAdjustedT. Please install it.")

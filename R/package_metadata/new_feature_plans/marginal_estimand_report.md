@@ -556,7 +556,7 @@ have to land together, see the release-line note in the header above):**
   marginal estimand's formula, scale, and delta-method/testing-type
   caveats; verified with `roxygen2::parse_file()`.
 
-- [ ] TODO-5: **Gated on the same open Phase 1D item as TODO-4 — verified
+- [x] TODO-5: **Gated on the same open Phase 1D item as TODO-4 — verified
   2026-08-18: `InferenceCountZeroInflatedPoisson`/`NegBin`,
   `InferenceCountHurdlePoisson`/`NegBin`, and their shared abstract
   `InferenceCountZeroAugmentedPoissonAbstract` all still `inherit =`
@@ -728,6 +728,122 @@ have to land together, see the release-line note in the header above):**
   Left entirely unimplemented rather than half-wired, per this session's
   explicit directive: a wrong truncated-mean formula shipped confidently
   is worse than an honest "not yet done."
+
+  **Wiring pass, 2026-08-23: complete for ZIP and hurdle Poisson (NegBin
+  variants remain explicitly out of scope, per above).** Converted
+  `InferenceCountZeroInflatedPoisson` (`inference_count_zero_inflated.R`)
+  and `InferenceCountHurdlePoisson` (`inference_count_hurdle.R`) from plain
+  `R6::R6Class(inherit = InferenceCountZeroAugmentedPoissonAbstract)` leaves
+  to real `define_inference_class(inherit =
+  InferenceCountZeroAugmentedPoissonAbstract, components =
+  "MarginalEstimand", ...)` calls of their own, mirroring
+  `InferencePropZeroOneInflatedBetaRegr`'s TODO-4 conversion exactly:
+  `get_supported_estimands_impl()` returns
+  `c("conditional", "marginal_mean_diff", "marginal_ratio")`;
+  `compute_estimate()`/`compute_asymp_confidence_interval()`/
+  `compute_asymp_two_sided_pval()` overridden to branch on
+  `self$get_estimand()`, dispatching to
+  `private$compute_marginal_estimand_estimate(estimand, estimate_only)`
+  under a marginal estimand and to a re-derive-from-`cached_mod` conditional
+  path otherwise (same toggle-safety fix as ZOIB); `metadata =
+  list(likelihood_tier = "full")` restated explicitly (validated against
+  the class's own declared metadata at `define_inference_class()` time, not
+  the inherited value — same requirement TODO-4 hit).
+
+  **Two real bugs found and fixed while wiring this in** (beyond the two
+  already anticipated and applied proactively — the `compute_asymp_*`
+  bypass fix and the `infer_inference_direct_components()` registry entry,
+  both needed and both added exactly as predicted above):
+  1. **`private$cached_mod` is not the raw backend fit for this family.**
+     Unlike ZOIB (where `private$cached_mod` stays the actual fitted-model
+     object throughout), this family's shared `shared()`
+     (`CountLikelihoodPlumbingSource`, `inference_all_abstract_count_
+     likelihood.R`) unconditionally overwrites `private$cached_mod` with
+     `generate_mod()`'s full return wrapper (`out`: `beta_hat_T`/`ssq_b_j`/
+     `params`/`fisher_information`/`mod`) immediately after calling it —
+     silently clobbering the `private$cached_mod = fit` assignment
+     `generate_mod()` makes internally (where the TODO-5 partial pass had
+     stashed `X_fit`/`Xzi_fit`/`is_hurdle` onto `fit`, per its own writeup
+     above). The raw fit — and the stashed fields — actually live one level
+     deeper, at `private$cached_mod$mod`. Caught immediately by an end-to-end
+     smoke test (`inf$compute_estimate()` returned `NA` under a marginal
+     estimand despite `supports("marginal_estimand")` correctly returning
+     `TRUE` and the conditional path working) — confirmed via direct
+     inspection (`mod$X_fit` was `NULL`, `mod$mod$X_fit` was not). Fixed
+     `compute_marginal_estimand_estimate()`
+     (`inference_count_zero_augmented_poisson_abstract.R`) to read
+     `raw = mod$mod` and use `raw$X_fit`/`raw$Xzi_fit`/`raw$is_hurdle`/
+     `raw$params` throughout (the sandwich-vcov helper also needs the raw
+     fit object, not the wrapper, per its own signature — confirmed
+     consistent with how `generate_mod()` itself already calls
+     `zero_augmented_sandwich_se(fit, ...)` with the raw fit for the
+     conditional SE).
+  2. **Also fixed the same toggle-safety gap for the conditional path
+     itself**, one level more than TODO-4 needed: `generate_mod()`'s
+     Poisson branch computed `beta_hat_T`/`ssq_b_j` only onto the `out`
+     wrapper, not onto `fit` (== `private$cached_mod$mod`), so the new
+     `compute_estimate()`'s conditional re-derivation (reading
+     `mod$beta_hat_T %||% mod$params[2L]` from `private$cached_mod`, which
+     IS the `out` wrapper — this part was already correct, since `out$beta_
+     hat_T`/`out$ssq_b_j` exist directly) worked by coincidence for the
+     *conditional* path but would have broken if anyone later tried to read
+     those fields off `raw`/`private$cached_mod$mod` instead. Stashed
+     `fit$beta_hat_T`/`fit$ssq_b_j` onto the raw fit too, alongside the
+     existing `X_fit`/`Xzi_fit`/`is_hurdle` stash, for consistency and
+     future-proofing (not required for either path in this pass, but
+     documented inline as to why it's there).
+
+  **Verification performed:**
+  - Truncated-Poisson-mean formula: re-verified numerically (independent of
+    the model fit) — `rpois(3e5, lambda = 2.3)` truncated to exclude 0 has
+    empirical mean `2.5566`-ish vs. formula `lambda / (1 - exp(-lambda))
+    = 2.5563`, relative difference `~0.0005`, consistent with Monte Carlo
+    noise at that sample size (also spot-checked at `N = 2e6` interactively:
+    relative difference `~0.0005` again). Formula confirmed exact, not just
+    plausible.
+  - Both classes' marginal `"marginal_mean_diff"`/`"marginal_ratio"` point
+    estimates verified to match a fully independent hand-computed
+    g-computation average (constructed from the raw fitted coefficients via
+    `plogis()`/`exp()` by hand in a test, not by calling any package
+    function) to `1e-8` tolerance.
+  - Conditional estimate/CI verified byte-identical (`1e-8` tolerance)
+    between a fresh object that never touches `set_estimand()` and one that
+    round-trips through both marginal estimands and back to `"conditional"`,
+    for both classes — confirms the toggle-safety fix.
+  - `self$supports("marginal_estimand")` verified `TRUE` on real constructed
+    instances of both classes (not just successful package load) — this
+    exact bug class bit the very first attempt at this pass too, caught the
+    same way as TODO-4.
+  - `NegBin` siblings (`InferenceCountZeroInflatedNegBin`,
+    `InferenceCountHurdleNegBin`) verified to still report
+    `supports("marginal_estimand") == FALSE` — confirms they were correctly
+    left untouched, not accidentally granted the Poisson-only capability
+    via the shared abstract.
+  - New test file `test-zip-hurdle-poisson-marginal-estimand.R`: 11
+    assertions, all passing, covering all the checks above plus delta-method
+    SE finiteness and testing-type shrink-to-Wald symmetry (mirroring
+    `test-zoib-marginal-estimand.R`'s structure).
+  - Full regression check: `test-zoib-marginal-estimand.R` (TODO-4's own
+    suite, unaffected by this pass's changes) and
+    `test-count-likelihood-families-focused.R`, `test-mixin-contracts.R`,
+    `test-inference-class-registry.R`, `test-static-cleanup-guardrails.R`
+    all pass clean with no new failures.
+  - A `DESCRIPTION`-`Collate:` ordering bug also surfaced and was fixed:
+    `inference_count_hurdle.R` was collated *before*
+    `inference_count_zero_augmented_poisson_abstract.R`, which
+    `R6::R6Class()`'s lazy-promise `inherit` argument tolerated (only forced
+    at `$new()` time) but `define_inference_class()`'s definition-time
+    validation does not (it resolves `inherit` immediately) — reordered
+    `inference_count_hurdle.R` to load after the abstract.
+
+  All verification used `pkgload::load_all(".", compile = FALSE)` only; no
+  compile/install step was run at any point in this pass.
+
+  Files touched this pass: `R/EDI/R/inference_count_zero_inflated.R`,
+  `R/EDI/R/inference_count_hurdle.R`,
+  `R/EDI/R/inference_count_zero_augmented_poisson_abstract.R`,
+  `R/EDI/R/inference_class_registry.R`, `R/EDI/DESCRIPTION`, and the new
+  `R/EDI/tests/testthat/test-zip-hurdle-poisson-marginal-estimand.R`.
 - [x] TODO-6: `get_supported_testing_types_with_bartlett()`
   (`inference_all_abstract_asymp_lik.R`, the `LikelihoodTests` component's
   source) now shrinks to `"wald"` only when

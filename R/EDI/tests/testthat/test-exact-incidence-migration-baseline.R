@@ -65,7 +65,8 @@ exact_incidence_baseline_public_methods = c(
 	"set_custom_randomization_statistic_function",
 	"set_optimization_alg",
 	"set_seed",
-	"supports"
+	"supports",
+	"supports_rand_pval_for_incidence"
 )
 
 # `resolve_exact_type`/`compute_exact_confidence_interval_by_type`/

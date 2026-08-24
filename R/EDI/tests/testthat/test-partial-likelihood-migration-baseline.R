@@ -398,7 +398,7 @@ test_that("LWA Cox and survival rank-regression components expose extracted help
 			"simulate_under_lik_null", "get_likelihood_test_spec",
 			"compute_treatment_estimate_during_randomization_inference",
 			"design_matrix_candidates", "shared_combined_likelihood",
-			"max_abs_reasonable_coef", "optimization_alg",
+			"max_abs_reasonable_coef",
 			"kk_lwa_cox_one_lik_get_standard_error",
 			"kk_lwa_cox_one_lik_get_degrees_of_freedom",
 			"kk_lwa_cox_one_lik_assert_finite_se",
@@ -502,7 +502,7 @@ test_that("KK stratified Cox one-likelihood component exposes extracted helper c
 		EDI:::component_private_names(strat_one_lik_component),
 		c(
 			"compute_basic_match_data",
-			"max_abs_reasonable_coef", "optimization_alg", "best_X_colnames",
+			"max_abs_reasonable_coef", "best_X_colnames",
 			"design_matrix_candidates", "shared_combined_likelihood",
 			"supports_likelihood_tests", "get_likelihood_test_spec",
 			"get_standard_error", "get_degrees_of_freedom", "assert_finite_se",

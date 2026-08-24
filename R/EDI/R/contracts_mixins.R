@@ -2091,7 +2091,6 @@ EDI_COMPONENT_SPECS = list(
 						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval"
 					),
 					provides_private_methods = c(
-						"requires_kk_matching_design",
 						"compute_basic_match_data", "compute_treatment_estimate_during_randomization_inference",
 						"assert_finite_se", "filtered_covariate_candidates", "design_matrix_candidates",
 						"shared", "clayton_copula_for_matched_pairs", "weibull_for_reservoir",
@@ -2123,7 +2122,6 @@ EDI_COMPONENT_SPECS = list(
 						"compute_asymp_two_sided_pval", "duplicate"
 					),
 					provides_private_methods = c(
-						"requires_kk_matching_design",
 						"compute_treatment_estimate_during_randomization_inference", "get_standard_error",
 						"get_degrees_of_freedom", "assert_finite_se", "supports_likelihood_tests",
 						"get_likelihood_test_spec", "filtered_covariate_candidates", "shared",
@@ -2156,7 +2154,7 @@ EDI_COMPONENT_SPECS = list(
 						"compute_asymp_two_sided_pval"
 					),
 					provides_private_methods = c(
-						"is_a_kk_weibull_frailty_ivwc", "requires_kk_matching_design", "get_standard_error",
+						"is_a_kk_weibull_frailty_ivwc", "get_standard_error",
 						"compute_basic_match_data",
 						"supports_lik_ratio_param_bootstrap",
 						"compute_treatment_estimate_during_randomization_inference",
@@ -2194,7 +2192,7 @@ EDI_COMPONENT_SPECS = list(
 						"compute_asymp_confidence_interval_generic", "compute_asymp_two_sided_pval_generic"
 					),
 					provides_private_methods = c(
-						"is_a_kk_weibull_frailty_one_lik", "requires_kk_matching_design", "shared_combined_likelihood",
+						"is_a_kk_weibull_frailty_one_lik", "shared_combined_likelihood",
 						"supports_likelihood_tests", "get_likelihood_test_spec", "get_standard_error",
 						"get_degrees_of_freedom", "assert_finite_se", "supports_lik_ratio_param_bootstrap",
 						"simulate_under_lik_null", "compute_treatment_estimate_during_randomization_inference",

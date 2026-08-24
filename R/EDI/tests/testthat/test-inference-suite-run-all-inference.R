@@ -17,10 +17,10 @@ library(EDI)
 # finite estimate, not just "some row is ok") on the iid block of each of the
 # four newly-added response types.
 
-expect_valid_run_all_inference_report = function(des_obj, expected_design_family, alpha = 0.05) {
+expect_valid_run_all_inference_report = function(des_obj, expected_design_family, alpha = 0.05, basic_bootstrap = FALSE) {
 	suite = InferenceSuite$new(des_obj)
 	out = capture.output({
-		res <- suite$run_all_inference(screen = TRUE, html = FALSE, alpha = alpha, plots = FALSE)
+		res <- suite$run_all_inference(screen = TRUE, html = FALSE, alpha = alpha, plots = FALSE, basic_bootstrap = basic_bootstrap)
 	})
 
 	expect_s3_class(res, "EDIInferenceSuiteResults")
@@ -185,7 +185,7 @@ test_that("run_all_inference: count iBCRD (iid)", {
 	des$assign_w_to_all_subjects()
 	w = des$get_w()
 	des$add_all_subject_responses(rpois(n, exp(0.5 + 0.4 * w + 0.2 * X$x1)))
-	res = expect_valid_run_all_inference_report(des, "iid")
+	res = expect_valid_run_all_inference_report(des, "iid", basic_bootstrap = TRUE)
 	expect_canonical_class_ok(res, "InferenceCountPoisson")
 })
 
@@ -197,7 +197,19 @@ test_that("run_all_inference: count KK14 (matched pair)", {
 		des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 	}
 	des$add_all_subject_responses(rpois(n, 3))
-	expect_valid_run_all_inference_report(des, "kk_matched_pair")
+	expect_valid_run_all_inference_report(des, "kk_matched_pair", basic_bootstrap = TRUE)
+})
+
+test_that("run_all_inference: count blocking design (iid, non-KK)", {
+	set.seed(20260824)
+	n = 30L
+	des = DesignFixedBlocking$new(n = n, response_type = "count", strata_cols = "x2", equal_block_sizes = FALSE)
+	X = data.frame(x1 = rnorm(n), x2 = sample(c("a", "b"), n, TRUE))
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	w = des$get_w()
+	des$add_all_subject_responses(rpois(n, exp(0.5 + 0.4 * w)))
+	expect_valid_run_all_inference_report(des, "iid")
 })
 
 test_that("run_all_inference: proportion iBCRD (iid)", {
@@ -211,7 +223,7 @@ test_that("run_all_inference: proportion iBCRD (iid)", {
 	mu = plogis(0.3 + 0.5 * w + 0.2 * X$x1)
 	y = pmax(pmin(rbeta(n, mu * 10, (1 - mu) * 10), 1 - 1e-6), 1e-6)
 	des$add_all_subject_responses(y)
-	res = expect_valid_run_all_inference_report(des, "iid")
+	res = expect_valid_run_all_inference_report(des, "iid", basic_bootstrap = TRUE)
 	expect_canonical_class_ok(res, "InferencePropBetaRegr")
 })
 
@@ -224,7 +236,19 @@ test_that("run_all_inference: proportion KK14 (matched pair)", {
 	}
 	y = pmax(pmin(rbeta(n, 5, 5), 1 - 1e-6), 1e-6)
 	des$add_all_subject_responses(y)
-	expect_valid_run_all_inference_report(des, "kk_matched_pair")
+	expect_valid_run_all_inference_report(des, "kk_matched_pair", basic_bootstrap = TRUE)
+})
+
+test_that("run_all_inference: proportion blocking design (iid, non-KK)", {
+	set.seed(20260824)
+	n = 30L
+	des = DesignFixedBlocking$new(n = n, response_type = "proportion", strata_cols = "x2", equal_block_sizes = FALSE)
+	X = data.frame(x1 = rnorm(n), x2 = sample(c("a", "b"), n, TRUE))
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	y = pmax(pmin(rbeta(n, 5, 5), 1 - 1e-6), 1e-6)
+	des$add_all_subject_responses(y)
+	expect_valid_run_all_inference_report(des, "iid")
 })
 
 test_that("run_all_inference: survival iBCRD (iid)", {
@@ -242,7 +266,7 @@ test_that("run_all_inference: survival iBCRD (iid)", {
 	y_L = ifelse(dead == 1, NA_real_, y)
 	y_R = ifelse(dead == 1, NA_real_, Inf)
 	des$add_all_subject_responses(y_exact, y_L, y_R)
-	res = expect_valid_run_all_inference_report(des, "iid")
+	res = expect_valid_run_all_inference_report(des, "iid", basic_bootstrap = TRUE)
 	expect_canonical_class_ok(res, "InferenceSurvivalCoxPHRegr")
 })
 
@@ -260,7 +284,25 @@ test_that("run_all_inference: survival KK14 (matched pair)", {
 	y_L = ifelse(dead == 1, NA_real_, y)
 	y_R = ifelse(dead == 1, NA_real_, Inf)
 	des$add_all_subject_responses(y_exact, y_L, y_R)
-	expect_valid_run_all_inference_report(des, "kk_matched_pair")
+	expect_valid_run_all_inference_report(des, "kk_matched_pair", basic_bootstrap = TRUE)
+})
+
+test_that("run_all_inference: survival blocking design (iid, non-KK)", {
+	skip_if_not_installed("survival")
+	set.seed(20260824)
+	n = 60L
+	des = DesignFixedBlocking$new(n = n, response_type = "survival", strata_cols = "x2", equal_block_sizes = FALSE)
+	X = data.frame(x1 = rnorm(n), x2 = sample(c("a", "b"), n, TRUE))
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	w = des$get_w()
+	y = rexp(n, 0.1 * exp(-0.3 * w))
+	dead = rbinom(n, 1, 0.8)
+	y_exact = ifelse(dead == 1, y, NA_real_)
+	y_L = ifelse(dead == 1, NA_real_, y)
+	y_R = ifelse(dead == 1, NA_real_, Inf)
+	des$add_all_subject_responses(y_exact, y_L, y_R)
+	expect_valid_run_all_inference_report(des, "iid")
 })
 
 test_that("run_all_inference: ordinal iBCRD (iid)", {
@@ -274,7 +316,7 @@ test_that("run_all_inference: ordinal iBCRD (iid)", {
 	y_latent = 0.6 * w + 0.3 * X$x1 + rnorm(n)
 	y = as.integer(cut(y_latent, breaks = c(-Inf, -0.5, 0.5, Inf), labels = FALSE))
 	des$add_all_subject_responses(y)
-	res = expect_valid_run_all_inference_report(des, "iid")
+	res = expect_valid_run_all_inference_report(des, "iid", basic_bootstrap = TRUE)
 	expect_canonical_class_ok(res, "InferenceOrdinalPropOddsRegr")
 })
 
@@ -288,7 +330,21 @@ test_that("run_all_inference: ordinal KK14 (matched pair)", {
 	y_latent = rnorm(n)
 	y = as.integer(cut(y_latent, breaks = c(-Inf, -0.5, 0.5, Inf), labels = FALSE))
 	des$add_all_subject_responses(y)
-	expect_valid_run_all_inference_report(des, "kk_matched_pair")
+	expect_valid_run_all_inference_report(des, "kk_matched_pair", basic_bootstrap = TRUE)
+})
+
+test_that("run_all_inference: ordinal blocking design (iid, non-KK)", {
+	set.seed(20260824)
+	n = 60L
+	des = DesignFixedBlocking$new(n = n, response_type = "ordinal", strata_cols = "x2", equal_block_sizes = FALSE)
+	X = data.frame(x1 = rnorm(n), x2 = sample(c("a", "b"), n, TRUE))
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	w = des$get_w()
+	y_latent = 0.6 * w + rnorm(n)
+	y = as.integer(cut(y_latent, breaks = c(-Inf, -0.5, 0.5, Inf), labels = FALSE))
+	des$add_all_subject_responses(y)
+	expect_valid_run_all_inference_report(des, "iid")
 })
 
 test_that("run_all_inference: per-class failure isolation is a real regression test, not just dev-session verification", {
@@ -653,6 +709,45 @@ test_that("run_all_inference: num_cores > 1 fits in parallel and produces identi
 	rownames(seq_tbl) = NULL
 	rownames(par_tbl) = NULL
 	# fit_secs will differ run to run; compare everything else.
+	compare_cols = setdiff(names(seq_tbl), "fit_secs")
+	expect_identical(seq_tbl[compare_cols], par_tbl[compare_cols])
+})
+
+test_that("run_all_inference: num_cores > 1's task-building/result-reassembly logic is correct, independent of real OS forking", {
+	# parallel_fork_cluster_test_safety.md's TODO-1: the sibling test above
+	# ("num_cores > 1 fits in parallel...") is the only thing that exercises
+	# num_cores > 1 at all, and it's gated behind skip_on_cran()/
+	# skip_on_os("windows")/skip_if_prepush_no_parallel()/skip_on_ci() because
+	# spinning up a real makeForkCluster() carries real OS-fork risk (see that
+	# test's own comment). But the `use_fork_cluster` branch's *surrounding*
+	# logic -- task building, result-list reassembly, name matching, row
+	# ordering, screen output -- has nothing to do with forking and deserves
+	# safe, always-on coverage regardless of where the real-fork test is
+	# allowed to run. EDI_TESTING_DISABLE_FORK_CLUSTER=true routes that branch
+	# through a same-process lapply() instead of a real fork cluster (see
+	# inference_suite.R's `use_fork_cluster` block), so this test exercises
+	# the identical code path the real-fork test does, minus the fork itself.
+	withr::local_envvar(c(EDI_TESTING_DISABLE_FORK_CLUSTER = "true"))
+	set.seed(20260818)
+	n = 20L
+	des = DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	w = des$get_w()
+	des$add_all_subject_responses(1 + 0.5 * w + rnorm(n))
+	suite = InferenceSuite$new(des)
+
+	capture.output({
+		res_seq <- suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1)
+	})
+	capture.output({
+		res_par <- suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 2)
+	})
+
+	seq_tbl = res_seq$results_table[order(res_seq$results_table$inference_class), ]
+	par_tbl = res_par$results_table[order(res_par$results_table$inference_class), ]
+	rownames(seq_tbl) = NULL
+	rownames(par_tbl) = NULL
 	compare_cols = setdiff(names(seq_tbl), "fit_secs")
 	expect_identical(seq_tbl[compare_cols], par_tbl[compare_cols])
 })

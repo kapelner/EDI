@@ -13,21 +13,14 @@
 **EDI** (Experimental Design and Inference) is software that marries experimental
 designs (fixed and sequential) and inference procedures
 (exact, asymptotic, and distribution-free) tailored to each design and
-response type (continuous, incidence, count, proportion, survival with censoring, and
+response type (continuous, incidence, count, proportion, survival with left/right censoring, and
 ordinal). The core estimation and variance-computing kernels are written in C++ (Eigen +
 LBFGS++) for speed.
 
-This repo hosts the eponymous R package
-
-- **[`R/`](R/README.md)** — the `EDI` R package (R6 classes for designs,
-  inference, and simulation), which the C++ kernels were originally written
-  for.
-
-This repo also hosts a python package providing bare-metal bindings the shared C++ core for blazing speed. 
-This package does not include the advanced EDI functionality the R package provides.
-
-- **[`python/`](python/README.md)** — `edi_kernels`, a `pybind11` package
-  that compiles the same C++ kernels directly, with no R or Rcpp dependency.
+This repo hosts the eponymous R package `EDI` in [`R/`](R/README.md) which has the R6 classes 
+for designs, inference, and simulation. This repo also hosts a python package `edi_kernels`  via
+`pybind11` with no R/Rcpp dependency which provides bare-metal bindings the shared C++ core for high speed
+in [`python/`](python/README.md).
 
 See each package's README for installation, usage, and benchmark results.
 

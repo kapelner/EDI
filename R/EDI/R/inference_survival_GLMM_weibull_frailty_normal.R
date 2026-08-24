@@ -121,12 +121,6 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 	),
 	private = list(
 		is_a_kk_weibull_frailty_ivwc = function() TRUE,
-		# Name-based `requires_kk` inference-discovery gate (inference_suite.R's
-		# `infer_inference_requires_kk_matching_design()`) only fires on a
-		# `"KK"`-containing class name; this class was renamed off that
-		# convention (see full_glmm_for_weibull_frailty.md) while still
-		# requiring a matched design, so the gate is declared explicitly here.
-		requires_kk_matching_design = function() TRUE,
 		# Copied verbatim from InferenceMLEorKMSummaryTable (the old ladder's
 		# ancestor) -- Lesson 5 (see SurvivalKKRankRegrIVWCSource): the Wald
 		# component's own get_standard_error() fallback stop()s when the SE is
@@ -544,8 +538,6 @@ SurvivalGLMMWeibullFrailtyNormalOneLikSource = list(
 	),
 	private = list(
 		is_a_kk_weibull_frailty_one_lik = function() TRUE,
-		# See the IVWC Source's identical note above.
-		requires_kk_matching_design = function() TRUE,
 		use_rcpp = TRUE,
 		max_abs_reasonable_coef = 1e4,
 		shared_combined_likelihood = function(estimate_only = FALSE){

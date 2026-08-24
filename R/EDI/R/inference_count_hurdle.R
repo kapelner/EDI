@@ -4,24 +4,41 @@
 #' submodel \eqn{P(Y_i > 0) = \mathrm{logit}^{-1}(X_i^{h\top} \gamma^h)} (fit
 #' jointly with the count submodel) crossed with a zero-truncated Poisson
 #' count submodel for \eqn{Y_i \mid Y_i > 0}: \eqn{\log E[Y_i \mid Y_i > 0,
-#' W_i, X_i] = \beta_0 + \beta_T W_i + X_i^\top \gamma}. The hurdle and count
+#' w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top \gamma}. The hurdle and count
 #' submodels may use different covariate formulas
 #' (\code{model_formula}/\code{model_formula_hurdle}). The reported treatment
 #' effect is the coefficient from the conditional (truncated, \eqn{Y > 0})
 #' count component, on the log-rate scale, \strong{conditional on clearing
 #' the hurdle}: it is not the effect on the unconditional mean \eqn{E[Y]},
 #' which also depends on how treatment shifts the hurdle-crossing
-#' probability. A marginal (unconditional-mean) estimand is not yet
-#' implemented for this class (see \code{marginal_estimand_report.md}).
+#' probability, under the default \code{estimand = "conditional"}.
 #' \code{likelihood_tier = "full"}: Wald, gradient, and (bootstrap-calibrated)
 #' likelihood-ratio tests are available for the count submodel's treatment
-#' coefficient; a plain score test is not exposed. \strong{Jackknife
-#' inference is not supported}: delete-one refits of this two-part model are
-#' numerically unstable, so \code{compute_jackknife_estimate()} and related
-#' methods report explicit non-estimability rather than attempting delete-one
-#' refits. Unlike \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}},
+#' coefficient under that estimand; a plain score test is not exposed.
+#' \strong{Jackknife inference is not supported}: delete-one refits of this
+#' two-part model are numerically unstable, so
+#' \code{compute_jackknife_estimate()} and related methods report explicit
+#' non-estimability rather than attempting delete-one refits. Unlike
+#' \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}},
 #' the count submodel here assumes Poisson (equidispersion) conditional on
 #' clearing the hurdle, with no separate dispersion parameter.
+#'
+#' \strong{Marginal (unconditional-mean) estimand.} Via
+#' \code{\link[EDI:InferenceMarginalEstimand]{set_estimand()}}, this class
+#' also supports \code{estimand = "marginal_mean_diff"} and
+#' \code{"marginal_ratio"}: the g-computation average, over the empirical
+#' covariate distribution, of the model-implied unconditional mean
+#' \eqn{E[Y_i \mid w_i, x_i] = (1 - \pi(x_i)) \cdot \lambda(x_i) / (1 -
+#' e^{-\lambda(x_i)})} — the hurdle-crossing probability times the
+#' \strong{zero-truncated} Poisson mean, \eqn{E[Y \mid Y>0] = \lambda / (1 -
+#' e^{-\lambda})} (exact for Poisson: truncating at \eqn{0} changes the
+#' normalizing constant but not the rate parameter \eqn{\lambda}; see
+#' Cameron and Trivedi, \emph{Regression Analysis of Count Data}, ch. 4.2) —
+#' at \eqn{w_i = 1} vs. \eqn{w_i = 0}. A pure post-fit transform of the same
+#' maximum-likelihood fit (no refit), with a delta-method standard error
+#' against the sandwich-robust covariance matrix already used for this
+#' class's conditional Wald inference. Only \code{"wald"}-type inference is
+#' available under a marginal estimand.
 #'
 #' @references Mullahy, J. (1986). "Specification and Testing of Some
 #'   Modified Count Data Models." \emph{Journal of Econometrics}, 33(3),
@@ -31,7 +48,9 @@
 #' @seealso \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} for
 #'   the single-part Poisson model this class's count submodel generalizes to
 #'   two parts; \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}}
-#'   for the overdispersion-robust negative-binomial variant.
+#'   for the overdispersion-robust negative-binomial variant (does not
+#'   support a marginal estimand — the mean-function derivation here is
+#'   Poisson-specific).
 #'
 #' @examples
 #' \donttest{
@@ -44,9 +63,22 @@
 #' inf$compute_estimate()
 #' }
 #' @export
-InferenceCountHurdlePoisson = R6::R6Class("InferenceCountHurdlePoisson",
-	lock_objects = FALSE,
+InferenceCountHurdlePoisson = define_inference_class(
+	classname = "InferenceCountHurdlePoisson",
 	inherit = InferenceCountZeroAugmentedPoissonAbstract,
+	# 2026-08-23 (marginal_estimand_report.md TODO-5): converted from a plain
+	# R6::R6Class leaf to a real define_inference_class() call, mirroring
+	# InferenceCountZeroInflatedPoisson's identical conversion in
+	# inference_count_zero_inflated.R (see that file for the full rationale).
+	components = "MarginalEstimand",
+	metadata = list(likelihood_tier = "full"),
+	overrides = list(
+		public = c(
+			"compute_estimate", "compute_asymp_confidence_interval",
+			"compute_asymp_two_sided_pval"
+		),
+		private = "get_supported_estimands_impl"
+	),
 	public = list(
 		#' @description Initialize inference for the hurdle Poisson model (binary
 		#'   hurdle submodel plus zero-truncated Poisson count submodel); see
@@ -64,11 +96,114 @@ InferenceCountHurdlePoisson = R6::R6Class("InferenceCountHurdlePoisson",
 		#' @param optimization_alg Optimization algorithm. Default is dispatched via policy.
 		initialize = function(des_obj, model_formula = NULL, model_formula_hurdle = NULL, use_rcpp = TRUE, verbose = FALSE, smart_cold_start_default = NULL, optimization_alg = NULL){
 			super$initialize(des_obj, model_formula = model_formula, model_formula_zero = model_formula_hurdle, use_rcpp = use_rcpp, verbose = verbose, smart_cold_start_default = smart_cold_start_default, optimization_alg = optimization_alg)
+		},
+		#' @description Fits the hurdle Poisson model. Under the default
+		#'   \code{estimand = "conditional"}, returns \eqn{\hat\beta_T}, the
+		#'   treatment log-rate coefficient from the zero-truncated count
+		#'   submodel (conditional on clearing the hurdle). Under
+		#'   \code{estimand = "marginal_mean_diff"} or \code{"marginal_ratio"}
+		#'   (set via \code{set_estimand()}), returns the g-computation
+		#'   marginal mean difference or log-scale marginal ratio of the
+		#'   unconditional mean instead — see the class-level \code{@details}
+		#'   for the formula. A pure post-fit transform of the same cached
+		#'   fit, no refit.
+		#' @param estimate_only If TRUE, skip standard-error computation and cache
+		#'   only the point estimate; used by randomization and bootstrap
+		#'   resampling paths.
+		compute_estimate = function(estimate_only = FALSE){
+			private$shared(estimate_only = estimate_only)
+			estimand = self$get_estimand()
+			if (estimand %in% c("marginal_mean_diff", "marginal_ratio")) {
+				return(private$compute_marginal_estimand_estimate(estimand, estimate_only = estimate_only))
+			}
+			# 2026-08-23 (marginal_estimand_report.md TODO-5): re-derive the
+			# conditional beta_hat_T/s_beta_hat_T from the estimand-invariant
+			# private$cached_mod every call (same fix as ZOIB's TODO-4 and
+			# InferenceCountZeroInflatedPoisson's identical fix) so switching
+			# the estimand back to "conditional" after a marginal computation
+			# doesn't return stale marginal numbers.
+			mod = private$cached_mod
+			if (!is.null(mod)) {
+				private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$params[2L])[1L]
+				if (!estimate_only) {
+					ssq = mod$ssq_b_j
+					ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
+					if (is.finite(ssq) && ssq > 0) {
+						private$cached_values$s_beta_hat_T = sqrt(ssq)
+						private$clear_nonestimable_state()
+					} else {
+						private$cache_nonestimable_se("model_standard_error_unavailable")
+					}
+				}
+			}
+			private$cached_values$beta_hat_T
+		},
+		#' @description Asymptotic confidence interval. Under the conditional
+		#'   estimand, delegates to the shared zero-augmented count-model Wald/
+		#'   bootstrap-fallback contract; under a marginal estimand, the
+		#'   delta-method interval computed by \code{compute_estimate()}. Calls
+		#'   \code{self$compute_estimate()} first (not \code{private$shared()}
+		#'   directly) so the estimand-aware cache is always current regardless
+		#'   of call order.
+		#' @param alpha The significance level (default 0.05).
+		compute_asymp_confidence_interval = function(alpha = 0.05){
+			self$compute_estimate(estimate_only = FALSE)
+			if (self$get_estimand() %in% c("marginal_mean_diff", "marginal_ratio")) {
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
+				}
+				return(private$count_likelihood_missing_ci(alpha))
+			}
+			if (should_run_asserts()) {
+				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+			}
+			if (private$mark_count_likelihood_block_asymp_nonestimable()) {
+				return(private$count_likelihood_missing_ci(alpha))
+			}
+			se = private$get_standard_error()
+			if (is.finite(se) && se > 0) {
+				private$cached_values$s_beta_hat_T = se
+			}
+			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
+				warning(private$za_description(), ": falling back to bootstrap because standard error is unavailable.")
+				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
+			}
+			private$compute_z_or_t_ci_from_s_and_df(alpha)
+		},
+		#' @description Asymptotic two-sided p-value, dispatched exactly as
+		#'   \code{compute_asymp_confidence_interval()}; see that method's
+		#'   description for the marginal-estimand path.
+		#' @param delta The null treatment effect under the current estimand
+		#'   (default 0).
+		compute_asymp_two_sided_pval = function(delta = 0){
+			self$compute_estimate(estimate_only = FALSE)
+			if (self$get_estimand() %in% c("marginal_mean_diff", "marginal_ratio")) {
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
+				}
+				return(NA_real_)
+			}
+			if (should_run_asserts()) {
+				assertNumeric(delta)
+			}
+			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+			se = private$get_standard_error()
+			if (is.finite(se) && se > 0) {
+				private$cached_values$s_beta_hat_T = se
+			}
+			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
+				warning(private$za_description(), ": falling back to bootstrap because standard error is unavailable.")
+				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+			}
+			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
 	),
 	private = list(
 		za_family = function() glmmTMB::truncated_poisson(link = "log"),
-		za_description = function() "Hurdle Poisson"
+		za_description = function() "Hurdle Poisson",
+		get_supported_estimands_impl = function(){
+			c("conditional", "marginal_mean_diff", "marginal_ratio")
+		}
 	)
 )
 #' Hurdle Negative Binomial Regression Inference for Count Responses

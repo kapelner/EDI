@@ -889,64 +889,95 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		"InferencePropFractionalLogit",
 		"InferenceCountHurdleNegBin"
 	))
-	skip_bootstrap_slow = is_exact_inference_class(c(
-		"InferenceContinRobustRegr",  # M-estimator refits are too slow for routine testing
-		"InferenceContinKKGLMM"       # all resampling >30s avg
-	))
-	# Per-operation slow skips. These are class+method only; no design,
-	# dataset, formula, or response-specific slow gates.
-	skip_rand_slow            = is_exact_inference_class(c("InferenceContinKKGLMM"))
-	skip_rand_ci_slow         = is_exact_inference_class(c("InferenceSurvivalWeibullRegr", "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", "InferenceSurvivalKKWeibullMarginal", "InferencePropQuantileRegr", "InferencePropKKGEE", "InferencePropBetaRegr"))  # PropBetaRegr rand CI avg 32.3s / p80 43.6s / max 2035.9s at n=334; SurvivalKKWeibullMarginal rand CI avg 32.2s
-	skip_score_ci_slow        = is_exact_inference_class(c("InferenceSurvivalGLMMWeibullFrailtyNormalOneLik"))  # score CI avg 50.1s / max 324.8s at n=13
-	skip_lik_ratio_ci_slow    = is_exact_inference_class(c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceSurvivalDepCensTransformRegr"))  # lik-ratio CI avg 39s / max 234s at n=6; DepCensTransformRegr max 9546.6s
-	skip_bbt_pval_slow        = is_exact_inference_class(c("InferenceIncidKKCondLogitGLMMOneLik"))  # Bayesian bootstrap pval avg 32.4s / p80 40.6s / max 68.4s at n=32
-	skip_bbt_pval_symmetric_slow = is_exact_inference_class(c("InferenceIncidKKCondLogitGLMMOneLik"))  # Bayesian bootstrap symmetric pval avg 30.6s / max 54.9s at n=18
-	skip_bbt_pval_wald_slow   = is_exact_inference_class(c("InferenceIncidKKCondLogitGLMMOneLik"))  # Bayesian bootstrap Wald pval avg 39.0s / p80 58.4s / max 58.6s
-	skip_bbt_pval_studentized_slow = is_exact_inference_class(c("InferenceIncidKKCondLogitGLMMOneLik"))  # Bayesian bootstrap studentized pval avg 36.9s / p80 60.3s / max 66.2s
-	skip_bbt_ci_slow          = is_exact_inference_class(c("InferenceIncidKKCondLogitGLMMOneLik"))
-	skip_bbt_ci_default_slow  = is_exact_inference_class(c("InferenceIncidExactFisher"))  # Bayesian bootstrap CI avg 26.0s / max 60.9s on SPBR pima
-	skip_boot_ci_default_slow = is_exact_inference_class(c("InferenceIncidRiskDiff", "InferenceIncidExactFisher", "InferenceContinKKQuantileRegrOneLik", "InferenceSurvivalDepCensTransformRegr"))  # RiskDiff bootstrap CI avg 261.1s / max 2014.1s at n=8; IncidExactFisher bootstrap CI avg 31.8s / max 66.3s; ContinKKQuantileRegrOneLik bootstrap CI mean 109.0s / max 9434.3s at n=98; DepCensTransformRegr bootstrap CI avg 38.0s / p80 38.0s at n=1
-	skip_boot_ci_basic_slow   = is_exact_inference_class(c("InferenceIncidExactFisher"))  # ExactFisher bootstrap basic CI avg 34.4s / p80 34.7s / max 35.3s
-	skip_boot_ci_bca_slow     = is_exact_inference_class(c("InferenceIncidKKGCompRiskDiff"))  # KKGCompRiskDiff bootstrap BCA CI avg 45.0s / p80 16.9s / max 10817.7s at n=356
-	skip_boot_stud_slow       = is_exact_inference_class(c("InferenceIncidRiskDiff", "InferenceIncidExactFisher", "InferenceSurvivalGehanWilcox", "InferenceSurvivalDepCensTransformRegr", "InferenceOrdinalKKGEE", "InferenceIncidModifiedPoisson"))  # RiskDiff bootstrap studentized CI avg 261.1s / max 2014.1s at n=8; IncidExactFisher bootstrap studentized CI avg 31.2s / max 75.4s; GehanWilcox studentized CI max 10443.4s; DepCensTransformRegr avg 44.7s / p80 44.7s at n=1; OrdinalKKGEE avg 51.1s / p80 30.1s / max 12084.2s; ModifiedPoisson avg 31.6s
-	skip_boot_pval_stud_slow  = is_exact_inference_class(c("InferenceAllSimpleMeanDiff", "InferenceIncidExactFisher", "InferenceSurvivalGehanWilcox", "InferenceOrdinalKKGEE"))  # SimpleMeanDiff bootstrap studentized pval avg 178.8s / max 2001.5s at n=12; IncidExactFisher avg 30.9s / max 50.8s; GehanWilcox avg 73.6s; OrdinalKKGEE avg 34.6s
-	skip_boot_pval_symmetric_slow = is_exact_inference_class(c("InferenceIncidKKGCompRiskRatio"))  # bootstrap symmetric pval max 10456.5s
-	skip_boot_ci_slow         = FALSE
-	skip_jack_slow            = is_exact_inference_class(c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceContinKKGLMM"))  # WeibullFrailtyLoggamma frailty refits; ContinKKGLMM jackknife estimate avg 54s / max 102s
-	skip_pboot_ci_slow        = is_exact_inference_class(c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"))
-	skip_lik_ratio_bootstrap_pval_slow = is_exact_inference_class(c("InferenceSurvivalStratCoxPHRegr"))  # LR param bootstrap pval avg 73.6s / max 76.4s
-	skip_param_bootstrap_estimate_slow = is_exact_inference_class(c("InferenceSurvivalStratCoxPHRegr"))  # param bootstrap estimate avg 73.0s / max 77.5s
-	skip_param_bootstrap_pval_slow = is_exact_inference_class(c("InferenceSurvivalStratCoxPHRegr"))  # param bootstrap pval avg 80.2s / max 183.9s
-	skip_param_bootstrap_ci_slow = is_exact_inference_class(c("InferenceSurvivalStratCoxPHRegr"))  # param bootstrap CI avg 73.2s / max 86.3s
-	skip_bartlett_pval_slow = is_exact_inference_class(c("InferenceSurvivalStratCoxPHRegr"))  # Bartlett LR pval avg 73.0s / max 73.6s
-	skip_rand_delta_pval_slow = is_exact_inference_class(c("InferenceIncidKKCondLogitGLMMOneLik", "InferenceOrdinalKKGEE"))  # delta=0.5 variant avg 205s; OrdinalKKGEE avg 30.2s / max 41.7s
-	skip_brt_pval_smoothed_slow = is_exact_inference_class(c("InferenceOrdinalKKGLMM", "InferenceOrdinalContRatioRegr", "InferenceOrdinalStereotypeLogitRegr", "InferenceOrdinalAdjCatLogitRegr", "InferenceSurvivalDepCensTransformRegr"))  # smoothed pval avg >30s; AdjCatLogit avg 499s / max 2694s
-	skip_brt_pval_typed_slow    = is_exact_inference_class(c("InferenceCountKKHurdlePoissonOneLik", "InferenceCountKKCondPoissonOneLik"))  # studentized+sympt-t pval avg 264s / 82s
-	skip_brt_ci_all_slow        = is_exact_inference_class(c("InferenceSurvivalGehanWilcox", "InferenceSurvivalWeibullRegr", "InferencePropBetaRegr", "InferencePropKKGEE"))  # all CI types avg >30s for listed paths; PropKKGEE BRT CI avg 37-43s at n=18
-	skip_brt_ci_smoothed_slow   = is_exact_inference_class(c("InferenceAllSimpleWilcox", "InferencePropKKQuantileRegrOneLik"))  # smoothed CI avg 94s / 32s
-	skip_brt_ci_typed_slow      = is_exact_inference_class(c("InferencePropKKQuantileRegrOneLik"))  # studentized CI avg 34s
-	skip_m_out_of_n_slow = is_exact_inference_class(c(
-		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",  # m-out-of-n CI avg 196.1s / p80 408.5s / max 634.0s at n=137
-		"InferencePropZeroOneInflatedBetaRegr",
-		"InferenceSurvivalWeibullRegr",
-		"InferenceSurvivalStratCoxPHRegr",
-		"InferenceSurvivalCoxPHRegr",
-		"InferencePropQuantileRegr",
-		"InferencePropBetaRegr",
-		"InferencePropFractionalLogit",
-		"InferenceCountHurdleNegBin",
-		"InferenceCountPoissonKKGEE",
-		"InferencePropKKGEE"
-	))
-	skip_m_out_of_n_ci_slow = skip_m_out_of_n_slow || is_exact_inference_class(c(
-		"InferenceCountPoissonKKGEE",
-		"InferencePropKKGEE"
-	))
-	skip_subsampling_slow = is_exact_inference_class(c(
-		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",  # subsampling CI avg 183.7s / p80 366.7s / max 718.8s at n=137
-		"InferenceCountHurdleNegBin",
-		"InferenceCountPoissonKKGEE"
-	))
+	# All performance-based skip rules live here. Exact-operation keys are
+	# response+class+function; all other entries are formula-free class names.
+	slow_skip_rules = list(
+		exact_operations = c(
+			"count||InferenceCountHurdleNegBin||compute_rand_two_sided_pval",
+			"proportion||InferenceAllSimpleWilcox||compute_rand_confidence_interval",
+			"incidence||InferenceIncidKKCondLogitGLMMOneLik||compute_bayesian_bootstrap_two_sided_pval_bca",
+			"count||InferenceCountHurdleNegBin||compute_rand_two_sided_pval(delta=0.5)",
+			"ordinal||InferenceOrdinalKKGEE||compute_bootstrap_confidence_interval",
+			"ordinal||InferenceOrdinalKKGLMM||compute_lik_ratio_bartlett_two_sided_pval",
+			"survival||InferenceSurvivalWeibullRegr||compute_rand_two_sided_pval(delta=0.5)",
+			"survival||InferenceSurvivalCoxPHRegr||compute_estimate"
+		),
+		bootstrap = c("InferenceContinRobustRegr", "InferenceContinKKGLMM"),
+		rand = c("InferenceContinKKGLMM"),
+		rand_ci = c("InferenceSurvivalWeibullRegr", "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", "InferenceSurvivalKKWeibullMarginal", "InferencePropQuantileRegr", "InferencePropKKGEE", "InferencePropBetaRegr"),
+		score_ci = c("InferenceSurvivalGLMMWeibullFrailtyNormalOneLik"),
+		lik_ratio_ci = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceSurvivalDepCensTransformRegr"),
+		bbt_pval = c("InferenceIncidKKCondLogitGLMMOneLik"),
+		bbt_pval_symmetric = c("InferenceIncidKKCondLogitGLMMOneLik"),
+		bbt_pval_wald = c("InferenceIncidKKCondLogitGLMMOneLik"),
+		bbt_pval_studentized = c("InferenceIncidKKCondLogitGLMMOneLik"),
+		bbt_ci = c("InferenceIncidKKCondLogitGLMMOneLik"),
+		bbt_ci_default = c("InferenceIncidExactFisher"),
+		boot_ci_default = c("InferenceIncidRiskDiff", "InferenceIncidExactFisher", "InferenceContinKKQuantileRegrOneLik", "InferenceSurvivalDepCensTransformRegr"),
+		boot_ci_basic = c("InferenceIncidExactFisher"),
+		boot_ci_bca = c("InferenceIncidKKGCompRiskDiff"),
+		boot_stud = c("InferenceIncidRiskDiff", "InferenceIncidExactFisher", "InferenceSurvivalGehanWilcox", "InferenceSurvivalDepCensTransformRegr", "InferenceOrdinalKKGEE", "InferenceIncidModifiedPoisson"),
+		boot_pval_stud = c("InferenceAllSimpleMeanDiff", "InferenceIncidExactFisher", "InferenceSurvivalGehanWilcox", "InferenceOrdinalKKGEE"),
+		boot_pval_symmetric = c("InferenceIncidKKGCompRiskRatio"),
+		boot_ci = character(),
+		jack = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceContinKKGLMM"),
+		pboot_ci = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"),
+		lik_ratio_bootstrap_pval = c("InferenceSurvivalStratCoxPHRegr"),
+		param_bootstrap_estimate = c("InferenceSurvivalStratCoxPHRegr"),
+		param_bootstrap_pval = c("InferenceSurvivalStratCoxPHRegr"),
+		param_bootstrap_ci = c("InferenceSurvivalStratCoxPHRegr"),
+		bartlett_pval = c("InferenceSurvivalStratCoxPHRegr"),
+		rand_delta_pval = c("InferenceIncidKKCondLogitGLMMOneLik", "InferenceOrdinalKKGEE"),
+		brt_pval_smoothed = c("InferenceOrdinalKKGLMM", "InferenceOrdinalContRatioRegr", "InferenceOrdinalStereotypeLogitRegr", "InferenceOrdinalAdjCatLogitRegr", "InferenceSurvivalDepCensTransformRegr"),
+		brt_pval_typed = c("InferenceCountKKHurdlePoissonOneLik", "InferenceCountKKCondPoissonOneLik"),
+		brt_ci_all = c("InferenceSurvivalGehanWilcox", "InferenceSurvivalWeibullRegr", "InferencePropBetaRegr", "InferencePropKKGEE"),
+		brt_ci_smoothed = c("InferenceAllSimpleWilcox", "InferencePropKKQuantileRegrOneLik"),
+		brt_ci_typed = c("InferencePropKKQuantileRegrOneLik"),
+		m_out_of_n = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferencePropZeroOneInflatedBetaRegr", "InferenceSurvivalWeibullRegr", "InferenceSurvivalStratCoxPHRegr", "InferenceSurvivalCoxPHRegr", "InferencePropQuantileRegr", "InferencePropBetaRegr", "InferencePropFractionalLogit", "InferenceCountHurdleNegBin", "InferenceCountPoissonKKGEE", "InferencePropKKGEE"),
+		m_out_of_n_ci = c("InferenceCountPoissonKKGEE", "InferencePropKKGEE"),
+		subsampling = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceCountHurdleNegBin", "InferenceCountPoissonKKGEE")
+	)
+	is_slow_class_rule = function(rule){
+		is_exact_inference_class(slow_skip_rules[[rule]])
+	}
+	is_slow_operation = function(function_run){
+		paste(response_type, inference_class_label, function_run, sep = "||") %in%
+			slow_skip_rules$exact_operations
+	}
+	skip_bootstrap_slow = is_slow_class_rule("bootstrap")
+	skip_rand_slow = is_slow_class_rule("rand")
+	skip_rand_ci_slow = is_slow_class_rule("rand_ci")
+	skip_score_ci_slow = is_slow_class_rule("score_ci")
+	skip_lik_ratio_ci_slow = is_slow_class_rule("lik_ratio_ci")
+	skip_bbt_pval_slow = is_slow_class_rule("bbt_pval")
+	skip_bbt_pval_symmetric_slow = is_slow_class_rule("bbt_pval_symmetric")
+	skip_bbt_pval_wald_slow = is_slow_class_rule("bbt_pval_wald")
+	skip_bbt_pval_studentized_slow = is_slow_class_rule("bbt_pval_studentized")
+	skip_bbt_ci_slow = is_slow_class_rule("bbt_ci")
+	skip_bbt_ci_default_slow = is_slow_class_rule("bbt_ci_default")
+	skip_boot_ci_default_slow = is_slow_class_rule("boot_ci_default")
+	skip_boot_ci_basic_slow = is_slow_class_rule("boot_ci_basic")
+	skip_boot_ci_bca_slow = is_slow_class_rule("boot_ci_bca")
+	skip_boot_stud_slow = is_slow_class_rule("boot_stud")
+	skip_boot_pval_stud_slow = is_slow_class_rule("boot_pval_stud")
+	skip_boot_pval_symmetric_slow = is_slow_class_rule("boot_pval_symmetric")
+	skip_boot_ci_slow = is_slow_class_rule("boot_ci")
+	skip_jack_slow = is_slow_class_rule("jack")
+	skip_pboot_ci_slow = is_slow_class_rule("pboot_ci")
+	skip_lik_ratio_bootstrap_pval_slow = is_slow_class_rule("lik_ratio_bootstrap_pval")
+	skip_param_bootstrap_estimate_slow = is_slow_class_rule("param_bootstrap_estimate")
+	skip_param_bootstrap_pval_slow = is_slow_class_rule("param_bootstrap_pval")
+	skip_param_bootstrap_ci_slow = is_slow_class_rule("param_bootstrap_ci")
+	skip_bartlett_pval_slow = is_slow_class_rule("bartlett_pval")
+	skip_rand_delta_pval_slow = is_slow_class_rule("rand_delta_pval")
+	skip_brt_pval_smoothed_slow = is_slow_class_rule("brt_pval_smoothed")
+	skip_brt_pval_typed_slow = is_slow_class_rule("brt_pval_typed")
+	skip_brt_ci_all_slow = is_slow_class_rule("brt_ci_all")
+	skip_brt_ci_smoothed_slow = is_slow_class_rule("brt_ci_smoothed")
+	skip_brt_ci_typed_slow = is_slow_class_rule("brt_ci_typed")
+	skip_m_out_of_n_slow = is_slow_class_rule("m_out_of_n")
+	skip_m_out_of_n_ci_slow = skip_m_out_of_n_slow || is_slow_class_rule("m_out_of_n_ci")
+	skip_subsampling_slow = is_slow_class_rule("subsampling")
 	# BRT pval: skip only if bootstrap structurally broken OR rand itself slow; ContinRobustRegr keeps BRT pval
 	skip_brt_pval = skip_bootstrap || skip_rand_slow
 	skip_brt_ci   = skip_bootstrap || skip_bootstrap_slow || skip_rand_slow || skip_rand_ci_slow || skip_brt_ci_all_slow
@@ -1180,6 +1211,10 @@ safe_call = function(label, expr){
 			label
 		)) {
 			return(invisible(NULL))
+	}
+	if (is_slow_operation(label)) {
+		message("          Skipping ", label, " (too slow for this response/class path)")
+		return(invisible(NULL))
 	}
 	
 	if (!is.null(pending_rep_header)) { message(pending_rep_header); pending_rep_header <<- NULL }

@@ -140,8 +140,12 @@ asks first) unless \code{force = TRUE}.
 }
 \examples{
 \donttest{
-# See what would change without writing anything:
-res = tune_EDI_for_this_machine(effort = "quick", dry_run = TRUE)
+# See what would change without writing anything. force = TRUE skips the
+# idle-machine contention guard (see Details/`force` above) -- an example
+# must not fail just because the machine running R CMD check happens to
+# be busy (e.g. a shared CI runner); the guard itself has its own
+# dedicated tests (test-local-machine-tuning-assembly.R).
+res = tune_EDI_for_this_machine(effort = "quick", dry_run = TRUE, force = TRUE)
 print(res)
 }
 }

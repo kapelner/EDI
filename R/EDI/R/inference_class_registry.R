@@ -24,6 +24,24 @@ EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES = list(
 	InferenceIncidModifiedPoisson = "parametric_likelihood_bootstrap"
 )
 
+# Classes that require a KK matched design (`des_obj$is_a_kk_matching_capable()`)
+# but whose name doesn't contain `"KK"`, so `infer_inference_requires_kk_matching_design()`'s
+# name-substring fallback wouldn't otherwise catch them. A static table, not a
+# generator private-method probe: every one of these components has
+# `load_policy = "lazy"` (contracts_mixins.R), so `generator$private_methods$<name>`
+# resolves to a lazy-install stub, not the real method -- calling it bare
+# (as the `requires_blocking_design`-style safe-invoke pattern does for eager
+# components) triggers `install_lazy_inference_component()` outside any R6
+# instance and fails with "object 'private' not found". Renamed off the
+# `KK`-prefixed convention in anticipation of `full_glmm_for_weibull_frailty.md`
+# while remaining matched-design-only.
+EDI_INFERENCE_REQUIRES_KK_MATCHING_DESIGN_OVERRIDES = c(
+	"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC",
+	"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik",
+	"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
+	"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"
+)
+
 EDI_EXACT_INCIDENCE_CLASS_NAMES = c(
 	"InferenceIncidExactBinomial",
 	"InferenceIncidExactFisher",
@@ -626,29 +644,25 @@ infer_inference_requires_blocking_design = function(generator) {
 	FALSE
 }
 
-#' Whether a concrete `Inference` generator requires a KK matched design
-#' (`des_obj$is_a_kk_matching_capable()`). Same safe-invoke-without-
-#' construction approach as `infer_inference_requires_blocking_design()`
-#' above: a class declares this explicitly via a private
-#' `requires_kk_matching_design()` method when its name doesn't contain
-#' `"KK"` but it still needs a matched design (e.g. the
-#' `InferenceSurvivalGLMMWeibullFrailty{Normal,Loggamma}{IVWC,OneLik}`
-#' family, renamed off the `KK`-prefixed convention in anticipation of
-#' `full_glmm_for_weibull_frailty.md` while remaining matched-design-only).
-#' Falls back to the name-substring heuristic (`grepl("KK", name)`) for
-#' every other class, preserving existing behavior everywhere this isn't
-#' explicitly overridden.
+#' Whether a concrete `Inference` class requires a KK matched design
+#' (`des_obj$is_a_kk_matching_capable()`). Unlike
+#' `infer_inference_requires_blocking_design()`/
+#' `infer_inference_supports_general_censoring()` above, this does NOT probe
+#' the generator's `private_methods` -- those two functions' safe-invoke
+#' approach only works because their sole override lives on an eager
+#' component; `EDI_INFERENCE_REQUIRES_KK_MATCHING_DESIGN_OVERRIDES`'
+#' members are on `load_policy = "lazy"` components, whose
+#' `private_methods` entries are lazy-install stubs, not real functions --
+#' calling one bare (outside an R6 instance) throws "object 'private' not
+#' found" trying to splice itself in. A static name lookup avoids the lazy
+#' component machinery entirely. Falls back to the name-substring heuristic
+#' (`grepl("KK", name)`) for every other class, preserving existing behavior
+#' everywhere this isn't explicitly overridden.
 #'
 #' @keywords internal
 #' @noRd
-infer_inference_requires_kk_matching_design = function(generator, name) {
-	current = generator
-	while (!is.null(current)) {
-		fn = current$private_methods$requires_kk_matching_design
-		if (!is.null(fn)) return(isTRUE(fn()))
-		current = current$get_inherit()
-	}
-	grepl("KK", name, fixed = TRUE)
+infer_inference_requires_kk_matching_design = function(name) {
+	name %in% EDI_INFERENCE_REQUIRES_KK_MATCHING_DESIGN_OVERRIDES || grepl("KK", name, fixed = TRUE)
 }
 
 #' A concrete `Inference` generator's own `design_compatibility_reason(des_obj)`
@@ -1063,6 +1077,15 @@ infer_inference_direct_components = function(name) {
 		InferencePropFractionalLogit = c("BayesianBootstrap", "Wald", "StandardModelCache"),
 		InferencePropBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache"),
 		InferencePropZeroOneInflatedBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache", "MarginalEstimand"),
+		# 2026-08-23 (marginal_estimand_report.md TODO-5): direct component
+		# only -- ZeroAugmentedCountLikelihood/CountLikelihoodPlumbing/etc.
+		# arrive via the inherited InferenceCountZeroAugmentedPoissonAbstract
+		# parent's own effective components, resolved automatically by
+		# resolve_inference_components(); mirroring only the components =
+		# argument these two classes' own define_inference_class() calls add,
+		# same convention as every other entry in this switch.
+		InferenceCountZeroInflatedPoisson = "MarginalEstimand",
+		InferenceCountHurdlePoisson = "MarginalEstimand",
 		InferenceCountPoisson = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
 		InferenceCountNegBin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
 		InferenceCountHurdleNegBin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
@@ -2293,7 +2316,7 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				excluded_capabilities = EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES[[name]] %||% character(),
 				supports_general_censoring = infer_inference_supports_general_censoring(obj),
 				requires_blocking_design = infer_inference_requires_blocking_design(obj),
-				requires_kk_matching_design = infer_inference_requires_kk_matching_design(obj, name),
+				requires_kk_matching_design = infer_inference_requires_kk_matching_design(name),
 				design_compatibility_reason = infer_inference_design_compatibility_reason_fn(obj),
 				estimand = infer_inference_estimand_type(obj, name),
 				adjusts_for_covariates = infer_inference_adjusts_for_covariates(name)

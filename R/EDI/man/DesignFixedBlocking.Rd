@@ -151,7 +151,7 @@ Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd,
   include_is_missing_as_a_new_feature = TRUE,
   n = NULL,
   preferred_num_bins_for_continuous_covariate = 2,
-  B_target = if (!is.null(n)) max(1L, floor(sqrt(n))) else NA_integer_,
+  B_target = NULL,
   exact_num_blocks = FALSE,
   equal_block_sizes = TRUE,
   m = NULL,
@@ -178,9 +178,12 @@ are added greedily in order, each column being included only if it does not push
 the total number of unique blocks beyond this target. For categorical covariates
 their natural levels are used; for continuous covariates
 `preferred_num_bins_for_continuous_covariate` quantile bins are used. Earlier columns
-are always preferred over later ones. The default is `floor(sqrt(n))` when `n`
-is known at construction time, or is resolved to `floor(sqrt(n))` when subjects
-are added. Set `B_target = NULL` to use all columns unconditionally.
+are always preferred over later ones. When `n` is known at construction time, the
+default is the largest divisor of `n` that is at most `floor(sqrt(n))` (so the
+default always satisfies `equal_block_sizes = TRUE`); if `n` is not yet known, it
+is resolved to `floor(sqrt(n))` when subjects are added. Set `B_target = NULL` to
+use all columns unconditionally. An explicitly supplied `B_target` that does not
+divide `n` still errors immediately when `equal_block_sizes = TRUE`.
 Set `exact_num_blocks = TRUE` to hard fail if the final key construction
 does not produce exactly `B_target` blocks.}
       \item{\code{exact_num_blocks}}{Whether to require the greedy key construction to produce

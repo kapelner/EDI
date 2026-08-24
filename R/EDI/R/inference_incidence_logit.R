@@ -301,6 +301,14 @@ IncidenceLogisticLikelihoodSource = list(
 					j_treat = 2L,
 					full_neg_loglik = res$neg_log_lik %||% res$neg_ll
 				)
+				# 2026-08-24 (marginal_estimand_report.md TODO-9): stash the exact
+				# fitting design matrix and its coefficient covariance so the
+				# marginal-estimand g-computation path (private$compute_marginal_
+				# estimand_estimate()) is a pure post-fit transform, no refit --
+				# same convention as InferencePropZeroOneInflatedBetaRegr's
+				# mod$X/mod$vcov (TODO-4).
+				res$X = X_full
+				res$vcov = if (!is.null(res$fisher_information)) tryCatch(solve(res$fisher_information), error = function(e) NULL) else NULL
 				return(res)
 			}
 

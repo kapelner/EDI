@@ -235,6 +235,33 @@ test_that("DesignFixedBlocking equal_block_sizes = TRUE (default) enforces divis
 	)
 })
 
+test_that("DesignFixedBlocking default B_target always divides n (never errors by default)", {
+	# floor(sqrt(148)) = 12, and 148 %% 12 != 0 -- the old default (floor(sqrt(n)) verbatim)
+	# would have hit the equal_block_sizes = TRUE divisibility error below on construction alone.
+	des <- expect_no_error(
+		DesignFixedBlocking$new(
+			response_type = "incidence",
+			n = 148L,
+			verbose = FALSE
+		)
+	)
+	B_target <- des$.__enclos_env__$private$B_target
+	expect_true(148L %% B_target == 0L)
+	expect_true(B_target <= floor(sqrt(148L)))
+
+	# an explicitly supplied, illegal B_target must still error (default-fixing must not
+	# weaken the equal_block_sizes = TRUE contract for user-supplied values)
+	expect_error(
+		DesignFixedBlocking$new(
+			response_type = "incidence",
+			n = 148L,
+			B_target = 12L,
+			verbose = FALSE
+		),
+		"not divisible by B_target"
+	)
+})
+
 test_that("DesignFixedBlocking equal_block_sizes = FALSE skips divisibility check", {
 	expect_no_error(
 		DesignFixedBlocking$new(

@@ -348,9 +348,22 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   method-level-`stop()` TODO, 2026-08-21).
 		#' @return A single logical.
 		supports_rand_pval_for_incidence = function(){
-			!(private$des_obj_priv_int$response_type == "incidence" &&
-				is.null(private$custom_randomization_statistic_function) &&
-				!private$should_use_design_randomization_for_incidence())
+			# Zhang-eligible incidence designs (matched-pair or Bernoulli, no
+			# custom randomization statistic -- `should_use_zhang_incidence_
+			# randomization()`) always support a "rand" p-value via the Zhang
+			# exact-combined-test dispatch inside `compute_rand_two_sided_
+			# pval()` below, even though the plain permutation path that
+			# follows genuinely can't handle incidence responses. Fixed
+			# 2026-08-23 (per user request) alongside that dispatch itself --
+			# `compute_rand_confidence_interval()` already had this same
+			# Zhang escape hatch, but `compute_rand_two_sided_pval()` never
+			# did, so a "rand" CI could come back for a row whose "rand"
+			# p-value always came back `NA` even though it was actually
+			# computable.
+			private$should_use_zhang_incidence_randomization() ||
+				!(private$des_obj_priv_int$response_type == "incidence" &&
+					is.null(private$custom_randomization_statistic_function) &&
+					!private$should_use_design_randomization_for_incidence())
 		},
 		#' @description Computes a randomization-based p-value.
 		#' @param r  	Number of randomization vectors.
@@ -368,6 +381,22 @@ InferenceRand = R6::R6Class("InferenceRand",
 				if (!self$supports_rand_pval_for_incidence()) {
 					stop("Randomization tests are not supported for incidence. Use Zhang method.")
 				}
+			}
+			# Zhang-dispatch branch (added 2026-08-23, per user request) --
+			# mirrors `compute_rand_confidence_interval()`'s own identical
+			# branch exactly: a matched-pair or Bernoulli incidence design
+			# with no custom randomization statistic reports its "rand"
+			# p-value via the Zhang exact combined test
+			# (`compute_exact_two_sided_pval_rand()`, already used by this
+			# same mixin's CI-side counterpart and by `InferenceIncidExactZhang`
+			# itself) rather than the plain permutation machinery below, which
+			# was never built to handle incidence responses at all. Closes
+			# the asymmetry where a "rand" CI could come back for a row whose
+			# "rand" p-value always came back `NA` even though it was
+			# actually computable the same way the CI was.
+			if (private$should_use_zhang_incidence_randomization()) {
+				exact_args = private$normalize_exact_inference_args("Zhang", args_for_type = NULL, pval_epsilon = NULL)
+				return(private$compute_exact_two_sided_pval_rand("Zhang", delta, exact_args))
 			}
 			mc_control_for_perms = private$randomization_mc_control
 			defer_permutation_generation_for_mc =

@@ -87,12 +87,6 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 		# supplies the real functions directly (Static Cleanup).
 	),
 	private = list(
-		# Name-based `requires_kk` inference-discovery gate (inference_suite.R's
-		# `infer_inference_requires_kk_matching_design()`) only fires on a
-		# `"KK"`-containing class name; this class was renamed off that
-		# convention (see full_glmm_for_weibull_frailty.md) while still
-		# requiring a matched design, so the gate is declared explicitly here.
-		requires_kk_matching_design = function() TRUE,
 		best_par = NULL,
 		best_X_colnames = NULL,
 		cached_mod = NULL,
@@ -597,8 +591,6 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 		}
 	),
 	private = list(
-		# See the IVWC Source's identical note above.
-		requires_kk_matching_design = function() TRUE,
 		max_abs_reasonable_coef = 1e4,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			# Re-read w, y, dead because they might have been transformed for
