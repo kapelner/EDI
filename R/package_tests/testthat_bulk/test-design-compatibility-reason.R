@@ -147,15 +147,30 @@ test_that("Every class with a design_compatibility_reason predicate is excluded 
 # to fix_inference_hierarchy.md's "method-level stop()s" TODO: InferenceRand's
 # plain compute_rand_two_sided_pval() throws for an incidence-response
 # instance with no custom randomization statistic on a design whose
-# randomization_family() isn't "rerandomization" -- confirmed reachable for
-# InferenceIncidGCompRiskRatio/RiskDiff (this class pins InferenceRand's own
-# method rather than a Zhang-dispatching override). Before the fix,
-# InferenceSuite's run_all_inference_call_pval_for_method() caught this stop()
-# and silently degraded to pval = NA while still reporting status = "ok" and
-# method = "rand" -- indistinguishable from a genuine (if unlucky) NA result.
-# After the fix, the "rand" sentinel is recognized as inapplicable up front
-# (mirroring the "no capability" shape used everywhere else in this file):
-# pval_method is NA, not "rand", on the returned row.
+# randomization_family() isn't "rerandomization" AND that isn't Zhang-eligible
+# -- confirmed reachable for InferenceIncidGCompRiskRatio/RiskDiff (this class
+# pins InferenceRand's own method rather than a separately-defined override).
+# Before the fix, InferenceSuite's run_all_inference_call_pval_for_method()
+# caught this stop() and silently degraded to pval = NA while still reporting
+# status = "ok" and method = "rand" -- indistinguishable from a genuine (if
+# unlucky) NA result. After the fix, the "rand" sentinel is recognized as
+# inapplicable up front (mirroring the "no capability" shape used elsewhere in
+# this file) for designs that are genuinely unsupported.
+#
+# 2026-08-23 (per user request, same day as the method-level-stop() fix
+# above): a Zhang-eligible incidence design (matched-pair or Bernoulli, no
+# custom randomization statistic) now gets a real "rand" p-value via the
+# Zhang exact combined test instead of throwing -- see
+# InferenceRand$supports_rand_pval_for_incidence()'s and
+# compute_rand_two_sided_pval()'s own doc comments in
+# inference_all_abstract_rand.R. That escape hatch lives directly in
+# InferenceRand's own method body, so InferenceIncidGCompRiskRatio/RiskDiff
+# (which pin `InferenceRand$public_methods$compute_rand_two_sided_pval` by
+# reference, not a frozen copy) inherit it automatically for a Bernoulli
+# design like the one below -- this is the current, intended behavior, not a
+# regression. The genuinely-unsupported-throws-a-real-error path this test
+# originally covered is still real; it is simply not reachable from THIS
+# design (Bernoulli, Zhang-eligible) any more.
 test_that("InferenceRand: supports_rand_pval_for_incidence() matches real throw behavior", {
 	n = 20L
 	des = DesignSeqOneByOneBernoulli$new(n = n, response_type = "incidence", verbose = FALSE)
@@ -164,11 +179,12 @@ test_that("InferenceRand: supports_rand_pval_for_incidence() matches real throw 
 	expect_identical(des$randomization_family(), "bernoulli")
 
 	inf = InferenceIncidGCompRiskRatio$new(des)
-	expect_false(inf$supports_rand_pval_for_incidence())
-	expect_error(inf$compute_rand_two_sided_pval(r = 51), "incidence")
+	expect_true(inf$supports_rand_pval_for_incidence())
+	p = inf$compute_rand_two_sided_pval(r = 51)
+	expect_true(is.finite(p) && p >= 0 && p <= 1)
 })
 
-test_that("run_all_inference(): 'rand' pval degrades to unavailable (not a masked NA) for an unsupported incidence design", {
+test_that("run_all_inference(): 'rand' pval is a real Zhang-dispatched value for a Zhang-eligible incidence design", {
 	n = 20L
 	des = DesignSeqOneByOneBernoulli$new(n = n, response_type = "incidence", verbose = FALSE)
 	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
@@ -183,8 +199,8 @@ test_that("run_all_inference(): 'rand' pval degrades to unavailable (not a maske
 	row = res$results_table[res$results_table$inference_class == "InferenceIncidGCompRiskRatio", ]
 	expect_identical(nrow(row), 1L)
 	expect_identical(row$status, "ok")
-	expect_true(is.na(row$pval))
-	expect_true(is.na(row$pval_method))
+	expect_true(is.finite(row$pval) && row$pval >= 0 && row$pval <= 1)
+	expect_identical(row$pval_method, "rand")
 })
 
 # Regression coverage for the Bartlett-sentinel-gating fix (user report,

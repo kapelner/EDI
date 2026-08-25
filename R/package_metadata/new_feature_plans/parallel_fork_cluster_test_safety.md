@@ -356,6 +356,17 @@ Two separable problems live in that gap:
   run or a less resource-constrained machine** before treating this as
   fully closed.
 
+  **Empirical confirmation (2026-08-25):** re-ran the full test file
+  (from its relocated path, `R/package_tests/testthat_bulk/test-
+  inference-suite-run-all-inference.R`, after a concurrent test-directory
+  restructuring moved it out of `R/EDI/tests/testthat/`) after a clean
+  `library(EDI)` reinstall. Sourced to completion: **7 `testthat` batches,
+  172/334/300/310/172/142/112 successes, zero failures.** Both previously
+  failing `num_cores` tests (the real-fork test and TODO-1's in-process
+  mock test) now pass. The RNG-continuity fix is confirmed correct, not
+  just mechanistically argued. This TODO is now fully closed with
+  empirical backing.
+
 - [x] TODO-6: **Decide whether this plan's findings extend to the other
   `skip_if_prepush_no_parallel()`-guarded tests** (mirai fork-cluster tests
   in `test-simulation-framework-parallel-cleanup.R`, etc.), which carry the

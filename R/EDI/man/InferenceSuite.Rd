@@ -248,6 +248,7 @@ Defaults to an empty list (no extra arguments for any class).}
   formulas = NULL,
   methods = NULL,
   basic_bootstrap = FALSE,
+  compute_conf_intervals = FALSE,
   combined_evidence_estimands = NULL,
   combined_evidence_weighting = c("estimand_grouped", "equal", "custom"),
   combined_evidence_weights = NULL

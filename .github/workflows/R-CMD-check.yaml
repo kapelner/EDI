@@ -42,14 +42,29 @@ name: R-CMD-check
 # integration scripts, etc.) don't spend CI minutes on a full compiled-package
 # matrix build.
 #
-# Four jobs, covering what CRAN's own incoming checks do beyond a single
+# Five jobs, covering what CRAN's own incoming checks do beyond a single
 # --as-cran run on one machine:
-#   - R-CMD-check:              the 5-platform/R-version --as-cran matrix.
+#   - R-CMD-check:              the 6-platform/R-version --as-cran matrix
+#     (added windows-latest/devel 2026-08-25 to close the "Windows +
+#     R-devel" gap that GitHub's runners otherwise leave uncovered -- this
+#     is the one platform/R-version combination win-builder's devel run
+#     exercises that nothing else in this matrix did; it is still not a
+#     substitute for actually submitting to win-builder/CRAN's own build
+#     machine before release, see release_v1_0_0.md's Release Gate).
 #   - R-CMD-check-no-suggests:  same check with none of EDI's Suggests
 #     packages installed (dependencies: NA), to catch an unconditional use of
 #     an optional package that isn't properly guarded by requireNamespace()/
 #     skip_if_not_installed() -- the main matrix always has every Suggests
 #     package present, so it can't see this class of bug.
+#   - R-CMD-check-incoming:     same --as-cran check with CRAN's "incoming
+#     feasibility" checks left enabled (every other job disables them so the
+#     unavoidable "New submission" NOTE doesn't fail every run) -- catches
+#     Title/Description phrasing policy, misspellings, URL validity, and
+#     license-text issues on every push, added 2026-08-25 (see
+#     release_v1_0_0.md's Release Gate). Metadata-based, not platform-
+#     sensitive, so one Linux job is sufficient; still not a substitute for
+#     actually submitting to win-builder/mac-builder, which additionally run
+#     on CRAN's own build machines.
 #   - R-CMD-check-sanitizers:   R-devel built with -fsanitize=address,undefined
 #     (rocker/r-devel-san), to catch C++ undefined behavior in src/ that a
 #     normal optimized build silently tolerates.
@@ -80,6 +95,7 @@ jobs:
         config:
           - {os: macos-latest,   r: 'release'}
           - {os: windows-latest, r: 'release'}
+          - {os: windows-latest, r: 'devel'}
           - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}
           - {os: ubuntu-latest,  r: 'release'}
           - {os: ubuntu-latest,  r: 'oldrel-1'}
@@ -229,6 +245,62 @@ jobs:
           # with `--no-build-vignettes` for the same reason).
           build_args: 'c("--no-manual","--no-build-vignettes","--compact-vignettes=gs+qpdf")'
           error-on: '"note"'
+
+  # CRAN's "incoming feasibility" checks -- Title/Description phrasing policy,
+  # misspellings, URL validity, license text, and the overall submission-
+  # feasibility/checktime NOTE. Every other job in this matrix runs with
+  # _R_CHECK_CRAN_INCOMING_=false (check-r-package@v2's own default, kept
+  # disabled there deliberately so the unavoidable "New submission" NOTE
+  # doesn't fail the main --as-cran matrix on every push -- see that job's
+  # error-on comment). These checks are metadata-based, not platform-
+  # sensitive, so one Linux job gives full coverage; this job does NOT
+  # substitute for win-builder/mac-builder (see release_v1_0_0.md's Release
+  # Gate) -- those additionally run on CRAN's own build machines, which this
+  # doesn't -- but it gives continuous, on-every-push coverage of the
+  # metadata-policy half of what those provide, instead of only finding out
+  # at manual pre-submission time.
+  R-CMD-check-incoming:
+    runs-on: ubuntu-latest
+    name: ubuntu-latest (release, CRAN incoming checks)
+
+    timeout-minutes: 150
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      EDI_PORTABLE: 1
+      # Explicitly enabled (see the job comment above); check-r-package@v2
+      # only applies its own false default when this is unset.
+      _R_CHECK_CRAN_INCOMING_: true
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          working-directory: R/EDI
+          args: 'c("--no-manual", "--as-cran")'
+          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
+          # error-on "warning", not "note": incoming checks always produce
+          # at least the unavoidable "New submission" NOTE (this is a new
+          # package), so failing on any NOTE here would fail every run
+          # regardless of whether anything is actually wrong. NOTEs still
+          # show up in the job's own check output for manual review; only a
+          # WARNING/ERROR (a real, actionable incoming-checks finding) fails
+          # the job.
+          error-on: '"warning"'
 
   # ASAN/UBSAN sanitizer build. Catches C++ undefined behavior (out-of-bounds
   # access, sign/integer overflow, misaligned access, use-after-free, etc.)

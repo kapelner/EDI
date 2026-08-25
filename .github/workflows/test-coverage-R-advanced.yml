@@ -56,7 +56,27 @@ jobs:
           extra-packages: any::rcmdcheck
 
       - name: Install EDI
-        run: R CMD INSTALL R/EDI
+        # Installed into a job-local scratch library, NOT the default
+        # .libPaths()[1] (== R_LIBS_USER, the directory
+        # r-lib/actions/setup-r-dependencies@v2 caches via actions/cache).
+        # That dependency cache is keyed only by OS + R version + the
+        # dependency lockfile hash -- not by workflow -- so it's shared with
+        # test-bulk-non-cran.yml, which uses the identical working-directory/
+        # dependencies spec above. A plain `R CMD INSTALL R/EDI` (no
+        # --library=) installs into that shared cache and gets persisted
+        # there, so a later run of test-bulk-non-cran.yml (or any other
+        # workflow sharing this cache key) silently inherits a stale
+        # compiled EDI build from whatever commit this job last ran against.
+        # None of the steps below need the installed copy anyway -- they all
+        # load EDI via pkgload::load_all(..., compile = FALSE) straight from
+        # R/EDI/src, so this step exists only to compile R/EDI/src/*.so in
+        # place; where the installed library ends up doesn't matter, so keep
+        # it out of the cached path. (See the 2026-08-25 test-bulk-non-cran.yml
+        # CI failure this was written to fix: "object '_EDI_...' not found"
+        # for every C++ function added since the leaked stale build.)
+        run: |
+          mkdir -p "${{ runner.temp }}/edi-install-scratch"
+          R CMD INSTALL --library="${{ runner.temp }}/edi-install-scratch" R/EDI
 
       # The steps below regenerate every package_tests/ artifact that's derived from
       # live introspection of EDI's public API (public_api_inventory.R uses

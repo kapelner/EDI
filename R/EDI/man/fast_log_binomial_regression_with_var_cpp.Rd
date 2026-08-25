@@ -19,6 +19,8 @@ fast_log_binomial_regression_with_var_cpp(
 )
 }
 \arguments{
+\item{X}{A numeric matrix of predictors, \eqn{n \times p}.}
+
 \item{y_r}{A binary (0/1) numeric vector of responses, length \eqn{n}.}
 
 \item{j}{1-based index (into \code{X}'s columns) of the coefficient to
@@ -39,8 +41,6 @@ rather than estimate.}
 \item{warm_start_weights}{Optional initial working weights for the first IRLS iteration.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
-
-\item{X_r}{A numeric matrix of predictors, \eqn{n \times p}.}
 }
 \value{
 A list with components \code{b}, \code{ssq_b_j}, \code{converged},

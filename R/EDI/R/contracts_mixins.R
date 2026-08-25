@@ -2014,7 +2014,7 @@ EDI_COMPONENT_SPECS = list(
 					# exercised until now (surfaced as "attempt to apply non-function"
 					# calling private$shared() -> NULL).
 					dependencies = "StandardModelCache",
-					owns_state = c("dep_cens_bootstrap_ci_max_abs", "best_X_colnames", "cached_mod"),
+					owns_state = c("dep_cens_bootstrap_ci_max_abs", "best_X_colnames", "cached_mod", "max_abs_reasonable_coef"),
 					requires_state = "cached_vc_params",
 					provides_public_methods = c(
 						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
@@ -2036,7 +2036,7 @@ EDI_COMPONENT_SPECS = list(
 						"supports_reusable_bootstrap_worker", "supports_likelihood_tests",
 						"get_likelihood_test_spec", "generate_mod", "supports_lik_ratio_param_bootstrap",
 						"simulate_under_lik_null", "build_design_matrix", "dep_cens_bootstrap_ci_max_abs",
-						"best_X_colnames", "cached_mod"
+						"best_X_colnames", "cached_mod", "max_abs_reasonable_coef"
 					),
 					provides_capabilities = character(),
 					# "full", not "none": InferenceSurvivalDepCensTransformRegr implements
@@ -2877,6 +2877,15 @@ edi_rebind_lazy_components_after_clone = function(i, source_private = NULL) {
 		val = get(name, envir = env, inherits = FALSE)
 		if (!is.function(val)) return(invisible(NULL))
 		environment(val) = new_env
+		# unlockBinding()/lockBinding(): flagged by R CMD check as a "possibly
+		# unsafe call" NOTE, but genuinely required here, not a workaround to
+		# remove -- R6 locks method bindings on any subclass built without
+		# `lock_objects = FALSE`, and re-pointing a rebound method's closure
+		# environment after clone() (this function's whole purpose) requires
+		# reassigning that binding. Scope is minimal and always restored: only
+		# this one already-existing binding is ever unlocked, and only for the
+		# duration of the single `assign()` immediately below, re-locked
+		# unconditionally afterward. Justified in cran-comments.md.
 		was_locked = bindingIsLocked(name, env)
 		if (isTRUE(was_locked)) unlockBinding(name, env)
 		assign(name, val, envir = env)
@@ -2928,6 +2937,10 @@ install_lazy_inference_component = function(self, private, class_name, component
 				return(invisible(current))
 			}
 		}
+		# unlockBinding()/lockBinding(): same justification as edi_rebind_
+		# lazy_components_after_clone() above -- required to install a lazy
+		# component's method onto a locked R6 public/private environment,
+		# minimally scoped, always re-locked. See cran-comments.md.
 		was_locked = exists(name, envir = env, inherits = FALSE) && bindingIsLocked(name, env)
 		if (isTRUE(was_locked)) unlockBinding(name, env)
 		env[[name]] = value
@@ -2953,6 +2966,9 @@ install_lazy_inference_component = function(self, private, class_name, component
 		# some other component) was later installed on the same object,
 		# which meant edi_rebind_lazy_components_after_clone() never saw
 		# that second component and left its methods stale after clone().
+		# unlockBinding()/lockBinding(): same justification as the two sites
+		# above -- required to grow the lazy-component-install marker on a
+		# locked private environment. See cran-comments.md.
 		was_locked = bindingIsLocked(loaded_marker_name, private)
 		if (isTRUE(was_locked)) unlockBinding(loaded_marker_name, private)
 		assign(loaded_marker_name, loaded, envir = private)

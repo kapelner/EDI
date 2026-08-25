@@ -59,6 +59,24 @@ jobs:
           working-directory: R/EDI
           dependencies: '"all"'
 
+      - name: Install EDI
+        # This workflow never otherwise compiles EDI -- run_bulk_tests.R
+        # loads it via pkgload::load_all("EDI", compile = FALSE), which reads
+        # whatever R/EDI/src/*.so already exists in the checked-out source
+        # tree. This step exists purely to produce that .so (a normal side
+        # effect of `R CMD INSTALL` building in place before copying the
+        # result into the target library) -- installed into a job-local
+        # scratch library, NOT the default .libPaths()[1] (== R_LIBS_USER,
+        # cached by r-lib/actions/setup-r-dependencies@v2 above and shared,
+        # by cache key, with other workflows using the same working-directory/
+        # dependencies spec, e.g. test-coverage-R-advanced.yml). Keeping the
+        # install out of that shared cache stops a compiled EDI build from
+        # leaking into it (see that workflow's identical "Install EDI" step
+        # comment for the CI failure this was written to fix).
+        run: |
+          mkdir -p "${{ runner.temp }}/edi-install-scratch"
+          R CMD INSTALL --library="${{ runner.temp }}/edi-install-scratch" R/EDI
+
       - name: Run bulk testthat suite
         working-directory: R
         run: Rscript package_tests/testthat_bulk/run_bulk_tests.R

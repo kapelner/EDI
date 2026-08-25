@@ -370,15 +370,12 @@ ticked in their **owning plans**; this list is the release index.
   Additive-adjacent but touches shared survival files, so avoid
   interleaving with TODO-6's response-type track or TODO-12's
   interval-censored second wave on the same files at the same time.
-- [ ] TODO-16: **Release mechanics** (owned by this file): CHANGELOG 1.1.0
-  entry written when the batch closes (dated at submission, house
-  convention); version bump; re-run the `release_v1_0_0.md` Release Gate
-  checklist's CRAN-facing items on the 1.1.0 candidate (win-builder/
-  mac-builder, check profile, submission artifacts); `edi_kernels` 1.1.0
-  wheel from the same commit family. Tagging, pushing, and submitting
-  (CRAN or PyPI) each remain a **separate explicit go-ahead** — nothing in
-  this plan authorizes them. On acceptance, move the closed in-scope plans
-  to `../finished_features/`.
+- [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
+  checklist (win-builder/mac-builder, check profile, submission artifacts,
+  CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-
+  acceptance plan moves) — run it on the 1.1.0 candidate; `edi_kernels`
+  1.1.0 wheel ships from the same commit family, per `release.md`'s
+  Python-coordination section.
 
 ## Standing constraints
 

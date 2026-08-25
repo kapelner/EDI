@@ -359,9 +359,18 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 		#'   FALSE}) the standard error and degrees of freedom for reuse by
 		#'   \code{compute_asymp_confidence_interval()},
 		#'   \code{compute_asymp_two_sided_pval()}, and likelihood-test methods; a
-		#'   fit that fails to converge or produces a coefficient magnitude beyond
-		#'   \code{private$max_abs_reasonable_coef} is cached as nonestimable rather
-		#'   than returned.
+		#'   fit that fails the kernel's projected-gradient convergence check,
+		#'   produces non-finite parameters, reaches the upper random-effect variance
+		#'   boundary, exceeds \code{private$max_abs_reasonable_coef}, or lacks a
+		#'   finite positive treatment-coefficient variance is cached as nonestimable
+		#'   rather than returned. A valid near-zero random-effect variance boundary
+		#'   is accepted using conditional fixed-effect information. The native
+		#'   optimizer retains multistart L-BFGS for basin selection and, only when
+		#'   its finite selected point fails the projected-score tolerance, applies
+		#'   a damped-Newton polish using the numerical Hessian. The polished point
+		#'   is retained only if it remains finite and does not increase the
+		#'   negative log-likelihood; at a valid lower variance boundary, the
+		#'   KKT-satisfied variance coordinate is excluded from that Newton system.
 		#' @param estimate_only If \code{TRUE}, skip standard-error/variance-component
 		#'   computation and cache only the point estimate; used by randomization and
 		#'   bootstrap resampling paths where only \eqn{\hat\beta_T} is needed per
@@ -445,10 +454,14 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 				),
 				error = function(e) NULL
 			)
-			if (!is.null(mod) && !is.null(mod$params)) {
+			mod_ok = !is.null(mod) && isTRUE(mod$converged) &&
+				!is.null(mod$params) && all(is.finite(as.numeric(mod$params))) &&
+				length(mod$b) >= 1L && is.finite(as.numeric(mod$b[1L])) &&
+				abs(as.numeric(mod$b[1L])) <= private$max_abs_reasonable_coef
+			if (mod_ok) {
 				private$set_fit_warm_start(as.numeric(mod$params), "params", fisher = mod$fisher_information)
 			}
-			beta_hat_T = if (is.null(mod) || length(mod$b) < 1L) NA_real_ else as.numeric(mod$b[1L])
+			beta_hat_T = if (mod_ok) as.numeric(mod$b[1L]) else NA_real_
 			private$cached_values$beta_hat_T = beta_hat_T
 			private$cached_values$s_beta_hat_T = NA_real_
 			private$cached_values$df = Inf
@@ -527,24 +540,41 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 					smart_cold_start = private$smart_cold_start_default,
 					estimate_only = estimate_only,
 					warm_start_params = start,
-					eps_g      = 1e-3,
+					eps_g      = 1e-6,
 					warm_start_fisher_info = private$get_fit_warm_start_fisher(start_len),
 					optimization_alg = private$optimization_alg
 				),
 				error = function(e) NULL
 			)
-			if (is.null(fit) || !isTRUE(fit$converged)) {
+			private$cached_values$optimizer_diagnostics = if (is.null(fit)) NULL else list(
+				converged = fit$converged %||% FALSE,
+				num_iter = fit$num_iter %||% NA_integer_,
+				hit_iteration_cap = fit$hit_iteration_cap %||% NA,
+				gradient_norm = fit$gradient_norm %||% NA_real_,
+				neg_loglik = fit$neg_loglik %||% NA_real_,
+				log_sigma = fit$log_sigma %||% NA_real_,
+				newton_polish_attempted = fit$newton_polish_attempted %||% FALSE,
+				newton_polish_accepted = fit$newton_polish_accepted %||% FALSE,
+				newton_polish_iterations = fit$newton_polish_iterations %||% 0L,
+				variance_boundary_hit = fit$variance_boundary_hit %||% NA
+			)
+			if (is.null(fit) || !isTRUE(fit$converged) ||
+				!isFALSE(fit$hit_iteration_cap) || !is.finite(as.numeric(fit$gradient_norm)[1L])) {
 				private$cache_nonestimable_estimate("kk_glmm_rcpp_failed")
 				return(invisible(NULL))
 			}
 			# b is the beta vector (no cutpoints); treatment is at index j_T+1 (1-based R)
 			beta_hat_T = as.numeric(fit$b[j_T + 1L])
-			if (!is.finite(beta_hat_T) || abs(beta_hat_T) > private$max_abs_reasonable_coef) {
+			fit_params = as.numeric(c(fit$alpha, fit$b, fit$log_sigma))
+			upper_variance_boundary = is.finite(fit$log_sigma) &&
+				fit$log_sigma >= 8.0 - 1e-4
+			if (any(!is.finite(fit_params)) || !is.finite(beta_hat_T) ||
+				abs(beta_hat_T) > private$max_abs_reasonable_coef || upper_variance_boundary) {
 				private$cache_nonestimable_estimate("kk_glmm_rcpp_nonestimable")
 				return(invisible(NULL))
 			}
 			private$cached_mod = fit
-			full_params = as.numeric(c(fit$alpha, fit$b, fit$log_sigma))
+			full_params = fit_params
 			private$set_fit_warm_start(full_params, "params", fisher = fit$fisher_information)
 
 			private$cached_values$likelihood_test_context = list(
@@ -559,15 +589,12 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 			private$cached_values$beta_hat_T = beta_hat_T
 			private$cached_values$df   = Inf
 			if (estimate_only) return(invisible(NULL))
-			ssq = fit$ssq_b_T
+			ssq = as.numeric(fit$ssq_b_T)[1L]
 			if (!is.null(ssq) && is.finite(ssq) && ssq > 0) {
 				private$cached_values$s_beta_hat_T = sqrt(ssq)
 			} else {
 				j_in_full = length(fit$alpha) + 1L
-				hess = tryCatch(
-					get_ordinal_glmm_hessian_cpp(X_fit, y, as.integer(group_id), full_params, K, n_gh = 20L),
-					error = function(e) NULL
-				)
+				hess = tryCatch(as.matrix(fit$fisher_information), error = function(e) NULL)
 				se_fallback = NA_real_
 				if (!is.null(hess) && is.matrix(hess) && nrow(hess) >= j_in_full) {
 					vcov_hess = tryCatch(solve(hess), error = function(e) NULL)
@@ -576,6 +603,12 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 					}
 				}
 				private$cached_values$s_beta_hat_T = se_fallback
+			}
+			if (!is.finite(private$cached_values$s_beta_hat_T) ||
+				private$cached_values$s_beta_hat_T <= 0 ||
+				private$cached_values$s_beta_hat_T > private$max_abs_reasonable_coef) {
+				private$cache_nonestimable_estimate("kk_glmm_rcpp_variance_nonestimable")
+				return(invisible(NULL))
 			}
 		},
 		get_likelihood_test_spec = function(){
@@ -612,7 +645,7 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 								n_gh = n_gh,
 								max_abs_log_sigma = 8.0,
 								maxit = 300L,
-								eps_g = 1e-3,
+								eps_g = 1e-6,
 								warm_start_params = s,
 								warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
 								optimization_alg = private$optimization_alg %||% "lbfgs",
@@ -631,6 +664,15 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 							if (!is.null(fit2) && isTRUE(fit2$converged)) fit = fit2
 						}
 					}
+					fit_ok = !is.null(fit) && isTRUE(fit$converged) &&
+						isFALSE(fit$hit_iteration_cap) &&
+						all(is.finite(as.numeric(c(fit$alpha, fit$b, fit$log_sigma)))) &&
+						is.finite(as.numeric(fit$neg_loglik)[1L]) &&
+						is.finite(as.numeric(fit$gradient_norm)[1L]) &&
+						is.finite(as.numeric(fit$b[1L])) &&
+						abs(as.numeric(fit$b[1L])) <= private$max_abs_reasonable_coef &&
+						as.numeric(fit$log_sigma)[1L] < 8.0 - 1e-4
+					if (!fit_ok) return(NULL)
 					if (!is.null(fit)) {
 						fit$params = tryCatch(as.numeric(c(fit$alpha, fit$b, fit$log_sigma)), error = function(e) NULL)
 					}
@@ -640,16 +682,16 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 					as.numeric(c(fit$alpha, fit$b, fit$log_sigma))
 				},
 				score = function(fit){
-					as.numeric(get_ordinal_glmm_score_cpp(X_fit, y, group_id, as.numeric(c(fit$alpha, fit$b, fit$log_sigma)), K, n_gh = n_gh))
+					as.numeric(fit$score)
 				},
 				observed_information = function(fit){
-					as.matrix(fit$fisher_information %||% fit$information %||% fit$observed_information %||% get_ordinal_glmm_hessian_cpp(X_fit, y, group_id, as.numeric(c(fit$alpha, fit$b, fit$log_sigma)), K, n_gh = n_gh))
+					as.matrix(fit$fisher_information %||% fit$information %||% fit$observed_information)
 				},
 				fisher_information = function(fit){
-					as.matrix(fit$fisher_information %||% fit$information %||% fit$observed_information %||% get_ordinal_glmm_hessian_cpp(X_fit, y, group_id, as.numeric(c(fit$alpha, fit$b, fit$log_sigma)), K, n_gh = n_gh))
+					as.matrix(fit$fisher_information %||% fit$information %||% fit$observed_information)
 				},
 				information = function(fit){
-					as.matrix(fit$fisher_information %||% fit$information %||% fit$observed_information %||% get_ordinal_glmm_hessian_cpp(X_fit, y, group_id, as.numeric(c(fit$alpha, fit$b, fit$log_sigma)), K, n_gh = n_gh))
+					as.matrix(fit$fisher_information %||% fit$information %||% fit$observed_information)
 				},
 				neg_loglik = function(fit){
 					as.numeric(fit$neg_loglik %||% fit$neg_ll)
@@ -708,7 +750,11 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 				),
 				error = function(e) NULL
 			)
-			if (is.null(fit) || !isTRUE(fit$converged)) return(NULL)
+			if (is.null(fit) || !isTRUE(fit$converged) || !isFALSE(fit$hit_iteration_cap) ||
+				any(!is.finite(as.numeric(c(fit$alpha, fit$b, fit$log_sigma)))) ||
+				!is.finite(as.numeric(fit$gradient_norm)[1L]) ||
+				as.numeric(fit$log_sigma)[1L] >= 8.0 - 1e-4 ||
+				abs(as.numeric(fit$b[1L])) > private$max_abs_reasonable_coef) return(NULL)
 			full_fit_boot = list(
 				alpha = fit$alpha, b = fit$b, log_sigma = fit$log_sigma,
 				params = as.numeric(c(fit$alpha, fit$b, fit$log_sigma)),
@@ -734,7 +780,11 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 						),
 						error = function(e) NULL
 					)
-					if (is.null(fit2) || !isTRUE(fit2$converged)) return(NULL)
+					if (is.null(fit2) || !isTRUE(fit2$converged) || !isFALSE(fit2$hit_iteration_cap) ||
+						any(!is.finite(as.numeric(c(fit2$alpha, fit2$b, fit2$log_sigma)))) ||
+						!is.finite(as.numeric(fit2$gradient_norm)[1L]) ||
+						as.numeric(fit2$log_sigma)[1L] >= 8.0 - 1e-4 ||
+						abs(as.numeric(fit2$b[1L])) > private$max_abs_reasonable_coef) return(NULL)
 					list(
 						alpha = fit2$alpha, b = fit2$b, log_sigma = fit2$log_sigma,
 						params = as.numeric(c(fit2$alpha, fit2$b, fit2$log_sigma)),

@@ -219,7 +219,7 @@ TallyReporter <- R6::R6Class("TallyReporter",
 			elapsed_fmt <- sprintf("%02d:%02d:%02d", elapsed %/% 3600, (elapsed %% 3600) %/% 60, elapsed %% 60)
 			status <- if (force) "done" else "running"
 			line <- sprintf(
-				"EDI R test suite -- %s (%s elapsed) pass: %-6d fail: %-6d warn: %-6d skip: %-6d file: %s (n_tests = %d)",
+				"EDI R test suite -- %s (%s elapsed) pass: %-6d fail: %-6d warn: %-6d skip: %-6d file: %s (i_test = %d)",
 				status, elapsed_fmt, self$n_ok, self$n_fail, self$n_warn, self$n_skip, self$current_file, self$current_file_n_tests
 			)
 			if (self$interactive_tty) {

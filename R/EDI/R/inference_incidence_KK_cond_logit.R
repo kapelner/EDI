@@ -263,7 +263,7 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 		# Temporary class-local separation ceiling. Replace with the centralized
 		# diagnostics policy when public_diagnostics_api_spec.md is implemented.
 		max_abs_reasonable_coef = 10,
-		assess_combined_fit = function(mod, j_treat, require_variance = FALSE, check_treatment = TRUE){
+		assess_combined_fit = function(mod, j_treat, require_variance = FALSE, check_treatment = TRUE, fixed_idx = NULL){
 			fail = function(reason) list(usable = FALSE, reason = reason, variance = NA_real_)
 			if (is.null(mod)) return(fail("fit_unavailable"))
 			if (!isTRUE(mod$converged)) return(fail("not_converged"))
@@ -288,16 +288,44 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 				return(fail("information_unavailable"))
 			}
 			information = (information + t(information)) / 2
-			chol_information = tryCatch(chol(information), error = function(e) NULL)
-			if (is.null(chol_information)) return(fail("information_not_positive_definite"))
-			reciprocal_condition = tryCatch(rcond(information), error = function(e) NA_real_)
+
+			# Parameters held fixed during optimization (a delta-constrained null
+			# fit, e.g. fit_null()'s fixed_idx = j_treat) are structurally
+			# unidentified in the returned information matrix -- excluding the
+			# fixed dimension(s) can in turn leave OTHER parameters unidentified
+			# too (e.g. a stereotype-model loading whose only nonzero information
+			# entries were cross-terms with the now-fixed treatment coefficient,
+			# so its row collapses to all-zero once that column is dropped).
+			# Cascade the exclusion until no further all-zero rows remain, then
+			# check PD/conditioning only over the parameters that are genuinely
+			# identified at this fit.
+			free_idx = seq_len(nrow(information))
+			if (!is.null(fixed_idx)) {
+				fixed_idx = suppressWarnings(as.integer(fixed_idx))
+				fixed_idx = fixed_idx[is.finite(fixed_idx) & fixed_idx >= 1L & fixed_idx <= nrow(information)]
+				free_idx = setdiff(free_idx, fixed_idx)
+				repeat {
+					if (length(free_idx) < 1L) break
+					sub = information[free_idx, free_idx, drop = FALSE]
+					row_max = apply(abs(sub), 1L, max)
+					zero_local = which(row_max <= 1e-8)
+					if (length(zero_local) == 0L) break
+					free_idx = free_idx[-zero_local]
+				}
+			}
+			if (length(free_idx) < 1L) return(fail("information_unavailable"))
+			information_free = information[free_idx, free_idx, drop = FALSE]
+			chol_information_free = tryCatch(chol(information_free), error = function(e) NULL)
+			if (is.null(chol_information_free)) return(fail("information_not_positive_definite"))
+			reciprocal_condition = tryCatch(rcond(information_free), error = function(e) NA_real_)
 			if (!is.finite(reciprocal_condition) || reciprocal_condition <= sqrt(.Machine$double.eps)) {
 				return(fail("information_ill_conditioned"))
 			}
 
 			variance = suppressWarnings(as.numeric(mod$ssq_b_j)[1L])
-			if (!is.finite(variance) || variance <= 0) {
-				variance = tryCatch(chol2inv(chol_information)[j_treat, j_treat], error = function(e) NA_real_)
+			if ((!is.finite(variance) || variance <= 0) && j_treat %in% free_idx) {
+				j_free_pos = match(j_treat, free_idx)
+				variance = tryCatch(chol2inv(chol_information_free)[j_free_pos, j_free_pos], error = function(e) NA_real_)
 			}
 			if (require_variance && (!is.finite(variance) || variance <= 0)) {
 				return(fail("treatment_variance_unavailable"))
@@ -460,7 +488,8 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 						fit,
 						j_treat,
 						require_variance = FALSE,
-						check_treatment = FALSE
+						check_treatment = FALSE,
+						fixed_idx = j_treat
 					)
 					if (!isTRUE(assessment$usable)) return(NULL)
 					fit
@@ -537,7 +566,8 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 						fit,
 						j,
 						require_variance = FALSE,
-						check_treatment = FALSE
+						check_treatment = FALSE,
+						fixed_idx = j
 					)
 					if (!isTRUE(assessment$usable)) return(NULL)
 					fit

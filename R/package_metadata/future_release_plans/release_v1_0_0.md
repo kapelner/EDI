@@ -231,7 +231,8 @@ the frozen substrate makes it additive.
     the entire test file (`test-inference-suite-run-all-inference.R`) runs
     clean end-to-end (three `testthat` batches, 198/341/307 successes,
     zero failures). See `inference_suite_plan.md → TODO-9` for the full
-    writeup.
+    writeup. **Plan fully closed, moved to `../finished_features/`
+    (2026-08-25):** 0 remaining open TODOs.
 
 14. **[x] `marginal_estimand_report.md`** (added 2026-08-18, user decision —
     pulled forward from the "Deferred to 1.x" list below; narrowed
@@ -280,7 +281,8 @@ the frozen substrate makes it additive.
     conditional estimate for structural reasons (log-link/identity-link
     with no treatment interaction), documented explicitly rather than
     left as a silent surprise. All in `_master.md`'s Phase 0/Phase 5A
-    step 1.
+    step 1. **Plan fully closed, moved to `../finished_features/`
+    (2026-08-25):** 0 remaining open TODOs.
     **Amendment (2026-08-18, user decision):** `expanded_estimate_report.md`
     — the orthogonal `estimate_type` axis, originally pulled into this
     item alongside `marginal_estimand_report.md` for a joint decision —
@@ -487,40 +489,31 @@ that is the point of freezing first:
 
 ## Coordination
 
-- **`edi_kernels` 1.0.0 (PyPI) ships from the same commit family** as the
-  CRAN 1.0.0. The interval-censoring rework it waited on (item 3) is now
-  done (2026-08-16); this no longer blocks the Python side by itself, but
-  the "ship from the same commit family" and "separate explicit go-ahead"
-  rules below still apply.
-- Tagging, pushing, and submitting (CRAN or PyPI) each remain a **separate
-  explicit go-ahead** — nothing in this plan authorizes them.
-- CHANGELOG: the 1.0.0 entry is written when the batch closes, dated at
-  actual submission time (house convention).
+Generic release/submission mechanics (tagging, pushing, submitting,
+CHANGELOG, Python coordination) now live in `release.md` and apply
+unchanged. 1.0.0-specific note: the interval-censoring rework
+`edi_kernels` 1.0.0 waited on (item 3) is done (2026-08-16), so it no
+longer blocks the Python side by itself.
 
 ## Release Gate — CRAN mechanics checklist
 
-Audited 2026-08-15 against `.github/workflows/R-CMD-check.yaml`. Most of the
-classic pre-CRAN checklist is **already continuously enforced by CI** and is
-listed here only for the record, not as outstanding work:
+> **The generic parts of this checklist now live in `release.md`** (CI
+> coverage inventory, win-builder/mac-builder submission via
+> `R/EDI/scripts/submit_win_mac_builder.sh`, check-profile measurement,
+> `cran-comments.md`/CHANGELOG/version-bump/tagging steps, post-acceptance
+> plan moves) — that file applies to every release, not just 1.0.0. What
+> remains here is the 1.0.0-specific work: the CRAN-incoming CI job and
+> Windows-devel matrix leg were *added* as part of closing out this release
+> (recorded once, in `release.md`, not duplicated here), and the still-open
+> Windows `\donttest{}` hang investigation below is a real bug found during
+> this release's own check runs, not generic release process.
 
-- Covered by CI: `--as-cran` across a 5-leg matrix (macOS/Windows/Linux ×
-  devel/release/oldrel-1) with `error-on: "note"`; a no-Suggests leg
-  (`dependencies: NA` + `_R_CHECK_SUGGESTS_ONLY_`); ASAN/UBSAN
-  (`rocker/r-devel-san`); valgrind memcheck; `\donttest{}` examples on 4 of
-  5 legs; portable Makevars (`EDI_PORTABLE=1`); compacted vignettes.
-  Package-size, Rd, and example-timing NOTEs fail CI by the `error-on`
-  setting.
-
-The outstanding gate items are the four things CI structurally cannot or
-deliberately does not cover:
-
-- [ ] **CRAN-incoming checks.** CI runs with `_R_CHECK_CRAN_INCOMING_=false`
-  (set by `check-r-package@v2`; see the workflow's own comment). Run
-  win-builder (release + devel) and mac-builder before submission — they are
-  the only place the DESCRIPTION-policy checks (Title/Description phrasing,
-  misspellings, URL validity, license), submission feasibility, and the
-  overall-checktime NOTE actually execute. Win-builder devel also covers
-  Windows/R-devel, which the CI matrix lacks (Windows runs release only).
+- [x] **CRAN-incoming checks / platform CI coverage.** Done (2026-08-25) —
+  added the `R-CMD-check-incoming` CI job and the Windows-devel matrix leg;
+  see `release.md`'s "CI coverage already enforced on every push" for what
+  they cover. Actually submitting to win-builder/mac-builder is a per-release
+  step, not a per-release-development one — see `release.md`'s pre-submission
+  checklist item 1 when cutting the submission-candidate tarball.
 - [ ] **Fix the Windows `\donttest{}` hang.** CI set
   `_R_CHECK_DONTTEST_EXAMPLES_=false` on windows-latest specifically because
   a 2026-08-09 run hung 5.5+ hours in "checking examples with
@@ -695,13 +688,13 @@ deliberately does not cover:
     outside the sandbox and fix in the roxygen sources during a doc batch.
   - Re-run this measurement on the release candidate once the Phase 1
     migrations land; the numbers above are the mid-migration baseline.
-- [ ] **Submission artifacts** (not CI-able): `cran-comments.md` (test
-  environments, check results, NOTE justifications), the no-reverse-deps
-  statement, and the submission form itself.
+- [ ] **Submission artifacts.** See `release.md`'s pre-submission checklist
+  items 3-4 (`cran-comments.md`, no-reverse-deps statement) — generic across
+  releases, tracked there now.
 
 ## Implementation TODOs
 
-- [ ] TODO-1: Record this scope as decided (done by this file's existence);
+- [x] TODO-1: Record this scope as decided (done by this file's existence);
   keep `_master.md` phases as the execution order — this file only marks
   which items sit inside the release line.
 - [x] TODO-2: Resolve amendment 11: do `optimizer_diagnostics_report.md →
@@ -715,8 +708,11 @@ deliberately does not cover:
   `optimizer_diagnostics_report.md → TODO-4` for the full writeup). A
   reproducible `fast_gaussian_lmm_cpp` segfault (unrelated to this decision,
   found while investigating it) was also fixed along the way.
-- [ ] TODO-3: Fold `marginal_estimand_report.md → TODO-2` (mixture-family
-  roxygen sharpening) into a `fix_documentation.md` batch.
+- [x] TODO-3: Fold `marginal_estimand_report.md → TODO-2` (mixture-family
+  roxygen sharpening) into a `fix_documentation.md` batch. **Done** — landed
+  as part of item 7's doc batch regardless of this item's own move (see
+  item 14's writeup); `marginal_estimand_report.md` itself is now fully
+  closed (0 open TODOs) and moved to `../finished_features/` (2026-08-25).
 - [ ] TODO-4: Execute the Release Gate checklist above once items 1–9 and
   14 are closed in their owning plans.
 - [ ] TODO-5: On submission acceptance: move the closed in-scope plans to

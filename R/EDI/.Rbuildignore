@@ -13,3 +13,6 @@ check_survfit.R
 ^simulation_framework_results.*$
 ^\.mcp\.json$
 ^\.claude$
+^tests/\.prepush_errors$
+^tests/\.prepush_test_stdout\.log$
+^tests/prepush_test_timings\.csv$

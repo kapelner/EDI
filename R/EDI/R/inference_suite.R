@@ -2474,6 +2474,19 @@ EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN = 0.22
 #' @keywords internal
 #' @noRd
 EDI_INFERENCE_SUITE_BOX_PANEL_HEIGHT_IN = 1.3
+#' Height (inches) of the "Estimates" subplot when it's dots-only -- 2-5
+#' distinct estimates, `n_est > 5L`'s `geom_boxplot()` layer skipped (see
+#' `run_all_inference_plot_ci_forest()`'s own `box`-building comment) --
+#' rather than a real box-and-whisker shape. A handful of scattered points
+#' needs much less vertical room to read clearly than an actual box (body +
+#' whiskers + median line), so this is smaller than
+#' `EDI_INFERENCE_SUITE_BOX_PANEL_HEIGHT_IN` (per user request, 2026-08-25:
+#' "decrease the vertical space of the estimates subplot especially if
+#' there's no box and whisker plot").
+#' @rdname EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN
+#' @keywords internal
+#' @noRd
+EDI_INFERENCE_SUITE_DOTS_PANEL_HEIGHT_IN = 0.7
 run_all_inference_plot_ci_forest = function(results_table, alpha) {
 	# A `ci_method == "rand"` row is excluded from the plot (PDF and HTML
 	# alike, since both are built from this one function) only when its
@@ -2520,11 +2533,30 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 	pval_disp = run_all_inference_plot_safe_text(method_with_type_short_label(df$pval_method, df$type))
 	ci_disp_na = ifelse(is.na(ci_disp), "NA", ci_disp)
 	pval_disp_na = ifelse(is.na(pval_disp), "NA", pval_disp)
+	# `method_with_type_short_label()` already parenthesizes a typed
+	# sentinel's type ("boot (%ile)") -- since this whole thing gets
+	# wrapped in its own parens below, that produced double parens
+	# ("Average Diff (boot (%ile))"); per user request, 2026-08-25, the
+	# inner "(<type>)" becomes ", <type>" instead, so the outer wrap is the
+	# only parens left ("Average Diff (boot, %ile)").
+	strip_inner_parens_to_comma = function(s) {
+		ifelse(
+			grepl("^.+ \\([^()]+\\)$", s),
+			gsub("^(.+) \\(([^()]+)\\)$", "\\1, \\2", s),
+			s
+		)
+	}
 	# Don't print "(jackknife / jackknife)" -- only show the pval-side
 	# method when it actually differs from the CI-side one (per user
 	# request, 2026-08-20; same "if different" rule already applied to the
-	# `pval method (if different)` table column).
-	method_paren = ifelse(ci_disp_na == pval_disp_na, ci_disp_na, sprintf("%s / %s", ci_disp_na, pval_disp_na))
+	# `pval method (if different)` table column). The equality check itself
+	# stays on the untransformed strings (comma-converted "boot, %ile" vs.
+	# paren-form "boot (%ile)" would never compare equal to each other).
+	method_paren = ifelse(
+		ci_disp_na == pval_disp_na,
+		strip_inner_parens_to_comma(ci_disp_na),
+		sprintf("%s / %s", strip_inner_parens_to_comma(ci_disp_na), strip_inner_parens_to_comma(pval_disp_na))
+	)
 	df$class_method_label = sprintf("%s (%s)", df$inference_class_disp, method_paren)
 	df$pval_num = pval_num
 	df$width_num = width_num
@@ -2625,6 +2657,34 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		} else {
 			NULL
 		}
+		# Never let a drawn CI segment run over the right-hand class/method
+		# label (per user request, 2026-08-25: "don't allow the CI line to
+		# overwrite the class label even though it should. Instead end the
+		# line with ... so the user knows it extends"). `xlim_clip` above
+		# only excludes an outlier row's own CI from the *axis range*
+		# computation -- the segment itself is still drawn with its real
+		# (unclipped) `ci_a`/`ci_b`, and relying on `coord_cartesian(...,
+		# clip = "on")` to cut it off at the panel edge is not guaranteed to
+		# land before the label's own occupied width, only before the
+		# panel's absolute edge. So clip the segment's drawn endpoints
+		# explicitly, in data space, to the same range the axis will
+		# actually show (`panel_range` -- the outlier-excluding range when
+		# there is one, otherwise the full finite range of every row), and
+		# mark truncated ends with a short "..." so the reader knows the
+		# true interval extends further than shown.
+		panel_range = {
+			keep = if (any(is_width_outlier)) {
+				c(d$estimate, d$ci_a[!is_width_outlier], d$ci_b[!is_width_outlier], null_x)
+			} else {
+				c(d$estimate, d$ci_a, d$ci_b, null_x)
+			}
+			keep = keep[is.finite(keep)]
+			if (length(keep) > 0L) range(keep) else c(null_x, null_x)
+		}
+		d$ci_a_draw = ifelse(is.finite(d$ci_a), pmax(d$ci_a, panel_range[1]), d$ci_a)
+		d$ci_b_draw = ifelse(is.finite(d$ci_b), pmin(d$ci_b, panel_range[2]), d$ci_b)
+		d$truncated_left = is.finite(d$ci_a) & d$ci_a < panel_range[1]
+		d$truncated_right = is.finite(d$ci_b) & d$ci_b > panel_range[2]
 		# Right expansion reserves panel room for the right-aligned
 		# class/method label column (`x = Inf, hjust = 1` below) -- per user
 		# request, 2026-08-21, originally much wider (`1.6`) than the old
@@ -2649,8 +2709,23 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		forest = ggplot2::ggplot(d, ggplot2::aes(y = y)) +
 			ggplot2::geom_vline(xintercept = null_x, linetype = "dashed", color = "grey40") +
 			ggplot2::geom_segment(
-				ggplot2::aes(x = ci_a, xend = ci_b, yend = y, color = significant),
+				ggplot2::aes(x = ci_a_draw, xend = ci_b_draw, yend = y, color = significant),
 				linewidth = 1
+			) +
+			# "..." markers where a segment was clipped short of its real
+			# `ci_a`/`ci_b` (see the `panel_range`/`truncated_left`/
+			# `truncated_right` comment above) -- `data = subset(...)` so
+			# these layers contribute no rows (and no phantom legend/axis
+			# influence) when nothing was truncated.
+			ggplot2::geom_text(
+				data = d[d$truncated_right, , drop = FALSE],
+				ggplot2::aes(x = ci_b_draw, label = "...", color = significant),
+				hjust = 0, size = 2.6, fontface = "bold"
+			) +
+			ggplot2::geom_text(
+				data = d[d$truncated_left, , drop = FALSE],
+				ggplot2::aes(x = ci_a_draw, label = "...", color = significant),
+				hjust = 1, size = 2.6, fontface = "bold"
 			) +
 			ggplot2::geom_point(ggplot2::aes(x = estimate, color = significant), size = 1.6) +
 			# One combined "pval = ..., width = ..." label above the line --
@@ -2758,7 +2833,7 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# the only text left that needs reserved *horizontal* panel room --
 		# the p-value/width labels are centered on each segment now, not
 		# flanking it, so they no longer factor into page/image width sizing.
-		run_all_inference_stack_forest_and_box(forest, box, n_rows = nrow(d), max_label_chars = max(nchar(d$right_full_label)))
+		run_all_inference_stack_forest_and_box(forest, box, n_rows = nrow(d), max_label_chars = max(nchar(d$right_full_label)), has_boxplot = n_est > 5L)
 	}), estimands)
 }
 
@@ -2782,7 +2857,7 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_stack_forest_and_box = function(forest, box = NULL, n_rows, max_label_chars) {
+run_all_inference_stack_forest_and_box = function(forest, box = NULL, n_rows, max_label_chars, has_boxplot = TRUE) {
 	# ggplotGrob() renders text metrics immediately (unlike building a bare
 	# ggplot object, which stays lazy until printed) -- it needs an active
 	# graphics device to do that measurement, even though nothing is
@@ -2822,7 +2897,15 @@ run_all_inference_stack_forest_and_box = function(forest, box = NULL, n_rows, ma
 	} else {
 		gb = ggplot2::ggplotGrob(box)
 		pb = gb$layout[gb$layout$name == "panel", , drop = FALSE]
-		gb$heights[pb$t] = grid::unit(EDI_INFERENCE_SUITE_BOX_PANEL_HEIGHT_IN, "in")
+		# Dots-only subplots (no `geom_boxplot()` layer, `has_boxplot = FALSE`
+		# -- see `EDI_INFERENCE_SUITE_DOTS_PANEL_HEIGHT_IN`'s own docs) get a
+		# shorter panel than a real box-and-whisker.
+		box_panel_height_in = if (isTRUE(has_boxplot)) {
+			EDI_INFERENCE_SUITE_BOX_PANEL_HEIGHT_IN
+		} else {
+			EDI_INFERENCE_SUITE_DOTS_PANEL_HEIGHT_IN
+		}
+		gb$heights[pb$t] = grid::unit(box_panel_height_in, "in")
 		rbind(gf, gb, size = "first")
 	}
 	attr(g, "edi_n_rows") = as.integer(n_rows)
@@ -2916,19 +2999,22 @@ run_all_inference_plot_height_in = function(p) {
 
 #' Saves `run_all_inference()`'s CI forest plots to one timestamped
 #' multi-page PDF (one page per estimand -- per user request, 2026-08-19,
-#' "one PDF per estimand for CI"). A `pdf()` device can't vary page size
-#' page-to-page without reopening the file (which would truncate pages
-#' already written), so all pages share one page height/width -- height is
-#' sized from the \emph{largest single estimand's} row count (not summed
-#' across estimands, unlike the old faceted design -- the actual cause of
-#' the `ggplot2::ggsave()` "Dimensions exceed 50 inches" error the user
-#' hit, since a page's height only ever needs to fit one estimand's rows
-#' now; `run_all_inference_plot_height_in()`), width from real content
-#' (`run_all_inference_plot_max_label_chars()`'s longest on-page text
-#' label) rather than a flat constant (per the same request). The former
-#' second PDF (the standalone estimates number line) is gone -- per user
-#' request, 2026-08-21, its box-and-whisker is now a row at the bottom of
-#' the CI forest plot itself.
+#' "one PDF per estimand for CI"). A single `pdf()` device can't vary page
+#' size page-to-page (all pages drawn through one `onefile = TRUE` device
+#' share one page height/width), so when the \pkg{qpdf} package is
+#' installed, each estimand's page is instead rendered to its own
+#' correctly-sized single-page temp PDF (`ggplot2::ggsave()`, real content
+#' sizing per page -- same per-page formula the HTML embed already uses,
+#' `run_all_inference_plot_to_base64_png()`) and the pages are losslessly
+#' concatenated with `qpdf::pdf_combine()`, which preserves each source
+#' page's own `MediaBox` rather than re-rendering to a shared size (per
+#' user request, 2026-08-25: "cropped to size... I don't care if each page
+#' is a different size"). Falls back to the original shared-page-size
+#' behavior (sized from the *largest* estimand's height/width, so no page
+#' clips) when \pkg{qpdf} isn't installed. The former second PDF (the
+#' standalone estimates number line) is gone -- per user request,
+#' 2026-08-21, its box-and-whisker is now a row at the bottom of the CI
+#' forest plot itself.
 #'
 #' @param plots `run_all_inference_build_plots()`'s return value
 #'   (`list(ci_forest = <named list of ggplots, one per estimand>)`,
@@ -2940,21 +3026,35 @@ run_all_inference_plot_height_in = function(p) {
 #' @keywords internal
 #' @noRd
 run_all_inference_save_plots_pdf = function(plots, path) {
-	if (length(plots$ci_forest) > 0L) {
-		# One shared page height for the whole (multi-page) file -- the
-		# largest true height among this file's estimands (see
-		# `run_all_inference_plot_height_in()`'s own docs); a page for a
-		# shorter estimand just leaves blank space below its own content
-		# (absolute-unit panels never stretch to fill extra canvas), rather
-		# than distorting that estimand's row spacing to fill the shared
-		# page.
-		height = max(vapply(plots$ci_forest, run_all_inference_plot_height_in, numeric(1L)))
-		max_chars = max(vapply(plots$ci_forest, run_all_inference_plot_max_label_chars, integer(1L)))
-		width = min(14, max(6, 3 + 0.09 * max_chars))
-		grDevices::pdf(path, width = width, height = height, onefile = TRUE)
-		for (p in plots$ci_forest) run_all_inference_draw_plot(p)
-		grDevices::dev.off()
+	if (length(plots$ci_forest) == 0L) return(invisible(NULL))
+	if (requireNamespace("qpdf", quietly = TRUE)) {
+		page_paths = character(length(plots$ci_forest))
+		on.exit(unlink(page_paths[nzchar(page_paths)]), add = TRUE)
+		for (i in seq_along(plots$ci_forest)) {
+			p = plots$ci_forest[[i]]
+			page_height = run_all_inference_plot_height_in(p)
+			page_width = min(14, max(6, 3 + 0.09 * run_all_inference_plot_max_label_chars(p)))
+			page_paths[i] = tempfile(fileext = ".pdf")
+			grDevices::pdf(page_paths[i], width = page_width, height = page_height, onefile = FALSE)
+			run_all_inference_draw_plot(p)
+			grDevices::dev.off()
+		}
+		qpdf::pdf_combine(page_paths, output = path)
+		return(invisible(NULL))
 	}
+	# One shared page height for the whole (multi-page) file -- the
+	# largest true height among this file's estimands (see
+	# `run_all_inference_plot_height_in()`'s own docs); a page for a
+	# shorter estimand just leaves blank space below its own content
+	# (absolute-unit panels never stretch to fill extra canvas), rather
+	# than distorting that estimand's row spacing to fill the shared
+	# page.
+	height = max(vapply(plots$ci_forest, run_all_inference_plot_height_in, numeric(1L)))
+	max_chars = max(vapply(plots$ci_forest, run_all_inference_plot_max_label_chars, integer(1L)))
+	width = min(14, max(6, 3 + 0.09 * max_chars))
+	grDevices::pdf(path, width = width, height = height, onefile = TRUE)
+	for (p in plots$ci_forest) run_all_inference_draw_plot(p)
+	grDevices::dev.off()
 	invisible(NULL)
 }
 

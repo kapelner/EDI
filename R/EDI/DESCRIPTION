@@ -7,7 +7,18 @@ Authors@R: c(person(given = "Adam",
                   role = c("aut", "cre", "cph"),
                   email = "kapelner@qc.cuny.edu",
                   comment = c(ORCID = "0000-0001-5985-6792")))
-Description: Provides a vast array of experimental designs (both fixed and sequential) focusing on matching-on-the-fly techniques to maintain covariate balance for response types continuous, incidence, count, proportion, survival and ordinal. It then provides a vast array of inference types specific to the design and the response type (exact, asymptotic and distribution-free). The package provides full support for missing data. The package is fully optimized using Rcpp.
+Description: Implements a comprehensive suite of experimental designs, both
+    fixed (e.g., block, stratified, matched-pair, and optimal designs) and
+    sequential (including matching-on-the-fly designs that assign treatment
+    one subject at a time while maintaining covariate balance), for
+    continuous, incidence, count, proportion, survival, and ordinal response
+    types. For each design and response type combination, provides the
+    corresponding inference procedures, including exact, asymptotic, and
+    distribution-free methods, so that estimation and testing are always
+    matched to how the data were generated. Missing covariate data is
+    handled automatically via built-in imputation. Core numerical routines
+    are implemented in C++ via 'Rcpp' for speed on large designs and
+    simulation studies.
 License: GPL-3
 Encoding: UTF-8
 Depends:
@@ -57,6 +68,7 @@ Suggests:
     nnet,
     ordinal,
     pscl,
+    qpdf,
     quantreg,
     RcppXPtrUtils,
     Rfit,

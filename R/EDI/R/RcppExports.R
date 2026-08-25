@@ -1351,7 +1351,7 @@ compute_matching_wilcox_distr_parallel_cpp <- function(w_mat, m_mat, y, delta, t
 #' standalone — independent of any optimizer run — for direct numerical
 #' diagnostics (e.g. verifying convergence) at a specific parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
 #' @return The finite-difference-approximated score vector at \code{beta}.
@@ -1375,7 +1375,7 @@ get_log_binomial_regression_score_cpp <- function(X, y_r, beta) {
 #' Exported standalone — independent of any optimizer run — for direct numerical
 #' diagnostics at a specific parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
 #' @return The finite-difference-approximated Hessian matrix of the log-likelihood at \code{beta}.
@@ -1402,7 +1402,7 @@ get_log_binomial_regression_hessian_cpp <- function(X, y_r, beta) {
 #' of any optimizer run — for direct numerical diagnostics at a specific
 #' parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param weights_r A nonnegative numeric vector of observation weights.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
@@ -1429,7 +1429,7 @@ get_log_binomial_regression_weighted_score_cpp <- function(X, y_r, weights_r, be
 #' not an analytic second derivative. Exported standalone — independent of any
 #' optimizer run — for direct numerical diagnostics at a specific parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param weights_r A nonnegative numeric vector of observation weights.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
@@ -1457,7 +1457,7 @@ get_log_binomial_regression_weighted_hessian_cpp <- function(X, y_r, weights_r, 
 #' direct numerical diagnostics (e.g. verifying convergence, or cross-checking an
 #' analytic gradient elsewhere) at a specific parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
 #' @return The finite-difference-approximated score vector at \code{beta}.
@@ -1481,7 +1481,7 @@ get_identity_binomial_regression_score_cpp <- function(X, y_r, beta) {
 #' second derivative. Exported standalone — independent of any optimizer run —
 #' for direct numerical diagnostics at a specific parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
 #' @return The finite-difference-approximated Hessian matrix of the log-likelihood at \code{beta}.
@@ -1508,7 +1508,7 @@ get_identity_binomial_regression_hessian_cpp <- function(X, y_r, beta) {
 #' of any optimizer run — for direct numerical diagnostics at a specific
 #' parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param weights_r A nonnegative numeric vector of observation weights.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
@@ -1536,7 +1536,7 @@ get_identity_binomial_regression_weighted_score_cpp <- function(X, y_r, weights_
 #' independent of any optimizer run — for direct numerical diagnostics at a
 #' specific parameter value.
 #'
-#' @param X_r A numeric matrix of predictors.
+#' @param X A numeric matrix of predictors.
 #' @param y_r A binary (0/1) numeric vector of responses.
 #' @param weights_r A nonnegative numeric vector of observation weights.
 #' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
@@ -1572,7 +1572,7 @@ get_identity_binomial_regression_weighted_hessian_cpp <- function(X, y_r, weight
 #' \code{\link{fast_identity_binomial_regression_cpp}}'s risk-difference scale,
 #' or a logit-link model's odds-ratio scale.
 #'
-#' @param X_r A numeric matrix of predictors, \eqn{n \times p}; include an
+#' @param X A numeric matrix of predictors, \eqn{n \times p}; include an
 #'   explicit intercept column if desired (no implicit intercept).
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param maxit Maximum number of Fisher-scoring iterations.
@@ -1623,7 +1623,7 @@ fast_log_binomial_regression_cpp <- function(X, y_r, maxit = 100L, tol = 1e-6, f
 #' \code{\link{fast_identity_binomial_regression_with_var_cpp}}'s Details for
 #' the exact mechanics, identical here up to the link function).
 #'
-#' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+#' @param X A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param j 1-based index (into \code{X}'s columns) of the coefficient to
 #'   compute \code{ssq_b_j} for.
@@ -1660,7 +1660,7 @@ fast_log_binomial_regression_with_var_cpp <- function(X, y_r, j = 2L, maxit = 10
 #' nonnegative row weight \code{weights_r[i]}. Setting all weights to 1
 #' recovers \code{\link{fast_log_binomial_regression_cpp}} exactly.
 #'
-#' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+#' @param X A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param weights_r A nonnegative numeric vector of length \eqn{n} giving each
 #'   row's weight.
@@ -1724,7 +1724,7 @@ fast_log_binomial_regression_weighted_cpp <- function(X, y_r, weights_r, maxit =
 #' constrained line search; such cases surface as \code{converged = FALSE}
 #' rather than a silently invalid (out-of-range) fitted probability.
 #'
-#' @param X_r A numeric matrix of predictors, \eqn{n \times p}; include an
+#' @param X A numeric matrix of predictors, \eqn{n \times p}; include an
 #'   explicit intercept column if desired (no implicit intercept).
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param maxit Maximum number of Fisher-scoring iterations.
@@ -1789,7 +1789,7 @@ fast_identity_binomial_regression_cpp <- function(X, y_r, maxit = 100L, tol = 1e
 #' placeholders}, on both the success and failure paths; no caller should rely
 #' on them containing actual values.
 #'
-#' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+#' @param X A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param j 1-based index (into \code{X}'s columns) of the coefficient to
 #'   compute \code{ssq_b_j} for.
@@ -1829,7 +1829,7 @@ fast_identity_binomial_regression_with_var_cpp <- function(X, y_r, j = 2L, maxit
 #' exactly; this is the backend used when the identity-link model must be fit on
 #' bootstrap-reweighted or otherwise weighted data.
 #'
-#' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+#' @param X A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 #' @param weights_r A nonnegative numeric vector of length \eqn{n} giving each
 #'   row's weight.
@@ -2622,6 +2622,18 @@ fast_ordinal_cloglog_regression_with_var_cpp <- function(X, y, warm_start_params
     .Call(`_EDI_fast_ordinal_cloglog_regression_with_var_cpp`, X, y, warm_start_params, smart_cold_start, optimization_alg, fixed_idx, fixed_values, warm_start_fisher_info)
 }
 
+get_ordinal_glmm_score_cpp <- function(X, y, group_id, params, K, n_gh = 20L, max_abs_log_sigma = 8.0) {
+    .Call(`_EDI_get_ordinal_glmm_score_cpp`, X, y, group_id, params, K, n_gh, max_abs_log_sigma)
+}
+
+get_ordinal_glmm_hessian_cpp <- function(X, y, group_id, params, K, n_gh = 20L, max_abs_log_sigma = 8.0) {
+    .Call(`_EDI_get_ordinal_glmm_hessian_cpp`, X, y, group_id, params, K, n_gh, max_abs_log_sigma)
+}
+
+get_ordinal_glmm_neg_loglik_cpp <- function(X, y, group_id, params, K, n_gh = 20L, max_abs_log_sigma = 8.0) {
+    .Call(`_EDI_get_ordinal_glmm_neg_loglik_cpp`, X, y, group_id, params, K, n_gh, max_abs_log_sigma)
+}
+
 #' Fast Ordinal Cumulative-Logit Random-Intercept GLMM via Gauss-Hermite Quadrature (C++)
 #'
 #' Fits a cumulative-logit ordinal mixed model with a single Gaussian random intercept
@@ -2641,13 +2653,23 @@ fast_ordinal_cloglog_regression_with_var_cpp <- function(X, y, warm_start_params
 #' \log(\alpha_{K-1}-\alpha_{K-2}), \beta, \log\sigma]} — cutpoints are recovered as
 #' successive partial sums of \eqn{\alpha_1} and the exponentiated log-differences, which
 #' enforces \eqn{\alpha_1 < \cdots < \alpha_{K-1}} by construction rather than as a fitting
-#' constraint. \code{log_sigma} is hard-clamped to \eqn{[-\code{max\_abs\_log\_sigma},
-#' \code{max\_abs\_log\_sigma}]} during optimization; \code{variance_boundary_hit} in the
+#' constraint. Rows are stably sorted by \code{group_id} inside the kernel, so
+#' matched-group membership is invariant to input row order. Optimization uses
+#' supplied/cold, moderate-variance, and near-zero-variance starts, retains the
+#' smallest finite negative log-likelihood, and polishes that solution before
+#' applying a gradient-based convergence check. \code{log_sigma} is evaluated
+#' within \eqn{[-\code{max\_abs\_log\_sigma},
+#' \code{max\_abs\_log\_sigma}]} with a quadratic penalty on excursions beyond
+#' that interval whose analytic gradient matches the bounded objective;
+#' \code{variance_boundary_hit} in the
 #' return value flags whether the fitted \code{log_sigma} landed at that boundary (a sign
 #' the random-intercept variance is being driven to (near-)zero or is unbounded, and that
 #' \code{ssq_b_T}/\code{fisher_information} should be treated with caution). The Hessian
 #' used for inference is a numerical (central finite-difference, step \eqn{10^{-4}},
 #' symmetrized) second derivative of the analytic gradient, not a closed-form expression.
+#' At the valid near-zero variance boundary, treatment variance is computed
+#' conditional on that boundary by excluding the nonregular variance-parameter
+#' row and column.
 #'
 #' @references Pinheiro, J. C., and Bates, D. M. (1995). "Approximations to
 #'   the Log-Likelihood Function in the Nonlinear Mixed-Effects Model."
@@ -2692,7 +2714,8 @@ fast_ordinal_cloglog_regression_with_var_cpp <- function(X, y, warm_start_params
 #'   reparameterized vector), \code{log_sigma}, \code{ssq_b_T} (variance of \code{b[j_T]},
 #'   \code{NA} unless \code{estimate_only = FALSE} and the fit converged and the resulting
 #'   information matrix inverts successfully), \code{converged}, \code{neg_loglik},
-#'   \code{fisher_information} (the numerical Hessian, always returned), \code{gradient_norm},
+#'   \code{fisher_information} (the numerical Hessian, always returned), \code{score}
+#'   (the log-likelihood score at the returned parameters), \code{gradient_norm},
 #'   and \code{variance_boundary_hit} (\code{TRUE}/\code{FALSE}, or \code{NA} if the optimizer
 #'   itself threw an exception, in which case \code{converged = FALSE} and all other quantities
 #'   besides \code{b}/\code{alpha}/\code{log_sigma} are \code{NA}).

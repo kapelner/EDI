@@ -7,11 +7,11 @@
 get_log_binomial_regression_hessian_cpp(X, y_r, beta)
 }
 \arguments{
+\item{X}{A numeric matrix of predictors.}
+
 \item{y_r}{A binary (0/1) numeric vector of responses.}
 
 \item{beta}{A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.}
-
-\item{X_r}{A numeric matrix of predictors.}
 }
 \value{
 The finite-difference-approximated Hessian matrix of the log-likelihood at \code{beta}.

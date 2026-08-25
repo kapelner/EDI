@@ -7,13 +7,13 @@
 get_log_binomial_regression_weighted_hessian_cpp(X, y_r, weights_r, beta)
 }
 \arguments{
+\item{X}{A numeric matrix of predictors.}
+
 \item{y_r}{A binary (0/1) numeric vector of responses.}
 
 \item{weights_r}{A nonnegative numeric vector of observation weights.}
 
 \item{beta}{A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.}
-
-\item{X_r}{A numeric matrix of predictors.}
 }
 \value{
 The finite-difference-approximated weighted Hessian matrix at \code{beta}.

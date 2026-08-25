@@ -18,6 +18,9 @@ fast_identity_binomial_regression_cpp(
 )
 }
 \arguments{
+\item{X}{A numeric matrix of predictors, \eqn{n \times p}; include an
+explicit intercept column if desired (no implicit intercept).}
+
 \item{y_r}{A binary (0/1) numeric vector of responses, length \eqn{n}.}
 
 \item{maxit}{Maximum number of Fisher-scoring iterations.}
@@ -39,9 +42,6 @@ rather than estimate.}
 \item{warm_start_weights}{Optional initial working weights for the first IRLS iteration.}
 
 \item{warm_start_fisher_info}{Optional initial Fisher Information matrix for the first IRLS iteration.}
-
-\item{X_r}{A numeric matrix of predictors, \eqn{n \times p}; include an
-explicit intercept column if desired (no implicit intercept).}
 }
 \value{
 A list with components \code{b} (estimated coefficients

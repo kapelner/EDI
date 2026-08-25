@@ -225,6 +225,17 @@ incidence_gcomputation_expected_components = list(
 	InferenceIncidGCompAbstract = "IncidenceGComputation"
 )
 
+# 2026-08-23 (per user request, same fix as IncidenceKKGComputation's
+# identical change): IncidenceGComputation's compute_wald_two_sided_pval()/
+# compute_wald_confidence_interval()/compute_asymp_*() work correctly but had
+# no declared capability, hiding them from run_all_inference() -- see that
+# component's own comment in contracts_mixins.R. A component missing from
+# this list is expected to declare no capabilities (the pre-2026-08-23
+# baseline every OTHER "none"-likelihood-tier component here still matches).
+incidence_gcomputation_expected_capabilities = list(
+	IncidenceGComputation = "wald"
+)
+
 full_likelihood_expected_survival_components = list(
 	# Moved here from the deleted survival_none_tier_expected_components table
 	# (2026-08-17): InferenceSurvivalDepCensTransformRegr was misclassified
@@ -398,7 +409,9 @@ test_that("incidence g-computation behavior is component sourced", {
 		source = get(component$source_name, envir = asNamespace("EDI"))
 		metadata = EDI:::get_inference_class_metadata(class_name)
 
-		expect_identical(component$provides_capabilities, character(), info = component_name)
+		expected_capabilities = incidence_gcomputation_expected_capabilities[[component_name]]
+		if (is.null(expected_capabilities)) expected_capabilities = character()
+		expect_identical(component$provides_capabilities, expected_capabilities, info = component_name)
 		expect_identical(component$component_loader$load_policy, "lazy", info = component_name)
 		expect_identical(component$allowed_likelihood_tiers, "none", info = component_name)
 		expect_identical(sort(component$provides_public_methods), sort(names(source$public)), info = component_name)

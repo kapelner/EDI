@@ -131,6 +131,24 @@ InferenceRand = R6::R6Class("InferenceRand",
 		approximate_randomization_distribution_beta_hat_T = function(r = 501, delta = 0, transform_responses = "none", show_progress = TRUE, permutations = NULL, debug = FALSE, zero_one_logit_clamp = .Machine$double.eps){
 			private$active_resampling_operation = "rand"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			# Third top-level owner of the reusable randomization-worker cache's
+			# session lifetime (see `compute_randomization_distr_via_reused_worker_
+			# states()`'s `reuse_key` comment, and `compute_two_sided_pval_with_
+			# sequential_mc()`'s identical begin/end pair for the other two). This
+			# is a public, directly-callable method -- without its own session
+			# boundary, two back-to-back calls on the same instance with the same
+			# seed/permutations (the exact "is this seed-deterministic" contract
+			# every caller relies on) would silently reuse call 1's worker_state,
+			# including its sequentially-progressed base_fit_warm_start, as call
+			# 2's *starting* point instead of the original MLE -- reproducible
+			# only for classes without a compute_fast_randomization_distr() fast
+			# path (e.g. hurdle/zero-inflated count classes), since only those
+			# reach compute_randomization_distr_via_reused_worker_states() at all.
+			# The depth counter makes this safe to nest inside an already-active
+			# session too (e.g. reached via get_randomization_distribution_
+			# prefix() from compute_two_sided_pval_with_sequential_mc()).
+			private$begin_rand_worker_reuse_session()
+			on.exit(private$end_rand_worker_reuse_session(), add = TRUE)
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertNumeric(delta); assertCount(r, positive = TRUE); assertFlag(debug)

@@ -477,6 +477,21 @@ shared state. Phase 3 must migrate `assess_combined_fit()` and the provisional
 coefficient ceiling into the centralized classifier before deleting the
 class-local implementation.
 
+`InferenceOrdinalKKGLMM` also has temporary native optimizer hardening. Its
+ordinal random-intercept kernel retains multistart L-BFGS for global basin
+selection, then conditionally applies a damped-Newton polish when the finite
+selected fit still exceeds the projected-score tolerance. Newton uses the
+kernel's numerical Hessian and backtracking; a polished point is retained only
+when its parameters, objective, and gradient are finite and the objective does
+not increase. At a valid lower random-effect variance boundary, the
+KKT-satisfied variance coordinate is excluded from the Newton system so that
+the remaining parameters can converge without turning a near-zero variance
+solution into nonestimability. The native fit reports
+`newton_polish_attempted`, `newton_polish_accepted`, and
+`newton_polish_iterations`; until Phase 3 exposes the shared diagnostics API,
+the inference class stores these fields in its private optimizer-diagnostics
+cache.
+
 ## Internal Implementation Plan
 
 ### Phase 1: Public wrapper and result object
@@ -550,6 +565,13 @@ After the optimizer diagnostics layer is implemented:
    centralized typed diagnostic classifier, prove primary/refit behavior
    remains equivalent, then remove the class-local helper methods and their
    component-contract entries.
+- [ ] TODO-23 (added 2026-08-25): thread the ordinal GLMM native
+   `newton_polish_attempted`, `newton_polish_accepted`, and
+   `newton_polish_iterations` fields through the shared fit-diagnostics object,
+   preserving the distinction between the multistart L-BFGS basin search and
+   the conditional damped-Newton convergence polish. Keep the projected-score
+   norm and lower-variance-boundary/KKT status alongside these fields so a
+   successful boundary polish is not classified as optimizer failure.
 - [ ] TODO-19 (added 2026-08-18, user decision): enrich
    `EDIInferenceSuiteResults`' per-class `diagnostics` element (see
    `inference_suite_inspect.md → Per-class diagnostics element`;

@@ -154,9 +154,12 @@ design's imputed covariates.}
   FALSE}) the standard error and degrees of freedom for reuse by
   \code{compute_asymp_confidence_interval()},
   \code{compute_asymp_two_sided_pval()}, and likelihood-test methods; a
-  fit that fails to converge or produces a coefficient magnitude beyond
-  \code{private$max_abs_reasonable_coef} is cached as nonestimable rather
-  than returned.
+  fit that fails the kernel's projected-gradient convergence check,
+  produces non-finite parameters, reaches the upper random-effect variance
+  boundary, exceeds \code{private$max_abs_reasonable_coef}, or lacks a
+  finite positive treatment-coefficient variance is cached as nonestimable
+  rather than returned. A valid near-zero random-effect variance boundary
+  is accepted using conditional fixed-effect information.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKGLMM$compute_estimate(estimate_only = FALSE)}

@@ -77,7 +77,8 @@ A list with components \code{b} (\eqn{\hat\beta}), \code{alpha} (the \eqn{K-1}
   reparameterized vector), \code{log_sigma}, \code{ssq_b_T} (variance of \code{b[j_T]},
   \code{NA} unless \code{estimate_only = FALSE} and the fit converged and the resulting
   information matrix inverts successfully), \code{converged}, \code{neg_loglik},
-  \code{fisher_information} (the numerical Hessian, always returned), \code{gradient_norm},
+  \code{fisher_information} (the numerical Hessian, always returned), \code{score}
+  (the log-likelihood score at the returned parameters), \code{gradient_norm},
   and \code{variance_boundary_hit} (\code{TRUE}/\code{FALSE}, or \code{NA} if the optimizer
   itself threw an exception, in which case \code{converged = FALSE} and all other quantities
   besides \code{b}/\code{alpha}/\code{log_sigma} are \code{NA}).
@@ -100,13 +101,23 @@ reparameterized vector \eqn{[\alpha_1, \log(\alpha_2-\alpha_1), \ldots,
 \log(\alpha_{K-1}-\alpha_{K-2}), \beta, \log\sigma]} — cutpoints are recovered as
 successive partial sums of \eqn{\alpha_1} and the exponentiated log-differences, which
 enforces \eqn{\alpha_1 < \cdots < \alpha_{K-1}} by construction rather than as a fitting
-constraint. \code{log_sigma} is hard-clamped to \eqn{[-\code{max\_abs\_log\_sigma},
-\code{max\_abs\_log\_sigma}]} during optimization; \code{variance_boundary_hit} in the
+constraint. Rows are stably sorted by \code{group_id} inside the kernel, so
+matched-group membership is invariant to input row order. Optimization uses
+supplied/cold, moderate-variance, and near-zero-variance starts, retains the
+smallest finite negative log-likelihood, and polishes that solution before
+applying a gradient-based convergence check. \code{log_sigma} is evaluated
+within \eqn{[-\code{max\_abs\_log\_sigma},
+\code{max\_abs\_log\_sigma}]} with a quadratic penalty on excursions beyond
+that interval whose analytic gradient matches the bounded objective;
+\code{variance_boundary_hit} in the
 return value flags whether the fitted \code{log_sigma} landed at that boundary (a sign
 the random-intercept variance is being driven to (near-)zero or is unbounded, and that
 \code{ssq_b_T}/\code{fisher_information} should be treated with caution). The Hessian
 used for inference is a numerical (central finite-difference, step \eqn{10^{-4}},
 symmetrized) second derivative of the analytic gradient, not a closed-form expression.
+At the valid near-zero variance boundary, treatment variance is computed
+conditional on that boundary by excluding the nonregular variance-parameter
+row and column.
 }
 \references{
 Pinheiro, J. C., and Bates, D. M. (1995). "Approximations to

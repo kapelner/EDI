@@ -27,7 +27,7 @@ test_that("fast_ordinal_glmm_cpp output is finite and converged", {
   set.seed(7)
   n_grp <- 30L; grp_sz <- 4L; n <- n_grp * grp_sz
   group_id <- as.integer(rep(seq_len(n_grp), each = grp_sz))
-  w  <- rep(c(0L, 1L), n)
+  w  <- rep(c(0L, 1L), length.out = n)
   x1 <- rnorm(n)
   re <- rnorm(n_grp, sd = 0.5)[group_id]
   eta <- 0.4 * w + 0.3 * x1 + re

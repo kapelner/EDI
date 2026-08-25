@@ -2349,6 +2349,57 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// get_ordinal_glmm_score_cpp
+NumericVector get_ordinal_glmm_score_cpp(const Rcpp::NumericMatrix& X, const Rcpp::IntegerVector& y, const Rcpp::IntegerVector& group_id, const Rcpp::NumericVector& params, int K, int n_gh, double max_abs_log_sigma);
+RcppExport SEXP _EDI_get_ordinal_glmm_score_cpp(SEXP XSEXP, SEXP ySEXP, SEXP group_idSEXP, SEXP paramsSEXP, SEXP KSEXP, SEXP n_ghSEXP, SEXP max_abs_log_sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::IntegerVector& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const Rcpp::IntegerVector& >::type group_id(group_idSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< int >::type n_gh(n_ghSEXP);
+    Rcpp::traits::input_parameter< double >::type max_abs_log_sigma(max_abs_log_sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_ordinal_glmm_score_cpp(X, y, group_id, params, K, n_gh, max_abs_log_sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_ordinal_glmm_hessian_cpp
+NumericMatrix get_ordinal_glmm_hessian_cpp(const Rcpp::NumericMatrix& X, const Rcpp::IntegerVector& y, const Rcpp::IntegerVector& group_id, const Rcpp::NumericVector& params, int K, int n_gh, double max_abs_log_sigma);
+RcppExport SEXP _EDI_get_ordinal_glmm_hessian_cpp(SEXP XSEXP, SEXP ySEXP, SEXP group_idSEXP, SEXP paramsSEXP, SEXP KSEXP, SEXP n_ghSEXP, SEXP max_abs_log_sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::IntegerVector& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const Rcpp::IntegerVector& >::type group_id(group_idSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< int >::type n_gh(n_ghSEXP);
+    Rcpp::traits::input_parameter< double >::type max_abs_log_sigma(max_abs_log_sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_ordinal_glmm_hessian_cpp(X, y, group_id, params, K, n_gh, max_abs_log_sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_ordinal_glmm_neg_loglik_cpp
+double get_ordinal_glmm_neg_loglik_cpp(const Rcpp::NumericMatrix& X, const Rcpp::IntegerVector& y, const Rcpp::IntegerVector& group_id, const Rcpp::NumericVector& params, int K, int n_gh, double max_abs_log_sigma);
+RcppExport SEXP _EDI_get_ordinal_glmm_neg_loglik_cpp(SEXP XSEXP, SEXP ySEXP, SEXP group_idSEXP, SEXP paramsSEXP, SEXP KSEXP, SEXP n_ghSEXP, SEXP max_abs_log_sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::IntegerVector& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const Rcpp::IntegerVector& >::type group_id(group_idSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< int >::type K(KSEXP);
+    Rcpp::traits::input_parameter< int >::type n_gh(n_ghSEXP);
+    Rcpp::traits::input_parameter< double >::type max_abs_log_sigma(max_abs_log_sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_ordinal_glmm_neg_loglik_cpp(X, y, group_id, params, K, n_gh, max_abs_log_sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
 // fast_ordinal_glmm_cpp
 List fast_ordinal_glmm_cpp(const Rcpp::NumericMatrix& X, const Rcpp::IntegerVector& y, const Rcpp::IntegerVector& group_id, int K, int j_T, bool smart_cold_start, bool estimate_only, int n_gh, double max_abs_log_sigma, int maxit, double eps_g, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params, Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta, std::string optimization_alg, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx, Rcpp::Nullable<Rcpp::NumericVector> fixed_values, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info);
 RcppExport SEXP _EDI_fast_ordinal_glmm_cpp(SEXP XSEXP, SEXP ySEXP, SEXP group_idSEXP, SEXP KSEXP, SEXP j_TSEXP, SEXP smart_cold_startSEXP, SEXP estimate_onlySEXP, SEXP n_ghSEXP, SEXP max_abs_log_sigmaSEXP, SEXP maxitSEXP, SEXP eps_gSEXP, SEXP warm_start_paramsSEXP, SEXP warm_start_betaSEXP, SEXP optimization_algSEXP, SEXP fixed_idxSEXP, SEXP fixed_valuesSEXP, SEXP warm_start_fisher_infoSEXP) {
@@ -5385,6 +5436,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_get_ordinal_cloglog_regression_hessian_cpp", (DL_FUNC) &_EDI_get_ordinal_cloglog_regression_hessian_cpp, 5},
     {"_EDI_fast_ordinal_cloglog_regression_cpp", (DL_FUNC) &_EDI_fast_ordinal_cloglog_regression_cpp, 11},
     {"_EDI_fast_ordinal_cloglog_regression_with_var_cpp", (DL_FUNC) &_EDI_fast_ordinal_cloglog_regression_with_var_cpp, 8},
+    {"_EDI_get_ordinal_glmm_score_cpp", (DL_FUNC) &_EDI_get_ordinal_glmm_score_cpp, 7},
+    {"_EDI_get_ordinal_glmm_hessian_cpp", (DL_FUNC) &_EDI_get_ordinal_glmm_hessian_cpp, 7},
+    {"_EDI_get_ordinal_glmm_neg_loglik_cpp", (DL_FUNC) &_EDI_get_ordinal_glmm_neg_loglik_cpp, 7},
     {"_EDI_fast_ordinal_glmm_cpp", (DL_FUNC) &_EDI_fast_ordinal_glmm_cpp, 17},
     {"_EDI_get_ordinal_probit_regression_score_cpp", (DL_FUNC) &_EDI_get_ordinal_probit_regression_score_cpp, 5},
     {"_EDI_get_ordinal_probit_regression_hessian_cpp", (DL_FUNC) &_EDI_get_ordinal_probit_regression_hessian_cpp, 5},

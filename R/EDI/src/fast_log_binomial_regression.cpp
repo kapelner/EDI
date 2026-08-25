@@ -672,7 +672,7 @@ Eigen::MatrixXd constrained_binomial_weighted_hessian_cpp_impl(const Eigen::Ref<
 //' standalone — independent of any optimizer run — for direct numerical
 //' diagnostics (e.g. verifying convergence) at a specific parameter value.
 //'
-//' @param X_r A numeric matrix of predictors.
+//' @param X A numeric matrix of predictors.
 //' @param y_r A binary (0/1) numeric vector of responses.
 //' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
 //' @return The finite-difference-approximated score vector at \code{beta}.
@@ -701,7 +701,7 @@ Eigen::VectorXd get_log_binomial_regression_score_cpp(const Eigen::Map<Eigen::Ma
 //' Exported standalone — independent of any optimizer run — for direct numerical
 //' diagnostics at a specific parameter value.
 //'
-//' @param X_r A numeric matrix of predictors.
+//' @param X A numeric matrix of predictors.
 //' @param y_r A binary (0/1) numeric vector of responses.
 //' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
 //' @return The finite-difference-approximated Hessian matrix of the log-likelihood at \code{beta}.
@@ -733,7 +733,7 @@ Eigen::MatrixXd get_log_binomial_regression_hessian_cpp(const Eigen::Map<Eigen::
 //' of any optimizer run — for direct numerical diagnostics at a specific
 //' parameter value.
 //'
-//' @param X_r A numeric matrix of predictors.
+//' @param X A numeric matrix of predictors.
 //' @param y_r A binary (0/1) numeric vector of responses.
 //' @param weights_r A nonnegative numeric vector of observation weights.
 //' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
@@ -768,7 +768,7 @@ Eigen::VectorXd get_log_binomial_regression_weighted_score_cpp(const Eigen::Map<
 //' not an analytic second derivative. Exported standalone — independent of any
 //' optimizer run — for direct numerical diagnostics at a specific parameter value.
 //'
-//' @param X_r A numeric matrix of predictors.
+//' @param X A numeric matrix of predictors.
 //' @param y_r A binary (0/1) numeric vector of responses.
 //' @param weights_r A nonnegative numeric vector of observation weights.
 //' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
@@ -804,7 +804,7 @@ Eigen::MatrixXd get_log_binomial_regression_weighted_hessian_cpp(const Eigen::Ma
 //' direct numerical diagnostics (e.g. verifying convergence, or cross-checking an
 //' analytic gradient elsewhere) at a specific parameter value.
 //'
-//' @param X_r A numeric matrix of predictors.
+//' @param X A numeric matrix of predictors.
 //' @param y_r A binary (0/1) numeric vector of responses.
 //' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
 //' @return The finite-difference-approximated score vector at \code{beta}.
@@ -833,7 +833,7 @@ Eigen::VectorXd get_identity_binomial_regression_score_cpp(const Eigen::Map<Eige
 //' second derivative. Exported standalone — independent of any optimizer run —
 //' for direct numerical diagnostics at a specific parameter value.
 //'
-//' @param X_r A numeric matrix of predictors.
+//' @param X A numeric matrix of predictors.
 //' @param y_r A binary (0/1) numeric vector of responses.
 //' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
 //' @return The finite-difference-approximated Hessian matrix of the log-likelihood at \code{beta}.
@@ -865,7 +865,7 @@ Eigen::MatrixXd get_identity_binomial_regression_hessian_cpp(const Eigen::Map<Ei
 //' of any optimizer run — for direct numerical diagnostics at a specific
 //' parameter value.
 //'
-//' @param X_r A numeric matrix of predictors.
+//' @param X A numeric matrix of predictors.
 //' @param y_r A binary (0/1) numeric vector of responses.
 //' @param weights_r A nonnegative numeric vector of observation weights.
 //' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the score.
@@ -901,7 +901,7 @@ Eigen::VectorXd get_identity_binomial_regression_weighted_score_cpp(const Eigen:
 //' independent of any optimizer run — for direct numerical diagnostics at a
 //' specific parameter value.
 //'
-//' @param X_r A numeric matrix of predictors.
+//' @param X A numeric matrix of predictors.
 //' @param y_r A binary (0/1) numeric vector of responses.
 //' @param weights_r A nonnegative numeric vector of observation weights.
 //' @param beta A numeric vector of coefficients \eqn{\beta} at which to evaluate the Hessian.
@@ -945,7 +945,7 @@ Eigen::MatrixXd get_identity_binomial_regression_weighted_hessian_cpp(const Eige
 //' \code{\link{fast_identity_binomial_regression_cpp}}'s risk-difference scale,
 //' or a logit-link model's odds-ratio scale.
 //'
-//' @param X_r A numeric matrix of predictors, \eqn{n \times p}; include an
+//' @param X A numeric matrix of predictors, \eqn{n \times p}; include an
 //'   explicit intercept column if desired (no implicit intercept).
 //' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 //' @param maxit Maximum number of Fisher-scoring iterations.
@@ -1009,7 +1009,7 @@ List fast_log_binomial_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
 //' \code{\link{fast_identity_binomial_regression_with_var_cpp}}'s Details for
 //' the exact mechanics, identical here up to the link function).
 //'
-//' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+//' @param X A numeric matrix of predictors, \eqn{n \times p}.
 //' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 //' @param j 1-based index (into \code{X}'s columns) of the coefficient to
 //'   compute \code{ssq_b_j} for.
@@ -1059,7 +1059,7 @@ List fast_log_binomial_regression_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>
 //' nonnegative row weight \code{weights_r[i]}. Setting all weights to 1
 //' recovers \code{\link{fast_log_binomial_regression_cpp}} exactly.
 //'
-//' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+//' @param X A numeric matrix of predictors, \eqn{n \times p}.
 //' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 //' @param weights_r A nonnegative numeric vector of length \eqn{n} giving each
 //'   row's weight.
@@ -1139,7 +1139,7 @@ List fast_log_binomial_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>
 //' constrained line search; such cases surface as \code{converged = FALSE}
 //' rather than a silently invalid (out-of-range) fitted probability.
 //'
-//' @param X_r A numeric matrix of predictors, \eqn{n \times p}; include an
+//' @param X A numeric matrix of predictors, \eqn{n \times p}; include an
 //'   explicit intercept column if desired (no implicit intercept).
 //' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 //' @param maxit Maximum number of Fisher-scoring iterations.
@@ -1216,7 +1216,7 @@ List fast_identity_binomial_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
 //' placeholders}, on both the success and failure paths; no caller should rely
 //' on them containing actual values.
 //'
-//' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+//' @param X A numeric matrix of predictors, \eqn{n \times p}.
 //' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 //' @param j 1-based index (into \code{X}'s columns) of the coefficient to
 //'   compute \code{ssq_b_j} for.
@@ -1269,7 +1269,7 @@ List fast_identity_binomial_regression_with_var_cpp(const Eigen::Map<Eigen::Matr
 //' exactly; this is the backend used when the identity-link model must be fit on
 //' bootstrap-reweighted or otherwise weighted data.
 //'
-//' @param X_r A numeric matrix of predictors, \eqn{n \times p}.
+//' @param X A numeric matrix of predictors, \eqn{n \times p}.
 //' @param y_r A binary (0/1) numeric vector of responses, length \eqn{n}.
 //' @param weights_r A nonnegative numeric vector of length \eqn{n} giving each
 //'   row's weight.

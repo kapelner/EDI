@@ -1,5 +1,4 @@
 file	target
-R/README.md	package_metadata/warm_starts.md
 R/package_metadata/finished_features/m_out_of_n_bootstrap_implementation_spec.md	../package_tests/path_audit_hardening_report.md
 R/package_metadata/finished_features/m_out_of_n_bootstrap_implementation_spec.md	optimizer_diagnostics_report.md
 R/package_metadata/finished_features/m_out_of_n_bootstrap_implementation_spec.md	prw_subsampling_implementation_spec.md

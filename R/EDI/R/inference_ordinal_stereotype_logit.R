@@ -67,7 +67,7 @@ OrdinalStereotypeLikelihoodSource = list(
 			beta = suppressWarnings(as.numeric(beta)[1L])
 			is.finite(beta) && abs(beta) <= 10
 		},
-		stereotype_fit_is_usable = function(fit, require_standard_error = FALSE, check_treatment = TRUE){
+		stereotype_fit_is_usable = function(fit, require_standard_error = FALSE, check_treatment = TRUE, fixed_idx = NULL, require_information_pd = TRUE){
 			if (is.null(fit) || !isTRUE(fit$converged)) return(FALSE)
 			if (check_treatment) {
 				beta = suppressWarnings(as.numeric(fit$b)[1L])
@@ -81,10 +81,53 @@ OrdinalStereotypeLikelihoodSource = list(
 					return(FALSE)
 				}
 				information = (information + t(information)) / 2
-				is_positive_definite = !is.null(tryCatch(chol(information), error = function(e) NULL))
-				reciprocal_condition = tryCatch(rcond(information), error = function(e) NA_real_)
-				if (!is_positive_definite || !is.finite(reciprocal_condition) || reciprocal_condition <= sqrt(.Machine$double.eps)) {
-					return(FALSE)
+
+				# require_information_pd = FALSE: this fit is only ever going to
+				# supply a neg_loglik value (a parametric-bootstrap LR replicate's
+				# full/unconstrained refit -- see simulate_under_lik_null() below),
+				# never a variance/SE. The stereotype model's gamma (loading)
+				# parameters are a textbook Davies-type non-regular case: they are
+				# NOT identified when the treatment coefficient beta is at/near
+				# zero -- exactly the neighborhood every null-simulated bootstrap
+				# replicate's true DGP sits in, so the Fisher information is
+				# expected to be near-singular in the gamma directions on this
+				# refit, not a sign of a broken fit. neg_loglik itself doesn't
+				# depend on the information matrix being invertible, so skip the
+				# PD/conditioning gate entirely for this use; convergence,
+				# coefficient-finiteness, and information-finiteness (checked
+				# above) remain the real usability signals here.
+				if (require_information_pd) {
+					# A delta-constrained null fit (fixed_idx = the held-fixed
+					# treatment coefficient) can leave other parameters structurally
+					# unidentified too -- e.g. a stereotype loading whose only
+					# nonzero information entries are cross-terms with the now-fixed
+					# treatment column, so its row collapses to all-zero once that
+					# column is excluded. Cascade the exclusion until no further
+					# all-zero rows remain, then check PD/conditioning only over the
+					# parameters genuinely identified at this fit (see
+					# InferenceIncidKKCondLogitOneLik's assess_combined_fit() for the
+					# same pattern).
+					free_idx = seq_len(nrow(information))
+					if (!is.null(fixed_idx)) {
+						fixed_idx_int = suppressWarnings(as.integer(fixed_idx))
+						fixed_idx_int = fixed_idx_int[is.finite(fixed_idx_int) & fixed_idx_int >= 1L & fixed_idx_int <= nrow(information)]
+						free_idx = setdiff(free_idx, fixed_idx_int)
+						repeat {
+							if (length(free_idx) < 1L) break
+							sub = information[free_idx, free_idx, drop = FALSE]
+							row_max = apply(abs(sub), 1L, max)
+							zero_local = which(row_max <= 1e-8)
+							if (length(zero_local) == 0L) break
+							free_idx = free_idx[-zero_local]
+						}
+					}
+					if (length(free_idx) < 1L) return(FALSE)
+					information_free = information[free_idx, free_idx, drop = FALSE]
+					is_positive_definite = !is.null(tryCatch(chol(information_free), error = function(e) NULL))
+					reciprocal_condition = tryCatch(rcond(information_free), error = function(e) NA_real_)
+					if (!is_positive_definite || !is.finite(reciprocal_condition) || reciprocal_condition <= sqrt(.Machine$double.eps)) {
+						return(FALSE)
+					}
 				}
 			}
 
@@ -242,7 +285,7 @@ OrdinalStereotypeLikelihoodSource = list(
 						),
 						error = function(e) NULL
 					)
-					if (!private$stereotype_fit_is_usable(res, check_treatment = FALSE)) return(NULL)
+					if (!private$stereotype_fit_is_usable(res, check_treatment = FALSE, fixed_idx = j_treat)) return(NULL)
 					list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik))
 				},
 				extract_start = function(fit){ as.numeric(fit$params) },
@@ -303,7 +346,13 @@ OrdinalStereotypeLikelihoodSource = list(
 				),
 				error = function(e) NULL
 			)
-			if (!private$stereotype_fit_is_usable(full)) return(NULL)
+			# require_information_pd = FALSE: this refit (and its fit_null below)
+			# feed only into neg_loglik() for the LR statistic, never a
+			# variance/SE -- see stereotype_fit_is_usable()'s own comment on
+			# this flag for why the gamma-direction near-singularity expected
+			# here (data simulated under H0: beta = 0) doesn't invalidate the
+			# refit.
+			if (!private$stereotype_fit_is_usable(full, require_information_pd = FALSE)) return(NULL)
 			list(
 				full_fit = full,
 				fit_null = function(d, start = NULL){
@@ -318,7 +367,7 @@ OrdinalStereotypeLikelihoodSource = list(
 						),
 						error = function(e) NULL
 					)
-					if (!private$stereotype_fit_is_usable(f2, check_treatment = FALSE)) return(NULL)
+					if (!private$stereotype_fit_is_usable(f2, check_treatment = FALSE, fixed_idx = j, require_information_pd = FALSE)) return(NULL)
 					f2
 				},
 				neg_loglik = function(fit) as.numeric(fit$neg_loglik %||% fit$neg_ll)

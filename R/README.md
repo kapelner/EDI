@@ -130,7 +130,7 @@ These methods are available only for inference classes whose internal
 \`supports_lik_ratio_param_bootstrap()\` capability is enabled. Unsupported
 classes error rather than silently falling back to another procedure.
 
-For a detailed performance report on the "Warm Start" acceleration strategies used during these resampling loops, see [Warm Start Strategies in EDI](package_metadata/warm_starts.md).
+For a detailed performance report on the "Warm Start" acceleration strategies used during these resampling loops, see [Warm Start Strategies in EDI](package_metadata/audits/warm_starts.html).
 
 A typical flow is:
 
