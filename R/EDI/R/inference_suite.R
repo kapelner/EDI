@@ -1466,7 +1466,25 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 			estimate = inf_obj$compute_estimate()
 			se = tryCatch({
 				priv = inf_obj$.__enclos_env__$private
-				if (is.function(priv$get_standard_error)) as.numeric(priv$get_standard_error()) else NA_real_
+				if (is.function(priv$get_standard_error)) {
+					as.numeric(priv$get_standard_error())
+				} else if (is.function(inf_obj$get_standard_error)) {
+					# Some classes (e.g. `InferenceIncidGCompRiskRatio`/
+					# `InferenceIncidGCompRiskDiff`, via the shared
+					# `IncidenceGComputation` component) deliberately expose
+					# `get_standard_error` as a *public* method instead of the
+					# usual private one -- composing `Wald`'s private version
+					# would collide with it (R6 forbids the same name in both
+					# slots). The private-only check above left `se` always
+					# `NA` for those classes even though the real SE was being
+					# computed and used correctly by their CI/p-value methods
+					# the whole time (per user report, 2026-08-25: "G Comp
+					# Risk Ratio" rows all showing `se = NA` despite varying,
+					# sensible `ci_a`/`ci_b`/`pval` per method).
+					as.numeric(inf_obj$get_standard_error())
+				} else {
+					NA_real_
+				}
 			}, error = function(e) NA_real_)
 			# `compute_conf_intervals = FALSE` (per user request, 2026-08-24 --
 			# "the CI bisection functions are very slow") skips the CI side of

@@ -306,15 +306,24 @@ write_comprehensive_suite_registry = function(registry = build_comprehensive_sui
 	invisible(registry)
 }
 
+print_table_one_line_per_category = function(x) {
+	tab = table(x, useNA = "ifany")
+	names(tab)[is.na(names(tab))] = "NA"
+	width = max(nchar(names(tab)))
+	for (name in names(tab)) {
+		message(formatC(name, width = -width), "  ", tab[[name]])
+	}
+}
+
 main = function() {
 	registry = write_comprehensive_suite_registry()
 	message("Wrote comprehensive suite registry rows: ", nrow(registry))
 	message("Coverage scopes:")
-	print(table(registry$coverage_scope, useNA = "ifany"))
+	print_table_one_line_per_category(registry$coverage_scope)
 	message("Source runners:")
-	print(table(registry$source_runner, useNA = "ifany"))
+	print_table_one_line_per_category(registry$source_runner)
 	message("Required coverage:")
-	print(table(registry$required_coverage, useNA = "ifany"))
+	print_table_one_line_per_category(registry$required_coverage)
 }
 
 main()
