@@ -293,6 +293,7 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 		strat_cox_strata_sub_cache = NULL,
 		cached_mod = NULL,
 		coxph_control = NULL,
+		max_abs_reasonable_coef = 1e4,
 		param_bootstrap_extreme_estimate_threshold = 0.5,
 		get_complexity_tier = function() "light",
 		shared = function(estimate_only = FALSE){
@@ -304,7 +305,7 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 				private$cache_nonestimable_estimate("strat_cox_fit_unavailable")
 				return(invisible(NULL))
 			}
-			if (abs(private$cached_values$beta_hat_T) > 0.5) {
+			if (abs(private$cached_values$beta_hat_T) > private$max_abs_reasonable_coef) {
 				private$cache_nonestimable_estimate("strat_cox_extreme_estimate")
 				return(invisible(NULL))
 			}
@@ -440,7 +441,7 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 				return(list(b = c(NA_real_, NA_real_), ssq_b_2 = NA_real_, neg_log_lik = NA_real_))
 			}
 			coef_w = tryCatch(as.numeric(stats::coef(mod)["w"]), error = function(e) NA_real_)
-			if (!is.finite(coef_w) || abs(coef_w) > 0.5) {
+			if (!is.finite(coef_w) || abs(coef_w) > private$max_abs_reasonable_coef) {
 				return(list(beta_hat_T = NA_real_, b = c(NA_real_, NA_real_), ssq_b_2 = NA_real_, neg_log_lik = tryCatch(as.numeric(-stats::logLik(mod)), error = function(e) NA_real_)))
 			}
 			ssq_w = tryCatch(as.numeric(stats::vcov(mod)["w", "w"]), error = function(e) NA_real_)
@@ -536,7 +537,7 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 		format_rcpp_output = function(fit){
 			if (is.null(fit) || !isTRUE(fit$converged)) return(list(b = c(NA_real_, NA_real_), ssq_b_2 = NA_real_, neg_log_lik = NA_real_))
 			beta_w  = as.numeric(fit$coefficients %||% fit$b)[1L]
-			if (!is.finite(beta_w) || abs(beta_w) > 0.5) {
+			if (!is.finite(beta_w) || abs(beta_w) > private$max_abs_reasonable_coef) {
 				return(list(beta_hat_T = NA_real_, b = c(NA_real_, NA_real_), ssq_b_2 = NA_real_, neg_log_lik = as.numeric(fit$neg_ll %||% fit$neg_log_lik), fisher_information = fit$fisher_information))
 			}
 			ssq_w   = if (!is.null(fit$vcov) && nrow(fit$vcov) >= 1L && is.finite(fit$vcov[1, 1]) && fit$vcov[1, 1] > 0)

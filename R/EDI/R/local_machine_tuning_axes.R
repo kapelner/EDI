@@ -198,8 +198,16 @@ edi_tuning_tune_cold_start = function(n_grid = c(50L, 200L, 1000L), reps = 5L,
 #' @noRd
 EDI_TUNING_WARM_START_OPERATION_CALLS = list(
 	jackknife = list(method = "compute_jackknife_estimate", args = list()),
+	# min_number_usable_samples is pinned explicitly (not left at each
+	# class's own default) because InferenceSurvivalDepCensTransform's
+	# compute_bootstrap_confidence_interval defaults it to 10 -- above this
+	# benchmark's B = 9L, which trips assertBootstrapArgs()'s
+	# min_number_usable_samples <= B check (confirmed as the cause of
+	# tune_EDI_for_this_machine()'s example failing on CI, 2026-08-24).
+	# Every other class's default is 5L, so 5L is safe everywhere.
 	non_param_boot = list(method = "compute_bootstrap_confidence_interval",
-	                       args = list(alpha = 0.2, B = 9L, show_progress = FALSE)),
+	                       args = list(alpha = 0.2, B = 9L, show_progress = FALSE,
+	                                   min_number_usable_samples = 5L)),
 	bayesian_boot = list(method = "compute_bayesian_bootstrap_confidence_interval",
 	                      args = list(alpha = 0.2, B = 9L, show_progress = FALSE)),
 	param_boot = list(method = "compute_param_bootstrap_confidence_interval",

@@ -540,12 +540,100 @@ deliberately does not cover:
   example harness (the package's kernels are pervasively OpenMP-parallel).
   Deployed as a targeted experiment in `R-CMD-check.yaml`
   (2026-08-17): re-enabled the Windows donttest pass with `OMP_NUM_THREADS=1`
-  pinned Windows-only, capped by the job's existing 90-minute
-  `timeout-minutes` (so worst case is a 90-minute wait, not a repeat of the
-  5.5-hour incident). **Not yet verified against a real CI run** — needs a
-  push to trigger the Windows leg and a watch of the result; if the hang
-  recurs, revert (`_R_CHECK_DONTTEST_EXAMPLES_` back to `'false'` on Windows,
-  drop `OMP_NUM_THREADS`) and fall back to per-file-group CI bisection.
+  pinned Windows-only, capped by the job's `timeout-minutes` (90 at the time
+  this was written; raised to 150 on 2026-08-19 for an unrelated reason —
+  the comment inside `R-CMD-check.yaml` claiming "90-minute" is stale and
+  needs updating to 150).
+
+  **Checked against real CI runs (2026-08-24, runs 32704188187 and
+  32731525153) — still not resolved, and worse than assumed:**
+  - **Windows still doesn't finish.** In both runs the windows-latest job
+    ran silently from `* checking files in 'vignettes' ... OK` all the way
+    to the job's 150-minute timeout with zero further output, then printed
+    `* checking examples ...` / `Execution halted` only because the cancel
+    signal flushed the buffer — i.e. it was still inside (or just entering)
+    the examples/donttest pass when killed, not stuck in a step that logged
+    anything. `OMP_NUM_THREADS=1` has not been shown to fix the original
+    hang; it's simply now bounded at 150 minutes instead of running to
+    GitHub's 6h hard kill (still far past the original "worst case ~90
+    minutes" assumption above, which itself is stale since the timeout is
+    150 now).
+  - **New discovery: the donttest pass is not "fast and clean" on the
+    other legs either**, contrary to the `R-CMD-check.yaml` env-block
+    comment ("macOS: ~32s, all 3 Ubuntu configs: ~67-68s"). On
+    `ubuntu-latest (release)` in both runs, `checking examples with
+    --run-donttest` took 20–26 minutes and ended in `ERROR`:
+    `tune_EDI_for_this_machine`'s own `\donttest{}` example
+    (`res = tune_EDI_for_this_machine(effort = "quick", dry_run = TRUE,
+    force = TRUE)`) spends ~1026s benchmarking one `InferenceSuite` cell of
+    its 828-cell grid, then crashes with `Error in
+    private$init_kk_passthrough(des_obj) : InferenceIncidKKGCompRiskDiff
+    requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or
+    DesignFixedBinaryMatch` — the internal benchmark harness is pairing
+    `InferenceIncidKKGCompRiskDiff` with an incompatible design in its
+    generated grid. This is a pre-existing bug (present in both the
+    2026-08-24 08:01 and 13:14 runs, unrelated to `OMP_NUM_THREADS`), not
+    something the Windows-only OMP change touches.
+  - **Implication:** the Windows-specific hang cannot be properly
+    re-verified until `tune_EDI_for_this_machine`'s benchmark-grid bug is
+    fixed — right now every leg's donttest pass is dominated by that one
+    example (slow even where it doesn't crash), which likely also explains
+    why Windows never even reaches a pass/fail verdict within 150 minutes:
+    it's plausibly stuck in the same benchmark grid, serialized further by
+    `OMP_NUM_THREADS=1`, either hitting the same crash eventually or
+    running long enough to hit the timeout first.
+
+  **Follow-up (2026-08-24, same day): the `InferenceIncidKKGCompRiskDiff`
+  crash was already independently fixed** by commit `9a91ce91` ("slow
+  paths now a constant, fixed some more bugs in testing", 2026-08-24
+  17:44 UTC+3) — landed *after* the two runs analyzed above, so neither
+  reflected it. The fix added a
+  `!infer_inference_requires_kk_matching_design(name)` filter to
+  `edi_tuning_live_families()` in `local_machine_tuning_harness.R`,
+  excluding any concrete class that needs a KK-matching design from the
+  benchmark grid (that function's own docstring already names this exact
+  CI failure as the confirmed cause). The next push (`916f6b9c`, run
+  `32773046195`, started 2026-08-24 20:17 UTC) includes this fix and
+  gives real signal:
+  - **Windows genuinely progressed for the first time.** `checking
+    examples ... [63s] OK` (no more silent stall), then `checking
+    examples with --run-donttest ... [38m] ERROR` — a real 38-minute run
+    ending in an actual R error, not an indefinite hang. This is the
+    first evidence `OMP_NUM_THREADS=1` is doing what it was meant to:
+    Windows now reaches a verdict instead of running forever.
+  - **But a second, different bug in the same example blocked it**: at
+    cell 144/338, `Error: min_number_usable_samples must be less than or
+    equal to B for compute_bootstrap_confidence_interval, but
+    min_number_usable_samples = 10 and B = 9.` Root cause:
+    `EDI_TUNING_WARM_START_OPERATION_CALLS$non_param_boot`
+    (`local_machine_tuning_axes.R`) hardcodes `B = 9L` for every class's
+    `compute_bootstrap_confidence_interval` benchmark call, but
+    `InferenceSurvivalDepCensTransform`'s override of that method
+    defaults `min_number_usable_samples = 10` (every other concrete
+    class defaults to `5L`, which is `<= 9`) — `assertBootstrapArgs()`
+    then rejects the combination. **Fixed** in
+    `local_machine_tuning_axes.R`: pinned `min_number_usable_samples =
+    5L` explicitly in that call's `args`, overriding every class's own
+    default so the benchmark-speed call can't trip this again regardless
+    of what an individual class defaults to.
+  - **Separately, `checking tests ...` (the full testthat suite) ran
+    from 21:36 to the 22:47 cancellation (~71 min) without finishing** —
+    consistent with the pre-existing "legitimately slow, not a hang"
+    finding from the 2026-08-19 timeout raise, not a new issue, but worth
+    noting it's now the long pole once the donttest pass itself is fast.
+  - **Status: still not fully verified — needs one more push+watch** with
+    the `min_number_usable_samples` fix in place to confirm the Windows
+    donttest pass completes cleanly (not just fails fast). Given
+    `checking examples ... [63s] OK` and a real 38-minute donttest error
+    (rather than a silent multi-hour stall), the original 5.5-hour hang
+    looks plausibly resolved by `OMP_NUM_THREADS=1` — but that is not yet
+    confirmed by a clean pass, only inferred from the absence of a stall.
+  - **Next step:** push, watch the Windows leg specifically for `checking
+    examples with --run-donttest ... OK` (not just "no longer silent"),
+    and only then close this item. If a stall recurs even with both bugs
+    fixed, revert (`_R_CHECK_DONTTEST_EXAMPLES_` back to `'false'` on
+    Windows, drop `OMP_NUM_THREADS`) and fall back to per-file-group CI
+    bisection.
 - [x] **Measure and gate the CRAN-facing check profile.** Measured
   2026-08-15 (`NOT_CRAN=false R CMD check --as-cran` on the mid-migration
   tree; `Status: 2 ERRORs, 1 WARNING, 6 NOTEs`). Findings:

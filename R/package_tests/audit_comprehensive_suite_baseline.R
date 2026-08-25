@@ -16,7 +16,16 @@ paths = list(
 	baseline_audit = artifact("comprehensive_suite_baseline_audit.csv"),
 	exemptions = artifact("comprehensive_suite_exemptions.csv"),
 	comprehensive = artifact("comprehensive_tests.R"),
-	testthat_dir = file.path(repo_root, "EDI", "tests", "testthat")
+	# 2026-08-24 ("moved test files around"): the large majority of what used
+	# to live under EDI/tests/testthat/ moved to package_tests/testthat_bulk/
+	# (test-bulk-non-cran.yml runs it separately from R CMD check); both
+	# directories must be scanned or hundreds of still-covered public APIs
+	# whose only testthat coverage moved would wrongly show up as
+	# "uncovered" here.
+	testthat_dirs = c(
+		file.path(repo_root, "EDI", "tests", "testthat"),
+		file.path(repo_root, "package_tests", "testthat_bulk")
+	)
 )
 
 read_required_csv = function(path, label) {
@@ -221,8 +230,8 @@ build_baseline_audit = function() {
 	arg_coverage = read_required_csv(paths$arg_coverage, "public_argument_combination_coverage")
 	comprehensive_results = read_comprehensive_results()
 	comprehensive_text = read_text(paths$comprehensive)
-	testthat_files = list.files(paths$testthat_dir, pattern = "[.]R$", full.names = TRUE)
-	testthat_files = testthat_files[!grepl("(^|/)helper-|(^|/)setup-|(^|/)teardown-", testthat_files)]
+	testthat_files = unlist(lapply(paths$testthat_dirs, list.files, pattern = "[.]R$", full.names = TRUE), use.names = FALSE)
+	testthat_files = testthat_files[!grepl("(^|/)helper-|(^|/)setup-|(^|/)teardown-|(^|/)fixtures/", testthat_files)]
 	testthat_text_by_file = setNames(lapply(testthat_files, read_text), basename(testthat_files))
 	
 	inventory$target = target_from_inventory(inventory)

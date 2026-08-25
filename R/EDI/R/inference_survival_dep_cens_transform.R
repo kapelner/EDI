@@ -325,6 +325,7 @@ SurvivalDepCensTransformSource = list(
 		# (inference_incidence_logit.R) for the eager-NULL-dropping
 		# explanation. cached_vc_params was previously undeclared entirely.
 		cached_mod = NULL,
+		max_abs_reasonable_coef = 1e4,
 		dep_cens_bootstrap_ci_max_abs = 2,
 		dep_cens_percentile_bootstrap_ci = function(alpha = 0.05, B = 1000, min_number_usable_samples = 10, show_progress = TRUE){
 			theta = tryCatch(
@@ -496,16 +497,13 @@ SurvivalDepCensTransformSource = list(
 					)
 				},
 				fit_ok = function(mod, X_fit, keep){
-					if (is.null(mod) || length(mod$b) < 2L || !is.finite(mod$b[2])) return(FALSE)
+					if (is.null(mod) || length(mod$b) < 2L || !is.finite(mod$b[2]) ||
+					    abs(mod$b[2]) > private$max_abs_reasonable_coef) return(FALSE)
 					if (estimate_only) return(TRUE)
 					is.finite(mod$ssq_b_2) && mod$ssq_b_2 > 0
 				}
 			)
 			if (!is.null(attempt$fit)){
-				if (!is.finite(attempt$fit$b[2]) || abs(attempt$fit$b[2]) > 0.5) {
-					private$cached_values$likelihood_test_context = NULL
-					return(NULL)
-				}
 				private$set_fit_warm_start(attempt$fit$b, "params", fisher = attempt$fit$fisher_information)
 				private$best_X_colnames = setdiff(colnames(attempt$X), c("(Intercept)", "treatment"))
 				vc_vals = as.numeric(tail(attempt$fit$b, 3L))

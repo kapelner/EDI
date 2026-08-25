@@ -47,6 +47,7 @@
 "public_workflow_coverage","smoke","InferencePropKKGLMM","exempted","InferencePropKKGLMM requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferencePropKKQuantileRegrIVWC","exempted","InferencePropKKQuantileRegrIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferencePropKKQuantileRegrOneLik","exempted","InferencePropKKQuantileRegrOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
+"public_workflow_coverage","smoke","InferenceSurvivalDepCensTransformRegr","exempted","Cannot load inference component SurvivalDepCensTransform: private method contract mismatch after load.",NA
 "public_workflow_coverage","smoke","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","exempted","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","exempted","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA
 "public_workflow_coverage","smoke","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","exempted","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC requires a KK matching-on-the-fly design (DesignSeqOneByOneKK14) or DesignFixedBinaryMatch.",NA

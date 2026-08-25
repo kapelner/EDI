@@ -1687,7 +1687,10 @@ EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS_NO_CI = c(
 EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS = c(
 	`inference class` = 14L, `cov mod` = 7L, estimand = 10L,
 	est = 8L, se = 8L, ci_a = 8L, ci_b = 8L,
-	pval = 9L, `pval method` = 14L, `ci method (if different)` = 12L, weight = 6L, status = 7L
+	# `ci method (if different)` needs at least 14 (its own "(if different)"
+	# suffix alone is 14 chars) -- 12 hard-truncated it to "(if differen"
+	# (per user report, 2026-08-25).
+	pval = 9L, `pval method` = 14L, `ci method (if different)` = 14L, weight = 6L, status = 7L
 )
 
 #' Word-wraps `text` to at most 2 lines no wider than `width` characters
@@ -1724,6 +1727,7 @@ run_all_inference_wrap_cell_2lines = function(text, width) {
 	# and would either leave the whole hyphenated word on one line (it
 	# fits within every current column cap) or hard-truncate it.
 	if (startsWith(text, "Kaplan-Meier")) return(c("Kaplan-", sub("^Kaplan-", "", text)))
+	if (identical(text, "cov mod")) return(c("cov", "mod"))
 	# Force these onto 2 lines even though they fit within the column cap
 	# (per user request, 2026-08-24), matching the wrapped look every typed
 	# sentinel already gets:
@@ -1808,13 +1812,23 @@ run_all_inference_wrap_cell_2lines = function(text, width) {
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_fmt_wrapped_row = function(vals, headers) {
+run_all_inference_fmt_wrapped_row = function(vals, headers, single_line = FALSE) {
 	widths = EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS[headers]
 	cells = mapply(run_all_inference_wrap_cell_2lines, vals, widths, SIMPLIFY = FALSE)
 	fmt = function(which_line) paste(
 		mapply(function(c, w) formatC(c[[which_line]], width = -w), cells, widths),
 		collapse = "  "
 	)
+	# `single_line = TRUE` (per user request, 2026-08-25: `compute_conf_
+	# intervals = FALSE` drops 3 columns -- ci_a/ci_b/"ci method (if
+	# different)" -- leaving enough width headroom that no remaining cell
+	# needs the second physical line) returns just line 1, no trailing
+	# blank second line -- true one-physical-line-per-row output, not just
+	# an empty-but-still-printed line 2. Callers use this for row VALUES
+	# only; the header keeps wrapping normally (2 lines) regardless, since
+	# header text (e.g. "ci method (if different)") is unrelated to
+	# whether CIs were computed for this run.
+	if (isTRUE(single_line)) return(fmt(1L))
 	c(fmt(1L), fmt(2L))
 }
 
@@ -2073,8 +2087,15 @@ run_all_inference_print_row = function(r, static, widths, headers = EDI_INFERENC
 			r$status
 		)
 	}
-	lines = run_all_inference_fmt_wrapped_row(vals, headers)
-	cat(lines[[1L]], "\n", lines[[2L]], "\n", sep = "")
+	# Single-line rows (per user request, 2026-08-25) when CIs were skipped
+	# for this run -- see `run_all_inference_fmt_wrapped_row()`'s own
+	# `single_line` doc for why this is safe here.
+	lines = run_all_inference_fmt_wrapped_row(vals, headers, single_line = !compute_conf_intervals)
+	if (!compute_conf_intervals) {
+		cat(lines[[1L]], "\n", sep = "")
+	} else {
+		cat(lines[[1L]], "\n", lines[[2L]], "\n", sep = "")
+	}
 }
 
 #' Prints the `cov_model` letter-key legend beneath the live table's bottom
@@ -2603,19 +2624,23 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# Right expansion reserves panel room for the right-aligned
 		# class/method label column (`x = Inf, hjust = 1` below) -- per user
 		# request, 2026-08-21, originally much wider (`1.6`) than the old
-		# numbers-only design needed. Cut to `0.5` (per user request,
+		# numbers-only design needed, then cut to `0.5` (per user request,
 		# 2026-08-24: "a lot of horizontal whitespace between the CI lines
-		# and the labels") -- the panel's total width already scales with
-		# label length independently (`run_all_inference_plot_save_width_
-		# in()`'s `3 + 0.09 * max_label_chars` formula), so this multiplier
-		# only controls the gap between the CI segment and the label, not
-		# whether the label fits at all (`run_all_inference_plot_to_base64_
-		# png()`/the PDF page-sizing path both derive width from
-		# `max_label_chars` directly).
+		# and the labels") -- which turned out too aggressive and let the
+		# label text overlap the CI line itself for longer labels (per user
+		# report, 2026-08-25: "leave enough horizontal space so the line
+		# doesn't write over the inference class name"). `0.9` is the
+		# middle ground: still a real cut from `1.6`, but restores enough
+		# margin for the label to clear the line. The panel's total width
+		# already scales with label length independently
+		# (`run_all_inference_plot_save_width_in()`'s `3 + 0.09 *
+		# max_label_chars` formula), so this multiplier only controls how
+		# that already-scaled width splits between the data-plotting area
+		# and the label margin, not whether the label fits at all.
 		x_scale = if (use_log10) {
-			ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = c(0.35, 0.5)))
+			ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = c(0.35, 0.9)))
 		} else {
-			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.35, 0.5)))
+			ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.35, 0.9)))
 		}
 		forest = ggplot2::ggplot(d, ggplot2::aes(y = y)) +
 			ggplot2::geom_vline(xintercept = null_x, linetype = "dashed", color = "grey40") +
@@ -3241,6 +3266,15 @@ estimand_short_label = function(estimand) {
 		# 2-line wrap.
 		s = gsub("proportional", "prop", s, fixed = TRUE)
 		s = gsub("continuation", "cont", s, fixed = TRUE)
+		# "quantile regression effect" -> "quantile effect" (per user report,
+		# 2026-08-24: the unabbreviated 3-word form was long enough that the
+		# 2-line wrap's floor-half split -- "quantile" / "regression effect"
+		# -- hard-truncated line 2 to the column cap and silently dropped
+		# "effect" entirely). "regression" is redundant with "quantile" here
+		# (no other estimand in this package's vocabulary says "quantile"
+		# without meaning quantile regression), so it's dropped rather than
+		# abbreviated.
+		s = gsub("quantile regression effect", "quantile effect", s, fixed = TRUE)
 		# Unambiguous within this package's estimand vocabulary without the
 		# trailing noun (per user request, 2026-08-19): "logodds ratio ..."
 		# is always the log-odds-ratio scale, and "probit effect ..." is
@@ -3463,13 +3497,18 @@ run_all_inference_format_pretty_table = function(results_table) {
 	header_lines = run_all_inference_fmt_wrapped_row(headers, headers)
 	total_width = max(nchar(header_lines))
 	lines = c(header_lines, strrep("=", total_width))
+	# Single-line rows (per user request, 2026-08-25) when CIs were skipped
+	# for this run -- `ci_a` (and its sibling CI columns) only appear in
+	# `display`/`headers` when `compute_conf_intervals = TRUE`; the header
+	# itself keeps wrapping normally either way.
+	single_line = !("ci_a" %in% headers)
 	prev_estimand = NULL
 	for (i in seq_len(nrow(display))) {
 		if (!is.null(prev_estimand) && !identical(tbl$estimand[[i]], prev_estimand)) {
 			lines = c(lines, strrep("-", total_width))
 		}
 		vals = as.character(display[i, ])
-		lines = c(lines, run_all_inference_fmt_wrapped_row(vals, headers))
+		lines = c(lines, run_all_inference_fmt_wrapped_row(vals, headers, single_line = single_line))
 		prev_estimand = tbl$estimand[[i]]
 	}
 	lines = c(lines, strrep("-", total_width))
@@ -3512,33 +3551,13 @@ run_all_inference_format_html_table = function(results_table) {
 	tbl = built$tbl; display = built$display; cov_key = built$cov_key
 
 	esc = function(x) htmltools_escape_or_identity(as.character(x))
-	# Word-wraps a header/cell string onto two lines via `<br>` -- delegates
-	# to `run_all_inference_wrap_cell_2lines()` (per user request, 2026-08-24:
-	# the HTML table used to have its own, simpler floor-half-split-only
-	# implementation that had drifted from the live/print tables' special
-	# cases -- e.g. "KK CLMM Cauchit" wrapped "KK" / "CLMM Cauchit" here but
-	# "KK CLMM" / "Cauchit" on screen). `width = 10000L` disables that
-	# function's char-cap truncation (irrelevant for HTML, which has no fixed
-	# terminal column count), so only its word-boundary split logic applies.
-	# Escaping happens on each already-split line, not before splitting --
-	# HTML-escaping never introduces or removes a space, so word boundaries
-	# are identical either way.
-	#
-	# No wrapping at all when `compute_conf_intervals = FALSE` (per user
-	# request, 2026-08-24) -- the whole point of the fixed-width `<br>`
-	# 2-line wrap (here and in the live/print tables) is to keep a narrow
-	# terminal-width column readable; an HTML table has no such constraint,
-	# and dropping the CI columns already leaves plenty of room for every
-	# remaining cell to render on one line without it.
-	compute_conf_intervals = isTRUE(attr(results_table, "compute_conf_intervals") %||% TRUE)
-	wrap_html = function(x) {
-		if (!compute_conf_intervals) return(esc(x))
-		vapply(as.character(x), function(s) {
-			parts = run_all_inference_wrap_cell_2lines(s, width = 10000L)
-			if (!nzchar(parts[[2L]])) return(esc(parts[[1L]]))
-			paste0(esc(parts[[1L]]), "<br>", esc(parts[[2L]]))
-		}, character(1L), USE.NAMES = FALSE)
-	}
+	# Never wraps (per user request, 2026-08-25, extending the 2026-08-24
+	# `compute_conf_intervals = FALSE` case to `TRUE` as well: single-line
+	# rows in the HTML table regardless) -- the whole point of the
+	# fixed-width `<br>` 2-line wrap the live/print tables use is to keep a
+	# narrow terminal-width column readable; an HTML table has no such
+	# constraint, so every cell just renders on one line unconditionally.
+	wrap_html = esc
 	header_html = paste0("<th>", wrap_html(names(display)), "</th>", collapse = "")
 	prev_estimand = NULL
 	row_html = vapply(seq_len(nrow(display)), function(i) {

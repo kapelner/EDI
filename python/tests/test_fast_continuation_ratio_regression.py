@@ -47,27 +47,24 @@ def _synthetic_data():
     return X_full[:, 1:], y.astype(float)
 
 
-# R reference, EDI 1.0.0, computed 2026-08-04 via:
+# R reference, EDI 1.0.0, recomputed 2026-08-25 via:
 #   EDI:::fast_continuation_ratio_regression_cpp(X, y)
-# (2026-08-24): build_continuation_ratio_augmented_data's z now codes
-# "continued past this cut" = 1 instead of "stopped at this cut" = 1, so that
-# a positive beta means "pushes toward higher categories of y" -- consistent
-# with the package's other ordinal estimators. This is an exact elementwise
-# sign flip of the original fixture's b/alpha (fitting a logistic regression
-# on the complementary binary response negates both parameter blocks exactly;
-# neg_loglik is invariant under this reparametrization).
-R_B = np.array([0.634847365434558, -0.358801002565834])
-R_ALPHA = np.array([1.01767396284275, 0.218042906987751, -0.678418178076508])
-R_NEG_LOGLIK = 399.17351526582
+# on the exact same synthetic dataset (numpy.random.default_rng(123), n=300).
+# Supersedes the 2026-08-04 fixture: the shared LBFGS/Newton machinery's
+# gradient-norm-based convergence redefinition (2026-08-17,
+# optimizer_diagnostics_report.md TODO-4) shifted the converged solution by
+# ~1e-4 relative -- a legitimate consequence of a tighter/different stopping
+# rule, not a regression -- so the old fixture's ~1e-9 tolerance started
+# failing. Re-verified directly against a fresh R run.
+R_B = np.array([0.634848970198333, -0.35883780437739])
+R_ALPHA = np.array([1.01766215084293, 0.218050190112327, -0.67841794656])
+R_NEG_LOGLIK = 399.173515180668
 
 
 def test_matches_r_fixture():
     X, y = _synthetic_data()
     res = fast_continuation_ratio_regression(X, y)
 
-    # NOTE (2026-08-17): converged now derives from the shared LBFGS/Newton
-    # machinery's gradient-norm-based redefinition (optimizer_diagnostics_
-    # report.md TODO-4) -- re-verify against a fresh R run once compiled.
     assert res["converged"] is True
     assert res["b"] == pytest.approx(R_B, abs=ATOL, rel=RTOL)
     assert res["alpha"] == pytest.approx(R_ALPHA, abs=ATOL, rel=RTOL)
