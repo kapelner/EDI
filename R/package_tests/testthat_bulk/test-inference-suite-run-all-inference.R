@@ -712,6 +712,16 @@ test_that("run_all_inference: num_cores > 1 fits in parallel and produces identi
 	capture.output({
 		res_seq <- suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1)
 	})
+	# run_all_inference() never reseeds internally (by design -- it's a
+	# thin dispatcher over each class's own fit, not an RNG owner), so any
+	# class using randomization/bootstrap Monte Carlo draws leaves the
+	# global RNG stream wherever its draws left it. Without resetting here,
+	# the second call below would start from a *different* RNG state than
+	# the first and its stochastic p-values/CIs would legitimately differ
+	# from res_seq's -- not a fork-dispatch bug, just two calls sampling
+	# from different points in the same stream. Reseed identically so both
+	# calls start from the same RNG state and are directly comparable.
+	set.seed(20260818)
 	capture.output({
 		res_par <- suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 2)
 	})
@@ -835,6 +845,11 @@ test_that("run_all_inference: num_cores > 1's task-building/result-reassembly lo
 	capture.output({
 		res_seq <- suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1)
 	})
+	# See the sibling real-fork test's identical comment above: run_all_
+	# inference() never reseeds internally, so the second call must be
+	# reseeded to the same state as the first for a fair comparison of
+	# stochastic (randomization/bootstrap) classes' p-values/CIs.
+	set.seed(20260818)
 	capture.output({
 		res_par <- suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 2)
 	})

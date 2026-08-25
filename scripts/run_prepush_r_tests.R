@@ -27,6 +27,7 @@ TallyReporter <- R6::R6Class("TallyReporter",
 		warnings = list(),
 		skips = list(),
 		current_file = "",
+		current_file_n_tests = 0L,
 		current_test = "",
 		start_time = NULL,
 		file_start_time = NULL,
@@ -65,6 +66,7 @@ TallyReporter <- R6::R6Class("TallyReporter",
 
 		start_file = function(filename) {
 			self$current_file <- filename
+			self$current_file_n_tests <- 0L
 			self$current_test <- ""
 			self$file_start_time <- Sys.time()
 			self$draw()
@@ -79,6 +81,7 @@ TallyReporter <- R6::R6Class("TallyReporter",
 
 		start_test = function(context, test) {
 			self$current_test <- test %||% ""
+			self$current_file_n_tests <- self$current_file_n_tests + 1L
 			self$draw()
 		},
 
@@ -213,10 +216,11 @@ TallyReporter <- R6::R6Class("TallyReporter",
 			self$last_draw_time <- now
 
 			elapsed <- round(as.numeric(difftime(Sys.time(), self$start_time, units = "secs")))
+			elapsed_fmt <- sprintf("%02d:%02d:%02d", elapsed %/% 3600, (elapsed %% 3600) %/% 60, elapsed %% 60)
 			status <- if (force) "done" else "running"
 			line <- sprintf(
-				"EDI R test suite -- %s (%ds elapsed) pass: %-6d fail: %-6d warn: %-6d skip: %-6d file: %s",
-				status, elapsed, self$n_ok, self$n_fail, self$n_warn, self$n_skip, self$current_file
+				"EDI R test suite -- %s (%s elapsed) pass: %-6d fail: %-6d warn: %-6d skip: %-6d file: %s (n_tests = %d)",
+				status, elapsed_fmt, self$n_ok, self$n_fail, self$n_warn, self$n_skip, self$current_file, self$current_file_n_tests
 			)
 			if (self$interactive_tty) {
 				self$write_out("\r\033[2K", line, if (force) "\n" else "", sep = "")

@@ -305,6 +305,57 @@ Two separable problems live in that gap:
   bounds and recovers from it. Not this pass's call to make, so left
   exactly as TODO-3 already states it.
 
+  **Follow-up (2026-08-25): two real test failures found and fixed in the
+  two `num_cores > 1` comparison tests** (`"...fits in parallel and
+  produces identical rows to sequential"` and `"...task-building/
+  result-reassembly logic is correct, independent of real OS forking"`),
+  discovered while re-verifying this dispatcher against the live suite
+  after a prior verification attempt was blocked by an unrelated
+  environment issue. Root cause, confirmed by direct source inspection
+  (`grep -n "seed" inference_suite.R` returns nothing): `run_all_inference()`
+  never reseeds the RNG internally — it is a thin dispatcher over each
+  class's own fit, not an RNG owner. Both tests call `set.seed()` exactly
+  once, then call `suite$run_all_inference()` twice in a row and
+  `expect_identical()` the two `results_table`s. The first call consumes
+  the global RNG stream (any class using randomization/bootstrap Monte
+  Carlo draws advances it by an unpredictable amount depending on which
+  classes are applicable and how many draws each takes); the second call
+  then starts from wherever the first call left the stream, not from the
+  original seed — so any stochastic class's p-value/CI legitimately
+  differs between the two calls, with **no fork-dispatch bug required to
+  explain it**. This explains both symptoms precisely: Failure 1 (real
+  OS-fork test) showed 1 differing row out of ~150 — plausibly the one
+  class among the fanned-out method sentinels that draws Monte Carlo
+  samples; Failure 2 (TODO-1's in-process `lapply()` mock test, which
+  never forks at all) showed a `pval` mismatch with a nonzero mean
+  relative difference across multiple entries — impossible to explain by
+  any forking/timeout mechanism since nothing forks in that code path,
+  which is exactly the evidence that rules out a dispatcher bug and
+  confirms the RNG-continuity explanation instead. **Fix:** added a second
+  `set.seed(20260818)` immediately before each test's second
+  `run_all_inference()` call, so both calls start from an identical RNG
+  state and are directly comparable (with a code comment explaining why,
+  so a future reader doesn't "clean up" the seemingly-redundant reseed).
+  **Verification:** parses cleanly (`parse()`); mechanism confirmed by
+  direct source inspection (no seeding anywhere in `inference_suite.R`,
+  so the fix's premise is not speculative). **Residual gap, honestly
+  reported:** could not run either test to completion in this sandbox to
+  empirically confirm `expect_identical()` now passes — three attempts to
+  source the extracted test blocks (via the same `EDI_TESTING_DISABLE_
+  FORK_CLUSTER`/skip-gate workaround already used to isolate these tests
+  from an unrelated, separately-tracked discovery bug affecting
+  `InferenceSurvivalCoxPHRegr` earlier in the same file) produced no
+  output and no error before the process exited, consistent with this
+  sandbox's previously-documented resource constraints on running
+  `run_all_inference()`'s full ~40-class fit twice in one session (see
+  TODO-1's own "Verification caveat" entry above, which hit the identical
+  wall). The fix's correctness rests on the RNG-continuity mechanism
+  being the complete explanation (strongly supported: it's the only
+  explanation consistent with Failure 2's no-forking evidence) rather
+  than on a passing local test run. **Recommend confirming on the next CI
+  run or a less resource-constrained machine** before treating this as
+  fully closed.
+
 - [x] TODO-6: **Decide whether this plan's findings extend to the other
   `skip_if_prepush_no_parallel()`-guarded tests** (mirai fork-cluster tests
   in `test-simulation-framework-parallel-cleanup.R`, etc.), which carry the

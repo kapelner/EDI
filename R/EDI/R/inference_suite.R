@@ -2555,9 +2555,13 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# `left_label`/`right_label`, positioned at `ci_a`/`ci_b`): those
 		# went off-panel and disappeared for a long CI, exactly the
 		# outlier-width case already clipped at the axis (`is_width_outlier`
-		# below). `mid_x` uses the geometric mean on a log10 axis (the
-		# visual midpoint of the segment as actually rendered), the
-		# arithmetic mean otherwise.
+		# below). `mid_x` is the point estimate itself (per user request,
+		# 2026-08-25: "centered with the center of the text over the
+		# estimate point") -- not the CI's own midpoint, which can differ
+		# from the estimate for an asymmetric interval (e.g. a percentile
+		# bootstrap CI, or any log-scale CI whose geometric-mean midpoint
+		# only equals the estimate when the interval happens to be
+		# symmetric on the log scale).
 		d$label_above = sprintf("pval = %s, width = %s", run_all_inference_sigfig(d$pval, 3L, scientific = FALSE), d$width_num)
 		d$right_full_label = d$class_method_label
 		# Per-estimand Cauchy-combined p-value (per user request, 2026-08-20:
@@ -2579,7 +2583,7 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# null reference line at 1 instead of 0.
 		use_log10 = run_all_inference_estimand_use_log10(e, c(d$ci_a, d$ci_b, d$estimate))
 		null_x = if (use_log10) 1 else 0
-		d$mid_x = if (use_log10) sqrt(d$ci_a * d$ci_b) else (d$ci_a + d$ci_b) / 2
+		d$mid_x = d$estimate
 		# Outlier-width CI clipping (per user request, 2026-08-23): one row's
 		# CI can be so much wider than the rest that letting the x-axis
 		# stretch to fit it compresses every other row's CI into an
