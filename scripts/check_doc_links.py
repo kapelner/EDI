@@ -35,6 +35,7 @@ import concurrent.futures
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -52,6 +53,11 @@ FENCED_CODE_RE = re.compile(r"```.*?```", re.DOTALL)
 INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 EXTERNAL_TIMEOUT_SECS = 10
 EXTERNAL_MAX_WORKERS = 16
+# A plain timeout/connection-reset is frequently transient network noise
+# (a slow TLS handshake under load, a momentary blip) rather than a real
+# dead link -- retry once with a short backoff before reporting it as
+# broken, mirroring the existing 403/405 retry-before-giving-up pattern.
+EXTERNAL_TRANSIENT_RETRY_DELAY_SECS = 3
 
 
 def strip_code(text: str) -> str:
@@ -161,7 +167,7 @@ def _ascii_url(url: str) -> str:
     return urllib.parse.quote(url, safe=":/?#[]@!$&'()*+,;=%")
 
 
-def check_external(url: str) -> str | None:
+def _check_external_once(url: str) -> str | None:
     req = urllib.request.Request(
         _ascii_url(url), method="HEAD", headers={"User-Agent": EXTERNAL_UA}
     )
@@ -200,6 +206,19 @@ def check_external(url: str) -> str | None:
         return f"HTTP {e.code}"
     except Exception as e:
         return f"{e}"
+
+
+def check_external(url: str) -> str | None:
+    result = _check_external_once(url)
+    if result is None:
+        return None
+    # A plain timeout/connection-reset/handshake failure (not an HTTPError --
+    # those are handled above) is frequently a momentary network blip rather
+    # than a real dead link. Retry once before reporting it as broken.
+    if "HTTP " not in result:
+        time.sleep(EXTERNAL_TRANSIENT_RETRY_DELAY_SECS)
+        result = _check_external_once(url)
+    return result
 
 
 BASELINE_PATH = REPO_ROOT / "scripts" / "check_doc_links_baseline.csv"
