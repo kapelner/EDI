@@ -1,21 +1,22 @@
 [build-system]
-# scipy-openblas32 is declared unconditionally (not just Windows, despite
-# what an earlier version of this comment said) as a pure fallback: CMake's
-# find_package(BLAS) tries a system BLAS first on every platform and only
-# falls back to this package if that fails (see CMakeLists.txt's BLAS
-# discovery block) -- cibuildwheel's own before-all steps already install a
-# real system BLAS on every wheel-build platform
-# ([tool.cibuildwheel.linux/macos/windows] below), so this only actually
-# gets used there on Windows (no system-package-manager/Accelerate
-# equivalent). It's still needed unconditionally here because a *source*
-# install (`pip install edi_kernels` falling back to the sdist, or a local
-# `pip install .`) has no cibuildwheel before-all step to rely on, and a
-# bare Linux environment cannot be assumed to have a system BLAS installed
-# either -- confirmed the hard way: a genuinely from-source sdist install on
-# a stock ubuntu-latest GitHub Actions runner (no system BLAS preinstalled)
-# failed outright with "No BLAS found ... and scipy-openblas32 isn't
-# installed" on 2026-08-11, the day this was Windows-only-gated, because
-# nothing in that source-install path pulls it in on non-Windows platforms.
+# scipy-openblas32 is declared for every platform it actually ships a
+# distribution for (not just Windows, despite what an earlier version of
+# this comment said) as a pure fallback: CMake's find_package(BLAS) tries a
+# system BLAS first on every platform and only falls back to this package if
+# that fails (see CMakeLists.txt's BLAS discovery block) -- cibuildwheel's
+# own before-all steps already install a real system BLAS on every
+# wheel-build platform ([tool.cibuildwheel.linux/macos/windows] below), so
+# this only actually gets used there on Windows (no
+# system-package-manager/Accelerate equivalent). It's still needed here
+# (beyond Windows) because a *source* install (`pip install edi_kernels`
+# falling back to the sdist, or a local `pip install .`) has no cibuildwheel
+# before-all step to rely on, and a bare Linux environment cannot be assumed
+# to have a system BLAS installed either -- confirmed the hard way: a
+# genuinely from-source sdist install on a stock ubuntu-latest GitHub
+# Actions runner (no system BLAS preinstalled) failed outright with "No
+# BLAS found ... and scipy-openblas32 isn't installed" on 2026-08-11, the
+# day this was Windows-only-gated, because nothing in that source-install
+# path pulls it in on non-Windows platforms.
 # Must be declared here rather than only installed via cibuildwheel's
 # before-build: `pip wheel`/`python -m build` create their own isolated
 # PEP 517 build environment for the build backend (scikit_build_core.build)
@@ -30,12 +31,35 @@
 # containing a prebuilt OpenBLAS, small relative to the rest of this
 # extension's build, and CMake still prefers a real system BLAS whenever
 # find_package(BLAS) succeeds.
-requires = ["scikit-build-core>=1.0", "pybind11>=2.13", "scipy-openblas32"]
+#
+# The `platform_machine` marker below excludes 32-bit ARM (armv7l/armv6l)
+# and any other architecture scipy-openblas32 has no wheel *or sdist* for
+# on PyPI -- confirmed via piwheels.org's 1.0.0.post3 build logs (2026-08-17/
+# 18): `pip install ... scipy-openblas32` failed with "Could not find a
+# version that satisfies the requirement scipy-openblas32 (from versions:
+# none)" on every piwheels build (Bullseye/py3.9, Bookworm/py3.11,
+# Trixie/py3.13), which all build the sdist from scratch on real Raspberry
+# Pi (armv7l) hardware. Without this marker, pip's own build-dependency
+# resolution fails outright before CMake's configure step ever runs --
+# before find_package(BLAS) gets a chance to find whatever system BLAS
+# Raspberry Pi OS does or doesn't have preinstalled, and before
+# CMakeLists.txt's own clear "No BLAS found ... install a system BLAS or
+# `pip install scipy-openblas32`" FATAL_ERROR message (which correctly
+# assumes scipy-openblas32 *can* be pip-installed) ever gets to fire. The
+# listed values are every `platform_machine` scipy-openblas32 actually
+# publishes a wheel for: x86_64 (Linux/macOS), aarch64 (Linux, 64-bit ARM),
+# arm64 (macOS), AMD64 (Windows). See .github/workflows/arm-sdist-build.yml
+# for CI that exercises this on real (QEMU-emulated) ARM.
+requires = [
+    "scikit-build-core>=1.0",
+    "pybind11>=2.13",
+    "scipy-openblas32; platform_machine == 'x86_64' or platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'arm64'",
+]
 build-backend = "scikit_build_core.build"
 
 [project]
 name = "edi_kernels"
-version = "1.0.0.post3"
+version = "1.0.0.post4"
 description = "Python bindings for EDI's C++ model-fitting kernels (pybind11, no R/Rcpp dependency)"
 readme = "README_PYPI.md"
 requires-python = ">=3.9"
@@ -47,15 +71,25 @@ license-files = ["LICENSE"]
 # cibuildwheel/auditwheel-style repair step to bundle the BLAS it links
 # into the wheel itself, unlike every cibuildwheel-built wheel this project
 # publishes, none of which need it present at runtime regardless of which
-# BLAS they were built against). Declaring it unconditionally here means
-# every install -- including the prebuilt wheels that never touch it --
-# carries a small (few-MB) unused dependency, a deliberate simplicity/size
-# tradeoff over trying to make this build-path-conditional, which PEP 508
-# environment markers have no way to express (they condition on the
-# installing environment, not on which pipeline produced the artifact).
-# See CMakeLists.txt's matching RPATH comment for the mechanism this makes
+# BLAS they were built against). Declaring it for every platform it has a
+# distribution for means every install on those platforms -- including the
+# prebuilt wheels that never touch it -- carries a small (few-MB) unused
+# dependency, a deliberate simplicity/size tradeoff over trying to make this
+# build-path-conditional, which PEP 508 environment markers have no way to
+# express (they condition on the installing environment, not on which
+# pipeline produced the artifact). The `platform_machine` marker itself
+# *is* expressible, though, and load-bearing here for a different reason
+# than that build-path question: on 32-bit ARM (piwheels' Raspberry Pi
+# build hardware -- see [build-system] requires' comment), scipy-openblas32
+# has no distribution at all, so declaring it unconditionally would make
+# `pip install edi_kernels` itself unresolvable there, independent of
+# whether the from-source build that follows even needs it. See
+# CMakeLists.txt's matching RPATH comment for the mechanism this makes
 # actually work at import time.
-dependencies = ["numpy>=1.24", "scipy-openblas32"]
+dependencies = [
+    "numpy>=1.24",
+    "scipy-openblas32; platform_machine == 'x86_64' or platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'arm64'",
+]
 
 [project.optional-dependencies]
 test = ["pytest>=7.0", "scipy>=1.10"]

@@ -441,7 +441,7 @@ Inference = R6::R6Class("Inference",
 			FALSE
 		},
 		# Declares what treatment-effect quantity this class's compute_estimate()
-		# reports -- e.g. "mean_difference", "log_odds_ratio", "hazard_ratio" --
+		# reports -- e.g. "mean_difference", "log_odds_ratio", "log_hazard_ratio" --
 		# for cross-class comparison (InferenceSuite$run_all_inference()'s
 		# Combined Evidence Metric groups classes by this to avoid a
 		# many-near-identical-methods family outvoting a lone distinct one; see

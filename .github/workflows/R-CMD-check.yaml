@@ -141,6 +141,27 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Reference BLAS/LAPACK (Ubuntu's R default) is 10-50x slower than
+      # OpenBLAS for the test suite's linear-algebra-heavy fits (GLMM,
+      # frailty, copula, ...) -- confirmed 2026-08-26 as the dominant cause
+      # of "checking tests" taking 150+ minutes on this leg vs ~10-11 min
+      # locally (this machine's MKL + 12 cores vs the runner's reference
+      # BLAS + 2 vCPUs). Swapping the active `update-alternatives` target
+      # is a runtime dynamic-linker change -- no R/package recompile or
+      # reinstall needed, and it must run before any step that actually
+      # exercises linear algebra (examples/tests), so it's placed right
+      # after checkout. Deliberately NOT applied to the ASAN/UBSAN or
+      # valgrind jobs -- OpenBLAS's own thread pool is a common source of
+      # sanitizer/valgrind noise unrelated to real bugs in EDI's code, and
+      # those jobs test memory correctness, not speed.
+      - name: Switch to OpenBLAS on Ubuntu (see comment above)
+        if: matrix.config.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libopenblas0-pthread
+          sudo update-alternatives --set libblas.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+          sudo update-alternatives --set liblapack.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.so.3
+
       # OMP_NUM_THREADS is set via GITHUB_ENV (Windows-only) rather than a
       # job-level env var above, because a job-level env var evaluating to ''
       # on non-Windows legs still *sets* OMP_NUM_THREADS to the empty string
@@ -234,6 +255,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # See R-CMD-check's identical step/comment above -- same fix, same
+      # reason (reference BLAS vs OpenBLAS), this job is Ubuntu-only so no
+      # matrix.config.os guard is needed here.
+      - name: Switch to OpenBLAS (see R-CMD-check's identical step for why)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libopenblas0-pthread
+          sudo update-alternatives --set libblas.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+          sudo update-alternatives --set liblapack.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.so.3
+
       - uses: r-lib/actions/setup-pandoc@v2
 
       - uses: r-lib/actions/setup-r@v2
@@ -243,27 +274,35 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           working-directory: R/EDI
-          extra-packages: any::rcmdcheck
+          # knitr/rmarkdown (VignetteBuilder + its rmarkdown::html_vignette
+          # output format) are added explicitly alongside rcmdcheck despite
+          # dependencies: 'NA' below skipping EDI's own Suggests: CRAN's
+          # real check machine always has the VignetteBuilder available
+          # (Suggests are only ever skipped to catch EDI's own code
+          # wrongly hard-depending on one, not to simulate vignettes
+          # building without a renderer, which CRAN never does) -- see the
+          # check-r-package step below for what skipping this actually
+          # breaks (2026-08-26).
+          extra-packages: |
+            any::rcmdcheck
+            any::knitr
+            any::rmarkdown
           dependencies: 'NA'
 
       - uses: r-lib/actions/check-r-package@v2
         with:
           working-directory: R/EDI
-          # --no-build-vignettes on both args (check) and build_args
-          # (build): knitr (VignetteBuilder) is a Suggests, and this job
-          # deliberately skips Suggests (dependencies: 'NA' above) --
-          # without it on build_args, `R CMD build` still attempts to build
-          # the vignettes and fails silently for lack of knitr, producing a
-          # tarball with vignette sources but no built `inst/doc` output;
-          # without it on args too, `R CMD check` then flags exactly that
-          # mismatch as a WARNING ("Files in the 'vignettes' directory but
-          # no files in 'inst/doc'" -- caught 2026-08-26, since error-on
-          # "warning" fails the job on it, unlike the "note" this used to
-          # be tolerated under). The other Suggests-skipping jobs (ASAN/
-          # UBSAN, valgrind) already pass this flag to both their build and
-          # check commands for the same reason.
-          args: 'c("--no-manual", "--no-build-vignettes", "--as-cran")'
-          build_args: 'c("--no-manual","--no-build-vignettes","--compact-vignettes=gs+qpdf")'
+          # No --no-build-vignettes here (tried 2026-08-26, reverted): that
+          # flag only skips *re-building* vignette outputs during check --
+          # it does not stop `R CMD check` from flagging a tarball whose
+          # `vignettes/` sources have no matching `inst/doc` output as a
+          # WARNING ("Files in the 'vignettes' directory but no files in
+          # 'inst/doc'"), so passing it to build_args (skipping the build)
+          # just guaranteed that mismatch instead of avoiding it. With
+          # knitr/rmarkdown installed above, vignettes build normally here
+          # exactly as they do in the main R-CMD-check matrix job.
+          args: 'c("--no-manual", "--as-cran")'
+          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
           # error-on "warning", not "note" -- see the identical change/
           # comment on the main R-CMD-check job above (the justified
           # unlockBinding() NOTE, documented in cran-comments.md).

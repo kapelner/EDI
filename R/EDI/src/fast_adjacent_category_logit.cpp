@@ -37,31 +37,39 @@ public:
 
         grad.setZero(params.size());
 
-        // Precompute exp(alpha[k]) once per call — amortised over n obs
-        // unnorm[k] = u^(K-1-k) * prod_{j=k}^{K-2} exp_alpha[j],  u = exp(-eta)
-        std::vector<double> exp_alpha(n_alpha);
-        for (int k = 0; k < n_alpha; ++k) exp_alpha[k] = std::exp(params[k]);
-
         double neg_ll = 0.0;
+        // log_unnorm[k] = sum_{j=k}^{n_alpha-1} (alpha[j] - eta), log_unnorm[n_alpha] = 0
+        // (additive recurrence -- unlike the old prob[k] = prob[k+1] * exp(alpha[k]) *
+        // exp(-eta) multiplicative recurrence, this can never overflow on its own: it's
+        // a sum of the raw, unexponentiated parameters/eta). Normalized via a standard
+        // log-sum-exp so every exp() call below sees an argument <= 0, bounding prob[k]
+        // to [0, 1] regardless of how extreme alpha/eta get during a line search step --
+        // the previous version's raw exp(alpha[k])/exp(-eta) could each individually
+        // overflow to Inf long before normalization, corrupting prob (and therefore the
+        // objective/gradient) to Inf/NaN and leaving the L-BFGS line search unable to
+        // recover (confirmed via direct testing: the old code reliably failed to
+        // converge -- niter == maxit -- on ordinary synthetic data at every n/seed
+        // tried, and diverged outright to NaN parameters from an all-zero start).
+        std::vector<double> log_unnorm(m_K);
         std::vector<double> prob(m_K);
         std::vector<double> cdf(n_alpha);
 
         for (int i = 0; i < m_n; ++i) {
             const double eta = (m_p > 0) ? m_X.row(i).dot(beta) : 0.0;
-            const double u   = std::exp(-eta);
 
-            // Build unnorm probs right-to-left via product recurrence
-            prob[n_alpha] = 1.0;
-            double total = 1.0;
+            log_unnorm[n_alpha] = 0.0;
             for (int k = n_alpha - 1; k >= 0; --k) {
-                prob[k] = prob[k + 1] * exp_alpha[k] * u;
-                total += prob[k];
+                log_unnorm[k] = log_unnorm[k + 1] + (params[k] - eta);
             }
-            const double inv_total = 1.0 / total;
-            for (int k = 0; k < m_K; ++k) prob[k] *= inv_total;
+            double max_log = log_unnorm[0];
+            for (int k = 1; k < m_K; ++k) if (log_unnorm[k] > max_log) max_log = log_unnorm[k];
+            double sum_exp = 0.0;
+            for (int k = 0; k < m_K; ++k) sum_exp += std::exp(log_unnorm[k] - max_log);
+            const double log_total = max_log + std::log(sum_exp);
+            for (int k = 0; k < m_K; ++k) prob[k] = std::exp(log_unnorm[k] - log_total);
 
             const int y_i = m_y[i];
-            neg_ll -= std::log(prob[y_i - 1]);
+            neg_ll -= (log_unnorm[y_i - 1] - log_total);
 
             // CDF and E[Y] in one pass
             double running_cdf = 0.0, ey = 0.0;
@@ -88,9 +96,10 @@ public:
 
         MatrixXd hess = MatrixXd::Zero(params.size(), params.size());
 
-        std::vector<double> exp_alpha(n_alpha);
-        for (int k = 0; k < n_alpha; ++k) exp_alpha[k] = std::exp(params[k]);
-
+        // Same log-space stabilization as operator() above -- see its comment
+        // for why the old multiplicative exp(alpha[k]) * exp(-eta) recurrence
+        // could overflow.
+        std::vector<double> log_unnorm(m_K);
         std::vector<double> prob(m_K);
         std::vector<double> cdf(n_alpha);
         std::vector<double> prefix_first_moment(n_alpha);
@@ -99,16 +108,17 @@ public:
 
         for (int i = 0; i < m_n; ++i) {
             const double eta = (m_p > 0) ? m_X.row(i).dot(beta) : 0.0;
-            const double u   = std::exp(-eta);
 
-            prob[n_alpha] = 1.0;
-            double total = 1.0;
+            log_unnorm[n_alpha] = 0.0;
             for (int k = n_alpha - 1; k >= 0; --k) {
-                prob[k] = prob[k + 1] * exp_alpha[k] * u;
-                total += prob[k];
+                log_unnorm[k] = log_unnorm[k + 1] + (params[k] - eta);
             }
-            const double inv_total = 1.0 / total;
-            for (int k = 0; k < m_K; ++k) prob[k] *= inv_total;
+            double max_log = log_unnorm[0];
+            for (int k = 1; k < m_K; ++k) if (log_unnorm[k] > max_log) max_log = log_unnorm[k];
+            double sum_exp = 0.0;
+            for (int k = 0; k < m_K; ++k) sum_exp += std::exp(log_unnorm[k] - max_log);
+            const double log_total = max_log + std::log(sum_exp);
+            for (int k = 0; k < m_K; ++k) prob[k] = std::exp(log_unnorm[k] - log_total);
 
             double ey = 0.0, ey2 = 0.0;
             double running_cdf = 0.0, running_first_moment = 0.0;

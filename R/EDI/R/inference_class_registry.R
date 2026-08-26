@@ -882,29 +882,29 @@ EDI_INFERENCE_ESTIMAND_TAGS = list(
 	InferencePropKKQuantileRegrOneLik = "quantile_regression_effect",
 	InferencePropQuantileRegr = "quantile_regression_effect",
 	InferencePropZeroOneInflatedBetaRegr = "log_odds_ratio_marginal",
-	InferenceSurvivalCoxPHRegr = "hazard_ratio",
+	InferenceSurvivalCoxPHRegr = "log_hazard_ratio",
 	InferenceSurvivalDepCensTransformRegr = "log_time_ratio",
 	InferenceSurvivalGehanWilcox = "gehan_wilcoxon_statistic",
 	InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = "log_time_ratio",
 	InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = "log_time_ratio",
-	InferenceSurvivalKKLWACoxPHIVWC = "hazard_ratio",
-	InferenceSurvivalKKLWACoxPHOneLik = "hazard_ratio",
+	InferenceSurvivalKKLWACoxPHIVWC = "log_hazard_ratio",
+	InferenceSurvivalKKLWACoxPHOneLik = "log_hazard_ratio",
 	InferenceSurvivalKKRankRegrIVWC = "gehan_wilcoxon_statistic",
-	InferenceSurvivalKKStratCoxPHIVWC = "hazard_ratio",
-	InferenceSurvivalKKStratCoxPHOneLik = "hazard_ratio",
+	InferenceSurvivalKKStratCoxPHIVWC = "log_hazard_ratio",
+	InferenceSurvivalKKStratCoxPHOneLik = "log_hazard_ratio",
 	InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = "log_time_ratio",
 	InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = "log_time_ratio",
 	InferenceSurvivalKKWeibullMarginal = "log_time_ratio",
 	InferenceSurvivalKMDiff = "survival_median_difference",
 	InferenceSurvivalLogRank = "log_rank_martingale_difference",
 	InferenceSurvivalRestrictedMeanDiff = "restricted_mean_survival_time_difference",
-	InferenceSurvivalStratCoxPHRegr = "hazard_ratio",
+	InferenceSurvivalStratCoxPHRegr = "log_hazard_ratio",
 	InferenceSurvivalWeibullRegr = "log_time_ratio"
 )
 
 #' What treatment-effect quantity a concrete `Inference` generator's
 #' `compute_estimate()` reports (e.g. `"mean_difference"`, `"log_odds_ratio"`,
-#' `"hazard_ratio"`), for `InferenceSuite$run_all_inference()`'s Combined
+#' `"log_hazard_ratio"`), for `InferenceSuite$run_all_inference()`'s Combined
 #' Evidence Metric to group classes by (see `inference_suite_inspect.md`'s
 #' "Combined Evidence Metric" section and `marginal_estimand_report.md`).
 #' Declare-only -- no switching capability; that is the separate `MarginalEstimand`

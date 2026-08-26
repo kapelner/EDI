@@ -6,6 +6,52 @@ number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
 "Versioning" checklist item) — a `.postN` suffix is used for
 Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
+## [Unreleased]
+
+Note this one is not packaging-only despite the `.postN` suffix — it fixes
+correctness/memory-safety bugs in `R/EDI/src/*.cpp` kernels bound in Python
+(`R/EDI/DESCRIPTION`'s `Version` remains `1.0.0`, unbumped).
+
+### Fixed
+
+- `fast_ordinal_glmm`: matched-pair `group_id`s that weren't contiguous in
+  row order were silently split into singleton groups instead of being
+  merged into their true group, because the adaptive-quadrature likelihood
+  assumed rows were pre-sorted by group. Rows are now stable-sorted by
+  `group_id` internally before the random-effect integration, so results no
+  longer depend on input row order (`R/EDI/src/fast_ordinal_glmm.cpp`).
+  The optimizer also now retries from multiple `log_sigma` starting points
+  (including near the zero-variance boundary) and keeps the best finite
+  fit, since a near-zero-variance start could trap a single L-BFGS run in
+  a poor local optimum; invalid `X`/`y`/`group_id`/control arguments now
+  raise instead of producing silent garbage.
+- `gee_pairs_singletons`: fixed a stack-buffer-overflow — the binding's
+  locally mirrored `GEEResult` struct was missing the
+  `hit_iteration_cap`/`gradient_norm` fields present in the real struct in
+  `R/EDI/src/fast_gee.cpp`, so the compiled kernel wrote those two fields
+  past the end of the caller's (shorter) stack-allocated struct, corrupting
+  the stack. Reproduced reliably in editable/system-BLAS installs and hung
+  the `python-tests.yml` CI workflow; PyPI's published `1.0.0.post3` wheel
+  (built via `cibuildwheel`'s manylinux image) was unaffected
+  (`python/cpp/bindings_incidence.cpp`).
+
+### Changed (breaking)
+
+- Fit-result dictionaries across the binary/continuous/count/ordinal/
+  proportion bindings (e.g. `fast_logistic_regression`,
+  `fast_poisson_regression`, `fast_ordinal_regression`,
+  `fast_continuation_ratio_regression`, `fast_beta_regression`, ...) now
+  return `num_iter` instead of `iterations`, plus a new `hit_iteration_cap`
+  boolean indicating whether the optimizer stopped because it hit the
+  iteration cap rather than converging.
+- `fast_continuation_ratio_regression`'s docstring sign convention was
+  corrected: the fitted model is `logit(P(Y_i>k | Y_i>=k, x_i))`, i.e. the
+  conditional probability of *continuing past* category `k`, not
+  `P(Y_i=k | ...)` as previously documented. A positive `beta` pushes
+  toward higher categories of `y`, matching the other ordinal models in
+  this package. No change to the fitted values themselves — documentation
+  only.
+
 ## [1.0.0.post3] - 2026-08-16
 
 Note this one is not packaging-only despite the `.postN` suffix — in

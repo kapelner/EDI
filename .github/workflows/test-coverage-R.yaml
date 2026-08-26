@@ -75,11 +75,32 @@ jobs:
           # https://api.codecov.io/api/v2/github/kapelner/repos/EDI/flags/
           # showing flag "r" at 0.0 while "python" -- uploaded via
           # codecov-action, which path-corrects automatically -- was fine).
+          #
+          # type = "tests" (the default) only exercises R/EDI/tests/testthat/
+          # -- the small platform-sensitive subset left there after
+          # test-bulk-non-cran.yml split the other ~267 files out into
+          # R/package_tests/testthat_bulk/ (see that workflow's header
+          # comment) so they don't re-run on every R-CMD-check matrix leg.
+          # covr never sees that split -- without `code=` below, coverage
+          # only reflects those ~20 files, which is why the Codecov badge
+          # reads far lower than the bulk suite's real exercised coverage.
+          # `code` runs ADDITIONAL test code, and combine_types = TRUE (the
+          # default) sums its coverage into the same report -- this restores
+          # whole-suite coverage without touching test-bulk-non-cran.yml's
+          # separate, CI-matrix-avoiding job at all. Path is resolved to an
+          # absolute path before calling codecov(): `code` expressions run
+          # inside covr's own subprocess, whose working directory isn't
+          # guaranteed to still be R/EDI.
+          bulk_dir = normalizePath(file.path(getwd(), "..", "package_tests", "testthat_bulk"), mustWork = TRUE)
           covr::codecov(
             quiet = FALSE,
             token = Sys.getenv("CODECOV_TOKEN"),
             flags = "r",
-            relative_path = "../.."
+            relative_path = "../..",
+            code = sprintf(
+              "library(testthat); library(EDI); testthat::test_dir(%s, stop_on_failure = TRUE)",
+              deparse(bulk_dir)
+            )
           )
         shell: Rscript {0}
         env:

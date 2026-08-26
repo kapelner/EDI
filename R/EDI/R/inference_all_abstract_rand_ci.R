@@ -110,7 +110,17 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   permutations), a \emph{conservative} CI bound is returned at the search boundary
 		#'   rather than \code{NA}. This guarantees a valid (though possibly wide) interval.
 		#'   Each such event emits a \code{message()} and increments the private field
-		#'   \code{rand_ci_conservative_count} for monitoring.
+		#'   \code{rand_ci_conservative_count} for monitoring. \code{high_precision_confirm}
+		#'   (default \code{TRUE}) re-checks each converged bound with one full-enumeration
+		#'   (no early stopping) p-value evaluation and, only if that disagrees with the
+		#'   early-stopped bisection's conclusion, spends a short additional full-precision
+		#'   re-bisection to correct it -- a final high-precision confirmation pass that
+		#'   catches sequential-Monte-Carlo early-stopping noise the cheap bisection has no
+		#'   way to notice on its own; see
+		#'   \code{high_precision_confirm_and_refine_ci_bound()}'s own comment for the full
+		#'   rationale and \code{R/package_metadata/new_feature_plans/} for the deeper,
+		#'   not-yet-implemented redesign (anytime-valid confidence sequences) this pass is
+		#'   a pragmatic stopgap for.
 		#' @return Randomization CI. Bounds may be conservative (wider than necessary) when the
 		#'   p-value inversion cannot be completed within the search radius; see
 		#'   \code{ci_search_control} for details.
@@ -305,7 +315,18 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				mc_conf_level = 0.99,
 				fit_warm_start_enable = TRUE,
 				fit_reuse_factorizations = TRUE,
-				timeout_deadline = getOption("EDI.ci_timeout_deadline", default = NA_real_)
+				timeout_deadline = getOption("EDI.ci_timeout_deadline", default = NA_real_),
+				# See `high_precision_confirm_and_refine_ci_bound()`'s own
+				# comment for what this buys: a full-enumeration (no early
+				# stopping) re-check of each converged bound, with a short
+				# full-precision re-bisection only if that check disagrees.
+				# Off by default only makes sense for callers who have
+				# already verified their own tolerance for the early-stopped
+				# sequential-MC bisection's noise (e.g. repeated internal
+				# calls in a bootstrap/simulation loop where the extra
+				# per-call cost dominates); `compute_rand_confidence_interval()`
+				# itself always leaves this on.
+				high_precision_confirm = TRUE
 			)
 			if (should_run_asserts()) {
 				assertList(ci_search_control, null.ok = TRUE)
@@ -338,6 +359,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			if (should_run_asserts()) {
 				assertFlag(ctrl$fit_warm_start_enable)
 				assertFlag(ctrl$fit_reuse_factorizations)
+				assertFlag(ctrl$high_precision_confirm)
 			}
 			ctrl$max_expansions = as.integer(ctrl$max_expansions)
 			ctrl$seed_boot_B = as.integer(ctrl$seed_boot_B)
@@ -488,6 +510,70 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			# Return the search boundary so the bisection can detect and report it.
 			if (lower) est - max_radius else est + max_radius
 		},
+		# Final high-precision confirmation pass (per user request, 2026-08-26,
+		# after the "CI's that do not cover zero but have pval>5%" /
+		# off-center-CI reports). Every p-value the bisection above consults
+		# may itself be a noisy early-stopped Monte Carlo estimate
+		# (`mc_enable`, `compute_two_sided_pval_with_sequential_mc()`) --
+		# individually reliable only at its own per-look confidence
+		# (`mc_conf_level`, default 0.99), but a single bound's search can
+		# consult it up to ~30+ times (bracket repair, expansion, bisection),
+		# and the bisection has no way to notice or correct a wrong look
+		# once it has already steered the bracket on it. Paying full
+		# precision (`mc_enable = FALSE`, every requested draw, no early
+		# stopping) at EVERY one of those looks was already measured
+		# elsewhere in this package to be ~5x slower for a similar
+		# correction-factor search (see `get_bartlett_factor_approx()`'s own
+		# comment) and would reintroduce the exact runtime blowup that
+		# motivated adding sequential MC early stopping in the first place.
+		# Instead: trust the cheap bisection to get close fast, then spend
+		# ONE full-precision re-check at the point it converged to, and only
+		# pay for a short additional full-precision re-bisection (bounded at
+		# 15 extra evaluations, not 30) in the rare case that check
+		# disagrees about which side of `pval_th` the bound actually falls
+		# on. This is a pragmatic stopgap, not a full fix -- it corrects
+		# whatever noise survived to the FINAL converged bound, but does not
+		# control the overall search's multiplicity/error rate the way a
+		# genuine anytime-valid confidence sequence redesign would (see
+		# `R/package_metadata/new_feature_plans/` for that deeper redesign,
+		# not yet implemented).
+		high_precision_confirm_and_refine_ci_bound = function(l, u, lower, r, transform_responses, permutations, ci_search_control, pval_th, tol){
+			if (!isTRUE(ci_search_control$high_precision_confirm)) return(if (lower) l else u)
+			full_precision_control = utils::modifyList(ci_search_control, list(mc_enable = FALSE))
+			# A fresh, unshared cache: the cheap (possibly early-stopped)
+			# p-values already sitting in the caller's `ci_pval_cache` for
+			# these exact deltas must NOT be reused here, or this whole pass
+			# would just read back the noisy answer it exists to check.
+			full_pval_cache = new.env(parent = emptyenv())
+			evaluate_full = function(delta) {
+				private$check_randomization_ci_deadline(ci_search_control, "Randomization CI high-precision confirmation")
+				private$compute_randomization_ci_pval_cached(self, r, delta, transform_responses, permutations, full_precision_control, full_pval_cache)
+			}
+			pval_l = evaluate_full(l)
+			pval_u = evaluate_full(u)
+			if (!is.finite(pval_l) || !is.finite(pval_u)) return(if (lower) l else u)
+			if ((pval_l - pval_th) * (pval_u - pval_th) > 0) {
+				# Full precision says both ends of the cheap bisection's final
+				# bracket land on the SAME side of the threshold -- the
+				# crossing the cheap pass thought it found there was Monte
+				# Carlo noise, not a real one. There is nothing reliable to
+				# bisect between (no verified sign change), so fall back to
+				# whichever end is on the conservative (non-significant) side
+				# -- wider than necessary, never narrower than justified.
+				non_sig_end = if (pval_l >= pval_th) l else u
+				return(non_sig_end)
+			}
+			l2 = l; u2 = u; pval_l2 = pval_l; pval_u2 = pval_u
+			for (iter in seq_len(15L)) {
+				private$check_randomization_ci_deadline(ci_search_control, "Randomization CI high-precision confirmation")
+				if (abs(u2 - l2) <= tol || abs(pval_u2 - pval_l2) <= tol) break
+				m = (l2 + u2) / 2
+				pval_m = evaluate_full(m)
+				if (!is.finite(pval_m)) break
+				if (pval_m >= pval_th) { u2 = m; pval_u2 = pval_m } else { l2 = m; pval_l2 = pval_m }
+			}
+			if (lower) l2 else u2
+		},
 			compute_ci_by_inverting_the_randomization_test_iteratively = function(r, l, u, pval_th, tol, transform_responses, lower, show_progress = TRUE, permutations = NULL, ci_search_control = NULL, ci_pval_cache = NULL){
 			evaluate_pval = function(delta) {
 				private$compute_randomization_ci_pval_cached(self, r, delta, transform_responses, permutations, ci_search_control, ci_pval_cache)
@@ -515,14 +601,14 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 					"Randomization CI lower bound is conservative: p-value at search boundary delta=%.4g is %.4g >= %.4g. True CI lower bound may extend further left. (rand_ci_conservative_count++)",
 					l, pval_l, pval_th))
 				private[["rand_ci_conservative_count"]] = (if (is.null(private[["rand_ci_conservative_count"]])) 0L else private[["rand_ci_conservative_count"]]) + 1L
-				return(l)
+				return(private$high_precision_confirm_and_refine_ci_bound(l, u, lower, r, transform_responses, permutations, ci_search_control, pval_th, tol))
 			}
 			if (!lower && is.finite(pval_u) && pval_u >= pval_th) {
 				message(sprintf(
 					"Randomization CI upper bound is conservative: p-value at search boundary delta=%.4g is %.4g >= %.4g. True CI upper bound may extend further right. (rand_ci_conservative_count++)",
 					u, pval_u, pval_th))
 				private[["rand_ci_conservative_count"]] = (if (is.null(private[["rand_ci_conservative_count"]])) 0L else private[["rand_ci_conservative_count"]]) + 1L
-				return(u)
+				return(private$high_precision_confirm_and_refine_ci_bound(l, u, lower, r, transform_responses, permutations, ci_search_control, pval_th, tol))
 			}
 			iter = 0; progress_label = if (lower) "CI lower" else "CI upper"
 			repeat {
@@ -530,7 +616,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				pval_span = abs(pval_u - pval_l)
 				if ((abs(u - l)) <= tol || pval_span <= tol) {
 					if (isTRUE(show_progress)) cat(sprintf("\r%s iter=%d pval_span=%.6g (target<=%.6g) done\n", progress_label, iter, pval_span, tol))
-					return(if(lower) l else u)
+					return(private$high_precision_confirm_and_refine_ci_bound(l, u, lower, r, transform_responses, permutations, ci_search_control, pval_th, tol))
 				}
 				m = (l + u) / 2.0; pval_m = evaluate_pval(m)
 				private$check_randomization_ci_deadline(ci_search_control, "Randomization CI bisection")

@@ -1589,7 +1589,7 @@ EDI_COMPONENT_SPECS = list(
 				# `private$cached_mod = model_output` in generate_mod() threw
 				# "cannot add bindings to a locked environment". Same fix pattern
 				# as every other migrated *Likelihood component this session.
-				owns_state = c("best_Xmm_colnames", "cached_mod"),
+				owns_state = c("best_Xmm_colnames", "cached_mod", "max_abs_reasonable_coef"),
 				provides_public_methods = c("initialize", "compute_estimate_with_bootstrap_weights"),
 				provides_private_methods = c(
 					"supports_likelihood_tests",
@@ -1603,7 +1603,8 @@ EDI_COMPONENT_SPECS = list(
 					"simulate_under_lik_null",
 					"build_design_matrix",
 					"best_Xmm_colnames",
-					"cached_mod"
+					"cached_mod",
+					"max_abs_reasonable_coef"
 				),
 				provides_capabilities = character(),
 				allowed_likelihood_tiers = "full",

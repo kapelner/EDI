@@ -63,6 +63,16 @@ edi_tuning_default_seed = function(class, n) {
 #' the cause of \code{tune_EDI_for_this_machine()}'s example failing on CI
 #' (2026-08-24).
 #'
+#' A third, identically-motivated filter excludes every concrete class for
+#' which \code{infer_inference_requires_blocking_design()} is \code{TRUE}
+#' (e.g. \code{InferenceIncidExtendedRobins}): \code{edi_tuning_synthetic_
+#' experiment()} never builds a blocking design either, so any such class's
+#' \code{initialize()} throws its own \code{requires_blocking_design}
+#' \code{stop()} uncaught -- confirmed as the cause of a real
+#' \code{tune_EDI_for_this_machine(effort = "standard")} run crashing
+#' mid-benchmark (2026-08-26), the same failure mode as the KK case above,
+#' just for a different design-structure requirement.
+#'
 #' @return A data.frame with one row per family: \code{class} (character,
 #'   the R6 classname) and \code{response_type} (character).
 #' @keywords internal
@@ -72,7 +82,8 @@ edi_tuning_live_families = function() {
 	names = sort(Filter(function(name) {
 		obj = get(name, envir = ns, inherits = FALSE)
 		is_inference_r6_generator(obj) && identical(obj$classname, name) &&
-			!infer_inference_abstract(name) && !infer_inference_requires_kk_matching_design(name)
+			!infer_inference_abstract(name) && !infer_inference_requires_kk_matching_design(name) &&
+			!infer_inference_requires_blocking_design(obj)
 	}, ls(ns, all.names = TRUE)))
 	response_types = lapply(names, infer_inference_response_types)
 	keep = lengths(response_types) == 1L

@@ -101,6 +101,19 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 		# dynamically on first assignment in generate_mod() -- harmless for
 		# unlocked package instances but breaks any locked test/user subclass.
 		cached_mod = NULL,
+		# 2026-08-27 fix: neither generate_mod()'s fit_ok() nor
+		# compute_treatment_estimate_during_randomization_inference() checked
+		# anything beyond finiteness on a fitted coefficient -- a
+		# quasi-separated fit (the MLE genuinely diverging, not a numerical
+		# bug) returns a finite but nonsensical coefficient (e.g. ~2925 on the
+		# logit scale) that both then accepted as a valid "ok" estimate.
+		# Confirmed reachable via tune_EDI_for_this_machine()'s synthetic
+		# n = 1000 ordinal benchmark data; only jackknife's own separate
+		# extreme-summary heuristic caught it downstream, not the estimate
+		# itself. Same threshold/pattern as every other class's
+		# max_abs_reasonable_coef-gated extreme-coefficient check (see e.g.
+		# InferenceIncidKKCondLogitOneLik's assess_combined_fit()).
+		max_abs_reasonable_coef = 1e4,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (is.null(private$best_Xmm_colnames)){
 				private$shared(estimate_only = TRUE)
@@ -124,7 +137,8 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 				warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
 				warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params)
 			)
-			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[length(res$b)])){
+			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[length(res$b)]) ||
+					abs(res$b[length(res$b)]) > private$max_abs_reasonable_coef){
 				return(NA_real_)
 			}
 			private$set_fit_warm_start(res$params, "params")
@@ -175,7 +189,8 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 					}
 				},
 				fit_ok = function(mod, X_fit, keep){
-					if (is.null(mod) || length(mod$b) < 1L || !is.finite(mod$b[1])) return(FALSE)
+					if (is.null(mod) || length(mod$b) < 1L || !is.finite(mod$b[1]) ||
+							abs(mod$b[1]) > private$max_abs_reasonable_coef) return(FALSE)
 					if (estimate_only) return(TRUE)
 					is.finite(mod$ssq_b_j) && mod$ssq_b_j > 0
 				}

@@ -991,11 +991,11 @@ run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_cha
 #' @noRd
 #' Estimand tags (the raw `EDI_INFERENCE_ESTIMAND_TAGS` values) that are
 #' genuinely on a **raw multiplicative** scale -- positive support, null
-#' effect at 1, e.g. `"RR"` (risk ratio), `"hazard_ratio"` -- as opposed to
-#' every other estimand tag in the registry, which is either already a
-#' *difference* (`"RD"`, `"mean_difference"`, ...) or already
-#' **log-transformed** by the estimator itself (`"log_odds_ratio_*"`,
-#' `"log_rate_ratio_*"`, `"log_time_ratio"`, ...) -- for those, the reported
+#' effect at 1, e.g. `"RR"` (risk ratio) -- as opposed to every other
+#' estimand tag in the registry, which is either already a *difference*
+#' (`"RD"`, `"mean_difference"`, ...) or already **log-transformed** by the
+#' estimator itself (`"log_odds_ratio_*"`, `"log_rate_ratio_*"`,
+#' `"log_time_ratio"`, `"log_hazard_ratio"`, ...) -- for those, the reported
 #' number is already an additive effect on the log scale, so a *further*
 #' log10 transform of that number would be nonsensical (and can be
 #' negative, which log10 can't even display). Per user request, 2026-08-20
@@ -1004,11 +1004,18 @@ run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_cha
 #' `scale_x_log10()` (null
 #' reference line at 1) vs. linear (null at 0) per estimand, closing the
 #' "ratio-scale nulls would need a per-class scale declaration" known
-#' limitation those two functions previously documented.
+#' limitation those two functions previously documented. Cox-PH-family
+#' classes were tagged `"hazard_ratio"` here until 2026-08-26 despite their
+#' own `compute_estimate()` always returning the log-hazard-ratio
+#' (`beta_hat_T`, per their own roxygen) -- a raw-scale tag on a log-scale
+#' value, causing negative "hazard ratio" point estimates in suite output
+#' and a wrong (positive-support, null-at-1) log10-axis/null-value
+#' assumption downstream. Retagged `"log_hazard_ratio"`, consistent with the
+#' `"log_time_ratio"`/`"log_odds_ratio_*"` family, and removed from this set.
 #'
 #' @keywords internal
 #' @noRd
-EDI_INFERENCE_LOG_SCALE_ESTIMANDS = c("RR", "hazard_ratio")
+EDI_INFERENCE_LOG_SCALE_ESTIMANDS = c("RR")
 
 #' Whether estimand `estimand` should render on a log10 x-axis, further
 #' gated on every value actually being finite and strictly positive (log10
@@ -2455,11 +2462,11 @@ run_all_inference_plot_safe_text = function(x) {
 #' substantially"), a `"(A) <class> (<method>): p = ..., CI width = ..."`
 #' key line per letter printed as the plot's caption, segment color keyed
 #' to significance at `alpha`, and a reference line at the null value -- drawn
-#' at 1 on a log10 x-axis for the two raw-ratio-scale estimands
-#' (`EDI_INFERENCE_LOG_SCALE_ESTIMANDS`: `"RR"`, `"hazard_ratio"`), at 0 on
+#' at 1 on a log10 x-axis for the one raw-ratio-scale estimand
+#' (`EDI_INFERENCE_LOG_SCALE_ESTIMANDS`: `"RR"`), at 0 on
 #' a linear axis for every other estimand (per user request, 2026-08-20;
 #' `run_all_inference_estimand_use_log10()`). **Remaining limitation:**
-#' this only covers those two estimand tags -- any estimand this package
+#' this only covers that one estimand tag -- any estimand this package
 #' has not tagged as raw-ratio-scale still gets a linear axis / null-at-0,
 #' even if it turns out to also warrant a log transform.
 #'
@@ -2752,7 +2759,24 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 				c(d$estimate, d$ci_a, d$ci_b, null_x)
 			}
 			keep = keep[is.finite(keep)]
-			if (length(keep) > 0L) range(keep) else c(null_x, null_x)
+			raw = if (length(keep) > 0L) range(keep) else c(null_x, null_x)
+			# Always reserve real room for the right-aligned class/method
+			# label column, not just when a width-outlier row happens to
+			# define the axis. Previously `panel_range[2]` WAS the widest
+			# row's own `ci_b` in the common (no-outlier) case, so that row's
+			# segment could never be "truncated" past its own endpoint --
+			# nothing ever clipped, and a long label sitting in the scale's
+			# proportional expansion margin (see `x_scale` below) could still
+			# render wider than that margin and bleed left over the line (per
+			# user report, 2026-08-26: "the ci lines still sometimes
+			# overwrite the class labels ... should stop and add '...'").
+			# Unconditionally shave a fixed fraction of the visible span off
+			# the right so every row's line has a guaranteed gap before the
+			# label zone; any `ci_b` reaching into that gap now gets clipped
+			# and marked truncated like the outlier case always was.
+			raw_span = diff(raw)
+			shrunk_right = raw[2L] - 0.18 * raw_span
+			if (is.finite(shrunk_right) && shrunk_right > raw[1L]) c(raw[1L], shrunk_right) else raw
 		}
 		d$ci_a_draw = ifelse(is.finite(d$ci_a), pmax(d$ci_a, panel_range[1]), d$ci_a)
 		d$ci_b_draw = ifelse(is.finite(d$ci_b), pmin(d$ci_b, panel_range[2]), d$ci_b)
