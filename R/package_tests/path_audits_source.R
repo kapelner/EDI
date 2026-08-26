@@ -131,8 +131,8 @@ audit_classes = list(
   list(name="InferenceSurvivalStratCoxPHRegr",         section="Survival",  resp="surv", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE, slow_methods=c(slow_m_out_of_n_methods, "compute_lik_ratio_bootstrap_two_sided_pval", "compute_param_bootstrap_estimate", "compute_param_bootstrap_pval", "compute_param_bootstrap_confidence_interval", "compute_lik_ratio_bartlett_two_sided_pval"), notes="InferenceParamBootstrap directly; pboot=use_rcpp"),
   list(name="InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",  section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE, skip_jack_slow=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=TRUE,  skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  skip_pboot_ci=TRUE, slow_methods=c("compute_rand_confidence_interval", "compute_rand_confidence_interval(custom)", "compute_lik_ratio_confidence_interval", slow_m_out_of_n_methods, slow_prw_subsampling_methods), notes="InferenceParamBootstrap; pboot=TRUE even though skip_boot=TRUE (separate test family); jackknife structurally supported but skip_jack_slow=TRUE; rand CI avg 507.7s / max 2094.4s at n=6; custom rand CI avg 41.2s / p80 5.6s / max 1993.3s at n=54; m-out-of-n CI avg 196.1s / p80 408.5s / max 634.0s at n=137; subsampling CI avg 183.7s / p80 366.7s / max 718.8s at n=137; lik-ratio CI avg 39.1s / max 234.2s at n=6 slow"),
   list(name="InferenceSurvivalKKLWACoxPHOneLik",       section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  notes="AbstractKKLWACoxOneLik → ParamBootstrap; explicit TRUE"),
-  list(name="InferenceSurvivalKKStratCoxPHOneLik",     section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  notes="InferenceParamBootstrap; explicit TRUE"),
-  list(name="InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  slow_methods=c("compute_rand_confidence_interval", "compute_score_confidence_interval"), notes="AbstractGLMMWeibullFrailtyNormalOneLik → ParamBootstrap; pboot=use_rcpp; skip_boot=TRUE; rand CI avg 45.7s / max 171.5s at n=6; score CI avg 50.1s / max 324.8s at n=13 slow"),
+  list(name="InferenceSurvivalKKStratCoxPHOneLik",     section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE, slow_methods=c("compute_rand_confidence_interval"), notes="InferenceParamBootstrap; explicit TRUE; rand CI avg 36.25s / p80 70.46s / max 73.96s at n=12 slow"),
+  list(name="InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  slow_methods=c("compute_rand_confidence_interval", "compute_rand_confidence_interval(custom)", "compute_score_confidence_interval"), notes="AbstractGLMMWeibullFrailtyNormalOneLik → ParamBootstrap; pboot=use_rcpp; skip_boot=TRUE; custom rand CI avg 72.66s / p80 81.16s / max 91.78s (FixedBinaryMatch, n=12) and avg 32.08s / p80 60.86s / max 69.89s (KK21stepwise, n=24); score CI avg 50.1s / max 324.8s at n=13 slow"),
   list(name="InferenceSurvivalKKWeibullMarginal",      section="Survival",  resp="surv", kk=TRUE,  types="none", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=NA, slow_methods=c("compute_rand_confidence_interval"), notes="InferenceAsymp; exposes generic asymp pval/CI but no direct compute_wald_* wrappers, so direct Wald cells are NTS"),
 
   # ── ORDINAL ───────────────────────────────────────────────────────────────────
@@ -226,12 +226,12 @@ load_nonestimability_stats = function(result_dir = "package_tests") {
   stats_env_from_rates(rates)
 }
 
-validate_bartlett_exact_metadata = function(classes, r_dirs = c(file.path("EDI", "R"), file.path("..", "EDI", "R"))) {
+validate_bartlett_exact_metadata = function(classes, r_dirs = c(file.path("R", "EDI", "R"), file.path("EDI", "R"), file.path("..", "EDI", "R"))) {
   r_dir = r_dirs[dir.exists(r_dirs)][1]
   if (is.na(r_dir)) return(invisible(NULL))
 
   exact_re = "supports_bartlett_likelihood_ratio_exact\\s*=\\s*function\\s*\\([^)]*\\)\\s*TRUE"
-  class_re = "^\\s*([A-Za-z][A-Za-z0-9_.]*)\\s*=\\s*R6::R6Class\\s*\\("
+  class_re = "^\\s*([A-Za-z][A-Za-z0-9_.]*)\\s*=\\s*(?:R6::R6Class|define_inference_class)\\s*\\("
   files = list.files(r_dir, pattern = "\\.R$", full.names = TRUE)
   source_exact = character()
 
@@ -241,9 +241,8 @@ validate_bartlett_exact_metadata = function(classes, r_dirs = c(file.path("EDI",
     if (!length(exact_idx)) next
     class_idx = grep(class_re, lines, perl = TRUE)
     for (idx in exact_idx) {
-      prior_class_idx = class_idx[class_idx < idx]
-      if (!length(prior_class_idx)) next
-      class_line = lines[max(prior_class_idx)]
+      if (!length(class_idx)) next
+      class_line = lines[class_idx[which.min(abs(class_idx - idx))]]
       source_exact = c(source_exact, sub("^\\s*([A-Za-z][A-Za-z0-9_.]*)\\s*=.*$", "\\1", class_line, perl = TRUE))
     }
   }
@@ -267,12 +266,12 @@ validate_bartlett_exact_metadata = function(classes, r_dirs = c(file.path("EDI",
   invisible(source_exact)
 }
 
-validate_bartlett_approx_metadata = function(classes, r_dirs = c(file.path("EDI", "R"), file.path("..", "EDI", "R"))) {
+validate_bartlett_approx_metadata = function(classes, r_dirs = c(file.path("R", "EDI", "R"), file.path("EDI", "R"), file.path("..", "EDI", "R"))) {
   r_dir = r_dirs[dir.exists(r_dirs)][1]
   if (is.na(r_dir)) return(invisible(NULL))
 
   support_true_re = "supports_lik_ratio_param_bootstrap\\s*=\\s*function\\s*\\([^)]*\\)\\s*TRUE"
-  class_re = "^\\s*([A-Za-z][A-Za-z0-9_.]*)\\s*=\\s*R6::R6Class\\s*\\("
+  class_re = "^\\s*([A-Za-z][A-Za-z0-9_.]*)\\s*=\\s*(?:R6::R6Class|define_inference_class)\\s*\\("
   files = list.files(r_dir, pattern = "\\.R$", full.names = TRUE)
   source_pboot_true = character()
 
@@ -282,9 +281,8 @@ validate_bartlett_approx_metadata = function(classes, r_dirs = c(file.path("EDI"
     if (!length(support_idx)) next
     class_idx = grep(class_re, lines, perl = TRUE)
     for (idx in support_idx) {
-      prior_class_idx = class_idx[class_idx < idx]
-      if (!length(prior_class_idx)) next
-      class_line = lines[max(prior_class_idx)]
+      if (!length(class_idx)) next
+      class_line = lines[class_idx[which.min(abs(class_idx - idx))]]
       source_pboot_true = c(source_pboot_true, sub("^\\s*([A-Za-z][A-Za-z0-9_.]*)\\s*=.*$", "\\1", class_line, perl = TRUE))
     }
   }
@@ -978,6 +976,8 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   invisible(outfile)
 }
 
-# Run from repo root: Rscript package_tests/path_audits_source.R
-this_dir = tryCatch(dirname(normalizePath(sys.frame(1)$ofile)), error = function(e) "package_tests")
+# Run from repo root: Rscript R/package_tests/path_audits_source.R
+script_arg = grep("^--file=", commandArgs(FALSE), value = TRUE)[1]
+this_file = sub("^--file=", "", script_arg)
+this_dir = tryCatch(dirname(normalizePath(this_file)), error = function(e) "package_tests")
 html_from_audit(audit_classes, file.path(this_dir, "path_audits.html"))

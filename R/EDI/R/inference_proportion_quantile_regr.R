@@ -233,7 +233,7 @@ InferencePropQuantileRegr = define_inference_class(
 			y_logit = logit(private$y)
 			if (estimate_only) {
 				fit = tryCatch(
-					suppressWarnings(getFromNamespace("rq.fit", "quantreg")(x = X_fit, y = y_logit, tau = private$tau, method = "br")),
+					suppressWarnings(getFromNamespace("rq.fit", "quantreg")(x = X_fit, y = y_logit, tau = private$tau, method = "fn")),
 					error = function(e) NULL
 				)
 				if (is.null(fit) || is.null(fit$coefficients)) return(NULL)
@@ -246,7 +246,7 @@ InferencePropQuantileRegr = define_inference_class(
 			dat = as.data.frame(X_fit)
 			dat$y__ = y_logit
 			tryCatch(
-				suppressWarnings(quantreg::rq(y__ ~ . - 1, tau = private$tau, data = dat)),
+				suppressWarnings(quantreg::rq(y__ ~ . - 1, tau = private$tau, data = dat, method = "fn")),
 				error = function(e) NULL
 			)
 		},

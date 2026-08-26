@@ -1158,6 +1158,15 @@ supports_direct_testing_type = function(testing_type){
 	}
 
 safe_call = function(label, expr){
+	# A timeout raised from compiled code can leave R's process-level elapsed
+	# limit armed long enough to interrupt the next method before withTimeout()
+	# installs its own handler. Start every call from an unlimited state and
+	# unconditionally restore that state when the call finishes.
+	setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
+	on.exit(
+		setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE),
+		add = TRUE
+	)
 	if (is_row_completed(
 		rep_curr,
 		beta_T,

@@ -51,7 +51,7 @@ EDI_COMPREHENSIVE_SLOW_PATHS = list(
 		"InferenceContinKKGLMM",
 		"InferenceOrdinalStereotypeLogitRegr"
 	),
-	rand_ci = c("InferenceSurvivalWeibullRegr", "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", "InferenceSurvivalKKWeibullMarginal", "InferencePropQuantileRegr", "InferencePropKKGEE", "InferencePropBetaRegr"),
+	rand_ci = c("InferenceSurvivalWeibullRegr", "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", "InferenceSurvivalKKStratCoxPHOneLik", "InferenceSurvivalKKWeibullMarginal", "InferencePropQuantileRegr", "InferencePropKKGEE", "InferencePropBetaRegr"),
 	score_ci = c("InferenceSurvivalGLMMWeibullFrailtyNormalOneLik"),
 	lik_ratio_ci = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceSurvivalDepCensTransformRegr"),
 	bbt_pval = c("InferenceIncidKKCondLogitGLMMOneLik"),
@@ -66,7 +66,7 @@ EDI_COMPREHENSIVE_SLOW_PATHS = list(
 	boot_stud = c("InferenceIncidRiskDiff", "InferenceSurvivalGehanWilcox", "InferenceSurvivalDepCensTransformRegr", "InferenceOrdinalKKGEE", "InferenceIncidModifiedPoisson"),
 	boot_pval_stud = c("InferenceAllSimpleAverageDiff", "InferenceSurvivalGehanWilcox", "InferenceOrdinalKKGEE"),
 	boot_pval_symmetric = c("InferenceIncidKKGCompRiskRatio"),
-	boot_ci = character(),
+	boot_ci = c("InferenceOrdinalKKGLMM"),
 	jack = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceContinKKGLMM"),
 	pboot_ci = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"),
 	lik_ratio_bootstrap_pval = c("InferenceSurvivalStratCoxPHRegr"),

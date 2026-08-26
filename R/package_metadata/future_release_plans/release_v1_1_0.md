@@ -103,6 +103,21 @@ Additive, no decision gate; may run in parallel with the response-type
 family above once TODO-1's KK-migration dependency (see the plan's own
 `Depends on` header) is satisfied.
 
+The quantile-regression-family extension (added 2026-08-26, brainstormed
+and approved same day): `survival_quantile_regression.md` — a custom
+self-consistent EM estimator (Peng-Huang estimating equations extended to
+general interval censoring) for survival responses, with both bootstrap
+and asymptotic-sandwich inference, plain plus KK IVWC/one-lik variants,
+and randomization inference on the KK variants — and
+`count_quantile_regression.md` — jittered (Machado & Santos Silva 2005)
+`rq()` for count responses, `B`-averaged point estimate, single-jitter-draw
+bootstrap/randomization refits, same plain plus KK IVWC/one-lik scope.
+Both additive, no decision gate (design already approved via
+brainstorming); both build on `quantreg::rq()` like the rest of the
+quantile-regression family and are natural `use_rcpp` candidates once
+`quantile_regression_cpp_kernel_spec.md` lands, but do not depend on it.
+May run in parallel with any other track.
+
 Designs and orchestration: `multi_arm_designs.md` (TODO-1..5; TODO-6 already
 shipped in 1.0.0), `design_fixed_greedy_pair_switch_merge.md`,
 `design_seq_many_by_many.md` (added 2026-08-17, user decision — the new
@@ -354,6 +369,26 @@ ticked in their **owning plans**; this list is the release index.
   TODO-2 extracts shared ingestion logic from the frozen
   `DesignSeqOneByOne$add_one_subject()` path — behavior-preserving under
   golden test, per the additive constraint below.
+- [ ] TODO-15d: **Survival quantile regression** (added 2026-08-26):
+  `survival_quantile_regression.md → TODO-1..N` (implementation plan not
+  yet written) — `InferenceSurvivalQuantileRegr` plus
+  `InferenceSurvivalKKQuantileRegrIVWC`/`OneLik`, a custom self-consistent
+  EM estimator for general interval-censored data (no existing
+  `quantreg::crq()`-based path covers this), bootstrap + heuristic
+  asymptotic-sandwich inference, and KK randomization inference. Additive,
+  no decision gate. Open risks flagged in the plan (EM-to-Peng-Huang
+  reduction unverified until tested, sandwich variance unproven for
+  interval censoring, randomization-inference performance unresolved)
+  carry into its implementation plan. May run in parallel with every
+  other track; independent of TODO-15b/15e.
+- [ ] TODO-15e: **Count quantile regression** (added 2026-08-26):
+  `count_quantile_regression.md → TODO-1..N` (implementation plan not yet
+  written) — `InferenceCountQuantileRegr` plus
+  `InferenceCountKKQuantileRegrIVWC`/`OneLik`, Machado & Santos Silva
+  (2005) jittered `rq()` with `B`-averaged point estimates and
+  single-jitter-draw bootstrap/randomization refits. Additive, no decision
+  gate. May run in parallel with every other track; independent of
+  TODO-15b/15d.
 - [ ] TODO-15c: **`dead` → `uncensored` rename** (added 2026-08-19, user
   decision): `../finished_features/interval_censored_survival_response.md →
   TODO-29` — rename the survival event/censoring indicator `dead` to

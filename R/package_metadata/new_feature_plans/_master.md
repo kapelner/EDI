@@ -420,6 +420,16 @@ already stated there:**
 - **5H. `dead` → `uncensored` rename** (added 2026-08-19) →
   `release_v1_1_0.md → TODO-15c`. Source TODO:
   `../finished_features/interval_censored_survival_response.md → TODO-29`.
+- **5I. Survival quantile regression** (added 2026-08-26) →
+  `release_v1_1_0.md → TODO-15d`. `survival_quantile_regression.md`:
+  `InferenceSurvivalQuantileRegr` (custom self-consistent EM for general
+  interval-censored data) plus KK IVWC/one-lik variants. Independent of
+  every other track; open risks (EM-reduction validation, sandwich-variance
+  rigor, randomization-inference perf) live in the plan itself.
+- **5J. Count quantile regression** (added 2026-08-26) →
+  `release_v1_1_0.md → TODO-15e`. `count_quantile_regression.md`:
+  `InferenceCountQuantileRegr` (Machado & Santos Silva jittered `rq()`)
+  plus KK IVWC/one-lik variants. Independent of every other track.
 
 ---
 

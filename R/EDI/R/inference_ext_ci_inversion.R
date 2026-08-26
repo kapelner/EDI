@@ -7,8 +7,7 @@
 #' \code{invert_test_pval_confidence_interval()} (score / lik-ratio / Bartlett
 #' pval inversion via root-finding on a supplied \code{pval_fn}),
 #' \code{invert_gradient_ci_uniroot()} (gradient-test CI via the same
-#' root-finding machinery, with an extra "reject at the estimate" short
-#' circuit), and \code{invert_lik_ratio_ci_newton()} (likelihood-ratio CI via
+#' root-finding machinery), and \code{invert_lik_ratio_ci_newton()} (likelihood-ratio CI via
 #' the dedicated Newton-Raphson C++ inverter). All three seed from the Wald CI,
 #' invert a per-testing-type p-value function, and then validate/clamp the
 #' result against the same fallback-to-Wald-or-give-up policy -- that shared
@@ -35,7 +34,15 @@ InferenceExtCIInversion = list(
 		finalize_inverted_ci = function(ci_vals, alpha, est, wald_ci, unavailable_reason){
 			ci = if (length(ci_vals) == 2L) sort(as.numeric(ci_vals[1:2]), na.last = TRUE) else c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			if (length(ci) < 2L || !all(is.finite(ci[1:2])) || ci[1L] > est || ci[2L] < est || any(abs(ci[1:2]) > private$likelihood_ci_max_abs)) {
+			# An exact ci[1] == ci[2] is the root-finder's "test rejects at its own
+			# estimate" sentinel (e.g. pval_invert_ci_cpp's p(est) < alpha short
+			# circuit), not a genuine zero-width CI -- a real bisection/Newton result
+			# converges to within `tol` of the true bound but is not exactly equal to
+			# `est`. Route it through the same fallback-to-Wald-or-give-up policy as
+			# any other unusable inversion instead of reporting a confident point
+			# estimate as a "confidence interval".
+			degenerate = length(ci) == 2L && all(is.finite(ci[1:2])) && ci[1L] == ci[2L]
+			if (length(ci) < 2L || !all(is.finite(ci[1:2])) || degenerate || ci[1L] > est || ci[2L] < est || any(abs(ci[1:2]) > private$likelihood_ci_max_abs)) {
 				fallback = sort(as.numeric(wald_ci[1:2]), na.last = TRUE)
 				if (length(fallback) >= 2L && all(is.finite(fallback)) && fallback[1L] <= est && fallback[2L] >= est && all(abs(fallback[1:2]) <= private$likelihood_ci_max_abs)) {
 					ci = fallback
@@ -132,11 +139,11 @@ InferenceExtCIInversion = list(
 				private$cache_nonestimable_se("gradient_test_unavailable")
 				return(c(NA_real_, NA_real_))
 			}
-			if (p_est < alpha) {
-				ci = c(est, est)
-				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-				return(ci)
-			}
+			# p_est < alpha (test rejects at its own estimate) is left to
+			# pval_invert_ci_cpp's own short circuit, which returns the [est, est]
+			# sentinel; finalize_inverted_ci() below recognizes that sentinel and
+			# falls back to the Wald CI or non-estimable instead of reporting a
+			# zero-width "confidence interval".
 
 			ci_vals = tryCatch(
 				pval_invert_ci_cpp(

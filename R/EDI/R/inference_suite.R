@@ -1445,6 +1445,24 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 		# "ok" branch below, so a nonestimable/error/timeout row still reports
 		# what this class targets.
 		estimand        = run_all_inference_estimand(cls_name),
+		# The quantile `tau` a `"quantile_regression_effect"`-estimand class
+		# was actually constructed with (per user request, 2026-08-26: show
+		# "median effect" for the default tau = 0.5, "quantile (90%ile)
+		# effect" for any other configured tau, instead of a flat "quantile
+		# effect" that can't tell the two apart). Read straight from `params`
+		# (the constructor args this task is about to use), not from the
+		# constructed object's private state -- works even for a
+		# nonestimable/error/timeout row where construction never
+		# succeeded. `NA` for every non-quantile-regression class (`params`
+		# never has a `tau` entry for them, and the estimand-tag check below
+		# short-circuits before this could matter anyway).
+		tau             = if (!is.null(params$tau)) {
+			as.numeric(params$tau)
+		} else if (identical(run_all_inference_estimand(cls_name), "quantile_regression_effect")) {
+			0.5
+		} else {
+			NA_real_
+		},
 		fit_secs        = NA_real_,
 		warnings        = NA_character_,
 		status          = "error",
@@ -1969,7 +1987,7 @@ method_with_type_short_label = function(method, type) {
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_static_row_fields = function(task, des_obj) {
+run_all_inference_static_row_fields = function(task, des_obj, inference_params = list()) {
 	adjusts = get_inference_class_metadata(task$cls_name)$adjusts_for_covariates
 	cov_model_raw = if (isFALSE(adjusts)) {
 		NA_character_
@@ -1982,7 +2000,26 @@ run_all_inference_static_row_fields = function(task, des_obj) {
 		cov_model_raw = cov_model_raw,
 		estimand_disp = {
 			e = run_all_inference_estimand(task$cls_name)
-			if (is.na(e)) "NA" else estimand_short_label(e)
+			if (is.na(e)) {
+				"NA"
+			} else {
+				# Same tau lookup as `run_all_inference_one_class()`'s own
+				# `tau` field (see that comment for why): read from the
+				# per-class constructor args this task will actually use,
+				# defaulting to 0.5 for a quantile-regression estimand with
+				# no explicit `tau` override -- computed pre-fit here since
+				# the live table's header/static fields are all built before
+				# the fitting loop starts.
+				task_params = inference_params[[task$cls_name]]
+				tau = if (!is.null(task_params$tau)) {
+					as.numeric(task_params$tau)
+				} else if (identical(e, "quantile_regression_effect")) {
+					0.5
+				} else {
+					NA_real_
+				}
+				estimand_short_label(e, tau)
+			}
 		}
 	)
 }
@@ -2012,9 +2049,9 @@ run_all_inference_static_row_fields = function(task, des_obj) {
 #'
 #' @keywords internal
 #' @noRd
-run_all_inference_build_live_table_header = function(tasks, des_obj, compute_conf_intervals = TRUE) {
+run_all_inference_build_live_table_header = function(tasks, des_obj, compute_conf_intervals = TRUE, inference_params = list()) {
 	headers = if (isTRUE(compute_conf_intervals)) EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS else EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS_NO_CI
-	statics = lapply(tasks, run_all_inference_static_row_fields, des_obj = des_obj)
+	statics = lapply(tasks, run_all_inference_static_row_fields, des_obj = des_obj, inference_params = inference_params)
 	estimands_for_sort = vapply(tasks, function(t) run_all_inference_estimand(t$cls_name) %||% NA_character_, character(1L))
 	sort_idx = order(estimands_for_sort, vapply(tasks, `[[`, character(1L), "cls_name"), na.last = TRUE)
 	cov = cov_model_display(vapply(statics, `[[`, character(1L), "cov_model_raw")[sort_idx])
@@ -2263,7 +2300,20 @@ run_all_inference_render_html = function(out) {
 	# separate "Estimates" image section is gone (per user request,
 	# 2026-08-21) -- its box-and-whisker now lives at the bottom of each CI
 	# forest plot.
-	estimand_heading = function(e) if (identical(e, "estimand unspecified")) e else estimand_short_label(e)
+	estimand_heading = function(e) {
+		if (identical(e, "estimand unspecified")) return(e)
+		# This estimand's representative `tau` (see `run_all_inference_
+		# plot_ci_forest()`'s own `d_tau`/`estimand_short_label()` comments
+		# for why) -- looked up from `out$results_table` by the same
+		# `estimand_facet` mapping the plot itself used to split rows into
+		# estimands (raw `NA` estimand -> the literal "estimand unspecified"
+		# facet key, already handled by the early return above).
+		tbl = out$results_table
+		facet = ifelse(is.na(tbl$estimand), "estimand unspecified", tbl$estimand)
+		tau_uniq = unique(stats::na.omit(tbl$tau[facet == e]))
+		tau_e = if (length(tau_uniq) == 1L) tau_uniq else NA_real_
+		estimand_short_label(e, tau_e)
+	}
 	ci_forest_html = vapply(names(out$plots$ci_forest), function(e) {
 		p = out$plots$ci_forest[[e]]
 		b64 = run_all_inference_plot_to_base64_png(p, height = run_all_inference_plot_height_in(p))
@@ -2623,7 +2673,12 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# to this one plot's `d` instead of the whole results table.
 		combined = run_all_inference_combine_pvalues(d$pval[is.finite(d$pval)])
 		combined_str = if (is.na(combined$pval)) "NA" else formatC(combined$pval, digits = 3, format = "g")
-		e_disp = if (identical(e, "estimand unspecified")) e else run_all_inference_plot_safe_text(estimand_short_label(e))
+		# This estimand's representative `tau` -- same "collapse to a single
+		# value if uniform, else NA" logic as `run_all_inference_per_
+		# estimand_breakdown_lines()`'s own tau lookup (see that comment).
+		d_tau_uniq = if (!is.null(d$tau)) unique(stats::na.omit(d$tau)) else numeric(0)
+		d_tau = if (length(d_tau_uniq) == 1L) d_tau_uniq else NA_real_
+		e_disp = if (identical(e, "estimand unspecified")) e else run_all_inference_plot_safe_text(estimand_short_label(e, d_tau))
 		# Per user request, 2026-08-20 ("for each estimand, decide if it
 		# makes sense to display on a log10 scale"): closes this function's
 		# previously-documented known limitation ("the null-value reference
@@ -3323,7 +3378,7 @@ inference_class_short_label = function(name) {
 	# acronym reads as unclear/ambiguous on its own (unlike KK/OLS/GEE/etc,
 	# which are unambiguous within this package's vocabulary), so it's
 	# spelled out in full rather than just correctly grouped.
-	word_abbrev = c(Binomial = "Binom", Identity = "Ident", Mean = "Average", KM = "Kaplan-Meier")
+	word_abbrev = c(Binomial = "Binom", Identity = "Ident", Mean = "Avg", Average = "Avg", KM = "Kaplan-Meier", Inflated = "Infl", Hurdle = "Hurd")
 	words = ifelse(words %in% names(word_abbrev), word_abbrev[words], words)
 	# "Nurminen" dropped entirely (not abbreviated) from
 	# InferenceIncidMiettinenNurminenRiskDiff-style names, per user request
@@ -3359,8 +3414,11 @@ inference_class_short_label = function(name) {
 #'
 #' @keywords internal
 #' @noRd
-estimand_short_label = function(estimand) {
-	vapply(estimand, function(e) {
+estimand_short_label = function(estimand, tau = NA_real_) {
+	tau = rep_len(as.numeric(tau), length(estimand))
+	vapply(seq_along(estimand), function(i) {
+		e = estimand[[i]]
+		tau_i = tau[[i]]
 		if (is.na(e)) return(NA_character_)
 		# No "RD" special case: risk difference (incidence) was merged into
 		# the shared "mean_difference" estimand tag (per user request,
@@ -3374,6 +3432,21 @@ estimand_short_label = function(estimand) {
 		# (inference_class_registry.R) no longer emits "RD" at all.
 		if (identical(e, "RR")) return("risk ratio")
 		if (identical(e, "hodges_lehmann_shift")) return("HL shift")
+		# "quantile regression effect" -> "median effect" at the default tau =
+		# 0.5, "quantile (<tau*100>%ile)" otherwise (per user request,
+		# 2026-08-26: distinguish which quantile was actually tested, in case
+		# more than one gets compared) -- a whole-string special case, like
+		# "RR"/"hodges_lehmann_shift" above, not a generic word substitution:
+		# the tau-dependent wording only makes sense for this one estimand tag.
+		# No trailing "effect" in the tau!=0.5 form (unlike "median effect") --
+		# "quantile (90%ile) effect" (24 chars) hard-truncated the 2-line
+		# wrap's 10-char-capped second line to "(90%ile) e", losing "ffect";
+		# "quantile (90%ile)" alone wraps cleanly as "quantile" / "(90%ile)"
+		# and "effect" is redundant once the quantile is already named.
+		if (identical(e, "quantile_regression_effect")) {
+			if (is.na(tau_i) || isTRUE(all.equal(tau_i, 0.5))) return("median effect")
+			return(sprintf("quantile (%g%%ile)", tau_i * 100))
+		}
 		s = gsub("log_odds", "logodds", e, fixed = TRUE)
 		s = gsub("_", " ", s, fixed = TRUE)
 		s = gsub("difference", "diff", s, fixed = TRUE)
@@ -3388,15 +3461,11 @@ estimand_short_label = function(estimand) {
 		# 2-line wrap.
 		s = gsub("proportional", "prop", s, fixed = TRUE)
 		s = gsub("continuation", "cont", s, fixed = TRUE)
-		# "quantile regression effect" -> "quantile effect" (per user report,
-		# 2026-08-24: the unabbreviated 3-word form was long enough that the
-		# 2-line wrap's floor-half split -- "quantile" / "regression effect"
-		# -- hard-truncated line 2 to the column cap and silently dropped
-		# "effect" entirely). "regression" is redundant with "quantile" here
-		# (no other estimand in this package's vocabulary says "quantile"
-		# without meaning quantile regression), so it's dropped rather than
-		# abbreviated.
-		s = gsub("quantile regression effect", "quantile effect", s, fixed = TRUE)
+		# "restricted" -> "restr" (per user request, 2026-08-26; only ever
+		# seen in "restricted mean survival time diff", the RMST estimand),
+		# same long-single-word-overflows-the-wrap rationale as
+		# "proportional"/"continuation" above.
+		s = gsub("restricted", "restr", s, fixed = TRUE)
 		# Unambiguous within this package's estimand vocabulary without the
 		# trailing noun (per user request, 2026-08-19): "logodds ratio ..."
 		# is always the log-odds-ratio scale, and "probit effect ..." is
@@ -3542,7 +3611,7 @@ run_all_inference_build_display_table = function(results_table) {
 	display = data.frame(
 		`inference class` = vapply(tbl$inference_class, inference_class_short_label, character(1L)),
 		`cov mod`          = cov$disp,
-		estimand           = na_chr(estimand_short_label(tbl$estimand)),
+		estimand           = na_chr(estimand_short_label(tbl$estimand, tbl$tau)),
 		est                = run_all_inference_sigfig(tbl$estimate, 3L),
 		se                 = run_all_inference_sigfig(tbl$se, 3L),
 		check.names = FALSE, stringsAsFactors = FALSE
@@ -3922,15 +3991,28 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 	if (!any(usable)) return(character(0))
 	est = results_table$estimand[usable]
 	pv = results_table$pval[usable]
+	tau_all = if (!is.null(results_table$tau)) results_table$tau[usable] else rep(NA_real_, sum(usable))
 	groups = split(pv, est)
+	tau_groups = split(tau_all, est)
 	vapply(names(groups), function(g) {
 		combined = run_all_inference_combine_pvalues(groups[[g]])
 		p_str = if (is.na(combined$pval)) "NA" else formatC(combined$pval, digits = 3, format = "g")
+		# This group's representative `tau` (for the "quantile_regression_
+		# effect" estimand's "median effect"/"quantile (<tau>%ile) effect"
+		# wording -- see `estimand_short_label()`'s own docs): the group's
+		# rows are almost always one class fit at one tau, so `unique()`
+		# collapses to a single value in the common case; a genuinely mixed
+		# group (multiple tau values compared side by side) falls back to
+		# `NA`, which reads as the default "median effect" wording -- an
+		# acceptable imprecision for a rare edge case, not a silent wrong
+		# answer (the per-row table cells stay fully accurate either way).
+		tau_uniq = unique(stats::na.omit(tau_groups[[g]]))
+		tau_g = if (length(tau_uniq) == 1L) tau_uniq else NA_real_
 		# Same abbreviated form as the main table's `estimand` column
 		# (per user request, 2026-08-19) -- `names(groups)` is still the
 		# raw registry `estimand` string (needed for `split()`/lookup), so
 		# abbreviate only for display here, not for the grouping itself.
-		sprintf("  Estimand: %s (%d inferences): p = %s", estimand_short_label(g), length(groups[[g]]), p_str)
+		sprintf("  Estimand: %s (%d inferences): p = %s", estimand_short_label(g, tau_g), length(groups[[g]]), p_str)
 	}, character(1L), USE.NAMES = FALSE)
 }
 
@@ -4647,7 +4729,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			t_start         = Sys.time()
 			results         = vector("list", n_total)
 			names(results)  = vapply(tasks, `[[`, character(1L), "result_name")
-			live_header     = if (screen && n_total > 0L) run_all_inference_build_live_table_header(tasks, des_obj, compute_conf_intervals) else NULL
+			live_header     = if (screen && n_total > 0L) run_all_inference_build_live_table_header(tasks, des_obj, compute_conf_intervals, private$inference_params) else NULL
 
 			use_fork_cluster = num_cores > 1L && .Platform$OS.type == "unix"
 			if (num_cores > 1L && !use_fork_cluster) {
@@ -4790,7 +4872,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					design_family = r$design_family, likelihood_tier = r$likelihood_tier,
 					estimate = r$estimate, se = r$se,
 					ci_a = r$ci_a, ci_b = r$ci_b, ci_method = r$ci_method,
-					pval = r$pval, pval_method = r$pval_method, estimand = r$estimand,
+					pval = r$pval, pval_method = r$pval_method, estimand = r$estimand, tau = r$tau,
 					fit_secs = r$fit_secs, warnings = r$warnings,
 					status = r$status, message = r$message,
 					stringsAsFactors = FALSE
@@ -4804,7 +4886,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 					cov_model = character(), response_type = character(), design_family = character(),
 					likelihood_tier = character(), estimate = numeric(), se = numeric(),
 					ci_a = numeric(), ci_b = numeric(), ci_method = character(),
-					pval = numeric(), pval_method = character(), estimand = character(),
+					pval = numeric(), pval_method = character(), estimand = character(), tau = numeric(),
 					fit_secs = numeric(), warnings = character(), status = character(),
 					message = character(), stringsAsFactors = FALSE
 				)

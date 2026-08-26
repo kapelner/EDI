@@ -56,7 +56,7 @@ test_that("InferenceSuite default task filtering honors slow class and operation
 		list(cls_name = "InferenceCountHurdleNegBin", method = "rand", type = NA_character_),
 		"count"
 	))
-	expect_true(is_slow(
+	expect_false(is_slow(
 		list(cls_name = "InferenceSurvivalCoxPHRegr", method = "wald", type = NA_character_),
 		"survival"
 	))
@@ -64,10 +64,27 @@ test_that("InferenceSuite default task filtering honors slow class and operation
 		list(cls_name = "InferenceOrdinalKKGEE", method = "bootstrap", type = "studentized"),
 		"ordinal"
 	))
+	for (class_name in c(
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik",
+		"InferenceSurvivalKKStratCoxPHOneLik"
+	)) {
+		expect_true(class_name %in% EDI::EDI_COMPREHENSIVE_SLOW_PATHS$rand_ci)
+		expect_true(is_slow(
+			list(cls_name = class_name, method = "rand", type = NA_character_),
+			"survival"
+		), info = class_name)
+	}
 	expect_false(is_slow(
 		list(cls_name = "InferenceOrdinalKKGEE", method = "bootstrap", type = "bca"),
 		"ordinal"
 	))
+	expect_true("InferenceOrdinalKKGLMM" %in% EDI::EDI_COMPREHENSIVE_SLOW_PATHS$boot_ci)
+	for (bootstrap_type in c("percentile", "basic", "bca", "studentized")) {
+		expect_true(is_slow(
+			list(cls_name = "InferenceOrdinalKKGLMM", method = "bootstrap", type = bootstrap_type),
+			"ordinal"
+		), info = bootstrap_type)
+	}
 })
 
 test_that("explicit InferenceSuite methods opt back into registered slow paths", {

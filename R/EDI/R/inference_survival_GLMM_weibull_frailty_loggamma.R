@@ -813,14 +813,22 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 					private$set_fit_warm_start(fit$best_par, "params", fisher = fit$fisher_information)
 					pair_idx = .complete_pair_index_matrix(m_vec) - 1L
 					singleton_rows = if (length(pair_idx) > 0L) setdiff(seq_len(length(private$y)), sort(unique(as.vector(pair_idx + 1L)))) - 1L else seq_len(length(private$y)) - 1L
+					# .fit_clayton_weibull_aft() prepends "(Intercept)" to X before
+					# fitting (helper_survival_fits.R), so fit$best_par is parameterized
+					# on the intercept-augmented matrix. The likelihood-test context must
+					# store that same matrix (and point j_treat at "w"'s column within it,
+					# now 2 instead of 1) or fit_null()'s refits run on a different,
+					# non-nested model than the full fit -- see inference_continuous_ols.R
+					# for the same X_full/j_treat=2L pattern used elsewhere.
+					X_ctx = cbind("(Intercept)" = 1, X)
 					private$cached_values$likelihood_test_context = list(
-						X = X,
+						X = X_ctx,
 						y = as.numeric(private$y),
 						dead = as.numeric(private$dead),
 						pair_idx = pair_idx,
 						singleton_rows = singleton_rows,
 						start = fit$best_par,
-						j_treat = 1L
+						j_treat = 2L
 					)
 					return(invisible(NULL))
 				}
