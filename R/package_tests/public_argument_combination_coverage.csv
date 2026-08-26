@@ -989,7 +989,7 @@
 "InferencePropZeroOneInflatedBetaRegr::compute_wald_confidence_interval","r6_public_method","InferencePropZeroOneInflatedBetaRegr","compute_wald_confidence_interval",1,FALSE,TRUE,1,3,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferencePropZeroOneInflatedBetaRegr::initialize","r6_public_method","InferencePropZeroOneInflatedBetaRegr","initialize",5,TRUE,TRUE,3,6,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSuite::initialize","r6_public_method","InferenceSuite","initialize",3,TRUE,TRUE,2,2,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceSuite::run_all_inference","r6_public_method","InferenceSuite","run_all_inference",17,TRUE,TRUE,10,19,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"InferenceSuite::run_all_inference","r6_public_method","InferenceSuite","run_all_inference",18,TRUE,TRUE,10,19,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalCoxPHRegr::approximate_randomization_distribution_beta_hat_T","r6_public_method","InferenceSurvivalCoxPHRegr","approximate_randomization_distribution_beta_hat_T",7,TRUE,TRUE,3,9,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalCoxPHRegr::compute_asymp_confidence_interval","r6_public_method","InferenceSurvivalCoxPHRegr","compute_asymp_confidence_interval",1,FALSE,TRUE,1,3,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalCoxPHRegr::compute_asymp_two_sided_pval","r6_public_method","InferenceSurvivalCoxPHRegr","compute_asymp_two_sided_pval",1,FALSE,TRUE,1,3,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE

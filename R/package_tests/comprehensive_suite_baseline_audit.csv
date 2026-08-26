@@ -7952,7 +7952,7 @@
 "public_api","InferenceSuite","r6_class","InferenceSuite","InferenceSuite","","0","FALSE","FALSE","FALSE","TRUE","focused_testthat","testthat","","","",""
 "public_api","InferenceSuite::clone","r6_public_method","InferenceSuite","InferenceSuite","clone","1","FALSE","FALSE","FALSE","TRUE","focused_testthat","testthat","","","",""
 "public_api","InferenceSuite::initialize","r6_public_method","InferenceSuite","InferenceSuite","initialize","3","TRUE","FALSE","TRUE","TRUE","multiple_sources","multiple","","","",""
-"public_api","InferenceSuite::run_all_inference","r6_public_method","InferenceSuite","InferenceSuite","run_all_inference","17","TRUE","FALSE","FALSE","TRUE","focused_testthat","testthat","","","",""
+"public_api","InferenceSuite::run_all_inference","r6_public_method","InferenceSuite","InferenceSuite","run_all_inference","18","TRUE","FALSE","FALSE","TRUE","focused_testthat","testthat","","","",""
 "public_api","InferenceSurvivalCoxPHRegr","r6_class","InferenceSurvivalCoxPHRegr","InferenceSurvivalCoxPHRegr","","0","FALSE","FALSE","TRUE","TRUE","multiple_sources","multiple","","","",""
 "public_api","InferenceSurvivalCoxPHRegr::approximate_bayesian_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalCoxPHRegr","InferenceSurvivalCoxPHRegr","approximate_bayesian_bootstrap_distribution_beta_hat_T","0","FALSE","FALSE","TRUE","TRUE","multiple_sources","multiple","","","",""
 "public_api","InferenceSurvivalCoxPHRegr::approximate_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalCoxPHRegr","InferenceSurvivalCoxPHRegr","approximate_bootstrap_distribution_beta_hat_T","0","FALSE","FALSE","TRUE","TRUE","multiple_sources","multiple","","","",""
