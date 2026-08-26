@@ -434,7 +434,7 @@ the frozen substrate makes it additive.
     as such rather than left as unfinished work). Moved to
     `../finished_features/local_machine_optimization.md`.
 
-16. **`parallel_fork_cluster_test_safety.md`** (added 2026-08-21, user
+16. **[x] `parallel_fork_cluster_test_safety.md`** (added 2026-08-21, user
     decision). `InferenceSuite$run_all_inference(num_cores > 1)` — item 13's
     frozen public API — deadlocks via `parallel::makeForkCluster()` when
     forked after the process has run OpenMP-parallel kernels (root-caused
@@ -453,7 +453,16 @@ the frozen substrate makes it additive.
     safety helper) touch `inference_suite.R`'s parallel-worker code directly
     and need their own careful review. TODO-3/6 are follow-on scoping
     decisions once TODO-1/2/4/5 land. See that plan's own TODOs for the
-    full writeup.
+    full writeup. **Done (2026-08-26):** all 6 TODOs closed. TODO-5's
+    `run_all_inference_fork_dispatch()` rewrite (per-task `mcparallel()` +
+    polling `mccollect()` + PID-based force-kill on a
+    `max_secs_per_class` timeout) replaced the shared-cluster approach at
+    this call site entirely, superseding TODO-4's original fix in
+    practice. Confirmed via GitHub Actions run 32907016076: `R-devel
+    (ASAN/UBSAN)` and `R-devel (valgrind)` both pass `checking tests`
+    cleanly (154s and 27min respectively) with the real fork-cluster test
+    included and `skip_on_ci()` permanently removed (TODO-3, decision b) —
+    the first clean pass on either leg since the 2026-08-21 incident.
 
 ## Deferred to 1.x (additive by construction)
 

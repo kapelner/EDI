@@ -5,9 +5,16 @@
 
 test_that("edi_tuning_tune_binary_axis() accepts a clean, consistent win and proposes flipping it", {
 	families = data.frame(class = "FakeClassA", response_type = "continuous", stringsAsFactors = FALSE)
-	# setting=TRUE is slow, setting=FALSE is fast and clearly wins.
+	# setting=TRUE is slow, setting=FALSE is fast and clearly wins. The fast
+	# side does no Sys.sleep() at all (2026-08-26 fix for a Windows-only CI
+	# failure): Windows' Sys.sleep()/scheduler timer granularity is ~15.6ms,
+	# so two sub-tick sleeps (0.02s vs the previous 0.001s) can round to the
+	# same measured elapsed time there, making the "clean win" this test
+	# expects statistically undetectable and leaving `deviations` empty.
+	# Skipping the sleep on the fast side instead of shortening it keeps the
+	# gap (~20ms vs ~0ms) safely larger than one tick on every platform.
 	run_setting = function(class, response_type, n, setting, seed) {
-		if (isTRUE(setting)) Sys.sleep(0.02) else Sys.sleep(0.001)
+		if (isTRUE(setting)) Sys.sleep(0.02)
 	}
 	deviations = edi_tuning_tune_binary_axis(
 		families = families,
@@ -146,11 +153,14 @@ test_that("edi_tuning_tune_warm_start() rejects an unknown operation", {
 test_that("edi_tuning_tune_categorical_axis() picks the fastest converging candidate and skips non-converging winners", {
 	families = data.frame(class = "FakeClassC", response_type = "continuous", stringsAsFactors = FALSE)
 	# "slow" (current) is the baseline; "fast_but_fails" is quicker but never converges (must be
-	# skipped); "fast_and_converges" is quicker and always converges (must win).
+	# skipped); "fast_and_converges" is quicker and always converges (must win). The fast
+	# candidates do no Sys.sleep() at all -- see the binary-axis test above's
+	# 2026-08-26 comment for why (Windows' ~15.6ms sleep-timer granularity
+	# made a 0.02s-vs-0.001s gap statistically undetectable there).
 	run_setting = function(class, response_type, n, setting, seed) {
 		if (identical(setting, "slow")) { Sys.sleep(0.02); TRUE }
-		else if (identical(setting, "fast_but_fails")) { Sys.sleep(0.001); FALSE }
-		else { Sys.sleep(0.001); TRUE }
+		else if (identical(setting, "fast_but_fails")) FALSE
+		else TRUE
 	}
 	deviations = edi_tuning_tune_categorical_axis(
 		families = families,
@@ -168,7 +178,7 @@ test_that("edi_tuning_tune_categorical_axis() picks the fastest converging candi
 test_that("edi_tuning_tune_categorical_axis() proposes nothing when the only faster candidate never converges", {
 	families = data.frame(class = "FakeClassD", response_type = "count", stringsAsFactors = FALSE)
 	run_setting = function(class, response_type, n, setting, seed) {
-		if (identical(setting, "slow")) { Sys.sleep(0.02); TRUE } else { Sys.sleep(0.001); FALSE }
+		if (identical(setting, "slow")) { Sys.sleep(0.02); TRUE } else FALSE
 	}
 	deviations = edi_tuning_tune_categorical_axis(
 		families = families,

@@ -543,7 +543,20 @@ InferenceRand = R6::R6Class("InferenceRand",
 			private$des_obj_priv_int$response_type == "incidence" &&
 				is.null(private$custom_randomization_statistic_function) &&
 				is.null(private[["compiled_cpp_stat_fn"]]) &&
-				(private$is_bernoulli_design() || isTRUE(private$has_match_structure))
+				(private$is_bernoulli_design() || isTRUE(private$has_match_structure)) &&
+				# The Zhang exact-combined-test dispatch this gates
+				# (compute_rand_two_sided_pval()/compute_rand_confidence_
+				# interval()) calls private$compute_exact_two_sided_pval_rand()/
+				# normalize_exact_inference_args(), which only exist on classes
+				# that also compose RandomizationCI (InferenceRandCI) -- a
+				# RandomizationTest-only class (e.g. InferenceCustomRand) has
+				# neither. Without this check, a bare custom-randomization class
+				# fitted to a Bernoulli/matched incidence design would report
+				# Zhang-eligible here and then crash with "attempt to apply
+				# non-function" inside the dispatch. Found via
+				# test-inference-migration-harness.R's custom-randomization
+				# migration golden test (CI run 32907016215, 2026-08-26).
+				private$has_private_method("compute_exact_two_sided_pval_rand")
 		},
 		should_use_design_randomization_for_incidence = function(){
 			isTRUE(private$des_obj$randomization_family() == "rerandomization")

@@ -127,6 +127,17 @@ test_that("weighted combined-logit refits use the same separation guard", {
 		verbose = FALSE
 	)
 	weights = rep(c(0.5, 1.5), 4L)
+	# One weight per subject row (not per matched pair) -- install an
+	# identity row-to-unit context, matching the row-level weighting this
+	# test exercises (see test-negbin-weighted.R for the same idiom on an
+	# iid design). compute_estimate_with_bootstrap_weights() requires a
+	# Bayesian-bootstrap context to already be installed; it does not
+	# build one implicitly.
+	inf$.__enclos_env__$private$current_bayesian_bootstrap_context = list(
+		row_to_unit = seq_along(weights),
+		unit_group_id = rep(1L, length(weights)),
+		n_units = length(weights)
+	)
 	expect_true(is.na(inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE)))
 	expect_true(inf$is_nonestimable("estimate"))
 	expect_identical(

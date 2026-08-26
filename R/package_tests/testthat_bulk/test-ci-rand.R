@@ -176,7 +176,18 @@ test_that("compute_rand_confidence_interval works for survival response (uncenso
 	message("Survival Rand CI: [", ci[1], ", ", ci[2], "] Est: ", est)
 })
 
-test_that("compute_rand_confidence_interval works for ordinal response (cumulative logit)", {
+test_that("compute_rand_confidence_interval rejects ordinal model-coefficient estimands (cumulative logit)", {
+	# InferenceOrdinalPropOddsRegr is one of the classes in
+	# EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES
+	# (inference_class_registry.R): its treatment effect is a model
+	# coefficient, and generic randomization-CI inversion imposes a nonzero
+	# null by shifting the observed ordinal category codes by `delta`, which
+	# is not a sharp-null transformation for this estimand. This is a
+	# deliberate statistical-correctness gate (see
+	# test-ordinal-model-coefficient-randomization-ci-disabled.R for the
+	# general contract across every class in that list), not a bug -- this
+	# test previously expected a (statistically invalid) CI to be returned;
+	# it now pins the documented rejection instead.
 	set.seed(456)
 	n <- 40
 	des <- DesignSeqOneByOneBernoulli$new(n = n, response_type = "ordinal", verbose = FALSE)
@@ -190,15 +201,10 @@ test_that("compute_rand_confidence_interval works for ordinal response (cumulati
 
 	inf <- InferenceOrdinalPropOddsRegr$new(des, verbose = FALSE)
 
-	ci <- inf$compute_rand_confidence_interval(alpha = 0.05, r = 51, pval_epsilon = 0.05, show_progress = FALSE)
-
-	expect_equal(length(ci), 2)
-	expect_true(ci[1] < ci[2])
-	est <- inf$compute_estimate()
-	expect_true(est >= ci[1] && est <= ci[2])
-	expect_true(all(is.finite(ci)))
-
-	message("Ordinal Rand CI: [", ci[1], ", ", ci[2], "] Est: ", est)
+	expect_error(
+		inf$compute_rand_confidence_interval(alpha = 0.05, r = 51, pval_epsilon = 0.05, show_progress = FALSE),
+		"not implemented for ordinal model-coefficient estimands"
+	)
 })
 
 test_that("compute_rand_confidence_interval throws error for unsupported types", {

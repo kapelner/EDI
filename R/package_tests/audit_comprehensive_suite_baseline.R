@@ -296,6 +296,15 @@ build_exemptions = function(audit) {
 	exemptions
 }
 
+print_table_one_line_per_category = function(x) {
+	tab = table(x, useNA = "ifany")
+	names(tab)[is.na(names(tab))] = "NA"
+	width = max(nchar(names(tab)))
+	for (name in names(tab)) {
+		message(formatC(name, width = -width), "  ", tab[[name]])
+	}
+}
+
 main = function() {
 	audit = build_baseline_audit()
 	exemptions = build_exemptions(audit)
@@ -304,7 +313,7 @@ main = function() {
 	message("Wrote baseline audit rows: ", nrow(audit))
 	message("Wrote exemption rows: ", nrow(exemptions))
 	message("Public API coverage status:")
-	print(table(audit$coverage_status[audit$row_type == "public_api"], useNA = "ifany"))
+	print_table_one_line_per_category(audit$coverage_status[audit$row_type == "public_api"])
 	message("Internal testthat files classified: ", sum(audit$row_type == "testthat_internal"))
 	invisible(list(audit = audit, exemptions = exemptions))
 }

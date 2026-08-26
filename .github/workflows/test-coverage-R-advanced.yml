@@ -67,16 +67,28 @@ jobs:
         # there, so a later run of test-bulk-non-cran.yml (or any other
         # workflow sharing this cache key) silently inherits a stale
         # compiled EDI build from whatever commit this job last ran against.
-        # None of the steps below need the installed copy anyway -- they all
-        # load EDI via pkgload::load_all(..., compile = FALSE) straight from
-        # R/EDI/src, so this step exists only to compile R/EDI/src/*.so in
-        # place; where the installed library ends up doesn't matter, so keep
-        # it out of the cached path. (See the 2026-08-25 test-bulk-non-cran.yml
-        # CI failure this was written to fix: "object '_EDI_...' not found"
-        # for every C++ function added since the leaked stale build.)
+        #
+        # Some of the steps below (public_api_inventory.R) load EDI via
+        # pkgload::load_all(..., compile = FALSE) straight from R/EDI/src, so
+        # for those this step exists only to compile R/EDI/src/*.so in place.
+        # But others -- generate_public_argument_combinations.R and its
+        # siblings, via public_argument_combination_fixtures.R's
+        # load_edi_for_fixtures()/edi_export() -- use plain
+        # requireNamespace("EDI")/getExportedValue(), which resolve against
+        # whatever's on .libPaths(), NOT the source tree. Prepending this
+        # scratch library to R_LIBS (ahead of R_LIBS_USER, which R resolves
+        # before it -- see ?Startup) makes those calls resolve to the build
+        # this step just produced instead of silently falling through to
+        # whatever stale EDI happens to already be sitting in the cached
+        # R_LIBS_USER directory (see the 2026-08-25 test-bulk-non-cran.yml/
+        # test-coverage-R-advanced.yml CI failures this was written to fix:
+        # "object '_EDI_...' not found", then later "unused arguments
+        # (y_Ls = ..., y_Rs = ...)", both from code running against a stale
+        # compiled EDI instead of the current commit's).
         run: |
           mkdir -p "${{ runner.temp }}/edi-install-scratch"
           R CMD INSTALL --library="${{ runner.temp }}/edi-install-scratch" R/EDI
+          echo "R_LIBS=${{ runner.temp }}/edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
 
       # The steps below regenerate every package_tests/ artifact that's derived from
       # live introspection of EDI's public API (public_api_inventory.R uses

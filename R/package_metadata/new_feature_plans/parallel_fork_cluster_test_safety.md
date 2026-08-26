@@ -117,7 +117,7 @@ Two separable problems live in that gap:
   fork deadlock. `R.utils::withTimeout()` wasn't used since `setTimeLimit()`
   is already the trusted, dependency-free pattern this file's
   `"max_secs_per_class"` test uses for the same purpose.
-- [ ] TODO-3: **Decide where the real-fork test runs.** Once TODO-1 and
+- [x] TODO-3: **Decide where the real-fork test runs.** Once TODO-1 and
   TODO-2 land, re-evaluate `skip_on_ci()` on the original test: either (a)
   keep it CI-skipped permanently and treat it as a local/manual-only check
   (matching `helper-prepush-no-parallel.R`'s existing philosophy for
@@ -125,7 +125,11 @@ Two separable problems live in that gap:
   TODO-5 make a hang bounded and recoverable. Prefer (b) if TODO-4 succeeds
   (a real fork-safety fix removes the hazard, not just its symptom in CI);
   fall back to (a) otherwise.
-- [ ] TODO-4: **Investigate a root-cause fork-safety fix.** Leading
+
+  **Decided (b) (2026-08-26):** TODO-4/5 both landed and CI run 32907016076
+  confirms the real-fork `"num_cores > 1"` test passes cleanly on
+  ASAN/valgrind with `skip_on_ci()` left removed. Kept removed permanently.
+- [x] TODO-4: **Investigate a root-cause fork-safety fix.** Leading
   candidate, found while scoping this plan: `run_all_inference()`'s
   fork-cluster branch calls raw `parallel::makeForkCluster(num_cores)`
   directly (`inference_suite.R`), instead of the package's own
@@ -166,6 +170,19 @@ Two separable problems live in that gap:
   push's CI result decides this TODO: pass → mark done, keep
   `skip_on_ci()` removed; hang/timeout → (a) alone is insufficient, re-add
   `skip_on_ci()` and proceed to (b).
+
+  **Confirmed done (2026-08-26), via GitHub Actions run 32907016076
+  (commit ec003b7e).** Superseded in practice by TODO-5's more thorough
+  `run_all_inference_fork_dispatch()` rewrite (per-task `mcparallel()` +
+  polling `mccollect()` + PID-based force-kill, replacing the shared
+  `make_configured_fork_cluster()`/`clusterApply()` pair this TODO
+  originally proposed at this call site) -- but the root-cause question
+  this TODO asked is answered either way: `checking tests` now completes
+  cleanly with the real fork-cluster `"num_cores > 1"` test included, no
+  hang. `R-devel (ASAN/UBSAN)`: `checking tests ... [154s/135s] OK`.
+  `R-devel (valgrind)`: `checking tests ... [27m/19m] OK`. Both legs
+  previously hung to their full job timeout (150-350 min) on every prior
+  run since 2026-08-21; this is the first clean pass.
 - [x] TODO-5: **Add a wall-clock timeout + forced kill around the
   fork-cluster path**, as a backstop regardless of TODO-4's outcome.
   `setTimeLimit()` doesn't reach into child processes, so this needs real

@@ -257,8 +257,20 @@ test_that("BlockingStructure component-owned state survives Design$duplicate()",
 })
 
 test_that("TODO-35 production generators use define_design_class", {
+	# dir.exists() alone isn't a reliable signal: under covr's test-coverage
+	# CI job, tests run against an INSTALLED package's copied-out tests
+	# directory (R_LIBS.../EDI-tests/testthat/, per test-coverage-R.yaml's own
+	# comment on why testthat.Rout never lands under R/EDI), where a
+	# coincidentally-existing "../../R" can resolve to something that isn't
+	# actually this package's R/ source tree at all -- readLines() then fails
+	# with a raw "cannot open the connection" instead of the graceful skip
+	# below. Require an actual known source file to be present, not just a
+	# directory named "R", before trusting a candidate.
 	source_dirs = c(file.path("R", "EDI", "R"), file.path("..", "..", "R"))
-	source_dirs = source_dirs[dir.exists(source_dirs)]
+	source_dirs = source_dirs[
+		dir.exists(source_dirs) &
+			file.exists(file.path(source_dirs, "design_fixed_bernoulli.R"))
+	]
 	skip_if(length(source_dirs) == 0L, "package source files are unavailable")
 	source_dir = source_dirs[[1L]]
 
