@@ -437,7 +437,7 @@ test_that("run_all_inference: html writes a self-contained file and returns its 
 	setwd(tmp_dir)
 	options(browser = function(url) invisible(NULL))
 	on.exit({ setwd(old_wd); options(browser = old_browser); unlink(tmp_dir, recursive = TRUE) }, add = TRUE)
-	res = suite$run_all_inference(screen = FALSE, html = TRUE, plots = FALSE)
+	res = suite$run_all_inference(screen = FALSE, html = TRUE, plots = FALSE, output_dir = tmp_dir)
 
 	expect_true(!is.null(res$files$html))
 	expect_true(file.exists(res$files$html))
@@ -464,7 +464,7 @@ test_that("run_all_inference: save_results_as_JSON writes a file that round-trip
 	setwd(tmp_dir)
 	on.exit({ setwd(old_wd); unlink(tmp_dir, recursive = TRUE) }, add = TRUE)
 	capture.output({
-		res <- suite$run_all_inference(screen = TRUE, save_results_as_JSON = TRUE, plots = FALSE)
+		res <- suite$run_all_inference(screen = TRUE, save_results_as_JSON = TRUE, plots = FALSE, output_dir = tmp_dir)
 	})
 
 	expect_true(!is.null(res$files$json))
@@ -517,7 +517,7 @@ test_that("run_all_inference: pdf = TRUE writes a multi-page PDF", {
 	null_dev = grDevices::pdf(NULL)
 	on.exit({ grDevices::dev.off(); setwd(old_wd); unlink(tmp_dir, recursive = TRUE) }, add = TRUE)
 	capture.output({
-		res <- suite$run_all_inference(screen = TRUE, plots = TRUE, pdf = TRUE, compute_conf_intervals = TRUE)
+		res <- suite$run_all_inference(screen = TRUE, plots = TRUE, pdf = TRUE, compute_conf_intervals = TRUE, output_dir = tmp_dir)
 	})
 
 	expect_true(!is.null(res$files$pdf))

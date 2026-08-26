@@ -95,7 +95,14 @@ EDI_INFERENCE_REQUIRES_KK_MATCHING_DESIGN_OVERRIDES = c(
 	"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC",
 	"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik",
 	"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
-	"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"
+	"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
+	# Requires a KK-matching design (see its design_compatibility_reason())
+	# but its name doesn't contain "KK", so the grepl("KK", ...) fallback
+	# misses it -- confirmed as a second instance of the same class of bug
+	# that InferenceIncidKKGCompRiskDiff/RiskRatio needed this override for
+	# (tune_EDI_for_this_machine()'s benchmark grid crashing on CI, this
+	# time 2026-08-26).
+	"InferenceOrdinalPairedSignTest"
 )
 
 EDI_EXACT_INCIDENCE_CLASS_NAMES = c(

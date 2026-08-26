@@ -493,6 +493,41 @@ List fast_zero_augmented_poisson_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values));
 
+    auto failed_fit_result = [&](const std::string& exception_message) {
+        Eigen::VectorXd params = Eigen::VectorXd::Zero(total_p);
+        std::optional<Eigen::VectorXd> supplied_start = nullable_to_optional<Eigen::VectorXd>(warm_start_params);
+        if (supplied_start.has_value() && supplied_start->size() == total_p) {
+            params = *supplied_start;
+        } else if (smart_cold_start) {
+            params = edi_opt::zap_smart_cold_start(X, Xzi, y_vec);
+        } else {
+            const double mean_y = y_vec.mean();
+            if (mean_y > 0.0) params[0] = std::log(mean_y);
+        }
+        params = apply_fixed_values(params, fixed_spec);
+        ZeroAugmentedPoisson diagnostic_fun(y_vec, X, Xzi, is_hurdle);
+        Eigen::VectorXd gradient(total_p);
+        const double neg_loglik = diagnostic_fun(params, gradient);
+        const Eigen::MatrixXd information = diagnostic_fun.hessian(params);
+        const Eigen::MatrixXd neg_information = -information;
+        return edi::to_rcpp_list(edi::ResultMap()
+            .set("params", params)
+            .set("converged", false)
+            .set("num_iter", 0)
+            .set("hit_iteration_cap", false)
+            .set("neg_ll", neg_loglik)
+            .set("neg_loglik", neg_loglik)
+            .set("observed_information", information)
+            .set("fisher_information", information)
+            .set("information", information)
+            .set("information_type", std::string("observed"))
+            .set("hessian", neg_information)
+            .set("gradient_norm", gradient.allFinite() ? gradient.norm() : NA_REAL)
+            .set("min_eigenvalue_information", NA_REAL)
+            .set("params_origin", std::string("optimizer entry; terminal parameters unavailable after exception"))
+            .set("exception_message", exception_message));
+    };
+
     LikelihoodFitResult fit;
     try {
         fit = fast_zap_internal(
@@ -503,8 +538,12 @@ List fast_zero_augmented_poisson_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
             nullable_to_optional<Eigen::VectorXd>(fixed_values),
             optimization_alg,
             nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info));
+    } catch (Rcpp::internal::InterruptedException&) {
+        throw;
+    } catch (const std::exception& e) {
+        return failed_fit_result(std::string(e.what()));
     } catch (...) {
-        return edi::to_rcpp_list(edi::ResultMap().set("converged", false).set("hit_iteration_cap", false).set("gradient_norm", NA_REAL));
+        return failed_fit_result(std::string("unknown native exception"));
     }
     Eigen::VectorXd params = fit.params;
     ZeroAugmentedPoisson fun(y_vec, X, Xzi, is_hurdle);

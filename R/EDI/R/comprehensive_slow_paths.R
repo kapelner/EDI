@@ -15,7 +15,16 @@
 #' `InferenceSuite$run_all_inference()` also omits matching class/method/type
 #' combinations when its `methods` argument is left at the default `NULL`.
 #' Supplying `methods` explicitly opts into the requested paths even when they
-#' appear in this registry.
+#' appear in this registry. Because of that coupling, an `exact_operations`
+#' entry must never name the base `compute_estimate` operation itself (only a
+#' CI/p-value sub-method, e.g. `compute_rand_two_sided_pval`) -- doing so
+#' doesn't just skip one slow sub-computation, it silently drops the whole
+#' class from `run_all_inference()`'s default output (found 2026-08-26: a
+#' pre-existing `"survival||InferenceSurvivalCoxPHRegr||compute_estimate"`
+#' entry, harmless while this registry was internal-only, started doing
+#' exactly that the moment `run_all_inference()` began consulting it --
+#' `compute_estimate()` for that class takes ~0.09s, nowhere near "too slow";
+#' removed).
 #'
 #' @format A named list. `exact_operations` contains keys of the form
 #'   `response_type||InferenceClass||operation`; every other element contains
@@ -31,8 +40,7 @@ EDI_COMPREHENSIVE_SLOW_PATHS = list(
 		"count||InferenceCountHurdleNegBin||compute_rand_two_sided_pval(delta=0.5)",
 		"ordinal||InferenceOrdinalKKGEE||compute_bootstrap_confidence_interval",
 		"ordinal||InferenceOrdinalKKGLMM||compute_lik_ratio_bartlett_two_sided_pval",
-		"survival||InferenceSurvivalWeibullRegr||compute_rand_two_sided_pval(delta=0.5)",
-		"survival||InferenceSurvivalCoxPHRegr||compute_estimate"
+		"survival||InferenceSurvivalWeibullRegr||compute_rand_two_sided_pval(delta=0.5)"
 	),
 	bootstrap = c(
 		"InferenceContinRobustRegr",

@@ -231,7 +231,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 			cached_mod = NULL,
 			za_X_cov_all = NULL,
 			za_Xzi_cov_all = NULL,
-			record_zero_augmented_fit_summary = function(fit, X_full, Xzi_full, X_fit, Xzi_fit, is_hurdle = FALSE, fallback_used = FALSE, fallback_reason = NULL){
+			record_zero_augmented_fit_summary = function(fit, X_full, Xzi_full, X_fit, Xzi_fit, is_hurdle = FALSE){
 				cond_full_names = colnames(X_full)
 				aux_full_names = colnames(Xzi_full)
 				cond_fit_names = colnames(X_fit)
@@ -280,17 +280,6 @@ ZeroAugmentedCountLikelihoodSource = list(
 				private$cached_values$zero_coefficients = aux_full
 				private$cached_values$summary_table = summary_table
 				private$cached_values$model_fit_fallback = NULL
-				if (isTRUE(fallback_used)) {
-					private$cached_values$model_fit_fallback = list(
-						used = TRUE,
-						reason = fallback_reason %||% "full_zero_augmented_rcpp_fit_failed_to_converge",
-						requested_model = "full covariate-adjusted zero-augmented Rcpp model",
-						fitted_model = "treatment-only zero-augmented Rcpp model",
-						omitted_conditional = setdiff(cond_full_names, cond_fit_names),
-						omitted_auxiliary = setdiff(aux_full_names, aux_fit_names),
-						family = private$za_description()
-					)
-				}
 				invisible(NULL)
 			},
 			invalidate_likelihood_fit = function(reason){
@@ -596,15 +585,6 @@ ZeroAugmentedCountLikelihoodSource = list(
 				}
 				point
 			},
-			hurdle_poisson_lambda_mle = function(mean_positive){
-				if (!is.finite(mean_positive) || mean_positive < 1) return(NA_real_)
-				if (mean_positive <= 1 + sqrt(.Machine$double.eps)) return(.Machine$double.eps)
-				fn = function(lambda) lambda / (-expm1(-lambda)) - mean_positive
-				tryCatch(
-					stats::uniroot(fn, lower = .Machine$double.eps, upper = max(2, 2 * mean_positive + 1), tol = 1e-10)$root,
-					error = function(e) NA_real_
-				)
-			},
 			hurdle_poisson_neg_loglik = function(params, X_fit, Xzi_fit){
 				y = as.numeric(private$y)
 				eta_c = as.numeric(X_fit %*% params[seq_len(ncol(X_fit))])
@@ -621,65 +601,106 @@ ZeroAugmentedCountLikelihoodSource = list(
 				}
 				sum(nll)
 			},
-			fit_treatment_only_hurdle_poisson_closed_form = function(X_fit, Xzi_fit, estimate_only = FALSE){
-				if (ncol(X_fit) != 2L || ncol(Xzi_fit) != 2L) return(NULL)
-				w = as.numeric(X_fit[, 2L])
-				y = as.numeric(private$y)
-				if (length(unique(w[is.finite(w)])) != 2L || any(!(w %in% c(0, 1))) || any(!is.finite(y))) return(NULL)
-				n0 = sum(w == 0)
-				n1 = sum(w == 1)
-				if (n0 == 0L || n1 == 0L) return(NULL)
-				y0_pos = y[w == 0 & y > 0]
-				y1_pos = y[w == 1 & y > 0]
-				if (length(y0_pos) == 0L || length(y1_pos) == 0L) return(NULL)
-				
-				lambda0 = private$hurdle_poisson_lambda_mle(mean(y0_pos))
-				lambda1 = private$hurdle_poisson_lambda_mle(mean(y1_pos))
-				if (!is.finite(lambda0) || !is.finite(lambda1) || lambda0 <= 0 || lambda1 <= 0) return(NULL)
-				
-				p0 = (sum(w == 0 & y == 0) + 0.5) / (n0 + 1)
-				p1 = (sum(w == 1 & y == 0) + 0.5) / (n1 + 1)
-				params = c(
-					log(lambda0),
-					log(lambda1) - log(lambda0),
-					stats::qlogis(p0),
-					stats::qlogis(p1) - stats::qlogis(p0)
+			zero_augmented_failed_fit_diagnostics = function(fit, exception_message = NULL){
+				info = fit$information %||% fit$fisher_information %||% fit$observed_information
+				list(
+					family = private$za_description(),
+					converged = isTRUE(fit$converged),
+					hit_iteration_cap = isTRUE(fit$hit_iteration_cap),
+					num_iter = fit$num_iter %||% NA_integer_,
+					gradient_norm = fit$gradient_norm %||% NA_real_,
+					min_eigenvalue_information = fit$min_eigenvalue_information %||% NA_real_,
+					params = fit$params %||% NULL,
+					params_origin = fit$params_origin %||% "optimizer terminal state",
+					information = info %||% NULL,
+					exception_message = exception_message %||% fit$exception_message %||% NULL
 				)
-				if (!all(is.finite(params))) return(NULL)
-				names(params) = c(colnames(X_fit), colnames(Xzi_fit))
-				neg_loglik = private$hurdle_poisson_neg_loglik(params, X_fit, Xzi_fit)
-				observed_information = tryCatch(
-					as.matrix(get_zero_augmented_poisson_hessian_cpp(X_fit, y, Xzi_fit, params, is_hurdle = TRUE)),
+			},
+			fit_hurdle_poisson_components_independently = function(X_fit, Xzi_fit, estimate_only = FALSE){
+				# The hurdle-Poisson likelihood has disjoint conditional-count and
+				# binary-hurdle parameter blocks. Recover a failed joint optimization
+				# by optimizing each full-covariate block with the other held fixed.
+				p_cond = ncol(X_fit)
+				p_aux = ncol(Xzi_fit)
+				total_p = p_cond + p_aux
+				y = as.numeric(private$y)
+				component_error = NULL
+				fit_cond = tryCatch(
+					fast_zero_augmented_poisson_cpp(
+						X_fit, y, Xzi_fit, is_hurdle = TRUE,
+						fixed_idx = seq.int(p_cond + 1L, total_p),
+						fixed_values = rep(0, p_aux),
+						smart_cold_start = private$smart_cold_start_default,
+						estimate_only = TRUE,
+						optimization_alg = private$optimization_alg
+					),
+					error = function(e){
+						component_error <<- conditionMessage(e)
+						NULL
+					}
+				)
+				if (is.null(fit_cond) || !isTRUE(fit_cond$converged) ||
+						length(fit_cond$params) != total_p ||
+						any(!is.finite(fit_cond$params[seq_len(p_cond)]))) return(NULL)
+
+				beta_cond = as.numeric(fit_cond$params[seq_len(p_cond)])
+				fit_aux = tryCatch(
+					fast_zero_augmented_poisson_cpp(
+						X_fit, y, Xzi_fit, is_hurdle = TRUE,
+						fixed_idx = seq_len(p_cond),
+						fixed_values = beta_cond,
+						smart_cold_start = private$smart_cold_start_default,
+						estimate_only = TRUE,
+						optimization_alg = private$optimization_alg
+					),
+					error = function(e){
+						component_error <<- conditionMessage(e)
+						NULL
+					}
+				)
+				if (is.null(fit_aux) || !isTRUE(fit_aux$converged) ||
+						length(fit_aux$params) != total_p ||
+						any(!is.finite(fit_aux$params[p_cond + seq_len(p_aux)]))) return(NULL)
+
+				params = c(beta_cond, as.numeric(fit_aux$params[p_cond + seq_len(p_aux)]))
+				score = tryCatch(
+					as.numeric(get_zero_augmented_poisson_score_cpp(X_fit, y, Xzi_fit, params, is_hurdle = TRUE)),
 					error = function(e) NULL
 				)
-				vcov = NULL
-				if (!estimate_only && !is.null(observed_information) &&
-						nrow(observed_information) == length(params) &&
-						all(is.finite(observed_information))) {
-					vcov = tryCatch(solve(observed_information), error = function(e) NULL)
-					if (is.null(vcov) || !all(is.finite(vcov))) vcov = NULL
-				}
-				if (is.null(vcov)) {
-					vcov = matrix(NA_real_, nrow = length(params), ncol = length(params))
-				}
-				colnames(vcov) = rownames(vcov) = names(params)
-				
+				gradient_norm = if (!is.null(score) && all(is.finite(score))) sqrt(sum(score^2)) else NA_real_
+				if (!is.finite(gradient_norm) || gradient_norm > 1e-6) return(NULL)
+				observed_information = tryCatch(
+					-as.matrix(get_zero_augmented_poisson_hessian_cpp(X_fit, y, Xzi_fit, params, is_hurdle = TRUE)),
+					error = function(e) NULL
+				)
+				if (is.null(observed_information) || any(!is.finite(observed_information))) return(NULL)
+				vcov = tryCatch(solve(observed_information), error = function(e) NULL)
+				if (is.null(vcov)) return(NULL)
+				param_names = c(colnames(X_fit), colnames(Xzi_fit))
+				names(params) = param_names
+				colnames(vcov) = rownames(vcov) = param_names
+				neg_loglik = private$hurdle_poisson_neg_loglik(params, X_fit, Xzi_fit)
 				list(
 					coefficients = list(
-						cond = stats::setNames(params[seq_len(ncol(X_fit))], colnames(X_fit)),
-						zi = stats::setNames(params[ncol(X_fit) + seq_len(ncol(Xzi_fit))], colnames(Xzi_fit))
+						cond = stats::setNames(beta_cond, colnames(X_fit)),
+						zi = stats::setNames(params[p_cond + seq_len(p_aux)], colnames(Xzi_fit))
 					),
 					params = params,
 					vcov = vcov,
 					converged = TRUE,
+					hit_iteration_cap = isTRUE(fit_cond$hit_iteration_cap) || isTRUE(fit_aux$hit_iteration_cap),
+					num_iter = sum(as.integer(c(fit_cond$num_iter %||% 0L, fit_aux$num_iter %||% 0L))),
+					gradient_norm = gradient_norm,
 					neg_ll = neg_loglik,
 					neg_loglik = neg_loglik,
 					observed_information = observed_information,
 					fisher_information = observed_information,
 					information = observed_information,
 					information_type = "observed",
-					hessian = if (!is.null(observed_information)) -observed_information else NULL,
-					closed_form = TRUE
+					hessian = -observed_information,
+					componentwise_recovery = TRUE,
+					component_fits = list(conditional = fit_cond, auxiliary = fit_aux),
+					exception_message = component_error
 				)
 			},
 			compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
@@ -687,7 +708,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 			if (is.null(private$best_X_colnames)){
 				private$shared(estimate_only = TRUE)
 			}
-			# Fallback if initial fit failed
+			# If the initial fit was unavailable, preserve its typed result.
 			if (is.null(private$best_X_colnames)){
 				return(self$compute_estimate(estimate_only = estimate_only))
 			}
@@ -730,14 +751,10 @@ ZeroAugmentedCountLikelihoodSource = list(
 						error = function(e) NULL
 					)
 					if ((is.null(fit) || !isTRUE(fit$converged)) && is_hurdle) {
-						X_fit_fallback = X_fit[, seq_len(min(2L, ncol(X_fit))), drop = FALSE]
-						Xzi_fit_fallback = Xzi_fit[, seq_len(min(2L, ncol(Xzi_fit))), drop = FALSE]
-						fit_fallback = private$fit_treatment_only_hurdle_poisson_closed_form(
-							X_fit_fallback, Xzi_fit_fallback, estimate_only = estimate_only
+						fit_recovered = private$fit_hurdle_poisson_components_independently(
+							X_fit, Xzi_fit, estimate_only = estimate_only
 						)
-						if (!is.null(fit_fallback) && isTRUE(fit_fallback$converged)) {
-							fit = fit_fallback
-						}
+						if (!is.null(fit_recovered) && isTRUE(fit_recovered$converged)) fit = fit_recovered
 					}
 					if (is.null(fit) || !isTRUE(fit$converged)) return(NA_real_)
 					private$set_fit_warm_start(as.numeric(fit$params), "params")
@@ -862,7 +879,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 			formula_cond = private$build_formula_from_matrix(X_fit)
 			formula_zi = private$build_formula_from_matrix(Xzi_fit, response = NULL)
 			glmm_control = glmmTMB::glmmTMBControl(parallel = self$num_cores)
-			mod = tryCatch(
+			tryCatch(
 				suppressWarnings(suppressMessages(
 					glmmTMB::glmmTMB(
 						formula_cond,
@@ -875,26 +892,11 @@ ZeroAugmentedCountLikelihoodSource = list(
 				)),
 				error = function(e) NULL
 			)
-			if (!is.null(mod)) return(mod)
-			if (ncol(dat) <= 2L) return(NULL)
-			dat_fallback = dat[, c("y", "w"), drop = FALSE]
-			tryCatch(
-				suppressWarnings(suppressMessages(
-					glmmTMB::glmmTMB(
-						y ~ w,
-						ziformula = ~ w,
-						family = private$za_family(),
-						data = dat_fallback,
-						weights = weights,
-						control = glmm_control
-					)
-				)),
-				error = function(e) NULL
-			)
 		},
 			generate_mod = function(estimate_only = FALSE){
 				private$cached_values$likelihood_test_context = NULL
 				private$cached_values$model_fit_fallback = NULL
+				private$cached_values$model_fit_failure = NULL
 				private$cached_values$summary_table = NULL
 				X_full = private$build_component_matrix(private$model_formula, treatment_name = "w")
 				if (is.null(X_full)){
@@ -930,13 +932,11 @@ ZeroAugmentedCountLikelihoodSource = list(
 				} else {
 					Xzi_fit = private$build_component_matrix(private$model_formula_zero, private$best_Xzi_colnames, treatment_name = "w")
 				}
-				fallback_used = FALSE
-				fallback_reason = NULL
-				
 				out = list()
 			if (private$use_rcpp && identical(private$za_description(), "Zero-Inflated Negative Binomial")) {
 				n_params = ncol(X_fit) + ncol(Xzi_fit) + 1L
 				ws_args = private$get_backend_warm_start_args(n_params)
+				fit_error = NULL
 				fit = tryCatch(
 					fast_zinb_cpp(
 						X = X_fit, y = as.numeric(private$y), Xzi = Xzi_fit,
@@ -945,37 +945,16 @@ ZeroAugmentedCountLikelihoodSource = list(
 						smart_cold_start = private$smart_cold_start_default,
 						estimate_only = estimate_only, optimization_alg = private$optimization_alg
 					),
-					error = function(e) NULL
-				)
-					if ((is.null(fit) || !isTRUE(fit$converged)) && (ncol(X_fit) > 2L || ncol(Xzi_fit) > 2L)) {
-						X_fit_fallback = X_fit[, seq_len(min(2L, ncol(X_fit))), drop = FALSE]
-						Xzi_fit_fallback = Xzi_fit[, seq_len(min(2L, ncol(Xzi_fit))), drop = FALSE]
-					if (ncol(X_fit_fallback) == 2L && ncol(Xzi_fit_fallback) == 2L) {
-						n_params_fallback = ncol(X_fit_fallback) + ncol(Xzi_fit_fallback) + 1L
-						ws_args_fallback = private$get_backend_warm_start_args(n_params_fallback)
-						fit_fallback = tryCatch(
-							fast_zinb_cpp(
-								X = X_fit_fallback, y = as.numeric(private$y), Xzi = Xzi_fit_fallback,
-								warm_start_params = ws_args_fallback$start_params,
-								warm_start_fisher_info = ws_args_fallback$warm_start_fisher_info,
-								smart_cold_start = private$smart_cold_start_default,
-								estimate_only = estimate_only, optimization_alg = private$optimization_alg
-							),
-							error = function(e) NULL
-						)
-						if (!is.null(fit_fallback) && isTRUE(fit_fallback$converged)) {
-							X_fit = X_fit_fallback
-							Xzi_fit = Xzi_fit_fallback
-							private$best_X_colnames = character(0)
-							private$best_Xzi_colnames = character(0)
-							fallback_used = TRUE
-							fallback_reason = "full_zinb_rcpp_fit_failed_to_converge"
-							fit = fit_fallback
-						}
+					error = function(e){
+						fit_error <<- conditionMessage(e)
+						NULL
 					}
-				}
+				)
 				if (is.null(fit) || !isTRUE(fit$converged)) {
-					private$cache_nonestimable_estimate("zinb_fit_unavailable")
+					private$cached_values$model_fit_failure = private$zero_augmented_failed_fit_diagnostics(
+						fit %||% list(), exception_message = fit_error
+					)
+					private$invalidate_likelihood_fit("zinb_fit_unavailable")
 					return(NULL)
 				}
 				beta_hat_T = as.numeric(fit$params[2])
@@ -1002,9 +981,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 					Xzi_full = Xzi_full,
 					X_fit = X_fit,
 					Xzi_fit = Xzi_fit,
-					is_hurdle = FALSE,
-					fallback_used = fallback_used,
-					fallback_reason = fallback_reason
+					is_hurdle = FALSE
 				)
 				out$beta_hat_T = beta_hat_T
 				if (!estimate_only) {
@@ -1022,6 +999,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				is_hurdle = identical(private$za_description(), "Hurdle Poisson")
 				n_params = ncol(X_fit) + ncol(Xzi_fit)
 				ws_args = private$get_backend_warm_start_args(n_params)
+				fit_error = NULL
 				fit = tryCatch(
 					fast_zero_augmented_poisson_cpp(
 						X_fit, as.numeric(private$y), Xzi_fit,
@@ -1031,54 +1009,27 @@ ZeroAugmentedCountLikelihoodSource = list(
 						smart_cold_start = private$smart_cold_start_default,
 						estimate_only = estimate_only, optimization_alg = private$optimization_alg
 					),
-					error = function(e) NULL
+					error = function(e){
+						fit_error <<- conditionMessage(e)
+						NULL
+					}
 				)
-				if ((is.null(fit) || !isTRUE(fit$converged)) && (ncol(X_fit) > 2L || ncol(Xzi_fit) > 2L)) {
-					X_fit_fallback = X_fit[, seq_len(min(2L, ncol(X_fit))), drop = FALSE]
-					Xzi_fit_fallback = Xzi_fit[, seq_len(min(2L, ncol(Xzi_fit))), drop = FALSE]
-					if (ncol(X_fit_fallback) == 2L && ncol(Xzi_fit_fallback) == 2L) {
-						n_params_fallback = ncol(X_fit_fallback) + ncol(Xzi_fit_fallback)
-						ws_args_fallback = private$get_backend_warm_start_args(n_params_fallback)
-						fit_fallback = tryCatch(
-							fast_zero_augmented_poisson_cpp(
-								X_fit_fallback, as.numeric(private$y), Xzi_fit_fallback,
-								is_hurdle = is_hurdle,
-								warm_start_params = ws_args_fallback$start_params,
-								warm_start_fisher_info = ws_args_fallback$warm_start_fisher_info,
-								smart_cold_start = private$smart_cold_start_default,
-								estimate_only = estimate_only, optimization_alg = private$optimization_alg
-							),
-							error = function(e) NULL
+				if (is.null(fit) || !isTRUE(fit$converged)) {
+					private$cached_values$model_fit_failure = private$zero_augmented_failed_fit_diagnostics(
+						fit %||% list(), exception_message = fit_error
+					)
+					if (is_hurdle) {
+						fit_recovered = private$fit_hurdle_poisson_components_independently(
+							X_fit, Xzi_fit, estimate_only = estimate_only
 						)
-						if (!is.null(fit_fallback) && isTRUE(fit_fallback$converged)) {
-							X_fit = X_fit_fallback
-							Xzi_fit = Xzi_fit_fallback
-							private$best_X_colnames = character(0)
-							private$best_Xzi_colnames = character(0)
-							fallback_used = TRUE
-							fallback_reason = if (is_hurdle) "full_hurdle_poisson_rcpp_fit_failed_to_converge" else "full_zip_rcpp_fit_failed_to_converge"
-							fit = fit_fallback
-							}
+						if (!is.null(fit_recovered) && isTRUE(fit_recovered$converged)) {
+							private$cached_values$model_fit_failure$recovered_by = "independent_full_model_components"
+							fit = fit_recovered
 						}
 					}
-					if ((is.null(fit) || !isTRUE(fit$converged)) && is_hurdle) {
-						X_fit_fallback = X_fit[, seq_len(min(2L, ncol(X_fit))), drop = FALSE]
-						Xzi_fit_fallback = Xzi_fit[, seq_len(min(2L, ncol(Xzi_fit))), drop = FALSE]
-						fit_fallback = private$fit_treatment_only_hurdle_poisson_closed_form(
-							X_fit_fallback, Xzi_fit_fallback, estimate_only = estimate_only
-						)
-						if (!is.null(fit_fallback) && isTRUE(fit_fallback$converged)) {
-							X_fit = X_fit_fallback
-							Xzi_fit = Xzi_fit_fallback
-							private$best_X_colnames = character(0)
-							private$best_Xzi_colnames = character(0)
-							fallback_used = TRUE
-							fallback_reason = "hurdle_poisson_treatment_only_closed_form_after_rcpp_nonconvergence"
-							fit = fit_fallback
-						}
-					}
+				}
 					if (is.null(fit) || !isTRUE(fit$converged)) {
-						private$cache_nonestimable_estimate("zero_augmented_poisson_fit_unavailable")
+						private$invalidate_likelihood_fit("zero_augmented_poisson_fit_unavailable")
 						return(NULL)
 				}
 				beta_hat_T = as.numeric(fit$params[2])
@@ -1112,9 +1063,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 					Xzi_full = Xzi_full,
 					X_fit = X_fit,
 					Xzi_fit = Xzi_fit,
-					is_hurdle = is_hurdle,
-					fallback_used = fallback_used,
-					fallback_reason = fallback_reason
+					is_hurdle = is_hurdle
 				)
 				out$beta_hat_T = beta_hat_T
 				# 2026-08-23 (marginal_estimand_report.md TODO-5, wiring pass):

@@ -386,6 +386,53 @@ test_that("InferenceCountNegBin matches MASS::glm.nb treatment coefficient and t
 	expect_rel_close(se, sqrt(stats::vcov(fit)["w", "w"]), 0.05, "NegBin SE vs glm.nb")
 })
 
+test_that("native hurdle-Poisson backend matches the full pscl model", {
+	skip_if_not_installed("pscl")
+	des = count_focused_design
+	dat = count_focused_reference_frame(des)
+	X = stats::model.matrix(~ w + x1 + x2, data = dat)
+	fit_pscl = pscl::hurdle(y ~ w + x1 + x2, data = dat, dist = "poisson")
+	fit_native = EDI:::fast_zero_augmented_poisson_cpp(
+		X = X,
+		y = dat$y,
+		Xzi = X,
+		is_hurdle = TRUE,
+		optimization_alg = "newton_raphson"
+	)
+
+	expect_true(isTRUE(fit_native$converged))
+	expect_false(isTRUE(fit_native$hit_iteration_cap))
+	expect_true(is.finite(fit_native$gradient_norm))
+	expect_lt(fit_native$gradient_norm, 1e-6)
+	expect_length(fit_native$params, 2L * ncol(X))
+	expect_equal(
+		as.numeric(fit_native$params[seq_len(ncol(X))]),
+		as.numeric(stats::coef(fit_pscl)[paste0("count_", colnames(X))]),
+		tolerance = 1e-6
+	)
+	# EDI models P(Y = 0); pscl's hurdle coefficients model P(Y > 0).
+	expect_equal(
+		as.numeric(fit_native$params[ncol(X) + seq_len(ncol(X))]),
+		-as.numeric(stats::coef(fit_pscl)[paste0("zero_", colnames(X))]),
+		tolerance = 1e-6
+	)
+	score = EDI:::get_zero_augmented_poisson_score_cpp(
+		X, dat$y, X, fit_native$params, is_hurdle = TRUE
+	)
+	expect_lt(sqrt(sum(as.numeric(score)^2)), 1e-6)
+	expect_equal(dim(fit_native$information), c(2L * ncol(X), 2L * ncol(X)))
+
+	# Exercise the same-model recovery used when a joint fit is rejected.
+	recovery_inf = InferenceCountHurdlePoisson$new(des)
+	fit_components = recovery_inf$.__enclos_env__$private$fit_hurdle_poisson_components_independently(
+		X, X, estimate_only = FALSE
+	)
+	expect_true(isTRUE(fit_components$converged))
+	expect_true(isTRUE(fit_components$componentwise_recovery))
+	expect_lt(fit_components$gradient_norm, 1e-6)
+	expect_equal(as.numeric(fit_components$params), as.numeric(fit_native$params), tolerance = 1e-6)
+})
+
 test_that("InferenceCountHurdlePoisson matches pscl::hurdle(dist = 'poisson') count-part treatment coefficient and model SE", {
 	skip_if_not_installed("pscl")
 	des = count_focused_design
@@ -401,6 +448,27 @@ test_that("InferenceCountHurdlePoisson matches pscl::hurdle(dist = 'poisson') co
 	expect_rel_close(est, unname(stats::coef(fit)["count_w"]), 1e-4, "HurdlePoisson estimate vs pscl")
 	summary_table = priv$cached_values$summary_table
 	expect_true(is.matrix(summary_table) && "conditional:w" %in% rownames(summary_table))
+	expect_null(priv$cached_values$model_fit_fallback)
+	full_model_names = colnames(stats::model.matrix(~ w + x1 + x2, data = dat))
+	expect_setequal(names(priv$cached_values$full_coefficients), full_model_names)
+	expect_setequal(names(priv$cached_values$zero_coefficients), full_model_names)
+	expect_false(anyNA(priv$cached_values$full_coefficients))
+	expect_false(anyNA(priv$cached_values$zero_coefficients))
+	failed_joint = priv$cached_values$model_fit_failure
+	if (!is.null(failed_joint)) {
+		expect_named(
+			failed_joint,
+			c(
+				"family", "converged", "hit_iteration_cap", "num_iter",
+				"gradient_norm", "min_eigenvalue_information", "params",
+				"params_origin", "information", "exception_message", "recovered_by"
+			),
+			ignore.order = TRUE
+		)
+		expect_length(failed_joint$params, 2L * length(full_model_names))
+		expect_equal(dim(failed_joint$information), c(2L * length(full_model_names), 2L * length(full_model_names)))
+		expect_identical(failed_joint$recovered_by, "independent_full_model_components")
+	}
 	se_model = summary_table["conditional:w", "Std. Error"]
 	se_pscl = sqrt(stats::vcov(fit)["count_w", "count_w"])
 	expect_rel_close(se_model, se_pscl, 1e-3, "HurdlePoisson model SE vs pscl")

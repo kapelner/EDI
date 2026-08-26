@@ -226,7 +226,7 @@ Defaults to an empty list (no extra arguments for any class).}
   (the ETA is the mean per-class elapsed time so far times classes remaining),
   followed by a footer listing classes excluded for missing optional packages.
   \code{html = TRUE} writes a self-contained, timestamped HTML report (the
-  same table plus the same footer) to the \strong{current working directory}
+  same table plus the same footer) to \code{output_dir}
   and opens it via \code{\link[utils]{browseURL}}; it requires the
   \pkg{knitr} package. The \code{plots} ggplot2 visualizations, and their
   embedding into this HTML report, are not yet implemented
@@ -249,6 +249,7 @@ Defaults to an empty list (no extra arguments for any class).}
   methods = NULL,
   basic_bootstrap = FALSE,
   compute_conf_intervals = FALSE,
+  output_dir = "~",
   combined_evidence_estimands = NULL,
   combined_evidence_weighting = c("estimand_grouped", "equal", "custom"),
   combined_evidence_weights = NULL
@@ -260,14 +261,14 @@ Defaults to an empty list (no extra arguments for any class).}
     \describe{
       \item{\code{screen}}{Print results to the console as each class finishes. At least
 one of \code{screen}/\code{html} must be \code{TRUE}.}
-      \item{\code{html}}{Render, save (current working directory, timestamped filename),
+      \item{\code{html}}{Render, save (\code{output_dir}, timestamped filename),
 and auto-open a self-contained HTML report of the results.}
       \item{\code{alpha}}{Significance level: confidence intervals are computed at
 \code{1 - alpha} and \code{alpha} is the significance threshold used
 anywhere the report flags significance. Default \code{0.05}.}
       \item{\code{save_results_as_JSON}}{If \code{TRUE}, serialize the return object
-(excluding plot objects) to a timestamped JSON file in the current working
-directory. Requires the optional \pkg{jsonlite} package; if it is not
+(excluding plot objects) to a timestamped JSON file in \code{output_dir}.
+Requires the optional \pkg{jsonlite} package; if it is not
 installed, a \code{warning()} is issued and this artifact is skipped rather
 than erroring. Default \code{FALSE}.}
       \item{\code{plots}}{If \code{TRUE}, build and display (on the current graphics
@@ -287,7 +288,7 @@ stacked into a single \pkg{gtable} grob (draw with
 if it is not installed, a \code{warning()} is issued and plotting is
 skipped rather than erroring. Defaults to the value of \code{screen}.}
       \item{\code{pdf}}{If \code{TRUE}, save the visualization to one timestamped
-multi-page PDF file in the current working directory (one page per
+multi-page PDF file in \code{output_dir} (one page per
 estimand; page height scales with the largest estimand's number of CI
 rows). Same \pkg{ggplot2} dependency and missing-package handling as
 \code{plots}. Default \code{FALSE}.}
@@ -514,6 +515,28 @@ typed sentinel the caller didn't already restrict via an explicit
 always wins over this flag. No effect on non-typed sentinels
 (\code{"param_boot"}/\code{"param_boot_direct"} included -- neither
 has a \code{type} axis, so they already run their one procedure).}
+      \item{\code{compute_conf_intervals}}{\code{FALSE} (default). When \code{FALSE},
+every task's confidence-interval side (\code{ci_a}/\code{ci_b}/
+\code{ci_method}) is skipped entirely -- only the p-value side runs.
+Several sentinels' CI search (Bartlett-approx, \code{"rand"},
+\code{"rand_bootstrap"}, \code{"param_boot"}) re-invokes the same
+expensive machinery as its own p-value roughly 15-40 times per bound
+during root-finding, by far the dominant cost of a full
+\code{run_all_inference()} run for those sentinels; skipping it can
+cut total runtime dramatically. \code{ci_a}/\code{ci_b}/\code{ci_method}
+stay present but always \code{NA} in \code{results_table} (stable
+schema either way) and are omitted entirely from the live/print/HTML
+display tables when \code{FALSE}. Set \code{TRUE} to compute CIs as
+before.}
+      \item{\code{output_dir}}{Directory for the \code{html}/\code{pdf}/
+\code{save_results_as_JSON} output files. Default \code{"~"}
+(the user's home directory), not the current working directory --
+these calls are routinely made from inside the package's own source
+tree (a demo/dev script run from \code{R/EDI/}), and a stray
+timestamped report left in \code{getwd()} there is exactly the kind
+of untracked file that can end up bundled into a source tarball
+(\code{R CMD build}) or committed by accident. Pass an explicit path
+(e.g. the current directory, or a temp directory) to write elsewhere.}
       \item{\code{combined_evidence_estimands}}{\code{NULL} (default: include every
 declared \code{estimand}), or a character vector of \code{estimand}
 values to restrict the Combined Evidence p-value/weights to.

@@ -4168,7 +4168,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   (the ETA is the mean per-class elapsed time so far times classes remaining),
 		#'   followed by a footer listing classes excluded for missing optional packages.
 		#'   \code{html = TRUE} writes a self-contained, timestamped HTML report (the
-		#'   same table plus the same footer) to the \strong{current working directory}
+		#'   same table plus the same footer) to \code{output_dir}
 		#'   and opens it via \code{\link[utils]{browseURL}}; it requires the
 		#'   \pkg{knitr} package. The \code{plots} ggplot2 visualizations, and their
 		#'   embedding into this HTML report, are not yet implemented
@@ -4176,14 +4176,14 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   parameter of this method.
 		#' @param screen Print results to the console as each class finishes. At least
 		#'   one of \code{screen}/\code{html} must be \code{TRUE}.
-		#' @param html Render, save (current working directory, timestamped filename),
+		#' @param html Render, save (\code{output_dir}, timestamped filename),
 		#'   and auto-open a self-contained HTML report of the results.
 		#' @param alpha Significance level: confidence intervals are computed at
 		#'   \code{1 - alpha} and \code{alpha} is the significance threshold used
 		#'   anywhere the report flags significance. Default \code{0.05}.
 		#' @param save_results_as_JSON If \code{TRUE}, serialize the return object
-		#'   (excluding plot objects) to a timestamped JSON file in the current working
-		#'   directory. Requires the optional \pkg{jsonlite} package; if it is not
+		#'   (excluding plot objects) to a timestamped JSON file in \code{output_dir}.
+		#'   Requires the optional \pkg{jsonlite} package; if it is not
 		#'   installed, a \code{warning()} is issued and this artifact is skipped rather
 		#'   than erroring. Default \code{FALSE}.
 		#' @param plots If \code{TRUE}, build and display (on the current graphics
@@ -4203,7 +4203,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   if it is not installed, a \code{warning()} is issued and plotting is
 		#'   skipped rather than erroring. Defaults to the value of \code{screen}.
 		#' @param pdf If \code{TRUE}, save the visualization to one timestamped
-		#'   multi-page PDF file in the current working directory (one page per
+		#'   multi-page PDF file in \code{output_dir} (one page per
 		#'   estimand; page height scales with the largest estimand's number of CI
 		#'   rows). Same \pkg{ggplot2} dependency and missing-package handling as
 		#'   \code{plots}. Default \code{FALSE}.
@@ -4430,6 +4430,28 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   always wins over this flag. No effect on non-typed sentinels
 		#'   (\code{"param_boot"}/\code{"param_boot_direct"} included -- neither
 		#'   has a \code{type} axis, so they already run their one procedure).
+		#' @param compute_conf_intervals \code{FALSE} (default). When \code{FALSE},
+		#'   every task's confidence-interval side (\code{ci_a}/\code{ci_b}/
+		#'   \code{ci_method}) is skipped entirely -- only the p-value side runs.
+		#'   Several sentinels' CI search (Bartlett-approx, \code{"rand"},
+		#'   \code{"rand_bootstrap"}, \code{"param_boot"}) re-invokes the same
+		#'   expensive machinery as its own p-value roughly 15-40 times per bound
+		#'   during root-finding, by far the dominant cost of a full
+		#'   \code{run_all_inference()} run for those sentinels; skipping it can
+		#'   cut total runtime dramatically. \code{ci_a}/\code{ci_b}/\code{ci_method}
+		#'   stay present but always \code{NA} in \code{results_table} (stable
+		#'   schema either way) and are omitted entirely from the live/print/HTML
+		#'   display tables when \code{FALSE}. Set \code{TRUE} to compute CIs as
+		#'   before.
+		#' @param output_dir Directory for the \code{html}/\code{pdf}/
+		#'   \code{save_results_as_JSON} output files. Default \code{"~"}
+		#'   (the user's home directory), not the current working directory --
+		#'   these calls are routinely made from inside the package's own source
+		#'   tree (a demo/dev script run from \code{R/EDI/}), and a stray
+		#'   timestamped report left in \code{getwd()} there is exactly the kind
+		#'   of untracked file that can end up bundled into a source tarball
+		#'   (\code{R CMD build}) or committed by accident. Pass an explicit path
+		#'   (e.g. the current directory, or a temp directory) to write elsewhere.
 		#' @param combined_evidence_estimands \code{NULL} (default: include every
 		#'   declared \code{estimand}), or a character vector of \code{estimand}
 		#'   values to restrict the Combined Evidence p-value/weights to.
@@ -4858,13 +4880,22 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			if (plots) {
 				for (p in out$plots$ci_forest) tryCatch(run_all_inference_draw_plot(p), error = function(e) invisible(NULL))
 			}
+			# `output_dir` defaults to `~` (per user request, 2026-08-26), not
+			# `getwd()` -- these calls are routinely made from inside the
+			# package's own source tree (a demo/dev script run with `Rscript`
+			# from `R/EDI/`), and a stray HTML/PDF/JSON report left in `getwd()`
+			# there is exactly the kind of untracked file that can accidentally
+			# end up bundled into a source tarball (`R CMD build`) or committed.
+			# `path.expand()` resolves `"~"` once here; every path below is
+			# already absolute by construction, whatever `output_dir` was.
+			output_dir_expanded = path.expand(output_dir)
 			if (pdf && length(out$plots$ci_forest) > 0L) {
-				pdf_path = file.path(getwd(), sprintf("inference_suite_results_ci_forest_%s.pdf", out$timestamp))
+				pdf_path = file.path(output_dir_expanded, sprintf("inference_suite_results_ci_forest_%s.pdf", out$timestamp))
 				run_all_inference_save_plots_pdf(out$plots, pdf_path)
 				out$files$pdf = pdf_path
 			}
 			if (html) {
-				html_path = file.path(getwd(), sprintf("inference_suite_results_%s.html", out$timestamp))
+				html_path = file.path(output_dir_expanded, sprintf("inference_suite_results_%s.html", out$timestamp))
 				writeLines(run_all_inference_render_html(out), html_path, useBytes = TRUE)
 				out$files$html = html_path
 				utils::browseURL(html_path)
@@ -4877,7 +4908,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 						call. = FALSE
 					)
 				} else {
-					json_path = file.path(getwd(), sprintf("inference_suite_results_%s.json", out$timestamp))
+					json_path = file.path(output_dir_expanded, sprintf("inference_suite_results_%s.json", out$timestamp))
 					jsonlite::write_json(out[setdiff(names(out), "plots")], json_path, auto_unbox = TRUE, null = "null", na = "null")
 					out$files$json = json_path
 				}

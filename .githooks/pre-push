@@ -321,13 +321,28 @@ if [ "$run_comprehensive_suite" = "1" ]; then
 
 	# Generated-CSV drift is almost always cosmetic (e.g. a source line-number
 	# column shifting because an unrelated edit added/removed lines elsewhere
-	# in the same file) -- the generators are deterministic, so the "fix" is
-	# never anything other than "regenerate and commit". Self-heal it here
-	# instead of making that a manual step every time: regenerate, and if the
-	# regenerated CSVs differ from what's committed, stage+commit them and
-	# check again. Bounded retry count guards against a genuinely
-	# non-deterministic generator looping forever -- that would be a real bug
-	# to fix in the generator, not something to paper over indefinitely.
+	# in the same file) -- the generators are deterministic given a fixed
+	# source tree, so the "fix" is never anything other than "regenerate and
+	# commit". Self-heal it here instead of making that a manual step every
+	# time: regenerate, and if the regenerated CSVs differ from what's
+	# committed, stage+commit them and check again.
+	#
+	# More than one attempt is routinely needed for a reason that has
+	# nothing to do with generator determinism: this repo is often being
+	# edited by other concurrent sessions/processes while the hook runs (the
+	# generator suite takes real wall-clock time). A source file can change
+	# mid-run, so attempt 1's regeneration is already stale by the time it
+	# finishes and attempt 2 (or 3) is what actually catches up and
+	# converges -- confirmed 2026-08-26 when a second attempt's fix commit
+	# picked up a live `run_all_inference()` signature change (17 -> 18
+	# args) that landed between attempts. The bounded retry count exists so
+	# a *genuinely* non-deterministic generator (same source tree, different
+	# output on consecutive runs) still fails loudly instead of looping
+	# forever -- that would be a real bug to fix in the generator, not
+	# something to paper over indefinitely. It is not a guarantee against
+	# the concurrent-edit case above: if edits keep landing for the entire
+	# duration of every attempt, no finite count converges, and the normal
+	# "push again" fallback below is the actual answer.
 	drift_csvs=(
 		package_tests/public_api_inventory.csv
 		package_tests/public_argument_baseline_gap_report.csv
@@ -351,7 +366,7 @@ if [ "$run_comprehensive_suite" = "1" ]; then
 	)
 	comprehensive_suite_ok=1
 	comprehensive_suite_auto_fixed=0
-	max_drift_attempts=3
+	max_drift_attempts=5
 	attempt=1
 	while [ "$attempt" -le "$max_drift_attempts" ]; do
 		if (
@@ -395,7 +410,7 @@ if [ "$run_comprehensive_suite" = "1" ]; then
 			echo "pre-push: run 'git push' again -- it will include the fix commit and this check will pass immediately." >&2
 			abort_push
 		else
-			echo "pre-push: generated CSVs still drifted after $max_drift_attempts auto-fix attempts -- a generator is non-deterministic (its output differs between two consecutive runs with no source changes in between). This needs a real fix in the generator script, not another auto-commit." >&2
+			echo "pre-push: generated CSVs still drifted after $max_drift_attempts auto-fix attempts. Most likely: other concurrent edits keep landing on the source tree for the whole duration of every attempt -- wait for things to settle and just run 'git push' again. If this keeps happening with no concurrent activity in sight, suspect a non-deterministic generator (different output on consecutive runs against the same unchanged source tree) and fix that script instead of raising this count further." >&2
 			(cd R && git diff -- "${drift_csvs[@]}") >&2 || true
 			abort_push
 		fi

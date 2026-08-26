@@ -2657,7 +2657,15 @@ get_ordinal_glmm_neg_loglik_cpp <- function(X, y, group_id, params, K, n_gh = 20
 #' matched-group membership is invariant to input row order. Optimization uses
 #' supplied/cold, moderate-variance, and near-zero-variance starts, retains the
 #' smallest finite negative log-likelihood, and polishes that solution before
-#' applying a gradient-based convergence check. \code{log_sigma} is evaluated
+#' applying a projected-gradient convergence check. If finite multistart
+#' L-BFGS stops on function decrease while its projected score remains above
+#' \code{max(1e-5, eps_g)}, the kernel performs a local damped-Newton polish
+#' using its numerical Hessian. A Newton trial is retained only when its
+#' parameters, objective, and gradient are finite and its objective does not
+#' exceed the L-BFGS objective. At a valid lower \code{log_sigma} boundary, the
+#' KKT-satisfied variance coordinate is excluded from the Newton system, so
+#' fixed-effect convergence can be established without rejecting a
+#' near-zero random-effect variance. \code{log_sigma} is evaluated
 #' within \eqn{[-\code{max\_abs\_log\_sigma},
 #' \code{max\_abs\_log\_sigma}]} with a quadratic penalty on excursions beyond
 #' that interval whose analytic gradient matches the bounded objective;
@@ -2716,7 +2724,9 @@ get_ordinal_glmm_neg_loglik_cpp <- function(X, y, group_id, params, K, n_gh = 20
 #'   information matrix inverts successfully), \code{converged}, \code{neg_loglik},
 #'   \code{fisher_information} (the numerical Hessian, always returned), \code{score}
 #'   (the log-likelihood score at the returned parameters), \code{gradient_norm},
-#'   and \code{variance_boundary_hit} (\code{TRUE}/\code{FALSE}, or \code{NA} if the optimizer
+#'   \code{newton_polish_attempted}, \code{newton_polish_accepted}, and
+#'   \code{newton_polish_iterations} (diagnostics for the conditional
+#'   damped-Newton fallback), and \code{variance_boundary_hit} (\code{TRUE}/\code{FALSE}, or \code{NA} if the optimizer
 #'   itself threw an exception, in which case \code{converged = FALSE} and all other quantities
 #'   besides \code{b}/\code{alpha}/\code{log_sigma} are \code{NA}).
 #' @export

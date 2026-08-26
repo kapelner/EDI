@@ -144,8 +144,15 @@ asks first) unless \code{force = TRUE}.
 # idle-machine contention guard (see Details/`force` above) -- an example
 # must not fail just because the machine running R CMD check happens to
 # be busy (e.g. a shared CI runner); the guard itself has its own
-# dedicated tests (test-local-machine-tuning-assembly.R).
-res = tune_EDI_for_this_machine(effort = "quick", dry_run = TRUE, force = TRUE)
+# dedicated tests (test-local-machine-tuning-assembly.R). Scoped to one
+# axis/family/n rather than the full live registry effort = "quick"
+# otherwise walks (narrowing "quick" itself to a handful of
+# high-effect-size families across every axis is still open, see
+# edi_tuning_effort_presets()'s docs) -- this keeps the example a
+# few-second sanity check instead of a multi-minute benchmark run.
+res = tune_EDI_for_this_machine(effort = "quick", dry_run = TRUE, force = TRUE,
+                                 axes = "cold_start", families = "InferenceIncidLogRegr",
+                                 n_grid = 50L, reps = 1L)
 print(res)
 }
 }

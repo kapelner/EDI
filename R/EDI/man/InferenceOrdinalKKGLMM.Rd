@@ -159,7 +159,13 @@ design's imputed covariates.}
   boundary, exceeds \code{private$max_abs_reasonable_coef}, or lacks a
   finite positive treatment-coefficient variance is cached as nonestimable
   rather than returned. A valid near-zero random-effect variance boundary
-  is accepted using conditional fixed-effect information.
+  is accepted using conditional fixed-effect information. The native
+  optimizer retains multistart L-BFGS for basin selection and, only when
+  its finite selected point fails the projected-score tolerance, applies
+  a damped-Newton polish using the numerical Hessian. The polished point
+  is retained only if it remains finite and does not increase the
+  negative log-likelihood; at a valid lower variance boundary, the
+  KKT-satisfied variance coordinate is excluded from that Newton system.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalKKGLMM$compute_estimate(estimate_only = FALSE)}
