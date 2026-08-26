@@ -318,41 +318,91 @@ echo
 
 if [ "$run_comprehensive_suite" = "1" ]; then
 	echo "pre-push: R/package_tests-relevant files changed -- running comprehensive suite (smoke tier) + drift check ..."
-	if (
+
+	# Generated-CSV drift is almost always cosmetic (e.g. a source line-number
+	# column shifting because an unrelated edit added/removed lines elsewhere
+	# in the same file) -- the generators are deterministic, so the "fix" is
+	# never anything other than "regenerate and commit". Self-heal it here
+	# instead of making that a manual step every time: regenerate, and if the
+	# regenerated CSVs differ from what's committed, stage+commit them and
+	# check again. Bounded retry count guards against a genuinely
+	# non-deterministic generator looping forever -- that would be a real bug
+	# to fix in the generator, not something to paper over indefinitely.
+	drift_csvs=(
+		package_tests/public_api_inventory.csv
+		package_tests/public_argument_baseline_gap_report.csv
+		package_tests/checkmate_argument_contracts.csv
+		package_tests/public_argument_combination_cases.csv
+		package_tests/public_argument_combination_rejected_candidates.csv
+		package_tests/public_argument_combination_coverage.csv
+		package_tests/public_argument_combination_results.csv
+		package_tests/public_argument_combination_failures.csv
+		package_tests/public_argument_combination_uncovered_apis.csv
+		package_tests/public_argument_combination_registry_drift.csv
+		package_tests/public_argument_combination_slowest_cases.csv
+		package_tests/public_argument_combination_ci_failure_summary.csv
+		package_tests/public_argument_combination_cases_integrated.csv
+		package_tests/public_argument_combination_results_integrated.csv
+		package_tests/public_argument_combination_coverage_integrated.csv
+		package_tests/public_argument_combination_quality_gates.csv
+		package_tests/public_argument_combination_quality_gate_summary.csv
+		package_tests/comprehensive_suite_registry.csv
+		package_tests/comprehensive_suite_baseline_audit.csv
+	)
+	comprehensive_suite_ok=1
+	comprehensive_suite_auto_fixed=0
+	max_drift_attempts=3
+	attempt=1
+	while [ "$attempt" -le "$max_drift_attempts" ]; do
+		if (
+			cd R &&
+			Rscript package_tests/public_api_inventory.R &&
+			Rscript package_tests/extract_checkmate_argument_contracts.R &&
+			Rscript package_tests/generate_public_argument_combinations.R &&
+			Rscript package_tests/run_public_argument_combinations.R &&
+			Rscript package_tests/analyze_public_argument_combinations.R &&
+			Rscript package_tests/public_argument_combination_integration.R &&
+			Rscript package_tests/check_public_argument_combination_quality_gates.R report &&
+			Rscript package_tests/comprehensive_suite_registry.R &&
+			Rscript package_tests/audit_comprehensive_suite_baseline.R
+			# comprehensive_suite_exemptions.csv deliberately excluded -- see
+			# test-coverage-R-advanced.yml's identical drift-check comment:
+			# audit_comprehensive_suite_baseline.R stamps it with
+			# created_date = Sys.Date() on every run, so it always "drifts".
+		); then
+			:
+		else
+			comprehensive_suite_ok=0
+			break
+		fi
+
+		if (cd R && git diff --exit-code -- "${drift_csvs[@]}") >/dev/null 2>&1; then
+			break  # clean -- generated CSVs already match what's committed
+		fi
+
+		echo "pre-push: generated package_tests/ CSVs drifted from HEAD (attempt $attempt/$max_drift_attempts) -- auto-regenerating and committing the fix ..."
+		drift_csvs_prefixed=()
+		for f in "${drift_csvs[@]}"; do drift_csvs_prefixed+=("R/$f"); done
+		(cd R && git add -- "${drift_csvs[@]}")
+		git commit --quiet -m "pre-push: auto-regenerate drifted package_tests CSVs" -- "${drift_csvs_prefixed[@]}"
+		comprehensive_suite_auto_fixed=1
+		attempt=$((attempt + 1))
+	done
+
+	if [ "$comprehensive_suite_auto_fixed" = "1" ]; then
+		if (cd R && git diff --exit-code -- "${drift_csvs[@]}") >/dev/null 2>&1; then
+			echo "pre-push: auto-regenerated and committed drifted package_tests/ CSVs. Your push now includes stale (pre-fix) commits -- git already resolved which commits to push before this hook ran, so it cannot pick up the new commit on this attempt." >&2
+			echo "pre-push: run 'git push' again -- it will include the fix commit and this check will pass immediately." >&2
+			abort_push
+		else
+			echo "pre-push: generated CSVs still drifted after $max_drift_attempts auto-fix attempts -- a generator is non-deterministic (its output differs between two consecutive runs with no source changes in between). This needs a real fix in the generator script, not another auto-commit." >&2
+			(cd R && git diff -- "${drift_csvs[@]}") >&2 || true
+			abort_push
+		fi
+	fi
+
+	if [ "$comprehensive_suite_ok" = "1" ] && (
 		cd R &&
-		Rscript package_tests/public_api_inventory.R &&
-		Rscript package_tests/extract_checkmate_argument_contracts.R &&
-		Rscript package_tests/generate_public_argument_combinations.R &&
-		Rscript package_tests/run_public_argument_combinations.R &&
-		Rscript package_tests/analyze_public_argument_combinations.R &&
-		Rscript package_tests/public_argument_combination_integration.R &&
-		Rscript package_tests/check_public_argument_combination_quality_gates.R report &&
-		Rscript package_tests/comprehensive_suite_registry.R &&
-		Rscript package_tests/audit_comprehensive_suite_baseline.R &&
-		# comprehensive_suite_exemptions.csv deliberately excluded -- see
-		# test-coverage-R-advanced.yml's identical drift-check comment:
-		# audit_comprehensive_suite_baseline.R stamps it with
-		# created_date = Sys.Date() on every run, so it always "drifts".
-		git diff --exit-code -- \
-			package_tests/public_api_inventory.csv \
-			package_tests/public_argument_baseline_gap_report.csv \
-			package_tests/checkmate_argument_contracts.csv \
-			package_tests/public_argument_combination_cases.csv \
-			package_tests/public_argument_combination_rejected_candidates.csv \
-			package_tests/public_argument_combination_coverage.csv \
-			package_tests/public_argument_combination_results.csv \
-			package_tests/public_argument_combination_failures.csv \
-			package_tests/public_argument_combination_uncovered_apis.csv \
-			package_tests/public_argument_combination_registry_drift.csv \
-			package_tests/public_argument_combination_slowest_cases.csv \
-			package_tests/public_argument_combination_ci_failure_summary.csv \
-			package_tests/public_argument_combination_cases_integrated.csv \
-			package_tests/public_argument_combination_results_integrated.csv \
-			package_tests/public_argument_combination_coverage_integrated.csv \
-			package_tests/public_argument_combination_quality_gates.csv \
-			package_tests/public_argument_combination_quality_gate_summary.csv \
-			package_tests/comprehensive_suite_registry.csv \
-			package_tests/comprehensive_suite_baseline_audit.csv &&
 		Rscript package_tests/run_comprehensive_suite.R smoke "" 300 --force &&
 		Rscript package_tests/analyze_comprehensive_suite.R &&
 		Rscript package_tests/check_comprehensive_suite_quality_gates.R ci

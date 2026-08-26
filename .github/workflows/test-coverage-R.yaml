@@ -65,10 +65,21 @@ jobs:
       - name: Test coverage
         working-directory: R/EDI
         run: |
+          # relative_path = "../.." makes covr report file paths relative to
+          # the repo root (R/EDI/R/foo.R), not to the package dir (R/foo.R,
+          # covr's default when relative_path = TRUE). codecov.yml's
+          # flags.r.paths ([R/EDI/R/, R/EDI/src/]) is repo-root-relative --
+          # without this, covr's uploaded paths never matched that filter,
+          # so the r flag silently carried zero files/coverage (badge stuck
+          # on "unknown" even on a fully green run; found 2026-08-26 via
+          # https://api.codecov.io/api/v2/github/kapelner/repos/EDI/flags/
+          # showing flag "r" at 0.0 while "python" -- uploaded via
+          # codecov-action, which path-corrects automatically -- was fine).
           covr::codecov(
             quiet = FALSE,
             token = Sys.getenv("CODECOV_TOKEN"),
-            flags = "r"
+            flags = "r",
+            relative_path = "../.."
           )
         shell: Rscript {0}
         env:

@@ -4475,7 +4475,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   \code{edi_version}.
 		run_all_inference = function(screen = TRUE, html = FALSE, alpha = 0.05, save_results_as_JSON = FALSE, plots = screen, pdf = FALSE,
 				classes = NULL, exclude_classes = character(), max_secs_per_class = NULL, num_cores = 1L, formulas = NULL,
-				methods = NULL, basic_bootstrap = FALSE, compute_conf_intervals = FALSE,
+				methods = NULL, basic_bootstrap = FALSE, compute_conf_intervals = FALSE, output_dir = "~",
 				combined_evidence_estimands = NULL,
 				combined_evidence_weighting = c("estimand_grouped", "equal", "custom"),
 				combined_evidence_weights = NULL) {
@@ -4484,6 +4484,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				assertFlag(html)
 				assertNumber(alpha, lower = 0, upper = 1)
 				assertFlag(compute_conf_intervals)
+				assertCharacter(output_dir, len = 1L, any.missing = FALSE)
 				assertFlag(save_results_as_JSON)
 				assertFlag(plots)
 				assertFlag(pdf)

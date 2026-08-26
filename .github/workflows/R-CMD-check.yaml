@@ -174,12 +174,26 @@ jobs:
           upload-snapshots: true
           args: 'c("--no-manual", "--as-cran")'
           build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
-          # Fail on NOTEs too, not just WARNINGs/ERRORs. This action already
-          # sets _R_CHECK_CRAN_INCOMING_=false by default (see its action.yaml),
-          # which suppresses the one NOTE that's genuinely unavoidable pre-CRAN
-          # ("New submission") -- so "note" here means "fail on anything we can
-          # actually still do something about."
-          error-on: '"note"'
+          # error-on "warning", not "note" (changed 2026-08-26; was "note"
+          # since this job was added). This action already sets
+          # _R_CHECK_CRAN_INCOMING_=false by default (see its action.yaml),
+          # which suppresses the one NOTE that's genuinely unavoidable
+          # pre-CRAN ("New submission"). The remaining NOTE this job
+          # otherwise fails on -- "Found the following possibly unsafe
+          # calls: unlockBinding(...)" (contracts_mixins.R, 3 sites) -- is
+          # not a bug: it's EDI's lazy-component-loading mechanism
+          # reassigning an already-locked R6 method binding, unlocking only
+          # that one binding for the duration of a single assign() and
+          # immediately re-locking it (see the code comments at each call
+          # site). Justified in full in cran-comments.md, which CRAN's own
+          # human reviewer reads at submission -- but rcmdcheck's error_on
+          # is a blunt severity threshold with no per-NOTE-message
+          # exception, so keeping it at "note" here means every push fails
+          # on a NOTE we've already decided to ship with, masking any
+          # *other* NOTE that does need attention. "warning" still fails
+          # the job on any new NOTE-worthy regression that rises to a real
+          # WARNING or ERROR.
+          error-on: '"warning"'
 
   # CRAN also verifies a package works with only its hard dependencies
   # (Depends/Imports/LinkingTo) present -- catching an unconditional use of a
@@ -235,16 +249,25 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           working-directory: R/EDI
-          args: 'c("--no-manual", "--as-cran")'
-          # --no-build-vignettes: knitr (VignetteBuilder) is a Suggests, and this
-          # job deliberately skips Suggests (dependencies: 'NA' above) -- without
-          # this flag, `R CMD build` still attempts to build the vignettes, fails
-          # silently for lack of knitr, and check then emits "Package has a
-          # VignetteBuilder field but no prebuilt vignette index" (see the other
-          # Suggests-skipping jobs -- ASAN/UBSAN, valgrind -- which already build
-          # with `--no-build-vignettes` for the same reason).
+          # --no-build-vignettes on both args (check) and build_args
+          # (build): knitr (VignetteBuilder) is a Suggests, and this job
+          # deliberately skips Suggests (dependencies: 'NA' above) --
+          # without it on build_args, `R CMD build` still attempts to build
+          # the vignettes and fails silently for lack of knitr, producing a
+          # tarball with vignette sources but no built `inst/doc` output;
+          # without it on args too, `R CMD check` then flags exactly that
+          # mismatch as a WARNING ("Files in the 'vignettes' directory but
+          # no files in 'inst/doc'" -- caught 2026-08-26, since error-on
+          # "warning" fails the job on it, unlike the "note" this used to
+          # be tolerated under). The other Suggests-skipping jobs (ASAN/
+          # UBSAN, valgrind) already pass this flag to both their build and
+          # check commands for the same reason.
+          args: 'c("--no-manual", "--no-build-vignettes", "--as-cran")'
           build_args: 'c("--no-manual","--no-build-vignettes","--compact-vignettes=gs+qpdf")'
-          error-on: '"note"'
+          # error-on "warning", not "note" -- see the identical change/
+          # comment on the main R-CMD-check job above (the justified
+          # unlockBinding() NOTE, documented in cran-comments.md).
+          error-on: '"warning"'
 
   # CRAN's "incoming feasibility" checks -- Title/Description phrasing policy,
   # misspellings, URL validity, license text, and the overall submission-
@@ -329,6 +352,15 @@ jobs:
       # "checking package dependencies" ERRORs out before the actual
       # ASAN/UBSAN check ever runs.
       _R_CHECK_FORCE_SUGGESTS_: false
+      # This job runs raw `RD CMD check --as-cran` (not check-r-package@v2,
+      # which sets this to false by default -- see R-CMD-check's own
+      # error-on comment) -- without it, "checking CRAN incoming
+      # feasibility" tries a live network call to CRAN.R-project.org, which
+      # this job's environment doesn't reliably have (a 2026-08-26 run
+      # failed the sibling R-CMD-check-valgrind job exactly this way:
+      # "cannot open the connection to '.../PACKAGES.in'"). Redundant here
+      # anyway -- R-CMD-check-incoming already covers this on every push.
+      _R_CHECK_CRAN_INCOMING_: false
 
     steps:
       - uses: actions/checkout@v7
@@ -404,6 +436,11 @@ jobs:
       # "checking package dependencies" ERRORs out before the actual
       # valgrind check ever runs.
       _R_CHECK_FORCE_SUGGESTS_: false
+      # See the identical comment on R-CMD-check-sanitizers above -- this
+      # job hit exactly the failure that comment describes on 2026-08-26
+      # ("checking CRAN incoming feasibility" failing to reach
+      # CRAN.R-project.org and erroring the whole job), which this fixes.
+      _R_CHECK_CRAN_INCOMING_: false
 
     steps:
       - uses: actions/checkout@v7

@@ -6,6 +6,7 @@
 ^src/.*\.so$
 ^src/.*\.dll$
 ^benchmark$
+^scripts$
 check_survfit.R
 ^cran-comments\.md$
 ^REFERENCES\.md$
