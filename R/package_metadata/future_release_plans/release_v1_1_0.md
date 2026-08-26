@@ -21,7 +21,55 @@ OpenMP/BLAS/fork parallelism, algorithmic work such as adaptive quadrature,
 R-layer and end-to-end profiling, a bare-metal/AWS session) — is written into
 the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
 
-## Scope rule
+> **Amended 2026-08-27 (user decision): three-way release split.** The
+> "everything open goes into 1.1.0" rule below is **superseded**. The open
+> backlog is now split across `release_v1_1_0.md` (this file),
+> `release_v1_2_0.md`, and `release_v2_0_0.md` by one rule: **1.x =
+> improvements on the current codebase plus simple new additions on the
+> existing architecture and the existing six scalar response types; 2.0.0
+> = genuinely new functionality requiring large refactorings or new
+> architecture** (K-arm `w`, new response shapes, multi-look inference,
+> new compute backends, deferred breaking changes). 1.1.0 keeps the
+> small-to-medium items; 1.2.0 takes additive items needing moderate
+> plumbing or carrying estimator risk.
+>
+> **Moved out of this file** (the TODO bullets below are retained verbatim
+> for history, each prefixed with its new home):
+> - → **1.2.0**: TODO-7 (censored continuous / count, `betaregscale`),
+>   TODO-12 (interval-censored second wave), TODO-15 (many-by-many design
+>   family), TODO-15d (survival quantile regression), TODO-15f (competing
+>   risks), TODO-15g (cure fraction), the `semi_continuous_…` item of
+>   TODO-6, and `full_glmm_for_weibull_frailty.md`.
+> - → **2.0.0**: TODO-6 (the remaining response-type reports: nominal,
+>   rank/choice, multivariate, compositional, longitudinal), TODO-8
+>   (multi-arm), TODO-9 (GPU), TODO-9b (quantum backend; its vignette-only
+>   option may stay 1.x), TODO-13's *implementation* (its scoping stays
+>   here), TODO-14 (landscape refresh), and TODO-11's *deletion* of the two
+>   public greedy classes (the merge + soft-deprecation stays here).
+> - **Stays in 1.1.0**: TODO-1 (Phase 0 decision batch — it still records
+>   the yes/no for every gated 1.2.0/2.0.0 track), TODO-3 (diagnostics),
+>   TODO-4/4b (kernel/perf lanes), TODO-5 (corrections), TODO-11 (greedy
+>   merge, soft-deprecation only), TODO-13 (scoping only), TODO-15b (KK
+>   beta OneLik), TODO-15c (`dead → uncensored` rename — a recorded user
+>   decision; note it is a hard break of a field name and should ship with
+>   the `event_type` column added dormantly per `release_v1_2_0.md`),
+>   TODO-15e (count quantile regression), TODO-16 (release mechanics), plus
+>   the ordinal Bayesian-bootstrap / randomization-CI plans,
+>   `randomization_ci_search_precision.md`, and `cold_starts.md`.
+>   `parallel_fork_cluster_test_safety.md` is fully closed (6/6) and should
+>   move to `../finished_features/`.
+> - **Unowned audit backlog** (no plan yet, cannot be indexed): small
+>   items suggested for 1.1.0 once scoped — count exposure offset,
+>   HC-robust SEs on OLS/LPM, Hedges' g, win odds / Brunner-Munzel,
+>   Mantel-Haenszel OR/RD, NI/equivalence conveniences, unconditional QTE,
+>   Poisson-QMLE/Gamma-log for continuous non-negative `y`, Smith's coin,
+>   tolerance sequential rules, generalized quadratic-form / tiered
+>   rerandomization, pair-switching rerandomization sampler, Hu & Hu
+>   stratum term on Pocock-Simon, Grundy-Healy concurrence diagnostic. See
+>   `release_v1_2_0.md` and `release_v2_0_0.md` for the medium/large
+>   unowned items.
+
+## Scope rule (historical — superseded by the 2026-08-27 split above)
 
 A plan (or plan fragment) is in scope for v1.1.0 if and only if it lives in
 `new_feature_plans/` and is **not** named in `release_v1_0_0.md`'s "In scope"
@@ -117,6 +165,37 @@ brainstorming); both build on `quantreg::rq()` like the rest of the
 quantile-regression family and are natural `use_rcpp` candidates once
 `quantile_regression_cpp_kernel_spec.md` lands, but do not depend on it.
 May run in parallel with any other track.
+
+The survival-model extension (added 2026-08-27, commissioned from the
+literature audits below): `competing_risks_response.md` — an `event_type`
+cause code on the existing `survival` response plus cause-specific
+Cox/log-rank (recode wrappers), Aalen-Johansen CIF difference, Gray's test,
+RMTL, and Fine-Gray (via `cmprsk` delegation first, counting-process C++
+kernel later); decision-gated (its TODO-1), and to be spliced with the
+`dead → uncensored` rename (TODO-15c) since both rewrite the same event-
+indicator plumbing — and `cure_fraction_survival_inference.md` —
+`InferenceSurvivalMixtureCureWeibull` (logistic cure part + Weibull AFT
+latency part, two effects exposed through the shipped `estimand` axis;
+`flexsurvcure` delegation first, native kernel second), decision-gated,
+sequenced after competing risks. Both are univariate-`y` additions on an
+existing response type; no design-side change.
+
+Audit reports (2026-08-26/27, reference documents, not work items — they
+commission the plans above and rank the remaining gaps):
+`missing_inference_classes_literature_audit.md`,
+`missing_design_classes_literature_audit.md`,
+`missing_theoretical_design_classes_literature_audit.md`. Their
+prioritized recommendations (count exposure offset, HC-robust OLS/LPM SEs,
+Hedges' g, win odds / Brunner-Munzel, CACE/IV with a design-side
+`treatment_received` field, treatment×covariate moderation, cluster-robust
+GLMM/GEE, cluster-level covariate-balancing designs, unequal allocation in
+matching/greedy designs, Gram-Schmidt Walk, ARM/PSR, generalized quadratic-
+form rerandomization, and the two-arm RAR family) are **not yet owned by
+any plan** — each needs its own scoping report or a TODO in an existing
+plan before it can enter this release index. `nominal_response_type_report.md`
+was rewritten 2026-08-27 in light of the inference audit; its recorded
+recommendation for its own TODO-1 is now **no / defer indefinitely** (see
+`TODO-1` step 8 below).
 
 Designs and orchestration: `multi_arm_designs.md` (TODO-1..5; TODO-6 already
 shipped in 1.0.0), `design_fixed_greedy_pair_switch_merge.md`,
@@ -258,7 +337,7 @@ ticked in their **owning plans**; this list is the release index.
   7. `modified_profile_likelihood_report.md → TODO-2..4`,
   8. `bootstrap_calibrated_lr_report.md → Difficult-tier work` (if TODO-1.7
      said yes).
-- [ ] TODO-6: **Response-type track** (`_master.md` Phase 5B order):
+- [ ] ~~TODO-6~~ **→ moved 2026-08-27: semi-continuous to `release_v1_2_0.md`, all other response-type reports to `release_v2_0_0.md`** — **Response-type track** (`_master.md` Phase 5B order):
   `nominal_… → TODO-2 (Stage 1)` + `rank_choice_… → TODO-2 (Stage 1)`
   (spliced: admit `nominal` once); `nominal_… → TODO-3..4`;
   `rank_choice_… → TODO-3` (and `→ TODO-4` under its own sub-decision);
@@ -268,21 +347,21 @@ ticked in their **owning plans**; this list is the release index.
   `longitudinal_repeated_measures_… → TODO-5` then `→ TODO-2..4` (Stage 1
   extracts the clustered-fit core from `KKGEE`, so it follows 1.0.0's
   Phase 1D.2).
-- [ ] TODO-7: **Censored-response track** (`_master.md` Phase 5C order):
+- [ ] ~~TODO-7~~ **→ moved 2026-08-27 to `release_v1_2_0.md → TODO-2`** — **Censored-response track** (`_master.md` Phase 5C order):
   `censored_continuous_response.md → TODO-1..` (its TODO-1 generalizes the
   Design-layer bounds schema; everything downstream keys off it), then
   `censored_count_response.md → TODO-1..`, then
   `betaregscale_duplication.md → TODO-1..` (reuses the censored-quantile
   machinery).
-- [ ] TODO-8: **Multi-arm track** (`_master.md` Phase 5D):
+- [ ] ~~TODO-8~~ **→ moved 2026-08-27 to `release_v2_0_0.md → TODO-3`** — **Multi-arm track** (`_master.md` Phase 5D):
   `multi_arm_designs.md → TODO-1` (design side; the 1.0.0 hierarchy work
   supplies the capability metadata), `→ TODO-2`, `→ TODO-3`, `→ TODO-4`
   (coordinate with TODO-6's multivariate orchestration layer — same shape),
   `→ TODO-5` (demand-gated).
-- [ ] TODO-9: **GPU track** (if TODO-1.9 said yes; `_master.md` Phase 5E):
+- [ ] ~~TODO-9~~ **→ moved 2026-08-27 to `release_v2_0_0.md → TODO-6`** — **GPU track** (if TODO-1.9 said yes; `_master.md` Phase 5E):
   `gpu_optimizations.md → TODO-7` (backend/build design) then `→ TODO-2..5`,
   each merge gated by `→ TODO-6`'s benchmark matrix.
-- [ ] TODO-9b: **Quantum / QUBO track** (if TODO-1.9b said (a) vignette+hook
+- [ ] ~~TODO-9b~~ **→ moved 2026-08-27 to `release_v2_0_0.md → TODO-6` (the backend architecture); only the vignette-plus-hook option, if chosen, stays 1.x** — **Quantum / QUBO track** (if TODO-1.9b said (a) vignette+hook
   or (c) full A1+A3; `_master.md` Phase 6 item 6; added 2026-08-23, user
   decision; amended the same day: **pure R + vendored open-source C++, no
   Python / `reticulate` anywhere**). Part I of `quantum_upgrade.md` only —
@@ -326,7 +405,7 @@ ticked in their **owning plans**; this list is the release index.
   `local_machine_optimization.md` plan moved to v1.0.0 (2026-08-20, user
   decision; see `release_v1_0_0.md`'s item 15). Removed from this release's
   scope entirely, not just resequenced.
-- [ ] TODO-11: **Greedy-design merge**:
+- [ ] TODO-11 **(split 2026-08-27: merge + soft-deprecation stays here; the hard deletion of `DesignFixedGreedy`/`DesignFixedGreedyDOptimal` moves to `release_v2_0_0.md → TODO-7`)**: **Greedy-design merge**:
   `design_fixed_greedy_pair_switch_merge.md → TODO-1..10` — deletes
   `DesignFixedGreedy`/`DesignFixedGreedyDOptimal`, replacing both with
   `DesignFixedGreedyPairSwitch`. Sequenced here per its plan (after the
@@ -337,18 +416,18 @@ ticked in their **owning plans**; this list is the release index.
   in 2.0.0, vs. the plan's current delete-outright shape); the explicit
   user instruction (2026-08-16) made it post-1.0.0 but did not settle the
   deprecation mechanics.
-- [ ] TODO-12: **Interval-censored second wave** (if TODO-1.10 said yes):
+- [ ] ~~TODO-12~~ **→ moved 2026-08-27 to `release_v1_2_0.md → TODO-5`** — **Interval-censored second wave** (if TODO-1.10 said yes):
   the NPMLE/Turnbull + stratified-Cox icenReg delegation work per
   `interval_censored_survival_response_type_report.md`, tracked as new
   TODOs in a reopened/new owning plan (the original
   `interval_censored_survival_response.md` is closed in
   `../finished_features/` — do not reopen it; open a fresh implementation
   plan).
-- [ ] TODO-13: **Sequential inference scoping**:
+- [ ] TODO-13 **(split 2026-08-27: the scoping stays here; implementation is `release_v2_0_0.md → TODO-5`)**: **Sequential inference scoping**:
   `sequential_inference.md` — run the scoping against the now-shipped
   1.0.0 public accessors; output is either a set of implementation TODOs
   (then decide 1.1.0 vs. 1.2) or an explicit defer note in that plan.
-- [ ] TODO-14: **Landscape refresh**: `response_types_landscape_report.md →
+- [ ] ~~TODO-14~~ **→ moved 2026-08-27 to `release_v2_0_0.md → TODO-8`** — **Landscape refresh**: `response_types_landscape_report.md →
   remaining open TODOs` — refresh after the TODO-6/7 tracks ship, so the
   landscape describes the release, not the plan.
 - [ ] TODO-15b: **KK one-stage Beta-regression estimator** (added
@@ -360,7 +439,7 @@ ticked in their **owning plans**; this list is the release index.
   independent of every other track in this file; may run in parallel with
   TODO-6's response-type track any time after its own KK-migration
   dependency is met (see the plan's `Depends on` header).
-- [ ] TODO-15: **Sequential many-by-many design family**:
+- [ ] ~~TODO-15~~ **→ moved 2026-08-27 to `release_v1_2_0.md → TODO-9` (its TODO-1 decisions may still be taken in this file's Phase 0 sitting)** — **Sequential many-by-many design family**:
   `design_seq_many_by_many.md → TODO-1..10` — its TODO-1 decision batch
   (Atkinson rule, bootstrap shape, threshold schedule) can join this file's
   TODO-1 sitting; the implementation is additive and independent of every
@@ -369,7 +448,7 @@ ticked in their **owning plans**; this list is the release index.
   TODO-2 extracts shared ingestion logic from the frozen
   `DesignSeqOneByOne$add_one_subject()` path — behavior-preserving under
   golden test, per the additive constraint below.
-- [ ] TODO-15d: **Survival quantile regression** (added 2026-08-26):
+- [ ] ~~TODO-15d~~ **→ moved 2026-08-27 to `release_v1_2_0.md → TODO-6` (custom EM estimator with three recorded open risks — not a simple addition)** — **Survival quantile regression** (added 2026-08-26):
   `survival_quantile_regression.md → TODO-1..N` (implementation plan not
   yet written) — `InferenceSurvivalQuantileRegr` plus
   `InferenceSurvivalKKQuantileRegrIVWC`/`OneLik`, a custom self-consistent
@@ -389,6 +468,25 @@ ticked in their **owning plans**; this list is the release index.
   single-jitter-draw bootstrap/randomization refits. Additive, no decision
   gate. May run in parallel with every other track; independent of
   TODO-15b/15d.
+- [ ] ~~TODO-15f~~ **→ moved 2026-08-27 to `release_v1_2_0.md → TODO-3`; only the dormant `event_type` column rides TODO-15c's rename sweep here** — **Competing risks for survival responses** (added
+  2026-08-27): `competing_risks_response.md → TODO-1..9` — gated on its
+  TODO-1 (pursue at all; v1 = exact/right-censored only; `event_type`
+  storage shape; `cause =` as an inference-class argument; `cmprsk` in
+  `Suggests`). Wave 0 (storage + replay) **must be spliced with TODO-15c**
+  (the `dead → uncensored` rename) — both rewrite the 31 `Surv(y, dead)`
+  call sites and `get_effective_dead()`; do them in one sweep. Waves 1–2
+  (cause-specific Cox/log-rank; CIF/Gray/RMTL) target v1.1.0; Wave 3a
+  (Fine-Gray via `cmprsk::crr`) if the `Suggests` dependency is accepted;
+  Wave 3b (counting-process Cox kernel) is a later kernel spec that also
+  serves a future recurrent-events plan. Independent of every other track
+  except 15c.
+- [ ] ~~TODO-15g~~ **→ moved 2026-08-27 to `release_v1_2_0.md → TODO-4`** — **Cure-fraction (mixture-cure) survival inference** (added
+  2026-08-27): `cure_fraction_survival_inference.md → TODO-1..6` — gated on
+  its TODO-1 (pursue at all; default `estimand = "latency"`; native kernel
+  in the first wave or delegation only; `flexsurvcure` in `Suggests`).
+  Small standalone inference-class addition on the existing `survival`
+  type; sequenced after TODO-15f and the inference audit's count-offset
+  item; may be deferred to 1.2 without loss.
 - [ ] TODO-15c: **`dead` → `uncensored` rename** (added 2026-08-19, user
   decision): `../finished_features/interval_censored_survival_response.md →
   TODO-29` — rename the survival event/censoring indicator `dead` to

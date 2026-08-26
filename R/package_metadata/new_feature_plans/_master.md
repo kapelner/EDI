@@ -118,6 +118,36 @@ spliced into one step and marked **[spliced]**.
 > `design_fixed_greedy_pair_switch_merge.md` dependency) are unaffected —
 > both refer to it by name only, not by path.
 
+> **Three-way release split (2026-08-27, user decision).** The
+> "everything open is v1.1.0" line is superseded. Rule: **1.x = improvements
+> on the current codebase plus simple additions on the existing
+> architecture and the six scalar response types; 2.0.0 = genuinely new
+> functionality requiring large refactorings or new architecture.**
+> Placement, by this file's phases:
+> - **v1.1.0** (`../future_release_plans/release_v1_1_0.md`): Phase 0
+>   decision batch (still records every gated track's yes/no), Phase 2
+>   diagnostics, Phase 4 kernel/perf lanes, Phase 5A corrections, Phase 5G
+>   (KK beta OneLik), Phase 5H (`dead → uncensored` rename), Phase 5J
+>   (count quantile regression), Phase 6 item 5's *merge + soft-deprecation*
+>   half, the sequential-inference *scoping* (Phase 6 item 1), the ordinal
+>   Bayesian-bootstrap / randomization-CI plans,
+>   `randomization_ci_search_precision.md`, `cold_starts.md`.
+> - **v1.2.0** (`release_v1_2_0.md`): Phase 5C censored-response track,
+>   Phase 5F (many-by-many designs), Phase 5I (survival quantile
+>   regression), Phase 5K (competing risks), Phase 5L (cure fraction), the
+>   semi-continuous member of Phase 5B, `full_glmm_for_weibull_frailty.md`,
+>   and Phase 6 item 3 (interval-censored second wave).
+> - **v2.0.0** (`release_v2_0_0.md`): Phase 5B's remaining response-type
+>   reports (nominal — recorded "no" recommendation —, rank/choice,
+>   multivariate, compositional, longitudinal), Phase 5D multi-arm, Phase
+>   5E GPU, Phase 6 item 6 quantum backend, the sequential-inference
+>   *implementation*, Phase 6 item 4 landscape refresh, and the greedy-class
+>   *deletion*. Plus the unowned audit backlog's large items (cluster-level
+>   GLMM/GEE, mediation, two-arm response-adaptive randomization) once
+>   scoped.
+> The phase text below is unchanged; each release file lists its own TODO
+> order.
+
 Rules of use:
 
 1. Work top to bottom within a phase; phases 2–4 may run in parallel with the
@@ -430,6 +460,32 @@ already stated there:**
   `release_v1_1_0.md → TODO-15e`. `count_quantile_regression.md`:
   `InferenceCountQuantileRegr` (Machado & Santos Silva jittered `rq()`)
   plus KK IVWC/one-lik variants. Independent of every other track.
+- **5K. Competing risks for survival responses** (added 2026-08-27) →
+  `release_v1_1_0.md → TODO-15f`. `competing_risks_response.md`: `event_type`
+  cause code on the existing `survival` type; cause-specific Cox/log-rank,
+  Aalen-Johansen CIF difference, Gray's test, RMTL, Fine-Gray. Decision-
+  gated (its TODO-1, which joins the Phase 0 batch). **Wave 0 is spliced
+  with 5H** (`dead → uncensored`): same event-indicator plumbing, one sweep.
+- **5L. Cure-fraction survival inference** (added 2026-08-27) →
+  `release_v1_1_0.md → TODO-15g`. `cure_fraction_survival_inference.md`:
+  `InferenceSurvivalMixtureCureWeibull` (+ optional promotion-time variant)
+  on the existing `survival` type via the shipped `estimand` axis. Decision-
+  gated (its TODO-1 joins the Phase 0 batch); sequenced after 5K.
+
+### Audit reports (2026-08-26/27) — reference, not work items
+
+Three literature audits now sit in this directory and are the source of
+5I–5L and of a ranked backlog that has **no owning plan yet**:
+`missing_inference_classes_literature_audit.md` (inference classes vs.
+applied practice; 32 items, univariate/multivariate-tagged),
+`missing_design_classes_literature_audit.md` (design classes vs. applied
+practice; 33 items, arms/assignments-tagged), and
+`missing_theoretical_design_classes_literature_audit.md` (design classes vs.
+the methodological literature; 59 items). Rule of use: an audit
+recommendation enters a release index only once it has a scoping report or
+a TODO in an owning plan — cite the audit item number when creating one.
+`nominal_response_type_report.md` was rewritten 2026-08-27 against these
+audits; its own TODO-1 now carries a recorded "no / defer" recommendation.
 
 ---
 

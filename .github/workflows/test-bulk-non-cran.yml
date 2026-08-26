@@ -1,15 +1,22 @@
 name: test-bulk-non-cran
 
-# Runs the "bulk" testthat suite: R/package_tests/testthat_bulk/, the large
-# majority (267 of 274) of what used to live under R/EDI/tests/testthat/.
-# These files are pure algorithmic/statistical logic (model fitting, formula
-# checks, golden-value comparisons) with no OS-dependent behavior, so running
-# them once here -- instead of once per R-CMD-check matrix leg (5 OS/R-version
-# combos) plus R-CMD-check-no-suggests/-sanitizers/-valgrind plus
-# test-coverage-R.yaml, 9 redundant full passes of the same logic -- is what
-# made the suite fast enough to actually run. R/EDI/tests/testthat/ keeps only
-# the small platform-sensitive set (skip_on_os() users, real OS-level
-# fork/parallel tests) that still needs the OS matrix.
+# Runs the "bulk" testthat suite: R/package_tests/testthat_bulk/, whatever's
+# left of what used to live under R/EDI/tests/testthat/ after the fastest
+# files (2026-08-27: everything <=3s/file, 200 of the original 256) were
+# rotated back into R/EDI/tests/testthat/ so pre-push exercises them too (see
+# .githooks/pre-push) -- the remaining ~56 files here are the genuinely slow
+# ones (migration-golden fixtures, on-the-fly RcppXPtrUtils compiles, and one
+# multi-hour outlier, test-inference-suite-run-all-inference.R, that alone
+# accounts for the large majority of this directory's total runtime). These
+# are pure algorithmic/statistical logic (model fitting, formula checks,
+# golden-value comparisons) with no OS-dependent behavior, so running them
+# once here -- instead of on every R-CMD-check-sanitizers/-valgrind leg plus
+# test-coverage-R.yaml, redundant full passes of the same logic -- is what
+# keeps CI from paying their cost repeatedly. (R-CMD-check's main matrix and
+# R-CMD-check-no-suggests don't set NOT_CRAN, so tests/testthat.R's guard
+# already skips all of R/EDI/tests/testthat/ on those legs regardless of file
+# count -- the sanitizers/valgrind/coverage jobs are the only ones that
+# actually execute what's rotated back.)
 #
 # Not part of `R CMD check` at all: these files live outside R/EDI/tests/, so
 # neither CRAN nor our own R-CMD-check jobs ever see them -- this workflow is

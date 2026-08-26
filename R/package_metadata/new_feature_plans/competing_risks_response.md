@@ -335,9 +335,9 @@ uncensored` rename halves the plumbing cost.
 
 ## Implementation TODOs
 
-- [ ] TODO-0: Index this plan in `release_v1_1_0.md` (survival/censored
-  track, alongside TODO-7 and TODO-15c) and `_master.md` Phase 5 once
-  TODO-1 is decided.
+- [x] TODO-0: **Done (2026-08-27)** — indexed as `release_v1_1_0.md →
+  TODO-15f` and `_master.md` Phase 5K (spliced with 5H, the `dead →
+  uncensored` rename); TODO-1 joins the Phase 0 decision batch.
 - [ ] TODO-1: **Decision — ask the user**: pursue competing risks at all;
   confirm v1 scope = exact/right-censored only; confirm `event_type`
   storage shape and `cause =` as an inference-class argument; confirm
