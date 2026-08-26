@@ -1750,6 +1750,21 @@ EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS = c(
 #'
 #' @keywords internal
 #' @noRd
+#' Truncates `text` to fit in one physical line of `width` characters,
+#' ellipsis-marking the cut (`…`) rather than silently dropping the
+#' overflow -- the single-line counterpart of
+#' `run_all_inference_wrap_cell_2lines()`'s 2-line wrap, used by
+#' `run_all_inference_fmt_wrapped_row(single_line = TRUE)`. `NA` displays as
+#' `"NA"`, matching the 2-line wrapper's convention.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_truncate_1line = function(text, width) {
+	text = if (is.na(text)) "NA" else as.character(text)
+	if (nchar(text) <= width) return(text)
+	if (width <= 1L) return(strtrim(text, max(width, 0L)))
+	paste0(strtrim(text, width - 1L), "…")
+}
 run_all_inference_wrap_cell_2lines = function(text, width) {
 	text = if (is.na(text)) "NA" else as.character(text)
 	# Force these two `method_short_label()` outputs onto 2 lines even
@@ -1857,21 +1872,42 @@ run_all_inference_wrap_cell_2lines = function(text, width) {
 #' @noRd
 run_all_inference_fmt_wrapped_row = function(vals, headers, single_line = FALSE) {
 	widths = EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS[headers]
+	# `single_line = TRUE` (per user request, 2026-08-25: `compute_conf_
+	# intervals = FALSE` drops 3 columns -- ci_a/ci_b/"ci method (if
+	# different)" -- leaving enough width headroom that no remaining cell
+	# needs the second physical line) returns just one physical line, no
+	# trailing blank second line. Callers use this for row VALUES only; the
+	# header keeps wrapping normally (2 lines) regardless, since header text
+	# (e.g. "ci method (if different)") is unrelated to whether CIs were
+	# computed for this run.
+	#
+	# Truncate directly to `width`, not via `run_all_inference_wrap_cell_
+	# 2lines()` + keep-line-1 (the original approach here) -- that function
+	# splits its SECOND line at a word boundary near the middle (built for a
+	# genuine 2-physical-line cell), so discarding its second line silently
+	# drops up to half the text with no indication, not just the small
+	# overflow a width cap should truncate. Found 2026-08-27 (tau-aware
+	# quantile-regression class labels, e.g. "Quantile (90%) Regr", made
+	# `inference_class_short_label()`'s output long enough to hit this:
+	# single-line mode was rendering it as bare "Quantile", silently
+	# dropping "(90%) Regr" -- the one piece of information the tau-aware
+	# rewording exists to show). Ellipsis-truncate instead, the same
+	# "show truncation happened, don't just drop text" convention already
+	# used for the CI forest plot's clipped segment labels.
+	if (isTRUE(single_line)) {
+		return(paste(
+			mapply(function(v, w) {
+				v = if (is.na(v)) "NA" else as.character(v)
+				formatC(run_all_inference_truncate_1line(v, w), width = -w)
+			}, vals, widths),
+			collapse = "  "
+		))
+	}
 	cells = mapply(run_all_inference_wrap_cell_2lines, vals, widths, SIMPLIFY = FALSE)
 	fmt = function(which_line) paste(
 		mapply(function(c, w) formatC(c[[which_line]], width = -w), cells, widths),
 		collapse = "  "
 	)
-	# `single_line = TRUE` (per user request, 2026-08-25: `compute_conf_
-	# intervals = FALSE` drops 3 columns -- ci_a/ci_b/"ci method (if
-	# different)" -- leaving enough width headroom that no remaining cell
-	# needs the second physical line) returns just line 1, no trailing
-	# blank second line -- true one-physical-line-per-row output, not just
-	# an empty-but-still-printed line 2. Callers use this for row VALUES
-	# only; the header keeps wrapping normally (2 lines) regardless, since
-	# header text (e.g. "ci method (if different)") is unrelated to
-	# whether CIs were computed for this run.
-	if (isTRUE(single_line)) return(fmt(1L))
 	c(fmt(1L), fmt(2L))
 }
 
@@ -2002,29 +2038,30 @@ run_all_inference_static_row_fields = function(task, des_obj, inference_params =
 		f = task$model_formula %||% des_obj$get_design_formula()
 		tryCatch(deparse1(f), error = function(e) NA_character_)
 	}
+	# Same tau lookup `run_all_inference_one_class()`'s own `tau` field uses
+	# (see that comment for why): read from the per-class constructor args
+	# this task will actually use, defaulting to 0.5 for a quantile-
+	# regression estimand with no explicit `tau` override -- computed
+	# pre-fit here since the live table's header/static fields are all
+	# built before the fitting loop starts. Shared between
+	# `inference_class_disp` and `estimand_disp` below (both are tau-aware).
+	e_for_tau = run_all_inference_estimand(task$cls_name)
+	task_params = inference_params[[task$cls_name]]
+	tau = if (!is.null(task_params$tau)) {
+		as.numeric(task_params$tau)
+	} else if (identical(e_for_tau, "quantile_regression_effect")) {
+		0.5
+	} else {
+		NA_real_
+	}
 	list(
-		inference_class_disp = inference_class_short_label(task$cls_name),
+		inference_class_disp = inference_class_short_label(task$cls_name, tau),
 		cov_model_raw = cov_model_raw,
 		estimand_disp = {
-			e = run_all_inference_estimand(task$cls_name)
+			e = e_for_tau
 			if (is.na(e)) {
 				"NA"
 			} else {
-				# Same tau lookup as `run_all_inference_one_class()`'s own
-				# `tau` field (see that comment for why): read from the
-				# per-class constructor args this task will actually use,
-				# defaulting to 0.5 for a quantile-regression estimand with
-				# no explicit `tau` override -- computed pre-fit here since
-				# the live table's header/static fields are all built before
-				# the fitting loop starts.
-				task_params = inference_params[[task$cls_name]]
-				tau = if (!is.null(task_params$tau)) {
-					as.numeric(task_params$tau)
-				} else if (identical(e, "quantile_regression_effect")) {
-					0.5
-				} else {
-					NA_real_
-				}
 				estimand_short_label(e, tau)
 			}
 		}
@@ -2603,7 +2640,7 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 	width_num = sprintf("%.3g", df$ci_b - df$ci_a)
 	# Same class/method abbreviations as the pretty-print table (per user
 	# request, 2026-08-19).
-	df$inference_class_disp = run_all_inference_plot_safe_text(vapply(df$inference_class, inference_class_short_label, character(1L)))
+	df$inference_class_disp = run_all_inference_plot_safe_text(mapply(inference_class_short_label, df$inference_class, df$tau, USE.NAMES = FALSE))
 	ci_disp = run_all_inference_plot_safe_text(method_with_type_short_label(df$ci_method, df$type))
 	pval_disp = run_all_inference_plot_safe_text(method_with_type_short_label(df$pval_method, df$type))
 	ci_disp_na = ifelse(is.na(ci_disp), "NA", ci_disp)
@@ -3364,7 +3401,19 @@ design_class_short_label = function(name) {
 	label
 }
 
-inference_class_short_label = function(name) {
+#' @param tau Quantile level for a quantile-regression class's display label
+#'   (e.g. `"InferenceContinQuantileRegr"`, `"InferenceContinKKQuantileRegrOneLik"`
+#'   -- every concrete class whose wordified label contains the bare word
+#'   "Quantile" is tagged the `"quantile_regression_effect"` estimand, so this
+#'   is safe as an unconditional word-level substitution rather than a
+#'   per-class allowlist). `NA_real_` (default) or `0.5` renders "Quantile"
+#'   as "Median" (e.g. "KK Quantile Regr" -> "KK Median Regr"); any other
+#'   value renders it as "Quantile (<tau*100>%)" (e.g. "Quantile (90%) Regr")
+#'   so the actual tested quantile is visible when more than one might be
+#'   compared -- mirrors `estimand_short_label()`'s own tau handling (per
+#'   user request, 2026-08-27: same rewording, now applied to the inference
+#'   *class* name, not just the estimand label).
+inference_class_short_label = function(name, tau = NA_real_) {
 	rest = sub("^Inference", "", name)
 	for (p in EDI_INFERENCE_CLASS_PREFIXES) {
 		if (startsWith(rest, p)) { rest = substring(rest, nchar(p) + 1L); break }
@@ -3412,6 +3461,21 @@ inference_class_short_label = function(name) {
 	# tests without it ("Jonckheere Terpstra", "Paired Sign"), and it was
 	# the only thing forcing an otherwise-clean 2-word wrap onto 3 words.
 	words = words[!(words %in% c("Nurminen", "Test"))]
+	# "Quantile" -> "Median" at tau = 0.5 (the default), "Quantile (<tau*100>%)"
+	# otherwise -- per user request, 2026-08-27, mirroring
+	# `estimand_short_label()`'s own tau-aware "quantile_regression_effect"
+	# handling. Word-level substitution (not a whole-label special case)
+	# because "Quantile" only ever appears as one token among others here
+	# ("KK Quantile Regr", "Quantile Regr"), and every class it appears in is
+	# a quantile-regression estimator (see this function's `@param tau` doc).
+	if ("Quantile" %in% words) {
+		tau_num = suppressWarnings(as.numeric(tau))[1]
+		words[words == "Quantile"] = if (is.na(tau_num) || isTRUE(all.equal(tau_num, 0.5))) {
+			"Median"
+		} else {
+			sprintf("Quantile (%g%%)", tau_num * 100)
+		}
+	}
 	label = paste(words, collapse = " ")
 	# "Diff" -> "\u0394" everywhere in the label (generalized 2026-08-20 from an
 	# earlier "Mean Diff"-only override, per user request: "everywhere in
@@ -3633,7 +3697,7 @@ run_all_inference_build_display_table = function(results_table) {
 	pval_disp = na_chr(method_with_type_short_label(tbl$pval_method, tbl$type))
 
 	display = data.frame(
-		`inference class` = vapply(tbl$inference_class, inference_class_short_label, character(1L)),
+		`inference class` = mapply(inference_class_short_label, tbl$inference_class, tbl$tau, USE.NAMES = FALSE),
 		`cov mod`          = cov$disp,
 		estimand           = na_chr(estimand_short_label(tbl$estimand, tbl$tau)),
 		est                = run_all_inference_sigfig(tbl$estimate, 3L),

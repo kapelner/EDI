@@ -1,690 +1,321 @@
 # Nominal Response Type Report
 
-> **Depends on:** gated decision; `fix_inference_hierarchy.md` factory/components (available). Shares Stage 1 with `rank_choice_response_type_report.md` — do together. (Global ordering: see `_master.md`.)
+> **Depends on:** gated decision (TODO-1). Architecture prerequisites are
+> all shipped: `fix_inference_hierarchy.md` (closed 2026-08-23) and
+> `fix_design_hierarchy.md` (closed 2026-08-17) — every concrete class now
+> goes through `define_inference_class()` / `define_design_class()` with
+> registry metadata and components. Shares Stage 1 with
+> `rank_choice_response_type_report.md` — do together if at all. (Global
+> ordering: see `_master.md`; release index: `release_v1_1_0.md → TODO-1`
+> step 8 and `→ TODO-6`.)
 
-> **Update (2026-08-14).** This report predates the completed
-> `fix_inference_hierarchy.md` shallow-hierarchy migration (and, where cited
-> below, the completed `fix_design_hierarchy.md`, SEXP-removal, and
-> interval-censored-survival plans). `InferenceAsympLikStdModCache` is now the `StandardModelCache`
-> component — its "reusable for scalar nominal models" claim below holds, with
-> reuse meaning component composition via `define_inference_class()`, not
-> inheriting a base class. The feasibility verdict is unchanged.
+> **Rewritten 2026-08-27** after the two literature audits
+> (`missing_inference_classes_literature_audit.md`,
+> `missing_design_classes_literature_audit.md`) and a targeted sweep of
+> published RCTs with nominal outcomes. Two things changed since the
+> 2026-07 original and its 2026-08-14 patch: (1) the architecture it
+> described has been replaced wholesale (shallow hierarchies, factories,
+> registries, components, metadata-driven compatibility), so every
+> "how the package would respond" section is rewritten against the current
+> code; (2) the evidence on how common nominal outcomes are in *randomized
+> experiments* turned out to be much weaker than the original report
+> asserted, and the recommendation is revised accordingly — see
+> "Recommendation on TODO-1" at the end. The feasibility verdict
+> (moderate-to-hard) is unchanged.
 
 ## Scope
 
 This report evaluates how difficult it would be to add a new
-`response_type = "nominal"` to the package, where "nominal" means:
+`response_type = "nominal"` to the package, where "nominal" means a
+categorical outcome with ≥3 levels, no ordering of the levels, represented
+most naturally as an unordered factor. This is distinct from the existing
+`ordinal` type, which already has integer-coded storage, ordered-factor
+support, level bookkeeping in `Design`, and 19 inference classes.
 
-- a categorical outcome
-- with no ordering of the levels
-- represented most naturally as an unordered factor
-
-This is different from the existing `ordinal` response type, which already has:
-
-- integer-coded outcome storage
-- ordered-factor support
-- level bookkeeping in the `Design` base class
-- several ordinal regression inference paths
-
-The report covers:
-
-- the core package plumbing needed to admit a new response type
-- how the existing `inference_all_*` abstractions would respond
-- a pragmatic set of nominal-specific inference paths to implement first
+The report covers: the core plumbing needed to admit a new response type;
+how the current factory/registry/component architecture would respond;
+what the applied literature actually does with nominal outcomes; a
+pragmatic set of nominal inference paths if the type is pursued; and a
+recommendation on whether to pursue it.
 
 ## Short Answer
 
-Adding the **label** `nominal` is easy.
+Adding the **label** `nominal` is easy. Adding a **coherent nominal
+response type** that works across designs, `SimulationFramework`,
+`InferenceSuite`, and a useful set of inference methods is a
+**moderate-to-hard** project, because the package's estimand contract is
+scalar (one treatment coefficient, one SE, one CI) and a nominal outcome
+has no single natural scalar effect.
 
-Adding a **coherent nominal response type** that works across designs,
-`SimulationFramework`, `InferenceSuite`, and a useful set of inference methods
-is a **moderate-to-hard** project.
+And — the new finding — the applied literature almost never asks for one.
+In published randomized experiments with a nominal outcome, practitioners
+recode to one-vs-rest binaries and run their standard binary estimator,
+which EDI's 25-class incidence family already provides. See the next
+section and the recommendation at the end.
 
-The main reason is that the current package architecture is strongly organized
-around response families with clear numeric semantics:
+## How Common Are Nominal Outcomes In Randomized Experiments?
 
-- continuous
-- incidence
-- proportion
-- count
-- survival
-- ordinal
+The 2026-07 version of this report said nominal outcomes are "very common
+in principle" and "common enough that a serious experimental-design
+package should have a plan for them," citing a network-meta-analysis
+methods paper, a trials protocol that lists "nominal" as an outcome scale,
+and two political-science field experiments on vote choice / party ID.
+None of those establish prevalence in RCTs. The 2026-08-26/27 audits
+looked for actual published randomized experiments with a nominal outcome
+and for any review quantifying them. Findings:
 
-Nominal breaks that pattern in two ways:
+### No review counts them
 
-1. it is not naturally scalar on an ordered numeric scale
-2. many generic "all-subject" inference paths currently assume a scalar
-   treatment effect like a mean difference, rank shift, or single regression
-   coefficient
+Outcome-type censuses of RCTs (e.g. the JACC 2021 outcome-reporting
+review; the binary-outcome practice review PMC7278160; Bruce et al. 2022;
+Ooms et al. 2025) partition primary outcomes into binary / continuous /
+time-to-event / ordinal and have **no nominal category**. The closest
+analogue is Selman et al.'s scoping review of *ordinal* outcomes in
+BMJ/NEJM/Lancet/JAMA 2017–2022 (PMC10998402): 144 RCTs, 59 with an ordinal
+primary, of which 33% dichotomized even though proportional odds is well
+known; that review explicitly excludes unordered outcomes and nobody has
+done the nominal analogue — itself evidence the category is small.
 
-So the real work is not adding the enum. It is deciding what the nominal
-estimand is and making the generic inference infrastructure respect that choice.
+### Where nominal outcomes do occur, and what practitioners do
 
-## How Common Are Nominal Outcomes In Experimental Literatures?
+Twenty published randomized experiments with a ≥3-level unordered outcome
+were located across medicine, economics, education, political science and
+marketing. In **18 of 20**, the analysis was one-vs-rest binary:
 
-The short answer is:
+| Setting | Example | Analysis |
+|---|---|---|
+| Mode of delivery (vaginal / instrumental / caesarean) | BUMPES, *BMJ* 2017 (PMC5646262) | "spontaneous vaginal birth" primary; each level a separate log-binomial RR |
+| Treatment chosen after a decision aid (AS / surgery / EBRT / brachy) | Lamers et al. 2021 (PMC8602175); Whelan *JAMA* 2004 | one-vs-rest logistic per option; collapsed to BCT-vs-not |
+| Contraceptive method mix | Langston 2010; Dehlendorf *AJOG* 2019 | collapsed to "very effective method" yes/no |
+| Discharge destination (home / rehab / SNF / died) | Aoki *PLoS One* 2024; REMAP NCT03861767 | descriptive proportions only |
+| Occupation category | Blattman-Fiala-Martinez *QJE* 2014; Bandiera et al. *QJE* 2017 | separate LPM per occupation indicator |
+| College enrollment (4-yr / 2-yr / none) | Bettinger & Evans *JPAM* 2019; Gurantz et al. *JPAM* 2021 | separate LPM per category |
+| Vaccine brand chosen (A / B / neither) | Kreps & Kriner *PLoS One* 2022 | collapsed to A-vs-B share, ANOVA |
+| Menu choice (3 dishes) | "Nudge the Lunch", *Games* 2021; Hansen *J Public Health* 2019 | share of meat dishes (binary) |
+| Employment status (formal / informal / none) | Beam *J Dev Econ* 2016 | **multinomial logit** (econ exception) |
+| Multi-party / multi-candidate vote choice | Borda-rule experiment, *Public Choice* 2025; Carlson *World Politics* 2015 | **multinomial / conditional logit** |
 
-- **very common in principle**
-- **less dominant than binary and continuous outcomes in many trial literatures**
-- **common enough that a serious experimental-design package should have a plan
-  for them**
+The two exceptions are political-science vote choice and one
+labour-economics job-fair experiment — settings where the outcome *is* a
+choice set and discrete-choice modelling is the disciplinary norm. Choice
+experiments proper (conjoint, choice-based conjoint) are a different
+paradigm (many randomized profiles per respondent) and are deferred in
+`missing_design_classes_literature_audit.md` Part 4D / `rank_choice_...`.
 
-### Medical science and clinical trials
-
-In clinical-trial practice, binary outcomes are probably the most common
-categorical endpoint family. A 2020 review of 200 randomized trial reports in
-medicine notes that binary outcomes are widely used and cites earlier work
-finding that about half of trials calculated sample size from a binary outcome;
-see Rombach et al. (2020), BMC Medicine:
-https://link.springer.com/article/10.1186/s12916-020-01598-7
-
-That means nominal outcomes are **not** the modal endpoint family in the core
-RCT literature. However, they are clearly present. Two useful signals are:
-
-- the Trials protocol by Selman et al. explicitly treats nominal outcomes as a
-  standard trial outcome scale distinct from ordinal and continuous outcomes;
-  see:
-  https://link.springer.com/article/10.1186/s13063-023-07262-8
-- Schmid, Trikalinos, and Olkin (2014) develop Bayesian network meta-analysis
-  specifically for unordered categorical outcomes and apply it to 17 trials with
-  mutually exclusive nominal outcomes such as cardiovascular death,
-  non-cardiovascular death, and no death; see PubMed:
-  https://pubmed.ncbi.nlm.nih.gov/26052655/
-
-So the right characterization for medicine is:
-
-- binary and ordinal endpoints are more common than nominal endpoints as primary
-  trial outcomes
-- but nominal outcomes are established enough that there is active methodological
-  work for trials and evidence synthesis
-
-### Economics field experiments
-
-Field experimentation in economics has expanded substantially in scope. Levitt
-and List's overview emphasizes that the range of field experiments and the types
-of questions studied have grown tremendously; see NBER Working Paper 14356:
-https://www.nber.org/papers/w14356
-
-That matters for nominal outcomes because many economic experiments naturally
-generate unordered categorical endpoints such as:
-
-- choice among alternatives
-- program participation status categories
-- employment-status categories
-- market or political choice categories
-
-The exact prevalence is harder to summarize with one headline percentage than in
-clinical-trial reviews, but nominal outcomes are conceptually very natural in
-this literature.
-
-### Social and political randomized experiments
-
-Nominal outcomes are especially natural in social and political experiments,
-because many substantive endpoints are genuinely category choices rather than
-ordered scales.
-
-Examples:
-
-- Coppock, Green, and Porter study **vote choice / vote share** in a randomized
-  field experiment on digital political advertising; see:
-  https://journals.sagepub.com/doi/10.1177/20531680221076901
-- Gerber, Huber, and Washington study **party affiliation** and related
-  political beliefs in a field experiment; see NBER Working Paper 15365:
-  https://www.nber.org/papers/w15365
-
-In these settings, unordered categories such as:
-
-- party identification
-- vote choice
-- policy preference category
-- employment or schooling status category
-
-are not edge cases. They are central substantive outcomes.
+No methodological commentary criticizing dichotomization of *nominal*
+trial outcomes was found; the entire "don't dichotomize" literature is
+about ordinal outcomes.
 
 ### Practical interpretation for this package
 
-So the package should not treat nominal outcomes as exotic. The better summary
-is:
-
-- nominal outcomes are **less central than binary outcomes** in mainstream
-  clinical-trial methodology
-- nominal outcomes are **clearly present** in medical and biostatistical
-  methodology
-- nominal outcomes are **very natural** in economics, political science, and
-  social experiments whenever the outcome is a choice among more than two
-  unordered categories
-
-That strengthens the case for adding `response_type = "nominal"` eventually,
-but it also argues for implementing it in a way that matches the actual applied
-use cases:
-
-- global category-distribution tests
-- focal-category contrasts
-- multinomial choice / multinomial logit style models
-
-## What Already Exists
-
-The package already has one categorical response family beyond binary:
-
-- `ordinal`
-
-That matters because the `Design` base class already has special response-type
-state for:
-
-- `ordinal_levels`
-- `original_ordinal_levels`
-- coercion of ordered factors to integer storage
-
-See [design_abstract.R](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:42),
-[design_abstract.R](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:63),
-and [design_abstract.R](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:119).
-
-So nominal can reuse the idea that a categorical response may carry labels that
-are distinct from the internal numeric storage. But unordered categories still
-need their own semantics.
-
-## Difficulty By Layer
-
-### 1. Design base classes: moderate
-
-The `Design` base class currently validates:
-
-- `continuous`, `incidence`, `proportion`, `count`, `survival`, `ordinal`
-
-in [design_abstract.R](/home/kapelner/workspace/EDI/R/EDI/R/design_abstract.R:56).
-
-To add `nominal`, the `Design` layer would need:
-
-- `nominal` added to the allowed `response_type` set
-- support for unordered factors in `add_one_subject_response()`
-- support for unordered factors in `add_all_subject_responses()`
-- a `nominal_levels` / `original_nominal_levels` analogue to the ordinal fields
-- an update to `assert_y()` so it validates nominal category encoding
-- an update to `transform_y()` if transformed nominal outcomes are ever allowed
-
-This is not difficult, but it is real work because the current code treats
-non-ordinal responses as numeric and `ordinal` as the only factor-backed
-special case.
-
-### 2. Most design classes: easy
-
-Most design classes are response-type agnostic after initialization. They carry:
-
-- assignments
-- covariates
-- outcomes
-
-and usually do not model the response directly.
-
-So once `Design` itself understands `nominal`, many concrete design classes
-would work unchanged or nearly unchanged.
-
-### 3. KK21 / response-adaptive weighting designs: moderate to hard
-
-This is where nominal is not free.
-
-`DesignSeqOneByOneKK21` and related paths explicitly branch on `response_type`
-to compute covariate weights from the observed response family; see
-[design_seq_one_by_one_KK21.R](/home/kapelner/workspace/EDI/R/EDI/R/design_seq_one_by_one_KK21.R:253)
-through [design_seq_one_by_one_KK21.R](/home/kapelner/workspace/EDI/R/EDI/R/design_seq_one_by_one_KK21.R:281).
-
-Today they have hand-written logic for:
-
-- continuous
-- incidence
-- count
-- proportion
-- survival
-- ordinal
-
-Nominal would need:
-
-- either a genuine nominal-response weighting model
-- or a documented approximation / speedup path
-
-So response-adaptive KK weighting is one of the harder design-side additions.
-
-### 4. `SimulationFramework`: hard
-
-`SimulationFramework` is a major separate work item.
-
-It currently:
-
-- validates the response-type enum in
-  [simulations_framework.R](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:499)
-- transforms latent continuous signals to response-family scale in
-  [simulations_framework.R](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:126)
-- defines response-type-specific treatment-effect semantics in
-  [simulations_framework.R](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:2133)
-  and
-  [simulations_framework.R](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:2887)
-- chooses curated default inference classes by response type in
-  [simulations_framework.R](/home/kapelner/workspace/EDI/R/EDI/R/simulations_framework.R:3106)
-
-For nominal, the framework would need new answers to all of these questions:
-
-- how do we generate a latent nominal outcome from `y_cont`?
-- what is the treatment effect `betaT` for a nominal response?
-- what is the scalar "true effect" used for MSE, coverage, and power summaries?
-- which default inference classes are the curated nominal set?
-
-This is one of the biggest architectural costs.
-
-## The Main Conceptual Problem: What Is The Nominal Estimand?
-
-For current response types, the package usually has a natural scalar estimand:
-
-- mean difference
-- log-odds ratio
-- log-risk ratio
-- log-rate ratio
-- log-hazard / log-time ratio
-- ordinal-location-type coefficient
-
-For nominal, there is no single obvious scalar effect.
-
-Common possibilities are:
-
-- a vector of category-specific log-odds ratios relative to a baseline category
-- a contrast for one chosen category vs all others
-- a treatment effect on expected utility under user-specified category scores
-- a global null statistic: no treatment effect on the entire category
-  distribution
-
-This choice drives everything else:
-
-- model output shape
-- CI/p-value APIs
-- `SimulationFramework` truth
-- summary-table shape
-- which generic inference classes can make sense
-
-Without fixing this, `nominal` remains a storage type but not an inferential
-family.
-
-## How The Existing `inference_all_*` Paths Would Respond
-
-### `InferenceAllSimpleAverageDiff`: should reject
-
-This class currently computes:
-
-- mean of treated outcomes minus mean of control outcomes
-
-with no response-type assertion in the initializer; see
-[inference_all_average_diff.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_average_diff.R:29).
-
-That means if `nominal` were added naively and internally encoded as integers,
-this class would likely run and produce a meaningless result based on arbitrary
-level codes.
-
-So for nominal, this class should be updated to:
-
-- explicitly reject `response_type = "nominal"`
-
-unless the package deliberately chooses a scored nominal utility framework,
-which would be a different feature.
-
-### `InferenceAllSimpleWilcox`: should reject
-
-This class currently supports:
-
-- `continuous`, `count`, `proportion`, `survival`, `ordinal`
-
-and explicitly rejects `incidence`; see
-[inference_all_simple_wilcox.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_simple_wilcox.R:74).
-
-Nominal should also be explicitly rejected because:
-
-- rank-based location-shift logic does not apply to unordered categories
-- any integer encoding of category labels would be arbitrary
-
-So this is another path that needs an explicit guard, not accidental acceptance.
-
-### `InferenceMLEorKMSummaryTable`: neutral abstract layer
-
-This is an abstract summary-table layer; see
-[inference_all_abstract_mle_or_KM_summary_table.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_mle_or_KM_summary_table.R:8).
-
-By itself, it is not nominal-specific and does not block nominal. But its
-assumption is still:
-
-- a coefficient vector
-- a distinguished treatment coefficient
-- a scalar standard error for that coefficient
-
-So it can support nominal only if the concrete nominal inference class chooses a
-scalar treatment estimand or a designated baseline-category treatment
-coefficient.
-
-This layer is reusable, but only for certain nominal-model designs.
-
-### `InferenceAsympLikStdModCache`: reusable for scalar nominal models
-
-This abstract class is the common path for many likelihood-based families; see
-[inference_all_abstract_asymp_lik_std_mod_cache.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:6).
-
-It assumes:
-
-- `generate_mod()` returns an object with `b[2]` as the treatment effect
-- the treatment effect is scalar
-
-So this is reusable for a nominal model only if we define the nominal treatment
-effect as:
-
-- one coefficient, usually for treatment in a chosen category contrast
-
-It is **not** a natural fit for a fully vector-valued multinomial treatment
-effect without further extension.
-
-### Randomization / bootstrap base classes: mostly neutral
-
-The generic randomization and bootstrap base classes are not inherently tied to
-likelihoods. In principle they can support nominal outcomes if a concrete class
-provides:
-
-- a scalar statistic
-- re-estimation under permutations or resamples
-
-So from a software-architecture perspective, these are not the main blocker.
-The blocker is still the choice of nominal statistic / estimand.
-
-### `InferenceSuite`: will adapt reasonably once errors are explicit
-
-`InferenceSuite` discovers compatibility by trying to instantiate each class and
-looking for incompatibility messages; see
-[inference_suite.R](/home/kapelner/workspace/EDI/R/EDI/R/inference_suite.R:110).
-
-That means `InferenceSuite` will work fine for nominal **if and only if**:
-
-- non-nominal classes reject nominal clearly
-- nominal classes accept it clearly
-
-If generic classes like mean-diff are not fenced off, `InferenceSuite` may
-incorrectly list them as applicable. So explicit rejection paths are important.
-
-## Package Areas That Need Explicit `nominal` Fences
-
-Even before implementing any nominal-specific inference, the following classes
-should likely be updated to reject nominal explicitly:
-
-- `InferenceAllSimpleAverageDiff`
-- `InferenceAllSimpleMeanDiffPooledVar`
-- `InferenceAllSimpleWilcox`
-- any quantile-regression-based abstractions
-- any regression path that assumes a scalar ordered/numeric outcome but does not
-  already `assertResponseType(...)`
-
-The package is currently safest when a concrete class says:
-
-- "I work for `ordinal`"
-- "I work for `count`"
-- etc.
-
-Nominal will expose any generic path that currently relies on numeric outcome
-storage without sufficiently specific response-type gating.
-
-## Common Nominal-Specific Inference Paths To Implement
-
-The best first nominal paths are the ones that give:
-
-- a standard applied interpretation
-- one or more scalar treatment estimands
-- a reasonable fit with the package's current asymptotic / bootstrap APIs
-
-### 1. Multinomial logistic regression (baseline-category logit)
-
-This should be the main nominal likelihood path.
-
-Typical setup:
-
-- choose one response category as the baseline
-- fit a multinomial logit model with treatment and covariates
-- define treatment effects as the category-specific treatment log-odds ratios
-
-Difficulty: **moderate to hard**
-
-Why:
-
-- statistically standard and familiar
-- nominal-exclusive in the right way
-- but naturally vector-valued, which conflicts with the package's mostly scalar
-  treatment-effect API
-
-A pragmatic first version could reduce this to one scalar estimand by:
-
-- targeting a user-chosen focal category vs baseline
-
-That would make it fit the current asymptotic interface much more easily.
-
-### 2. Category-specific binary contrast inference
-
-This is the easiest nominal path conceptually.
-
-Idea:
-
-- pick one focal category `k`
-- define a derived binary outcome `1{Y = k}`
-- run existing incidence-style inference on that contrast
-
-Difficulty: **easy to moderate**
-
-Why:
-
-- this reuses existing incidence machinery
-- it gives an immediately interpretable estimand
-- it avoids building a full multinomial stack on day one
-
-Limit:
-
-- it is not a full nominal model
-- it needs multiple-testing or family-wise guidance if used across many
-  categories
-
-Still, this is an attractive first nominal path because it is useful and fits
-the current software design.
-
-### 3. Global two-sample nominal-distribution test
-
-Examples in the applied world:
-
-- Pearson chi-squared test for treatment vs response table
-- likelihood-ratio `G^2` test
-- Fisher-Freeman-Halton exact test for small samples
-
-Difficulty: **moderate**
-
-Why:
-
-- this gives a clean global null: treatment does not change the category
-  distribution
-- it does not require choosing a baseline category
-- it is naturally nominal
-
-Limitation:
-
-- this is mainly a test, not a scalar treatment-effect estimate with a CI
-
-So this is a strong candidate for:
-
-- an exact / asymptotic / randomization p-value path
-
-but not necessarily for the package's full estimate-plus-CI interface.
-
-### 4. Stratified nominal test / CMH-style extension
-
-For blocked or stratified designs, a nominal analogue of CMH is relevant.
-
-Difficulty: **moderate to hard**
-
-Why:
-
-- practically useful for blocked designs
-- but there are multiple CMH-type generalizations for nominal data
-- and the package would need to decide whether the estimand is:
-  - a common association test,
-  - a category-specific contrast,
-  - or a model-based coefficient
-
-This is a second-wave nominal path, not the first one.
-
-## Recommended First-Wave Nominal Inference Set
-
-If the goal is to make `nominal` useful without exploding scope, the best first
-wave is:
-
-1. one global nominal test
-2. one focal-category incidence-style contrast path
-3. one multinomial-regression path if a scalar focal-category coefficient is
-   acceptable
-
-Concretely:
-
-- `InferenceNominalPearsonChisq`
-- `InferenceNominalCategoryContrast`
-- `InferenceNominalMultinomLogit`
-
-These three cover:
-
-- global testing
-- simple effect estimation
-- covariate-adjusted model-based inference
-
-without forcing the package to solve a full vector-valued nominal-effect API on
-day one.
-
-## `SimulationFramework` Implications
-
-Nominal is especially expensive in `SimulationFramework`.
-
-### Data generation
-
-The current generator transforms a latent continuous signal into:
-
-- Bernoulli probability
-- proportion mean
-- count rate
-- survival scale
-- ordinal category by cutpoints
-
-Nominal would need something else, for example:
-
-- latent utilities for each category with softmax probabilities
-- or a reference-category logit generative model
-
-This is not a one-line extension of the existing `switch(...)`.
-
-### Treatment effect semantics
-
-`betaT` is currently scalar and response-family specific.
-
-For nominal, possibilities include:
-
-- shifting the log-odds of one focal category vs baseline
-- shifting a whole vector of category logits
-- shifting latent utilities for all categories
-
-This must be specified before simulation output is meaningful.
-
-### Truth and summary metrics
-
-The current framework computes scalar truth for:
-
-- MSE
-- coverage
-- power
-
-A fully multinomial nominal effect would be vector-valued, so either:
-
-- `SimulationFramework` must be generalized to vector estimands
-- or nominal simulation must target a scalar estimand such as one focal
-  category's log-odds contrast
-
-This is why nominal support in `SimulationFramework` is one of the hardest
-parts.
-
-## Recommended Implementation Plan
-
-### Stage 1: Admit the type safely
-
-Add `nominal` to the core response-type plumbing:
-
-- `Design` validation
-- response storage / factor coercion
-- documentation
-
-At the same time, add explicit rejection guards to generic inference classes
-that would otherwise produce nonsense from integer-coded nominal levels.
-
-### Stage 2: Add one nominal global test
-
-Implement an asymptotic nominal distribution-comparison path such as:
-
-- Pearson chi-squared
-- or likelihood-ratio `G^2`
-
-This gives immediate nominal utility with minimal ambiguity.
-
-### Stage 3: Add focal-category contrast inference
-
-Implement a scalar nominal effect by selecting a category and modeling:
-
-- `Y = category_k` vs `Y != category_k`
-
-This reuses a large amount of existing incidence machinery and fits the
-package's scalar-estimand architecture.
-
-### Stage 4: Add multinomial logistic regression
-
-Implement a nominal-specific regression path, ideally with:
-
-- focal-category scalar treatment effect first
-- full vector-valued treatment effects later if desired
-
-This is the right place to decide whether the package wants to support
-vector-valued inferential outputs more generally.
-
-### Stage 5: Extend `SimulationFramework`
-
-Only after the estimand is settled should `SimulationFramework` be updated for:
-
-- nominal data generation
-- scalar truth definition
-- curated default nominal inference set
-
-## Bottom Line
-
-Adding `response_type = "nominal"` is not hard at the enum / storage level.
-
-What is hard is making it statistically coherent across the package.
-
-The main engineering and design conclusions are:
-
-- the `Design` base class can be extended with moderate effort
-- most design classes will inherit nominal support cheaply
-- response-adaptive KK weighting designs are a harder special case
-- many generic `inference_all_*` paths should explicitly reject nominal rather
-  than accidentally accepting integer codes
-- the best first nominal inference paths are:
-  - a global nominal test,
-  - a focal-category contrast path,
-  - and later a multinomial logistic regression path
-- `SimulationFramework` is the hardest integration point because nominal does
-  not come with a natural scalar `betaT` semantics
-
-So the pragmatic recommendation is:
-
-1. add `nominal` safely at the design/container level
-2. fence off generic numeric-only inference paths
-3. implement one or two nominal-specific scalar/test paths first
-4. postpone full multinomial and `SimulationFramework` support until the
-   nominal estimand is explicitly chosen
+- Nominal outcomes are a **real but small niche** in randomized
+  experiments: a handful of recurring settings, rarely primary.
+- The dominant practice — in every field except political-science vote
+  choice — is **one-vs-rest recoding**, which EDI already supports: recode
+  `y` to `1{y = k}` and use any of the 25 incidence classes (LPM, logistic,
+  log-binomial, modified Poisson, g-computation RD/RR, exact tests, KK
+  variants), with full randomization/bootstrap inference.
+- The only capabilities a recode does *not* give are (a) a single joint
+  test on the full K-vector ("treatment changes the category distribution"
+  — Pearson χ² / G² / Fisher-Freeman-Halton / permutation) and (b)
+  multiplicity control across the K one-vs-rest contrasts. Both are
+  multi-endpoint features and belong to
+  `multivariate_response_type_report.md`'s `InferenceMultiEndpointComposite`
+  (Holm; Fisher/O'Brien global test) rather than to a new response type.
+- A native multinomial-logit estimator is a legitimate second-order
+  feature for political-science users. It is not evidence of a compelling
+  general need.
+
+This reverses the original report's "very common in principle" framing:
+the need is **not compelling**, and the cheapest way to serve the actual
+use cases is documentation plus the already-planned multi-endpoint
+wrapper.
+
+## What Already Exists (as of 2026-08-27)
+
+The package has 103 concrete inference classes and 27 concrete design
+classes, all built through factories with registry metadata:
+
+- **Response types** are a closed enum validated at
+  `design_abstract.R:189` (`assertChoice(response_type, c("continuous",
+  "incidence", "proportion", "count", "survival", "ordinal"))`). `ordinal`
+  carries `ordinal_levels` / `original_ordinal_levels` (`design_abstract.R:177,
+  212`) and factor→integer coercion in `add_one_subject_response()` /
+  `add_all_subject_responses()`; `transform_y()` (`design_abstract.R:869`)
+  accepts an `ordinal_levels` argument for transformed responses.
+- **Inference classes** are declared via `define_inference_class(classname,
+  inherit = Inference, components = c(...), ...)`; the old algorithmic
+  bases (`InferenceAsympLikStdModCache`, `InferenceRand`, etc.) are now
+  components (`StandardModelCache`, `LikelihoodTests`, `Wald`,
+  `BayesianBootstrap`, `Randomization`, …; see
+  `inference_class_registry.R:968` for the base→component map). Raw
+  component splicing and component redeclaration of root-owned state are
+  banned (Source Invariant 15).
+- **Response-type compatibility is metadata-driven**, not
+  try-and-catch: `infer_inference_response_types()`
+  (`inference_class_registry.R:540`) assigns `response_types` from the
+  class-name prefix (`^InferenceContin` → continuous, `^InferenceIncid` →
+  incidence, …, `^InferenceAll` → all six), and
+  `InferenceSuite`/`SimulationFramework` filter with
+  `is_inference_class_compatible_with_design_metadata()`
+  (`inference_suite.R:69`). A class with an empty `response_types` vector
+  is never offered.
+- **Design classes** are declared via `define_design_class()` with
+  `timing_family` / `randomization_family` metadata and components
+  (`BlockingStructure`, `MatchingStructure`, `ClusterStructure`, …). No
+  design restricts `response_type`.
+- **`SimulationFramework`** transforms a latent continuous signal per
+  response type in one `switch(response_type, …)` (`simulations_framework.R:167`)
+  and picks curated default inference classes per type
+  (`.default_inference_classes()`, `simulations_framework.R:4222`).
+- **`InferenceSuite$run_all_inference()`** (shipped, v1.0.0 item 13)
+  fits every compatible class with one uniform output schema — so a new
+  type's classes would surface there automatically once registered.
+- **Marginal estimands** (`set_estimand()`, `marginal_estimand_report.md`,
+  shipped) give g-computation-style risk difference / risk ratio for
+  binary outcomes — the natural home for a "focal-category risk
+  difference" should one ever be wanted.
+
+So the mechanics of adding a response type are now much more uniform than
+when this report was first written: add the enum value, add a
+`^InferenceNominal` prefix rule to `infer_inference_response_types()`, and
+every registry/suite/simulation consumer picks it up. What has *not*
+changed is the scalar-estimand contract that makes nominal awkward.
+
+## Difficulty By Layer (current architecture)
+
+### 1. `Design` base class: moderate
+
+- add `nominal` to the `assertChoice` at `design_abstract.R:189`;
+- generalize the `ordinal_levels` bookkeeping into a shared
+  `categorical_levels` slot (or add `nominal_levels` alongside);
+- unordered-factor coercion in `add_one_subject_response()` /
+  `add_all_subject_responses()` and `assert_y()`;
+- `transform_y()` semantics for nominal (probably: disallowed).
+
+Not difficult, but real work because non-ordinal responses are assumed
+numeric and `ordinal` is the only factor-backed special case.
+
+### 2. Concrete design classes: easy
+
+All 27 are response-type agnostic after initialization — except:
+
+### 3. `DesignSeqOneByOneKK21` / `KK21stepwise`: moderate to hard
+
+`compute_weights()` (`design_seq_one_by_one_KK21.R:324-361`) branches on
+`response_type` to fit a per-covariate response model (OLS, logistic, NB,
+beta, AFT, proportional-odds) and use |t| as the covariate's matching
+weight. Nominal needs either a multinomial-logit per-covariate weight
+(a new `kk21_nominal_weights_cpp()` kernel — moderate) or a documented
+approximation. Same pattern every other response-type report flags.
+
+### 4. Inference classes: the estimand problem is unchanged
+
+Every inference class exposes one scalar `compute_estimate()`, one
+`get_standard_error()`, one CI, one p-value. For nominal there is no
+single obvious scalar effect: a vector of category-specific log-odds
+ratios vs a baseline; a focal-category contrast; a scored expected-utility
+shift; or a global no-effect statistic with no estimate. This choice
+drives model output shape, the CI/p-value API, `SimulationFramework`
+truth, and summary-table shape. Until fixed, `nominal` is a storage type,
+not an inferential family.
+
+The generic classes that would silently accept integer-coded nominal
+levels and produce nonsense are exactly those with `^InferenceAll`
+prefixes (`InferenceAllSimpleAverageDiff`,
+`InferenceAllSimpleMeanDiffPooledVar`, `InferenceAllSimpleWilcox`,
+`InferenceAllKKMeanDiffIVWC`, `InferenceAllKKWilcoxIVWC`) plus the planned
+`InferenceAllWinOdds` / `InferenceAllQuantileDiff` from the inference
+audit. Under the current architecture the fence is one line: exclude
+`"nominal"` from the `^InferenceAll` branch of
+`infer_inference_response_types()` (or add a per-class
+`excluded_response_types` metadata field), and the suite/simulation
+consumers will never offer them. No per-class `assertResponseType()` edits
+needed.
+
+### 5. `SimulationFramework`: hard
+
+Needs a nominal generator (latent utilities + softmax, or
+reference-category logits) in the `switch` at `simulations_framework.R:167`;
+a definition of `betaT` for nominal; a scalar "truth" for MSE/coverage/
+power; and a curated default class set. A fully multinomial effect is
+vector-valued, so either the framework generalizes to vector estimands or
+nominal simulation targets one focal-category contrast. This remains the
+most expensive integration point.
+
+## Candidate Nominal Inference Paths (if pursued)
+
+Unchanged from the original report, restated for the component
+architecture:
+
+1. **`InferenceNominalCategoryContrast`** — pick focal category `k`,
+   derive `1{y = k}`, delegate to an incidence class. Easy. Note this is
+   *exactly* what the literature does by hand; the class would add
+   convenience, not capability.
+2. **`InferenceNominalPearsonChisq`** — global K×2 test (Pearson χ² /
+   G² / Fisher-Freeman-Halton exact / permutation). Moderate. A test
+   without a scalar estimate + CI, so it needs the "p-value-only"
+   contract shape. Overlaps with the multi-endpoint composite plan.
+3. **`InferenceNominalMultinomLogit`** — baseline-category multinomial
+   logit via `define_inference_class(components = c("LikelihoodTests",
+   "StandardModelCache", "Wald", …))`, with a scalar focal-category
+   treatment coefficient first and the full vector later if a
+   vector-valued contract is ever adopted. Moderate to hard; needs a new
+   C++ kernel following `sexp_removal_rcppeigen_conversion_spec.md`
+   conventions.
+4. **Stratified nominal test / CMH generalization** — second wave, if ever.
+
+## Recommendation on TODO-1 (2026-08-27)
+
+**Recommend: do not pursue `response_type = "nominal"`; defer
+indefinitely.** Rationale, in order of weight:
+
+1. The literature evidence for a compelling need is thin: no review counts
+   nominal RCT outcomes, and 18 of 20 located examples use one-vs-rest
+   binaries that EDI already supports with a recode.
+2. The one genuinely new capability (a joint K-vector test with
+   multiplicity control across K contrasts) is a multi-endpoint feature
+   and is already scoped in `multivariate_response_type_report.md`
+   (`InferenceMultiEndpointComposite`). Build it there, once, for every
+   K-outcome situation, instead of a nominal-specific version.
+3. The remaining beneficiaries (political-science vote-choice
+   experiments) are better served by the choice-experiment paradigm in
+   `rank_choice_response_type_report.md`, which is itself deferred.
+4. Cost is moderate-to-hard (estimand contract, KK21 kernel,
+   `SimulationFramework`), and the two literature audits surfaced
+   many higher-frequency gaps (count exposure offsets, HC-robust SEs,
+   CACE/IV, cluster-level balancing designs, competing risks) that should
+   be sequenced first.
+
+**Cheaper alternative that covers the actual use cases:** a vignette
+section (in `R/EDI/vignettes/extending-edi.Rmd` or a new
+"response types" vignette) documenting the one-vs-rest recode pattern —
+`des$transform_y(function(y) as.integer(y == k), "incidence")` per focal
+category, or K parallel designs — with a pointer to the multi-endpoint
+composite wrapper for joint testing once it ships. Zero new classes.
+
+If the user nonetheless says yes to TODO-1, the staged plan below is the
+right shape and Stage 1 should be spliced with
+`rank_choice_response_type_report.md` so the type is admitted once.
 
 ## Implementation TODOs
 
-Added 2026-08-14, derived from this report's own recommendation sections
-(restated for the completed shallow-hierarchy/component architecture).
-
-- [ ] TODO-1: **Make a decision about whether to implement this at all — ask the user.** Do not start the items below until that decision is recorded here.
-- [ ] TODO-2: Stage 1 — admit the `nominal` type safely (response storage is already a scalar code; fence the ordinal-only and continuous-only paths listed in "Package Areas That Need Explicit `nominal` Fences").
-- [ ] TODO-3: Stage 2 — add one nominal global test (multinomial logit LR per the report's first-wave set), via `define_inference_class()` with `LikelihoodTests`/`StandardModelCache` components.
-- [ ] TODO-4: Later waves per "Recommended First-Wave Nominal Inference Set" and the `SimulationFramework` section, each gated on the estimand decision ("What Is The Nominal Estimand?").
+- [ ] TODO-1: **Decide whether to implement this at all — ask the user.**
+  Recorded recommendation (2026-08-27): **no / defer indefinitely**, for
+  the reasons above. Do not start TODO-2..4 until a decision is recorded
+  here. If the decision is "no", replace TODO-2..4 with the vignette
+  item below and move this report to `../finished_features/` as a
+  closed scoping report.
+- [ ] TODO-1b (if "no"): write the one-vs-rest recode vignette section and
+  cross-reference `multivariate_response_type_report.md` for joint tests.
+- [ ] TODO-2 (if "yes"): Stage 1 — admit `nominal` safely: enum at
+  `design_abstract.R:189`, level bookkeeping, factor coercion, `assert_y()`;
+  fence `^InferenceAll` classes via `infer_inference_response_types()` /
+  registry metadata rather than per-class asserts. Spliced with
+  `rank_choice_… → TODO-2`.
+- [ ] TODO-3 (if "yes"): Stage 2 — `InferenceNominalCategoryContrast`
+  (delegating to incidence) and `InferenceNominalPearsonChisq`; decide the
+  p-value-only contract shape with the multi-endpoint plan.
+- [ ] TODO-4 (if "yes"): later waves — `InferenceNominalMultinomLogit`
+  (new kernel), KK21 nominal weights, `SimulationFramework` generator and
+  truth — each gated on the estimand decision.
