@@ -161,7 +161,209 @@ public:
     Eigen::MatrixXd hessian(const Eigen::VectorXd& par) {
         return numerical_hessian(*this, par);
     }
+
+    // Evaluate the exact theta -> infinity (Poisson) limit without ever
+    // forming the enormous theta values that make the NegBin expression
+    // suffer lgamma/cancellation overflow.  The final coordinate in par is
+    // intentionally ignored; callers use it only to verify that the failed
+    // optimizer was travelling toward this boundary.
+    bool poisson_limit_value_gradient(const Eigen::VectorXd& par,
+                                      Eigen::VectorXd& grad,
+                                      double& nll) const {
+        if (par.size() != m_pc + m_pz + 1 || !par.allFinite()) return false;
+        Eigen::VectorXd eta_c = m_Xc * par.head(m_pc);
+        Eigen::VectorXd eta_z = m_Xz * par.segment(m_pc, m_pz);
+        Eigen::VectorXd w_c = Eigen::VectorXd::Zero(m_n);
+        Eigen::VectorXd w_z = Eigen::VectorXd::Zero(m_n);
+        nll = 0.0;
+
+        auto softplus = [](double x) {
+            return x > 0.0 ? x + std::log1p(std::exp(-x)) : std::log1p(std::exp(x));
+        };
+        auto log_add_exp = [](double a, double b) {
+            const double hi = std::max(a, b);
+            const double lo = std::min(a, b);
+            return hi + std::log1p(std::exp(lo - hi));
+        };
+
+        for (int i = 0; i < m_n; ++i) {
+            const double ec = eta_c[i];
+            const double ez = eta_z[i];
+            if (!std::isfinite(ec) || !std::isfinite(ez)) return false;
+            const double mu = std::exp(ec);
+            if (!std::isfinite(mu)) return false;
+            const double log_pi = -softplus(-ez);
+            const double log_q = -softplus(ez);
+            const double pi = std::exp(log_pi);
+            const double q = std::exp(log_q);
+
+            if (m_y[i] <= 0.0) {
+                const double exp_neg_mu = std::exp(-mu);
+                const double log_p0 = log_add_exp(log_pi, log_q - mu);
+                const double p0 = std::exp(log_p0);
+                if (!std::isfinite(log_p0) || !(p0 > 0.0)) return false;
+                nll -= log_p0;
+                // d[-log{pi + (1-pi) exp(-mu)}]/d eta_c and d eta_z.
+                w_c[i] = q * mu * exp_neg_mu / p0;
+                w_z[i] = -pi * q * (1.0 - exp_neg_mu) / p0;
+            } else {
+                const double yi = m_y[i];
+                nll += -log_q - yi * ec + mu + std::lgamma(yi + 1.0);
+                // Poisson count score and zero-inflation score.
+                w_c[i] = mu - yi;
+                w_z[i] = pi;
+            }
+            if (!std::isfinite(nll) || !std::isfinite(w_c[i]) || !std::isfinite(w_z[i])) return false;
+        }
+        grad.resize(m_pc + m_pz + 1);
+        grad.head(m_pc).noalias() = m_Xc.transpose() * w_c;
+        grad.segment(m_pc, m_pz).noalias() = m_Xz.transpose() * w_z;
+        grad[m_pc + m_pz] = 0.0;
+        return grad.head(m_pc + m_pz).allFinite() && std::isfinite(nll);
+    }
 };
+
+// Reduced ZIP likelihood used only when the ZINB boundary diagnostics reject
+// the finite-theta evaluation.  Parameters contain [beta_cond, beta_zi]; the
+// stable Poisson-limit evaluator supplies the exact objective and gradient.
+class ZipLimitLikelihood {
+    ZeroInflatedNegBin& m_zinb;
+    const int m_p;
+    Eigen::VectorXd full_params(const Eigen::VectorXd& p) const {
+        Eigen::VectorXd full(p.size() + 1);
+        full.head(m_p) = p;
+        full[m_p] = kNegBinPoissonBoundaryLogTheta;
+        return full;
+    }
+public:
+    ZipLimitLikelihood(ZeroInflatedNegBin& zinb, int p) : m_zinb(zinb), m_p(p) {}
+    double operator()(const Eigen::VectorXd& p, Eigen::VectorXd& grad) {
+        Eigen::VectorXd full_grad;
+        double value = std::numeric_limits<double>::quiet_NaN();
+        if (!m_zinb.poisson_limit_value_gradient(full_params(p), full_grad, value)) {
+            grad = Eigen::VectorXd::Constant(p.size(), std::numeric_limits<double>::quiet_NaN());
+            return std::numeric_limits<double>::quiet_NaN();
+        }
+        grad = full_grad.head(m_p);
+        return value;
+    }
+    Eigen::MatrixXd hessian(const Eigen::VectorXd& p) {
+        const int k = p.size();
+        Eigen::MatrixXd H = Eigen::MatrixXd::Zero(k, k);
+        const double step = 1e-5;
+        for (int j = 0; j < k; ++j) {
+            Eigen::VectorXd lo = p, hi = p, glo, ghi;
+            lo[j] -= step; hi[j] += step;
+            double vlo = (*this)(lo, glo), vhi = (*this)(hi, ghi);
+            if (!std::isfinite(vlo) || !std::isfinite(vhi) || !glo.allFinite() || !ghi.allFinite())
+                return Eigen::MatrixXd::Constant(k, k, std::numeric_limits<double>::quiet_NaN());
+            H.col(j) = (ghi - glo) / (2.0 * step);
+        }
+        return 0.5 * (H + H.transpose());
+    }
+};
+
+bool fit_zip_reduced_fallback(ZeroInflatedNegBin& zinb, const FixedParamSpec& zinb_spec,
+                              int dispersion_index, int maxit, double tol,
+                              const std::string& optimization_alg, LikelihoodFitResult& fit) {
+    if (fit.params.size() <= dispersion_index || !fit.params.allFinite()) return false;
+    // A reduced ZIP model is appropriate only for the Poisson-limit failure:
+    // do not replace an ordinary finite-dispersion ZINB fit merely because a
+    // different diagnostic happened to reject it.
+    if (fit.params[dispersion_index] < kNegBinPoissonBoundaryLogTheta &&
+        std::isfinite(fit.value)) return false;
+    const int k = dispersion_index;
+    Eigen::VectorXd start = fit.params.head(k);
+    FixedParamSpec zip_spec;
+    zip_spec.free_idx.resize(k);
+    for (int i = 0; i < k; ++i) zip_spec.free_idx[i] = i;
+    if (zinb_spec.has_fixed) {
+        std::vector<int> fi;
+        std::vector<double> fv;
+        for (int i = 0; i < zinb_spec.fixed_idx.size(); ++i) {
+            if (zinb_spec.fixed_idx[i] == dispersion_index) continue;
+            fi.push_back(zinb_spec.fixed_idx[i]);
+            fv.push_back(zinb_spec.fixed_values[i]);
+        }
+        Eigen::VectorXi fi_e(fi.size());
+        Eigen::VectorXd fv_e(fv.size());
+        for (int i = 0; i < static_cast<int>(fi.size()); ++i) {
+            fi_e[i] = fi[i];
+            fv_e[i] = fv[i];
+        }
+        zip_spec = make_fixed_param_spec(k, fi_e, fv_e);
+    }
+    ZipLimitLikelihood zip(zinb, k);
+    LikelihoodFitResult reduced = optimize_fixed_likelihood(
+        zip, start, zip_spec, maxit, tol, optimization_alg, "lbfgs", 0, nullptr);
+    if (!reduced.converged || reduced.params.size() != k || !reduced.params.allFinite()) return false;
+    Eigen::VectorXd full(k + 1);
+    full.head(k) = reduced.params;
+    full[k] = kNegBinPoissonBoundaryLogTheta;
+    fit = reduced;
+    fit.params = full;
+    fit.dispersion_at_poisson_boundary = true;
+    fit.reduced_model = "ZIP";
+    fit.value = reduced.value;
+    return true;
+}
+
+// ZINB-specific extension of the generic boundary acceptance rule.  The
+// generic helper needs the finite NegBin objective at the final iterate; at
+// very large theta that objective can be NaN even when the exact Poisson limit
+// and all treatment/zero-inflation scores are finite.  Keep this fallback
+// local to ZINB so no other likelihood is allowed to reinterpret a nonfinite
+// objective as convergence.
+bool accept_zinb_poisson_boundary_convergence(
+    ZeroInflatedNegBin& fun,
+    const FixedParamSpec& fixed_spec,
+    int dispersion_index,
+    double tol,
+    LikelihoodFitResult& fit) {
+    if (fit.converged || fit.params.size() <= dispersion_index ||
+        !fit.params.allFinite() || !std::isfinite(fit.params[dispersion_index]) ||
+        fit.params[dispersion_index] < kNegBinPoissonBoundaryLogTheta ||
+        !negbin_parameter_is_free(fixed_spec, dispersion_index)) return false;
+
+    Eigen::VectorXd limit_gradient;
+    double limit_value = std::numeric_limits<double>::quiet_NaN();
+    if (!fun.poisson_limit_value_gradient(fit.params, limit_gradient, limit_value)) return false;
+
+    const double coefficient_tol = std::max(10.0 * tol, 1e-6);
+    double non_dispersion_gradient_sq = 0.0;
+    for (int i = 0; i < fixed_spec.free_idx.size(); ++i) {
+        const int index = fixed_spec.free_idx[i];
+        if (index != dispersion_index) non_dispersion_gradient_sq += limit_gradient[index] * limit_gradient[index];
+    }
+    if (std::sqrt(non_dispersion_gradient_sq) > coefficient_tol) return false;
+
+    // Require the original analytic dispersion score to point toward larger
+    // theta.  Its objective value may be NaN, but the score remains useful in
+    // the observed failure mode and is checked for finiteness independently.
+    Eigen::VectorXd raw_gradient(fit.params.size());
+    (void)fun(fit.params, raw_gradient);
+    if (!raw_gradient.allFinite() || !(raw_gradient[dispersion_index] < 0.0)) return false;
+
+    // Compare with a finite, conservative anchor at theta = 1e4.  This keeps
+    // the fallback from accepting an unrelated failed fit merely because its
+    // final dispersion coordinate is large.
+    Eigen::VectorXd anchor = fit.params;
+    anchor[dispersion_index] = kNegBinPoissonBoundaryLogTheta;
+    Eigen::VectorXd anchor_gradient(anchor.size());
+    const double anchor_value = fun(anchor, anchor_gradient);
+    if (!std::isfinite(anchor_value) || !anchor_gradient.allFinite() ||
+        !(anchor_gradient[dispersion_index] <= 0.0)) return false;
+    const double slack = 64.0 * std::numeric_limits<double>::epsilon() *
+        std::max(1.0, std::fabs(anchor_value));
+    if (limit_value > anchor_value + slack) return false;
+
+    fit.value = limit_value;
+    fit.gradient_norm = std::sqrt(non_dispersion_gradient_sq);
+    fit.converged = true;
+    fit.hit_iteration_cap = false;
+    fit.dispersion_at_poisson_boundary = true;
+    return true;
+}
 
 } // namespace
 
@@ -205,7 +407,13 @@ LikelihoodFitResult fast_zinb_internal(const Eigen::Ref<const Eigen::MatrixXd>& 
 
     LikelihoodFitResult fit = optimize_fixed_likelihood(
         obj, par, fixed_spec, maxit, tol, optimization_alg, "lbfgs", 0, info_ptr);
-    accept_negbin_poisson_boundary_convergence(obj, fixed_spec, n_par - 1, tol, fit);
+    if (!accept_zinb_poisson_boundary_convergence(obj, fixed_spec, n_par - 1, tol, fit)) {
+        // Prefer a direct stable ZIP fit whenever the finite-theta ZINB
+        // predicates fail.  Retain the generic boundary acceptance only as a
+        // final compatibility path if the reduced fit itself cannot run.
+        if (!fit_zip_reduced_fallback(obj, fixed_spec, n_par - 1, maxit, tol, optimization_alg, fit))
+            accept_negbin_poisson_boundary_convergence(obj, fixed_spec, n_par - 1, tol, fit);
+    }
     return fit;
 }
 
@@ -237,6 +445,12 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
     const int n_par = (int)Xc.cols() + (int)Xz.cols() + 1;
     FixedParamSpec fixed_spec = make_fixed_param_spec(n_par, fixed_idx, fixed_values);
     Eigen::MatrixXd hess = obj.hessian(fit.params);
+    if (fit.reduced_model == "ZIP") {
+        ZipLimitLikelihood zip(obj, n_par - 1);
+        Eigen::MatrixXd zip_hess = zip.hessian(fit.params.head(n_par - 1));
+        hess = Eigen::MatrixXd::Zero(n_par, n_par);
+        hess.topLeftCorner(n_par - 1, n_par - 1) = zip_hess;
+    }
     FixedParamSpec information_spec = negbin_information_spec(
         fixed_spec, n_par - 1, fit.dispersion_at_poisson_boundary);
     Eigen::MatrixXd H_free = subset_matrix(hess, information_spec.free_idx, information_spec.free_idx);
@@ -253,7 +467,8 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
             .set("hit_iteration_cap", fit.hit_iteration_cap)
             .set("gradient_norm", fit.gradient_norm)
             .set("min_eigenvalue_information", fit.min_eigenvalue_information)
-            .set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary);
+            .set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary)
+            .set("reduced_model", fit.reduced_model);
 }
 
 #ifndef EDI_CORE_ONLY
@@ -307,7 +522,8 @@ List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen:
         .set("hit_iteration_cap", fit.hit_iteration_cap)
         .set("gradient_norm", fit.gradient_norm)
         .set("min_eigenvalue_information", fit.min_eigenvalue_information)
-        .set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary));
+        .set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary)
+        .set("reduced_model", fit.reduced_model));
         out["coefficients"] = List::create(
             Named("cond") = fit.params.head(p_cond),
             Named("zi") = fit.params.segment(p_cond, p_zi)
@@ -316,9 +532,19 @@ List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen:
     }
 
     Eigen::MatrixXd hess = obj.hessian(fit.params);
+    Eigen::VectorXd score = likelihood_score(obj, fit.params);
+    if (fit.reduced_model == "ZIP") {
+        ZipLimitLikelihood zip(obj, p_cond + p_zi);
+        Eigen::MatrixXd zip_hess = zip.hessian(fit.params.head(p_cond + p_zi));
+        hess = Eigen::MatrixXd::Zero(p_cond + p_zi + 1, p_cond + p_zi + 1);
+        hess.topLeftCorner(p_cond + p_zi, p_cond + p_zi) = zip_hess;
+        Eigen::VectorXd zip_grad;
+        (void)zip(fit.params.head(p_cond + p_zi), zip_grad);
+        score = -zip_grad;
+    }
     // likelihood_score(obj, params) already negates the raw grad the L-BFGS objective fills
     // (gradient of neg_loglik) to return the true (+loglik) score -- do not negate again here.
-    Rcpp::List out = make_uniform_likelihood_fit_result(fit.params, fit.value, fit.converged, likelihood_score(obj, fit.params), hess, false);
+    Rcpp::List out = make_uniform_likelihood_fit_result(fit.params, fit.value, fit.converged, score, hess, false);
     if (fit.dispersion_at_poisson_boundary) {
         FixedParamSpec fixed_spec = make_fixed_param_spec(
             p_cond + p_zi + 1,
@@ -334,6 +560,7 @@ List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen:
         out["covariance_type"] = "observed_conditional_on_poisson_boundary";
     }
     out["dispersion_at_poisson_boundary"] = fit.dispersion_at_poisson_boundary;
+    out["reduced_model"] = fit.reduced_model;
     out["coefficients"] = List::create(
         Named("cond") = fit.params.head(p_cond),
         Named("zi") = fit.params.segment(p_cond, p_zi)

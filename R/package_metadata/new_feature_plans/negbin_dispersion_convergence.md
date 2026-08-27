@@ -131,6 +131,32 @@ compatibility measure until the reparameterization is complete; its details
 and implementation status are recorded in
 `../finished_features/negbin_dispersion_boundary_acceptance.md`.
 
+### v1.1.0 guarded ZIP reduced-model fallback
+
+As part of the Option 1 delivery, add a final fallback for cases where a ZINB
+fit still cannot satisfy the boundary-safety predicates (for example, because
+the finite-`theta` objective or analytic dispersion score is `NaN`). Fit the
+corresponding **zero-inflated Poisson (ZIP) reduced model directly**, using a
+numerically stable `theta -> infinity` objective, gradient, and Hessian rather
+than evaluating the unstable ZINB expression at a very large dispersion.
+This is not a claim that the full ZINB dispersion estimate converged.
+
+Return the ZIP count and zero-inflation coefficients when that reduced fit
+passes its own convergence checks, set `dispersion_at_poisson_boundary = TRUE`,
+and propagate an explicit diagnostic such as `reduced_model = "ZIP"` (plus a
+failure/reduction message). Treat the dispersion coordinate as a boundary
+sentinel or agreed large-`theta` value. Do not construct dispersion standard
+errors or dispersion-specific Wald, score, likelihood-ratio, or bootstrap
+targets; mark that component unavailable while retaining inference for
+estimable regression coefficients. `run_all_inference` must recognize this
+status instead of converting valid ZIP coefficient estimates into an all-`NA`
+`nonest` row.
+
+This fallback is deliberately narrower than relaxing the safety predicates:
+unsafe or non-finite ZIP coefficient fits still return the normal non-estimable
+result. It provides a safe path for the direct stress fixture without
+instantiating abstract `DesignFixed` or weakening the optimizer contract.
+
 ## Implementation TODOs
 
 1. **Reproduce (or rule out) the same failure against plain `InferenceCountNegBin`
@@ -149,12 +175,21 @@ and implementation status are recorded in
    `cold_starts.md` documentation), and re-validate against
    `test-rcpp-fitting-equivalence.R`'s existing `glmmTMB` goldens plus a
    new non-overdispersed fixture.
-3. Add the regression test this bug currently has none
+3. **Implement the guarded ZIP fallback:** expose a shared stable ZIP
+   value/gradient/Hessian path, invoke it only after ZINB safety predicates
+   fail, propagate the reduced-model diagnostic through `fast_zinb_cpp()` and
+   `run_all_inference`, and exclude the boundary dispersion coordinate from
+   information matrices and dispersion-specific inference.
+4. Add the regression test this bug currently has none
    of -- fit each affected class to genuinely non-overdispersed count data
    and assert the treatment coefficient/its CI *are* estimable (not `NA`),
    the mirror image of `test-rcpp-fitting-equivalence.R`'s existing
    overdispersed-data goldens.
-4. Keep the Option 2 mitigation covered by its finished-feature regression
+5. Add a stress fixture whose ZINB objective is non-finite at large finite
+   `theta` but whose stable ZIP limit is finite; assert finite coefficient
+   estimates, `reduced_model == "ZIP"`, boundary diagnostics, and unavailable
+   dispersion inference.
+6. Keep the Option 2 mitigation covered by its finished-feature regression
    tests while Option 1 is developed; remove or simplify that mitigation only
    after parity and boundary diagnostics have been demonstrated.
 
@@ -167,6 +202,10 @@ and implementation status are recorded in
 - TODO-3's new non-overdispersed-data regression test is the load-bearing
   test for whichever fix ships -- it directly encodes "this specific
   convergence failure cannot silently reappear."
+- The ZIP-reduction stress test must verify that a non-finite large-`theta`
+  ZINB evaluation produces finite ZIP coefficient estimates and an explicit
+  boundary/reduced-model diagnostic, while dispersion-specific inference is
+  omitted rather than reported as a valid finite-variance estimate.
 - The selected Option 1 implementation must re-run
   `test-rcpp-fitting-equivalence.R` in full
   (not just the new fixture) to confirm no regression on the existing

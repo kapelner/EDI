@@ -114,22 +114,23 @@ test_that("ObservationalDesignMatching matching behavior is correct", {
 	expect_length(boot$i_b, 6)
 })
 
-test_that("BatchWPregeneration component method is body-identical to each pre-generating class's own method", {
+test_that("BatchWPregeneration component method is behavior-identical to each pre-generating class's own method", {
 	# supports_batch_w_pregeneration is defined directly on each
-	# of these four classes -- so a direct generator-level reference check is
-	# meaningful here.
+	# of these four classes. Compare the constant predicate's result rather than
+	# its parsed body: R CMD check can represent an installed R6 method with an
+	# equivalent call-shaped body while the component retains a literal TRUE
+	# body, making body() identity depend on how the package was loaded.
 	EDI:::populate_design_component_registry()
 	batch_component = EDI:::get_design_component("BatchWPregeneration")
+	component_method = batch_component$public$supports_batch_w_pregeneration
+	expect_identical(component_method(), TRUE)
 
 	for (class_name in c(
 		"DesignFixedBinaryMatch", "DesignFixedGreedy",
 		"DesignFixedMatchingGreedyPairSwitching", "DesignFixedOptimalBlocks"
 	)) {
 		gen = get(class_name, envir = asNamespace("EDI"))
-		expect_identical(
-			body(batch_component$public$supports_batch_w_pregeneration),
-			body(gen$public_methods$supports_batch_w_pregeneration)
-		)
+		expect_identical(gen$public_methods$supports_batch_w_pregeneration(), component_method())
 	}
 })
 

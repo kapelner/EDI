@@ -1063,6 +1063,9 @@ struct LikelihoodFitResult {
     double min_eigenvalue_information;
     // NegBin-family-only diagnostic; false for all generic optimizer results.
     bool dispersion_at_poisson_boundary;
+    // Non-empty when a reduced model (for example ZIP at the NegBin
+    // Poisson boundary) supplied the returned coefficient fit.
+    std::string reduced_model;
 
     LikelihoodFitResult() :
         value(std::numeric_limits<double>::quiet_NaN()),
@@ -1071,7 +1074,8 @@ struct LikelihoodFitResult {
         hit_iteration_cap(false),
         gradient_norm(std::numeric_limits<double>::quiet_NaN()),
         min_eigenvalue_information(std::numeric_limits<double>::quiet_NaN()),
-        dispersion_at_poisson_boundary(false) {}
+        dispersion_at_poisson_boundary(false),
+        reduced_model() {}
 };
 
 // SFINAE detection of an optional fun.hessian(params) method -- mirrors

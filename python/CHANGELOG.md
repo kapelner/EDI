@@ -22,9 +22,49 @@ correctness/memory-safety bugs in `R/EDI/src/*.cpp` kernels bound in Python
   longer depend on input row order (`R/EDI/src/fast_ordinal_glmm.cpp`).
   The optimizer also now retries from multiple `log_sigma` starting points
   (including near the zero-variance boundary) and keeps the best finite
-  fit, since a near-zero-variance start could trap a single L-BFGS run in
-  a poor local optimum; invalid `X`/`y`/`group_id`/control arguments now
-  raise instead of producing silent garbage.
+  fit, then applies a projected-score convergence check and, when needed,
+  a damped-Newton polish. Near-zero random-effect variance is handled as a
+  valid constrained boundary: its KKT-satisfied variance coordinate is
+  omitted from convergence and treatment-variance calculations instead of
+  causing an otherwise valid fixed-effect fit to fail. Excursions beyond
+  `max_abs_log_sigma` now receive a differentiable quadratic penalty rather
+  than an objective/gradient-inconsistent hard clamp. Result dictionaries
+  additionally expose `score`, `newton_polish_attempted`,
+  `newton_polish_accepted`, and `newton_polish_iterations`; invalid
+  `X`/`y`/`group_id`/control arguments now raise instead of producing silent
+  garbage.
+- `fast_adjacent_category_logit`: probability and Hessian evaluation now use
+  an additive log-space recurrence with log-sum-exp normalization. The old
+  recurrence exponentiated raw thresholds and linear predictors before
+  normalization, which could overflow to `Inf`/`NaN`, exhaust `maxit` on
+  ordinary data, or return non-finite parameters from an all-zero start
+  (`R/EDI/src/fast_adjacent_category_logit.cpp`).
+- `fast_neg_bin`, `fast_zinb`, `fast_zinb_with_var`,
+  `fast_hurdle_negbin`, and `fast_truncated_negbin_count` now recognize the
+  negative-binomial Poisson limit as a valid constrained solution when
+  `theta >= 1e4`, the non-dispersion score has converged, and a forward
+  `log(theta)` probe confirms that the likelihood is still improving toward
+  the boundary. Such fits no longer fail solely because the dispersion score
+  cannot vanish at finite `theta`. Their result dictionaries now include
+  `dispersion_at_poisson_boundary`; variance calculations condition on that
+  boundary by excluding the nonregular dispersion coordinate
+  (`R/EDI/src/_negbin_boundary_convergence.h` and the NegBin-family kernels).
+  ZINB additionally evaluates the exact zero-inflated Poisson-limit objective
+  and coefficient score when the finite-theta negative-binomial expression
+  becomes non-finite at enormous `theta`, avoiding `lgamma`/cancellation
+  overflow. Direct boundary acceptance still requires the analytic dispersion
+  score to point toward increasing `theta` and the exact limit likelihood to
+  be no worse than a finite `theta = 1e4` anchor, so an unrelated failed fit
+  is not reclassified as converged. If those strict predicates reject the
+  finite-theta fit, the kernel now attempts a reduced ZIP refit using the
+  stable exact-limit likelihood, preserving fixed coefficient constraints;
+  only if that refit also fails does it fall back to the generic boundary
+  rule. A successful reduced refit returns the ZIP coefficients in the
+  ZINB-shaped parameter vector with `log(theta) = log(1e4)`, sets
+  `dispersion_at_poisson_boundary = True`, and `fast_zinb_with_var` tags the
+  provenance as `reduced_model = "ZIP"`. Its score, information, and
+  covariance are then derived from the reduced ZIP Hessian while excluding
+  the nonregular dispersion coordinate (`R/EDI/src/fast_zinb.cpp`).
 - `gee_pairs_singletons`: fixed a stack-buffer-overflow — the binding's
   locally mirrored `GEEResult` struct was missing the
   `hit_iteration_cap`/`gradient_norm` fields present in the real struct in
@@ -34,6 +74,23 @@ correctness/memory-safety bugs in `R/EDI/src/*.cpp` kernels bound in Python
   the `python-tests.yml` CI workflow; PyPI's published `1.0.0.post3` wheel
   (built via `cibuildwheel`'s manylinux image) was unaffected
   (`python/cpp/bindings_incidence.cpp`).
+
+### Packaging
+
+- Attempted to fix the failed [piwheels `edi-kernels` builds](https://www.piwheels.org/project/edi-kernels/).
+  Every `1.0.0.post3` build on piwheels' 32-bit Raspberry Pi workers failed
+  during PEP 517 build-dependency resolution, before CMake or the C++
+  compiler ran, because `scipy-openblas32` publishes no `armv7l`/`armv6l`
+  wheel or source distribution. Both the build-system and runtime
+  `scipy-openblas32` requirements are now restricted to the architectures
+  for which it publishes wheels (`x86_64`, `AMD64`, `aarch64`, and `arm64`),
+  allowing 32-bit ARM source builds to proceed to CMake's existing system-
+  BLAS discovery (`python/pyproject.toml`). The package version was bumped to
+  `1.0.0.post4`, and a tag/manual-triggered ARM sdist workflow now exercises
+  Bullseye/Python 3.9, Bookworm/Python 3.11, and Trixie/Python 3.13 under
+  emulated `linux/arm/v7` (`.github/workflows/arm-sdist-build.yml`). This is
+  an attempted remediation pending a published `post4` piwheels build; the
+  current piwheels project page still contains no successfully built files.
 
 ### Changed (breaking)
 
@@ -45,12 +102,13 @@ correctness/memory-safety bugs in `R/EDI/src/*.cpp` kernels bound in Python
   boolean indicating whether the optimizer stopped because it hit the
   iteration cap rather than converging.
 - `fast_continuation_ratio_regression`'s docstring sign convention was
-  corrected: the fitted model is `logit(P(Y_i>k | Y_i>=k, x_i))`, i.e. the
-  conditional probability of *continuing past* category `k`, not
-  `P(Y_i=k | ...)` as previously documented. A positive `beta` pushes
-  toward higher categories of `y`, matching the other ordinal models in
-  this package. No change to the fitted values themselves — documentation
-  only.
+  corrected and the augmented binary outcome was reversed to match it. The
+  fitted model is now `logit(P(Y_i>k | Y_i>=k, x_i))`, i.e. the conditional
+  probability of *continuing past* category `k`, not `P(Y_i=k | ...)` as in
+  `1.0.0.post3`. Consequently the returned `alpha`, `b`, and `params` signs
+  are reversed relative to the old stopping-probability parameterization;
+  a positive `beta` now pushes toward higher categories of `y`, matching the
+  other ordinal models in this package.
 
 ## [1.0.0.post3] - 2026-08-16
 

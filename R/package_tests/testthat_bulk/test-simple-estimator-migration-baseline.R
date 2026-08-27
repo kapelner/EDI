@@ -14,7 +14,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 66L,
-		private_owner_count = 307L,
+		private_owner_count = 308L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -27,7 +27,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 66L,
-		private_owner_count = 310L,
+		private_owner_count = 311L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -40,7 +40,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 66L,
-		private_owner_count = 324L,
+		private_owner_count = 325L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -54,7 +54,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 60L,
-		private_owner_count = 292L,
+		private_owner_count = 293L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -66,7 +66,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 60L,
-		private_owner_count = 312L,
+		private_owner_count = 313L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",

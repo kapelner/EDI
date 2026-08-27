@@ -9,7 +9,7 @@
 # MatchingStructure, not by DesignFixed itself.
 DesignFixedTestFixture = EDI:::define_design_class(
 	classname = "DesignFixedTestFixture",
-	inherit = DesignFixed,
+	inherit = EDI:::DesignFixed,
 	components = character(),
 	public = list(
 		# Overridden directly (same pattern as ObservationalDesign, see

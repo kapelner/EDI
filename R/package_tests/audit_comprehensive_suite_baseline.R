@@ -278,8 +278,20 @@ build_baseline_audit = function() {
 	audit
 }
 
-build_exemptions = function(audit) {
+build_exemptions = function(audit, previous_exemptions = NULL) {
 	uncovered = audit[audit$row_type == "public_api" & audit$coverage_status == "uncovered", , drop = FALSE]
+	created_date = rep(as.character(Sys.Date()), nrow(uncovered))
+	# created_date records when an exemption first entered the baseline, not
+	# when this generated artifact happened to be refreshed.  Preserve dates
+	# already committed for surviving exemptions so regeneration is stable
+	# across dates and time zones (local Asia/Jerusalem vs GitHub Actions UTC).
+	if (!is.null(previous_exemptions) && nrow(previous_exemptions) &&
+			all(c("target", "created_date") %in% names(previous_exemptions))) {
+		previous_index = match(uncovered$target, previous_exemptions$target)
+		preserved_date = as.character(previous_exemptions$created_date[previous_index])
+		preserve = !is.na(preserved_date) & nzchar(preserved_date)
+		created_date[preserve] = preserved_date[preserve]
+	}
 	exemptions = data.frame(
 		target = uncovered$target,
 		api_kind = uncovered$api_kind,
@@ -289,7 +301,7 @@ build_exemptions = function(audit) {
 		reason = "Initial Phase 0 baseline exemption: no argument-combination, comprehensive-workflow, or focused testthat coverage detected in current artifacts.",
 		expiry_date = "",
 		owner = "",
-		created_date = as.character(Sys.Date()),
+		created_date = created_date,
 		stringsAsFactors = FALSE
 	)
 	row.names(exemptions) = NULL
@@ -307,7 +319,8 @@ print_table_one_line_per_category = function(x) {
 
 main = function() {
 	audit = build_baseline_audit()
-	exemptions = build_exemptions(audit)
+	previous_exemptions = read_optional_csv(paths$exemptions)
+	exemptions = build_exemptions(audit, previous_exemptions)
 	write.csv(audit, paths$baseline_audit, row.names = FALSE)
 	write.csv(exemptions, paths$exemptions, row.names = FALSE)
 	message("Wrote baseline audit rows: ", nrow(audit))
