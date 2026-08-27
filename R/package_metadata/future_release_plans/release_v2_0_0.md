@@ -120,6 +120,46 @@ decision batch still records the yes/no for each.
   an `AdaptiveWeighting` inference component (AW-AIPW, batched OLS).
   Rides the sequential-inference implementation.
 
+### Theoretical-design backlog (moved from 1.3.0, user decision 2026-08-27)
+
+Every plan commissioned from
+`missing_theoretical_design_classes_literature_audit.md`. These are the
+designs the methodological literature benchmarks against and that EDI —
+as the home of the KAK / BRT / KK lineage — should implement and compare
+against; they are additive on the design factory but are treated as a
+2.0.0 "modern designs" theme rather than 1.x improvements.
+
+- `gram_schmidt_walk_and_online_balancing.md` (`_master.md` Phase 5S) —
+  `DesignFixedGramSchmidtWalk` (Harshaw-Sävje-Spielman-Zhang 2024, with
+  the balance–robustness dial `φ` and covariance-bound accessor),
+  `DesignSeqOneByOneBalancingWalk` (Arbour et al. 2022),
+  `DesignSeqOneByOneARM` / `PSR` (Qin-Li-Ma-Hu), plus the two simulation
+  studies (GSW vs KAK/harmonized; ARM vs KK14).
+- `optimal_design_objective_extensions.md` (Phase 5R) — kernel-MMD
+  objective (Kallus 2018), per-unit propensity / entropy-floor constraints
+  (BRT / Nordin-Schultzberg / Kallus §6), `interest = "cate"` I-optimality,
+  pilot-index pairing (Bai 2022) + Bai-Romano-Shaikh variance, matched
+  k-tuples (Cytrynbaum), energy objective.
+- `rerandomization_criterion_variants.md` (Phase 5Q) — generalized
+  quadratic-form `w'Aw` (Mahalanobis / ridge / PCA / Bayesian / kernel /
+  energy / user), tiers (Morgan-Rubin 2015), p-value acceptance (Zhao-Ding
+  2024), min–max |t| with retained-set size `K`, pair-switching (Zhu-Liu
+  2023) and MCMC samplers, Grundy-Healy concurrence diagnostic,
+  `DesignFixedHadamard` (Bailey-Nelson), inference-side LDR CI / Li-Ding
+  variance / studentized-FRT checks.
+- `sequential_design_classical_completions.md` (Phase 5P) — tolerance
+  rules (big stick, Chen, Berger maximal, block urn, Ehrenfest, ABCD),
+  Smith's coin, Hu & Hu stratum weights on Pocock-Simon, allocation-
+  ratio-preserving coins, `DesignFixedPermutedBlocks`, optional
+  continuous-covariate minimization.
+- K-arm versions of all of the above ride the multi-arm track (TODO-3);
+  2^K factorial and multi-arm rerandomization (Branson-Dasgupta-Rubin
+  2016) likewise.
+- `../new_research_ideas/quantum_greedy_design.md` (`DesignFixedGibbs`,
+  Boltzmann-sampled π(w) ∝ exp(−β f(w))) stays a research idea gated on
+  simulations; if it graduates, it joins this theme — its
+  randomization-test and tilted-Gaussian asymptotics are genuinely open.
+
 ### New compute backends
 
 - `gpu_optimizations.md` (if its TODO-1 said yes) — GPU port of the
@@ -167,6 +207,16 @@ decision batch still records the yes/no for each.
   only if its TODO-1 overturns the recorded recommendation.
 - [ ] TODO-5: **Sequential inference** implementation from the 1.1.0
   scoping output; then two-arm RAR on top.
+- [ ] TODO-5b: **Theoretical-design backlog** (two-arm; K-arm variants
+  after TODO-3), in this order:
+  - [ ] TODO-5b-i: `sequential_design_classical_completions.md → TODO-1..7`
+    (ARP coins together with 1.3.0's `target_ratio`).
+  - [ ] TODO-5b-ii: `rerandomization_criterion_variants.md → TODO-1..6`.
+  - [ ] TODO-5b-iii: `optimal_design_objective_extensions.md → TODO-1..6`
+    (shares the kernel with 5b-ii; k-tuples jointly with 1.3.0's
+    unequal-allocation route).
+  - [ ] TODO-5b-iv: `gram_schmidt_walk_and_online_balancing.md → TODO-1..5`
+    incl. the two simulation studies.
 - [ ] TODO-6: **Compute backends** — GPU dispatch architecture first
   (`gpu_optimizations.md → TODO-7`), quantum hook second.
 - [ ] TODO-7: **Breaking changes** — greedy-class deletion; any contract

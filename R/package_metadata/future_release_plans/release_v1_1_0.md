@@ -33,9 +33,9 @@ the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
 > |---|---|---|
 > | **1.1.0** (this file) | **Inference quality** — practitioner-standard estimators, likelihood corrections, diagnostics chain, ordinal Bayesian-bootstrap backends, KK beta OneLik, count quantile regression, Phase 0 decisions for every gated track | `release_v1_1_0.md` |
 > | 1.2.0 | **Performance & engines** — kernel/perf lanes, cold starts, profiling, greedy-engine merge (soft-deprecation) | `release_v1_2_0.md` |
-> | 1.3.0 | **Design theory** — classical sequential completions, rerandomization criteria/samplers/diagnostics, optimal-objective extensions, Gram-Schmidt Walk / balancing walk / ARM-PSR, cluster-level balancing designs, unequal allocation, many-by-many family | `release_v1_3_0.md` |
+> | 1.3.0 | **Design extensions from practice** — cluster-level balancing designs + saturation, unequal allocation + Neyman helper, many-by-many family *(the theoretical-design backlog — classical completions, rerandomization criteria/samplers/diagnostics, optimal-objective extensions, GSW / balancing walk / ARM-PSR — moved to 2.0.0, user decision)* | `release_v1_3_0.md` |
 > | 1.4.0 | **Response & data extensions** — censoring on continuous/count/proportion, competing risks + `dead → uncensored` rename (one sweep), cure fraction, interval-censored second wave, survival QR, semi-continuous, frailty k-strata, encouragement/CACE, moderation, missing outcomes, sequential-inference scoping | `release_v1_4_0.md` |
-> | 2.0.0 | **Architecture** — multi-arm, new response shapes, sequential-inference implementation + RAR, cluster GLMM/GEE, mediation, compute backends, deferred breaking changes | `release_v2_0_0.md` |
+> | 2.0.0 | **Architecture + modern designs** — multi-arm, new response shapes, sequential-inference implementation + RAR, cluster GLMM/GEE, mediation, the theoretical-design backlog (GSW, ARM/PSR, rerandomization criteria, objective extensions, classical completions), compute backends, deferred breaking changes | `release_v2_0_0.md` |
 >
 > **Moved out of this file** (TODO bullets below retained verbatim for
 > history, each prefixed with its new home): → 1.2.0: TODO-4, TODO-4b,
@@ -51,10 +51,10 @@ the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
 > backlog's small inference-side items, each now with an owning plan:
 > `count_exposure_offset.md`, `heteroskedasticity_robust_standard_errors.md`,
 > `small_estimand_additions.md`, and the nominal one-vs-rest vignette.
-> (The audit backlog's small *design-side* items —
+> (The audit backlog's *design-side* items —
 > `sequential_design_classical_completions.md`,
-> `rerandomization_criterion_variants.md` — are design theory and live in
-> 1.3.0.) Also here: the ordinal Bayesian-bootstrap / randomization-CI
+> `rerandomization_criterion_variants.md`, and the rest of the theoretical
+> backlog — live in 2.0.0 by user decision.) Also here: the ordinal Bayesian-bootstrap / randomization-CI
 > plans and `randomization_ci_search_precision.md`.
 
 ## Scope rule (historical — superseded by the 2026-08-27 split above)

@@ -216,6 +216,40 @@ EDI_TUNING_WARM_START_OPERATION_CALLS = list(
 	            args = list(alpha = 0.2, r = 9L, show_progress = FALSE))
 )
 
+#' Classes excluded from specific warm-start operations for cost reasons
+#' (not correctness -- see each entry's comment)
+#'
+#' A named list, operation -> character vector of class names to drop from
+#' \code{\link{edi_tuning_warm_start_families}(operation)}'s result. Unlike
+#' \code{infer_inference_requires_kk_matching_design()}/
+#' \code{infer_inference_requires_blocking_design()} (which exclude a class
+#' from tuning entirely because the synthetic experiment genuinely can't
+#' construct it), this is scoped to one operation only -- the class is fine,
+#' fast, and still benchmarked on its other operations.
+#'
+#' @keywords internal
+#' @noRd
+EDI_TUNING_WARM_START_OPERATION_EXCLUSIONS = list(
+	# 2026-08-27: InferencePropZeroOneInflatedBetaRegr's jackknife (unlike
+	# its other resampling operations -- rand/non_param_boot/bayesian_boot/
+	# param_boot all benchmark in well under a second) rebuilds a fresh
+	# sub-Inference object per leave-one-out fold
+	# (supports_reusable_bootstrap_worker() = FALSE for this class) and
+	# reruns the full fit_with_hardened_qr_column_dropping() column-
+	# selection search from scratch each time. Confirmed via direct
+	# profiling: the raw fast_zero_one_inflated_beta_cpp() fit converges
+	# correctly and fast (~3ms) in isolation on the exact same data: the
+	# ~50x per-fold slowdown is entirely the surrounding column-selection
+	# machinery being redone from scratch every fold, not a numerical
+	# problem. For a synthetic dataset with no y = 0/1 boundary
+	# observations at all (this tuning benchmark's small-n proportion DGP
+	# hits exactly that at n = 50), that made a single jackknife call take
+	# several seconds and blocked a full tuning run for many minutes. Not a
+	# quick fix -- would need a real get_bootstrap_worker_spec()-based
+	# reuse implementation for this class, out of scope here.
+	jackknife = "InferencePropZeroOneInflatedBetaRegr"
+)
+
 #' Does a class (its own generator or an ancestor) define this public method?
 #'
 #' @keywords internal
@@ -251,7 +285,12 @@ edi_tuning_warm_start_families = function(operation) {
 	families = edi_tuning_live_families()
 	keep = vapply(families$class, edi_tuning_class_has_public_method,
 	              logical(1), method_name = spec$method)
-	families[keep, , drop = FALSE]
+	families = families[keep, , drop = FALSE]
+	excluded = EDI_TUNING_WARM_START_OPERATION_EXCLUSIONS[[operation]]
+	if (!is.null(excluded)) {
+		families = families[!(families$class %in% excluded), , drop = FALSE]
+	}
+	families
 }
 
 #' Run one warm-start timing unit: perform one resampling operation under a

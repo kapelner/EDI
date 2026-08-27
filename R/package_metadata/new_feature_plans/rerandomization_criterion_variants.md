@@ -2,8 +2,8 @@
 
 > **Depends on:** `DesignFixedRerandomization` and the greedy-swap engine
 > (shipped). Additive arguments and one diagnostic. **Release target:
-> v1.3.0 (design theory)** (`release_v1_3_0.md → TODO-2`; `_master.md`
-> Phase 5Q).
+> v2.0.0 (theoretical-design backlog, user decision 2026-08-27)**
+> (`release_v2_0_0.md → TODO-5b-ii`; `_master.md` Phase 5Q).
 
 Written 2026-08-27. Owning plan for
 `missing_theoretical_design_classes_literature_audit.md` items **#6, #7,

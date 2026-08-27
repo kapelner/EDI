@@ -3,8 +3,8 @@
 > **Depends on:** the `ClusterStructure` component and the fixed
 > covariate-balancing designs (shipped). Moderate: one component
 > generalization threads through six design classes. **Release target:
-> v1.3.0 (design theory)** (`release_v1_3_0.md → TODO-6`; `_master.md`
-> Phase 5T).
+> v1.3.0 (design extensions from practice)** (`release_v1_3_0.md →
+> TODO-2`; `_master.md` Phase 5T).
 
 Written 2026-08-27. Owning plan for
 `missing_design_classes_literature_audit.md` items **#2, #4, #8** (Part

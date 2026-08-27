@@ -3,8 +3,8 @@
 > **Depends on:** the greedy-swap engine, `DesignFixedOptimal`'s MILP /
 > annealer, `DesignFixedGreedyDOptimal`'s `interest =` machinery,
 > `DesignFixedBinaryMatch` (all shipped). Additive objectives and
-> arguments. **Release target: v1.3.0 (design theory)** (`release_v1_3_0.md → TODO-3`;
-> `_master.md` Phase 5R).
+> arguments. **Release target: v2.0.0 (theoretical-design backlog, user decision
+> 2026-08-27)** (`release_v2_0_0.md → TODO-5b-iii`; `_master.md` Phase 5R).
 
 Written 2026-08-27. Owning plan for
 `missing_theoretical_design_classes_literature_audit.md` items **#2, #3,

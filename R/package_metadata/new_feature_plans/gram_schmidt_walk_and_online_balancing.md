@@ -2,8 +2,8 @@
 
 > **Depends on:** shipped design hierarchy; `sexp_removal_rcppeigen_conversion_spec.md`
 > kernel conventions. New algorithms, additive classes. **Release target:
-> v1.3.0 (design theory)** (`release_v1_3_0.md → TODO-4`; `_master.md`
-> Phase 5S).
+> v2.0.0 (theoretical-design backlog, user decision 2026-08-27)**
+> (`release_v2_0_0.md → TODO-5b-iv`; `_master.md` Phase 5S).
 
 Written 2026-08-27. Owning plan for
 `missing_theoretical_design_classes_literature_audit.md` items **#1, #21,

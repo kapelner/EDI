@@ -4,8 +4,9 @@
 > classes and arguments only. Interacts with the greedy-merge plan's
 > general-`prob_T` work and with
 > `unequal_allocation_matching_greedy_minimization.md` (ARP rules matter
-> once sequential coins accept unequal ratios). **Release target: v1.3.0 (design theory)**
-> (`release_v1_3_0.md → TODO-1`; `_master.md` Phase 5P).
+> once sequential coins accept unequal ratios). **Release target: v2.0.0 (theoretical-design
+> backlog, user decision 2026-08-27)** (`release_v2_0_0.md → TODO-5b-i`;
+> `_master.md` Phase 5P).
 
 Written 2026-08-27. Owning plan for
 `missing_design_classes_literature_audit.md` items **#6, #7** and

@@ -136,12 +136,11 @@ spliced into one step and marked **[spliced]**.
 >   kernel/perf lanes, `cold_starts.md`, `performance_profiling_and_upgrades.md`,
 >   Phase 6 item 5's *merge + soft-deprecation* half; closes
 >   `parallel_fork_cluster_test_safety.md`.
-> - **v1.3.0 — Design theory** (`release_v1_3_0.md`): 5P (classical
->   sequential completions), 5Q (rerandomization criteria / samplers /
->   Grundy-Healy diagnostic), 5R (optimal-objective extensions), 5S
->   (Gram-Schmidt Walk / balancing walk / ARM-PSR), 5T (cluster-level
->   balancing designs + saturation), 5U (unequal allocation + Neyman
->   helper), 5F (many-by-many designs).
+> - **v1.3.0 — Design extensions from practice** (`release_v1_3_0.md`):
+>   5T (cluster-level balancing designs + saturation), 5U (unequal
+>   allocation + Neyman helper), 5F (many-by-many designs). *(Amended
+>   same day, user decision: the theoretical-design backlog — 5P, 5Q, 5R,
+>   5S — moved to 2.0.0.)*
 > - **v1.4.0 — Response & data extensions** (`release_v1_4_0.md`): 5H
 >   (`dead → uncensored` rename) **in one sweep with** 5K (competing risks),
 >   5L (cure fraction), Phase 6 item 3 (interval-censored second wave), 5I
@@ -154,8 +153,11 @@ spliced into one step and marked **[spliced]**.
 >   multivariate, compositional, longitudinal), 5D multi-arm, 5E GPU, Phase
 >   6 item 6 quantum backend, sequential-inference *implementation*, 5Y
 >   (cluster-robust GLMM/GEE), 5Z (mediation), 5AA (response-adaptive
->   randomization), Phase 6 item 4 landscape refresh, and the greedy-class
->   *deletion*.
+>   randomization), **the theoretical-design backlog 5P (classical
+>   sequential completions), 5Q (rerandomization criteria / samplers /
+>   Grundy-Healy), 5R (optimal-objective extensions), 5S (Gram-Schmidt
+>   Walk / balancing walk / ARM-PSR)**, Phase 6 item 4 landscape refresh,
+>   and the greedy-class *deletion*.
 > The phase text below is unchanged; each release file lists its own TODO
 > order.
 
@@ -495,26 +497,28 @@ already stated there:**
   unconditional QTE, log-link QMLE / Gamma. Inference audit #6, #11,
   #17–#20.
 - **5P. Classical sequential-design completions** (added 2026-08-27) →
-  `release_v1_3_0.md → TODO-1`. `sequential_design_classical_completions.md`.
-  Design audit #6–#7; theoretical audit #23–#27.
+  `release_v2_0_0.md → TODO-5b-i` (theoretical-design backlog, user
+  decision). `sequential_design_classical_completions.md`. Design audit
+  #6–#7; theoretical audit #23–#27.
 - **5Q. Rerandomization criterion variants, samplers, Grundy-Healy
-  diagnostic** (added 2026-08-27) → `release_v1_3_0.md → TODO-2`.
+  diagnostic** (added 2026-08-27) → `release_v2_0_0.md → TODO-5b-ii`.
   `rerandomization_criterion_variants.md`. Theoretical audit #6–#7,
   #11–#18, #20, #43, #45.
 - **5R. Optimal-design objective extensions** (added 2026-08-27) →
-  `release_v1_3_0.md → TODO-3`. `optimal_design_objective_extensions.md`.
+  `release_v2_0_0.md → TODO-5b-iii`. `optimal_design_objective_extensions.md`.
   Theoretical audit #2–#5, #9, #41–#42.
 - **5S. Gram-Schmidt Walk, online balancing walk, ARM/PSR** (added
-  2026-08-27) → `release_v1_3_0.md → TODO-4`.
+  2026-08-27) → `release_v2_0_0.md → TODO-5b-iv`.
   `gram_schmidt_walk_and_online_balancing.md`. Theoretical audit #1, #21,
   #22.
 - **5T. Cluster-level covariate-balancing designs + randomized
-  saturation** (added 2026-08-27) → `release_v1_3_0.md → TODO-6`.
+  saturation** (added 2026-08-27) → `release_v1_3_0.md → TODO-2`.
   `cluster_level_covariate_balancing_designs.md`. Design audit #2, #4, #8.
 - **5U. Unequal allocation in matching / greedy / minimization + Neyman
-  helper** (added 2026-08-27) → `release_v1_3_0.md → TODO-5`.
+  helper** (added 2026-08-27) → `release_v1_3_0.md → TODO-1`.
   `unequal_allocation_matching_greedy_minimization.md`. Design audit #1;
-  theoretical audit #38. Depends on the 1.2.0 greedy merge.
+  theoretical audit #38. Depends on the 1.2.0 greedy merge; its ARP-coin
+  half ships with 5P in 2.0.0.
 - **5V. Encouragement designs / CACE** (added 2026-08-27) →
   `release_v1_4_0.md → TODO-9`. `encouragement_design_cace.md`. Design
   audit #3 / inference audit #3.
