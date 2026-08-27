@@ -810,6 +810,16 @@ ZeroAugmentedCountLikelihoodSource = list(
 			is_hurdle = isTRUE(ctx$is_hurdle)
 			is_zinb = identical(private$za_description(), "Zero-Inflated Negative Binomial")
 			start_len = if (is_zinb) ncol(X_fit) + ncol(Xzi_fit) + 1L else ncol(X_fit) + ncol(Xzi_fit)
+			boundary_information = function(fit, information){
+				information = as.matrix(information)
+				if (is_zinb && isTRUE(fit$dispersion_at_poisson_boundary)) {
+					k = nrow(information)
+					information[k, ] = 0
+					information[, k] = 0
+					information[k, k] = 1
+				}
+				information
+			}
 			list(
 				X = X_fit,
 				Xzi = Xzi_fit,
@@ -865,11 +875,11 @@ ZeroAugmentedCountLikelihoodSource = list(
 				},
 				observed_information = function(fit){
 					params = as.numeric(fit$params %||% c(as.numeric(fit$coefficients$cond), as.numeric(fit$coefficients$zi)))
-					as.matrix(fit$observed_information %||% (if (is_zinb) -get_zinb_hessian_cpp(X_fit, y, Xzi_fit, params) else -get_zero_augmented_poisson_hessian_cpp(X_fit, y, Xzi_fit, params, is_hurdle)))
+					boundary_information(fit, fit$observed_information %||% (if (is_zinb) -get_zinb_hessian_cpp(X_fit, y, Xzi_fit, params) else -get_zero_augmented_poisson_hessian_cpp(X_fit, y, Xzi_fit, params, is_hurdle)))
 				},
 				information = function(fit){
 					params = as.numeric(fit$params %||% c(as.numeric(fit$coefficients$cond), as.numeric(fit$coefficients$zi)))
-					as.matrix(fit$information %||% fit$fisher_information %||% fit$observed_information %||% (if (is_zinb) -get_zinb_hessian_cpp(X_fit, y, Xzi_fit, params) else -get_zero_augmented_poisson_hessian_cpp(X_fit, y, Xzi_fit, params, is_hurdle)))
+					boundary_information(fit, fit$information %||% fit$fisher_information %||% fit$observed_information %||% (if (is_zinb) -get_zinb_hessian_cpp(X_fit, y, Xzi_fit, params) else -get_zero_augmented_poisson_hessian_cpp(X_fit, y, Xzi_fit, params, is_hurdle)))
 				},
 				neg_loglik = function(fit){
 					params = as.numeric(fit$params %||% c(as.numeric(fit$coefficients$cond), as.numeric(fit$coefficients$zi)))

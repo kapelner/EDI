@@ -155,7 +155,10 @@ excluding the dispersion coordinate; the dispersion row/column of a full
 covariance result is `NA`. This makes the unreliable boundary estimate
 explicit while keeping treatment-coefficient inference available. Ordinary
 interior NegBin fits and the generic optimizer convergence contract are
-unchanged.
+unchanged. The three immediate R inference callers also condition their
+score-test information on that boundary (the full matrix shape is retained,
+with the dispersion coordinate made algebraically independent), so Wald and
+score paths do not reintroduce the singular nuisance direction downstream.
 
 ## Implementation TODOs
 

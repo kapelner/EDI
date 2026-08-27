@@ -617,6 +617,16 @@ InferenceCountHurdleNegBin = define_inference_class(
 			j_treat = as.integer(ctx$j_treat)
 			opt_alg = private$optimization_alg %||% "lbfgs"
 			n_params = ncol(X_fit) + 1L
+			boundary_information = function(fit, information){
+				information = as.matrix(information)
+				if (isTRUE(fit$dispersion_at_poisson_boundary)) {
+					k = nrow(information)
+					information[k, ] = 0
+					information[, k] = 0
+					information[k, k] = 1
+				}
+				information
+			}
 			full_fit = tryCatch(
 				fast_truncated_negbin_count_cpp(
 					X = X_pos,
@@ -658,13 +668,13 @@ InferenceCountHurdleNegBin = define_inference_class(
 					as.numeric(fit$score %||% get_hurdle_negbin_count_score_cpp(X_fit, y, params))
 				},
 				observed_information = function(fit){
-					as.matrix(fit$observed_information %||% -get_hurdle_negbin_count_hessian_cpp(X_fit, y, as.numeric(fit$params %||% c(as.numeric(fit$b), log(as.numeric(fit$theta_hat))))))
+					boundary_information(fit, fit$observed_information %||% -get_hurdle_negbin_count_hessian_cpp(X_fit, y, as.numeric(fit$params %||% c(as.numeric(fit$b), log(as.numeric(fit$theta_hat))))))
 				},
 				fisher_information = function(fit){
-					as.matrix(fit$fisher_information %||% fit$information %||% fit$observed_information %||% -get_hurdle_negbin_count_hessian_cpp(X_fit, y, as.numeric(fit$params %||% c(as.numeric(fit$b), log(as.numeric(fit$theta_hat))))))
+					boundary_information(fit, fit$fisher_information %||% fit$information %||% fit$observed_information %||% -get_hurdle_negbin_count_hessian_cpp(X_fit, y, as.numeric(fit$params %||% c(as.numeric(fit$b), log(as.numeric(fit$theta_hat))))))
 				},
 				information = function(fit){
-					as.matrix(fit$information %||% fit$fisher_information %||% fit$observed_information %||% -get_hurdle_negbin_count_hessian_cpp(X_fit, y, as.numeric(fit$params %||% c(as.numeric(fit$b), log(as.numeric(fit$theta_hat))))))
+					boundary_information(fit, fit$information %||% fit$fisher_information %||% fit$observed_information %||% -get_hurdle_negbin_count_hessian_cpp(X_fit, y, as.numeric(fit$params %||% c(as.numeric(fit$b), log(as.numeric(fit$theta_hat))))))
 				},
 				neg_loglik = function(fit){
 					as.numeric(fit$neg_loglik %||% fit$neg_ll)

@@ -353,6 +353,19 @@ InferenceCountNegBin = define_inference_class(
 			X_fit = ctx$X
 			y = as.numeric(private$y)
 			j_treat = as.integer(ctx$j_treat)
+			boundary_information = function(fit, information){
+				information = as.matrix(information)
+				if (isTRUE(fit$dispersion_at_poisson_boundary)) {
+					# Keep the generic score-test dimension contract while making
+					# the last (dispersion) coordinate algebraically independent,
+					# which is equivalent to conditioning on the Poisson boundary.
+					k = nrow(information)
+					information[k, ] = 0
+					information[, k] = 0
+					information[k, k] = 1
+				}
+				information
+			}
 			list(
 				X = X_fit,
 				y = y,
@@ -378,13 +391,13 @@ InferenceCountNegBin = define_inference_class(
 					get_negbin_regression_score_cpp(X_fit, y, c(as.numeric(fit$b), log(as.numeric(fit$theta_hat))))
 				},
 				observed_information = function(fit){
-					-get_negbin_regression_hessian_cpp(X_fit, y, c(as.numeric(fit$b), log(as.numeric(fit$theta_hat))))
+					boundary_information(fit, -get_negbin_regression_hessian_cpp(X_fit, y, c(as.numeric(fit$b), log(as.numeric(fit$theta_hat)))))
 				},
 				fisher_information = function(fit){
-					-get_negbin_regression_hessian_cpp(X_fit, y, c(as.numeric(fit$b), log(as.numeric(fit$theta_hat))))
+					boundary_information(fit, -get_negbin_regression_hessian_cpp(X_fit, y, c(as.numeric(fit$b), log(as.numeric(fit$theta_hat)))))
 				},
 				information = function(fit){
-					-get_negbin_regression_hessian_cpp(X_fit, y, c(as.numeric(fit$b), log(as.numeric(fit$theta_hat))))
+					boundary_information(fit, -get_negbin_regression_hessian_cpp(X_fit, y, c(as.numeric(fit$b), log(as.numeric(fit$theta_hat)))))
 				},
 				neg_loglik = function(fit){
 					val = fit$neg_loglik %||% fit$neg_log_lik %||% fit$neg_ll
@@ -476,7 +489,8 @@ InferenceCountNegBin = define_inference_class(
 						if (is.null(res) || !isTRUE(res$converged)) return(NULL)
 						list(b = as.numeric(res$b), ssq_b_2 = NA_real_, j_treat = j_treat,
 						     theta_hat = res$theta_hat, neg_loglik = -as.numeric(res$logLik),
-						     fisher_information = res$fisher_information)
+						     fisher_information = res$fisher_information,
+						     dispersion_at_poisson_boundary = res$dispersion_at_poisson_boundary)
 					} else {
 						res = tryCatch(
 							fast_neg_bin_with_var_cpp(
@@ -494,7 +508,8 @@ InferenceCountNegBin = define_inference_class(
 						ssq_b_j = if (j_treat <= ncol(X_fit)) as.numeric(vcov[j_treat, j_treat]) else NA_real_
 						list(b = as.numeric(res$b), ssq_b_j = ssq_b_j, j_treat = j_treat,
 						     theta_hat = res$theta_hat, neg_loglik = -as.numeric(res$logLik),
-						     fisher_information = res$hess_fisher_info_matrix)
+						     fisher_information = res$hess_fisher_info_matrix,
+						     dispersion_at_poisson_boundary = res$dispersion_at_poisson_boundary)
 					}
 				},
 				fit_ok = function(mod, X_fit, keep){

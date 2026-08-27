@@ -208,14 +208,29 @@ def _check_external_once(url: str) -> str | None:
         return f"{e}"
 
 
+def _is_transient_result(result: str) -> bool:
+    # A plain timeout/connection-reset/handshake failure (not an HTTPError)
+    # is frequently a momentary network blip rather than a real dead link.
+    if "HTTP " not in result:
+        return True
+    # HTTP 5xx is the server itself reporting a transient condition (bad
+    # gateway, service unavailable, overloaded) -- unlike 4xx (a genuinely
+    # dead page returns 404/410), a 5xx says nothing about whether the page
+    # exists. Seen in practice: codecov.io badge URLs returning a one-off
+    # 503 that resolved on a manual re-check seconds later.
+    try:
+        code = int(result.removeprefix("HTTP "))
+    except ValueError:
+        return False
+    return 500 <= code < 600
+
+
 def check_external(url: str) -> str | None:
     result = _check_external_once(url)
     if result is None:
         return None
-    # A plain timeout/connection-reset/handshake failure (not an HTTPError --
-    # those are handled above) is frequently a momentary network blip rather
-    # than a real dead link. Retry once before reporting it as broken.
-    if "HTTP " not in result:
+    # Retry once before reporting a transient-looking failure as broken.
+    if _is_transient_result(result):
         time.sleep(EXTERNAL_TRANSIENT_RETRY_DELAY_SECS)
         result = _check_external_once(url)
     return result
