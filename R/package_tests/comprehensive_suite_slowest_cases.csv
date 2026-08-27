@@ -1,7 +1,7 @@
 "source","tier","target","case_id","status","duration_time_sec"
 "comprehensive_tests","","InferenceIncidKKCondLogitGLMMOneLik","comprehensive_tests__incidence__FixedBinaryMatch__compute_gradient_confidence_interval_35b8c22c","ok",599.946
 "comprehensive_tests","","InferenceCountHurdlePoisson","comprehensive_tests__count__FixedMatchingGreedy__compute_lik_ratio_bartlett_two_sided_pval_d472d1f0","ok",279.368
-"run_comprehensive_suite","smoke","","comprehensive_suite__smoke__all__internal_safety_nets","ok",185.589394569397
+"run_comprehensive_suite","smoke","","comprehensive_suite__smoke__all__internal_safety_nets","ok",179.489881515503
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","comprehensive_tests__survival__KK21stepwise__compute_estimate_847659b8","ok",168.691
 "run_comprehensive_suite","ci","","comprehensive_suite__ci__all__internal_safety_nets","ok",123.058614730835
 "comprehensive_tests","","InferenceOrdinalGCompMeanDiff","comprehensive_tests__ordinal__SPBR__compute_asymp_two_sided_pval_20584640","ok",120.322

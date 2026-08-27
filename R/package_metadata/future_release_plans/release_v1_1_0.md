@@ -32,13 +32,13 @@ the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
 > | Release | Theme | File |
 > |---|---|---|
 > | **1.1.0** (this file) | **Inference quality** — practitioner-standard estimators, likelihood corrections, diagnostics chain, ordinal Bayesian-bootstrap backends, KK beta OneLik, count quantile regression, Phase 0 decisions for every gated track | `release_v1_1_0.md` |
-> | 1.2.0 | **Performance & engines** — kernel/perf lanes, cold starts, profiling, greedy-engine merge (soft-deprecation) | `release_v1_2_0.md` |
+> | 1.2.0 | **Performance & engines** — kernel/perf lanes, cold starts, greedy-engine merge (soft-deprecation) | `release_v1_2_0.md` |
 > | 1.3.0 | **Design extensions from practice** — cluster-level balancing designs + saturation, unequal allocation + Neyman helper, many-by-many family *(the theoretical-design backlog — classical completions, rerandomization criteria/samplers/diagnostics, optimal-objective extensions, GSW / balancing walk / ARM-PSR — moved to 2.0.0, user decision)* | `release_v1_3_0.md` |
 > | 1.4.0 | **Response & data extensions** — censoring on continuous/count/proportion, competing risks + `dead → uncensored` rename (one sweep), cure fraction, interval-censored second wave, survival QR, semi-continuous, frailty k-strata, encouragement/CACE, moderation, missing outcomes, sequential-inference scoping | `release_v1_4_0.md` |
 > | 2.0.0 | **Architecture + modern designs** — multi-arm, new response shapes, sequential-inference implementation + RAR, cluster GLMM/GEE, mediation, the theoretical-design backlog (GSW, ARM/PSR, rerandomization criteria, objective extensions, classical completions), compute backends, deferred breaking changes | `release_v2_0_0.md` |
 >
 > **Moved out of this file** (TODO bullets below retained verbatim for
-> history, each prefixed with its new home): → 1.2.0: TODO-4, TODO-4b,
+> history, each prefixed with its new home): → 1.2.0: TODO-4,
 > TODO-11 (merge half). → 1.3.0: TODO-15. → 1.4.0: TODO-7, TODO-12,
 > TODO-13 (scoping), TODO-15c, TODO-15d, TODO-15f, TODO-15g,
 > `semi_continuous_…` from TODO-6, `full_glmm_for_weibull_frailty.md`.
@@ -264,7 +264,7 @@ ticked in their **owning plans**; this list is the release index.
   wirings in both wait on 1.0.0's Phase 1D.2 KK migration landing),
   `cold_starts.md → TODO-1..14` (documentation/audit — also a prerequisite
   for TODO-10, which benchmarks the axes this audit documents).
-- [ ] ~~TODO-4b~~ **→ moved 2026-08-27 to `release_v1_2_0.md → TODO-5`** — **Performance profiling & upgrades lane**
+- [ ] TODO-4b: **Performance profiling & upgrades lane**
   (`performance_profiling_and_upgrades.md` §8 → TODO-132..179; added
   2026-08-23, user decision; parallel with TODO-3/TODO-4, no Phase 0
   dependency; the owning plan ticks its own TODOs — this is the index
@@ -313,25 +313,32 @@ ticked in their **owning plans**; this list is the release index.
   estimates are superseded by those measurements, and
   `benchmark_model_fits.md` has been re-run under the `→ TODO-135` gate.
 - [ ] TODO-4c: **More SIMD optimization lane** (`more_simd_optimization.md`
-  → TODO-1..9; added 2026-08-27, user decision — slated for **v1.1.0** even
-  though the wider perf lane TODO-4b moved to 1.2.0 the same day). Premise:
-  power users compile from source, so runtime ISA dispatch is moot and the
-  work is making the compiler actually vectorize the hot loops. Run in that
-  plan's own order: `→ TODO-1` (opt-report on the hot files — the gate for
-  everything else) → `→ TODO-3, 9` (flag-only: `-fno-math-errno
-  -fno-trapping-math`, `-fopenmp-simd`) → `→ TODO-2` (`__restrict`/aliasing
-  hygiene) → `→ TODO-4` (libmvec inside existing loops) → `→ TODO-5`
-  (aligned copies of `Map`ped R memory) → `→ TODO-6, 7` (tree-code SoA and
-  branch-free loops, only where TODO-1 flags them) → `→ TODO-8` (float32 for
-  split ranking, gated on a ranking-equivalence test). Items that duplicate
-  `performance_profiling_and_upgrades.md` TODO-136/137/144/154/168 are
-  ticked in both places; the earlier negative result on the safe fast-math
-  subset (that plan's TODO-68) is the null hypothesis for `→ TODO-3/4`, not
-  a foregone win. **Additive-constraint gate:** `→ TODO-4` (libmvec, ≤4 ulp)
-  and `→ TODO-8` (float32) can change results at tolerance level and ship
-  opt-in or with re-justified equivalence tolerances; `→ TODO-1, 2, 3, 5, 6,
-  7, 9` are bit-for-bit or flag-only. Exit criterion: every `→ TODO-1..9`
-  has a measured entry or a "measured and dropped" note.
+  → TODO-1..7; added 2026-08-27, user decision, slated for v1.1.0 alongside
+  TODO-4b). Premise: power users compile from source, so runtime ISA
+  dispatch is moot and the work is making the compiler actually vectorize
+  the hot loops. **No duplication with TODO-4b:** every diagnostic/
+  measurement item — the opt-report sweep, the fast-math-subset/libmvec
+  test, the Eigen-vectorization audit, the `.row(i)` classification, the
+  GLM-objective branch-free layout — is owned solely by TODO-4b
+  (`performance_profiling_and_upgrades.md` TODO-168/137/136/144/154); this
+  lane consumes those results and owns only the implementation work that
+  is not already numbered there. Run in that plan's own order: `→ TODO-7`
+  (flag-only: `-fopenmp-simd` for the macOS gap, no dependency) → `→
+  TODO-1` (`__restrict` sweep, once TODO-4b's TODO-168 reports aliasing
+  findings) → `→ TODO-2` (wires TODO-4b's TODO-137 result into `configure`
+  once it reports) → `→ TODO-3` (aligned `Map` copies, once TODO-4b's
+  TODO-136 reports) → `→ TODO-4` (split-search SoA, extends TODO-4b's
+  TODO-144 sweep to the tree files first) → `→ TODO-5` (branch-free
+  split-search comparisons — same technique as TODO-4b's TODO-154 but a
+  different code path, the split threshold rather than the GLM objective)
+  → `→ TODO-6` (float32 for split ranking, gated on a ranking-equivalence
+  test). **Additive-constraint gate:** `→ TODO-6` (float32) can change
+  results at tolerance level and ships opt-in or with re-justified
+  equivalence tolerances; `→ TODO-2` inherits whatever gate TODO-4b's
+  TODO-137 assigns (libmvec, ≤4 ulp); `→ TODO-1, 3, 4, 5, 7` are
+  bit-for-bit or flag-only. Exit criterion: every `→ TODO-1..7` has a
+  measured entry or a "measured and dropped" note, and none of them
+  duplicate a TODO-4b measurement.
 - [ ] TODO-5: **Corrections track** (`_master.md` Phase 5A order, minus
   `marginal_estimand_report.md`, moved to v1.0.0, amended 2026-08-18;
   `expanded_estimate_report.md` moved back here the same day; each

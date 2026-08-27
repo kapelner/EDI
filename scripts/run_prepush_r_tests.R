@@ -223,6 +223,35 @@ TallyReporter <- R6::R6Class("TallyReporter",
 				status, elapsed_fmt, self$n_ok, self$n_fail, self$n_warn, self$n_skip, self$current_file, self$current_file_n_tests
 			)
 			if (self$interactive_tty) {
+				# "\r\033[2K" only resets/clears the CURRENT physical terminal
+				# row. This line easily runs 150+ characters (file names get
+				# long) -- if it ever exceeds the terminal's actual column
+				# width it wraps onto a second physical row, "\r" only
+				# returns the cursor to the start of THAT second row (not the
+				# true start of the logical line), and the next draw's
+				# clear-and-redraw then only ever touches the second row,
+				# permanently leaving a stale fragment of the first row's old
+				# content sitting above it -- confirmed in practice
+				# 2026-08-27: every redraw left a visible tail like "(i_tes"
+				# glued in front of the next update. Truncating fixed it, but
+				# NOT because the real terminal was too narrow -- it was 170
+				# columns, wider than the ~160-character line, so a naive
+				# "line exceeds the real terminal width" story doesn't fully
+				# hold up on its own. What actually matters here is
+				# getOption("width"): unlike an interactive R session,
+				# Rscript never probes the tty's real column count and just
+				# defaults this to 80 -- confirmed separately, same terminal,
+				# same run -- so truncating to *that* (deliberately
+				# conservative, always well under any real terminal width
+				# worth supporting) rather than the tty's true width is the
+				# actual fix, whatever R-level or terminal-level mechanism
+				# was keying off the narrower number. One column of margin
+				# avoids a same-width line still triggering auto-wrap on
+				# some terminals.
+				term_width <- getOption("width", 80L)
+				if (nchar(line) > term_width - 1L) {
+					line <- substr(line, 1L, term_width - 1L)
+				}
 				self$write_out("\r\033[2K", line, if (force) "\n" else "", sep = "")
 			} else {
 				self$write_out(line, "\n", sep = "")
@@ -235,26 +264,23 @@ TallyReporter <- R6::R6Class("TallyReporter",
 # isatty(stdout()) would report the log file's tty-ness (always FALSE), not
 # the real terminal's.
 #
-# isatty(stderr()) alone is NOT a reliable signal that "\r\033[2K"-based
-# single-line redraws will actually render correctly: some terminal
-# emulators/multiplexers/IDE-integrated terminals report a real tty but
-# don't honor a bare trailing "\r" with no "\n" the way a raw pty does, so
-# every intermediate "running" draw (which relies entirely on "\r" to reset
-# the cursor for the next draw -- see draw() above, only the final "done"
-# line gets a trailing "\n") ends up glued onto the next one with no visual
-# separation at all instead of overwriting in place. Confirmed unreliable in
-# practice (2026-08-27): isatty(stderr()) was TRUE in a real interactive
-# shell, yet every "running" update still rendered concatenated on one
-# unbroken line -- an opt-in env var to force the safe path was tried first
-# and didn't help (it has to actually be set in the shell that runs `git
-# push`, which is easy to forget/lose across shells, so requiring opt-in
-# just shifts the same failure mode one level up). Given isatty() can't be
-# trusted to predict this, default to the safe newline-per-update fallback
-# (the same path already used for genuinely non-interactive/CI output) and
-# require EXPLICIT opt-in for the fancy single-line redraw instead, via
-# EDI_PREPUSH_FANCY_PROGRESS=1, for the (real pty, verified-working)
-# terminals where it's actually worth it.
-interactive_tty <- isatty(stderr()) && Sys.getenv("EDI_PREPUSH_FANCY_PROGRESS", "0") == "1"
+# History (2026-08-27): "\r\033[2K"-based single-line redraws appeared to
+# glue every "running" update onto the next one with no visual separation,
+# even in a plain, verified-\r-capable interactive shell (isatty(stderr())
+# TRUE). Root-caused via a minimal /dev/stderr-connection repro (ruled out
+# the write mechanism/race) plus close reading of the glued text itself: a
+# stray fragment like "(i_tes" from the END of one draw's line was showing
+# up glued in FRONT of the next draw. "\r\033[2K" only resets/clears the
+# CURRENT physical terminal row -- this line runs 150+ characters (file
+# names get long), so once it exceeds the terminal's actual column width it
+# wraps onto a second physical row, and the next draw's "\r"+clear then only
+# ever touches that second row, permanently stranding the first row's old
+# content above it. Real fix (see draw() above): truncate the line to the
+# terminal's actual detected width so it can never wrap in the first place
+# -- confirmed fixed in practice against the terminal that originally
+# reproduced this. isatty(stderr()) is a fine signal once that's in place;
+# no env var override needed.
+interactive_tty <- isatty(stderr())
 
 # Test bodies and package code write chatter to stdout (cat()/print()),
 # message()/warning(), and in simulations_framework.R's case, straight to

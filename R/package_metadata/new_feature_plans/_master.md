@@ -133,9 +133,11 @@ spliced into one step and marked **[spliced]**.
 >   bootstrap / randomization-CI plans, `randomization_ci_search_precision.md`,
 >   and the nominal one-vs-rest vignette if its TODO-1 is "no".
 > - **v1.2.0 — Performance & engines** (`release_v1_2_0.md`): Phase 4
->   kernel/perf lanes, `cold_starts.md`, `performance_profiling_and_upgrades.md`,
->   Phase 6 item 5's *merge + soft-deprecation* half; closes
->   `parallel_fork_cluster_test_safety.md`.
+>   kernel/perf lanes, `cold_starts.md`, Phase 6 item 5's *merge +
+>   soft-deprecation* half; closes `parallel_fork_cluster_test_safety.md`.
+>   (`performance_profiling_and_upgrades.md` and `more_simd_optimization.md`
+>   stay in v1.1.0 — see the Phase 4 "Second lane" / "Third lane" notes
+>   below.)
 > - **v1.3.0 — Design extensions from practice** (`release_v1_3_0.md`):
 >   5T (cluster-level balancing designs + saturation), 5U (unequal
 >   allocation + Neyman helper), 5F (many-by-many designs). *(Amended
@@ -436,15 +438,18 @@ kernels); runs in parallel with Phases 2–3; its parallelism sub-batch
 sub-batch (TODO-143/171/175 + published 135/147/148 numbers) is one rented
 `c7i.metal-48xl` session. TODOs are ticked in the owning plan.
 
-**Third lane (added 2026-08-27, user decision):
-`more_simd_optimization.md` → TODO-1..9 — index entry
-`release_v1_1_0.md → TODO-4c`, slated for v1.1.0** (the second lane above
-moved to v1.2.0 the same day; this one stays). Source-build premise
-(`-march=native`, no runtime dispatch); opt-report-driven vectorization of
-the hot loops: safe fast-math subset, `-fopenmp-simd`, `__restrict`,
-libmvec, aligned copies, tree-code SoA / branch-free loops, float32 for
-split ranking. Cross-references TODO-136/137/144/154/168 of the second lane
-rather than re-owning them.
+**Third lane (added 2026-08-27, user decision; both lanes stay in
+v1.1.0):** `more_simd_optimization.md` → TODO-1..7 — index entry
+`release_v1_1_0.md → TODO-4c`. Source-build premise (`-march=native`, no
+runtime dispatch); implements what the second lane's diagnostics find:
+`-fopenmp-simd` (the macOS gap), `__restrict` sweep, wiring a confirmed
+fast-math subset into `configure`, aligned `Map` copies, tree-code SoA,
+branch-free split-search comparisons, float32 for split ranking. **No
+duplication:** every measurement/diagnostic step (opt-report sweep,
+fast-math/libmvec test, Eigen-vectorization audit, `.row(i)` classification,
+branch-free GLM-objective layout) is owned solely by the second lane's
+TODO-168/137/136/144/154; the third lane consumes those results rather than
+re-running them.
 
 ---
 

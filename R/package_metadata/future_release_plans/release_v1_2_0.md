@@ -29,12 +29,6 @@ work builds on. No new statistical functionality.
   allocation and warm-start work for the M/MM-regression classes.
 - `cold_starts.md` — smart cold-start strategies across the optimizer-
   based kernels.
-- `performance_profiling_and_upgrades.md` §8 (TODO-132..179) — the
-  measurement-first native-kernel lane (libmvec exp/log, adaptive
-  quadrature, Monte-Carlo early stopping, non-R RNG streams, parallelism
-  sub-batch coordinated with `tune_EDI_for_this_machine()`, bare-metal
-  session). Result-changing items are opt-in or a documented default
-  change.
 - `design_fixed_greedy_pair_switch_merge.md` — merge `DesignFixedGreedy`
   + `DesignFixedGreedyDOptimal` into `DesignFixedGreedyPairSwitch` with the
   general-`prob_T` swap-delta rederivation; **soft-deprecation only**
@@ -57,18 +51,14 @@ Ticked in owning plans; this list is the index.
   `robust_regression_perf_optimization_spec.md → TODO-1..4` (profile
   before SIMD).
 - [ ] TODO-4: **Cold starts** `cold_starts.md → TODO-2..14`.
-- [ ] TODO-5: **Performance profiling & upgrades lane**
-  `performance_profiling_and_upgrades.md → TODO-132..179` in that plan's
-  own sub-batch order; parallelism sub-batch coordinated with the shipped
-  machine tuner; bare-metal sub-batch is one rented session.
-- [ ] TODO-6: **Greedy engine merge** `design_fixed_greedy_pair_switch_merge.md
+- [ ] TODO-5: **Greedy engine merge** `design_fixed_greedy_pair_switch_merge.md
   → TODO-1..10` — TODO-2's `pair_mode` investigation first (its
   relationship to `DesignFixedMatchingGreedyPairSwitching` decides how
   1.3.0's unequal-allocation plan handles matched pairs); deprecation
   shims, not deletions.
-- [ ] TODO-7: Move `parallel_fork_cluster_test_safety.md` to
+- [ ] TODO-6: Move `parallel_fork_cluster_test_safety.md` to
   `../finished_features/`.
-- [ ] TODO-8: **Release mechanics** per `release.md`.
+- [ ] TODO-7: **Release mechanics** per `release.md`.
 
 ## Standing constraints
 

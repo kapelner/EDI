@@ -2483,10 +2483,13 @@ If budget allows a second day, `c7a.metal-48xl` adds the AMD cost model (EDI use
 ### 8.2 Build, compiler, vectorization, and the generated code itself
 
 > Cross-reference (2026-08-27): `more_simd_optimization.md` (v1.1.0,
-> `release_v1_1_0.md → TODO-4c`) is the SIMD-specific ordering over
-> TODO-136/137/144/154/168 below plus `-fopenmp-simd`, `__restrict`
-> hygiene, aligned `Map` copies, and float32 split ranking. Tick shared
-> items in both places.
+> `release_v1_1_0.md → TODO-4c`) owns none of TODO-136/137/144/154/168
+> below — those measurements stay here, ticked only in this file. That
+> plan consumes their results to implement `-fopenmp-simd`, an
+> `__restrict` sweep, wiring a confirmed fast-math subset into `configure`,
+> aligned `Map` copies, tree-code SoA, branch-free split-search
+> comparisons (a different code path from TODO-154's GLM objectives), and
+> float32 split ranking. No TODO number is shared between the two files.
 
 - [ ] **TODO-136: Re-verify the vectorization story now that `EIGEN_DONT_VECTORIZE` is opt-in.** TODO-18 documents that Eigen `array().exp()` segfaulted without `EIGEN_DONT_VECTORIZE` (R's 8-byte heap vs 32-byte AVX2 alignment) and that the define "prevents Eigen's internal pexp SIMD kernel from activating". `configure` now sets it only under `EDI_DISABLE_VECTORIZATION=1`. Audit: (a) confirm the default build is Eigen-vectorized — `objdump -d EDI.so | grep -c vfmadd`, `grep -c 'ymm\|zmm'`, `sde64 -mix` for the dynamic share of packed-double instructions (TODO-167), `EDI:::build_info()` for the flags; (b) confirm no alignment crash is possible — every `Eigen::Map` over R memory must be `Eigen::Unaligned` (the default for `Map`) and every owning `MatrixXd`/`VectorXd` is Eigen-allocated and therefore aligned; grep for `Map<..., Aligned>`; run the smoke tests under `-fsanitize=undefined` (alignment checks) once; (c) re-run the reverted TODO-18 bulk `array().exp()` experiment, since the reason it was reverted (scalar fallback under `EIGEN_DONT_VECTORIZE`) no longer applies; (d) check whether `-march=native` on an AVX-512 host triggers frequency licensing downclock on the small kernels — `turbostat --show Core,Avg_MHz,Bzy_MHz,PkgTmp` logged during the benchmark, compare `-march=native` vs `-march=native -mprefer-vector-width=256`; (e) use Intel SDE ISA emulation (`-hsw`, `-skl`) to confirm the `EDI_PORTABLE=1` build really contains no illegal instructions for older CPUs.
 

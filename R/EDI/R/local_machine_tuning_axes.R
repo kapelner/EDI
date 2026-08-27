@@ -650,7 +650,27 @@ edi_tuning_parallel_run_setting = function(class, response_type, n, seed, operat
 	des = edi_tuning_synthetic_experiment(response_type, n = n, seed = seed)
 	generator = get(class, envir = asNamespace("EDI"), inherits = FALSE)
 	inf = generator$new(des)
-	do.call(inf[[spec$method]], spec$args)
+	# 2026-08-27: a class passing edi_tuning_parallel_families()'s method-
+	# existence filter is necessary but not sufficient -- it can still throw
+	# a legitimate "not implemented for this response type/estimand" error
+	# at call time (e.g. InferenceOrdinal*'s randomization CI, unsupported
+	# for ordinal model-coefficient estimands). edi_tuning_warm_start_run_
+	# setting() above already tolerates exactly this via the same tryCatch/
+	# regex; this sibling function lacked it entirely, so the same class of
+	# error that the warm-start axis silently skips instead propagated
+	# uncaught here and killed the whole tuning run mid-parallel-axis
+	# (confirmed via a real run: InferenceOrdinal*'s compute_rand_
+	# confidence_interval() at the rand_ci parallel cell, cell 876/1056).
+	tryCatch(
+		do.call(inf[[spec$method]], spec$args),
+		error = function(e) {
+			if (!grepl("not implemented|not supported|only supported|does not support|does not expose|Must be implemented",
+			           conditionMessage(e))) {
+				stop(e)
+			}
+			NULL
+		}
+	)
 	invisible(NULL)
 }
 
