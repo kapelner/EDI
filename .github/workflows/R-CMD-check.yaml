@@ -124,18 +124,13 @@ jobs:
       # audit of every \donttest{} block found no blocking call (no system(),
       # Sys.sleep, readline, sockets, download.file, or parallel::mclapply/
       # cluster usage) and no example on the known-hanging GLPK/ompr MILP
-      # path -- the leading remaining suspect is MinGW's OpenMP/pthread
-      # implementation interacting badly with R's single-threaded example
-      # harness (the package's C++ kernels are pervasively OpenMP-parallel;
-      # see the `_OPENMP`-gated kernels under `src/`). Re-enabling the
-      # donttest pass here with OMP_NUM_THREADS pinned to 1 (Windows-only) is
-      # a targeted test of that hypothesis. Now that the job carries a
-      # 90-minute `timeout-minutes` (see above; added for an unrelated
-      # 2026-08-10 incident), the exposure if this doesn't fix it is capped at
-      # ~90 minutes, not the original 5.5-hour incident. If the hang recurs,
-      # revert both lines below (_R_CHECK_DONTTEST_EXAMPLES_ back to 'false',
-      # drop the OMP_NUM_THREADS override) and fall back to per-file-group CI
-      # bisection instead.
+      # path. Pinning OpenMP to one thread removed one possible deadlock but
+      # did not remove the stall: run 33101017372 (2026-08-27) spent roughly
+      # 110 silent minutes in this pass before the 150-minute job timeout.
+      # That run also established that Windows was the only main matrix OS
+      # still using reference BLAS. The guarded OpenBLAS runtime swap below
+      # now tests the same performance explanation already confirmed on the
+      # Ubuntu and macOS legs while retaining the OpenMP deadlock precaution.
       _R_CHECK_DONTTEST_EXAMPLES_: true
 
     steps:
@@ -170,10 +165,12 @@ jobs:
       # OMP_NUM_THREADS: " to stderr, which rcmdcheck's --as-cran run then
       # surfaces as a DESCRIPTION-meta-information WARNING/ERROR (see the
       # 2026-08-17 ubuntu-latest (release) failure this was written to fix).
-      - name: Pin OMP_NUM_THREADS to 1 on Windows (see comment above)
+      - name: Configure Windows compute threads (see comment above)
         if: matrix.config.os == 'windows-latest'
         shell: bash
-        run: echo "OMP_NUM_THREADS=1" >> "$GITHUB_ENV"
+        run: |
+          echo "OMP_NUM_THREADS=1" >> "$GITHUB_ENV"
+          echo "OPENBLAS_NUM_THREADS=2" >> "$GITHUB_ENV"
 
       - uses: r-lib/actions/setup-pandoc@v2
 
@@ -204,6 +201,17 @@ jobs:
           working-directory: R/EDI
           extra-packages: any::rcmdcheck
           needs: check
+
+      # Windows R ships reference Rblas.dll/Rlapack.dll and has no supported
+      # alternatives mechanism. Install a pre-built UCRT64 OpenBLAS DLL only
+      # after dependency installation (so source dependency builds retain the
+      # untouched R runtime), then replace both runtime DLLs immediately before
+      # the check. The script deliberately does not add MSYS2's UCRT64 bin to
+      # PATH, which would risk mixing its compiler with setup-r's Rtools.
+      - name: Switch Windows R to OpenBLAS
+        if: matrix.config.os == 'windows-latest'
+        shell: pwsh
+        run: .github/scripts/switch-windows-r-to-openblas.ps1
 
       - uses: r-lib/actions/check-r-package@v2
         with:
@@ -572,4 +580,3 @@ jobs:
         if: failure()
         working-directory: R/EDI
         run: cat EDI.Rcheck/tests/testthat.Rout.fail EDI.Rcheck/tests/testthat.Rout 2>/dev/null || true
-

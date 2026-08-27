@@ -37,6 +37,8 @@ jobs:
       R_KEEP_PKG_SOURCE: yes
       EDI_PORTABLE: 1
       _R_CHECK_DONTTEST_EXAMPLES_: 'true'
+      OMP_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 2
 
     steps:
       - uses: actions/checkout@v7
@@ -53,6 +55,10 @@ jobs:
           working-directory: R/EDI
           extra-packages: any::rcmdcheck
           needs: check
+
+      - name: Switch Windows R to OpenBLAS
+        shell: pwsh
+        run: .github/scripts/switch-windows-r-to-openblas.ps1
 
       - name: Build tarball
         working-directory: R/EDI
@@ -99,6 +105,8 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       EDI_PORTABLE: 1
+      OMP_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 2
 
     steps:
       - uses: actions/checkout@v7
@@ -115,6 +123,10 @@ jobs:
           working-directory: R/EDI
           extra-packages: any::rcmdcheck
           needs: check
+
+      - name: Switch Windows R to OpenBLAS
+        shell: pwsh
+        run: .github/scripts/switch-windows-r-to-openblas.ps1
 
       - name: Install EDI
         working-directory: R/EDI
