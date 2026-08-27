@@ -42,6 +42,7 @@ test_that("annealing best-of-chains objective <= every individual chain value", 
 
 test_that("annealing finds the certified global optimum with high frequency (quadratic, brute-forceable n)", {
 	skip_on_cran()
+	skip_if_not_installed("ompr"); skip_if_not_installed("ompr.roi"); skip_if_not_installed("ROI.plugin.glpk")
 	X = annealing_test_X(10, 2, 203)
 	prep = EDI:::prepare_optimal_objective_matrices(X, "mahal_dist")
 	exact = EDI:::milp_solve_quadratic(prep$Q, n_T = 5L)
@@ -56,6 +57,7 @@ test_that("annealing finds the certified global optimum with high frequency (qua
 })
 
 test_that("annealing_solve_l1 matches the MILP global optimum on small instances", {
+	skip_if_not_installed("ompr"); skip_if_not_installed("ompr.roi"); skip_if_not_installed("ROI.plugin.glpk")
 	X = annealing_test_X(10, 3, 204)
 	prep = EDI:::prepare_optimal_objective_matrices(X, "abs_sum_diff")
 	exact = EDI:::milp_solve_l1(prep$A, n_T = 5L)
@@ -67,6 +69,7 @@ test_that("annealing_solve_l1 matches the MILP global optimum on small instances
 })
 
 test_that("annealing_solve_A_ratio matches the Dinkelbach global optimum on small instances", {
+	skip_if_not_installed("ompr"); skip_if_not_installed("ompr.roi"); skip_if_not_installed("ROI.plugin.glpk")
 	X = annealing_test_X(10, 2, 205)
 	PH = EDI:::build_optimal_design_P_H(X, interest = "all", prior_precision = NULL,
 		standardize_covariates = TRUE, need_H = TRUE)

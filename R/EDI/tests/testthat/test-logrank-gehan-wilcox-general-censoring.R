@@ -107,6 +107,7 @@ test_that("guards fire under general censoring for LogRank and GehanWilcox", {
 })
 
 test_that("InferenceSurvivalKMDiff now accepts interval-censored data (TODO-7 predates, TODO-8 supersedes)", {
+	skip_if_not_installed("interval")
 	# At the time TODO-7 landed, InferenceSurvivalKMDiff had no interval-censoring
 	# support at all and this test correctly expected construction to error. TODO-8
 	# later gave it a real interval::icfit()-based dispatch (supports_interval_or_

@@ -442,7 +442,7 @@ InferenceCountNegBin = define_inference_class(
 					res$j_treat = 2L
 					res$beta_hat_T = as.numeric(res$b[2L])
 					hess = res$hess_fisher_info_matrix
-					vcov = tryCatch(solve(hess), error = function(e) matrix(NA_real_, nrow(hess), ncol(hess)))
+					vcov = res$vcov %||% tryCatch(solve(hess), error = function(e) matrix(NA_real_, nrow(hess), ncol(hess)))
 					res$ssq_b_2 = if (res$j_treat <= ncol(X_full)) as.numeric(vcov[res$j_treat, res$j_treat]) else NA_real_
 					res$params = c(as.numeric(res$b), log(as.numeric(res$theta_hat)))
 					res$neg_log_lik = -as.numeric(res$logLik)
@@ -490,7 +490,7 @@ InferenceCountNegBin = define_inference_class(
 						)
 						if (is.null(res) || !isTRUE(res$converged)) return(NULL)
 						hess = res$hess_fisher_info_matrix
-						vcov = tryCatch(solve(hess), error = function(e) matrix(NA_real_, nrow(hess), ncol(hess)))
+						vcov = res$vcov %||% tryCatch(solve(hess), error = function(e) matrix(NA_real_, nrow(hess), ncol(hess)))
 						ssq_b_j = if (j_treat <= ncol(X_fit)) as.numeric(vcov[j_treat, j_treat]) else NA_real_
 						list(b = as.numeric(res$b), ssq_b_j = ssq_b_j, j_treat = j_treat,
 						     theta_hat = res$theta_hat, neg_loglik = -as.numeric(res$logLik),

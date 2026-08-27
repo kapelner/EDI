@@ -116,6 +116,7 @@ def test_result_shape_and_types():
     assert res["b"].shape == (p,)
     assert isinstance(res["converged"], bool)
     assert isinstance(res["dispersion"], float)
+    assert isinstance(res["dispersion_at_poisson_boundary"], bool)
 
 
 def test_estimate_only_true_still_returns_b():

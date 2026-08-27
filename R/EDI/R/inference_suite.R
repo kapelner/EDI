@@ -1754,7 +1754,7 @@ run_all_inference_truncate_1line = function(text, width) {
 	text = if (is.na(text)) "NA" else as.character(text)
 	if (nchar(text) <= width) return(text)
 	if (width <= 1L) return(strtrim(text, max(width, 0L)))
-	paste0(strtrim(text, width - 1L), "…")
+	paste0(strtrim(text, width - 1L), "\u2026")
 }
 run_all_inference_wrap_cell_2lines = function(text, width) {
 	text = if (is.na(text)) "NA" else as.character(text)

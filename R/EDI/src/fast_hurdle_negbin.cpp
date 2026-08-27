@@ -10,6 +10,7 @@
 #include "internal_fn_decls.h"
 #include <unordered_map>
 #include <stdexcept>
+#include "_negbin_boundary_convergence.h"
 
 #ifndef EDI_CORE_ONLY
 using namespace Rcpp;
@@ -604,6 +605,7 @@ edi::ResultMap fast_hurdle_negbin_internal(
 			.set("theta_hat", std::numeric_limits<double>::quiet_NaN())
 			.set("converged", false)
 			.set("hit_iteration_cap", false)
+			.set("dispersion_at_poisson_boundary", false)
 			.set("hurdle_b", hurdle_b)
 			.set("hurdle_converged", hurdle_converged)
 			.set("failure_message", std::string("fewer positive observations than count-model parameters"));
@@ -654,6 +656,9 @@ edi::ResultMap fast_hurdle_negbin_internal(
 		&start_candidates,
 		&failure_message
 	);
+	const bool accepted_poisson_boundary = accept_negbin_poisson_boundary_convergence(
+		fun, count_fixed_spec, p, tol, fit);
+	if (accepted_poisson_boundary) failure_message.clear();
 	params = fit.params;
 	double neg_ll = fit.value;
 	bool converged = fit.converged;
@@ -670,6 +675,7 @@ edi::ResultMap fast_hurdle_negbin_internal(
 			.set("hit_iteration_cap", fit.hit_iteration_cap)
 			.set("gradient_norm", fit.gradient_norm)
 			.set("min_eigenvalue_information", fit.min_eigenvalue_information)
+			.set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary)
 			.set("hurdle_b", hurdle_b)
 			.set("hurdle_converged", hurdle_converged)
 			.set("neg_ll", neg_ll)
@@ -687,6 +693,7 @@ edi::ResultMap fast_hurdle_negbin_internal(
 		.set("hit_iteration_cap", fit.hit_iteration_cap)
 		.set("gradient_norm", fit.gradient_norm)
 		.set("min_eigenvalue_information", fit.min_eigenvalue_information)
+		.set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary)
 		.set("hurdle_b", hurdle_b)
 		.set("hurdle_converged", hurdle_converged)
 		.set("observed_information", observed_information)
@@ -700,10 +707,12 @@ edi::ResultMap fast_hurdle_negbin_internal(
 	double ssq_b_j = std::numeric_limits<double>::quiet_NaN();
 	double ssq_b_2 = std::numeric_limits<double>::quiet_NaN();
 	if (std::isfinite(theta_hat) && p >= j && observed_information.allFinite() && observed_information.rows() == p + 1) {
-		MatrixXd H_free = subset_matrix(observed_information, count_fixed_spec.free_idx, count_fixed_spec.free_idx);
+		FixedParamSpec information_spec = negbin_information_spec(
+			count_fixed_spec, p, fit.dispersion_at_poisson_boundary);
+		MatrixXd H_free = subset_matrix(observed_information, information_spec.free_idx, information_spec.free_idx);
 		auto cnt_free_idx_of = [&](int k) -> int {
-			for (int jj = 0; jj < (int)count_fixed_spec.free_idx.size(); ++jj)
-				if (count_fixed_spec.free_idx[jj] == k) return jj + 1;
+			for (int jj = 0; jj < (int)information_spec.free_idx.size(); ++jj)
+				if (information_spec.free_idx[jj] == k) return jj + 1;
 			return -1;
 		};
 		int cfree_j = (j > 0 && j <= p + 1) ? cnt_free_idx_of(j - 1) : -1;
@@ -749,6 +758,7 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 			.set("params", Eigen::VectorXd::Constant(p + 1, std::numeric_limits<double>::quiet_NaN()))
 			.set("converged", false)
 			.set("hit_iteration_cap", false)
+			.set("dispersion_at_poisson_boundary", false)
 			.set("neg_ll", std::numeric_limits<double>::quiet_NaN());
 	}
 
@@ -789,6 +799,9 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 		&start_candidates,
 		&failure_message
 	);
+	const bool accepted_poisson_boundary = accept_negbin_poisson_boundary_convergence(
+		fun, fixed_spec, p, tol, fit);
+	if (accepted_poisson_boundary) failure_message.clear();
 	if (!fit.converged && fit.params.size() == params.size()) {
 		if (!fit.params.allFinite()) {
 			fit.params = params;
@@ -800,6 +813,7 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 			.set("params", Eigen::VectorXd::Constant(p + 1, std::numeric_limits<double>::quiet_NaN()))
 			.set("converged", false)
 			.set("hit_iteration_cap", false)
+			.set("dispersion_at_poisson_boundary", false)
 			.set("neg_ll", std::numeric_limits<double>::quiet_NaN())
 			.set("failure_message", failure_message);
 	}
@@ -815,6 +829,7 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 			.set("hit_iteration_cap", fit.hit_iteration_cap)
 			.set("gradient_norm", fit.gradient_norm)
 			.set("min_eigenvalue_information", fit.min_eigenvalue_information)
+			.set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary)
 			.set("neg_ll", fit.value)
 			.set("failure_message", failure_message);
 	}
@@ -829,6 +844,7 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 		.set("hit_iteration_cap", fit.hit_iteration_cap)
 		.set("gradient_norm", fit.gradient_norm)
 		.set("min_eigenvalue_information", fit.min_eigenvalue_information)
+		.set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary)
 		.set("neg_ll", fit.value)
 		.set("observed_information", observed_information)
 		.set("fisher_information", observed_information)

@@ -157,10 +157,22 @@ test_that("legacy runtime opt-outs do not advertise parametric likelihood bootst
 	}
 })
 
+# Classes whose smoke case is numerically unstable enough that CI has seen
+# it flip pass/fail on the identical commit -- kept in all_param_boot_smoke_
+# cases above (so the registry-completeness guard test above still requires
+# every capable class to have a case defined) but the actual per-seed
+# verification moved to R/package_tests/testthat_bulk_quarantine/, which is
+# never run by CI or the pre-push hook. See that directory's README.md for
+# what "quarantine" means here and why each class landed there.
+all_param_boot_quarantined_classes <- c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik")
+
 for (case_index in seq_along(all_param_boot_smoke_cases)) {
 	class_name <- names(all_param_boot_smoke_cases)[case_index]
 	case <- all_param_boot_smoke_cases[[case_index]]
 	test_that(paste(class_name, "returns a finite parametric-bootstrap LR p-value"), {
+		if (class_name %in% all_param_boot_quarantined_classes) {
+			skip(paste(class_name, "moved to testthat_bulk_quarantine/ -- see that directory's README.md"))
+		}
 		des <- case$make_design(20260817L + case_index)
 		generator <- getExportedValue("EDI", class_name)
 		inf <- do.call(generator$new, c(list(des), case$constructor_args))

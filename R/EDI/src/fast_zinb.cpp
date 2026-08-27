@@ -21,6 +21,7 @@
 #include <cmath>
 #include <unordered_map>
 #include <stdexcept>
+#include "_negbin_boundary_convergence.h"
 
 #ifndef EDI_CORE_ONLY
 using namespace Rcpp;
@@ -202,7 +203,10 @@ LikelihoodFitResult fast_zinb_internal(const Eigen::Ref<const Eigen::MatrixXd>& 
         }
     }
 
-    return optimize_fixed_likelihood(obj, par, fixed_spec, maxit, tol, optimization_alg, "lbfgs", 0, info_ptr);
+    LikelihoodFitResult fit = optimize_fixed_likelihood(
+        obj, par, fixed_spec, maxit, tol, optimization_alg, "lbfgs", 0, info_ptr);
+    accept_negbin_poisson_boundary_convergence(obj, fixed_spec, n_par - 1, tol, fit);
+    return fit;
 }
 
 // Portable (EDI_CORE_ONLY-safe) sibling of fast_zinb_cpp below: fits via
@@ -233,9 +237,11 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
     const int n_par = (int)Xc.cols() + (int)Xz.cols() + 1;
     FixedParamSpec fixed_spec = make_fixed_param_spec(n_par, fixed_idx, fixed_values);
     Eigen::MatrixXd hess = obj.hessian(fit.params);
-    Eigen::MatrixXd H_free = subset_matrix(hess, fixed_spec.free_idx, fixed_spec.free_idx);
+    FixedParamSpec information_spec = negbin_information_spec(
+        fixed_spec, n_par - 1, fit.dispersion_at_poisson_boundary);
+    Eigen::MatrixXd H_free = subset_matrix(hess, information_spec.free_idx, information_spec.free_idx);
     Eigen::MatrixXd cov_free = H_free.inverse();
-    Eigen::MatrixXd vcov = expand_free_covariance(n_par, fixed_spec, cov_free, true);
+    Eigen::MatrixXd vcov = expand_free_covariance(n_par, information_spec, cov_free, true);
 
     return edi::ResultMap()
         .set("params", fit.params)
@@ -246,7 +252,8 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
         .set("num_iter", fit.niter)
             .set("hit_iteration_cap", fit.hit_iteration_cap)
             .set("gradient_norm", fit.gradient_norm)
-            .set("min_eigenvalue_information", fit.min_eigenvalue_information);
+            .set("min_eigenvalue_information", fit.min_eigenvalue_information)
+            .set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary);
 }
 
 #ifndef EDI_CORE_ONLY
@@ -299,7 +306,8 @@ List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen:
             .set("num_iter", fit.niter)
         .set("hit_iteration_cap", fit.hit_iteration_cap)
         .set("gradient_norm", fit.gradient_norm)
-        .set("min_eigenvalue_information", fit.min_eigenvalue_information));
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
+        .set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary));
         out["coefficients"] = List::create(
             Named("cond") = fit.params.head(p_cond),
             Named("zi") = fit.params.segment(p_cond, p_zi)
@@ -311,6 +319,21 @@ List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen:
     // likelihood_score(obj, params) already negates the raw grad the L-BFGS objective fills
     // (gradient of neg_loglik) to return the true (+loglik) score -- do not negate again here.
     Rcpp::List out = make_uniform_likelihood_fit_result(fit.params, fit.value, fit.converged, likelihood_score(obj, fit.params), hess, false);
+    if (fit.dispersion_at_poisson_boundary) {
+        FixedParamSpec fixed_spec = make_fixed_param_spec(
+            p_cond + p_zi + 1,
+            nullable_to_optional<Eigen::VectorXi>(fixed_idx),
+            nullable_to_optional<Eigen::VectorXd>(fixed_values));
+        FixedParamSpec information_spec = negbin_information_spec(
+            fixed_spec, p_cond + p_zi, true);
+        Eigen::MatrixXd information_free = subset_matrix(
+            hess, information_spec.free_idx, information_spec.free_idx);
+        out["vcov"] = expand_free_covariance(
+            p_cond + p_zi + 1, information_spec,
+            covariance_from_information(information_free), true);
+        out["covariance_type"] = "observed_conditional_on_poisson_boundary";
+    }
+    out["dispersion_at_poisson_boundary"] = fit.dispersion_at_poisson_boundary;
     out["coefficients"] = List::create(
         Named("cond") = fit.params.head(p_cond),
         Named("zi") = fit.params.segment(p_cond, p_zi)

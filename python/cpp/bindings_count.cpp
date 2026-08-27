@@ -153,6 +153,7 @@ static py::dict likelihood_fit_result_to_dict(const LikelihoodFitResult& fit) {
     out["hit_iteration_cap"] = fit.hit_iteration_cap;
     out["converged"] = fit.converged;
     out["gradient_norm"] = fit.gradient_norm;
+    out["dispersion_at_poisson_boundary"] = fit.dispersion_at_poisson_boundary;
     return out;
 }
 
@@ -271,6 +272,7 @@ void bind_count(py::module_& m) {
         out["num_iter"] = res.num_iter;
         out["hit_iteration_cap"] = res.hit_iteration_cap;
         out["gradient_norm"] = res.gradient_norm;
+        out["dispersion_at_poisson_boundary"] = res.dispersion_at_poisson_boundary;
         return out;
     },
     py::arg("X"), py::arg("y"),

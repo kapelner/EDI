@@ -77,3 +77,4 @@ def test_result_shape_and_types():
     assert res["params"].shape == (7,)  # 3 + 3 + 1
     assert isinstance(res["converged"], bool)
     assert isinstance(res["neg_loglik"], float)
+    assert isinstance(res["dispersion_at_poisson_boundary"], bool)

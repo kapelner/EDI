@@ -142,6 +142,9 @@ struct ModelResult {
     // (optimizer_diagnostics_report.md TODO-1). Not yet populated by every
     // ModelResult producer; only trust it where the call site sets it.
     double min_eigenvalue_information;
+    // TRUE when a NegBin-family fit was accepted at the theta -> infinity
+    // (Poisson) boundary after all non-dispersion parameters converged.
+    bool dispersion_at_poisson_boundary;
 
     ModelResult() : neg_ll(std::numeric_limits<double>::quiet_NaN()),
         ssq_b_j(std::numeric_limits<double>::quiet_NaN()),
@@ -150,7 +153,8 @@ struct ModelResult {
         sigma2_hat(std::numeric_limits<double>::quiet_NaN()),
         num_iter(0), converged(false), hit_iteration_cap(false),
         gradient_norm(std::numeric_limits<double>::quiet_NaN()),
-        min_eigenvalue_information(std::numeric_limits<double>::quiet_NaN()) {}
+        min_eigenvalue_information(std::numeric_limits<double>::quiet_NaN()),
+        dispersion_at_poisson_boundary(false) {}
 };
 
 // Fallback-path-only diagnostic for hand-rolled-loop result structs that
@@ -1057,6 +1061,8 @@ struct LikelihoodFitResult {
     // every clean fit. NaN when not computed (converged fits, or fits whose
     // functor/params weren't in a state where the Hessian could be built).
     double min_eigenvalue_information;
+    // NegBin-family-only diagnostic; false for all generic optimizer results.
+    bool dispersion_at_poisson_boundary;
 
     LikelihoodFitResult() :
         value(std::numeric_limits<double>::quiet_NaN()),
@@ -1064,7 +1070,8 @@ struct LikelihoodFitResult {
         converged(false),
         hit_iteration_cap(false),
         gradient_norm(std::numeric_limits<double>::quiet_NaN()),
-        min_eigenvalue_information(std::numeric_limits<double>::quiet_NaN()) {}
+        min_eigenvalue_information(std::numeric_limits<double>::quiet_NaN()),
+        dispersion_at_poisson_boundary(false) {}
 };
 
 // SFINAE detection of an optional fun.hessian(params) method -- mirrors

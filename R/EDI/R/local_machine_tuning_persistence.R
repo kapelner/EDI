@@ -470,6 +470,21 @@ edi_tuning_import_saved_policies = function(quiet = FALSE) {
 		    now_fp$cpu_model %||% "?", " / ", now_fp$logical_cores %||% "?", " cores now). Consider re-running tune_EDI_for_this_machine().")
 		return(invisible("applied_hardware_changed"))
 	}
+
+	# The parallel-crossover axis is deliberately never auto-applied by
+	# edi_tuning_apply_policy_diffs() (opt-in only, per TODO-1(d)), so unlike
+	# the cold-start/warm-start/optimizer diffs it leaves no other trace once
+	# the tuning run's console output has scrolled away -- a user who ran
+	# tune_EDI_for_this_machine() once, non-interactively or in a session
+	# they didn't watch, would otherwise never learn their machine has a
+	# faster core count available. Surface it once per session at load time,
+	# same as the hardware-changed notice above.
+	preferred_num_cores = obj$policy_diffs$parallel$preferred_num_cores
+	if (!is.null(preferred_num_cores)) {
+		say("EDI: this machine's saved tuning found parallel execution fastest at ", preferred_num_cores,
+		    " cores. This is not applied automatically -- call set_num_cores(", preferred_num_cores,
+		    ") to opt in.")
+	}
 	invisible("applied")
 }
 

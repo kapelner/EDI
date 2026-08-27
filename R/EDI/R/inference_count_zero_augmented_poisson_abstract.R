@@ -639,7 +639,23 @@ ZeroAugmentedCountLikelihoodSource = list(
 						NULL
 					}
 				)
-				if (is.null(fit_cond) || !isTRUE(fit_cond$converged) ||
+				# Do NOT gate on fit_cond$converged/fit_aux$converged here: this
+				# whole function exists to recover a fit the C++ optimizer's
+				# own internal flag already called "failed" (see the joint
+				# optimization this is a fallback for), so requiring its
+				# sub-fits to individually pass that same internal flag can
+				# throw away a perfectly good solution -- confirmed in
+				# practice (2026-08-27, count-likelihood-families-focused
+				# smoke test): a component fit reported converged = FALSE
+				# (likely an iteration-cap or internal-tolerance mismatch,
+				# not a bad optimum) while its recovered joint parameters
+				# matched pscl::hurdle() to ~7 significant figures and its
+				# combined gradient_norm was 2.4e-7, far inside the 1e-6
+				# acceptance threshold already enforced a few lines below.
+				# That gradient-norm check is the real, authoritative
+				# quality gate for this function; only finiteness/shape need
+				# checking on the raw sub-fits themselves.
+				if (is.null(fit_cond) ||
 						length(fit_cond$params) != total_p ||
 						any(!is.finite(fit_cond$params[seq_len(p_cond)]))) return(NULL)
 
@@ -658,7 +674,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 						NULL
 					}
 				)
-				if (is.null(fit_aux) || !isTRUE(fit_aux$converged) ||
+				if (is.null(fit_aux) ||
 						length(fit_aux$params) != total_p ||
 						any(!is.finite(fit_aux$params[p_cond + seq_len(p_aux)]))) return(NULL)
 

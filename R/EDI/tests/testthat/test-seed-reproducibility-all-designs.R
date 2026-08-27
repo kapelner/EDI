@@ -90,8 +90,10 @@ design_seed_reproducibility_cases = list(
 		),
 	DesignFixedGreedyDOptimal = function(seed)
 		run_fixed_design_for_seed_test(DesignFixedGreedyDOptimal$new(response_type = "continuous", n = n, seed = seed), X),
-	DesignFixedOptimal = function(seed)
-		run_fixed_design_for_seed_test(DesignFixedOptimal$new(response_type = "continuous", n = n, seed = seed), X),
+	DesignFixedOptimal = function(seed) {
+		skip_if_not_installed("ompr"); skip_if_not_installed("ompr.roi"); skip_if_not_installed("ROI.plugin.glpk")
+		run_fixed_design_for_seed_test(DesignFixedOptimal$new(response_type = "continuous", n = n, seed = seed), X)
+	},
 
 	DesignSeqOneByOneBernoulli = function(seed)
 		run_seq_design_for_seed_test(DesignSeqOneByOneBernoulli$new(n = n, response_type = "continuous", seed = seed), X),

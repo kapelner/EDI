@@ -12,6 +12,7 @@ check_survfit.R
 ^REFERENCES\.md$
 ^_pkgdown\.yml$
 ^simulation_framework_results.*$
+^inference_suite_results_.*$
 ^\.mcp\.json$
 ^\.claude$
 ^tests/\.prepush_errors$

@@ -8,6 +8,7 @@
 #endif
 #include <unordered_map>
 #include <stdexcept>
+#include "_negbin_boundary_convergence.h"
 
 #ifndef EDI_CORE_ONLY
 using namespace Rcpp;
@@ -305,6 +306,7 @@ ModelResult fast_neg_bin_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
     }
 
     LikelihoodFitResult fit = optimize_fixed_likelihood(fun, params, fixed_spec, maxit, eps_g, optimization_alg, "lbfgs", 0, h_ptr);
+    accept_negbin_poisson_boundary_convergence(fun, fixed_spec, p, eps_g, fit);
     params = fit.params;
 
     res.b = params.head(p);
@@ -315,6 +317,7 @@ ModelResult fast_neg_bin_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
     res.hit_iteration_cap = fit.hit_iteration_cap;
     res.gradient_norm = fit.gradient_norm;
     res.min_eigenvalue_information = fit.min_eigenvalue_information;
+    res.dispersion_at_poisson_boundary = fit.dispersion_at_poisson_boundary;
     res.sigma2_hat = -fit.value; // using sigma2_hat to store logLik temporarily
     return res;
 }
@@ -476,9 +479,11 @@ List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
         X.cols() + 1,
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values));
-    Eigen::MatrixXd H_free = subset_matrix(res.XtWX, fixed_spec.free_idx, fixed_spec.free_idx);
+    FixedParamSpec information_spec = negbin_information_spec(
+        fixed_spec, X.cols(), res.dispersion_at_poisson_boundary);
+    Eigen::MatrixXd H_free = subset_matrix(res.XtWX, information_spec.free_idx, information_spec.free_idx);
     Eigen::MatrixXd cov_free = H_free.inverse();
-    Eigen::MatrixXd vcov = expand_free_covariance(X.cols() + 1, fixed_spec, cov_free, true);
+    Eigen::MatrixXd vcov = expand_free_covariance(X.cols() + 1, information_spec, cov_free, true);
     return edi::to_rcpp_list(edi::ResultMap()
         .set("b", res.b)
         .set("theta_hat", res.dispersion)
@@ -488,6 +493,7 @@ List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
         .set("hit_iteration_cap", res.hit_iteration_cap)
         .set("gradient_norm", res.gradient_norm)
         .set("min_eigenvalue_information", res.min_eigenvalue_information)
+        .set("dispersion_at_poisson_boundary", res.dispersion_at_poisson_boundary)
         .set("hess_fisher_info_matrix", res.XtWX)
         .set("vcov", vcov));
 }
@@ -539,6 +545,7 @@ List fast_neg_bin_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Nullable<Num
         .set("hit_iteration_cap", res.hit_iteration_cap)
         .set("gradient_norm", res.gradient_norm)
         .set("min_eigenvalue_information", res.min_eigenvalue_information)
+        .set("dispersion_at_poisson_boundary", res.dispersion_at_poisson_boundary)
         .set("fisher_information", res.XtWX));
 }
 
@@ -612,6 +619,7 @@ List fast_neg_bin_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEX
         .set("hit_iteration_cap", res.hit_iteration_cap)
         .set("gradient_norm", res.gradient_norm)
         .set("min_eigenvalue_information", res.min_eigenvalue_information)
+        .set("dispersion_at_poisson_boundary", res.dispersion_at_poisson_boundary)
         .set("fisher_information", res.XtWX));
 }
 #endif // EDI_CORE_ONLY

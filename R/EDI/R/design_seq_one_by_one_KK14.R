@@ -134,8 +134,13 @@ DesignSeqOneByOneKK14 = define_design_class(
 						private$assign_wt_Bernoulli()
 					} else {
 						all_subject_data = private$compute_all_subject_data()
-						#compute inverse sample covariance of all past subjects (with eps regularization)
-						S_xs_inv = solve(var(all_subject_data$X_prev) + diag(.Machine$double.eps, all_subject_data$rank_prev), tol = .Machine$double.xmin)
+						#compute inverse sample covariance of all past subjects (with eps regularization,
+						#scaled to the matrix's own magnitude -- a fixed .Machine$double.eps is negligible
+						#relative to real covariate scales (e.g. diag ~ 1e6), leaving near/exactly-singular
+						#early-subject covariance matrices essentially unprotected against solve() failure)
+						S_xs = var(all_subject_data$X_prev)
+						reg_eps = sqrt(.Machine$double.eps) * max(mean(diag(S_xs)), .Machine$double.eps)
+						S_xs_inv = solve(S_xs + diag(reg_eps, all_subject_data$rank_prev), tol = .Machine$double.xmin)
 						#now find the best match in the reservoir
 						reservoir_indices = which(private$m[1 : (private$t - 1)] == 0)
 						if (length(reservoir_indices) == 0){

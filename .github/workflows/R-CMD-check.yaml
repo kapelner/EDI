@@ -183,6 +183,22 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
+      # CRAN's macOS R installer defaults to reference BLAS, not Apple's
+      # Accelerate/vecLib framework, even though every macOS runner has it
+      # available -- a well-known R-for-macOS gotcha (see "vecLib BLAS" in
+      # the R Installation and Administration manual). Confirmed 2026-08-27
+      # as the same reference-BLAS-is-10-50x-slower problem already fixed
+      # for the Ubuntu legs above: this leg's `checking tests` step ran for
+      # 2+ hours without finishing (150-min job timeout) despite examples +
+      # donttest passing quickly. R.framework ships both `libRblas.dylib`
+      # (reference) and `libRblas.vecLib.dylib` (Accelerate-linked); this is
+      # just re-pointing the symlink, no reinstall needed. Must run after
+      # setup-r (R.framework has to exist first) and before any step that
+      # exercises linear algebra.
+      - name: Switch macOS R to Accelerate/vecLib BLAS (see comment above)
+        if: matrix.config.os == 'macos-latest'
+        run: ln -sf libRblas.vecLib.dylib /Library/Frameworks/R.framework/Resources/lib/libRblas.dylib
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           working-directory: R/EDI
@@ -442,6 +458,17 @@ jobs:
         if: failure()
         working-directory: R/EDI
         run: cat EDI.Rcheck/00install.out || true
+
+      # See the valgrind job's identical step/comment below -- this job has
+      # the same gap (raw `RD CMD check` truncates a failing testthat.R run
+      # to its last 13 lines, so a multi-failure run only ever shows the
+      # last failure). Missing here until 2026-08-27, when a real second
+      # failure ("FAIL 6" vs. the sibling no-Suggests job's "FAIL 5" for the
+      # same push) turned out to be unrecoverable from the workflow log.
+      - name: Show tests/testthat.Rout(.fail) on failure
+        if: failure()
+        working-directory: R/EDI
+        run: cat EDI.Rcheck/tests/testthat.Rout.fail EDI.Rcheck/tests/testthat.Rout 2>/dev/null || true
 
   # Valgrind memcheck build. Catches memory bugs (uninitialized reads,
   # out-of-bounds access, use-after-free, invalid frees) in the src/ kernels

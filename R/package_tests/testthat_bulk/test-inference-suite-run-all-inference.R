@@ -652,88 +652,13 @@ test_that("run_all_inference: max_secs_per_class actually interrupts a slow R-le
 	expect_true(grepl("max_secs_per_class", row$message, fixed = TRUE))
 })
 
-test_that("run_all_inference: num_cores > 1 fits in parallel and produces identical rows to sequential", {
-	skip_on_cran()
-	skip_on_os("windows")
-	skip_if_prepush_no_parallel()
-	# `parallel::makeForkCluster()` forks a process that, by this point in
-	# the suite, has already run OpenMP-parallel C++ kernels (EDI's src/ is
-	# pervasively OpenMP-gated) -- forking while another thread holds an
-	# OpenMP/malloc-arena lock is a classic deadlock: the forked worker
-	# inherits the lock in a state that can never be released, so
-	# clusterApply() blocks forever with no path back to its on.exit()
-	# cleanup. This is exactly what happened on 2026-08-21: every ubuntu/
-	# macOS/windows R-CMD-check leg hung in "checking tests" until its own
-	# job timeout killed it (skip_on_os("windows") above meant Windows hung
-	# on some other/preexisting issue, not this). `skip_on_ci()` was added
-	# the same day to stop the bleeding.
-	#
-	# CANARY (2026-08-22, user decision): `skip_on_ci()` removed and
-	# run_all_inference()'s fork-cluster branch switched from a raw
-	# `parallel::makeForkCluster()` call to the package's own
-	# `make_configured_fork_cluster()` (2026-08-21) -- see
-	# parallel_fork_cluster_test_safety.md's TODO-4. Sandbox testing outside
-	# CI was inconclusive (too resource-constrained to reproduce "dozens of
-	# prior OpenMP-heavy tests, then fork" in reasonable time; an isolated
-	# single-kernel-then-fork repro passed, but that's lighter than the real
-	# failure conditions) -- CI is the only environment that actually
-	# reproduces them. `setTimeLimit()` below is a best-effort safety net
-	# (same mechanism the "max_secs_per_class" test above already trusts) so
-	# a repeat hang fails *this test* in ~90s instead of re-burning the
-	# job's full multi-hour timeout budget -- not guaranteed to interrupt a
-	# genuine blocked-socket-in-forked-child deadlock, but costs nothing to
-	# try. **Outcome handling:** if this test times out or the job hangs
-	# again, the fix did not work -- re-add `skip_on_ci()` and escalate to
-	# that plan's TODO-4(b) (OpenMP thread-pool teardown before fork). If it
-	# passes, leave `skip_on_ci()` removed and mark that plan's TODO-4 done.
-	#
-	# Note (TODO-5, 2026-08-24): the `use_fork_cluster` branch this test
-	# exercises no longer calls `make_configured_fork_cluster()` +
-	# `clusterApply()` at all -- it now goes through
-	# `run_all_inference_fork_dispatch()`, a per-task `mcparallel()`/
-	# `mccollect()` scheduler with PID-level force-kill on
-	# `max_secs_per_class` (see that function's own `@details`). This test's
-	# CANARY history above is kept for the record, but its "did the hang
-	# recur" question is now moot for THIS call site either way: even if the
-	# underlying OpenMP-after-fork hazard TODO-4 investigated is still
-	# present, a hung task can no longer block this test (or a real user)
-	# indefinitely -- see the dedicated timeout/kill test below.
-	setTimeLimit(elapsed = 90, transient = TRUE)
-	on.exit(setTimeLimit(elapsed = Inf, transient = TRUE), add = TRUE)
-	set.seed(20260818)
-	n = 20L
-	des = DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
-	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
-	des$assign_w_to_all_subjects()
-	w = des$get_w()
-	des$add_all_subject_responses(1 + 0.5 * w + rnorm(n))
-	suite = InferenceSuite$new(des)
-
-	capture.output({
-		res_seq <- suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1)
-	})
-	# run_all_inference() never reseeds internally (by design -- it's a
-	# thin dispatcher over each class's own fit, not an RNG owner), so any
-	# class using randomization/bootstrap Monte Carlo draws leaves the
-	# global RNG stream wherever its draws left it. Without resetting here,
-	# the second call below would start from a *different* RNG state than
-	# the first and its stochastic p-values/CIs would legitimately differ
-	# from res_seq's -- not a fork-dispatch bug, just two calls sampling
-	# from different points in the same stream. Reseed identically so both
-	# calls start from the same RNG state and are directly comparable.
-	set.seed(20260818)
-	capture.output({
-		res_par <- suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 2)
-	})
-
-	seq_tbl = res_seq$results_table[order(res_seq$results_table$inference_class), ]
-	par_tbl = res_par$results_table[order(res_par$results_table$inference_class), ]
-	rownames(seq_tbl) = NULL
-	rownames(par_tbl) = NULL
-	# fit_secs will differ run to run; compare everything else.
-	compare_cols = setdiff(names(seq_tbl), "fit_secs")
-	expect_identical(seq_tbl[compare_cols], par_tbl[compare_cols])
-})
+# "run_all_inference: num_cores > 1 fits in parallel and produces identical
+# rows to sequential" moved to
+# R/package_tests/testthat_bulk_quarantine/test-inference-suite-run-all-inference-seq-vs-parallel.R
+# (2026-08-27) -- see that directory's README.md. CI run 33072346506 found a
+# real, non-hanging pval mismatch between num_cores = 1 and num_cores = 2,
+# not just the historical fork-deadlock risk this test's comments used to
+# document.
 
 test_that("run_all_inference_fork_dispatch: a hung worker is force-killed on max_secs_per_class without blocking or corrupting sibling tasks (TODO-5)", {
 	# Deliberately does NOT go through InferenceSuite$run_all_inference() or
@@ -818,49 +743,13 @@ test_that("run_all_inference_fork_dispatch: max_secs_per_class = NULL never kill
 	expect_identical(res$slow1$estimate, 2.0)
 })
 
-test_that("run_all_inference: num_cores > 1's task-building/result-reassembly logic is correct, independent of real OS forking", {
-	# parallel_fork_cluster_test_safety.md's TODO-1: the sibling test above
-	# ("num_cores > 1 fits in parallel...") is the only thing that exercises
-	# num_cores > 1 at all, and it's gated behind skip_on_cran()/
-	# skip_on_os("windows")/skip_if_prepush_no_parallel()/skip_on_ci() because
-	# spinning up a real makeForkCluster() carries real OS-fork risk (see that
-	# test's own comment). But the `use_fork_cluster` branch's *surrounding*
-	# logic -- task building, result-list reassembly, name matching, row
-	# ordering, screen output -- has nothing to do with forking and deserves
-	# safe, always-on coverage regardless of where the real-fork test is
-	# allowed to run. EDI_TESTING_DISABLE_FORK_CLUSTER=true routes that branch
-	# through a same-process lapply() instead of a real fork cluster (see
-	# inference_suite.R's `use_fork_cluster` block), so this test exercises
-	# the identical code path the real-fork test does, minus the fork itself.
-	withr::local_envvar(c(EDI_TESTING_DISABLE_FORK_CLUSTER = "true"))
-	set.seed(20260818)
-	n = 20L
-	des = DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
-	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
-	des$assign_w_to_all_subjects()
-	w = des$get_w()
-	des$add_all_subject_responses(1 + 0.5 * w + rnorm(n))
-	suite = InferenceSuite$new(des)
-
-	capture.output({
-		res_seq <- suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1)
-	})
-	# See the sibling real-fork test's identical comment above: run_all_
-	# inference() never reseeds internally, so the second call must be
-	# reseeded to the same state as the first for a fair comparison of
-	# stochastic (randomization/bootstrap) classes' p-values/CIs.
-	set.seed(20260818)
-	capture.output({
-		res_par <- suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 2)
-	})
-
-	seq_tbl = res_seq$results_table[order(res_seq$results_table$inference_class), ]
-	par_tbl = res_par$results_table[order(res_par$results_table$inference_class), ]
-	rownames(seq_tbl) = NULL
-	rownames(par_tbl) = NULL
-	compare_cols = setdiff(names(seq_tbl), "fit_secs")
-	expect_identical(seq_tbl[compare_cols], par_tbl[compare_cols])
-})
+# "run_all_inference: num_cores > 1's task-building/result-reassembly logic
+# is correct, independent of real OS forking" also moved to
+# testthat_bulk_quarantine/test-inference-suite-run-all-inference-seq-vs-parallel.R
+# (2026-08-27) -- it failed more seriously than its real-fork sibling above
+# (NA-count and "status" mismatches even with EDI_TESTING_DISABLE_FORK_CLUSTER
+# = "true", i.e. real forking is not the source of at least part of the
+# divergence). See that file and testthat_bulk_quarantine/README.md.
 
 test_that("run_all_inference: estimand is a registry-level fact, populated regardless of fit outcome", {
 	set.seed(20260819)

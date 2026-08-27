@@ -184,6 +184,35 @@ edi_tuning_tune_cold_start = function(n_grid = c(50L, 200L, 1000L), reps = 5L,
 	)
 }
 
+#' Regex matching a class/method's own "this isn't available right now" error
+#' message, tolerated (swallowed to \code{NULL}) rather than propagated by
+#' both \code{\link{edi_tuning_warm_start_run_setting}} and
+#' \code{\link{edi_tuning_parallel_run_setting}}
+#'
+#' A class passing the relevant \code{edi_tuning_*_families()} method-
+#' existence filter is necessary but not sufficient -- it can still throw a
+#' legitimate "not applicable to this response type/estimand/scale right
+#' now" error at call time, and the tuning harness must not treat that as a
+#' tuning-run-ending bug. Single shared pattern (not duplicated inline in
+#' each caller) specifically because this has already drifted out of sync
+#' once: \code{edi_tuning_parallel_run_setting()} originally had no
+#' tolerance at all (fixed 2026-08-27, matching the warm-start sibling's
+#' pre-existing pattern), and separately a brand-new guard
+#' (\code{inference_all_abstract_rand_ci.R}'s temporary incidence-response
+#' block, also added 2026-08-27, see
+#' \code{R/package_metadata/new_feature_plans/incidence_randomization_cis.md})
+#' used wording ("temporarily disabled") this pattern didn't originally
+#' cover, breaking a live tuning run a second time the same day. Extend this
+#' one pattern, not the two call sites separately, when a new "legitimately
+#' unavailable" message shape is found. Deliberately narrow (not a blanket
+#' catch-all) -- an error that doesn't match this is presumed a real bug and
+#' must still propagate and stop the tuning run.
+#'
+#' @keywords internal
+#' @noRd
+EDI_TUNING_UNAVAILABLE_OPERATION_ERROR_PATTERN =
+	"not implemented|not supported|only supported|does not support|does not expose|Must be implemented|temporarily disabled"
+
 #' The generic per-operation resampling call the warm-start axis times
 #'
 #' One representative public method per warm-start operation, called with a
@@ -328,7 +357,7 @@ edi_tuning_warm_start_run_setting = function(class, response_type, n, setting, s
 	tryCatch(
 		do.call(inf[[spec$method]], spec$args),
 		error = function(e) {
-			if (!grepl("not implemented|not supported|only supported|does not support|does not expose|Must be implemented",
+			if (!grepl(EDI_TUNING_UNAVAILABLE_OPERATION_ERROR_PATTERN,
 			           conditionMessage(e))) {
 				stop(e)
 			}
@@ -664,7 +693,7 @@ edi_tuning_parallel_run_setting = function(class, response_type, n, seed, operat
 	tryCatch(
 		do.call(inf[[spec$method]], spec$args),
 		error = function(e) {
-			if (!grepl("not implemented|not supported|only supported|does not support|does not expose|Must be implemented",
+			if (!grepl(EDI_TUNING_UNAVAILABLE_OPERATION_ERROR_PATTERN,
 			           conditionMessage(e))) {
 				stop(e)
 			}

@@ -382,6 +382,61 @@ test_that("fast_zinb_cpp is equivalent to glmmTMB", {
 	expect_true(all(is.finite(diag(res_cpp$vcov))))
 })
 
+test_that("negative-binomial kernels keep coefficient inference at the Poisson limit", {
+	set.seed(1801)
+	n <- 400L
+	x <- rnorm(n)
+	X <- cbind(`(Intercept)` = 1, x = x)
+	mu <- exp(0.6 + 0.35 * x)
+
+	# Plain NB2 fitted to Poisson data: theta has no finite interior optimum.
+	y_nb <- rpois(n, mu)
+	fit_nb <- EDI:::fast_neg_bin_with_var_cpp(
+		X, y_nb, smart_cold_start = TRUE
+	)
+	expect_true(fit_nb$converged)
+	expect_true(is.logical(fit_nb$dispersion_at_poisson_boundary))
+	expect_true(is.finite(fit_nb$b[2]))
+	expect_true(is.finite(fit_nb$vcov[2, 2]))
+	if (isTRUE(fit_nb$dispersion_at_poisson_boundary)) {
+		expect_gte(fit_nb$theta_hat, 1e4)
+		expect_true(is.na(fit_nb$vcov[ncol(X) + 1L, ncol(X) + 1L]))
+	}
+
+	# Genuine zero inflation identifies the mixture component while the count
+	# distribution itself remains exactly Poisson.
+	p_zi <- plogis(-1.2 + 0.25 * x)
+	y_zinb <- ifelse(runif(n) < p_zi, 0, rpois(n, mu))
+	fit_zinb <- EDI:::fast_zinb_cpp(X, X, y_zinb)
+	expect_true(fit_zinb$converged)
+	expect_true(is.logical(fit_zinb$dispersion_at_poisson_boundary))
+	expect_true(is.finite(fit_zinb$params[2]))
+	expect_true(is.finite(fit_zinb$vcov[2, 2]))
+	if (isTRUE(fit_zinb$dispersion_at_poisson_boundary)) {
+		expect_gte(exp(tail(fit_zinb$params, 1)), 1e4)
+		expect_true(is.na(fit_zinb$vcov[nrow(fit_zinb$vcov), ncol(fit_zinb$vcov)]))
+	}
+
+	# A hurdle model whose positive counts are zero-truncated Poisson has the
+	# same count-component boundary, with an independently identified hurdle.
+	positive <- rpois(n, mu)
+	while (any(positive == 0L)) {
+		zero <- positive == 0L
+		positive[zero] <- rpois(sum(zero), mu[zero])
+	}
+	p_positive <- plogis(0.7 + 0.2 * x)
+	y_hurdle <- ifelse(runif(n) < p_positive, positive, 0L)
+	fit_hurdle <- EDI:::fast_hurdle_negbin_with_var_cpp(X, y_hurdle, X, j = 2L)
+	expect_true(fit_hurdle$converged)
+	expect_true(fit_hurdle$hurdle_converged)
+	expect_true(is.logical(fit_hurdle$dispersion_at_poisson_boundary))
+	expect_true(is.finite(fit_hurdle$b[2]))
+	expect_true(is.finite(fit_hurdle$ssq_b_j))
+	if (isTRUE(fit_hurdle$dispersion_at_poisson_boundary)) {
+		expect_gte(fit_hurdle$theta_hat, 1e4)
+	}
+})
+
 test_that("fast_zero_augmented_poisson_cpp is equivalent to glmmTMB", {
 	skip_if_not_installed("glmmTMB")
 	set.seed(19)
