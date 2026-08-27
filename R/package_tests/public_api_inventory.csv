@@ -9542,9 +9542,9 @@
 "robust_survreg","function","","","","",5,"cov_matrix_or_vector;dead;dist;num_max_iter;y",FALSE,TRUE,FALSE,TRUE,"",FALSE
 "robust_survreg_with_surv_object","function","","","","",4,"cov_matrix_or_vector;dist;num_max_iter;surv_object",FALSE,TRUE,FALSE,TRUE,"",FALSE
 "sample_mode","function","","","","",1,"data",FALSE,FALSE,FALSE,TRUE,"",FALSE
-"set_cold_start_dispatch_policy","function","","","","",2,"policy;reset",TRUE,TRUE,FALSE,TRUE,"",FALSE
+"set_cold_start_dispatch_policy","function","","","","",2,"policy;reset",TRUE,TRUE,FALSE,FALSE,"",FALSE
 "set_num_cores","function","","","","",2,"force_mirai;num_cores",TRUE,TRUE,TRUE,FALSE,"",FALSE
-"set_optimization_dispatch_policy","function","","","","",2,"policy;reset",TRUE,TRUE,FALSE,TRUE,"",FALSE
+"set_optimization_dispatch_policy","function","","","","",2,"policy;reset",TRUE,TRUE,FALSE,FALSE,"",FALSE
 "set_parallel_dispatch_policy","function","","","","",2,"policy;reset",TRUE,TRUE,FALSE,FALSE,"",FALSE
 "set_warm_start_dispatch_policy","function","","","","",2,"policy;reset",TRUE,TRUE,FALSE,TRUE,"",FALSE
 "SimulationFramework","r6_class","SimulationFramework","","","",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
