@@ -37,7 +37,7 @@ expect_valid_run_all_inference_report = function(des_obj, expected_design_family
 		names(tbl),
 		c("inference_class", "method", "type", "cov_model", "response_type", "design_family", "likelihood_tier",
 		  "estimate", "se", "ci_a", "ci_b", "ci_method",
-		  "pval", "pval_method", "estimand", "fit_secs", "warnings",
+		  "pval", "pval_method", "estimand", "tau", "fit_secs", "warnings",
 		  "status", "message", "weight")
 	)
 	# `methods = NULL` (default) now fans out to one row per applicable

@@ -4,7 +4,8 @@
 > general-`prob_T` swap-delta rederivation is the model for the greedy
 > half); `sequential_design_classical_completions.md` (ARP coins ship
 > together with unequal ratios on sequential classes). **Release target:
-> v1.2.0** (`release_v1_2_0.md → TODO-12d`).
+> v1.3.0 (design theory)** (`release_v1_3_0.md → TODO-5`; `_master.md`
+> Phase 5U). The greedy merge it depends on ships in 1.2.0.
 
 Written 2026-08-27. Owning plan for
 `missing_design_classes_literature_audit.md` item **#1** (Part 4A) and

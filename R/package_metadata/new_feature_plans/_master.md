@@ -118,33 +118,44 @@ spliced into one step and marked **[spliced]**.
 > `design_fixed_greedy_pair_switch_merge.md` dependency) are unaffected —
 > both refer to it by name only, not by path.
 
-> **Three-way release split (2026-08-27, user decision).** The
-> "everything open is v1.1.0" line is superseded. Rule: **1.x = improvements
-> on the current codebase plus simple additions on the existing
-> architecture and the six scalar response types; 2.0.0 = genuinely new
-> functionality requiring large refactorings or new architecture.**
-> Placement, by this file's phases:
-> - **v1.1.0** (`../future_release_plans/release_v1_1_0.md`): Phase 0
->   decision batch (still records every gated track's yes/no), Phase 2
->   diagnostics, Phase 4 kernel/perf lanes, Phase 5A corrections, Phase 5G
->   (KK beta OneLik), Phase 5H (`dead → uncensored` rename), Phase 5J
->   (count quantile regression), Phase 6 item 5's *merge + soft-deprecation*
->   half, the sequential-inference *scoping* (Phase 6 item 1), the ordinal
->   Bayesian-bootstrap / randomization-CI plans,
->   `randomization_ci_search_precision.md`, `cold_starts.md`.
-> - **v1.2.0** (`release_v1_2_0.md`): Phase 5C censored-response track,
->   Phase 5F (many-by-many designs), Phase 5I (survival quantile
->   regression), Phase 5K (competing risks), Phase 5L (cure fraction), the
->   semi-continuous member of Phase 5B, `full_glmm_for_weibull_frailty.md`,
->   and Phase 6 item 3 (interval-censored second wave).
-> - **v2.0.0** (`release_v2_0_0.md`): Phase 5B's remaining response-type
->   reports (nominal — recorded "no" recommendation —, rank/choice,
->   multivariate, compositional, longitudinal), Phase 5D multi-arm, Phase
->   5E GPU, Phase 6 item 6 quantum backend, the sequential-inference
->   *implementation*, Phase 6 item 4 landscape refresh, and the greedy-class
->   *deletion*. Plus the unowned audit backlog's large items (cluster-level
->   GLMM/GEE, mediation, two-arm response-adaptive randomization) once
->   scoped.
+> **Thematic release split (2026-08-27, user decision; supersedes the
+> same-day three-way split).** Rule: **1.x = improvements on the current
+> codebase plus simple additions on the existing architecture and the six
+> scalar response types; 2.0.0 = genuinely new functionality requiring
+> large refactorings or new architecture.** The 1.x work is grouped by
+> theme into four releases. Placement, by this file's phases and by the
+> 2026-08-27 owning plans (Phase 5M–5Z below):
+> - **v1.1.0 — Inference quality** (`../future_release_plans/release_v1_1_0.md`):
+>   Phase 0 decision batch (records every gated track's yes/no, including
+>   1.3.0/1.4.0/2.0.0 tracks), Phase 2 diagnostics, Phase 5A corrections,
+>   5G (KK beta OneLik), 5J (count QR), 5M (count exposure offset), 5N
+>   (HC-robust SEs), 5O (small estimand additions), the ordinal Bayesian-
+>   bootstrap / randomization-CI plans, `randomization_ci_search_precision.md`,
+>   and the nominal one-vs-rest vignette if its TODO-1 is "no".
+> - **v1.2.0 — Performance & engines** (`release_v1_2_0.md`): Phase 4
+>   kernel/perf lanes, `cold_starts.md`, `performance_profiling_and_upgrades.md`,
+>   Phase 6 item 5's *merge + soft-deprecation* half; closes
+>   `parallel_fork_cluster_test_safety.md`.
+> - **v1.3.0 — Design theory** (`release_v1_3_0.md`): 5P (classical
+>   sequential completions), 5Q (rerandomization criteria / samplers /
+>   Grundy-Healy diagnostic), 5R (optimal-objective extensions), 5S
+>   (Gram-Schmidt Walk / balancing walk / ARM-PSR), 5T (cluster-level
+>   balancing designs + saturation), 5U (unequal allocation + Neyman
+>   helper), 5F (many-by-many designs).
+> - **v1.4.0 — Response & data extensions** (`release_v1_4_0.md`): 5H
+>   (`dead → uncensored` rename) **in one sweep with** 5K (competing risks),
+>   5L (cure fraction), Phase 6 item 3 (interval-censored second wave), 5I
+>   (survival QR), Phase 5C censored-response track, the semi-continuous
+>   member of 5B, `full_glmm_for_weibull_frailty.md`, 5V (encouragement /
+>   CACE), 5W (moderation), 5X (missing outcomes), and the sequential-
+>   inference *scoping* (Phase 6 item 1).
+> - **v2.0.0 — Architecture** (`release_v2_0_0.md`): 5B's remaining
+>   response-type reports (nominal — recorded "no" —, rank/choice,
+>   multivariate, compositional, longitudinal), 5D multi-arm, 5E GPU, Phase
+>   6 item 6 quantum backend, sequential-inference *implementation*, 5Y
+>   (cluster-robust GLMM/GEE), 5Z (mediation), 5AA (response-adaptive
+>   randomization), Phase 6 item 4 landscape refresh, and the greedy-class
+>   *deletion*.
 > The phase text below is unchanged; each release file lists its own TODO
 > order.
 
@@ -471,6 +482,58 @@ already stated there:**
   `InferenceSurvivalMixtureCureWeibull` (+ optional promotion-time variant)
   on the existing `survival` type via the shipped `estimand` axis. Decision-
   gated (its TODO-1 joins the Phase 0 batch); sequenced after 5K.
+
+- **5M. Count exposure offset** (added 2026-08-27) →
+  `release_v1_1_0.md → TODO-17a`. `count_exposure_offset.md`. Inference
+  audit #5.
+- **5N. HC-robust standard errors** (added 2026-08-27) →
+  `release_v1_1_0.md → TODO-17b`. `heteroskedasticity_robust_standard_errors.md`.
+  Inference audit #1.
+- **5O. Small estimand additions** (added 2026-08-27) →
+  `release_v1_1_0.md → TODO-17c`. `small_estimand_additions.md` — Hedges'
+  g, win odds / Brunner-Munzel, Mantel-Haenszel, NI/equivalence,
+  unconditional QTE, log-link QMLE / Gamma. Inference audit #6, #11,
+  #17–#20.
+- **5P. Classical sequential-design completions** (added 2026-08-27) →
+  `release_v1_3_0.md → TODO-1`. `sequential_design_classical_completions.md`.
+  Design audit #6–#7; theoretical audit #23–#27.
+- **5Q. Rerandomization criterion variants, samplers, Grundy-Healy
+  diagnostic** (added 2026-08-27) → `release_v1_3_0.md → TODO-2`.
+  `rerandomization_criterion_variants.md`. Theoretical audit #6–#7,
+  #11–#18, #20, #43, #45.
+- **5R. Optimal-design objective extensions** (added 2026-08-27) →
+  `release_v1_3_0.md → TODO-3`. `optimal_design_objective_extensions.md`.
+  Theoretical audit #2–#5, #9, #41–#42.
+- **5S. Gram-Schmidt Walk, online balancing walk, ARM/PSR** (added
+  2026-08-27) → `release_v1_3_0.md → TODO-4`.
+  `gram_schmidt_walk_and_online_balancing.md`. Theoretical audit #1, #21,
+  #22.
+- **5T. Cluster-level covariate-balancing designs + randomized
+  saturation** (added 2026-08-27) → `release_v1_3_0.md → TODO-6`.
+  `cluster_level_covariate_balancing_designs.md`. Design audit #2, #4, #8.
+- **5U. Unequal allocation in matching / greedy / minimization + Neyman
+  helper** (added 2026-08-27) → `release_v1_3_0.md → TODO-5`.
+  `unequal_allocation_matching_greedy_minimization.md`. Design audit #1;
+  theoretical audit #38. Depends on the 1.2.0 greedy merge.
+- **5V. Encouragement designs / CACE** (added 2026-08-27) →
+  `release_v1_4_0.md → TODO-9`. `encouragement_design_cace.md`. Design
+  audit #3 / inference audit #3.
+- **5W. Treatment × covariate moderation** (added 2026-08-27) →
+  `release_v1_4_0.md → TODO-10`. `treatment_covariate_moderation.md`.
+  Inference audit #4.
+- **5X. Missing-outcome handling** (added 2026-08-27) →
+  `release_v1_4_0.md → TODO-11`. `missing_outcome_handling.md`. Inference
+  audit #16.
+- **5Y. Cluster-robust inference: CR-SE component, cluster GLMM/GEE**
+  (added 2026-08-27) → `release_v2_0_0.md → TODO-2a`.
+  `cluster_robust_inference_glmm_gee.md`. Inference audit #2. Depends on
+  the longitudinal plan's Stage 1 component extraction.
+- **5Z. Mediation analysis** (added 2026-08-27) → `release_v2_0_0.md →
+  TODO-2b`. `mediation_analysis.md`. Inference audit #12.
+- **5AA. Two-arm response-adaptive randomization + inference after
+  adaptivity** (added 2026-08-27) → `release_v2_0_0.md → TODO-2c`.
+  `response_adaptive_randomization.md`. Design audit #5; theoretical audit
+  Part 2D.
 
 ### Audit reports (2026-08-26/27) — reference, not work items
 

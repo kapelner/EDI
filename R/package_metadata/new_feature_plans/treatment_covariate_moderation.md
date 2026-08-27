@@ -2,8 +2,9 @@
 
 > **Depends on:** shipped inference hierarchy; the `estimand` axis.
 > Moderate: a second named coefficient must flow through the scalar
-> `beta_T` contract on regression classes. **Release target: v1.2.0**
-> (`release_v1_2_0.md → TODO-12b`).
+> `beta_T` contract on regression classes. **Release target: v1.4.0
+> (response & data extensions)** (`release_v1_4_0.md → TODO-10`;
+> `_master.md` Phase 5W).
 
 Written 2026-08-27. Owning plan for
 `missing_inference_classes_literature_audit.md` item **#4** (Part 4A).

@@ -2774,21 +2774,28 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		} else {
 			NULL
 		}
-		# Never let a drawn CI segment run over the right-hand class/method
-		# label (per user request, 2026-08-25: "don't allow the CI line to
-		# overwrite the class label even though it should. Instead end the
-		# line with ... so the user knows it extends"). `xlim_clip` above
-		# only excludes an outlier row's own CI from the *axis range*
-		# computation -- the segment itself is still drawn with its real
-		# (unclipped) `ci_a`/`ci_b`, and relying on `coord_cartesian(...,
-		# clip = "on")` to cut it off at the panel edge is not guaranteed to
-		# land before the label's own occupied width, only before the
-		# panel's absolute edge. So clip the segment's drawn endpoints
-		# explicitly, in data space, to the same range the axis will
-		# actually show (`panel_range` -- the outlier-excluding range when
-		# there is one, otherwise the full finite range of every row), and
-		# mark truncated ends with a short "..." so the reader knows the
-		# true interval extends further than shown.
+		# Keep a width-outlier row's own CI from dominating the axis range
+		# and squashing every other row's CI into an unreadable sliver
+		# (`xlim_clip`'s own comment above); `panel_range` mirrors that same
+		# outlier exclusion for the *segments actually drawn*, so an
+		# outlier's line is clipped to the zoomed-in axis range (marked
+		# truncated with "...") instead of being silently invisible past the
+		# panel edge.
+		#
+		# This does NOT try to guarantee headroom for the right-hand class/
+		# method label column in the general (non-outlier) case -- an
+		# earlier version (2026-08-25/26) unconditionally shaved a fixed
+		# fraction of the panel off the right for that, which per user
+		# report (2026-08-27) started truncating CI lines with "..." far too
+		# readily for long labels, when the actual fix should be giving the
+		# PLOT more total width, not cutting the DATA. That headroom is
+		# instead the job of `run_all_inference_plot_save_width_in()` (and
+		# its siblings) sizing each estimand's image from its own longest
+		# `right_full_label` -- already per-estimand/uncapped-in-practice,
+		# see that formula's own comment -- combined with `x_scale`'s fixed
+		# right-expansion fraction below: more total inches at a fixed
+		# expansion fraction is proportionally more absolute inches for the
+		# label column, with no truncation needed.
 		panel_range = {
 			keep = if (any(is_width_outlier)) {
 				c(d$estimate, d$ci_a[!is_width_outlier], d$ci_b[!is_width_outlier], null_x)
@@ -2796,24 +2803,7 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 				c(d$estimate, d$ci_a, d$ci_b, null_x)
 			}
 			keep = keep[is.finite(keep)]
-			raw = if (length(keep) > 0L) range(keep) else c(null_x, null_x)
-			# Always reserve real room for the right-aligned class/method
-			# label column, not just when a width-outlier row happens to
-			# define the axis. Previously `panel_range[2]` WAS the widest
-			# row's own `ci_b` in the common (no-outlier) case, so that row's
-			# segment could never be "truncated" past its own endpoint --
-			# nothing ever clipped, and a long label sitting in the scale's
-			# proportional expansion margin (see `x_scale` below) could still
-			# render wider than that margin and bleed left over the line (per
-			# user report, 2026-08-26: "the ci lines still sometimes
-			# overwrite the class labels ... should stop and add '...'").
-			# Unconditionally shave a fixed fraction of the visible span off
-			# the right so every row's line has a guaranteed gap before the
-			# label zone; any `ci_b` reaching into that gap now gets clipped
-			# and marked truncated like the outlier case always was.
-			raw_span = diff(raw)
-			shrunk_right = raw[2L] - 0.18 * raw_span
-			if (is.finite(shrunk_right) && shrunk_right > raw[1L]) c(raw[1L], shrunk_right) else raw
+			if (length(keep) > 0L) range(keep) else c(null_x, null_x)
 		}
 		d$ci_a_draw = ifelse(is.finite(d$ci_a), pmax(d$ci_a, panel_range[1]), d$ci_a)
 		d$ci_b_draw = ifelse(is.finite(d$ci_b), pmin(d$ci_b, panel_range[2]), d$ci_b)
@@ -2831,10 +2821,12 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# middle ground: still a real cut from `1.6`, but restores enough
 		# margin for the label to clear the line. The panel's total width
 		# already scales with label length independently
-		# (`run_all_inference_plot_save_width_in()`'s `3 + 0.09 *
-		# max_label_chars` formula), so this multiplier only controls how
-		# that already-scaled width splits between the data-plotting area
-		# and the label margin, not whether the label fits at all.
+		# (`run_all_inference_plot_width_for_label_chars()`), so this
+		# multiplier only controls how that already-scaled width splits
+		# between the data-plotting area and the label margin, not whether
+		# the label fits at all -- widening the plot (per-estimand, per user
+		# request 2026-08-27) is what actually guarantees the label fits,
+		# not this fraction.
 		x_scale = if (use_log10) {
 			ggplot2::scale_x_log10(expand = ggplot2::expansion(mult = c(0.35, 0.9)))
 		} else {
@@ -3131,6 +3123,27 @@ run_all_inference_plot_height_in = function(p) {
 	min(48, as.numeric(attr(p, "edi_height_in") %||% 6))
 }
 
+#' Page/image width (inches) needed to fit the longest `right_full_label`
+#' (class + method, e.g. `"KK Quantile (90%) Regr (bayes boot, %ile)"`) in
+#' one estimand's CI forest plot without the right-hand label column
+#' crowding the data area -- `3` inches base (data-plotting area) plus
+#' `0.09` inches per label character (the right-hand label column), per
+#' estimand independently (per user request, 2026-08-27: "if the class
+#' label is too long, you have to increase the horizontal width. I don't
+#' care if the horizontal width is different among different estimands" --
+#' this replaced an earlier approach that instead ellipsis-truncated the CI
+#' *line* to protect a fixed-width label column, which the same user report
+#' called out as truncating too eagerly). Capped at 40in purely as a sanity
+#' ceiling against `ggsave()`/PDF page-size limits -- ordinary combined
+#' class+method labels are nowhere near the ~400 characters that would hit
+#' it, so in practice this is "as wide as the label needs," not a real cap.
+#'
+#' @keywords internal
+#' @noRd
+run_all_inference_plot_width_for_label_chars = function(max_label_chars) {
+	min(40, max(6, 3 + 0.09 * as.numeric(max_label_chars)))
+}
+
 #' Saves `run_all_inference()`'s CI forest plots to one timestamped
 #' multi-page PDF (one page per estimand -- per user request, 2026-08-19,
 #' "one PDF per estimand for CI"). A single `pdf()` device can't vary page
@@ -3167,7 +3180,7 @@ run_all_inference_save_plots_pdf = function(plots, path) {
 		for (i in seq_along(plots$ci_forest)) {
 			p = plots$ci_forest[[i]]
 			page_height = run_all_inference_plot_height_in(p)
-			page_width = min(14, max(6, 3 + 0.09 * run_all_inference_plot_max_label_chars(p)))
+			page_width = run_all_inference_plot_width_for_label_chars(run_all_inference_plot_max_label_chars(p))
 			page_paths[i] = tempfile(fileext = ".pdf")
 			grDevices::pdf(page_paths[i], width = page_width, height = page_height, onefile = FALSE)
 			run_all_inference_draw_plot(p)
@@ -3185,7 +3198,7 @@ run_all_inference_save_plots_pdf = function(plots, path) {
 	# page.
 	height = max(vapply(plots$ci_forest, run_all_inference_plot_height_in, numeric(1L)))
 	max_chars = max(vapply(plots$ci_forest, run_all_inference_plot_max_label_chars, integer(1L)))
-	width = min(14, max(6, 3 + 0.09 * max_chars))
+	width = run_all_inference_plot_width_for_label_chars(max_chars)
 	grDevices::pdf(path, width = width, height = height, onefile = TRUE)
 	for (p in plots$ci_forest) run_all_inference_draw_plot(p)
 	grDevices::dev.off()
@@ -3207,7 +3220,7 @@ run_all_inference_plot_to_base64_png = function(plot, width = NULL, height = 6) 
 		# HTML `<img>` is its own independent `ggsave()` call, so it can be
 		# cropped to exactly what this one plot needs -- per user request,
 		# 2026-08-19).
-		width = min(14, max(6, 3 + 0.09 * run_all_inference_plot_max_label_chars(plot)))
+		width = run_all_inference_plot_width_for_label_chars(run_all_inference_plot_max_label_chars(plot))
 	}
 	tmp = tempfile(fileext = ".png")
 	on.exit(unlink(tmp), add = TRUE)

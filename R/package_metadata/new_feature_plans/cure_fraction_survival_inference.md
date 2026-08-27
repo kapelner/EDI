@@ -242,8 +242,9 @@ high it can be deferred without loss.
 
 ## Implementation TODOs
 
-- [x] TODO-0: **Done (2026-08-27)** — indexed as `release_v1_1_0.md →
-  TODO-15g` and `_master.md` Phase 5L (after 5K); TODO-1 joins the Phase 0
+- [x] TODO-0: **Done (2026-08-27)** — indexed as `_master.md` Phase 5L;
+  release slot after the same-day thematic split: `release_v1_4_0.md →
+  TODO-4` (after competing risks). TODO-1 joins the 1.1.0 Phase 0
   decision batch.
 - [ ] TODO-1: **Decision — ask the user**: pursue at all; default estimand
   (`"latency"` recommended); route 1 (native kernel) in the first wave or

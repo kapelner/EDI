@@ -1,11 +1,13 @@
 # Release Scope: v2.0.0
 
-> **Depends on:** `release_v1_2_0.md` (ships first). Release index over
-> plans in `../new_feature_plans/`; not new work of its own. (Global
-> ordering: see `../new_feature_plans/_master.md`.)
+> **Depends on:** `release_v1_4_0.md` (the last 1.x release; ships
+> first). Release index over plans in `../new_feature_plans/`; not new work
+> of its own. (Global ordering: see `../new_feature_plans/_master.md`.)
 
-Written 2026-08-27 (user decision: split the open backlog into 1.1.0 /
-1.2.0 / 2.0.0). **2.0.0 is the release for genuinely new functionality
+Written 2026-08-27 (user decision: thematic split of the open backlog into
+1.1.0 inference quality / 1.2.0 performance & engines / 1.3.0 design
+theory / 1.4.0 response & data extensions / 2.0.0 architecture). **2.0.0
+is the release for genuinely new functionality
 that requires large refactorings or new architecture** — anything that
 changes a core contract every class depends on (the binary `w`, the
 scalar-`y`-per-subject response shape, the single-look inference
@@ -90,21 +92,33 @@ decision batch still records the yes/no for each.
 
 ### Cluster-level model-based inference — generalizing the KK-pair machinery
 
-- No owning plan yet (inference audit #2; design audit #2 is the
-  design-side half and is 1.2.0-sized). A `ClusterRobust` SE component
-  plus random-cluster-intercept GLMM/GEE for arbitrary clusters requires
-  generalizing the `KKGEE` / `KKGLMM` components away from pair structure
-  — the longitudinal plan's Stage 1 does exactly that extraction, so this
-  lands with it. Medicine: GLMM 52% / GEE 16% of cluster trials;
-  education: near-universal. Needs a scoping report.
+- `cluster_robust_inference_glmm_gee.md` (`_master.md` Phase 5Y) — a
+  `ClusterRobust` SE component (CR0–CR3, Satterthwaite / Bell-McCaffrey
+  df, wild cluster bootstrap) plus random-cluster-intercept GLMM and GEE
+  classes for arbitrary clusters. Requires generalizing the `KKGEE` /
+  `KKGLMM` components away from pair structure — the longitudinal plan's
+  Stage 1 does exactly that extraction, so this lands with it. The
+  design-side half (`cluster_level_covariate_balancing_designs.md`) is
+  1.3.0. Medicine: GLMM 52% / GEE 16% of cluster trials; education:
+  near-universal.
 
 ### Mediation — a post-treatment variable on the design
 
-- No owning plan yet (inference audit #12). A mediator column on
-  `Design`, product-of-coefficients with EDI's bootstrap, later
-  counterfactual NDE/NIE with sensitivity analysis. A third stored
-  per-subject variable class (after `y` and the 1.2.0 `treatment_received`)
-  — largest gap for psychology / marketing users. Needs a scoping report.
+- `mediation_analysis.md` (`_master.md` Phase 5Z) — mediator column on
+  `Design`, `InferenceContinMediationProduct` (product-of-coefficients
+  with bootstrap / Sobel; `"indirect"` / `"direct"` / `"total"`
+  estimands), later counterfactual NDE/NIE with sensitivity `ρ` and
+  moderated mediation. A third stored per-subject variable class (after
+  `y` and the 1.4.0 `treatment_received`) — largest gap for psychology /
+  marketing users.
+
+### Two-arm response-adaptive randomization
+
+- `response_adaptive_randomization.md` (`_master.md` Phase 5AA`) — DBCD /
+  ERADE, tempered Thompson / exploration sampling, urn RAR, CARA second
+  wave, with the replay-contract extension (replay may see responses) and
+  an `AdaptiveWeighting` inference component (AW-AIPW, batched OLS).
+  Rides the sequential-inference implementation.
 
 ### New compute backends
 
@@ -136,9 +150,15 @@ decision batch still records the yes/no for each.
   research question on K-arm KK; each response-shape TODO-1; GPU/quantum
   TODO-1s; nominal TODO-1 with its recorded "no" recommendation). May be
   taken in the 1.1.0 Phase 0 sitting; recorded in owning plans.
-- [ ] TODO-2: **Scoping reports** for the unowned 2.0.0 items: cluster-
-  level GLMM/GEE (with the longitudinal Stage 1 extraction), mediation,
-  two-arm RAR + its inference contract. Cite the audit item numbers.
+- [ ] TODO-2: **Audit-commissioned 2.0.0 plans** (owning plans written
+  2026-08-27; each TODO-1 is a decision):
+  - [ ] TODO-2a: `cluster_robust_inference_glmm_gee.md → TODO-1..5` —
+    after TODO-4's longitudinal Stage 1 extraction.
+  - [ ] TODO-2b: `mediation_analysis.md → TODO-1..5` — after 1.4.0's
+    `treatment_received` plumbing pattern.
+  - [ ] TODO-2c: `response_adaptive_randomization.md → TODO-1..5` — after
+    TODO-5 (sequential inference); TODO-4 there is the replay-contract
+    change.
 - [ ] TODO-3: **Multi-arm track** `multi_arm_designs.md → TODO-1b, 1c, 2,
   3, 4, 5` in that order.
 - [ ] TODO-4: **Longitudinal response type** (first, because it is the

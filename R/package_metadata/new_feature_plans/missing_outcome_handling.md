@@ -3,7 +3,8 @@
 > **Depends on:** shipped inference hierarchy; the existing covariate
 > `missingness_method` plumbing on `Design`. Moderate: outcomes may now be
 > `NA` at analysis time, which every inference class currently forbids.
-> **Release target: v1.2.0** (`release_v1_2_0.md → TODO-12g`).
+> **Release target: v1.4.0 (response & data extensions)**
+> (`release_v1_4_0.md → TODO-11`; `_master.md` Phase 5X).
 
 Written 2026-08-27. Owning plan for
 `missing_inference_classes_literature_audit.md` item **#16** (Part 4B).

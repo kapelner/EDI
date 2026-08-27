@@ -3,7 +3,8 @@
 > **Depends on:** shipped design/inference hierarchies. Adds one stored
 > per-subject column on `Design` (moderate plumbing: bootstrap/permutation
 > replay, save/load) and one new inference family. **Release target:
-> v1.2.0** (`release_v1_2_0.md → TODO-12a`).
+> v1.4.0 (response & data extensions)** (`release_v1_4_0.md → TODO-9`;
+> `_master.md` Phase 5V). Uses the 1.1.0 HC-robust helper.
 
 Written 2026-08-27. Owning plan for
 `missing_design_classes_literature_audit.md` item **#3** and

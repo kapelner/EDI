@@ -335,9 +335,11 @@ uncensored` rename halves the plumbing cost.
 
 ## Implementation TODOs
 
-- [x] TODO-0: **Done (2026-08-27)** — indexed as `release_v1_1_0.md →
-  TODO-15f` and `_master.md` Phase 5K (spliced with 5H, the `dead →
-  uncensored` rename); TODO-1 joins the Phase 0 decision batch.
+- [x] TODO-0: **Done (2026-08-27)** — indexed as `_master.md` Phase 5K;
+  release slot after the same-day thematic split: `release_v1_4_0.md →
+  TODO-2..3` (Wave 0 in one sweep with 5H, the `dead → uncensored`
+  rename; Waves 1–3a after). TODO-1 joins the 1.1.0 Phase 0 decision
+  batch.
 - [ ] TODO-1: **Decision — ask the user**: pursue competing risks at all;
   confirm v1 scope = exact/right-censored only; confirm `event_type`
   storage shape and `cause =` as an inference-class argument; confirm
