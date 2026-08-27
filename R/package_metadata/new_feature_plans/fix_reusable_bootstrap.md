@@ -5,7 +5,11 @@
 > / `load_bootstrap_sample_into_worker()` / `compute_bootstrap_worker_estimate()`)
 > is already implemented and shipped for every other class that uses it (see
 > the audit below). This plan only extends it to the one class currently
-> missing it. Additive, no public-contract change.
+> missing it. Additive, no public-contract change. **Release target: v1.1.0**
+> (`release_v1_1_0.md → TODO-17e`; added to that release 2026-08-27 as a
+> small follow-on fix to `local_machine_optimization.md`'s already-shipped
+> `tune_EDI_for_this_machine()`, per user decision -- not new scope of its
+> own).
 
 Written 2026-08-27. Prompted by a live `tune_EDI_for_this_machine()` run this
 session hanging its warm-start axis on `InferencePropZeroOneInflatedBetaRegr`'s

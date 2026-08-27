@@ -155,20 +155,37 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				))
 			}
 			resp_type = private$des_obj_priv_int$response_type
-			if (private$should_use_zhang_incidence_randomization()){
-				rand_type = if (is.null(type)) "Zhang" else type
-				exact_args = private$normalize_exact_inference_args(
-					rand_type,
-					args_for_type = args_for_type,
-					pval_epsilon = pval_epsilon
+			# Randomization CIs are temporarily disabled for every incidence
+			# response (per user decision, 2026-08-27), including the Zhang
+			# exact-combined dispatch below that previously handled the
+			# common case: `zhang_ci_exact_combined()` computes ONE CI from
+			# the raw 2x2 treatment/outcome contingency table, always on the
+			# log-odds-ratio scale, with no transform back to the calling
+			# class's own estimand -- so a mean-difference, raw-risk-ratio,
+			# or probit-scale class got that same log-odds-ratio-scale CI
+			# reported verbatim as if it were on its own scale (found
+			# 2026-08-27: every incidence class sharing one design reported
+			# the identical CI bounds regardless of estimand). The shared
+			# Zhang p-value (tested at delta = 0, the sharp null) is
+			# unaffected by this and stays scale-invariantly correct -- only
+			# the CI reuse was wrong -- but this blocks both together since
+			# blocking `compute_rand_confidence_interval()` here is the
+			# actual mechanism available; `compute_rand_two_sided_pval()`'s
+			# own Zhang dispatch is untouched.
+			# See R/package_metadata/new_feature_plans/
+			# incidence_randomization_cis.md for the investigation and the
+			# real per-estimand-scale fix, slated for v1.1.0.
+			if (resp_type == "incidence") {
+				stop(
+					"Randomization confidence intervals are temporarily disabled for ",
+					"incidence responses (2026-08-27): the Zhang exact-combined CI this ",
+					"used to dispatch to is computed once on the log-odds-ratio scale from ",
+					"the raw 2x2 contingency table and was being reported verbatim for ",
+					"every incidence class regardless of its own estimand's scale, giving ",
+					"wrong-scale bounds for anything other than a log-odds-ratio estimand. ",
+					"See R/package_metadata/new_feature_plans/incidence_randomization_cis.md.",
+					call. = FALSE
 				)
-				return(private$compute_exact_confidence_interval_rand(rand_type, alpha, exact_args))
-			}
-			if (should_run_asserts() &&
-					resp_type == "incidence" &&
-					is.null(private$custom_randomization_statistic_function) &&
-					!private$should_use_design_randomization_for_incidence()) {
-				stop("Randomization confidence intervals are not supported for incidence. Use Zhang method.")
 			}
 			if (should_run_asserts()) {
 				private$assert_no_incidence_only_randomization_args(resp_type, type, args_for_type)

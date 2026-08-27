@@ -56,6 +56,10 @@ the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
 > `rerandomization_criterion_variants.md`, and the rest of the theoretical
 > backlog — live in 2.0.0 by user decision.) Also here: the ordinal Bayesian-bootstrap / randomization-CI
 > plans and `randomization_ci_search_precision.md`.
+> **Added 2026-08-27:** `fix_reusable_bootstrap.md` (**TODO-17e** below) —
+> a small fix to already-shipped `tune_EDI_for_this_machine()` functionality
+> (`local_machine_optimization.md`, closed in the v1.0.0 line), not new
+> scope of its own.
 
 ## Scope rule (historical — superseded by the 2026-08-27 split above)
 
@@ -73,7 +77,11 @@ list or its amendments. Concretely, the exclusions are:
 - `marginal_estimand_report.md` in full (1.0.0 item 14, amended 2026-08-18
   — the package-wide `estimand` concept `inference_suite_inspect.md`'s
   Combined Evidence Metric default weighting policy needs; its TODO-1
-  decided **yes** 2026-08-18). `expanded_estimate_report.md` was
+  decided **yes** 2026-08-18) — **amended again 2026-08-27: the plan was
+  reopened with a new TODO-10 (NegBin mixture classes) and moved back to
+  `new_feature_plans/`; TODO-10 itself is in v1.1.0 scope, tracked at
+  `TODO-17f` below, even though TODO-1..9 remain excluded here as already
+  shipped in v1.0.0**. `expanded_estimate_report.md` was
   initially excluded alongside it, then **moved back into v1.1.0 scope
   the same day** (user decision) — see "In scope" and `TODO-1`/`TODO-5`
   below.
@@ -119,6 +127,9 @@ added 2026-08-23, user request) — are indexed as `TODO-9b` below, gated on
 its `→ TODO-1` decision (Phase 0 step 9b).
 (`local_machine_optimization.md` moved to v1.0.0 — see
 `release_v1_0_0.md`'s item 15 — 2026-08-20, user decision.)
+`fix_reusable_bootstrap.md` (added 2026-08-27; `→ TODO-1..6`; see `TODO-17e`
+below) is a small, additive follow-on fix to that shipped feature, not a new
+track.
 
 The response-type family: `nominal_response_type_report.md`,
 `rank_choice_response_type_report.md`,
@@ -511,6 +522,29 @@ ticked in their **owning plans**; this list is the release index.
   release's Phase 0 sitting, its TODO-1b (vignette section +
   cross-reference to the multivariate plan) ships here and the report
   closes to `../finished_features/`; otherwise it stays a 2.0.0 item.
+- [ ] TODO-17e: **Reusable-bootstrap-worker support for
+  `InferencePropZeroOneInflatedBetaRegr`** (added 2026-08-27):
+  `fix_reusable_bootstrap.md → TODO-1..6` — the one class (of 51 live
+  inference families, audited) missing the `get_bootstrap_worker_spec()`
+  fast path `local_machine_optimization.md`'s shipped `tune_EDI_for_this_
+  machine()` already relies on elsewhere; its jackknife rebuilds a fresh
+  `Design`/`Inference` object and reruns full column-selection from
+  scratch per leave-one-out fold instead of reusing one warmed-up worker.
+  Small, additive, R-layer only (no kernel change); must reproduce
+  bit-identical jackknife results before/after (plan's TODO-4). No
+  dependencies on other 1.1.0 items.
+- [ ] TODO-17f: **NegBin mixture marginal estimand** (added 2026-08-27):
+  `marginal_estimand_report.md → TODO-10` — reopened (moved back from
+  `../finished_features/`) to extend `set_estimand("marginal_mean_diff"/
+  "marginal_ratio")` to `InferenceCountZeroInflatedNegBin` and
+  `InferenceCountHurdleNegBin`, the two mixture classes left out of scope
+  when the Poisson siblings were wired (TODO-5/9 above). Needs a rederived
+  truncated-NegBin mean formula (the Poisson shortcut does not generalize)
+  and confirmation of the NegBin joint-information-matrix shape before the
+  same `define_inference_class(components = "MarginalEstimand")` conversion
+  TODO-5 already used for the Poisson concretes. Not started; see the
+  plan's TODO-10 for the full scope. Independent of other 1.1.0 items —
+  schedule alongside TODO-17c (estimand additions) if convenient.
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

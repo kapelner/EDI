@@ -213,7 +213,11 @@ test_that("compute_rand_confidence_interval throws error for unsupported types",
 	for (i in 1:n) des_incid$add_one_subject_to_experiment_and_assign(data.table(x=1))
 	add_all_subject_responses_seq(des_incid, rbinom(n, 1, 0.5))
 	inf_incid <- InferenceIncidLogRegr$new(des_incid)
-	expect_error(inf_incid$compute_rand_confidence_interval(), "Randomization confidence intervals are not supported for incidence")
+	# Randomization CIs are temporarily disabled for every incidence
+	# response (2026-08-27, see incidence_randomization_cis.md) -- this now
+	# errors unconditionally for incidence, not just for the
+	# non-Zhang-eligible design this test originally targeted.
+	expect_error(inf_incid$compute_rand_confidence_interval(), "temporarily disabled for incidence responses")
 
 	des_count <- DesignSeqOneByOneBernoulli$new(n = n, response_type = "count", verbose = FALSE)
 	for (i in 1:n) des_count$add_one_subject_to_experiment_and_assign(data.table(x=1))
@@ -252,7 +256,20 @@ test_that("FixedRerandomization incidence randomization uses design draws, not Z
 	)
 })
 
-test_that("Zhang incidence inference is available through randomization and exact APIs", {
+test_that("Zhang incidence inference is available through the exact API; randomization CI is blocked", {
+	# Randomization CIs are temporarily disabled for every incidence
+	# response (2026-08-27, see incidence_randomization_cis.md): the Zhang
+	# exact-combined CI `compute_rand_confidence_interval()` used to
+	# dispatch to is always on the log-odds-ratio scale and was being
+	# reported verbatim regardless of the calling class's own estimand --
+	# this test used to assert `compute_rand_confidence_interval()` and
+	# `compute_exact_confidence_interval()` agree, which was really just
+	# confirming the bug's own self-consistency for a log-odds-ratio class,
+	# not that the CI was correct for classes on other scales. The
+	# `compute_rand_two_sided_pval()`/`compute_exact_two_sided_pval_for_
+	# treatment_effect()` p-value agreement is untouched by the stopgap
+	# (scale-invariant at the sharp null, see that plan's own root-cause
+	# writeup) and still tested here directly against the exact API.
 	set.seed(321)
 	n <- 24
 	des <- DesignSeqOneByOneBernoulli$new(n = n, response_type = "incidence", verbose = FALSE)
@@ -263,23 +280,22 @@ test_that("Zhang incidence inference is available through randomization and exac
 	prob <- plogis(-0.2 + 0.8 * treatment)
 	add_all_subject_responses_seq(des, rbinom(n, 1, prob))
 
-	inf_rand_serial <- InferenceIncidLogRegr$new(des, verbose = FALSE)
-	inf_rand_parallel <- InferenceIncidLogRegr$new(des, verbose = FALSE)
+	inf_rand <- InferenceIncidLogRegr$new(des, verbose = FALSE)
 	inf_serial <- InferenceIncidExactZhang$new(des, verbose = FALSE)
 	inf_parallel <- InferenceIncidExactZhang$new(des, verbose = FALSE)
 
-	ci_rand_serial <- inf_rand_serial$compute_rand_confidence_interval(alpha = 0.10, pval_epsilon = 0.01, show_progress = FALSE)
-	ci_rand_parallel <- inf_rand_parallel$compute_rand_confidence_interval(alpha = 0.10, pval_epsilon = 0.01, show_progress = FALSE)
+	expect_error(
+		inf_rand$compute_rand_confidence_interval(alpha = 0.10, pval_epsilon = 0.01, show_progress = FALSE),
+		"temporarily disabled for incidence responses"
+	)
 	ci_exact_serial <- inf_serial$compute_exact_confidence_interval(alpha = 0.10, pval_epsilon = 0.01)
 	ci_exact_parallel <- inf_parallel$compute_exact_confidence_interval(alpha = 0.10, pval_epsilon = 0.01)
-	p_rand <- inf_rand_serial$compute_rand_two_sided_pval(delta = 0)
+	p_rand <- inf_rand$compute_rand_two_sided_pval(delta = 0)
 	p_exact <- inf_serial$compute_exact_two_sided_pval_for_treatment_effect(delta = 0)
 
-	expect_length(ci_rand_serial, 2)
-	expect_true(all(is.finite(ci_rand_serial)))
-	expect_equal(ci_rand_parallel, ci_rand_serial, tolerance = 1e-8)
-	expect_equal(ci_exact_serial, ci_rand_serial, tolerance = 1e-8)
-	expect_equal(ci_exact_parallel, ci_rand_serial, tolerance = 1e-8)
+	expect_length(ci_exact_serial, 2)
+	expect_true(all(is.finite(ci_exact_serial)))
+	expect_equal(ci_exact_parallel, ci_exact_serial, tolerance = 1e-8)
 	expect_true(is.finite(p_rand))
 	expect_equal(p_exact, p_rand, tolerance = 1e-12)
 })

@@ -1024,3 +1024,67 @@ have to land together, see the release-line note in the header above):**
   `R/EDI/R/inference_proportion_beta.R`,
   `R/EDI/R/inference_incidence_binomial_identity.R`,
   `R/EDI/R/inference_class_registry.R`. No commits made.
+
+- [ ] TODO-10: **NegBin mixture variants — `InferenceCountZeroInflatedNegBin`
+  and `InferenceCountHurdleNegBin`** (added 2026-08-27, this plan reopened —
+  moved back out of `../finished_features/` to `new_feature_plans/`
+  accordingly). Explicitly out of scope through TODO-4/5/9 above: every
+  Poisson-family sibling (`InferenceCountZeroInflatedPoisson`,
+  `InferenceCountHurdlePoisson`) now supports `"marginal_mean_diff"`/
+  `"marginal_ratio"`, but the two NegBin concretes still report every
+  marginal-estimand row as `nonest` for *every* inference method (Wald,
+  randomization, all bootstrap variants, jackknife, score, LR, gradient) —
+  not a convergence failure, but the documented absence of a `MarginalEstimand`
+  component on these two classes (confirmed by inspection:
+  `InferenceCountZeroInflatedNegBin`, `inference_count_zero_inflated.R:275-304`,
+  is a plain `R6::R6Class(inherit = InferenceCountZeroAugmentedPoissonAbstract)`
+  leaf with no `components =` argument at all, same shape
+  `InferenceCountHurdleNegBin` had before TODO-5's Poisson-only wiring pass).
+
+  Real math work required before wiring, not just a mechanical repeat of
+  TODO-5's pattern (see that TODO's own "Resume instructions" — it
+  explicitly warns future work not to reuse the Poisson helpers for NegBin
+  without rederiving both pieces below):
+  1. **Model-implied mean function**, using `fast_zinb_cpp`'s parameterization
+     (`log_theta` tail entry, per `bootstrap_calibrated_lr_report.md`'s own
+     note that this extraction is already done there for a different
+     purpose): zero-inflated NegBin mean is `(1 - pi(x)) * mu(x)` — the
+     same untruncated-mean shape as Poisson's ZIP case, so this half may
+     port directly. The hurdle NegBin mean is **not** a direct port: TODO-5
+     found that `E[Y | Y>0] = lambda / P(Y>0)` is a Poisson-only identity,
+     and the truncated-NegBin mean must be rederived from a primary source
+     (Cameron & Trivedi or equivalent) before shipping — a plausible-looking
+     wrong truncated-mean formula here is exactly the silently-wrong-numbers
+     failure mode this plan's own TODO-5 refused to risk.
+  2. **Covariance source.** Unlike the Poisson family's sandwich
+     (`zero_augmented_poisson_sandwich_vcov_full()`, score formulas assume a
+     plain `exp()`-link Poisson mean with no dispersion term — confirmed
+     Poisson-only, cannot be reused as-is), the NegBin fit's joint
+     information matrix already covers `[beta, log_phi/log_theta, gamma...]`
+     via `fast_zinb_cpp`/`fast_hurdle_negbin_cpp`'s own Hessian — confirm its
+     exact field name/shape (mirrors ZOIB's plain MLE-inverse-Hessian vcov,
+     per TODO-4, more than it mirrors the Poisson family's sandwich, per
+     TODO-5) before assuming `marginal_estimand_delta_se()` can be reused
+     unchanged.
+  3. **Wiring**, once 1–2 are derived and verified in isolation: convert both
+     classes from bare `R6::R6Class(...)` leaves to
+     `define_inference_class(inherit = InferenceCountZeroAugmentedPoissonAbstract,
+     components = "MarginalEstimand", ...)`, following TODO-5's Poisson
+     conversion as the template — including its three found-and-fixed bug
+     classes, all architecturally certain to recur here: (a) `private$cached_mod`
+     for this family is the `generate_mod()` wrapper, not the raw fit — the
+     raw fit (and any stashed `X_fit`/`Xzi_fit`/`is_hurdle` fields) lives one
+     level deeper at `private$cached_mod$mod`; (b) `compute_asymp_confidence_interval()`/
+     `compute_asymp_two_sided_pval()` must call `self$compute_estimate()`
+     first, not `private$shared()` directly; (c) the `inference_class_registry.R`
+     `infer_inference_direct_components()` static switch-table needs both
+     classes added, and `self$supports("marginal_estimand")` must be checked
+     end-to-end on real instances, not inferred from a clean package load.
+  4. New test file mirroring `test-zip-hurdle-poisson-marginal-estimand.R`'s
+     structure, including the truncated-mean-formula numerical cross-check
+     TODO-5 ran (simulate a large truncated draw, compare empirical vs.
+     formula mean) before trusting the hurdle path's point estimates.
+
+  Not started. Release-line placement is an open question for whoever
+  schedules it — see `future_release_plans/release_v1_1_0.md` for the
+  current v1.1.0 TODO list this should be added to.

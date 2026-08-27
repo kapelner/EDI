@@ -235,21 +235,26 @@ TallyReporter <- R6::R6Class("TallyReporter",
 # isatty(stdout()) would report the log file's tty-ness (always FALSE), not
 # the real terminal's.
 #
-# isatty(stderr()) alone is not a reliable signal that "\r\033[2K"-based
+# isatty(stderr()) alone is NOT a reliable signal that "\r\033[2K"-based
 # single-line redraws will actually render correctly: some terminal
 # emulators/multiplexers/IDE-integrated terminals report a real tty but
 # don't honor a bare trailing "\r" with no "\n" the way a raw pty does, so
 # every intermediate "running" draw (which relies entirely on "\r" to reset
 # the cursor for the next draw -- see draw() above, only the final "done"
 # line gets a trailing "\n") ends up glued onto the next one with no visual
-# separation at all instead of overwriting in place (seen in practice
-# 2026-08-27: EDI_PREPUSH_PLAIN_PROGRESS wasn't needed to reproduce -- a
-# real interactive shell still rendered every "running" update concatenated
-# on one unbroken line). EDI_PREPUSH_PLAIN_PROGRESS=1 forces the safe
-# newline-per-update fallback (the same path already used for genuinely
-# non-interactive/CI output) regardless of what isatty() reports, for
-# terminals where the "\r"-only redraw doesn't work.
-interactive_tty <- isatty(stderr()) && Sys.getenv("EDI_PREPUSH_PLAIN_PROGRESS", "0") != "1"
+# separation at all instead of overwriting in place. Confirmed unreliable in
+# practice (2026-08-27): isatty(stderr()) was TRUE in a real interactive
+# shell, yet every "running" update still rendered concatenated on one
+# unbroken line -- an opt-in env var to force the safe path was tried first
+# and didn't help (it has to actually be set in the shell that runs `git
+# push`, which is easy to forget/lose across shells, so requiring opt-in
+# just shifts the same failure mode one level up). Given isatty() can't be
+# trusted to predict this, default to the safe newline-per-update fallback
+# (the same path already used for genuinely non-interactive/CI output) and
+# require EXPLICIT opt-in for the fancy single-line redraw instead, via
+# EDI_PREPUSH_FANCY_PROGRESS=1, for the (real pty, verified-working)
+# terminals where it's actually worth it.
+interactive_tty <- isatty(stderr()) && Sys.getenv("EDI_PREPUSH_FANCY_PROGRESS", "0") == "1"
 
 # Test bodies and package code write chatter to stdout (cat()/print()),
 # message()/warning(), and in simulations_framework.R's case, straight to

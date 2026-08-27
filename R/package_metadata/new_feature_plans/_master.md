@@ -450,6 +450,9 @@ already stated there:**
   `marginal_estimand_report.md → TODO-3..8` (the `set_estimand()` switch)
   is **not** part of this track — it was pulled out into the v1.0.0 line
   (amended 2026-08-18, user decision; see `release_v1_0_0.md`'s item 14).
+  `marginal_estimand_report.md → TODO-10` (NegBin mixture classes, added
+  2026-08-27, plan reopened from `../finished_features/`) is tracked
+  separately at `release_v1_1_0.md → TODO-17f`.
 - **5B. Response-type track** → `release_v1_1_0.md → TODO-6`.
 - **5C. Censored-response track** (after Phase 1C/1F) →
   `release_v1_1_0.md → TODO-7`.

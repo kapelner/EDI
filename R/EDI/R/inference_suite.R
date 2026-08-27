@@ -689,34 +689,25 @@ run_all_inference_class_applicable_methods = function(nm, methods, des_obj = NUL
 		if (!isTRUE(des_obj$supports_randomization_draw())) {
 			methods = setdiff(methods, EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS)
 		} else if (identical(des_obj$get_response_type(), "incidence")) {
-			# Design-instance-level introspection for the incidence-response
-			# case (per user request, 2026-08-23, closing "this line
-			# shouldn't happen" -- a `rand` task was being generated and then
-			# silently NA-ing at call time for designs where it could never
-			# work): mirrors `InferenceRand$should_use_zhang_incidence_
-			# randomization()`'s own design-side half exactly
-			# (`is_a_bernoulli_capable() || is_a_kk_matching_capable()`,
-			# both public `Design` methods -- no instance construction
-			# needed). Only `"rand"` itself (`compute_rand_confidence_
-			# interval()`/`compute_rand_two_sided_pval()`) has a Zhang
-			# exact-combined-test escape hatch for incidence at all -- no
-			# other randomization-dependent sentinel does (`compute_rand_
-			# bootstrap_confidence_interval()`'s own incidence guard has no
-			# such exception, an unconditional stop()) -- so a
-			# Zhang-ineligible design excludes every randomization-dependent
-			# sentinel as before, while a Zhang-eligible one only spares
-			# `"rand"`. The `custom_randomization_statistic_function`
-			# escape hatch stays a per-instance runtime nuance this
-			# pre-filter can't see (it's a constructor argument, not known
-			# until construction) -- a narrower, legitimate edge case than
-			# the common one this closes.
-			zhang_eligible = isTRUE(des_obj$is_a_bernoulli_capable()) || isTRUE(des_obj$is_a_kk_matching_capable())
-			excluded = if (zhang_eligible) {
-				setdiff(EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS, "rand")
-			} else {
-				EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS
-			}
-			methods = setdiff(methods, excluded)
+			# `"rand"` used to be spared here (kept applicable) for a
+			# Zhang-eligible design (`is_a_bernoulli_capable() ||
+			# is_a_kk_matching_capable()`) because Zhang's exact-combined
+			# test covered both its p-value and its CI. That CI dispatch was
+			# disabled 2026-08-27 (see incidence_randomization_cis.md --
+			# `zhang_ci_exact_combined()` computed one design-level CI on
+			# the log-odds-ratio scale and reported it verbatim regardless
+			# of the calling class's own estimand, giving wrong-scale bounds
+			# for anything else), and the resulting row -- a real p-value
+			# alongside a permanently-`NA` CI and an explanatory message --
+			# read as noise rather than a useful result (per user request,
+			# 2026-08-27: "i'd rather the rand CI attempt not show up as a
+			# row at all for incidence"). So `"rand"` (and every other
+			# randomization-dependent sentinel, none of which had a Zhang
+			# escape hatch to begin with) is excluded for every incidence
+			# design now, not just a Zhang-ineligible one -- this task is
+			# never built, so no row for it ever appears, regardless of
+			# whether the underlying p-value would have been computable.
+			methods = setdiff(methods, EDI_INFERENCE_SUITE_RANDOMIZATION_DEPENDENT_SENTINELS)
 		}
 	}
 	if (!is.null(des_obj) && "lik_ratio_bartlett_exact" %in% methods &&
@@ -2928,8 +2919,22 @@ run_all_inference_plot_ci_forest = function(results_table, alpha) {
 		# duplicate the one dot the forest itself already shows), 2-5 shows
 		# the dots alone (a box-and-whisker over that few points is a poor
 		# summary), and only >5 overlays a box-and-whisker under the dots.
+		#
+		# Near-coincident points get the same treatment as a single estimate
+		# -- skip the subplot entirely, rather than trying to visually
+		# separate them (an earlier version jittered the points vertically;
+		# per user request, 2026-08-27, "if there are so nearly-exactly-
+		# coincident points, we should not show the estimate subplot
+		# whatsoever" -- a jittered cluster of dots that are actually all
+		# (near-)identical reads as real scatter that isn't there, which is
+		# worse than showing nothing). "Coincident" is judged at the same
+		# 3-significant-figure precision the pretty-print/HTML tables
+		# already round `estimate` to (`run_all_inference_sigfig()`) -- two
+		# points that would display as the same number in the table
+		# shouldn't need a subplot to tell them apart visually either.
 		n_est = nrow(box_d)
-		box = if (n_est >= 2L) {
+		n_distinct_est = length(unique(signif(box_d$estimate, 3L)))
+		box = if (n_est >= 2L && n_distinct_est == n_est) {
 			box_x_scale = if (use_log10) ggplot2::scale_x_log10() else ggplot2::scale_x_continuous()
 			p = ggplot2::ggplot(box_d, ggplot2::aes(x = estimate, y = y, group = y))
 			if (n_est > 5L) {
