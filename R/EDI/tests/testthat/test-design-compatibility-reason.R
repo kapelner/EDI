@@ -184,7 +184,25 @@ test_that("InferenceRand: supports_rand_pval_for_incidence() matches real throw 
 	expect_true(is.finite(p) && p >= 0 && p <= 1)
 })
 
-test_that("run_all_inference(): 'rand' pval is a real Zhang-dispatched value for a Zhang-eligible incidence design", {
+# 2026-08-27 (incidence_randomization_cis.md stopgap): run_all_inference()
+# no longer offers the "rand" method for incidence responses at all --
+# compute_rand_confidence_interval()'s Zhang CI dispatch was found to report
+# the same log-odds-ratio-scale interval verbatim for every incidence
+# class regardless of its own estimand's scale, so the CI side was
+# hard-disabled; since "rand" was only kept in incidence's applicable-method
+# list to pair that (now-broken) CI with its own real p-value, the whole
+# method is excluded rather than emit a p-value-only row with a permanently
+# broken CI. compute_rand_two_sided_pval() itself is untouched and still
+# correct when called directly (see the test above) -- only the suite's
+# auto-discovery stopped offering it for incidence. The class still gets a
+# results-table row (run_all_inference() always emits one per requested
+# class), but with no method actually attempted: pval/pval_method/ci_* all
+# come back NA and status stays "ok" (verified directly, 2026-08-27). Once
+# the plan's real fix ships (Implementation TODO-5: restore "rand" in
+# run_all_inference_class_applicable_methods()'s incidence branch alongside
+# reverting the CI stopgap), this test should go back to asserting a real,
+# non-NA pval, as it did before 2026-08-27.
+test_that("run_all_inference(): 'rand' method is not offered for an incidence design (CI-side stopgap)", {
 	n = 20L
 	des = DesignSeqOneByOneBernoulli$new(n = n, response_type = "incidence", verbose = FALSE)
 	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
@@ -199,8 +217,8 @@ test_that("run_all_inference(): 'rand' pval is a real Zhang-dispatched value for
 	row = res$results_table[res$results_table$inference_class == "InferenceIncidGCompRiskRatio", ]
 	expect_identical(nrow(row), 1L)
 	expect_identical(row$status, "ok")
-	expect_true(is.finite(row$pval) && row$pval >= 0 && row$pval <= 1)
-	expect_identical(row$pval_method, "rand")
+	expect_true(is.na(row$pval))
+	expect_true(is.na(row$pval_method))
 })
 
 # Regression coverage for the Bartlett-sentinel-gating fix (user report,

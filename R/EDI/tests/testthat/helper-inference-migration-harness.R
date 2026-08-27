@@ -153,7 +153,14 @@ inference_migration_method_calls = list(
 
 inference_migration_unsupported_error = function(err) {
 	msg = conditionMessage(err)
-	grepl("not implemented|not supported|only supported|does not support|does not expose|Must be implemented", msg)
+	# "temporarily disabled" covers compute_rand_confidence_interval()'s
+	# 2026-08-27 incidence stopgap (incidence_randomization_cis.md) -- both
+	# legacy and migrated classes inherit the same abstract method, so both
+	# sides throw identically and this harness should treat that as a
+	# symmetric non-support case, not a migration mismatch. Remove this
+	# pattern once that plan's real fix ships and the stopgap stop() is
+	# reverted (plan's Implementation TODO-5).
+	grepl("not implemented|not supported|only supported|does not support|does not expose|Must be implemented|temporarily disabled", msg)
 }
 
 inference_migration_call_optional_method = function(obj, method_name, args) {
