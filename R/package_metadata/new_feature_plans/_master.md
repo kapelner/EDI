@@ -436,6 +436,16 @@ kernels); runs in parallel with Phases 2–3; its parallelism sub-batch
 sub-batch (TODO-143/171/175 + published 135/147/148 numbers) is one rented
 `c7i.metal-48xl` session. TODOs are ticked in the owning plan.
 
+**Third lane (added 2026-08-27, user decision):
+`more_simd_optimization.md` → TODO-1..9 — index entry
+`release_v1_1_0.md → TODO-4c`, slated for v1.1.0** (the second lane above
+moved to v1.2.0 the same day; this one stays). Source-build premise
+(`-march=native`, no runtime dispatch); opt-report-driven vectorization of
+the hot loops: safe fast-math subset, `-fopenmp-simd`, `__restrict`,
+libmvec, aligned copies, tree-code SoA / branch-free loops, float32 for
+split ranking. Cross-references TODO-136/137/144/154/168 of the second lane
+rather than re-owning them.
+
 ---
 
 ## Phase 5 — Post-decision feature tracks

@@ -312,6 +312,26 @@ ticked in their **owning plans**; this list is the release index.
   or a "measured and dropped" note in the owning plan (its convention), §8.8's
   estimates are superseded by those measurements, and
   `benchmark_model_fits.md` has been re-run under the `→ TODO-135` gate.
+- [ ] TODO-4c: **More SIMD optimization lane** (`more_simd_optimization.md`
+  → TODO-1..9; added 2026-08-27, user decision — slated for **v1.1.0** even
+  though the wider perf lane TODO-4b moved to 1.2.0 the same day). Premise:
+  power users compile from source, so runtime ISA dispatch is moot and the
+  work is making the compiler actually vectorize the hot loops. Run in that
+  plan's own order: `→ TODO-1` (opt-report on the hot files — the gate for
+  everything else) → `→ TODO-3, 9` (flag-only: `-fno-math-errno
+  -fno-trapping-math`, `-fopenmp-simd`) → `→ TODO-2` (`__restrict`/aliasing
+  hygiene) → `→ TODO-4` (libmvec inside existing loops) → `→ TODO-5`
+  (aligned copies of `Map`ped R memory) → `→ TODO-6, 7` (tree-code SoA and
+  branch-free loops, only where TODO-1 flags them) → `→ TODO-8` (float32 for
+  split ranking, gated on a ranking-equivalence test). Items that duplicate
+  `performance_profiling_and_upgrades.md` TODO-136/137/144/154/168 are
+  ticked in both places; the earlier negative result on the safe fast-math
+  subset (that plan's TODO-68) is the null hypothesis for `→ TODO-3/4`, not
+  a foregone win. **Additive-constraint gate:** `→ TODO-4` (libmvec, ≤4 ulp)
+  and `→ TODO-8` (float32) can change results at tolerance level and ship
+  opt-in or with re-justified equivalence tolerances; `→ TODO-1, 2, 3, 5, 6,
+  7, 9` are bit-for-bit or flag-only. Exit criterion: every `→ TODO-1..9`
+  has a measured entry or a "measured and dropped" note.
 - [ ] TODO-5: **Corrections track** (`_master.md` Phase 5A order, minus
   `marginal_estimand_report.md`, moved to v1.0.0, amended 2026-08-18;
   `expanded_estimate_report.md` moved back here the same day; each

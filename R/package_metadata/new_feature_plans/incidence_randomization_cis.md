@@ -17,12 +17,25 @@
 response** (`compute_rand_confidence_interval()` throws immediately when
 `response_type == "incidence"`, per user decision 2026-08-27) as an
 emergency stopgap while this plan's real fix is designed and implemented.
-`compute_rand_two_sided_pval()`'s own Zhang dispatch is untouched and still
-works -- only the CI side was wrong (see below), and blocking it does not
-touch the (still scale-invariantly-correct) p-value. A `run_all_inference()`
-row for an incidence class's `rand` CI method now reports `ci_a`/`ci_b =
-NA` with a `message` explaining why, `status` unaffected by this alone (the
-point estimate/other methods still report normally).
+`compute_rand_two_sided_pval()`'s own Zhang dispatch is untouched at the
+method level and still works if called directly -- only the CI side was
+wrong (see below).
+
+**`InferenceSuite$run_all_inference()` no longer attempts the `rand`
+method for incidence responses at all** (`run_all_inference_class_
+applicable_methods()`, per user request, 2026-08-27: "i'd rather the rand
+CI attempt not show up as a row at all for incidence" -- a row with a real
+p-value next to a permanently-`NA` CI and an explanatory message read as
+noise rather than a useful result). This is broader than just the CI block:
+`"rand"` used to be spared from exclusion specifically because Zhang
+covered both its p-value and CI for a Zhang-eligible design; now that its
+CI is disabled, `"rand"` is excluded like every other randomization-
+dependent sentinel, so no incidence row for it is ever built -- including
+its (still-correct) p-value, which no longer surfaces through
+`run_all_inference()` for incidence either. Calling
+`compute_rand_two_sided_pval()` directly on an incidence-response class
+still works exactly as before; only the *suite's* auto-discovery stopped
+offering it.
 
 ## Symptom (2026-08-27, reported against `inference_suite_results_20260827_115955.html`)
 
@@ -207,11 +220,15 @@ functionality back sooner than the full fix.
    guarding *something*; find out what before removing that guard for the
    general case.
 5. Once a real fix ships, remove this plan's stopgap `stop()` in
-   `compute_rand_confidence_interval()` and re-enable incidence randomization
-   CIs; re-run the regression test from TODO-2 to confirm it now passes for
-   real (not just "no longer identical," but each class's CI genuinely on
-   its own scale, sanity-checked against that class's own Wald CI for
-   rough plausibility).
+   `compute_rand_confidence_interval()` **and** restore `"rand"` in
+   `run_all_inference_class_applicable_methods()`'s incidence branch (both
+   stopgaps landed together, 2026-08-27, and should be reverted together --
+   the CI block alone would leave the suite still not offering the now-fixed
+   p-value+CI row). Re-run the regression test from TODO-2 to confirm it now
+   passes for real (not just "no longer identical," but each class's CI
+   genuinely on its own scale, sanity-checked against that class's own Wald
+   CI for rough plausibility), plus a `run_all_inference()`-level check that
+   the `rand` row reappears for incidence with a real (non-`NA`) CI.
 6. Cross-reference this plan from `release_v1_1_0.md`/`_master.md` once a
    TODO number is assigned there.
 
