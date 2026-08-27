@@ -123,20 +123,28 @@ fi
 
 echo
 
-# Keep README.md's lines-of-code table current: regenerate it in place, then
-# treat a resulting diff as drift (same pattern as the package_tests CSV
-# drift check below) -- the push proceeds only once the refreshed table is
-# committed. update_readme_cloc.sh exits 0 without touching README.md when
-# cloc isn't installed, so machines without cloc aren't blocked.
-echo "pre-push: regenerating README.md lines-of-code table ..."
-readme_committed=0
+# README.md's lines-of-code table is no longer regenerated/auto-committed
+# HERE -- a commit this hook makes can never be part of the push already in
+# flight (git resolves the commit(s) to push before invoking pre-push), so
+# auto-fixing here only ever produced a guaranteed-useless first push
+# ("push again") every single time the table had drifted. Regenerate it
+# BEFORE pushing instead: ./gitpush_with_hooks_safe.sh (repo root) runs
+# scripts/update_readme_cloc.sh -- and the package_tests/ CSV drift-check
+# loop below -- ahead of the real `git push`, so any fix commit is already
+# part of history by the time git resolves what to send. This step now only
+# warns if the table is stale, so a plain `git push` still tells you to run
+# the safe wrapper instead of silently shipping a stale table.
+echo "pre-push: checking README.md lines-of-code table (not auto-fixing -- see ./gitpush_with_hooks_safe.sh) ..."
 if bash scripts/update_readme_cloc.sh; then
-	if ! git diff --exit-code -- README.md; then
-		echo "pre-push: README.md lines-of-code table was stale -- regenerated in place (diff above)."
-		echo "pre-push: committing the refreshed table ..."
-		git add README.md
-		git commit -m "updated README with new lines of code counts"
-		readme_committed=1
+	if ! git diff --exit-code -- README.md >/dev/null 2>&1; then
+		# Left as an uncommitted diff rather than reverted: a `git checkout --
+		# README.md` here would silently discard it if it happened to carry
+		# unrelated uncommitted edits the user hadn't gotten to yet. The
+		# regenerated table is correct either way -- committing it (via the
+		# wrapper script below, or by hand) is all that's left to do.
+		echo "pre-push: README.md lines-of-code table was stale -- regenerated in place, left uncommitted (diff above)." >&2
+		echo "pre-push: run ./gitpush_with_hooks_safe.sh (repo root) instead of a plain 'git push' -- it regenerates and commits this (and the package_tests/ drift CSVs) BEFORE pushing, so the fix is actually included instead of needing a second push." >&2
+		abort_push
 	fi
 else
 	echo "pre-push: scripts/update_readme_cloc.sh FAILED." >&2
@@ -460,15 +468,6 @@ if [ "$run_python_tests" = "1" ]; then
 	fi
 else
 	echo "pre-push: no python/C++-relevant files changed, skipping python checks."
-fi
-
-echo
-
-if [ "$readme_committed" = "1" ]; then
-	echo "pre-push: all local checks passed, but README.md was committed mid-hook (see above)." >&2
-	echo "pre-push: git already resolved the commit(s) to push before this hook ran, so that new commit is NOT part of the current push." >&2
-	echo "pre-push: push again -- it will include the README commit and (with no further drift) sail through this hook." >&2
-	abort_push
 fi
 
 echo "pre-push: all local checks passed."

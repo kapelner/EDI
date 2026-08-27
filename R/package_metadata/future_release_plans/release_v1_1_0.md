@@ -114,6 +114,24 @@ The diagnostics family: `optimizer_diagnostics_report.md` (TODO-1, 2, 3, 5),
 `public_diagnostics_api_spec.md`, `prw_subsampling_implementation_spec.md`
 (its remaining TODO-14..17 splice and TODO-20).
 
+The ordinal inference-quality family (Bayesian bootstrap and
+randomization-CI guards): `ordinal_kk_gee_bayesian_bootstrap.md`,
+`ordinal_stereotype_logit_bayesian_bootstrap.md`,
+`ordinal_adjacent_category_logit_bayesian_bootstrap.md`, and
+`ordinal_model_coefficient_randomization_confidence_intervals.md`. These
+plans remain separately owned because they guard different estimators and
+capabilities, even though they share the v1.1.0 release lane.
+
+The incidence randomization-CI correction:
+`incidence_randomization_cis.md` — per-estimand-scale Zhang intervals,
+following the temporary hard-disable and independent of the generic CI-search
+precision plan.
+
+The negative-binomial convergence correction:
+`negbin_dispersion_convergence.md` — the selected eventual Option 1
+reparameterization of the dispersion coordinate, with the completed boundary
+acceptance mitigation retained as a compatibility bridge.
+
 The kernel/perf family: `robust_regression_perf_optimization_spec.md`,
 `quantile_regression_cpp_kernel_spec.md`, `ordinal_gee_cpp_kernel_spec.md`,
 `cold_starts.md`, `gpu_optimizations.md` (decision-gated),
@@ -572,6 +590,34 @@ ticked in their **owning plans**; this list is the release index.
   TODO-5 already used for the Poisson concretes. Not started; see the
   plan's TODO-10 for the full scope. Independent of other 1.1.0 items —
   schedule alongside TODO-17c (estimand additions) if convenient.
+- [ ] TODO-17g: **Ordinal KK GEE Bayesian bootstrap**
+  `ordinal_kk_gee_bayesian_bootstrap.md` — restore weighted refits that use
+  the primary `multgee::ordLORgee` estimating equations and matched/reservoir
+  clustering, then enable the guarded capability after parity and calibration
+  tests.
+- [ ] TODO-17h: **Ordinal stereotype-logit Bayesian bootstrap**
+  `ordinal_stereotype_logit_bayesian_bootstrap.md` — implement weighted
+  refits of the native stereotype-logit estimator and enable its registry
+  capability only after draw-level parity tests.
+- [ ] TODO-17i: **Ordinal adjacent-category-logit Bayesian bootstrap**
+  `ordinal_adjacent_category_logit_bayesian_bootstrap.md` — replace the
+  cumulative-logit surrogate in weighted draws with the native
+  adjacent-category likelihood before enabling the capability.
+- [ ] TODO-17j: **Ordinal model-coefficient randomization CIs**
+  `ordinal_model_coefficient_randomization_confidence_intervals.md` — add
+  estimand-scale CI inversion while preserving the existing randomization-test
+  and randomization-bootstrap p-value capabilities.
+- [ ] TODO-17k: **Incidence randomization CIs**
+  `incidence_randomization_cis.md` — implement per-estimand-scale Zhang exact
+  intervals and remove the temporary incidence CI disable only after tests
+  demonstrate that bounds no longer reuse a log-odds-ratio scale incorrectly.
+- [ ] TODO-17l: **Negative-binomial dispersion reparameterization**
+  `negbin_dispersion_convergence.md → TODO-1..4` — replace the unbounded
+  `log_theta` coordinate with an attainable Poisson-boundary parameterization
+  (`phi = 1/theta` or `log(phi)`) across ZINB, plain NegBin, and hurdle-NegBin;
+  rederive score/Hessian and downstream covariance/warm-start consumers;
+  retain the completed boundary-acceptance mitigation as a compatibility
+  bridge until parity and non-overdispersion regression tests pass.
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

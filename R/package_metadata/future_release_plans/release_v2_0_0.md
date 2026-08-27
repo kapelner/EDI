@@ -173,6 +173,28 @@ against; they are additive on the design factory but are treated as a
   forward if decided; the backend architecture is 2.0.0.
 - `../new_research_ideas/quantum_greedy_design.md` (`DesignFixedGibbs`)
   — gated on simulations; classical arm could ship earlier.
+- `npu_ai_engine_optimizations.md` — optional Apple ANE, Intel/AMD NPU, and
+  Qualcomm Hexagon/HTP prediction backend for low-precision dense operators,
+  with graph validation, explicit opt-in, and CPU fallback. Training and
+  inferential refits remain out of scope.
+
+### New heterogeneous-effect inference architecture
+
+- `causal_forest_inference.md` — honest causal forests plus BART/BCF adapters,
+  CATE and scalar ATE contracts, design-aware propensity/replay handling,
+  frequentist forest intervals, Fisher randomization tests, bootstrap modes,
+  and Bayesian posterior diagnostics. This is new statistical functionality,
+  not a replacement for the existing scalar coefficient classes.
+
+### Shared inference backend and language boundaries
+
+- `migrate_EDI_into_shared_cpp_backend.md` — staged C++ inference ABI and
+  native-core migration, dependent on the completed standalone-core work and
+  existing Python package; preserve R/Python behavior through a dual-backend
+  release window.
+- `more_language_bindings.md` — additional language bindings and coordinated
+  packaging, sequenced after the shared backend rather than creating separate
+  handwritten kernel implementations.
 
 ### Deferred breaking changes
 
@@ -218,7 +240,19 @@ against; they are additive on the design factory but are treated as a
   - [ ] TODO-5b-iv: `gram_schmidt_walk_and_online_balancing.md → TODO-1..5`
     incl. the two simulation studies.
 - [ ] TODO-6: **Compute backends** — GPU dispatch architecture first
-  (`gpu_optimizations.md → TODO-7`), quantum hook second.
+  (`gpu_optimizations.md → TODO-7`), quantum hook second, then the optional
+  `npu_ai_engine_optimizations.md → TODO-1..` graph/runtime adapter.
+- [ ] TODO-6b: **Causal forest and Bayesian tree inference**
+  `causal_forest_inference.md → Phase 0..6` — stabilize the HTE estimand and
+  capability contract, ship the randomized-design forest path, then add
+  design-aware randomization/bootstrap modes and BART/BCF posterior adapters.
+- [ ] TODO-6c: **Shared C++ inference backend**
+  `migrate_EDI_into_shared_cpp_backend.md → CPPABI-601..` — land the ABI and
+  dual-backend compatibility window before enabling downstream language
+  bindings.
+- [ ] TODO-6d: **Additional language bindings**
+  `more_language_bindings.md → TODO-1..` — execute only after TODO-6c's ABI,
+  release, and ownership decisions are complete.
 - [ ] TODO-7: **Breaking changes** — greedy-class deletion; any contract
   breaks accumulated from TODO-3/4, each with a documented deprecation
   path from 1.x.

@@ -37,6 +37,15 @@ work builds on. No new statistical functionality.
   allocation and objective-extension plans extend.
 - `parallel_fork_cluster_test_safety.md` — fully closed (6/6); move to
   `../finished_features/` as part of this release's housekeeping.
+- `arm_hardware.md` — AArch64/Apple Silicon first-class targeting,
+  compiler-target detection, Accelerate/BLAS dispatch, and portable fallback
+  behavior.
+- `intel_hardware.md` — Intel AMX/matrix-engine detection and size-gated GEMM
+  dispatch, sharing the architecture-neutral dense-linear-algebra backend
+  with the ARM plan.
+- `memory_side_improvements.md` — NUMA placement, first-touch allocation,
+  huge-page advice, HBM/Xeon Max handling, and portable stubs when OS/runtime
+  capabilities are unavailable.
 
 ## Implementation TODOs (dependency order)
 
@@ -59,6 +68,13 @@ Ticked in owning plans; this list is the index.
 - [ ] TODO-6: Move `parallel_fork_cluster_test_safety.md` to
   `../finished_features/`.
 - [ ] TODO-7: **Release mechanics** per `release.md`.
+- [ ] TODO-8: **Architecture-specific CPU and memory engines**
+  `arm_hardware.md → TODO-1..` (AArch64/Apple/Graviton/Grace detection and
+  dispatch), `intel_hardware.md → TODO-1..` (AMX capability checks and GEMM
+  thresholds), and `memory_side_improvements.md → TODO-1..` (NUMA/HBM/huge
+  pages). Extract shared detection, dispatch, benchmark, and override logic
+  once; retain scalar/portable fallbacks and require benchmark evidence before
+  changing defaults.
 
 ## Standing constraints
 

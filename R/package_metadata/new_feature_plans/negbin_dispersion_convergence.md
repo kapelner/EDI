@@ -5,9 +5,10 @@
 > `src/fast_hurdle_negbin.cpp` -- and possibly the shared optimizer
 > convergence check in `src/_helper_functions_core.h` if the chosen fix
 > needs a core change rather than a per-kernel one; see options below).
-> Not yet slated for a release line -- needs a Phase-0-style decision
-> (which option, and whether it's worth the C++ risk/effort) before
-> scheduling.
+> **Release:** v1.1.0 (catalogued 2026-08-27). Option 1 below is the
+> selected eventual fix. The lower-risk Option 2 mitigation was implemented
+> as a temporary boundary-acceptance feature and is documented in
+> `../finished_features/negbin_dispersion_boundary_acceptance.md`.
 
 ## Symptom (2026-08-27)
 
@@ -76,7 +77,7 @@ same theoretical failure mode on non-overdispersed data, just not yet
 reported/reproduced against those two classes specifically (see TODO-1
 below).
 
-## Remediation options
+## Remediation options (Option 1 selected)
 
 1. **Reparameterize the dispersion parameter as `phi = 1/theta` (or
    `log(phi)`) instead of `log(theta)`.** The Poisson limit (`theta ->
@@ -100,28 +101,13 @@ below).
    back `theta`/`log_theta` from the fitted parameter vector (sandwich SE
    construction, warm-start caching, `record_zero_augmented_fit_summary()`,
    etc. -- audit needed, not a drop-in swap).
-2. **Partial/profile convergence acceptance, scoped to the dispersion
-   parameter, inside each affected kernel (not the shared core helper).**
-   After `optimize_fixed_likelihood()` returns `converged = FALSE`, check
-   whether the *non-dispersion* sub-vector of the final gradient is already
-   below `tol` on its own, and whether `log_theta` is large (past some
-   threshold past which `theta` is practically indistinguishable from
-   "no overdispersion" at any sane sample size, e.g. `theta > 1e4` or a
-   data-driven multiple of the fitted means) and still monotonically
-   improving (not oscillating/diverging). If so, accept the fit as
-   converged for the purposes of every *other* parameter (the treatment
-   coefficient in particular), while still flagging the dispersion estimate
-   itself as unreliable/at-the-boundary in the returned diagnostics. Lower
-   engineering risk than option 1 (touches only the post-fit classification
-   logic inside the three affected `.cpp` files, not the score/Hessian
-   derivation, and not `_helper_functions_core.h`'s shared convergence
-   check used by every other likelihood path in the package) but more of a
-   targeted patch than a real fix -- still needs care to avoid accepting a
-   fit that's actually stuck for an unrelated reason (a genuinely singular
-   Hessian elsewhere, a different parameter also drifting, etc.), so the
-   "non-dispersion sub-gradient is small AND log_theta is both large and
-   still monotonically improving in the right direction" check needs to be
-   conservative, not just "log_theta is big."
+2. **Partial/profile convergence acceptance (implemented temporary
+   mitigation; historical record in `../finished_features/`).** This accepts
+   a failed joint fit only when the non-dispersion gradient is small, the
+   dispersion is demonstrably approaching the Poisson boundary, and a forward
+   probe continues to improve the objective. It is not the long-term plan:
+   it leaves the `theta` parameter on an unbounded ridge and marks that
+   nuisance estimate as boundary/unreliable.
 3. **Cap `log_theta` at a large-but-finite bound during optimization**
    (e.g. clamp `theta` at some large multiple of the fitted means, or a
    fixed large constant), turning the unbounded ridge into a bounded one
@@ -134,31 +120,16 @@ below).
    corrections) misbehave. Probably the weakest of the three options
    unless 1 and 2 both turn out to be too expensive for the value here.
 
-## Implementation decision (2026-08-27)
+## Implementation decision (2026-08-27; revised)
 
-Option 2 is implemented as the conservative near-term fix, shared only by
-the three negative-binomial-family kernels through
-`src/_negbin_boundary_convergence.h` (not through the generic optimizer).
-A failed joint fit is reclassified only when all of the following hold:
-
-1. dispersion is free and `log_theta >= log(1e4)`;
-2. the norm of the free non-dispersion gradient is at most
-   `max(10 * tol, 1e-6)`;
-3. the dispersion gradient is negative (increasing theta improves the
-   negative log likelihood); and
-4. a probe at `log_theta + log(2)` does not worsen the objective, remains
-   finite, and retains a non-positive dispersion gradient.
-
-Accepted fits return `dispersion_at_poisson_boundary = TRUE`. Their
-coefficient covariance is computed conditional on the Poisson boundary by
-excluding the dispersion coordinate; the dispersion row/column of a full
-covariance result is `NA`. This makes the unreliable boundary estimate
-explicit while keeping treatment-coefficient inference available. Ordinary
-interior NegBin fits and the generic optimizer convergence contract are
-unchanged. The three immediate R inference callers also condition their
-score-test information on that boundary (the full matrix shape is retained,
-with the dispersion coordinate made algebraically independent), so Wald and
-score paths do not reintroduce the singular nuisance direction downstream.
+**Option 1 is the selected eventual reparameterization project and is
+catalogued for v1.1.0.** Replace the unbounded `log_theta` optimization
+coordinate with `phi = 1/theta` (or `log(phi)`), derive the corresponding
+scores/Hessians, and audit every downstream consumer of the dispersion slot.
+The existing Option 2 boundary acceptance is retained only as an interim
+compatibility measure until the reparameterization is complete; its details
+and implementation status are recorded in
+`../finished_features/negbin_dispersion_boundary_acceptance.md`.
 
 ## Implementation TODOs
 
@@ -168,11 +139,8 @@ score paths do not reintroduce the singular nuisance direction downstream.
    further work -- a single-part NegBin's likelihood surface may behave
    better in practice even though the theoretical pathology is shared (fewer
    interacting mixture components).
-2. **Decision:** which remediation option (or combination -- e.g. option 2
-   as a near-term mitigation, option 1 as the eventual real fix) to pursue,
-   and whether this is worth prioritizing at all given it only produces an
-   honest `nonest`, never a wrong number.
-3. If option 1: derive the reparameterized score/Hessian entries for each
+2. **Option 1 implementation:** derive the reparameterized score/Hessian
+   entries for each
    of the three kernels, audit every downstream consumer of the raw
    `log_theta`/`theta` parameter slot (warm-start caching
    `get_backend_warm_start_args()`, `record_zero_augmented_fit_summary()`,
@@ -181,22 +149,14 @@ score paths do not reintroduce the singular nuisance direction downstream.
    `cold_starts.md` documentation), and re-validate against
    `test-rcpp-fitting-equivalence.R`'s existing `glmmTMB` goldens plus a
    new non-overdispersed fixture.
-4. If option 2: define the "non-dispersion sub-gradient small enough, and
-   `log_theta` large *and* still monotonically improving" acceptance rule
-   precisely (exact thresholds, what "still monotonically improving" means
-   operationally given only the final iterate is available -- may need
-   LBFGSpp to report the last few objective values, not just the final one,
-   which could itself require a small `LikelihoodFitResult`/solver-wrapper
-   change), then implement per-kernel (not in the shared helper) and add
-   the `diagnostics` field that flags the dispersion estimate as
-   boundary/unreliable even when the rest of the fit is accepted.
-5. Whichever option: add the regression test this bug currently has none
+3. Add the regression test this bug currently has none
    of -- fit each affected class to genuinely non-overdispersed count data
    and assert the treatment coefficient/its CI *are* estimable (not `NA`),
    the mirror image of `test-rcpp-fitting-equivalence.R`'s existing
    overdispersed-data goldens.
-6. Cross-reference from `_master.md`/a release-line file once a decision
-   and a target release are made.
+4. Keep the Option 2 mitigation covered by its finished-feature regression
+   tests while Option 1 is developed; remove or simplify that mitigation only
+   after parity and boundary diagnostics have been demonstrated.
 
 ## Testing/verification plan
 
@@ -204,16 +164,16 @@ score paths do not reintroduce the singular nuisance direction downstream.
   `InferenceCountNegBin`/`InferenceCountHurdleNegBin` is the first gate --
   it determines whether this is a three-kernel problem or genuinely
   ZINB-specific in practice.
-- TODO-5's new non-overdispersed-data regression test is the load-bearing
+- TODO-3's new non-overdispersed-data regression test is the load-bearing
   test for whichever fix ships -- it directly encodes "this specific
   convergence failure cannot silently reappear."
-- Whichever option ships, re-run `test-rcpp-fitting-equivalence.R` in full
+- The selected Option 1 implementation must re-run
+  `test-rcpp-fitting-equivalence.R` in full
   (not just the new fixture) to confirm no regression on the existing
   genuinely-overdispersed/genuinely-inflated goldens -- especially
-  important for option 1, which changes the optimization parameterization
-  for every fit of the affected kernels, not just the pathological case.
-- No change expected outside the three negative-binomial-family kernels
-  (option 1/3) or their immediate R-level callers (option 2's diagnostics
-  field) -- Poisson-family zero-augmented/hurdle classes
+  because it changes the optimization parameterization for every fit of the
+  affected kernels, not just the pathological case.
+- No change expected outside the three negative-binomial-family kernels and
+  their immediate R-level consumers -- Poisson-family zero-augmented/hurdle classes
   (`InferenceCountZeroInflatedPoisson`, `InferenceCountHurdlePoisson`) have
   no dispersion parameter and are unaffected by any option here.
