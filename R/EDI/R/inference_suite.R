@@ -4100,9 +4100,21 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 	tau_all = if (!is.null(results_table$tau)) results_table$tau[usable] else rep(NA_real_, sum(usable))
 	groups = split(pv, est)
 	tau_groups = split(tau_all, est)
-	vapply(names(groups), function(g) {
+	# Two passes so the p-values can be right-aligned into one column (per
+	# user request, 2026-08-27, "can you align the pvalues on the right so
+	# it's easier to read"): the first pass builds each line's fixed
+	# "  Estimand: <label> (<n> inferences)" prefix and its own `p_str`
+	# without knowing the other lines' widths yet; the second pads every
+	# prefix out to the longest one and every `p_str` out to the widest one
+	# (right-justified, so shorter numbers like "NA" or "0.215" line up
+	# under longer ones like "0.000314" at the same trailing edge) before
+	# joining them with the "p = " separator.
+	prefixes = character(length(groups))
+	combined_pvals = rep(NA_real_, length(groups))
+	for (i in seq_along(groups)) {
+		g = names(groups)[i]
 		combined = run_all_inference_combine_pvalues(groups[[g]])
-		p_str = if (is.na(combined$pval)) "NA" else formatC(combined$pval, digits = 3, format = "g")
+		combined_pvals[i] = combined$pval
 		# This group's representative `tau` (for the "quantile_regression_
 		# effect" estimand's "median effect"/"quantile (<tau>%ile) effect"
 		# wording -- see `estimand_short_label()`'s own docs): the group's
@@ -4118,8 +4130,36 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 		# (per user request, 2026-08-19) -- `names(groups)` is still the
 		# raw registry `estimand` string (needed for `split()`/lookup), so
 		# abbreviate only for display here, not for the grouping itself.
-		sprintf("  Estimand: %s (%d inferences): p = %s", estimand_short_label(g, tau_g), length(groups[[g]]), p_str)
-	}, character(1L), USE.NAMES = FALSE)
+		prefixes[i] = sprintf("  Estimand: %s (%d inferences)", estimand_short_label(g, tau_g), length(groups[[g]]))
+	}
+	# Fixed decimal places across the whole block (per user request,
+	# 2026-08-27: "maintain same number of digits, so p=0.210000 matches
+	# the six digits of p=0.012345") -- not fixed significant figures
+	# (`formatC(..., format = "g")`, the previous approach), which gives
+	# each p-value its own decimal width and defeats the point of aligning
+	# them into a column at all (the digits themselves wouldn't line up,
+	# only the leading "0."). Instead: find how many decimal places the
+	# SMALLEST finite p-value in this block needs to show 3 significant
+	# figures (`2 - floor(log10(x))`, e.g. `0.000988` needs 6), then render
+	# every p-value in the block -- including much larger ones that would
+	# natively need far fewer -- at that same fixed decimal width, padded
+	# with trailing zeros. Capped at 12 decimals purely as a sanity ceiling
+	# against a degenerate near-zero combined p-value demanding an absurd
+	# column width; ordinary p-values never approach it.
+	finite_pvals = combined_pvals[is.finite(combined_pvals) & combined_pvals > 0]
+	decimals = if (length(finite_pvals) > 0L) {
+		min(12L, max(0L, max(2L - floor(log10(finite_pvals)))))
+	} else {
+		0L
+	}
+	p_strs = ifelse(is.na(combined_pvals), "NA", sprintf(paste0("%.", decimals, "f"), combined_pvals))
+	prefix_width = max(nchar(prefixes))
+	pval_width = max(nchar(p_strs))
+	sprintf(
+		"%s: p = %s",
+		formatC(prefixes, width = -prefix_width),
+		formatC(p_strs, width = pval_width)
+	)
 }
 
 

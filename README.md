@@ -32,6 +32,20 @@ papers cited below. To get started from the repository root, run
 
 > **Benchmark report:** [`R/benchmark/benchmark_model_fits_R.html`](R/benchmark/benchmark_model_fits_R.html) — speed and correctness of every model-fitting kernel against its R canonical baseline.
 
+### Installation
+
+```r
+install.packages("EDI")
+```
+
+Or the development version from this repo (requires a C++ compiler toolchain
+for R packages, e.g. Rtools on Windows or Xcode command line tools on macOS):
+
+```r
+# from the repository root
+install.packages("R/EDI", repos = NULL, type = "source")
+```
+
 ### Local performance builds
 
 `EDI`'s `configure` script resolves its compiler flags at install time based on
@@ -101,8 +115,9 @@ on identical synthetic data and their outputs compared; a disagreement
 discards the deviation rather than applying it):
 
 ```r
-tune_EDI_for_this_machine()                 # standard effort; run on an idle machine
-tune_EDI_for_this_machine(effort = "quick") # coarser grid, fewer replicates
+tune_EDI_for_this_machine()                   # standard effort; run on an idle machine
+tune_EDI_for_this_machine(effort = "quick")   # coarser grid, fewer replicates
+tune_EDI_for_this_machine(effort = "thorough") # full grid, more replicates
 ```
 
 The result is saved to a per-user config file and applied automatically the
@@ -125,127 +140,296 @@ names) yourself for parallel execution to actually take effect — see
 "Setting a seed for reproducible output" below for why `num_cores` also
 matters for reproducibility.
 
-### Setting a seed for reproducible output
-
-All three layers of the package accept a seed for deterministic output.
-
-**Design classes** — pass `seed` to `$new()`:
+### Getting Started
 
 ```r
-# Fixed design: same seed → same draw_ws_according_to_design() every call
-des = DesignFixedBernoulli$new(n = 100, response_type = "continuous", seed = 42)
-des$add_all_subjects_to_experiment(X)
-w1 = des$draw_ws_according_to_design(r = 500)
-w2 = des$draw_ws_according_to_design(r = 500)
-identical(w1, w2)  # TRUE
-
-# Sequential design: same seed → same assignment sequence
-des = DesignSeqOneByOneBernoulli$new(n = 100, response_type = "continuous", seed = 42)
-for (i in seq_len(100)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+vignette("reproducibility", package = "EDI")     # RNG/seed conventions across designs, bootstrap, and simulation
+vignette("extending-edi", package = "EDI")        # writing your own Design/Inference R6 subclasses
+vignette("backend-contracts", package = "EDI")    # how the C++ core is shared between the R (Rcpp) and Python (pybind11) bindings
+vignette("notation-glossary", package = "EDI")    # symbols/naming conventions shared across Design*/Inference* classes and docs
+vignette("validation-evidence", package = "EDI")  # index into the test suite showing each model family computes what it claims
 ```
 
-**Inference classes** — call `$set_seed()` after construction:
+#### Historical experimental data example
 
-```r
-inf = InferenceAllSimpleAverageDiff$new(des)
-inf$set_seed(42)
-
-# Same seed + same num_cores → identical p-value / CI / Bayesian-bootstrap distribution
-p  = inf$compute_rand_two_sided_pval(r = 999, show_progress = FALSE)
-ci = inf$compute_bootstrap_confidence_interval(B = 999, show_progress = FALSE)
-```
-
-Reproducibility is guaranteed only when `num_cores` is the same across runs
-(cross-core determinism is out of scope). Set the number of parallel workers
-before running:
-
-```r
-set_num_cores(4)   # or unset_num_cores() for serial
-```
-
-**SimulationFramework** — pass `seed` to `$new()`:
-
-```r
-sim = SimulationFramework$new(
-    response_type = "continuous",
-    design_classes_and_params = list(DesignFixedBernoulli),
-    inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
-    inference_types_and_params = list(asymp_pval = list()),
-    n = 50L, Nrep = 200L, seed = 321, ...
-)
-sim$run()
-```
-
-**Note on `duplicate()`:** Objects produced by `$duplicate()` have their seed
-cleared intentionally. This prevents parallel inference workers from resetting
-to the same RNG stream and producing duplicate treatment allocations.
-
-### Experimental findings
-
-The `R/scripts/benchmark_randomization_ci_ordinal_ppo.R` and
-`R/scripts/benchmark_randomization_ci_cases.R` experiments show the native-speed
-flags are beneficial for the heavier Eigen/OpenMP workloads but not universally
-faster:
-
-- **Ordinal PPO (`InferenceOrdinalMultiPartialProportionalOddsRegr`)** with `r=201` and `reps=3`: portable `≈19.2s`, native `≈16.6s`, native+LTO `≈16.7s`.
-- **KK mean-difference IVWC (`InferenceAllKKMeanDiffIVWC`)**: portable ≈13.4s, native ≈13.1s, native+LTO ≈13.8s.
-- **Proportion fractional logit and simple Poisson (`InferencePropMultiFractionalLogit`, `InferenceCountUnivPoissonRegr`)**: portable was slightly faster than both native and native+LTO on those lightweight cases.
-
-Bottom line: use `EDI_NATIVE_SPEED`/`EDI_NATIVE_LTO` to benchmark and tune the
-expensive ordinal/KK regressions locally, but keep the default portable flags
-for general development and distribution.
-
-### Bootstrap diagnostics for modified Poisson incidence inference
-
-Trimmed versions of the `cars`/`FixedCluster` workload (for example,
-`R/scripts/diagnose_modified_poisson_bootstrap.R`) used to hit
-`Bootstrap confidence interval returned NA bounds` because the reduced design
-matrix had as many covariates as rows. The inference object now falls back to
-the univariate modified Poisson fit whenever the multivariate design is
-underdetermined, so the diagnostics report 25/25 finite replicates and
-`prop_illegal_values = 0.000` while retaining the same treatment estimate.
-
-### Parametric bootstrap LR workflow
-
-For likelihood-backed classes that support parametric-bootstrap likelihood-ratio
-calibration, the intended user-facing entry points are:
-
-- `compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 199, show_progress = FALSE)`
-- `compute_lik_ratio_bootstrap_confidence_interval(alpha = 0.05, B = 199, show_progress = FALSE)`
-
-These methods are available only for inference classes whose internal
-`supports_lik_ratio_param_bootstrap()` capability is enabled. Unsupported
-classes error rather than silently falling back to another procedure.
-
-A typical flow is:
+You often already have data from a completed experiment — covariates, the
+treatment that was actually assigned, and the observed outcome — rather than
+a fresh design you're about to randomize. Load it into a matching `Design`
+subclass by passing the recorded assignment vector to
+`assign_w_to_all_subjects(w_precomputed = ...)`, then run the inference
+procedure appropriate to how the data were collected. Here, a stratified-block
+design with a survival (time-to-event) outcome:
 
 ```r
 library(EDI)
 
-des = DesignFixedBernoulli$new(n = 80, response_type = "count", verbose = FALSE)
-des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(80)))
-des$overwrite_all_subject_assignments(rep(c(1, 0), length.out = 80))
-des$add_all_subject_responses(rpois(80, lambda = exp(0.2 + 0.3 * des$get_w() + 0.2 * des$get_X()[, 1])))
+n = 40
+X = data.frame(
+    age = rnorm(n, 60, 8),
+    sex = factor(sample(c("M", "F"), n, replace = TRUE))
+)
+w = rbinom(n, 1, 0.5)                # the treatment actually assigned, historically
+event_time = rexp(n, 0.1)            # observed time (event or censoring)
+event_occurred = rbinom(n, 1, 0.8)   # 1 = death/event observed, 0 = right-censored
 
-inf = InferenceCountPoisson$new(des, model_formula = ~ x1, verbose = FALSE)
-inf$set_seed(1)
-
-p_boot = inf$compute_lik_ratio_bootstrap_two_sided_pval(
-  delta = 0,
-  B = 199,
-  show_progress = FALSE
+des = DesignFixedBlocking$new(n = n, response_type = "survival", strata_cols = "sex")
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects(w_precomputed = w)
+des$add_all_subject_responses(
+    ys   = ifelse(event_occurred == 1, event_time, NA),
+    y_Ls = ifelse(event_occurred == 0, event_time, NA),
+    y_Rs = ifelse(event_occurred == 0, Inf, NA)
 )
 
-ci_boot = inf$compute_lik_ratio_bootstrap_confidence_interval(
-  alpha = 0.05,
-  B = 199,
-  show_progress = FALSE
-)
+inf = InferenceSurvivalWeibullRegr$new(des)
+inf$compute_estimate()
+inf$compute_asymp_two_sided_pval()
+
+# Likelihood-score p-value and confidence interval (asymptotic, no resampling)
+inf$compute_score_two_sided_pval()
+inf$compute_score_confidence_interval()
+
+# Nonparametric bootstrap p-value and confidence interval
+inf$set_seed(42)
+inf$compute_bootstrap_two_sided_pval()
+inf$compute_bootstrap_confidence_interval()
+
+# Randomization (design-based) test and its inverted confidence interval
+inf$compute_rand_two_sided_pval()
+inf$compute_rand_confidence_interval()
+
+# Parametric bootstrap likelihood-ratio p-value and confidence interval
+inf$compute_lik_ratio_bootstrap_two_sided_pval()
+inf$compute_lik_ratio_bootstrap_confidence_interval()
 ```
 
-`delta = 0`, `B = 199`, and `show_progress = FALSE` are the standard defaults.
-These routines are materially more expensive than the asymptotic LR methods
-because they repeatedly simulate and refit null datasets.
+#### Sequential experimental data example
+
+Sequential (matching-on-the-fly) designs assign treatment one subject at a
+time as covariates arrive, then take the full response vector once every
+subject has been enrolled. Here, Pocock and Simon (1975) minimization
+balancing on `sex`, with a binary (incidence) outcome analyzed via probit
+regression:
+
+```r
+library(EDI)
+
+n = 60
+des = DesignSeqOneByOnePocockSimon$new(n = n, response_type = "incidence", strata_cols = "sex")
+for (i in seq_len(n)) {
+    x_i = data.frame(sex = factor(sample(c("M", "F"), 1), levels = c("M", "F")))
+    des$add_one_subject_to_experiment_and_assign(x_i)
+}
+des$add_all_subject_responses(rbinom(n, 1, 0.5))
+
+inf = InferenceIncidProbitRegr$new(des)
+inf$compute_estimate()
+inf$compute_asymp_two_sided_pval()
+```
+
+#### Inference Suite example
+
+Rather than picking a single inference procedure by hand, `InferenceSuite`
+discovers and runs every procedure applicable to a design/response-type
+combination at once, and summarizes their combined evidence as a single
+Cauchy-combined p-value. Ordinal responses have the richest set of
+applicable procedures (proportional odds, continuation ratio, adjacent
+category, stereotype logit, and more), so they make a good showcase:
+
+```r
+library(EDI)
+
+n = 80
+X = data.frame(x1 = rnorm(n))
+des = DesignFixedBernoulli$new(n = n, response_type = "ordinal")
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+des$add_all_subject_responses(factor(sample(1:4, n, replace = TRUE), ordered = TRUE))
+
+suite = InferenceSuite$new(des)
+res = suite$run_all_inference(compute_conf_intervals = TRUE)
+
+res$results_table             # one row per (class, method, type) combination fit
+res$combined_evidence$pval    # the Cauchy-combined p-value across all usable rows
+res$combined_evidence$n_classes_used
+
+print(res)
+.....
+Combined evidence against the sharp null across 18 estimands
+(155 inferences, weighting = uniform within estimand):
+p = 0.000261
+
+Per-estimand breakdown
+Estimand: cauchit link effect (11 inferences):     p = 0.000314
+Estimand: cauchit link effect cond (6 inferences): p = 0.001100
+Estimand: cloglog link effect (10 inferences):     p = 0.000198
+Estimand: cloglog link effect cond (6 inferences): p = 0.000286
+Estimand: HL shift (4 inferences):                 p = 0.000388
+Estimand: logodds adj cat (10 inferences):         p = 0.000198
+Estimand: logodds adj cat cond (5 inferences):     p = 0.215000
+Estimand: logodds cont ratio (11 inferences):      p = 0.000217
+Estimand: logodds partial prop (6 inferences):     p = 0.000286
+Estimand: logodds prop (15 inferences):            p = 0.000211
+Estimand: logodds prop cond (16 inferences):       p = 0.000223
+Estimand: mann whitney effect (6 inferences):      p = 0.000286
+Estimand: mean Δ (18 inferences):                  p = 0.000286
+Estimand: probit ordinal (11 inferences):          p = 0.000217
+Estimand: probit ordinal cond (6 inferences):      p = 0.000286
+Estimand: sign test effect (4 inferences):         p = 0.000195
+Estimand: stereotype link effect (4 inferences):   p = 0.000133
+Estimand: stoch ordering trend (6 inferences):     p = 0.000286
+```
+
+```r
+# One CI-forest plot per estimand, keyed by estimand name
+res$plots$ci_forest[["logodds cont ratio"]]
+```
+
+Each plot stacks every applicable procedure's confidence interval for that
+estimand over an "Estimates" box-and-whisker subplot (if there are multiple
+different estimate values), with the estimand's own Cauchy-combined p-value as the title:
+
+![InferenceSuite CI-forest plot for the "logodds cont ratio" estimand, showing confidence intervals from multiple inference procedures (bootstrap, Bayes bootstrap, parametric bootstrap, gradient, likelihood ratio, score, jackknife, Wald) stacked above a combined estimates plot, titled "95% CIs (combined p = 0.000178)"](R/package_metadata/figures/inference_suite_logodds_cont_ratio_ci.png)
+
+See `?InferenceSuite` for the Combined Evidence Metric's interpretation and
+caveats — it is a joint test that *some* procedure detected a signal, not an
+estimate of any single effect size.
+
+### Design bakeoffs via SimulationFramework
+
+`SimulationFramework` can also run several *designs* head-to-head under an
+identical data-generating process, rather than comparing inference
+procedures on one fixed design. Pass more than one design class in
+`design_classes_and_params` and `$summarize()` reports `power`/`MSE`/
+`coverage` broken out by design. Designs with required constructor arguments
+(e.g. `DesignSeqOneByOnePocockSimon`'s `strata_cols`) get a sensible default
+auto-injected if you don't supply one — here, comparing Pocock and Simon
+(1975) minimization against the stepwise-weighted KK21 matching-on-the-fly
+design, both analyzed with beta regression on a proportion outcome:
+
+```r
+library(EDI)
+
+sim = SimulationFramework$new(
+    response_type = "proportion",
+    design_classes_and_params = list(
+        DesignSeqOneByOnePocockSimon,
+        DesignSeqOneByOneKK21stepwise
+    ),
+    inference_classes_and_params = list(InferencePropBetaRegr),
+    inference_types_and_params = list(asymp_pval = list(delta = 0)),
+    n = 60L, p = 4L, betaT = 0.15, Nrep_W = 40L,
+    results_filename = tempfile(fileext = ".csv"),
+    continue_from_last_result_row = FALSE,
+    verbose = FALSE
+)
+sim$run()
+
+report = SimulationFrameworkReport$new(sim)
+report$summarize()[, .(design, power, MSE)]
+```
+
+```
+                          design power         MSE
+                          <char> <num>       <num>
+1: DesignSeqOneByOneKK21stepwise 0.775 0.002522346
+2:  DesignSeqOneByOnePocockSimon 0.650 0.004210140
+```
+
+Here KK21's outcome-weighted matching wins on both counts: higher power and
+lower MSE than Pocock-Simon's covariate-only minimization, since KK21 also
+uses the *response* to weight covariates it matches on.
+
+(A `Nrep_W` of 40 keeps this quick to run; use a larger value, e.g. 1000+,
+for a bakeoff you'd actually draw conclusions from.)
+
+Re-running the same comparison at `betaT = 0` (no true treatment effect)
+checks each design/inference combination's Type I error calibration instead
+of its power — the `size` column should sit near `alpha` (0.05 here), with
+`size_pval` the exact binomial test of `H0: true size = alpha`:
+
+```r
+sim0 = SimulationFramework$new(
+    response_type = "proportion",
+    design_classes_and_params = list(
+        DesignSeqOneByOnePocockSimon,
+        DesignSeqOneByOneKK21stepwise
+    ),
+    inference_classes_and_params = list(InferencePropBetaRegr),
+    inference_types_and_params = list(asymp_pval = list(delta = 0)),
+    n = 60L, p = 4L, betaT = 0, Nrep_W = 40L,
+    results_filename = tempfile(fileext = ".csv"),
+    continue_from_last_result_row = FALSE,
+    verbose = FALSE
+)
+sim0$run()
+
+report0 = SimulationFrameworkReport$new(sim0)
+report0$summarize()[, .(design, size, size_pval)]
+```
+
+```
+                          design  size size_pval
+                          <char> <num>     <num>
+1: DesignSeqOneByOneKK21stepwise  0.05         1
+2:  DesignSeqOneByOnePocockSimon  0.05         1
+```
+
+Both designs land exactly at the nominal 5% level here, with `size_pval = 1`
+(no evidence against correct calibration) — as expected, since only the
+*power* comparison above depends on the true `betaT`, not the null.
+
+### Setting a seed for reproducible output
+
+Every layer accepts a `seed` for deterministic output, and reproducibility
+only holds when `num_cores` (see `set_num_cores()`) is also the same across
+runs — some designs' draws are only seed-reproducible single-threaded.
+
+```r
+# Design: pass seed to $new()
+des = DesignFixedBernoulli$new(n = 100, response_type = "continuous", seed = 42)
+des$add_all_subjects_to_experiment(X)
+identical(des$draw_ws_according_to_design(r = 500), des$draw_ws_according_to_design(r = 500))  # TRUE
+
+# Inference: call $set_seed() after construction
+inf = InferenceAllSimpleAverageDiff$new(des)
+inf$set_seed(42)
+inf$compute_rand_two_sided_pval(r = 999, show_progress = FALSE)
+inf$compute_bootstrap_confidence_interval(B = 999, show_progress = FALSE)
+
+# SimulationFramework: pass seed to $new()
+sim = SimulationFramework$new(
+    response_type = "continuous",
+    design_classes_and_params = list(DesignFixedBernoulli),
+    inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
+    inference_types_and_params = list(asymp_pval = list(delta = 0)),
+    n = 50L, Nrep_W = 200L, seed = 321
+)
+sim$run()
+```
+
+A design's `$duplicate()` clears the copy's seed — used internally to hand
+each parallel resampling worker its own RNG stream instead of replaying the
+parent's.
+
+## Contributing
+
+Issues and pull requests are welcome at
+[github.com/kapelner/EDI](https://github.com/kapelner/EDI). See
+[`CLAUDE.md`](CLAUDE.md) for repo-specific conventions (e.g. never running a
+full package rebuild without being asked).
+
+Adding a new `Inference*` model (a new estimation/testing procedure for an
+existing design/response-type combination) touches capability metadata,
+argument checking, documentation, unit and integration tests, C++ core
+hygiene, the R/Python core split, and registration in the comprehensive test
+harness — it's more than just getting the point estimate right. Follow
+[`R/package_metadata/contracts/new_model_creation.md`](R/package_metadata/contracts/new_model_creation.md)
+end to end before opening a PR for one.
+
+## License
+
+GPL-3 — see [`LICENSE`](LICENSE).
 
 ## Citation
 

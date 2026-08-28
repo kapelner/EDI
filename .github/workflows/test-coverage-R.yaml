@@ -117,14 +117,22 @@ jobs:
         # run's actual test output could be seen was never shown in CI logs
         # (see the 2026-08-17 runs that failed with "Error: running the tests
         # in 'testthat.R' failed" and no further detail). Search /tmp too,
-        # where covr's scratch install actually lives.
+        # where covr's scratch install actually lives. Also matches
+        # '*-commands.Rout*': the `code=` argument on covr::codecov() above
+        # (added to fold R/package_tests/testthat_bulk/ into coverage) runs
+        # through a *different* covr code path than the package's own
+        # tests/testthat.R, writing its output to <pkg>-commands.Rout(.fail)
+        # instead -- a run failing there printed only the opaque top-level
+        # "Error: Failure in .../EDI-commands.Rout.fail" with no detail
+        # visible anywhere in the CI log until this was widened to catch it
+        # too (see the 2026-08-28 run this was written to fix).
         run: |
           found=0
-          for f in $(find /tmp R/EDI -name 'testthat.Rout*' 2>/dev/null); do
+          for f in $(find /tmp R/EDI -name 'testthat.Rout*' -o -name '*-commands.Rout*' 2>/dev/null); do
             found=1
             echo "--- $f ---"
             cat "$f"
           done
           if [ "$found" = "0" ]; then
-            echo "Show testthat output: no testthat.Rout* file found under /tmp or R/EDI."
+            echo "Show testthat output: no testthat.Rout*/*-commands.Rout* file found under /tmp or R/EDI."
           fi

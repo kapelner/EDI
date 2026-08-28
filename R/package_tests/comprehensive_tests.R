@@ -1272,6 +1272,11 @@ safe_call = function(label, expr){
 			flush.console()
 			result
 		}, error = function(e){
+			# A setTimeLimit() interrupt raised while native code is inside
+			# .Call() can leave R's process-level elapsed limit armed until the
+			# next top-level checkpoint. Clear it before recording the timeout so
+			# the following method/case is not interrupted by the stale deadline.
+			setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
 			if (inherits(e, "TimeoutException") ||
 				grepl("reached elapsed time limit", conditionMessage(e), fixed = TRUE)) {
 				duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
