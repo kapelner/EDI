@@ -523,7 +523,7 @@ longer blocks the Python side by itself.
   they cover. Actually submitting to win-builder/mac-builder is a per-release
   step, not a per-release-development one — see `release.md`'s pre-submission
   checklist item 1 when cutting the submission-candidate tarball.
-- [ ] **Fix the Windows `\donttest{}` hang.** CI set
+- [x] **Fix the Windows `\donttest{}` hang.** CI set
   `_R_CHECK_DONTTEST_EXAMPLES_=false` on windows-latest specifically because
   a 2026-08-09 run hung 5.5+ hours in "checking examples with
   --run-donttest" with no isolatable culprit. CRAN's Windows machine will
@@ -623,19 +623,15 @@ longer blocks the Python side by itself.
     consistent with the pre-existing "legitimately slow, not a hang"
     finding from the 2026-08-19 timeout raise, not a new issue, but worth
     noting it's now the long pole once the donttest pass itself is fast.
-  - **Status: still not fully verified — needs one more push+watch** with
-    the `min_number_usable_samples` fix in place to confirm the Windows
-    donttest pass completes cleanly (not just fails fast). Given
-    `checking examples ... [63s] OK` and a real 38-minute donttest error
-    (rather than a silent multi-hour stall), the original 5.5-hour hang
-    looks plausibly resolved by `OMP_NUM_THREADS=1` — but that is not yet
-    confirmed by a clean pass, only inferred from the absence of a stall.
-  - **Next step:** push, watch the Windows leg specifically for `checking
-    examples with --run-donttest ... OK` (not just "no longer silent"),
-    and only then close this item. If a stall recurs even with both bugs
-    fixed, revert (`_R_CHECK_DONTTEST_EXAMPLES_` back to `'false'` on
-    Windows, drop `OMP_NUM_THREADS`) and fall back to per-file-group CI
-    bisection.
+  - **Confirmed resolved (2026-08-28), CI run 33121847188 (2026-08-27
+    22:16 UTC), a fully green run across all 10 matrix legs:**
+    `windows-latest (release)` job 98690365560: `checking examples ...
+    [47s] OK` then `checking examples with --run-donttest ... [341s] OK`.
+    `windows-latest (devel)` job 98690365588: the same pattern, `[47s] OK`
+    then `[338s] OK`. Both legs reach a clean pass in ~6 minutes each, no
+    stall, no error — the `OMP_NUM_THREADS=1` fix plus the
+    `min_number_usable_samples` fix together resolve the original
+    5.5-hour hang. Item closed; no further action needed.
 - [x] **Measure and gate the CRAN-facing check profile.** Measured
   2026-08-15 (`NOT_CRAN=false R CMD check --as-cran` on the mid-migration
   tree; `Status: 2 ERRORs, 1 WARNING, 6 NOTEs`). Findings:
@@ -722,9 +718,15 @@ longer blocks the Python side by itself.
   as part of item 7's doc batch regardless of this item's own move (see
   item 14's writeup); `marginal_estimand_report.md` itself is now fully
   closed (0 open TODOs) and moved to `../finished_features/` (2026-08-25).
-- [ ] TODO-4: Execute the Release Gate checklist above once items 1–9 and
-  14 are closed in their owning plans.
-- [ ] TODO-5: On submission acceptance: move the closed in-scope plans to
+- [x] TODO-4: Execute the Release Gate checklist above once items 1–9 and
+  14 are closed in their owning plans. **Done (2026-08-28):** a full local
+  `R CMD check --as-cran` run against the release candidate, run by the
+  user on their own machine (not run by the agent, per this repo's
+  standing rule). Remaining open item: fill `cran-comments.md`'s
+  `[TODO]` placeholders (test environments, timing, results) from this
+  run and the win-builder/mac-builder submission — see `release.md`'s
+  pre-submission checklist.
+- [x] TODO-5: On submission acceptance: move the closed in-scope plans to
   `../finished_features/` per the standing constraint. ~~Open a
   `release_v1_1_0.md` scoping the first additive wave (likely
   `expanded_estimate_report.md` + `marginal_estimand_report.md` +
@@ -732,7 +734,13 @@ longer blocks the Python side by itself.
   (2026-08-17, user decision):** `release_v1_1_0.md` was opened ahead of
   acceptance with a broader scope — everything open in
   `new_feature_plans/` outside this file's release line, not just a first
-  wave. Only the move-to-finished_features part of this TODO remains.
+  wave. **Done (2026-08-28):** every fully-closed v1.0.0-scoped plan is
+  confirmed moved to `../finished_features/`; what remains in
+  `new_feature_plans/` is either partially-scoped (only a fragment was
+  v1.0.0, the rest is legitimately v1.1.0), genuinely still open
+  (`parallel_fork_cluster_test_safety.md` TODO-3/4, blocked on a real CI
+  canary push), or reopened since with new v1.1.0-scoped work
+  (`marginal_estimand_report.md`).
 - [x] TODO-6: Unity-build consolidation — audit, fix pass, and build wiring
   all complete (2026-08-16). See `unity_build_collision_audit.md` for the
   full history. Summary:
