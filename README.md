@@ -24,7 +24,7 @@ R/Rcpp dependency, which provides high-speed bare-metal bindings to the shared
 C++ core. See the [Python README](python/README.md) for its installation, usage,
 and benchmark results.
 
-## R package
+## R package v1.0.0
 
 The R package includes the code used to reproduce the simulations in the
 papers cited below. To get started from the repository root, run
@@ -141,14 +141,6 @@ names) yourself for parallel execution to actually take effect — see
 matters for reproducibility.
 
 ### Getting Started
-
-```r
-vignette("reproducibility", package = "EDI")     # RNG/seed conventions across designs, bootstrap, and simulation
-vignette("extending-edi", package = "EDI")        # writing your own Design/Inference R6 subclasses
-vignette("backend-contracts", package = "EDI")    # how the C++ core is shared between the R (Rcpp) and Python (pybind11) bindings
-vignette("notation-glossary", package = "EDI")    # symbols/naming conventions shared across Design*/Inference* classes and docs
-vignette("validation-evidence", package = "EDI")  # index into the test suite showing each model family computes what it claims
-```
 
 #### Historical experimental data example
 
@@ -411,6 +403,18 @@ sim$run()
 A design's `$duplicate()` clears the copy's seed — used internally to hand
 each parallel resampling worker its own RNG stream instead of replaying the
 parent's.
+
+### Vignettes
+
+See the following for more information:
+
+```r
+vignette("reproducibility", package = "EDI")      # RNG/seed conventions across designs, bootstrap, and simulation
+vignette("extending-edi", package = "EDI")        # writing your own Design/Inference R6 subclasses
+vignette("backend-contracts", package = "EDI")    # how the C++ core is shared between the R (Rcpp) and Python (pybind11) bindings
+vignette("notation-glossary", package = "EDI")    # symbols/naming conventions shared across Design*/Inference* classes and docs
+vignette("validation-evidence", package = "EDI")  # index into the test suite showing each model family computes what it claims
+```
 
 ## Contributing
 
