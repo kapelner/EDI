@@ -91,6 +91,18 @@ jobs:
           # absolute path before calling codecov(): `code` expressions run
           # inside covr's own subprocess, whose working directory isn't
           # guaranteed to still be R/EDI.
+          # stop_on_failure = FALSE (not testthat's own default TRUE): this
+          # job exists to MEASURE coverage, not gate correctness -- that
+          # already happens in test-bulk-non-cran.yml. With TRUE, a single
+          # failing/flaky test anywhere in this ~59-file bulk suite throws,
+          # which aborts the *entire* covr::codecov() call (this code= block
+          # and the package's own type="tests" pass share one call) before
+          # it ever uploads -- so the badge silently keeps showing whatever
+          # the last all-green run reported. That's exactly what happened
+          # 2026-08-27 through 2026-08-28: every run since this code= block
+          # was added failed for this reason, and Codecov never moved off
+          # its pre-change ~19% figure. FALSE tallies pass/fail and moves on,
+          # same as run_bulk_tests.R already does for this same directory.
           bulk_dir = normalizePath(file.path(getwd(), "..", "package_tests", "testthat_bulk"), mustWork = TRUE)
           covr::codecov(
             quiet = FALSE,
@@ -98,7 +110,7 @@ jobs:
             flags = "r",
             relative_path = "../..",
             code = sprintf(
-              "library(testthat); library(EDI); testthat::test_dir(%s, stop_on_failure = TRUE)",
+              "library(testthat); library(EDI); testthat::test_dir(%s, stop_on_failure = FALSE)",
               deparse(bulk_dir)
             )
           )
