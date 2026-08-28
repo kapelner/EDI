@@ -76,4 +76,3 @@ R/package_metadata/new_feature_plans/robust_regression_perf_optimization_spec.md
 R/package_metadata/new_feature_plans/robust_regression_perf_optimization_spec.md	../package_tests/path_audits_source.R
 R/package_metadata/new_feature_plans/robust_regression_perf_optimization_spec.md	perf_experiments_final.md
 R/package_metadata/new_feature_plans/semi_continuous_response_type_report.md	references/response_types_landscape_report.md
-R/package_metadata/new_feature_plans/sequential_inference.md	warm_starts.html

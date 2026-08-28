@@ -16,7 +16,6 @@ subjects), and if so, how would that be wired into the existing
 Related background:
 
 - [cold_starts.md](cold_starts.md)
-- [warm_starts.html](warm_starts.html)
 - [extending-edi-r6.md](../finished_features/extending-edi-r6.md) (retired 2026-08-23; the live external contract is `R/EDI/vignettes/extending-edi.Rmd`)
 
 ## 1. What "sequential" already means in EDI vs. what is being asked for

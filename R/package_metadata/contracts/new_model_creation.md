@@ -40,9 +40,8 @@ them):
   open item in `_master.md` Phase 3.
 - `package_metadata/new_feature_plans/python_bindings_package_spec.md` —
   Python bindings design, kernel scope, and baseline-benchmark methodology.
-- `package_metadata/new_feature_plans/cold_starts.md` and
-  `package_metadata/audits/warm_starts.html` — smart-start
-  heuristics and their benchmarks.
+- `package_metadata/new_feature_plans/cold_starts.md` — smart-start heuristics.
+- `benchmark/run_all_warm_starts.sh` — warm-start benchmark runner.
 
 ---
 

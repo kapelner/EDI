@@ -8,17 +8,27 @@ Authors@R: c(person(given = "Adam",
                   email = "kapelner@qc.cuny.edu",
                   comment = c(ORCID = "0000-0001-5985-6792")))
 Description: Implements a comprehensive suite of experimental designs, both
-    fixed (e.g., block, stratified, matched-pair, and optimal designs) and
-    sequential (including matching-on-the-fly designs that assign treatment
-    one subject at a time while maintaining covariate balance), for
+    fixed (e.g., block, stratified, matched-pair, cluster, factorial, and
+    mixed-integer-programming-based optimal designs) and sequential
+    (including matching-on-the-fly designs such as Atkinson, Efron, Pocock-
+    Simon, and covariate-adaptive urn designs that assign treatment one
+    subject at a time while maintaining covariate balance), for
     continuous, incidence, count, proportion, survival, and ordinal response
     types. For each design and response type combination, provides the
-    corresponding inference procedures, including exact, asymptotic, and
-    distribution-free methods, so that estimation and testing are always
-    matched to how the data were generated. Missing covariate data is
+    corresponding inference procedures, including exact, asymptotic,
+    distribution-free, and resampling-based (bootstrap, jackknife, and
+    randomization) methods, so that estimation and testing are always
+    matched to how the data were generated. An 'InferenceSuite' facility
+    runs all applicable inference procedures for a given design and
+    response type at once and reports a single Cauchy-combined p-value
+    summarizing their evidence. A built-in simulation framework
+    supports power analysis and operating-characteristic studies across
+    designs, response types, and inference procedures, with optional
+    parallelization via 'mirai'. Missing covariate data is
     handled automatically via built-in imputation. Core numerical routines
     are implemented in C++ via 'Rcpp' for speed on large designs and
-    simulation studies.
+    simulation studies. Machine-specific tuning for optimization is
+    included.
 License: GPL-3
 Encoding: UTF-8
 Depends:

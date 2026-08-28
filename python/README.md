@@ -8,7 +8,7 @@ model.
 
 This package has **no R or Rcpp dependency**. It compiles the same
 `R/EDI/src/*.cpp` model-fitting kernels the R package
-[`EDI`](../R/README.md)
+[`EDI`](../README.md)
 (not yet on CRAN) uses, built under an `EDI_CORE_ONLY` preprocessor guard
 that swaps out `RcppEigen`/`Rmath` for a vanilla `Eigen` + `LBFGSpp`, both
 fetched directly from their own upstream repositories (see
