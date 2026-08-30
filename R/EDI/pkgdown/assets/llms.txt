@@ -1,0 +1,46 @@
+# EDI: Experimental Design and Inference
+
+> EDI (Experimental Design and Inference) is an R package that marries
+> randomized experimental designs — fixed (block, stratified, matched-pair,
+> cluster, factorial, rerandomization, and MILP-based optimal designs) and
+> sequential (matching-on-the-fly and covariate-adaptive designs: Atkinson,
+> Efron, Pocock-Simon, urn) — with inference procedures (exact, asymptotic,
+> distribution-free, and resampling-based) matched to each design and
+> response type: continuous, incidence (binary), count, proportion, survival
+> with censoring, and ordinal. Core estimation kernels are C++ (Eigen +
+> LBFGS++). Not related to Electronic Data Interchange.
+
+Key facts:
+
+- Typical workflow: construct an R6 design object (e.g. `DesignSeqOneByOneKK21`,
+  `DesignFixedBlocking`), assign treatments (all at once for fixed designs,
+  one subject at a time for sequential designs), record responses, then run a
+  matched inference class (e.g. `InferenceContinKKOLSIVWC`) or `InferenceSuite`,
+  which runs every applicable procedure and reports one Cauchy-combined p-value.
+- A built-in `SimulationFramework` supports power analysis and
+  operating-characteristic studies across designs, response types, and
+  inference procedures, with optional parallelization via `mirai`.
+- The distinct Python package `edi_kernels` (PyPI) exposes the same C++
+  model-fitting kernels with no R dependency.
+
+## Documentation
+
+- [Function and class reference](https://kapelner.github.io/EDI/reference/index.html):
+  every design class, inference class, and C++ backend kernel
+- [Notation glossary](https://kapelner.github.io/EDI/articles/notation-glossary.html)
+- [Reproducibility: RNG and seed conventions](https://kapelner.github.io/EDI/articles/reproducibility.html)
+- [Backend contracts: fast_* C++ kernels](https://kapelner.github.io/EDI/articles/backend-contracts.html)
+- [Validation evidence](https://kapelner.github.io/EDI/articles/validation-evidence.html)
+- [Extending EDI with your own inference and design classes](https://kapelner.github.io/EDI/articles/extending-edi.html)
+
+## Source and packages
+
+- [GitHub repository](https://github.com/kapelner/EDI): R package under
+  `R/EDI`, Python package under `python`
+- [Python package edi_kernels on PyPI](https://pypi.org/project/edi_kernels/)
+- [Issue tracker](https://github.com/kapelner/EDI/issues)
+
+## Optional
+
+- [llms-full.txt](https://kapelner.github.io/EDI/llms-full.txt): expanded
+  single-file overview of the package's architecture and API surface

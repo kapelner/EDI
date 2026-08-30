@@ -8,7 +8,58 @@ Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
 ## [Unreleased]
 
-## [1.0.0.post4] - 2026-08-30
+## [1.0.0.post5] - 2026-08-30
+
+Packaging-only release — none of this touches `R/EDI/src/*.cpp`. Pure
+registry-metadata/discoverability work (see the repo-root
+`improve_discoverability.md` plan, Tier 1): the goal is that PyPI search —
+and anyone, human or AI agent, searching by the statistical task they are
+trying to do rather than by package name — can actually find this package.
+"EDI" alone is a hopeless search term (it overwhelmingly means Electronic
+Data Interchange), so the metadata now spells out "Experimental Design and
+Inference" and the model families by name.
+
+### Packaging
+
+- `python/pyproject.toml`: rewrote the one-line `description` to be
+  task-oriented ("Fast C++ statistical model-fitting kernels (GLM, GLMM,
+  survival, count, ordinal, proportion models) from the EDI Experimental
+  Design and Inference project -- pybind11 bindings, no R/Rcpp dependency")
+  instead of implementation-only ("Python bindings for EDI's C++
+  model-fitting kernels"), and added the previously entirely absent
+  `keywords` (13: statistics, experimental-design, statistical-inference,
+  randomization-inference, clinical-trials, glm, glmm, logistic-regression,
+  negative-binomial, ordinal-regression, survival-analysis, eigen,
+  high-performance) and `classifiers` (14: Development Status 5, Intended
+  Audience Science/Research, Python 3.9-3.13, C++,
+  Scientific/Engineering (:: Mathematics), Linux/macOS/Windows). No
+  `License ::` classifier deliberately — PEP 639 forbids combining one with
+  the existing SPDX `license = "GPL-3.0-only"` expression.
+- Still attempting to fix the failed
+  [piwheels `edi-kernels` builds](https://www.piwheels.org/project/edi-kernels/):
+  as of 2026-08-30 the piwheels project page lists zero successfully built
+  files for every release through `1.0.0.post4`. The `post4` remediation
+  (restricting `scipy-openblas32` to architectures it actually publishes
+  distributions for, so 32-bit ARM source builds can reach CMake's
+  system-BLAS discovery — see the `post4` entry below) only reached PyPI
+  earlier the same day (2026-08-30 14:01 UTC), so its piwheels build may
+  still be queued rather than failed; piwheels' JSON API exposes no
+  per-attempt logs to distinguish the two. This release carries the same
+  fix forward unchanged and remains an attempted remediation pending the
+  first successfully published piwheels build.
+
+### Documentation
+
+- `python/README_PYPI.md`: removed the "(not yet on CRAN)" parenthetical
+  from the R-package cross-reference — the CRAN submission is imminent, so
+  the line would become stale misinformation on the PyPI page (which cannot
+  be edited for an already-published version) the moment the release lands.
+- `python/README.md`, `python/README_PYPI.md`, and `python/CITATION.cff`
+  (title + abstract): the opening description now spells out "EDI
+  (Experimental Design and Inference)" instead of the bare acronym — same
+  name-collision rationale as the pyproject metadata rewrite above.
+  `CITATION.cff`'s `version`/`date-released` also caught up (they still
+  said `1.0.0.post3` / 2026-08-17).
 
 Note this one is not packaging-only despite the `.postN` suffix — it fixes
 correctness/memory-safety bugs in `R/EDI/src/*.cpp` kernels bound in Python

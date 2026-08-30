@@ -37,6 +37,23 @@ side, and the CI search's attempt to warm it
 "to populate" it and populates nothing) were all built; the write side never
 landed.
 
+**Re-confirmed 2026-08-30** by an independent repo-wide grep during the
+research-plan audit (`new_research_ideas/paper_fast_randomization_inference.md`),
+which also found a **second read site this plan did not own**:
+`inference_mixin_kk_gee_shared.R:167-169` — the KK-GEE mixin's own copy of
+`compute_rand_two_sided_pval()` carries the identical
+`t0s_rand[seq_len(r)] + delta` branch, guarded only by
+`transform_responses == "none"` and no-custom-statistic, with **no hook for
+the TODO-1 predicate**. Today it is equally dead. But its guard sits *after*
+the mixin resolves `transform_responses` per response type (`:156-165`):
+count → `"log"`, proportion → `"logit"`, ordinal → (per its own resolution),
+so those stay dead-by-transform — while **incidence** falls through the
+`switch` default to `"none"`. If TODO-2's write side lands on the abstract
+without per-object gating, an incidence KK-combined object could populate
+`t0s_rand` and the mixin would serve shifted distributions for IVW
+estimators whose equivariance is only tier-2-conjectured (TODO-5). See
+TODO-7.
+
 Consequence: `build_randomization_distribution_cache_key()`
 (`inference_all_abstract_rand.R:949-953`) keys the distribution cache on
 `delta`, so every new δ the CI search visits is a cache miss and costs a full
@@ -170,6 +187,19 @@ is O(r) arithmetic and MC is moot.
   20–30×. Add a sentence to the `compute_confidence_interval_rand()` roxygen
   and the README's CPU section noting that linear-statistic CIs cost one
   null distribution.
+
+- [ ] **TODO-7: Reconcile the KK-GEE mixin read site.** Either (a) gate
+  `inference_mixin_kk_gee_shared.R:167-169` on the same
+  `supports_additive_delta_shift()` predicate as the abstract's read
+  (correct if any KK-GEE class ever passes TODO-5's numerical
+  verification), or (b) delete the branch from the mixin outright and let
+  those classes take the slow path unconditionally (simplest; nothing is
+  lost since the branch has never fired). Decide when TODO-5's tier-2
+  results are in; default to (b) if tier 2 stays closed. Either way, add a
+  negative test: an incidence KK-combined object must never populate or
+  consume `t0s_rand` unless its predicate says so — this is the one
+  response type whose transform resolves to `"none"` in the mixin, so it is
+  the only live hazard if TODO-2 ships ungated.
 
 ## Explicitly out of scope
 

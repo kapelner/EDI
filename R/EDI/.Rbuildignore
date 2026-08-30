@@ -11,6 +11,7 @@ check_survfit.R
 ^cran-comments\.md$
 ^REFERENCES\.md$
 ^_pkgdown\.yml$
+^pkgdown$
 ^simulation_framework_results.*$
 ^inference_suite_results_.*$
 ^\.mcp\.json$

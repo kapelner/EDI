@@ -1,6 +1,7 @@
 # edi_kernels
 
-Python bindings for EDI's C++ model-fitting kernels, via pybind11. **The point
+Python bindings for the C++ model-fitting kernels of EDI (Experimental Design
+and Inference), via pybind11. **The point
 of this package is speed:** the same C++ solvers used by the `EDI` R package,
 called directly from Python with no R/Rcpp dependency, running one to three
 orders of magnitude faster than the pure-Python canonical fit for the same
@@ -10,7 +11,7 @@ model.
 [github.com/kapelner/EDI](https://github.com/kapelner/EDI)
 — this package's own subdirectory is
 [github.com/kapelner/EDI/tree/main/python](https://github.com/kapelner/EDI/tree/main/python).
-This repo hosts two related packages: the `EDI` R package (not yet on CRAN)
+This repo hosts two related packages: the `EDI` R package
 and this Python package, sharing one C++ kernel implementation.
 
 This package has **no R or Rcpp dependency**. It compiles the same

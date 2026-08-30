@@ -59,12 +59,50 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "edi_kernels"
-version = "1.0.0.post4"
-description = "Python bindings for EDI's C++ model-fitting kernels (pybind11, no R/Rcpp dependency)"
+version = "1.0.0.post5"
+description = "Fast C++ statistical model-fitting kernels (GLM, GLMM, survival, count, ordinal, proportion models) from the EDI Experimental Design and Inference project -- pybind11 bindings, no R/Rcpp dependency"
 readme = "README_PYPI.md"
 requires-python = ">=3.9"
 license = "GPL-3.0-only"
 license-files = ["LICENSE"]
+# Task-oriented keywords/classifiers so registry search (and anyone -- human
+# or AI agent -- searching PyPI by what they're trying to do rather than by
+# package name) can actually find this. "EDI" alone is hopeless as a search
+# term: it overwhelmingly means Electronic Data Interchange, so the
+# description above and keywords below deliberately spell out "Experimental
+# Design and Inference" and the model families. No "License ::" classifier:
+# PEP 639 forbids combining one with the SPDX `license` expression above.
+keywords = [
+    "statistics",
+    "experimental-design",
+    "statistical-inference",
+    "randomization-inference",
+    "clinical-trials",
+    "glm",
+    "glmm",
+    "logistic-regression",
+    "negative-binomial",
+    "ordinal-regression",
+    "survival-analysis",
+    "eigen",
+    "high-performance",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: C++",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+]
 # scipy-openblas32 is also a genuine *runtime* dependency, not just a build
 # one (see [build-system] requires' comment for why it's needed at build
 # time at all) -- only actually exercised by a from-source install (no

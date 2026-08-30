@@ -159,3 +159,5 @@ R/EDI/tests/prepush_test_timings.csv
 R/bulk_test_timings.csv
 R/EDI/tests/.prepush_errors
 R/EDI/tests/.prepush_test_stdout.log
+improve_discoverability.md
+cran_task_view_proposals.md

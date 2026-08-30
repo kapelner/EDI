@@ -6,6 +6,16 @@ template:
 
 home:
   title: "EDI: Experimental Design and Inference"
+  # The meta description search engines (and AI agents' web retrieval) show
+  # for the site -- co-locates the EDI acronym with the spelled-out name and
+  # task phrases, since "EDI" alone reads as Electronic Data Interchange
+  # (see improve_discoverability.md, Tier 2, repo root, untracked).
+  description: >
+    EDI (Experimental Design and Inference): an R package for fixed and
+    sequential randomized experimental designs (blocking, optimal designs,
+    matching-on-the-fly, covariate-adaptive randomization) with matched
+    exact, asymptotic, and randomization inference for continuous, count,
+    proportion, survival, and ordinal responses.
 
 navbar:
   structure:

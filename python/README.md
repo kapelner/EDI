@@ -1,6 +1,7 @@
 # edi_kernels
 
-Python bindings for EDI's C++ model-fitting kernels, via pybind11. **The point
+Python bindings for the C++ model-fitting kernels of EDI (Experimental Design
+and Inference), via pybind11. **The point
 of this package is speed:** the same C++ solvers used by the R package,
 called directly from Python with no R/Rcpp dependency, running one to three
 orders of magnitude faster than the pure-Python canonical fit for the same
@@ -31,6 +32,23 @@ replicate distributions). Rows with **no** canonical Python implementation
 are omitted from this table — see
 [Models with no Python canonical baseline](#models-with-no-python-canonical-baseline)
 below for those.
+
+**What a speedup here measures.** Each row times whole-call wall time
+through the library's lowest-level public entry point, with all inputs —
+including the `pandas.DataFrame` that lifelines requires — built *outside*
+the timed region. A speedup is therefore the end-to-end cost a user
+actually pays to get the estimate from that library, not a claim about
+numerical algorithms alone. For baselines that accept raw NumPy arrays and
+fit in compiled code (numpy, most statsmodels rows, scikit-survival), the
+ratio is close to a numerics-vs-numerics comparison. lifelines has no
+raw-array entry point: a large share of its timed `.fit()` is its internal
+Python/pandas layer (input validation, pandas indexing, results assembly),
+which a lifelines user cannot bypass — so the three- and four-figure
+survival ratios below are genuine user-experienced speedups, but they
+should not be read as EDI's solvers doing the same arithmetic 1600×
+faster. The unstratified Cox row (scikit-survival: compiled, raw arrays,
+**90.4x**) is the closest thing in this table to a pure-numerics survival
+comparison.
 
 | Class | Response | EDI (ms) | Canonical | Canonical (ms) | Speedup |
 |---|---|---:|---|---:|---:|
