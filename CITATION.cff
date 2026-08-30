@@ -3,7 +3,10 @@ message: "If you use this software, please cite it as below."
 type: software
 title: "EDI: Experimental Design and Inference"
 version: 1.0.0
-date-released: "2026-08-10"
+date-released: "2026-08-30"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.22170036"
 authors:
   - family-names: Kapelner
     given-names: Adam

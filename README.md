@@ -9,6 +9,7 @@
 ![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)
 [![Last commit](https://img.shields.io/github/last-commit/kapelner/EDI)](https://github.com/kapelner/EDI/commits/main)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22170036.svg)](https://doi.org/10.5281/zenodo.22170036)
 
 **EDI** (Experimental Design and Inference) is software that marries experimental
 designs (fixed and sequential) and inference procedures
@@ -438,7 +439,8 @@ GPL-3 — see [`LICENSE`](LICENSE).
 ## Citation
 
 If you use this software, please cite it — see [`CITATION.cff`](CITATION.cff)
-or, from R, run `citation("EDI")`.
+or, from R, run `citation("EDI")`. A DOI for this release is available via
+Zenodo: [10.5281/zenodo.22170036](https://doi.org/10.5281/zenodo.22170036).
 
 ## Lines of Code
 
