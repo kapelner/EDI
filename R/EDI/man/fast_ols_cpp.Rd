@@ -3,6 +3,9 @@
 \name{fast_ols_cpp}
 \alias{fast_ols_cpp}
 \title{Fast Ordinary Least Squares (OLS) Regression, Estimate-Only (C++ Backend)}
+\usage{
+fast_ols_cpp(X, y, fixed_idx = NULL, fixed_values = NULL)
+}
 \arguments{
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}

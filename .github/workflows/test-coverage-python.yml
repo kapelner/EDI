@@ -1,27 +1,25 @@
 name: test-coverage-python
 
-# Coverage-only run for edi_kernels: re-runs the pytest suite under
-# pytest-cov instrumentation and uploads the result to Codecov, tagged with
-# the `python` flag (see codecov.yml). Python-side analog of
-# test-coverage-R.yaml -- pass/fail signal lives in python-tests.yml instead
-# (the analog of R-CMD-check.yaml), so tests run twice on CI, same as the R
-# side: once fast for the pass/fail check, once instrumented for coverage.
+# Coverage run for edi_kernels: re-runs the pytest suite under pytest-cov and
+# uploads the result to Codecov, tagged with the `python` flag (see
+# codecov.yml). It is called by build-wheels.yml on main/release pushes so a
+# test failure blocks publishing, and also runs directly on relevant pull
+# requests. Upload failure remains non-blocking; test failure is blocking.
 #
 # Package root is python/ (pyproject.toml lives there), since this repo
 # also holds the unrelated R package (R/EDI/) and paper-reproduction code.
 
 on:
-  push:
+  workflow_call:
+  pull_request:
     branches: [main, master]
-    paths: &python-test-paths
+    paths:
       - 'python/**'
       - 'R/EDI/src/**/*.cpp'
       - 'R/EDI/src/**/*.h'
       - 'R/EDI/src/**/*.hpp'
       - '.github/workflows/test-coverage-python.yml'
-  pull_request:
-    branches: [main, master]
-    paths: *python-test-paths
+      - '.github/workflows/build-wheels.yml'
 
 jobs:
   test:

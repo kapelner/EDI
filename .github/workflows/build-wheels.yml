@@ -1,15 +1,17 @@
 name: Build edi_kernels wheels
 
-# Builds portable (non -march=native) wheels for the edi_kernels Python
-# package -- see python/pyproject.toml's [tool.cibuildwheel] and
+# Runs every release-blocking validation and builds portable (non
+# -march=native) wheels for the edi_kernels Python package -- see
+# python/pyproject.toml's [tool.cibuildwheel] and
 # R/package_metadata/python_bindings_package_spec.md's "Building portable
-# wheels" checklist. On a manual (workflow_dispatch) run, this only builds
-# and uploads wheels/sdist as CI artifacts. On an actual `py-v*` tag push,
-# the `publish` job additionally uploads them to PyPI via Trusted
+# wheels" checklist. A manual (workflow_dispatch) run executes the complete
+# validation graph and uploads wheels/sdist as CI artifacts, but never
+# publishes. On an actual `py-v*` tag push, the `publish` job additionally
+# uploads them to PyPI via Trusted
 # Publishing (OIDC, no stored API token) -- see that doc's "Publishing"
-# checklist item. Kept as one workflow (build jobs + a tag-gated publish
-# job) rather than a second workflow re-running the whole build matrix,
-# per cibuildwheel's own recommended pattern.
+# checklist item. Kept as one dependency graph (tests, coverage, wheels,
+# x86_64 sdist, ARM sdist, then a tag-gated publish job) so no independent
+# workflow can fail after PyPI publishing has already started.
 #
 # The package root is python/ (pyproject.toml lives there, not at the repo
 # root), since this repo also holds the unrelated R package (R/EDI/) and
@@ -53,9 +55,20 @@ on:
       - "R/EDI/src/**/*.hpp"
       - "**/*.py"
       - ".github/workflows/build-wheels.yml"
+      - ".github/workflows/python-tests.yml"
+      - ".github/workflows/test-coverage-python.yml"
   workflow_dispatch: {}
 
 jobs:
+  python_tests:
+    name: Python tests
+    uses: ./.github/workflows/python-tests.yml
+
+  python_coverage:
+    name: Python coverage
+    uses: ./.github/workflows/test-coverage-python.yml
+    secrets: inherit
+
   build_wheels:
     name: wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -116,14 +129,67 @@ jobs:
           name: sdist
           path: dist/*.tar.gz
 
+  arm_sdist_build:
+    name: sdist on ${{ matrix.codename }} (py${{ matrix.python }}, armv7)
+    needs: build_sdist
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - codename: bullseye
+            python: "3.9"
+          - codename: bookworm
+            python: "3.11"
+          - codename: trixie
+            python: "3.13"
+
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: sdist
+          path: dist
+
+      - name: Set up QEMU (arm/v7)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
+
+      # piwheels builds the edi_kernels sdist on 32-bit Raspberry Pi systems,
+      # but its configured package index supplies ARM wheels for dependencies
+      # such as NumPy. The old parity job queried PyPI alone, so it tried (and
+      # failed) to build NumPy before edi_kernels' CMake configure step. Use
+      # piwheels as the extra index, require a NumPy wheel, and install the
+      # native headers/pkg-config/BLAS needed by the edi_kernels source build.
+      # --no-binary remains scoped to edi_kernels itself.
+      - name: Build and install sdist (piwheels-like ${{ matrix.codename }}, python${{ matrix.python }})
+        run: |
+          set -e
+          docker run --rm \
+            --platform linux/arm/v7 \
+            -v "${{ github.workspace }}/dist:/dist:ro" \
+            debian:${{ matrix.codename }} \
+            bash -eux -c '
+              apt-get update
+              apt-get install -y --no-install-recommends python3 python3-dev python3-pip python3-venv build-essential cmake pkg-config libopenblas-dev ca-certificates
+              python3 -m venv /tmp/venv
+              /tmp/venv/bin/pip install --upgrade pip
+              /tmp/venv/bin/pip install --extra-index-url https://www.piwheels.org/simple --only-binary=numpy "numpy>=1.24"
+              SDIST=$(ls /dist/*.tar.gz | head -n1)
+              /tmp/venv/bin/pip install --extra-index-url https://www.piwheels.org/simple --no-binary=edi_kernels "$SDIST"
+              /tmp/venv/bin/python3 -c "import edi_kernels; print(\"edi_kernels imported OK from\", edi_kernels.__file__)"
+            '
+
   publish:
     name: Publish to PyPI
-    needs: [build_wheels, build_sdist]
+    needs: [python_tests, python_coverage, build_wheels, build_sdist, arm_sdist_build]
     runs-on: ubuntu-latest
     # Only an actual tag push publishes -- a workflow_dispatch run (e.g. to
     # test the build matrix) never uploads anywhere.
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/py-v')
     environment:
+      # This environment is configured with a required reviewer, providing a
+      # final manual approval after every automated dependency above passes.
       name: pypi
       url: https://pypi.org/p/edi_kernels
     permissions:

@@ -3,6 +3,9 @@
 \name{build_cox_data_cache_cpp}
 \alias{build_cox_data_cache_cpp}
 \title{Build a Reusable Unstratified Cox Data Cache (C++ Backend)}
+\usage{
+build_cox_data_cache_cpp(X, y, dead)
+}
 \arguments{
 \item{X}{A numeric matrix of predictor variables (no intercept column);
 \eqn{n} rows, one per subject.}

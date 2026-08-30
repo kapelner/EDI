@@ -3,6 +3,22 @@
 \name{fast_quasipoisson_regression_with_var_cpp}
 \alias{fast_quasipoisson_regression_with_var_cpp}
 \title{Fast Quasi-Poisson Regression with Variance Calculation (C++ Backend)}
+\usage{
+fast_quasipoisson_regression_with_var_cpp(
+  X,
+  y,
+  j = 2L,
+  warm_start_beta = NULL,
+  smart_cold_start = FALSE,
+  maxit = 100L,
+  tol = 1e-8,
+  fixed_idx = NULL,
+  fixed_values = NULL,
+  optimization_alg = "irls",
+  warm_start_weights = NULL,
+  warm_start_fisher_info = NULL
+)
+}
 \arguments{
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}

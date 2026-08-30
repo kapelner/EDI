@@ -3,6 +3,22 @@
 \name{fast_logistic_regression_weighted_cpp}
 \alias{fast_logistic_regression_weighted_cpp}
 \title{Fast Weighted Logistic Regression, Estimate Only (C++ Backend)}
+\usage{
+fast_logistic_regression_weighted_cpp(
+  X,
+  y,
+  weights,
+  warm_start_beta = NULL,
+  smart_cold_start = FALSE,
+  maxit = 100L,
+  tol = 1e-8,
+  fixed_idx = NULL,
+  fixed_values = NULL,
+  optimization_alg = "irls",
+  warm_start_weights = NULL,
+  warm_start_fisher_info = NULL
+)
+}
 \arguments{
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}

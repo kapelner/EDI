@@ -1,31 +1,28 @@
 name: python-tests
 
-# Pass/fail signal for edi_kernels: a plain editable build + pytest run on
-# every push/PR that touches the Python bindings or the C++ kernels they
-# wrap. This is the Python-side analog of R-CMD-check.yaml -- fast dev-loop
-# correctness, no coverage instrumentation (see test-coverage-python.yml for
-# that, same split as R-CMD-check.yaml vs. test-coverage-R.yaml on the R side).
+# Pass/fail signal for edi_kernels: a plain editable build + pytest run. It is
+# called by build-wheels.yml on main/release pushes so it participates in the
+# PyPI dependency graph, and also runs directly on relevant pull requests.
+# This is the Python-side analog of R-CMD-check.yaml -- fast dev-loop
+# correctness, no coverage instrumentation (see test-coverage-python.yml).
 #
-# Deliberately separate from build-wheels.yml, which builds real
-# distributable wheels across macOS/Windows/Linux via cibuildwheel (and
-# already runs this same test suite once per wheel as part of that) but only
-# on push to main or a `py-v*` tag -- not on every PR.
+# Kept as a reusable workflow rather than copying the commands into the
+# release workflow, so pull-request and release validation cannot drift.
 #
 # Package root is python/ (pyproject.toml lives there), since this repo
 # also holds the unrelated R package (R/EDI/) and paper-reproduction code.
 
 on:
-  push:
+  workflow_call:
+  pull_request:
     branches: [main, master]
-    paths: &python-test-paths
+    paths:
       - 'python/**'
       - 'R/EDI/src/**/*.cpp'
       - 'R/EDI/src/**/*.h'
       - 'R/EDI/src/**/*.hpp'
       - '.github/workflows/python-tests.yml'
-  pull_request:
-    branches: [main, master]
-    paths: *python-test-paths
+      - '.github/workflows/build-wheels.yml'
 
 jobs:
   test:

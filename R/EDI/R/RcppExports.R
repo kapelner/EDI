@@ -290,9 +290,20 @@ get_adjacent_category_logit_hessian_cpp <- function(X, y, params) {
 #' supplied category count, and requires at least 2 (an error is raised otherwise).
 #'
 #' \strong{Parameterization and likelihood.} Internally, category probabilities are
-#' computed from a numerically stable right-to-left product recurrence in terms of
-#' \eqn{u = e^{-\eta}} (\eqn{\eta = x^\top \beta}) and \eqn{e^{\alpha_k}}, avoiding
-#' repeated exponentiation and keeping partial products bounded; the returned
+#' computed via a numerically stable log-space recurrence: unnormalized
+#' log-probabilities \eqn{\log \tilde p_k = \sum_{j=k}^{K-2} (\alpha_j - \eta)}
+#' (\eqn{\eta = x^\top \beta}) are accumulated additively — never by exponentiating
+#' \eqn{\alpha_k} or \eqn{-\eta} directly — and normalized with a standard
+#' log-sum-exp, so every \code{exp()} call sees an argument \eqn{\le 0} and
+#' \eqn{\Pr(Y = k)} is bounded to \eqn{[0, 1]} regardless of how extreme
+#' \eqn{\alpha}/\eta get during optimization (fixed 2026-08-27: the prior
+#' right-to-left \emph{product} recurrence in terms of raw \eqn{e^{-\eta}} and
+#' \eqn{e^{\alpha_k}} could each individually overflow to \code{Inf} before
+#' normalization, corrupting the objective/gradient to \code{Inf}/\code{NaN} and
+#' leaving the optimizer's line search unable to recover — confirmed via direct
+#' testing to reliably exhaust the full iteration budget without converging on
+#' ordinary synthetic data at every sample size and seed tried, and to diverge
+#' outright to \code{NaN} parameters from an all-zero start). The returned
 #' \code{neg_loglik} is the resulting exact multinomial negative log-likelihood
 #' (\eqn{-\sum_i \log \Pr(Y_i = y_i)}), with the analytic gradient computed in the
 #' same pass and used internally for optimization. See

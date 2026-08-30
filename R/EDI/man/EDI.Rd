@@ -24,7 +24,7 @@ Adam Kapelner and Abba Krieger A Matching Procedure for Sequential
 Useful links:
 \itemize{
   \item \url{https://github.com/kapelner/EDI}
-  \item \url{https://pypi.org/project/edi_kernels/}
+  \item \url{https://pypi.org/project/edi-kernels/}
 }
 
 }

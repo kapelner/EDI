@@ -3,6 +3,9 @@
 \name{var_cpp}
 \alias{var_cpp}
 \title{Fast Variance Calculation}
+\usage{
+var_cpp(x)
+}
 \arguments{
 \item{x}{A numeric vector.}
 }

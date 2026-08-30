@@ -3,6 +3,9 @@
 \name{exact_jonckheere_terpstra_pval_cpp}
 \alias{exact_jonckheere_terpstra_pval_cpp}
 \title{Exact Two-Group Jonckheere-Terpstra Test via Full Randomization Enumeration (C++ Backend)}
+\usage{
+exact_jonckheere_terpstra_pval_cpp(y, w)
+}
 \arguments{
 \item{y}{Integer (or integer-coercible) vector of length \eqn{n} giving each
 subject's ordinal response value; ties (repeated values) are handled via the

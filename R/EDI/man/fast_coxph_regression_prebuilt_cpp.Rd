@@ -3,6 +3,20 @@
 \name{fast_coxph_regression_prebuilt_cpp}
 \alias{fast_coxph_regression_prebuilt_cpp}
 \title{Fast Cox Proportional Hazards Regression, Cache-Reusing Fit (C++ Backend)}
+\usage{
+fast_coxph_regression_prebuilt_cpp(
+  cox_data_xptr,
+  warm_start_beta = NULL,
+  smart_cold_start = TRUE,
+  estimate_only = FALSE,
+  maxit = 20L,
+  tol = 1e-9,
+  fixed_idx = NULL,
+  fixed_values = NULL,
+  optimization_alg = "newton_raphson",
+  warm_start_fisher_info = NULL
+)
+}
 \arguments{
 \item{cox_data_xptr}{An \code{externalptr} to a cached Cox risk-set
 representation, as returned by \code{\link{build_cox_data_cache_cpp}}

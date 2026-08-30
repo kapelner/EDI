@@ -3,6 +3,23 @@
 \name{fast_coxph_regression_cpp}
 \alias{fast_coxph_regression_cpp}
 \title{Fast Cox Proportional Hazards Regression, One-Shot Fit (C++ Backend)}
+\usage{
+fast_coxph_regression_cpp(
+  X,
+  y,
+  dead,
+  warm_start_beta = NULL,
+  smart_cold_start = TRUE,
+  estimate_only = FALSE,
+  maxit = 20L,
+  tol = 1e-9,
+  cluster = NULL,
+  fixed_idx = NULL,
+  fixed_values = NULL,
+  optimization_alg = "newton_raphson",
+  warm_start_fisher_info = NULL
+)
+}
 \arguments{
 \item{X}{A numeric matrix of predictor variables (no intercept column; see
 \code{\link{build_cox_data_cache_cpp}}).}

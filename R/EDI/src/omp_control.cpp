@@ -18,7 +18,9 @@ using namespace Rcpp;
 void set_omp_num_threads_cpp(int n_threads) {
 #ifdef _OPENMP
     omp_set_dynamic(0);
-    omp_set_nested(0);
+    // omp_set_nested(0) is deprecated since OpenMP 5.0; omp_set_max_active_levels(1)
+    // is the documented replacement for disabling nested parallel regions.
+    omp_set_max_active_levels(1);
     omp_set_num_threads(n_threads);
 #endif
     Eigen::setNbThreads(n_threads);

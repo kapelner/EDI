@@ -302,5 +302,5 @@ Collate:
     'local_machine_tuning.R'
     'zzz.R'
 URL: https://github.com/kapelner/EDI,
-    https://pypi.org/project/edi_kernels/
+    https://pypi.org/project/edi-kernels/
 Config/roxygen2/version: 8.0.0.9000

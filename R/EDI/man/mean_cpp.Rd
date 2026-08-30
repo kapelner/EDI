@@ -3,6 +3,9 @@
 \name{mean_cpp}
 \alias{mean_cpp}
 \title{Fast Mean Calculation}
+\usage{
+mean_cpp(x)
+}
 \arguments{
 \item{x}{A numeric vector.}
 }

@@ -3,6 +3,22 @@
 \name{fast_poisson_regression_cpp}
 \alias{fast_poisson_regression_cpp}
 \title{Fast Poisson Regression, Estimate-Only (C++ Backend)}
+\usage{
+fast_poisson_regression_cpp(
+  X,
+  y,
+  warm_start_beta = NULL,
+  smart_cold_start = FALSE,
+  maxit = 100L,
+  tol = 1e-8,
+  fixed_idx = NULL,
+  fixed_values = NULL,
+  optimization_alg = "irls",
+  warm_start_weights = NULL,
+  warm_start_fisher_info = NULL,
+  estimate_only = FALSE
+)
+}
 \arguments{
 \item{X}{A numeric matrix of predictor variables. It is assumed that an intercept column
 (e.g., a column of ones) is already included in \code{X} if desired.}

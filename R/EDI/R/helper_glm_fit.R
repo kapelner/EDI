@@ -72,6 +72,20 @@
 #'   \code{\link{fast_identity_binomial_regression_cpp}} for the log-link/
 #'   identity-link analogs targeting relative-risk/risk-difference scales.
 #' @export
+#' @usage fast_logistic_regression_cpp(
+#'   X,
+#'   y,
+#'   warm_start_beta = NULL,
+#'   smart_cold_start = FALSE,
+#'   maxit = 100L,
+#'   tol = 1e-8,
+#'   fixed_idx = NULL,
+#'   fixed_values = NULL,
+#'   optimization_alg = "irls",
+#'   warm_start_weights = NULL,
+#'   warm_start_fisher_info = NULL,
+#'   estimate_only = FALSE
+#' )
 #' @name fast_logistic_regression_cpp
 NULL
 
@@ -184,6 +198,21 @@ NULL
 #'   \code{\link{fast_coxph_regression_prebuilt_cpp}} for the cache-reusing variant;
 #'   \code{\link{fast_coxph_regression}} for the R-level wrapper.
 #' @export
+#' @usage fast_coxph_regression_cpp(
+#'   X,
+#'   y,
+#'   dead,
+#'   warm_start_beta = NULL,
+#'   smart_cold_start = TRUE,
+#'   estimate_only = FALSE,
+#'   maxit = 20L,
+#'   tol = 1e-9,
+#'   cluster = NULL,
+#'   fixed_idx = NULL,
+#'   fixed_values = NULL,
+#'   optimization_alg = "newton_raphson",
+#'   warm_start_fisher_info = NULL
+#' )
 #' @name fast_coxph_regression_cpp
 NULL
 
@@ -360,6 +389,7 @@ NULL
 #'
 #' @seealso \code{\link{fast_ols_with_var_cpp}} for the variance-computing counterpart.
 #'
+#' @usage fast_ols_cpp(X, y, fixed_idx = NULL, fixed_values = NULL)
 #' @name fast_ols_cpp
 #' @rdname fast_ols_cpp
 #' @export
@@ -410,6 +440,7 @@ NULL
 #'
 #' @seealso \code{\link{fast_ols_cpp}} for the estimate-only counterpart.
 #'
+#' @usage fast_ols_with_var_cpp(X, y, j = 2L, fixed_idx = NULL, fixed_values = NULL)
 #' @name fast_ols_with_var_cpp
 #' @rdname fast_ols_with_var_cpp
 #' @export
@@ -489,6 +520,20 @@ NULL
 #'   overdispersion-corrected variant.
 #'
 #' @export
+#' @usage fast_poisson_regression_cpp(
+#'   X,
+#'   y,
+#'   warm_start_beta = NULL,
+#'   smart_cold_start = FALSE,
+#'   maxit = 100L,
+#'   tol = 1e-8,
+#'   fixed_idx = NULL,
+#'   fixed_values = NULL,
+#'   optimization_alg = "irls",
+#'   warm_start_weights = NULL,
+#'   warm_start_fisher_info = NULL,
+#'   estimate_only = FALSE
+#' )
 #' @name fast_poisson_regression_cpp
 NULL
 
@@ -546,6 +591,20 @@ NULL
 #'   overdispersion-corrected variant.
 #'
 #' @export
+#' @usage fast_poisson_regression_with_var_cpp(
+#'   X,
+#'   y,
+#'   j = 2L,
+#'   warm_start_beta = NULL,
+#'   smart_cold_start = FALSE,
+#'   maxit = 100L,
+#'   tol = 1e-8,
+#'   fixed_idx = NULL,
+#'   fixed_values = NULL,
+#'   optimization_alg = "irls",
+#'   warm_start_weights = NULL,
+#'   warm_start_fisher_info = NULL
+#' )
 #' @name fast_poisson_regression_with_var_cpp
 NULL
 
@@ -606,6 +665,20 @@ NULL
 #'   for the estimate-only variant and full mean-model documentation.
 #'
 #' @export
+#' @usage fast_quasipoisson_regression_with_var_cpp(
+#'   X,
+#'   y,
+#'   j = 2L,
+#'   warm_start_beta = NULL,
+#'   smart_cold_start = FALSE,
+#'   maxit = 100L,
+#'   tol = 1e-8,
+#'   fixed_idx = NULL,
+#'   fixed_values = NULL,
+#'   optimization_alg = "irls",
+#'   warm_start_weights = NULL,
+#'   warm_start_fisher_info = NULL
+#' )
 #' @name fast_quasipoisson_regression_with_var_cpp
 NULL
 
@@ -663,6 +736,20 @@ NULL
 #' @seealso \code{\link{fast_logistic_regression_cpp}} for the unweighted model
 #'   and full documentation.
 #' @export
+#' @usage fast_logistic_regression_weighted_cpp(
+#'   X,
+#'   y,
+#'   weights,
+#'   warm_start_beta = NULL,
+#'   smart_cold_start = FALSE,
+#'   maxit = 100L,
+#'   tol = 1e-8,
+#'   fixed_idx = NULL,
+#'   fixed_values = NULL,
+#'   optimization_alg = "irls",
+#'   warm_start_weights = NULL,
+#'   warm_start_fisher_info = NULL
+#' )
 #' @name fast_logistic_regression_weighted_cpp
 NULL
 
@@ -709,6 +796,20 @@ NULL
 #'   model documentation.
 #'
 #' @export
+#' @usage fast_poisson_regression_weighted_cpp(
+#'   X,
+#'   y,
+#'   weights,
+#'   warm_start_beta = NULL,
+#'   smart_cold_start = FALSE,
+#'   maxit = 100L,
+#'   tol = 1e-8,
+#'   fixed_idx = NULL,
+#'   fixed_values = NULL,
+#'   optimization_alg = "irls",
+#'   warm_start_weights = NULL,
+#'   warm_start_fisher_info = NULL
+#' )
 #' @name fast_poisson_regression_weighted_cpp
 NULL
 
@@ -1975,6 +2076,18 @@ clogit_helper = function(y_m, X_m, w_m, strata_m){
 #'   with \code{converged}), and \code{gradient_norm}.
 #' @seealso \code{\link{fast_logistic_regression_cpp}} for the estimate-only
 #'   variant and the full model documentation.
+#' @usage fast_logistic_regression_with_var_cpp(
+#'   X,
+#'   y,
+#'   j = 2L,
+#'   warm_start_beta = NULL,
+#'   smart_cold_start = FALSE,
+#'   fixed_idx = NULL,
+#'   fixed_values = NULL,
+#'   optimization_alg = "irls",
+#'   warm_start_weights = NULL,
+#'   warm_start_fisher_info = NULL
+#' )
 #' @name fast_logistic_regression_with_var_cpp
 #' @export
 NULL
@@ -2095,6 +2208,7 @@ NULL
 #'   \href{https://lifelines.readthedocs.io/en/latest/fitters/regression/CoxPHFitter.html}{lifelines CoxPHFitter}
 #'   (stratified fits via the \code{strata} argument) and
 #'   \href{https://www.statsmodels.org/dev/duration.html}{statsmodels duration models}.
+#' @usage build_stratified_cox_data_cache_cpp(X, y, dead, strata)
 #' @name build_stratified_cox_data_cache_cpp
 #' @export
 NULL
@@ -2183,6 +2297,7 @@ NULL
 #'   \code{\link{fast_coxph_regression}} for the full Cox model documentation,
 #'   including the partial-likelihood derivation, tie-handling, and references.
 #'   Analogous Python API: \href{https://lifelines.readthedocs.io/en/latest/fitters/regression/CoxPHFitter.html}{lifelines CoxPHFitter}.
+#' @usage build_cox_data_cache_cpp(X, y, dead)
 #' @name build_cox_data_cache_cpp
 #' @export
 NULL
@@ -2254,6 +2369,18 @@ NULL
 #'   cache and the full Cox partial-likelihood model documentation;
 #'   \code{\link{fast_coxph_regression_cpp}} for the one-shot (build-and-discard)
 #'   variant.
+#' @usage fast_coxph_regression_prebuilt_cpp(
+#'   cox_data_xptr,
+#'   warm_start_beta = NULL,
+#'   smart_cold_start = TRUE,
+#'   estimate_only = FALSE,
+#'   maxit = 20L,
+#'   tol = 1e-9,
+#'   fixed_idx = NULL,
+#'   fixed_values = NULL,
+#'   optimization_alg = "newton_raphson",
+#'   warm_start_fisher_info = NULL
+#' )
 #' @name fast_coxph_regression_prebuilt_cpp
 #' @export
 NULL
@@ -2359,6 +2486,7 @@ NULL
 #'   \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.mannwhitneyu.html}{SciPy
 #'   \code{mannwhitneyu}} (\code{method="exact"} for the same exact-enumeration
 #'   approach, though SciPy's exact path does not handle ties the same way).
+#' @usage exact_jonckheere_terpstra_pval_cpp(y, w)
 #' @name exact_jonckheere_terpstra_pval_cpp
 #' @export
 NULL

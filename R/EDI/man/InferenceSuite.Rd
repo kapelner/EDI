@@ -80,6 +80,32 @@ attempt.
   effect on one with none on the other is entirely plausible). That
   precondition is guaranteed here structurally, not by caller discipline.
 
+  \strong{Same-\code{Y} does not mean same estimand, and that matters for
+  interpretation.} Rows discovered here routinely test genuinely different
+  \eqn{\theta_i} on the same outcome -- a mean difference, a log-odds
+  ratio under one link, a rank-based effect, a quantile shift -- each
+  \eqn{\theta_i} its own parameterization's own null. The combined
+  \eqn{H_0: \theta_1 = 0 \cap \dots \cap \theta_k = 0} is one coherent
+  claim (Fisher's unit-level sharp null: no treatment effect
+  \emph{whatsoever}) only under a randomization-based/exact procedure,
+  where every possible summary of "effect" is simultaneously zero by
+  construction. Asymptotic/likelihood-based procedures instead test a
+  \emph{weak}, population-level null specific to their own
+  parameterization, and weak nulls for genuinely different summaries are
+  not generally nested -- treatment can shift a distribution's variance or
+  a high quantile while leaving its mean exactly unchanged, so "mean
+  difference = 0" does not imply "quantile effect = 0" outside
+  location-shift-style models. This is comparatively safe across
+  different \emph{link functions for the same latent effect} (e.g.
+  cauchit/probit/cloglog/logit on the same binary/ordinal response, which
+  typically share one underlying latent-variable null) and comparatively
+  riskier across different \emph{kinds} of summary (a mean-difference test
+  combined with a rank-based test combined with a quantile-regression
+  test). Under that weak-null reading, a rejection is more honestly read
+  as "at least one specific summary of this outcome's distribution
+  differs" rather than "there is one coherent nonzero effect" -- reinforcing,
+  not loosening, the interpretation caveat below.
+
 \strong{Combined Evidence interpretation caveat (read before using
 \code{combined_evidence$pval}):} the Cauchy combination test is a
 union-intersection test of \eqn{H_0: \theta_1 = 0 \cap \theta_2 = 0 \cap
@@ -93,6 +119,17 @@ not report \code{combined_evidence$pval} as if it estimated a single
 effect size, and do not treat it as validating any one class's estimate
 over another's; its only valid use is as evidence that *some* legitimate
 way of looking for a treatment effect on this outcome found one.
+This guarantee assumes every constituent \code{p_i} is itself valid (i.e.
+uniform under its own null) -- the Cauchy combination's dependence-robust
+size control says nothing about \strong{which} such \code{p_i} is small,
+so a single miscalibrated or misspecified procedure (e.g. an asymptotic
+approximation that breaks down for this sample) can dominate the combined
+result the same way it would dominate a plain minimum-p-value test, even
+when every other procedure shows nothing. A significant
+\code{combined_evidence$pval} is worth cross-checking against the
+per-estimand CI-forest plot (\code{plots$ci_forest}) before trusting it --
+one outlying interval sitting apart from a cluster of concordant ones is a
+miscalibration flag, not confirmed evidence.
 
 This same-\code{Y} precondition is guaranteed \emph{within} one
 \code{InferenceSuite} instance structurally (one \code{Design}, one
