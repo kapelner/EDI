@@ -60,6 +60,28 @@ the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
 > a small fix to already-shipped `tune_EDI_for_this_machine()` functionality
 > (`local_machine_optimization.md`, closed in the v1.0.0 line), not new
 > scope of its own.
+> **Added 2026-08-29 (user decision):** `full_test_coverage.md`
+> (**TODO-17m** below) — a triage-and-test-writing plan to take Codecov's
+> line coverage from 64.79% (first successful upload after the
+> `test-coverage-R.yaml` pipeline fixes, 2026-08-28) into the high 90s.
+> Pure test-writing/CI-plumbing, no source-behavior change; independent of
+> every other item in this release.
+> **Added 2026-08-30 (user decision):** `wilkinson_combined_pval.md`
+> (**TODO-17n** below) — a Wilkinson r-out-of-k order-statistic combination
+> test for `InferenceSuite`, complementing the existing Cauchy
+> combination-test-based `combined_evidence$pval` ("does at least one
+> procedure detect a signal") with a "do most procedures agree" question the
+> Cauchy statistic cannot answer. Staged: a cheap descriptive vote-count
+> field ships regardless; the formal order-statistic test is gated on
+> deciding whether its dependence-robust null-calibration cost is worth it.
+> **Added 2026-08-30 (user decision):** `model_averaged_estimand_report.md`
+> (**TODO-17o** below) — a model-averaged point estimate/CI across
+> `InferenceSuite`'s applicable models (Buckland et al. 1997 variance
+> formula), complementing `combined_evidence$pval`/TODO-17n's vote-count
+> with an actual reportable number instead of another existence test. Stage
+> 1 (within one estimand group) is additive with no new dependency; Stage 2
+> (across estimand groups, e.g. different link functions) depends on the
+> already-shipped marginal-estimand transform.
 
 ## Scope rule (historical — superseded by the 2026-08-27 split above)
 
@@ -148,6 +170,12 @@ its `→ TODO-1` decision (Phase 0 step 9b).
 `fix_reusable_bootstrap.md` (added 2026-08-27; `→ TODO-1..6`; see `TODO-17e`
 below) is a small, additive follow-on fix to that shipped feature, not a new
 track.
+
+The test-coverage family (added 2026-08-29): `full_test_coverage.md` (see
+`TODO-17m` below) — triage and test-writing to take Codecov's line coverage
+from 64.79% toward the high 90s, plus a coverage-floor CI gate against
+backsliding. Pure test/CI-plumbing work; no source-behavior change and no
+dependency on any other 1.1.0 item.
 
 The response-type family: `nominal_response_type_report.md`,
 `rank_choice_response_type_report.md`,
@@ -618,6 +646,44 @@ ticked in their **owning plans**; this list is the release index.
   rederive score/Hessian and downstream covariance/warm-start consumers;
   retain the completed boundary-acceptance mitigation as a compatibility
   bridge until parity and non-overdispersion regression tests pass.
+- [ ] TODO-17m: **Full test coverage triage** (added 2026-08-29):
+  `full_test_coverage.md → TODO-1..10` — take Codecov's line coverage from
+  64.79% (first successful upload after `test-coverage-R.yaml`'s
+  `stop_on_failure = FALSE` fix, 2026-08-28) into the high 90s. Phase 1
+  builds a tracked `coverage_gap_registry.csv`; Phase 2 targets the 31
+  files currently at literal 0.00% (performance-dispatch kernels only
+  reachable above thresholds the test suite deliberately stays under,
+  a handful of untested classes, diagnostic-only code); Phase 3 works the
+  broadly-thin remainder by weighted opportunity
+  (`(1 - coverage) * lines_of_code`); Phase 4 adds a coverage-floor CI
+  gate. Pure test-writing/CI-plumbing — no source-behavior change; a real
+  bug surfaced along the way becomes its own separate fix, not folded in
+  here. No dependencies on other 1.1.0 items; run whenever convenient.
+- [ ] TODO-17n: **Wilkinson r-out-of-k combined-evidence test** (added
+  2026-08-30): `wilkinson_combined_pval.md → TODO-1..5` — `InferenceSuite`'s
+  existing `combined_evidence$pval` (Cauchy combination test) answers "does
+  at least one applicable procedure detect a signal," but structurally
+  cannot answer "do most agree" (its tan-transform statistic is always
+  dominated by the smallest p-value). Stage 1 (TODO-2, cheap, no new theory)
+  ships a plain descriptive vote-count field (`vote_fraction`, overall and
+  per-estimand); Stage 2 (TODO-1 gate, then TODO-3/4) is a formal
+  r-th-order-statistic test, gated on deciding whether its
+  bootstrap/permutation null-calibration cost (no closed-form result exists
+  under arbitrary dependence, unlike CCT) is worth it. No dependencies on
+  other 1.1.0 items.
+- [ ] TODO-17o: **Model-averaged point estimate/CI for `InferenceSuite`**
+  (added 2026-08-30): `model_averaged_estimand_report.md → TODO-1..5` —
+  neither `combined_evidence$pval` nor `wilkinson_combined_pval.md`'s
+  vote-count/order-statistic work ever produces a reportable point estimate
+  (both are joint-null existence tests); this plan adds one via frequentist
+  model averaging (Buckland, Burnham & Augustin 1997 variance formula,
+  Akaike or inverse-variance weights). Stage 1 (TODO-1..3) averages within
+  one estimand group's distinct model fits — no new dependency; Stage 2
+  (TODO-4 gate, then TODO-5) extends across estimand groups (e.g. cauchit
+  vs. cloglog vs. probit link fits) on the shared marginal-estimand scale,
+  depending on the already-shipped `set_estimand("marginal_*")` machinery.
+  Independent of TODO-17n (a different, complementary summary), schedulable
+  alongside it.
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

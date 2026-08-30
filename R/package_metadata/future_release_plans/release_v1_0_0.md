@@ -508,7 +508,7 @@ longer blocks the Python side by itself.
 
 > **The generic parts of this checklist now live in `release.md`** (CI
 > coverage inventory, win-builder/mac-builder submission via
-> `R/EDI/scripts/submit_win_mac_builder.sh`, check-profile measurement,
+> `R/EDI/scripts/submission_tar_build_and_win_mac_check.sh`, check-profile measurement,
 > `cran-comments.md`/CHANGELOG/version-bump/tagging steps, post-acceptance
 > plan moves) — that file applies to every release, not just 1.0.0. What
 > remains here is the 1.0.0-specific work: the CRAN-incoming CI job and
@@ -693,6 +693,55 @@ longer blocks the Python side by itself.
     outside the sandbox and fix in the roxygen sources during a doc batch.
   - Re-run this measurement on the release candidate once the Phase 1
     migrations land; the numbers above are the mid-migration baseline.
+- [x] **Fix the `EDI_PORTABLE` non-portable-flags default bug.** The
+  2026-08-28 local `R CMD check --as-cran` run (TODO-4 below) found 3
+  WARNINGs: `checking compilation flags in Makevars ... WARNING`
+  (non-portable `PKG_CXXFLAGS`: `-march=native -mtune=native
+  -Wno-ignored-attributes -fno-lto`, plus a `CXXFLAGS` override),
+  `checking for GNU extensions in Makefiles ... WARNING` (`src/Makevars`'s
+  `+=`), and `checking compilation flags used ... WARNING` (compilation
+  actually used `-Wno-ignored-attributes -march=native`). Root cause: `R/EDI/
+  configure` only writes a portable, GNU-extension-free `Makevars` when the
+  `EDI_PORTABLE` environment variable is set to `1` at *install* time —
+  `EDI_PORTABLE=0` was configure's default. CI always sets `EDI_PORTABLE: 1`,
+  so this never surfaced there; it is a condition CRAN's own build machines
+  (and win-builder/mac-builder) will always hit, regardless of anything set
+  when the submission tarball was *built*, since `configure` reruns at
+  install time. Confirmed by the 2026-08-28 win-builder run (2 WARNINGs, 2
+  NOTEs — `checking whether package 'EDI' can be installed` and `checking
+  compilation flags used`) and the 2026-08-28 mac-builder run (2 WARNINGs, 1
+  NOTE — `checking compilation flags in Makevars` and `checking for GNU
+  extensions in Makefiles`). **Fix (2026-08-29):**
+  `scripts/submission_tar_build_and_win_mac_check.sh` now patches its
+  throwaway scratch copy of `configure` (never the real `R/EDI/configure`,
+  and never CI/local dev's build) so that an *unset* `EDI_PORTABLE` defaults
+  to the portable build in the tarball it ships — i.e. the exact file CRAN/
+  win-builder/mac-builder run at install time, with no env var required on
+  their end — and added a verification step that extracts the built
+  tarball, reruns its shipped `configure` with `EDI_PORTABLE` explicitly
+  unset, and fails the script if `src/Makevars` still contains non-portable
+  flags. **Confirmed fixed by the 2026-08-29 mac-builder rerun**
+  (https://mac.r-project.org/macbuilder/results/1788035096-11c57fc8646da48a/):
+  Status dropped to **1 NOTE** (only the already-justified `unlockBinding()`
+  NOTE remains) — both non-portable-flags WARNINGs are gone. **Still open:**
+  win-builder has not yet been rerun against the fixed script; do that
+  before submission and record the result in `cran-comments.md`. (Separately
+  discovered and fixed along the way: the same local check run showed a
+  `checking compilation flags used ... NOTE` for a bare `-march=native` that
+  traced not to EDI's `configure` at all but to this dev machine's own R
+  installation baking `-march=native` into R's global `CXXFLAGS` via
+  `Makeconf` — a local-machine artifact CRAN's own R build won't have. Since
+  a plain `CXXFLAGS=...` environment variable does not override a
+  makefile's own plain assignment of the same name (confirmed by direct
+  test), the script's own `R CMD check --as-cran` step now sets
+  `R_MAKEVARS_USER` to a scratch file pinning `CXXFLAGS = -O3`, which does
+  take precedence per *Writing R Extensions*, so this script's local check
+  output stays a fair proxy for what CRAN will see. The script also now sets
+  `EDI_SKIP_LOCAL_TUNING=1` on that same check invocation, since a saved
+  `tune_EDI_for_this_machine()` result on the developer's machine — stored
+  outside the package tree via `tools::R_user_dir()`, never in the tarball
+  — otherwise prints a load-time startup message that would be local-only
+  noise in a check log meant to be pasted into `cran-comments.md`.)
 - [ ] **Submission artifacts.** See `release.md`'s pre-submission checklist
   items 3-4 (`cran-comments.md`, no-reverse-deps statement) — generic across
   releases, tracked there now.
@@ -722,10 +771,14 @@ longer blocks the Python side by itself.
   14 are closed in their owning plans. **Done (2026-08-28):** a full local
   `R CMD check --as-cran` run against the release candidate, run by the
   user on their own machine (not run by the agent, per this repo's
-  standing rule). Remaining open item: fill `cran-comments.md`'s
-  `[TODO]` placeholders (test environments, timing, results) from this
-  run and the win-builder/mac-builder submission — see `release.md`'s
-  pre-submission checklist.
+  standing rule) — found the 3-WARNING `EDI_PORTABLE` default bug, see the
+  new Release Gate bullet above for the full root-cause/fix writeup.
+  **cran-comments.md partially updated (2026-08-29):** mac-builder
+  re-submitted against the fixed script and result recorded (1 NOTE,
+  WARNINGs gone). **Still open:** win-builder rerun against the fixed
+  script, and a local rerun of the check with the now-fixed script (to
+  confirm 0 WARNINGs locally too) — see `release.md`'s pre-submission
+  checklist.
 - [x] TODO-5: On submission acceptance: move the closed in-scope plans to
   `../finished_features/` per the standing constraint. ~~Open a
   `release_v1_1_0.md` scoping the first additive wave (likely

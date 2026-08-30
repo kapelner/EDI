@@ -556,6 +556,25 @@ already stated there:**
   adaptivity** (added 2026-08-27) → `release_v2_0_0.md → TODO-2c`.
   `response_adaptive_randomization.md`. Design audit #5; theoretical audit
   Part 2D.
+- **5AB. Wilkinson r-out-of-k combined-evidence test for `InferenceSuite`**
+  (added 2026-08-30, user decision) → `release_v1_1_0.md → TODO-17n`.
+  `wilkinson_combined_pval.md`. Complements the existing Cauchy
+  combination-test `combined_evidence$pval` ("at least one procedure
+  detects a signal") with a "do most procedures agree" question CCT's
+  min-dominated statistic structurally cannot answer. Staged: a cheap
+  descriptive vote-count field (TODO-2) ships regardless of TODO-1's
+  decision on whether the formal, dependence-robust-calibrated
+  r-th-order-statistic test (TODO-3/4) is worth its cost. Independent of
+  every other 1.1.0 item.
+- **5AC. Model-averaged point estimate/CI for `InferenceSuite`** (added
+  2026-08-30, user decision) → `release_v1_1_0.md → TODO-17o`.
+  `model_averaged_estimand_report.md`. Complementary to 5AB: produces an
+  actual reportable point estimate + CI (Buckland, Burnham & Augustin 1997
+  model-averaging variance formula) instead of another existence test.
+  Stage 1 averages within one estimand group's distinct model fits
+  (additive, no new dependency); Stage 2 extends across estimand groups
+  (e.g. different link functions) on the shared marginal-estimand scale,
+  depending on the already-shipped `set_estimand("marginal_*")` machinery.
 
 ### Audit reports (2026-08-26/27) — reference, not work items
 
@@ -616,6 +635,17 @@ audits; its own TODO-1 now carries a recorded "no / defer" recommendation.
    quantiles (Tier B) — a real quadratic speedup that needs fault-tolerant
    hardware and is kept as a standing kernel-factoring constraint (its TODO-8),
    not scheduled work.
+
+7. `full_test_coverage.md` (added 2026-08-29, user decision) — triage and
+   test-writing to take Codecov's line coverage from 64.79% (first
+   successful upload after `test-coverage-R.yaml`'s `stop_on_failure =
+   FALSE` fix, 2026-08-28) into the high 90s: Phase 1 builds a tracked
+   `coverage_gap_registry.csv`; Phase 2 targets the 31 files currently at
+   literal 0.00%; Phase 3 works the broadly-thin remainder by weighted
+   opportunity; Phase 4 adds a coverage-floor CI gate. Pure
+   test-writing/CI-plumbing, no source-behavior change, no dependency on
+   any other open plan — run whenever convenient. Release index:
+   `release_v1_1_0.md → TODO-17m`.
 
 ---
 

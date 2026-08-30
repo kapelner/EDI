@@ -4254,6 +4254,17 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 #' effect size, and do not treat it as validating any one class's estimate
 #' over another's; its only valid use is as evidence that *some* legitimate
 #' way of looking for a treatment effect on this outcome found one.
+#' This guarantee assumes every constituent \code{p_i} is itself valid (i.e.
+#' uniform under its own null) -- the Cauchy combination's dependence-robust
+#' size control says nothing about \strong{which} such \code{p_i} is small,
+#' so a single miscalibrated or misspecified procedure (e.g. an asymptotic
+#' approximation that breaks down for this sample) can dominate the combined
+#' result the same way it would dominate a plain minimum-p-value test, even
+#' when every other procedure shows nothing. A significant
+#' \code{combined_evidence$pval} is worth cross-checking against the
+#' per-estimand CI-forest plot (\code{plots$ci_forest}) before trusting it --
+#' one outlying interval sitting apart from a cluster of concordant ones is a
+#' miscalibration flag, not confirmed evidence.
 #'
 #' This same-\code{Y} precondition is guaranteed \emph{within} one
 #' \code{InferenceSuite} instance structurally (one \code{Design}, one

@@ -45,7 +45,7 @@ actually preparing a submission-candidate tarball, not on every push.
    checks run on CRAN's own build machines (subtly different
    toolchain/environment than GitHub's runners), and the only remaining
    coverage gap after the CI job above. Use
-   `R/EDI/scripts/submit_win_mac_builder.sh` (builds the tarball with
+   `R/EDI/scripts/submission_tar_build_and_win_mac_check.sh` (builds the tarball with
    `--compact-vignettes=gs+qpdf` first, then uploads to win-builder via FTP;
    mac-builder has no known scriptable upload path, so that step is manual —
    see the script's own comments). This script is meant to be run by a human
