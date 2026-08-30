@@ -253,6 +253,36 @@ against; they are additive on the design factory but are treated as a
 - [ ] TODO-6d: **Additional language bindings**
   `more_language_bindings.md → TODO-1..` — execute only after TODO-6c's ABI,
   release, and ownership decisions are complete.
+- [ ] TODO-6e: **Sample-splitting / data-carving model selection for
+  `InferenceSuite`** (added 2026-08-30): `sample_splitting_model_selection.md
+  → TODO-1..6` — an honest-by-construction alternative to the
+  `combined_evidence$pval`/Wilkinson/model-averaging/Holm-BH summaries (all
+  1.x): split enrolled subjects into a selection set and a confirmation set,
+  pick the winning model on the selection set only, then test only that
+  winner on the confirmation set at full, uncorrected alpha. No combination
+  formula needed, at the real cost of confirmatory power (less data) and a
+  genuinely new two-phase fitting workflow. Needs real `Design`-level
+  splitting support, particularly thorny for sequential matching-on-the-fly
+  designs (a post-hoc row filter can break their own within-half balance
+  guarantees) — this is why it's 2.0.0 scope rather than an additive v1.x
+  item like its sibling plans. Stage 1 (plain splitting) is the tractable
+  first cut; Stage 2 (data carving, Fithian/Sun/Taylor 2014) is gated on
+  Stage 1's measured power cost.
+- [ ] TODO-6f: **E-values / safe testing for `InferenceSuite`** (added
+  2026-08-30): `e_value_safe_testing.md → TODO-1..6` — a genuinely different
+  validity framework from p-values (Vovk & Wang 2021; Grünwald, de Heide &
+  Koolen 2024's "safe testing"), combining by simple averaging and remaining
+  valid under *adaptive* stopping/inclusion of more tests, unlike
+  fixed-weight CCT (`combined_evidence$pval`, v1.0.0) or any other plan in
+  this family. The most direct structural answer to "is the combined
+  evidence gameable by adding more models" — not "the current fixed
+  candidate set happens to protect against it" but "the combination rule
+  itself stays valid even if the set grows adaptively." Substantial lift:
+  every `Inference` class needs its own e-value (cheap where a
+  likelihood-ratio route exists via existing `likelihood_tier = "full"`
+  machinery; a new construction needed for bootstrap/randomization
+  procedures) — staged, starting with a pilot subset before any adaptive-
+  inclusion workflow is attempted.
 - [ ] TODO-7: **Breaking changes** — greedy-class deletion; any contract
   breaks accumulated from TODO-3/4, each with a documented deprecation
   path from 1.x.

@@ -141,6 +141,80 @@ names) yourself for parallel execution to actually take effect — see
 "Setting a seed for reproducible output" below for why `num_cores` also
 matters for reproducibility.
 
+### Why `EDI` targets the CPU (and not GPUs, TPUs, or quantum hardware)
+
+All of the tuning above targets the CPU. That is deliberate: for the
+workloads `EDI` is built for — designed experiments with roughly n < 1,000
+subjects and B < 2,000 bootstrap or randomization replicates — accelerators
+cannot help:
+
+- **The total work is milliseconds.** An OLS or GLM fit at n = 1,000, p = 10
+  is ~10⁵ flops, a few microseconds on one core; B = 2,000 of them is tens of
+  milliseconds single-threaded. A GPU's fixed costs — kernel launch latency,
+  host↔device transfer, first-use context setup — match or exceed the entire
+  job.
+- **The kernels are small, double-precision, iterative, and branchy.** IRLS,
+  Newton with line search, bisection CIs, Laplace-approximated mixed models,
+  Cox partial likelihoods, greedy and annealing design searches are sequential
+  dependency chains with data-dependent branching — the wrong shape for GPUs
+  and TPUs (throughput engines for large uniform tensor work; TPUs are
+  bf16/int8 matmul units). The design matrix fits in L2 cache, so memory
+  bandwidth, the one thing accelerators have in abundance, is irrelevant.
+- **The batch is too small to amortize anything.** Batched GPU linear algebra
+  needs thousands of simultaneous matrices to saturate the device; B < 2,000
+  tiny fits would leave it mostly idle.
+- **Quantum hardware maps onto parts of `EDI`, but the gain is limited.** The
+  model fits are not quantum targets — data loading, readout, and
+  dequantization erase every claimed linear-algebra speedup at `EDI`'s `n`
+  and `p`. Two things do map cleanly: the design layer's binary-allocation
+  searches (`DesignFixedOptimal` and its block variant are
+  cardinality-constrained QUBOs, runnable on today's annealers and Ising
+  machines) and the inference layer's Monte Carlo replicate loops (the
+  amplitude-estimation setting, quadratic speedup in `1/ε`). The first is at
+  best competitive with the package's own MILP and C++ annealing solvers, and
+  any practical win at `n` in the hundreds more likely comes from a
+  quantum-*inspired* classical solver; the second needs fault-tolerant
+  hardware that does not exist. See
+  [`quantum_upgrade.md`](R/package_metadata/new_feature_plans/quantum_upgrade.md)
+  for the mapping, qubit-count estimates, and the planned optional
+  QUBO-export hook.
+
+**Where a GPU could still help.** The GPU-shaped computations are the
+embarrassingly parallel outer loops: one small kernel over many independent
+permutations or resamples (`ols_distr_parallel.cpp`,
+`fast_wilcox_parallel.cpp`, `ridit_distr_parallel.cpp`,
+`kk_compound_distr_parallel.cpp`, the bootstrap loops), the pairwise-distance
+and design-search kernels behind `DesignFixedOptimal`, matching, and
+rerandomization, and `SimulationFramework`'s replicate loop. For simple
+statistics — mean differences, fixed-design OLS, rank sums — at B well beyond
+2,000, or simulation studies running thousands of full inferences, a batched
+GPU implementation could beat a multi-core CPU. Inside the n < 1,000,
+B < 2,000 regime, launch and transfer overhead still dominates, so this is a
+future direction, not a limitation of the current design. See
+[`gpu_optimizations.md`](R/package_metadata/new_feature_plans/gpu_optimizations.md)
+for the ranked candidates and the backend/dispatch design an optional GPU
+path would need.
+
+In this regime the costs that matter are CPU-side, and the package tunes for
+them on the user's own hardware. Thread fork/join overhead versus
+per-replicate work is measured directly: the parallel axis of
+`tune_EDI_for_this_machine()` benchmarks bootstrap and randomization-CI
+workloads across a core-count grid and finds the crossover where multi-core
+beats serial on that machine, which is why parallel execution is opt-in via
+`set_num_cores()` rather than always-on. The cold-start, warm-start, and
+optimizer axes handle the other latency-dominated pieces the same way. The
+remainder — R↔C++ dispatch overhead per call and algebraic reuse inside a
+replicate loop (e.g. factoring a fixed design once) — is addressed in the
+C++/Eigen kernels themselves, on top of OpenMP parallelism and the
+hardware-specific compiler flags above. One library choice is left to the
+user: the `XᵀX` cross-product at the heart of every IRLS/Newton iteration is
+routed through whichever BLAS R is linked against (via `DSYRK`), so an
+optimized BLAS (OpenBLAS, MKL, Accelerate) speeds that kernel over reference
+BLAS. It is not required — at designed-experiment sizes the call is
+microseconds either way — but it is free speed if your R already has one. At
+designed-experiment scale, the CPU is the right hardware target, and driving
+it to its ceiling is the route to speed.
+
 ### Getting Started
 
 #### Historical experimental data example

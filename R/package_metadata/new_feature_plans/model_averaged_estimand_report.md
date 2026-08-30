@@ -5,9 +5,10 @@
 > `marginal_estimand_report.md`, closed in the v1.0.0 line) for Stage 2's
 > cross-estimand-group averaging; Stage 1 (within one estimand group) has no
 > new dependency. Additive alongside the existing Cauchy combination test
-> and `wilkinson_combined_pval.md`'s vote-count/order-statistic work — a
-> different kind of summary, not a replacement for either. **Release target:
-> v1.1.0** (`release_v1_1_0.md → TODO-17o`).
+> and `wilkinson_combined_pval.md`'s vote-count/order-statistic work (v1.1.0)
+> — a different kind of summary, not a replacement for either. **Release
+> target: v1.4.0** (`release_v1_4_0.md → TODO-11b`; moved here from v1.1.0,
+> 2026-08-30, user decision).
 
 Written 2026-08-30.
 
@@ -98,6 +99,25 @@ Buckland variance formula above.
   fitted log-likelihood + parameter count — no new C++ needed, this is an
   R-layer aggregation over existing per-class quantities).
 
+**`"akaike"`'s circularity problem, and a fix.** AIC is computed from the
+*same data* being averaged/tested — the weights aren't fixed in advance the
+way `combined_evidence_weighting`'s structural schemes are, so a model that
+happens to overfit this particular dataset's noise gets a larger say in its
+own averaged estimate. A **cross-validated (out-of-sample) weighting**
+option fixes this directly: weight each candidate by its CV-estimated
+predictive performance instead of its in-sample AIC — stacking/super-learner-
+style CV weighting (van der Laan, Polley & Hubbard 2007) gives weights that
+are honestly validated on held-out folds, not just flattering whichever
+model overfit the noise best. This is a straightforward `"cv"` addition to
+the same weighting-option list above (`c("equal", "custom", "akaike", "cv")`)
+— re-fit each candidate class on $K-1$ folds, score it on the held-out fold,
+repeat, and use the resulting CV loss (in place of AIC) in the same
+softmax-style weight formula. More expensive than `"akaike"` ($K\times$ the
+fits, one full refit per fold per candidate) but resolves the circularity
+outright rather than hoping it doesn't matter; a reasonable v1.4.0 default
+once available, keeping `"akaike"` around as the cheap, in-sample-only
+option for users who've already accepted that tradeoff.
+
 ## Tests
 
 - Stage 1: golden test reproducing Buckland's variance formula by hand on a
@@ -127,6 +147,11 @@ Buckland variance formula above.
   pass for the across-group subset).
 - [ ] TODO-5 (if TODO-4 lands): implement Stage 2 (cross-estimand-group
   averaging on the marginal-estimand scale) and its parity test.
+- [ ] TODO-6: add `"cv"` weighting (cross-validated, resolving `"akaike"`'s
+  in-sample circularity — see "`"akaike"`'s circularity problem" above);
+  test that `"cv"`'s weights are not systematically inflated for models
+  that overfit synthetic noise under the null (`betaT = 0`), unlike a
+  naive `"akaike"` comparison on the same data.
 
 ## References
 

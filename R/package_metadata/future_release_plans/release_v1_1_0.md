@@ -74,14 +74,9 @@ the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
 > Cauchy statistic cannot answer. Staged: a cheap descriptive vote-count
 > field ships regardless; the formal order-statistic test is gated on
 > deciding whether its dependence-robust null-calibration cost is worth it.
-> **Added 2026-08-30 (user decision):** `model_averaged_estimand_report.md`
-> (**TODO-17o** below) — a model-averaged point estimate/CI across
-> `InferenceSuite`'s applicable models (Buckland et al. 1997 variance
-> formula), complementing `combined_evidence$pval`/TODO-17n's vote-count
-> with an actual reportable number instead of another existence test. Stage
-> 1 (within one estimand group) is additive with no new dependency; Stage 2
-> (across estimand groups, e.g. different link functions) depends on the
-> already-shipped marginal-estimand transform.
+> (`model_averaged_estimand_report.md`, the complementary model-averaged
+> point-estimate/CI plan, was also added 2026-08-30 alongside this one but
+> moved to `release_v1_4_0.md → TODO-11b` the same day, user decision.)
 
 ## Scope rule (historical — superseded by the 2026-08-27 split above)
 
@@ -167,6 +162,28 @@ added 2026-08-23, user request) — are indexed as `TODO-9b` below, gated on
 its `→ TODO-1` decision (Phase 0 step 9b).
 (`local_machine_optimization.md` moved to v1.0.0 — see
 `release_v1_0_0.md`'s item 15 — 2026-08-20, user decision.)
+Three further kernel/perf plans added 2026-08-30 (user decision), all
+measurement-first and indexed as `TODO-4d`/`4e`/`4f` below:
+`fixed_size_eigen_small_p.md` (compile-time-`p` Eigen dispatch),
+`lto_reevaluation.md` (re-measure the `-fno-lto` default on triggers, flip
+rule written down), and `memory_layout_row_major_irls.md` (cache threshold
+for column-major `X` under row-wise IRLS; policy for kernel authors).
+
+`guard_unguarded_information_inverse.md` (added 2026-08-30; `→ TODO-1..5`;
+see `TODO-17q` below) — hardening: five `with_var` kernels get the same
+`isInvertible()` guard their siblings already have; bit-for-bit on
+invertible fits.
+
+`ols_randomization_distr_cpp_wiring.md` (added 2026-08-30; `→ TODO-1..6`;
+see `TODO-17p` below) — gives `InferenceContinOLS` a batch C++ randomization
+distribution by wiring an existing, never-called kernel, and deletes eight
+other dead kernel exports.
+
+`randomization_ci_affine_shift_reuse.md` (added 2026-08-30; `→ TODO-1..6`;
+see `TODO-17o` below) — revives the never-populated `t0s_rand` fast path so a
+randomization CI for a linear statistic costs one null distribution instead
+of ~20–35.
+
 `fix_reusable_bootstrap.md` (added 2026-08-27; `→ TODO-1..6`; see `TODO-17e`
 below) is a small, additive follow-on fix to that shipped feature, not a new
 track.
@@ -385,6 +402,39 @@ ticked in their **owning plans**; this list is the release index.
   bit-for-bit or flag-only. Exit criterion: every `→ TODO-1..7` has a
   measured entry or a "measured and dropped" note, and none of them
   duplicate a TODO-4b measurement.
+- [ ] TODO-4d: **Fixed-size Eigen specializations for small `p`**
+  (`fixed_size_eigen_small_p.md → TODO-1..5`; added 2026-08-30, user
+  decision). Compile-time-`p` dispatch for the `p×p` IRLS/Newton algebra
+  (`XᵀWX`, LDLᵀ solve, `H⁻¹g`) — Eigen unrolls and stack-allocates
+  fixed-size types, a 2–3× win on that algebra at `p ≤ 8`, but the `O(np)`
+  data passes dominate at EDI's `n`, so the whole-fit gain is smaller and
+  is measured first. Gated on its own `→ TODO-1` microbenchmark (drop if
+  whole-fit gain < 10%). **No duplication with TODO-4b:** the audit of
+  which decompositions run at which sizes is TODO-4b's TODO-155; this lane
+  owns the dispatch mechanism and consumes that list. Bit-for-bit with the
+  dynamic path or ships behind a flag.
+- [ ] TODO-4e: **LTO re-evaluation** (`lto_reevaluation.md → TODO-1..4`;
+  added 2026-08-30, user decision). `-fno-lto` is the measured-negative
+  default (`configure:74-81`, README build table); standing action is
+  none. This lane records the original baseline (compiler/Eigen/unity-build
+  state), re-measures `EDI_NATIVE_LTO=1` under the current toolchain via
+  the `→ TODO-135` protocol, writes down the flip rule (no kernel regresses
+  beyond noise **and** geometric-mean gain > 5%; any mixed result is a no),
+  and adds re-measurement triggers (GCC major bump, RcppEigen major bump,
+  unity-grouping change) to `release.md`. Deliverable is a dated decision
+  line, not necessarily code.
+- [ ] TODO-4f: **Memory layout — column-major `X` under row-wise IRLS**
+  (`memory_layout_row_major_irls.md → TODO-1..4`; added 2026-08-30, user
+  decision). Row-wise access to column-major `X` strides by `n·8` bytes;
+  invisible while `X` is L2-resident (`n·p·8 < ~1 MB`, i.e. `n ≲ 10⁴` at
+  `p = 10`) and only costs past cache. `→ TODO-1` finds that threshold
+  empirically; if EDI's regime never reaches it, the plan closes with the
+  number documented in `extending-edi.Rmd`. **No duplication with
+  TODO-4b:** the 75-site `.row(` classification is TODO-4b's TODO-144;
+  this lane consumes it (`→ TODO-2` triage: fix now / never / if `n`
+  grows) and owns only the uniform mechanism (`→ TODO-3`, preferring the
+  weight-vector + `rankUpdate` form over row-major copies) and the policy
+  paragraph.
 - [ ] TODO-5: **Corrections track** (`_master.md` Phase 5A order, minus
   `marginal_estimand_report.md`, moved to v1.0.0, amended 2026-08-18;
   `expanded_estimate_report.md` moved back here the same day; each
@@ -671,19 +721,62 @@ ticked in their **owning plans**; this list is the release index.
   bootstrap/permutation null-calibration cost (no closed-form result exists
   under arbitrary dependence, unlike CCT) is worth it. No dependencies on
   other 1.1.0 items.
-- [ ] TODO-17o: **Model-averaged point estimate/CI for `InferenceSuite`**
-  (added 2026-08-30): `model_averaged_estimand_report.md → TODO-1..5` —
-  neither `combined_evidence$pval` nor `wilkinson_combined_pval.md`'s
-  vote-count/order-statistic work ever produces a reportable point estimate
-  (both are joint-null existence tests); this plan adds one via frequentist
-  model averaging (Buckland, Burnham & Augustin 1997 variance formula,
-  Akaike or inverse-variance weights). Stage 1 (TODO-1..3) averages within
-  one estimand group's distinct model fits — no new dependency; Stage 2
-  (TODO-4 gate, then TODO-5) extends across estimand groups (e.g. cauchit
-  vs. cloglog vs. probit link fits) on the shared marginal-estimand scale,
-  depending on the already-shipped `set_estimand("marginal_*")` machinery.
-  Independent of TODO-17n (a different, complementary summary), schedulable
-  alongside it.
+- [ ] TODO-17o: **Randomization CI affine-shift reuse** (added 2026-08-30,
+  user decision): `randomization_ci_affine_shift_reuse.md → TODO-1..6`. The
+  fast path at `inference_all_abstract_rand.R:436` (`t0s = t0s_rand + delta`)
+  is dead — `cached_values$t0s_rand` has never been assigned a value, so
+  the δ-keyed distribution cache misses on every bisection step and a
+  randomization CI costs ~20–35 full `r`-permutation distributions. For
+  statistics linear in `y` with `w` in the design (simple mean diff,
+  average diff, OLS, Lin) `t0_b(δ) = t0_b(0) + δ` is an exact identity, so
+  one full δ = 0 distribution serves the whole search. Adds a
+  `supports_additive_delta_shift()` predicate (default `FALSE`; never for
+  rank statistics, transformed scales, custom statistics, non-linear
+  models), populates `t0s_rand` only from a full-`r` δ = 0 call (never an
+  MC-shortened prefix), and forces that one full call in
+  `build_randomization_ci_search_bounds()`. Expected 20–30× on
+  `compute_confidence_interval_rand()` for those classes. Equivalence is to
+  floating point, not bit-for-bit (documented default change; tolerances in
+  the plan). KK combined estimators are tier 2, opt-in after numerical
+  verification. Independent of other 1.1.0 items.
+- [ ] TODO-17p: **Wire the unused OLS randomization-distribution kernel;
+  triage dead kernels** (added 2026-08-30, user decision):
+  `ols_randomization_distr_cpp_wiring.md → TODO-1..6`.
+  `compute_ols_distr_parallel_cpp` (`src/ols_distr_parallel.cpp:15`) is
+  complete and exported but has no caller anywhere (R, tests, python,
+  benchmark); `InferenceContinOLS` has no `compute_fast_randomization_distr()`
+  and falls through to the R-level reused-worker loop
+  (`inference_all_abstract_rand.R:708-800`) — ~100–200 µs of R6
+  bookkeeping per replicate around a ~5 µs solve. Adds the method on the
+  Poisson pattern (`inference_count_poisson.R:839`), passing the
+  *hardened* covariate block (`create_design_matrix()[, -(1:2)]`) and
+  adding a per-replicate rank guard to the kernel so `NA` patterns match
+  the worker. Same estimator to ~1e-14 (LDLT vs. ColPivQR; documented
+  default change, tolerance 1e-10). Expected 20–50× on the OLS
+  randomization distribution; multiplicative with TODO-17o. Also triages
+  eight other never-called exports (`compute_ols_bootstrap_parallel_cpp`,
+  two `compute_wilcox_distr_*`, `base_bootstrap_loop_cpp`,
+  `matching_bootstrap_loop_cpp`, `fill_i_b_with_matches_loop_cpp`, three
+  `bisection_ci_*_cpp`): wire the bootstrap one if its contract matches,
+  delete the rest (with unity-group cleanup). Lin is a stretch item; the
+  kernel-internal FWL rewrite is v1.2.0 (`ols_distr_kernel_fwl.md`).
+- [ ] TODO-17q: **Guard the unguarded information-matrix inverses** (added
+  2026-08-30, user decision): `guard_unguarded_information_inverse.md →
+  TODO-1..5`. Correctness, not performance.
+  `fast_negbin_regression.cpp:485` inverts the free-parameter information
+  block with a bare `.inverse()` and no invertibility check (its own
+  roxygen at `:411-418` admits it); the same pattern is at
+  `fast_zinb.cpp:457`, `fast_zero_augmented_poisson.cpp:340`/`:566`, and
+  `fast_beta_regression.cpp:643`, while Cox, ordinal, and ZOIB check
+  `FullPivLU::isInvertible()` and return a `NaN` covariance. A
+  near-singular block today yields a *finite, wildly wrong* SE with no
+  warning (the R side's `res$vcov %||% …` accepts any non-`NULL` matrix).
+  One shared `invert_free_information()` helper in
+  `_helper_functions_core.h` — `FullPivLU` for the decision, the original
+  `.inverse()` for the value so every invertible fit stays **bit-for-bit**
+  — applied at the five sites, plus tests that a duplicated-column
+  `harden = FALSE` design now yields `NA` SE/CI, and roxygen rewrites.
+  Independent of other 1.1.0 items.
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

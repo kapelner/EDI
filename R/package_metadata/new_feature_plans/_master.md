@@ -451,6 +451,59 @@ branch-free GLM-objective layout) is owned solely by the second lane's
 TODO-168/137/136/144/154; the third lane consumes those results rather than
 re-running them.
 
+**Fourth, fifth, and sixth lanes (added 2026-08-30, user decision; all in
+v1.1.0):** `fixed_size_eigen_small_p.md` → TODO-1..5
+(`release_v1_1_0.md → TODO-4d`), `lto_reevaluation.md` → TODO-1..4
+(`→ TODO-4e`), and `memory_layout_row_major_irls.md` → TODO-1..4
+(`→ TODO-4f`). Each is measurement-first with its own TODO-1 gate and an
+explicit "measured and dropped" exit; each names the second-lane TODO it
+consumes rather than repeats (TODO-155 for fixed-size, TODO-135 for LTO,
+TODO-144 for layout). Expected outcome at EDI's `n < 1,000`, `B < 2,000`
+scale is small or nil for all three — the plans exist to replace
+estimates with numbers and to record the thresholds where each *would*
+matter.
+
+**Algorithmic lane (added 2026-08-30, user decision; v1.1.0):**
+`randomization_ci_affine_shift_reuse.md` → TODO-1..6 (`release_v1_1_0.md →
+TODO-17o`). Unlike the build-level lanes above, this one is expected to be
+large: it revives the dead `t0s_rand` fast path so a randomization CI for a
+linear-in-`y` statistic reuses one null distribution across every bisection
+step (~20–30×). R-level only, no kernel changes, independent of the other
+lanes.
+Two siblings added the same day: `ols_randomization_distr_cpp_wiring.md`
+→ TODO-1..6 (v1.1.0, `→ TODO-17p`; wire the never-called
+`compute_ols_distr_parallel_cpp`, delete eight other dead exports; 20–50×
+on the OLS null distribution, multiplicative with TODO-17o) and
+`ols_distr_kernel_fwl.md` → TODO-1..5 (v1.2.0, `release_v1_2_0.md →
+TODO-9`; FWL rewrite inside that kernel, 5–10×, depends on the wiring).
+Hardening item from the same audit (v1.1.0, `→ TODO-17q`):
+`guard_unguarded_information_inverse.md` → TODO-1..5 — five bare
+`.inverse()` sites on the free information block get the `isInvertible()`
+guard Cox/ordinal/ZOIB already use; bit-for-bit on invertible fits.
+Also v1.2.0: `kk14_incremental_covariance.md` → TODO-1..5
+(`release_v1_2_0.md → TODO-10`; Welford running covariance and
+monotone rank tracking for the sequential KK14 design, 5–10× per run,
+tolerance-equal with a documented tie caveat; no dependencies).
+A further sibling for v1.4.0: `wilcox_hl_kernel_hoisting.md` → TODO-1..6
+(`release_v1_4_0.md → TODO-11e`; sort-once / per-thread buffers /
+early-stop + warm-bracket bisection in the live HL kernel, 3–4×, all
+bit-identical, no dependencies).
+And `ridit_kernel_level_slots.md` → TODO-1..5 (`release_v1_4_0.md →
+TODO-11f`; precomputed level slots for the default `"control"` reference in
+the ridit kernels, ~8–10×, bit-identical, no dependencies).
+And `kk_signed_rank_hoisting.md` → TODO-1..5 (`release_v1_4_0.md →
+TODO-11g`; hoist the permutation-invariant pair ranks in the KK signed-rank
+kernel at `δ = 0`, ~4–5× on the pair component, bit-identical, no
+dependencies).
+And `rerandomization_objective_vals_gemm.md` → TODO-1..5
+(`release_v1_4_0.md → TODO-11h`; GEMM + whitening in
+`compute_objective_vals_cpp`, 5–15×; the one item in this batch that is
+tolerance-equal rather than bit-identical, with a documented ranking-tie
+caveat; no dependencies).
+And `small_kernel_hoists_batch.md` (`release_v1_4_0.md → TODO-11i`;
+four small independent hoists — greedy `G = MᵀM`, ordinal `y_slot`, Cox
+bootstrap ordering, one cached GH rule; no dependencies).
+
 ---
 
 ## Phase 5 — Post-decision feature tracks
@@ -567,14 +620,53 @@ already stated there:**
   r-th-order-statistic test (TODO-3/4) is worth its cost. Independent of
   every other 1.1.0 item.
 - **5AC. Model-averaged point estimate/CI for `InferenceSuite`** (added
-  2026-08-30, user decision) → `release_v1_1_0.md → TODO-17o`.
-  `model_averaged_estimand_report.md`. Complementary to 5AB: produces an
-  actual reportable point estimate + CI (Buckland, Burnham & Augustin 1997
-  model-averaging variance formula) instead of another existence test.
-  Stage 1 averages within one estimand group's distinct model fits
-  (additive, no new dependency); Stage 2 extends across estimand groups
-  (e.g. different link functions) on the shared marginal-estimand scale,
-  depending on the already-shipped `set_estimand("marginal_*")` machinery.
+  2026-08-30, user decision; moved to v1.4.0 same day, user decision) →
+  `release_v1_4_0.md → TODO-11b`. `model_averaged_estimand_report.md`.
+  Complementary to 5AB (v1.1.0): produces an actual reportable point
+  estimate + CI (Buckland, Burnham & Augustin 1997 model-averaging variance
+  formula) instead of another existence test. Stage 1 averages within one
+  estimand group's distinct model fits (additive, no new dependency); Stage
+  2 extends across estimand groups (e.g. different link functions) on the
+  shared marginal-estimand scale, depending on the already-shipped
+  `set_estimand("marginal_*")` machinery.
+- **5AD. Multiplicity-adjusted `results_table` for `InferenceSuite`** (added
+  2026-08-30, user decision) → `release_v1_4_0.md → TODO-11c`.
+  `multiplicity_adjusted_results_table.md`. Holm/Benjamini-Hochberg
+  adjustment applied directly to `results_table`'s raw p-values
+  (estimand-grouped by default), reporting *which specific* rows survive
+  correction rather than one combined number — a different deliverable from
+  5AB/5AC. Thin wrapper over `stats::p.adjust()`; independent of every other
+  1.4.0 item.
+- **5AE. Sample-splitting / data-carving model selection for
+  `InferenceSuite`** (added 2026-08-30, user decision) →
+  `release_v2_0_0.md → TODO-6e`. `sample_splitting_model_selection.md`.
+  Honest-by-construction alternative to 5AB/5AC/5AD's full-data
+  combine/average/adjust approaches: split subjects into a selection set and
+  a confirmation set, pick the winning model on the selection set only, test
+  only that winner on the confirmation set at full alpha. Real cost
+  (confirmatory power) and real architectural cost (`Design`-level
+  splitting, especially for sequential matching-on-the-fly designs), hence
+  2.0.0 scope rather than an additive v1.x item.
+- **5AF. Selective (post-selection) inference for `InferenceSuite`** (added
+  2026-08-30, user decision) → `release_v1_4_0.md → TODO-11d`.
+  `selective_inference_post_selection.md`. Technically strongest honest
+  answer to "picked the best of k models": p-values/CIs already valid
+  conditional on the selection event (PoSI or data carving), no data
+  sacrificed to a split unlike 5AE. Scoped narrowly (Phase 0 + one pilot
+  class, `InferenceContinOLS`) since a full rollout is per-model-class work,
+  not a generic wrapper — broader rollout may move to 2.0.0 alongside 5AE's
+  data-carving stage depending on the pilot's measured cost.
+- **5AG. E-values / safe testing for `InferenceSuite`** (added 2026-08-30,
+  user decision) → `release_v2_0_0.md → TODO-6f`. `e_value_safe_testing.md`.
+  A different validity framework from every other plan in this family
+  (Vovk & Wang 2021 e-values; Grünwald/de Heide/Koolen 2024 safe testing):
+  combines by simple averaging and stays valid under *adaptive*
+  stopping/inclusion of more tests, unlike fixed-weight CCT
+  (`combined_evidence$pval`) or any p-value combiner above. The most direct
+  structural answer to whether combined evidence is gameable by adding more
+  models. Substantial lift — every `Inference` class needs its own e-value —
+  hence 2.0.0 scope, staged from a likelihood-ratio-route pilot subset
+  before any adaptive-inclusion workflow.
 
 ### Audit reports (2026-08-26/27) — reference, not work items
 

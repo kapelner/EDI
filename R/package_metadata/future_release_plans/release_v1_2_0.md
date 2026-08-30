@@ -19,6 +19,14 @@ work builds on. No new statistical functionality.
 
 ## In scope (by plan)
 
+`ols_distr_kernel_fwl.md` (added 2026-08-30; `→ TODO-1..5`; see `TODO-9`
+below) — FWL per-replicate algebra for the OLS randomization kernel, gated on
+v1.1.0's wiring of that kernel.
+
+`kk14_incremental_covariance.md` (added 2026-08-30; `→ TODO-1..5`; see
+`TODO-10` below) — O(p²)-per-subject running covariance for the sequential
+KK14 matching design, replacing O(t·p²) recomputation.
+
 - `quantile_regression_cpp_kernel_spec.md` — Barrodale-Roberts simplex
   port of `quantreg::rq.fit(method = "br")` and the `nid`/`iid` sandwich
   SEs, `use_rcpp` on all quantile classes (incl. the 1.1.0 count-QR and
@@ -76,6 +84,37 @@ Ticked in owning plans; this list is the index.
   once; retain scalar/portable fallbacks and require benchmark evidence before
   changing defaults.
 
+- [ ] TODO-9: **OLS randomization kernel FWL rewrite** (added 2026-08-30,
+  user decision): `ols_distr_kernel_fwl.md → TODO-1..5`. Rewrites the
+  per-replicate algebra of `compute_ols_distr_parallel_cpp`
+  (`src/ols_distr_parallel.cpp:60-103`): hoist the Cholesky of `X_cᵀX_c`
+  and `y_res = My` once; per replicate only a masked sum for the numerator
+  `w_bᵀy_res`, one masked column sum plus one O(p²) triangular solve for
+  the denominator `w_bᵀMw_b` (which cannot be hoisted — permuting `w`
+  changes its residual), then `num/den + δ`. O(np + p³) with pivoted QR and
+  six heap allocations → O(np + p²) with none. Same estimator to floating
+  point; rank guard on `w_bᵀMw_b ≈ 0` replaces ColPivQR's `rank()`.
+  Expected 5–10× on the kernel. **Depends on** v1.1.0's
+  `ols_randomization_distr_cpp_wiring.md` (`release_v1_1_0.md → TODO-17p`)
+  — the kernel is never executed until that lands. Optional TODO-4/5 cover
+  the bootstrap sibling (multinomial-weight form) and Lin.
+- [ ] TODO-10: **Sequential KK14 incremental covariance** (added 2026-08-30,
+  user decision): `kk14_incremental_covariance.md → TODO-1..5`. Per
+  arriving subject, `DesignSeqOneByOneKK14$assign_wt()` recomputes from
+  scratch on all previous subjects: `compute_all_subject_data_cpp` (copy +
+  varying-column scan + rank-revealing QR, O(t·p²)), `var(X_prev)`
+  (O(t·p²)), then `solve()` (O(p³)) — O(n²·p²) over a run, plus an O(n²·p)
+  per-`t` cache. Maintain the centred scatter matrix incrementally (Welford
+  form, O(p²) per subject; the naive `Σxxᵀ − t·x̄x̄ᵀ` is rejected because the
+  code already notes `diag ~ 1e6` covariate scales), track varying columns
+  and rank monotonically so the QR runs only on change, and keep a
+  reservoir-only `X_prev`. Expected 5–10× on a sequential run at `n = 1000`,
+  growing with `n`; KK21 shares the `compute_all_subject_data()` path and
+  benefits too. Sherman–Morrison on the inverse is explicitly out of scope
+  (the regulariser changes every step; O(p³) is negligible at `p ≤ 20`) —
+  and the class's unused `morrison` argument is Morrison & Owen threshold
+  calibration, not Sherman–Morrison. Tolerance-equal; match decisions at
+  exact distance ties are a documented reproducibility change.
 ## Standing constraints
 
 Additive; bit-for-bit defaults (kernel parity tests are the gate); every
