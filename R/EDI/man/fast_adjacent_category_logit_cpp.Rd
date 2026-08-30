@@ -90,7 +90,7 @@ log-probabilities \eqn{\log \tilde p_k = \sum_{j=k}^{K-2} (\alpha_j - \eta)}
 \eqn{\alpha_k} or \eqn{-\eta} directly — and normalized with a standard
 log-sum-exp, so every \code{exp()} call sees an argument \eqn{\le 0} and
 \eqn{\Pr(Y = k)} is bounded to \eqn{[0, 1]} regardless of how extreme
-\eqn{\alpha}/\eta get during optimization (fixed 2026-08-27: the prior
+\eqn{\alpha}/\eqn{\eta} get during optimization (fixed 2026-08-27: the prior
 right-to-left \emph{product} recurrence in terms of raw \eqn{e^{-\eta}} and
 \eqn{e^{\alpha_k}} could each individually overflow to \code{Inf} before
 normalization, corrupting the objective/gradient to \code{Inf}/\code{NaN} and
