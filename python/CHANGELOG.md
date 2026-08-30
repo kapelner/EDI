@@ -8,6 +8,8 @@ Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
 ## [Unreleased]
 
+## [1.0.0.post4] - 2026-08-30
+
 Note this one is not packaging-only despite the `.postN` suffix — it fixes
 correctness/memory-safety bugs in `R/EDI/src/*.cpp` kernels bound in Python
 (`R/EDI/DESCRIPTION`'s `Version` remains `1.0.0`, unbumped).
@@ -56,11 +58,14 @@ correctness/memory-safety bugs in `R/EDI/src/*.cpp` kernels bound in Python
   score to point toward increasing `theta` and the exact limit likelihood to
   be no worse than a finite `theta = 1e4` anchor, so an unrelated failed fit
   is not reclassified as converged. If those strict predicates reject the
-  finite-theta fit, the kernel now attempts a reduced ZIP refit using the
-  stable exact-limit likelihood, preserving fixed coefficient constraints;
-  only if that refit also fails does it fall back to the generic boundary
-  rule. A successful reduced refit returns the ZIP coefficients in the
-  ZINB-shaped parameter vector with `log(theta) = log(1e4)`, sets
+  fit in the Poisson-limit region—or the finite-theta objective is itself
+  non-finite—the kernel now attempts a reduced ZIP refit using the stable
+  exact-limit likelihood, preserving fixed coefficient constraints. An
+  ordinary failed ZINB fit with finite dispersion and a finite objective is
+  never silently replaced by ZIP; only if an eligible reduced refit also
+  fails does the kernel fall back to the generic boundary rule. A successful
+  reduced refit returns the ZIP coefficients in the ZINB-shaped parameter
+  vector with `log(theta) = log(1e4)`, sets
   `dispersion_at_poisson_boundary = True`, and `fast_zinb_with_var` tags the
   provenance as `reduced_model = "ZIP"`. Its score, information, and
   covariance are then derived from the reduced ZIP Hessian while excluding
