@@ -118,7 +118,16 @@ gaps" at the bottom).
   *DesignFixedDOptimal* classes were merged into this one class — see
   `vignette("reproducibility")` for its seed-reproducibility mechanism,
   now reproducible via a local `edi_rng::RRng` generator rather than the
-  originally non-reproducible `std::random_device`).
+  originally non-reproducible `std::random_device`), `DesignFixedOptimal`
+  (D-/A-optimality criteria).
+- **[Dinkelbach1967]** Dinkelbach, W. (1967). "On nonlinear fractional
+  programming." *Management Science*, 13(7), 492-498.
+  doi:10.1287/mnsc.13.7.492. — Used by: `DesignFixedOptimal` (exact
+  A-optimality reduction via fractional programming).
+- **[Hajek1988]** Hajek, B. (1988). "Cooling schedules for optimal
+  annealing." *Mathematics of Operations Research*, 13(2), 311-329.
+  doi:10.1287/moor.13.2.311. — Used by: `DesignFixedOptimal` (formal
+  convergence property of the annealing solver).
 - **[HigginsSavjeSekhon2016]** Higgins, M. J., Sävje, F., and Sekhon, J. S.
   (2016). "Improving massive experiments with threshold blocking."
   *Proceedings of the National Academy of Sciences*, 113(27), 7369-7376.
