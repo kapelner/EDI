@@ -85,9 +85,14 @@ jobs:
     # of 267 testthat files touched in the preceding days) pushed every
     # matrix leg's "checking tests" step past 90 minutes legitimately (not a
     # hang -- windows-latest/ubuntu-latest(release)/macos-latest all hit the
-    # literal 90-minute cutoff mid-testthat run). 150 still catches a
+    # literal 90-minute cutoff mid-testthat run). Raised to 240 on
+    # 2026-08-31 after intermittent single-leg timeouts at 150 (run
+    # 33421678891: ubuntu-latest (release) sat 114 silent minutes in
+    # "checking tests" while the other 9 legs passed in 45-95 min; earlier
+    # that day run 33366557367 lost no-Suggests and oldrel-1 the same way).
+    # 240 gives a slow-but-alive leg room to finish while still catching a
     # genuine hang well before GitHub's own 6h hard kill.
-    timeout-minutes: 150
+    timeout-minutes: 240
 
     strategy:
       fail-fast: false
@@ -265,9 +270,10 @@ jobs:
 
     # See R-CMD-check's identical timeout-minutes comment above -- this job
     # hit the same 4+ hour stuck-in-check-r-package incident on 2026-08-10,
-    # and the same 2026-08-19 test-suite-growth timeout (1h13m56s, exit 143)
-    # that raised R-CMD-check's cap to 150.
-    timeout-minutes: 150
+    # the same 2026-08-19 test-suite-growth timeout (1h13m56s, exit 143)
+    # that raised R-CMD-check's cap to 150, and the 2026-08-31 intermittent
+    # 150-minute timeout (run 33366557367) that raised both caps to 240.
+    timeout-minutes: 240
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
