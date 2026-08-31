@@ -149,9 +149,11 @@ files' `@references`) if/when it becomes available.
 - Kapelner, A., and Krieger, A. M. (2021) — the outcome-weighted
   matching-on-the-fly extension `DesignSeqOneByOneKK21`/
   `DesignSeqOneByOneKK21stepwise` implement.
-- Morrison, T., and Owen, A. B. (2025) — the alternative matching-threshold
-  calibration behind the `morrison = TRUE` constructor argument on the same
-  two classes.
+- Morrison, T. (2025). "Reservoir Designs for Online Paired Experiments."
+  arXiv:2505.17247, sole author, arXiv-only as of 2026-08-31 (attribution
+  corrected 2026-08-31; was wrongly listed as Morrison and Owen) — the
+  alternative matching-threshold calibration behind the `morrison = TRUE`
+  constructor argument on the same two classes.
 
 ## Inference methods
 
@@ -228,7 +230,9 @@ files' `@references`) if/when it becomes available.
   remedies for losses." *Statistica Sinica*. — Used by: the m-out-of-n
   bootstrap (`inference_ext_m_out_of_n_bootstrap.R`).
 - **[BickelSakov2008]** Bickel, P. J., and Sakov, A. (2008). "On the choice
-  of m in the m out of n bootstrap." *The Annals of Statistics*. — Used by:
+  of m in the m out of n bootstraps and confidence bounds for extrema."
+  *Statistica Sinica*, 18(3), 967–985. (Venue corrected 2026-08-31; was
+  wrongly listed as *The Annals of Statistics*.) — Used by:
   the m-out-of-n bootstrap's automatic `m` selection.
 - **[PolitisRomanoWolf1999]** Politis, D. N., Romano, J. P., and Wolf, M.
   (1999). *Subsampling*. Springer. — Used by: the PRW subsampling method

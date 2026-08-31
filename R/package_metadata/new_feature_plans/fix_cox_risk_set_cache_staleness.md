@@ -3,7 +3,7 @@
 > **Release:** unassigned — this is a *correctness* fix, candidate for the
 > next patch release; user to slot. Found 2026-08-30 during the
 > research-plan verification audit
-> (`../new_research_ideas/paper_fast_randomization_inference.md`, work item
+> (`../new_research_ideas/paper_fast_randomization_inference/paper_fast_randomization_inference.md`, work item
 > V2). No confirmed wrong result has been produced yet — TODO-1 below
 > determines whether any released path can actually realize the stale hit —
 > but the invariant violation is real and cheap to close.

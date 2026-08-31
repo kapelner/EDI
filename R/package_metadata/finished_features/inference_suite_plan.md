@@ -370,7 +370,7 @@ the sharp null is contained in the *intersection* of every row's null:
 soon as *any single* class rejects its own (weaker) null — you need only one
 strong signal, not consensus across all of them. This is the same logic
 `InferenceSuite`'s existing Madigan-et-al. motivation (§3.5b of
-`JSS_paper_research_plan.md`) already leans on: the suite's job is to make
+`new_research_ideas/paper_JSS_EDI_exposition/paper_JSS_EDI_exposition.md`) already leans on: the suite's job is to make
 "here is every legitimate way to look for an effect, combined honestly" the
 default output, not "here is the one method I liked."
 
@@ -398,7 +398,7 @@ signal among many weak/null ones still drives the combined p-value down,
 matching the "only one class needs to reject" logic above.
 
 **Interpretation caveat — state this in the roxygen and any paper text
-(cross-ref `JSS_paper_research_plan.md` §4 item 7), do not let it be
+(cross-ref `new_research_ideas/paper_JSS_EDI_exposition/paper_JSS_EDI_exposition.md` §4 item 7), do not let it be
 read as more than it is:** `combined_pval` is evidence for *"a treatment
 effect exists, in at least one of these senses"*, not evidence for any
 specific estimate or direction. A design where the effect is concentrated in
@@ -450,7 +450,7 @@ to be decided during implementation (flag to user, don't silently pick one):
 - **(a) Equal weight per class, unconditionally** — simplest, matches CCT's
   standard usage, but has the redundancy problem above.
 - **(b) Two-stage combination** — group rows by `estimand`
-  (`JSS_paper_research_plan.md` §3.5b's own `estimand` column already exists
+  (`new_research_ideas/paper_JSS_EDI_exposition/paper_JSS_EDI_exposition.md` §3.5b's own `estimand` column already exists
   in the schema for exactly this kind of grouping question), CCT-combine
   within each `estimand` group first, then CCT-combine the resulting
   per-estimand p-values with equal weight across groups. This treats "the
@@ -500,7 +500,7 @@ not an open question. Two independent reasons:
    quantify.
 2. **Even if it were statistically valid, it reintroduces the exact problem
    `InferenceSuite` exists to prevent** (§3.5b of
-   `JSS_paper_research_plan.md`, the Madigan et al. 2013 framing): a
+   `new_research_ideas/paper_JSS_EDI_exposition/paper_JSS_EDI_exposition.md`, the Madigan et al. 2013 framing): a
    procedure that automatically up-weights whichever model happens to fit
    best is functionally the same move as a researcher manually picking the
    best-fitting model and reporting mostly its p-value — just laundered
@@ -1417,7 +1417,7 @@ TODO-1..8 did.
   interpretation caveat verbatim ("evidence of an effect in at least one of
   these senses, not evidence for a specific estimate or direction"), the
   union-intersection-null framing, and the Liu & Xie (2020) citation.
-  Cross-reference `JSS_paper_research_plan.md` §3.5b/§4 item 7 so the paper
+  Cross-reference `new_research_ideas/paper_JSS_EDI_exposition/paper_JSS_EDI_exposition.md` §3.5b/§4 item 7 so the paper
   and the roxygen state the same caveat consistently.
 
   **Done 2026-08-19:** New "Combined Evidence interpretation caveat"
@@ -1427,7 +1427,7 @@ TODO-1..8 did.
   TODO-20) -- states the union-intersection-test framing
   (\eqn{H_0: \theta_1=0 \cap \dots \cap \theta_k=0} vs. "at least one
   \eqn{\theta_i \neq 0}") and the exact verbatim caveat sentence this
-  TODO specifies. `JSS_paper_research_plan.md`'s §3.5b interpretive-caveat
+  TODO specifies. `new_research_ideas/paper_JSS_EDI_exposition/paper_JSS_EDI_exposition.md`'s §3.5b interpretive-caveat
   bullet updated to use the identical verbatim sentence (previously a
   differently-worded paraphrase), with an explicit cross-reference note
   pointing each document at the other so they don't drift apart again.
