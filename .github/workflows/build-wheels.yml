@@ -163,12 +163,17 @@ jobs:
       # native Python/Eigen headers plus pkg-config/BLAS needed by the
       # edi_kernels source build. Installing Eigen from Debian also keeps this
       # parity check independent of CMake's upstream archive fallback.
+      # A 4 GiB hard limit with no swap approximates the constrained piwheels
+      # builders closely enough to catch peak compiler-memory regressions that
+      # the much larger GitHub runner previously masked.
       # --no-binary remains scoped to edi_kernels itself.
       - name: Build and install sdist (piwheels-like ${{ matrix.codename }}, python${{ matrix.python }})
         run: |
           set -e
           docker run --rm \
             --platform linux/arm/v7 \
+            --memory=4g \
+            --memory-swap=4g \
             -v "${{ github.workspace }}/dist:/dist:ro" \
             debian:${{ matrix.codename }} \
             bash -eux -c '

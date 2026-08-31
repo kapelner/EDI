@@ -8,6 +8,28 @@ Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
 ## [Unreleased]
 
+## [1.0.0.post6] - 2026-08-31
+
+Packaging-only release addressing the remaining piwheels build failures;
+none of these changes touches `R/EDI/src/*.cpp`.
+
+### Fixed
+
+- Fixed the Bookworm/Python 3.11 and Trixie/Python 3.13 piwheels builds,
+  which reached the C++ compiler in `1.0.0.post5` but exhausted worker memory
+  while Ninja compiled several large unity translation units concurrently.
+  Bullseye/Python 3.9 had already succeeded and published ARMv6/ARMv7 wheels.
+- Properly disabled pybind11's automatic release-mode LTO by defining
+  `CMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF` before `pybind11_add_module`.
+  The previous target-level `-fno-lto` appeared before pybind11's appended
+  `-flto=auto` and was therefore ineffective.
+- On 32-bit ARM, CMake now serializes `_core` compilation through a one-slot
+  Ninja job pool and reduces `UNITY_BUILD_BATCH_SIZE` from 10 to 4. Other
+  architectures retain the existing parallel build and batch size.
+- The ARMv7 sdist parity containers are now limited to 4 GiB of memory with
+  swap disabled, so GitHub CI exercises a piwheels-like memory ceiling rather
+  than silently borrowing the host runner's substantially larger allocation.
+
 ## [1.0.0.post5] - 2026-08-31
 
 Packaging-only release — none of this touches `R/EDI/src/*.cpp`. Pure

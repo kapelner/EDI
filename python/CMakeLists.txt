@@ -233,6 +233,13 @@ set(EDI_KERNEL_SOURCES
 # properties must come after pybind11_add_module creates the _core target,
 # not before.
 
+# pybind11_add_module enables LTO by default in Release builds unless this
+# variable is explicitly defined. A trailing target-level -fno-lto is not
+# sufficient: pybind11's interface target appends -flto afterwards, which is
+# exactly what happened on piwheels' post5 ARM builds. Define this before the
+# target is created so pybind11 never adds its automatic LTO flags.
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+
 pybind11_add_module(_core
     cpp/bindings_module.cpp
     cpp/bindings_fast_math.cpp
@@ -247,7 +254,26 @@ pybind11_add_module(_core
     ${EDI_KERNEL_SOURCES}
 )
 
-set_target_properties(_core PROPERTIES UNITY_BUILD ON UNITY_BUILD_BATCH_SIZE 10)
+# piwheels' 32-bit ARM workers exhausted memory when Ninja compiled six
+# ten-source unity translation units concurrently. Keep the normal batch size
+# elsewhere, but use smaller translation units and a single-slot Ninja compile
+# pool on 32-bit ARM. JOB_POOL_COMPILE is intentionally target-scoped and is
+# ignored by generators without job-pool support.
+set(EDI_PY_UNITY_BATCH_SIZE 10)
+set(EDI_PY_32BIT_ARM FALSE)
+if(CMAKE_SIZEOF_VOID_P EQUAL 4 AND CMAKE_SYSTEM_PROCESSOR MATCHES "^[Aa][Rr][Mm]")
+    set(EDI_PY_32BIT_ARM TRUE)
+    set(EDI_PY_UNITY_BATCH_SIZE 4)
+    set_property(GLOBAL APPEND PROPERTY JOB_POOLS edi_arm_compile_pool=1)
+    set_property(TARGET _core PROPERTY JOB_POOL_COMPILE edi_arm_compile_pool)
+    message(STATUS "32-bit ARM build: serializing compilation and using unity batch size ${EDI_PY_UNITY_BATCH_SIZE}.")
+endif()
+
+set_target_properties(_core PROPERTIES
+    INTERPROCEDURAL_OPTIMIZATION OFF
+    UNITY_BUILD ON
+    UNITY_BUILD_BATCH_SIZE ${EDI_PY_UNITY_BATCH_SIZE}
+)
 
 target_include_directories(_core PRIVATE ${EDI_SRC_DIR} cpp ${EDI_LBFGSPP_SHIM_DIR} ${lbfgspp_SOURCE_DIR}/include)
 if(Eigen3_FOUND)
@@ -324,7 +350,7 @@ endif()
 # failing, but there's no reason to pass nonsense flags to it. CMake's own
 # default Release flags already include MSVC's /O2 without any help here.
 if(NOT MSVC)
-    target_compile_options(_core PRIVATE -Wno-ignored-attributes -fno-lto)
+    target_compile_options(_core PRIVATE -Wno-ignored-attributes)
     if(NOT EDI_PY_PORTABLE)
         target_compile_options(_core PRIVATE -march=native -mtune=native)
     endif()

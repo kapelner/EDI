@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: "edi_kernels: Python bindings for the C++ model-fitting kernels of EDI (Experimental Design and Inference)"
-version: 1.0.0.post5
-date-released: "2026-08-30"
+version: 1.0.0.post6
+date-released: "2026-08-31"
 authors:
   - family-names: Kapelner
     given-names: Adam
