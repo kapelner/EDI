@@ -32,3 +32,4 @@ Numeric vector of HL statistics.
 \description{
 Fast Wilcoxon HL Statistic for Multiple Permutations
 }
+\keyword{internal}

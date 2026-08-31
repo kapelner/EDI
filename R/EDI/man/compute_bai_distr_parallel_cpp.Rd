@@ -35,3 +35,4 @@ Numeric vector of Bai adjusted T statistics.
 \description{
 Fast Bai Adjusted T Statistic for Multiple Permutations
 }
+\keyword{internal}

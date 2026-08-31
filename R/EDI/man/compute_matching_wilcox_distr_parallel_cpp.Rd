@@ -38,3 +38,4 @@ Numeric vector of KK Wilcoxon statistics.
 \description{
 Fast KK Wilcoxon Statistic for Multiple Permutations
 }
+\keyword{internal}

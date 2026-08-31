@@ -75,6 +75,7 @@ double mn_constrained_mle_pc_cpp(double x_t, double n_t, double x_c, double n_c,
 //' @param p_t_obs Observed treatment-arm risk.
 //' @param p_c_obs Observed control-arm risk.
 //' @return The asymptotic z statistic.
+//' @keywords internal
 // [[Rcpp::export]]
 double mn_z_statistic_cpp(double x_t, double n_t, double x_c, double n_c, double delta, double p_t_obs, double p_c_obs) {
     if (n_t == 0 || n_c == 0) return NA_REAL;
@@ -182,6 +183,7 @@ MNCIBounds mn_ci_internal(double x_t, double n_t, double x_c, double n_c, double
 //' @param alpha The confidence level is \code{1 - alpha}.
 //' @param pval_epsilon Bisection tolerance in p-value space.
 //' @return A length-2 numeric vector containing the lower and upper CI bounds.
+//' @keywords internal
 // [[Rcpp::export]]
 NumericVector mn_ci_cpp(double x_t, double n_t, double x_c, double n_c, double p_t_obs, double p_c_obs, double alpha, double pval_epsilon) {
     MNCIBounds r = mn_ci_internal(x_t, n_t, x_c, n_c, p_t_obs, p_c_obs, alpha, pval_epsilon);

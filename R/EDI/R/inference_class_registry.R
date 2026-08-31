@@ -797,6 +797,7 @@ infer_inference_design_compatibility_reason_fn = function(generator) {
 #' which put a log10 x-axis and null-reference line at 1 on what were
 #' actually already-log-scale estimates/CIs for the second group -- a
 #' genuine scale mismatch, not just a display nicety.
+#' @keywords internal
 EDI_INFERENCE_ESTIMAND_TAGS = list(
 	InferenceAllKKMeanDiffIVWC = "mean_difference",
 	InferenceAllKKWilcoxIVWC = "hodges_lehmann_shift",

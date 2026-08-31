@@ -90,3 +90,4 @@ Analogous Python API for robust linear models:
 
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 }
+\keyword{internal}

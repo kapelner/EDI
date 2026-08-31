@@ -31,3 +31,4 @@ combines them into a single all-subject stratum identifier. This is used to
 support automatic stratified Cox models when the design object stores observed
 covariates but no explicit stratum variable.
 }
+\keyword{internal}

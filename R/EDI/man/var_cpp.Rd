@@ -15,3 +15,4 @@ The variance of the vector.
 \description{
 Calculates the variance of a numeric vector using Rcpp for speed.
 }
+\keyword{internal}

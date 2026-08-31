@@ -40,3 +40,4 @@ This function implements the bisection algorithm to find CI bounds by inverting
 the randomization test. It repeatedly calls the p-value computation function
 until convergence.
 }
+\keyword{internal}

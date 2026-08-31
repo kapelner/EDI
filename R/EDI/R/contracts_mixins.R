@@ -2833,6 +2833,7 @@ load_inference_component = function(component_name, class_name = "<global>", ns 
 #'   supplied, it is also read from \code{source_private} so those
 #'   attribute-only markers are not missed. See the implementation comment
 #'   below for the full mechanism.
+#' @keywords internal
 edi_rebind_lazy_components_after_clone = function(i, source_private = NULL) {
 	i_priv = i$.__enclos_env__$private
 	loaded_marker_name = ".__loaded_lazy_components"

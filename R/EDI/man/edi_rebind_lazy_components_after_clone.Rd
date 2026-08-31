@@ -35,3 +35,4 @@ private) at the clone's own enclosing environment; state fields
 (\code{owns_state}) are left untouched since \code{clone()} already
 copies their current values correctly.
 }
+\keyword{internal}

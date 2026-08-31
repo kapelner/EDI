@@ -45,3 +45,4 @@ CI that inverts a scalar p-value function with no derivative available).
 The Wald bounds are tried first as bracket candidates before falling back
 to exponential search.  Bisection then polishes to \code{tol} in delta-space.
 }
+\keyword{internal}

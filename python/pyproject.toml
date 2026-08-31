@@ -48,8 +48,9 @@
 # assumes scipy-openblas32 *can* be pip-installed) ever gets to fire. The
 # listed values are every `platform_machine` scipy-openblas32 actually
 # publishes a wheel for: x86_64 (Linux/macOS), aarch64 (Linux, 64-bit ARM),
-# arm64 (macOS), AMD64 (Windows). See .github/workflows/arm-sdist-build.yml
-# for CI that exercises this on real (QEMU-emulated) ARM.
+# arm64 (macOS), AMD64 (Windows). See the `arm_sdist_build` job in
+# .github/workflows/build-wheels.yml, which exercises this on real
+# (QEMU-emulated) ARM.
 requires = [
     "scikit-build-core>=1.0",
     "pybind11>=2.13",

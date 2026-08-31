@@ -21,6 +21,7 @@ using namespace Rcpp;
 //' @param convex_flag Logical flag for convex combination.
 //' @param num_cores Number of OpenMP threads.
 //' @return Numeric vector of Bai adjusted T statistics.
+//' @keywords internal
 // [[Rcpp::export]]
 NumericVector compute_bai_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi>& w_mat, const Eigen::Map<Eigen::MatrixXi>& m_mat, SEXP y, double delta, const Eigen::Map<Eigen::MatrixXi>& halves_idx, bool convex_flag, int num_cores) {
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());

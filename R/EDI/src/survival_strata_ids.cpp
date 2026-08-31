@@ -35,6 +35,7 @@ inline bool candidate_less(const CandidateColumn& a, const CandidateColumn& b) {
 //' @param min_count_per_level Minimum frequency required for every level in a
 //'   candidate column.
 //' @return A list with `strata_id`, `selected_cols`, and `num_strata`.
+//' @keywords internal
 // [[Rcpp::export]]
 List compute_survival_strata_ids_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 		int max_unique_per_col = 4,

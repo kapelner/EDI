@@ -70,6 +70,7 @@ inline double apply_shift_kk_wilcox(double y_val, double delta, int transform_co
 //' @param is_fixed_matching Logical flag for fixed matching designs.
 //' @param num_cores Number of OpenMP threads.
 //' @return Numeric vector of KK Wilcoxon statistics.
+//' @keywords internal
 // [[Rcpp::export]]
 NumericVector compute_matching_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi>& w_mat, const Eigen::Map<Eigen::MatrixXi>& m_mat, SEXP y, double delta, int transform_code, double zero_one_logit_clamp, bool is_fixed_matching, int num_cores) {
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());

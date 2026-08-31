@@ -7,6 +7,7 @@
 #' @param  x A numeric vector.
 #' @return  The mean of the vector.
 #' @usage mean_cpp(x)
+#' @keywords internal
 #' @name mean_cpp
 #' @rdname mean_cpp
 NULL
@@ -18,6 +19,7 @@ NULL
 #' @param  x A numeric vector.
 #' @return  The variance of the vector.
 #' @usage var_cpp(x)
+#' @keywords internal
 #' @name var_cpp
 #' @rdname var_cpp
 NULL

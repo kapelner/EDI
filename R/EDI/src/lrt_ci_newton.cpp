@@ -93,6 +93,7 @@ static LrtEval eval_lrt(
 //' @param tol_bracket   Bracket-width convergence tolerance (default 1e-8)
 //'
 //' @return Unnamed numeric vector of length 2: \code{[lower_bound, upper_bound]}
+//' @keywords internal
 //'
 // [[Rcpp::export]]
 NumericVector lrt_ci_nr_cpp(
@@ -207,6 +208,7 @@ NumericVector lrt_ci_nr_cpp(
 //' @param tol         Bracket-width convergence tolerance in delta-space (default 1e-6)
 //'
 //' @return Unnamed numeric vector of length 2: \code{[lower_bound, upper_bound]}
+//' @keywords internal
 //'
 // [[Rcpp::export]]
 NumericVector pval_invert_ci_cpp(

@@ -1296,6 +1296,7 @@ double fast_stereotype_profile_loglik_cpp(
 //' @param delta Null treatment effect (additive shift).
 //' @param num_cores Number of OpenMP threads.
 //' @return Numeric vector of length nsim with treatment coefficients.
+//' @keywords internal
 // [[Rcpp::export]]
 NumericVector compute_stereotype_logit_distr_parallel_cpp(
 	const Rcpp::NumericMatrix& X,

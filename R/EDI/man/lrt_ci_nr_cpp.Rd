@@ -60,3 +60,4 @@ back into R only for \code{fit_null_fn}, \code{neg_loglik_fn}, and
 \code{score_fn}. The derivative \eqn{dp/d\delta = 2 f_{\chi^2}(T) \cdot
 \mathrm{score}[j]} follows from the envelope theorem.
 }
+\keyword{internal}

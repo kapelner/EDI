@@ -441,6 +441,7 @@ NumericVector compute_wilcox_hl_bootstrap_parallel_cpp(SEXP w, SEXP y, const Eig
 //' @param zero_one_logit_clamp Clamp value for logit transformation.
 //' @param num_cores Number of OpenMP threads.
 //' @return Numeric vector of HL statistics.
+//' @keywords internal
 // [[Rcpp::export]]
 NumericVector compute_wilcox_hl_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi>& w_mat, SEXP y, double delta, int transform_code, double zero_one_logit_clamp, int num_cores) {
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());

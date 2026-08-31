@@ -24,6 +24,7 @@ using namespace Rcpp;
 //' @param num_cores Passed through to pval_fn for inner parallelism
 //'
 //' @return Numeric vector of length 2: [lower_bound, upper_bound]
+//' @keywords internal
 //'
 // [[Rcpp::export]]
 NumericVector bisection_ci_parallel_cpp(

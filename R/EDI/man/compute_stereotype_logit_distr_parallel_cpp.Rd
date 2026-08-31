@@ -23,3 +23,4 @@ Numeric vector of length nsim with treatment coefficients.
 \description{
 Parallel Stereotype Logit Randomization Distribution
 }
+\keyword{internal}

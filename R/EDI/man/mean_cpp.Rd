@@ -15,3 +15,4 @@ The mean of the vector.
 \description{
 Calculates the mean of a numeric vector using Rcpp for speed.
 }
+\keyword{internal}

@@ -39,3 +39,4 @@ which put a log10 x-axis and null-reference line at 1 on what were
 actually already-log-scale estimates/CIs for the second group -- a
 genuine scale mismatch, not just a display nicety.
 }
+\keyword{internal}

@@ -47,3 +47,4 @@ This function is kept for backwards compatibility but the outer parallelism
 parallel::mclapply, which is safe. Calling R functions from OpenMP threads is
 undefined behaviour in R and caused process crashes.
 }
+\keyword{internal}

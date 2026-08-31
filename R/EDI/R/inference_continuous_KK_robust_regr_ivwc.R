@@ -41,6 +41,7 @@
 #'
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #' @export
+#' @keywords internal
 # Static leaf source (2026-08-17 migration, same shape as the other four KK
 # leaves migrated the same day): the KK compound layer (matched/reservoir
 # plumbing, reduce_design_matrix_once(), and -- unlike the eval(body(...))

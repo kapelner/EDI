@@ -58,6 +58,7 @@ reference:
   - DesignFixedMatchingGreedyPairSwitching
   - DesignFixedGreedy
   - DesignFixedGreedyDOptimal
+  - DesignFixedOptimal
   - DesignFixedOptimalBlocks
   - DesignFixedRerandomization
 
@@ -105,13 +106,10 @@ reference:
     implement.
   contents:
   - Design
-  - DesignBlocking
-  - DesignMatching
 
 - title: "Inference: Continuous Outcomes"
   contents:
   - matches("^InferenceContin")
-  - InferenceBaiAdjustedT
   - InferenceBaiAdjustedTKK14
   - InferenceBaiAdjustedTKK21
 
@@ -143,9 +141,11 @@ reference:
   - InferenceAllKKMeanDiffIVWC
   - InferenceAllKKWilcoxIVWC
   - InferenceAllSimpleAverageDiff
-  - InferenceAllSimpleAverageDiffPooledVar
+  - InferenceAllSimpleMeanDiffPooledVar
   - InferenceAllSimpleWilcox
   - InferenceSuite
+  - print.EDIInferenceSuiteResults
+  - summary.EDIInferenceSuiteResults
   - EDI_COMPREHENSIVE_SLOW_PATHS
 
 - title: "Inference: Custom Extensions"
@@ -178,16 +178,9 @@ reference:
   - InferenceAbstractQuantileRandCI
   - InferenceAbstractKKCondLogitGLMM
   - InferenceAbstractKKCondLogitGLMMOneLik
-  - InferenceAbstractKKLWACoxIVWC
-  - InferenceAbstractKKLWACoxOneLik
   - InferenceAbstractKKMarginalIncid
   - InferenceAbstractKKModifiedPoisson
   - InferenceAbstractKKOrdinalCLMM
-  - InferenceAbstractKKQuantileRegrIVWC
-  - InferenceAbstractKKQuantileRegrOneLik
-  - InferenceAbstractKKSurvivalRankRegrIVWC
-  - InferenceAbstractKKWeibullFrailtyIVWC
-  - InferenceAbstractKKWeibullFrailtyOneLik
 
 - title: "Simulation Framework"
   desc: >
@@ -304,6 +297,16 @@ reference:
   - matches("_dispatch_policy$")
   - set_num_cores
   - unset_num_cores
+
+- title: "Local Machine Tuning"
+  desc: >
+    Benchmark this machine and persist machine-specific overrides for the
+    performance-policy defaults above. See vignette("reproducibility")'s
+    "Machine-dependent performance defaults" section.
+  contents:
+  - tune_EDI_for_this_machine
+  - get_local_EDI_optimization
+  - clear_local_EDI_optimization
 
 - title: "Miscellaneous Utilities"
   contents:

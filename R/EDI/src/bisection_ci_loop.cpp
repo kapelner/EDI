@@ -21,6 +21,7 @@ using namespace Rcpp;
 //' @param lower Logical: TRUE for lower CI bound, FALSE for upper
 //'
 //' @return The CI bound value
+//' @keywords internal
 //'
 // [[Rcpp::export]]
 double bisection_ci_loop_cpp(

@@ -29,3 +29,4 @@ Computes the score-style z statistic for testing the null risk difference
 \code{p_T - p_C = delta} in two independent binomial samples, using the
 Miettinen-Nurminen constrained nuisance estimates.
 }
+\keyword{internal}

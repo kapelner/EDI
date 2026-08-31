@@ -30,3 +30,4 @@ A length-2 numeric vector containing the lower and upper CI bounds.
 Computes an approximate Miettinen-Nurminen confidence interval for the risk
 difference by inverting the score test with a bisection search.
 }
+\keyword{internal}
