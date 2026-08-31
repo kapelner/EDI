@@ -84,6 +84,7 @@ draw_binary_match_assignments_cpp <- function(indices_pairs, n, r, num_cores) {
 #' @param num_cores Passed through to pval_fn for inner parallelism
 #'
 #' @return Numeric vector of length 2: [lower_bound, upper_bound]
+#' @keywords internal
 #'
 bisection_ci_parallel_cpp <- function(pval_fn, r, l_lower, u_lower, l_upper, u_upper, pval_th, tol, transform_responses, num_cores = 1L) {
     .Call(`_EDI_bisection_ci_parallel_cpp`, pval_fn, r, l_lower, u_lower, l_upper, u_upper, pval_th, tol, transform_responses, num_cores)
@@ -112,6 +113,7 @@ bisection_ci_single_bound_cpp <- function(pval_fn, r, l, u, pval_th, tol, transf
 #' @param lower Logical: TRUE for lower CI bound, FALSE for upper
 #'
 #' @return The CI bound value
+#' @keywords internal
 #'
 bisection_ci_loop_cpp <- function(pval_fn, r, l, u, pval_th, tol, transform_responses, lower) {
     .Call(`_EDI_bisection_ci_loop_cpp`, pval_fn, r, l, u, pval_th, tol, transform_responses, lower)
@@ -296,7 +298,7 @@ get_adjacent_category_logit_hessian_cpp <- function(X, y, params) {
 #' \eqn{\alpha_k} or \eqn{-\eta} directly — and normalized with a standard
 #' log-sum-exp, so every \code{exp()} call sees an argument \eqn{\le 0} and
 #' \eqn{\Pr(Y = k)} is bounded to \eqn{[0, 1]} regardless of how extreme
-#' \eqn{\alpha}/\eta get during optimization (fixed 2026-08-27: the prior
+#' \eqn{\alpha}/\eqn{\eta} get during optimization (fixed 2026-08-27: the prior
 #' right-to-left \emph{product} recurrence in terms of raw \eqn{e^{-\eta}} and
 #' \eqn{e^{\alpha_k}} could each individually overflow to \code{Inf} before
 #' normalization, corrupting the objective/gradient to \code{Inf}/\code{NaN} and
@@ -436,6 +438,7 @@ compute_adj_cat_logit_distr_parallel_cpp <- function(X, y, w_mat, delta, num_cor
 #' @param convex_flag Logical flag for convex combination.
 #' @param num_cores Number of OpenMP threads.
 #' @return Numeric vector of Bai adjusted T statistics.
+#' @keywords internal
 compute_bai_distr_parallel_cpp <- function(w_mat, m_mat, y, delta, halves_idx, convex_flag, num_cores) {
     .Call(`_EDI_compute_bai_distr_parallel_cpp`, w_mat, m_mat, y, delta, halves_idx, convex_flag, num_cores)
 }
@@ -1348,6 +1351,7 @@ compute_jt_rand_bootstrap_parallel_cpp <- function(y0, i_mat, w_mat, num_cores) 
 #' @param is_fixed_matching Logical flag for fixed matching designs.
 #' @param num_cores Number of OpenMP threads.
 #' @return Numeric vector of KK Wilcoxon statistics.
+#' @keywords internal
 compute_matching_wilcox_distr_parallel_cpp <- function(w_mat, m_mat, y, delta, transform_code, zero_one_logit_clamp, is_fixed_matching, num_cores) {
     .Call(`_EDI_compute_matching_wilcox_distr_parallel_cpp`, w_mat, m_mat, y, delta, transform_code, zero_one_logit_clamp, is_fixed_matching, num_cores)
 }
@@ -3768,6 +3772,7 @@ fast_stereotype_profile_loglik_cpp <- function(X, y, beta_fixed, maxit = 100L, t
 #' @param delta Null treatment effect (additive shift).
 #' @param num_cores Number of OpenMP threads.
 #' @return Numeric vector of length nsim with treatment coefficients.
+#' @keywords internal
 compute_stereotype_logit_distr_parallel_cpp <- function(X, y, w_mat, delta, num_cores) {
     .Call(`_EDI_compute_stereotype_logit_distr_parallel_cpp`, X, y, w_mat, delta, num_cores)
 }
@@ -4020,6 +4025,7 @@ compute_wilcox_hl_bootstrap_parallel_cpp <- function(w, y, indices_mat, num_core
 #' @param zero_one_logit_clamp Clamp value for logit transformation.
 #' @param num_cores Number of OpenMP threads.
 #' @return Numeric vector of HL statistics.
+#' @keywords internal
 compute_wilcox_hl_distr_parallel_cpp <- function(w_mat, y, delta, transform_code, zero_one_logit_clamp, num_cores) {
     .Call(`_EDI_compute_wilcox_hl_distr_parallel_cpp`, w_mat, y, delta, transform_code, zero_one_logit_clamp, num_cores)
 }
@@ -4578,6 +4584,7 @@ neg_loglik_nb_cpp <- function(theta, beta, X, y) {
 #' @param tol_bracket   Bracket-width convergence tolerance (default 1e-8)
 #'
 #' @return Unnamed numeric vector of length 2: \code{[lower_bound, upper_bound]}
+#' @keywords internal
 #'
 lrt_ci_nr_cpp <- function(fit_null_fn, neg_loglik_fn, score_fn, est, full_negloglik, alpha, step, lower_seed, upper_seed, j, max_bracket = 60L, max_nr_iter = 25L, tol_p = 1e-7, tol_bracket = 1e-8) {
     .Call(`_EDI_lrt_ci_nr_cpp`, fit_null_fn, neg_loglik_fn, score_fn, est, full_negloglik, alpha, step, lower_seed, upper_seed, j, max_bracket, max_nr_iter, tol_p, tol_bracket)
@@ -4602,6 +4609,7 @@ lrt_ci_nr_cpp <- function(fit_null_fn, neg_loglik_fn, score_fn, est, full_neglog
 #' @param tol         Bracket-width convergence tolerance in delta-space (default 1e-6)
 #'
 #' @return Unnamed numeric vector of length 2: \code{[lower_bound, upper_bound]}
+#' @keywords internal
 #'
 pval_invert_ci_cpp <- function(pval_fn, est, alpha, step, lower_seed, upper_seed, max_bracket = 60L, max_bisect = 60L, tol = 1e-6) {
     .Call(`_EDI_pval_invert_ci_cpp`, pval_fn, est, alpha, step, lower_seed, upper_seed, max_bracket, max_bisect, tol)
@@ -4635,6 +4643,7 @@ mn_constrained_mle_pc_cpp <- function(x_t, n_t, x_c, n_c, delta) {
 #' @param p_t_obs Observed treatment-arm risk.
 #' @param p_c_obs Observed control-arm risk.
 #' @return The asymptotic z statistic.
+#' @keywords internal
 mn_z_statistic_cpp <- function(x_t, n_t, x_c, n_c, delta, p_t_obs, p_c_obs) {
     .Call(`_EDI_mn_z_statistic_cpp`, x_t, n_t, x_c, n_c, delta, p_t_obs, p_c_obs)
 }
@@ -4683,6 +4692,7 @@ mn_pvalue_cpp <- function(x_t, n_t, x_c, n_c, delta, p_t_obs, p_c_obs) {
 #' @param alpha The confidence level is \code{1 - alpha}.
 #' @param pval_epsilon Bisection tolerance in p-value space.
 #' @return A length-2 numeric vector containing the lower and upper CI bounds.
+#' @keywords internal
 mn_ci_cpp <- function(x_t, n_t, x_c, n_c, p_t_obs, p_c_obs, alpha, pval_epsilon) {
     .Call(`_EDI_mn_ci_cpp`, x_t, n_t, x_c, n_c, p_t_obs, p_c_obs, alpha, pval_epsilon)
 }
@@ -5118,6 +5128,7 @@ stratified_bootstrap_indices_cpp <- function(strata_keys_sexp) {
 #' @param min_count_per_level Minimum frequency required for every level in a
 #'   candidate column.
 #' @return A list with `strata_id`, `selected_cols`, and `num_strata`.
+#' @keywords internal
 compute_survival_strata_ids_cpp <- function(X, max_unique_per_col = 4L, max_strata_cols = 4L, min_count_per_level = 2L) {
     .Call(`_EDI_compute_survival_strata_ids_cpp`, X, max_unique_per_col, max_strata_cols, min_count_per_level)
 }

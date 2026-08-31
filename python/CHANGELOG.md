@@ -8,7 +8,7 @@ Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
 ## [Unreleased]
 
-## [1.0.0.post5] - 2026-08-30
+## [1.0.0.post5] - 2026-08-31
 
 Packaging-only release — none of this touches `R/EDI/src/*.cpp`. Pure
 registry-metadata/discoverability work (see the repo-root
@@ -35,18 +35,19 @@ Inference" and the model families by name.
   Scientific/Engineering (:: Mathematics), Linux/macOS/Windows). No
   `License ::` classifier deliberately — PEP 639 forbids combining one with
   the existing SPDX `license = "GPL-3.0-only"` expression.
-- Still attempting to fix the failed
-  [piwheels `edi-kernels` builds](https://www.piwheels.org/project/edi-kernels/):
-  as of 2026-08-30 the piwheels project page lists zero successfully built
-  files for every release through `1.0.0.post4`. The `post4` remediation
-  (restricting `scipy-openblas32` to architectures it actually publishes
-  distributions for, so 32-bit ARM source builds can reach CMake's
-  system-BLAS discovery — see the `post4` entry below) only reached PyPI
-  earlier the same day (2026-08-30 14:01 UTC), so its piwheels build may
-  still be queued rather than failed; piwheels' JSON API exposes no
-  per-attempt logs to distinguish the two. This release carries the same
-  fix forward unchanged and remains an attempted remediation pending the
-  first successfully published piwheels build.
+- Continued remediation of the failed
+  [piwheels `edi-kernels` builds](https://www.piwheels.org/project/edi-kernels/).
+  The ARMv7 sdist parity matrix now obtains binary NumPy dependencies from
+  piwheels and installs the native Python, BLAS, pkg-config, and Eigen
+  development packages needed for an actual source build. CMake's Eigen and
+  LBFGSpp fallbacks now download pinned, SHA-256-verified release archives
+  instead of requiring an undeclared `git` executable in minimal build
+  environments.
+- Consolidated every release-blocking validation into the wheel workflow's
+  dependency graph: Python tests, coverage, wheels, sdist verification, and
+  the Bullseye/Python 3.9, Bookworm/Python 3.11, and Trixie/Python 3.13 ARMv7
+  sdist builds must all succeed before the PyPI publish job can start. The
+  `pypi` GitHub environment additionally requires final manual approval.
 
 ### Documentation
 
@@ -60,6 +61,8 @@ Inference" and the model families by name.
   name-collision rationale as the pyproject metadata rewrite above.
   `CITATION.cff`'s `version`/`date-released` also caught up (they still
   said `1.0.0.post3` / 2026-08-17).
+
+## [1.0.0.post4] - 2026-08-30
 
 Note this one is not packaging-only despite the `.postN` suffix — it fixes
 correctness/memory-safety bugs in `R/EDI/src/*.cpp` kernels bound in Python

@@ -104,12 +104,11 @@ include(FetchContent)
 # scratch build never needs anything R-specific.
 find_package(Eigen3 3.3 QUIET NO_MODULE)
 if(NOT Eigen3_FOUND)
-    message(STATUS "Eigen3 not found via find_package(); fetching from upstream (gitlab.com/libeigen/eigen).")
+    message(STATUS "Eigen3 not found via find_package(); fetching the pinned upstream release archive.")
     FetchContent_Declare(
         eigen
-        GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-        GIT_TAG 3.4.0
-        GIT_SHALLOW TRUE
+        URL https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+        URL_HASH SHA256=8586084f71f9bde545ee7fa6d00288b264a2b7ac3607b974e54d13e7162c1c72
     )
     set(EIGEN_BUILD_DOC OFF CACHE BOOL "" FORCE)
     set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
@@ -147,9 +146,8 @@ find_path(EDI_LBFGSPP_INCLUDE_DIR
 if(NOT EDI_LBFGSPP_INCLUDE_DIR)
     FetchContent_Populate(
         lbfgspp
-        GIT_REPOSITORY https://github.com/yixuan/LBFGSpp.git
-        GIT_TAG v0.4.0
-        GIT_SHALLOW TRUE
+        URL https://github.com/yixuan/LBFGSpp/archive/refs/tags/v0.4.0.tar.gz
+        URL_HASH SHA256=39c4aaebd8b94ccdc98191d51913a31cddd618cc0869d99f07a4b6da83ca6254
     )
     set(EDI_LBFGSPP_INCLUDE_DIR ${lbfgspp_SOURCE_DIR}/include)
 endif()

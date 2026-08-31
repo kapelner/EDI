@@ -162,7 +162,7 @@ jobs:
       # piwheels as the extra index, require a NumPy wheel, and install the
       # native Python/Eigen headers plus pkg-config/BLAS needed by the
       # edi_kernels source build. Installing Eigen from Debian also keeps this
-      # parity check independent of CMake's Git-based upstream fallback.
+      # parity check independent of CMake's upstream archive fallback.
       # --no-binary remains scoped to edi_kernels itself.
       - name: Build and install sdist (piwheels-like ${{ matrix.codename }}, python${{ matrix.python }})
         run: |
