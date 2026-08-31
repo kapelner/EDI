@@ -8,7 +8,7 @@ on:
       - 'R/EDI/DESCRIPTION'
       - 'R/EDI/NAMESPACE'
       - 'R/EDI/_pkgdown.yml'
-      - 'R/EDI/CHANGELOG'
+      - 'R/EDI/NEWS.md'
       - 'R/EDI/REFERENCES.md'
       - '.github/workflows/pkgdown.yaml'
   workflow_dispatch:

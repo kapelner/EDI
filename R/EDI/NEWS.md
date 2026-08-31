@@ -1,4 +1,5 @@
-v1.0.0
+# EDI 1.0.0
+
 * Complete experimental design and inference framework for two-arm sequential (one-by-one) and fixed designs
 * Sequential one-by-one designs: Bernoulli, BCRD, Efron Biased Coin, Atkinson Covariate-Adjusted Biased Coin, KK14/KK21/KK21stepwise Matching on the Fly, Pocock-Simon, SPBR, iBCRD, Urn, Random Block Size
 * Fixed designs: CRD, blocking, A-optimal, D-optimal

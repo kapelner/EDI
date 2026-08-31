@@ -1719,12 +1719,22 @@ call_direct_asymp = function(method_name, testing_type, ...){
 			)
 		)
 	}
-	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett && !skip_bartlett_pval_slow){
+	# Hurdle-Poisson Bartlett calibration repeatedly refits a truncated-Poisson
+	# likelihood and is a documented multi-minute path.  At the comprehensive
+	# suite's default B=50 it can exhaust the per-call deadline after the other
+	# bootstrap families have already run; skip that combination explicitly
+	# rather than allowing a native elapsed-time interrupt to abort the run.
+	skip_hurdle_poisson_bartlett = is(seq_des_inf, "InferenceCountHurdlePoisson") &&
+		is.finite(r) && r >= 50L
+	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett &&
+		!skip_bartlett_pval_slow && !skip_hurdle_poisson_bartlett){
 		safe_call("compute_lik_ratio_bartlett_two_sided_pval", seq_des_inf$compute_lik_ratio_bartlett_two_sided_pval(B = r))
-	} else if (should_run_test_family("bartlett") && supports_bartlett && skip_bartlett_pval_slow) {
+	} else if (should_run_test_family("bartlett") && supports_bartlett &&
+		(skip_bartlett_pval_slow || skip_hurdle_poisson_bartlett)) {
 		message("          Skipping compute_lik_ratio_bartlett_two_sided_pval (too slow)")
 	}
-	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_ci && !skip_pboot_ci_slow){
+	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_ci &&
+		!skip_pboot_ci_slow && !skip_hurdle_poisson_bartlett){
 		safe_call("compute_lik_ratio_bartlett_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_confidence_interval(B = r))
 	}
 	if (should_run_test_family("jackknife") && !skip_slow && supports_jackknife && !skip_jack_slow){

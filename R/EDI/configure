@@ -25,7 +25,21 @@ env_or_default() {
   fi
 }
 
-edi_portable="$(env_or_default EDI_PORTABLE 0)"
+# EDI_PORTABLE default: 0 (tuned, machine-specific build) -- except on
+# r-universe builders, which export MY_UNIVERSE=https://<owner>.r-universe.dev
+# and run R CMD check on every build: the tuned build's -march=native/
+# CXXFLAGS-override Makevars trips their checks' "non-portable compilation
+# flags" and "GNU extensions in Makefiles" WARNINGs on all 13 platform
+# targets (confirmed 2026-08-31, r-universe/kapelner run 33407674433), so
+# default to the portable, warning-free build there. An explicit
+# EDI_PORTABLE in the environment always wins, on r-universe too.
+if [ -n "${EDI_PORTABLE:-}" ]; then
+  edi_portable="$EDI_PORTABLE"
+elif [ -n "${MY_UNIVERSE:-}" ]; then
+  edi_portable=1
+else
+  edi_portable=0
+fi
 edi_disable_vectorization="$(env_or_default EDI_DISABLE_VECTORIZATION 0)"
 edi_native_speed="$(env_or_default EDI_NATIVE_SPEED 1)"
 edi_native_lto="$(env_or_default EDI_NATIVE_LTO 0)"
