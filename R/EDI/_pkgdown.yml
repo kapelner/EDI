@@ -34,6 +34,12 @@ articles:
   - backend-contracts
   - validation-evidence
   - extending-edi
+- title: Ecosystem
+  navbar: Ecosystem
+  desc: >
+    Where EDI sits among R's experiment-design and inference packages.
+  contents:
+  - articles/relation-to-other-packages
 
 reference:
 

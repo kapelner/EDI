@@ -66,7 +66,9 @@ interface.
   logit, continuation-ratio, stereotype logit, ordered probit, cauchit and
   complementary-log-log links, g-computation, ridit scoring,
   Jonckheere-Terpstra, paired sign test, and CLMM-based matched-design
-  classes.
+  classes; randomization confidence intervals for ordinal GLM effects are
+  obtained by inverting the exact permutation test (following the
+  Wang-Rosenberger approach).
 * Survival: Cox proportional hazards (plain and stratified), Weibull AFT
   (with full censoring support), restricted mean survival time, log-rank and
   Gehan-Wilcoxon tests, Kaplan-Meier survival differences, Weibull frailty
@@ -82,6 +84,10 @@ interface.
   Cauchy-combined p-value alongside the individual results.
 * Custom-inference extension bases: `InferenceCustomAsymp`,
   `InferenceCustomBoot`, `InferenceCustomRand`.
+* Where a specialized engine is best-in-class, estimation delegates to it —
+  `glmmTMB` (GLMMs), `fixest` (fast GLMs), `aftgee` (rank-based AFT),
+  `Rfit` (R-estimation), `survival` — with EDI's own C++ kernels used
+  everywhere else.
 
 ## Resampling and randomization machinery
 

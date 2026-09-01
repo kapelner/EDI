@@ -1,11 +1,11 @@
-# Experimental Design and Inference (EDI) Software
+# Experimental Design and Inference (EDI) Software <img src="R/EDI/man/figures/logo.png" align="right" height="139" alt="EDI hex logo" />
 
 [![CRAN](https://img.shields.io/cran/v/EDI.svg)](https://CRAN.R-project.org/package=EDI)
 [![R-CMD-check](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml)
-[![R coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=r)](https://codecov.io/gh/kapelner/EDI/flags/r)\
+[![R coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=r)](https://codecov.io/gh/kapelner/EDI/flags/r)
 [![PyPI](https://img.shields.io/pypi/v/edi_kernels.svg)](https://pypi.org/project/edi_kernels/)
 [![Python tests](https://github.com/kapelner/EDI/actions/workflows/python-tests.yml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/python-tests.yml)
-[![Python coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=python)](https://codecov.io/gh/kapelner/EDI/flags/python)\
+[![Python coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=python)](https://codecov.io/gh/kapelner/EDI/flags/python)
 ![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)
 [![Last commit](https://img.shields.io/github/last-commit/kapelner/EDI)](https://github.com/kapelner/EDI/commits/main)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
@@ -25,197 +25,98 @@ R/Rcpp dependency, which provides high-speed bare-metal bindings to the shared
 C++ core. See the [Python README](python/README.md) for its installation, usage,
 and benchmark results.
 
+## Highlights
+
+- **Designs and inference that match.** Each experimental design (fixed or
+  sequential) is paired with the inference procedures that are actually valid
+  for it.
+- **Six response types, 50+ inference families.** Continuous, incidence,
+  count, proportion, survival (with left/right/interval censoring), and
+  ordinal — each with design-appropriate estimators and estimands.
+- **Four inference engines from one object.** Asymptotic, likelihood-based
+  (score/LR), nonparametric and parametric bootstrap, and exact
+  randomization (design-based) tests and confidence intervals, all from the
+  same fitted `Inference` object.
+- **`InferenceSuite`.** Run every applicable procedure at once and get a
+  results table, combined-evidence summary, and CI-forest plots per estimand.
+- **Fast.** The estimation kernels are C++ (Eigen + LBFGS++), OpenMP-parallel,
+  built with machine-specific flags, and runtime-tuned to your hardware — see
+  [Tuning Local Builds](#tuning-local-builds) and
+  [Why `EDI` targets the CPU](#why-edi-targets-the-cpu-and-not-gpus-tpus-or-quantum-hardware).
+- **Design bakeoffs.** A `SimulationFramework` for comparing designs and
+  inference procedures on power, coverage, and bias before you run the trial.
+
+## Contents
+
+- [Installation](#installation)
+- [Getting Started](#getting-started)
+- [Design bakeoffs via SimulationFramework](#design-bakeoffs-via-simulationframework)
+- [Setting a seed for reproducible output](#setting-a-seed-for-reproducible-output)
+- [Vignettes](#vignettes)
+- [Future Releases](#future-releases)
+- [Tuning Local Builds](#tuning-local-builds) · [Local performance tuning](#local-performance-tuning) · [Why CPU-only](#why-edi-targets-the-cpu-and-not-gpus-tpus-or-quantum-hardware)
+- [Contributing](#contributing) · [License](#license) · [Citation](#citation)
+
 ## R package v1.0.0
 
 The R package includes the code used to reproduce the simulations in the
-papers cited below. To get started from the repository root, run
-`R CMD INSTALL R/EDI`, then explore [`R/package_tests`](R/package_tests).
+methods papers behind the KK-family designs and estimators (run
+`citation("EDI")` for the software citation). The best on-ramp after
+installing is [Getting Started](#getting-started) below and the
+[vignettes](#vignettes).
 
-> **Benchmark report:** [`R/benchmark/benchmark_model_fits_R.html`](R/benchmark/benchmark_model_fits_R.html) — speed and correctness of every model-fitting kernel against its R canonical baseline.
+> **Benchmark report:** [`R/benchmark/benchmark_model_fits_R.html`](R/benchmark/benchmark_model_fits_R.html) — speed and correctness of every model-fitting kernel against its R canonical baseline. (GitHub shows raw HTML; clone and open it in a browser.)
 
 ### Installation
 
+Requires R ≥ 3.5.0. The quickest route today is prebuilt binaries (Linux,
+macOS, and Windows — no compiler toolchain needed) from
+[R-universe](https://kapelner.r-universe.dev):
+
 ```r
-install.packages("EDI")
+install.packages("EDI",
+  repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))
 ```
 
-Or the development version from this repo (requires a C++ compiler toolchain
-for R packages, e.g. Rtools on Windows or Xcode command line tools on macOS):
+Or build the development version from this repo (requires a C++ compiler
+toolchain for R packages, e.g. Rtools on Windows, Xcode command line tools
+on macOS, or `r-base-dev` on Debian/Ubuntu):
 
 ```r
 # from the repository root
 install.packages("R/EDI", repos = NULL, type = "source")
 ```
 
-### Local performance builds
-
-`EDI`'s `configure` script resolves its compiler flags at install time based on
-a handful of environment variables, so a plain `R CMD INSTALL R/EDI` already
-builds the tuned, machine-specific configuration by default:
-
-| Variable | Default | Effect |
-| --- | --- | --- |
-| `EDI_PORTABLE` | `0` | `1` drops `-march=native -mtune=native` (and the other non-portable flags below) for a fully portable, warning-free build. Set this for CRAN/CI-style checks. |
-| `EDI_NATIVE_SPEED` | `1` | Adds `-O3`; `0` leaves `CXXFLAGS` at R's own default optimization level. |
-| `EDI_NATIVE_LTO` | `0` | `1` adds `-flto` on top of the native-speed flags. Off by default — GCC/RcppEigen LTO builds have shown severe slowdowns on some of the small model-fit kernels. |
-| `EDI_DISABLE_VECTORIZATION` | `0` | `1` adds `-DEIGEN_DONT_VECTORIZE -DEIGEN_UNALIGNED_VECTORIZE=0 -fno-tree-vectorize`, for isolating SIMD's contribution when benchmarking. |
-| `EDI_DEBUG_SYMBOLS` | `0` | `1` adds `-g1 -fno-omit-frame-pointer` (profiler-friendly symbols) instead of stripping with `-g0`. |
-| `EDI_UNITY` | `1` | Compiles `src/*.cpp` as ~10 merged "unity" translation units instead of one object per file, which amortizes RcppEigen's per-TU header-parsing cost. Set `0` for a targeted/incremental edit-compile loop on a single kernel file. |
-
-When `EDI_PORTABLE=0` (the default), the non-portable build also carries
-`-march=native -mtune=native -Wno-ignored-attributes` unconditionally, plus
-`-DNDEBUG -DEIGEN_NO_DEBUG` and `-fstack-protector` regardless of
-`EDI_PORTABLE`. For a fully portable install (e.g. matching what CRAN builds),
-use:
-
-```sh
-EDI_PORTABLE=1 R CMD INSTALL R/EDI
-```
-
-To compare plain native versus native plus link-time optimization:
-
-```sh
-R CMD INSTALL R/EDI
-EDI_NATIVE_LTO=1 R CMD INSTALL R/EDI
-```
-
-To benchmark the three builds back-to-back, run:
-
-```sh
-bash R/scripts/benchmark_build_modes.sh
-```
-
-To compare the current working tree, the current tree with vectorization
-disabled, and the last committed `HEAD` snapshot across several hot C++ kernels,
-run:
-
-```sh
-bash R/scripts/benchmark_simd_matrix.sh
-```
-
-This uses `EDI_DISABLE_VECTORIZATION=1` to add `-DEIGEN_DONT_VECTORIZE` and
-`-fno-tree-vectorize` for the no-vectorization build.
-
-To benchmark a randomization CI workload at `num_cores = 3` across the same
-three build modes, run:
-
-```sh
-bash R/scripts/benchmark_randomization_ci_build_modes.sh
-```
-
-### Local performance tuning
-
-Compiler flags aren't the only per-machine tuning `EDI` does. At runtime,
-`tune_EDI_for_this_machine()` benchmarks four independent axes on your own
-hardware — cold-start dispatch, warm-start dispatch, optimizer-algorithm
-choice, and parallel (fork-cluster) execution — against the package's shipped
-defaults, and persists only the deviations that win by a real margin (median
-time at least 5% better, and by more than twice the candidate's own
-interquartile spread) and pass a correctness gate (both settings are re-fit
-on identical synthetic data and their outputs compared; a disagreement
-discards the deviation rather than applying it):
-
-```r
-tune_EDI_for_this_machine()                   # standard effort; run on an idle machine
-tune_EDI_for_this_machine(effort = "quick")   # coarser grid, fewer replicates
-tune_EDI_for_this_machine(effort = "thorough") # full grid, more replicates
-```
-
-The result is saved to a per-user config file and applied automatically the
-next time `library(EDI)` loads. Use `get_local_EDI_optimization()` to inspect
-what's saved and `clear_local_EDI_optimization()` to return to the shipped
-defaults.
-
-**The parallel axis is the one exception.** Its preferred core count is
-*recorded only* — it is never applied automatically, at load time or
-otherwise. Instead, `library(EDI)` (and a saved tuning being applied) prints
-a message reporting the preferred count and telling you to opt in yourself:
-
-```
-EDI: this machine's saved tuning found parallel execution fastest at 4
-cores. This is not applied automatically -- call set_num_cores(4) to opt in.
-```
-
-You still have to call `set_num_cores(4)` (or whatever count the message
-names) yourself for parallel execution to actually take effect — see
-"Setting a seed for reproducible output" below for why `num_cores` also
-matters for reproducibility.
-
-### Why `EDI` targets the CPU (and not GPUs, TPUs, or quantum hardware)
-
-All of the tuning above targets the CPU. That is deliberate: for the
-workloads `EDI` is built for — designed experiments with roughly n < 1,000
-subjects and B < 2,000 bootstrap or randomization replicates — accelerators
-cannot help:
-
-- **The total work is milliseconds.** An OLS or GLM fit at n = 1,000, p = 10
-  is ~10⁵ flops, a few microseconds on one core; B = 2,000 of them is tens of
-  milliseconds single-threaded. A GPU's fixed costs — kernel launch latency,
-  host↔device transfer, first-use context setup — match or exceed the entire
-  job.
-- **The kernels are small, double-precision, iterative, and branchy.** IRLS,
-  Newton with line search, bisection CIs, Laplace-approximated mixed models,
-  Cox partial likelihoods, greedy and annealing design searches are sequential
-  dependency chains with data-dependent branching — the wrong shape for GPUs
-  and TPUs (throughput engines for large uniform tensor work; TPUs are
-  bf16/int8 matmul units). The design matrix fits in L2 cache, so memory
-  bandwidth, the one thing accelerators have in abundance, is irrelevant.
-- **The batch is too small to amortize anything.** Batched GPU linear algebra
-  needs thousands of simultaneous matrices to saturate the device; B < 2,000
-  tiny fits would leave it mostly idle.
-- **Quantum hardware maps onto parts of `EDI`, but the gain is limited.** The
-  model fits are not quantum targets — data loading, readout, and
-  dequantization erase every claimed linear-algebra speedup at `EDI`'s `n`
-  and `p`. Two things do map cleanly: the design layer's binary-allocation
-  searches (`DesignFixedOptimal` and its block variant are
-  cardinality-constrained QUBOs, runnable on today's annealers and Ising
-  machines) and the inference layer's Monte Carlo replicate loops (the
-  amplitude-estimation setting, quadratic speedup in `1/ε`). The first is at
-  best competitive with the package's own MILP and C++ annealing solvers, and
-  any practical win at `n` in the hundreds more likely comes from a
-  quantum-*inspired* classical solver; the second needs fault-tolerant
-  hardware that does not exist. See
-  [`quantum_upgrade.md`](R/package_metadata/new_feature_plans/quantum_upgrade.md)
-  for the mapping, qubit-count estimates, and the planned optional
-  QUBO-export hook.
-
-**Where a GPU could still help.** The GPU-shaped computations are the
-embarrassingly parallel outer loops: one small kernel over many independent
-permutations or resamples (`ols_distr_parallel.cpp`,
-`fast_wilcox_parallel.cpp`, `ridit_distr_parallel.cpp`,
-`kk_compound_distr_parallel.cpp`, the bootstrap loops), the pairwise-distance
-and design-search kernels behind `DesignFixedOptimal`, matching, and
-rerandomization, and `SimulationFramework`'s replicate loop. For simple
-statistics — mean differences, fixed-design OLS, rank sums — at B well beyond
-2,000, or simulation studies running thousands of full inferences, a batched
-GPU implementation could beat a multi-core CPU. Inside the n < 1,000,
-B < 2,000 regime, launch and transfer overhead still dominates, so this is a
-future direction, not a limitation of the current design. See
-[`gpu_optimizations.md`](R/package_metadata/new_feature_plans/gpu_optimizations.md)
-for the ranked candidates and the backend/dispatch design an optional GPU
-path would need.
-
-In this regime the costs that matter are CPU-side, and the package tunes for
-them on the user's own hardware. Thread fork/join overhead versus
-per-replicate work is measured directly: the parallel axis of
-`tune_EDI_for_this_machine()` benchmarks bootstrap and randomization-CI
-workloads across a core-count grid and finds the crossover where multi-core
-beats serial on that machine, which is why parallel execution is opt-in via
-`set_num_cores()` rather than always-on. The cold-start, warm-start, and
-optimizer axes handle the other latency-dominated pieces the same way. The
-remainder — R↔C++ dispatch overhead per call and algebraic reuse inside a
-replicate loop (e.g. factoring a fixed design once) — is addressed in the
-C++/Eigen kernels themselves, on top of OpenMP parallelism and the
-hardware-specific compiler flags above. One library choice is left to the
-user: the `XᵀX` cross-product at the heart of every IRLS/Newton iteration is
-routed through whichever BLAS R is linked against (via `DSYRK`), so an
-optimized BLAS (OpenBLAS, MKL, Accelerate) speeds that kernel over reference
-BLAS. It is not required — at designed-experiment sizes the call is
-microseconds either way — but it is free speed if your R already has one. At
-designed-experiment scale, the CPU is the right hardware target, and driving
-it to its ceiling is the route to speed.
+`EDI` has been submitted to CRAN; once accepted, plain
+`install.packages("EDI")` will work too.
 
 ### Getting Started
+
+#### Quick start
+
+Design the experiment, assign treatments, record responses, infer:
+
+```r
+library(EDI)
+
+n = 100
+X = data.frame(age = rnorm(n, 60, 8), weight = rnorm(n, 80, 12))
+
+des = DesignFixedRerandomization$new(n = n, response_type = "continuous")
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()             # the design randomizes treatment
+y = rnorm(n) + 0.5 * des$get_w()           # (your real outcomes go here)
+des$add_all_subject_responses(ys = y)
+
+inf = InferenceContinOLS$new(des)
+inf$compute_estimate()                     # covariate-adjusted treatment effect
+inf$compute_asymp_confidence_interval()    # asymptotic 95% CI
+inf$compute_rand_two_sided_pval()          # exact randomization (design-based) test
+```
+
+Every design and inference class follows this same shape; the examples below
+show historical data, sequential designs, censored survival responses, and
+running every applicable procedure at once.
 
 #### Historical experimental data example
 
@@ -497,10 +398,178 @@ Development continues along a planned 1.x line (inference quality and CPU
 performance in v1.1.0; kernels and engines in v1.2.0; design extensions in
 v1.3.0; response and data extensions in v1.4.0) toward a 2.0.0 that adds
 multi-arm designs, new response shapes, and optional compute backends. See
-[FUTURE_RELEASES.md](FUTURE_RELEASES.md) for a readable per-release roadmap
+[ROADMAP.md](ROADMAP.md) for a readable per-release future roadmap
 with a short summary of every planned feature; the authoritative scope and
 work breakdowns live in `R/package_metadata/future_release_plans/` and
 `R/package_metadata/new_feature_plans/`.
+
+## Tuning Local Builds
+
+`EDI`'s `configure` script resolves its compiler flags at install time based
+on a handful of environment variables, so a plain `R CMD INSTALL R/EDI`
+already builds the tuned, machine-specific configuration by default:
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `EDI_PORTABLE` | `0` | `1` drops `-march=native -mtune=native` (and the other non-portable flags below) for a fully portable, warning-free build. Set this for CRAN/CI-style checks. |
+| `EDI_NATIVE_SPEED` | `1` | Adds `-O3`; `0` leaves `CXXFLAGS` at R's own default optimization level. |
+| `EDI_NATIVE_LTO` | `0` | `1` adds `-flto` on top of the native-speed flags. Off by default — GCC/RcppEigen LTO builds have shown severe slowdowns on some of the small model-fit kernels. |
+| `EDI_DISABLE_VECTORIZATION` | `0` | `1` adds `-DEIGEN_DONT_VECTORIZE -DEIGEN_UNALIGNED_VECTORIZE=0 -fno-tree-vectorize`, for isolating SIMD's contribution when benchmarking. |
+| `EDI_DEBUG_SYMBOLS` | `0` | `1` adds `-g1 -fno-omit-frame-pointer` (profiler-friendly symbols) instead of stripping with `-g0`. |
+| `EDI_UNITY` | `1` | Compiles `src/*.cpp` as ~10 merged "unity" translation units instead of one object per file, which amortizes RcppEigen's per-TU header-parsing cost. Set `0` for a targeted/incremental edit-compile loop on a single kernel file. |
+
+When `EDI_PORTABLE=0` (the default), the non-portable build also carries
+`-march=native -mtune=native -Wno-ignored-attributes` unconditionally, plus
+`-DNDEBUG -DEIGEN_NO_DEBUG` and `-fstack-protector` regardless of
+`EDI_PORTABLE`. For a fully portable install (e.g. matching what CRAN builds),
+use:
+
+```sh
+EDI_PORTABLE=1 R CMD INSTALL R/EDI
+```
+
+To compare plain native versus native plus link-time optimization:
+
+```sh
+R CMD INSTALL R/EDI
+EDI_NATIVE_LTO=1 R CMD INSTALL R/EDI
+```
+
+To benchmark the three builds back-to-back, run:
+
+```sh
+bash R/scripts/benchmark_build_modes.sh
+```
+
+To compare the current working tree, the current tree with vectorization
+disabled, and the last committed `HEAD` snapshot across several hot C++ kernels,
+run:
+
+```sh
+bash R/scripts/benchmark_simd_matrix.sh
+```
+
+This uses `EDI_DISABLE_VECTORIZATION=1` to add `-DEIGEN_DONT_VECTORIZE` and
+`-fno-tree-vectorize` for the no-vectorization build.
+
+To benchmark a randomization CI workload at `num_cores = 3` across the same
+three build modes, run:
+
+```sh
+bash R/scripts/benchmark_randomization_ci_build_modes.sh
+```
+
+## Local performance tuning
+
+Compiler flags aren't the only per-machine tuning `EDI` does. At runtime,
+`tune_EDI_for_this_machine()` benchmarks four independent axes on your own
+hardware — cold-start dispatch, warm-start dispatch, optimizer-algorithm
+choice, and parallel (fork-cluster) execution — against the package's shipped
+defaults, and persists only the deviations that win by a real margin (median
+time at least 5% better, and by more than twice the candidate's own
+interquartile spread) and pass a correctness gate (both settings are re-fit
+on identical synthetic data and their outputs compared; a disagreement
+discards the deviation rather than applying it):
+
+```r
+tune_EDI_for_this_machine()                   # standard effort; run on an idle machine
+tune_EDI_for_this_machine(effort = "quick")   # coarser grid, fewer replicates
+tune_EDI_for_this_machine(effort = "thorough") # full grid, more replicates
+```
+
+The result is saved to a per-user config file and applied automatically the
+next time `library(EDI)` loads. Use `get_local_EDI_optimization()` to inspect
+what's saved and `clear_local_EDI_optimization()` to return to the shipped
+defaults.
+
+**The parallel axis is the one exception.** Its preferred core count is
+*recorded only* — it is never applied automatically, at load time or
+otherwise. Instead, `library(EDI)` (and a saved tuning being applied) prints
+a message reporting the preferred count and telling you to opt in yourself:
+
+```
+EDI: this machine's saved tuning found parallel execution fastest at 4
+cores. This is not applied automatically -- call set_num_cores(4) to opt in.
+```
+
+You still have to call `set_num_cores(4)` (or whatever count the message
+names) yourself for parallel execution to actually take effect — see
+"Setting a seed for reproducible output" below for why `num_cores` also
+matters for reproducibility.
+
+## Why `EDI` targets the CPU (and not GPUs, TPUs, or quantum hardware)
+
+All of the tuning above targets the CPU. That is deliberate: for the
+workloads `EDI` is built for — designed experiments with roughly n < 1,000
+subjects and B < 2,000 bootstrap or randomization replicates — accelerators
+cannot help:
+
+- **The total work is milliseconds.** An OLS or GLM fit at n = 1,000, p = 10
+  is ~10⁵ flops, a few microseconds on one core; B = 2,000 of them is tens of
+  milliseconds single-threaded. A GPU's fixed costs — kernel launch latency,
+  host↔device transfer, first-use context setup — match or exceed the entire
+  job.
+- **The kernels are small, double-precision, iterative, and branchy.** IRLS,
+  Newton with line search, bisection CIs, Laplace-approximated mixed models,
+  Cox partial likelihoods, greedy and annealing design searches are sequential
+  dependency chains with data-dependent branching — the wrong shape for GPUs
+  and TPUs (throughput engines for large uniform tensor work; TPUs are
+  bf16/int8 matmul units). The design matrix fits in L2 cache, so memory
+  bandwidth, the one thing accelerators have in abundance, is irrelevant.
+- **The batch is too small to amortize anything.** Batched GPU linear algebra
+  needs thousands of simultaneous matrices to saturate the device; B < 2,000
+  tiny fits would leave it mostly idle.
+- **Quantum hardware maps onto parts of `EDI`, but the gain is limited.** The
+  model fits are not quantum targets — data loading, readout, and
+  dequantization erase every claimed linear-algebra speedup at `EDI`'s `n`
+  and `p`. Two things do map cleanly: the design layer's binary-allocation
+  searches (`DesignFixedOptimal` and its block variant are
+  cardinality-constrained QUBOs, runnable on today's annealers and Ising
+  machines) and the inference layer's Monte Carlo replicate loops (the
+  amplitude-estimation setting, quadratic speedup in `1/ε`). The first is at
+  best competitive with the package's own MILP and C++ annealing solvers, and
+  any practical win at `n` in the hundreds more likely comes from a
+  quantum-*inspired* classical solver; the second needs fault-tolerant
+  hardware that does not exist. See
+  [`quantum_upgrade.md`](R/package_metadata/new_feature_plans/quantum_upgrade.md)
+  for the mapping, qubit-count estimates, and the planned optional
+  QUBO-export hook.
+
+**Where a GPU could still help.** The GPU-shaped computations are the
+embarrassingly parallel outer loops: one small kernel over many independent
+permutations or resamples (`ols_distr_parallel.cpp`,
+`fast_wilcox_parallel.cpp`, `ridit_distr_parallel.cpp`,
+`kk_compound_distr_parallel.cpp`, the bootstrap loops), the pairwise-distance
+and design-search kernels behind `DesignFixedOptimal`, matching, and
+rerandomization, and `SimulationFramework`'s replicate loop. For simple
+statistics — mean differences, fixed-design OLS, rank sums — at B well beyond
+2,000, or simulation studies running thousands of full inferences, a batched
+GPU implementation could beat a multi-core CPU. Inside the n < 1,000,
+B < 2,000 regime, launch and transfer overhead still dominates, so this is a
+future direction, not a limitation of the current design. See
+[`gpu_optimizations.md`](R/package_metadata/new_feature_plans/gpu_optimizations.md)
+for the ranked candidates and the backend/dispatch design an optional GPU
+path would need.
+
+In this regime the costs that matter are CPU-side, and the package tunes for
+them on the user's own hardware. Thread fork/join overhead versus
+per-replicate work is measured directly: the parallel axis of
+`tune_EDI_for_this_machine()` benchmarks bootstrap and randomization-CI
+workloads across a core-count grid and finds the crossover where multi-core
+beats serial on that machine, which is why parallel execution is opt-in via
+`set_num_cores()` rather than always-on. The cold-start, warm-start, and
+optimizer axes handle the other latency-dominated pieces the same way. The
+remainder — R↔C++ dispatch overhead per call and algebraic reuse inside a
+replicate loop (e.g. factoring a fixed design once) — is addressed in the
+C++/Eigen kernels themselves, on top of OpenMP parallelism and the
+hardware-specific compiler flags above. One library choice is left to the
+user: the `XᵀX` cross-product at the heart of every IRLS/Newton iteration is
+routed through whichever BLAS R is linked against (via `DSYRK`), so an
+optimized BLAS (OpenBLAS, MKL, Accelerate) speeds that kernel over reference
+BLAS. It is not required — at designed-experiment sizes the call is
+microseconds either way — but it is free speed if your R already has one. At
+designed-experiment scale, the CPU is the right hardware target, and driving
+it to its ceiling is the route to speed.
 
 ## Contributing
 

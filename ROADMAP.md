@@ -1,4 +1,4 @@
-# EDI Future Releases
+# EDI Future Roadmap
 
 A reader-friendly roadmap of what is planned for each upcoming release.
 Each bullet summarizes one planned feature in at most a paragraph; the

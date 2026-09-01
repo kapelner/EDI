@@ -18,7 +18,7 @@ Date: 2026-08-30
 
 `configure` sets `-fno-lto` on the default (non-portable, `-march=native`)
 build and exposes `EDI_NATIVE_LTO=1` to opt in (`R/EDI/configure:74-81`).
-The comment there, and the README's "Local performance builds" table, record
+The comment there, and the README's "Tuning Local Builds" table, record
 why: **GCC/RcppEigen LTO builds have shown severe slowdowns in the small
 model-fit kernels.** That is a measured negative, so the correct action today
 is nothing — LTO stays off.

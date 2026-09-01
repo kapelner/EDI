@@ -1,0 +1,55 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "name": "EDI: Experimental Design and Inference",
+  "description": "EDI (Experimental Design and Inference) marries randomized experimental designs, both fixed (block, stratified, matched-pair, cluster, factorial, rerandomization, and MILP-based optimal designs) and sequential (matching-on-the-fly and covariate-adaptive designs: Atkinson, Efron, Pocock-Simon, urn), with inference procedures (exact, asymptotic, distribution-free, and resampling-based) matched to each design and response type: continuous, incidence, count, proportion, survival with censoring, and ordinal. Core estimation kernels are written in C++ (Eigen + LBFGS++); the repository hosts both the EDI R package and the edi_kernels Python package.",
+  "version": "1.0.0",
+  "dateReleased": "2026-08-30",
+  "license": "https://spdx.org/licenses/GPL-3.0-only",
+  "codeRepository": "https://github.com/kapelner/EDI",
+  "issueTracker": "https://github.com/kapelner/EDI/issues",
+  "url": "https://kapelner.github.io/EDI/",
+  "identifier": "https://doi.org/10.5281/zenodo.22170036",
+  "programmingLanguage": [
+    {"@type": "ComputerLanguage", "name": "R"},
+    {"@type": "ComputerLanguage", "name": "C++"},
+    {"@type": "ComputerLanguage", "name": "Python"}
+  ],
+  "keywords": [
+    "experimental design",
+    "statistical inference",
+    "randomization inference",
+    "covariate balance",
+    "matching on the fly",
+    "sequential design",
+    "covariate-adaptive randomization",
+    "randomized controlled trial",
+    "clinical trials",
+    "causal inference",
+    "survival analysis",
+    "interval censoring",
+    "rerandomization",
+    "power analysis"
+  ],
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "Adam",
+      "familyName": "Kapelner",
+      "email": "kapelner@qc.cuny.edu",
+      "@id": "https://orcid.org/0000-0001-5985-6792"
+    }
+  ],
+  "maintainer": {
+    "@type": "Person",
+    "givenName": "Adam",
+    "familyName": "Kapelner",
+    "email": "kapelner@qc.cuny.edu",
+    "@id": "https://orcid.org/0000-0001-5985-6792"
+  },
+  "operatingSystem": ["Linux", "macOS", "Windows"],
+  "relatedLink": [
+    "https://kapelner.r-universe.dev/EDI",
+    "https://pypi.org/project/edi_kernels/"
+  ]
+}

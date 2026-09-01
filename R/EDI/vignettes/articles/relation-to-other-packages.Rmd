@@ -1,0 +1,176 @@
+---
+title: "How EDI Relates to randomizr, carat, coin, and Other Experiment-Design Packages"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+R has excellent packages for individual pieces of the randomized-experiment
+workflow. This page maps EDI (Experimental Design and Inference) onto that
+landscape honestly: what each neighboring package does well, when you should
+prefer it, and what EDI does differently. It is written by EDI's author —
+corrections from the other packages' perspectives are welcome on the
+[issue tracker](https://github.com/kapelner/EDI/issues).
+
+**EDI's one distinctive idea** is that a single design object carries the
+assignment mechanism from randomization through analysis: you construct a
+design (fixed or sequential), it assigns treatment, and the inference
+classes then compute estimates, intervals, and tests *matched to that
+mechanism* — including randomization tests that re-draw assignments from
+the same algorithm that produced the data. Most neighboring packages cover
+one stage of that pipeline; many of them do their stage with more options
+than EDI does.
+
+## At a glance
+
+| Package | Stage it covers | Relative to EDI |
+|---|---|---|
+| `randomizr` | Assignment declaration (complete, blocked, clustered, stratified) | Assignment only; pairs with `estimatr`/`ri2` for analysis |
+| `blockrand` | Permuted-block randomization lists for clinical trials | List generation only; no analysis |
+| `Minirand` | Pocock-Simon minimization | Assignment only |
+| `carat` | Covariate-adaptive randomization + some associated tests | Closest neighbor on the sequential-design side |
+| `coin` | Permutation/conditional inference framework | Inference only; general-purpose, not design-coupled |
+| `ri2` | Randomization inference (Gerber & Green) | Inference for declared designs; pairs with `randomizr` |
+| `estimatr` | Design-based estimators with robust/cluster SEs | Estimation only; frequentist asymptotics |
+| `pwr` | Closed-form power calculations | Analytic power; EDI's power is simulation-based |
+| `simsurv` | Simulating survival data | Data generation only |
+| `survival`, `icenReg` | General survival modeling (incl. interval censoring) | General-purpose modeling, not experiment-coupled |
+
+## Assignment-stage packages
+
+### randomizr (and its companions estimatr, ri2)
+
+[`randomizr`](https://declaredesign.org/r/randomizr/) declares and draws
+assignments — complete, simple, blocked, clustered, and blocked-clustered
+randomization — with a clean, widely used API, and it belongs to the
+DeclareDesign family where [`estimatr`](https://declaredesign.org/r/estimatr/)
+supplies design-based estimators and [`ri2`](https://declaredesign.org/r/ri2/)
+supplies randomization inference. That family's philosophy is close to
+EDI's (the design should inform the analysis).
+
+*Prefer that stack when* you want to declare a fixed design abstractly,
+simulate over it with DeclareDesign, or you're already invested in that
+ecosystem. *EDI differs in* bundling the pipeline into one object, adding
+sequential/covariate-adaptive designs (which `randomizr` does not cover),
+and providing per-response-type model-based estimators (GLMs, GLMMs,
+survival, ordinal) alongside the design-based ones.
+
+### blockrand and Minirand
+
+[`blockrand`](https://cran.r-project.org/package=blockrand) generates
+permuted-block randomization lists (varying block sizes, stratification) for
+clinical trials; [`Minirand`](https://cran.r-project.org/package=Minirand)
+implements Pocock-Simon minimization. Both are focused, dependable
+generators of assignments — and both stop there.
+
+*Prefer them when* you only need a randomization list to hand to a trial
+coordinator. *EDI differs in* implementing the same schemes
+(`DesignSeqOneByOneRandomBlockSize`, `DesignSeqOneByOnePocockSimon`) as live
+design objects that subsequently drive analysis matched to the scheme —
+e.g., randomization tests that replay minimization rather than assuming a
+coin flip.
+
+### carat
+
+[`carat`](https://cran.r-project.org/package=carat) is the closest neighbor
+on the sequential side: covariate-adaptive randomization procedures
+(stratified biased coin, Hu-Hu, Pocock-Simon, and others) together with
+some hypothesis tests derived for those procedures.
+
+*Prefer carat when* you want specific covariate-adaptive procedures or
+their dedicated asymptotic tests from that literature. *EDI differs in*
+scope: the matching-on-the-fly (KK) family, matched-pair pooling strategies
+(inverse-variance weighting and combined likelihood), six response types
+with per-type estimator menus, resampling/exact inference throughout, and
+the simulation framework.
+
+## Inference-stage packages
+
+### coin
+
+[`coin`](https://cran.r-project.org/package=coin) is a mature, general
+framework for permutation and conditional inference with a rich class of
+test statistics. It permutes within strata you specify, but it is not
+coupled to how treatment was actually assigned.
+
+*Prefer coin when* you need a permutation test outside the
+designed-experiment setting or a statistic EDI doesn't offer. *EDI differs
+in* drawing its randomization distributions from the design's own
+assignment algorithm (blocked, matched, minimized, rerandomized), which is
+the difference between a permutation test and a *randomization* test when
+the mechanism is not exchangeable-uniform.
+
+## Power analysis
+
+### pwr
+
+[`pwr`](https://cran.r-project.org/package=pwr) computes closed-form power
+for standard tests — instant and exact under its assumptions. *Prefer it
+when* your planned analysis matches a textbook test. *EDI differs in*
+computing power by Monte Carlo over the actual design x estimator you plan
+to use (`SimulationFramework`), which is slower but answers the question
+for analyses with no closed form (GLMMs, covariate-adaptive designs,
+randomization tests), and additionally reports size and coverage
+diagnostics.
+
+```{r}
+library(EDI)
+# power of a matching-on-the-fly design analyzed by matched OLS,
+# versus complete randomization analyzed by plain OLS:
+sim = SimulationFramework$new(
+  response_type = "continuous",
+  design_classes_and_params = list(
+    DesignSeqOneByOneKK21 = list(),
+    DesignSeqOneByOneBernoulli = list()
+  ),
+  inference_classes_and_params = list(
+    InferenceContinKKOLSIVWC = list(),
+    InferenceContinOLS = list()
+  ),
+  n = 100, p = 3, Nrep_W = 1000L, betaT = 0.5,
+  results_filename = "power_comparison.csv.bz2",
+  continue_from_last_result_row = FALSE
+)
+sim$run()
+SimulationFrameworkReport$new(sim)$summarize()
+```
+
+## Survival modeling and simulation
+
+### survival, icenReg, simsurv
+
+[`survival`](https://cran.r-project.org/package=survival) is R's canonical
+survival toolbox and [`icenReg`](https://cran.r-project.org/package=icenReg)
+specializes in interval-censored regression; both are general-purpose.
+[`simsurv`](https://cran.r-project.org/package=simsurv) simulates survival
+data flexibly.
+
+*Prefer them for* observational survival analysis, model families EDI
+lacks, or standalone data simulation. *EDI differs in* embedding survival
+inference in the experiment pipeline — Cox, Weibull AFT with exact / left /
+right / interval censoring in one `y`/`y_L`/`y_R` likelihood, RMST,
+log-rank/Gehan with randomization p-values, and matched-pair frailty models
+— and its survival simulations run inside the same power framework as every
+other response type. (EDI itself Imports `survival`.)
+
+## Using them together
+
+These are complements more often than competitors: generate data with
+`simsurv` and analyze the designed part with EDI; sanity-check an EDI
+randomization p-value against `coin` on an exchangeable design (they should
+agree there); use `pwr` for a quick analytic bound before committing to a
+long simulation. Where a neighboring package is the better tool for your
+problem, use it — the point of this page is to make that call easy to get
+right.
+
+```{r}
+# EDI's end-to-end signature: one object from design to inference
+library(EDI)
+des = DesignSeqOneByOneKK21$new(n = 40, response_type = "continuous")
+for (i in 1 : 40) {
+  des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+}
+des$add_all_subject_responses(y)
+InferenceSuite$new(des)$run_all_inference(screen = TRUE)$results_table
+```
