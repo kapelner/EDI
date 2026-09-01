@@ -141,6 +141,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Diagnostic only (see the script's header comment): background
+      # watchdog that records which test file the intermittent ubuntu
+      # "checking tests" hang is stuck in, plus live gdb stacks -- evidence
+      # a timed-out job's own log can never contain. Paired with the
+      # if: always() dump step after the check.
+      - name: Start test-hang watchdog
+        if: runner.os == 'Linux'
+        run: nohup bash .github/scripts/test-hang-watchdog.sh >/dev/null 2>&1 &
+
       # Reference BLAS/LAPACK (Ubuntu's R default) is 10-50x slower than
       # OpenBLAS for the test suite's linear-algebra-heavy fits (GLMM,
       # frailty, copula, ...) -- confirmed 2026-08-26 as the dominant cause
@@ -260,6 +269,15 @@ jobs:
           # WARNING or ERROR.
           error-on: '"warning"'
 
+      - name: Dump test-hang watchdog log
+        if: always() && runner.os == 'Linux'
+        run: |
+          if [ -f "$RUNNER_TEMP/hang-watch.log" ]; then
+            tail -c 200000 "$RUNNER_TEMP/hang-watch.log"
+          else
+            echo "no hang-watch.log written"
+          fi
+
   # CRAN also verifies a package works with only its hard dependencies
   # (Depends/Imports/LinkingTo) present -- catching an unconditional use of a
   # Suggested package that isn't properly guarded by requireNamespace()/
@@ -299,6 +317,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      # Diagnostic only -- see the main R-CMD-check job's identical step.
+      - name: Start test-hang watchdog
+        run: nohup bash .github/scripts/test-hang-watchdog.sh >/dev/null 2>&1 &
 
       # See R-CMD-check's identical step/comment above -- same fix, same
       # reason (reference BLAS vs OpenBLAS), this job is Ubuntu-only so no
@@ -354,6 +376,15 @@ jobs:
           # unlockBinding() NOTE, documented in cran-comments.md).
           error-on: '"warning"'
 
+      - name: Dump test-hang watchdog log
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/hang-watch.log" ]; then
+            tail -c 200000 "$RUNNER_TEMP/hang-watch.log"
+          else
+            echo "no hang-watch.log written"
+          fi
+
   # CRAN's "incoming feasibility" checks -- Title/Description phrasing policy,
   # misspellings, URL validity, license text, and the overall submission-
   # feasibility/checktime NOTE. Every other job in this matrix runs with
@@ -384,6 +415,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Diagnostic only -- see the main R-CMD-check job's identical step.
+      # This job hangs too (run 33457950194) despite having no OpenBLAS
+      # swap, which is what disproved the BLAS-variant theory.
+      - name: Start test-hang watchdog
+        run: nohup bash .github/scripts/test-hang-watchdog.sh >/dev/null 2>&1 &
+
       - uses: r-lib/actions/setup-pandoc@v2
 
       - uses: r-lib/actions/setup-r@v2
@@ -409,6 +446,15 @@ jobs:
           # WARNING/ERROR (a real, actionable incoming-checks finding) fails
           # the job.
           error-on: '"warning"'
+
+      - name: Dump test-hang watchdog log
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/hang-watch.log" ]; then
+            tail -c 200000 "$RUNNER_TEMP/hang-watch.log"
+          else
+            echo "no hang-watch.log written"
+          fi
 
   # ASAN/UBSAN sanitizer build. Catches C++ undefined behavior (out-of-bounds
   # access, sign/integer overflow, misaligned access, use-after-free, etc.)
