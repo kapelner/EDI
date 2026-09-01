@@ -137,6 +137,12 @@ jobs:
       # now tests the same performance explanation already confirmed on the
       # Ubuntu and macOS legs while retaining the OpenMP deadlock precaution.
       _R_CHECK_DONTTEST_EXAMPLES_: true
+      # Diagnostic for the intermittent "checking tests" hang: makes
+      # tests/testthat.R add a LocationReporter so testthat.Rout names each
+      # test as it runs -- the hang watchdog's .Rout tail then identifies
+      # the hung test file, which the default CheckReporter (silent until
+      # the suite ends) never reveals.
+      EDI_TESTTHAT_PROGRESS: true
 
     steps:
       - uses: actions/checkout@v7
@@ -314,6 +320,8 @@ jobs:
       EDI_PORTABLE: 1
       _R_CHECK_SUGGESTS_ONLY_: true
       _R_CHECK_FORCE_SUGGESTS_: false
+      # See the main R-CMD-check job's identical hang-diagnostic env var.
+      EDI_TESTTHAT_PROGRESS: true
 
     steps:
       - uses: actions/checkout@v7
@@ -411,6 +419,8 @@ jobs:
       # Explicitly enabled (see the job comment above); check-r-package@v2
       # only applies its own false default when this is unset.
       _R_CHECK_CRAN_INCOMING_: true
+      # See the main R-CMD-check job's identical hang-diagnostic env var.
+      EDI_TESTTHAT_PROGRESS: true
 
     steps:
       - uses: actions/checkout@v7

@@ -44,7 +44,7 @@ while true; do
 			echo
 		done
 		echo "--- R processes ---"
-		ps auxww | grep -E 'exec/R|[R]script|EDI\.Rcheck' || echo "(none)"
+		ps -eo pid,ppid,etime,stat,pcpu,time,wchan:30,args --no-headers | grep -E 'exec/R|[R]script|EDI\.Rcheck' | grep -v grep || echo "(none)"
 	} >> "$LOG" 2>&1
 
 	if [ -n "$routs" ]; then
@@ -60,8 +60,27 @@ while true; do
 	if [ "$stall_count" -ge 4 ] && [ "$dumped" -eq 0 ]; then
 		dumped=1
 		{
-			echo "===== STALL DETECTED $(date -u '+%F %T'): testthat.Rout unchanged ~20 min -- gdb stack dumps ====="
-			for pid in $(pgrep -f 'exec/R|EDI\.Rcheck' || true); do
+			echo "===== STALL DETECTED $(date -u '+%F %T'): testthat.Rout unchanged ~20 min ====="
+			echo "--- open sockets of R processes (mirai/cluster handshake state) ---"
+			ss -tnp 2>/dev/null || sudo ss -tnp 2>/dev/null || true
+			echo "--- per-thread state + kernel wait channels ---"
+			for pid in $(pgrep -f 'exec/R' || true); do
+				echo "pid $pid cmdline: $(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)"
+				grep -E 'State|Threads' "/proc/$pid/status" 2>/dev/null
+				for t in /proc/$pid/task/*; do
+					echo "  tid $(basename "$t") wchan=$(cat "$t/wchan" 2>/dev/null) stat=$(awk '{print $3}' "$t/stat" 2>/dev/null)"
+				done
+			done
+			# gdb isn't preinstalled on the runners (learned from run
+			# 33476039617's dump: "sudo: gdb: command not found") -- install
+			# it lazily, only once a stall is already confirmed, so the
+			# happy path never pays for it.
+			if ! command -v gdb >/dev/null 2>&1; then
+				echo "--- installing gdb (not preinstalled on runner) ---"
+				sudo apt-get install -y gdb >/dev/null 2>&1 || sudo apt-get update -y >/dev/null 2>&1 && sudo apt-get install -y gdb >/dev/null 2>&1
+			fi
+			echo "--- gdb C-level stack dumps ---"
+			for pid in $(pgrep -f 'exec/R' || true); do
 				echo "--- pid $pid: $(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null) ---"
 				sudo gdb --batch -p "$pid" -ex 'thread apply all bt' 2>&1 | head -300
 			done
