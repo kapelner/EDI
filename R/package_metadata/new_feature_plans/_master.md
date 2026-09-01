@@ -697,7 +697,14 @@ audits; its own TODO-1 now carries a recorded "no / defer" recommendation.
    serialization audit — which found and fixed a real non-serializable-XPtr
    bug in `DesignFixedOptimal`'s custom-objective path — roxygen "Saving and
    loading" section, and `test-save-load-design.R`); moved to
-   `../finished_features/save_load_api.md`.
+   `../finished_features/save_load_api.md`. **Reopened (2026-09-01, user
+   decision): the file moved back to this directory carrying a new section
+   E — Inference-object serialization (motivated by expensive resampling
+   state under slow models, e.g. ZOIB bootstrap distributions) — scoped as
+   `release_v1_1_0.md → TODO-17r`. The Design-side sections A–D above stay
+   closed as v1.0.0 history; only `save_load_api.md → E-1..E-7` is open.
+   Sequenced here in Phase 6 (additive, independent), cheapest after any
+   1.1.0 work adding `Inference`-side state lands.**
 3. `interval_censored_survival_response_type_report.md → second wave` — per
    Phase 0 step 10; scoped as `release_v1_1_0.md → TODO-12`.
 4. `response_types_landscape_report.md → its remaining open TODOs` — refresh

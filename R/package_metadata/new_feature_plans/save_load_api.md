@@ -1,14 +1,22 @@
-# Save/Load API for `Design` Objects
+# Save/Load API for `Design` and `Inference` Objects
 
 > **Depends on:** `fix_design_hierarchy.md` (the serialization audit is driven off `EDI_DESIGN_COMPONENTS`' `owns_state` once components own design state). (Global ordering: see `_master.md`.)
 
 Generated: 2026-08-09
 
-Related: [sequential_inference.md](../new_feature_plans/sequential_inference.md) (the
+> **Status (reopened 2026-09-01, user decision).** The Design-side work
+> (sections A–D below) is complete and shipped in v1.0.0 — those sections
+> are historical record and stay checked. This document moved back from
+> `../finished_features/` to `new_feature_plans/` to carry one new work
+> package: **section E, Inference-object serialization, slated for
+> v1.1.0** (`../future_release_plans/release_v1_1_0.md → TODO-17r`). Only
+> section E is open scope.
+
+Related: [sequential_inference.md](sequential_inference.md) (the
 `analysis_log` ledger discussed there is the concrete trigger for this
 document — it's the first new private field proposed to be added to
 `Design` after users may already have serialized objects in the wild),
-[extending-edi-r6.md](extending-edi-r6.md) (retired 2026-08-23; live contract: `R/EDI/vignettes/extending-edi.Rmd`).
+[extending-edi-r6.md](../finished_features/extending-edi-r6.md) (retired 2026-08-23; live contract: `R/EDI/vignettes/extending-edi.Rmd`).
 
 ## Assessment (why this document exists)
 
@@ -19,7 +27,7 @@ calling base R's `saveRDS()`/`readRDS()` directly on a `Design` object
 disposable, reconstructible-on-demand wrappers around it (never persisted)?
 
 **Mostly yes — the mental model is correct and already matches how the
-code behaves** (see [sequential_inference.md](../new_feature_plans/sequential_inference.md) §3:
+code behaves** (see [sequential_inference.md](sequential_inference.md) §3:
 `Inference$initialize()` takes value-copy snapshots of `y`/`w`/`X` and
 caches derived quantities against them; there is no notion in the codebase
 today of an `Inference*` object outliving the `Design` state it was built
@@ -41,7 +49,7 @@ definition since the object was saved simply will not exist on it.
 (`EDI/R/design_abstract.R:471-512`) has no version marker today. Since the
 package is under active development and this very session already proposed
 growing that list (`analysis_log` in
-[sequential_inference.md](../new_feature_plans/sequential_inference.md) §7), any method that
+[sequential_inference.md](sequential_inference.md) §7), any method that
 reads a field added after some users' objects were already saved needs to
 tolerate that field being absent — and there's currently no stamped
 signal on the object itself that would let such a method (or the user) know
@@ -116,7 +124,7 @@ grouped by concern.
   objects still work after a package upgrade" true, rather than merely
   documented. Apply this pattern to `analysis_log` /
   `record_analysis_event()` / `get_analysis_events()` from
-  [sequential_inference.md](../new_feature_plans/sequential_inference.md) §7 specifically, since
+  [sequential_inference.md](sequential_inference.md) §7 specifically, since
   that is the next field slated to be added. Done (2026-08-17) as far as this
   plan's own scope goes: `get_edi_version_created()` above demonstrates the
   self-init pattern for its own field, and `DesignFixedOptimal`'s
@@ -367,14 +375,94 @@ grouped by concern.
   fully reconstructs a working object (or a clear, actionable error) with no
   wrapper needed at the call site.
 
+## E. Inference-object serialization (v1.1.0; added 2026-09-01, user decision)
+
+**Reversal of the Non-goals bullet below, deliberately.** The original
+recommendation ("make `Inference*` disposability explicit; add no
+persistence") was right for v1.0.0 and remains the documented contract
+there. But the motivating counter-case is real: an expensive resampling
+run — e.g. a bootstrap or BRT distribution built from thousands of refits
+of a slow model such as `InferencePropZeroOneInflatedBetaRegr` — is costly
+state a user may legitimately want to survive a session. Today the
+supported pattern is extract-and-save-as-data (the
+`approximate_bootstrap_distribution_beta_hat_T()` /
+`approximate_rand_bootstrap_distribution_beta_hat_T()` methods return the
+draws as plain numeric vectors; `saveRDS()` those alongside the design),
+which loses only the object's internal memoization
+(`private$cached_values`), not the draws. This section scopes making the
+fitted `Inference` object itself a supported serialization unit.
+
+What the JSS manuscript already says (2026-09-01,
+`../new_research_ideas/paper_JSS_EDI_exposition/manuscript.tex` §3.1):
+extract-as-data is the current pattern, and extending the serialization
+audit to `Inference` objects "is a candidate for a future release" — this
+section is that candidate, now slated.
+
+Known hazards, from the v1.0.0 Design-side audit and direct code reading:
+
+- **External pointers on the inference side.** The custom
+  randomization-statistic evaluators
+  (`inference_ext_custom_randomization_statistic.R`) and the Cox data
+  cache (`fast_coxph_regression.cpp`) hold `XPtr`s that die on reload.
+  The parallel-worker path already solves exactly this shape of problem —
+  it ships the retained C++ source string and recompiles in the worker,
+  never dereferencing a serialized pointer — so the fix pattern
+  (mirroring `ensure_custom_objective_xptr_live()` on the Design side)
+  exists and needs porting, not inventing.
+- **The design linkage.** `Inference$initialize()` snapshots `y`/`w`/`X`
+  by value and caches derived quantities against them; a reloaded
+  inference object must either revalidate that its snapshot still matches
+  the (separately reloaded) design it claims to describe, or carry enough
+  state to stand alone. Decide which contract before implementing.
+- **Version drift, doubled.** An `Inference` object serializes both its
+  own frozen method closures and (via reference or snapshot) design-side
+  state; the version stamp + self-initializing-field discipline from
+  sections A–B must be applied to `Inference`'s private fields too.
+
+### TODOs
+
+- [ ] **E-1. Decide the reload contract**: standalone (snapshot is
+  authoritative; design reference optional) vs. revalidating (reload
+  requires the design and verifies snapshot identity, e.g. by digest).
+  Ask the user; everything below keys off this.
+- [ ] **E-2. Field audit**: script the serialization audit over
+  `Inference`'s private fields and every `InferenceComponent`'s
+  `owns_state`, mirroring section A's Design audit — classify each field
+  plain-data / XPtr / environment-handle / cache.
+- [ ] **E-3. XPtr liveness handling**: port the
+  recompile-or-clear-error-on-first-use pattern
+  (`ensure_custom_objective_xptr_live()`) to the custom-randomization-
+  statistic and Cox-cache paths found in E-2.
+- [ ] **E-4. Version stamp + self-initializing fields** on `Inference`,
+  mirroring section A (stamp at construction, accessor, lazy-init policy
+  for post-save fields, one-time major-version-mismatch warning at first
+  use after reload).
+- [ ] **E-5. Cache semantics**: decide which `private$cached_values`
+  entries are persistence-worthy (resampling distributions: yes;
+  transient worker state: no) and strip the rest at save via a
+  serialization hook rather than trusting them to round-trip.
+- [ ] **E-6. Round-trip tests**: save/reload/reuse smoke tests including
+  (a) a cheap class, (b) an expensive-resampling class (ZOIB or a KK
+  survival class) asserting the reloaded object reuses its cached
+  distribution rather than recomputing, (c) the custom-C++-statistic
+  path across reload, (d) version-mismatch warning behavior.
+- [ ] **E-7. Documentation**: extend `Design`'s "Saving and loading"
+  roxygen section (or give `Inference` its own) stating the new contract,
+  the E-1 decision, and updating the "Inference objects must not be
+  persisted" language everywhere it appears (roxygen, vignettes, JSS
+  manuscript §3.1's "candidate for a future release" sentence becomes a
+  shipped-feature sentence at that point).
+
 ## Non-goals
 
 - Not building a general-purpose object versioning/migration framework for
   the whole package — this is scoped to `Design`/`DesignSeqOneByOne`
   persistence specifically.
-- Not proposing that `Inference*` objects gain any persistence support —
+- ~~Not proposing that `Inference*` objects gain any persistence support —
   the recommendation is the opposite: make their disposability explicit and
-  documented, not add save/load capability to them.
+  documented, not add save/load capability to them.~~ **Superseded
+  (2026-09-01): section E above reverses this for v1.1.0**; the v1.0.0
+  contract (disposability, extract-as-data) remains accurate for v1.0.x.
 - Not committing to the `save_edi_design()`/`load_edi_design()` wrapper
   functions in section D — that's an open decision contingent on what the
   audit in section A finds, not a planned deliverable.

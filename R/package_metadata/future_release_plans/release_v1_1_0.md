@@ -267,6 +267,16 @@ Bernoulli/CRD/Blocking/Rerandomization/Atkinson concrete classes),
 `sequential_inference.md` (research scoping — may produce a decision to
 defer implementation to 1.2; the scoping itself is in scope).
 
+Persistence: `save_load_api.md → section E` (added 2026-09-01, user
+decision — Inference-object serialization, motivated by expensive
+resampling under slow models, e.g. a bootstrap distribution from thousands
+of ZOIB refits). **Scope-rule exception, stated explicitly**: this plan
+file is named in `release_v1_0_0.md`'s In-scope list because its Design-side
+sections A–D shipped in v1.0.0; the file moved back from
+`../finished_features/` to `new_feature_plans/` on 2026-09-01 carrying only
+section E as open scope. Only section E is in this release; A–D remain
+closed v1.0.0 history. See TODO-17r below.
+
 ## Implementation TODOs (dependency order)
 
 Work top to bottom. TODO-3 and TODO-4 may run in parallel with each other
@@ -777,6 +787,20 @@ ticked in their **owning plans**; this list is the release index.
   — applied at the five sites, plus tests that a duplicated-column
   `harden = FALSE` design now yields `NA` SE/CI, and roxygen rewrites.
   Independent of other 1.1.0 items.
+- [ ] TODO-17r: **Inference-object serialization** (added 2026-09-01, user
+  decision): `save_load_api.md → section E (E-1..E-7)`. Make a fitted
+  `Inference` object a supported `saveRDS()`/`readRDS()` unit so expensive
+  resampling state (e.g. a bootstrap distribution from thousands of slow
+  ZOIB refits) survives a session, mirroring the v1.0.0 Design-side audit:
+  reload-contract decision (E-1, ask the user), private-field/component
+  `owns_state` audit (E-2), XPtr liveness handling ported from
+  `ensure_custom_objective_xptr_live()` (E-3), version stamp +
+  self-initializing fields on `Inference` (E-4), cache-persistence
+  semantics (E-5), round-trip tests including the expensive-resampling and
+  custom-C++-statistic paths (E-6), and documentation updates including
+  the JSS manuscript's "candidate for a future release" sentence (E-7).
+  Additive; independent of other 1.1.0 items except that E-2 is cheapest
+  after any 1.1.0 work that adds `Inference`-side state has landed.
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

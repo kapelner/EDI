@@ -97,6 +97,19 @@ family of matching designs and estimators.
   existing Cauchy combination test, which answers only "does at least one
   detect a signal."
 
+### Persistence
+
+- **[Inference-object serialization](R/package_metadata/new_feature_plans/save_load_api.md)** —
+  make a fitted `Inference` object a supported `saveRDS()`/`readRDS()`
+  unit, so expensive resampling state (a bootstrap distribution built
+  from thousands of refits of a slow model such as zero-one-inflated
+  beta) survives a session instead of being extracted as plain data. The
+  v1.0.0 Design-side serialization contract (version stamp,
+  self-initializing fields, external-pointer liveness handling) extends
+  to `Inference` and its components; the reload contract — standalone
+  snapshot vs. revalidation against the reloaded design — is the gating
+  decision.
+
 ### Performance and correctness (CPU)
 
 - **[Much faster randomization CIs for linear statistics](R/package_metadata/new_feature_plans/randomization_ci_affine_shift_reuse.md)** —

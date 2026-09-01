@@ -101,7 +101,11 @@ the frozen substrate makes it additive.
    warning, full private-field serialization audit — which found and fixed a
    real non-serializable-XPtr bug in `DesignFixedOptimal`'s custom-objective
    path — roxygen "Saving and loading" section, `test-save-load-design.R`),
-   moved to `../finished_features/`.**
+   moved to `../finished_features/`.** (Note 2026-09-01: the file has since
+   moved back to `../new_feature_plans/` carrying a new v1.1.0-scoped
+   section E — Inference-object serialization, `release_v1_1_0.md →
+   TODO-17r`. The Design-side work recorded here remains done and shipped
+   in v1.0.0; nothing about this item reopened.)
 6. **[x] `extending-edi-r6.md`** — the external extension contract; it freezes
    when the hierarchy plans do, per the standing constraint in `_master.md`.
    **Done (2026-08-23):** rewritten against the finished shallow-hierarchy
