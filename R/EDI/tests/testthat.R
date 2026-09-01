@@ -10,7 +10,9 @@ if (identical(Sys.getenv("NOT_CRAN"), "true")) {
 	# file it died in. The location reporter prints a line as each file
 	# starts/ends, which the watchdog's periodic .Rout tail then captures.
 	# Unset (i.e. everywhere except CI, including CRAN), behavior is
-	# exactly as before.
+	# exactly as before. (Comment edited 2026-09-01 to re-trigger CI: the
+	# prior trigger attempt touched .github/scripts/, which the workflow's
+	# paths: filter ignores.)
 	if (identical(Sys.getenv("EDI_TESTTHAT_PROGRESS"), "true")) {
 		test_check("EDI", reporter = MultiReporter$new(list(
 			CheckReporter$new(),
