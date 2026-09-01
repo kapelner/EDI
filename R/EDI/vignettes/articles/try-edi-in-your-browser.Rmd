@@ -1,0 +1,99 @@
+---
+title: "Try EDI in Your Browser (webR) — No Installation Needed"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+You can run EDI (Experimental Design and Inference) entirely in your web
+browser — no R installation, no compiler, nothing downloaded to your
+machine beyond the page itself. This works because
+[webR](https://docs.r-wasm.org/webr/latest/) compiles R itself to
+WebAssembly, and EDI publishes WebAssembly binaries (of the same C++
+kernels the native package uses) through
+[R-universe](https://kapelner.r-universe.dev). Every one of EDI's hard
+dependencies also has a WebAssembly build, so the whole stack loads in the
+browser.
+
+## Step 1: open the webR REPL
+
+Open **<https://webr.r-wasm.org/latest/>** in a new tab. After a few
+seconds you get a working R console running locally in your browser —
+nothing you type leaves your machine.
+
+## Step 2: install EDI
+
+Paste this into the webR console (the download is a few tens of MB the
+first time; give it a minute):
+
+```{r}
+webr::install("EDI",
+  repos = c("https://kapelner.r-universe.dev", "https://repo.r-wasm.org"))
+library(EDI)
+```
+
+## Step 3: run a complete experiment
+
+Design, assign, respond, infer — the full EDI workflow, sized to run
+comfortably in a browser tab:
+
+```{r}
+library(EDI)
+
+n = 40
+X = data.frame(age = rnorm(n, 60, 8), weight = rnorm(n, 80, 12))
+
+# rerandomization: re-draw the assignment until covariate balance passes
+des = DesignFixedRerandomization$new(n = n, response_type = "continuous")
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+y = rnorm(n) + 0.5 * des$get_w()          # (simulated outcomes for the demo)
+des$add_all_subject_responses(ys = y)
+
+inf = InferenceContinOLS$new(des)
+inf$compute_estimate()                    # covariate-adjusted treatment effect
+inf$compute_asymp_confidence_interval()   # asymptotic 95% CI
+inf$compute_rand_two_sided_pval()         # exact randomization (design-based) test
+```
+
+Or a sequential matching-on-the-fly trial, analyzed by every applicable
+procedure at once:
+
+```{r}
+seq_des = DesignSeqOneByOneKK21$new(n = 20, response_type = "continuous")
+for (i in 1 : 20) {
+  # each subject is matched and assigned on arrival
+  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
+}
+seq_des$add_all_subject_responses(rnorm(20))
+
+suite = InferenceSuite$new(seq_des)
+res = suite$run_all_inference(screen = TRUE)
+res$results_table
+```
+
+## What to expect (honest caveats)
+
+The browser build is for *trying* EDI, not for production analyses:
+
+- **It is single-threaded.** WebAssembly R has no OpenMP, so the
+  parallelized bootstrap/randomization loops run serially.
+- **It is a generic build.** The wasm binaries carry none of the
+  machine-specific tuning (`-march=native`, machine-calibrated dispatch
+  policies) that makes native EDI fast. Expect resampling-heavy calls to be
+  one to two orders of magnitude slower than a tuned native install.
+- **Memory lives in the tab.** Very large simulations can exhaust the
+  browser's WebAssembly memory; keep `n` and replication counts modest.
+
+When you're ready to use EDI for real work, install it natively — and
+compile from source so the build tunes itself to your CPU:
+
+```{r}
+install.packages("EDI", type = "source")   # builds with -march=native
+tune_EDI_for_this_machine()                # calibrates dispatch policies
+```
+
+(Prebuilt native binaries, no toolchain needed, are also available:
+`install.packages("EDI", repos = c("https://kapelner.r-universe.dev",
+"https://cloud.r-project.org"))`.)

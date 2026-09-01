@@ -37,9 +37,11 @@ articles:
 - title: Ecosystem
   navbar: Ecosystem
   desc: >
-    Where EDI sits among R's experiment-design and inference packages.
+    Where EDI sits among R's experiment-design and inference packages, and
+    how to try it without installing anything.
   contents:
   - articles/relation-to-other-packages
+  - articles/try-edi-in-your-browser
 
 reference:
 
