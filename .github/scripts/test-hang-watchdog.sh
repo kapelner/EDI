@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# CI trigger: 2026-09-01 no-op edit to force a fresh run of the hang diagnostics.
 # Diagnostic watchdog for the intermittent ubuntu "checking tests" hangs
 # (see R-CMD-check.yaml's timeout-minutes comments; runs 33366557367,
 # 33421678891, 33437466317, 33457950194 each lost 1-2 random ubuntu legs
