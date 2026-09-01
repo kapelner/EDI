@@ -154,13 +154,28 @@ jobs:
       # valgrind jobs -- OpenBLAS's own thread pool is a common source of
       # sanitizer/valgrind noise unrelated to real bugs in EDI's code, and
       # those jobs test memory correctness, not speed.
+      #
+      # The -serial variant (not -pthread) is deliberate: the -pthread build
+      # used 2026-08-27..31 resurrected the 2026-08-10 fork deadlock
+      # documented in tests/testthat/setup-thread-limits.R -- once the
+      # parallel-cluster tests raise threads via set_package_threads(N>1),
+      # OpenBLAS's pthread worker pool is live, and if a worker holds a lock
+      # at the instant test-simulation-framework-extended.R's
+      # parallel::makeForkCluster() forks, the child inherits a stuck mutex
+      # and testthat hangs silently forever. Random ubuntu legs then sat
+      # 114+ silent minutes (runs 33366557367, 33421678891) and, after the
+      # timeout was raised to 240, a full ~3h20m (run 33437466317) inside
+      # "Running 'testthat.R'". The serial build keeps OpenBLAS's
+      # SIMD-optimized kernels (the bulk of the win over reference BLAS on
+      # the runner's 2-4 vCPUs) with no thread pool at all, so there is
+      # nothing to deadlock across fork().
       - name: Switch to OpenBLAS on Ubuntu (see comment above)
         if: matrix.config.os == 'ubuntu-latest'
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y libopenblas0-pthread
-          sudo update-alternatives --set libblas.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
-          sudo update-alternatives --set liblapack.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.so.3
+          sudo apt-get install -y libopenblas0-serial
+          sudo update-alternatives --set libblas.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-serial/libblas.so.3
+          sudo update-alternatives --set liblapack.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-serial/liblapack.so.3
 
       # OMP_NUM_THREADS is set via GITHUB_ENV (Windows-only) rather than a
       # job-level env var above, because a job-level env var evaluating to ''
@@ -288,12 +303,13 @@ jobs:
       # See R-CMD-check's identical step/comment above -- same fix, same
       # reason (reference BLAS vs OpenBLAS), this job is Ubuntu-only so no
       # matrix.config.os guard is needed here.
-      - name: Switch to OpenBLAS (see R-CMD-check's identical step for why)
+      - name: Switch to OpenBLAS (see R-CMD-check's identical step for why,
+          incl. why -serial not -pthread)
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y libopenblas0-pthread
-          sudo update-alternatives --set libblas.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
-          sudo update-alternatives --set liblapack.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.so.3
+          sudo apt-get install -y libopenblas0-serial
+          sudo update-alternatives --set libblas.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-serial/libblas.so.3
+          sudo update-alternatives --set liblapack.so.3-x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/openblas-serial/liblapack.so.3
 
       - uses: r-lib/actions/setup-pandoc@v2
 
