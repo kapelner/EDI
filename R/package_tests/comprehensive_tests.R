@@ -1167,6 +1167,8 @@ safe_call = function(label, expr){
 		setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE),
 		add = TRUE
 	)
+	outer_call_start_elapsed = unname(proc.time()[["elapsed"]])
+	tryCatch({
 	if (is_row_completed(
 		rep_curr,
 		beta_T,
@@ -1380,6 +1382,33 @@ safe_call = function(label, expr){
 				)
 				return(invisible(NULL))
 			}
+	})
+	}, error = function(e){
+		# Defensive outer guard: a stale process-level elapsed-time limit from a
+		# prior timed-out call (see comment above) can fire anywhere in this
+		# function's bookkeeping, not just inside the inner tryCatch/withTimeout
+		# above -- most likely between the "Calling label()" message and that
+		# inner tryCatch. Catch it here too instead of letting it crash the run.
+		setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
+		duration_time_sec = unname(proc.time()[["elapsed"]]) - outer_call_start_elapsed
+		if (inherits(e, "TimeoutException") ||
+			grepl("reached elapsed time limit", conditionMessage(e), fixed = TRUE)) {
+			msg = paste0("Skipped due to timeout after ", FUNCTION_TIMEOUT_SEC, " seconds (outer safe_call guard)")
+			message("Skipping ", label, " (timeout, outer guard): ", msg)
+			cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+			record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+			return(invisible(NULL))
+		}
+		message("Recording error for ", label, " and continuing (outer safe_call guard): ", conditionMessage(e))
+		cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+		record_result(
+			dataset_name, dataset_n_rows, dataset_n_cols,
+			response_type, design_type, inference_result_label,
+			label, NA_character_, status = "error",
+			duration_time_sec = duration_time_sec,
+			error_message = conditionMessage(e)
+		)
+		return(invisible(NULL))
 	})
 }
 

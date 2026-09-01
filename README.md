@@ -398,7 +398,7 @@ Development continues along a planned 1.x line (inference quality and CPU
 performance in v1.1.0; kernels and engines in v1.2.0; design extensions in
 v1.3.0; response and data extensions in v1.4.0) toward a 2.0.0 that adds
 multi-arm designs, new response shapes, and optional compute backends. See
-[ROADMAP.md](ROADMAP.md) for a readable per-release future roadmap
+[ROADMAP.md](ROADMAP.md) for the per-release roadmap
 with a short summary of every planned feature; the authoritative scope and
 work breakdowns live in `R/package_metadata/future_release_plans/` and
 `R/package_metadata/new_feature_plans/`.
