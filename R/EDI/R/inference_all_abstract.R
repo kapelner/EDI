@@ -839,7 +839,13 @@ Inference = R6::R6Class("Inference",
 		ensure_mirai_daemons = function(n){
 			s = tryCatch(mirai::status(), error = function(e) list(connections = 0L))
 			n_running = if (is.numeric(s$connections) && length(s$connections) == 1L) as.integer(s$connections) else 0L
-			if (n_running != n) mirai::daemons(n)
+			if (n_running != n) {
+				# Tear down any partial/stale daemons first, then relaunch via
+				# the bounded launcher -- never the blocking
+				# mirai::daemons(<numeric>) form (see start_mirai_daemons_bounded).
+				if (n_running > 0L) tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
+				start_mirai_daemons_bounded(n)
+			}
 			invisible(NULL)
 		},
 		stable_signature = function(obj){

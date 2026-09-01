@@ -434,6 +434,58 @@ make_configured_fork_cluster = function(n_cores) {
   )
   cl
 }
+# Internal: launch n local mirai daemons WITHOUT the blocking launch
+# handshake of mirai::daemons(<numeric>). That form ends in nanonext's
+# .dispatcher_wait(), which waits for all n daemons to connect with no
+# timeout and no interrupt -- so if a daemon process dies before connecting
+# (observed intermittently on loaded CI runners), the calling R process
+# hangs forever inside a C-level condition-variable wait. Reproduced with
+# mirai 2.7.2 / nanonext 1.10.1 by no-op'ing mirai:::launch_daemon and
+# calling daemons(2); see CI runs 33437466317/33476039617/33521614693 and
+# .github/scripts/test-hang-watchdog.sh, whose gdb captures showed exactly
+# this state (main thread futex-parked, zero daemon processes alive).
+# The URL form skips that wait entirely: set up the listener
+# (non-blocking), launch the daemons fire-and-forget, then poll the
+# connection count under our own deadline, relaunching stragglers once at
+# half-time, and error out loudly rather than ever hang.
+start_mirai_daemons_bounded = function(n, total_timeout_secs = 90) {
+  n = as.integer(n)
+  mirai::daemons(url = mirai::local_url(), dispatcher = TRUE)
+  mirai::launch_local(n)
+  deadline = as.numeric(Sys.time()) + total_timeout_secs
+  relaunched = FALSE
+  repeat {
+    conns = tryCatch({
+      s = mirai::status()
+      if (is.numeric(s$connections) && length(s$connections) == 1L) as.integer(s$connections) else 0L
+    }, error = function(e) 0L)
+    if (conns >= n) return(invisible(NULL))
+    now = as.numeric(Sys.time())
+    if (now > deadline) {
+      if (conns >= 1L) {
+        # Degraded but functional: fewer daemons than requested just means
+        # less parallelism; tasks still complete. Warn and proceed rather
+        # than fail a run that can finish.
+        warning("only ", conns, " of ", n, " mirai daemon(s) connected within ",
+                total_timeout_secs, "s; continuing with reduced parallelism")
+        return(invisible(NULL))
+      }
+      tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
+      stop(
+        "no mirai daemon connected within ", total_timeout_secs, "s (daemon ",
+        "processes died or never started); aborting instead of hanging. ",
+        "Rerun, use num_cores = 1, or investigate daemon launch failures ",
+        "(system load, memory pressure, R_LIBS visibility for workers)."
+      )
+    }
+    if (!relaunched && now > deadline - total_timeout_secs / 2) {
+      relaunched = TRUE
+      tryCatch(mirai::launch_local(n - conns), error = function(e) invisible(NULL))
+    }
+    Sys.sleep(0.1)
+  }
+}
+
 #' Set the number of cores for parallelization
 #'
 #' This function initializes a persistent parallel cluster (either a fork cluster
@@ -485,8 +537,9 @@ set_num_cores = function(num_cores, force_mirai = FALSE) {
       stop("The 'mirai' package is required for parallelization on this system or when force_mirai = TRUE. Please install it.")
     }
     edi_env$mirai_has_been_used = TRUE
-    # Initialize mirai daemons
-    mirai::daemons(num_cores)
+    # Initialize mirai daemons (bounded launcher -- never the blocking
+    # mirai::daemons(<numeric>) form, see start_mirai_daemons_bounded)
+    start_mirai_daemons_bounded(num_cores)
     edi_env$global_mirai_num_cores = num_cores
     # Each daemon inherited OMP_NUM_THREADS=N from the parent; cap them at 1 so
     # N daemons don't each spawn N OMP threads.  Main-process Rcpp OMP functions

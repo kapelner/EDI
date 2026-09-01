@@ -1390,9 +1390,28 @@ SimulationFramework = R6::R6Class("SimulationFramework",
               })
               names(jobs) = as.character(chunk_idxs)
               completed = 0L
+              last_liveness_check = as.numeric(Sys.time())
               while (completed < length(chunk_idxs)) {
                 ready = names(jobs)[!vapply(jobs, mirai::unresolved, logical(1L))]
-                if (length(ready) == 0L) { Sys.sleep(0.1); next }
+                if (length(ready) == 0L) {
+                  # A task whose daemons all died never resolves: check
+                  # liveness (throttled) instead of sleeping forever -- see
+                  # .mirai_daemons_alive / the CI hang this fixed.
+                  now = as.numeric(Sys.time())
+                  if (now - last_liveness_check > 5) {
+                    last_liveness_check = now
+                    if (!private$.mirai_daemons_alive()) {
+                      invisible(lapply(jobs, function(job) try(mirai::stop_mirai(job), silent = TRUE)))
+                      stop(
+                        "all mirai daemons died while ", length(jobs),
+                        " design/SE cache job(s) were still pending; aborting instead of hanging. ",
+                        "Rerun, or use num_cores = 1."
+                      )
+                    }
+                  }
+                  Sys.sleep(0.1)
+                  next
+                }
                 for (nm in ready) {
                   job_res = tryCatch(jobs[[nm]][], error = function(e) e)
                   job_idx = as.integer(nm)
@@ -1499,8 +1518,11 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           }, CELL_STATES__ = all_cell_states, RUN_FN__ = RUN_REP_DETACHED_G),
           error = function(e) NULL
         )
-        if (!is.null(push_tasks)) {
-          tryCatch(mirai::collect_mirai(push_tasks), error = function(e) invisible(NULL))
+        if (!is.null(push_tasks) && !private$.settle_mirai_tasks(push_tasks)) {
+          stop(
+            "mirai daemons died (or timed out) while receiving the simulation ",
+            "cell states; aborting instead of hanging. Rerun, or use num_cores = 1."
+          )
         }
         on.exit({
           cleanup_tasks = tryCatch(
@@ -1517,8 +1539,11 @@ SimulationFramework = R6::R6Class("SimulationFramework",
             }),
             error = function(e) NULL
           )
+          # Best-effort with a short bound: this runs inside on.exit, where a
+          # blocking collect on dead daemons would turn even a clean error
+          # path into the silent CI hang this section exists to prevent.
           if (!is.null(cleanup_tasks)) {
-            tryCatch(mirai::collect_mirai(cleanup_tasks), error = function(e) invisible(NULL))
+            private$.settle_mirai_tasks(cleanup_tasks, timeout_secs = 15)
           }
         }, add = TRUE)
       }
@@ -1772,13 +1797,32 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         }
         advance_frontier()
 
+        last_liveness_check = as.numeric(Sys.time())
         while (completed_units < n_units) {
           while (length(in_flight) < window_size && next_unit <= n_units) {
             in_flight[[as.character(next_unit)]] = submit_unit(next_unit)
             next_unit = next_unit + 1L
           }
           ready = names(in_flight)[!vapply(in_flight, mirai::unresolved, logical(1L))]
-          if (length(ready) == 0L) { Sys.sleep(0.05); next }
+          if (length(ready) == 0L) {
+            # A task whose daemons all died never resolves: check liveness
+            # (throttled) instead of sleeping forever -- see
+            # .mirai_daemons_alive / the CI hang this fixed.
+            now = as.numeric(Sys.time())
+            if (now - last_liveness_check > 5) {
+              last_liveness_check = now
+              if (!private$.mirai_daemons_alive()) {
+                stop_in_flight()
+                stop(
+                  "all mirai daemons died with ", length(in_flight),
+                  " replication work unit(s) still in flight; aborting instead of hanging. ",
+                  "Rerun, or use num_cores = 1."
+                )
+              }
+            }
+            Sys.sleep(0.05)
+            next
+          }
           for (nm in ready) {
             u = as.integer(nm)
             rep_u = units[[u, 1L]]
@@ -2059,32 +2103,84 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     progress_log_interval    = 0L,
     progress_bar_drawn       = NULL,
     n_progress_lines         = 5L,
-    .ensure_mirai_daemons = function(n) {
-      s = tryCatch(mirai::status(), error = function(e) list(connections = 0L))
-      n_running = if (is.numeric(s$connections) && length(s$connections) == 1L) as.integer(s$connections) else 0L
-      if (n_running != as.integer(n)) mirai::daemons(as.integer(n))
-      # everywhere() in mirai 2.x is asynchronous; collect before submitting real tasks.
-      setup_tasks = tryCatch(
-        mirai::everywhere({
-          Sys.setenv(
-            OMP_NUM_THREADS        = 1L,
-            MKL_NUM_THREADS        = 1L,
-            OPENBLAS_NUM_THREADS   = 1L,
-            GOTO_NUM_THREADS       = 1L,
-            VECLIB_MAXIMUM_THREADS = 1L,
-            NUMEXPR_NUM_THREADS    = 1L
-          )
-          options(mc.cores = 1L)
-          if (requireNamespace("data.table", quietly = TRUE)) data.table::setDTthreads(1L)
-          if (requireNamespace("fixest", quietly = TRUE)) suppressWarnings(try(fixest::setFixest_nthreads(1L), silent = TRUE))
-          invisible(NULL)
-        }),
-        error = function(e) NULL
-      )
-      if (!is.null(setup_tasks)) {
-        tryCatch(mirai::collect_mirai(setup_tasks), error = function(e) invisible(NULL))
+    # TRUE iff at least one mirai daemon connection is currently live.
+    # Daemon processes can die or fail to launch (observed intermittently on
+    # loaded CI runners, CI run 33521614693's gdb capture); every wait on a
+    # mirai task must treat "no connections" as fatal rather than blocking,
+    # because a task with no daemon left to run it never resolves.
+    .mirai_daemons_alive = function() {
+      s = tryCatch(mirai::status(), error = function(e) NULL)
+      is.list(s) && is.numeric(s$connections) && length(s$connections) == 1L &&
+        as.integer(s$connections) >= 1L
+    },
+    # Bounded replacement for mirai::collect_mirai(tasks), which blocks with
+    # no timeout and therefore hangs forever if the daemons die first.
+    # Returns TRUE iff every task resolved; FALSE on daemon death or timeout.
+    .settle_mirai_tasks = function(tasks, timeout_secs = 60) {
+      if (is.null(tasks)) return(TRUE)
+      if (!is.list(tasks) || inherits(tasks, "mirai")) tasks = list(tasks)
+      deadline = as.numeric(Sys.time()) + timeout_secs
+      repeat {
+        if (!any(vapply(tasks, mirai::unresolved, logical(1L)))) return(TRUE)
+        if (!private$.mirai_daemons_alive() || as.numeric(Sys.time()) > deadline) return(FALSE)
+        Sys.sleep(0.1)
       }
-      invisible(NULL)
+    },
+    .ensure_mirai_daemons = function(n) {
+      # One silent relaunch, then a loud failure. Never wait unboundedly:
+      # this method used to block forever in collect_mirai() when the
+      # daemons died before running the setup tasks -- the exact silent
+      # multi-hour CI hang diagnosed via .github/scripts/test-hang-watchdog.sh
+      # (gdb: main thread parked on a nanonext condition variable, zero
+      # daemon processes alive; see R-CMD-check.yaml's watchdog steps).
+      for (attempt in 1:2) {
+        s = tryCatch(mirai::status(), error = function(e) list(connections = 0L))
+        n_running = if (is.numeric(s$connections) && length(s$connections) == 1L) as.integer(s$connections) else 0L
+        if (n_running != as.integer(n)) {
+          if (n_running > 0L || attempt > 1L) tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
+          # Bounded launcher -- never the blocking mirai::daemons(<numeric>)
+          # form (see start_mirai_daemons_bounded in globals.R). On attempt 1
+          # a launch failure feeds the retry below instead of erroring out.
+          if (attempt == 1L) {
+            launch_err = tryCatch({ start_mirai_daemons_bounded(n); NULL }, error = function(e) e)
+            if (!is.null(launch_err)) next
+          } else {
+            start_mirai_daemons_bounded(n)
+          }
+        }
+        # everywhere() in mirai 2.x is asynchronous; settle it before
+        # submitting real tasks.
+        setup_tasks = tryCatch(
+          mirai::everywhere({
+            Sys.setenv(
+              OMP_NUM_THREADS        = 1L,
+              MKL_NUM_THREADS        = 1L,
+              OPENBLAS_NUM_THREADS   = 1L,
+              GOTO_NUM_THREADS       = 1L,
+              VECLIB_MAXIMUM_THREADS = 1L,
+              NUMEXPR_NUM_THREADS    = 1L
+            )
+            options(mc.cores = 1L)
+            if (requireNamespace("data.table", quietly = TRUE)) data.table::setDTthreads(1L)
+            if (requireNamespace("fixest", quietly = TRUE)) suppressWarnings(try(fixest::setFixest_nthreads(1L), silent = TRUE))
+            invisible(NULL)
+          }),
+          error = function(e) NULL
+        )
+        # Bounded settle: wait up to 60s for the setup tasks, checking daemon
+        # liveness as we go (.settle_mirai_tasks); collect_mirai() must not
+        # be called while a task is unresolved -- it blocks with no timeout.
+        settled = private$.settle_mirai_tasks(setup_tasks)
+        if (settled && private$.mirai_daemons_alive()) return(invisible(NULL))
+        # Failed launch: tear down before retrying (or erroring out).
+        tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
+      }
+      stop(
+        "mirai daemons failed to start (twice): daemon processes died or never ",
+        "connected within 60s. Cannot run this simulation with num_cores > 1 on ",
+        "the mirai backend; rerun serially (num_cores = 1) or investigate the ",
+        "daemon launch failure (e.g. system load, R_LIBS visibility for workers)."
+      )
     },
     # ── Design spec parsing ───────────────────────────────────────────────────
     .parse_design_classes_and_params = function(spec, eval_env) {
