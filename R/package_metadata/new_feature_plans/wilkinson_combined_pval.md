@@ -96,6 +96,40 @@ in `iut_pval`'s roxygen so it isn't mistaken for a general-purpose "how much
 do these procedures agree" metric — for that question, `vote_fraction` or
 Stage 2's tunable r are the right tools, not r = k.
 
+## Interpretation map and the Madigan connection
+
+Keep the four summaries conceptually separate in the implementation,
+documentation, and report output:
+
+- **CCT p-value:** Is there evidence of an effect in *at least one* tested
+  sense?
+- **`vote_fraction`:** How broadly do procedures agree, descriptively?
+- **`iut_pval = max(p_i)`:** Is there sufficient evidence to claim an effect
+  in *every* tested sense?
+- **Directional unanimity/concordance:** Do the significant estimates agree
+  on the direction? This is the summary most directly connected to Madigan,
+  Ryan, and Schuemie's (2013) warning.
+
+The last distinction is essential: an IUT formed from two-sided p-values can
+reject even when every procedure is significant but some estimates point in
+opposite directions. That result establishes an effect in every tested sense,
+but it is not robustness or agreement in Madigan et al.'s sense. Their paper
+did not propose a formal all-model p-value; it systematically exposed whether
+conclusions, including their direction, survived reasonable analytical and
+design choices. The IUT is therefore directionally aligned with their demand
+for a stringent cross-analysis claim, but it should not be described as a
+"Madigan robustness p-value."
+
+Stage 1 should accompany `vote_fraction` and `iut_pval` with a descriptive
+directional-concordance summary, overall and per estimand. At minimum, report
+the numbers of significant usable estimates on each side of their null and a
+flag indicating whether all significant directional estimates agree. Only
+compare rows whose estimate direction has a registered common interpretation;
+exclude rows without a safely harmonized direction and disclose that
+denominator. Per-estimand concordance is the primary interpretation because
+the suite can contain genuinely different estimands, whereas an overall
+directional summary is only a broad diagnostic.
+
 ## The catch: no free lunch under dependence
 
 CCT's appeal is precisely that Liu & Xie (2020) derive a closed-form
@@ -147,7 +181,9 @@ in order of implementation cost:
   `run_all_inference_combined_evidence_summary_line()`) reporting the
   fraction of usable rows with `pval < alpha`. Ships independently of the
   harder order-statistic work below; answers "do most agree" informally,
-  without claiming a formal type-I error guarantee. Ship
+  without claiming a formal type-I error guarantee. Add the descriptive
+  directional-concordance summary specified above so that agreement in
+  significance is not mistaken for agreement in direction. Ship
   `combined_evidence$iut_pval = max(pval)` alongside it in the same stage —
   unlike `vote_fraction`, this *is* a formal, already-valid p-value (the
   r = k degenerate case / Berger's IUT; see "The catch" above), so it costs
@@ -164,6 +200,11 @@ in order of implementation cost:
 - Stage 1: golden test on `vote_fraction` for a known `results_table`
   (hand-computed fraction); confirm it does not depend on
   `combined_evidence_weighting` (a plain count, not a weighted combination).
+  Directional-concordance golden tests must include significant estimates on
+  opposite sides of the null (showing that `iut_pval` may reject while
+  directional unanimity is false), same-direction estimates, non-significant
+  estimates, and rows excluded because their direction cannot be harmonized;
+  verify both overall and per-estimand denominators.
   `iut_pval` golden test: `max(pval)` on the same known table; null-calibration
   check under `betaT = 0` confirming its empirical rejection rate is at or
   below nominal `alpha` (conservative, per the union-bound argument, not
@@ -180,12 +221,14 @@ in order of implementation cost:
 - [ ] TODO-1: Decide (Phase 0) whether Stage 2's formal r-out-of-k test is
   worth building given its calibration cost, or whether Stage 1's
   descriptive vote fraction is sufficient on its own.
-- [ ] TODO-2: Ship Stage 1 — `vote_fraction` and `iut_pval = max(pval)`
-  (both overall and per-estimand) on `run_all_inference()`'s return value;
+- [ ] TODO-2: Ship Stage 1 — `vote_fraction`, the descriptive directional-
+  concordance summary, and `iut_pval = max(pval)` (all overall and
+  per-estimand) on `run_all_inference()`'s return value;
   roxygen distinguishing `vote_fraction` (a descriptive count, no type-I
-  error guarantee) from `iut_pval` (a formal, already-valid p-value, but a
-  conservative one — see "The catch" above) from `combined_evidence$pval`
-  (the existing CCT metric).
+  error guarantee) and directional concordance (descriptive agreement in
+  sign, with harmonized-direction denominator disclosed) from `iut_pval` (a
+  formal, already-valid p-value, but a conservative one — see "The catch"
+  above) from `combined_evidence$pval` (the existing CCT metric).
 - [ ] TODO-3 (if TODO-1 decides yes): design and validate the null-calibration
   procedure for the r-th-order-statistic reference distribution (option 1
   above).
@@ -214,3 +257,10 @@ from CCT (see "Why" above).
 Berger, R. L. (1982), "Multiparameter hypothesis testing and acceptance
 sampling," *Technometrics*, 24(4), 295-300 — the Intersection-Union Test
 recovered exactly at r = k.
+
+Madigan, D., Ryan, P. B., and Schuemie, M. (2013), "Does design matter?
+Systematic evaluation of the impact of analytical choices on effect estimates
+in observational studies," *Therapeutic Advances in Drug Safety*, 4(2),
+53-62 — motivates reporting whether conclusions, especially their direction,
+survive reasonable analytical choices; it does not supply the IUT or another
+single aggregate p-value.
