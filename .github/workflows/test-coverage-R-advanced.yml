@@ -45,6 +45,26 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # apt's own package cache. setup-r-dependencies@v2 below installs this
+      # workflow's system requirements (cmake, libsuitesparse, libgraphblas,
+      # libgsl, libglpk, pandoc, ...) via `apt-get install`, which normally
+      # re-fetches every .deb from the Ubuntu mirror on every run. apt checks
+      # this directory for an already-downloaded, valid .deb before hitting
+      # the network, so warming it here means a slow-mirror day (seen
+      # 2026-09-02: pandoc alone took 13 minutes at 35.7 kB/s, eating most of
+      # the 45-minute job timeout) only pays the network cost once instead of
+      # every run. Keyed on the R/EDI DESCRIPTION hash since that's what
+      # determines the sysreqs set; restore-keys falls back to the newest
+      # cache on a miss (e.g. after DESCRIPTION changes) so we still get a
+      # partial warm cache rather than starting cold.
+      - name: Cache apt package archives
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives/*.deb
+          key: apt-archives-${{ runner.os }}-r-advanced-${{ hashFiles('R/EDI/DESCRIPTION') }}
+          restore-keys: |
+            apt-archives-${{ runner.os }}-r-advanced-
+
       - uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
