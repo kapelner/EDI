@@ -450,7 +450,18 @@ make_configured_fork_cluster = function(n_cores) {
 # half-time, and error out loudly rather than ever hang.
 start_mirai_daemons_bounded = function(n, total_timeout_secs = 90) {
   n = as.integer(n)
-  mirai::daemons(url = mirai::local_url(), dispatcher = TRUE)
+  # dispatcher = FALSE deliberately: the mirai 2.x dispatcher is a
+  # background thread in the host process, and every interaction with it
+  # (compartment setup, status() queries, daemons(0) teardown) is a
+  # condition-variable handshake that can park the host forever if the
+  # thread wedges -- CI run 33564961569 hung inside set_num_cores() with
+  # zero daemon processes alive even after the daemon-wait fix below,
+  # i.e. in one of those dispatcher handshakes. Without a dispatcher,
+  # setup/status/teardown are all local socket operations with nothing to
+  # wait on; tasks go directly to daemons via NNG's fair queuing. EDI's
+  # worker tasks are homogeneous, so dispatcher FIFO scheduling isn't
+  # missed.
+  mirai::daemons(url = mirai::local_url(), dispatcher = FALSE)
   mirai::launch_local(n)
   deadline = as.numeric(Sys.time()) + total_timeout_secs
   relaunched = FALSE

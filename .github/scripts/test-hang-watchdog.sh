@@ -81,9 +81,14 @@ while true; do
 				sudo apt-get install -y gdb >/dev/null 2>&1 || sudo apt-get update -y >/dev/null 2>&1 && sudo apt-get install -y gdb >/dev/null 2>&1
 			fi
 			echo "--- gdb C-level stack dumps ---"
+			# Thread 1 (the main R thread) is dumped FIRST and uncapped: with
+			# 'thread apply all bt' alone, gdb prints threads in reverse order
+			# and the 300-line cap twice truncated exactly the main-thread
+			# stack -- the only one that names the blocked call (runs
+			# 33521614693 and 33564961569).
 			for pid in $(pgrep -f 'exec/R' || true); do
 				echo "--- pid $pid: $(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null) ---"
-				sudo gdb --batch -p "$pid" -ex 'thread apply all bt' 2>&1 | head -300
+				sudo gdb --batch -p "$pid" -ex 'thread 1' -ex 'bt 60' -ex 'thread apply all bt 15' 2>&1 | head -800
 			done
 		} >> "$LOG" 2>&1
 	fi
