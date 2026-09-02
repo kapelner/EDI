@@ -143,6 +143,21 @@ jobs:
       # the hung test file, which the default CheckReporter (silent until
       # the suite ends) never reveals.
       EDI_TESTTHAT_PROGRESS: true
+      # Skip the real-daemon/multi-worker tests in this matrix (the same
+      # guard .githooks/pre-push uses; see helper-prepush-no-parallel.R).
+      # Every multi-hour "checking tests" hang since 2026-08-28 traced to
+      # exactly these tests: run 33599645202's uncapped gdb capture shows
+      # the main R thread parked in pthread_cond_wait(abstime=0x0) INSIDE
+      # nanonext's C internals during mirai daemon lifecycle churn -- an
+      # unbounded wait that R-level code cannot bound, which survived three
+      # successive EDI-side mitigations (serial BLAS, bounded daemon
+      # launcher, dispatcher-free mode; commits 4717fc74/2ab67b25/6308f6bf,
+      # all kept as user-facing defenses). This is an upstream
+      # nanonext/mirai robustness issue on loaded 2-vCPU runners. Coverage
+      # is NOT lost: the sanitizer and valgrind jobs below run these tests
+      # on every push (and have never hung), as do ordinary local
+      # devtools::test() runs.
+      EDI_PREPUSH_NO_PARALLEL: true
 
     steps:
       - uses: actions/checkout@v7
@@ -322,6 +337,8 @@ jobs:
       _R_CHECK_FORCE_SUGGESTS_: false
       # See the main R-CMD-check job's identical hang-diagnostic env var.
       EDI_TESTTHAT_PROGRESS: true
+      # See the main R-CMD-check job's identical comment (nanonext hang).
+      EDI_PREPUSH_NO_PARALLEL: true
 
     steps:
       - uses: actions/checkout@v7
@@ -421,6 +438,8 @@ jobs:
       _R_CHECK_CRAN_INCOMING_: true
       # See the main R-CMD-check job's identical hang-diagnostic env var.
       EDI_TESTTHAT_PROGRESS: true
+      # See the main R-CMD-check job's identical comment (nanonext hang).
+      EDI_PREPUSH_NO_PARALLEL: true
 
     steps:
       - uses: actions/checkout@v7

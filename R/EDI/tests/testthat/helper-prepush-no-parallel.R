@@ -11,14 +11,21 @@ library(testthat)
 # local pre-push run; CI and an ordinary devtools::test()/R CMD check run
 # are unaffected since the env var is unset there.
 #
-# This is NOT a gap in coverage: every test gated here already carries its
-# own skip_on_cran(), which means CI's main matrix (R-CMD-check,
-# R-CMD-check-no-suggests) never ran them either -- those jobs deliberately
-# mimic a real CRAN check and never set NOT_CRAN=true. These tests have only
-# ever run in two places: the local pre-push hook, and CI's
-# R-CMD-check-sanitizers / R-CMD-check-valgrind jobs (both set
-# NOT_CRAN: true, both still run on every push, both bounded by their own
-# timeout-minutes -- see .github/workflows/R-CMD-check.yaml). Skipping them
+# CORRECTION (2026-09-02): the paragraph this replaced claimed the main CI
+# check matrix never ran these tests because it "never set NOT_CRAN=true".
+# That was wrong -- r-lib/actions/check-r-package@v2 sets NOT_CRAN=true by
+# default, so the main matrix DID run them, and they were the source of
+# every intermittent multi-hour "checking tests" hang from 2026-08-28
+# onward (random legs, any OS, any BLAS; see R-CMD-check.yaml's watchdog
+# steps and the EDI_PREPUSH_NO_PARALLEL comment there -- final evidence
+# was run 33599645202's gdb capture: main thread parked forever in a
+# timeout-less pthread_cond_wait inside nanonext's C internals during
+# daemon lifecycle churn). The main matrix jobs now set
+# EDI_PREPUSH_NO_PARALLEL=true themselves, so this guard covers them the
+# way it always covered the pre-push hook. Real-worker coverage remains in
+# CI's R-CMD-check-sanitizers / R-CMD-check-valgrind jobs (both set
+# NOT_CRAN: true, both run these tests on every push, both bounded by
+# their own timeout-minutes -- and neither has ever hung). Skipping them
 # here just removes the local-pre-push copy of that coverage, not the only
 # copy.
 #
