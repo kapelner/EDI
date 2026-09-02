@@ -1158,10 +1158,18 @@ supports_direct_testing_type = function(testing_type){
 	}
 
 safe_call = function(label, expr){
-	# A timeout raised from compiled code can leave R's process-level elapsed
-	# limit armed long enough to interrupt the next method before withTimeout()
-	# installs its own handler. Start every call from an unlimited state and
-	# unconditionally restore that state when the call finishes.
+	# setTimeLimit()/R.utils::withTimeout() cannot reliably interrupt a single
+	# long-running compiled C++ call: R only checks the elapsed-time deadline
+	# at R-level checkpoints (between statements / at loop iterations it
+	# evaluates itself), so a call that is effectively one big .Call() with no
+	# R-level checkpoints in between can silently run past the deadline with
+	# no error at all, or raise its timeout error from a context that isn't
+	# reliably caught by any tryCatch wrapping it. R/benchmark/benchmark_inference_all.R's
+	# bm_safe() already documents this ("C++ code bypasses setTimeLimit; check
+	# manually") and works around it with a hard watchdog kill. On Unix we do
+	# the equivalent here: run expr in a forked child (parallel::mcparallel)
+	# and hard-kill it if it overruns the deadline, instead of trusting
+	# setTimeLimit to interrupt in-process compiled code.
 	setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
 	on.exit(
 		setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE),
@@ -1184,7 +1192,7 @@ safe_call = function(label, expr){
 		message("          Skipping ", label, " (too slow for this response/class path)")
 		return(invisible(NULL))
 	}
-	
+
 	if (!is.null(pending_rep_header)) { message(pending_rep_header); pending_rep_header <<- NULL }
 	if (!is.null(pending_beta_header)) { message(pending_beta_header); pending_beta_header <<- NULL }
 	if (!is.null(pending_dataset_header)) { message(pending_dataset_header); pending_dataset_header <<- NULL }
@@ -1204,16 +1212,26 @@ safe_call = function(label, expr){
 				rm(".comprehensive_current_call_start_epoch", envir = .GlobalEnv)
 			}
 		}, add = TRUE)
-		tryCatch({
-			old_ci_timeout_deadline = getOption("EDI.ci_timeout_deadline", default = NULL)
-			options(EDI.ci_timeout_deadline = start_elapsed + FUNCTION_TIMEOUT_SEC)
-			on.exit(options(EDI.ci_timeout_deadline = old_ci_timeout_deadline), add = TRUE)
-			result <- R.utils::withTimeout(
-				expr,
-				cpu = Inf,
-				elapsed = FUNCTION_TIMEOUT_SEC,
-				onTimeout = "error"
+		old_ci_timeout_deadline = getOption("EDI.ci_timeout_deadline", default = NULL)
+		options(EDI.ci_timeout_deadline = start_elapsed + FUNCTION_TIMEOUT_SEC)
+		on.exit(options(EDI.ci_timeout_deadline = old_ci_timeout_deadline), add = TRUE)
+
+		handle_timeout = function(){
+			duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+			msg = paste0("Skipped due to timeout after ", FUNCTION_TIMEOUT_SEC, " seconds")
+			message("Skipping ", label, " (timeout): ", msg)
+			cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+			record_result(
+				dataset_name, dataset_n_rows, dataset_n_cols,
+				response_type, design_type, inference_result_label,
+				label, NA_character_, status = "ok",
+				duration_time_sec = duration_time_sec,
+				error_message = msg
 			)
+			invisible(NULL)
+		}
+
+		handle_success = function(result){
 			if (should_record_nonestimable_as_missing(seq_des_inf, label, result)) {
 				msg = nonestimable_error_message(seq_des_inf, label)
 				message("Recording missing output for ", label, " as ok (explicitly non-estimable).")
@@ -1273,7 +1291,9 @@ safe_call = function(label, expr){
 			cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
 			flush.console()
 			result
-		}, error = function(e){
+		}
+
+		handle_error = function(e){
 			# A setTimeLimit() interrupt raised while native code is inside
 			# .Call() can leave R's process-level elapsed limit armed until the
 			# next top-level checkpoint. Clear it before recording the timeout so
@@ -1281,18 +1301,7 @@ safe_call = function(label, expr){
 			setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
 			if (inherits(e, "TimeoutException") ||
 				grepl("reached elapsed time limit", conditionMessage(e), fixed = TRUE)) {
-				duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
-				msg = paste0("Skipped due to timeout after ", FUNCTION_TIMEOUT_SEC, " seconds")
-				message("Skipping ", label, " (timeout): ", msg)
-				cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
-				record_result(
-					dataset_name, dataset_n_rows, dataset_n_cols,
-					response_type, design_type, inference_result_label,
-					label, NA_character_, status = "ok",
-					duration_time_sec = duration_time_sec,
-					error_message = msg
-				)
-				return(invisible(NULL))
+				return(handle_timeout())
 			}
 			if (should_record_nonestimable_as_missing(seq_des_inf, label)) {
 				msg = nonestimable_error_message(seq_des_inf, label)
@@ -1369,6 +1378,7 @@ safe_call = function(label, expr){
 					cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
 					record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = e$message)
 				}
+				return(invisible(NULL))
 			} else {
 				duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
 				message("Recording error for ", label, " and continuing: ", conditionMessage(e))
@@ -1382,7 +1392,46 @@ safe_call = function(label, expr){
 				)
 				return(invisible(NULL))
 			}
-	})
+		}
+
+		# Hard per-call timeout: on Unix, run expr in a forked child and poll it
+		# with a wall-clock deadline, hard-killing the child (SIGKILL) if it
+		# overruns -- this is enforceable even against a single long-running
+		# compiled call with no R-level checkpoints, unlike setTimeLimit(). Falls
+		# back to the old setTimeLimit()/withTimeout() path on non-Unix, where
+		# mcparallel() is unavailable.
+		if (.Platform$OS.type == "unix") {
+			child = parallel::mcparallel(eval(expr), silent = TRUE, mc.set.seed = FALSE)
+			deadline = start_elapsed + FUNCTION_TIMEOUT_SEC
+			collected = NULL
+			repeat {
+				remaining = deadline - unname(proc.time()[["elapsed"]])
+				if (remaining <= 0) break
+				collected = parallel::mccollect(child, wait = FALSE, timeout = min(0.2, remaining))
+				if (!is.null(collected)) break
+			}
+			if (is.null(collected)) {
+				try(tools::pskill(child$pid, signal = tools::SIGKILL), silent = TRUE)
+				try(parallel::mccollect(child, wait = FALSE), silent = TRUE)
+				return(handle_timeout())
+			}
+			result = collected[[1]]
+			if (inherits(result, "try-error")) {
+				cond = attr(result, "condition")
+				e = if (!is.null(cond)) cond else simpleError(as.character(result))
+				return(handle_error(e))
+			}
+			return(handle_success(result))
+		}
+		tryCatch({
+			result <- R.utils::withTimeout(
+				expr,
+				cpu = Inf,
+				elapsed = FUNCTION_TIMEOUT_SEC,
+				onTimeout = "error"
+			)
+			handle_success(result)
+		}, error = handle_error)
 	}, error = function(e){
 		# Defensive outer guard: a stale process-level elapsed-time limit from a
 		# prior timed-out call (see comment above) can fire anywhere in this
