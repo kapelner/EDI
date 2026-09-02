@@ -18,8 +18,8 @@
 "comprehensive_tests","","InferenceOrdinalKKCLMMProbit","comprehensive_tests__ordinal__KK21stepwise__compute_bootstrap_two_sided_pval_symmetric_cc5a4018","ok",373.58
 "comprehensive_tests","","InferenceIncidRiskDiff","comprehensive_tests__incidence__SPBR__compute_bootstrap_confidence_interval_basic_99c56188","ok",363.538
 "comprehensive_tests","","InferenceIncidKKCondLogitGLMMOneLik","comprehensive_tests__incidence__KK21stepwise__compute_lik_ratio_confidence_interval_76950a0c","ok",328.927
+"run_comprehensive_suite","smoke","","comprehensive_suite__smoke__all__internal_safety_nets","ok",300.108444452286
 "comprehensive_tests","","InferenceCountHurdlePoisson","comprehensive_tests__count__FixedMatchingGreedy__compute_lik_ratio_bartlett_two_sided_pval_d472d1f0","ok",279.368
-"run_comprehensive_suite","smoke","","comprehensive_suite__smoke__all__internal_safety_nets","ok",248.906393766403
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","comprehensive_tests__survival__KK21stepwise__compute_score_confidence_interval_34e7849c","ok",222.988
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","comprehensive_tests__survival__FixedBinaryMatch__compute_rand_confidence_interval_custom_2cb40d38","ok",212.239
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","comprehensive_tests__survival__KK21stepwise__compute_estimate_847659b8","ok",184.408
@@ -29,6 +29,7 @@
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","comprehensive_tests__survival__KK21stepwise__compute_estimate_847659b8","ok",147.939
 "comprehensive_tests","","InferenceOrdinalKKGLMM","comprehensive_tests__ordinal__FixedBinaryMatch__compute_gradient_confidence_interval_64c4d0ac","ok",147.831
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","comprehensive_tests__survival__KK21stepwise__compute_rand_confidence_interval_custom_7ad0dea8","ok",144.531
+"comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","comprehensive_tests__survival__KK21stepwise__compute_estimate_75c33cd4","ok",143.77
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","comprehensive_tests__survival__KK21stepwise__compute_estimate_847659b8","ok",138.336
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","comprehensive_tests__survival__FixedBinaryMatch__compute_rand_confidence_interval_custom_2cb40d38","ok",133.156
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","comprehensive_tests__survival__KK21stepwise__compute_estimate_1bb9d5d8","ok",131.746
@@ -78,6 +79,7 @@
 "comprehensive_tests","","InferencePropQuantileRegr","comprehensive_tests__proportion__Bernoulli__compute_estimate_41c892f9","ok",100.058
 "comprehensive_tests","","InferenceContinLin","comprehensive_tests__continuous__SPBR__compute_bootstrap_confidence_interval_studentized_bf319a30","ok",99.876
 "comprehensive_tests","","InferenceOrdinalStereotypeLogitRegr","comprehensive_tests__ordinal__Bernoulli__compute_jackknife_estimate_91f53128","ok",99.209
+"comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","comprehensive_tests__survival__KK21stepwise__compute_estimate_e4c9e4d8","ok",98.97
 "comprehensive_tests","","InferenceSurvivalDepCensTransformRegr","comprehensive_tests__survival__FixedBlocking__compute_m_out_of_n_bootstrap_confidence_interval_d32be5c4","ok",98.941
 "comprehensive_tests","","InferenceOrdinalKKGEE","comprehensive_tests__ordinal__FixedBinaryMatch__compute_rand_two_sided_pval_9ac9236c","ok",98.529
 "comprehensive_tests","","InferenceIncidModifiedPoisson","comprehensive_tests__incidence__SPBR__compute_bootstrap_two_sided_pval_studentized_9f3cdc00","ok",97.905
@@ -97,5 +99,3 @@
 "comprehensive_tests","","InferenceAllSimpleWilcox","comprehensive_tests__count__SPBR__compute_bootstrap_confidence_interval_studentized_4c89e370","ok",90.418
 "comprehensive_tests","","InferenceOrdinalPropOddsRegr","comprehensive_tests__ordinal__SPBR__compute_bootstrap_confidence_interval_studentized_c284c32c","ok",90.172
 "comprehensive_tests","","InferenceCountZeroInflatedNegBin","comprehensive_tests__count__FixedBlocking__compute_bayesian_bootstrap_confidence_interval_8ffb2324","ok",89.965
-"comprehensive_tests","","InferencePropZeroOneInflatedBetaRegr","comprehensive_tests__proportion__FixediBCRD__compute_estimate_b8e94fb8","ok",89.694
-"comprehensive_tests","","InferenceAllSimpleAverageDiff","comprehensive_tests__incidence__SPBR__compute_bootstrap_confidence_interval_studentized_a255bfa0","ok",89.596

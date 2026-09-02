@@ -82,6 +82,39 @@ both) rather than developing two separate implementations — worth an
 explicit cross-check once `sample_splitting_model_selection.md`'s Stage 2 is
 scoped.
 
+## Design-based implementation route (added 2026-09-02, user decision): the rejection-sampled conditional randomization test
+
+Classical conditional inference needs per-selection-rule geometry
+(polyhedral characterizations of the selection event). EDI has a
+geometry-free route unavailable to generic packages, because inference
+already calls back into the design: **redraw `w` from the design, re-run
+the entire selection pipeline per redraw, keep only the redraws where
+the same model wins, and compute the randomization p-value within that
+accepted subset.** That is exact conditional-on-selection inference
+under the sharp null for *any* selection rule — no algebra, no
+per-class derivation — which directly attacks this plan's own "per-class
+rollout cost" scope concern: one wrapper serves every class the
+selection pipeline can pick.
+
+Costs stated honestly: (i) the acceptance rate is the price — a fragile
+winner means most redraws are discarded, so the effective replicate
+count (and hence p-value resolution) degrades exactly when selection was
+least stable; report the acceptance rate alongside the p-value and set a
+typed floor below which the result is declared non-estimable rather than
+reported on a handful of accepted draws. (ii) It conditions on the
+selection event within the sharp-null randomization frame — it does not
+deliver the asymptotic/likelihood-scale conditional CIs the polyhedral
+route gives, so it complements rather than replaces the Stage 1 pilot.
+(iii) Selection re-runs per redraw: pipeline-cost × replicates ÷
+acceptance rate, mitigated by warm starts, the parallel layers, and
+sequential-MC early stopping. The pipeline definition, gate constants,
+and provenance object come from `model_selection_framework.md` §5
+(which routes to this plan via its `method = "rand_conditional"`); the
+blinding-commutation special case documented there does not apply here —
+conditioning is only interesting when selection is unblinded, since
+blinded selection is invariant across redraws and the acceptance rate is
+then 1 (the conditional test degenerates, correctly, to the plain test).
+
 ## Scope note (why this is staged, and staged conservatively)
 
 A full rollout — every applicable `Inference` class in the registry gaining
@@ -150,6 +183,17 @@ move to 2.0.0 alongside `sample_splitting_model_selection.md`.
 - [ ] TODO-6: roxygen distinguishing this from every other summary in the
   family, with explicit cross-reference to `sample_splitting_model_selection.md`
   (same underlying problem, different validity mechanism and cost profile).
+- [ ] TODO-7 (added 2026-09-02): the rejection-sampled conditional
+  randomization test (see the design-based-route section above) —
+  wrapper over `model_selection_framework.md`'s provenance object and
+  the custom-randomization-statistic machinery; acceptance-rate
+  reporting with a typed non-estimable floor; conditional-calibration
+  test mirroring TODO-3 (type-I error within accepted-draw subsets under
+  `betaT = 0`); benchmark against the Stage 1 polyhedral pilot on the
+  same simulated selections. Sequenced after
+  `model_selection_framework.md → TODO-7` supplies the pipeline wrapper
+  (v2.0.0), even though this plan's polyhedral pilot is v1.4.0 — the two
+  routes ship independently.
 
 ## References
 

@@ -283,6 +283,36 @@ against; they are additive on the design factory but are treated as a
   machinery; a new construction needed for bootstrap/randomization
   procedures) — staged, starting with a pilot subset before any adaptive-
   inclusion workflow is attempted.
+- [ ] TODO-6g: **`ModelDiagnostics` — per-model assumption batteries**
+  (added 2026-09-02, user decision; split 2026-09-02 from a briefly
+  combined plan into its own file):
+  `model_diagnostics_framework.md → TODO-1..6` — the *absolute* half of
+  model criticism: each class declares its own assumption checks in the
+  registry the way capabilities are declared (Schoenfeld/PH for Cox,
+  overdispersion for Poisson, proportionality for cumulative logit,
+  separation/calibration for logistic — surfacing the existing internal
+  separation guard as a user-visible diagnostic; pilots first, per-class
+  rollout after), returning typed results rendered in one report with
+  `SolverDiagnostics`' numerical rows. Checks run treatment-blinded and
+  the report's handoff rule guards against diagnose-then-switch pretest
+  bias. Note its TODO-1(e): the declaration contract + pilots need no
+  fold/split substrate and could ship in a 1.x release ahead of TODO-6h —
+  decision pending.
+- [ ] TODO-6h: **`ModelSelection` — comparative fit over the model ×
+  formula grid** (added 2026-09-02, user decision; the *relative* half,
+  split likewise): `model_selection_framework.md → TODO-1..8` —
+  likelihood-tier-gated criteria (AIC only at `"full"`, QIC at `"quasi"`,
+  partial-likelihood AIC at `"partial"`, CV/scoring rules everywhere)
+  over `~1`/`~.`/`~.*w`/spline grids with rank guardrails, CV folds built
+  on `resolve_resampling_unit()` units (shared substrate with TODO-6e —
+  build once, coordinate), TODO-6g's check results wired in as
+  assumption gates, criteria treatment-blinded by default, and the
+  report ending in a handoff to the honest test steps — including this
+  plan's own new one, the **selection-inclusive randomization test**:
+  wrap the whole diagnose-choose-fit pipeline as the randomization
+  statistic (valid under the sharp null for any statistic), so
+  data-driven selection costs compute, not validity. 2.0.0 for the same
+  reason as TODO-6e.
 - [ ] TODO-7: **Breaking changes** — greedy-class deletion; any contract
   breaks accumulated from TODO-3/4, each with a documented deprecation
   path from 1.x.

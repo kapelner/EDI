@@ -1,6 +1,21 @@
 rm(list = ls())
 set.seed(1)
 
+# Prefix every screen printout from this script with a left-aligned timestamp,
+# to make it possible to tell how long the run has actually been sitting on
+# its last-printed line (e.g. to distinguish a live computation from a hang)
+# without cross-referencing file mtimes. Shadowing message()/cat() here in
+# .GlobalEnv only affects code that resolves them lexically from this script
+# (this file and anything it source()s) -- EDI package internals resolve
+# message()/cat() from their own package namespace and are unaffected.
+.comprehensive_tests_timestamp = function() format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+message = function(..., domain = NULL, appendLF = TRUE){
+	base::message(sprintf("[%s] ", .comprehensive_tests_timestamp()), ..., domain = domain, appendLF = appendLF)
+}
+cat = function(..., file = "", sep = " ", fill = FALSE, labels = NULL, append = FALSE){
+	base::cat(sprintf("[%s] ", .comprehensive_tests_timestamp()), ..., file = file, sep = sep, fill = fill, labels = labels, append = append)
+}
+
 script_file_arg = grep("^--file=", commandArgs(FALSE), value = TRUE)
 script_path = if (length(script_file_arg)) {
 	normalizePath(sub("^--file=", "", script_file_arg[1]), mustWork = TRUE)

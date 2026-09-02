@@ -667,6 +667,33 @@ already stated there:**
   models. Substantial lift — every `Inference` class needs its own e-value —
   hence 2.0.0 scope, staged from a likelihood-ratio-route pilot subset
   before any adaptive-inclusion workflow.
+- **5AH. `ModelDiagnostics` — per-model assumption batteries** (added
+  2026-09-02, user decision; split 2026-09-02 from a briefly combined
+  plan) → `release_v2_0_0.md → TODO-6g`.
+  `model_diagnostics_framework.md`. The *absolute* half of model
+  criticism: each class declares its own assumption checks in the
+  registry like capabilities (Cox PH via Schoenfeld, Poisson
+  overdispersion, proportional-odds proportionality, logistic
+  separation/calibration as pilots — the last surfacing the existing
+  internal separation guard), typed results, one report shared with
+  `SolverDiagnostics`' numerical rows, treatment-blinded, with the
+  handoff rule guarding against diagnose-then-switch pretest bias. Its
+  TODO-1(e) holds a live decision: the declaration contract + pilots
+  need no v2.0.0 substrate and could ship in 1.x ahead of 5AI.
+- **5AI. `ModelSelection` — comparative fit over the model × formula
+  grid** (added 2026-09-02, user decision; the *relative* half of the
+  same split) → `release_v2_0_0.md → TODO-6h`.
+  `model_selection_framework.md`. Likelihood-tier-gated criteria (AIC
+  only at `"full"`, QIC at `"quasi"`, partial-likelihood AIC at
+  `"partial"`, CV/scoring rules everywhere) over `~1`/`~.`/`~.*w`/spline
+  grids, CV folds on `resolve_resampling_unit()` units (substrate shared
+  with 5AE — build once, coordinate), 5AH's checks wired in as
+  assumption gates, criteria treatment-blinded by default, and the
+  report ending in a handoff to this family's honest test steps —
+  including its own new mechanism, a selection-inclusive randomization
+  test wrapping the entire diagnose-choose-fit pipeline as the
+  randomization statistic (valid under the sharp null for any statistic;
+  selection costs compute, not validity). 2.0.0 alongside 5AE.
 
 ### Audit reports (2026-08-26/27) — reference, not work items
 

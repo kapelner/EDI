@@ -337,6 +337,25 @@ All produce identical results to today's code unless noted.
 
 ### Model-selection honesty
 
+- **[Per-model assumption diagnostics](R/package_metadata/new_feature_plans/model_diagnostics_framework.md)** —
+  `ModelDiagnostics(des_obj)` runs each model's own registry-declared
+  assumption battery: proportional-hazards checks for Cox,
+  overdispersion for Poisson, proportionality for cumulative logit,
+  separation and calibration for logistic (surfacing the package's
+  existing internal separation guard as a user-visible diagnostic), and
+  more — typed results, rendered in one report with the planned solver
+  diagnostics' numerical rows. Checks run treatment-blinded, and the
+  report warns that diagnose-then-switch is selection through the back
+  door, routing to the honest exits below.
+- **[Comparative model selection](R/package_metadata/new_feature_plans/model_selection_framework.md)** —
+  `ModelSelection(des_obj)` compares fit across the model × formula grid
+  (`~1`, `~.`, `~.*w`, splines) with likelihood-tier-gated criteria and
+  CV folds that respect the design's exchangeable unit, taking the
+  assumption batteries above as gates. Criteria never see the treatment
+  effect, and the honest exit for selection-informed inference is a new
+  selection-inclusive randomization test: the whole diagnose-choose-fit
+  pipeline becomes the randomization statistic, so data-driven selection
+  costs compute, not validity.
 - **[Sample-splitting / data-carving model selection](R/package_metadata/new_feature_plans/sample_splitting_model_selection.md)** —
   pick the winning model on a selection half, test it on a confirmation
   half at full alpha; needs real `Design`-level splitting (thorny for
