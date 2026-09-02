@@ -40,7 +40,22 @@ EDI_COMPREHENSIVE_SLOW_PATHS = list(
 		"count||InferenceCountHurdleNegBin||compute_rand_two_sided_pval(delta=0.5)",
 		"ordinal||InferenceOrdinalKKGEE||compute_bootstrap_confidence_interval",
 		"ordinal||InferenceOrdinalKKGLMM||compute_lik_ratio_bartlett_two_sided_pval",
-		"survival||InferenceSurvivalWeibullRegr||compute_rand_two_sided_pval(delta=0.5)"
+		"survival||InferenceSurvivalWeibullRegr||compute_rand_two_sided_pval(delta=0.5)",
+		# Observed mean runtime >30 seconds in the 2026-09-02 comprehensive
+		# results. Exact entries intentionally collapse across design and formula.
+		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_rand_two_sided_pval(delta=0.5)",
+		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_bootstrap_confidence_interval",
+		"ordinal||InferenceOrdinalKKCLMMCauchit||compute_bootstrap_confidence_interval_studentized",
+		"survival||InferenceSurvivalLogRank||compute_rand_two_sided_pval(delta=0.5)",
+		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_bootstrap_confidence_interval_studentized",
+		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_rand_two_sided_pval",
+		"survival||InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||compute_rand_confidence_interval(custom)",
+		"continuous||InferenceAllSimpleAverageDiff||compute_m_out_of_n_bootstrap_confidence_interval",
+		"ordinal||InferenceOrdinalKKGLMM||compute_m_out_of_n_bootstrap_confidence_interval",
+		"ordinal||InferenceOrdinalGCompMeanDiff||compute_asymp_two_sided_pval",
+		"survival||InferenceSurvivalKKStratCoxPHOneLik||compute_rand_confidence_interval",
+		"proportion||InferencePropKKGLMM||compute_bayesian_bootstrap_confidence_interval_bca",
+		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_jackknife_estimate"
 	),
 	bootstrap = c(
 		"InferenceContinRobustRegr",

@@ -9,6 +9,26 @@ test_that("comprehensive slow-path registry is public and structurally valid", {
 	))
 })
 
+test_that("observed 2026-09-02 slow operations remain excluded", {
+	expected = c(
+		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_rand_two_sided_pval(delta=0.5)",
+		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_bootstrap_confidence_interval",
+		"ordinal||InferenceOrdinalKKCLMMCauchit||compute_bootstrap_confidence_interval_studentized",
+		"survival||InferenceSurvivalLogRank||compute_rand_two_sided_pval(delta=0.5)",
+		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_bootstrap_confidence_interval_studentized",
+		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_rand_two_sided_pval",
+		"survival||InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||compute_rand_confidence_interval(custom)",
+		"continuous||InferenceAllSimpleAverageDiff||compute_m_out_of_n_bootstrap_confidence_interval",
+		"ordinal||InferenceOrdinalKKGLMM||compute_m_out_of_n_bootstrap_confidence_interval",
+		"ordinal||InferenceOrdinalGCompMeanDiff||compute_asymp_two_sided_pval",
+		"survival||InferenceSurvivalKKStratCoxPHOneLik||compute_rand_confidence_interval",
+		"proportion||InferencePropKKGLMM||compute_bayesian_bootstrap_confidence_interval_bca",
+		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_jackknife_estimate"
+	)
+
+	expect_true(all(expected %in% EDI::EDI_COMPREHENSIVE_SLOW_PATHS$exact_operations))
+})
+
 test_that("slow-path validation rejects malformed, duplicate, and abstract entries", {
 	validate = getFromNamespace("validate_comprehensive_slow_path_rules", "EDI")
 	rules = EDI::EDI_COMPREHENSIVE_SLOW_PATHS

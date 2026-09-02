@@ -393,7 +393,7 @@ which loses only the object's internal memoization
 fitted `Inference` object itself a supported serialization unit.
 
 What the JSS manuscript already says (2026-09-01,
-`../new_research_ideas/paper_JSS_EDI_exposition/manuscript.tex` §3.1):
+`../new_research_ideas/paper/JSS_EDI_exposition/manuscript.tex` §3.1):
 extract-as-data is the current pattern, and extending the serialization
 audit to `Inference` objects "is a candidate for a future release" — this
 section is that candidate, now slated.

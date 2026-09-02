@@ -127,7 +127,7 @@ SPBR, random block sizes) in one API with randomization-inference replay.
 | `quantum_upgrade.md` | QUBO/annealer solver hook on `DesignFixedOptimal` / `OptimalBlocks`; `DesignFixedQuboSampled` (A2) explicitly unscheduled | decision-gated (TODO-9b) |
 | `new_research_ideas/design_seq_many_by_many_greedy_pair_switch.md` | `DesignSeqManyByManyGreedyPairSwitch` | research idea |
 | `new_research_ideas/quantum_greedy_design.md` | `DesignFixedGibbs` (Boltzmann-sampled allocation, β-interpolation between greedy and uniform) | research idea; gated on simulations |
-| `new_research_ideas/paper_JSS_EDI_exposition/paper_JSS_EDI_exposition.md §3.7` | Chipman-Mayberry-Greevy rematching-on-the-fly as a new one-by-one class | candidate only |
+| `new_research_ideas/paper/JSS_EDI_exposition/JSS_EDI_exposition.md §3.7` | Chipman-Mayberry-Greevy rematching-on-the-fly as a new one-by-one class | candidate only |
 | `finished_features/design_fixed_optimal.md`, `fix_design_hierarchy.md` | shipped 2026-08-17 (`DesignFixedOptimal`, factory, registry, components, D/A merge) | done |
 
 Explicitly rejected: `DesignFixedOptimal` as a mode flag; annealer as a

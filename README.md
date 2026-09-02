@@ -2,10 +2,10 @@
 
 [![CRAN](https://img.shields.io/cran/v/EDI.svg)](https://CRAN.R-project.org/package=EDI)
 [![R-CMD-check](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml)
-[![R coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=r)](https://codecov.io/gh/kapelner/EDI/flags/r)
+[![R coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=r)](https://codecov.io/gh/kapelner/EDI/flags/r)\
 [![PyPI](https://img.shields.io/pypi/v/edi_kernels.svg)](https://pypi.org/project/edi_kernels/)
 [![Python tests](https://github.com/kapelner/EDI/actions/workflows/python-tests.yml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/python-tests.yml)
-[![Python coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=python)](https://codecov.io/gh/kapelner/EDI/flags/python)
+[![Python coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=python)](https://codecov.io/gh/kapelner/EDI/flags/python)\
 ![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)
 [![Last commit](https://img.shields.io/github/last-commit/kapelner/EDI)](https://github.com/kapelner/EDI/commits/main)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
@@ -57,7 +57,7 @@ and benchmark results.
 - [Tuning Local Builds](#tuning-local-builds) · [Local performance tuning](#local-performance-tuning) · [Why CPU-only](#why-edi-targets-the-cpu-and-not-gpus-tpus-or-quantum-hardware)
 - [Contributing](#contributing) · [License](#license) · [Citation](#citation)
 
-## R package v1.0.0
+## R package
 
 The R package includes the code used to reproduce the simulations in the
 methods papers behind the KK-family designs and estimators (run
@@ -66,6 +66,8 @@ installing is [Getting Started](#getting-started) below and the
 [vignettes](#vignettes).
 
 > **Benchmark report:** [`R/benchmark/benchmark_model_fits_R.html`](R/benchmark/benchmark_model_fits_R.html) — speed and correctness of every model-fitting kernel against its R canonical baseline. (GitHub shows raw HTML; clone and open it in a browser.)
+
+> **Inference path audit:** [Rendered comprehensive-tests coverage and estimability report](https://htmlpreview.github.io/?https://github.com/kapelner/EDI/blob/main/R/package_tests/path_audits.html) — supported inference paths and their latest observed percent estimability.
 
 ### Installation
 
