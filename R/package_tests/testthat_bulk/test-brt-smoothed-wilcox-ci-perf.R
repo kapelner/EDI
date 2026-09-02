@@ -50,14 +50,26 @@ test_that("smoothed CI: fast kernel is dramatically faster than the forced-slow 
 	fast_inf = InferenceAllSimpleWilcox$new(des)
 	slow_inf = SlowInferenceAllSimpleWilcox$new(des)
 
-	set.seed(99)
-	t_fast = system.time(
-		fast_ci <- fast_inf$compute_rand_bootstrap_confidence_interval(B = 51, type = "smoothed", show_progress = FALSE)
-	)[["elapsed"]]
-	set.seed(99)
-	t_slow = system.time(
-		slow_ci <- slow_inf$compute_rand_bootstrap_confidence_interval(B = 51, type = "smoothed", show_progress = FALSE)
-	)[["elapsed"]]
+	# Best-of-3 timing on both paths: at this workload t_fast is only a few
+	# hundredths of a second, so a single measurement is dominated by fixed
+	# overhead and scheduler noise on a loaded shared CI runner -- run
+	# 33599645201 failed this assertion at 4.97x against the 5x threshold
+	# (t_fast=0.032s, t_slow=0.159s) from one noisy t_fast sample. The
+	# minimum over three runs is the standard de-noising for
+	# micro-benchmarks: noise only ever adds time, so min approaches the
+	# true cost.
+	time_best_of_3 = function(fn) {
+		min(vapply(1:3, function(i) {
+			set.seed(99)
+			system.time(fn())[["elapsed"]]
+		}, numeric(1)))
+	}
+	t_fast = time_best_of_3(function()
+		fast_ci <<- fast_inf$compute_rand_bootstrap_confidence_interval(B = 51, type = "smoothed", show_progress = FALSE)
+	)
+	t_slow = time_best_of_3(function()
+		slow_ci <<- slow_inf$compute_rand_bootstrap_confidence_interval(B = 51, type = "smoothed", show_progress = FALSE)
+	)
 
 	expect_equal(as.numeric(fast_ci), as.numeric(slow_ci), tolerance = 1e-6)
 	# Measured ~50x on this workload during development; require at least 5x here to allow for
