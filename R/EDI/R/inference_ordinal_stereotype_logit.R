@@ -563,11 +563,17 @@ OrdinalContinuationRatioLikelihoodSource = list(
 				),
 				error = function(e) NULL
 			)
-			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[length(res$b)])){
+			# treatment is X's first column (cbind(treatment = ..., X_cov)
+			# above); res$b[1] is the treatment slope, matching generate_mod()'s
+			# own extraction. res$b[length(res$b)] (the last covariate's slope
+			# whenever design_formula includes covariates) fed the
+			# randomization test a covariate's coefficient instead of
+			# treatment's.
+			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[1])){
 				return(NA_real_)
 			}
 			private$set_fit_warm_start(res$b, "beta", fisher = res$fisher_information)
-			as.numeric(res$b[length(res$b)])
+			as.numeric(res$b[1])
 		},
 		generate_mod = function(estimate_only = FALSE){
 			X_full = private$build_design_matrix()

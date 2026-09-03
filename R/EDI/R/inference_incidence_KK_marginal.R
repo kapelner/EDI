@@ -408,7 +408,9 @@ InferenceIncidKKGCompRiskDiff = define_inference_class(
 			"get_supported_testing_types", "set_testing_type",
 			"compute_bootstrap_confidence_interval", "compute_bootstrap_two_sided_pval",
 			"compute_bayesian_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_confidence_interval",
-			"compute_jackknife_wald_two_sided_pval", "compute_jackknife_wald_confidence_interval"
+			"compute_jackknife_wald_two_sided_pval", "compute_jackknife_wald_confidence_interval",
+			"compute_subsampling_two_sided_pval", "compute_subsampling_confidence_interval",
+			"compute_m_out_of_n_bootstrap_two_sided_pval", "compute_m_out_of_n_bootstrap_confidence_interval"
 		),
 		private = c(
 			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
@@ -419,7 +421,10 @@ InferenceIncidKKGCompRiskDiff = define_inference_class(
 			"build_design_matrix",
 			"get_estimand_type",
 			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
-			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"compute_rr_resampling_pivot",
+			"compute_rr_subsampling_two_sided_pval", "compute_rr_subsampling_confidence_interval",
+			"compute_rr_m_out_of_n_bootstrap_two_sided_pval", "compute_rr_m_out_of_n_bootstrap_confidence_interval"
 		)
 	),
 	metadata = list(likelihood_tier = "none")
@@ -479,7 +484,9 @@ InferenceIncidKKGCompRiskRatio = define_inference_class(
 			"get_supported_testing_types", "set_testing_type",
 			"compute_bootstrap_confidence_interval", "compute_bootstrap_two_sided_pval",
 			"compute_bayesian_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_confidence_interval",
-			"compute_jackknife_wald_two_sided_pval", "compute_jackknife_wald_confidence_interval"
+			"compute_jackknife_wald_two_sided_pval", "compute_jackknife_wald_confidence_interval",
+			"compute_subsampling_two_sided_pval", "compute_subsampling_confidence_interval",
+			"compute_m_out_of_n_bootstrap_two_sided_pval", "compute_m_out_of_n_bootstrap_confidence_interval"
 		),
 		private = c(
 			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
@@ -490,7 +497,10 @@ InferenceIncidKKGCompRiskRatio = define_inference_class(
 			"build_design_matrix",
 			"get_estimand_type",
 			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
-			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"compute_rr_resampling_pivot",
+			"compute_rr_subsampling_two_sided_pval", "compute_rr_subsampling_confidence_interval",
+			"compute_rr_m_out_of_n_bootstrap_two_sided_pval", "compute_rr_m_out_of_n_bootstrap_confidence_interval"
 		)
 	),
 	metadata = list(likelihood_tier = "none")

@@ -94,3 +94,43 @@ test_that("weibull frailty loglik collapses to survreg's weibull loglik as sigma
 	neg_ll_frailty <- EDI:::get_weibull_frailty_neg_loglik_cpp(X, y, dead, group_id, params)
 	expect_equal(neg_ll_frailty, -as.numeric(stats::logLik(fit_r)), tolerance = 1e-4)
 })
+
+test_that("weibull frailty one-lik fit carries an intercept and is unbiased under H0 with a nonzero baseline", {
+	# Regression for the 2026-09-03 bug: the primary fit passed X = [w] (no
+	# intercept) to fast_weibull_frailty_cpp, pinning the control arm's log-time
+	# location at 0. With a nonzero baseline log-time the leftover location
+	# leaked into beta_hat_T (H0 rejection ~50-70%).
+	n = 200L
+	des = DesignSeqOneByOneKK14$new(n = n, response_type = "survival", verbose = FALSE)
+	set.seed(20260903)
+	x1 = rnorm(n); x2 = rnorm(n)
+	for (i in seq_len(n)) {
+		des$add_one_subject_to_experiment_and_assign(data.frame(x1 = x1[i], x2 = x2[i]))
+	}
+	# beta_T = 0 with a nonzero baseline log-time (0.7) and a covariate signal
+	# that KK matching turns into a pair-shared component -- the same shape as
+	# the comprehensive-tests survival fixtures where the bias showed up.
+	y = exp(0.7 + 0.6 * x1 + 0.3 * rnorm(n))
+	add_all_subject_responses_seq(des, y, deads = rep(1L, n))
+
+	inf = InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$new(des, model_formula = ~ 1, verbose = FALSE)
+	est = inf$compute_estimate()
+	ctx = inf$.__enclos_env__$private$cached_values$likelihood_test_context
+	expect_identical(colnames(ctx$X)[1:2], c("w", "(Intercept)"))
+
+	# The class estimate must be the with-intercept MLE ...
+	fit_int = EDI:::fast_weibull_frailty_cpp(X = ctx$X, y = ctx$y, dead = ctx$dead, group_id = as.integer(ctx$group_id), estimate_only = FALSE)
+	expect_equal(est, as.numeric(fit_int$b[1L]), tolerance = 1e-6)
+	# ... and not the old intercept-free MLE, which is visibly biased on this data.
+	fit_noint = EDI:::fast_weibull_frailty_cpp(X = ctx$X[, "w", drop = FALSE], y = ctx$y, dead = ctx$dead, group_id = as.integer(ctx$group_id), estimate_only = FALSE)
+	expect_gt(abs(as.numeric(fit_noint$b[1L])), abs(est))
+	expect_lt(abs(est), 0.15)
+
+	# Multivariate path keeps [w, (Intercept), covariates...] ordering too.
+	inf_multi = InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
+	est_multi = inf_multi$compute_estimate()
+	ctx_multi = inf_multi$.__enclos_env__$private$cached_values$likelihood_test_context
+	expect_identical(colnames(ctx_multi$X)[1:2], c("w", "(Intercept)"))
+	expect_true(all(c("x1", "x2") %in% colnames(ctx_multi$X)))
+	expect_lt(abs(est_multi), 0.15)
+})

@@ -352,6 +352,110 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			ci[] = exp(log(est) + c(-1, 1) * z * se_log)
 			ci
 		},
+		# Log-scale PRW subsampling/m-out-of-n pivot for the risk-ratio estimand,
+		# mirroring compute_rr_bootstrap_basic_confidence_interval()'s log-scale
+		# convention above -- see the identical, more fully commented version in
+		# inference_incidence_gcomp_abstract.R (the non-KK sibling) for the
+		# full rationale: the generic centered-pivot machinery centers/scales on
+		# the raw estimate scale, appropriate for risk difference but not for a
+		# ratio estimand whose null is 1 and whose raw sampling distribution is
+		# right-skewed, especially so at the reduced effective sample sizes
+		# (b/m ~ n^0.7) subsampling and m-out-of-n draw at.
+		compute_rr_resampling_pivot = function(distribution_fn, size_arg_name, size, B, resampling_type, show_progress){
+			est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = function(e) NA_real_)
+			if (!is.finite(est) || est <= 0) {
+				return(list(ok = FALSE, reason = "resampling_original_estimate_unavailable"))
+			}
+			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = resampling_type)
+			size = private$resolve_resampling_size(size, unit_info$n_units, size_arg_name)
+			draw_args = list(B = B, show_progress = show_progress)
+			draw_args[[size_arg_name]] = size
+			draw_args[[if (identical(size_arg_name, "b")) "subsampling_type" else "bootstrap_type"]] = resampling_type
+			draws = as.numeric(do.call(distribution_fn, draw_args))
+			finite = draws[is.finite(draws) & draws > 0]
+			if (!length(finite)) {
+				return(list(ok = FALSE, reason = "resampling_too_few_finite_estimates"))
+			}
+			list(
+				ok = TRUE,
+				reason = NA_character_,
+				est = est,
+				log_est = log(est),
+				finite = finite,
+				centered_scaled = private$resampling_scaling_factor(size, "sqrt_n") * (log(finite) - log(est)),
+				n_units = unit_info$n_units
+			)
+		},
+		compute_rr_subsampling_two_sided_pval = function(delta = 1, B = 501, b = NULL, show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
+			if (!is.finite(delta) || delta <= 0) {
+				private$cache_nonestimable_estimate("subsampling_log_risk_ratio_null_unavailable")
+				return(NA_real_)
+			}
+			pivot = private$compute_rr_resampling_pivot(self$approximate_subsampling_distribution_beta_hat_T, "b", b, B, subsampling_type, show_progress)
+			if (!isTRUE(pivot$ok)) {
+				if (isTRUE(private$harden)) private$cache_nonestimable_estimate(pivot$reason)
+				return(NA_real_)
+			}
+			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
+				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("subsampling_too_few_finite_estimates")
+				return(NA_real_)
+			}
+			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$log_est, delta = log(delta), n_units = pivot$n_units, scaling = "sqrt_n")
+		},
+		compute_rr_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
+			ci = c(NA_real_, NA_real_)
+			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+			pivot = private$compute_rr_resampling_pivot(self$approximate_subsampling_distribution_beta_hat_T, "b", b, B, subsampling_type, show_progress)
+			if (!isTRUE(pivot$ok)) {
+				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate"))
+				return(ci)
+			}
+			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
+				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "subsampling_too_few_finite_estimates", stage = "estimate"))
+				return(ci)
+			}
+			log_ci = private$resampling_ci_from_centered_distribution(pivot$centered_scaled, alpha = alpha, est = pivot$log_est, n_units = pivot$n_units, scaling = "sqrt_n")
+			ci[] = exp(log_ci)
+			if (!all(is.finite(ci)) || private$bootstrap_confidence_interval_extreme(ci, est = pivot$est)) {
+				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "subsampling_extreme_confidence_interval", stage = "estimate"))
+			}
+			ci
+		},
+		compute_rr_m_out_of_n_bootstrap_two_sided_pval = function(delta = 1, B = 501, m = NULL, show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
+			if (!is.finite(delta) || delta <= 0) {
+				private$cache_nonestimable_estimate("m_out_of_n_log_risk_ratio_null_unavailable")
+				return(NA_real_)
+			}
+			pivot = private$compute_rr_resampling_pivot(self$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T, "m", m, B, bootstrap_type, show_progress)
+			if (!isTRUE(pivot$ok)) {
+				if (isTRUE(private$harden)) private$cache_nonestimable_estimate(pivot$reason)
+				return(NA_real_)
+			}
+			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
+				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("m_out_of_n_too_few_finite_estimates")
+				return(NA_real_)
+			}
+			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$log_est, delta = log(delta), n_units = pivot$n_units, scaling = "sqrt_n")
+		},
+		compute_rr_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
+			ci = c(NA_real_, NA_real_)
+			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+			pivot = private$compute_rr_resampling_pivot(self$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T, "m", m, B, bootstrap_type, show_progress)
+			if (!isTRUE(pivot$ok)) {
+				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate"))
+				return(ci)
+			}
+			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
+				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "m_out_of_n_too_few_finite_estimates", stage = "estimate"))
+				return(ci)
+			}
+			log_ci = private$resampling_ci_from_centered_distribution(pivot$centered_scaled, alpha = alpha, est = pivot$log_est, n_units = pivot$n_units, scaling = "sqrt_n")
+			ci[] = exp(log_ci)
+			if (!all(is.finite(ci)) || private$bootstrap_confidence_interval_extreme(ci, est = pivot$est)) {
+				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "m_out_of_n_extreme_confidence_interval", stage = "estimate"))
+			}
+			ci
+		},
 		compute_weighted_gcomp_estimate = function(row_weights){
 			X = private$build_design_matrix()
 			if (is.null(X)) return(NA_real_)
@@ -739,6 +843,10 @@ incidence_kk_gcomp_generic_alias_overrides = list(
 	compute_bayesian_bootstrap_confidence_interval_generic = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_confidence_interval,
 	compute_jackknife_wald_two_sided_pval_generic = InferenceJackknife$public_methods$compute_jackknife_wald_two_sided_pval,
 	compute_jackknife_wald_confidence_interval_generic = InferenceJackknife$public_methods$compute_jackknife_wald_confidence_interval,
+	compute_subsampling_two_sided_pval_generic = InferenceNonParamBootstrap$public_methods$compute_subsampling_two_sided_pval,
+	compute_subsampling_confidence_interval_generic = InferenceNonParamBootstrap$public_methods$compute_subsampling_confidence_interval,
+	compute_m_out_of_n_bootstrap_two_sided_pval_generic = InferenceNonParamBootstrap$public_methods$compute_m_out_of_n_bootstrap_two_sided_pval,
+	compute_m_out_of_n_bootstrap_confidence_interval_generic = InferenceNonParamBootstrap$public_methods$compute_m_out_of_n_bootstrap_confidence_interval,
 	approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
 		self$approximate_bootstrap_distribution_beta_hat_T_generic(B, show_progress, debug, bootstrap_type)
 	},
@@ -782,6 +890,36 @@ incidence_kk_gcomp_generic_alias_overrides = list(
 			return(private$compute_rr_jackknife_wald_confidence_interval(alpha = alpha, unit = unit))
 		}
 		self$compute_jackknife_wald_confidence_interval_generic(alpha = alpha, unit = unit)
+	},
+	compute_subsampling_two_sided_pval = function(delta = NULL, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
+		if (is.null(delta)){
+			delta = private$default_null_value()
+		}
+		if (identical(private$get_estimand_type(), "RR")) {
+			return(private$compute_rr_subsampling_two_sided_pval(delta = delta, B = B, b = b, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type))
+		}
+		self$compute_subsampling_two_sided_pval_generic(delta = delta, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type)
+	},
+	compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
+		if (identical(private$get_estimand_type(), "RR")) {
+			return(private$compute_rr_subsampling_confidence_interval(alpha = alpha, B = B, b = b, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type))
+		}
+		self$compute_subsampling_confidence_interval_generic(alpha = alpha, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type)
+	},
+	compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = NULL, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
+		if (is.null(delta)){
+			delta = private$default_null_value()
+		}
+		if (identical(private$get_estimand_type(), "RR")) {
+			return(private$compute_rr_m_out_of_n_bootstrap_two_sided_pval(delta = delta, B = B, m = m, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type))
+		}
+		self$compute_m_out_of_n_bootstrap_two_sided_pval_generic(delta = delta, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type)
+	},
+	compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
+		if (identical(private$get_estimand_type(), "RR")) {
+			return(private$compute_rr_m_out_of_n_bootstrap_confidence_interval(alpha = alpha, B = B, m = m, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type))
+		}
+		self$compute_m_out_of_n_bootstrap_confidence_interval_generic(alpha = alpha, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type)
 	}
 )
 

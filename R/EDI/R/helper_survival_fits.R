@@ -475,6 +475,31 @@
 	)
 }
 
+# Design matrix for the log-normal-frailty Weibull AFT likelihood
+# (fast_weibull_frailty_cpp), which does NOT add an intercept itself. Column
+# order is [w, (Intercept), covariates...]: `w` stays column 1 so every
+# `b[1L]` / `j_treat = 1L` read in the callers is unchanged, and the intercept
+# sits at column 2 so callers can pin `required_cols = c(1L, 2L)` in
+# fit_with_hardened_qr_column_dropping() and it can never be dropped.
+#
+# The intercept was missing until 2026-09-03. Without it the control arm's
+# log-time location was fixed at 0 and the mean-zero Gaussian frailty could
+# only partly absorb the true baseline; the remainder (plus the Gumbel
+# error's nonzero mean, -0.577 * sigma_eps) leaked into beta_hat_T. Under H0
+# that biased the estimate in the direction of the baseline log-time and
+# inflated Wald/score/LR/bootstrap rejection to ~50-70%.
+.weibull_frailty_design_matrix = function(w, X_cov = NULL){
+	X_full = cbind(w = as.numeric(w), "(Intercept)" = 1)
+	if (!is.null(X_cov)){
+		X_cov = as.matrix(X_cov)
+		if (ncol(X_cov) > 0L){
+			X_cov = X_cov[, setdiff(colnames(X_cov), c("w", "(Intercept)")), drop = FALSE]
+			if (ncol(X_cov) > 0L) X_full = cbind(X_full, X_cov)
+		}
+	}
+	X_full
+}
+
 .fit_weibull_frailty = function(y, dead, X, pair_id, estimate_only = FALSE, optimization_alg = "lbfgs", warm_start_params = NULL, warm_start_fisher_info = NULL){
 	.fit_weibull_frailty_rcpp(
 		y = y,
@@ -498,6 +523,12 @@
 	}
 	if (!identical(colnames(X)[1L], "w")){
 		X = X[, c("w", setdiff(colnames(X), "w")), drop = FALSE]
+	}
+	if (!("(Intercept)" %in% colnames(X))){
+		# Defensive: the AFT likelihood needs an intercept (see
+		# .weibull_frailty_design_matrix); insert it after `w` so b[1L] is
+		# still the treatment coefficient.
+		X = .weibull_frailty_design_matrix(X[, "w"], X[, setdiff(colnames(X), "w"), drop = FALSE])
 	}
 
 	group_id = as.integer(factor(pair_id))

@@ -137,12 +137,19 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 				warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
 				warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params)
 			)
-			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[length(res$b)]) ||
-					abs(res$b[length(res$b)]) > private$max_abs_reasonable_coef){
+			# treatment is X's first column (cbind(treatment = ..., X_cov)
+			# above); res$b[1] is the treatment slope, matching generate_mod()'s
+			# own extraction. res$b[length(res$b)] (the last covariate's slope
+			# whenever design_formula includes covariates) fed the
+			# randomization test a covariate's coefficient instead of
+			# treatment's -- confirmed via near-total null rejection on
+			# design_formula=~. paths.
+			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[1]) ||
+					abs(res$b[1]) > private$max_abs_reasonable_coef){
 				return(NA_real_)
 			}
 			private$set_fit_warm_start(res$params, "params")
-			as.numeric(res$b[length(res$b)])
+			as.numeric(res$b[1])
 		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE

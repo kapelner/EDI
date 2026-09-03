@@ -18,6 +18,10 @@ incidence_gcomp_generic_alias_overrides = list(
 	compute_bootstrap_confidence_interval_generic = InferenceNonParamBootstrap$public_methods$compute_bootstrap_confidence_interval,
 	compute_bootstrap_two_sided_pval_generic = InferenceNonParamBootstrap$public_methods$compute_bootstrap_two_sided_pval,
 	approximate_bootstrap_distribution_beta_hat_T_generic = InferenceNonParamBootstrap$public_methods$approximate_bootstrap_distribution_beta_hat_T,
+	compute_subsampling_two_sided_pval_generic = InferenceNonParamBootstrap$public_methods$compute_subsampling_two_sided_pval,
+	compute_subsampling_confidence_interval_generic = InferenceNonParamBootstrap$public_methods$compute_subsampling_confidence_interval,
+	compute_m_out_of_n_bootstrap_two_sided_pval_generic = InferenceNonParamBootstrap$public_methods$compute_m_out_of_n_bootstrap_two_sided_pval,
+	compute_m_out_of_n_bootstrap_confidence_interval_generic = InferenceNonParamBootstrap$public_methods$compute_m_out_of_n_bootstrap_confidence_interval,
 	compute_bayesian_bootstrap_two_sided_pval_generic = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_two_sided_pval,
 	compute_bayesian_bootstrap_confidence_interval_generic = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_confidence_interval,
 	compute_jackknife_wald_two_sided_pval_generic = InferenceJackknife$public_methods$compute_jackknife_wald_two_sided_pval,
@@ -108,6 +112,68 @@ incidence_gcomp_generic_alias_overrides = list(
 			return(private$compute_rr_jackknife_wald_confidence_interval(alpha = alpha, unit = unit))
 		}
 		self$compute_jackknife_wald_confidence_interval_generic(alpha = alpha, unit = unit)
+	},
+	#' @description Computes a PRW subsampling two-sided p-value for the treatment effect.
+	#' @param delta Null treatment effect. Defaults to 0 for RD and 1 for RR.
+	#' @param B Number of subsamples.
+	#' @param b Subsample size. See \code{InferenceNonParamBootstrap$compute_subsampling_two_sided_pval}.
+	#' @param type P-value type.
+	#' @param show_progress Whether to show a progress bar.
+	#' @param min_number_usable_samples Minimum number of finite subsampled estimates required.
+	#' @param subsampling_type Optional empirical-resampling scheme.
+	compute_subsampling_two_sided_pval = function(delta = NULL, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
+		if (is.null(delta)){
+			delta = private$default_null_value()
+		}
+		if (identical(private$get_estimand_type(), "RR")) {
+			return(private$compute_rr_subsampling_two_sided_pval(delta = delta, B = B, b = b, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type))
+		}
+		self$compute_subsampling_two_sided_pval_generic(delta = delta, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type)
+	},
+	#' @description Computes a PRW subsampling confidence interval for the treatment effect.
+	#' @param alpha Significance level. Default 0.05.
+	#' @param B Number of subsamples.
+	#' @param b Subsample size. See \code{InferenceNonParamBootstrap$compute_subsampling_confidence_interval}.
+	#' @param type Confidence-interval type.
+	#' @param show_progress Whether to show a progress bar.
+	#' @param min_number_usable_samples Minimum number of finite subsampled estimates required.
+	#' @param subsampling_type Optional empirical-resampling scheme.
+	compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
+		if (identical(private$get_estimand_type(), "RR")) {
+			return(private$compute_rr_subsampling_confidence_interval(alpha = alpha, B = B, b = b, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type))
+		}
+		self$compute_subsampling_confidence_interval_generic(alpha = alpha, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type)
+	},
+	#' @description Computes an m-out-of-n bootstrap two-sided p-value for the treatment effect.
+	#' @param delta Null treatment effect. Defaults to 0 for RD and 1 for RR.
+	#' @param B Number of resamples.
+	#' @param m Resample size. See \code{InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval}.
+	#' @param type P-value type.
+	#' @param show_progress Whether to show a progress bar.
+	#' @param min_number_usable_samples Minimum number of finite resampled estimates required.
+	#' @param bootstrap_type Optional empirical-resampling scheme.
+	compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = NULL, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
+		if (is.null(delta)){
+			delta = private$default_null_value()
+		}
+		if (identical(private$get_estimand_type(), "RR")) {
+			return(private$compute_rr_m_out_of_n_bootstrap_two_sided_pval(delta = delta, B = B, m = m, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type))
+		}
+		self$compute_m_out_of_n_bootstrap_two_sided_pval_generic(delta = delta, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type)
+	},
+	#' @description Computes an m-out-of-n bootstrap confidence interval for the treatment effect.
+	#' @param alpha Significance level. Default 0.05.
+	#' @param B Number of resamples.
+	#' @param m Resample size. See \code{InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval}.
+	#' @param type Confidence-interval type.
+	#' @param show_progress Whether to show a progress bar.
+	#' @param min_number_usable_samples Minimum number of finite resampled estimates required.
+	#' @param bootstrap_type Optional empirical-resampling scheme.
+	compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
+		if (identical(private$get_estimand_type(), "RR")) {
+			return(private$compute_rr_m_out_of_n_bootstrap_confidence_interval(alpha = alpha, B = B, m = m, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type))
+		}
+		self$compute_m_out_of_n_bootstrap_confidence_interval_generic(alpha = alpha, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type)
 	}
 )
 
@@ -150,7 +216,9 @@ incidence_gcomp_overrides = list(
 		"get_supported_testing_types", "set_testing_type",
 		"compute_bootstrap_confidence_interval", "compute_bootstrap_two_sided_pval",
 		"compute_bayesian_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_confidence_interval",
-		"compute_jackknife_wald_two_sided_pval", "compute_jackknife_wald_confidence_interval"
+		"compute_jackknife_wald_two_sided_pval", "compute_jackknife_wald_confidence_interval",
+		"compute_subsampling_two_sided_pval", "compute_subsampling_confidence_interval",
+		"compute_m_out_of_n_bootstrap_two_sided_pval", "compute_m_out_of_n_bootstrap_confidence_interval"
 	),
 	private = c(
 		"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
@@ -159,7 +227,10 @@ incidence_gcomp_overrides = list(
 		"get_supported_testing_types_impl",
 		"build_design_matrix", "get_estimand_type",
 		"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
-		"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate"
+		"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+		"compute_rr_resampling_pivot",
+		"compute_rr_subsampling_two_sided_pval", "compute_rr_subsampling_confidence_interval",
+		"compute_rr_m_out_of_n_bootstrap_two_sided_pval", "compute_rr_m_out_of_n_bootstrap_confidence_interval"
 	)
 )
 

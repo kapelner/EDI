@@ -165,7 +165,7 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 			if (m > 0 && !is.null(private$best_X_colnames_matched)){
 				i_matched = split$matched_idx
 				X_cov = X_data[i_matched, intersect(private$best_X_colnames_matched, colnames(X_data)), drop = FALSE]
-				X_m = cbind(w = private$w[i_matched], X_cov)
+				X_m = .weibull_frailty_design_matrix(private$w[i_matched], X_cov)
 				# Fixed-VC fast path
 				if (!is.null(private$cached_vc_params_matched) && all(is.finite(private$cached_vc_params_matched))) {
 					p_m = ncol(X_m)
@@ -268,13 +268,15 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 			m_vec = split$m_vec
 			i_matched = split$matched_idx
 			if (length(i_matched) == 0L) return(invisible(NULL))
-			X_full = if (ncol(as.matrix(private$X)) == 0L){
-				matrix(private$w[i_matched], ncol = 1L, dimnames = list(NULL, "w"))
-			} else {
-				cbind(w = private$w[i_matched], private$get_X()[i_matched, , drop = FALSE])
-			}
+			# [w, (Intercept), covariates...]; both leading columns are pinned so
+			# the hardened QR column-dropping can only remove covariates.
+			X_full = .weibull_frailty_design_matrix(
+				private$w[i_matched],
+				if (ncol(as.matrix(private$X)) == 0L) NULL else private$get_X()[i_matched, , drop = FALSE]
+			)
 			attempt = private$fit_with_hardened_qr_column_dropping(
 				X_full = X_full,
+				required_cols = c(1L, 2L),
 				fit_fun = function(X_fit, keep){
 					res = .fit_weibull_frailty(
 						y = private$y[i_matched],
@@ -296,7 +298,7 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 			if (!is.null(attempt$fit)){
 				private$cached_values$beta_T_matched = attempt$fit$beta
 				private$cached_values$ssq_beta_T_matched = attempt$fit$ssq
-				best_cols = setdiff(colnames(attempt$X), "w")
+				best_cols = setdiff(colnames(attempt$X), c("w", "(Intercept)"))
 				private$cached_values$best_X_colnames_matched = best_cols
 				private$best_X_colnames_matched = best_cols
 				if (!is.null(attempt$fit$log_sigma_eps) && !is.null(attempt$fit$log_sigma_u))
@@ -560,14 +562,17 @@ SurvivalGLMMWeibullFrailtyNormalOneLikSource = list(
 				max_m = if (any(group_id > 0L)) max(group_id) else 0L
 				group_id[res_idx] = max_m + seq_along(res_idx)
 			}
-			X_full = if (ncol(as.matrix(private$X)) == 0L){
-				matrix(private$w, ncol = 1L, dimnames = list(NULL, "w"))
-			} else {
-				cbind(w = private$w, private$get_X())
-			}
+			# [w, (Intercept), covariates...] -- see .weibull_frailty_design_matrix
+			# for why the intercept is mandatory. `w` stays column 1 so the
+			# b[1L] / j_treat = 1L reads below are unchanged; the intercept is a
+			# required column so the hardened QR column-dropping can't remove it.
+			X_full = .weibull_frailty_design_matrix(
+				private$w,
+				if (ncol(as.matrix(private$X)) == 0L) NULL else private$get_X()
+			)
 			attempt = private$fit_with_hardened_qr_column_dropping(
 				X_full = X_full,
-				required_cols = 1L,
+				required_cols = c(1L, 2L),
 				fit_fun = function(X_fit){
 					fast_weibull_frailty_cpp(
 						X = as.matrix(X_fit),
@@ -589,7 +594,7 @@ SurvivalGLMMWeibullFrailtyNormalOneLikSource = list(
 			)
 			res = attempt$fit
 			if (!is.null(res)){
-				private$cached_values$best_X_colnames = setdiff(colnames(attempt$X), "w")
+				private$cached_values$best_X_colnames = setdiff(colnames(attempt$X), c("w", "(Intercept)"))
 				private$cached_mod = res
 				if (!is.null(res$log_sigma_eps) && !is.null(res$log_sigma_u))
 					private$cached_vc_params = as.numeric(c(res$log_sigma_eps, res$log_sigma_u))
@@ -739,9 +744,8 @@ SurvivalGLMMWeibullFrailtyNormalOneLikSource = list(
 				group_id[res_idx] = max_m + seq_along(res_idx)
 			}
 			X_data = private$get_X()
-			X_full = matrix(private$w, ncol = 1L, dimnames = list(NULL, "w"))
 			X_covs = X_data[, intersect(private$cached_values$best_X_colnames, colnames(X_data)), drop = FALSE]
-			if (ncol(X_covs) > 0L) X_full = cbind(X_full, X_covs)
+			X_full = .weibull_frailty_design_matrix(private$w, X_covs)
 			p_ncol = ncol(X_full)
 			if (!is.null(private$cached_vc_params) && all(is.finite(private$cached_vc_params))) {
 				fit_fast = tryCatch(

@@ -119,11 +119,19 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 				smart_cold_start = private$smart_cold_start_default,
 				estimate_only = TRUE
 			)
-			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[length(res$b)])){
+			# treatment is X's first column (cbind(treatment = ..., X_cov) above),
+			# and res$b follows X's column order -- b[1] is the treatment slope,
+			# matching generate_mod()'s own extraction below. Using
+			# res$b[length(res$b)] here (the last covariate's slope whenever
+			# design_formula includes covariates) was a bug: it fed the
+			# randomization test a covariate's coefficient instead of
+			# treatment's, producing near-total null rejection whenever the
+			# design had covariates.
+			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[1])){
 				return(NA_real_)
 			}
 			private$set_fit_warm_start(res$params, "params", fisher = ws_fisher)
-			as.numeric(res$b[length(res$b)])
+			as.numeric(res$b[1])
 		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE
@@ -255,8 +263,12 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 					}
 				},
 				fit_ok = function(mod, X_fit, keep){
-					j_treat = length(mod$b)
-					if (is.null(mod) || j_treat < 1L || !is.finite(mod$b[j_treat])) return(FALSE)
+					# treatment is b[1] (X's first column is treatment; see
+					# compute_treatment_estimate_during_randomization_inference()'s
+					# comment above) -- this used to gate on b[length(mod$b)],
+					# the last covariate's coefficient instead of treatment's,
+					# whenever design_formula included covariates.
+					if (is.null(mod) || length(mod$b) < 1L || !is.finite(mod$b[1])) return(FALSE)
 					if (estimate_only) return(TRUE)
 					is.finite(mod$ssq_b_j) && mod$ssq_b_j > 0
 				}

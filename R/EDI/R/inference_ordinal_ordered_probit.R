@@ -83,11 +83,17 @@ OrdinalOrderedProbitLikelihoodSource = list(
 				smart_cold_start = private$smart_cold_start_default,
 				estimate_only = TRUE
 			)
-			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[length(res$b)])){
+			# treatment is X's first column (cbind(treatment = ..., X_cov)
+			# above); res$b[1] is the treatment slope, matching generate_mod()'s
+			# own extraction. res$b[length(res$b)] (the last covariate's slope
+			# whenever design_formula includes covariates) fed the
+			# randomization test a covariate's coefficient instead of
+			# treatment's.
+			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[1])){
 				return(NA_real_)
 			}
 			private$set_fit_warm_start(as.numeric(res$params), "params", fisher = ws_fisher)
-			as.numeric(res$b[length(res$b)])
+			as.numeric(res$b[1])
 		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE
@@ -218,8 +224,11 @@ OrdinalOrderedProbitLikelihoodSource = list(
 					}
 				},
 				fit_ok = function(mod, X_fit, keep){
-					j_treat = length(mod$b)
-					if (is.null(mod) || j_treat < 1L || !is.finite(mod$b[j_treat])) return(FALSE)
+					# treatment is b[1] (X's first column); see the comment on
+					# compute_treatment_estimate_during_randomization_inference()
+					# above -- this used to gate on b[length(mod$b)], the last
+					# covariate's coefficient, not treatment's.
+					if (is.null(mod) || length(mod$b) < 1L || !is.finite(mod$b[1])) return(FALSE)
 					if (estimate_only) return(TRUE)
 					ssq = mod$ssq_b_j
 					!is.null(ssq) && is.finite(ssq) && ssq > 0
