@@ -801,6 +801,31 @@ ticked in their **owning plans**; this list is the release index.
   the JSS manuscript's "candidate for a future release" sentence (E-7).
   Additive; independent of other 1.1.0 items except that E-2 is cheapest
   after any 1.1.0 work that adds `Inference`-side state has landed.
+- [ ] TODO-17s: **Multistart for the nonconcave likelihood kernels** (added
+  2026-09-03, user decision): `multistart_nonconcave_likelihoods.md →
+  TODO-1..10`. Correctness / robustness, not performance. The 2026-09-03
+  audit (`quantum_upgrade.md → §II.6`) found that every kernel whose
+  likelihood is *not* concave — GLMM / LMM / frailty marginal likelihoods,
+  ZINB / ZIP / ZOIB mixtures, negbin and hurdle negbin in `(β, log θ)`,
+  beta regression, stereotype logit, Clayton-copula and dependent-censoring
+  survival, ordinal cauchit, Tukey-bisquare robust regression — runs a
+  single descent from one smart cold start, except `fast_ordinal_glmm.cpp`
+  (a 5-point deterministic `log σ` sweep) and `fast_hurdle_negbin.cpp`
+  (extra starts tried only on failure). One new leaf header
+  `src/optimization_multistart.h` (`optimize_fixed_likelihood_multistart()`
+  wrapping the existing `optimize_fixed_likelihood()`; family-specific
+  deterministic starts + a reproducible random layer from a private
+  `edi_rng::RRng`, never R's stream), three new kernel arguments
+  (`n_random_starts`, `multistart_jitter_sd`, `multistart_seed`), four
+  provenance fields, a `get_multistart_dispatch_policy()` table mirroring
+  the cold-start one, and `set_multistart()` on the abstract class.
+  **Bit-for-bit** whenever the primary start already reaches the best
+  optimum found (ties go to the primary), on every replicate
+  (warm-started) fit, and on every concave kernel; the ordinal GLMM
+  refactor is bit-for-bit unconditionally. Bisquare robust regression
+  additionally starts from a converged Huber fit instead of OLS. Python
+  `edi_kernels` parity included. Independent of other 1.1.0 items; shares
+  the "new leaf header, targeted compile only" discipline with TODO-17q.
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

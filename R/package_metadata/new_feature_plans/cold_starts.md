@@ -1,6 +1,13 @@
 # Smart Cold Start Strategies in EDI
 
 > **Depends on:** none. (Global ordering: see `_master.md`.)
+> **See also (2026-09-03):** `multistart_nonconcave_likelihoods.md` (v1.1.0,
+> `release_v1_1_0.md → TODO-17s`) — for the *nonconcave* kernels the smart
+> cold start documented here becomes the **primary** start of a multistart
+> (family-specific deterministic perturbations plus a reproducible random
+> layer); for the concave kernels a single start is provably sufficient and
+> nothing here changes. That plan's TODO-8 adds a "Multistart" section to
+> this file.
 
 This report summarizes how the "smart cold start" (initial parameter selection from no prior knowledge) is performed for each likelihood path in the `EDI` package. 
 

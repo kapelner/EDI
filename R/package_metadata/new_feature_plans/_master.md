@@ -480,6 +480,14 @@ Hardening item from the same audit (v1.1.0, `→ TODO-17q`):
 `guard_unguarded_information_inverse.md` → TODO-1..5 — five bare
 `.inverse()` sites on the free information block get the `isInvertible()`
 guard Cox/ordinal/ZOIB already use; bit-for-bit on invertible fits.
+Second hardening item, 2026-09-03 (v1.1.0, `→ TODO-17s`):
+`multistart_nonconcave_likelihoods.md` → TODO-1..10 — every nonconcave
+likelihood kernel (GLMM/LMM/frailty, ZINB/ZIP/ZOIB, negbin, beta,
+stereotype, copula survival, cauchit, bisquare) gets a deterministic +
+reproducible-random multistart through one new leaf header
+`optimization_multistart.h`, generalizing the sweep `fast_ordinal_glmm.cpp`
+already has; bit-for-bit whenever the primary start was already best, on
+every replicate fit, and on every concave kernel. No dependencies.
 Also v1.2.0: `kk14_incremental_covariance.md` → TODO-1..5
 (`release_v1_2_0.md → TODO-10`; Welford running covariance and
 monotone rank tracking for the sequential KK14 design, 5–10× per run,

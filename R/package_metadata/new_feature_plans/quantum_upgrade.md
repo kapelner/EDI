@@ -772,6 +772,99 @@ No known quantum algorithm improves on these (polynomial enumeration of 2×2 tab
 one `O(np)` decision per arriving subject). Qubit requirement is not applicable
 because there is nothing to run.
 
+## II.6 Tier F — Continuous optimizers (quantum gradient / Newton / IPM / QHD) for the model fits — **not** a candidate (added 2026-09-03, user question)
+
+II.3 closes HHL for the *single linear solve* inside a Newton/IRLS step. This section
+closes the broader question it leaves open — "can the L-BFGS / Newton / IRLS
+optimizers themselves be replaced by a quantum optimization algorithm?" — because a
+genuine literature exists and a future reader will otherwise re-propose it.
+
+Relevant code: every `fast_*` likelihood kernel — the IRLS path in
+`fast_logistic_regression.cpp:176`, L-BFGS/Newton in 30+ files (e.g.
+`fast_survival_models_optim.cpp:574`), the GLMM/frailty engines in `_glmm_engine.h`
+— all `p` in the tens, `n` in the hundreds to low thousands, converging to `1e-8`
+tolerances in microseconds to milliseconds.
+
+The algorithms that exist, and why each fails here:
+
+| algorithm | speeds up | win scales in | why not for EDI |
+|---|---|---|---|
+| quantum gradient estimation (Jordan 2005; Gilyén–Arunachalam–Wiebe 2019) | `∇f` in `O(1)` coherent evaluations instead of `O(p)` | `p` | the win is over *finite differences*; EDI has analytic gradients at one `O(np)` pass. The coherent oracle must load `X, y` (`O(np)`) per call. |
+| quantum gradient descent / Newton on amplitude-encoded `\|β⟩` (Rebentrost et al. 2019) | one iteration, polylog in `p` | `p` | polynomial objectives only; needs QRAM; returns `\|β⟩` (readout `O(p/ε²)`); iteration count unchanged; each iteration consumes fresh state copies. |
+| quantum interior-point methods for LP/SOCP/SDP (Kerenidis–Prakash 2020; Augustino et al. 2023) | the Newton linear solve per IPM iteration, `Õ(p^{1.5} κ/ε)` vs `O(p³)` | `p`, `κ` | HHL in a loop: II.3's QRAM / readout / `κ` caveats per iteration; a win only at `p` in the thousands. |
+| convex optimization from membership / evaluation oracles (van Apeldoorn et al. 2020; Chakrabarti et al. 2020) | `Õ(p)` queries vs `Õ(p²)` classical | `p` | a *zeroth-order* result; with a gradient oracle the classical bound is already `Õ(p)`. |
+| quantum Hamiltonian descent / saddle escape (Leng et al. 2023; Zhang–Leng–Li 2021); Grover over multistart seeds | escaping saddles / local optima in nonconvex landscapes, polylog(`p`); `√S` over `S` starts | `p`, nonconvex | requires Schrödinger-dynamics simulation with `f` as the potential (fault-tolerant) and the same coherent data oracle. Roughly half of EDI's likelihoods **are** nonconcave — every GLMM / LMM / frailty marginal likelihood (variance components), the ZINB / zero-augmented / zero-one-inflated mixtures, joint `(β, θ)` in negbin, stereotype logit, Tukey-bisquare robust regression, the Clayton-copula and dependent-censoring survival models, ordinal cauchit, beta regression — but the classical remedy (a single smart cold start, `optimization_starts.h`, which is what EDI does almost everywhere; a small deterministic multistart where it has been needed, `fast_ordinal_glmm.cpp:337`, `fast_hurdle_negbin.cpp:150`; a random multistart if ever needed) is cheap and embarrassingly parallel; `√S` on `S ≈ 10` starts is nothing. |
+| QAOA / VQE / annealers on binary-expanded parameters | — | — | `p · b` densely coupled bits for `b`-bit precision; annealer coupler precision (~2 significant digits) caps the achievable tolerance orders of magnitude above `1e-8`. |
+
+The reason common to every row, beyond the three standing caveats: **every
+continuous-optimization speedup is in `p` (dimension) or `κ` (conditioning), never in
+`n`.** EDI's per-iteration cost is `O(np²)` and is dominated by touching the data;
+the `O(np)` data load is exactly what QRAM cannot remove, and no quantum optimizer
+reduces the number of outer iterations — so the number of times the data is touched
+is unchanged. The one setting where fit *count* is the bottleneck (refits inside
+the `r`-replicate loops) is already the II.2/B1 "iterative refit" row of amplitude
+estimation (~10⁴ logical qubits, "impractical even then"), not an optimizer
+question.
+
+### II.6.1 The nonconcave half specifically (added 2026-09-03, user question)
+
+The nonconcave kernels listed in the QHD row above are the one place where quantum
+*global* optimization claims are legitimately made, so they get their own closure.
+
+**What quantum offers for nonconvex problems, in principle:**
+
+1. **Grover over starts** — `√S` speedup over `S` multistart seeds.
+2. **Quantum Hamiltonian descent / quantum tunneling** (Leng et al. 2023;
+   Zhang–Leng–Li 2021) — provable polylog-in-`p` escape from saddles / local minima,
+   on landscapes where classical gradient descent gets stuck.
+3. **Quantum annealing on discretized parameters** — binary-expand each of the `p`
+   parameters to `b` bits and anneal.
+
+**Why none of it helps EDI's nonconcave fits:**
+
+- **The landscapes aren't hard.** EDI's nonconcave cases are *mildly* nonconcave:
+  `p` in the tens, a handful of local optima (typically the "degenerate" one at a
+  variance component of 0 or `θ → ∞`, plus the real one), and a smart cold start
+  (`optimization_starts.h`) that lands in the right basin nearly always. **What EDI
+  actually does (audited 2026-09-03):** a single L-BFGS/Newton run from that smart
+  cold start in every nonconcave kernel except two, which use a small
+  *deterministic* multistart — `fast_ordinal_glmm.cpp:337-380` (five starts over
+  the `log σ` coordinate, because a near-zero-variance start can trap one run) and
+  `fast_hurdle_negbin.cpp:150-194` (candidate starts for the zero-truncated count
+  part). There is no random multistart anywhere. If one were ever needed, `S ≈ 5–20`
+  L-BFGS runs at milliseconds each is the remedy, and it is embarrassingly parallel
+  on cores the user already has: `√20 ≈ 4.5` on a millisecond problem is nothing,
+  and the fair comparison is `√S / C`, which is `< 1`. **Follow-up (same day, user
+  decision):** that classical remedy is now scheduled —
+  `multistart_nonconcave_likelihoods.md` (v1.1.0, `release_v1_1_0.md → TODO-17s`)
+  gives every nonconcave kernel a deterministic + reproducible-random multistart
+  through one shared helper.
+- **QHD's advantage is in `p`, and needs a fault-tolerant machine.** The
+  polylog-in-dimension result is only interesting when `p` is thousands and classical
+  saddle escape scales badly. At `p = 20` there is no dimension to save. And it still
+  requires a coherent oracle over `X, y` — the same `O(np)` data load and the same
+  fault-tolerant depth as everything else in Part II.
+- **Annealing on discretized continuous parameters is strictly worse.** `p · b`
+  densely coupled bits, coupler precision ~2 significant digits, and the optimum
+  needs 8+ digits. The result is a coarse point from which L-BFGS must be run anyway
+  — i.e., a very expensive cold start.
+- **The genuinely hard nonconcave cases aren't optimization problems.** Stereotype
+  logit, the Clayton copula, dependent censoring: when those fits are troublesome it
+  is *weak identifiability* — the likelihood is flat along a ridge, and the data
+  genuinely do not pin down the parameter. No optimizer, quantum or classical, fixes
+  that; only a reparametrization, a constraint, or more data does.
+
+**The one-liner:** quantum global optimization is a remedy for high-dimensional,
+rugged, expensive-to-evaluate landscapes. EDI's nonconcave fits are low-dimensional,
+mildly rugged, and microseconds per evaluation — the exact opposite on every axis.
+
+**Qubits needed.** Small and irrelevant, as in II.3: the parameter register is
+`p · b` (≈ 500–2,000 logical at `p ≤ 40, b = 53`) plus a QRAM of `np` cells and the
+II.3 phase-estimation register for any IPM variant. Listed to close the question, not
+because the qubit budget is the barrier — the barrier is that the classical
+optimizers are already at the wall-clock floor (microseconds) and quantum speedups
+address the wrong variable.
+
 ## II.5 Summary — logical qubits per Part II upgrade
 
 Representative sizes; physical ≈ ×10³ (surface code) or ×10² (optimistic qLDPC).
@@ -789,6 +882,7 @@ Representative sizes; physical ≈ ×10³ (surface code) or ×10² (optimistic q
 | II.2/B3 simulation framework replicate | power / coverage | ≥ 10⁵ | ≥ 10⁵ | ≥ 10⁵ | refit-dominated | never |
 | II.3 HHL for OLS / Newton steps | `fast_ols.cpp`, IRLS/Newton solves | ≈ 40–60 (+ QRAM of `np` cells) | same | same | `O(κ log(1/ε))` + readout `O(p/ε²)` | not a win at any qubit count |
 | II.4 exact tests, sequential designs | — | n/a | n/a | n/a | — | no algorithm |
+| II.6 continuous optimizers (quantum gradient / Newton / IPM / QHD) for the `fast_*` fits | L-BFGS / Newton / IRLS themselves | ≈ `p·b` ≈ 500–2,000 (+ QRAM of `np` cells) | same | same | iteration count unchanged; `O(np)` data load per iteration | not a win at any qubit count — speedups are in `p`/`κ`, cost is in `n` |
 
 For calibration: the cheapest useful row (B1 linear, `n = 100`, `ε = 0.01`) is
 ~165 logical ≈ 1.6 × 10⁵ physical qubits running ~100 sequential Grover iterations of
@@ -810,8 +904,9 @@ nothing existing or announced provides; the only present-day action is to keep t
 resampling kernels factored as "classical constant vector + `Σ c_i w_i` over
 replicates." Part II's qubit table (II.5) puts the cheapest useful inference-layer
 item at ~165 logical (~10⁵ physical) qubits at `n = 100` and the bootstrap/refit
-variants at 10³–10⁵ logical. Linear algebra, RNG, exact tests, and sequential designs
-are not candidates on any hardware. The most likely *practical* outcome of doing A1 is
+variants at 10³–10⁵ logical. Linear algebra, the continuous optimizers themselves
+(II.6 — every quantum speedup is in `p`/`κ`, EDI's cost is in `n`), RNG, exact
+tests, and sequential designs are not candidates on any hardware. The most likely *practical* outcome of doing A1 is
 a better classical Ising-style kernel, not a quantum one — which is still a fine
 outcome.
 

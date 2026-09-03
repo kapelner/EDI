@@ -126,6 +126,14 @@ family of matching designs and estimators.
   currently return a finite but meaningless SE on a near-singular design;
   they gain the invertibility guard their siblings already have and
   return `NA` instead. Bit-for-bit on all healthy fits.
+- **[Multistart for the nonconcave likelihoods](R/package_metadata/new_feature_plans/multistart_nonconcave_likelihoods.md)** —
+  every kernel whose likelihood is not concave (mixed models, zero-inflated
+  mixtures, NegBin, Beta, stereotype logit, copula survival, cauchit,
+  bisquare robust regression) currently runs one descent from one start
+  and can return a worse local optimum; each gains family-specific
+  deterministic starts plus a reproducible random layer, keeps the best,
+  and reports which start won. Bit-for-bit wherever the single start was
+  already best, on every replicate fit, and on every concave kernel.
 - **[Performance measurement program](R/package_metadata/new_feature_plans/performance_profiling_and_upgrades.md)**
   *(maintenance)* — benchmark noise floor and regression gate, compiler
   optimization-report sweep, strided-access and linear-algebra audits,
