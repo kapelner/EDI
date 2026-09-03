@@ -104,8 +104,16 @@ ordinal_cond_clogit_shared_multi = function(private_env, expand_fun, trials_fun)
 			)
 		},
 		fit_ok = function(mod, X_fit, keep){
+			# The |beta| <= 10 ceiling mirrors the divergence guard used by
+			# InferenceOrdinalStereotypeLogitRegr's stereotype_fit_is_usable():
+			# a conditional-logit MLE under quasi-complete separation (small
+			# strata, sparse categories) can converge to a large but
+			# technically finite, technically-estimable coefficient. Finiteness
+			# and a positive variance alone don't catch that; reject it as
+			# unusable the same way the stereotype model does.
 			!is.null(mod) &&
 				is.finite(mod$b[1]) &&
+				abs(mod$b[1]) <= 10 &&
 				is.finite(mod$ssq_b_j) &&
 				mod$ssq_b_j > 0
 		}

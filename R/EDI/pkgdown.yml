@@ -1,0 +1,15 @@
+pandoc: 3.7.0.2
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  backend-contracts: backend-contracts.html
+  extending-edi: extending-edi.html
+  notation-glossary: notation-glossary.html
+  articles/relation-to-other-packages: relation-to-other-packages.html
+  reproducibility: reproducibility.html
+  articles/try-edi-in-your-browser: try-edi-in-your-browser.html
+  validation-evidence: validation-evidence.html
+last_built: 2026-09-03T13:34Z
+urls:
+  reference: https://kapelner.github.io/EDI/reference
+  article: https://kapelner.github.io/EDI/articles

@@ -241,6 +241,16 @@ OrdinalStereotypeLikelihoodSource = list(
 					private$stereotype_fit_is_usable(mod, require_standard_error = !estimate_only)
 				}
 			)
+			# fit_with_hardened_qr_column_dropping() falls back to its best/last
+			# attempt even when NO candidate ever satisfied fit_ok (e.g. every
+			# column-dropped refit still diverges under quasi-separation) --
+			# see its own comment. Re-check usability here so a fit the
+			# stereotype_fit_is_usable() guard has already flagged as unusable
+			# (the |beta| <= 10 divergence ceiling, an unfinished info matrix,
+			# etc.) is never silently accepted as the point estimate.
+			if (!is.null(attempt$fit) && !private$stereotype_fit_is_usable(attempt$fit, require_standard_error = !estimate_only)) {
+				attempt$fit = NULL
+			}
 			if (!is.null(attempt$fit)){
 				private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$fisher_information)
 				private$best_Xmm_colnames = setdiff(colnames(attempt$X), "treatment")

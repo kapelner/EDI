@@ -288,7 +288,11 @@ bool fit_zip_reduced_fallback(ZeroInflatedNegBin& zinb, const FixedParamSpec& zi
         Eigen::VectorXi fi_e(fi.size());
         Eigen::VectorXd fv_e(fv.size());
         for (int i = 0; i < static_cast<int>(fi.size()); ++i) {
-            fi_e[i] = fi[i];
+            // zinb_spec.fixed_idx is already zero-based, but make_fixed_param_spec()
+            // takes one-based indices (it subtracts 1). Convert back, otherwise the
+            // reduced ZIP fit pins the parameter *before* the requested one (e.g.
+            // the intercept instead of the treatment coefficient).
+            fi_e[i] = fi[i] + 1;
             fv_e[i] = fv[i];
         }
         zip_spec = make_fixed_param_spec(k, fi_e, fv_e);
@@ -540,7 +544,14 @@ List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen:
         hess.topLeftCorner(p_cond + p_zi, p_cond + p_zi) = zip_hess;
         Eigen::VectorXd zip_grad;
         (void)zip(fit.params.head(p_cond + p_zi), zip_grad);
-        score = -zip_grad;
+        // The ZIP-limit gradient has one fewer entry than the full ZINB parameter
+        // vector (no dispersion slot). Pad the score back to full length with a
+        // zero in the dispersion slot so it stays conformable with `hess` (which is
+        // zero-padded above) and with the R-side boundary_information() helper that
+        // pins the dispersion diagonal to 1. Otherwise score-test consumers see a
+        // (p-1)-vector next to a p x p information matrix and reject the pair.
+        score = Eigen::VectorXd::Zero(p_cond + p_zi + 1);
+        score.head(p_cond + p_zi) = -zip_grad;
     }
     // likelihood_score(obj, params) already negates the raw grad the L-BFGS objective fills
     // (gradient of neg_loglik) to return the true (+loglik) score -- do not negate again here.

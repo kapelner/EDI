@@ -1,0 +1,133 @@
+# EDI: Experimental Design and Inference — full overview for LLMs
+
+EDI (Experimental Design and Inference) is an R package for designing
+randomized experiments and running inference procedures matched to how the
+data were generated. This file is an expanded, single-file orientation for
+AI agents; the authoritative per-function documentation is at
+https://kapelner.github.io/EDI/reference/index.html. EDI here is a
+statistics package — it has nothing to do with Electronic Data Interchange.
+
+Install: `install.packages("EDI")` (CRAN), or from source:
+`install.packages("R/EDI", repos = NULL, type = "source")` from a clone of
+https://github.com/kapelner/EDI (requires a C++ compiler toolchain).
+
+## Core idea
+
+Estimation and testing should always be matched to the experimental design
+that generated the data. EDI pairs every design x response-type combination
+with its corresponding inference procedures — exact, asymptotic,
+distribution-free, and resampling-based (bootstrap, jackknife,
+randomization) — instead of applying one generic analysis regardless of
+design. Response types supported: continuous, incidence (binary), count,
+proportion, survival (with left/right/interval censoring), and ordinal.
+
+## Typical workflow
+
+1. Construct an R6 design object with covariates (missing covariate data is
+   imputed automatically).
+2. Assign treatment: fixed designs assign all n subjects at once
+   (`assign_w_to_all_subjects()`); sequential designs assign each subject on
+   arrival (`add_one_subject_to_experiment_and_assign()`).
+3. Record responses.
+4. Run a matched inference class for a point estimate, confidence interval,
+   and test — or `InferenceSuite`, which runs every applicable inference
+   procedure for the design/response combination at once and reports a
+   single Cauchy-combined p-value summarizing their evidence.
+
+## Experimental design classes (R6)
+
+Fixed-sample (n fixed at construction): `DesignFixedBernoulli`,
+`DesignFixediBCRD`, `DesignFixedFactorial`, `DesignFixedBlocking`,
+`DesignFixedCluster`, `DesignFixedBlockedCluster`, `DesignFixedBinaryMatch`,
+`DesignFixedMatchingGreedyPairSwitching`, `DesignFixedGreedy`,
+`DesignFixedGreedyDOptimal`, `DesignFixedOptimal` (mixed-integer-programming
+optimal), `DesignFixedOptimalBlocks`, `DesignFixedRerandomization`.
+
+Sequential / one-by-one (covariate-adaptive; subjects arrive one at a time):
+`DesignSeqOneByOneBernoulli`, `DesignSeqOneByOneiBCRD`,
+`DesignSeqOneByOneUrn`, `DesignSeqOneByOneEfron`,
+`DesignSeqOneByOneAtkinson`, `DesignSeqOneByOnePocockSimon`,
+`DesignSeqOneByOneRandomBlockSize`, `DesignSeqOneByOneSPBR`, and the KK
+"matching-on-the-fly" family that builds matched pairs from the accruing
+subject stream: `DesignSeqOneByOneKK14`, `DesignSeqOneByOneKK21`,
+`DesignSeqOneByOneKK21stepwise`.
+
+Observational (non-randomized data containers with matching/blocking
+structure): `ObservationalDesign`, `ObservationalDesignBlocks`,
+`ObservationalDesignMatching`.
+
+Custom extension bases: `DesignFixedCustom`, `DesignCustomSequential`.
+
+## Inference classes (R6)
+
+Named `Inference<ResponseType><Method>`; ~267 exported symbols overall.
+Families:
+
+- Continuous: OLS, quantile regression, robust regression, GLMM-based, and
+  the Bai adjusted-t estimators, each in plain and matched-design (KK)
+  variants — e.g. `InferenceContinKKOLSIVWC`, `InferenceContinKKGLMM`,
+  `InferenceBaiAdjustedTKK14`, `InferenceBaiAdjustedTKK21`.
+- Incidence (binary): logistic/probit/log-binomial regression, exact
+  binomial and Fisher tests, CMH, Newcombe and Miettinen-Nurminen intervals,
+  g-computation marginal effects, conditional-logit GLMM for matched pairs.
+- Count: Poisson, quasi-Poisson, negative binomial, zero-inflated and hurdle
+  models, conditional Poisson, GEE.
+- Proportion (responses in [0,1]): beta regression, fractional logit,
+  zero-one-inflated beta, quantile regression.
+- Ordinal: proportional odds, partial proportional odds, adjacent-category,
+  continuation-ratio, stereotype logit, ordered probit,
+  Jonckheere-Terpstra, ridit scoring.
+- Survival: Cox proportional hazards (incl. stratified), Weibull AFT with
+  interval censoring, restricted mean survival time, log-rank and
+  Gehan-Wilcoxon tests, Kaplan-Meier differences, Weibull frailty GLMMs,
+  dependent-censoring transforms.
+- Cross-cutting: `InferenceAllKKMeanDiffIVWC`, `InferenceAllKKWilcoxIVWC`,
+  `InferenceAllSimpleAverageDiff`, `InferenceAllSimpleWilcox`,
+  `InferenceSuite` (runs all applicable procedures, Cauchy-combined
+  p-value).
+- Custom extension bases: `InferenceCustomAsymp`, `InferenceCustomBoot`,
+  `InferenceCustomRand`.
+
+Most estimators offer exact, asymptotic, and resampling variants
+(non-parametric/parametric/Bayesian bootstrap, BCa intervals, jackknife,
+randomization tests with sequential Monte Carlo p-values, m-out-of-n
+bootstrap).
+
+## Simulation framework
+
+`SimulationFramework` runs Monte Carlo studies comparing designs and
+inference methods (power, size, coverage diagnostics);
+`SimulationFrameworkReport` renders results. Helpers:
+`generate_covariate_dataset`, `transform_cont_y_based_on_response_type`.
+Optional parallelization via the `mirai` package (`set_num_cores`).
+
+## C++ backend kernels
+
+Model fitting and variance computation run in C++ (Rcpp/RcppEigen +
+LBFGS++), exposed in R as `fast_*` functions — e.g.
+`fast_logistic_regression_cpp`, `fast_neg_bin_cpp`,
+`fast_coxph_regression_cpp`, `fast_weibull_regression_general_cpp` (exact /
+left / right / interval censoring), `fast_ordinal_*`, `fast_beta_regression_*`
+— typically one to three orders of magnitude faster than the pure-R
+equivalents. See the backend-contracts article for the shared conventions:
+https://kapelner.github.io/EDI/articles/backend-contracts.html
+
+The same kernels are published for Python as `edi_kernels`
+(https://pypi.org/project/edi_kernels/, pybind11, no R dependency).
+
+## Documentation map
+
+- Reference index (all classes/functions):
+  https://kapelner.github.io/EDI/reference/index.html
+- Articles: notation-glossary, reproducibility (RNG/seed conventions),
+  backend-contracts, validation-evidence, extending-edi (write your own
+  design/inference classes) — under
+  https://kapelner.github.io/EDI/articles/
+- Source: https://github.com/kapelner/EDI (R package in `R/EDI`)
+- Issues: https://github.com/kapelner/EDI/issues
+- Citation/DOI: https://doi.org/10.5281/zenodo.22170036
+
+## License and authorship
+
+GPL-3. Author: Adam Kapelner (Queens College, City University of New York;
+ORCID 0000-0001-5985-6792).

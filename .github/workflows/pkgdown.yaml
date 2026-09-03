@@ -8,6 +8,8 @@ on:
       - 'R/EDI/DESCRIPTION'
       - 'R/EDI/NAMESPACE'
       - 'R/EDI/_pkgdown.yml'
+      - 'R/EDI/README.md'
+      - 'R/EDI/pkgdown/**'
       - 'R/EDI/NEWS.md'
       - 'R/EDI/REFERENCES.md'
       - '.github/workflows/pkgdown.yaml'

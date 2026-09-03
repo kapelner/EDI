@@ -36,7 +36,14 @@ finagle_different_responses_from_continuous = function(y_cont){
 	list(
 		continuous = y_scaled,
 		incidence =  stats::plogis(as.numeric(y_scaled)),
-		proportion = clamp_proportion_response((y_cont - min(y_cont) + 1e-6) / max(y_cont - min(y_cont) + 2e-6)),
+		# Padding widened from 1e-6 to 1e-3 (2026-09-03): with 1e-6, the
+		# extreme resampled observation lands within ~1e-6 of 0/1, so
+		# logit(y) for that single point is ~-13.8 -- huge leverage for any
+		# logit-scale proportion model (e.g. InferencePropQuantileRegr fits
+		# on logit(y)). 1e-3 keeps the fixture testing genuine near-boundary
+		# behavior (logit ~= -6.9) without manufacturing near-infinite
+		# leverage points that aren't representative of real proportion data.
+		proportion = clamp_proportion_response((y_cont - min(y_cont) + 1e-3) / max(y_cont - min(y_cont) + 2e-3)),
 		count =      round(y_cont - min(y_cont)),
 		survival =   y_scaled - min(y_scaled) + 0.1,
 		ordinal =    as.integer(cut(y_cont, breaks = unique(quantile(y_cont, probs = seq(0, 1, length.out = 5))), include.lowest = TRUE))
