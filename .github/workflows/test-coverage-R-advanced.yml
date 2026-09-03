@@ -58,7 +58,7 @@ jobs:
       # cache on a miss (e.g. after DESCRIPTION changes) so we still get a
       # partial warm cache rather than starting cold.
       - name: Cache apt package archives
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /var/cache/apt/archives/*.deb
           key: apt-archives-${{ runner.os }}-r-advanced-${{ hashFiles('R/EDI/DESCRIPTION') }}
