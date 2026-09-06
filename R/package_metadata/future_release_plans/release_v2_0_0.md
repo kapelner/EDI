@@ -67,7 +67,11 @@ decision batch still records the yes/no for each.
   supports; the joint test belongs to the multivariate plan). Listed here
   only so the decision has a home; if "no", it moves to
   `../finished_features/` as a closed scoping report with the
-  one-vs-rest vignette section as its sole deliverable (1.1.0-sized).
+  one-vs-rest vignette section as its sole deliverable. **That
+  deliverable is not a 2.0.0 item** — ownership resolved 2026-09-06 (user
+  decision) to `_master.md`'s thematic-release-split summary: it ships
+  in v1.1.0, immediately alongside this TODO-1 decision
+  (`release_v1_1_0.md → TODO-17d`), not here.
 - `response_types_landscape_report.md → TODO-1/2/9` — landscape refresh
   after the above ship; recurrent events (Andersen-Gill / LWYY — needs a
   counting-process response; inference audit 4D #10) and functional /
@@ -283,36 +287,41 @@ against; they are additive on the design factory but are treated as a
   machinery; a new construction needed for bootstrap/randomization
   procedures) — staged, starting with a pilot subset before any adaptive-
   inclusion workflow is attempted.
-- [ ] TODO-6g: **`ModelDiagnostics` — per-model assumption batteries**
-  (added 2026-09-02, user decision; split 2026-09-02 from a briefly
-  combined plan into its own file):
-  `model_diagnostics_framework.md → TODO-1..6` — the *absolute* half of
-  model criticism: each class declares its own assumption checks in the
-  registry the way capabilities are declared (Schoenfeld/PH for Cox,
-  overdispersion for Poisson, proportionality for cumulative logit,
-  separation/calibration for logistic — surfacing the existing internal
-  separation guard as a user-visible diagnostic; pilots first, per-class
-  rollout after), returning typed results rendered in one report with
-  `SolverDiagnostics`' numerical rows. Checks run treatment-blinded and
-  the report's handoff rule guards against diagnose-then-switch pretest
-  bias. Note its TODO-1(e): the declaration contract + pilots need no
-  fold/split substrate and could ship in a 1.x release ahead of TODO-6h —
-  decision pending.
-- [ ] TODO-6h: **`ModelSelection` — comparative fit over the model ×
-  formula grid** (added 2026-09-02, user decision; the *relative* half,
-  split likewise): `model_selection_framework.md → TODO-1..8` —
-  likelihood-tier-gated criteria (AIC only at `"full"`, QIC at `"quasi"`,
-  partial-likelihood AIC at `"partial"`, CV/scoring rules everywhere)
-  over `~1`/`~.`/`~.*w`/spline grids with rank guardrails, CV folds built
-  on `resolve_resampling_unit()` units (shared substrate with TODO-6e —
-  build once, coordinate), TODO-6g's check results wired in as
-  assumption gates, criteria treatment-blinded by default, and the
-  report ending in a handoff to the honest test steps — including this
-  plan's own new one, the **selection-inclusive randomization test**:
-  wrap the whole diagnose-choose-fit pipeline as the randomization
-  statistic (valid under the sharp null for any statistic), so
-  data-driven selection costs compute, not validity. 2.0.0 for the same
-  reason as TODO-6e.
+- [ ] TODO-6g: **MOVED to v1.1.0 → `TODO-17z`** (2026-09-05, user
+  decision, resolving the plan's TODO-1(e)). `ModelDiagnostics`' checks
+  are in-sample and need no fold/split substrate, so the declaration
+  contract and pilot batteries ship in 1.x. Nothing remains here: the
+  per-class rollout beyond the pilots is a ledger inside
+  `model_diagnostics_framework.md`, not a release item.
+- [ ] TODO-6h: **`ModelSelection` Phase B — response-type coverage only**
+  (added 2026-09-02, user decision; narrowed 2026-09-05 when Phase A
+  moved to v1.1.0 → `TODO-17y`; **narrowed again 2026-09-06, user
+  question, to drop the design-extension part entirely**):
+  `model_selection_framework.md → TODO-9`. **This item no longer covers
+  matched-pair, cluster, or sequential matching-on-the-fly designs — that
+  design-family extension moved into `TODO-17y` (v1.1.0) on 2026-09-06.**
+  What's left is only the response types Phase A's pilot didn't reach
+  (count, proportion, survival, ordinal). **Two recorded findings, both
+  2026-09-05/06:** (1, 2026-09-05) the selection-inclusive randomization
+  test itself never needed `Design`-level fold/split substrate — it's a
+  client of the shipped custom-statistic hook (a blinded-selection
+  shortcut noted here was removed 2026-09-06, user — every replicate
+  re-runs the full pipeline);
+  its original v2.0.0 slating was inherited from TODO-6e's (sample
+  splitting's) fold problem, which it never shared. (2, 2026-09-06) The
+  one remaining piece that looked genuinely 2.0.0-shaped — CV folds for
+  matched/clustered/sequential designs — turns out to be a conflation of
+  the same kind: this plan's CV-fold need (avoid leakage across
+  already-linked units in a static, already-realized dataset) is weaker
+  than, and was never actually the same problem as, TODO-6e's need (a
+  subject subset that must itself be a valid design realization).
+  `resolve_resampling_unit()` already solves the former uniformly across
+  every design family, fixed or sequential — it was never blocked on
+  TODO-6e's substrate, and there is nothing left here to "build once"
+  with it. **Open question, not resolved here:** whether response-type
+  coverage alone still merits a 2.0.0 slot, or belongs in v1.4.0's
+  response-and-data-extensions theme instead — see
+  `model_selection_framework.md`'s header.
 - [ ] TODO-7: **Breaking changes** — greedy-class deletion; any contract
   breaks accumulated from TODO-3/4, each with a documented deprecation
   path from 1.x.

@@ -14,7 +14,11 @@
 > in `inference_continuous_ols.R:222-254` and `inference_continuous_lin.R:222`)
 > and is not touched.
 
-Date: 2026-08-30
+Date: 2026-08-30. **Updated 2026-09-04** (user question, "since we're
+implementing Brent, should this plan change?"): added the "Interaction with
+the CI-search-driver plans" section — Brent does not apply here, RM is moot
+on tier-1 classes — and the decision-gated TODO-8 (direct order-statistic
+inversion). TODO-1..7 are unchanged.
 
 ## The finding
 
@@ -64,6 +68,38 @@ Every one of them, for the classes below, is the δ = 0 distribution plus a
 constant.
 
 ## Why `t0_b(δ) = t0_b(0) + δ` is exact (and for whom)
+
+> **Correction (2026-09-05) — the identity below needs a `(1 − c_b)` factor.**
+> The paragraph that follows states EDI's convention as `y_sim = y + δ·w_b`
+> (citing `inference_all_abstract_rand.R:763`). That is a misreading: the
+> line above it (`:738`, `w_priv$y = as.numeric(y)`) assigns the **imputed**
+> responses `y_delta = y − δ·w_obs` (built by
+> `setup_randomization_template_and_shifts()`, `:1079-1089`, `inverse = TRUE`)
+> into the worker, and every other path — `load_randomization_perm_into_worker()`,
+> the C++ fast kernels fed `setup$y_delta`, the randomization-bootstrap
+> `y0_full` — does the same. The actual construction is impute-then-permute,
+> `y_sim = y − δ·w_obs + δ·w_b` (pinned by
+> `tests/testthat/test-rand-null-construction.R`). For the linear
+> statistics this section covers, the exact identity is therefore
+>
+> ```
+> t0_b(δ) = coef_{w_b}(y − δ·w_obs + δ·w_b) = t0_b(0) + δ·(1 − c_b),
+> c_b = coefficient on w_b when the fixed vector w_obs is regressed on the permuted design [1, w_b, X]
+>     (simple mean difference: c_b = mean(w_obs | w_b = 1) − mean(w_obs | w_b = 0))
+> ```
+>
+> Everything this plan promises survives — one cached `δ = 0` distribution
+> serves the whole search — but the per-permutation slope is `1 − c_b`, not
+> `1`. `c_b` is computed once per permutation set: a single `O(nB)` dot
+> product `wᵀ_obs W` for the mean difference, one small solve per
+> permutation for OLS/Lin (`w_obs` regressed on `[1, w_b, X]`; `X` fixed,
+> so `(XᵀX)`-type factorisations are shared). **Implementing the identity
+> without this factor would silently replace the exact construction with
+> shift-the-null** (wider intervals, correct p-values at `δ = 0` only);
+> the test above fails in that case. Every TODO below that wires the
+> identity must compute and apply `c_b`; the equivalence contract is
+> against the current impute-then-permute numbers, not against `+δ`.
+> See `randomization_ci_construction_audit.md → §B.3`.
 
 EDI's null-shift convention (`inference_all_abstract_rand.R:763`, and the
 same in every `compute_fast_randomization_distr` kernel that takes `delta`):
@@ -201,6 +237,97 @@ is O(r) arithmetic and MC is moot.
   response type whose transform resolves to `"none"` in the mixin, so it is
   the only live hazard if TODO-2 ships ungated.
 
+- [ ] **TODO-8 (decision-gated, optional): direct order-statistic inversion
+  — no search at all for tier-1 classes.** See "Interaction with the
+  CI-search-driver plans" below for the derivation. Not part of the
+  TODO-1..7 deliverable; opened as a user decision once TODO-3's benchmark
+  is in, because its gain over TODO-3 is *exactness and the removal of the
+  bracket/expansion failure modes*, not wall time. If adopted: (a) new
+  private method `compute_rand_confidence_interval_direct()` that takes the
+  full-`r` δ = 0 `t0s`, the per-permutation slopes `1 − c_b` (computed once
+  per permutation set by TODO-2 under the corrected identity), and the
+  observed `t`; **refuses (falls back to the TODO-3 search) unless
+  `min_b (1 − c_b) > 0`**; drops non-finite `t0s` exactly as the p-value
+  path does; sorts `z_b = (t − t0_b(0)) / (1 − c_b)` once; and returns the
+  two order statistics — with the **index and the `>=`/`<=` tie convention derived
+  from `compute_rand_two_sided_pval()`'s comparison line
+  (`2 * min(sum(t0s >= t), sum(t0s <= t)) / nsim_adj`, floored at
+  `2 / nsim_adj`), not assumed**; (b) dispatched from
+  `compute_rand_confidence_interval()` only when
+  `supports_additive_delta_shift()` is `TRUE` and no `ci_search_control`
+  override is set; (c) equivalence test: the direct bound lies within the
+  `pval_epsilon`-implied tolerance of the TODO-3 bisection bound *and* is a
+  genuine jump — `p(bound) >= alpha` and `p(bound ∓ 1e-9) < alpha` on the
+  outward side; (d) documented as a default change for those classes (the
+  endpoints move *toward* the exact answer, off the bisection's
+  `pval_epsilon` grid), with the existing `pval_epsilon` / `max_expansions`
+  parameters documented as no-ops on this path.
+
+## Interaction with the CI-search-driver plans (added 2026-09-04)
+
+Once TODO-1..3 land, the object the CI search inverts for a tier-1 class
+changes character: with a fixed permutation set, `p(δ)` is no longer a
+Monte-Carlo estimate that costs a distribution per evaluation — it is an
+**exact step function of δ**, computable in O(r) from the cached `t0s`
+and the per-permutation slopes `1 − c_b` (see the 2026-09-05 correction
+above): `p(δ) = 2 · min(#{t0_b(0) + δ·(1 − c_b) ≥ t}, #{t0_b(0) + δ·(1 − c_b) ≤ t}) / r`,
+each term affine in δ, so the jumps sit at `δ_b = (t − t0_b(0)) / (1 − c_b)`
+with flat plateaus between. *(Section corrected 2026-09-05: the original
+2026-09-04 text used the shift-the-null form `t0_b + δ`, jumps at
+`t − t0_b`, which the same-day correction to the identity superseded.)*
+That single fact settles how each of the three sibling CI-search plans
+relates to this one:
+
+- **Brent (`brent_ci_inversion.md`, `release_v1_1_0.md → TODO-17w`): not
+  applicable, in code or in principle.** In code: Brent replaces the
+  bisection phase of `pval_invert_ci_cpp()` (`src/lrt_ci_newton.cpp`), the
+  inverter for the likelihood-based score / gradient / Bartlett-LR CIs; the
+  randomization CI search is a different driver
+  (`compute_rand_confidence_interval()` →
+  `build_randomization_ci_search_bounds()` in
+  `inference_all_abstract_rand_ci.R`) and Brent never touches it. In
+  principle: Brent's secant / inverse-quadratic steps assume a smooth
+  `f(δ) = p(δ) − α`; on a step function every interpolated trial lands on a
+  plateau, the acceptance test rejects it, and the iteration degrades to
+  bisection — same evaluation count, more code. **Do not port Brent to this
+  search.** No change to this plan on Brent's account.
+- **Robbins–Monro (`garthwaite_buckland_ci_search.md`, `→ TODO-17u`): moot
+  on tier-1 classes, live everywhere else.** RM's economy is "one replicate
+  draw per step instead of a full-`r` distribution per bisection step." On
+  a tier-1 class after this plan, one bisection step is O(r) vector
+  arithmetic on an already-computed distribution — *cheaper than a single
+  RM step*, which needs one fresh replicate fit. RM cannot win there, and
+  an A/B corpus that mixes tier-1 and non-tier-1 classes would report a
+  confounded verdict. The RM plan therefore (i) keys its dispatch off this
+  plan's `supports_additive_delta_shift()` predicate — the RM driver is not
+  offered when it is `TRUE` — and (ii) stratifies its A/B corpus on the same
+  predicate, promoting on the non-tier-1 stratum only. Those edits are made
+  in that plan (2026-09-04); this plan's only obligation is that the
+  predicate is registry-visible (TODO-1 already requires it).
+- **The genuinely new option this plan opens — direct inversion, no search
+  (TODO-8).** Because `p(δ)` is a step function whose jumps are the sorted
+  values `z_b = (t − t0_b(0)) / (1 − c_b)`, **provided every slope is
+  positive** (`min_b (1 − c_b) > 0` — automatic for the simple mean
+  difference, where `c_b ∈ (−1, 1)`; a per-permutation-set check for
+  OLS/Lin, where `c_b` is a regression coefficient), each term is
+  increasing in δ, the confidence set `{δ : p(δ) ≥ α}` is an interval,
+  and its two endpoints are two order statistics of the `z_b` (lower-tail
+  and upper-tail, at the `α/2` level). One sort, O(r log r), no bracket,
+  no `max_expansions`, no `pval_epsilon`, no bisection at all. If any
+  slope is non-positive the interval structure is not guaranteed and the
+  direct path must fall back to the TODO-3 search — that guard is part of
+  TODO-8's contract, not an afterthought. TODO-3 already gets ~all of the *wall-time* win (25
+  O(r) shifts are negligible next to the one distribution computation), so
+  TODO-8's value is that it returns the exact jump rather than a
+  `pval_epsilon`-grid neighbour and eliminates the bracket-search failure
+  branches for these classes. That is a change to the returned endpoints
+  (toward the exact answer), which is why it is decision-gated rather than
+  folded into TODO-3.
+
+Net: **no change to TODO-1..7 because of Brent**; the RM plan is corrected
+to dispatch around tier-1 classes; and the direct inversion is recorded as
+an explicit, gated follow-on rather than left implicit.
+
 ## Explicitly out of scope
 
 - Wiring `compute_ols_distr_parallel_cpp` (the unused C++ batch kernel for the
@@ -209,3 +336,6 @@ is O(r) arithmetic and MC is moot.
   covariates would actually qualify; with covariates it does not) — not worth
   a special case.
 - The BRT CI, which already does this.
+- Porting Brent's method to the randomization CI search — see the
+  interaction section: it is a different code path and gains nothing on a
+  step function.

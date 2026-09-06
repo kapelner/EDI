@@ -989,9 +989,11 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	# one, otherwise the generic InferenceParamBootstrap Monte-Carlo factor). The
 	# approx factor reuses the same simulate_under_lik_null()/refit machinery as
 	# parametric-bootstrap LR, so it carries the same cost profile and exclusions.
-	supports_bartlett =
-		(isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$supports_bartlett_likelihood_ratio_exact(), error = function(e) FALSE)) ||
-		 isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$supports_bartlett_likelihood_ratio_approx(), error = function(e) FALSE)))
+	supports_bartlett_exact_variant =
+		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$supports_bartlett_likelihood_ratio_exact(), error = function(e) FALSE))
+	supports_bartlett_approx_variant =
+		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$supports_bartlett_likelihood_ratio_approx(), error = function(e) FALSE))
+	supports_bartlett = supports_bartlett_exact_variant || supports_bartlett_approx_variant
 	supports_bartlett_ci = run_parametric_bootstrap_ci_for_class && supports_bartlett
 	supports_randomization_test =
 		supports_inference_capability(seq_des_inf, "randomization_test")
@@ -1826,9 +1828,41 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		(skip_bartlett_pval_slow || skip_hurdle_poisson_bartlett)) {
 		message("          Skipping compute_lik_ratio_bartlett_two_sided_pval (too slow)")
 	}
+	# Explicit approx/exact variants, tested alongside the "best available"
+	# generic wrapper above: the wrapper's own doc comment
+	# (compute_lik_ratio_bartlett_confidence_interval()) directs callers who
+	# need version-to-version reproducibility to these instead, and
+	# path_audits.html's separate "LR-Bart-app"/"LR-Bart-ex" columns were,
+	# until 2026-09-06, both silently keyed to the generic wrapper's result --
+	# giving two display columns for what was actually one shared test call.
+	# Gated on the same skip_bartlett_pval_slow/skip_hurdle_poisson_bartlett
+	# flags as the generic call: EDI_COMPREHENSIVE_SLOW_PATHS$bartlett_pval's
+	# own comment says the bucket "gates both 'approx' and 'exact'" already.
+	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_approx_variant &&
+		!skip_bartlett_pval_slow && !skip_hurdle_poisson_bartlett){
+		safe_call("compute_lik_ratio_bartlett_approx_two_sided_pval", seq_des_inf$compute_lik_ratio_bartlett_approx_two_sided_pval(B = r))
+	} else if (should_run_test_family("bartlett") && supports_bartlett_approx_variant &&
+		(skip_bartlett_pval_slow || skip_hurdle_poisson_bartlett)) {
+		message("          Skipping compute_lik_ratio_bartlett_approx_two_sided_pval (too slow)")
+	}
+	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_exact_variant &&
+		!skip_bartlett_pval_slow && !skip_hurdle_poisson_bartlett){
+		safe_call("compute_lik_ratio_bartlett_exact_two_sided_pval", seq_des_inf$compute_lik_ratio_bartlett_exact_two_sided_pval())
+	} else if (should_run_test_family("bartlett") && supports_bartlett_exact_variant &&
+		(skip_bartlett_pval_slow || skip_hurdle_poisson_bartlett)) {
+		message("          Skipping compute_lik_ratio_bartlett_exact_two_sided_pval (too slow)")
+	}
 	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_ci &&
 		!skip_pboot_ci_slow && !skip_hurdle_poisson_bartlett){
 		safe_call("compute_lik_ratio_bartlett_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_confidence_interval(B = r))
+	}
+	if (should_run_test_family("bartlett") && !skip_slow && run_parametric_bootstrap_ci_for_class && supports_bartlett_approx_variant &&
+		!skip_pboot_ci_slow && !skip_hurdle_poisson_bartlett){
+		safe_call("compute_lik_ratio_bartlett_approx_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_approx_confidence_interval(B = r))
+	}
+	if (should_run_test_family("bartlett") && !skip_slow && run_parametric_bootstrap_ci_for_class && supports_bartlett_exact_variant &&
+		!skip_pboot_ci_slow && !skip_hurdle_poisson_bartlett){
+		safe_call("compute_lik_ratio_bartlett_exact_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_exact_confidence_interval())
 	}
 	if (should_run_test_family("jackknife") && !skip_slow && supports_jackknife && !skip_jack_slow){
 		if (response_type != "count") {
@@ -2220,6 +2254,16 @@ COVERAGE_MC_SPEC = list(
 	InferenceIncidKKGEE                  = list(rt = "incidence",  design = quote(DesignFixedBinaryMatch), gen = quote(InferenceIncidKKGEE),                  mc_n = 3000L),
 	InferenceIncidKKCondLogitOneLik      = list(rt = "incidence",  design = quote(DesignFixedBinaryMatch), gen = quote(InferenceIncidKKCondLogitOneLik),      mc_n = 3000L),
 	InferenceIncidKKCondLogitGLMMOneLik = list(rt = "incidence", design = quote(DesignFixedBinaryMatch), gen = quote(InferenceIncidKKCondLogitGLMMOneLik), mc_n = 3000L),
+	# LogRank/GehanWilcox estimates are marginal rank-based/martingale-
+	# residual treatment contrasts, not the covariate-adjusted log-hazard-
+	# ratio beta_T used to generate the data (well-known non-collapsibility
+	# of marginal hazard-type statistics vs. a conditional coefficient) --
+	# without an MC-fitted truth, get_coverage_truth() fell back to raw
+	# beta_T_val, producing uniformly poor (~51-62%) coverage across every
+	# CI method at once (the signature of a wrong reference value, not a
+	# broken CI) (found 2026-09-06).
+	InferenceSurvivalLogRank             = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalLogRank),             mc_n = 20000L),
+	InferenceSurvivalGehanWilcox         = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalGehanWilcox),         mc_n = 20000L),
 	InferenceSurvivalCoxPHRegr           = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalCoxPHRegr),           mc_n = 20000L),
 	InferenceSurvivalStratCoxPHRegr      = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalStratCoxPHRegr),      mc_n = 20000L),
 	InferenceSurvivalWeibullRegr         = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalWeibullRegr),         mc_n = 20000L),
@@ -2228,13 +2272,29 @@ COVERAGE_MC_SPEC = list(
 	InferenceSurvivalKKStratCoxPHOneLik  = list(rt = "survival",   design = quote(DesignFixedBinaryMatch),  gen = quote(InferenceSurvivalKKStratCoxPHOneLik),  mc_n = 3000L),
 	InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik  = list(rt = "survival", design = quote(DesignFixedBinaryMatch), gen = quote(InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik),  mc_n = 3000L),
 	InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = list(rt = "survival", design = quote(DesignFixedBinaryMatch), gen = quote(InferenceSurvivalGLMMWeibullFrailtyNormalOneLik), mc_n = 3000L),
-	InferenceSurvivalKKWeibullMarginal   = list(rt = "survival",   design = quote(DesignFixedBinaryMatch), gen = quote(InferenceSurvivalKKWeibullMarginal),  mc_n = 3000L)
+	InferenceSurvivalKKWeibullMarginal   = list(rt = "survival",   design = quote(DesignFixedBinaryMatch), gen = quote(InferenceSurvivalKKWeibullMarginal),  mc_n = 3000L),
+	# Ridit estimates a bounded [-0.5, 0.5] probability-scale quantity (mean
+	# ridit score minus 0.5, Bross 1958), not the cumulative-logit log-odds
+	# beta_T used to generate ordinal data -- without an MC-fitted truth,
+	# get_coverage_truth() fell back to raw beta_T_val, producing <80%
+	# coverage across essentially every CI method at once (found 2026-09-06;
+	# reproduced directly: a true log-odds effect of 0.6 gave a Ridit point
+	# estimate/CI of about -0.09, nowhere near 0.6, at n=20000).
+	InferenceOrdinalRidit                = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalRidit),               mc_n = 20000L)
 )
 
 get_coverage_truth = function(inference_class, dataset_name, beta_T_val, response_type_hint = NA_character_){
 	base_class = sub(" [\\(\\[].*$", "", inference_class)
 	closed_form_fn = COVERAGE_CLOSED_FORM[[base_class]]
-	if (is.null(closed_form_fn) && identical(base_class, "InferenceAllSimpleAverageDiff") && !is.na(response_type_hint)) {
+	# InferenceAllSimpleMeanDiffPooledVar computes the identical mean-
+	# difference estimand (yT_bar - yC_bar) as InferenceAllSimpleAverageDiff
+	# on the same data-generating process, but was missing from this
+	# fallback -- so its CI was compared against the raw beta_T_val (the
+	# untransformed DGP shift parameter, e.g. a logit-scale shift for
+	# incidence data) instead of the correctly response-type-compressed
+	# truth, producing spurious ~51% "coverage" that is a harness truth-
+	# scale mismatch, not a real CI defect (found 2026-09-06).
+	if (is.null(closed_form_fn) && base_class %in% c("InferenceAllSimpleAverageDiff", "InferenceAllSimpleMeanDiffPooledVar") && !is.na(response_type_hint)) {
 		closed_form_fn = COVERAGE_CLOSED_FORM[[paste0("InferenceAllSimpleAverageDiff__", response_type_hint)]]
 	}
 	if (!is.null(closed_form_fn)) {

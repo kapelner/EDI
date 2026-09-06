@@ -482,7 +482,20 @@ Eigen::MatrixXd get_clogit_plus_glmm_hessian_cpp(
 		X_disc, y_disc, X_conc, y_conc, group_conc,
 		has_discordant, has_concordant, 20, max_abs_log_sigma
 	);
-	return -obj.hessian(params);
+	// obj.hessian() already returns the POSITIVE information matrix, not
+	// the raw (negative-definite) log-likelihood Hessian -- see its use at
+	// `Eigen::MatrixXd info = obj.hessian(par);` further down in this file,
+	// where `info` is inverted directly via LDLT to get vcov (only
+	// `neg_info = -info` is separately exposed under the "hessian" field).
+	// This exported wrapper's extra negation here previously returned a
+	// negative-definite matrix to every R-side score-test consumer
+	// (InferencePropKKGLMM, InferenceIncidKKCondLogitGLMMIVWC/OneLik), whose
+	// observed_information()/fisher_information()/information() closures
+	// use this getter directly with no R-side negation. The score-test C++
+	// helper requires a positive-definite information matrix and silently
+	// returns NA otherwise, reproducing the ~100% score-test NA rate for
+	// those classes.
+	return obj.hessian(params);
 }
 #endif // EDI_CORE_ONLY
 

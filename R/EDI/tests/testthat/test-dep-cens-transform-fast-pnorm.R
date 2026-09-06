@@ -82,3 +82,32 @@ test_that("dep-cens-transform hessian is finite and negative-semi-definite at ML
   # Hessian should be symmetric
   expect_equal(H, t(H), tolerance = 1e-10)
 })
+
+test_that("InferenceSurvivalDepCensTransformRegr does not drop the intercept and is unbiased under H0", {
+	# Regression for the 2026-09-06 comprehensive-results investigation:
+	# generate_mod()'s hardened QR column-dropping only pinned the treatment
+	# column (required_cols = 2L), not the intercept (col 1). When the
+	# full-model fit failed, the fallback could drop the intercept, forcing
+	# the {0,1}-coded treatment coefficient to absorb the entire nonzero
+	# baseline log-time (mean estimate under H0 was ~0.6-0.7 against a
+	# coverage truth of ~0.13, with Wald/score/gradient/bootstrap rejection
+	# 20-51%). Fixed by pinning both columns (required_cols = c(1L, 2L)),
+	# mirroring the same fix already applied to
+	# SurvivalGLMMWeibullFrailtyNormalOneLikSource on 2026-09-03.
+	n <- 200L
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "survival", verbose = FALSE)
+	set.seed(9901L)
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	y <- exp(0.7 + rnorm(n, 0, 0.3))
+	dead <- rep(1L, n)
+	cens <- runif(n) < 0.15
+	y[cens] <- runif(sum(cens), 0, y[cens])
+	dead[cens] <- 0L
+	EDI:::add_all_subject_responses_seq(des, y, deads = dead)
+
+	inf <- InferenceSurvivalDepCensTransformRegr$new(des, model_formula = ~ 1, verbose = FALSE)
+	est <- inf$compute_estimate()
+
+	expect_true(is.finite(est))
+	expect_lt(abs(est), 0.2)
+})

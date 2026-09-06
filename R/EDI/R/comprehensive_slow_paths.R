@@ -55,7 +55,14 @@ EDI_COMPREHENSIVE_SLOW_PATHS = list(
 		"ordinal||InferenceOrdinalGCompMeanDiff||compute_asymp_two_sided_pval",
 		"survival||InferenceSurvivalKKStratCoxPHOneLik||compute_rand_confidence_interval",
 		"proportion||InferencePropKKGLMM||compute_bayesian_bootstrap_confidence_interval_bca",
-		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_jackknife_estimate"
+		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_jackknife_estimate",
+		# Observed mean runtime >30 seconds in the 2026-09-05 comprehensive
+		# results (frailty-normal rand p-values: mean ~70s, 80th pct ~84s,
+		# max ~115s over 238 runs each; PropKKGLMM BCa Bayesian-bootstrap
+		# p-value: mean 35s, 80th pct 49s, max 82s over 46 runs).
+		"survival||InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||compute_rand_two_sided_pval",
+		"survival||InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||compute_rand_two_sided_pval(delta=0.5)",
+		"proportion||InferencePropKKGLMM||compute_bayesian_bootstrap_two_sided_pval_bca"
 	),
 	bootstrap = c(
 		"InferenceContinRobustRegr",

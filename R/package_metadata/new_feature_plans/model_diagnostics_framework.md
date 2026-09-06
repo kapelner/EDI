@@ -11,11 +11,18 @@
 > check results as assumption gates in its selection table; this plan
 > stands alone as the **absolute** half of model criticism ("does this
 > model's own assumptions hold"), the sibling is the **relative** half
-> ("which candidate fits best"). **Release target: v2.0.0**
-> (`release_v2_0_0.md → TODO-6g`); see TODO-1(e) — this is the lighter
-> half (no fold/split substrate needed; checks are in-sample) and pulling
-> the pilot batteries into a 1.x release is a live option to put to the
-> user. (Global ordering: see `_master.md` 5AH.)
+> ("which candidate fits best"). **Release target: v1.1.0**
+> (`release_v1_1_0.md → TODO-17z`; moved from v2.0.0 `TODO-6g` on
+> 2026-09-05, user decision, resolving TODO-1(e)): this is the lighter
+> half — no fold/split substrate needed, checks are in-sample — so the
+> declaration contract and the pilot batteries ship in 1.x alongside the
+> sibling's Phase A (`model_selection_framework.md → TODO-17y`), which
+> consumes this plan's typed check results as its assumption gate once
+> both exist. Sequenced after `SolverDiagnostics`
+> (`public_diagnostics_api_spec.md`, v1.1.0 `TODO-3`) because the two
+> share one report surface. The per-class rollout beyond the pilots is a
+> ledger inside this plan, not a release item. (Global ordering: see
+> `_master.md` 5AH.)
 
 Written 2026-09-02 (user proposal: `ModelDiagnostics(des_obj)` giving "a
 whole host of model diagnostics for the different offered models, where
@@ -26,8 +33,8 @@ nonparametrics).
 Related:
 [post_selection_inference_menu.md](../new_research_ideas/post_selection_inference_menu.md)
 — the reference report on honest inference after diagnostics-gated
-selection; this plan's `blindable` tags and gate constants (§2) are what
-make that report's cheap execution paths mechanically dispatchable.
+selection; this plan's gate constants (§2) are what make that report's
+selection-inclusive test a pre-specified statistic.
 
 ## 1. Why
 
@@ -71,24 +78,24 @@ see its §5):
   pipeline is a pure, pre-specified function — a requirement for the
   selection-inclusive randomization statistic to be well-defined, and
   the difference between a gate and a judgment call.
-- **Every check carries a `blindable` tag.** Covariate-side checks
-  (covariate PH, overdispersion, proportionality of covariate effects,
-  calibration of the `w`-omitted outcome model) can run
-  treatment-blinded; treatment-side checks (the treatment coefficient's
-  own PH, adequacy of `~ . * w` interaction cells) inherently see `w`
-  and cannot. The tag partitions each battery into a blinded and an
-  unblinded tranche; the sibling's `InferencePostSelection` dispatches
-  its execution path off this tag mechanically (blinded-tranche-only
-  gates keep the free-lunch plain-randomization path; any unblinded
-  gate forces the full per-replicate re-run).
+- ~~**Every check carries a `blindable` tag.** Covariate-side checks
+  can run treatment-blinded; treatment-side checks inherently see `w`
+  and cannot; the tag partitioned each battery into a blinded and an
+  unblinded tranche that the sibling's `InferencePostSelection`
+  dispatched its execution path off.~~ **Removed 2026-09-06 (user
+  decision, "strip blinding … it's something that will never be
+  implemented"; see the sibling's §5 removal note).** Every check runs
+  on the model as fitted — with `w` in it, since `w` is part of the data
+  — and every check re-runs on every randomization replicate. There is
+  no tag, no tranche, and no cheaper execution path to dispatch to.
 - **`likelihood_tier = "none"` classes never disqualify.** Rank/exact
   classes have essentially no parametric assumptions to violate; their
   batteries are empty-or-advisory by construction, which is what lets
   the sibling plan require one as the guaranteed non-empty-qualified-set
   fallback.
 
-Checks run across the same formula grid the sibling plan uses (`~1`,
-`~.`, `~.*w`, splines): an assumption can hold under one specification
+Checks run across the same formula grid the sibling plan uses (`~w`,
+`~w + .`, `~w * .`, splines): an assumption can hold under one specification
 and fail under another, and the panel should show that per cell.
 
 ## 3. Pilot batteries
@@ -118,7 +125,7 @@ metadata was; the pilot tranche (TODO-3) is:
   adjacent panel but **out of scope** — they diagnose the design, not a
   model; candidate follow-on plan.
 - **Sibling**: comparative fit, formula-grid guardrails, CV folds,
-  blinding infrastructure, the selection-inclusive randomization test,
+  the selection-inclusive randomization test,
   and the pre-specification workflow all live in
   `model_selection_framework.md`. This plan's outputs feed that plan's
   selection table as gates/flags (its TODO decides gate-vs-flag
@@ -130,9 +137,9 @@ Assumption checking is standard good practice and lower-risk than
 selection, but **diagnose-then-switch is data-driven selection through
 the back door** (pretest bias). Two rules, inherited from the sibling
 plan and enforced here too: (1) checks never display, sort, or gate on
-treatment-effect magnitude or significance, and run treatment-blinded
-where feasible (`blind = c("omit_w", "mask_w", "none")`, shared
-implementation with the sibling); (2) when a diagnostic motivates
+treatment-effect magnitude or significance (~~and run treatment-blinded
+where feasible, `blind = c("omit_w", "mask_w", "none")`~~ — blinding
+modes dropped 2026-09-06, user; `w` is in every fit); (2) when a diagnostic motivates
 switching models, the report routes to the sibling plan's honest exits
 (selection-inclusive randomization test, sample splitting 5AE, selective
 inference 5AF) rather than to the switched-to model's naive p-value.
@@ -148,9 +155,9 @@ front-door workflow.
   counts, and non-parallel ordinal lines are flagged by the
   corresponding battery at reasonable power; clean data is not flagged
   at gross excess of nominal size.
-- Blinding: with `blind = "omit_w"`, every check result is invariant to
-  permuting `w`; with `"mask_w"`, no output object contains the
-  treatment coefficient.
+- Rule 1: no check result, severity, or gate is a function of the
+  treatment coefficient's magnitude or p-value (assert on a fixture
+  where only `w`'s coefficient changes between two fits).
 - Separation surfacing: the logistic battery's separation row agrees
   with the internal guard's determination on the same fit.
 - Failure isolation: one pathological (class × formula × check) cell
@@ -161,13 +168,18 @@ front-door workflow.
 - [ ] TODO-1: **Decision gate (ask the user, no code).** (a) Registry
   field shape (per class vs. per component) and the typed check-result
   contract; (b) ratify the §3 pilot tranche; (c) severity taxonomy and
-  what the HTML report does with each level; (d) `blind` default shared
-  with the sibling plan; (e) **release placement of the pilots** — the
+  what the HTML report does with each level; (d) ~~`blind` default shared
+  with the sibling plan~~ **moot (2026-09-06, user): blinding dropped
+  from both plans**; (e) ~~**release placement of the pilots** — the
   declaration contract plus pilot batteries need no v2.0.0 substrate and
-  could ship in a 1.x release ahead of the sibling; confirm or decline.
+  could ship in a 1.x release ahead of the sibling; confirm or decline~~
+  **decided (2026-09-05, user): confirmed — v1.1.0 (`TODO-17z`), in the
+  same release as the sibling's Phase A rather than ahead of it; see the
+  header.**
 - [ ] TODO-2: **Declaration contract + shared report surface**: the
   registry field, typed result shape — **including the ratified
-  per-check gate-threshold constant and `blindable` tag (§2)** —
+  per-check gate-threshold constant (§2; the `blindable` tag was
+  dropped 2026-09-06)** —
   discovery, and one rendering table with `SolverDiagnostics` rows
   (coordinate with `public_diagnostics_api_spec.md`).
 - [ ] TODO-3: **Pilot batteries** per §3's table, plus the

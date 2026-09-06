@@ -58,6 +58,40 @@ inference_is_ordinal_model_coefficient_class = function(name) {
 		name %in% EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES
 }
 
+# Survival classes whose treatment-effect estimand is a log hazard ratio.
+# The generic randomization CI inverts an accelerated-failure-time sharp null
+# (treated times multiplied by exp(delta); `transform_responses = "log"`), so
+# its `delta` axis is a log *time* ratio. A Cox-type estimate lives on the
+# log *hazard* ratio axis, and the Cox model estimates no shape parameter
+# that would link the two (only a Weibull does: log HR = -shape * delta). The
+# CI driver seeds and brackets the search from the estimate, i.e. on the
+# wrong axis, and returns bounds that are not a CI for anything -- verified
+# 2026-09-04 on a Weibull DGP (randomization_ci_construction_audit.md, section A).
+# `InferenceSurvivalStratCoxPHRegr` had refused for exactly this reason since
+# before that audit; the other five had not. All six are excluded from the
+# `randomization_ci` capability below (so `InferenceSuite` never offers it,
+# as for incidence) and refused on a direct call in
+# `InferenceRandCI$compute_rand_confidence_interval()`. The randomization-
+# *bootstrap* CI is untouched: it is a percentile interval of the
+# resample-and-reassign distribution of the estimate, not a delta inversion,
+# and stays on the estimate's own scale. Must agree with the
+# `"log_hazard_ratio"` entries of `EDI_INFERENCE_ESTIMAND_TAGS` (defined later
+# in this file; a test pins the agreement, since the tag table is not yet
+# available when `EDI_INFERENCE_EXCLUDED_CAPABILITIES` is built below).
+EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES = c(
+	"InferenceSurvivalCoxPHRegr",
+	"InferenceSurvivalKKLWACoxPHIVWC",
+	"InferenceSurvivalKKLWACoxPHOneLik",
+	"InferenceSurvivalKKStratCoxPHIVWC",
+	"InferenceSurvivalKKStratCoxPHOneLik",
+	"InferenceSurvivalStratCoxPHRegr"
+)
+
+inference_is_log_hazard_ratio_class = function(name) {
+	length(name) == 1L && !is.na(name) &&
+		name %in% EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES
+}
+
 EDI_INFERENCE_EXCLUDED_CAPABILITIES = local({
 	exclusions = list(
 		# ordLORgee supplies the primary estimate, but the current non-uniform
@@ -75,6 +109,16 @@ EDI_INFERENCE_EXCLUDED_CAPABILITIES = local({
 			exclusions[[class_name]],
 			"randomization_ci",
 			"randomization_bootstrap_ci"
+		))
+	}
+	# Log-hazard-ratio estimands: the AFT-scale randomization CI is on the
+	# wrong axis for them (see EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES above).
+	# Only the plain randomization CI is excluded; the randomization-bootstrap
+	# CI is a percentile interval on the estimate's own scale and stays.
+	for (class_name in EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES) {
+		exclusions[[class_name]] = unique(c(
+			exclusions[[class_name]],
+			"randomization_ci"
 		))
 	}
 	exclusions

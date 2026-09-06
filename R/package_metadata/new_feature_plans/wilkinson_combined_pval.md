@@ -2,8 +2,12 @@
 
 > **Depends on:** nothing architectural — additive alongside the existing
 > Cauchy combination test (`cct_combine_pvalues()` /
-> `run_all_inference_combine_pvalues()`) in `R/inference_suite.R`. **Release
-> target: v1.1.0** (`release_v1_1_0.md → TODO-17n`).
+> `run_all_inference_combine_pvalues()`) in `R/inference_suite.R`.
+> **Release target: split 2026-09-06 (lighten-1.1.0 pass, user
+> decision)** — Stage 1 (the `vote_fraction` field, TODO-2) is v1.1.0
+> (`release_v1_1_0.md → TODO-17n`); Stage 2 (the formal
+> r-th-order-statistic test, TODO-1 gate + TODO-3/4) moved to v1.4.0
+> (`release_v1_4_0.md → TODO-18`).
 
 Written 2026-08-30.
 

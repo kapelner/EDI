@@ -3,7 +3,18 @@
 	X = as.matrix(X)
 	y = as.numeric(y)
 	dead = as.numeric(dead)
-	if (is.null(colnames(X))) colnames(X) = paste0("x", seq_len(ncol(X)))
+	# ncol(X) == 0L guard: paste0() does not special-case a zero-length
+	# seq_len(0) the way most vectorized functions do -- paste0("x", integer(0))
+	# returns "x" (length 1, not character(0)), since paste0() silently drops
+	# zero-length arguments rather than recycling to zero length when mixed
+	# with a non-empty one. Assigning that single "x" name to a 0-column
+	# matrix's colnames<- then errors ("length of 'dimnames' [2] not equal to
+	# array extent"). This X is 0-column whenever a null-model refit fixes the
+	# only free covariate (e.g. compute_lik_ratio/score/gradient_two_sided_pval
+	# on a model_formula = ~1 fit) -- survival::coxph.fit() itself handles a
+	# 0-column x with an offset fine (returns a coxph.null fit), so this
+	# colnames assignment is the only thing that needs the guard.
+	if (is.null(colnames(X)) && ncol(X) > 0L) colnames(X) = paste0("x", seq_len(ncol(X)))
 	strata_arg = if (is.null(strata)) NULL else as.integer(strata)
 	offset_arg = if (is.null(offset)) NULL else as.numeric(offset)
 	fit = tryCatch(

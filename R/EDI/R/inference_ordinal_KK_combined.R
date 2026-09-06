@@ -143,7 +143,7 @@ InferenceOrdinalKKGEE = define_inference_class(
 		gee_response_type = function() "ordinal",
 		gee_family        = function() stats::binomial(link = "logit"),
 		# Ordinal response requires ordLORgee, not geeglm.
-		fit_ordinal_gee_mod = function(bstart = NULL){
+		fit_ordinal_gee_mod = function(bstart = NULL, predictors_df = NULL){
 			m_vec = private$m
 			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
 			m_vec[is.na(m_vec)] = 0L
@@ -151,7 +151,7 @@ InferenceOrdinalKKGEE = define_inference_class(
 			reservoir_idx = which(group_id == 0L)
 			if (length(reservoir_idx) > 0L)
 				group_id[reservoir_idx] = max(group_id) + seq_along(reservoir_idx)
-			pred_df = private$gee_predictors_df()
+			pred_df = predictors_df %||% private$gee_predictors_df()
 			dat = data.frame(y = factor(private$y, ordered = TRUE), pred_df, group_id = group_id)
 			dat = dat[order(dat$group_id), ]
 			id_sorted = dat$group_id
@@ -173,12 +173,42 @@ InferenceOrdinalKKGEE = define_inference_class(
 				m
 			}, error = function(e) NULL)
 		},
+		# Unlike the mixin's own geeglm-based GEE fits (fit_gee_with_fallback,
+		# approximate_bootstrap_distribution_beta_hat_T's GEE loop), which
+		# already iterate over private$gee_predictors_df_candidates() -- a
+		# QR-hardened sequence of rank-reduced candidate design matrices --
+		# fit_ordinal_gee_mod() used to be called directly on the raw,
+		# unreduced gee_predictors_df(). Some fixture covariate matrices
+		# (e.g. the "diamonds" dataset's `~0+.` model.matrix, which keeps
+		# every level of its first categorical factor -- an implicit
+		# intercept column) are then rank-deficient, and
+		# multgee::ordLORgee()'s vglm() backend refuses any non-full-rank
+		# design ("vglm() only handles full-rank models"), an error this
+		# function's tryCatch silently swallows into a plain NULL fit --
+		# reproduced exactly with a diamonds-shaped 148x24 design (74-89%
+		# NA rate on that dataset in the comprehensive-results survey).
+		# This wrapper mirrors the mixin's own fallback pattern: try each
+		# QR-hardened candidate predictor set in turn, keeping the original
+		# bstart only when its length still matches (a different candidate
+		# has a different parameter count).
+		fit_ordinal_gee_mod_with_fallback = function(bstart = NULL){
+			base_pred_df = private$gee_predictors_df()
+			base_ncol = ncol(base_pred_df)
+			for (predictors_df in private$gee_predictors_df_candidates()) {
+				bstart_try = if (!is.null(bstart) && ncol(predictors_df) == base_ncol) bstart else NULL
+				mod = private$fit_ordinal_gee_mod(bstart = bstart_try, predictors_df = predictors_df)
+				if (is.null(mod)) next
+				beta = tryCatch(stats::coef(mod), error = function(e) NULL)
+				if (!is.null(beta) && private$gee_coefficients_are_usable(beta)) return(mod)
+			}
+			NULL
+		},
 		# Randomization inference must reuse the ordLORgee fit (not the generic
 		# geeglm-based mixin fallback, which errors on >2-level responses and
 		# silently returns NA for every permutation replicate) and must not
 		# write into cached_values, since permuted data is fit repeatedly.
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
-			mod = private$fit_ordinal_gee_mod()
+			mod = private$fit_ordinal_gee_mod_with_fallback()
 			if (is.null(mod)) return(NA_real_)
 			beta = stats::coef(mod)
 			j_treat = private$gee_treatment_index(beta)
@@ -194,7 +224,7 @@ InferenceOrdinalKKGEE = define_inference_class(
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
 			n_beta = ncol(private$gee_predictors_df()) + length(unique(private$y)) - 1L
 			bstart = private$get_fit_warm_start_for_length("beta", n_beta)
-			mod = private$fit_ordinal_gee_mod(bstart = bstart)
+			mod = private$fit_ordinal_gee_mod_with_fallback(bstart = bstart)
 			if (is.null(mod)){
 				private$cache_nonestimable_estimate("ordinal_kk_gee_fit_unavailable")
 				return(invisible(NULL))

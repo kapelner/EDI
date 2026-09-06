@@ -26,7 +26,12 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#' @description Compute a randomization-based two-sided p-value for the treatment effect.
 		#' @param r Number of randomization vectors.
 		#' @param delta Null treatment effect value.
-		#' @param transform_responses Response transformation to apply during the test.
+		#' @param transform_responses Response transformation to apply during the test. For
+		#'   survival responses the default \code{"log"} multiplies the recorded times of the
+		#'   units treated under each reference allocation by \eqn{e^\delta}, event and
+		#'   censoring times alike, with censoring indicators unchanged — the rank-based
+		#'   AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei
+		#'   and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumptions.
 		#' @param na.rm Whether to remove non-finite simulated statistics.
 		#' @param show_progress Whether to show progress.
 		#' @param permutations Optional pre-generated assignment draws.
@@ -88,7 +93,60 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				zero_one_logit_clamp = zero_one_logit_clamp
 			)
 		},
-		#' @description Computes a randomization-based confidence interval.
+		#' @description Computes a randomization-based confidence interval by inverting the
+		#'   randomization test: the interval is the set of \eqn{\delta} for which the two-sided
+		#'   randomization p-value of the sharp null "treatment effect \eqn{= \delta}" is at
+		#'   least \code{alpha}. For each candidate \eqn{\delta} the control potential
+		#'   outcomes are first imputed under that sharp null by removing the hypothesised
+		#'   effect from the units that were actually treated; then, for each reference
+		#'   allocation \eqn{w_b}, the effect is applied to the units treated under
+		#'   \eqn{w_b} — on the response type's scale (additive for continuous responses,
+		#'   multiplicative \eqn{e^\delta} for counts and survival times, a logit shift for
+		#'   proportions) — the estimator is recomputed, and the observed estimate is
+		#'   compared with the resulting reference distribution. This is the
+		#'   impute-then-permute construction of Rosenbaum (2002, ch. 2) and Imbens and
+		#'   Rubin (2015, ch. 5): \eqn{y_{sim} = y - \delta w_{obs} + \delta w_b} on the
+		#'   additive scale.
+		#'
+		#'   \strong{Survival responses.} The sharp null is an accelerated-failure-time
+		#'   (AFT) effect: for units treated under \eqn{w_b} the recorded time is multiplied
+		#'   by \eqn{e^\delta} — \emph{both} event times and censoring times — and the
+		#'   censoring indicator is carried over unchanged. Equivalently, the test is run on
+		#'   the residual times \eqn{\log y_i - \delta w_i} of every observation, censored
+		#'   or not. This is the residual construction underlying rank-based inference for
+		#'   the AFT model: Tsiatis (1990) shows that linear rank statistics computed on
+		#'   these residuals have mean zero at the true \eqn{\delta} under independent
+		#'   censoring, even though the residual censoring distribution then depends on
+		#'   treatment; Wei, Ying and Lin (1990) invert exactly this family of tests to
+		#'   obtain confidence intervals for AFT regression coefficients; Jin, Lin, Wei and
+		#'   Ying (2003) give the modern estimation and inference machinery for the same
+		#'   model. The alternative of rescaling only the event times and re-deriving the
+		#'   censoring indicator is not identifiable, because a unit's censoring time is
+		#'   unobserved whenever its event was. Two assumptions therefore apply: (i)
+		#'   independent censoring (\eqn{C \perp T \mid w}) for the asymptotic validity of
+		#'   the inverted test, and (ii) for the \emph{finite-sample exactness} of the
+		#'   permutation version specifically, that censoring times are on the same
+		#'   accelerated clock as event times (\eqn{C_i(1) = e^\delta C_i(0)}), which is
+		#'   plausible for health-driven dropout and does not hold for calendar-time
+		#'   administrative censoring; under administrative censoring the interval is
+		#'   asymptotically, not exactly, valid. Because \eqn{\delta} is a log time-ratio,
+		#'   this construction is coherent only for classes whose estimand is on that scale
+		#'   (the Weibull AFT, marginal Weibull, Weibull-frailty, and rank-regression
+		#'   classes); classes whose estimand is a log hazard ratio cannot invert an AFT
+		#'   shift without a parametric link between the two scales and refuse this method
+		#'   (the six classes in \code{EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES} — the Cox
+		#'   family — which also do not advertise the \code{randomization_ci} capability, so
+		#'   \code{InferenceSuite} never offers it for them; their randomization p-value and
+		#'   randomization-bootstrap CI are unaffected).
+		#'
+		#' @references Tsiatis, A. A. (1990). Estimating regression parameters using linear
+		#'   rank tests for censored data. \emph{The Annals of Statistics}, 18(1), 354-372,
+		#'   \doi{10.1214/aos/1176347504}. Wei, L. J., Ying, Z., and Lin, D. Y. (1990).
+		#'   Linear regression analysis of censored survival data based on rank tests.
+		#'   \emph{Biometrika}, 77(4), 845-851, \doi{10.1093/biomet/77.4.845}. Jin, Z., Lin,
+		#'   D. Y., Wei, L. J., and Ying, Z. (2003). Rank-based inference for the accelerated
+		#'   failure time model. \emph{Biometrika}, 90(2), 341-353,
+		#'   \doi{10.1093/biomet/90.2.341}.
 		#' @param alpha  				Significance level.
 		#' @param r  	Number of randomization vectors.
 		#' @param pval_epsilon  		Bisection tolerance.
@@ -128,6 +186,19 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			if (inference_is_ordinal_model_coefficient_class(class(self)[1L])) {
 				stop(
 					"Randomization confidence intervals are not implemented for ordinal model-coefficient estimands.",
+					call. = FALSE
+				)
+			}
+			if (inference_is_log_hazard_ratio_class(class(self)[1L])) {
+				stop(
+					"Randomization confidence intervals are not supported for ", class(self)[1L],
+					" because the estimator units (Log-Hazard Ratio) are inconsistent with the ",
+					"randomization test's required transformed scale (Log-Time Ratio / AFT effect): ",
+					"the search would be seeded and bracketed on the log-hazard-ratio axis while the ",
+					"sharp null is imposed on the log-time axis, and the Cox model estimates no shape ",
+					"parameter that could convert between them. The randomization p-value and the ",
+					"randomization-bootstrap CI remain available. See ",
+					"R/package_metadata/new_feature_plans/randomization_ci_construction_audit.md, section A.",
 					call. = FALSE
 				)
 			}
@@ -575,9 +646,22 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				# crossing the cheap pass thought it found there was Monte
 				# Carlo noise, not a real one. There is nothing reliable to
 				# bisect between (no verified sign change), so fall back to
-				# whichever end is on the conservative (non-significant) side
-				# -- wider than necessary, never narrower than justified.
-				non_sig_end = if (pval_l >= pval_th) l else u
+				# the conservative (outer) end of the search range for this
+				# bound's direction -- wider than necessary, never narrower
+				# than justified.
+				#
+				# Bug fixed 2026-09-06: this used to pick `l` whenever
+				# `pval_l` was non-significant, which is correct for a LOWER
+				# bound (there `l` really is the outer/conservative end) but
+				# wrong for an UPPER bound, where `l = est` (the point
+				# estimate) and `pval_l` at the estimate is essentially
+				# always non-significant -- so every "conservative upper
+				# bound" case silently collapsed the returned upper limit to
+				# the point estimate, producing badly-too-narrow intervals.
+				# Confirmed by simulation: empirical coverage was ~51-61%
+				# instead of ~95% for InferenceContinLin/OLS/QuantileRegr and
+				# the KK OneLik classes before this fix.
+				non_sig_end = if (lower) l else u
 				return(non_sig_end)
 			}
 			l2 = l; u2 = u; pval_l2 = pval_l; pval_u2 = pval_u

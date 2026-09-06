@@ -13,7 +13,12 @@
 #' log-odds-ratio on the conditional-mean scale: \eqn{\exp(\hat\beta_T)} is
 #' the odds ratio for the expected proportion. Standard errors use the
 #' model-based (non-robust/non-sandwich) Fisher information from this
-#' quasi-likelihood, matching pre-migration behavior; only Wald inference is
+#' quasi-likelihood, scaled by an estimated quasi-binomial dispersion
+#' parameter \eqn{\hat\phi} (Papke & Wooldridge's own prescription; fixed
+#' 2026-09-06 -- the unscaled Bernoulli-based variance systematically
+#' overstates \eqn{\mathrm{Var}(\hat\beta_T)} for a genuinely fractional
+#' response, since Bernoulli is the maximum-variance distribution on [0,1]
+#' for a given mean); only Wald inference is
 #' exposed (\code{private$supports_likelihood_tests()} is hard \code{FALSE}
 #' here even though \code{likelihood_tier = "full"} metadata is set for
 #' component-composition purposes — this class deliberately does not compose
@@ -299,6 +304,31 @@ InferencePropFractionalLogit = define_inference_class(
 			}
 			if (!is.null(attempt$fit)){
 				private$best_X_colnames = setdiff(colnames(attempt$X), c("(Intercept)", "treatment"))
+				# Quasi-binomial dispersion correction (Papke & Wooldridge
+				# 1996): the model-based variance from
+				# fast_logistic_regression_with_var_cpp() is the Bernoulli
+				# Fisher information X'WX with W = mu(1-mu), the variance a
+				# LITERALLY BINARY response would have. A genuinely
+				# fractional response's true conditional variance is always
+				# <= mu(1-mu) (Bernoulli is the maximum-variance distribution
+				# on [0,1] for a given mean), so using the naive Bernoulli
+				# variance systematically overstates Var(beta_hat_T),
+				# inflating the SE and pinning p-values near 1 (found
+				# 2026-09-06: 0/278 and 0/204 rejections under the true null
+				# for compute_asymp_two_sided_pval/compute_wald_two_sided_
+				# pval). Papke & Wooldridge's own prescription is to scale
+				# the Bernoulli-based variance by the estimated
+				# quasi-binomial dispersion phi_hat, the standard fix for
+				# any quasi-likelihood model.
+				if (!isTRUE(estimate_only) && is.finite(attempt$fit$ssq_b_2) && attempt$fit$ssq_b_2 > 0) {
+					X_used = as.matrix(attempt$X)
+					mu_hat = stats::plogis(as.numeric(X_used %*% attempt$fit$b))
+					v_hat = pmax(mu_hat * (1 - mu_hat), 1e-8)
+					df_resid = max(length(private$y) - ncol(X_used), 1L)
+					phi_hat = sum((private$y - mu_hat)^2 / v_hat) / df_resid
+					attempt$fit$dispersion = phi_hat
+					attempt$fit$ssq_b_2 = attempt$fit$ssq_b_2 * phi_hat
+				}
 			}
 			attempt$fit
 		},

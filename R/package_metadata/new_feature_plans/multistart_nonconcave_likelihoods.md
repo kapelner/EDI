@@ -1,7 +1,13 @@
 # Multistart for the Nonconcave Likelihood Kernels
 
-> **Release:** v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-17s`;
-> 2026-09-03, user decision). Correctness / robustness, not performance: every
+> **Release:** split 2026-09-06 (lighten-1.1.0 pass, user decision) — the
+> documented-failure tranche (ZINB/ZIP/hurdle-NegBin, beta regression)
+> stays v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-17s`,
+> 2026-09-03, user decision); the remainder (GLMM/LMM/frailty, ZOIB,
+> stereotype, copula survival, cauchit, bisquare) moved to v1.2.0
+> (`../future_release_plans/release_v1_2_0.md → TODO-20`). Both tranches
+> share the infrastructure below, built once. Correctness / robustness,
+> not performance: every
 > likelihood kernel whose objective is **not** concave currently runs a single
 > L-BFGS/Newton descent from one smart cold start and returns whatever local
 > optimum it lands in. Two kernels already carry a small deterministic

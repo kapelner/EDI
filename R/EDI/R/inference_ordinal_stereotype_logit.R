@@ -295,7 +295,18 @@ OrdinalStereotypeLikelihoodSource = list(
 						),
 						error = function(e) NULL
 					)
-					if (!private$stereotype_fit_is_usable(res, check_treatment = FALSE, fixed_idx = j_treat)) return(NULL)
+					# require_information_pd = FALSE: this null refit, like the
+					# parametric-bootstrap null refit below, is only ever
+					# consumed for its neg_loglik (see the returned list) --
+					# never a variance/SE. Same Davies-type non-identification
+					# near beta_T=0 documented on stereotype_fit_is_usable()
+					# applies equally here on real data, not just simulated
+					# bootstrap replicates. Before this fix the PD gate
+					# defaulted to TRUE here (inconsistent with the bootstrap
+					# path), spuriously marking this refit unusable and
+					# returning NA for compute_lik_ratio_two_sided_pval on
+					# ~2/3 of real fits (200/300 in a direct reproduction).
+					if (!private$stereotype_fit_is_usable(res, check_treatment = FALSE, fixed_idx = j_treat, require_information_pd = FALSE)) return(NULL)
 					list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik))
 				},
 				extract_start = function(fit){ as.numeric(fit$params) },

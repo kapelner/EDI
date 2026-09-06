@@ -109,11 +109,11 @@ route gives, so it complements rather than replaces the Stage 1 pilot.
 acceptance rate, mitigated by warm starts, the parallel layers, and
 sequential-MC early stopping. The pipeline definition, gate constants,
 and provenance object come from `model_selection_framework.md` §5
-(which routes to this plan via its `method = "rand_conditional"`); the
-blinding-commutation special case documented there does not apply here —
-conditioning is only interesting when selection is unblinded, since
-blinded selection is invariant across redraws and the acceptance rate is
-then 1 (the conditional test degenerates, correctly, to the plain test).
+(which routes to this plan via its `method = "rand_conditional"`). (An
+earlier note here about a blinding-commutation special case was removed
+2026-09-06 along with that machinery — `w` is in every fit, so the
+winner genuinely varies across redraws and the acceptance rate is the
+real cost.)
 
 ## Scope note (why this is staged, and staged conservatively)
 
@@ -191,9 +191,14 @@ move to 2.0.0 alongside `sample_splitting_model_selection.md`.
   test mirroring TODO-3 (type-I error within accepted-draw subsets under
   `betaT = 0`); benchmark against the Stage 1 polyhedral pilot on the
   same simulated selections. Sequenced after
-  `model_selection_framework.md → TODO-7` supplies the pipeline wrapper
-  (v2.0.0), even though this plan's polyhedral pilot is v1.4.0 — the two
-  routes ship independently.
+  `model_selection_framework.md → TODO-7` supplies the pipeline wrapper —
+  **which moved to v1.1.0 on 2026-09-05** (that plan's Phase A,
+  `release_v1_1_0.md → TODO-17y`; the selection-inclusive test needs no
+  `Design`-level splitting). This item therefore ships as `TODO-17y`'s
+  stretch sub-item (f) in v1.1.0 if Phase A lands with margin, otherwise
+  with this plan's polyhedral pilot under `TODO-11d` in v1.4.0. The two
+  routes still ship independently; the polyhedral pilot's release does
+  not move.
 
 ## References
 

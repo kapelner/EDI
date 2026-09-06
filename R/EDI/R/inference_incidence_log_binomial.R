@@ -71,13 +71,13 @@ IncidenceLogBinomialLikelihoodSource = list(
 				},
 				fit_ok = function(mod, X_fit, keep){
 					j_treat = match(2L, keep)
-					if (!isTRUE(private$is_log_binomial_fit_reasonable(mod, X_fit, j_treat))) return(FALSE)
+					if (!isTRUE(private$is_log_binomial_fit_reasonable(mod, X_fit, j_treat, check_probability_boundary = FALSE))) return(FALSE)
 					TRUE
 				}
 			)
 			private$cached_mod = attempt$fit
 			j_treat = match(2L, attempt$keep)
-			if (!isTRUE(private$is_log_binomial_fit_reasonable(attempt$fit, attempt$X, j_treat))){
+			if (!isTRUE(private$is_log_binomial_fit_reasonable(attempt$fit, attempt$X, j_treat, check_probability_boundary = FALSE))){
 				private$cache_nonestimable_estimate("log_binomial_weighted_fit_unavailable")
 				private$cached_values$beta_hat_T = NA_real_
 				private$cached_values$s_beta_hat_T = NA_real_
@@ -164,7 +164,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 		logbin_X_full_cache = NULL,
 		logbin_w_cache = NULL,
 		max_abs_reasonable_coef = 25,
-		is_log_binomial_fit_reasonable = function(mod, X_fit = NULL, j_treat = 2L){
+		is_log_binomial_fit_reasonable = function(mod, X_fit = NULL, j_treat = 2L, check_probability_boundary = TRUE){
 			if (is.null(mod) || is.null(mod$b)) return(FALSE)
 			j_treat = as.integer(j_treat %||% mod$j_treat %||% 2L)
 			if (length(j_treat) != 1L || !is.finite(j_treat) || j_treat < 1L) return(FALSE)
@@ -172,13 +172,32 @@ IncidenceLogBinomialLikelihoodSource = list(
 			if (length(b) < j_treat || any(!is.finite(b))) return(FALSE)
 			if (any(abs(b) > private$max_abs_reasonable_coef)) return(FALSE)
 			if (!is.null(mod$converged) && !isTRUE(mod$converged)) return(FALSE)
-			if (!is.null(X_fit)) {
-				eta = tryCatch(as.numeric(as.matrix(X_fit) %*% b), error = function(e) NA_real_)
-				if (any(!is.finite(eta))) return(FALSE)
-				if (any(eta > 1e-6)) return(FALSE)
-			} else if (!is.null(mod$mu_hat)) {
-				mu = as.numeric(mod$mu_hat)
-				if (any(!is.finite(mu)) || any(mu < -1e-10) || any(mu > 1 + 1e-10)) return(FALSE)
+			# check_probability_boundary = FALSE: skip the fitted-probability-
+			# exceeds-1 boundary check. Used only for the Dirichlet-weighted
+			# Bayesian-bootstrap refit (compute_estimate_with_bootstrap_
+			# weights() below), never for the primary fit. Under Dirichlet
+			# reweighting, replicates that push a high-p0 subject's fitted
+			# probability over 1 are disproportionately the EXTREME TAIL of
+			# the resampling distribution -- exactly the replicates needed to
+			# represent true sampling variability. Discarding them (as this
+			# function used to do unconditionally) shrinks the empirical
+			# bootstrap spread, producing simultaneously too-narrow CIs and
+			# too-small p-values (found 2026-09-06: Bayesian-bootstrap size
+			# 25-36% vs. nominal 5%, coverage 56-70% vs. nominal 95%, while
+			# the ordinary nonparametric bootstrap for the same class stayed
+			# near nominal). The coefficient estimate itself from a boundary-
+			# hitting weighted fit is still a valid (if large) draw from the
+			# resampling distribution of beta_hat_T; only fitted probabilities
+			# derived from it are out of range, not the coefficient.
+			if (isTRUE(check_probability_boundary)) {
+				if (!is.null(X_fit)) {
+					eta = tryCatch(as.numeric(as.matrix(X_fit) %*% b), error = function(e) NA_real_)
+					if (any(!is.finite(eta))) return(FALSE)
+					if (any(eta > 1e-6)) return(FALSE)
+				} else if (!is.null(mod$mu_hat)) {
+					mu = as.numeric(mod$mu_hat)
+					if (any(!is.finite(mu)) || any(mu < -1e-10) || any(mu > 1 + 1e-10)) return(FALSE)
+				}
 			}
 			TRUE
 		},

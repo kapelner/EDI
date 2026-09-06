@@ -462,6 +462,19 @@ SurvivalWeibullLikelihoodSource = list(
 #' @references Kalbfleisch, J. D., and Prentice, R. L. (2002). \emph{The
 #'   Statistical Analysis of Failure Time Data} (2nd ed.). Wiley, for the
 #'   Weibull AFT model and its equivalence to a proportional-hazards model.
+#'   For the randomization confidence interval
+#'   (\code{compute_rand_confidence_interval()}), which inverts an AFT sharp
+#'   null by rescaling the recorded times of treated units — event and
+#'   censoring times alike, censoring indicators unchanged — the residual
+#'   construction and its validity under independent censoring are from
+#'   Tsiatis, A. A. (1990). Estimating regression parameters using linear rank
+#'   tests for censored data. \emph{The Annals of Statistics}, 18(1), 354-372,
+#'   \doi{10.1214/aos/1176347504}; Wei, L. J., Ying, Z., and Lin, D. Y. (1990).
+#'   Linear regression analysis of censored survival data based on rank tests.
+#'   \emph{Biometrika}, 77(4), 845-851, \doi{10.1093/biomet/77.4.845}; and Jin,
+#'   Z., Lin, D. Y., Wei, L. J., and Ying, Z. (2003). Rank-based inference for
+#'   the accelerated failure time model. \emph{Biometrika}, 90(2), 341-353,
+#'   \doi{10.1093/biomet/90.2.341}.
 #'
 #' @seealso Comparable Python API:
 #'   \href{https://lifelines.readthedocs.io/en/latest/fitters/regression/WeibullAFTFitter.html}{lifelines

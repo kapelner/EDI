@@ -139,7 +139,28 @@ StandardModelCacheSource = list(
 		compute_likelihood_test_two_sided_pval = function(delta, testing_type, bartlett_B = NULL){
 			spec = private$get_likelihood_test_spec()
 			if (is.null(spec)) {
-				stop(class(self)[1], " does not expose a likelihood-test specification.", call. = FALSE)
+				# A class that structurally never supports likelihood tests
+				# (supports_likelihood_tests() hard-FALSE) never has a spec by
+				# design -- that is a caller error (a testing_type the class
+				# never advertised), so it stays a hard stop. A class that DOES
+				# support likelihood tests but returns NULL here because THIS
+				# fit failed (model_fit_unavailable, extreme coefficients, a
+				# null-refit that errored, etc.) instead degrades the same way
+				# InferenceIncidKKCondLogitOneLik's compute_likelihood_test_two_
+				# sided_pval() already does: record non-estimable, return NA.
+				# See 2026-09-06 comprehensive-results investigation: on
+				# pte_example reps where InferenceSurvivalCoxPHRegr's / Infer
+				# enceSurvivalDepCensTransformRegr's own generate_mod() fit
+				# failed, every LR/score/gradient call on that object was
+				# erroring instead of recording the same non-estimable state
+				# compute_estimate() already has.
+				if (!isTRUE(private$supports_likelihood_tests())) {
+					stop(class(self)[1], " does not expose a likelihood-test specification.", call. = FALSE)
+				}
+				if (!isTRUE(self$is_nonestimable())) {
+					private$cache_nonestimable_estimate("likelihood_test_spec_unavailable")
+				}
+				return(NA_real_)
 			}
 			p_value = private$get_memoized_likelihood_test_pval(
 				delta = delta,

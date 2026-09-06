@@ -46,7 +46,9 @@ spliced into one step and marked **[spliced]**.
 > Beta-family one-stage `OneLik` joint likelihood for proportion responses
 > under KK designs — Phase 5G below) is promoted from
 > `../new_research_ideas/` and written directly into the v1.1.0 scope
-> (`release_v1_1_0.md → TODO-15b`).
+> (`release_v1_1_0.md → TODO-15b`; **moved 2026-09-06 to
+> `release_v1_4_0.md → TODO-15`, lighten-1.1.0 pass, user decision** — a
+> new estimator family is off-theme for that release).
 > Amended 2026-08-18 (user decision): `marginal_estimand_report.md` — the
 > `set_estimand()` estimand axis — is pulled **out of** the v1.1.0
 > "everything else" bucket and **into** the v1.0.0 line instead (see
@@ -95,7 +97,12 @@ spliced into one step and marked **[spliced]**.
 > below. Measurement-first, no Phase 0 dependency; its result-changing items
 > (libmvec exp/log, adaptive quadrature, Monte-Carlo early stopping, non-R RNG
 > streams) are gated by the release's additive/bit-for-bit rule (opt-in or a
-> documented default change).
+> documented default change). **Narrowed 2026-09-06 (lighten-1.1.0 pass,
+> user decision): only the measurement-infrastructure sub-batch
+> (TODO-132..135, 175) stays in v1.1.0, needed to benchmark that
+> release's own speedup claims; everything past it, and the three
+> build-tuning lanes below that consume it, moved to
+> `release_v1_2_0.md → TODO-11..15`.**
 >
 > **Update (2026-08-16):** two of the release-scoped plans have since
 > closed and moved to `../finished_features/`: the interval-censored
@@ -127,11 +134,23 @@ spliced into one step and marked **[spliced]**.
 > 2026-08-27 owning plans (Phase 5M–5Z below):
 > - **v1.1.0 — Inference quality** (`../future_release_plans/release_v1_1_0.md`):
 >   Phase 0 decision batch (records every gated track's yes/no, including
->   1.3.0/1.4.0/2.0.0 tracks), Phase 2 diagnostics, Phase 5A corrections,
->   5G (KK beta OneLik), 5J (count QR), 5M (count exposure offset), 5N
->   (HC-robust SEs), 5O (small estimand additions), the ordinal Bayesian-
->   bootstrap / randomization-CI plans, `randomization_ci_search_precision.md`,
->   and the nominal one-vs-rest vignette if its TODO-1 is "no".
+>   1.3.0/1.4.0/2.0.0 tracks), Phase 2 diagnostics, Phase 5A corrections
+>   **core** (5N HC-robust SEs and 5M count exposure offset stay; 5A's
+>   L1/L2-and-beyond tail, 5G KK beta OneLik, 5J count QR, 5O small
+>   estimand additions, and the ordinal Bayesian-bootstrap plans **moved
+>   to v1.2.0/v1.4.0 in the 2026-09-06 lighten-1.1.0 pass** — see each
+>   phase's own entry below for its new home), `randomization_ci_search_precision.md`,
+>   and **the nominal one-vs-rest vignette if its TODO-1 is "no"**.
+>   **This last item is the single authoritative statement of that
+>   vignette's release placement (resolved 2026-09-06, user decision,
+>   after `release_v1_1_0.md`, `release_v1_4_0.md`, and
+>   `release_v2_0_0.md` had each drifted into claiming a different home
+>   for it): it ships in v1.1.0, immediately alongside the Phase 0
+>   decision that gates it — the decision and its one-paragraph
+>   documentation closeout are the same unit of work, not two.
+>   `release_v1_1_0.md`'s `TODO-17d` and `release_v1_4_0.md`'s
+>   corresponding mention must read as pointers to *this* line, not as
+>   independent claims.**
 > - **v1.2.0 — Performance & engines** (`release_v1_2_0.md`): Phase 4
 >   kernel/perf lanes, `cold_starts.md`, Phase 6 item 5's *merge +
 >   soft-deprecation* half; closes `parallel_fork_cluster_test_safety.md`.
@@ -432,44 +451,53 @@ repeated there: step 1 (`multi_arm_designs.md → TODO-6`, the
 `performance_profiling_and_upgrades.md` §8 → TODO-132..179 — full item list
 and ordering in `release_v1_1_0.md → TODO-4b`.** Independent of TODO-4's
 kernel specs (it profiles and tightens what already exists rather than adding
-kernels); runs in parallel with Phases 2–3; its parallelism sub-batch
-(TODO-147/148/174/176) should be coordinated with the
-`tune_EDI_for_this_machine()` axes (v1.0.0 item 15), and its bare-metal
-sub-batch (TODO-143/171/175 + published 135/147/148 numbers) is one rented
-`c7i.metal-48xl` session. TODOs are ticked in the owning plan.
+kernels); its parallelism sub-batch (TODO-147/148/174/176) should be
+coordinated with the `tune_EDI_for_this_machine()` axes (v1.0.0 item 15),
+and its bare-metal sub-batch (TODO-143/171/175 + published 135/147/148
+numbers) is one rented `c7i.metal-48xl` session. TODOs are ticked in the
+owning plan. **Narrowed 2026-09-06 (lighten-1.1.0 pass, user decision):**
+only TODO-132..135, 175 (measurement infrastructure — needed to benchmark
+v1.1.0's own randomization-CI speedup claims) stay in `release_v1_1_0.md →
+TODO-4b`; TODO-136..172, 174, 176..179 moved to `release_v1_2_0.md →
+TODO-11`.
 
-**Third lane (added 2026-08-27, user decision; both lanes stay in
-v1.1.0):** `more_simd_optimization.md` → TODO-1..7 — index entry
-`release_v1_1_0.md → TODO-4c`. Source-build premise (`-march=native`, no
-runtime dispatch); implements what the second lane's diagnostics find:
-`-fopenmp-simd` (the macOS gap), `__restrict` sweep, wiring a confirmed
-fast-math subset into `configure`, aligned `Map` copies, tree-code SoA,
-branch-free split-search comparisons, float32 for split ranking. **No
-duplication:** every measurement/diagnostic step (opt-report sweep,
-fast-math/libmvec test, Eigen-vectorization audit, `.row(i)` classification,
-branch-free GLM-objective layout) is owned solely by the second lane's
-TODO-168/137/136/144/154; the third lane consumes those results rather than
-re-running them.
-
-**Fourth, fifth, and sixth lanes (added 2026-08-30, user decision; all in
-v1.1.0):** `fixed_size_eigen_small_p.md` → TODO-1..5
-(`release_v1_1_0.md → TODO-4d`), `lto_reevaluation.md` → TODO-1..4
-(`→ TODO-4e`), and `memory_layout_row_major_irls.md` → TODO-1..4
-(`→ TODO-4f`). Each is measurement-first with its own TODO-1 gate and an
+**Third, fourth, fifth, and sixth lanes (added 2026-08-27/30, user
+decision; all moved 2026-09-06 to `release_v1_2_0.md → TODO-12..15`,
+lighten-1.1.0 pass, user decision — each consumes the second lane's
+measurements, which moved with it):** `more_simd_optimization.md` →
+TODO-1..7 (index entry `release_v1_2_0.md → TODO-12`). Source-build
+premise (`-march=native`, no runtime dispatch); implements what the
+second lane's diagnostics find: `-fopenmp-simd` (the macOS gap),
+`__restrict` sweep, wiring a confirmed fast-math subset into `configure`,
+aligned `Map` copies, tree-code SoA, branch-free split-search
+comparisons, float32 for split ranking. **No duplication:** every
+measurement/diagnostic step (opt-report sweep, fast-math/libmvec test,
+Eigen-vectorization audit, `.row(i)` classification, branch-free
+GLM-objective layout) is owned solely by the second lane's
+TODO-168/137/136/144/154; this lane consumes those results rather than
+re-running them. Then `fixed_size_eigen_small_p.md` → TODO-1..5
+(`release_v1_2_0.md → TODO-13`), `lto_reevaluation.md` → TODO-1..4
+(`→ TODO-14`), and `memory_layout_row_major_irls.md` → TODO-1..4
+(`→ TODO-15`). Each is measurement-first with its own TODO-1 gate and an
 explicit "measured and dropped" exit; each names the second-lane TODO it
 consumes rather than repeats (TODO-155 for fixed-size, TODO-135 for LTO,
 TODO-144 for layout). Expected outcome at EDI's `n < 1,000`, `B < 2,000`
-scale is small or nil for all three — the plans exist to replace
+scale is small or nil for all four — the plans exist to replace
 estimates with numbers and to record the thresholds where each *would*
 matter.
 
 **Algorithmic lane (added 2026-08-30, user decision; v1.1.0):**
-`randomization_ci_affine_shift_reuse.md` → TODO-1..6 (`release_v1_1_0.md →
-TODO-17o`). Unlike the build-level lanes above, this one is expected to be
+`randomization_ci_affine_shift_reuse.md` → TODO-1..7, plus a decision-gated
+TODO-8 (`release_v1_1_0.md → TODO-17o`). Unlike the build-level lanes above,
+this one is expected to be
 large: it revives the dead `t0s_rand` fast path so a randomization CI for a
 linear-in-`y` statistic reuses one null distribution across every bisection
 step (~20–30×). R-level only, no kernel changes, independent of the other
-lanes.
+lanes. Its 2026-09-04 interaction section records that, once it lands, a
+tier-1 class's `p(δ)` is an exact step function — Brent (`→ TODO-17w`)
+does not apply to it, Robbins–Monro (`→ TODO-17u`) is not offered on it,
+and a direct order-statistic inversion with no search at all becomes
+possible (TODO-8, gated: exactness, not speed).
 Two siblings added the same day: `ols_randomization_distr_cpp_wiring.md`
 → TODO-1..6 (v1.1.0, `→ TODO-17p`; wire the never-called
 `compute_ols_distr_parallel_cpp`, delete eight other dead exports; 20–50×
@@ -480,14 +508,49 @@ Hardening item from the same audit (v1.1.0, `→ TODO-17q`):
 `guard_unguarded_information_inverse.md` → TODO-1..5 — five bare
 `.inverse()` sites on the free information block get the `isInvertible()`
 guard Cox/ordinal/ZOIB already use; bit-for-bit on invertible fits.
-Second hardening item, 2026-09-03 (v1.1.0, `→ TODO-17s`):
+Second hardening item, 2026-09-03 (v1.1.0, `→ TODO-17s`, **narrowed
+2026-09-06, lighten-1.1.0 pass, user decision**):
 `multistart_nonconcave_likelihoods.md` → TODO-1..10 — every nonconcave
 likelihood kernel (GLMM/LMM/frailty, ZINB/ZIP/ZOIB, negbin, beta,
 stereotype, copula survival, cauchit, bisquare) gets a deterministic +
 reproducible-random multistart through one new leaf header
 `optimization_multistart.h`, generalizing the sweep `fast_ordinal_glmm.cpp`
 already has; bit-for-bit whenever the primary start was already best, on
-every replicate fit, and on every concave kernel. No dependencies.
+every replicate fit, and on every concave kernel. **v1.1.0 keeps only the
+documented-failure tranche** (ZINB/ZIP/hurdle-NegBin, beta regression —
+the boundary-runaway failure `negbin_dispersion_convergence.md` and
+`em_algorithm_zero_inflated_mixtures.md` exist to patch); the remainder
+(GLMM/LMM/frailty, ZOIB, stereotype, copula survival, cauchit, bisquare)
+moved to `release_v1_2_0.md → TODO-20`.
+Third item, 2026-09-03 (v1.1.0 survey / v1.2.0 harness — **split
+2026-09-06, lighten-1.1.0 pass, user decision**): `algorithm_choice_audit.md`
+(`→ TODO-17t`, stays v1.1.0 — a document, costs nothing, and one of its
+Adopt verdicts, Brent, is already there) — a per-kernel/problem-class
+survey asking "is this the best-known algorithm?" (as opposed to "is the
+implementation fast?", this document's own question). Its harness and
+both gated Prototype items **moved to `release_v1_2_0.md → TODO-21`**:
+`algorithm_ab_testing_framework.md → TODO-1..4`, the maintainer-run
+paired-benchmark harness every Prototype verdict must clear before a
+default changes; `garthwaite_buckland_ci_search.md → TODO-1..4`
+(Robbins–Monro search replacing bisection for randomization/bootstrap CI
+bounds — opt-in, composes with `randomization_ci_search_precision.md`;
+**not offered** for `randomization_ci_affine_shift_reuse.md`'s tier-1
+classes, where each p-value is O(r) arithmetic and RM cannot win —
+dispatches to bisection there, A/B corpus stratified on
+`supports_additive_delta_shift()`; plan corrected 2026-09-04 to target
+the live R-level search driver, not the caller-less
+`bisection_ci_single_bound_cpp` that TODO-17p deletes); and
+`em_algorithm_zero_inflated_mixtures.md → TODO-1..5` (an EM-then-Newton
+hybrid start for ZINB/ZIP, feeding `multistart_nonconcave_likelihoods.md`
+as one more deterministic start; targets the failure mode
+`negbin_dispersion_convergence.md` patches). Both gated on the harness.
+One audit row is an outright Adopt with no harness gate (v1.1.0, `→
+TODO-17w`): `brent_ci_inversion.md` → TODO-1..3 — the score / gradient /
+Bartlett-LR CI inverter (`pval_invert_ci_cpp`) polishes by pure bisection
+while the LR inverter beside it uses Newton; Brent on the same bracket,
+~20 → ~5–8 refits per bound, bound unchanged within `tol`. No dependencies;
+`lrt_ci_newton.cpp` only — not applicable to the randomization CI search
+(step-function `p(δ)` after TODO-17o).
 Also v1.2.0: `kk14_incremental_covariance.md` → TODO-1..5
 (`release_v1_2_0.md → TODO-10`; Welford running covariance and
 monotone rank tracking for the sequential KK14 design, 5–10× per run,
@@ -522,13 +585,17 @@ Each track starts only on a "yes" from Phase 0, and assumes Phase 1 is done
 this section only records the track → TODO mapping and any dependency not
 already stated there:**
 
-- **5A. Corrections track** → `release_v1_1_0.md → TODO-5`. Note:
+- **5A. Corrections track** → `release_v1_1_0.md → TODO-5` (core: estimate
+  type, bias corrections, the shared-cumulant score/gradient/Bartlett
+  batch, Firth); its L1/L2-and-beyond tail **moved 2026-09-06 to
+  `release_v1_4_0.md → TODO-14`**, lighten-1.1.0 pass, user decision. Note:
   `marginal_estimand_report.md → TODO-3..8` (the `set_estimand()` switch)
   is **not** part of this track — it was pulled out into the v1.0.0 line
   (amended 2026-08-18, user decision; see `release_v1_0_0.md`'s item 14).
   `marginal_estimand_report.md → TODO-10` (NegBin mixture classes, added
   2026-08-27, plan reopened from `../finished_features/`) is tracked
-  separately at `release_v1_1_0.md → TODO-17f`.
+  separately at `release_v1_1_0.md → TODO-17f` (**moved 2026-09-06 to
+  `release_v1_4_0.md → TODO-17`**, lighten-1.1.0 pass, user decision).
 - **5B. Response-type track** → `release_v1_1_0.md → TODO-6`.
 - **5C. Censored-response track** (after Phase 1C/1F) →
   `release_v1_1_0.md → TODO-7`.
@@ -538,7 +605,9 @@ already stated there:**
 - **5F. Sequential many-by-many design family** (added 2026-08-17) →
   `release_v1_1_0.md → TODO-15`.
 - **5G. KK one-stage Beta-regression estimator** (added 2026-08-18) →
-  `release_v1_1_0.md → TODO-15b`.
+  `release_v1_1_0.md → TODO-15b` (**moved 2026-09-06 to
+  `release_v1_4_0.md → TODO-15`**, lighten-1.1.0 pass, user decision — a
+  new estimator family is off-theme for that release).
 - **5H. `dead` → `uncensored` rename** (added 2026-08-19) →
   `release_v1_1_0.md → TODO-15c`. Source TODO:
   `../finished_features/interval_censored_survival_response.md → TODO-29`.
@@ -549,7 +618,10 @@ already stated there:**
   every other track; open risks (EM-reduction validation, sandwich-variance
   rigor, randomization-inference perf) live in the plan itself.
 - **5J. Count quantile regression** (added 2026-08-26) →
-  `release_v1_1_0.md → TODO-15e`. `count_quantile_regression.md`:
+  `release_v1_1_0.md → TODO-15e` (**moved 2026-09-06 to
+  `release_v1_2_0.md → TODO-16`**, lighten-1.1.0 pass, user decision —
+  beside the native quantile-regression kernel it should eventually
+  share machinery with). `count_quantile_regression.md`:
   `InferenceCountQuantileRegr` (Machado & Santos Silva jittered `rq()`)
   plus KK IVWC/one-lik variants. Independent of every other track.
 - **5K. Competing risks for survival responses** (added 2026-08-27) →
@@ -571,7 +643,9 @@ already stated there:**
   `release_v1_1_0.md → TODO-17b`. `heteroskedasticity_robust_standard_errors.md`.
   Inference audit #1.
 - **5O. Small estimand additions** (added 2026-08-27) →
-  `release_v1_1_0.md → TODO-17c`. `small_estimand_additions.md` — Hedges'
+  `release_v1_1_0.md → TODO-17c` (**moved 2026-09-06 to
+  `release_v1_4_0.md → TODO-16`**, lighten-1.1.0 pass, user decision).
+  `small_estimand_additions.md` — Hedges'
   g, win odds / Brunner-Munzel, Mantel-Haenszel, NI/equivalence,
   unconditional QTE, log-link QMLE / Gamma. Inference audit #6, #11,
   #17–#20.
@@ -618,15 +692,16 @@ already stated there:**
   `response_adaptive_randomization.md`. Design audit #5; theoretical audit
   Part 2D.
 - **5AB. Wilkinson r-out-of-k combined-evidence test for `InferenceSuite`**
-  (added 2026-08-30, user decision) → `release_v1_1_0.md → TODO-17n`.
-  `wilkinson_combined_pval.md`. Complements the existing Cauchy
-  combination-test `combined_evidence$pval` ("at least one procedure
-  detects a signal") with a "do most procedures agree" question CCT's
-  min-dominated statistic structurally cannot answer. Staged: a cheap
-  descriptive vote-count field (TODO-2) ships regardless of TODO-1's
-  decision on whether the formal, dependence-robust-calibrated
-  r-th-order-statistic test (TODO-3/4) is worth its cost. Independent of
-  every other 1.1.0 item.
+  (added 2026-08-30, user decision) → Stage 1 `release_v1_1_0.md →
+  TODO-17n`; Stage 2 **moved 2026-09-06 to `release_v1_4_0.md →
+  TODO-18`**, lighten-1.1.0 pass, user decision. `wilkinson_combined_pval.md`.
+  Complements the existing Cauchy combination-test `combined_evidence$pval`
+  ("at least one procedure detects a signal") with a "do most procedures
+  agree" question CCT's min-dominated statistic structurally cannot
+  answer. Staged: the cheap descriptive vote-count field (TODO-2) shipped
+  in v1.1.0 regardless of TODO-1's decision on whether the formal,
+  dependence-robust-calibrated r-th-order-statistic test (TODO-3/4,
+  v1.4.0) is worth its cost.
 - **5AC. Model-averaged point estimate/CI for `InferenceSuite`** (added
   2026-08-30, user decision; moved to v1.4.0 same day, user decision) →
   `release_v1_4_0.md → TODO-11b`. `model_averaged_estimand_report.md`.
@@ -663,7 +738,10 @@ already stated there:**
   sacrificed to a split unlike 5AE. Scoped narrowly (Phase 0 + one pilot
   class, `InferenceContinOLS`) since a full rollout is per-model-class work,
   not a generic wrapper — broader rollout may move to 2.0.0 alongside 5AE's
-  data-carving stage depending on the pilot's measured cost.
+  data-carving stage depending on the pilot's measured cost. Its
+  design-based route (the rejection-sampled conditional randomization
+  test, `→ TODO-7`) is unblocked by 5AI Phase A (v1.1.0) and ships as
+  `TODO-17y`'s stretch sub-item (f) if that lands with margin (2026-09-05).
 - **5AG. E-values / safe testing for `InferenceSuite`** (added 2026-08-30,
   user decision) → `release_v2_0_0.md → TODO-6f`. `e_value_safe_testing.md`.
   A different validity framework from every other plan in this family
@@ -677,31 +755,67 @@ already stated there:**
   before any adaptive-inclusion workflow.
 - **5AH. `ModelDiagnostics` — per-model assumption batteries** (added
   2026-09-02, user decision; split 2026-09-02 from a briefly combined
-  plan) → `release_v2_0_0.md → TODO-6g`.
+  plan; **moved to v1.1.0 on 2026-09-05, user decision**) →
+  `release_v1_1_0.md → TODO-17z` (was `release_v2_0_0.md → TODO-6g`).
   `model_diagnostics_framework.md`. The *absolute* half of model
   criticism: each class declares its own assumption checks in the
   registry like capabilities (Cox PH via Schoenfeld, Poisson
   overdispersion, proportional-odds proportionality, logistic
   separation/calibration as pilots — the last surfacing the existing
   internal separation guard), typed results, one report shared with
-  `SolverDiagnostics`' numerical rows, treatment-blinded, with the
+  `SolverDiagnostics`' numerical rows, never gating on the treatment
+  effect, with the
   handoff rule guarding against diagnose-then-switch pretest bias. Its
-  TODO-1(e) holds a live decision: the declaration contract + pilots
-  need no v2.0.0 substrate and could ship in 1.x ahead of 5AI.
+  TODO-1(e) is decided: checks are in-sample, no v2.0.0 substrate is
+  needed, so the contract + pilots ship in v1.1.0 alongside 5AI's Phase
+  A (sequenced after `SolverDiagnostics` for the shared report surface).
 - **5AI. `ModelSelection` — comparative fit over the model × formula
   grid** (added 2026-09-02, user decision; the *relative* half of the
-  same split) → `release_v2_0_0.md → TODO-6h`.
+  same split; **split into two release phases on 2026-09-05, user
+  decision; Phase A widened and Phase B narrowed again on 2026-09-06,
+  user question**) → **Phase A: `release_v1_1_0.md → TODO-17y`** (every
+  design family); Phase B: `release_v2_0_0.md → TODO-6h` (response types
+  only).
   `model_selection_framework.md`. Likelihood-tier-gated criteria (AIC
   only at `"full"`, QIC at `"quasi"`, partial-likelihood AIC at
-  `"partial"`, CV/scoring rules everywhere) over `~1`/`~.`/`~.*w`/spline
-  grids, CV folds on `resolve_resampling_unit()` units (substrate shared
-  with 5AE — build once, coordinate), 5AH's checks wired in as
-  assumption gates, criteria treatment-blinded by default, and the
-  report ending in a handoff to this family's honest test steps —
+  `"partial"`, CV/scoring rules everywhere) over `~w`/`~w + .`/`~w * .`/spline
+  grids, CV folds on `resolve_resampling_unit()` units, 5AH's checks
+  wired in as assumption gates, criteria never keyed to the treatment
+  effect,
+  and the report ending in a handoff to this family's honest test steps —
   including its own new mechanism, a selection-inclusive randomization
   test wrapping the entire diagnose-choose-fit pipeline as the
   randomization statistic (valid under the sharp null for any statistic;
-  selection costs compute, not validity). 2.0.0 alongside 5AE.
+  selection costs compute, not validity). **Two recorded findings, both
+  correcting the same underlying conflation:** (2026-09-05) the
+  selection-inclusive randomization test needs *no* `Design`-level
+  fold/split substrate — it is a client of the shipped
+  `set_custom_randomization_statistic_function()` hook (~~and under
+  treatment-blinded selection it commutes with the test and collapses to
+  the plain randomization test of the winner at zero extra cost~~ —
+  **removed 2026-09-06, user decision:** `w` is in every fit, every
+  replicate re-runs the whole pipeline, embarrassingly parallel over
+  `set_num_cores()`'s fork/`mirai` pool; see the plan's §5 removal note); its
+  2.0.0 slating had been inherited from 5AE's fold problem, which it
+  never shared. (2026-09-06) **The CV-fold substrate was never actually
+  shared with 5AE either** — this plan's own remaining need, CV folds for
+  the comparative-criteria layer, is weaker than 5AE's (avoid
+  leakage across already-linked units in static, already-realized data,
+  vs. 5AE's requirement that a subject subset itself be a valid design
+  realization), and `resolve_resampling_unit()` already provides it
+  uniformly for every design family — fixed, matched-pair, cluster, and
+  KK-family sequential matching-on-the-fly alike, since that function
+  dispatches on matching/clustering/blocking structure, never on
+  assignment timing. So Phase A (**every design family**, continuous +
+  incidence, the workflow + the test + CI inversion + provenance +
+  simulation study) is v1.1.0 — and the scoped deliverable of the R
+  Consortium ISC proposal (`new_research_ideas/grants/RcISC/isc-proposal.qmd`,
+  re-scoped 2026-09-06 to this widened Phase A, no blinding claims) — while Phase B
+  narrows to just the remaining response types, with an open question
+  (not yet resolved) whether that remainder still belongs in 2.0.0 or
+  fits v1.4.0's response-and-data-extensions theme better. 5AE's own
+  difficulty (splitting a sequential design's subjects) is unaffected by
+  either correction and remains a genuine, unshared 2.0.0 problem.
 
 ### Audit reports (2026-08-26/27) — reference, not work items
 
@@ -736,10 +850,14 @@ audits; its own TODO-1 now carries a recorded "no / defer" recommendation.
    decision): the file moved back to this directory carrying a new section
    E — Inference-object serialization (motivated by expensive resampling
    state under slow models, e.g. ZOIB bootstrap distributions) — scoped as
-   `release_v1_1_0.md → TODO-17r`. The Design-side sections A–D above stay
-   closed as v1.0.0 history; only `save_load_api.md → E-1..E-7` is open.
-   Sequenced here in Phase 6 (additive, independent), cheapest after any
-   1.1.0 work adding `Inference`-side state lands.**
+   `release_v1_1_0.md → TODO-17r`, **moved 2026-09-06 to
+   `release_v1_2_0.md → TODO-19`** (lighten-1.1.0 pass, user decision —
+   persistence is off-theme for an inference-quality release). The
+   Design-side sections A–D above stay closed as v1.0.0 history; only
+   `save_load_api.md → E-1..E-7` is open. Sequenced here in Phase 6
+   (additive, independent), cheapest after every v1.1.0 item adding
+   `Inference`-side state — including `TODO-17y`'s `ModelSelection`
+   provenance object — has landed.**
 3. `interval_censored_survival_response_type_report.md → second wave` — per
    Phase 0 step 10; scoped as `release_v1_1_0.md → TODO-12`.
 4. `response_types_landscape_report.md → its remaining open TODOs` — refresh
@@ -779,7 +897,10 @@ audits; its own TODO-1 now carries a recorded "no / defer" recommendation.
    opportunity; Phase 4 adds a coverage-floor CI gate. Pure
    test-writing/CI-plumbing, no source-behavior change, no dependency on
    any other open plan — run whenever convenient. Release index:
-   `release_v1_1_0.md → TODO-17m`.
+   `release_v1_1_0.md → TODO-17m`, **moved 2026-09-06 to
+   `release_v1_2_0.md → TODO-18`** (lighten-1.1.0 pass, user decision;
+   the plan's own zero-dependency status is exactly why it cost nothing
+   to move).
 
 ---
 

@@ -477,7 +477,21 @@ SurvivalDepCensTransformSource = list(
 			X_full = private$build_design_matrix()
 			attempt = private$fit_with_hardened_qr_column_dropping(
 				X_full = X_full,
-				required_cols = 2L,
+				# required_cols must protect BOTH the intercept (col 1) and
+				# treatment (col 2) from the hardened QR column-dropping
+				# fallback. Before this fix, only treatment was pinned, so a
+				# failed full-model fit could fall back to dropping the
+				# intercept, leaving X = [treatment] alone; with treatment
+				# coded {0,1} (not centered), that forces log(T)=0 when
+				# w=0, so the treatment coefficient absorbs the entire
+				# nonzero baseline log-time. Reproduced directly against
+				# fast_dep_cens_transform_optim_cpp: with the intercept
+				# present, mean beta_hat under H0 was ~0.005; with it
+				# dropped, ~0.71 (matching the baseline), exactly the ~0.6
+				# mean bias reported against a coverage truth of ~0.13.
+				# Same root cause and fix pattern as the 2026-09-03 fix to
+				# SurvivalGLMMWeibullFrailtyNormalOneLikSource.
+				required_cols = c(1L, 2L),
 				fit_fun = function(X_fit){
 					n_params = 2 * ncol(X_fit) + 3L
 					warm_start_params = private$get_fit_warm_start_for_length("params", n_params)

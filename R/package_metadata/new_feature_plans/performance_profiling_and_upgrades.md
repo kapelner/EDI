@@ -2482,8 +2482,9 @@ If budget allows a second day, `c7a.metal-48xl` adds the AMD cost model (EDI use
 
 ### 8.2 Build, compiler, vectorization, and the generated code itself
 
-> Cross-reference (2026-08-27): `more_simd_optimization.md` (v1.1.0,
-> `release_v1_1_0.md → TODO-4c`) owns none of TODO-136/137/144/154/168
+> Cross-reference (2026-08-27; both plans moved to v1.2.0 on 2026-09-06,
+> lighten-1.1.0 pass, user decision): `more_simd_optimization.md`
+> (`release_v1_2_0.md → TODO-12`) owns none of TODO-136/137/144/154/168
 > below — those measurements stay here, ticked only in this file. That
 > plan consumes their results to implement `-fopenmp-simd`, an
 > `__restrict` sweep, wiring a confirmed fast-math subset into `configure`,

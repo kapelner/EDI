@@ -107,6 +107,47 @@ SimpleWilcoxSource = list(
 			if (is.null(mod)) return(c(NA_real_, NA_real_))
 			as.numeric(mod$conf.int)
 		},
+		#' @description Delegates to the genuine rank-based
+		#'   \code{$compute_asymp_two_sided_pval()} rather than the generic
+		#'   Wald-component z/t formula.
+		#'
+		#'   Fixed 2026-09-06: this class did not override
+		#'   \code{compute_wald_two_sided_pval}, so it fell through to the
+		#'   composed \code{Wald} component's generic
+		#'   \code{(estimate - delta) / se} formula built from
+		#'   \code{compute_estimate()} (the Hodges-Lehmann median-of-pairwise-
+		#'   differences) and \code{get_standard_error()}. On heavily tied,
+		#'   small-integer count/ordinal data the Hodges-Lehmann estimate lands
+		#'   on exactly 0 far more often than a continuous estimator would, so
+		#'   the Wald statistic came out exactly \code{0/se = 0} regardless of
+		#'   \code{se}, forcing \code{p = 1} deterministically (observed:
+		#'   pinned at 1 in ~75-98% of runs). The rank-based
+		#'   \code{compute_asymp_two_sided_pval()} does not have this failure
+		#'   mode.
+		#' @param delta Null treatment effect. Default 0.
+		compute_wald_two_sided_pval = function(delta = 0){
+			self$compute_asymp_two_sided_pval(delta = delta)
+		},
+		#' @description Delegates to the genuine rank-based
+		#'   \code{$compute_asymp_confidence_interval()} rather than the
+		#'   generic Wald normal-approximation interval, for the same reason
+		#'   as \code{compute_wald_two_sided_pval} above.
+		#'
+		#'   Fixed 2026-09-06: the generic Wald component's normal-approximation
+		#'   interval is built from \code{get_standard_error()}, which this
+		#'   class derives by back-solving \code{se = (ci[2]-ci[1]) /
+		#'   (2*1.96)} from \code{stats::wilcox.test()}'s own asymptotic CI
+		#'   width. Under heavy ties, that root search can converge to a
+		#'   numerically near-zero-width interval as a search artifact, not a
+		#'   real sampling-uncertainty statement; that spurious near-zero SE
+		#'   then produced a near-\code{[0,0]} Wald interval (observed in
+		#'   over 1,200 rows of comprehensive-results data). The rank-based
+		#'   \code{compute_asymp_confidence_interval()} inverts the rank-sum
+		#'   test directly and does not go through this derived SE at all.
+		#' @param alpha Significance level. Default 0.05.
+		compute_wald_confidence_interval = function(alpha = 0.05){
+			self$compute_asymp_confidence_interval(alpha = alpha)
+		},
 		#' @description Reports the jackknife point-estimate as explicitly
 		#'   non-estimable for this Hodges-Lehmann estimator, rather than computing
 		#'   a leave-one-out jackknife: the median-of-pairwise-differences
@@ -416,6 +457,8 @@ InferenceAllSimpleWilcox = define_inference_class(
 			"compute_estimate",
 			"compute_asymp_confidence_interval",
 			"compute_asymp_two_sided_pval",
+			"compute_wald_two_sided_pval",
+			"compute_wald_confidence_interval",
 			"compute_jackknife_estimate",
 			"compute_jackknife_bias_estimate",
 			"compute_jackknife_std_error",

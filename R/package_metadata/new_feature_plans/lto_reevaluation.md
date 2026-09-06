@@ -1,6 +1,8 @@
 # Link-Time Optimization (LTO) Re-Evaluation
 
-> **Release:** v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-4e`;
+> **Release:** v1.2.0 (`../future_release_plans/release_v1_2_0.md →
+> TODO-14`; moved from `release_v1_1_0.md → TODO-4e` on 2026-09-06,
+> lighten-1.1.0 pass, user decision);
 > 2026-08-30, user decision). Phase 4 kernel/perf lane of `_master.md`. No
 > Phase 0 dependency. This is a *re-measurement* plan with a standing
 > default of "no change"; it produces a decision and a dated benchmark

@@ -357,6 +357,13 @@ InferenceExtPRWSubsampling = list(
 				scaling = scaling
 			)
 			finite = sub[is.finite(sub)]
+			# Fraction-based failure gate (2026-09-06): see the identical
+			# comment in inference_ext_m_out_of_n_bootstrap.R's
+			# m_out_of_n_bootstrap_centered_pivot() -- same rationale, same
+			# fix, kept consistent across both resampling families.
+			if (length(sub) > 0L && length(finite) / length(sub) < 0.5) {
+				return(list(ok = FALSE, reason = "subsampling_high_replicate_failure_rate"))
+			}
 			pivot = list(
 				ok = TRUE,
 				reason = NA_character_,

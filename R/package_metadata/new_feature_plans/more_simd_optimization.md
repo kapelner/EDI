@@ -1,6 +1,8 @@
 # More SIMD Optimization (Source-Build Power Users)
 
-> **Release:** v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-4c`;
+> **Release:** v1.2.0 (`../future_release_plans/release_v1_2_0.md →
+> TODO-12`; moved from `release_v1_1_0.md → TODO-4c` on 2026-09-06,
+> lighten-1.1.0 pass, user decision);
 > 2026-08-27, user decision). Sits in the Phase 4 kernel/perf lane of
 > `_master.md`, alongside `performance_profiling_and_upgrades.md` §8
 > (`→ TODO-4b`), which stays in v1.1.0 too. No Phase 0 dependency;

@@ -1085,6 +1085,6 @@ have to land together, see the release-line note in the header above):**
      TODO-5 ran (simulate a large truncated draw, compare empirical vs.
      formula mean) before trusting the hurdle path's point estimates.
 
-  Not started. Release-line placement is an open question for whoever
-  schedules it — see `future_release_plans/release_v1_1_0.md` for the
-  current v1.1.0 TODO list this should be added to.
+  Not started. Release-line placement resolved 2026-09-06 (lighten-1.1.0
+  pass, user decision): `future_release_plans/release_v1_4_0.md →
+  TODO-17` (moved from `release_v1_1_0.md → TODO-17f`).

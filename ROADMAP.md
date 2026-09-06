@@ -1,6 +1,6 @@
 # EDI Roadmap
 
-**Where things stand (last updated 2026-09-01):** v1.0.0 is released
+**Where things stand (last updated 2026-09-06):** v1.0.0 is released
 ([Zenodo DOI](https://doi.org/10.5281/zenodo.22170036)) and has been
 submitted to CRAN; the `edi_kernels` Python package is on PyPI. Everything
 below is planned, not shipped.
@@ -22,6 +22,13 @@ family of matching designs and estimators.
 
 ## v1.1.0 — Inference Quality and CPU Performance
 
+Lightened 2026-09-06: exploratory/measurement-first work, new estimator
+families, and items whose consumer lives in a later release moved out to
+v1.2.0 or v1.4.0, keeping this release to what its own theme — inference
+quality plus the CPU/correctness core of randomization inference, plus
+the no-substrate half of honest inference after model selection — actually
+needs.
+
 ### Decisions and prerequisites
 
 - **[Phase 0 decision batch](R/package_metadata/future_release_plans/release_v1_1_0.md)** —
@@ -39,43 +46,25 @@ family of matching designs and estimators.
 
 ### Corrections and higher-order inference
 
-- **[Corrections track](R/package_metadata/future_release_plans/release_v1_1_0.md)** —
+- **[Corrections track — core](R/package_metadata/future_release_plans/release_v1_1_0.md)** —
   better small-sample inference across the likelihood classes: expanded
   `estimate_type` values; Cox–Snell and Cordeiro–McCullagh bias
   corrections; higher-order test corrections (Cordeiro–Ferrari score,
   Lemonte gradient, Bartlett LR — one shared cumulant machinery); Firth
-  penalties plus L1/L2 penalized paths; median bias correction; modified
-  profile likelihood; and bootstrap-calibrated LR if approved.
+  penalties. (The L1/L2 penalized path, median bias correction, modified
+  profile likelihood, and bootstrap-calibrated LR moved to v1.4.0 — see
+  below — since none of them gate anything else here.)
 
 ### New estimators and estimands
 
-- **[KK one-stage Beta-regression estimator](R/package_metadata/new_feature_plans/kk_beta_regression_one_lik_derivation.md)** —
-  a joint-likelihood matched-pairs + reservoir estimator for proportion
-  responses, prototyped against a glmmTMB-reuse path before the native
-  Gauss–Hermite backend ships.
-- **[Count quantile regression](R/package_metadata/new_feature_plans/count_quantile_regression.md)** —
-  quantile treatment effects for count responses
-  (`InferenceCountQuantileRegr` and its KK variants), via Machado &
-  Santos Silva (2005) jittering.
 - **[Count exposure offset](R/package_metadata/new_feature_plans/count_exposure_offset.md)** —
   `exposure =` on every count class and kernel, unlocking the standard
   rate-ratio trial analysis.
 - **[Heteroskedasticity-robust standard errors](R/package_metadata/new_feature_plans/heteroskedasticity_robust_standard_errors.md)** —
   `se_type = HC0..HC3` on the OLS and risk-difference classes.
-- **[Small estimand additions](R/package_metadata/new_feature_plans/small_estimand_additions.md)** —
-  Hedges' g, win odds / Brunner–Munzel, Mantel–Haenszel OR/RD,
-  non-inferiority/equivalence conveniences, unconditional QTE, and a
-  log-link QMLE path for non-negative continuous responses.
-- **[NegBin mixture marginal estimands](R/package_metadata/new_feature_plans/marginal_estimand_report.md)** —
-  extend `set_estimand("marginal_*")` to the zero-inflated and hurdle
-  negative-binomial classes.
 
 ### Ordinal, incidence, and count fixes
 
-- **[Ordinal Bayesian-bootstrap completions](R/package_metadata/future_release_plans/release_v1_1_0.md)** —
-  native weighted refits for the ordinal KK GEE, stereotype-logit, and
-  adjacent-category-logit classes (replacing surrogates), each enabled
-  only after draw-level parity tests.
 - **[Ordinal model-coefficient randomization CIs](R/package_metadata/new_feature_plans/ordinal_model_coefficient_randomization_confidence_intervals.md)** —
   randomization-based confidence intervals (not just p-values) for the
   ordinal regression classes.
@@ -91,24 +80,51 @@ family of matching designs and estimators.
 
 ### InferenceSuite
 
-- **[Wilkinson r-out-of-k combined evidence](R/package_metadata/new_feature_plans/wilkinson_combined_pval.md)** —
+- **[Wilkinson r-out-of-k combined evidence, Stage 1](R/package_metadata/new_feature_plans/wilkinson_combined_pval.md)** —
   a `vote_fraction` field reporting how many applicable procedures agree,
-  and (decision-gated) a formal order-statistic test; complements the
-  existing Cauchy combination test, which answers only "does at least one
-  detect a signal."
+  complementing the existing Cauchy combination test, which answers only
+  "does at least one detect a signal." (The decision-gated formal
+  order-statistic test, Stage 2, moved to v1.4.0.)
 
-### Persistence
+### Honest inference after model selection
 
-- **[Inference-object serialization](R/package_metadata/new_feature_plans/save_load_api.md)** —
-  make a fitted `Inference` object a supported `saveRDS()`/`readRDS()`
-  unit, so expensive resampling state (a bootstrap distribution built
-  from thousands of refits of a slow model such as zero-one-inflated
-  beta) survives a session instead of being extracted as plain data. The
-  v1.0.0 Design-side serialization contract (version stamp,
-  self-initializing fields, external-pointer liveness handling) extends
-  to `Inference` and its components; the reload contract — standalone
-  snapshot vs. revalidation against the reloaded design — is the gating
-  decision.
+Moved up from v2.0.0 on 2026-09-05. The family had been slated 2.0.0
+because its sample-splitting sibling needs `Design`-level splitting; the
+pieces below never did.
+
+- **[Comparative model selection + the selection-inclusive randomization test, Phase A](R/package_metadata/new_feature_plans/model_selection_framework.md)** —
+  `ModelSelection(des_obj)` compares fit across the model × formula grid
+  (`~w`, `~w + .`, `~w * .`) with likelihood-tier-gated criteria that
+  never rank by the treatment effect, and hands off to honest inference rather than a
+  p-value. The honest exit is new: make the whole choose-then-fit
+  pipeline the randomization statistic and redraw treatment under the
+  design, so data-driven model selection costs compute, not validity —
+  exact under the sharp null for any selection rule. Every replicate
+  re-runs the full pipeline — embarrassingly parallel over
+  `set_num_cores()`'s fork/`mirai` pool; confidence intervals follow by
+  inversion.
+  Pilot scope (widened 2026-09-06 — matched-pair, cluster, and sequential
+  matching-on-the-fly designs moved in from what was Phase B, since the
+  package's existing `resolve_resampling_unit()` already resolves CV-fold
+  units uniformly across every one of those design families, not just
+  fixed ones): **every design family EDI supports**, continuous and
+  binary responses, with a simulation study showing naive post-selection
+  inference's Type I inflation and its removal. Naive inference on a
+  selection-tainted winner is a typed refusal. Only the remaining
+  response types (count, proportion, survival, ordinal) are left to
+  Phase B, below.
+- **[Per-model assumption diagnostics](R/package_metadata/new_feature_plans/model_diagnostics_framework.md)** —
+  `ModelDiagnostics(des_obj)` runs each model's own registry-declared
+  assumption battery: proportional-hazards checks for Cox,
+  overdispersion for Poisson, proportionality for cumulative logit,
+  separation and calibration for logistic (surfacing the package's
+  existing internal separation guard as a user-visible diagnostic) —
+  typed results with pre-specified gate thresholds, rendered in one
+  report with the solver diagnostics' numerical rows. Checks never gate
+  on the treatment effect and are in-sample, so nothing here waits on 2.0.0;
+  the report warns that diagnose-then-switch is selection through the
+  back door and routes to the honest exit above. Ordered after the
+  diagnostics chain.
 
 ### Performance and correctness (CPU)
 
@@ -126,39 +142,45 @@ family of matching designs and estimators.
   currently return a finite but meaningless SE on a near-singular design;
   they gain the invertibility guard their siblings already have and
   return `NA` instead. Bit-for-bit on all healthy fits.
-- **[Multistart for the nonconcave likelihoods](R/package_metadata/new_feature_plans/multistart_nonconcave_likelihoods.md)** —
-  every kernel whose likelihood is not concave (mixed models, zero-inflated
-  mixtures, NegBin, Beta, stereotype logit, copula survival, cauchit,
-  bisquare robust regression) currently runs one descent from one start
-  and can return a worse local optimum; each gains family-specific
-  deterministic starts plus a reproducible random layer, keeps the best,
-  and reports which start won. Bit-for-bit wherever the single start was
-  already best, on every replicate fit, and on every concave kernel.
-- **[Performance measurement program](R/package_metadata/new_feature_plans/performance_profiling_and_upgrades.md)**
-  *(maintenance)* — benchmark noise floor and regression gate, compiler
-  optimization-report sweep, strided-access and linear-algebra audits,
-  BLAS backend visibility.
-- **[More SIMD optimization](R/package_metadata/new_feature_plans/more_simd_optimization.md)**
-  *(maintenance)* — implements what the measurement program's diagnostics
-  find (`__restrict` sweep, a verified fast-math subset, aligned copies,
-  branch-free comparisons, `-fopenmp-simd`).
-- **[Fixed-size Eigen specializations for small p](R/package_metadata/new_feature_plans/fixed_size_eigen_small_p.md)**
-  *(maintenance)* — compile-time-`p` dispatch for the per-iteration
-  algebra; gated on a microbenchmark showing a ≥10 % whole-fit win.
-- **[LTO re-evaluation](R/package_metadata/new_feature_plans/lto_reevaluation.md)**
-  *(maintenance)* — re-measure the measured-negative `-fno-lto` default
-  under the current toolchain and write down the rule for flipping it.
-- **[Memory-layout audit](R/package_metadata/new_feature_plans/memory_layout_row_major_irls.md)**
-  *(maintenance)* — measure the sample size at which matrix layout starts
-  to matter (predicted well beyond the designed-experiment regime) and
-  record the kernel-author policy.
-- **[Full test-coverage triage](R/package_metadata/new_feature_plans/full_test_coverage.md)**
-  *(maintenance)* — line coverage from 64.8 % into the high 90s, then a
-  CI coverage floor.
+- **[Multistart for the nonconcave likelihoods, documented-failure tranche](R/package_metadata/new_feature_plans/multistart_nonconcave_likelihoods.md)** —
+  the kernels with a documented failure mode (ZINB/ZIP/hurdle-NegBin in
+  `(β, log θ)`, Beta) gain family-specific deterministic starts plus a
+  reproducible random layer, keep the best, and report which start won.
+  Bit-for-bit wherever the single start was already best, on every
+  replicate fit, and on every concave kernel. (The shared infrastructure
+  is built once here; applying it to the remaining kernels with no
+  documented failure — GLMM/LMM/frailty, ZOIB, stereotype logit, copula
+  survival, cauchit, bisquare — moved to v1.2.0.)
+- **[Algorithm choice audit](R/package_metadata/new_feature_plans/algorithm_choice_audit.md)**
+  *(maintenance)* — a per-kernel survey of whether the *chosen
+  algorithm*, not just its implementation, is the best known one for its
+  problem, with citations and a keep/prototype/adopt verdict per row. A
+  pure document, kept here since one of its Adopt verdicts (Brent, below)
+  ships in this release; the A/B testing harness its Prototype verdicts
+  need, and the two candidates gated on it (Robbins–Monro CI search,
+  EM-then-Newton hybrid start for ZINB/ZIP), moved to v1.2.0.
+- **[Brent's method for score / gradient / Bartlett-LR confidence intervals](R/package_metadata/new_feature_plans/brent_ci_inversion.md)** —
+  these CIs invert a deterministic p-value function by pure bisection
+  while the likelihood-ratio CI beside them already uses Newton; Brent's
+  method on the same bracket needs ~4× fewer constrained refits per bound
+  and returns the same bound within tolerance. No approximation, no
+  A/B gate — the existing CI tests are the check.
+- **[Benchmark noise floor and regression gate](R/package_metadata/new_feature_plans/performance_profiling_and_upgrades.md)**
+  *(maintenance)* — the measurement infrastructure needed to substantiate
+  this release's own randomization-CI speedup claims. (Everything else in
+  the performance measurement program — the compiler optimization-report
+  sweep, strided-access and linear-algebra audits, BLAS backend
+  visibility, and the SIMD/fixed-size-Eigen/LTO/memory-layout lanes that
+  consume them — moved to v1.2.0, an exploratory program with no v1.1.0
+  consumer.)
 
 ---
 
 ## v1.2.0 — Performance, Kernels, and Engines
+
+Gained several items from v1.1.0's 2026-09-06 lightening pass — each
+either consumes this release's own kernel work or is exploratory
+measurement work with no v1.1.0 consumer.
 
 ### New native kernels
 
@@ -166,8 +188,18 @@ family of matching designs and estimators.
   a native LP-based kernel replacing the delegated fit: faster quantile
   regression with weighted variants and standard errors, verified by a
   parity suite.
+- **[Count quantile regression](R/package_metadata/new_feature_plans/count_quantile_regression.md)** —
+  quantile treatment effects for count responses
+  (`InferenceCountQuantileRegr` and its KK variants) via Machado & Santos
+  Silva (2005) jittering; moved here from v1.1.0 to ship beside the
+  native kernel above rather than ahead of it.
 - **[Ordinal GEE C++ kernel](R/package_metadata/new_feature_plans/ordinal_gee_cpp_kernel_spec.md)** —
   a native estimating-equations kernel for the ordinal GEE classes.
+- **[Ordinal Bayesian-bootstrap completions](R/package_metadata/future_release_plans/release_v1_2_0.md)** —
+  native weighted refits for the ordinal KK GEE, stereotype-logit, and
+  adjacent-category-logit classes (replacing surrogates), each enabled
+  only after draw-level parity tests; moved here from v1.1.0 to share
+  machinery with the ordinal GEE kernel above.
 
 ### Algorithmic speedups
 
@@ -199,6 +231,60 @@ family of matching designs and estimators.
   NUMA/huge-pages tuning
   ([memory](R/package_metadata/new_feature_plans/memory_side_improvements.md));
   benchmark evidence required before any default changes.
+
+### Moved in from v1.1.0's lightening pass (2026-09-06)
+
+- **[Performance measurement program, remainder](R/package_metadata/new_feature_plans/performance_profiling_and_upgrades.md)**
+  *(maintenance)* — everything past the noise floor and regression gate
+  that stayed in v1.1.0: compiler optimization-report sweep,
+  strided-access and linear-algebra audits, BLAS backend visibility,
+  end-to-end/R-layer profiling, parallelism/BLAS tuning, roofline.
+- **[More SIMD optimization](R/package_metadata/new_feature_plans/more_simd_optimization.md)**
+  *(maintenance)* — implements what the measurement program's diagnostics
+  find (`__restrict` sweep, a verified fast-math subset, aligned copies,
+  branch-free comparisons, `-fopenmp-simd`).
+- **[Fixed-size Eigen specializations for small p](R/package_metadata/new_feature_plans/fixed_size_eigen_small_p.md)**
+  *(maintenance)* — compile-time-`p` dispatch for the per-iteration
+  algebra; gated on a microbenchmark showing a ≥10 % whole-fit win.
+- **[LTO re-evaluation](R/package_metadata/new_feature_plans/lto_reevaluation.md)**
+  *(maintenance)* — re-measure the measured-negative `-fno-lto` default
+  under the current toolchain and write down the rule for flipping it.
+- **[Memory-layout audit](R/package_metadata/new_feature_plans/memory_layout_row_major_irls.md)**
+  *(maintenance)* — measure the sample size at which matrix layout starts
+  to matter (predicted well beyond the designed-experiment regime) and
+  record the kernel-author policy.
+- **[Full test-coverage triage](R/package_metadata/new_feature_plans/full_test_coverage.md)**
+  *(maintenance)* — line coverage from 64.8 % into the high 90s, then a
+  CI coverage floor; a rolling, non-gating track with no dependency on
+  anything else.
+- **[Inference-object serialization](R/package_metadata/new_feature_plans/save_load_api.md)** —
+  make a fitted `Inference` object a supported `saveRDS()`/`readRDS()`
+  unit, so expensive resampling state (a bootstrap distribution built
+  from thousands of refits of a slow model such as zero-one-inflated
+  beta) survives a session instead of being extracted as plain data. The
+  v1.0.0 Design-side serialization contract extends to `Inference` and
+  its components; the `owns_state` audit is cheapest after every v1.1.0
+  item that adds `Inference`-side state (including the `ModelSelection`
+  provenance object) has landed.
+- **[Multistart for the nonconcave likelihoods, remainder](R/package_metadata/new_feature_plans/multistart_nonconcave_likelihoods.md)** —
+  the same shared infrastructure v1.1.0 builds for the documented-failure
+  kernels, applied to the kernels with no documented failure: GLMM / LMM
+  / frailty marginal likelihoods, ZOIB, stereotype logit, Clayton-copula
+  and dependent-censoring survival, ordinal cauchit, and Tukey-bisquare
+  robust regression.
+- **[Algorithm-choice A/B testing harness](R/package_metadata/new_feature_plans/algorithm_ab_testing_framework.md)** —
+  paired benchmarks, a correctness equivalence check, and a
+  fixed-in-advance rule requiring a genuine win on at least one
+  documented data regime plus zero accuracy regression anywhere, before
+  a default changes. Two candidates gated on it:
+  **[Robbins–Monro CI search](R/package_metadata/new_feature_plans/garthwaite_buckland_ci_search.md)**
+  (a stochastic-approximation alternative to bisection for
+  randomization/bootstrap CI bounds — not offered for v1.1.0's
+  affine-shift tier-1 classes, where each p-value is already O(r)
+  arithmetic and cannot be beaten by a stochastic driver) and an
+  **[EM-then-Newton hybrid start for zero-inflated mixtures](R/package_metadata/new_feature_plans/em_algorithm_zero_inflated_mixtures.md)**
+  (ZINB/ZIP), aimed at the failure mode where the joint optimizer runs
+  away on non-overdispersed data.
 
 ---
 
@@ -262,6 +348,34 @@ family of matching designs and estimators.
   principled handling of missing responses beyond the current
   NA-filtering.
 
+### Moved in from v1.1.0's lightening pass (2026-09-06)
+
+New estimator families, a grab-bag of new estimands, and the corrections
+track's non-gating tail — off-theme for v1.1.0's inference-quality-plus-
+CPU-performance release, at home beside this release's other new
+estimands and response-type work.
+
+- **[Corrections track — tail](R/package_metadata/future_release_plans/release_v1_4_0.md)** —
+  the L1/L2 penalized path, median bias correction, modified profile
+  likelihood, and bootstrap-calibrated LR (if approved) — everything
+  beyond v1.1.0's shared-cumulant-plus-Firth core.
+- **[KK one-stage Beta-regression estimator](R/package_metadata/new_feature_plans/kk_beta_regression_one_lik_derivation.md)** —
+  a joint-likelihood matched-pairs + reservoir estimator for proportion
+  responses, prototyped against a glmmTMB-reuse path before the native
+  Gauss–Hermite backend ships.
+- **[Small estimand additions](R/package_metadata/new_feature_plans/small_estimand_additions.md)** —
+  Hedges' g, win odds / Brunner–Munzel, Mantel–Haenszel OR/RD,
+  non-inferiority/equivalence conveniences, unconditional QTE, and a
+  log-link QMLE path for non-negative continuous responses.
+- **[NegBin mixture marginal estimands](R/package_metadata/new_feature_plans/marginal_estimand_report.md)** —
+  extend `set_estimand("marginal_*")` to the zero-inflated and hurdle
+  negative-binomial classes.
+- **[Wilkinson r-out-of-k combined evidence, Stage 2](R/package_metadata/new_feature_plans/wilkinson_combined_pval.md)** —
+  the formal, dependence-robust-calibrated r-th-order-statistic test,
+  gated on deciding whether its bootstrap/permutation null-calibration
+  cost is worth it; Stage 1's `vote_fraction` field already shipped in
+  v1.1.0.
+
 ### InferenceSuite summaries
 
 - **[Model-averaged estimate/CI](R/package_metadata/new_feature_plans/model_averaged_estimand_report.md)** —
@@ -275,7 +389,10 @@ family of matching designs and estimators.
 - **[Selective (post-selection) inference, pilot](R/package_metadata/new_feature_plans/selective_inference_post_selection.md)** —
   p-values and CIs that remain valid after picking the best of k models,
   piloted on one class (OLS) to price the approach before deciding on a
-  broader rollout versus 2.0.0's sample-splitting sibling.
+  broader rollout versus 2.0.0's sample-splitting sibling. Its
+  design-based variant — the rejection-sampled conditional randomization
+  test, which needs no selection-rule geometry — is unblocked by v1.1.0's
+  selection-inclusive test and may ship there as a stretch item.
 
 ### Faster randomization and design kernels
 
@@ -345,25 +462,29 @@ All produce identical results to today's code unless noted.
 
 ### Model-selection honesty
 
-- **[Per-model assumption diagnostics](R/package_metadata/new_feature_plans/model_diagnostics_framework.md)** —
-  `ModelDiagnostics(des_obj)` runs each model's own registry-declared
-  assumption battery: proportional-hazards checks for Cox,
-  overdispersion for Poisson, proportionality for cumulative logit,
-  separation and calibration for logistic (surfacing the package's
-  existing internal separation guard as a user-visible diagnostic), and
-  more — typed results, rendered in one report with the planned solver
-  diagnostics' numerical rows. Checks run treatment-blinded, and the
-  report warns that diagnose-then-switch is selection through the back
-  door, routing to the honest exits below.
-- **[Comparative model selection](R/package_metadata/new_feature_plans/model_selection_framework.md)** —
-  `ModelSelection(des_obj)` compares fit across the model × formula grid
-  (`~1`, `~.`, `~.*w`, splines) with likelihood-tier-gated criteria and
-  CV folds that respect the design's exchangeable unit, taking the
-  assumption batteries above as gates. Criteria never see the treatment
-  effect, and the honest exit for selection-informed inference is a new
-  selection-inclusive randomization test: the whole diagnose-choose-fit
-  pipeline becomes the randomization statistic, so data-driven selection
-  costs compute, not validity.
+The diagnostics and the selection-inclusive randomization test moved to
+v1.1.0 (see "Honest inference after model selection" there), and as of
+2026-09-06 so did every design family `ModelSelection` covers — matched-
+pair, cluster, and sequential matching-on-the-fly designs included, once
+it turned out the package's existing `resolve_resampling_unit()` already
+resolves CV-fold units uniformly for all of them (it dispatches on
+matching/clustering/blocking structure, not on whether treatment
+assignment was fixed-upfront or sequential — the same function the
+bootstrap already relies on for these designs). What remains here is only
+what didn't move: the part that's a genuinely separate, harder problem
+(sample splitting, below) plus this feature's own now-much-smaller
+remainder.
+
+- **[Comparative model selection, Phase B](R/package_metadata/new_feature_plans/model_selection_framework.md)** —
+  narrowed 2026-09-06 to just the response types Phase A's pilot doesn't
+  reach (count, proportion, survival, ordinal) and the spline/flexible
+  grid entries; no design-family work remains here (that moved to
+  v1.1.0). An earlier version of this item claimed it shared its CV-fold
+  substrate with sample splitting below — that was a conflation between
+  two different requirements (this item's own need is much weaker) and
+  has been corrected; whether the response-type remainder still belongs
+  in v2.0.0 or fits this file's v1.4.0 response-and-data-extensions theme
+  better is an open question, not yet resolved.
 - **[Sample-splitting / data-carving model selection](R/package_metadata/new_feature_plans/sample_splitting_model_selection.md)** —
   pick the winning model on a selection half, test it on a confirmation
   half at full alpha; needs real `Design`-level splitting (thorny for

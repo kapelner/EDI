@@ -1,3 +1,31 @@
+# EDI (development version)
+
+## Bug fixes
+
+* Randomization confidence intervals are no longer offered for the six
+  log-hazard-ratio (Cox-family) survival classes — `InferenceSurvivalCoxPHRegr`,
+  `InferenceSurvivalKKLWACoxPHIVWC`/`OneLik`, `InferenceSurvivalKKStratCoxPHIVWC`/`OneLik`,
+  and `InferenceSurvivalStratCoxPHRegr` (which already refused). The generic
+  randomization CI inverts an accelerated-failure-time sharp null, so its
+  `delta` axis is a log *time* ratio; these classes' estimates are log
+  *hazard* ratios, and the Cox model has no shape parameter linking the two.
+  The search was being seeded on the wrong axis and returned bounds that
+  were not a confidence interval for anything (on a Weibull test case:
+  estimate −1.70, "CI" `[−1.70, −1.26]`). A direct
+  `compute_rand_confidence_interval()` call now stops with an explanation,
+  and `InferenceSuite` no longer lists the method for them, as for
+  incidence responses. The randomization p-value and the randomization-
+  bootstrap CI (a percentile interval on the estimate's own scale) are
+  unchanged. AFT-scale survival classes (Weibull, marginal Weibull, Weibull
+  frailty, rank regression) are unaffected.
+
+## Documentation
+
+* `compute_rand_confidence_interval()` documents the impute-then-permute
+  construction (Rosenbaum 2002; Imbens & Rubin 2015) and, for survival
+  responses, the AFT residual construction and its censoring assumptions
+  (Tsiatis 1990; Wei, Ying & Lin 1990; Jin, Lin, Wei & Ying 2003).
+
 # EDI 1.0.0
 
 Initial release of EDI (Experimental Design and Inference): a framework that

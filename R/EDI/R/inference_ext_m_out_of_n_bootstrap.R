@@ -326,6 +326,22 @@ InferenceExtMOutOfNBootstrap = list(
 				scaling = scaling
 			)
 			finite = boot[is.finite(boot)]
+			# Fraction-based failure gate (2026-09-06): min_number_usable_samples
+			# at the two call sites only checks the ABSOLUTE count of finite
+			# replicates (default 5) -- with B in the hundreds, even a large
+			# majority of resampled fits failing/degenerating still clears
+			# that bar, so the resulting pivot silently gets built from a
+			# small, unrepresentative surviving subset. Found on
+			# InferenceIncidKKGEE under model_formula = ~. (7 covariates,
+			# m sized only to p_eff + 2): ~24% of resampled GEE refits failed
+			# to converge at that m, and the surviving-subset pivot produced
+			# a degenerate two-sided p-value (~0% rejection under BOTH H0 and
+			# H1). Requiring a majority of replicates to succeed converts
+			# this from a silently wrong, falsely-precise p-value into an
+			# honest non-estimable result.
+			if (length(boot) > 0L && length(finite) / length(boot) < 0.5) {
+				return(list(ok = FALSE, reason = "m_out_of_n_high_replicate_failure_rate"))
+			}
 			pivot = list(
 				ok = TRUE,
 				reason = NA_character_,

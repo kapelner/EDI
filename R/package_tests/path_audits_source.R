@@ -1,5 +1,34 @@
 # EDI inference class path audit
 # Run html_from_audit(audit_classes, "path_audits.html") to regenerate the HTML table.
+#
+# Scope (2026-09-06, user decision): this file mixes three kinds of fact per
+# class/method, and only the first is hand-maintained by design --
+#   (1) EMPIRICAL nonestimability rates, loaded from comprehensive_tests
+#       result CSVs (load_nonestimability_stats() below) -- what fraction of
+#       real runs actually returned an estimate. Nothing in the registry
+#       could tell you this; it is genuinely measured.
+#   (2) EMPIRICAL "too slow to run in the comprehensive suite" judgments --
+#       slow_methods, skip_asymp/skip_ci/skip_boot/skip_bbt/skip_rand/
+#       skip_rci/skip_rpv/skip_brt/skip_jack_slow/skip_pboot_ci, run_brt/
+#       run_pboot_ci. These mirror comprehensive_tests.R's own practical
+#       decision not to attempt a path for cost reasons, not a theoretical
+#       fact -- kept hand-maintained, matched by eye against that script.
+#   (3) THEORETICAL support -- what the package's registry says a class can
+#       do at all, independent of whether the comprehensive suite bothers to
+#       run it. This drives the "NTS" (not theoretically supported) cells.
+#       Until 2026-09-06 this was ALSO hand-typed (types, jack, and a
+#       one-off `unsupported_methods` override added for the six Cox-family
+#       log-hazard-ratio classes) -- a second, disconnected copy of facts
+#       EDI_INFERENCE_EXCLUDED_CAPABILITIES (inference_class_registry.R)
+#       already encodes once. That copy had already drifted once (the Cox
+#       classes' randomization CI was wrongly shown as supported/SLOW for
+#       months after the registry excluded it -- see
+#       randomization_ci_construction_audit.md, section A) with no
+#       mechanism to catch drifting again. `derive_theoretical_support()`
+#       below reads the registry live instead, so any future
+#       EDI_INFERENCE_EXCLUDED_CAPABILITIES entry is picked up automatically
+#       with no per-row edit here.
+#
 # testing_types: "full"=c(wald,score,grad,lr); "wald"=wald only; "wald_lr"; "wald_score_grad"; "wald_score_lr"; "none"=character(0)
 # rand/rci applicable by response type: rand→{cont,surv,prop,incid,count,ord}; rci→{cont,prop,surv} (count/ord always skip_ci_rand; incid no rci)
 # pboot: TRUE=supports parametric bootstrap (is(InferenceParamBootstrap) && supports_lik_ratio_param_bootstrap()=TRUE);
@@ -131,7 +160,7 @@ audit_classes = list(
   list(name="InferenceSurvivalStratCoxPHRegr",         section="Survival",  resp="surv", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE, slow_methods=c(slow_m_out_of_n_methods, "compute_lik_ratio_bootstrap_two_sided_pval", "compute_param_bootstrap_estimate", "compute_param_bootstrap_pval", "compute_param_bootstrap_confidence_interval", "compute_lik_ratio_bartlett_two_sided_pval"), notes="InferenceParamBootstrap directly; pboot=use_rcpp"),
   list(name="InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",  section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE, skip_jack_slow=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=TRUE,  skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  skip_pboot_ci=TRUE, slow_methods=c("compute_rand_confidence_interval", "compute_rand_confidence_interval(custom)", "compute_lik_ratio_confidence_interval", slow_m_out_of_n_methods, slow_prw_subsampling_methods), notes="InferenceParamBootstrap; pboot=TRUE even though skip_boot=TRUE (separate test family); jackknife structurally supported but skip_jack_slow=TRUE; rand CI avg 507.7s / max 2094.4s at n=6; custom rand CI avg 41.2s / p80 5.6s / max 1993.3s at n=54; m-out-of-n CI avg 196.1s / p80 408.5s / max 634.0s at n=137; subsampling CI avg 183.7s / p80 366.7s / max 718.8s at n=137; lik-ratio CI avg 39.1s / max 234.2s at n=6 slow"),
   list(name="InferenceSurvivalKKLWACoxPHOneLik",       section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  notes="AbstractKKLWACoxOneLik → ParamBootstrap; explicit TRUE"),
-  list(name="InferenceSurvivalKKStratCoxPHOneLik",     section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE, slow_methods=c("compute_rand_confidence_interval"), notes="InferenceParamBootstrap; explicit TRUE; rand CI avg 36.25s / p80 70.46s / max 73.96s at n=12 slow"),
+  list(name="InferenceSurvivalKKStratCoxPHOneLik",     section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE, slow_methods=character(0), notes="InferenceParamBootstrap; explicit TRUE; rand CI avg 36.25s / p80 70.46s / max 73.96s at n=12 slow"),
   list(name="InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  slow_methods=c("compute_rand_confidence_interval", "compute_rand_confidence_interval(custom)", "compute_score_confidence_interval"), notes="AbstractGLMMWeibullFrailtyNormalOneLik → ParamBootstrap; pboot=use_rcpp; skip_boot=TRUE; custom rand CI avg 72.66s / p80 81.16s / max 91.78s (FixedBinaryMatch, n=12) and avg 32.08s / p80 60.86s / max 69.89s (KK21stepwise, n=24); score CI avg 50.1s / max 324.8s at n=13 slow"),
   list(name="InferenceSurvivalKKWeibullMarginal",      section="Survival",  resp="surv", kk=TRUE,  types="none", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=NA, slow_methods=c("compute_rand_confidence_interval"), notes="InferenceAsymp; exposes generic asymp pval/CI but no direct compute_wald_* wrappers, so direct Wald cells are NTS"),
 
@@ -156,6 +185,252 @@ audit_classes = list(
   list(name="InferenceOrdinalJonckheereTerpstraTest",   section="Ordinal", resp="ord", kk=FALSE, types="none", skip_asymp=TRUE,  skip_ci=TRUE,  skip_boot=TRUE,  skip_bbt=TRUE,  jack=FALSE, skip_rand=TRUE,  rand_resp="",        skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    exact_p=TRUE, unsupported_methods=c("compute_m_out_of_n_bootstrap_two_sided_pval", "compute_m_out_of_n_bootstrap_confidence_interval", "compute_subsampling_two_sided_pval", "compute_subsampling_confidence_interval"), notes="InferenceAsymp; SPECIAL: only exact pval + estimate called"),
   list(name="InferenceOrdinalRidit",                   section="Ordinal", resp="ord", kk=FALSE, types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsymp")
 )
+
+# ── Live registry derivation of theoretical support ──────────────────────────
+# See the file-header "Scope" note: types, jack, and unsupported_methods are
+# theoretical facts the registry already owns, derived live here instead of
+# hand-typed per row. Requires EDI to be installed/loadable; this script does
+# not build or install it (see CLAUDE.md -- never trigger a build here).
+suppressPackageStartupMessages({
+  if (!requireNamespace("EDI", quietly = TRUE)) {
+    stop(
+      "path_audits_source.R requires the EDI package to be installed/loadable: ",
+      "it derives theoretical support (types/jack/unsupported_methods) live ",
+      "from the registry via EDI:::. Install EDI first; do not run a rebuild ",
+      "from inside this script to satisfy this."
+    )
+  }
+  library(EDI)
+})
+
+# EDI's own capability -> method label tables (R/inference_suite.R), reused
+# rather than re-typed here, so a future capability/method added there is
+# picked up automatically.
+edi_ci_pval_method_table = c(
+  EDI:::EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY,
+  EDI:::EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY
+)
+
+# The capability set a class would have from its components/own metadata
+# BEFORE EDI_INFERENCE_EXCLUDED_CAPABILITIES is subtracted -- the same
+# computation EDI:::get_effective_capabilities() does internally, stopping
+# one step short of its final setdiff() so excluded-but-otherwise-present
+# capabilities (the ones this file cares about -- a class formally excluded
+# from something it would otherwise have) can be detected.
+edi_raw_capabilities = function(name) {
+  metadata = EDI:::get_inference_class_metadata(name)
+  component_capabilities = as.character(unlist(lapply(
+    EDI:::get_effective_components(name),
+    function(component_name) EDI:::get_inference_component(component_name)$provides_capabilities
+  ), use.names = FALSE))
+  declared = metadata$capabilities
+  if (is.null(declared)) declared = character()
+  unique(c(component_capabilities, declared))
+}
+
+# Live per-class derivation -- unsupported_methods only. See "IMPORTANT
+# finding" below for why `types` and `jack` are NOT derived this way despite
+# being theoretical-support facts in principle.
+#
+#   unsupported_methods: every CI/p-value method (by the exact function_run
+#     label comprehensive_tests.R and this file's cell_*() functions use)
+#     whose capability is present in this class's *raw* capability set but
+#     absent from its *effective* set -- i.e. formally EXCLUDED by
+#     EDI_INFERENCE_EXCLUDED_CAPABILITIES. A "(custom)" suffix variant is
+#     added alongside each excluded method too: comprehensive_tests.R calls
+#     the same guarded R method under that label when a custom
+#     randomization statistic is set (comprehensive_tests.R:1908), so it is
+#     excluded for exactly the same reason and the label needs to match for
+#     method_status() to catch it; the extra label is a harmless no-op for
+#     any method that has no such variant.
+#
+# IMPORTANT finding (2026-09-06): capability *presence* is not a safe oracle
+# for "does this method actually work," so `types` (which asymptotic tests
+# apply) and `jack` (jackknife) are deliberately NOT derived from
+# get_effective_capabilities() the way an earlier draft of this refactor did.
+# Concrete counter-evidence: InferencePropGCompMeanDiff's effective
+# capabilities do not include "wald" at all (it has no Wald *component*),
+# yet its compute_asymp_confidence_interval/pval empirically run and return
+# estimates 100% of the time in comprehensive_tests results -- it implements
+# Wald-type inference directly rather than through the shared capability
+# component, a real registry-completeness gap, not a path_audits bug. Naive
+# derivation would have flipped this row's wald/score/lr/grad columns from
+# "100% estimable" to "NTS", a regression. Similarly
+# InferenceOrdinalJonckheereTerpstraTest's registry-declared "jackknife"
+# component does not reflect this exact-only class's real restriction (its
+# own notes: "SPECIAL: only exact pval + estimate called").
+# CAPABILITY EXCLUSION, by contrast, is a safe, authoritative negative
+# signal -- EDI_INFERENCE_EXCLUDED_CAPABILITIES is populated only by
+# deliberate decisions (the Cox and ordinal cases), never by registry
+# incompleteness -- so unsupported_methods is derived live; `types` and
+# `jack` stay hand-maintained until/unless a more complete per-method live
+# check (e.g. one requiring a live instance, not just static metadata) is
+# built. See randomization_ci_construction_audit.md and the conversation
+# that found this.
+derive_theoretical_support = function(name) {
+  metadata = EDI:::get_inference_class_metadata(name)
+  raw = edi_raw_capabilities(name)
+  excluded = metadata$excluded_capabilities
+  if (is.null(excluded)) excluded = character()
+  excluded_but_raw = intersect(raw, excluded)
+  excluded_methods = unique(vapply(
+    Filter(function(e) e$capability %in% excluded_but_raw, edi_ci_pval_method_table),
+    function(e) e$method, character(1)
+  ))
+  custom_variants = if (length(excluded_methods)) paste0(excluded_methods, "(custom)") else character()
+  list(unsupported_methods = unique(c(excluded_methods, custom_variants)))
+}
+
+# ── Live registry derivation of empirical "too slow" exclusions ─────────────
+# EDI_COMPREHENSIVE_SLOW_PATHS (R/EDI/R/comprehensive_slow_paths.R) is the
+# package's own exported, authoritative registry of "implemented but too
+# slow to run routinely" paths -- consulted live by InferenceSuite's own
+# run_all_inference() (production code, not just tests), by
+# public_argument_combination_constraints.R's constraint_known_slow_paths,
+# and by comprehensive_tests.R itself (which reads it into
+# `comprehensive_slow_path_rules` and derives its `skip_*_slow` flags from
+# it via `is_slow_class_rule(category)`). This file's own header comment
+# used to say slow_methods/skip_* "mirror comprehensive_tests.R's own
+# skip decision, matched by eye against that script" -- that was imprecise
+# in the same way the pre-2026-09-06 unsupported_methods was: there is a
+# live, authoritative source to read instead of eyeballing a script.
+#
+# Mapping (verified 2026-09-06 by reading every skip_*_slow consumption
+# site in comprehensive_tests.R, not guessed from category names -- see the
+# conversation that built this): each EDI_COMPREHENSIVE_SLOW_PATHS category
+# is a plain class-name list gating one or more exact function_run labels.
+# Family-level categories (bootstrap, boot_ci, bbt_ci, brt_ci_all) gate an
+# entire nested loop of typed variants at once in comprehensive_tests.R, so
+# they map to every method_id in that family.
+edi_slow_path_category_methods = list(
+  bootstrap = c("compute_bootstrap_confidence_interval", "compute_bootstrap_confidence_interval_basic",
+                "compute_bootstrap_confidence_interval_bca", "compute_bootstrap_confidence_interval_studentized",
+                "compute_bootstrap_two_sided_pval", "compute_bootstrap_two_sided_pval_symmetric",
+                "compute_bootstrap_two_sided_pval_bca", "compute_bootstrap_two_sided_pval_studentized"),
+  boot_ci = c("compute_bootstrap_confidence_interval", "compute_bootstrap_confidence_interval_basic",
+              "compute_bootstrap_confidence_interval_bca", "compute_bootstrap_confidence_interval_studentized"),
+  boot_ci_default = "compute_bootstrap_confidence_interval",
+  boot_ci_basic = "compute_bootstrap_confidence_interval_basic",
+  boot_ci_bca = "compute_bootstrap_confidence_interval_bca",
+  boot_stud = "compute_bootstrap_confidence_interval_studentized",
+  boot_pval_stud = "compute_bootstrap_two_sided_pval_studentized",
+  boot_pval_symmetric = "compute_bootstrap_two_sided_pval_symmetric",
+  rand = "compute_rand_two_sided_pval",
+  rand_ci = "compute_rand_confidence_interval",
+  rand_delta_pval = "compute_rand_two_sided_pval(delta=0.5)",
+  score_ci = "compute_score_confidence_interval",
+  lik_ratio_ci = "compute_lik_ratio_confidence_interval",
+  bbt_ci = c("compute_bayesian_bootstrap_confidence_interval", "compute_bayesian_bootstrap_confidence_interval_basic",
+             "compute_bayesian_bootstrap_confidence_interval_wald", "compute_bayesian_bootstrap_confidence_interval_bca",
+             "compute_bayesian_bootstrap_confidence_interval_studentized"),
+  bbt_ci_default = "compute_bayesian_bootstrap_confidence_interval",
+  bbt_pval = "compute_bayesian_bootstrap_two_sided_pval",
+  bbt_pval_symmetric = "compute_bayesian_bootstrap_two_sided_pval_symmetric",
+  bbt_pval_wald = "compute_bayesian_bootstrap_two_sided_pval_wald",
+  bbt_pval_studentized = "compute_bayesian_bootstrap_two_sided_pval_studentized",
+  jack = c("compute_jackknife_estimate", "compute_jackknife_wald_confidence_interval"),
+  pboot_ci = c("compute_lik_ratio_bootstrap_confidence_interval", "compute_lik_ratio_bartlett_confidence_interval"),
+  lik_ratio_bootstrap_pval = "compute_lik_ratio_bootstrap_two_sided_pval",
+  param_bootstrap_estimate = "compute_param_bootstrap_estimate",
+  param_bootstrap_pval = "compute_param_bootstrap_pval",
+  param_bootstrap_ci = "compute_param_bootstrap_confidence_interval",
+  # This category's own doc comment (comprehensive_slow_paths.R) says it
+  # "gates both 'approx' and 'exact'" -- since 2026-09-06 both the pval and
+  # ci methods for each explicit variant are tested (see comprehensive_tests.R),
+  # so all four are covered here rather than the retired generic wrapper name.
+  bartlett_pval = c("compute_lik_ratio_bartlett_approx_two_sided_pval", "compute_lik_ratio_bartlett_exact_two_sided_pval",
+                     "compute_lik_ratio_bartlett_approx_confidence_interval", "compute_lik_ratio_bartlett_exact_confidence_interval"),
+  brt_pval_smoothed = "compute_rand_bootstrap_two_sided_pval_smoothed",
+  brt_pval_typed = c("compute_rand_bootstrap_two_sided_pval_studentized", "compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t"),
+  brt_ci_all = c("compute_rand_bootstrap_confidence_interval", "compute_rand_bootstrap_confidence_interval_smoothed",
+                 "compute_rand_bootstrap_confidence_interval_studentized", "compute_rand_bootstrap_confidence_interval_symmetric-percentile-t"),
+  brt_ci_smoothed = "compute_rand_bootstrap_confidence_interval_smoothed",
+  brt_ci_typed = c("compute_rand_bootstrap_confidence_interval_studentized", "compute_rand_bootstrap_confidence_interval_symmetric-percentile-t"),
+  m_out_of_n = "compute_m_out_of_n_bootstrap_two_sided_pval",
+  m_out_of_n_ci = "compute_m_out_of_n_bootstrap_confidence_interval",
+  subsampling = c("compute_subsampling_two_sided_pval", "compute_subsampling_confidence_interval")
+)
+# `resp` short codes (used throughout this file) -> the full response_type
+# string EDI_COMPREHENSIVE_SLOW_PATHS$exact_operations keys use
+# (`response_type||Class||method`). "all" (generic, response-type-agnostic
+# classes) is deliberately excluded: exact_operations entries are
+# response-type-scoped and a generic class's row does not correspond to one
+# fixed response type, so exact_operations matching is skipped for those
+# rows (the category-list matching above, which is class-name-only and
+# response-type-agnostic, still applies to them).
+edi_resp_code_to_response_type = c(
+  cont = "continuous", surv = "survival", prop = "proportion",
+  count = "count", incid = "incidence", ord = "ordinal"
+)
+
+# unsupported_methods is a strong claim (this method is formally excluded, so
+# NTS); slow_methods only ever says "this method is not attempted by the
+# comprehensive suite for cost reasons" -- a weaker, additive claim that
+# method_status() applies without touching skip_*'s own boolean logic. Every
+# method this returns is UNIONED into the row's existing slow_methods
+# (below), never used to override skip_asymp/skip_ci/skip_boot/skip_bbt/
+# skip_rand/skip_rci/skip_brt/etc., which stay hand-maintained: several of
+# them are combinations of multiple registry categories (e.g.
+# `skip_brt_ci = skip_bootstrap || skip_bootstrap_slow || skip_rand_slow ||
+# skip_rand_ci_slow || skip_brt_ci_all_slow`), and reconstructing every such
+# formula exactly here would be far more error-prone than reaching the same
+# rendered outcome through the generic, already-existing slow_methods list.
+derive_slow_methods = function(name, resp_code) {
+  slow_paths = EDI::EDI_COMPREHENSIVE_SLOW_PATHS
+  from_categories = unlist(lapply(names(edi_slow_path_category_methods), function(category) {
+    classes = slow_paths[[category]]
+    if (!is.null(classes) && name %in% classes) edi_slow_path_category_methods[[category]] else character()
+  }), use.names = FALSE)
+  response_type = unname(edi_resp_code_to_response_type[resp_code])
+  from_exact = character()
+  if (!is.na(response_type) && length(slow_paths$exact_operations)) {
+    parts = strsplit(slow_paths$exact_operations, "\\|\\|", fixed = FALSE)
+    matches = vapply(parts, function(p) length(p) == 3L && p[1] == response_type && p[2] == name, logical(1))
+    from_exact = vapply(parts[matches], function(p) p[3], character(1))
+  }
+  unique(c(from_categories, from_exact))
+}
+
+# Overlay the derived fields onto every row. Falls back to the row's existing
+# hand values (with a warning) if a class name is not found in the live
+# registry, rather than failing the whole audit build. unsupported_methods
+# and slow_methods are both unioned, not replaced, so a pre-existing hand
+# entry for something the registries do not (yet) express (e.g.
+# InferenceOrdinalJonckheereTerpstraTest's m-out-of-n/subsampling
+# unsupported_methods entry above, which reflects "this class is
+# exact-only," not a capability exclusion or a registered slow path) is
+# preserved.
+audit_classes = lapply(audit_classes, function(r) {
+  derived = tryCatch(derive_theoretical_support(r$name), error = function(e) {
+    warning(sprintf("path_audits: could not derive theoretical support for %s (%s); using hand values", r$name, conditionMessage(e)), call. = FALSE)
+    NULL
+  })
+  if (is.null(derived)) return(r)
+  derived$unsupported_methods = unique(c(r$unsupported_methods, derived$unsupported_methods))
+  slow_derived = tryCatch(derive_slow_methods(r$name, r$resp), error = function(e) {
+    warning(sprintf("path_audits: could not derive slow paths for %s (%s); using hand values", r$name, conditionMessage(e)), call. = FALSE)
+    character()
+  })
+  # EDI_COMPREHENSIVE_SLOW_PATHS' bartlett_pval category is class-name-only
+  # and, by its own doc comment, "gates both 'approx' and 'exact'" -- it does
+  # not distinguish which Bartlett variant a given class actually has. Most
+  # categories don't need this refinement (capability absence and structural
+  # non-existence coincide), but Bartlett approx/exact do not: a class can be
+  # a bartlett_pval member while genuinely lacking the exact variant (the 7
+  # non-KK ordinal classes named in that category's own comment). Filter the
+  # derived exact/approx method names by the row's own applicability flags --
+  # exactly what cell_likrat_bart_ex_p()/cell_likrat_bart_p() themselves check
+  # -- so a structurally-absent variant stays "not implemented" rather than
+  # being incorrectly promoted to "slow" (implemented but skipped for cost).
+  if (!isTRUE(r$pboot)) {
+    slow_derived = setdiff(slow_derived, c("compute_lik_ratio_bartlett_approx_two_sided_pval", "compute_lik_ratio_bartlett_approx_confidence_interval"))
+  }
+  if (!isTRUE(r$bartlett_exact)) {
+    slow_derived = setdiff(slow_derived, c("compute_lik_ratio_bartlett_exact_two_sided_pval", "compute_lik_ratio_bartlett_exact_confidence_interval"))
+  }
+  derived$slow_methods = unique(c(r$slow_methods, slow_derived))
+  modifyList(r, derived)
+})
 
 # ── HTML renderer ─────────────────────────────────────────────────────────────
 load_nonestimability_stats = function(result_dir = "package_tests") {
@@ -504,17 +779,26 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   # machinery for free. Classes without any likelihood/partial-likelihood LR test at all (same
   # type_ok("lr") gate used by the "LR" column itself) are structurally NTS here, same as "LR".
   # Among the remainder, rows follow pboot exactly: pboot=TRUE -> maybe, pboot=FALSE/NA -> NI.
-  # Exact Bartlett rows can still expose this approximate path directly; the public
-  # best-available compute_lik_ratio_bartlett_* wrapper will prefer exact, but
-  # compute_lik_ratio_bartlett_approx_* remains backed by the parametric-bootstrap mixin.
+  # "LR-Bart-app": the explicit approximate-factor Bartlett correction
+  # (compute_lik_ratio_bartlett_approx_*, a Cordeiro-style Monte-Carlo factor
+  # backed by the parametric-bootstrap mixin). Until 2026-09-06 this column
+  # and "LR-Bart-ex" below both keyed off the generic "best available"
+  # compute_lik_ratio_bartlett_* wrapper's single shared test result (the
+  # comprehensive harness only tested the wrapper) -- two display columns for
+  # one measured call. comprehensive_tests.R now tests
+  # compute_lik_ratio_bartlett_approx_two_sided_pval/_confidence_interval
+  # explicitly (gated on supports_bartlett_likelihood_ratio_approx()), so
+  # this column reflects that specific method, not the wrapper's dispatch
+  # choice. The wrapper itself remains tested separately (its own doc comment
+  # points reproducibility-sensitive callers at the explicit variants).
   cell_likrat_bart_p = function(r) {
-    method_id = "compute_lik_ratio_bartlett_two_sided_pval"
+    method_id = "compute_lik_ratio_bartlett_approx_two_sided_pval"
     if (!type_ok(r, "lr")) return(method_cell(r, method_id, "unsupported"))
     if (!isTRUE(r$pboot)) return(method_cell(r, method_id, "not_implemented"))
     method_cell(r, method_id, "maybe")
   }
   cell_likrat_bart_c = function(r) {
-    method_id = "compute_lik_ratio_bartlett_confidence_interval"
+    method_id = "compute_lik_ratio_bartlett_approx_confidence_interval"
     if (!type_ok(r, "lr")) return(method_cell(r, method_id, "unsupported"))
     if (!isTRUE(r$pboot)) return(method_cell(r, method_id, "not_implemented"))
     if (!isTRUE(r$run_pboot_ci)) return(method_cell(r, method_id, "slow"))
@@ -527,17 +811,17 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   # finite-sample pivot (verified against base R's lm()), not a Cordeiro-style
   # tensor derivation. Every other family remains NI -- see
   # package_metadata/likrat_correction_bartlett.md's practical-derivation-risk table.
-  # The comprehensive harness records the public best-available method label
-  # compute_lik_ratio_bartlett_*; for bartlett_exact rows that dispatches to the
-  # exact implementation because supports_bartlett_likelihood_ratio_exact() is TRUE.
+  # Since 2026-09-06 tracks the explicit compute_lik_ratio_bartlett_exact_*
+  # methods (gated on supports_bartlett_likelihood_ratio_exact()) rather than
+  # the generic wrapper -- see cell_likrat_bart_p's comment above for why.
   cell_likrat_bart_ex_p = function(r) {
-    method_id = "compute_lik_ratio_bartlett_two_sided_pval"
+    method_id = "compute_lik_ratio_bartlett_exact_two_sided_pval"
     if (!type_ok(r, "lr")) return(method_cell(r, method_id, "unsupported"))
     if (!isTRUE(r$bartlett_exact)) return(method_cell(r, method_id, "not_implemented"))
     method_cell(r, method_id, "maybe")
   }
   cell_likrat_bart_ex_c = function(r) {
-    method_id = "compute_lik_ratio_bartlett_confidence_interval"
+    method_id = "compute_lik_ratio_bartlett_exact_confidence_interval"
     if (!type_ok(r, "lr")) return(method_cell(r, method_id, "unsupported"))
     if (!isTRUE(r$bartlett_exact)) return(method_cell(r, method_id, "not_implemented"))
     if (!isTRUE(r$run_pboot_ci)) return(method_cell(r, method_id, "slow"))
@@ -684,6 +968,8 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   }
   cell_rand_c = function(r, method_id) {
     if (!nchar(r$rci_resp)) return(method_cell(r, method_id, "unsupported"))
+    # Per-row NTS for this one method (not the whole rci group, which cell_brt_c
+    # shares via rci_resp) goes through unsupported_methods -- see the Cox rows.
     if (isTRUE(r$skip_rci) || isTRUE(r$skip_rand_ci)) return(method_cell(r, method_id, "slow"))
     method_cell(r, method_id, "maybe")
   }
@@ -970,7 +1256,8 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   <p style="color:#555">Generated ', format(Sys.Date()), '. Green-to-yellow attempted cells use empirical explicit-nonestimability rates from main
   <code>comprehensive_tests_results*.csv</code> files in <code>package_tests/</code>; focused <code>_filtered_</code> runs are excluded.
   Dark green means the method is theoretically guaranteed under the comprehensive-test contract.
-  rand/rci/brt columns: NTS for response types where randomization is not theoretically supported (incidence/ordinal: rand=NTS; count: rci/brt_ci=NTS).</p>
+  rand/rci/brt columns: NTS for response types where randomization is not theoretically supported (incidence/ordinal: rand=NTS; count: rci/brt_ci=NTS).
+  NTS on an individual method (as opposed to a whole column, e.g. the survival log-hazard-ratio Cox-family classes rci column) is now derived live from the registry EDI_INFERENCE_EXCLUDED_CAPABILITIES table (derive_theoretical_support() in this file) rather than hand-typed per class: the Cox-family classes randomization CI is NTS since 2026-09-06 because the generic randomization CI inverts an AFT log-time sharp null, which cannot be mapped onto a log-hazard-ratio estimand without a shape parameter the Cox model does not have (registry: EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES) -- their rand p-value and brt columns are unaffected. The same live mechanism also marks the parametric-bootstrap columns of InferenceIncidKKCondLogitGLMMOneLik NTS (the registry excludes that capability for it) rather than the weaker not-implemented label.</p>
   ', reliability_note, legend, '<div class="scroll-x-top"><div class="scroll-x-spacer"></div></div><div class="table-wrap"><table>', hdr, body, '</table></div>', low_estimability_html(), '</body></html>')
   writeLines(html, outfile)
   invisible(outfile)

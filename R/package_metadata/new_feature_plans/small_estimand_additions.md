@@ -2,8 +2,9 @@
 
 > **Depends on:** nothing architectural; every item is a thin estimand
 > wrapper over existing machinery via `define_inference_class()`.
-> **Release target: v1.1.0** (`release_v1_1_0.md → TODO-17c`); each
-> sub-item is independent and may ship separately.
+> **Release target: v1.4.0** (`release_v1_4_0.md → TODO-16`; moved from
+> `release_v1_1_0.md → TODO-17c` on 2026-09-06, lighten-1.1.0 pass, user
+> decision); each sub-item is independent and may ship separately.
 
 Written 2026-08-27. Owning plan for
 `missing_inference_classes_literature_audit.md` items **#6, #11, #17,

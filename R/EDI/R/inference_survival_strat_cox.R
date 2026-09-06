@@ -395,28 +395,40 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 						get_coxph_score_cpp(X_fit, y, dead, beta)
 					}
 				},
+				# The three closures below must NEGATE the raw Cox partial-
+				# likelihood Hessian, which is negative semi-definite (it's a
+				# concave log-likelihood). Before this fix they returned it
+				# unnegated, so the "information" matrix they fed to the
+				# score test was itself negative-definite; the C++ score-test
+				# helper (score_test_from_score_information, which requires
+				# info_eff > 0) then silently returned NA on every call,
+				# reproducing the 100% NA rate for compute_score_two_sided_
+				# pval/compute_score_confidence_interval independent of
+				# formula. Matches the already-correct pattern in the
+				# sibling InferenceSurvivalCoxPHRegr (inference_survival_
+				# coxph.R), which negates the same Hessian getters.
 				observed_information = function(fit){
 					beta = as.numeric(fit$coefficients %||% fit$b)
 					if (stratified) {
-						get_stratified_coxph_hessian_cpp(X_fit, y, dead, as.integer(strata), beta)
+						-get_stratified_coxph_hessian_cpp(X_fit, y, dead, as.integer(strata), beta)
 					} else {
-						get_coxph_hessian_cpp(X_fit, y, dead, beta)
+						-get_coxph_hessian_cpp(X_fit, y, dead, beta)
 					}
 				},
 				fisher_information = function(fit){
 					beta = as.numeric(fit$coefficients %||% fit$b)
 					fit$fisher_information %||% if (stratified) {
-						get_stratified_coxph_hessian_cpp(X_fit, y, dead, as.integer(strata), beta)
+						-get_stratified_coxph_hessian_cpp(X_fit, y, dead, as.integer(strata), beta)
 					} else {
-						get_coxph_hessian_cpp(X_fit, y, dead, beta)
+						-get_coxph_hessian_cpp(X_fit, y, dead, beta)
 					}
 				},
 				information = function(fit){
 					beta = as.numeric(fit$coefficients %||% fit$b)
 					fit$information %||% fit$fisher_information %||% if (stratified) {
-						get_stratified_coxph_hessian_cpp(X_fit, y, dead, as.integer(strata), beta)
+						-get_stratified_coxph_hessian_cpp(X_fit, y, dead, as.integer(strata), beta)
 					} else {
-						get_coxph_hessian_cpp(X_fit, y, dead, beta)
+						-get_coxph_hessian_cpp(X_fit, y, dead, beta)
 					}
 				},
 				neg_loglik = function(fit){

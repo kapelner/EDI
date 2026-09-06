@@ -1,9 +1,12 @@
 # Fixed-Size Eigen Specializations for Small `p`
 
-> **Release:** v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-4d`;
+> **Release:** v1.2.0 (`../future_release_plans/release_v1_2_0.md →
+> TODO-13`; moved from `release_v1_1_0.md → TODO-4d` on 2026-09-06,
+> lighten-1.1.0 pass, user decision);
 > 2026-08-30, user decision). Phase 4 kernel/perf lane of `_master.md`,
-> alongside `performance_profiling_and_upgrades.md` §8 (`→ TODO-4b`) and
-> `more_simd_optimization.md` (`→ TODO-4c`). No Phase 0 dependency;
+> alongside `performance_profiling_and_upgrades.md` §8 and
+> `more_simd_optimization.md` (both also moved to v1.2.0 the same day).
+> No Phase 0 dependency;
 > measurement-first, and gated on its own TODO-1 benchmark.
 >
 > **Ownership split (no duplication):** `performance_profiling_and_upgrades.md

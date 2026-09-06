@@ -164,6 +164,17 @@ InferenceExtLikelihoodTestMemoization = list(
 				if (is.null(entry$score) || is.null(entry$information)) return(NA_real_)
 				res = score_test_from_score_information_cpp(as.numeric(entry$score), as.matrix(entry$information), j)
 				p_value = as.numeric(res$p_value %||% res)
+				if (!is.finite(p_value)) {
+					# Ridge-regularized fallback (2026-09-07): the C++ score
+					# test requires the nuisance-parameter Schur complement
+					# to be strictly positive and returns NA otherwise. See
+					# score_test_with_ridge_fallback()'s own comment
+					# (inference_ext_information_matrix.R) for why this
+					# happens routinely for KKGLMM-family null refits and
+					# why regularizing here is safe: this branch is reached
+					# only after the primary computation already failed.
+					p_value = private$score_test_with_ridge_fallback(entry$score, entry$information, j)
+				}
 			} else if (testing_type == "gradient") {
 				est = self$compute_estimate()
 				if (is.null(entry$score) || !is.finite(est)) return(NA_real_)

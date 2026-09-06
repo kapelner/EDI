@@ -262,6 +262,13 @@ InferenceOrdinalPairedSignTest = define_inference_class("InferenceOrdinalPairedS
 			}
 			
 			diffs = private$cached_values$KKstats$y_matched_diffs
+			# Drop any NA pair differences (e.g. a partially-resolved pair)
+			# before counting signs -- without this, a single NA diff made
+			# pos/neg/n_eff/p_hat all NA instead of being screened out,
+			# surfacing as a spurious NaN estimate rather than either a
+			# valid estimate from the remaining pairs or the intended
+			# "no discordant pairs" non-estimable path.
+			diffs = diffs[!is.na(diffs)]
 			# Sign test on matched pairs: ignore ties (diff == 0)
 			pos = sum(diffs > 0)
 			neg = sum(diffs < 0)

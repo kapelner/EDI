@@ -1078,7 +1078,16 @@ Eigen::MatrixXd get_stratified_coxph_hessian_cpp(const Eigen::MatrixXd& X, const
 //'   \code{i_mat}.
 //' @param delta Sharp-null log-time shift applied multiplicatively (\eqn{e^\delta}) to the
 //'   working survival time of treated (\code{w == 1}) resampled subjects; \code{delta = 0}
-//'   leaves times unshifted.
+//'   leaves times unshifted. The shift is applied to event and censoring times alike, with
+//'   \code{dead} carried over unchanged — the residual construction of rank-based AFT
+//'   inference (Tsiatis 1990, \doi{10.1214/aos/1176347504}; Wei, Ying and Lin 1990,
+//'   \doi{10.1093/biomet/77.4.845}; Jin, Lin, Wei and Ying 2003,
+//'   \doi{10.1093/biomet/90.2.341}), valid under independent censoring and exact in finite
+//'   samples only when censoring times share the accelerated clock. Note that \eqn{\delta}
+//'   is a log time-ratio while the returned \eqn{\hat\beta_T} is a log hazard ratio; the
+//'   two coincide only under a parametric link the Cox model does not supply (see
+//'   \code{InferenceSurvivalStratCoxPHRegr}'s refusal of the randomization CI and
+//'   \code{package_metadata/new_feature_plans/randomization_ci_construction_audit.md}).
 //' @param num_cores Number of OpenMP threads to use for parallelizing across draws
 //'   (ignored, and draws run sequentially, when the package is built without OpenMP
 //'   support).

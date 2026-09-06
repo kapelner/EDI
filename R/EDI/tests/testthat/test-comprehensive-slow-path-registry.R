@@ -29,6 +29,17 @@ test_that("observed 2026-09-02 slow operations remain excluded", {
 	expect_true(all(expected %in% EDI::EDI_COMPREHENSIVE_SLOW_PATHS$exact_operations))
 })
 
+test_that("observed 2026-09-05 slow operations remain excluded", {
+	expected = c(
+		"survival||InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||compute_rand_two_sided_pval",
+		"survival||InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||compute_rand_two_sided_pval(delta=0.5)",
+		"proportion||InferencePropKKGLMM||compute_bayesian_bootstrap_two_sided_pval_bca",
+		"proportion||InferencePropKKGLMM||compute_bayesian_bootstrap_confidence_interval_bca",
+		"ordinal||InferenceOrdinalKKGLMM||compute_m_out_of_n_bootstrap_confidence_interval"
+	)
+	expect_true(all(expected %in% EDI::EDI_COMPREHENSIVE_SLOW_PATHS$exact_operations))
+})
+
 test_that("slow-path validation rejects malformed, duplicate, and abstract entries", {
 	validate = getFromNamespace("validate_comprehensive_slow_path_rules", "EDI")
 	rules = EDI::EDI_COMPREHENSIVE_SLOW_PATHS

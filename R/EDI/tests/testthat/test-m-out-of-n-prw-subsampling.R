@@ -192,3 +192,59 @@ test_that("replacement semantics are explicit: m-out-of-n draws with replacement
 		expect_false(any(duplicated(b_draw$i_b)))
 	}
 })
+
+test_that("m-out-of-n bootstrap and PRW subsampling gate on replicate failure fraction, not just absolute count", {
+	# Regression for the 2026-09-06 comprehensive-results investigation:
+	# min_number_usable_samples only checked the ABSOLUTE count of finite
+	# replicates (default 5), so even a large majority of resampled fits
+	# failing/degenerating still cleared that bar with B in the hundreds --
+	# the pivot then got silently built from a small, unrepresentative
+	# surviving subset. Found on InferenceIncidKKGEE under a many-covariate
+	# formula, where a too-small default m caused ~24% of resampled GEE
+	# refits to fail, producing a degenerate two-sided p-value (~0%
+	# rejection under both H0 and H1) instead of an honest non-estimable
+	# result. Fixed by requiring a majority of replicates to succeed.
+	n <- 60L
+	des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", seed = 456L)
+	des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	for (t in seq_len(n)) des$add_one_subject_response(t, w[t] + stats::rnorm(1, sd = 0.05))
+
+	ext_env <- new.env(parent = globalenv())
+	ext_env$R6Class <- R6::R6Class
+	ext_env$InferenceContinOLS <- InferenceContinOLS
+	evalq({
+		HighFailureResamplingProbe <- R6Class(
+			"HighFailureResamplingProbe",
+			inherit = InferenceContinOLS,
+			public = list(
+				approximate_m_out_of_n_bootstrap_distribution_beta_hat_T = function(B = 501, m = NULL, show_progress = TRUE, bootstrap_type = NULL, scaling = "sqrt_n") {
+					boot <- rep(NA_real_, B)
+					n_finite <- floor(0.3 * B)
+					boot[seq_len(n_finite)] <- rnorm(n_finite)
+					boot
+				},
+				approximate_subsampling_distribution_beta_hat_T = function(B = 501, b = NULL, show_progress = TRUE, subsampling_type = NULL, scaling = "sqrt_n") {
+					sub <- rep(NA_real_, B)
+					n_finite <- floor(0.3 * B)
+					sub[seq_len(n_finite)] <- rnorm(n_finite)
+					sub
+				}
+			)
+		)
+	}, envir = ext_env)
+
+	inf <- ext_env$HighFailureResamplingProbe$new(des, verbose = FALSE)
+
+	p_mn <- inf$compute_m_out_of_n_bootstrap_two_sided_pval(B = 300, show_progress = FALSE)
+	expect_true(is.na(p_mn))
+	expect_true(inf$is_nonestimable())
+	expect_equal(inf$get_nonestimable_reason(), "m_out_of_n_high_replicate_failure_rate")
+
+	inf2 <- ext_env$HighFailureResamplingProbe$new(des, verbose = FALSE)
+	p_sub <- inf2$compute_subsampling_two_sided_pval(B = 300, show_progress = FALSE)
+	expect_true(is.na(p_sub))
+	expect_true(inf2$is_nonestimable())
+	expect_equal(inf2$get_nonestimable_reason(), "subsampling_high_replicate_failure_rate")
+})

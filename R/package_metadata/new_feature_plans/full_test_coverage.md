@@ -6,9 +6,10 @@
 > and folding `R/package_tests/testthat_bulk/` into the `code=` coverage
 > pass, both 2026-08-28). Independent of any other open plan; this is pure
 > test-writing/triage work, not a source-behavior change. Slated for
-> **v1.1.0** (user decision, 2026-08-29) -- `release_v1_1_0.md` should pick
-> this up as an additional TODO; not yet cross-referenced there as of this
-> writing.
+> **v1.2.0** (`release_v1_2_0.md → TODO-18`; moved from v1.1.0
+> `release_v1_1_0.md → TODO-17m` on 2026-09-06, lighten-1.1.0 pass, user
+> decision — this plan's own zero-dependency status is exactly why moving
+> it cost nothing), reframed as a rolling non-gating track.
 
 ## Status
 

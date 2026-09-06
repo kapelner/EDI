@@ -95,3 +95,68 @@ test_that("public likelihood tests report an unavailable specification as non-es
 	expect_true(inf$is_nonestimable("estimate"))
 	expect_equal(inf$get_nonestimable_reason(), "likelihood_test_spec_unavailable")
 })
+
+make_no_likelihood_spec_std_mod_cache_logit_inference <- function(des){
+	ext_env = new.env(parent = globalenv())
+	ext_env$R6Class = R6::R6Class
+	ext_env$InferenceIncidLogRegr = InferenceIncidLogRegr
+	evalq({
+		NoLikelihoodSpecStdModCacheLogit = R6Class(
+			"NoLikelihoodSpecStdModCacheLogit",
+			inherit = InferenceIncidLogRegr,
+			private = list(
+				get_likelihood_test_spec = function() NULL
+			)
+		)
+	}, envir = ext_env)
+	ext_env$NoLikelihoodSpecStdModCacheLogit$new(des, verbose = FALSE)
+}
+
+make_likelihood_tests_unsupported_logit_inference <- function(des){
+	ext_env = new.env(parent = globalenv())
+	ext_env$R6Class = R6::R6Class
+	ext_env$InferenceIncidLogRegr = InferenceIncidLogRegr
+	evalq({
+		LikelihoodTestsUnsupportedLogit = R6Class(
+			"LikelihoodTestsUnsupportedLogit",
+			inherit = InferenceIncidLogRegr,
+			private = list(
+				supports_likelihood_tests = function() FALSE,
+				get_likelihood_test_spec = function() NULL
+			)
+		)
+	}, envir = ext_env)
+	ext_env$LikelihoodTestsUnsupportedLogit$new(des, verbose = FALSE)
+}
+
+test_that("StandardModelCache likelihood tests report an unavailable specification as non-estimable when the class supports likelihood tests but this fit's spec is unavailable", {
+	# Regression for the 2026-09-06 comprehensive-results investigation:
+	# InferenceSurvivalCoxPHRegr and InferenceSurvivalDepCensTransformRegr
+	# (both composing StandardModelCacheSource) were calling stop() here
+	# whenever THIS fit's own get_likelihood_test_spec() returned NULL (e.g.
+	# generate_mod() failed on a given resample), even though the class
+	# itself supports likelihood tests in general. That surfaced as hard
+	# errors on compute_lik_ratio/score/gradient_two_sided_pval instead of
+	# the graceful non-estimable NA every other failure mode in this package
+	# already produces.
+	inf = make_no_likelihood_spec_std_mod_cache_logit_inference(make_public_contract_logit_design(seed = 14L))
+
+	p_value = inf$compute_score_two_sided_pval(delta = 0)
+
+	expect_true(is.na(p_value))
+	expect_true(inf$is_nonestimable("estimate"))
+	expect_equal(inf$get_nonestimable_reason(), "likelihood_test_spec_unavailable")
+})
+
+test_that("StandardModelCache likelihood tests still hard-stop when the class does not support likelihood tests at all", {
+	# The hard stop is preserved for a testing_type the class never
+	# advertises (supports_likelihood_tests() hard-FALSE, e.g.
+	# InferenceSurvivalCoxPHRegr with use_rcpp = FALSE) -- that is a caller
+	# error, not a per-fit failure, and should not be silently swallowed.
+	inf = make_likelihood_tests_unsupported_logit_inference(make_public_contract_logit_design(seed = 15L))
+
+	expect_error(
+		inf$compute_score_two_sided_pval(delta = 0),
+		"does not expose a likelihood-test specification"
+	)
+})

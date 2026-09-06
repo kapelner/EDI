@@ -1,6 +1,8 @@
 # Memory Layout: Column-Major `X` Under Row-Wise IRLS Access
 
-> **Release:** v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-4f`;
+> **Release:** v1.2.0 (`../future_release_plans/release_v1_2_0.md →
+> TODO-15`; moved from `release_v1_1_0.md → TODO-4f` on 2026-09-06,
+> lighten-1.1.0 pass, user decision);
 > 2026-08-30, user decision). Phase 4 kernel/perf lane of `_master.md`. No
 > Phase 0 dependency; measurement-first with a threshold finding as the
 > primary deliverable.

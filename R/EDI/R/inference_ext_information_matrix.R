@@ -142,6 +142,79 @@ InferenceExtInformationMatrix = list(
 
 		get_score_test_information_matrix = function(spec, fit){
 			private$get_information_matrix(spec = spec, fit = fit)
+		},
+
+		# Pure-R ridge-regularized fallback for the score test's
+		# nuisance-parameter Schur complement, used ONLY when
+		# score_test_from_score_information_cpp() already returned a
+		# non-finite p-value from the RAW information matrix (this
+		# function never runs otherwise, so it cannot change any
+		# currently-working score test's answer).
+		#
+		# Added 2026-09-07 for InferenceContinKKGLMM/InferenceCountKKGLMM:
+		# their null-constrained refit's observed information is only
+		# positive definite on a minority of replicates (confirmed
+		# empirically: ~32% for the Gaussian LMM, near-identical for the
+		# Poisson GLMM) because the random-intercept variance component
+		# routinely sits near its lower boundary in small matched-pair
+		# fits -- this is expected numerical behavior of the likelihood
+		# surface there, not a sign the fit itself is bad (the SAME
+		# model's unrestricted/Wald-path information is positive
+		# definite ~100% of the time on the identical data). Before this
+		# fallback, compute_score_two_sided_pval() returned NA on the
+		# large majority of calls for these two classes, regardless of
+		# whether the true null or a large true effect was being tested
+		# (0% Type-I error AND 0% power -- a degenerate test, not merely
+		# a miscalibrated one).
+		#
+		# This adds a small, escalating ridge to the nuisance-parameter
+		# block's diagonal (relative to that block's own diagonal scale,
+		# not an absolute constant) only until the Schur complement
+		# becomes positive, then computes the same chi-square(1) score
+		# statistic score[j]^2 / info_eff the C++ path would have. This
+		# is a numerical-stability patch, not a validated alternative
+		# test: the resulting p-value's exact calibration has not been
+		# separately verified by simulation, so treat it as "an honest
+		# answer instead of a guaranteed-NA" rather than "provably
+		# well-calibrated." Kept generic (not class-specific) since the
+		# same Schur-complement degeneracy is generic to any class whose
+		# information matrix is evaluated at a null-constrained refit
+		# near a variance-component boundary.
+		score_test_with_ridge_fallback = function(score, information, j){
+			information = tryCatch(as.matrix(information), error = function(e) NULL)
+			if (is.null(information) || nrow(information) != ncol(information)) return(NA_real_)
+			p = nrow(information)
+			if (length(j) != 1L || !is.finite(j) || j < 1L || j > p) return(NA_real_)
+			score_j = tryCatch(as.numeric(score)[j], error = function(e) NA_real_)
+			if (!is.finite(score_j)) return(NA_real_)
+
+			nuisance_idx = setdiff(seq_len(p), j)
+			if (length(nuisance_idx) == 0L) {
+				info_eff = as.numeric(information[j, j])
+				if (!is.finite(info_eff) || info_eff <= 0) return(NA_real_)
+			} else {
+				I_nn = information[nuisance_idx, nuisance_idx, drop = FALSE]
+				I_nj = information[nuisance_idx, j]
+				I_jn = information[j, nuisance_idx]
+				scale_ref = mean(abs(diag(I_nn)), na.rm = TRUE)
+				if (!is.finite(scale_ref) || scale_ref <= 0) scale_ref = 1
+				ridge_multipliers = c(1e-8, 1e-6, 1e-4, 1e-3, 1e-2, 1e-1, 1, 10)
+				info_eff = NA_real_
+				for (rm in ridge_multipliers) {
+					I_nn_ridged = I_nn + diag(rm * scale_ref, nrow(I_nn))
+					inv_nn = tryCatch(solve(I_nn_ridged), error = function(e) NULL)
+					if (is.null(inv_nn) || any(!is.finite(inv_nn))) next
+					candidate = as.numeric(information[j, j]) - as.numeric(I_jn %*% inv_nn %*% I_nj)
+					if (is.finite(candidate) && candidate > 0) {
+						info_eff = candidate
+						break
+					}
+				}
+				if (!is.finite(info_eff) || info_eff <= 0) return(NA_real_)
+			}
+			statistic = score_j^2 / info_eff
+			if (!is.finite(statistic) || statistic < 0) return(NA_real_)
+			stats::pchisq(statistic, df = 1, lower.tail = FALSE)
 		}
 	)
 )

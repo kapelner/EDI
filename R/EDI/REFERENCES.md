@@ -400,6 +400,31 @@ files' `@references`) if/when it becomes available.
   `InferenceSurvivalKKStratCoxPHIVWC`, `InferenceSurvivalKKStratCoxPHOneLik`
   (proportional-hazards model and partial likelihood; the reservoir sub-fit
   in the two KK stratified-Cox compound classes).
+- **[Tsiatis1990]** Tsiatis, A. A. (1990). "Estimating Regression Parameters
+  Using Linear Rank Tests for Censored Data." *The Annals of Statistics*,
+  18(1), 354-372. doi:10.1214/aos/1176347504. — Used by: `InferenceRandCI`
+  (its compute_rand_confidence_interval() method for survival responses: the
+  randomization CI inverts an AFT sharp null by rescaling the recorded times
+  of treated units — event and censoring times alike, censoring indicators
+  unchanged — the residual construction whose linear rank statistics this
+  paper shows have mean zero at the true effect under independent
+  censoring), `InferenceSurvivalWeibullRegr`,
+  `compute_coxph_rand_bootstrap_parallel_cpp` (the C++ path applying the
+  same shift). Added 2026-09-04.
+- **[WeiYingLin1990]** Wei, L. J., Ying, Z., and Lin, D. Y. (1990). "Linear
+  Regression Analysis of Censored Survival Data Based on Rank Tests."
+  *Biometrika*, 77(4), 845-851. doi:10.1093/biomet/77.4.845. — Used by:
+  `InferenceRandCI`, `InferenceSurvivalWeibullRegr`,
+  `compute_coxph_rand_bootstrap_parallel_cpp` (inversion of the rank-based
+  AFT tests to obtain confidence intervals — the same test-inversion
+  structure the survival randomization CI uses). Added 2026-09-04.
+- **[JinLinWeiYing2003]** Jin, Z., Lin, D. Y., Wei, L. J., and Ying, Z.
+  (2003). "Rank-Based Inference for the Accelerated Failure Time Model."
+  *Biometrika*, 90(2), 341-353. doi:10.1093/biomet/90.2.341. — Used by:
+  `InferenceRandCI`, `InferenceSurvivalWeibullRegr`,
+  `compute_coxph_rand_bootstrap_parallel_cpp` (modern estimation and
+  inference machinery for the AFT model on the same residuals). Added
+  2026-09-04.
 - **[LeeWeiAmato1992]** Lee, E. W., Wei, L. J., and Amato, D. A. (1992).
   "Cox-Type Regression Analysis for Large Numbers of Small Groups of
   Correlated Failure Time Observations." In *Survival Analysis: State of

@@ -9,7 +9,10 @@ Generated: 2026-08-09
 > are historical record and stay checked. This document moved back from
 > `../finished_features/` to `new_feature_plans/` to carry one new work
 > package: **section E, Inference-object serialization, slated for
-> v1.1.0** (`../future_release_plans/release_v1_1_0.md → TODO-17r`). Only
+> v1.2.0** (`../future_release_plans/release_v1_2_0.md → TODO-19`; moved
+> from `release_v1_1_0.md → TODO-17r` on 2026-09-06, lighten-1.1.0 pass,
+> user decision — E-2's `owns_state` audit is cheapest after every
+> v1.1.0 item adding `Inference`-side state has landed anyway). Only
 > section E is open scope.
 
 Related: [sequential_inference.md](sequential_inference.md) (the

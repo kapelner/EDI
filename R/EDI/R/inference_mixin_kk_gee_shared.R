@@ -328,7 +328,17 @@ InferenceMixinKKGEEShared = list(
 			)
 			candidates = list(as.data.frame(predictors_df, check.names = FALSE))
 			keys = paste(colnames(candidates[[1L]]), collapse = "|")
-			first_qr = normalize_candidate(attempt$X_fit)
+			# Bug fixed 2026-09-06: fit_with_hardened_qr_column_dropping()
+			# returns its result under the field name `fit` (plus `X` and
+			# `keep`) -- there is no `X_fit` field. Since fit_fun here is the
+			# identity `function(X_fit) X_fit`, `attempt$fit` IS the
+			# QR-reduced design matrix; reading the nonexistent `attempt$X_fit`
+			# was always NULL, so normalize_candidate(NULL) always fell back
+			# to the unreduced original, meaning this QR-based candidate was
+			# never actually generated for any class composing this shared
+			# GEE mixin (continuous/count/incidence/proportion GEE and, via
+			# the fix in inference_ordinal_KK_combined.R, ordinal KK GEE).
+			first_qr = normalize_candidate(attempt$fit)
 			first_key = paste(colnames(first_qr), collapse = "|")
 			if (!(first_key %in% keys)) {
 				candidates[[length(candidates) + 1L]] = first_qr
@@ -346,7 +356,7 @@ InferenceMixinKKGEEShared = list(
 						fit_fun = function(X_fit) X_fit,
 						fit_ok = function(mod, X_fit, keep) TRUE
 					)
-					X_try_df = normalize_candidate(attempt_try$X_fit)
+					X_try_df = normalize_candidate(attempt_try$fit)
 					key = paste(colnames(X_try_df), collapse = "|")
 					if (!(key %in% keys)){
 						candidates[[length(candidates) + 1L]] = X_try_df

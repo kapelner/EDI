@@ -85,9 +85,36 @@ matrix, ordinal `y_slot`, Cox bootstrap ordering, shared GH rule).
 - `sequential_inference.md → TODO-1..5` — the **scoping** (design-side
   ledger audit, public-accessor targeting, decision on 2.0.0 vs later);
   implementation is `release_v2_0_0.md → TODO-5`.
-- `nominal_response_type_report.md → TODO-1b` — if its TODO-1 is decided
-  "no" (recorded recommendation), the one-vs-rest recode vignette section
-  ships here and the report closes.
+- `nominal_response_type_report.md → TODO-1b` (the one-vs-rest recode
+  vignette section) is **not** a v1.4.0 item — ownership was resolved
+  2026-09-06 (user decision) to `_master.md`'s thematic-release-split
+  summary, which places it in v1.1.0 alongside the TODO-1 decision that
+  gates it (`release_v1_1_0.md → TODO-17d`). Removed from this file's
+  scope; a prior draft of this bullet was one of three files independently
+  claiming it.
+
+### Moved in from v1.1.0, 2026-09-06 (lighten-1.1.0 pass, user decision)
+
+Off-theme for v1.1.0's inference-quality-plus-CPU-performance release;
+each is a new estimand, a new estimator family, or a corrections-track
+item beyond the shared-machinery core that gates nothing else there.
+
+- `l1_l2_penalties_all_likelihood_paths_report.md → TODO-2, TODO-4`,
+  `median_bias_correction_likelihood_paths_report.md → TODO-3..4`,
+  `modified_profile_likelihood_report.md → TODO-2..4`, and
+  `bootstrap_calibrated_lr_report.md → Difficult-tier work` (if its
+  TODO-1.7 said yes) — the corrections track's tail beyond Firth; see
+  `TODO-14` below. `release_v1_1_0.md → TODO-5`'s core (estimate_type,
+  bias corrections, the shared-cumulant score/gradient/Bartlett batch,
+  Firth) stays there.
+- `kk_beta_regression_one_lik_derivation.md → TODO-1..10` — see `TODO-15`
+  below.
+- `small_estimand_additions.md → TODO-1..7` — see `TODO-16` below.
+- `marginal_estimand_report.md → TODO-10` (NegBin mixture marginal
+  estimand) — see `TODO-17` below.
+- `wilkinson_combined_pval.md → TODO-1 (gate), TODO-3..4` (the formal
+  r-th-order-statistic test; Stage 1's `vote_fraction` field stayed in
+  v1.1.0 as `TODO-17n`) — see `TODO-18` below.
 
 ## Implementation TODOs (dependency order)
 
@@ -156,7 +183,13 @@ matrix, ordinal `y_slot`, Cox bootstrap ordering, shared GH rule).
   implementation cost is known before deciding whether broader rollout
   stays v1.4.0-tractable or moves to 2.0.0 alongside TODO-6e's data-carving
   stage. Coordinate Stage 0's selection-statistic decision with TODO-6e's
-  (same underlying question).
+  (same underlying question). **Update (2026-09-05):** the design-based
+  route in this plan — the rejection-sampled conditional randomization
+  test (`→ TODO-7`) — is unblocked by `ModelSelection` Phase A moving to
+  v1.1.0 (`release_v1_1_0.md → TODO-17y`) and ships as that item's
+  stretch sub-item (f) if Phase A lands with margin, else here with the
+  polyhedral pilot. Stage 0 should reuse Phase A's provenance object as
+  the selection record rather than defining its own.
 - [ ] TODO-11e: **Wilcoxon–HL randomization kernel hoisting** (added
   2026-08-30, user decision): `wilcox_hl_kernel_hoisting.md → TODO-1..6`.
   The live `compute_wilcox_hl_distr_parallel_cpp` (`src/fast_wilcox_hl.cpp`)
@@ -229,9 +262,61 @@ matrix, ordinal `y_slot`, Cox bootstrap ordering, shared GH rule).
   fit, done for deduplication not speed (bit-identical once the copies
   are confirmed identical). No dependencies.
 - [ ] TODO-12: **Sequential-inference scoping** `sequential_inference.md →
-  TODO-1..5`; nominal vignette section if applicable.
+  TODO-1..5`. (The nominal vignette section that used to be bundled here
+  is not v1.4.0 scope — see the In-scope note above; owned by
+  `release_v1_1_0.md → TODO-17d`.)
 - [ ] TODO-13: **Release mechanics** per `release.md`, including the
   rename's migration note (the only 1.x-era break).
+
+- [ ] TODO-14: **Corrections track — tail** (moved from
+  `release_v1_1_0.md → TODO-5` steps 5–8 on 2026-09-06, lighten-1.1.0
+  pass, user decision): after that release's core (steps 1–4: estimate
+  type, bias corrections, the shared-cumulant score/gradient/Bartlett
+  batch, Firth) has shipped —
+  5. `l1_l2_penalties_all_likelihood_paths_report.md → TODO-2` then
+     `→ TODO-4` (the L1/L2 path itself; its `→ TODO-3` joint-semantics
+     note with Firth already shipped in v1.1.0),
+  6. `median_bias_correction_likelihood_paths_report.md → TODO-3..4`
+     (only after Firth shipped),
+  7. `modified_profile_likelihood_report.md → TODO-2..4`,
+  8. `bootstrap_calibrated_lr_report.md → Difficult-tier work` (if
+     TODO-1.7 said yes).
+  None of these gate anything else; they are additional corrections
+  beyond the shared-machinery core.
+- [ ] TODO-15: **KK one-stage Beta-regression estimator** (moved from
+  `release_v1_1_0.md → TODO-15b` on 2026-09-06):
+  `kk_beta_regression_one_lik_derivation.md → TODO-1..10` — TODO-1
+  (prototype validation) first; TODO-2/TODO-3 (glmmTMB-reuse cheap path +
+  its golden tests) ship before TODO-4/TODO-5 (the from-scratch
+  Gauss-Hermite backend and its `OneLik` class), mirroring
+  `InferenceContinKKGLMM`'s own `use_rcpp` history. Additive; may run in
+  parallel with every other track once its own KK-migration dependency
+  (see the plan's `Depends on` header) is met.
+- [ ] TODO-16: **Small estimand additions** (moved from
+  `release_v1_1_0.md → TODO-17c` on 2026-09-06):
+  `small_estimand_additions.md → TODO-1..7` — Hedges' g, win odds /
+  Brunner-Munzel across all six types, Mantel-Haenszel OR/RD,
+  non-inferiority / equivalence conveniences, unconditional QTE, log-link
+  QMLE / Gamma-log for continuous non-negative `y` (inference audit #6,
+  #11, #17–#20). Each sub-item independent.
+- [ ] TODO-17: **NegBin mixture marginal estimand** (moved from
+  `release_v1_1_0.md → TODO-17f` on 2026-09-06):
+  `marginal_estimand_report.md → TODO-10` — extend
+  `set_estimand("marginal_mean_diff"/"marginal_ratio")` to
+  `InferenceCountZeroInflatedNegBin` and `InferenceCountHurdleNegBin`.
+  Needs a rederived truncated-NegBin mean formula (the Poisson shortcut
+  does not generalize) and confirmation of the NegBin
+  joint-information-matrix shape before the same
+  `define_inference_class(components = "MarginalEstimand")` conversion
+  the Poisson concretes already used. Independent of other items;
+  schedule alongside TODO-16 if convenient.
+- [ ] TODO-18: **Wilkinson r-out-of-k combined-evidence test, Stage 2**
+  (moved from `release_v1_1_0.md → TODO-17n` on 2026-09-06):
+  `wilkinson_combined_pval.md → TODO-1 (gate), TODO-3..4` — the formal
+  r-th-order-statistic test, gated on deciding whether its
+  bootstrap/permutation null-calibration cost (no closed-form result
+  exists under arbitrary dependence, unlike CCT) is worth it. Stage 1's
+  `vote_fraction` field already shipped in v1.1.0.
 
 ## Standing constraints
 
