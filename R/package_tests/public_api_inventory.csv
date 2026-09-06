@@ -1881,7 +1881,7 @@
 "InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","compute_subsampling_confidence_interval","InferenceAllSimpleWilcox","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","compute_subsampling_sensitivity","InferenceAllSimpleWilcox","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","compute_subsampling_two_sided_pval","InferenceAllSimpleWilcox","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","compute_wald_confidence_interval","InferenceAllSimpleWilcox","class_local",1,"alpha",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","compute_wald_confidence_interval","InferenceAllSimpleWilcox","class_local",1,"alpha",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","compute_wald_two_sided_pval","InferenceAllSimpleWilcox","class_local",1,"delta",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -4472,11 +4472,11 @@
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_jackknife_std_error","InferenceAbstractKKCondLogitGLMM","inherited",1,"unit",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_jackknife_wald_confidence_interval","InferenceAbstractKKCondLogitGLMM","inherited",2,"alpha;unit",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_jackknife_wald_two_sided_pval","InferenceAbstractKKCondLogitGLMM","inherited",2,"delta;unit",TRUE,TRUE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_lik_ratio_bartlett_approx_confidence_interval","InferenceAbstractKKCondLogitGLMM","inherited",2,"alpha;B",TRUE,TRUE,FALSE,TRUE,"",TRUE
-"InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_lik_ratio_bartlett_approx_two_sided_pval","InferenceAbstractKKCondLogitGLMM","inherited",2,"B;delta",FALSE,TRUE,FALSE,TRUE,"",TRUE
+"InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_lik_ratio_bartlett_approx_confidence_interval","InferenceAbstractKKCondLogitGLMM","inherited",2,"alpha;B",TRUE,TRUE,TRUE,FALSE,"",TRUE
+"InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_lik_ratio_bartlett_approx_two_sided_pval","InferenceAbstractKKCondLogitGLMM","inherited",2,"B;delta",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_lik_ratio_bartlett_confidence_interval","InferenceAbstractKKCondLogitGLMM","inherited",2,"alpha;B",TRUE,TRUE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_lik_ratio_bartlett_exact_confidence_interval","InferenceAbstractKKCondLogitGLMM","inherited",1,"alpha",TRUE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_lik_ratio_bartlett_exact_two_sided_pval","InferenceAbstractKKCondLogitGLMM","inherited",1,"delta",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_lik_ratio_bartlett_exact_confidence_interval","InferenceAbstractKKCondLogitGLMM","inherited",1,"alpha",TRUE,FALSE,TRUE,FALSE,"",TRUE
+"InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_lik_ratio_bartlett_exact_two_sided_pval","InferenceAbstractKKCondLogitGLMM","inherited",1,"delta",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_lik_ratio_bartlett_two_sided_pval","InferenceAbstractKKCondLogitGLMM","inherited",2,"B;delta",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_lik_ratio_bootstrap_confidence_interval","InferenceAbstractKKCondLogitGLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","compute_lik_ratio_bootstrap_two_sided_pval","InferenceAbstractKKCondLogitGLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE

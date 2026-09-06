@@ -199,7 +199,7 @@
 "InferenceAllSimpleWilcox::approximate_randomization_distribution_beta_hat_T","r6_public_method","InferenceAllSimpleWilcox","approximate_randomization_distribution_beta_hat_T",7,TRUE,TRUE,3,9,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceAllSimpleWilcox::compute_rand_confidence_interval","r6_public_method","InferenceAllSimpleWilcox","compute_rand_confidence_interval",7,TRUE,TRUE,4,12,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceAllSimpleWilcox::compute_rand_two_sided_pval","r6_public_method","InferenceAllSimpleWilcox","compute_rand_two_sided_pval",7,TRUE,TRUE,1,2,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceAllSimpleWilcox::compute_wald_confidence_interval","r6_public_method","InferenceAllSimpleWilcox","compute_wald_confidence_interval",1,FALSE,TRUE,1,3,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"InferenceAllSimpleWilcox::compute_wald_confidence_interval","r6_public_method","InferenceAllSimpleWilcox","compute_wald_confidence_interval",1,FALSE,FALSE,1,3,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceAllSimpleWilcox::initialize","r6_public_method","InferenceAllSimpleWilcox","initialize",5,TRUE,TRUE,2,8,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceAllSimpleWilcox::set_testing_type","r6_public_method","InferenceAllSimpleWilcox","set_testing_type",1,FALSE,TRUE,1,2,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceBaiAdjustedTKK14::approximate_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceBaiAdjustedTKK14","approximate_bootstrap_distribution_beta_hat_T",4,TRUE,TRUE,1,4,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
