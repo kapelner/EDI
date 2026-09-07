@@ -1,4 +1,8 @@
 test_that("InferenceOrdinalKKGEE falls back to a QR-hardened candidate when the raw design is rank-deficient", {
+	# multgee is Suggests-only: the ASAN/UBSAN and no-Suggests check jobs
+	# deliberately do not install it (run 34101001008 failed here with
+	# "Package 'multgee' is required for InferenceOrdinalKKGEE").
+	skip_if_not_installed("multgee")
 	# Regression for the 2026-09-06 comprehensive-results investigation:
 	# fit_ordinal_gee_mod() was called directly on the raw, unreduced
 	# gee_predictors_df(), unlike the shared GEE mixin's own fits
