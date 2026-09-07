@@ -194,6 +194,7 @@ jobs:
             package_tests/comprehensive_suite_registry.csv
             package_tests/comprehensive_suite_baseline_audit.csv
             package_tests/comprehensive_suite_internal_surfaces.csv
+            package_tests/public_argument_contract_registry.csv
           )
           if ! git diff --exit-code -- "${drift_files[@]}"; then
             echo "::error::package_tests/ generated artifacts are stale relative to current source (diff above). Regenerate locally (see the 'Rebuild ...' steps in this workflow, or R/package_tests/public_argument_combination_runner.md) and commit the updated CSVs."

@@ -371,6 +371,8 @@ if [ "$run_comprehensive_suite" = "1" ]; then
 		package_tests/public_argument_combination_quality_gate_summary.csv
 		package_tests/comprehensive_suite_registry.csv
 		package_tests/comprehensive_suite_baseline_audit.csv
+		package_tests/public_argument_contract_registry.csv
+		package_tests/comprehensive_suite_internal_surfaces.csv
 	)
 	comprehensive_suite_ok=1
 	comprehensive_suite_auto_fixed=0
@@ -378,16 +380,32 @@ if [ "$run_comprehensive_suite" = "1" ]; then
 	attempt=1
 	while [ "$attempt" -le "$max_drift_attempts" ]; do
 		if (
+			# Script ORDER and SET must match test-coverage-R-advanced.yml's
+			# "Rebuild ..." steps exactly -- CI regenerates from scratch in
+			# this order and then diffs; any script missing here, or run
+			# before one of its inputs is refreshed, produces a CSV that
+			# CI's own regeneration disagrees with, and the push fails on
+			# CI no matter how many times this loop converged locally.
+			# Data flow the order encodes:
+			#   extract_checkmate_argument_contracts -> public_argument_contract_registry
+			#     (analyze + quality gates read the registry CSV, so a stale
+			#     committed registry silently changes every downstream count)
+			#   analyze -> audit_comprehensive_suite_baseline -> comprehensive_suite_registry
+			#     (the registry reads the baseline audit; running it first
+			#     lags one iteration behind and costs an extra attempt)
+			#   registry + audit + inventory -> comprehensive_suite_internal_surfaces
 			cd R &&
 			Rscript package_tests/public_api_inventory.R &&
 			Rscript package_tests/extract_checkmate_argument_contracts.R &&
+			Rscript package_tests/public_argument_contract_registry.R &&
 			Rscript package_tests/generate_public_argument_combinations.R &&
 			Rscript package_tests/run_public_argument_combinations.R &&
 			Rscript package_tests/analyze_public_argument_combinations.R &&
 			Rscript package_tests/public_argument_combination_integration.R &&
 			Rscript package_tests/check_public_argument_combination_quality_gates.R report &&
+			Rscript package_tests/audit_comprehensive_suite_baseline.R &&
 			Rscript package_tests/comprehensive_suite_registry.R &&
-			Rscript package_tests/audit_comprehensive_suite_baseline.R
+			Rscript package_tests/comprehensive_suite_internal_surfaces.R
 			# comprehensive_suite_exemptions.csv deliberately excluded -- see
 			# test-coverage-R-advanced.yml's identical drift-check comment:
 			# audit_comprehensive_suite_baseline.R stamps it with

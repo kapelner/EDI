@@ -1,5 +1,4 @@
 "drift_type","target","arg","detail"
-"registry_arg_without_contract","InferenceAllSimpleWilcox::compute_wald_confidence_interval","alpha","registry target/arg absent from extracted contracts"
 "registry_target_missing_generated_case","DesignFixedBernoulli::add_all_subjects_to_experiment","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","DesignFixedBernoulli::add_one_subject_response","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","DesignFixedBernoulli::overwrite_all_subject_assignments","","registry target has no generated case in current case table"
@@ -189,7 +188,6 @@
 "registry_target_missing_generated_case","InferenceAllSimpleWilcox::approximate_randomization_distribution_beta_hat_T","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceAllSimpleWilcox::compute_rand_confidence_interval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceAllSimpleWilcox::compute_rand_two_sided_pval","","registry target has no generated case in current case table"
-"registry_target_missing_generated_case","InferenceAllSimpleWilcox::compute_wald_confidence_interval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceAllSimpleWilcox::initialize","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceAllSimpleWilcox::set_testing_type","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceBaiAdjustedTKK14::approximate_bootstrap_distribution_beta_hat_T","","registry target has no generated case in current case table"

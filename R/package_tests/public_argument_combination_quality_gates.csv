@@ -1,11 +1,11 @@
 "gate","severity","target","arg","value_expr","detail","exempted"
-"multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHIVWC::compute_jackknife_wald_confidence_interval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHIVWC::compute_jackknife_wald_two_sided_pval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHIVWC::compute_rand_confidence_interval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHIVWC::compute_rand_two_sided_pval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHOneLik::approximate_bootstrap_distribution_beta_hat_T","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHOneLik::approximate_randomization_distribution_beta_hat_T","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHOneLik::compute_jackknife_wald_confidence_interval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
+"multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHOneLik::compute_jackknife_wald_two_sided_pval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","DesignFixedBernoulli::add_one_subject_response","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","DesignFixedBernoulli::transform_y","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","DesignFixedBinaryMatch::add_all_subject_responses","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
@@ -703,8 +703,8 @@
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKRankRegrIVWC::compute_rand_two_sided_pval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHIVWC::approximate_bootstrap_distribution_beta_hat_T","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHIVWC::approximate_randomization_distribution_beta_hat_T","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
+"multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHIVWC::compute_jackknife_wald_confidence_interval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","DesignSeqOneByOneBernoulli::initialize","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
-"multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHOneLik::compute_jackknife_wald_two_sided_pval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHOneLik::compute_lik_ratio_bartlett_approx_confidence_interval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHOneLik::compute_lik_ratio_bartlett_confidence_interval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKKStratCoxPHOneLik::compute_rand_confidence_interval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
@@ -976,6 +976,7 @@
 "multi_arg_without_combination_coverage","hard_later","InferenceCountHurdlePoisson::initialize","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceCountHurdlePoisson::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceIncidExactBinomial::duplicate","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
+"multi_arg_without_combination_coverage","report","InferenceIncidExactBinomial::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceIncidExactFisher::duplicate","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceIncidKKCondLogitGLMMOneLik::compute_estimate_with_bootstrap_weights","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceIncidLogRegr::compute_lik_ratio_bartlett_approx_two_sided_pval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
@@ -1076,7 +1077,6 @@
 "multi_arg_without_combination_coverage","report","InferenceIncidCMH::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceIncidExactBinomial::compute_estimate_with_bootstrap_weights","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceOrdinalKKCLMM::initialize","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
-"multi_arg_without_combination_coverage","report","InferenceIncidExactBinomial::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceIncidExactFisher::compute_estimate_with_bootstrap_weights","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceIncidLogRegr::compute_lik_ratio_bartlett_two_sided_pval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceIncidExactFisher::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
@@ -1152,6 +1152,7 @@
 "multi_arg_without_combination_coverage","report","InferenceIncidLogBinomial::duplicate","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceOrdinalKKCLMM::compute_estimate_with_bootstrap_weights","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceIncidLogBinomial::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
+"multi_arg_without_combination_coverage","report","InferenceOrdinalKKCLMM::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceOrdinalCloglogRegr::compute_lik_ratio_bartlett_approx_two_sided_pval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceOrdinalKKCLMMCauchit::compute_estimate_with_bootstrap_weights","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceIncidLogRegr::duplicate","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
@@ -1220,7 +1221,6 @@
 "multi_arg_without_combination_coverage","report","transform_cont_y_based_on_response_type","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferencePropFractionalLogit::compute_lik_ratio_bartlett_two_sided_pval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceOrdinalKKCLMM::duplicate","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
-"multi_arg_without_combination_coverage","report","InferenceOrdinalKKCLMM::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferencePropGCompMeanDiff::compute_bootstrap_confidence_interval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferencePropGCompMeanDiff::compute_estimate_with_bootstrap_weights","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceOrdinalPropOddsRegr::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
@@ -1303,10 +1303,10 @@
 "multi_arg_without_combination_coverage","report","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalRestrictedMeanDiff::compute_estimate_with_bootstrap_weights","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
-"multi_arg_without_combination_coverage","hard_later","InferenceSurvivalStratCoxPHRegr::compute_estimate_with_bootstrap_weights","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","summary_glm_lean","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceSurvivalRestrictedMeanDiff::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","pocock_simon_assign_and_update_cpp","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
+"multi_arg_without_combination_coverage","hard_later","InferenceSurvivalStratCoxPHRegr::compute_estimate_with_bootstrap_weights","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","ordinal_gcomp_post_fit_cpp","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalRestrictedMeanDiff::compute_rand_confidence_interval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","pocock_simon_assign_cpp","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
@@ -1317,10 +1317,10 @@
 "multi_arg_without_combination_coverage","report","mn_pvalue_cpp","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC::duplicate","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
-"multi_arg_without_combination_coverage","report","InferenceSurvivalKKLWACoxPHIVWC::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
-"multi_arg_without_combination_coverage","report","robust_survreg_with_surv_object","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
-"multi_arg_without_combination_coverage","report","logit","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","pocock_simon_redraw_w_cpp","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
+"multi_arg_without_combination_coverage","report","InferenceSurvivalKKLWACoxPHIVWC::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
+"multi_arg_without_combination_coverage","report","logit","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
+"multi_arg_without_combination_coverage","report","robust_survreg_with_surv_object","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","ols_hc2_post_fit_cpp","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "registry_value_never_selected","report","DesignFixedBernoulli::add_all_subject_responses","y_Ls","0","Registry value is not selected by any valid generated case in the current tier/artifact set.",FALSE
 "registry_value_never_selected","report","DesignFixedBernoulli::add_all_subject_responses","y_Rs","0","Registry value is not selected by any valid generated case in the current tier/artifact set.",FALSE
@@ -2056,9 +2056,6 @@
 "registry_value_never_selected","report","InferenceAllSimpleWilcox::compute_rand_confidence_interval","show_progress","FALSE","Registry value is not selected by any valid generated case in the current tier/artifact set.",FALSE
 "registry_value_never_selected","report","InferenceAllSimpleWilcox::compute_rand_two_sided_pval","na.rm","TRUE","Registry value is not selected by any valid generated case in the current tier/artifact set.",FALSE
 "registry_value_never_selected","report","InferenceAllSimpleWilcox::compute_rand_two_sided_pval","na.rm","FALSE","Registry value is not selected by any valid generated case in the current tier/artifact set.",FALSE
-"registry_value_never_selected","report","InferenceAllSimpleWilcox::compute_wald_confidence_interval","alpha","0.01","Registry value is not selected by any valid generated case in the current tier/artifact set.",FALSE
-"registry_value_never_selected","report","InferenceAllSimpleWilcox::compute_wald_confidence_interval","alpha","0.10","Registry value is not selected by any valid generated case in the current tier/artifact set.",FALSE
-"registry_value_never_selected","report","InferenceAllSimpleWilcox::compute_wald_confidence_interval","alpha","0.05","Registry value is not selected by any valid generated case in the current tier/artifact set.",FALSE
 "registry_value_never_selected","report","InferenceAllSimpleWilcox::initialize","max_resample_attempts","5L","Registry value is not selected by any valid generated case in the current tier/artifact set.",FALSE
 "registry_value_never_selected","report","InferenceAllSimpleWilcox::initialize","max_resample_attempts","50L","Registry value is not selected by any valid generated case in the current tier/artifact set.",FALSE
 "registry_value_never_selected","report","InferenceAllSimpleWilcox::initialize","max_resample_attempts","1L","Registry value is not selected by any valid generated case in the current tier/artifact set.",FALSE
