@@ -8,6 +8,72 @@ Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
 ## [Unreleased]
 
+Kernel-level changes in `R/EDI/src/*.cpp` (commits `831be080`, `c289adfa`,
+`5e8f4578`, 2026-09-03 to 2026-09-07), so per the versioning rule above the
+next release is *not* `.postN`-eligible. All three fixes came out of the R
+package's comprehensive-suite testing rounds; the Python bindings compile the
+same sources, so they inherit them verbatim.
+
+### Fixed
+
+- `fast_zinb` / `fast_zinb_with_var`: zero-inflated negative-binomial fits
+  whose zero-inflation submodel has nothing to explain (no excess zeros in
+  the data) no longer return an arbitrary large-magnitude zero-inflation
+  intercept with a spurious `converged=True`. The logit score in that block
+  vanishes exponentially as the intercept runs to minus infinity, so the
+  L-BFGS gradient-norm stopping rule was satisfied at intercepts as shallow
+  as about -15, well short of any real optimum. A new boundary fallback in
+  `fast_zinb.cpp` detects the collapse (every observation's zero-inflation
+  linear predictor at or below -10, i.e. pi below ~4.5e-5, with a
+  near-stationary count/dispersion block) and refits the reduced plain
+  negative-binomial likelihood with the zero-inflation part switched off,
+  which has no numerical landmine at that boundary. The returned `params`
+  stay in the full ZINB layout: the zero-inflation slopes are zeroed and its
+  intercept is anchored at -10 so the vector remains an evaluable point.
+  Only the pi -> 0 direction is handled; pi -> 1 for every observation is
+  left to the ordinary fit path.
+- `fast_zinb_with_var` results gain a `zero_inflation_at_boundary` bool
+  (alongside the existing `dispersion_at_poisson_boundary`) and report
+  `reduced_model = "NegBinNoZI"` when that fallback supplied the fit. In
+  that case `vcov` is computed conditional on the boundary: the whole
+  zero-inflation coefficient block is dropped from the information matrix
+  before inversion (mirroring the single-index dispersion treatment at the
+  Poisson boundary), since that block is not identified once pi == 0
+  identically. `fast_zinb`'s point-estimate-only dict is unchanged in shape
+  (it never surfaced `reduced_model` either).
+- `fast_zinb` / `fast_zinb_with_var` with `fixed_idx`/`fixed_values`: when
+  the dispersion hit the Poisson boundary and the reduced ZIP refit took
+  over, the caller's zero-based `fixed_idx` was handed to a helper that
+  expects one-based indices, so the constrained refit pinned the parameter
+  *before* the requested one (for example the intercept instead of the
+  treatment coefficient). Off-by-one corrected; unconstrained fits and fits
+  that never reach the Poisson boundary were unaffected.
+- `LikelihoodFitResult` (`_helper_functions_core.h`) gained the
+  `zero_inflation_at_boundary` member, defaulting to `false` for every
+  non-ZINB likelihood. Anyone consuming that struct through the vendored
+  headers should note the added field.
+
+### Not affecting `edi_kernels`
+
+Listed so the source diff and this log reconcile; none of these reach the
+Python module.
+
+- `fast_clogit_plus_glmm.cpp`: the R-side `get_clogit_plus_glmm_hessian_cpp`
+  wrapper was returning the *negated* information matrix (negative definite),
+  which made every R score test built on it silently return NA. That wrapper
+  sits inside an `#ifndef EDI_CORE_ONLY` block and is not compiled into the
+  Python build; `fast_clogit_plus_glmm` here already used the objective's
+  positive information matrix directly, so its `vcov`/`hessian` were correct
+  before and after.
+- `fast_coxph_regression.cpp`: roxygen documentation only, for the
+  `delta` argument of the R-side Cox randomization-bootstrap routine (which
+  is not bound in Python). No code change.
+- `fast_zinb.cpp`'s Rcpp entry point `fast_zinb_cpp` (also
+  `EDI_CORE_ONLY`-excluded) additionally pads its score vector to full
+  length at the ZIP limit and reports a
+  `"observed_conditional_on_zero_inflation_boundary"` covariance type; both
+  are R-only output fields.
+
 ## [1.0.0.post6] - 2026-08-31
 
 Packaging-only release addressing the remaining piwheels build failures;

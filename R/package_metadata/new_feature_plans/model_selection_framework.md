@@ -32,8 +32,9 @@
 >
 > - **Phase A → v1.1.0** (`release_v1_1_0.md → TODO-17y`): the
 >   `ModelSelection` workflow, tier-gated criteria, provenance, and the
->   selection-inclusive randomization test with CI
->   inversion — across **every design family EDI supports** (fixed:
+>   selection-inclusive randomization test (CI inversion post-grant, paired
+>   with the Garthwaite–Buckland driver — see TODO-7) — across **every
+>   design family EDI supports** (fixed:
 >   completely randomized, blocked, stratified; matched-pair; cluster;
 >   sequential matching-on-the-fly, including KK14/KK21) for the
 >   continuous + incidence response types. **Finding that unlocked the
@@ -344,7 +345,10 @@ inversion under the shift null `delta` re-runs the full pipeline per
 `delta` × replicate — the de-treat-once-per-`delta` trick no longer
 applies, so the CI-search-driver plans
 (`garthwaite_buckland_ci_search.md`, `brent_ci_inversion.md`) are what
-keep the number of `delta` evaluations small; (iv) the cost is
+keep the number of `delta` evaluations small — and for that reason, plus
+the fact that the shift null is response-type specific and for ordinal
+has no sharp-null form at all, CI inversion is post-grant, not part of
+the ISC-funded scope (2026-09-07; see TODO-7); (iv) the cost is
 pipeline × `R`, embarrassingly parallel over both replicates and cells,
 dispatched over the persistent worker pool `set_num_cores(k)` already
 stands up (fork cluster on Unix, `mirai` daemons on Windows or under
@@ -687,13 +691,30 @@ other (see the header's open question and TODO-9).
   (`set_custom_randomization_statistic_function()`), the per-replicate
   full re-run of steps 1–5 dispatched over `set_num_cores()`'s
   persistent pool (fork on Unix, `mirai` on Windows — `globals.R:533`)
-  across both replicates and cells, CI inversion by full re-run per δ
-  (§5's removal note; pair with the CI-search-driver plans to keep the
-  δ count small), the provenance-driven dispatch and the typed refusal
-  of naive inference on a selection-tainted winner, warm-start and
-  shared-design-matrix wiring so each replicate is cheap, and the
-  level/coverage simulation study (naive inflation → exact size →
-  interval coverage → power vs. a pre-specified model). Pilot scope:
+  across both replicates and cells, the provenance-driven dispatch and
+  the typed refusal of naive inference on a selection-tainted winner,
+  warm-start and shared-design-matrix wiring so each replicate is cheap,
+  and the level simulation study (naive inflation → exact size → power
+  vs. a pre-specified model). **CI inversion for the selection-inclusive
+  test is post-grant (descoped from the ISC proposal 2026-09-07, user
+  decision: the p-value is already the expensive object, and naive
+  inversion multiplies it by the 10–15 δ evaluations a bisection needs
+  per bound) and pairs with the Garthwaite–Buckland driver
+  (`garthwaite_buckland_ci_search.md`), which converges each bound in
+  roughly one p-value's cost by updating after every single redraw; the
+  provenance object's replayable statistic is the seam it plugs into.
+  The second, deeper reason (user, 2026-09-07): the shift null is
+  response-type specific — additive on `y` for continuous, multiplicative
+  on the time scale for survival (`inference_class_registry.R:61-65`),
+  no additive shift at all for binary (its own literature: Rigdon &
+  Hudgens 2015, *Stat Med* 34(6):924–935), and for ordinal
+  model-coefficient estimands adding δ to category codes changes the
+  response support and is not a sharp-null transformation
+  (`inference_class_registry.R:32-37`,
+  `EDI_ORDINAL_MODEL_COEFFICIENT_INFERENCE_CLASSES`) — an open problem.
+  The p-value needs none of this; the interval needs all of it settled
+  per type first.**
+  Pilot scope:
   every design family EDI supports (fixed, matched-pair, cluster,
   sequential matching-on-the-fly — widened 2026-09-06 from the original
   fixed-designs-only scope, see the header), continuous + incidence,

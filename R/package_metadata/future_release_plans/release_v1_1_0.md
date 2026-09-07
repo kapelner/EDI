@@ -930,7 +930,9 @@ ticked in their **owning plans**; this list is the release index.
   randomization test of the winner at zero extra cost, with CI inversion
   by de-treating once per δ.~~ **Removed 2026-09-06 (user): blinding is
   stripped from the plan — `w` is in every fit, every replicate re-runs
-  the full pipeline, CI inversion is a full re-run per δ, and the cost
+  the full pipeline, CI inversion is a full re-run per δ (hence
+  post-grant, paired with the Garthwaite–Buckland driver — 2026-09-07,
+  see the plan's TODO-7), and the cost
   is embarrassingly parallel over `set_num_cores()`'s fork/`mirai`
   pool.** **Why it widened past fixed designs (2026-09-06):** the one
   thing that did still need design cooperation — CV folds for the
@@ -985,6 +987,25 @@ ticked in their **owning plans**; this list is the release index.
   alone; together they give TODO-17y its diagnose-then-choose gate). The
   per-class rollout beyond the pilots is a ledger inside the plan.
   Additive.
+- [ ] TODO-18: **Consolidate duplicated parallelization primitives**
+  (added 2026-09-07, user decision): `consolidate_parallelization_code.md
+  → TODO-1..4`. Maintenance, not a feature — no output/behavior change.
+  `Inference$par_lapply` is already a shared chunked-map parallel helper
+  reused by ~10 bootstrap/randomization classes, backed by shared
+  construction/lifecycle helpers in `globals.R`; `SimulationFramework$run()`
+  and `InferenceSuite$run_all_inference()` hand-roll their own backend
+  selection instead, for real documented reasons (a stateful
+  copy-on-write pool with rolling dispatch, and a zero-blast-radius
+  `mcparallel`/PID-kill dispatcher respectively — see
+  `parallel_fork_cluster_test_safety.md`'s TODO-5). This item does **not**
+  unify those three scheduler shapes; it extracts three sub-pieces that
+  duplicate across them and have already drifted: two inconsistent
+  `ensure_mirai_daemons` implementations, the mirai
+  poll/liveness-check/stop-on-death loop (written out at least twice),
+  and worker single-threading env-var setup (defined once for
+  `clusterCall()`, hand-rederived once for `mcparallel` children).
+  Independent of every other 1.1.0 item; no dependency on the decision
+  batch.
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

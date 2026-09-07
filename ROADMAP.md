@@ -173,6 +173,20 @@ pieces below never did.
   visibility, and the SIMD/fixed-size-Eigen/LTO/memory-layout lanes that
   consume them — moved to v1.2.0, an exploratory program with no v1.1.0
   consumer.)
+- **[Consolidate duplicated parallelization primitives](R/package_metadata/new_feature_plans/consolidate_parallelization_code.md)**
+  *(maintenance)* — no output/behavior change. `Inference$par_lapply` is
+  already a shared parallel-map helper reused by ~10 bootstrap/
+  randomization classes; `SimulationFramework$run()` and
+  `InferenceSuite$run_all_inference()` hand-roll their own fork/`mirai`
+  backend selection instead, for real reasons (a stateful copy-on-write
+  worker pool with rolling dispatch, and a zero-blast-radius
+  `mcparallel`/PID-kill dispatcher, respectively) that this item does
+  *not* try to unify. It does extract the sub-pieces that duplicate
+  across all three and have already drifted apart: two inconsistent
+  mirai-daemon-lifecycle implementations, a mirai poll/liveness-check/
+  stop-on-death loop written out more than once, and worker
+  single-threading setup defined once for persistent clusters and
+  hand-rederived once for forked child processes.
 
 ---
 

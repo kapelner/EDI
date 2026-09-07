@@ -575,6 +575,34 @@ And `small_kernel_hoists_batch.md` (`release_v1_4_0.md → TODO-11i`;
 four small independent hoists — greedy `G = MᵀM`, ordinal `y_slot`, Cox
 bootstrap ordering, one cached GH rule; no dependencies).
 
+**Parallelization-primitives consolidation (added 2026-09-07, user
+decision; unrelated to the algorithmic lane above):**
+`consolidate_parallelization_code.md` → TODO-1..4. An investigation into
+whether to decompose EDI's fork/mirai parallelism branching into one
+shared "threadpool" abstraction found the divergence is mostly load-
+bearing, not oversight: `Inference$par_lapply` (already shared by ~10
+bootstrap/rand classes) is a stateless one-shot chunked map;
+`SimulationFramework$run()` needs a stateful pool with cell-state pushed
+once via copy-on-write and a continuous rolling-window dispatch;
+`InferenceSuite$run_all_inference()`'s `mcparallel`/PID-kill dispatcher
+(from `parallel_fork_cluster_test_safety.md`'s TODO-5) needs
+zero-blast-radius force-kill, structurally incompatible with any shared
+cluster/daemon object. This plan does **not** merge those three. It
+extracts three sub-pieces of plumbing that duplicate across them and have
+already drifted apart: the two inconsistent `ensure_mirai_daemons`
+implementations (`inference_all_abstract.R` vs. `simulations_framework.R`,
+one has a retry loop the other lacks), the mirai
+poll/liveness-check/stop-on-death loop (confirmed written out twice in
+`simulations_framework.R`, a possible third site to be confirmed), and
+the worker single-threading env-var setup (`make_configured_fork_cluster()`
+vs. hand-rederived for `run_all_inference_fork_dispatch()`'s `mcparallel`
+children). No dependency on the Phase 0 decision batch. Explicitly does
+**not** attempt `parallel_fork_cluster_test_safety.md`'s still-open
+TODO-6 note (a future fork-after-OpenMP-lock safety pass for
+`SimulationFramework$run()`'s fork-cluster path) — that is a separate,
+larger project, deferred there on purpose. Release index:
+`release_v1_1_0.md → TODO-18`.
+
 ---
 
 ## Phase 5 — Post-decision feature tracks
@@ -807,7 +835,8 @@ already stated there:**
   KK-family sequential matching-on-the-fly alike, since that function
   dispatches on matching/clustering/blocking structure, never on
   assignment timing. So Phase A (**every design family**, continuous +
-  incidence, the workflow + the test + CI inversion + provenance +
+  incidence, the workflow + the test + provenance + CI inversion
+  (post-grant, paired with the Garthwaite–Buckland driver — 2026-09-07) +
   simulation study) is v1.1.0 — and the scoped deliverable of the R
   Consortium ISC proposal (`new_research_ideas/grants/RcISC/isc-proposal.qmd`,
   re-scoped 2026-09-06 to this widened Phase A, no blinding claims) — while Phase B
