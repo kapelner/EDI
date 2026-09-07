@@ -831,6 +831,23 @@ ZeroAugmentedCountLikelihoodSource = list(
 					information[, k] = 0
 					information[k, k] = 1
 				}
+				# 2026-09-07 fix (#18): the zero-inflation submodel is not
+				# identified once its fitted probability has collapsed to
+				# ~0 for every observation (fast_zinb.cpp's
+				# zero_inflation_at_boundary reduced-fit path). Neuter the
+				# entire zi coefficient block, mirroring the
+				# dispersion-boundary handling above -- without this, the
+				# information matrix carries near-zero rows/columns for
+				# the zi block that destabilize the Wald/score tests and
+				# (via the reduced fit's neg_loglik discontinuity when
+				# only one of the full/null refits hits the boundary)
+				# inflate the LR test's Type-I error.
+				if (is_zinb && isTRUE(fit$zero_inflation_at_boundary)) {
+					zi_idx = (ncol(X_fit) + 1L):(ncol(X_fit) + ncol(Xzi_fit))
+					information[zi_idx, ] = 0
+					information[, zi_idx] = 0
+					diag(information)[zi_idx] = 1
+				}
 				information
 			}
 			list(

@@ -1063,6 +1063,12 @@ struct LikelihoodFitResult {
     double min_eigenvalue_information;
     // NegBin-family-only diagnostic; false for all generic optimizer results.
     bool dispersion_at_poisson_boundary;
+    // ZINB-only diagnostic; false for all other likelihoods. TRUE when the
+    // zero-inflation submodel's fitted probability collapsed to ~0 for
+    // every observation and the returned fit is a reduced (zi-off) plain
+    // NegBin refit rather than a converged finite-parameter ZINB fit -- see
+    // fast_zinb.cpp's zi-boundary fallback.
+    bool zero_inflation_at_boundary;
     // Non-empty when a reduced model (for example ZIP at the NegBin
     // Poisson boundary) supplied the returned coefficient fit.
     std::string reduced_model;
@@ -1075,6 +1081,7 @@ struct LikelihoodFitResult {
         gradient_norm(std::numeric_limits<double>::quiet_NaN()),
         min_eigenvalue_information(std::numeric_limits<double>::quiet_NaN()),
         dispersion_at_poisson_boundary(false),
+        zero_inflation_at_boundary(false),
         reduced_model() {}
 };
 

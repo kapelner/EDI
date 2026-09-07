@@ -263,6 +263,238 @@ public:
     }
 };
 
+// Reduced (zero-inflation-collapsed) plain-NegBin likelihood used only when
+// the ZINB zero-inflation submodel's boundary diagnostics accept that pi has
+// collapsed to ~0 for every observation. Parameters are [beta_cond,
+// log_theta]; the zero-inflation submodel contributes nothing once pi == 0
+// identically, so this needs none of ZeroInflatedNegBin's zero/positive
+// case-split machinery -- it is the ordinary single-part NegBin log-density,
+// which (unlike the theta -> infinity Poisson limit) has no numerical
+// landmine at this boundary and can simply be refit directly.
+class NegBinNoZiLikelihood {
+    const Eigen::Ref<const Eigen::VectorXd> m_y;
+    const Eigen::Ref<const Eigen::MatrixXd> m_Xc;
+    const int m_n, m_pc;
+public:
+    NegBinNoZiLikelihood(const Eigen::Ref<const Eigen::VectorXd>& y,
+                          const Eigen::Ref<const Eigen::MatrixXd>& Xc)
+        : m_y(y), m_Xc(Xc), m_n(static_cast<int>(y.size())), m_pc(static_cast<int>(Xc.cols())) {}
+
+    double operator()(const Eigen::VectorXd& par, Eigen::VectorXd& grad) {
+        if (par.size() != m_pc + 1) {
+            grad = Eigen::VectorXd::Constant(par.size(), std::numeric_limits<double>::quiet_NaN());
+            return std::numeric_limits<double>::quiet_NaN();
+        }
+        const double log_theta = par[m_pc];
+        const double theta = std::exp(log_theta);
+        Eigen::VectorXd eta = m_Xc * par.head(m_pc);
+        const double digamma_theta = fast_digamma(theta);
+        const double lgamma_theta  = std::lgamma(theta);
+
+        double nll = 0.0;
+        double d_log_theta = 0.0;
+        Eigen::VectorXd w_c(m_n);
+        for (int i = 0; i < m_n; ++i) {
+            const double yi        = m_y[i];
+            const double mu        = std::exp(eta[i]);
+            const double denom     = theta + mu;
+            const double log_denom = std::log(denom);
+            nll -= std::lgamma(yi + theta) - lgamma_theta - std::lgamma(yi + 1.0)
+                 + theta * (log_theta - log_denom) + yi * (eta[i] - log_denom);
+            w_c[i] = -(yi - mu * (yi + theta) / denom);
+            d_log_theta -= (fast_digamma(yi + theta) - digamma_theta + log_theta - log_denom + 1.0 - (yi + theta) / denom) * theta;
+        }
+        grad.resize(m_pc + 1);
+        grad.head(m_pc).noalias() = m_Xc.transpose() * w_c;
+        grad[m_pc] = d_log_theta;
+        return nll;
+    }
+
+    Eigen::MatrixXd hessian(const Eigen::VectorXd& par) {
+        return numerical_hessian(*this, par);
+    }
+};
+
+// Zero-inflation logit intercept magnitude beyond this bound corresponds to
+// pi < ~4.5e-5 for every observation -- treated as "no observation-level
+// zero-inflation left to estimate" for the purposes of accepting an
+// optimizer run that has settled at an arbitrary large-magnitude point
+// rather than a genuinely identified finite MLE. Calibrated empirically:
+// with no true zero-inflation, the primary optimizer's own gradient-norm
+// stopping rule reports "converged" at intercepts as shallow as -15 (the
+// vanishing sigmoid derivative satisfies the tolerance long before the true
+// unconstrained optimum at -infinity), so the threshold has to sit below
+// the smallest such spuriously-converged value observed in practice, not
+// just below an exact-zero-gradient point. Only the pi -> 0 direction is
+// handled below (see fit_zinb_zi_boundary_fallback): pi -> 1 for every
+// observation is a much rarer degeneracy (every observation would have to
+// be an "excess zero") not observed in practice and intentionally left to
+// the ordinary finite-parameter fit path.
+constexpr double kZinbZiBoundaryLogitEta = 10.0;
+
+// Drops the entire zero-inflation coefficient block (p_zi contiguous
+// indices) from the free-parameter set used to build the information
+// matrix, mirroring negbin_information_spec()'s single-index version for
+// the dispersion boundary. Needed here because the zi submodel is not
+// identified once pi has collapsed to 0 -- the same non-identifiability
+// argument the theta-boundary path applies to just the dispersion index.
+FixedParamSpec zinb_zi_information_spec(const FixedParamSpec& optimization_spec,
+                                        int p_cond, int p_zi,
+                                        bool zero_inflation_at_boundary) {
+    if (!zero_inflation_at_boundary) return optimization_spec;
+    FixedParamSpec information_spec = optimization_spec;
+    std::vector<int> kept;
+    kept.reserve(optimization_spec.free_idx.size());
+    for (int i = 0; i < optimization_spec.free_idx.size(); ++i) {
+        const int idx = optimization_spec.free_idx[i];
+        if (idx < p_cond || idx >= p_cond + p_zi) kept.push_back(idx);
+    }
+    information_spec.free_idx.resize(kept.size());
+    for (size_t i = 0; i < kept.size(); ++i) information_spec.free_idx[i] = kept[i];
+    information_spec.has_fixed = true;
+    return information_spec;
+}
+
+// Zero-inflation-boundary analog of accept_zinb_poisson_boundary_convergence
+// (and fit_zip_reduced_fallback). Unlike the theta boundary -- where a
+// runaway optimizer reliably reports hit_iteration_cap/!converged -- a
+// runaway zero-inflation intercept usually does NOT: sigmoid'(x) -> 0 as
+// x -> -infinity, so the analytic score in that block vanishes exponentially
+// and the optimizer's own gradient-norm stopping rule is satisfied at an
+// arbitrary large-but-finite intercept long before anything resembling
+// convergence in a strict likelihood sense. This is deliberately checked
+// regardless of fit.converged: the boundary predicate below (a uniformly
+// very negative zi linear predictor plus a near-zero non-zi score) is what
+// identifies the degenerate case, not the solver's own verdict. Refits the
+// stable reduced (zi-off) NegBin likelihood directly -- no generic "accept
+// the point as-is" path is needed because, unlike the theta limit, this
+// reduced likelihood has no numerical landmine to work around.
+bool fit_zinb_zi_boundary_fallback(
+    const Eigen::Ref<const Eigen::MatrixXd>& Xc,
+    const Eigen::Ref<const Eigen::MatrixXd>& Xz,
+    const Eigen::Ref<const Eigen::VectorXd>& y_vec,
+    ZeroInflatedNegBin& obj,
+    const FixedParamSpec& zinb_spec,
+    int maxit, double tol,
+    const std::string& optimization_alg,
+    LikelihoodFitResult& fit) {
+
+    const int p_cond = static_cast<int>(Xc.cols());
+    const int p_zi   = static_cast<int>(Xz.cols());
+#ifdef EDI_ZI_BOUNDARY_DEBUG
+    Rcpp::Rcout << "DEBUG entry: params_size=" << fit.params.size() << " expected=" << (p_cond+p_zi+1)
+                << " finite=" << fit.params.allFinite() << std::endl;
+#endif
+    if (fit.params.size() != p_cond + p_zi + 1 || !fit.params.allFinite()) return false;
+
+    const Eigen::VectorXd eta_z = Xz * fit.params.segment(p_cond, p_zi);
+#ifdef EDI_ZI_BOUNDARY_DEBUG
+    Rcpp::Rcout << "DEBUG eta_z: size=" << eta_z.size() << " finite=" << eta_z.allFinite()
+                << " max=" << (eta_z.size() ? eta_z.maxCoeff() : std::numeric_limits<double>::quiet_NaN())
+                << " threshold=" << (-kZinbZiBoundaryLogitEta) << std::endl;
+#endif
+    if (eta_z.size() == 0 || !eta_z.allFinite() || eta_z.maxCoeff() > -kZinbZiBoundaryLogitEta) return false;
+
+    Eigen::VectorXd raw_gradient(fit.params.size());
+    const double raw_value = obj(fit.params, raw_gradient);
+#ifdef EDI_ZI_BOUNDARY_DEBUG
+    Rcpp::Rcout << "DEBUG raw: value=" << raw_value << " grad_finite=" << raw_gradient.allFinite()
+                << " grad=" << raw_gradient.transpose() << std::endl;
+#endif
+    if (!std::isfinite(raw_value) || !raw_gradient.allFinite()) return false;
+    double non_zi_gradient_sq = 0.0;
+    for (int i = 0; i < zinb_spec.free_idx.size(); ++i) {
+        const int index = zinb_spec.free_idx[i];
+        if (index < p_cond || index >= p_cond + p_zi) non_zi_gradient_sq += raw_gradient[index] * raw_gradient[index];
+    }
+    // Empirically (see fast_zinb.cpp git history / #18 investigation), a
+    // ZINB fit that has "converged" per the primary optimizer's own
+    // stopping rule near this boundary routinely still shows a non-zi
+    // gradient magnitude comparable to fit.gradient_norm itself, not
+    // anywhere near an absolute tolerance like tol -- the vanishing
+    // zero-inflation score lets the overall gradient norm satisfy the
+    // stopping criterion well before the beta_cond/log_theta block has
+    // tightly converged. Comparing against a multiple of the primary fit's
+    // own reported gradient norm (rather than a fixed absolute constant)
+    // is what actually distinguishes "this looks like the same boundary
+    // fit LBFGS already accepted" from "this is an unrelated, still
+    // materially non-stationary point" that merely wandered through a very
+    // negative eta_z.
+    const double reference_gradient_norm = std::isfinite(fit.gradient_norm) ? fit.gradient_norm : 0.0;
+    const double coefficient_tol = std::max({10.0 * tol, 1e-6, 5.0 * reference_gradient_norm});
+#ifdef EDI_ZI_BOUNDARY_DEBUG
+    Rcpp::Rcout << "DEBUG grad_check: non_zi_grad=" << std::sqrt(non_zi_gradient_sq)
+                << " tol=" << coefficient_tol << " fit.gradient_norm=" << fit.gradient_norm << std::endl;
+#endif
+    if (std::sqrt(non_zi_gradient_sq) > coefficient_tol) return false;
+
+    // A fixed (held-out) zi coefficient cannot be represented in the reduced
+    // no-zi parameterization -- bail rather than silently drop the caller's
+    // constraint.
+    for (int i = 0; i < zinb_spec.fixed_idx.size(); ++i) {
+        const int idx = zinb_spec.fixed_idx[i];
+        if (idx >= p_cond && idx < p_cond + p_zi) return false;
+    }
+
+    const int reduced_n = p_cond + 1;
+    Eigen::VectorXd start(reduced_n);
+    start.head(p_cond) = fit.params.head(p_cond);
+    start[p_cond] = fit.params[p_cond + p_zi];
+
+    FixedParamSpec reduced_spec;
+    if (zinb_spec.has_fixed) {
+        std::vector<int> fi, fv_idx;
+        std::vector<double> fv;
+        for (int i = 0; i < zinb_spec.fixed_idx.size(); ++i) {
+            const int idx = zinb_spec.fixed_idx[i];
+            const int mapped = (idx == p_cond + p_zi) ? p_cond : idx; // log_theta shifts down by p_zi
+            fi.push_back(mapped + 1); // make_fixed_param_spec() takes one-based indices
+            fv.push_back(zinb_spec.fixed_values[i]);
+        }
+        Eigen::VectorXi fi_e(fi.size());
+        Eigen::VectorXd fv_e(fv.size());
+        for (size_t i = 0; i < fi.size(); ++i) { fi_e[i] = fi[i]; fv_e[i] = fv[i]; }
+        reduced_spec = make_fixed_param_spec(reduced_n, fi_e, fv_e);
+    } else {
+        reduced_spec.free_idx.resize(reduced_n);
+        for (int i = 0; i < reduced_n; ++i) reduced_spec.free_idx[i] = i;
+    }
+
+    NegBinNoZiLikelihood reduced(y_vec, Xc);
+    LikelihoodFitResult reduced_fit = optimize_fixed_likelihood(
+        reduced, start, reduced_spec, maxit, tol, optimization_alg, "lbfgs", 0, nullptr);
+#ifdef EDI_ZI_BOUNDARY_DEBUG
+    Rcpp::Rcout << "DEBUG zi-boundary: eta_z_max=" << eta_z.maxCoeff()
+                << " non_zi_grad=" << std::sqrt(non_zi_gradient_sq)
+                << " reduced_converged=" << reduced_fit.converged
+                << " reduced_hit_cap=" << reduced_fit.hit_iteration_cap
+                << " reduced_gnorm=" << reduced_fit.gradient_norm
+                << " reduced_params_size=" << reduced_fit.params.size()
+                << " reduced_finite=" << reduced_fit.params.allFinite() << std::endl;
+#endif
+    if (!reduced_fit.converged || reduced_fit.params.size() != reduced_n || !reduced_fit.params.allFinite())
+        return false;
+
+    Eigen::VectorXd full(p_cond + p_zi + 1);
+    full.head(p_cond) = reduced_fit.params.head(p_cond);
+    full.segment(p_cond, p_zi).setZero();
+    // Anchor the zero-inflation intercept (column 0 of Xz is always the
+    // intercept -- guaranteed by build_component_matrix() on the R side)
+    // at the boundary constant so the returned params vector remains a
+    // valid, evaluable point in the full ZINB parameterization, mirroring
+    // fit_zip_reduced_fallback anchoring log_theta at
+    // kNegBinPoissonBoundaryLogTheta.
+    full[p_cond] = -kZinbZiBoundaryLogitEta;
+    full[p_cond + p_zi] = reduced_fit.params[p_cond];
+
+    fit = reduced_fit;
+    fit.params = full;
+    fit.zero_inflation_at_boundary = true;
+    fit.reduced_model = "NegBinNoZI";
+    fit.value = reduced_fit.value;
+    return true;
+}
+
 bool fit_zip_reduced_fallback(ZeroInflatedNegBin& zinb, const FixedParamSpec& zinb_spec,
                               int dispersion_index, int maxit, double tol,
                               const std::string& optimization_alg, LikelihoodFitResult& fit) {
@@ -418,6 +650,10 @@ LikelihoodFitResult fast_zinb_internal(const Eigen::Ref<const Eigen::MatrixXd>& 
         if (!fit_zip_reduced_fallback(obj, fixed_spec, n_par - 1, maxit, tol, optimization_alg, fit))
             accept_negbin_poisson_boundary_convergence(obj, fixed_spec, n_par - 1, tol, fit);
     }
+    // Attempted regardless of fit.converged -- see fit_zinb_zi_boundary_fallback's
+    // own comment for why the primary solver's convergence flag does not
+    // reliably flag this particular boundary.
+    fit_zinb_zi_boundary_fallback(Xc, Xz, y_vec, obj, fixed_spec, maxit, tol, optimization_alg, fit);
     return fit;
 }
 
@@ -457,6 +693,8 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
     }
     FixedParamSpec information_spec = negbin_information_spec(
         fixed_spec, n_par - 1, fit.dispersion_at_poisson_boundary);
+    information_spec = zinb_zi_information_spec(
+        information_spec, (int)Xc.cols(), (int)Xz.cols(), fit.zero_inflation_at_boundary);
     Eigen::MatrixXd H_free = subset_matrix(hess, information_spec.free_idx, information_spec.free_idx);
     Eigen::MatrixXd cov_free = H_free.inverse();
     Eigen::MatrixXd vcov = expand_free_covariance(n_par, information_spec, cov_free, true);
@@ -472,6 +710,7 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
             .set("gradient_norm", fit.gradient_norm)
             .set("min_eigenvalue_information", fit.min_eigenvalue_information)
             .set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary)
+            .set("zero_inflation_at_boundary", fit.zero_inflation_at_boundary)
             .set("reduced_model", fit.reduced_model);
 }
 
@@ -527,6 +766,7 @@ List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen:
         .set("gradient_norm", fit.gradient_norm)
         .set("min_eigenvalue_information", fit.min_eigenvalue_information)
         .set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary)
+        .set("zero_inflation_at_boundary", fit.zero_inflation_at_boundary)
         .set("reduced_model", fit.reduced_model));
         out["coefficients"] = List::create(
             Named("cond") = fit.params.head(p_cond),
@@ -556,21 +796,26 @@ List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen:
     // likelihood_score(obj, params) already negates the raw grad the L-BFGS objective fills
     // (gradient of neg_loglik) to return the true (+loglik) score -- do not negate again here.
     Rcpp::List out = make_uniform_likelihood_fit_result(fit.params, fit.value, fit.converged, score, hess, false);
-    if (fit.dispersion_at_poisson_boundary) {
+    if (fit.dispersion_at_poisson_boundary || fit.zero_inflation_at_boundary) {
         FixedParamSpec fixed_spec = make_fixed_param_spec(
             p_cond + p_zi + 1,
             nullable_to_optional<Eigen::VectorXi>(fixed_idx),
             nullable_to_optional<Eigen::VectorXd>(fixed_values));
         FixedParamSpec information_spec = negbin_information_spec(
-            fixed_spec, p_cond + p_zi, true);
+            fixed_spec, p_cond + p_zi, fit.dispersion_at_poisson_boundary);
+        information_spec = zinb_zi_information_spec(
+            information_spec, p_cond, p_zi, fit.zero_inflation_at_boundary);
         Eigen::MatrixXd information_free = subset_matrix(
             hess, information_spec.free_idx, information_spec.free_idx);
         out["vcov"] = expand_free_covariance(
             p_cond + p_zi + 1, information_spec,
             covariance_from_information(information_free), true);
-        out["covariance_type"] = "observed_conditional_on_poisson_boundary";
+        out["covariance_type"] = fit.zero_inflation_at_boundary
+            ? "observed_conditional_on_zero_inflation_boundary"
+            : "observed_conditional_on_poisson_boundary";
     }
     out["dispersion_at_poisson_boundary"] = fit.dispersion_at_poisson_boundary;
+    out["zero_inflation_at_boundary"] = fit.zero_inflation_at_boundary;
     out["reduced_model"] = fit.reduced_model;
     out["coefficients"] = List::create(
         Named("cond") = fit.params.head(p_cond),

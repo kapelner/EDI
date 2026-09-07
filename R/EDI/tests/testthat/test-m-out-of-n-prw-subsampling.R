@@ -248,3 +248,47 @@ test_that("m-out-of-n bootstrap and PRW subsampling gate on replicate failure fr
 	expect_true(inf2$is_nonestimable())
 	expect_equal(inf2$get_nonestimable_reason(), "subsampling_high_replicate_failure_rate")
 })
+
+test_that("PRW subsampling applies a finite-population correction so Type-I error is not inflated", {
+	# Regression for 2026-09-07 fix: subsampling_centered_pivot() and
+	# evaluate_subsampling_size() previously reused the m-out-of-n
+	# bootstrap's sqrt(b)-scaling formula verbatim, which assumes
+	# with-replacement draws. PRW subsampling draws b units WITHOUT
+	# replacement, which shrinks the subsample statistic's variance by a
+	# factor of ~(1 - b/n) relative to that assumption, making the raw
+	# centered pivot too narrow and inflating Type-I error (confirmed via
+	# simulation: ~9.75% observed vs 5% nominal at b/n ~ 0.4 before the fix).
+	# Dividing the pivot by sqrt(1 - b/n) restores calibration.
+	n <- 60L
+	b <- floor(n^0.7)
+	R <- 60L
+	reject <- 0L
+	for (r in seq_len(R)) {
+		set.seed(90000L + r)
+		des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", seed = 90000L + r)
+		des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+		des$assign_w_to_all_subjects()
+		for (t in seq_len(n)) des$add_one_subject_response(t, rnorm(1)) # H0: no treatment effect
+		inf <- InferenceAllSimpleAverageDiff$new(des)
+		inf$num_cores <- 1L
+		p <- tryCatch(inf$compute_subsampling_two_sided_pval(B = 201, b = b, show_progress = FALSE), error = function(e) NA_real_)
+		if (is.finite(p) && p < 0.05) reject <- reject + 1L
+	}
+	expect_lt(reject / R, 0.15)
+})
+
+test_that("PRW subsampling FPC factor matches the direct formula", {
+	# b is constrained to <= floor(n_units / 2), so the FPC factor never
+	# blows up in practice, but subsampling_centered_pivot() still guards
+	# the b == n_units edge case with .Machine$double.eps to avoid a
+	# division by zero if that constraint is ever relaxed.
+	inf <- build_resampling_smoke_inference(n = 20L)
+	priv <- inf$.__enclos_env__$private
+	unit_info <- priv$get_exchangeable_units(unit = "auto", resampling_type = NULL)
+	b <- 8L
+	pivot <- priv$subsampling_centered_pivot(B = 51, b = b, unit_info = unit_info, show_progress = FALSE)
+	expect_true(isTRUE(pivot$ok))
+	raw_scale <- priv$resampling_scaling_factor(b, "sqrt_n") * (pivot$finite - pivot$est)
+	fpc <- 1 / sqrt(1 - b / unit_info$n_units)
+	expect_equal(pivot$centered_scaled, fpc * raw_scale)
+})
