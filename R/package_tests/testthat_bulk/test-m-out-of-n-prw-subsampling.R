@@ -1,3 +1,4 @@
+library(testthat)
 library(EDI)
 
 build_resampling_smoke_inference = function(n = 20L, seed = 123L){
