@@ -42,52 +42,17 @@ fi
 echo
 echo "gitpush_with_hooks_safe: regenerating package_tests/ drift CSVs (this runs the full generator suite -- can take a few minutes) ..."
 
-# Same file list .githooks/pre-push checks -- keep these two in sync if
-# either changes.
-drift_csvs=(
-	package_tests/public_api_inventory.csv
-	package_tests/public_argument_baseline_gap_report.csv
-	package_tests/checkmate_argument_contracts.csv
-	package_tests/public_argument_combination_cases.csv
-	package_tests/public_argument_combination_rejected_candidates.csv
-	package_tests/public_argument_combination_coverage.csv
-	package_tests/public_argument_combination_results.csv
-	package_tests/public_argument_combination_failures.csv
-	package_tests/public_argument_combination_uncovered_apis.csv
-	package_tests/public_argument_combination_registry_drift.csv
-	package_tests/public_argument_combination_slowest_cases.csv
-	package_tests/public_argument_combination_ci_failure_summary.csv
-	package_tests/public_argument_combination_cases_integrated.csv
-	package_tests/public_argument_combination_results_integrated.csv
-	package_tests/public_argument_combination_coverage_integrated.csv
-	package_tests/public_argument_combination_quality_gates.csv
-	package_tests/public_argument_combination_quality_gate_summary.csv
-	package_tests/comprehensive_suite_registry.csv
-	package_tests/comprehensive_suite_baseline_audit.csv
-	package_tests/public_argument_contract_registry.csv
-	package_tests/comprehensive_suite_internal_surfaces.csv
-)
+# Generator sequence + artifact list come from R/package_tests/drift_artifacts.sh,
+# the single copy shared with .githooks/pre-push and test-coverage-R-advanced.yml.
+mapfile -t drift_csvs < <(bash R/package_tests/drift_artifacts.sh list)
 
 max_drift_attempts=5
 attempt=1
 while [ "$attempt" -le "$max_drift_attempts" ]; do
-	(
-		# Same script set and order as .githooks/pre-push and
-		# test-coverage-R-advanced.yml's "Rebuild ..." steps -- keep all
-		# three in sync (see the hook's comment for the data-flow order).
-		cd R &&
-		Rscript package_tests/public_api_inventory.R &&
-		Rscript package_tests/extract_checkmate_argument_contracts.R &&
-		Rscript package_tests/public_argument_contract_registry.R &&
-		Rscript package_tests/generate_public_argument_combinations.R &&
-		Rscript package_tests/run_public_argument_combinations.R &&
-		Rscript package_tests/analyze_public_argument_combinations.R &&
-		Rscript package_tests/public_argument_combination_integration.R &&
-		Rscript package_tests/check_public_argument_combination_quality_gates.R report &&
-		Rscript package_tests/audit_comprehensive_suite_baseline.R &&
-		Rscript package_tests/comprehensive_suite_registry.R &&
-		Rscript package_tests/comprehensive_suite_internal_surfaces.R
-	)
+	if ! bash R/package_tests/drift_artifacts.sh regenerate; then
+		echo "gitpush_with_hooks_safe: a package_tests/ generator FAILED (see output above) -- not pushing." >&2
+		exit 1
+	fi
 
 	drift_csvs_prefixed=()
 	for f in "${drift_csvs[@]}"; do drift_csvs_prefixed+=("R/$f"); done

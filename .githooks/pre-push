@@ -351,66 +351,18 @@ if [ "$run_comprehensive_suite" = "1" ]; then
 	# the concurrent-edit case above: if edits keep landing for the entire
 	# duration of every attempt, no finite count converges, and the normal
 	# "push again" fallback below is the actual answer.
-	drift_csvs=(
-		package_tests/public_api_inventory.csv
-		package_tests/public_argument_baseline_gap_report.csv
-		package_tests/checkmate_argument_contracts.csv
-		package_tests/public_argument_combination_cases.csv
-		package_tests/public_argument_combination_rejected_candidates.csv
-		package_tests/public_argument_combination_coverage.csv
-		package_tests/public_argument_combination_results.csv
-		package_tests/public_argument_combination_failures.csv
-		package_tests/public_argument_combination_uncovered_apis.csv
-		package_tests/public_argument_combination_registry_drift.csv
-		package_tests/public_argument_combination_slowest_cases.csv
-		package_tests/public_argument_combination_ci_failure_summary.csv
-		package_tests/public_argument_combination_cases_integrated.csv
-		package_tests/public_argument_combination_results_integrated.csv
-		package_tests/public_argument_combination_coverage_integrated.csv
-		package_tests/public_argument_combination_quality_gates.csv
-		package_tests/public_argument_combination_quality_gate_summary.csv
-		package_tests/comprehensive_suite_registry.csv
-		package_tests/comprehensive_suite_baseline_audit.csv
-		package_tests/public_argument_contract_registry.csv
-		package_tests/comprehensive_suite_internal_surfaces.csv
-	)
+	# The generator sequence and this artifact list live in ONE place,
+	# R/package_tests/drift_artifacts.sh, shared with gitpush_with_hooks_safe.sh
+	# and test-coverage-R-advanced.yml -- add a generator or a CSV there, never
+	# here. (Three private copies drifted apart on 2026-09-07 and the local
+	# loop "converged" on output CI's own regeneration disagreed with.)
+	mapfile -t drift_csvs < <(bash R/package_tests/drift_artifacts.sh list)
 	comprehensive_suite_ok=1
 	comprehensive_suite_auto_fixed=0
 	max_drift_attempts=5
 	attempt=1
 	while [ "$attempt" -le "$max_drift_attempts" ]; do
-		if (
-			# Script ORDER and SET must match test-coverage-R-advanced.yml's
-			# "Rebuild ..." steps exactly -- CI regenerates from scratch in
-			# this order and then diffs; any script missing here, or run
-			# before one of its inputs is refreshed, produces a CSV that
-			# CI's own regeneration disagrees with, and the push fails on
-			# CI no matter how many times this loop converged locally.
-			# Data flow the order encodes:
-			#   extract_checkmate_argument_contracts -> public_argument_contract_registry
-			#     (analyze + quality gates read the registry CSV, so a stale
-			#     committed registry silently changes every downstream count)
-			#   analyze -> audit_comprehensive_suite_baseline -> comprehensive_suite_registry
-			#     (the registry reads the baseline audit; running it first
-			#     lags one iteration behind and costs an extra attempt)
-			#   registry + audit + inventory -> comprehensive_suite_internal_surfaces
-			cd R &&
-			Rscript package_tests/public_api_inventory.R &&
-			Rscript package_tests/extract_checkmate_argument_contracts.R &&
-			Rscript package_tests/public_argument_contract_registry.R &&
-			Rscript package_tests/generate_public_argument_combinations.R &&
-			Rscript package_tests/run_public_argument_combinations.R &&
-			Rscript package_tests/analyze_public_argument_combinations.R &&
-			Rscript package_tests/public_argument_combination_integration.R &&
-			Rscript package_tests/check_public_argument_combination_quality_gates.R report &&
-			Rscript package_tests/audit_comprehensive_suite_baseline.R &&
-			Rscript package_tests/comprehensive_suite_registry.R &&
-			Rscript package_tests/comprehensive_suite_internal_surfaces.R
-			# comprehensive_suite_exemptions.csv deliberately excluded -- see
-			# test-coverage-R-advanced.yml's identical drift-check comment:
-			# audit_comprehensive_suite_baseline.R stamps it with
-			# created_date = Sys.Date() on every run, so it always "drifts".
-		); then
+		if bash R/package_tests/drift_artifacts.sh regenerate; then
 			:
 		else
 			comprehensive_suite_ok=0
