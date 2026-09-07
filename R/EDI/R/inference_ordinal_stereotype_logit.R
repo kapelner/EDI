@@ -427,6 +427,27 @@ OrdinalStereotypeLikelihoodSource = list(
 #' "full"}: likelihood-ratio, score, gradient, and Wald tests are all
 #' available when the model converges, plus parametric-likelihood-bootstrap
 #' calibration of the likelihood-ratio test.
+#'
+#' \strong{\code{compute_lik_ratio_two_sided_pval()} is inflated for this
+#' class specifically} (confirmed empirically: ~18-23\% Type-I error against
+#' a nominal 5\%): the stereotype model's category-score parameters
+#' \eqn{\phi_k} are a textbook Davies (1977) non-regular case, not identified
+#' when \eqn{\beta_T} is at/near zero -- exactly the neighborhood every null
+#' hypothesis test sits in -- so the LR statistic's true null distribution is
+#' not the standard chi-square(1) this method assumes. Two already-working,
+#' better-calibrated alternatives exist on this class and should be preferred
+#' when a properly-sized likelihood-ratio-family test is needed:
+#' \code{compute_lik_ratio_bootstrap_two_sided_pval()} (parametric-bootstrap
+#' calibration via the class's own null simulation; confirmed ~6-7\% Type-I
+#' error) and the cheaper \code{compute_lik_ratio_bartlett_two_sided_pval()}
+#' (Monte-Carlo Bartlett correction; confirmed ~4\% Type-I error). Both are
+#' roughly 20-40x slower per call than the raw chi-square test (a fresh
+#' bootstrap/Monte-Carlo refit at every delta candidate), which is why they
+#' are excluded from this package's own routine comprehensive test suite
+#' (see \code{comprehensive_slow_paths.R}) despite being the statistically
+#' correct choice for this class. \code{compute_lik_ratio_two_sided_pval()}
+#' itself is left unchanged (not silently recalibrated) to avoid an
+#' undocumented behavior change to an existing method's contract.
 #' Bayesian-bootstrap inference is temporarily unavailable because the current
 #' non-uniform weighted hook fits a cumulative-logit surrogate rather than the
 #' stereotype likelihood. It will remain disabled until the native weighted

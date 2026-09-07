@@ -138,7 +138,20 @@ ZeroAugmentedCountLikelihoodSource = list(
 			private$cached_mod = mod
 			private$cached_values$likelihood_test_context = NULL
 			private$cached_values$beta_hat_T = as.numeric(cond_coef["w"])
-			private$cached_values$s_beta_hat_T = NA_real_
+			# Fixed 2026-09-07: glmmTMB::glmmTMB() is called with no
+			# se=FALSE/sdreport=FALSE override, so it already computes its
+			# full sdreport (Hessian-based vcov) for this weighted fit -- the
+			# unweighted sibling path a few dozen lines below (generate_mod(),
+			# ~line 1132-1135) already extracts the SE this exact way from the
+			# identical kind of fit; this weighted path just never did,
+			# starving the Bayesian-bootstrap studentized/BCa variants of a
+			# per-replicate SE.
+			se = NA_real_
+			if (!estimate_only) {
+				coef_table = tryCatch(summary(mod)$coefficients$cond, error = function(e) NULL)
+				se = if (!is.null(coef_table) && ("w" %in% rownames(coef_table))) as.numeric(coef_table["w", "Std. Error"]) else NA_real_
+			}
+			private$cached_values$s_beta_hat_T = if (is.finite(se) && se > 0) se else NA_real_
 			private$cached_values$df = NA_real_
 			private$cached_values$full_coefficients = cond_coef
 			private$cached_values$beta_hat_T

@@ -71,12 +71,13 @@ InferenceCountRobustPoisson = define_inference_class(
 		#'   \code{\link{fast_poisson_regression_weighted_cpp}}), used by the
 		#'   Bayesian bootstrap and related weighted-resampling machinery; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
-		#'   Always leaves the standard error and degrees of freedom unavailable
-		#'   (\code{NA}) regardless of \code{estimate_only} — this weighted-refit
-		#'   path never computes the sandwich variance.
+		#'   When \code{estimate_only = FALSE}, also computes a weighted
+		#'   Huber-White sandwich standard error (fixed 2026-09-07 -- previously
+		#'   always \code{NA} regardless of \code{estimate_only}, which starved
+		#'   the Bayesian-bootstrap studentized/BCa variants of a per-replicate
+		#'   SE and left them NA on the large majority of calls).
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
-		#' @param estimate_only Present for interface parity; this method never
-		#'   computes variance components regardless of its value.
+		#' @param estimate_only If TRUE, skip the sandwich-variance computation.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			attempt = private$fit_with_hardened_qr_column_dropping(
@@ -98,7 +99,28 @@ InferenceCountRobustPoisson = define_inference_class(
 						}
 					)
 					if (is.null(res)) return(NULL)
-					list(b = res$b, XtWX = res$XtWX %||% res$fisher_information, ssq_b_2 = NA_real_)
+					ssq_b_j = NA_real_
+					if (!estimate_only && !is.null(res$mu) && !is.null(res$XtWX)) {
+						# Weighted Huber-White sandwich: robust_sandwich_meat_
+						# from_residuals(X, r) computes crossprod(X, X*r^2); scaling
+						# the raw residuals by sqrt(row_weights) before that call
+						# makes r^2 = row_weights * raw_residual^2, i.e. exactly the
+						# weighted meat sum_i w_i*e_i^2*x_i x_i' -- the standard
+						# weighted-HC0 sandwich, using the already-weighted XtWX
+						# from this fit as the bread, same pattern already used by
+						# this class's own unweighted fit_count_model_with_var().
+						j_treat = match(2L, keep)
+						if (!is.na(j_treat)) {
+							weighted_resid = (as.numeric(private$y) - as.numeric(res$mu)) * sqrt(row_weights)
+							ssq_b_j = robust_sandwich_variance_from_xtwx(
+								X = X_fit,
+								residuals = weighted_resid,
+								XtWX = res$XtWX,
+								j = j_treat
+							)
+						}
+					}
+					list(b = res$b, XtWX = res$XtWX %||% res$fisher_information, ssq_b_2 = ssq_b_j)
 				},
 				fit_ok = function(mod, X_fit, keep){
 					!is.null(mod) && length(mod$b) >= 2L && is.finite(mod$b[2L])
@@ -112,7 +134,8 @@ InferenceCountRobustPoisson = define_inference_class(
 				return(NA_real_)
 			}
 			private$cached_values$beta_hat_T = as.numeric(attempt$fit$b[2L])
-			private$cached_values$s_beta_hat_T = NA_real_
+			ssq = attempt$fit$ssq_b_2
+			private$cached_values$s_beta_hat_T = if (!is.null(ssq) && is.finite(ssq) && ssq > 0) sqrt(ssq) else NA_real_
 			private$cached_values$df = NA_real_
 			private$set_fit_warm_start(as.numeric(attempt$fit$b), "beta", fisher = attempt$fit$XtWX)
 			private$cached_values$beta_hat_T

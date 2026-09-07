@@ -68,12 +68,13 @@ InferenceCountQuasiPoisson = define_inference_class(
 		#'   \code{\link{fast_poisson_regression_weighted_cpp}}), used by the
 		#'   Bayesian bootstrap and related weighted-resampling machinery; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
-		#'   Always leaves the standard error and degrees of freedom unavailable
-		#'   (\code{NA}) regardless of \code{estimate_only} — this weighted-refit
-		#'   path never computes the quasi-Poisson dispersion correction.
+		#'   When \code{estimate_only = FALSE}, also computes a weighted
+		#'   Pearson-dispersion-scaled standard error (fixed 2026-09-07 --
+		#'   previously always \code{NA} regardless of \code{estimate_only},
+		#'   which starved the Bayesian-bootstrap studentized/BCa variants of a
+		#'   per-replicate SE and left them NA on the large majority of calls).
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
-		#' @param estimate_only Present for interface parity; this method never
-		#'   computes variance components regardless of its value.
+		#' @param estimate_only If TRUE, skip the dispersion-correction computation.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			attempt = private$fit_with_hardened_qr_column_dropping(
@@ -92,7 +93,27 @@ InferenceCountQuasiPoisson = define_inference_class(
 						error = function(e) NULL
 					)
 					if (is.null(res)) return(NULL)
-					list(b = res$b, XtWX = res$XtWX %||% res$fisher_information, ssq_b_j = NA_real_, j_treat = which(keep == 2L))
+					j_treat = which(keep == 2L)
+					ssq_b_j = NA_real_
+					if (!estimate_only && length(j_treat) == 1L && !is.null(res$mu) && !is.null(res$XtWX)) {
+						# Same weighted Pearson-dispersion-scaled variance as
+						# fast_quasipoisson_regression_with_var_cpp's own unweighted
+						# formula (fast_poisson_regression.cpp:569-585): dispersion =
+						# sum(w_i*(y_i-mu_i)^2/mu_i) / df_resid, ssq_b_j = dispersion *
+						# solve(XtWX)[j,j], just with row_weights folded into the
+						# Pearson sum and XtWX already the weighted Fisher info this
+						# fit returned.
+						mu_hat = as.numeric(res$mu)
+						df_resid = nrow(X_fit) - ncol(X_fit)
+						if (df_resid > 0 && all(mu_hat > 0)) {
+							dispersion = sum(row_weights * (as.numeric(private$y) - mu_hat)^2 / mu_hat) / df_resid
+							if (is.finite(dispersion) && dispersion > 0) {
+								inv_jj = tryCatch(solve(res$XtWX)[j_treat, j_treat], error = function(e) NA_real_)
+								if (is.finite(inv_jj) && inv_jj > 0) ssq_b_j = dispersion * inv_jj
+							}
+						}
+					}
+					list(b = res$b, XtWX = res$XtWX %||% res$fisher_information, ssq_b_j = ssq_b_j, j_treat = j_treat)
 				},
 				fit_ok = function(mod, X_fit, keep){
 					j_treat = mod$j_treat
@@ -107,7 +128,8 @@ InferenceCountQuasiPoisson = define_inference_class(
 				return(NA_real_)
 			}
 			private$cached_values$beta_hat_T = as.numeric(attempt$fit$b[2L])
-			private$cached_values$s_beta_hat_T = NA_real_
+			ssq = attempt$fit$ssq_b_j
+			private$cached_values$s_beta_hat_T = if (!is.null(ssq) && is.finite(ssq) && ssq > 0) sqrt(ssq) else NA_real_
 			private$cached_values$df = NA_real_
 			private$set_fit_warm_start(as.numeric(attempt$fit$b), "beta", fisher = attempt$fit$XtWX)
 			private$cached_values$beta_hat_T

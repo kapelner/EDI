@@ -59,6 +59,8 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 		#'   \code{\link{fast_ordinal_regression_weighted_cpp}}), used by the
 		#'   Bayesian bootstrap and related weighted-resampling machinery; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#'   When \code{estimate_only = FALSE}, also wires through the already-
+		#'   computed weighted variance (fixed 2026-09-07 -- see below).
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -77,15 +79,31 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 				),
 				error = function(e) NULL
 			)
-			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[length(res$b)])){
+			# Two bugs fixed 2026-09-07:
+			# (1) build_design_matrix() puts `treatment` in column 1, so `res$b`
+			#     (length == ncol(X_fit), the K-1 alpha cutpoints are returned
+			#     separately -- see fast_ordinal_regression.cpp's
+			#     .set("b", params.tail(p))) has the treatment coefficient at
+			#     b[1], NOT b[length(b)]; the two only coincide when there are
+			#     no extra covariates (p == 1). With covariates present, this
+			#     silently returned a DIFFERENT covariate's coefficient as
+			#     beta_hat_T.
+			# (2) The weighted fit's `ssq_b_j` (already the variance of that
+			#     same b[1] treatment coefficient -- see
+			#     fast_ordinal_regression.cpp's ssq_b_j = vcov_full(n_alpha,
+			#     n_alpha), the first beta block entry) was discarded and
+			#     always replaced with NA, starving the Bayesian-bootstrap
+			#     studentized/BCa variants of a per-replicate SE.
+			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[1L])){
 				private$cached_values$beta_hat_T = NA_real_
 				private$cached_values$s_beta_hat_T = NA_real_
 				private$cached_values$df = NA_real_
 				return(NA_real_)
 			}
 			private$set_fit_warm_start(res$params, "params", fisher = res$fisher_information)
-			private$cached_values$beta_hat_T = as.numeric(res$b[length(res$b)])
-			private$cached_values$s_beta_hat_T = NA_real_
+			private$cached_values$beta_hat_T = as.numeric(res$b[1L])
+			ssq = res$ssq_b_j
+			private$cached_values$s_beta_hat_T = if (!estimate_only && !is.null(ssq) && is.finite(ssq) && ssq > 0) sqrt(ssq) else NA_real_
 			private$cached_values$df = NA_real_
 			private$cached_values$beta_hat_T
 		}

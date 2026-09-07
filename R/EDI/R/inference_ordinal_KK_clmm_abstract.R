@@ -71,8 +71,10 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 					return(private$cached_values$beta_hat_T)
 				}
 			}
-			private$cached_values$beta_hat_T = private$compute_weighted_clmm_estimate(row_weights)
-			private$cached_values$s_beta_hat_T = NA_real_
+			weighted_fit = private$compute_weighted_clmm_estimate(row_weights, estimate_only = estimate_only)
+			private$cached_values$beta_hat_T = weighted_fit$beta_hat_T
+			ssq = weighted_fit$ssq_b_j
+			private$cached_values$s_beta_hat_T = if (!estimate_only && !is.null(ssq) && is.finite(ssq) && ssq > 0) sqrt(ssq) else NA_real_
 			private$cached_values$beta_hat_T
 		},
 		#' @description Compute the ordinal CLMM asymptotic confidence interval for
@@ -169,7 +171,7 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 			as.numeric(fit$b[1L])
 		},
 		clmm_link = function() stop(class(self)[1], " must implement clmm_link()"),
-		compute_weighted_clmm_estimate = function(row_weights){
+		compute_weighted_clmm_estimate = function(row_weights, estimate_only = FALSE){
 			X_fit = private$clmm_X_for_rcpp()
 			link_method = switch(
 				private$clmm_link(),
@@ -197,7 +199,16 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 						error = function(e) NULL
 					)
 					if (!is.null(fit_fast) && length(fit_fast$b) >= 1L && is.finite(fit_fast$b[1L])) {
-						return(as.numeric(fit_fast$b[1L]))
+						# Fixed 2026-09-07: fast_ordinal_regression_weighted_cpp
+						# already computes ssq_b_j (the variance of b[1], the
+						# treatment coefficient -- see
+						# fast_ordinal_regression.cpp's ssq_b_j = vcov_full(n_alpha,
+						# n_alpha)) whenever estimate_only = FALSE; it was being
+						# discarded here, starving the Bayesian-bootstrap
+						# studentized/BCa variants of a per-replicate SE for the
+						# logit-link CLMM family (base InferenceOrdinalKKGLMM and
+						# InferenceOrdinalKKCLMM* subclasses using this link).
+						return(list(beta_hat_T = as.numeric(fit_fast$b[1L]), ssq_b_j = fit_fast$ssq_b_j))
 					}
 				}
 			}
@@ -207,8 +218,8 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 				row_weights = row_weights,
 				method = link_method
 			)
-			if (is.null(sur)) return(NA_real_)
-			as.numeric(sur$beta_hat)
+			if (is.null(sur)) return(list(beta_hat_T = NA_real_, ssq_b_j = NA_real_))
+			list(beta_hat_T = as.numeric(sur$beta_hat), ssq_b_j = NA_real_)
 		},
 		clmm_predictors_df = function(){
 			full_X = private$create_design_matrix()
