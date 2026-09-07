@@ -53,6 +53,18 @@ same sources, so they inherit them verbatim.
   non-ZINB likelihood. Anyone consuming that struct through the vendored
   headers should note the added field.
 
+### CI
+
+- Dropped the Bullseye/Python 3.9 ARMv7 sdist-parity job from
+  `build-wheels.yml`. piwheels now lists Bullseye as end-of-life and runs
+  only Bookworm and Trixie builders for this package, and Debian 11 left
+  LTS on 2026-08-31, after which its security-suite packages started
+  disappearing from the mirrors while the `debian:bullseye` image's base
+  packages still pin those exact versions, so the container could no
+  longer resolve an `apt-get install` at all. The Bookworm/3.11 and
+  Trixie/3.13 parity jobs are unchanged; x86/macOS/Windows 3.9 wheels are
+  still built by cibuildwheel.
+
 ### Not affecting `edi_kernels`
 
 Listed so the source diff and this log reconcile; none of these reach the
