@@ -385,7 +385,13 @@ derive_slow_methods = function(name, resp_code) {
   from_exact = character()
   if (!is.na(response_type) && length(slow_paths$exact_operations)) {
     parts = strsplit(slow_paths$exact_operations, "\\|\\|", fixed = FALSE)
-    matches = vapply(parts, function(p) length(p) == 3L && p[1] == response_type && p[2] == name, logical(1))
+    # An exact_operations entry may carry an optional 4th `||model_formula`
+    # segment (added 2026-09-08) restricting it to one formula -- see
+    # EDI_COMPREHENSIVE_SLOW_PATHS' @format. This table has no formula axis
+    # per cell, so a formula-restricted entry still marks the whole
+    # class/method cell "slow" (it genuinely is, for part of the parameter
+    # space) rather than being silently dropped by a length(p) == 3L check.
+    matches = vapply(parts, function(p) length(p) %in% c(3L, 4L) && p[1] == response_type && p[2] == name, logical(1))
     from_exact = vapply(parts[matches], function(p) p[3], character(1))
   }
   unique(c(from_categories, from_exact))

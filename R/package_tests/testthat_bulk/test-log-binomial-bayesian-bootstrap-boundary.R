@@ -1,3 +1,6 @@
+library(testthat)
+library(EDI)
+
 test_that("InferenceIncidLogBinomial Bayesian bootstrap does not discard boundary-hitting weighted replicates", {
 	# Regression for the 2026-09-06 comprehensive-results investigation:
 	# is_log_binomial_fit_reasonable() rejected any Dirichlet-weighted

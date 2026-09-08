@@ -438,18 +438,21 @@ along the way; this also closed release amendment 11's decision gate.
    first large doc batch, and again after Phase 1D.4 (Base Deletion).
 4. `lock_key_metaphor.md` (renamed from `lego_metaphor.md`) → TODO-2..7
    (added 2026-09-08, user decision; scope widened same day to every doc
-   surface incl. `DESCRIPTION`; went through several rounds of narrowing
-   same day, all user decisions, ending with "lego" dropped entirely) —
-   **Design = lock, Inference = key**, settled by
-   `InferenceSuite$run_all_inference()`'s one-lock-many-keys pattern; two
-   confirmed gates (warding = coarse metadata predicate, bitting = the fine
-   capability check) and the shear line (all-or-nothing capability match);
-   "bow"/"housing" name the internal parts (e.g. `likelihood_tier`) neither
-   side inspects; explicitly scoped so "turning the lock" means the
-   pairing is legal, never that it hands you a single correct estimate —
-   self-description across README/vignette/pkgdown/`?EDI`/`DESCRIPTION`/
-   CITATION. Release index: `release_v1_1_0.md → TODO-19`. Independent of
-   every other Phase 3 item.
+   surface incl. `DESCRIPTION`; went through nine rounds of narrowing same
+   day, all user decisions, ending with "lego" dropped entirely) —
+   **Design = lock/instrument base, Inference = key**, settled by the
+   discovery-API asymmetry plus `InferenceSuite$run_all_inference()`'s
+   one-instrument-many-keys pattern; two confirmed gates (warding = coarse
+   metadata predicate, bitting = the fine capability check) and the shear
+   line (all-or-nothing capability match); "bow"/"housing" name the
+   internal parts (e.g. `likelihood_tier`) neither side inspects. **Final
+   framing: a key-operated measuring instrument, not a door** —
+   `Inference$new(design)` assembles a machine, and turning the key both
+   gates and configures which computation it runs, which is why different
+   valid keys legitimately report different numbers from the same design
+   (different circuits, one instrument) — self-description across README/
+   vignette/pkgdown/`?EDI`/`DESCRIPTION`/CITATION. Release index:
+   `release_v1_1_0.md → TODO-19`. Independent of every other Phase 3 item.
 
 ---
 

@@ -1022,9 +1022,14 @@ ticked in their **owning plans**; this list is the release index.
   simultaneously (`get_effective_capabilities()`, no partial credit). Real
   locksmith terms **bow** (key) / **housing** (lock) name the internal
   parts (e.g. `likelihood_tier`) that are real but never checked by the
-  other side. Explicitly scoped: "turning the lock" means the pairing is
-  legal, not that there's one correct numeric answer — different valid
-  keys do independent work once inside, which is why
+  other side. **Final framing: a key-operated measuring instrument, not a
+  door.** `Inference$new(design)` assembles a machine rather than unlocking
+  access to a separately-explored room — turning the key both gates
+  (capability check) and configures (which computation the assembled
+  instrument runs), the same mechanism a real keyed selector-switch meter
+  uses. That's why different valid keys legitimately report different
+  numbers from the same design (different circuits through one instrument,
+  not different tools brought in afterward) — the reason
   `run_all_inference()` reports multiple differing results by design.
   Placements: `README.md` Highlights bullet (top-level only), `R/EDI/
   vignettes/extending-edi.Rmd`'s "How EDI classes are built" section
