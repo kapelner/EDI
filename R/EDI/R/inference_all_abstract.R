@@ -819,7 +819,16 @@ Inference = R6::R6Class("Inference",
 							RUN_CHUNK(chunk)
 						}, RUN_CHUNK = RUN_CHUNK, chunk = chunk, chunk_seed = chunk_seed)
 					})
-					flatten_chunk_results(lapply(tasks, function(m) m[]))
+					results = settle_mirai_tasks(tasks)
+					if (is.null(results)) {
+						stop(
+							"mirai daemons died (or timed out) while running inference chunks; ",
+							"aborting instead of hanging. Rerun, use num_cores = 1, or investigate ",
+							"daemon launch failures (system load, memory pressure, R_LIBS ",
+							"visibility for workers)."
+						)
+					}
+					flatten_chunk_results(results)
 				} else if (.Platform$OS.type != "unix"){
 					if (!isTRUE(private$warned_no_parallel)){
 						message("Parallelism (num_cores > 1) requires the 'mirai' package on non-Unix systems. Install it with install.packages('mirai'). Falling back to serial computation.")

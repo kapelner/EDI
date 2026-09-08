@@ -1043,6 +1043,31 @@ ticked in their **owning plans**; this list is the release index.
   mention if either has a natural free-text slot. Doc-only knit/parse
   checks, not an `R CMD check`, no package rebuild; independent of every
   other 1.1.0 item.
+- [ ] TODO-20: **Harden the capability/slow-path registries — single
+  source of truth** (added 2026-09-08, user decision):
+  `harden_registry.md → TODO-1..4`. Maintenance, not a feature — no
+  output/behavior change. Eliminates
+  `EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES`
+  (`inference_class_registry.R`), a hardcoded "migration debt"
+  capability-exclusion list whose three entries are provably redundant
+  with what the affected classes already say about themselves — verified
+  by a read-only, 39-class audit: exactly the same three classes, nothing
+  more, nothing less. Folds them into the already-permanent
+  `EDI_INFERENCE_EXCLUDED_CAPABILITIES` list as plain data (a dynamic
+  package-load-time resolver was prototyped and rejected as unnecessary
+  risk — see the plan's "Decision: static data, not a runtime resolver"),
+  with a test-only (never package-load-time) drift-detection check added
+  alongside. Surfaced two further, larger fact-duplication issues in the
+  same session that this TODO does **not** attempt, both documented in the
+  plan as explicit follow-on work: `comprehensive_tests.R`'s own four
+  pre-registry hardcoded exclusion lists plus two single-class
+  special-cases (needs a class-by-class structural-vs-performance sort,
+  its own scoping pass first — "Finding 2"), and a recheck of the ~82
+  already-registry-backed `EDI_COMPREHENSIVE_SLOW_PATHS` category-bucket
+  entries for staleness (mechanically identical to this session's
+  already-completed `exact_operations` recheck, just larger — "Also still
+  open"). Independent of every other 1.1.0 item; no dependency on the
+  decision batch.
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

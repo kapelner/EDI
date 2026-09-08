@@ -497,6 +497,33 @@ start_mirai_daemons_bounded = function(n, total_timeout_secs = 90) {
   }
 }
 
+# TRUE iff at least one mirai daemon connection is currently live. See
+# settle_mirai_tasks() -- every wait on a mirai task must treat "no
+# connections" as fatal rather than blocking, because a task with no daemon
+# left to run it never resolves.
+mirai_daemons_alive = function() {
+  s = tryCatch(mirai::status(), error = function(e) NULL)
+  is.list(s) && is.numeric(s$connections) && length(s$connections) == 1L &&
+    as.integer(s$connections) >= 1L
+}
+
+# Bounded replacement for `m[]` / mirai::collect_mirai(tasks), both of which
+# block with no timeout and therefore hang forever if a daemon dies mid-task
+# (the same failure mode start_mirai_daemons_bounded() guards against at
+# launch time). Returns the resolved values on success; NULL if any task
+# fails to settle before the deadline (daemon death or timeout).
+settle_mirai_tasks = function(tasks, timeout_secs = 60) {
+  if (length(tasks) == 0L) return(list())
+  deadline = as.numeric(Sys.time()) + timeout_secs
+  repeat {
+    if (!any(vapply(tasks, mirai::unresolved, logical(1L)))) {
+      return(lapply(tasks, function(m) m[]))
+    }
+    if (!mirai_daemons_alive() || as.numeric(Sys.time()) > deadline) return(NULL)
+    Sys.sleep(0.1)
+  }
+}
+
 #' Set the number of cores for parallelization
 #'
 #' This function initializes a persistent parallel cluster (either a fork cluster

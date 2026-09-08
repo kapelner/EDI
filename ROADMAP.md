@@ -1,6 +1,6 @@
 # EDI Roadmap
 
-**Where things stand (last updated 2026-09-06):** v1.0.0 is released
+**Where things stand (last updated 2026-09-08):** v1.0.0 is released
 ([Zenodo DOI](https://doi.org/10.5281/zenodo.22170036)) and has been
 submitted to CRAN; the `edi_kernels` Python package is on PyPI. Everything
 below is planned, not shipped.
@@ -187,6 +187,17 @@ pieces below never did.
   stop-on-death loop written out more than once, and worker
   single-threading setup defined once for persistent clusters and
   hand-rederived once for forked child processes.
+- **[Harden the capability/slow-path registries](R/package_metadata/new_feature_plans/harden_registry.md)**
+  *(maintenance)* — no output/behavior change. Eliminates a hardcoded
+  "migration debt" capability-exclusion list in
+  `inference_class_registry.R`, verified redundant by a 39-class audit
+  against the package's one permanent exclusion registry, which absorbs
+  its three entries; a test-only drift check replaces the dynamic
+  resolver that was prototyped and rejected as unneeded runtime risk.
+  Also documents, but defers, two larger duplicated-fact issues found
+  along the way: `comprehensive_tests.R`'s own pre-registry hardcoded
+  slow-path exclusion lists, and a still-open recheck of ~82
+  already-registry-backed slow-path entries for staleness.
 
 ---
 

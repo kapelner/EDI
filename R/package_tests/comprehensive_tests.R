@@ -35,6 +35,112 @@ comprehensive_slow_path_rules = EDI::EDI_COMPREHENSIVE_SLOW_PATHS
 getFromNamespace("validate_comprehensive_slow_path_rules", "EDI")(
 	comprehensive_slow_path_rules
 )
+
+# Additional test-harness-only skip rules, ADDITIONAL TO (never instead of)
+# the package's own EDI_COMPREHENSIVE_SLOW_PATHS registry loaded above.
+# These predate that registry -- present since this repo's very first
+# commit -- and were never migrated into it when it was created
+# (2026-08-24, "slow paths now a constant"): that commit extracted one
+# already-cleanly-structured local variable into a package constant and
+# never touched these, which sat immediately adjacent in the same file.
+# They mix two different kinds of fact the package registry's own
+# docstring says must stay separate -- some entries are genuinely
+# structural (bootstrap/randomization doesn't apply at all, e.g. an
+# exact-test-only class), others are genuine, never-migrated performance
+# facts (see `rand_ci_custom`'s inline timing). Sorting each entry into
+# the right one of those two buckets -- the package's capability-exclusion
+# system for structural facts, EDI_COMPREHENSIVE_SLOW_PATHS for
+# performance facts -- is real class-by-class analytical work, deferred to
+# its own scoping pass; see
+# package_metadata/new_feature_plans/harden_registry.md, "Finding 2" and
+# "Also still open". Until that happens, they live here, in ONE place,
+# instead of scattered as inline is_any_inference_class()/is()-chain
+# checks throughout this file -- consumed below by the same
+# is_any_inference_class()/is_exact_inference_class() helpers (defined
+# inside run_inference_checks_impl()) each one always used, so this is a
+# pure data consolidation, not a behavior change.
+#
+# Cleaned up 2026-09-08 after auditing every entry against
+# EDI::get_effective_capabilities(): removed 4 entries naming classes that
+# no longer exist anywhere in R/EDI/R (InferenceContinMultGLS,
+# InferenceAbstractGLMMWeibullFrailtyNormalOneLik,
+# InferenceIncidExactZhangAbstract, InferenceContinMultKKQuantileRegrOneLik
+# -- presumably renamed/removed since these lists were written; a class-
+# name check against a nonexistent name is always FALSE, so they did
+# nothing), and 3 more (InferenceIncidExactFisher/ExactBinomial/ExactZhang,
+# from `bootstrap`; InferenceIncidExactZhang also from `rand`) whose
+# exclusion the capability system already independently agrees with
+# (get_effective_capabilities() already omits nonparametric_bootstrap/
+# randomization_test for them), making the hardcoded skip fully redundant.
+ADDITIONAL_TEST_SLOW_PATHS = list(
+	# Gates the whole nonparametric-bootstrap family (plain, BRT, and
+	# Bayesian bootstrap all key off this) -- consumed via
+	# is_any_inference_class(), matching every subclass too.
+	bootstrap = c(
+		"InferenceCountPoissonKKGEE",
+		"InferenceCountKKGLMM",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
+		"InferenceOrdinalPairedSignTest",
+		"InferenceOrdinalKKCondAdjCatLogitRegr",
+		"InferenceOrdinalGCompMeanDiff",
+		"InferenceOrdinalCloglogRegr",
+		"InferenceOrdinalOrderedProbitRegr",
+		"InferenceOrdinalCauchitRegr",
+		"InferenceOrdinalPartialProportionalOddsRegr",
+		"InferencePropZeroOneInflatedBetaRegr",
+		"InferencePropFractionalLogit",
+		"InferenceCountHurdleNegBin"
+	),
+	# Gates every randomization-family test at once (plain pval, CI, BRT
+	# pval/CI, custom pval/CI) -- consumed via is_any_inference_class().
+	rand = c(
+		"InferencePropGCompMeanDiff",
+		"InferenceOrdinalPairedSignTest",
+		"InferenceOrdinalKKCondAdjCatLogitRegr",
+		"InferenceOrdinalGCompMeanDiff",
+		"InferenceOrdinalCloglogRegr",
+		"InferenceOrdinalOrderedProbitRegr",
+		"InferenceOrdinalCauchitRegr"
+	),
+	# Gates the plain (non-CI) randomization p-value specifically --
+	# consumed via is_any_inference_class().
+	rand_pval = c(
+		"InferencePropGCompMeanDiff",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"
+	),
+	# Gates the plain randomization confidence interval -- consumed via
+	# is_any_inference_class(); also combined at the call site with a
+	# response_type == "count" blanket rule and an InferenceAllSimpleAverageDiff
+	# non-continuous special case, neither of which is a class list so
+	# neither moved here.
+	rand_ci = c(
+		"InferencePropGCompMeanDiff",
+		"InferenceContinRobustRegr",
+		"InferenceCountHurdleNegBin",
+		"InferenceCountNegBin",
+		"InferenceCountZeroInflatedNegBin",
+		"InferencePropZeroOneInflatedBetaRegr",
+		"InferencePropFractionalLogit",
+		"InferenceCountHurdlePoisson",
+		"InferenceCountZeroInflatedPoisson",
+		"InferenceCountKKHurdlePoissonOneLik"
+	),
+	# Gates the "(custom)" randomization CI variant specifically --
+	# consumed via is_exact_inference_class() (exact class name, not
+	# inheritance-aware, unlike every other entry here).
+	rand_ci_custom = c("InferenceContinKKRobustRegrOneLik", "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"), # custom rand CI slow: robust avg 336.6s / max 1994.8s at n=6; Clayton avg 41.9s / max 1993.3s at n=53
+	# Hard-excluded from jackknife despite otherwise qualifying -- consumed
+	# via is_any_inference_class().
+	jackknife_exclude = c("InferenceCountKKGLMM"),
+	# Always gets bootstrap-randomization (BRT) methods regardless of the
+	# RUN_BRT CLI flag -- consumed via is_exact_inference_class().
+	always_run_brt = c("InferenceIncidLogBinomial"),
+	# Always gets the parametric-bootstrap CI regardless of the
+	# COMPREHENSIVE_PARAM_BOOT_CI env flag -- a separate opt-in from
+	# always_run_brt above, coincidentally the same one class today;
+	# consumed via is_exact_inference_class().
+	always_run_parametric_bootstrap_ci = c("InferenceIncidLogBinomial")
+)
 required_packages = c("doParallel", "PTE", "datasets", "qgam", "mlbench", "AppliedPredictiveModeling", "dplyr", "ggplot2", "gridExtra", "profvis", "data.table", "devtools", "R.utils")
 for (pkg in required_packages) {
 	if (!suppressPackageStartupMessages(require(pkg, character.only = TRUE, quietly = TRUE))) {
@@ -888,31 +994,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	is_exact_inference_class = function(classes){
 		inference_class_label %in% classes
 	}
-	skip_bootstrap = is_any_inference_class(c(
-		"InferenceCountPoissonKKGEE",
-		"InferenceCountKKGLMM",
-		"InferenceContinMultGLS",
-		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
-		"InferenceAbstractGLMMWeibullFrailtyNormalOneLik",
-		"InferenceIncidExactFisher",
-		"InferenceIncidExactBinomial",
-		"InferenceIncidExactZhang",
-		"InferenceIncidExactZhangAbstract",
-		"InferenceOrdinalPairedSignTest",
-		"InferenceOrdinalKKCondAdjCatLogitRegr",
-		"InferenceOrdinalGCompMeanDiff",
-		"InferenceOrdinalGCompMeanDiff",
-		"InferenceOrdinalCloglogRegr",
-		"InferenceOrdinalOrderedProbitRegr",
-		"InferenceOrdinalOrderedProbitRegr",
-		"InferenceOrdinalCauchitRegr",
-		"InferenceOrdinalCauchitRegr",
-		"InferenceOrdinalKKCondAdjCatLogitRegr",
-		"InferenceOrdinalPartialProportionalOddsRegr",
-		"InferencePropZeroOneInflatedBetaRegr",
-		"InferencePropFractionalLogit",
-		"InferenceCountHurdleNegBin"
-	))
+	skip_bootstrap = !force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$bootstrap)
 	# Package-owned, public registry; formula-, dataset-independent (an
 	# exact_operations entry may optionally restrict itself to one
 	# model_formula via a `||model_formula` suffix -- see
@@ -973,7 +1055,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	# BRT pval: skip only if bootstrap structurally broken OR rand itself slow; ContinRobustRegr keeps BRT pval
 	skip_brt_pval = skip_bootstrap || skip_rand_slow
 	skip_brt_ci   = skip_bootstrap || skip_bootstrap_slow || skip_rand_slow || skip_rand_ci_slow || skip_brt_ci_all_slow
-	run_brt_for_class = RUN_BRT || is_exact_inference_class(c("InferenceIncidLogBinomial"))
+	run_brt_for_class = RUN_BRT || is_exact_inference_class(ADDITIONAL_TEST_SLOW_PATHS$always_run_brt)
 	skip_bayesian_bootstrap = skip_bootstrap || skip_bootstrap_slow ||
 		!isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$supports_bayesian_bootstrap(), error = function(e) TRUE))
 	supports_parametric_bootstrap =
@@ -984,7 +1066,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		))
 	run_parametric_bootstrap_ci_for_class =
 		run_parametric_bootstrap_ci ||
-		is_exact_inference_class(c("InferenceIncidLogBinomial"))
+		is_exact_inference_class(ADDITIONAL_TEST_SLOW_PATHS$always_run_parametric_bootstrap_ci)
 	supports_parametric_bootstrap_ci =
 		run_parametric_bootstrap_ci_for_class &&
 		supports_parametric_bootstrap &&
@@ -1024,36 +1106,20 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		response_type != "incidence" ||
 		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$should_use_zhang_incidence_randomization(), error = function(e) FALSE)) ||
 		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$should_use_design_randomization_for_incidence(), error = function(e) FALSE))
-	skip_rand      = is(seq_des_inf, "InferenceIncidExactZhang") || is(seq_des_inf, "InferenceIncidExactZhangAbstract") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferenceOrdinalPairedSignTest") || is(seq_des_inf, "InferenceOrdinalKKCondAdjCatLogitRegr") || is(seq_des_inf, "InferenceOrdinalGCompMeanDiff") || is(seq_des_inf, "InferenceOrdinalGCompMeanDiff") || is(seq_des_inf, "InferenceOrdinalCloglogRegr") || is(seq_des_inf, "InferenceOrdinalOrderedProbitRegr") || is(seq_des_inf, "InferenceOrdinalOrderedProbitRegr") || is(seq_des_inf, "InferenceOrdinalCauchitRegr") || is(seq_des_inf, "InferenceOrdinalCauchitRegr") || is(seq_des_inf, "InferenceOrdinalKKCondAdjCatLogitRegr")
+	skip_rand      = !force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand)
 	skip_mle_pval  = FALSE
-	skip_rand_pval = is(seq_des_inf, "InferenceContinMultGLS") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferencePropGCompMeanDiff") || is(seq_des_inf, "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik")
+	skip_rand_pval = !force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_pval)
 	skip_regular_rand_pval = skip_rand_pval || !supports_incidence_rand_pval
 	skip_custom_rand_pval = skip_regular_rand_pval || response_type == "incidence"
-	skip_ci_rand   = is_any_inference_class(c(
-		"InferenceContinMultKKQuantileRegrOneLik",
-		"InferencePropGCompMeanDiff",
-		"InferencePropGCompMeanDiff",
-		"InferenceContinRobustRegr",
-		"InferenceCountHurdleNegBin",
-		"InferenceCountNegBin",
-		"InferenceCountZeroInflatedNegBin",
-		"InferencePropZeroOneInflatedBetaRegr",
-		"InferencePropFractionalLogit",
-		"InferenceCountHurdlePoisson",
-		"InferenceCountZeroInflatedPoisson",
-		"InferenceCountHurdlePoisson",
-		"InferenceCountZeroInflatedPoisson",
-		"InferenceCountZeroInflatedNegBin",
-		"InferenceCountKKHurdlePoissonOneLik"
-	)) || response_type == "count" ||
+	skip_ci_rand   = (!force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_ci)) || response_type == "count" ||
 		(response_type != "continuous" && is(seq_des_inf, "InferenceAllSimpleAverageDiff"))
-	skip_ci_rand_custom = is_exact_inference_class(c("InferenceContinKKRobustRegrOneLik", "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"))  # custom rand CI slow: robust avg 336.6s / max 1994.8s at n=6; Clayton avg 41.9s / max 1993.3s at n=53
+	skip_ci_rand_custom = !force_run_slow_paths && is_exact_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_ci_custom)
 	supports_jackknife = is(seq_des_inf, "InferenceJackknife") ||
 		(
 			"compute_jackknife_wald_two_sided_pval" %in% names(seq_des_inf) &&
 			"compute_jackknife_wald_confidence_interval" %in% names(seq_des_inf)
 		)
-	supports_jackknife = supports_jackknife && !is_any_inference_class(c("InferenceCountKKGLMM"))
+	supports_jackknife = supports_jackknife && (force_run_slow_paths || !is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$jackknife_exclude))
 	
 	snap_small_numeric_to_zero = function(x, tol = sqrt(.Machine$double.eps)){
 		if (is.null(x)) return(x)

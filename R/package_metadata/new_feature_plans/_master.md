@@ -620,6 +620,40 @@ TODO-6 note (a future fork-after-OpenMP-lock safety pass for
 larger project, deferred there on purpose. Release index:
 `release_v1_1_0.md → TODO-18`.
 
+**Capability/slow-path registry hardening (added 2026-09-08, user
+decision; grew out of a `comprehensive_tests.R`/`path_audits.html`
+slow-path recheck session, unrelated to the parallelization item above):**
+`harden_registry.md` → TODO-1..4. Two capability-exclusion registries
+exist in `inference_class_registry.R` —
+`EDI_INFERENCE_LEGACY_EXCLUDED_CAPABILITIES` (documented as migration debt,
+to be removed once affected classes finish migrating to shallow component
+composition) and `EDI_INFERENCE_EXCLUDED_CAPABILITIES` (documented as
+permanent). A read-only audit of all 39 classes composing
+`ParametricLikelihoodBootstrap` (no mutation — generator introspection
+plus `get_effective_components()`) confirms the legacy list's three
+entries are exactly the classes whose own `supports_lik_ratio_param_bootstrap()`
+guard already resolves to `FALSE` on its own — fully redundant, not debt
+still pending a migration. This plan deletes the legacy list and folds its
+entries into the permanent one as plain data. A dynamic, package-load-time
+resolver (walk the generator's inheritance chain, resolve lazy-component
+stubs via `get_lazy_component_dispatch()`) was prototyped and rejected —
+real fragility (locked-namespace mutation, lazy-stub bare-invoke crashes,
+instance-dependent-guard crashes, all hit during this session's testing)
+for zero benefit over reading the hardcoded fact once; drift is instead
+caught by a test-only version of the same resolver, never at load time.
+Two further duplicated-fact issues surfaced in the same session are
+explicitly **out of scope** for this TODO, documented in the plan instead:
+`comprehensive_tests.R`'s own four hardcoded, pre-registry exclusion lists
+plus two single-class special-cases (`skip_bootstrap`, `skip_rand`,
+`skip_ci_rand`, `skip_ci_rand_custom`, `InferenceCountKKGLMM`'s jackknife
+exclusion, `InferenceIncidLogBinomial`'s always-on BRT opt-in — each mixes
+structural and performance facts, needs a class-by-class sort before any
+TODO can be written), and a recheck of the ~82 already-registry-backed
+`EDI_COMPREHENSIVE_SLOW_PATHS` category-bucket entries for staleness (same
+mechanism as this session's already-completed `exact_operations` recheck,
+just larger scope, no new engineering needed). No dependencies. Release
+index: `release_v1_1_0.md → TODO-20`.
+
 ---
 
 ## Phase 5 — Post-decision feature tracks
