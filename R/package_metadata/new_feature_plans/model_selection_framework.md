@@ -60,8 +60,8 @@
 >   draft invoked one that isn't real). Phase A is additive (a new
 >   workflow object; no default changes), so it meets the 1.x
 >   release-line rule. The R Consortium ISC proposal
->   (`new_research_ideas/grants/RcISC/isc-proposal.qmd`; the earlier
->   `grant.tex` is now `grant_notes.tex`) has been re-scoped to this
+>   (`new_research_ideas/grants/RcISC/isc_grant.qmd`; the earlier
+>   LaTeX draft was deleted 2026-09-07) has been re-scoped to this
 >   widened Phase A — every design family, all six response types — and,
 >   as of 2026-09-06, carries no blinding claims, matching §5.
 > - **Phase B → v2.0.0** (`release_v2_0_0.md → TODO-6h`, narrowed
@@ -602,7 +602,7 @@ other (see the header's open question and TODO-9).
   fit on `(X, y, w)`, ranked afresh on every replicate, parallelized
   over `set_num_cores()`'s pool. There is no `include_interactions`
   argument. The ISC grant
-  (`new_research_ideas/grants/RcISC/proposal/03-proposal.qmd`, worked
+  (`new_research_ideas/grants/RcISC/isc_grant.qmd`, worked
   ordinal example) carries the same three-formula default (16 regression
   classes × 3 = 48 cells + 3 rank-based = 51).**; (e) ~~assumption-gate semantics (hard
   gate vs. flag)~~ **decided (2026-09-02, user): hard gate is the

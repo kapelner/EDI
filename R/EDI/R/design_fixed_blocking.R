@@ -184,7 +184,7 @@ DesignFixedBlocking = define_design_class(
 				self$assert_all_subjects_arrived()
 			}
 
-			strata_keys = private$get_strata_keys()
+			strata_keys = self$get_block_ids()
 
 			# Use randomizr::block_ra for canonical stratified blocking if available,
 			# or fallback to our C++ implementation.

@@ -202,7 +202,12 @@ InferenceSurvivalLogRank = define_inference_class(
 			row_weights = as.numeric(row_weights[keep])
 			surv_obj = survival::Surv(y, dead)
 			cox_null = tryCatch(
-				survival::coxph(surv_obj ~ 1, weights = row_weights),
+				# method = "breslow" to match fast_logrank_stats_cpp()'s cumulative hazard
+				# convention (d_all / risk_all per tied-time group, i.e. Nelson-Aalen);
+				# coxph()'s default "efron" tie-handling gives a genuinely different
+				# martingale residual under tied event times even for this null model
+				# (same fix as InferenceSurvivalGehanWilcox's weighted_peto_prentice_mean_difference()).
+				survival::coxph(surv_obj ~ 1, weights = row_weights, method = "breslow"),
 				error = function(e) NULL
 			)
 			if (is.null(cox_null)) return(NA_real_)

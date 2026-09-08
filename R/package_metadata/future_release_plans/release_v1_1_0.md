@@ -968,8 +968,8 @@ ticked in their **owning plans**; this list is the release index.
   assumption gates once both exist (the gate is optional for the pilot;
   the assumption-light fallback class is mandatory regardless).
   Externally: this is the scoped deliverable of the R Consortium ISC
-  proposal (`new_research_ideas/grants/RcISC/isc-proposal.qmd`; the
-  earlier `grant.tex` is now `grant_notes.tex`), re-scoped 2026-09-06 to
+  proposal (`new_research_ideas/grants/RcISC/isc_grant.qmd`; the
+  earlier LaTeX draft was deleted 2026-09-07), re-scoped 2026-09-06 to
   this widened Phase A and carrying no blinding claims.
 - [ ] TODO-17z: **`ModelDiagnostics` — declaration contract + pilot
   batteries** (moved from `release_v2_0_0.md → TODO-6g` on 2026-09-05,
@@ -1006,6 +1006,38 @@ ticked in their **owning plans**; this list is the release index.
   `clusterCall()`, hand-rederived once for `mcparallel` children).
   Independent of every other 1.1.0 item; no dependency on the decision
   batch.
+- [ ] TODO-19: **"Lock-and-key" (Design/Inference) metaphor rotated into
+  documentation** (added 2026-09-08, user decision; scope widened same day
+  to every doc surface; went through several narrowing/refinement rounds
+  same day, all user decisions, ending with "lego" dropped entirely):
+  `lock_key_metaphor.md` (renamed from `lego_metaphor.md`) → TODO-2..7.
+  Pure prose — no code, no public API, no tests. **Design = lock**
+  (capabilities fix at construction), **Inference = key** (declared
+  required capabilities are its cut teeth) — settled by
+  `InferenceSuite$run_all_inference()`'s one-lock-many-keys usage pattern.
+  Two confirmed gates: **warding** (`Design$applicable_inference_class_names()`'s
+  coarse metadata-only predicate, no object constructed) then **bitting**
+  (the fine `capabilities()`/`supports()` check); the **shear line** names
+  the all-or-nothing moment every declared capability must align
+  simultaneously (`get_effective_capabilities()`, no partial credit). Real
+  locksmith terms **bow** (key) / **housing** (lock) name the internal
+  parts (e.g. `likelihood_tier`) that are real but never checked by the
+  other side. Explicitly scoped: "turning the lock" means the pairing is
+  legal, not that there's one correct numeric answer — different valid
+  keys do independent work once inside, which is why
+  `run_all_inference()` reports multiple differing results by design.
+  Placements: `README.md` Highlights bullet (top-level only), `R/EDI/
+  vignettes/extending-edi.Rmd`'s "How EDI classes are built" section
+  (highest value — carries the full picture, mechanism already documented
+  there, unnamed), the pkgdown home (a second tagline, not the
+  keyword-optimized meta description), the `?EDI` package-level roxygen
+  block (`EDI.R`), `DESCRIPTION`'s `Description:` field (one plain factual
+  clause, not a slogan, given CRAN's plain-language expectation for that
+  field and the imminent submission — lowest-cost item to drop if a
+  reviewer flags it), and an optional `CITATION.cff`/`inst/CITATION`
+  mention if either has a natural free-text slot. Doc-only knit/parse
+  checks, not an `R CMD check`, no package rebuild; independent of every
+  other 1.1.0 item.
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

@@ -27,42 +27,59 @@
 #' removed).
 #'
 #' @format A named list. `exact_operations` contains keys of the form
-#'   `response_type||InferenceClass||operation`; every other element contains
-#'   formula-, dataset-, and design-independent concrete inference-class names
-#'   for the named slow-path family.
+#'   `response_type||InferenceClass||operation`, optionally suffixed with
+#'   `||model_formula` (e.g. `||~1`) to restrict the entry to that one
+#'   formula -- an operation with no formula suffix is skipped for every
+#'   formula, matching the pre-2026-09-08 behavior. `model_formula` is
+#'   matched as the deparsed formula text (`"~1"`, `"~."`, ...). Every other
+#'   element contains formula-, dataset-, and design-independent concrete
+#'   inference-class names for the named slow-path family.
 #' @seealso [InferenceSuite]
 #' @export
 EDI_COMPREHENSIVE_SLOW_PATHS = list(
 	exact_operations = c(
-		"count||InferenceCountHurdleNegBin||compute_rand_two_sided_pval",
-		"proportion||InferenceAllSimpleWilcox||compute_rand_confidence_interval",
 		"incidence||InferenceIncidKKCondLogitGLMMOneLik||compute_bayesian_bootstrap_two_sided_pval_bca",
-		"count||InferenceCountHurdleNegBin||compute_rand_two_sided_pval(delta=0.5)",
 		"ordinal||InferenceOrdinalKKGEE||compute_bootstrap_confidence_interval",
 		"ordinal||InferenceOrdinalKKGLMM||compute_lik_ratio_bartlett_two_sided_pval",
-		"survival||InferenceSurvivalWeibullRegr||compute_rand_two_sided_pval(delta=0.5)",
 		# Observed mean runtime >30 seconds in the 2026-09-02 comprehensive
 		# results. Exact entries intentionally collapse across design and formula.
 		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_rand_two_sided_pval(delta=0.5)",
 		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_bootstrap_confidence_interval",
-		"ordinal||InferenceOrdinalKKCLMMCauchit||compute_bootstrap_confidence_interval_studentized",
-		"survival||InferenceSurvivalLogRank||compute_rand_two_sided_pval(delta=0.5)",
 		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_bootstrap_confidence_interval_studentized",
 		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_rand_two_sided_pval",
 		"survival||InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||compute_rand_confidence_interval(custom)",
-		"continuous||InferenceAllSimpleAverageDiff||compute_m_out_of_n_bootstrap_confidence_interval",
 		"ordinal||InferenceOrdinalKKGLMM||compute_m_out_of_n_bootstrap_confidence_interval",
-		"ordinal||InferenceOrdinalGCompMeanDiff||compute_asymp_two_sided_pval",
-		"survival||InferenceSurvivalKKStratCoxPHOneLik||compute_rand_confidence_interval",
-		"proportion||InferencePropKKGLMM||compute_bayesian_bootstrap_confidence_interval_bca",
+		"proportion||InferencePropKKGLMM||compute_bayesian_bootstrap_confidence_interval_bca||~1",
 		"ordinal||InferenceOrdinalStereotypeLogitRegr||compute_jackknife_estimate",
 		# Observed mean runtime >30 seconds in the 2026-09-05 comprehensive
-		# results (frailty-normal rand p-values: mean ~70s, 80th pct ~84s,
-		# max ~115s over 238 runs each; PropKKGLMM BCa Bayesian-bootstrap
-		# p-value: mean 35s, 80th pct 49s, max 82s over 46 runs).
-		"survival||InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||compute_rand_two_sided_pval",
-		"survival||InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||compute_rand_two_sided_pval(delta=0.5)",
-		"proportion||InferencePropKKGLMM||compute_bayesian_bootstrap_two_sided_pval_bca"
+		# results (PropKKGLMM BCa Bayesian-bootstrap p-value: mean 35s, 80th
+		# pct 49s, max 82s over 46 runs). Formula-restricted to ~1 as of
+		# 2026-09-08 -- the ~. formula is fast (<0.15s) and was removed.
+		"proportion||InferencePropKKGLMM||compute_bayesian_bootstrap_two_sided_pval_bca||~1"
+		# 2026-09-08 recheck (COMPREHENSIVE_FORCE_SLOW_PATHS, 10 reps/design,
+		# all designs+formulas): removed 11 entries confirmed fast now --
+		# proportion/InferenceAllSimpleWilcox rand CI (max ~8.0s over 408
+		# runs), count/InferenceCountHurdleNegBin rand (both pval variants, max
+		# ~28s), survival/InferenceSurvivalWeibullRegr rand delta=0.5 (max
+		# ~4.6s), ordinal/InferenceOrdinalKKCLMMCauchit bootstrap CI
+		# studentized (max ~24s), survival/InferenceSurvivalLogRank rand
+		# delta=0.5 (max ~4.3s, was hours pre-optimization),
+		# continuous/InferenceAllSimpleAverageDiff m_out_of_n bootstrap CI
+		# (max ~2.8s), survival/InferenceSurvivalGLMMWeibullFrailtyNormalOneLik
+		# rand (both pval variants, max ~12.4s -- but the ...(custom) CI
+		# variant above is untouched, no fresh data for it). Two removals
+		# are weaker evidence, flagged at removal time and worth revisiting
+		# if they reappear as slow: ordinal/InferenceOrdinalGCompMeanDiff
+		# asymp pval collapses design/formula, and its SPBR-only mean was
+		# ~31s/max ~71s across 33 runs (fast on all 6 other designs, which
+		# diluted the pooled average -- may deserve a design-scoped skip
+		# instead of blanket removal); survival/InferenceSurvivalKKStratCoxPHOneLik
+		# rand CI produced zero matching calls in the recheck (method/label
+		# appears to no longer be invoked on this path) so its removal is
+		# unverified, not confirmed-fast. Same recheck also added the
+		# `||model_formula` exact_operations suffix (see @format above) so
+		# an entry can target one formula instead of collapsing both --
+		# used above to narrow the two PropKKGLMM entries to ~1 only.
 	),
 	bootstrap = c(
 		"InferenceContinRobustRegr",
@@ -150,8 +167,9 @@ validate_comprehensive_slow_path_rules = function(rules = EDI_COMPREHENSIVE_SLOW
 	valid_responses = c("continuous", "incidence", "proportion", "count", "survival", "ordinal")
 	bad_exact = vapply(
 		exact_parts,
-		function(parts) length(parts) != 3L || !(parts[[1L]] %in% valid_responses) ||
-			!grepl("^Inference[A-Za-z0-9]+$", parts[[2L]]) || !nzchar(parts[[3L]]),
+		function(parts) !(length(parts) %in% c(3L, 4L)) || !(parts[[1L]] %in% valid_responses) ||
+			!grepl("^Inference[A-Za-z0-9]+$", parts[[2L]]) || !nzchar(parts[[3L]]) ||
+			(length(parts) == 4L && !grepl("^~", parts[[4L]])),
 		logical(1L)
 	)
 	if (any(bad_exact)) {

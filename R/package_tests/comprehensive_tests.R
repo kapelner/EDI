@@ -112,7 +112,7 @@ TESTED_DESIGNS = c(
 	"FixedBinaryMatch",
 	"FixedMatchingGreedy"
 )
-DESIGN_TYPE_FILTER = if (length(args) >= 4) as.character(args[4]) else NA_character_
+DESIGN_TYPE_FILTER = if (length(args) >= 4 && args[4] != "NA") as.character(args[4]) else NA_character_
 if (!is.na(DESIGN_TYPE_FILTER) && !(DESIGN_TYPE_FILTER %in% ALL_DESIGN_TYPES)) {
 	stop(
 		"Unsupported design_type filter: ",
@@ -171,6 +171,11 @@ HEARTBEAT_GAP_THRESHOLD_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_HEARTBEAT_GAP
 test_compute_confidence_interval_rand = TRUE
 run_debug_resampling = Sys.getenv("COMPREHENSIVE_DEBUG_RESAMPLING", "0") %in% c("1", "true", "TRUE", "yes", "YES")
 run_parametric_bootstrap_ci = Sys.getenv("COMPREHENSIVE_PARAM_BOOT_CI", "0") %in% c("1", "true", "TRUE", "yes", "YES")
+# Opt-in escape hatch to re-time entries in EDI_COMPREHENSIVE_SLOW_PATHS: when
+# set, the registry-based per-rule skips below are neutralized so a filtered
+# invocation (RESPONSE_TYPE_FILTER/INFERENCE_CLASS_FILTER/TEST_FAMILY_FILTER)
+# actually executes the normally-skipped operation instead of skipping it.
+force_run_slow_paths = Sys.getenv("COMPREHENSIVE_FORCE_SLOW_PATHS", "0") %in% c("1", "true", "TRUE", "yes", "YES")
 param_boot_ci_max_root_iterations = 0L
 beta_T_values = c(0, 0.5)
 SD_NOISE = 0.1
@@ -908,14 +913,28 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		"InferencePropFractionalLogit",
 		"InferenceCountHurdleNegBin"
 	))
-	# Package-owned, public registry; formula-, dataset-, and design-independent.
+	# Package-owned, public registry; formula-, dataset-independent (an
+	# exact_operations entry may optionally restrict itself to one
+	# model_formula via a `||model_formula` suffix -- see
+	# EDI_COMPREHENSIVE_SLOW_PATHS' @format).
 	slow_skip_rules = comprehensive_slow_path_rules
 	is_slow_class_rule = function(rule){
-		is_exact_inference_class(slow_skip_rules[[rule]])
+		!force_run_slow_paths && is_exact_inference_class(slow_skip_rules[[rule]])
+	}
+	inference_model_formula_str = if (grepl(" \\(model_formula=", inference_base_label)) {
+		sub(".*\\(model_formula=([^)]*)\\).*", "\\1", inference_base_label)
+	} else {
+		NA_character_
 	}
 	is_slow_operation = function(function_run){
-		paste(response_type, inference_class_label, function_run, sep = "||") %in%
-			slow_skip_rules$exact_operations
+		if (force_run_slow_paths) return(FALSE)
+		key_base = paste(response_type, inference_class_label, function_run, sep = "||")
+		if (key_base %in% slow_skip_rules$exact_operations) return(TRUE)
+		if (!is.na(inference_model_formula_str)) {
+			key_with_formula = paste(key_base, inference_model_formula_str, sep = "||")
+			if (key_with_formula %in% slow_skip_rules$exact_operations) return(TRUE)
+		}
+		FALSE
 	}
 	skip_bootstrap_slow = is_slow_class_rule("bootstrap")
 	skip_rand_slow = is_slow_class_rule("rand")

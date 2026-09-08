@@ -55,6 +55,7 @@ Suggests:
     anticlust,
     blockTools,
     clinfun,
+    coin,
     dplyr,
     mirai,
     aftgee,

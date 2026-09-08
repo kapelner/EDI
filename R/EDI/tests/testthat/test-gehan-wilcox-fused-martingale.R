@@ -20,7 +20,12 @@ make_surv_data <- function(n, seed) {
 
 canonical_gehan_wilcox <- function(d) {
     surv_obj  <- survival::Surv(d$y, d$dead)
-    cox_null  <- survival::coxph(surv_obj ~ 1)
+    # method = "breslow": fast_gehan_wilcox_stats_cpp() accumulates cumulative hazard
+    # as d_all / risk_all per tied-time group (Nelson-Aalen), which only matches
+    # coxph()'s martingale residuals under method = "breslow", not the "efron" default
+    # (the two agree here only because make_surv_data() uses rexp(), which essentially
+    # never ties -- pin the method so this reference stays correct under ties too).
+    cox_null  <- survival::coxph(surv_obj ~ 1, method = "breslow")
     M         <- as.numeric(residuals(cox_null, type = "martingale"))
     km_all    <- survival::survfit(surv_obj ~ 1)
     idx       <- findInterval(d$y, km_all$time, left.open = TRUE)
@@ -99,4 +104,46 @@ test_that("InferenceSurvivalGehanWilcox estimate/pval match canonical survival::
 
     expect_equal(est, ref$beta_hat, tolerance = 1e-8)
     expect_equal(pv,  ref_pval,     tolerance = 1e-8)
+})
+
+test_that("compute_estimate_with_bootstrap_weights(uniform weights) matches compute_estimate() under tied event times", {
+    # fast_gehan_wilcox_stats_cpp() (compute_estimate()'s path) accumulates the
+    # cumulative hazard as d_all / risk_all per tied-time group -- the Breslow/
+    # Nelson-Aalen convention, with no per-tie sequential risk-set depletion.
+    # weighted_peto_prentice_mean_difference() (compute_estimate_with_bootstrap_weights()'s
+    # path) calls survival::coxph(~1, weights = ...) without pinning `method`, which
+    # defaults to "efron" -- a genuinely different martingale residual under ties (verified:
+    # coxph(method = "efron") vs coxph(method = "breslow") differ whenever any event time
+    # has >1 death). All other coverage in this file uses rexp()-generated times, which are
+    # essentially never tied, so this divergence was previously unexercised.
+    n <- 10L
+    des <- DesignSeqOneByOneBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
+    for (i in seq_len(n)) {
+        des$add_one_subject_to_experiment_and_assign(data.frame(x1 = i / 10))
+    }
+    des$overwrite_all_subject_assignments(rep(c(0, 1), length.out = n))
+    y    <- c(1, 2, 2, 2, 3, 3, 4, 5, 5, 6)
+    dead <- c(1, 1, 1, 0, 1, 1, 0, 1, 1, 1)
+    y_exact <- ifelse(dead == 1, y, NA_real_)
+    y_L <- ifelse(dead == 1, NA_real_, y)
+    y_R <- ifelse(dead == 1, NA_real_, Inf)
+    des$add_all_subject_responses(y_exact, y_L, y_R)
+
+    # Two independent instances -- compute_shared()'s cache guard means calling
+    # compute_estimate_with_bootstrap_weights() then compute_estimate() on the SAME
+    # instance just returns the already-cached bootstrap value the second time
+    # (short-circuiting the C++ recomputation), silently making that comparison a
+    # tautology. Isolate each code path in its own instance instead.
+    inf_cpp <- InferenceSurvivalGehanWilcox$new(des)
+    est_cpp <- as.numeric(inf_cpp$compute_estimate())
+
+    inf_r <- InferenceSurvivalGehanWilcox$new(des)
+    inf_r$.__enclos_env__$private$current_bayesian_bootstrap_context <- list(
+        row_to_unit = seq_len(n),
+        unit_group_id = rep(1L, n),
+        n_units = n
+    )
+    est_r <- as.numeric(inf_r$compute_estimate_with_bootstrap_weights(rep(1, n)))
+
+    expect_equal(est_r, est_cpp, tolerance = 1e-8)
 })

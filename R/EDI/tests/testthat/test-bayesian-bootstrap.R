@@ -81,6 +81,11 @@ test_that("weighted log-binomial hook returns a finite estimate and matches equa
 	des = make_seq_design_for_bayes_boot("incidence", c(0L, 1L, 0L, 1L, 1L, 0L, 1L, 0L))
 	inf = InferenceIncidLogBinomial$new(des)
 	n = des$get_n()
+	# compute_estimate() first and captured, not re-called after the bootstrap-weights
+	# call: compute_shared()'s cache guard means a *second* compute_estimate() call on
+	# this same instance would just return the already-cached bootstrap-weighted value,
+	# making the comparison a tautology instead of an actual cross-check.
+	est = as.numeric(inf$compute_estimate())
 	inf$.__enclos_env__$private$current_bayesian_bootstrap_context = list(
 		row_to_unit = seq_len(n),
 		unit_group_id = rep(1L, n),
@@ -88,17 +93,16 @@ test_that("weighted log-binomial hook returns a finite estimate and matches equa
 	)
 	weighted_est = inf$compute_estimate_with_bootstrap_weights(rep(1, n))
 	expect_true(is.finite(as.numeric(weighted_est)))
-	expect_equal(
-		as.numeric(weighted_est),
-		as.numeric(inf$compute_estimate()),
-		tolerance = 1e-6
-	)
+	expect_equal(as.numeric(weighted_est), est, tolerance = 1e-6)
 })
 
 test_that("weighted fractional-logit hook returns a finite estimate and matches equal weights", {
 	des = make_seq_design_for_bayes_boot("proportion", c(0.1, 0.8, 0.2, 0.7, 0.6, 0.3, 0.9, 0.4))
 	inf = InferencePropFractionalLogit$new(des)
 	n = des$get_n()
+	# See the log-binomial test above for why compute_estimate() must be captured
+	# before, not after, the bootstrap-weights call.
+	est = as.numeric(inf$compute_estimate())
 	inf$.__enclos_env__$private$current_bayesian_bootstrap_context = list(
 		row_to_unit = seq_len(n),
 		unit_group_id = rep(1L, n),
@@ -106,11 +110,7 @@ test_that("weighted fractional-logit hook returns a finite estimate and matches 
 	)
 	weighted_est = inf$compute_estimate_with_bootstrap_weights(rep(1, n))
 	expect_true(is.finite(as.numeric(weighted_est)))
-	expect_equal(
-		as.numeric(weighted_est),
-		as.numeric(inf$compute_estimate()),
-		tolerance = 1e-6
-	)
+	expect_equal(as.numeric(weighted_est), est, tolerance = 1e-6)
 })
 
 test_that("additional near-term weighted hooks return finite estimates and recover equal weights when practical", {
@@ -122,21 +122,19 @@ test_that("additional near-term weighted hooks return finite estimates and recov
 	inf_nb$.__enclos_env__$private$current_bayesian_bootstrap_context = ctx_count
 	expect_true(is.finite(as.numeric(inf_nb$compute_estimate_with_bootstrap_weights(rep(1, n_count)))))
 
+	# compute_estimate() captured before the bootstrap-weights call in each case below:
+	# calling it again afterward on the same instance would just return the cached
+	# bootstrap-weighted value (compute_shared()'s cache guard), making the comparison
+	# a tautology instead of an actual cross-check.
 	inf_qp = InferenceCountQuasiPoisson$new(des_count)
+	est_qp = as.numeric(inf_qp$compute_estimate())
 	inf_qp$.__enclos_env__$private$current_bayesian_bootstrap_context = ctx_count
-	expect_equal(
-		as.numeric(inf_qp$compute_estimate_with_bootstrap_weights(rep(1, n_count))),
-		as.numeric(inf_qp$compute_estimate()),
-		tolerance = 1e-6
-	)
+	expect_equal(as.numeric(inf_qp$compute_estimate_with_bootstrap_weights(rep(1, n_count))), est_qp, tolerance = 1e-6)
 
 	inf_rp = InferenceCountRobustPoisson$new(des_count)
+	est_rp = as.numeric(inf_rp$compute_estimate())
 	inf_rp$.__enclos_env__$private$current_bayesian_bootstrap_context = ctx_count
-	expect_equal(
-		as.numeric(inf_rp$compute_estimate_with_bootstrap_weights(rep(1, n_count))),
-		as.numeric(inf_rp$compute_estimate()),
-		tolerance = 1e-6
-	)
+	expect_equal(as.numeric(inf_rp$compute_estimate_with_bootstrap_weights(rep(1, n_count))), est_rp, tolerance = 1e-6)
 
 	des_incid = make_seq_design_for_bayes_boot("incidence", c(0L, 1L, 0L, 1L, 1L, 0L, 1L, 0L))
 	n_incid = des_incid$get_n()
@@ -196,21 +194,17 @@ test_that("remaining near-term weighted hooks return finite estimates", {
 	n_incid = des_incid$get_n()
 	ctx_incid = list(row_to_unit = seq_len(n_incid), unit_group_id = rep(1L, n_incid), n_units = n_incid)
 
+	# compute_estimate() captured before the bootstrap-weights call -- see the
+	# "additional near-term weighted hooks" comment above for why the order matters.
 	inf_new = InferenceIncidNewcombeRiskDiff$new(des_incid)
+	est_new = as.numeric(inf_new$compute_estimate())
 	inf_new$.__enclos_env__$private$current_bayesian_bootstrap_context = ctx_incid
-	expect_equal(
-		as.numeric(inf_new$compute_estimate_with_bootstrap_weights(rep(1, n_incid))),
-		as.numeric(inf_new$compute_estimate()),
-		tolerance = 1e-8
-	)
+	expect_equal(as.numeric(inf_new$compute_estimate_with_bootstrap_weights(rep(1, n_incid))), est_new, tolerance = 1e-8)
 
 	inf_mn = InferenceIncidMiettinenNurminenRiskDiff$new(des_incid)
+	est_mn = as.numeric(inf_mn$compute_estimate())
 	inf_mn$.__enclos_env__$private$current_bayesian_bootstrap_context = ctx_incid
-	expect_equal(
-		as.numeric(inf_mn$compute_estimate_with_bootstrap_weights(rep(1, n_incid))),
-		as.numeric(inf_mn$compute_estimate()),
-		tolerance = 1e-8
-	)
+	expect_equal(as.numeric(inf_mn$compute_estimate_with_bootstrap_weights(rep(1, n_incid))), est_mn, tolerance = 1e-8)
 
 	des_prop = make_seq_design_for_bayes_boot("proportion", c(0, 1, 0.2, 0.7, 0.6, 0.3, 0.9, 0.4))
 	n_prop = des_prop$get_n()
@@ -225,6 +219,9 @@ test_that("weighted identity-binomial hook returns a finite estimate and matches
 	des = make_seq_design_for_bayes_boot("incidence", c(0L, 1L, 0L, 1L, 1L, 0L, 1L, 0L))
 	inf = InferenceIncidBinomialIdentityRiskDiff$new(des)
 	n = des$get_n()
+	# compute_estimate() captured before the bootstrap-weights call -- see the
+	# "additional near-term weighted hooks" comment above for why the order matters.
+	est = as.numeric(inf$compute_estimate())
 	inf$.__enclos_env__$private$current_bayesian_bootstrap_context = list(
 		row_to_unit = seq_len(n),
 		unit_group_id = rep(1L, n),
@@ -232,11 +229,7 @@ test_that("weighted identity-binomial hook returns a finite estimate and matches
 	)
 	weighted_est = inf$compute_estimate_with_bootstrap_weights(rep(1, n))
 	expect_true(is.finite(as.numeric(weighted_est)))
-	expect_equal(
-		as.numeric(weighted_est),
-		as.numeric(inf$compute_estimate()),
-		tolerance = 1e-6
-	)
+	expect_equal(as.numeric(weighted_est), est, tolerance = 1e-6)
 })
 
 test_that("Bayesian bootstrap smoke test runs on a stable first-wave family", {
@@ -296,33 +289,32 @@ test_that("next-wave weighted hooks return finite estimates on simple and g-comp
 })
 
 test_that("selected second-wave weighted hooks recover unweighted estimates under equal weights", {
+	# compute_estimate() is captured in a local variable BEFORE each bootstrap-weights
+	# call, not re-called afterward on the same instance: compute_shared()'s cache guard
+	# means a second compute_estimate() call would just return the already-cached
+	# bootstrap-weighted value, making the comparison a tautology instead of an actual
+	# cross-check against the C++/asymptotic point-estimate path.
 	des_ols = make_seq_design_for_bayes_boot("continuous", c(0, 1, 2, 3, 4, 5, 6, 7))
 	inf_ols = InferenceContinOLS$new(des_ols)
 	n_ols = des_ols$get_n()
+	est_ols = as.numeric(inf_ols$compute_estimate())
 	inf_ols$.__enclos_env__$private$current_bayesian_bootstrap_context = list(
 		row_to_unit = seq_len(n_ols),
 		unit_group_id = rep(1L, n_ols),
 		n_units = n_ols
 	)
-	expect_equal(
-		as.numeric(inf_ols$compute_estimate_with_bootstrap_weights(rep(1, n_ols))),
-		as.numeric(inf_ols$compute_estimate()),
-		tolerance = 1e-8
-	)
+	expect_equal(as.numeric(inf_ols$compute_estimate_with_bootstrap_weights(rep(1, n_ols))), est_ols, tolerance = 1e-8)
 
 	des_lin = make_seq_design_for_bayes_boot("continuous", c(0, 1, 1.5, 2.5, 4, 5, 5.5, 7))
 	inf_lin = InferenceContinLin$new(des_lin)
 	n_lin = des_lin$get_n()
+	est_lin = as.numeric(inf_lin$compute_estimate())
 	inf_lin$.__enclos_env__$private$current_bayesian_bootstrap_context = list(
 		row_to_unit = seq_len(n_lin),
 		unit_group_id = rep(1L, n_lin),
 		n_units = n_lin
 	)
-	expect_equal(
-		as.numeric(inf_lin$compute_estimate_with_bootstrap_weights(rep(1, n_lin))),
-		as.numeric(inf_lin$compute_estimate()),
-		tolerance = 1e-8
-	)
+	expect_equal(as.numeric(inf_lin$compute_estimate_with_bootstrap_weights(rep(1, n_lin))), est_lin, tolerance = 1e-8)
 
 	des_surv = make_survival_design_for_bayes_boot(
 		y = c(1.2, 2.4, 1.8, 3.1, 2.7, 4.0, 3.3, 4.5),
@@ -336,20 +328,14 @@ test_that("selected second-wave weighted hooks recover unweighted estimates unde
 	)
 
 	inf_logrank = InferenceSurvivalLogRank$new(des_surv)
+	est_logrank = as.numeric(inf_logrank$compute_estimate())
 	inf_logrank$.__enclos_env__$private$current_bayesian_bootstrap_context = ctx_surv
-	expect_equal(
-		as.numeric(inf_logrank$compute_estimate_with_bootstrap_weights(rep(1, n_surv))),
-		as.numeric(inf_logrank$compute_estimate()),
-		tolerance = 1e-8
-	)
+	expect_equal(as.numeric(inf_logrank$compute_estimate_with_bootstrap_weights(rep(1, n_surv))), est_logrank, tolerance = 1e-8)
 
 	inf_gehan = InferenceSurvivalGehanWilcox$new(des_surv)
+	est_gehan = as.numeric(inf_gehan$compute_estimate())
 	inf_gehan$.__enclos_env__$private$current_bayesian_bootstrap_context = ctx_surv
-	expect_equal(
-		as.numeric(inf_gehan$compute_estimate_with_bootstrap_weights(rep(1, n_surv))),
-		as.numeric(inf_gehan$compute_estimate()),
-		tolerance = 1e-8
-	)
+	expect_equal(as.numeric(inf_gehan$compute_estimate_with_bootstrap_weights(rep(1, n_surv))), est_gehan, tolerance = 1e-8)
 })
 
 test_that("selected ordinal and survival second-wave hooks return finite weighted estimates", {
@@ -406,13 +392,12 @@ test_that("ordinal likelihood-gap weighted hooks are finite and exact empirical 
 		expect_true(is.finite(as.numeric(inf$compute_estimate_with_bootstrap_weights(rep(1, n_ord)))))
 	}
 
+	# compute_estimate() captured before the bootstrap-weights call in both cases below --
+	# see the "selected second-wave weighted hooks" comment for why the order matters.
 	inf_ridit = InferenceOrdinalRidit$new(des_ord)
+	est_ridit = as.numeric(inf_ridit$compute_estimate())
 	inf_ridit$.__enclos_env__$private$current_bayesian_bootstrap_context = ctx_ord
-	expect_equal(
-		as.numeric(inf_ridit$compute_estimate_with_bootstrap_weights(rep(1, n_ord))),
-		as.numeric(inf_ridit$compute_estimate()),
-		tolerance = 1e-8
-	)
+	expect_equal(as.numeric(inf_ridit$compute_estimate_with_bootstrap_weights(rep(1, n_ord))), est_ridit, tolerance = 1e-8)
 
 	des_kk_ord = make_kk_design_for_weighted_bayes_boot("ordinal", c(1L, 2L, 2L, 3L, 3L, 4L, 4L, 5L))
 	n_kk_ord = des_kk_ord$get_n()
@@ -422,12 +407,9 @@ test_that("ordinal likelihood-gap weighted hooks are finite and exact empirical 
 		n_units = n_kk_ord
 	)
 	inf_sign = InferenceOrdinalPairedSignTest$new(des_kk_ord, verbose = FALSE)
+	est_sign = as.numeric(inf_sign$compute_estimate())
 	inf_sign$.__enclos_env__$private$current_bayesian_bootstrap_context = ctx_kk_ord
-	expect_equal(
-		as.numeric(inf_sign$compute_estimate_with_bootstrap_weights(rep(1, n_kk_ord))),
-		as.numeric(inf_sign$compute_estimate()),
-		tolerance = 1e-8
-	)
+	expect_equal(as.numeric(inf_sign$compute_estimate_with_bootstrap_weights(rep(1, n_kk_ord))), est_sign, tolerance = 1e-8)
 })
 
 test_that("next-wave weighted hooks return finite estimates on KK GEE paths", {

@@ -436,6 +436,20 @@ along the way; this also closed release amendment 11's decision gate.
    expanded — only the TODO's function name was stale.
 3. `fix_roxygenize_lazy_component_srcrefs.md → R CMD check TODO` — after the
    first large doc batch, and again after Phase 1D.4 (Base Deletion).
+4. `lock_key_metaphor.md` (renamed from `lego_metaphor.md`) → TODO-2..7
+   (added 2026-09-08, user decision; scope widened same day to every doc
+   surface incl. `DESCRIPTION`; went through several rounds of narrowing
+   same day, all user decisions, ending with "lego" dropped entirely) —
+   **Design = lock, Inference = key**, settled by
+   `InferenceSuite$run_all_inference()`'s one-lock-many-keys pattern; two
+   confirmed gates (warding = coarse metadata predicate, bitting = the fine
+   capability check) and the shear line (all-or-nothing capability match);
+   "bow"/"housing" name the internal parts (e.g. `likelihood_tier`) neither
+   side inspects; explicitly scoped so "turning the lock" means the
+   pairing is legal, never that it hands you a single correct estimate —
+   self-description across README/vignette/pkgdown/`?EDI`/`DESCRIPTION`/
+   CITATION. Release index: `release_v1_1_0.md → TODO-19`. Independent of
+   every other Phase 3 item.
 
 ---
 
@@ -838,7 +852,7 @@ already stated there:**
   incidence, the workflow + the test + provenance + CI inversion
   (post-grant, paired with the Garthwaite–Buckland driver — 2026-09-07) +
   simulation study) is v1.1.0 — and the scoped deliverable of the R
-  Consortium ISC proposal (`new_research_ideas/grants/RcISC/isc-proposal.qmd`,
+  Consortium ISC proposal (`new_research_ideas/grants/RcISC/isc_grant.qmd`,
   re-scoped 2026-09-06 to this widened Phase A, no blinding claims) — while Phase B
   narrows to just the remaining response types, with an open question
   (not yet resolved) whether that remainder still belongs in 2.0.0 or

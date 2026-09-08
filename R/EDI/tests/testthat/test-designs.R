@@ -130,6 +130,24 @@ test_that("Design asserts equal block sizes", {
 	expect_error(des_bad$assert_equal_block_sizes(), "same number of subjects")
 })
 
+test_that("DesignFixedBlocking draw_ws_raw() randomizes within the explicit m blocks, not covariate-derived strata", {
+	n <- 20L
+	m_blocks <- c(rep(1L, 10L), rep(2L, 10L))
+
+	des <- DesignFixedBlocking$new(n = n, response_type = "incidence", m = m_blocks)
+	expect_identical(des$get_block_ids(), m_blocks)
+
+	# x1 is unrelated to the explicit blocks; if draw_ws_raw() ignored m and
+	# stratified on covariates instead, treated counts within m's blocks would vary.
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	expect_identical(des$get_block_ids(), m_blocks)
+
+	W <- des$draw_ws_according_to_design(r = 50L)
+	expect_equal(dim(W), c(n, 50L))
+	expect_true(all(colSums(W[1:10, , drop = FALSE]) == 5))
+	expect_true(all(colSums(W[11:20, , drop = FALSE]) == 5))
+})
+
 test_that("DesignFixedBlocking exact_num_blocks hard-fails when the greedy builder misses the target", {
 	des <- DesignFixedBlocking$new(
 		strata_cols = "stratum",

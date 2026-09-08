@@ -30,7 +30,11 @@ test_that("logrank beta_hat and se_beta_hat match coxph martingale residuals", {
     res <- EDI:::fast_logrank_stats_cpp(d$w, d$y, d$dead)
 
     df  <- data.frame(time = d$y, status = d$dead)
-    fit <- survival::coxph(survival::Surv(time, status) ~ 1, data = df)
+    # method = "breslow": fast_logrank_stats_cpp() accumulates cumulative hazard as
+    # d_all / risk_all per tied-time group (Nelson-Aalen), which only matches coxph()'s
+    # martingale residuals under method = "breslow", not the "efron" default (the two
+    # agree here only because make_surv_data() uses rexp(), which essentially never ties).
+    fit <- survival::coxph(survival::Surv(time, status) ~ 1, data = df, method = "breslow")
     m   <- residuals(fit, type = "martingale")
 
     beta_ref <- mean(m[d$w == 1]) - mean(m[d$w == 0])
@@ -63,4 +67,43 @@ test_that("logrank output matches across multiple seeds", {
         expect_equal(res$var_score, sd$var[2, 2],           tolerance = 1e-10,
                      label = paste("var_score seed", seed))
     }
+})
+
+test_that("compute_estimate_with_bootstrap_weights(uniform weights) matches compute_estimate() under tied event times", {
+    # Same tie-handling mismatch as InferenceSurvivalGehanWilcox (see
+    # test-gehan-wilcox-fused-martingale.R): fast_logrank_stats_cpp() (compute_estimate()'s
+    # path) accumulates cumulative hazard as d_all / risk_all per tied-time group (Breslow/
+    # Nelson-Aalen), while weighted_logrank_mean_difference() (compute_estimate_with_bootstrap_weights()'s
+    # path) called survival::coxph(~1, weights = ...) without pinning `method`, defaulting to
+    # "efron" -- a genuinely different martingale residual under ties. Unexercised by the rest
+    # of this file because make_surv_data() uses rexp(), which essentially never ties.
+    n <- 10L
+    des <- DesignSeqOneByOneBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
+    for (i in seq_len(n)) {
+        des$add_one_subject_to_experiment_and_assign(data.frame(x1 = i / 10))
+    }
+    des$overwrite_all_subject_assignments(rep(c(0, 1), length.out = n))
+    y    <- c(1, 2, 2, 2, 3, 3, 4, 5, 5, 6)
+    dead <- c(1, 1, 1, 0, 1, 1, 0, 1, 1, 1)
+    y_exact <- ifelse(dead == 1, y, NA_real_)
+    y_L <- ifelse(dead == 1, NA_real_, y)
+    y_R <- ifelse(dead == 1, NA_real_, Inf)
+    des$add_all_subject_responses(y_exact, y_L, y_R)
+
+    # Two independent instances -- compute_shared()'s cache guard means calling
+    # compute_estimate_with_bootstrap_weights() then compute_estimate() on the SAME
+    # instance just returns the already-cached bootstrap value the second time,
+    # silently making that comparison a tautology. Isolate each code path in its own instance.
+    inf_cpp <- InferenceSurvivalLogRank$new(des)
+    est_cpp <- as.numeric(inf_cpp$compute_estimate())
+
+    inf_r <- InferenceSurvivalLogRank$new(des)
+    inf_r$.__enclos_env__$private$current_bayesian_bootstrap_context <- list(
+        row_to_unit = seq_len(n),
+        unit_group_id = rep(1L, n),
+        n_units = n
+    )
+    est_r <- as.numeric(inf_r$compute_estimate_with_bootstrap_weights(rep(1, n)))
+
+    expect_equal(est_r, est_cpp, tolerance = 1e-8)
 })

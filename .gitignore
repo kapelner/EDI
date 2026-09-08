@@ -77,6 +77,7 @@ vignettes/*.pdf
 
 local_R_lib/*
 R/package_tests/comprehensive_tests_results_nc_*.csv
+R/package_tests/comprehensive_tests_results_nc_1_*.csv.pre_anomaly_fix_removal.bak
 .codex
 R/package_tests/.~lock*
 benchmark_lrt_ci_nr.R
@@ -132,6 +133,7 @@ grammars/*
 rules/*
 R/package_tests/comprehensive_tests_*.log
 R/package_tests/comprehensive_tests_results_*.csv.bak_pre_theta_fix
+R/package_tests/slow_path_recheck/
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 graft/

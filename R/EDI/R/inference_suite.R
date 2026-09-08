@@ -762,6 +762,11 @@ run_all_inference_task_is_comprehensive_slow_path = function(task, response_type
 	}
 	exact_keys = paste(response_type, cls, unique(operation_names), sep = "||")
 	if (any(exact_keys %in% rules$exact_operations)) return(TRUE)
+	if (!is.null(task$model_formula)) {
+		model_formula_str = paste(deparse(task$model_formula), collapse = " ")
+		exact_keys_with_formula = paste(exact_keys, model_formula_str, sep = "||")
+		if (any(exact_keys_with_formula %in% rules$exact_operations)) return(TRUE)
+	}
 
 	family_slow = switch(
 		method,
