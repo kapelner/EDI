@@ -72,6 +72,17 @@ getFromNamespace("validate_comprehensive_slow_path_rules", "EDI")(
 # exclusion the capability system already independently agrees with
 # (get_effective_capabilities() already omits nonparametric_bootstrap/
 # randomization_test for them), making the hardcoded skip fully redundant.
+#
+# Second pass same day, after force-running the remainder via
+# COMPREHENSIVE_FORCE_SLOW_PATHS=1 and reading source: removed
+# InferenceOrdinalPairedSignTest from `rand` and emptied `jackknife_exclude`
+# (its sole member, InferenceCountKKGLMM) -- both confirmed by direct probe
+# to run clean and fast (sub-second, no errors) when forced, so the
+# exclusion was copy-paste-along debt, not a real fact. (PairedSignTest's
+# own bootstrap/jackknife methods DO have a genuine hard stop() for
+# matched-pair resampling -- that entry stays in `bootstrap` -- but its
+# randomization inference permutes assignment rather than resampling
+# subjects, so it was never actually broken for `rand`.)
 ADDITIONAL_TEST_SLOW_PATHS = list(
 	# Gates the whole nonparametric-bootstrap family (plain, BRT, and
 	# Bayesian bootstrap all key off this) -- consumed via
@@ -95,7 +106,6 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# pval/CI, custom pval/CI) -- consumed via is_any_inference_class().
 	rand = c(
 		"InferencePropGCompMeanDiff",
-		"InferenceOrdinalPairedSignTest",
 		"InferenceOrdinalKKCondAdjCatLogitRegr",
 		"InferenceOrdinalGCompMeanDiff",
 		"InferenceOrdinalCloglogRegr",
@@ -131,7 +141,7 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	rand_ci_custom = c("InferenceContinKKRobustRegrOneLik", "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"), # custom rand CI slow: robust avg 336.6s / max 1994.8s at n=6; Clayton avg 41.9s / max 1993.3s at n=53
 	# Hard-excluded from jackknife despite otherwise qualifying -- consumed
 	# via is_any_inference_class().
-	jackknife_exclude = c("InferenceCountKKGLMM"),
+	jackknife_exclude = character(),
 	# Always gets bootstrap-randomization (BRT) methods regardless of the
 	# RUN_BRT CLI flag -- consumed via is_exact_inference_class().
 	always_run_brt = c("InferenceIncidLogBinomial"),
