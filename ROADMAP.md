@@ -85,6 +85,24 @@ needs.
   complementing the existing Cauchy combination test, which answers only
   "does at least one detect a signal." (The decision-gated formal
   order-statistic test, Stage 2, moved to v1.4.0.)
+- **[Design/inference dependence-structure guard](R/package_metadata/new_feature_plans/design_inference_dependence_guard.md)** —
+  discovery currently only checks whether a design gives a class structure
+  it *requires*, never whether the design imposes dependence (blocking,
+  matched pairs, clustering) a class's Wald-path variance ignores. Tiered,
+  not a blanket gate: exact randomization-based (`ci_method = "rand"`)
+  inference is unaffected (the design's own re-randomization already
+  respects the structure); a linear-contrast class (plain mean/risk
+  difference) ignoring blocking or matching only ever gets *conservative*
+  SEs and stays in the default comparison (a different estimand isn't
+  redundancy — that's the suite's own "many valid keys" design), now with
+  a real, throttled `warning()` plus a results-table flag instead of
+  silence; a nonlinear-link class
+  (e.g. logistic regression) ignoring blocking/matching, or any class
+  ignoring clustering, risks a genuinely understated SE and is hard-gated
+  behind an explicit acknowledgment on its Wald-path methods, steered
+  toward the already-correct KK pair family for matched pairs. Companion
+  to the cluster-robust GLMM/GEE track below, which supplies the corrected
+  general-clustering alternative this guard cannot yet recommend.
 
 ### Honest inference after model selection
 
@@ -515,10 +533,6 @@ remainder.
   half at full alpha; needs real `Design`-level splitting (thorny for
   matching-on-the-fly designs), which is why it is 2.0.0 scope. Data
   carving is gated on the measured power cost.
-- **[E-values / safe testing](R/package_metadata/new_feature_plans/e_value_safe_testing.md)** —
-  a validity framework whose evidence combination stays valid even when
-  models are added adaptively, unlike any fixed-weight p-value
-  combination; staged from a likelihood-ratio pilot subset.
 
 ### Backends and bindings
 

@@ -1,5 +1,22 @@
 # E-Values / Safe Testing as an Adaptive-Robust Alternative to Combined Evidence
 
+> **SHELVED 2026-09-09 (user decision, resolving TODO-1 as "no").** This
+> plan's entire justification is the adaptive-inclusion property (see
+> "Why" below), but `InferenceSuite`'s `applicable_design_classes` is
+> discovered structurally and fit once — EDI's workflow never adds
+> candidate models mid-stream, and no such interaction mode is planned.
+> Without that use case, Stage 1 (the only buildable part) is conceded in
+> its own text to be "a valid (if likely less powerful in the fixed-set
+> case) alternative to CCT" — i.e. strictly worse than what's already
+> shipped, for no compensating benefit. Stages 2-3 (the actual payoff)
+> were already gated on "real user demand for the adaptive use case,"
+> which doesn't exist. Kept here as a record of the idea, not an active
+> plan; revisit only if EDI grows a genuine interim-look/group-sequential
+> workflow (stopping or adding candidates based on partial data), at
+> which point e-values would become the only valid combiner. Removed from
+> `release_v2_0_0.md → TODO-6f` (see that file), `_master.md § 5AG`, and
+> `ROADMAP.md`.
+>
 > **Depends on:** nothing existing architecturally, but is itself a
 > substantial architectural shift — every `Inference` class would need to
 > produce an e-value alongside its p-value, not a post-process over
@@ -7,7 +24,8 @@
 > `model_averaged_estimand_report.md`/`multiplicity_adjusted_results_table.md`
 > (v1.x) are. Comparable in scope to `sample_splitting_model_selection.md`
 > and `selective_inference_post_selection.md`'s broader-rollout stages.
-> **Release target: v2.0.0** (`release_v2_0_0.md → TODO-6f`).
+> ~~**Release target: v2.0.0** (`release_v2_0_0.md → TODO-6f`).~~ Shelved,
+> see above.
 
 Written 2026-08-30.
 
@@ -118,9 +136,11 @@ already-computed `results_table`), this needs new output from **every**
 
 ## TODOs
 
-- [ ] TODO-1: Phase 0 decision (research-heavy) — triage the registry by
+- [x] TODO-1: Phase 0 decision (research-heavy) — triage the registry by
   which classes' existing likelihood-ratio machinery yields a cheap e-value;
-  pick the Stage 1 pilot subset.
+  pick the Stage 1 pilot subset. **Decided "no" 2026-09-09 (user decision)
+  — see the SHELVED note at the top of this file. TODOs 2-6 below are moot
+  and not being pursued.**
 - [ ] TODO-2: Derive and implement e-values for the pilot subset;
   `combined_evidence$e_value` (simple-average combination) as an opt-in
   alongside `combined_evidence$pval`, under the existing fixed-candidate-set

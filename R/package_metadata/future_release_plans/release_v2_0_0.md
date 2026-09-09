@@ -272,21 +272,14 @@ against; they are additive on the design factory but are treated as a
   item like its sibling plans. Stage 1 (plain splitting) is the tractable
   first cut; Stage 2 (data carving, Fithian/Sun/Taylor 2014) is gated on
   Stage 1's measured power cost.
-- [ ] TODO-6f: **E-values / safe testing for `InferenceSuite`** (added
-  2026-08-30): `e_value_safe_testing.md → TODO-1..6` — a genuinely different
-  validity framework from p-values (Vovk & Wang 2021; Grünwald, de Heide &
-  Koolen 2024's "safe testing"), combining by simple averaging and remaining
-  valid under *adaptive* stopping/inclusion of more tests, unlike
-  fixed-weight CCT (`combined_evidence$pval`, v1.0.0) or any other plan in
-  this family. The most direct structural answer to "is the combined
-  evidence gameable by adding more models" — not "the current fixed
-  candidate set happens to protect against it" but "the combination rule
-  itself stays valid even if the set grows adaptively." Substantial lift:
-  every `Inference` class needs its own e-value (cheap where a
-  likelihood-ratio route exists via existing `likelihood_tier = "full"`
-  machinery; a new construction needed for bootstrap/randomization
-  procedures) — staged, starting with a pilot subset before any adaptive-
-  inclusion workflow is attempted.
+- [ ] TODO-6f: **SHELVED** (2026-09-09, user decision, resolving the plan's
+  TODO-1 as "no"). `e_value_safe_testing.md` — its sole justification was
+  surviving *adaptive* mid-stream inclusion of more candidate models, but
+  `applicable_design_classes` is discovered structurally and fit once;
+  EDI's workflow never adds candidates mid-stream and none is planned.
+  Without that use case the plan's own Stage 1 is conceded to be a valid
+  but strictly less powerful alternative to CCT, for no benefit. Nothing
+  remains here; the plan doc is kept as a record, not an active item.
 - [ ] TODO-6g: **MOVED to v1.1.0 → `TODO-17z`** (2026-09-05, user
   decision, resolving the plan's TODO-1(e)). `ModelDiagnostics`' checks
   are in-sample and need no fold/split substrate, so the declaration

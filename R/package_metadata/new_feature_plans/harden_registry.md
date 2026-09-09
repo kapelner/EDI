@@ -208,6 +208,68 @@ needs its own dedicated scoping pass** (same posture
 ready to commit to yet) before concrete TODOs can be written. Recommend
 running that pass as a follow-up to this plan, not inside it.
 
+**One class already fully worked, as a cautionary template for that pass:**
+`InferenceOrdinalPairedSignTest`'s `bootstrap` entry (removed from
+`ADDITIONAL_TEST_SLOW_PATHS` 2026-09-08, see `comprehensive_tests.R`'s
+inline comment above the list). A 10x force-run + `error_message`
+breakdown (filtering `status=="ok"` rows with a populated `error_message`
+out of the "real result" bucket -- see the caveat two paragraphs below)
+initially looked like a clean structural/working split *at the method
+level*: `compute_bootstrap_confidence_interval`/`_basic`/`_bca` and
+`compute_bootstrap_two_sided_pval`/`_bca`/`_symmetric` hit a real,
+unconditional `stop()` ("subject-level resampling violates the
+matched-pair design constraint"), while `_studentized` (both CI and
+pval), both `compute_m_out_of_n_bootstrap_*`, and both
+`compute_subsampling_*` produced real results every time.
+
+That looked like it needed a finer-grained capability split before any
+registry move (see the "share one capability tag" reasoning that used to
+live in this paragraph). It didn't: tracing the actual call paths in
+`inference_all_abstract_non_param_boot.R` showed all twelve methods
+route through the *same* resampling primitive
+(`bootstrap_sample_indices()` -> the design's
+`draw_matching_bootstrap_indices()`, which is pair-aware --
+`draw_matching_bootstrap_sample_cpp()` resamples whole matched pairs via
+an explicit `pair_rows` matrix, not individual subjects) via different
+call paths; the `stop()` only sat on one of those paths
+(`approximate_bootstrap_distribution_beta_hat_T`, used by
+percentile/basic/bca/symmetric) and never actually described how
+resampling works today. Git blame: the pair-aware C++ resampling
+(`5ba3cd863`, 2026-05-10) predates the `stop()` (`5b715e76e`,
+2026-06-04) by three weeks, both the same author, so this wasn't stale
+debt from before pair-safe resampling existed either -- it was just an
+override on one call site, not a lower-level design constraint.
+
+Live-probed the un-blocked path directly (not just read) before touching
+anything: monkey-patched the override out at runtime (no compile/install
+involved) and ran the full production pipeline --
+percentile/basic/bca/studentized CI and all three pval types, B=300,
+against both a well-powered n=60 case and small-n/coarse-category edge
+cases mirroring what this harness actually hits. Every result was
+finite and well-behaved, closely matched the closed-form asymptotic
+CI/estimate, and degraded gracefully (via the same
+nonestimable/`min_number_usable_samples` machinery every other class
+uses) rather than crashing when a draw was too sparse. On that evidence
+the `stop()` was removed from
+`InferenceOrdinalPairedSignTest$approximate_bootstrap_distribution_beta_hat_T`
+(`R/EDI/R/inference_ordinal_paired_sign_test.R`) -- all 12 bootstrap
+methods for this class are now genuinely supported, not merely ungated
+in the test harness. Its separate jackknife `stop()`
+(`approximate_jackknife_distribution_beta_hat_T`, a different public
+method) was left alone -- not verified the same way; BCa's *internal*
+jackknife machinery is a separate private code path that already
+bypassed that public stop() before this change.
+
+Lesson for the deferred scoping pass: don't stop at "does the method
+throw" or "do results look real" -- for any class where the same
+resampling/deletion primitive backs multiple call paths, check whether a
+`stop()` on one path is actually a load-bearing design constraint or
+just an override that never got applied consistently. Live-probing the
+un-blocked path (cheap, no compile needed for pure-R changes) is more
+reliable than reasoning about the source alone -- this session's own
+first read of the situation (a genuine structural/working split needing
+capability-tag surgery) was the wrong conclusion until actually tested.
+
 ## Also still open: rechecking the ~82 already-registry-backed
 category-bucket entries (separate from Finding 2, no new engineering
 needed)

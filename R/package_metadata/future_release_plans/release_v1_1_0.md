@@ -1068,6 +1068,46 @@ ticked in their **owning plans**; this list is the release index.
   already-completed `exact_operations` recheck, just larger — "Also still
   open"). Independent of every other 1.1.0 item; no dependency on the
   decision batch.
+- [ ] TODO-21: **Design/inference dependence-structure guard** (added
+  2026-09-09; revised same day after a challenge to the first draft's
+  scope — see the plan's opening note): `design_inference_dependence_
+  guard.md → TODO-1..7`. Closes a registry blind spot: `discover_
+  applicable_inference_classes()` only checks whether a design gives a
+  candidate class structure it *requires* (`requires_kk`/
+  `requires_blocking`), never whether the design *imposes* dependence
+  (blocking, KK/matching pairs, clustering) the class's Wald-path variance
+  ignores. **Not a uniform gate** — a tiered severity model, since the
+  direction of the naive-SE error depends on estimand linearity: Tier 0
+  (`ci_method = "rand"` is exact regardless, since the design's own
+  re-randomization already respects blocking/matching/clustering — no
+  action needed); Tier 1 (a linear-contrast class, e.g.
+  `InferenceAllAverageDiff`, ignoring blocking/matching on the Wald path
+  is provably conservative, never anti-conservative — stays in
+  `run_all_inference()`'s default sweep (excluding it would remove a
+  legitimate estimand, not just a redundant restatement — the suite's
+  documented "many valid keys" design) but now raises a real, once-per-
+  session-throttled `warning()` and carries a `dependence_note` results-
+  column flag rather than sitting silent and unlabeled next to an exact
+  number); Tier 2 (a nonlinear-link class, e.g. logistic regression,
+  ignoring blocking/matching risks noncollapsibility attenuation *and* an
+  understated SE — or any class ignoring clustering, which understates SE
+  outright — hard-gated on the specific Wald-path compute methods, not on
+  `$new()`, so `rand`-path methods on the same object stay exact and
+  unblocked). Tier 2 gets the new `dependence_naive_on_design` discovery
+  bucket, excluded from `run_all_inference()`'s default run with a steer
+  toward the KK pair family for matched pairs. Tier assignment is a
+  cheap lookup, not a per-`(class, design)` derivation: a one-time
+  `splits_arms`/`shares_arm` classification per *design class* (TODO-2a —
+  mechanical, fixed by which component it composes) crossed with a
+  `estimand_linearity` link-function lookup per *inference class*
+  (TODO-2b, defaulting conservatively to "nonlinear_link"); its own
+  TODO-1 decision batch (gate placement, linearity rubric, two-speed
+  clustering rollout since it has no corrected alternative until 5Y ships
+  in v2.0.0) joins the Phase 0 sitting. Additive per this release's
+  standing constraint: no result changes for Tier 0, Tier 1, or any class
+  that already declares the capability it's run against. Independent of
+  every other 1.1.0 item; companion to `cluster_robust_inference_glmm_
+  gee.md` (5Y, v2.0.0), which this plan does not duplicate or block on.
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

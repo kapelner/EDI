@@ -821,17 +821,16 @@ already stated there:**
   design-based route (the rejection-sampled conditional randomization
   test, `→ TODO-7`) is unblocked by 5AI Phase A (v1.1.0) and ships as
   `TODO-17y`'s stretch sub-item (f) if that lands with margin (2026-09-05).
-- **5AG. E-values / safe testing for `InferenceSuite`** (added 2026-08-30,
-  user decision) → `release_v2_0_0.md → TODO-6f`. `e_value_safe_testing.md`.
-  A different validity framework from every other plan in this family
-  (Vovk & Wang 2021 e-values; Grünwald/de Heide/Koolen 2024 safe testing):
-  combines by simple averaging and stays valid under *adaptive*
-  stopping/inclusion of more tests, unlike fixed-weight CCT
-  (`combined_evidence$pval`) or any p-value combiner above. The most direct
-  structural answer to whether combined evidence is gameable by adding more
-  models. Substantial lift — every `Inference` class needs its own e-value —
-  hence 2.0.0 scope, staged from a likelihood-ratio-route pilot subset
-  before any adaptive-inclusion workflow.
+- **5AG. E-values / safe testing for `InferenceSuite`** — **SHELVED
+  2026-09-09 (user decision, resolving `e_value_safe_testing.md`'s TODO-1 as
+  "no"), removed from `release_v2_0_0.md → TODO-6f`.** `e_value_safe_testing.md`.
+  Its entire justification was staying valid under *adaptive*
+  stopping/inclusion of more tests — a property EDI's workflow has no use
+  for, since `applicable_design_classes` is discovered structurally and fit
+  once, never grown mid-stream. Without that use case the plan's own text
+  concedes Stage 1 is a valid but less powerful alternative to CCT, for no
+  benefit. Kept as an idea record, not an active plan; revisit only if EDI
+  ever grows a genuine interim-look/group-sequential workflow.
 - **5AH. `ModelDiagnostics` — per-model assumption batteries** (added
   2026-09-02, user decision; split 2026-09-02 from a briefly combined
   plan; **moved to v1.1.0 on 2026-09-05, user decision**) →
@@ -896,6 +895,52 @@ already stated there:**
   fits v1.4.0's response-and-data-extensions theme better. 5AE's own
   difficulty (splitting a sequential design's subjects) is unaffected by
   either correction and remains a genuine, unshared 2.0.0 problem.
+- **5AJ. Design/inference dependence-structure guard** (added 2026-09-09;
+  **revised same day, user challenge**: the first draft gated *any*
+  dependence-naive class uniformly — corrected after checking the
+  statistics, since a naive pooled/unpaired Wald SE on a linear-contrast
+  estimand, e.g. `InferenceAllAverageDiff`, is provably conservative on a
+  blocking/matching design, never anti-conservative, so it must not be
+  gated the same way as logistic regression or clustering) →
+  `release_v1_1_0.md → TODO-21`. `design_inference_dependence_guard.md`.
+  `discover_applicable_inference_classes()`/`is_inference_class_compatible_
+  with_design_metadata()` (`inference_suite.R:69-83, 136-164`) only check
+  whether a design gives a class structure it *requires*
+  (`requires_kk`/`requires_blocking`); nothing checks the reverse — whether
+  a design *imposes* dependence a class's Wald-path variance ignores. Now a
+  tiered severity model: Tier 0 (`ci_method = "rand"`, exact regardless —
+  the design's own re-randomization already encodes blocking/matching/
+  clustering); Tier 1 (linear-contrast estimand + blocking/matching on the
+  Wald path — conservative only, advisory note, no gate); Tier 2
+  (nonlinear-link estimand, e.g. logistic regression, + blocking/matching
+  — noncollapsibility/attenuation risk — or clustering for any estimand —
+  hard gate on the Wald-path compute methods specifically, not on
+  `$new()`, since `rand`-path methods on the same object stay exact and
+  unblocked). Companion to 5Y (`cluster_robust_inference_glmm_gee.md`) and
+  inference audit #2 — 5Y builds the correct general-purpose clustering
+  alternative (v2.0.0); this plan stops silent misuse of the genuinely
+  dangerous combinations now (v1.1.0), including matched pairs, which
+  already have a correct answer today (the KK pair family) and don't need
+  to wait on 5Y. **Second revision, same day** (user question: does tier
+  assignment need bespoke math per class?): no — both tier inputs are
+  cheap, already-established structural lookups (design classes get a
+  one-time `splits_arms`/`shares_arm` tag from which dependence component
+  they compose; inference classes get a one-time link-function
+  `estimand_linearity` tag, default-conservative), following the general
+  sandwich-variance sign argument and the noncollapsibility literature
+  rather than a fresh derivation per `(class, design)` pair — `O(design
+  classes) + O(inference classes)`, not a combinatorial audit. **Third
+  revision, same day** (user question: legal/size-preserving isn't a
+  reason to stay silent, and wouldn't showing every conservative estimator
+  in `run_all_inference()` pollute the comparison?): Tier 1 gains a real
+  `warning()` (once-per-session-throttled, so simulation loops aren't
+  flooded) plus a `dependence_note` results-table column, rather than
+  either silence or exclusion. Not excluded, because a different class
+  targeting a different estimand on the same design is the suite's
+  documented "many valid keys" behavior (TODO-19's lock-and-key doc), not
+  redundancy — the actual redundancy (a class's own dominated Wald number
+  sitting unlabeled next to its own exact `rand` number) is what the
+  warning/column target.
 
 ### Audit reports (2026-08-26/27) — reference, not work items
 

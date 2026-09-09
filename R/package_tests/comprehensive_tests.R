@@ -79,35 +79,93 @@ getFromNamespace("validate_comprehensive_slow_path_rules", "EDI")(
 # (its sole member, InferenceCountKKGLMM) -- both confirmed by direct probe
 # to run clean and fast (sub-second, no errors) when forced, so the
 # exclusion was copy-paste-along debt, not a real fact. (PairedSignTest's
-# own bootstrap/jackknife methods DO have a genuine hard stop() for
-# matched-pair resampling -- that entry stays in `bootstrap` -- but its
 # randomization inference permutes assignment rather than resampling
 # subjects, so it was never actually broken for `rand`.)
+#
+# Third pass same day: removed InferenceOrdinalPairedSignTest from
+# `bootstrap` too, after a 10x force-run + error_message breakdown showed
+# this was never a *slow* path -- everything resolves near-instantly, one
+# way or another. Initial per-method split (10 attempts each) found
+# compute_bootstrap_confidence_interval/_basic/_bca and
+# compute_bootstrap_two_sided_pval/_bca/_symmetric hitting a real,
+# unconditional stop() ("Bootstrap inference is not supported for
+# InferenceOrdinalPairedSignTest because subject-level resampling violates
+# the matched-pair design constraint"), while _studentized, both
+# compute_m_out_of_n_bootstrap_*, and both compute_subsampling_* already
+# produced real results -- all funnel through the same identical resampling
+# primitive (bootstrap_sample_indices() -> the design's
+# draw_matching_bootstrap_indices(), which is pair-aware: it resamples whole
+# matched pairs via draw_matching_bootstrap_sample_cpp()/pair_rows, not
+# individual subjects), just via different call paths, only one of which
+# the stop() happened to sit on. Live-probed the un-blocked path directly
+# (percentile/basic/bca/studentized CI, all 3 pval types, B=300, both a
+# well-powered n=60 case and small-n/coarse-category edge cases mirroring
+# what this harness actually hits): every result was finite, well-behaved,
+# and matched the closed-form asymptotic CI/estimate closely, with the
+# same graceful nonestimable/na.rm fallback as any other class when a draw
+# is too sparse -- no crashes, no degenerate output. So the stop() text's
+# premise doesn't hold against the current resampling implementation; the
+# override was removed from InferenceOrdinalPairedSignTest's own
+# approximate_bootstrap_distribution_beta_hat_T (R/EDI/R/
+# inference_ordinal_paired_sign_test.R) rather than worked around here.
+# All 12 bootstrap methods for this class are now genuinely unblocked, not
+# just ungated in the test harness. The class's separate jackknife stop()
+# (approximate_jackknife_distribution_beta_hat_T, a different public method
+# -- its own doc comment claimed "subject-level deletion violates the
+# matched-pair design constraint") turned out to be the same story: the
+# public method is a thin wrapper around a private jackknife machinery
+# already exercised successfully via BCa above, and a from-scratch probe of
+# the full public API (approximate_jackknife_distribution_beta_hat_T,
+# compute_jackknife_estimate/_bias_estimate/_std_error/
+# _wald_two_sided_pval/_wald_confidence_interval) across the same
+# well-powered + small-n/coarse-category scenarios came back well-behaved
+# throughout (sane near-zero bias correction, sensible SE, graceful
+# degenerate-case handling, no crashes). Removed too, same file.
+#
+# Fourth pass same day: bulk-ungated every remaining bootstrap/rand/rand_ci
+# entry that had a completed 10x force-run (COMPREHENSIVE_FORCE_SLOW_PATHS=1)
+# against the original slow-path threshold this registry has always used --
+# average runtime > 30s. None of the rechecked entries came close (worst
+# case: InferenceOrdinalCauchitRegr's bootstrap _studentized methods,
+# avg ~16.5s / max ~33s) -- these were added when the package's resampling
+# machinery was genuinely slower; subsequent performance work made them
+# viable again, and it's better to let them run for real (and get flagged
+# again if they regress) than keep skipping them on stale data. Removed
+# from `bootstrap`: InferenceCountPoissonKKGEE, InferenceCountKKGLMM,
+# InferenceOrdinalKKCondAdjCatLogitRegr, InferenceOrdinalGCompMeanDiff,
+# InferenceOrdinalCloglogRegr, InferenceOrdinalOrderedProbitRegr,
+# InferenceOrdinalCauchitRegr, InferenceOrdinalPartialProportionalOddsRegr,
+# InferencePropFractionalLogit, InferenceCountHurdleNegBin. Removed from
+# `rand`: InferenceOrdinalKKCondAdjCatLogitRegr, InferenceOrdinalGCompMeanDiff.
+# Removed from `rand_ci`: InferenceContinRobustRegr (its rand-family CI
+# already ran clean under the force-bypass, avg 2.6-3.6s). Left alone:
+# entries with zero completed data yet (InferenceSurvivalGLMMWeibullFrailty
+# LoggammaOneLik, InferencePropZeroOneInflatedBetaRegr in `bootstrap`;
+# InferencePropGCompMeanDiff/InferenceOrdinalCloglogRegr/
+# InferenceOrdinalOrderedProbitRegr/InferenceOrdinalCauchitRegr in `rand`
+# specifically -- their bootstrap-family removal above is unrelated to
+# their still-untested rand-family membership) -- a second retry batch for
+# these was still in flight when this pass was made; recheck once it
+# completes rather than assuming they're the same story. The count_*_rand
+# classes still in `rand_ci` (HurdleNegBin, NegBin, ZeroInflatedNegBin,
+# ZeroOneInflatedBetaRegr, FractionalLogit, HurdlePoisson,
+# ZeroInflatedPoisson, KKHurdlePoissonOneLik) were NOT touched even though
+# some have real rand pval timing data now: their CI is separately gated by
+# a hardcoded `response_type == "count"` blanket rule at the call site
+# (not a class list), so no CI timing data was ever collected for them here
+# -- removing them from this list alone wouldn't even change behavior.
 ADDITIONAL_TEST_SLOW_PATHS = list(
 	# Gates the whole nonparametric-bootstrap family (plain, BRT, and
 	# Bayesian bootstrap all key off this) -- consumed via
 	# is_any_inference_class(), matching every subclass too.
 	bootstrap = c(
-		"InferenceCountPoissonKKGEE",
-		"InferenceCountKKGLMM",
 		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
-		"InferenceOrdinalPairedSignTest",
-		"InferenceOrdinalKKCondAdjCatLogitRegr",
-		"InferenceOrdinalGCompMeanDiff",
-		"InferenceOrdinalCloglogRegr",
-		"InferenceOrdinalOrderedProbitRegr",
-		"InferenceOrdinalCauchitRegr",
-		"InferenceOrdinalPartialProportionalOddsRegr",
-		"InferencePropZeroOneInflatedBetaRegr",
-		"InferencePropFractionalLogit",
-		"InferenceCountHurdleNegBin"
+		"InferencePropZeroOneInflatedBetaRegr"
 	),
 	# Gates every randomization-family test at once (plain pval, CI, BRT
 	# pval/CI, custom pval/CI) -- consumed via is_any_inference_class().
 	rand = c(
 		"InferencePropGCompMeanDiff",
-		"InferenceOrdinalKKCondAdjCatLogitRegr",
-		"InferenceOrdinalGCompMeanDiff",
 		"InferenceOrdinalCloglogRegr",
 		"InferenceOrdinalOrderedProbitRegr",
 		"InferenceOrdinalCauchitRegr"
@@ -120,25 +178,68 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	),
 	# Gates the plain randomization confidence interval -- consumed via
 	# is_any_inference_class(); also combined at the call site with a
-	# response_type == "count" blanket rule and an InferenceAllSimpleAverageDiff
+	# response_type == "count" blanket rule (itself now overridable per-class
+	# via rand_ci_count_allowed below) and an InferenceAllSimpleAverageDiff
 	# non-continuous special case, neither of which is a class list so
 	# neither moved here.
 	rand_ci = c(
 		"InferencePropGCompMeanDiff",
-		"InferenceContinRobustRegr",
 		"InferenceCountHurdleNegBin",
-		"InferenceCountNegBin",
 		"InferenceCountZeroInflatedNegBin",
 		"InferencePropZeroOneInflatedBetaRegr",
-		"InferencePropFractionalLogit",
-		"InferenceCountHurdlePoisson",
+		"InferencePropFractionalLogit"
+	),
+	# Per-class (optionally per-formula, via a `||~formula` suffix -- see
+	# is_any_inference_class_for_formula()) exceptions to the
+	# response_type == "count" blanket rand-CI skip above -- consumed at the
+	# call site (skip_ci_rand). Populated 2026-09-09 from a from-scratch
+	# smoke test (COMPREHENSIVE_FORCE_SLOW_PATHS=1, family=rand,
+	# response=count, 2 reps x every design x both formulas, run to
+	# completion at a 60-min per-class cap; ~300-hundreds of
+	# compute_rand_confidence_interval() calls per class per formula) --
+	# every count class/formula combination tested shows *some* rare tail
+	# risk of hitting the CI search's internal ~120s safety deadline
+	# (check_randomization_ci_deadline()), 0-4 out of ~50-300+ calls
+	# depending on combination; not unique to any one entry here, treated
+	# as an accepted background risk rather than a reason to withhold a
+	# combination whose mean is otherwise well under the 30s threshold.
+	# InferenceCountZeroInflatedPoisson is fast on both formulas (3.7-7.4s
+	# mean) -- unrestricted. InferenceCountNegBin, InferenceCountHurdle
+	# Poisson, and InferenceCountKKHurdlePoissonOneLik are all restricted
+	# to ~1 only: NegBin is fast on both (3.6s / 7.2s mean) but ~. had the
+	# highest cap-hit rate seen (4/311); HurdlePoisson and
+	# KKHurdlePoissonOneLik show a real formula split, fast-ish on ~1
+	# (9-21s mean) but consistently over the 30s threshold on ~. (28-47s
+	# mean, up to 107-120s) -- their ~. case stays behind the blanket rule.
+	rand_ci_count_allowed = c(
+		"InferenceCountNegBin||~1",
 		"InferenceCountZeroInflatedPoisson",
-		"InferenceCountKKHurdlePoissonOneLik"
+		"InferenceCountHurdlePoisson||~1",
+		"InferenceCountKKHurdlePoissonOneLik||~1"
 	),
 	# Gates the "(custom)" randomization CI variant specifically --
 	# consumed via is_exact_inference_class() (exact class name, not
-	# inheritance-aware, unlike every other entry here).
-	rand_ci_custom = c("InferenceContinKKRobustRegrOneLik", "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"), # custom rand CI slow: robust avg 336.6s / max 1994.8s at n=6; Clayton avg 41.9s / max 1993.3s at n=53
+	# inheritance-aware, unlike every other entry here). Only robust rand CI
+	# custom timing is unmigrated/unrechecked here (avg 336.6s / max 1994.8s
+	# at n=6). InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik ("Clayton")
+	# was removed 2026-09-09 after a from-scratch recheck: its
+	# compute_rand_confidence_interval(custom) is fast on both formulas
+	# (~. n=100 mean=1.27s max=12.26s; ~1 n=50 mean=0.64s max=1.73s) -- the
+	# earlier "avg 41.9s / max 1993.3s at n=53" figure no longer holds for
+	# this method (its compute_rand_two_sided_pval(custom) is the one still
+	# genuinely slow on ~1 -- see rand_pval_custom_allowed below).
+	rand_ci_custom = c("InferenceContinKKRobustRegrOneLik"), # custom rand CI slow: robust avg 336.6s / max 1994.8s at n=6
+	# Per-class, per-formula (required `||~formula` suffix -- see
+	# is_any_inference_class_for_formula()) exceptions to skip_custom_rand_
+	# pval's blanket rand_pval-list skip, for compute_rand_two_sided_pval
+	# (custom) specifically -- does NOT affect the plain (non-custom)
+	# randomization p-value, which stays gated by rand_pval above
+	# regardless of this list. Populated 2026-09-09: InferenceSurvivalGLMM
+	# WeibullFrailtyLoggammaOneLik's custom pval is fast on ~. (n=100
+	# mean=0.10s max=0.26s) but has a severe, real outlier on ~1 (n=50
+	# mean=17.68s, p80=0.20s, max=194.70s -- bimodal: most calls near-
+	# instant, at least one pathological case) -- so only ~. is listed.
+	rand_pval_custom_allowed = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik||~."),
 	# Hard-excluded from jackknife despite otherwise qualifying -- consumed
 	# via is_any_inference_class().
 	jackknife_exclude = character(),
@@ -1004,6 +1105,19 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	is_exact_inference_class = function(classes){
 		inference_class_label %in% classes
 	}
+	# Like is_any_inference_class(), but each entry may optionally carry a
+	# `||~formula` suffix (same convention as EDI_COMPREHENSIVE_SLOW_PATHS'
+	# exact_operations) restricting the match to that one model_formula --
+	# an unsuffixed entry matches every formula. Relies on
+	# inference_model_formula_str, assigned below.
+	is_any_inference_class_for_formula = function(entries){
+		any(vapply(entries, function(entry){
+			parts = strsplit(entry, "\\|\\|", fixed = FALSE)[[1]]
+			if (!is(seq_des_inf, parts[[1]])) return(FALSE)
+			if (length(parts) < 2L) return(TRUE)
+			!is.na(inference_model_formula_str) && identical(inference_model_formula_str, parts[[2]])
+		}, logical(1)))
+	}
 	skip_bootstrap = !force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$bootstrap)
 	# Package-owned, public registry; formula-, dataset-independent (an
 	# exact_operations entry may optionally restrict itself to one
@@ -1120,8 +1234,10 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	skip_mle_pval  = FALSE
 	skip_rand_pval = !force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_pval)
 	skip_regular_rand_pval = skip_rand_pval || !supports_incidence_rand_pval
-	skip_custom_rand_pval = skip_regular_rand_pval || response_type == "incidence"
-	skip_ci_rand   = (!force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_ci)) || response_type == "count" ||
+	skip_custom_rand_pval = (skip_regular_rand_pval && !is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand_pval_custom_allowed)) ||
+		response_type == "incidence"
+	skip_ci_rand   = (!force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_ci)) ||
+		(!force_run_slow_paths && response_type == "count" && !is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand_ci_count_allowed)) ||
 		(response_type != "continuous" && is(seq_des_inf, "InferenceAllSimpleAverageDiff"))
 	skip_ci_rand_custom = !force_run_slow_paths && is_exact_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_ci_custom)
 	supports_jackknife = is(seq_des_inf, "InferenceJackknife") ||
