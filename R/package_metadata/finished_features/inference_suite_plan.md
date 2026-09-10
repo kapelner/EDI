@@ -523,6 +523,38 @@ wants to exclude a model family from the combination entirely, or supply
 their own prior-informed weights) can override it without patching the
 package.
 
+**Known gap found 2026-09-09 (implementation has drifted from the design
+above — flagging here so it isn't lost, tracked in
+`../new_feature_plans/design_inference_dependence_guard.md → TODO-4c`):**
+this section's own language — "k = `<n>` classes," `weights_used`
+documented as "class -> weight" — describes weighting *per class*. The
+shipped `run_all_inference_compute_combined_evidence_weights()` instead
+computes `w_i = 1/(G · m_i)` with `m_i = table(estimand)` counted over
+**rows** of `results_table`, not distinct classes. That was equivalent to
+"per class" when this section was written (2026-08-18, one row per class).
+It stopped being equivalent the next day: `methods = NULL` was widened
+(2026-08-19) to fan out to every applicable method sentinel per class (up
+to 13 — wald, exact, rand, rand_bootstrap, jackknife, score, lik_ratio,
+gradient, two Bartlett variants, two param_boot variants, bayes_boot,
+bootstrap), so a single class can now contribute many rows to one
+`estimand` group. `"estimand_grouped"` still correctly keeps one estimand
+group from outweighing another (each group's rows always sum to `1/G`
+total regardless of row count) — but *within* a group, a class that
+happens to support more method sentinels than a neighboring class now
+gets proportionally more combined-evidence weight for what is one "sense
+of effect," exactly the redundancy this section's own rationale warned
+about for *multiple classes* sharing an estimand, just not extended to
+one class's own method fan-out when the `methods = NULL` widening landed.
+Fix identified: `combined_evidence`'s weighting should contribute at most
+one (highest-`EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY`-priority
+available) row per `(class, estimand)`, never every fanned-out row;
+`results_table` itself is unaffected (every method row still displays).
+Not resolved here — this file documents the original design intent for
+context; the fix is scoped and tracked in the plan referenced above,
+which found it while auditing a related discovery-vs-combination question
+and left open whether it ships there or as its own small item under this
+section's TODO-15/15a lineage.
+
 ### Output wiring
 
 - New `combined_evidence` element on the `EDIInferenceSuiteResults` return

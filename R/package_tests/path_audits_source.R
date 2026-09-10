@@ -9,7 +9,7 @@
 #       could tell you this; it is genuinely measured.
 #   (2) EMPIRICAL "too slow to run in the comprehensive suite" judgments --
 #       slow_methods, skip_asymp/skip_ci/skip_boot/skip_bbt/skip_rand/
-#       skip_rci/skip_rpv/skip_brt/skip_jack_slow/skip_pboot_ci, run_brt/
+#       skip_rci/skip_rpv/skip_brt/skip_jack_slow/skip_pboot_ci,
 #       run_pboot_ci. These mirror comprehensive_tests.R's own practical
 #       decision not to attempt a path for cost reasons, not a theoretical
 #       fact -- kept hand-maintained, matched by eye against that script.
@@ -97,7 +97,7 @@ audit_classes = list(
   # ── CONTINUOUS non-KK ────────────────────────────────────────────────────────
   list(name="InferenceContinLin",                  section="Continuous", resp="cont",  kk=FALSE, types="full",          skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="cp",  pboot=TRUE,  notes="AsympLikStdModCache → ParamBootstrap"),
   list(name="InferenceContinOLS",                  section="Continuous", resp="cont",  kk=FALSE, types="full",          skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="cp",  pboot=TRUE,  notes="AsympLikStdModCache → ParamBootstrap"),
-  list(name="InferenceContinRobustRegr",           section="Continuous", resp="cont",  kk=FALSE, types="wald",          skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=TRUE,  rci_resp="cp",  pboot=NA,    skip_brt="ci", notes="InferenceAsymp"),
+  list(name="InferenceContinRobustRegr",           section="Continuous", resp="cont",  kk=FALSE, types="wald",          skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE,  rci_resp="cp",  pboot=NA,    notes="InferenceAsymp; rand CI and BRT CI force-run and verified fast 2026-09-10 (2.1s, 0.4s) -- skip_brt=\"ci\" removed, was never backed by either registry despite a nearby code comment citing this class as its canonical example"),
   list(name="InferenceContinQuantileRegr",         section="Continuous", resp="cont",  kk=FALSE, types="wald",          skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="cp",  pboot=NA,    notes="InferenceAsymp"),
 
   # ── INCIDENCE KK ─────────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ audit_classes = list(
   list(name="InferenceIncidGCompRiskDiff",            section="Incidence", resp="incid", kk=FALSE, types="wald",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="i", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsymp"),
   list(name="InferenceIncidGCompRiskRatio",           section="Incidence", resp="incid", kk=FALSE, types="wald",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="i", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsymp"),
   list(name="InferenceIncidModifiedPoisson",          section="Incidence", resp="incid", kk=FALSE, types="wald",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="i", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA, slow_methods=c("compute_bootstrap_confidence_interval_studentized"), notes="ParamBootstrap; explicit FALSE"),
-  list(name="InferenceIncidLogBinomial",              section="Incidence", resp="incid", kk=FALSE, types="full",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="i", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE, run_pboot_ci=TRUE, run_brt=TRUE, notes="AsympLikStdModCache; parametric-bootstrap CI and BRT paths re-enabled after fast log-binomial fit"),
+  list(name="InferenceIncidLogBinomial",              section="Incidence", resp="incid", kk=FALSE, types="full",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="i", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE, run_pboot_ci=TRUE, notes="AsympLikStdModCache; parametric-bootstrap CI re-enabled after fast log-binomial fit"),
   list(name="InferenceIncidBinomialIdentityRiskDiff", section="Incidence", resp="incid", kk=FALSE, types="full",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="i", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AsympLikStdModCache"),
 
   # ── PROPORTION ───────────────────────────────────────────────────────────────
@@ -133,11 +133,11 @@ audit_classes = list(
   list(name="InferencePropBetaRegr",                section="Proportion", resp="prop",  kk=FALSE, types="full",   skip_asymp=FALSE, skip_ci=FALSE,  skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="cp", pboot=TRUE,  slow_methods=c("compute_rand_confidence_interval", slow_brt_ci_methods, slow_m_out_of_n_methods), notes="AsympLikStdModCache; rand CI avg 32.3s / p80 43.6s / max 2035.9s at n=334 slow; selected BRT CI paths avg >30s slow"),
   list(name="InferencePropZeroOneInflatedBetaRegr", section="Proportion", resp="prop",  kk=FALSE, types="full",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=TRUE,  rci_resp="cp", pboot=TRUE,  slow_methods=slow_m_out_of_n_methods, notes="AsympLikStdModCache; pboot=TRUE (separate from bootstrap)"),
   list(name="InferencePropGCompMeanDiff",           section="Proportion", resp="prop",  kk=FALSE, types="wald",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=TRUE,  rand_resp="csp", skip_rpv=TRUE,  skip_rci=TRUE,  rci_resp="cp", pboot=NA,    notes="InferenceAsymp"),
-  list(name="InferencePropFractionalLogit",         section="Proportion", resp="prop",  kk=FALSE, types="wald",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=TRUE,  rci_resp="cp", pboot=NA, slow_methods=slow_m_out_of_n_methods, notes="AsympLikStdModCacheNoParamBootstrap; supports_likelihood_tests=FALSE"),
+  list(name="InferencePropFractionalLogit",         section="Proportion", resp="prop",  kk=FALSE, types="wald",   skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE,  skip_bbt=FALSE,  jack=TRUE,  skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=TRUE,  rci_resp="cp", pboot=NA, slow_methods=slow_m_out_of_n_methods, notes="AsympLikStdModCacheNoParamBootstrap; supports_likelihood_tests=FALSE; bootstrap/Bayesian bootstrap force-run and verified fast 2026-09-10 (0.3-0.4s)"),
 
   # ── COUNT ────────────────────────────────────────────────────────────────────
-  list(name="InferenceCountPoissonKKGEE",           section="Count",      resp="count", kk=TRUE,  types="wald",           skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=FALSE, rand_resp="count",  skip_rpv=FALSE, skip_rci=TRUE,  rci_resp="", pboot=NA,    notes="InferenceAsymp; rand/rci N/A for count"),
-  list(name="InferenceCountKKGLMM",                 section="Count",      resp="count", kk=TRUE,  types="full",           skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE, skip_jack_slow=TRUE, skip_rand=FALSE, rand_resp="count",  skip_rpv=FALSE, skip_rci=TRUE,  rci_resp="", pboot=TRUE,  notes="InferenceParamBootstrap; supports_lik_ratio_param_bootstrap=TRUE when use_rcpp; parametric-bootstrap/Bartlett paths run as regular paths; jackknife hard-excluded in comprehensive_tests.R (supports_jackknife name exclusion), displayed as SLOW"),
+  list(name="InferenceCountPoissonKKGEE",           section="Count",      resp="count", kk=TRUE,  types="wald",           skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE,  skip_bbt=FALSE,  jack=TRUE,  skip_rand=FALSE, rand_resp="count",  skip_rpv=FALSE, skip_rci=FALSE,  rci_resp="count", pboot=NA,    notes="InferenceAsymp; bootstrap/Bayesian bootstrap force-run and verified fast 2026-09-10 (1.1-1.3s); rand CI force-run and verified fast (26.3s at n=40, r=151 -- worth a larger-n check before fully trusting, but well under any slow threshold)"),
+  list(name="InferenceCountKKGLMM",                 section="Count",      resp="count", kk=TRUE,  types="full",           skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE,  skip_bbt=FALSE,  jack=TRUE, skip_jack_slow=FALSE, skip_rand=FALSE, rand_resp="count",  skip_rpv=FALSE, skip_rci=FALSE,  rci_resp="count", pboot=TRUE,  notes="InferenceParamBootstrap; supports_lik_ratio_param_bootstrap=TRUE when use_rcpp; parametric-bootstrap/Bartlett paths run as regular paths; bootstrap/Bayesian bootstrap/jackknife/rand CI force-run and verified fast 2026-09-10 (0.2-10.1s) -- the previously-claimed comprehensive_tests.R jackknife name exclusion does not exist in that file"),
   list(name="InferenceCountKKHurdlePoissonOneLik",  section="Count",      resp="count", kk=TRUE,  types="full",           skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="count",  skip_rpv=FALSE, skip_rci=TRUE,  rci_resp="", pboot=TRUE, slow_methods=slow_brt_pval_typed_methods, notes="InferenceParamBootstrap; supports_lik_ratio_param_bootstrap=TRUE with simulate_under_lik_null(); in skip_ci_rand; rand N/A count"),
   list(name="InferenceCountKKCondPoissonOneLik",    section="Count",      resp="count", kk=TRUE,  types="full",           skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="count",  skip_rpv=FALSE, skip_rci=TRUE,  rci_resp="", pboot=TRUE, slow_methods=slow_brt_pval_typed_methods, notes="InferenceParamBootstrap; supports_lik_ratio_param_bootstrap=TRUE with simulate_under_lik_null(); in skip_ci_rand; rand N/A count"),
   list(name="InferenceCountPoisson",                section="Count",      resp="count", kk=FALSE, types="full",           skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="count",  skip_rpv=FALSE, skip_rci=TRUE,  rci_resp="", pboot=TRUE,  notes="CountLikelihood → AsympLikStdModCache"),
@@ -158,10 +158,10 @@ audit_classes = list(
   list(name="InferenceSurvivalDepCensTransformRegr",   section="Survival",  resp="surv", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  slow_methods=c("compute_bootstrap_confidence_interval", "compute_bootstrap_confidence_interval_studentized", "compute_lik_ratio_confidence_interval", "compute_rand_bootstrap_two_sided_pval_smoothed"), notes="AsympLikStdModCache; simulate_under_lik_null added; bootstrap CI avg/p80 38.0s at n=1 slow; bootstrap studentized CI avg/p80 44.7s at n=1 slow; BRT smoothed pval avg >30s slow"),
   list(name="InferenceSurvivalCoxPHRegr",              section="Survival",  resp="surv", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE, slow_methods=slow_m_out_of_n_methods, notes="AsympLikStdModCache; pboot=use_rcpp (default)"),
   list(name="InferenceSurvivalStratCoxPHRegr",         section="Survival",  resp="surv", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE, slow_methods=c(slow_m_out_of_n_methods, "compute_lik_ratio_bootstrap_two_sided_pval", "compute_param_bootstrap_estimate", "compute_param_bootstrap_pval", "compute_param_bootstrap_confidence_interval", "compute_lik_ratio_bartlett_two_sided_pval"), notes="InferenceParamBootstrap directly; pboot=use_rcpp"),
-  list(name="InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",  section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE, skip_jack_slow=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=TRUE,  skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  skip_pboot_ci=TRUE, slow_methods=c("compute_rand_confidence_interval", "compute_rand_confidence_interval(custom)", "compute_lik_ratio_confidence_interval", slow_m_out_of_n_methods, slow_prw_subsampling_methods), notes="InferenceParamBootstrap; pboot=TRUE even though skip_boot=TRUE (separate test family); jackknife structurally supported but skip_jack_slow=TRUE; rand CI avg 507.7s / max 2094.4s at n=6; custom rand CI avg 41.2s / p80 5.6s / max 1993.3s at n=54; m-out-of-n CI avg 196.1s / p80 408.5s / max 634.0s at n=137; subsampling CI avg 183.7s / p80 366.7s / max 718.8s at n=137; lik-ratio CI avg 39.1s / max 234.2s at n=6 slow"),
+  list(name="InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",  section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE, skip_jack_slow=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=TRUE,  skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  skip_pboot_ci=TRUE, slow_methods=c("compute_rand_confidence_interval", "compute_lik_ratio_confidence_interval", slow_m_out_of_n_methods, slow_prw_subsampling_methods), notes="InferenceParamBootstrap; pboot=TRUE even though skip_boot=TRUE (separate test family); jackknife structurally supported but skip_jack_slow=TRUE; rand CI avg 507.7s / max 2094.4s at n=6; custom rand CI re-tested 2026-09-09, found fast on both formulas, removed from ADDITIONAL_TEST_SLOW_PATHS$rand_ci_custom; m-out-of-n CI avg 196.1s / p80 408.5s / max 634.0s at n=137; subsampling CI avg 183.7s / p80 366.7s / max 718.8s at n=137; lik-ratio CI avg 39.1s / max 234.2s at n=6 slow"),
   list(name="InferenceSurvivalKKLWACoxPHOneLik",       section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  notes="AbstractKKLWACoxOneLik → ParamBootstrap; explicit TRUE"),
   list(name="InferenceSurvivalKKStratCoxPHOneLik",     section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE, slow_methods=character(0), notes="InferenceParamBootstrap; explicit TRUE; rand CI avg 36.25s / p80 70.46s / max 73.96s at n=12 slow"),
-  list(name="InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  slow_methods=c("compute_rand_confidence_interval", "compute_rand_confidence_interval(custom)", "compute_score_confidence_interval"), notes="AbstractGLMMWeibullFrailtyNormalOneLik → ParamBootstrap; pboot=use_rcpp; skip_boot=TRUE; custom rand CI avg 72.66s / p80 81.16s / max 91.78s (FixedBinaryMatch, n=12) and avg 32.08s / p80 60.86s / max 69.89s (KK21stepwise, n=24); score CI avg 50.1s / max 324.8s at n=13 slow"),
+  list(name="InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", section="Survival",  resp="surv", kk=TRUE,  types="full", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE,  skip_bbt=FALSE,  jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=TRUE,  slow_methods=c("compute_rand_confidence_interval", "compute_rand_confidence_interval(custom)", "compute_score_confidence_interval"), notes="AbstractGLMMWeibullFrailtyNormalOneLik → ParamBootstrap; pboot=use_rcpp; bootstrap/Bayesian bootstrap force-run and verified fast 2026-09-10 (1.1-2.1s); custom rand CI avg 72.66s / p80 81.16s / max 91.78s (FixedBinaryMatch, n=12) and avg 32.08s / p80 60.86s / max 69.89s (KK21stepwise, n=24); score CI avg 50.1s / max 324.8s at n=13 slow"),
   list(name="InferenceSurvivalKKWeibullMarginal",      section="Survival",  resp="surv", kk=TRUE,  types="none", skip_asymp=FALSE, skip_ci=FALSE,   skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE, skip_rand=FALSE, rand_resp="csp", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="surv", pboot=NA, slow_methods=c("compute_rand_confidence_interval"), notes="InferenceAsymp; exposes generic asymp pval/CI but no direct compute_wald_* wrappers, so direct Wald cells are NTS"),
 
   # ── ORDINAL ───────────────────────────────────────────────────────────────────
@@ -171,17 +171,17 @@ audit_classes = list(
   list(name="InferenceOrdinalKKCLMMProbit",             section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="AbstractKKOrdinalCLMM → AsympLik"),
   list(name="InferenceOrdinalKKCLMMCauchit",            section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="AbstractKKOrdinalCLMM → AsympLik"),
   list(name="InferenceOrdinalKKCLMMCloglog",            section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="AbstractKKOrdinalCLMM → AsympLik"),
-  list(name="InferenceOrdinalKKCondAdjCatLogitRegr",    section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsympLik; supports_likelihood_tests=FALSE"),
-  list(name="InferenceOrdinalPairedSignTest",           section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsympLik; supports_likelihood_tests=FALSE"),
+  list(name="InferenceOrdinalKKCondAdjCatLogitRegr",    section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE,  skip_bbt=FALSE,  jack=TRUE,  skip_rand=FALSE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsympLik; supports_likelihood_tests=FALSE; bootstrap/Bayesian bootstrap/rand pval force-run and verified fast 2026-09-10 (0.5-1.7s)"),
+  list(name="InferenceOrdinalPairedSignTest",           section="Ordinal", resp="ord", kk=TRUE,  types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE,  skip_bbt=FALSE,  jack=TRUE,  skip_rand=FALSE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsympLik; supports_likelihood_tests=FALSE; bootstrap/rand/jackknife force-run and verified fast 2026-09 -- removed from EDI_COMPREHENSIVE_SLOW_PATHS$bootstrap/$rand"),
   list(name="InferenceOrdinalAdjCatLogitRegr",          section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  not_implemented_methods=bayesian_bootstrap_methods, slow_methods=c("compute_rand_bootstrap_two_sided_pval_smoothed"), notes="AsympLikStdModCache; Bayesian bootstrap is not implemented until native weighted adjacent-category refits replace the cumulative-logit surrogate; simulate_under_lik_null added; BRT smoothed pval avg 499s / max 2694s slow"),
   list(name="InferenceOrdinalStereotypeLogitRegr",      section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  not_implemented_methods=bayesian_bootstrap_methods, slow_methods=c("compute_rand_bootstrap_two_sided_pval_smoothed"), notes="AsympLikStdModCache; Bayesian bootstrap is not implemented until native weighted stereotype-logit refits replace the cumulative-logit surrogate; simulate_under_lik_null added; BRT smoothed pval avg >30s slow"),
   list(name="InferenceOrdinalContRatioRegr",            section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE, slow_methods=c("compute_rand_bootstrap_two_sided_pval_smoothed"), notes="AsympLikStdModCache; simulate_under_lik_null added; BRT pval smoothed avg 66s slow"),
-  list(name="InferenceOrdinalCloglogRegr",              section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AsympLikStdModCache → ParamBootstrap; pboot=TRUE even with skip_boot"),
-  list(name="InferenceOrdinalCauchitRegr",              section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AsympLikStdModCache → ParamBootstrap; pboot=TRUE"),
-  list(name="InferenceOrdinalOrderedProbitRegr",        section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AsympLikStdModCache → ParamBootstrap; pboot=TRUE"),
+  list(name="InferenceOrdinalCloglogRegr",              section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE,  skip_bbt=FALSE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AsympLikStdModCache → ParamBootstrap; pboot=TRUE even with skip_boot; bootstrap/Bayesian bootstrap force-run and verified fast 2026-09-10 (0.4-0.8s)"),
+  list(name="InferenceOrdinalCauchitRegr",              section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE,  skip_bbt=FALSE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AsympLikStdModCache → ParamBootstrap; pboot=TRUE; bootstrap/Bayesian bootstrap force-run and verified fast 2026-09-10 (0.4-0.5s)"),
+  list(name="InferenceOrdinalOrderedProbitRegr",        section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE,  skip_bbt=FALSE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AsympLikStdModCache → ParamBootstrap; pboot=TRUE; bootstrap/Bayesian bootstrap force-run and verified fast 2026-09-10 (0.4-0.5s)"),
   list(name="InferenceOrdinalPropOddsRegr",             section="Ordinal", resp="ord", kk=FALSE, types="full", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=TRUE,  notes="AsympLikStdModCache → ParamBootstrap"),
   list(name="InferenceOrdinalPartialProportionalOddsRegr",section="Ordinal",resp="ord",kk=FALSE, types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsymp"),
-  list(name="InferenceOrdinalGCompMeanDiff",            section="Ordinal", resp="ord", kk=FALSE, types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=TRUE,  skip_bbt=TRUE,  jack=TRUE,  skip_rand=TRUE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsymp"),
+  list(name="InferenceOrdinalGCompMeanDiff",            section="Ordinal", resp="ord", kk=FALSE, types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE,  skip_bbt=FALSE,  jack=TRUE,  skip_rand=FALSE,  rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsymp; bootstrap/Bayesian bootstrap/rand pval force-run and verified fast 2026-09-10 (0.3-0.6s)"),
   list(name="InferenceOrdinalJonckheereTerpstraTest",   section="Ordinal", resp="ord", kk=FALSE, types="none", skip_asymp=TRUE,  skip_ci=TRUE,  skip_boot=TRUE,  skip_bbt=TRUE,  jack=FALSE, skip_rand=TRUE,  rand_resp="",        skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    exact_p=TRUE, unsupported_methods=c("compute_m_out_of_n_bootstrap_two_sided_pval", "compute_m_out_of_n_bootstrap_confidence_interval", "compute_subsampling_two_sided_pval", "compute_subsampling_confidence_interval"), notes="InferenceAsymp; SPECIAL: only exact pval + estimate called"),
   list(name="InferenceOrdinalRidit",                   section="Ordinal", resp="ord", kk=FALSE, types="wald", skip_asymp=FALSE, skip_ci=FALSE, skip_boot=FALSE, skip_bbt=FALSE, jack=TRUE,  skip_rand=FALSE, rand_resp="ordinal", skip_rpv=FALSE, skip_rci=FALSE, rci_resp="", pboot=NA,    notes="InferenceAsymp")
 )
@@ -267,6 +267,25 @@ edi_raw_capabilities = function(name) {
 # check (e.g. one requiring a live instance, not just static metadata) is
 # built. See randomization_ci_construction_audit.md and the conversation
 # that found this.
+# Capabilities where "absent from raw entirely" (as opposed to granted-then-
+# excluded above) is ALSO a safe live signal for "this method truly does not
+# exist" -- the general form of that inference is NOT safe (see the
+# wald/InferencePropGCompMeanDiff counter-example above, which is exactly why
+# `types`/`jack` stay hand-maintained instead of using it), so this is an
+# explicit opt-in allowlist, not a blanket rule. "bayesian_bootstrap" was
+# added here 2026-09-10 after verifying no class hand-rolls
+# compute_bayesian_bootstrap_two_sided_pval()/_confidence_interval() outside
+# the BayesianBootstrap component the way GCompMeanDiff hand-rolls Wald --
+# every direct override of those two methods in R/EDI/R lives in a file that
+# also references BayesianBootstrap, and a live check on
+# InferenceAllSimpleWilcox (raw capabilities lack "bayesian_bootstrap",
+# hand-typed skip_bbt=NA on its audit row, notes: "fractional weights
+# undefined for rank statistic") confirmed both the method is genuinely
+# absent (`"compute_bayesian_bootstrap_two_sided_pval" %in% names(instance)`
+# is FALSE) and calling it errors. Extend this list only after the same
+# verification for a new capability.
+EDI_LIVE_DERIVABLE_ABSENT_CAPABILITIES = c("bayesian_bootstrap")
+
 derive_theoretical_support = function(name) {
   metadata = EDI:::get_inference_class_metadata(name)
   raw = edi_raw_capabilities(name)
@@ -278,7 +297,20 @@ derive_theoretical_support = function(name) {
     function(e) e$method, character(1)
   ))
   custom_variants = if (length(excluded_methods)) paste0(excluded_methods, "(custom)") else character()
-  list(unsupported_methods = unique(c(excluded_methods, custom_variants)))
+  result = list(unsupported_methods = unique(c(excluded_methods, custom_variants)))
+  # skip_bbt is a dual-purpose hand-typed field (NA = theoretically
+  # unsupported, TRUE = empirically too slow, FALSE = run it) consumed
+  # directly by cell_bbt_p()/cell_bbt_c() -- unlike unsupported_methods
+  # above, it is not read through method_status()'s registry check at all,
+  # so fixing this file's live derivation requires overriding skip_bbt
+  # itself, not just unsupported_methods. Authoritative override (not a
+  # union): there is never a legitimate reason to call a structurally-absent
+  # capability "slow" (TRUE) instead of "unsupported" (NA), so this replaces
+  # whatever the row hand-typed rather than merely backstopping it.
+  if (!("bayesian_bootstrap" %in% raw) && "bayesian_bootstrap" %in% EDI_LIVE_DERIVABLE_ABSENT_CAPABILITIES) {
+    result$skip_bbt = NA
+  }
+  result
 }
 
 # ── Live registry derivation of empirical "too slow" exclusions ─────────────
@@ -363,6 +395,155 @@ edi_resp_code_to_response_type = c(
   count = "count", incid = "incidence", ord = "ordinal"
 )
 
+# ADDITIONAL_TEST_SLOW_PATHS (comprehensive_tests.R) is this test harness'
+# OWN skip registry, separate from and additional to the package's
+# EDI_COMPREHENSIVE_SLOW_PATHS above -- see that constant's own header
+# comment in comprehensive_tests.R for why it exists (Finding 2,
+# package_metadata/new_feature_plans/harden_registry.md). Until 2026-09-09
+# this file's slow_methods/skip_* only ever read the package registry, so
+# every ADDITIONAL_TEST_SLOW_PATHS entry (formerly scattered hardcoded
+# skips, now consolidated but still local to comprehensive_tests.R, not
+# exported) required a separate by-hand slow_methods edit here to show up
+# as SLOW -- exactly the same "matched by eye, drifts silently" failure
+# mode derive_slow_methods() above was built to close for the package
+# registry. This block closes it for the test-harness registry too.
+#
+# comprehensive_tests.R is a large procedural script (side effects, package
+# requires, inline Rcpp) -- sourcing it whole would be slow and risky just
+# to read one constant. ADDITIONAL_TEST_SLOW_PATHS's own literal body has
+# no dependency on anything defined earlier in that script (verified by
+# reading it: every value is a bare character vector or `character()`), so
+# extracting and evaluating only that one top-level assignment is safe.
+load_additional_test_slow_paths = function(comprehensive_tests_file = "package_tests/comprehensive_tests.R") {
+  exprs = tryCatch(parse(comprehensive_tests_file), error = function(e) NULL)
+  if (is.null(exprs)) {
+    warning(sprintf("path_audits: could not parse %s for ADDITIONAL_TEST_SLOW_PATHS; skipping", comprehensive_tests_file), call. = FALSE)
+    return(NULL)
+  }
+  target = Filter(function(e) is.call(e) && length(e) >= 2L && identical(e[[2L]], as.symbol("ADDITIONAL_TEST_SLOW_PATHS")), as.list(exprs))
+  if (length(target) != 1L) {
+    warning(sprintf("path_audits: expected exactly one ADDITIONAL_TEST_SLOW_PATHS assignment in %s, found %d; skipping", comprehensive_tests_file, length(target)), call. = FALSE)
+    return(NULL)
+  }
+  eval(target[[1L]], envir = new.env(parent = baseenv()))
+}
+
+# Which ADDITIONAL_TEST_SLOW_PATHS keys are "this class is slow" gates
+# (unioned into slow_methods below), mapped to the method_id(s) each one
+# actually skips at its comprehensive_tests.R call site -- reuses
+# edi_slow_path_category_methods' lists where the shared name (bootstrap,
+# rand, rand_pval, rand_ci) really is the same functional grouping (both
+# registries gate the exact same `if` blocks together, confirmed by reading
+# comprehensive_tests.R's skip_* consumption sites, e.g.
+# `!skip_bootstrap && !skip_bootstrap_slow` gating one shared block).
+# rand_ci_count_allowed and rand_pval_custom_allowed are deliberately
+# excluded: those are ALLOWlists (per-class/formula exceptions to a
+# response_type == "count" or custom-pval blanket skip), the opposite
+# semantic of every other key here -- membership there means NOT slow.
+# always_run_parametric_bootstrap_ci is unrelated (it forces a path to run,
+# not skip one). always_run_brt (BRT's own equivalent) was removed
+# 2026-09-10 along with RUN_BRT -- BRT now runs by default for every class,
+# so there is no more "force it to run despite the opt-in" concept for it.
+additional_slow_path_category_methods = c(
+  edi_slow_path_category_methods[c("bootstrap", "rand", "rand_ci",
+    "brt_pval_smoothed", "brt_pval_typed", "brt_ci_all", "brt_ci_smoothed", "brt_ci_typed")],
+  list(
+    # edi_slow_path_category_methods has no separate "rand_pval" key --
+    # its own "rand" entry already is just compute_rand_two_sided_pval, the
+    # same plain non-CI method ADDITIONAL_TEST_SLOW_PATHS$rand_pval gates.
+    rand_pval = "compute_rand_two_sided_pval",
+    rand_ci_custom = "compute_rand_confidence_interval(custom)",
+    # Not reused from edi_slow_path_category_methods$jack (which only lists
+    # 2 of the 3 methods supports_jackknife actually gates -- verified by
+    # reading comprehensive_tests.R:2138-2146 directly: compute_jackknife_
+    # estimate, compute_jackknife_wald_two_sided_pval, AND compute_
+    # jackknife_wald_confidence_interval all sit behind the same
+    # `supports_jackknife && !skip_jack_slow` guard).
+    jackknife_exclude = c("compute_jackknife_estimate", "compute_jackknife_wald_two_sided_pval", "compute_jackknife_wald_confidence_interval"),
+    # Not reused from edi_slow_path_category_methods$bartlett_pval (which
+    # includes the CI variants too) -- ADDITIONAL_TEST_SLOW_PATHS$
+    # bartlett_pval only feeds skip_bartlett_pval_slow, which only gates
+    # the two pval call sites (comprehensive_tests.R:2112-2124); the CI
+    # variants are gated by the separate skip_pboot_ci_slow flag instead.
+    bartlett_pval = c("compute_lik_ratio_bartlett_approx_two_sided_pval", "compute_lik_ratio_bartlett_exact_two_sided_pval"),
+    # Not reused from edi_slow_path_category_methods$pboot_ci (which only
+    # lists 2 of the 4 methods skip_pboot_ci_slow actually gates -- missing
+    # the approx/exact Bartlett CI variants added alongside bartlett_pval's
+    # split on 2026-09-06; verified by reading comprehensive_tests.R's
+    # skip_pboot_ci_slow call sites directly).
+    pboot_ci = c("compute_lik_ratio_bootstrap_confidence_interval", "compute_lik_ratio_bartlett_confidence_interval",
+                 "compute_lik_ratio_bartlett_approx_confidence_interval", "compute_lik_ratio_bartlett_exact_confidence_interval"),
+    # No official EDI_COMPREHENSIVE_SLOW_PATHS category of this name exists
+    # (only brt_pval_smoothed/brt_pval_typed do) -- brt_pval is the whole-
+    # pval-block gate for the base (non-typed, non-smoothed) BRT methods,
+    # which unlike CI (where brt_ci_all above already plays this role) had
+    # no "skip everything" registry lever until this key was added
+    # 2026-09-10 alongside removing RUN_BRT/always_run_brt.
+    brt_pval = c("compute_rand_bootstrap_two_sided_pval", "compute_rand_bootstrap_two_sided_pval(delta=0.5)")
+  )
+)
+
+# Strip an optional `||~formula` suffix (is_any_inference_class_for_formula's
+# convention in comprehensive_tests.R) down to the bare class name -- this
+# table has no formula axis per cell (same rationale as exact_operations'
+# 4th-segment handling above), so a formula-restricted entry still marks
+# the whole class/method cell "slow".
+strip_additional_slow_path_formula_suffix = function(entries) {
+  vapply(entries, function(e) strsplit(e, "\\|\\|", fixed = FALSE)[[1L]][1L], character(1))
+}
+
+derive_additional_slow_methods = function(name, additional_slow_paths) {
+  if (is.null(additional_slow_paths)) return(character())
+  unlist(lapply(names(additional_slow_path_category_methods), function(key) {
+    entries = additional_slow_paths[[key]]
+    if (is.null(entries) || !length(entries)) return(character())
+    classes = strip_additional_slow_path_formula_suffix(entries)
+    if (name %in% classes) additional_slow_path_category_methods[[key]] else character()
+  }), use.names = FALSE)
+}
+
+# Formula-scoped variant of derive_additional_slow_methods(), used only by
+# the two-row-per-class regression table (see build_table_html()'s
+# formula_col mode): an entry with no `||~formula` suffix still matches
+# every formula (class-wide facts apply to both rows), but a suffixed entry
+# now requires an exact formula match instead of matching regardless (the
+# opposite of derive_additional_slow_methods()'s permissive "still marks the
+# whole cell slow" policy, which exists specifically for the single-row,
+# no-formula-axis table).
+derive_additional_slow_methods_for_formula = function(name, additional_slow_paths, formula) {
+  if (is.null(additional_slow_paths)) return(character())
+  unlist(lapply(names(additional_slow_path_category_methods), function(key) {
+    entries = additional_slow_paths[[key]]
+    if (is.null(entries) || !length(entries)) return(character())
+    matches = vapply(entries, function(entry) {
+      parts = strsplit(entry, "\\|\\|", fixed = FALSE)[[1L]]
+      if (!identical(parts[[1L]], name)) return(FALSE)
+      if (length(parts) < 2L) return(TRUE)
+      identical(parts[[2L]], formula)
+    }, logical(1))
+    if (any(matches)) additional_slow_path_category_methods[[key]] else character()
+  }), use.names = FALSE)
+}
+
+# ADDITIONAL_TEST_SLOW_PATHS$rand_ci_count_allowed is an ALLOWlist (the
+# opposite semantic of every other key above): membership means the
+# response_type=="count" blanket rand-CI skip in comprehensive_tests.R's
+# skip_ci_rand does NOT apply to this (class, formula) -- i.e. rand CI
+# actually runs for it, not NTS/slow. Reused here so the count-response
+# rci_resp/skip_rci override below (audit_classes_regression construction)
+# traces live to the same registry entry the harness itself consults,
+# instead of a second hand-typed copy of the same fact.
+is_rand_ci_count_allowed_for_formula = function(name, additional_slow_paths, formula) {
+  entries = additional_slow_paths$rand_ci_count_allowed
+  if (is.null(entries) || !length(entries)) return(FALSE)
+  any(vapply(entries, function(entry) {
+    parts = strsplit(entry, "\\|\\|", fixed = FALSE)[[1L]]
+    if (!identical(parts[[1L]], name)) return(FALSE)
+    if (length(parts) < 2L) return(TRUE)
+    identical(parts[[2L]], formula)
+  }, logical(1)))
+}
+
 # unsupported_methods is a strong claim (this method is formally excluded, so
 # NTS); slow_methods only ever says "this method is not attempted by the
 # comprehensive suite for cost reasons" -- a weaker, additive claim that
@@ -397,6 +578,34 @@ derive_slow_methods = function(name, resp_code) {
   unique(c(from_categories, from_exact))
 }
 
+# Formula-scoped variant of derive_slow_methods(): the category-bucket
+# portion (edi_slow_path_category_methods) is unchanged -- those official
+# EDI_COMPREHENSIVE_SLOW_PATHS categories are class-name-only, no formula
+# axis exists there to narrow by, so a category match applies to both
+# formula-rows identically (a genuine class-wide fact). exact_operations'
+# optional 4th `||model_formula` segment, by contrast, now requires an exact
+# match instead of unconditionally marking the cell slow (the opposite of
+# derive_slow_methods()'s policy for the single-row table).
+derive_slow_methods_for_formula = function(name, resp_code, formula) {
+  slow_paths = EDI::EDI_COMPREHENSIVE_SLOW_PATHS
+  from_categories = unlist(lapply(names(edi_slow_path_category_methods), function(category) {
+    classes = slow_paths[[category]]
+    if (!is.null(classes) && name %in% classes) edi_slow_path_category_methods[[category]] else character()
+  }), use.names = FALSE)
+  response_type = unname(edi_resp_code_to_response_type[resp_code])
+  from_exact = character()
+  if (!is.na(response_type) && length(slow_paths$exact_operations)) {
+    parts = strsplit(slow_paths$exact_operations, "\\|\\|", fixed = FALSE)
+    matches = vapply(parts, function(p) {
+      if (!(length(p) %in% c(3L, 4L) && p[1] == response_type && p[2] == name)) return(FALSE)
+      if (length(p) == 3L) return(TRUE)
+      identical(p[4], formula)
+    }, logical(1))
+    from_exact = vapply(parts[matches], function(p) p[3], character(1))
+  }
+  unique(c(from_categories, from_exact))
+}
+
 # Overlay the derived fields onto every row. Falls back to the row's existing
 # hand values (with a warning) if a class name is not found in the live
 # registry, rather than failing the whole audit build. unsupported_methods
@@ -406,6 +615,25 @@ derive_slow_methods = function(name, resp_code) {
 # unsupported_methods entry above, which reflects "this class is
 # exact-only," not a capability exclusion or a registered slow path) is
 # preserved.
+# Loaded once, not per-row: parsing comprehensive_tests.R repeatedly for
+# ~100 rows would be needless overhead for a constant that doesn't change
+# mid-build.
+additional_test_slow_paths_live = tryCatch(load_additional_test_slow_paths(), error = function(e) {
+  warning(sprintf("path_audits: could not load ADDITIONAL_TEST_SLOW_PATHS (%s); skipping", conditionMessage(e)), call. = FALSE)
+  NULL
+})
+# Snapshot each row's ORIGINAL hand-typed slow_methods before the overlay
+# below unions in the formula-blind derived set -- the two-row-per-class
+# regression table (built further down, after this overlay) needs that
+# untouched hand-typed baseline to union with a *formula-specific* derived
+# set instead, so it doesn't inherit the formula-blind table's "matches
+# either formula" over-breadth. NTS (unsupported_methods) needs no such
+# snapshot: it was never formula-specific to begin with, so both tables can
+# read it straight off the (identical either way) post-overlay value.
+audit_classes_hand_slow_methods = stats::setNames(
+  lapply(audit_classes, function(r) if (is.null(r$slow_methods)) character() else r$slow_methods),
+  vapply(audit_classes, function(r) r$name, character(1))
+)
 audit_classes = lapply(audit_classes, function(r) {
   derived = tryCatch(derive_theoretical_support(r$name), error = function(e) {
     warning(sprintf("path_audits: could not derive theoretical support for %s (%s); using hand values", r$name, conditionMessage(e)), call. = FALSE)
@@ -417,6 +645,10 @@ audit_classes = lapply(audit_classes, function(r) {
     warning(sprintf("path_audits: could not derive slow paths for %s (%s); using hand values", r$name, conditionMessage(e)), call. = FALSE)
     character()
   })
+  slow_derived = c(slow_derived, tryCatch(derive_additional_slow_methods(r$name, additional_test_slow_paths_live), error = function(e) {
+    warning(sprintf("path_audits: could not derive ADDITIONAL_TEST_SLOW_PATHS slow paths for %s (%s); using hand values", r$name, conditionMessage(e)), call. = FALSE)
+    character()
+  }))
   # EDI_COMPREHENSIVE_SLOW_PATHS' bartlett_pval category is class-name-only
   # and, by its own doc comment, "gates both 'approx' and 'exact'" -- it does
   # not distinguish which Bartlett variant a given class actually has. Most
@@ -504,7 +736,45 @@ load_nonestimability_stats = function(result_dir = "package_tests") {
   rates[, rate := data.table::fifelse(n > 0L, nonestimable / n, NA_real_)]
   data.table::setorder(rates, base_class, function_run)
   maybe_update_default_stats(rates)
-  stats_env_from_rates(rates)
+  stats_env = stats_env_from_rates(rates)
+  # Formula-scoped rates, stored in the SAME env under 3-part
+  # "base_class||formula||function_run" keys (distinguishable from the
+  # aggregate 2-part keys above -- low_estimability_rows() already only
+  # accepts length==2 keys, so these are transparently ignored there,
+  # leaving that summary on the aggregate rate as before). Two label
+  # conventions exist depending on whether the class takes its own
+  # model_formula ("(model_formula=~X)") or the formula is design-driven
+  # ("[design_formula=~X]", e.g. survival GLMM and several ordinal classes)
+  # -- same dual-convention parsing as comprehensive_tests.R's own
+  # inference_model_formula_str (see that file's 2026-09-09 fix comment).
+  dt[, formula_w := data.table::fifelse(
+    grepl("\\(model_formula=~[^)]*\\)", inference_class),
+    sub(".*\\(model_formula=(~[^)]*)\\).*", "\\1", inference_class),
+    data.table::fifelse(
+      grepl("\\[design_formula=~[^]]*\\]", inference_class),
+      sub(".*\\[design_formula=(~[^]]*)\\].*", "\\1", inference_class),
+      NA_character_
+    )
+  )]
+  rates_by_formula = dt[!is.na(formula_w), .(
+    n = .N,
+    nonestimable = sum(explicit_nonestimable, na.rm = TRUE)
+  ), by = .(base_class, formula_w, function_run)]
+  if (nrow(rates_by_formula)) {
+    rates_by_formula[, rate := data.table::fifelse(n > 0L, nonestimable / n, NA_real_)]
+    for (i in seq_len(nrow(rates_by_formula))) {
+      assign(
+        paste(rates_by_formula$base_class[i], rates_by_formula$formula_w[i], rates_by_formula$function_run[i], sep = "||"),
+        list(
+          n = as.integer(rates_by_formula$n[i]),
+          nonestimable = as.integer(rates_by_formula$nonestimable[i]),
+          rate = as.numeric(rates_by_formula$rate[i])
+        ),
+        envir = stats_env
+      )
+    }
+  }
+  stats_env
 }
 
 validate_bartlett_exact_metadata = function(classes, r_dirs = c(file.path("R", "EDI", "R"), file.path("EDI", "R"), file.path("..", "EDI", "R"))) {
@@ -586,9 +856,41 @@ validate_bartlett_approx_metadata = function(classes, r_dirs = c(file.path("R", 
   invisible(sort(unique(source_pboot_true)))
 }
 
-html_from_audit = function(classes, outfile = "path_audits.html") {
+# tables: list of list(title=<string>, classes=<row list>, extra_col=<optional
+# list(header=, cell_fn=, merge_nts=, group_size=) spec -- see
+# build_table_html()>, prune_nts=<bool, default FALSE>) specs, one per
+# rendered <table>. Cross-cutting checks/lookups below (Bartlett metadata
+# validation, nonestimability-key presence) operate on the union of every
+# table's rows -- for a table with multiple row-instances per class (the
+# regression table's two formula-rows, the non-regression table's six
+# response-type-rows) that's every instance of each class, which is harmless
+# (bartlett_exact/pboot/types are identical across every instance of a class,
+# so validating repeatedly is redundant, not wrong; class-name-keyed lookups
+# just see the same name multiple times) rather than incorrect.
+
+# Top-level (not html_from_audit-scoped) since these are the cell_fn
+# closures a table spec's extra_col supplies to build_table_html() from
+# outside html_from_audit -- see the two-table assembly at the bottom of
+# this file.
+formula_display = function(f) {
+  if (identical(f, "~1")) return("~w")
+  if (identical(f, "~.")) return("~w+.")
+  if (is.null(f)) return("")
+  as.character(f)
+}
+response_type_display = function(rt) {
+  if (is.null(rt)) rt = ""
+  switch(as.character(rt),
+    continuous = "Continuous", incidence = "Incidence", proportion = "Proportion",
+    count = "Count", survival = "Survival", ordinal = "Ordinal",
+    as.character(rt)
+  )
+}
+
+html_from_audit = function(tables, outfile = "path_audits.html") {
   GREEN = "#2e7d32"; LIGHT_GREEN = "#a5d6a7"; PALE_GREEN = "#dff3df"; LIME = "#dce775"; YELLOW = "#fff176"; ORANGE_LIGHT = "#ffcc80"; ORANGE = "#ff9800"; ORANGE_DARK = "#ef6c00"; LIGHT_RED = "#ffcdd2"; DARK_GREY = "#333333"; GREY = "#e0e0e0"
   `%||%` = function(x, y) if (is.null(x)) y else x
+  classes = unlist(lapply(tables, function(t) t$classes), recursive = FALSE)
   validate_bartlett_exact_metadata(classes)
   validate_bartlett_approx_metadata(classes)
   nonestimability_stats = load_nonestimability_stats(dirname(outfile))
@@ -673,6 +975,17 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
       slow           = cell(LIGHT_RED,   "SLOW", "Skipped or lightly tested in comprehensive tests because this path is too slow"),
       unsupported    = cell(DARK_GREY,   "NTS",  "Not theoretically supported by this model", text_color = "#fff"),
       not_implemented= cell(GREY,        "NI",   "Not implemented yet"),
+      # Distinct from "unsupported": NTS is a judgment about a class ("this
+      # method exists as a concept for this class's family but the class
+      # cannot do it"); blank is for a column that is not even a meaningful
+      # concept for this row's method family at all (e.g. the Model-Based
+      # "other" column, a home for one bespoke non-generic pval method --
+      # compute_asymp_log_rank_two_sided_pval_for_treatment_effect -- that
+      # only InferenceSurvivalLogRank/KMDiff have; every other class was
+      # never a candidate for it in the first place, so marking it NTS there
+      # implied a negative claim about those classes this column was never
+      # making).
+      blank          = cell("transparent", "", "Not applicable to this model family"),
       stop("Unknown audit cell status: ", status)
     )
   }
@@ -686,6 +999,13 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
     as.character(r[[field]] %||% character())
   }
   method_status = function(r, method_id, default_status) {
+    # Whole-row exclusion for a response type this class's own constructor
+    # structurally rejects (e.g. InferenceAllSimpleWilcox on "incidence" --
+    # see EDI_INFERENCE_RESPONSE_TYPE_EXCLUSIONS in inference_class_registry.R)
+    # despite the row otherwise existing -- checked first so it overrides
+    # everything else (slow/not_implemented/always_numeric/etc, which are all
+    # response-type-blind hand values that don't know this row is excluded).
+    if (isTRUE(r$resp_type_excluded)) return("unsupported")
     if (method_id %in% row_methods(r, "not_implemented_methods")) return("not_implemented")
     if (method_id %in% row_methods(r, "unsupported_methods")) return("unsupported")
     if (method_id %in% row_methods(r, "slow_methods")) return("slow")
@@ -694,7 +1014,17 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
     default_status
   }
   method_info = function(r, method_id) {
-    key = paste(r$name, method_id, sep = "||")
+    # r$formula is only set on the two-row-per-class regression table's
+    # row-instances (see build_table_html()) -- when present, look up the
+    # formula-scoped 3-part key (load_nonestimability_stats()'
+    # rates_by_formula) instead of the aggregate 2-part one, so the two
+    # formula-rows of a class can show genuinely different estimability
+    # colors instead of the same combined-across-both-formulas rate twice.
+    key = if (!is.null(r$formula)) {
+      paste(r$name, r$formula, method_id, sep = "||")
+    } else {
+      paste(r$name, method_id, sep = "||")
+    }
     if (exists(key, envir = nonestimability_stats, inherits = FALSE)) {
       return(get(key, envir = nonestimability_stats, inherits = FALSE))
     }
@@ -841,7 +1171,11 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   }
   cell_am_other_p = function(r) {
     method_id = "compute_asymp_log_rank_two_sided_pval_for_treatment_effect"
-    if (!is_log_rank_other(r) || isTRUE(r$skip_asymp)) return(method_cell(r, method_id, "unsupported"))
+    # Not applicable at all (blank), vs a real negative claim about a class
+    # that IS a candidate for this column (unsupported/NTS) -- see the
+    # "blank" status_cell() branch's comment for why these are kept distinct.
+    if (!is_log_rank_other(r)) return(status_cell("blank"))
+    if (isTRUE(r$skip_asymp)) return(method_cell(r, method_id, "unsupported"))
     method_cell(r, method_id, "maybe")
   }
 
@@ -852,7 +1186,6 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   }
   cell_bc = function(r, method_id) {
     if (isTRUE(r$skip_boot)) return(method_cell(r, method_id, "slow"))
-    if (isTRUE(r$skip_boot_ci)) return(method_cell(r, method_id, "slow"))
     if (isTRUE(r$skip_ci)) return(method_cell(r, method_id, "slow"))
     method_cell(r, method_id, "maybe")
   }
@@ -886,12 +1219,10 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   # ── Studentized bootstrap (separate skip from general boot) ──────────────────
   cell_bst_p = function(r, method_id) {
     if (isTRUE(r$skip_boot)) return(method_cell(r, method_id, "slow"))
-    if (isTRUE(r$skip_stud)) return(method_cell(r, method_id, "slow"))
     method_cell(r, method_id, "maybe")
   }
   cell_bst_c = function(r, method_id) {
     if (isTRUE(r$skip_boot)) return(method_cell(r, method_id, "slow"))
-    if (isTRUE(r$skip_stud)) return(method_cell(r, method_id, "slow"))
     if (isTRUE(r$skip_ci)) return(method_cell(r, method_id, "slow"))
     method_cell(r, method_id, "maybe")
   }
@@ -947,10 +1278,19 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   # jack=FALSE means truly unsupported (no such row currently). jack=TRUE + skip_jack_slow=TRUE
   # means skipped in comprehensive tests -- either for runtime (InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik,
   # InferenceContinKKGLMM) or via a hard-coded name exclusion (InferenceCountKKGLMM).
+  # No more blanket resp=="count" -> not_implemented here -- removed
+  # 2026-09-10 alongside comprehensive_tests.R's matching blanket skip (see
+  # its comment for the smoke-test evidence). The count classes genuinely
+  # unstable under delete-one refits (hurdle/negbin/zero-augmented Poisson)
+  # self-report via cache_nonestimable_estimate() at runtime, so they now
+  # correctly fall through to the ordinary empirical "maybe" pipeline below
+  # (rendering as 0%-estimable once real comprehensive_tests data exists,
+  # "unknown" until then) instead of a blanket audit-time NI label that
+  # never distinguished them from AverageDiff/MeanDiffPooledVar, which have
+  # no such instability at all.
   cell_jack_estimate = function(r) {
     method_id = "compute_jackknife_estimate"
     if (!isTRUE(r$jack)) return(method_cell(r, method_id, "unsupported"))
-    if (identical(r$resp, "count")) return(method_cell(r, method_id, "not_implemented"))
     if (isTRUE(r$skip_jack_slow)) return(method_cell(r, method_id, "slow"))
     method_cell(r, method_id, "maybe")
   }
@@ -991,17 +1331,20 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   }
 
   # ── Bootstrap-randomization (BRT) — all types share same per-class logic ───
-  # skip_brt="ci" means pval runs but CI is too slow (e.g. ContinRobustRegr)
+  # skip_brt="ci" means pval runs but CI is too slow (e.g. ContinRobustRegr).
+  # No more r$run_brt gate here -- removed 2026-09-10 alongside RUN_BRT/
+  # always_run_brt in comprehensive_tests.R; BRT now runs by default for
+  # every class, so a cell's "maybe" vs "slow" status is driven purely by
+  # the same skip_rand/skip_rpv/skip_boot/skip_brt_*_slow-derived flags
+  # every other family already uses.
   cell_brt_p = function(r, method_id) {
     if (!nchar(r$rand_resp)) return(method_cell(r, method_id, "unsupported"))
-    if (!isTRUE(r$run_brt)) return(method_cell(r, method_id, "slow"))
     if (isTRUE(r$skip_rand) || isTRUE(r$skip_rpv)) return(method_cell(r, method_id, "slow"))
     if (!identical(r$skip_brt, "ci") && isTRUE(r$skip_boot)) return(method_cell(r, method_id, "slow"))
     method_cell(r, method_id, "maybe")
   }
   cell_brt_c = function(r, method_id) {
     if (!nchar(r$rci_resp)) return(method_cell(r, method_id, "unsupported"))
-    if (!isTRUE(r$run_brt)) return(method_cell(r, method_id, "slow"))
     if (identical(r$skip_brt, "ci")) return(method_cell(r, method_id, "slow"))
     if (isTRUE(r$skip_boot) || isTRUE(r$skip_rand)) return(method_cell(r, method_id, "slow"))
     if (isTRUE(r$skip_rand_ci)) return(method_cell(r, method_id, "slow"))
@@ -1019,119 +1362,168 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
     if (isTRUE(r$exact_c)) method_cell(r, method_id, "always_numeric") else method_cell(r, method_id, "unsupported")
   }
 
-  # ── Four frozen header rows ──────────────────────────────────────────────────
-  # Data cols: 14 (model-based, incl. 1 model "est", 1 log-rank "other", and the
-  #            2-col "LR-Bart-app" + 2-col "LR-Bart-ex" pairs next to "LR")
-  #            + 2 (exact-other) + 5 (exact-rand) + 22 (npboot, incl. 10 for the 6 bayes flavors
-  #                and 4 for m-out-of-n/PRW subsampling)
-  #            + 5 (pboot: 3-col parametric-bootstrap-estimate [blank subheader, est/pval/ci]
-  #                + 2-col "LR" pval/ci) + 3 (jack, incl. 1 jackknife "est") + 9 (brt) = 60
-  NCOL = 61  # 1 (class) + 60 (data)
-  hdr = paste0(
-    # Row 0: meta-categories — Asymptotic (53) | Exact (7)
-    '<tr class="hdr0">',
-      '<th rowspan="4" style="text-align:left">Inference Type</th>',
-      '<th colspan="53">Asymptotic</th>',
-      '<th colspan="7">Exact</th>',
-    '</tr>',
-    # Row 1: categories
-    '<tr class="hdr1">',
-      # Under Asymptotic (53)
-      '<th colspan="14">Model-Based</th>',
-      '<th colspan="22">Nonparam Boot</th>',
-      '<th colspan="5">Param Boot</th>',
-      '<th colspan="3">Jackknife</th>',
-      '<th colspan="9">Boot-Rand</th>',
-      # Under Exact (7)
-      '<th colspan="2">other</th>',
-      '<th colspan="5">Randomization</th>',
-    '</tr>',
-    # Row 2: test types
-    '<tr class="hdr2">',
-      # Model-Based: model "est" (colspan=1), then 4 types x colspan=2, plus "LR-Bart-app"
-      # and "LR-Bart-ex" (colspan=2 each) and "other" (pval-only, colspan=1)
-      '<th colspan="1">est</th>',
-      '<th colspan="2">wald</th>',
-      '<th colspan="2">score</th>',
-      '<th colspan="2">LR</th>',
-      '<th colspan="2">LR-Bart-app</th>',
-      '<th colspan="2">LR-Bart-ex</th>',
-      '<th colspan="2">grad</th>',
-      '<th colspan="1">other</th>',
-      # Nonparam Boot: pctile(2) symm(1) basic(1) bca(2) stud(2) [classical, 8]
-      #                m-out-n(2) prw-sub(2) [alternative empirical-resampling, 4]
-      #                bayes-pctile(2) bayes-symm(1) bayes-basic(1) bayes-wald(2) bayes-bca(2) bayes-stud(2) [bayes, 10]
-      '<th colspan="2">pctile</th>',
-      '<th colspan="1">symm</th>',
-      '<th colspan="1">basic</th>',
-      '<th colspan="2">bca</th>',
-      '<th colspan="2">stud</th>',
-      '<th colspan="2">m-out-n</th>',
-      '<th colspan="2">PRW-sub</th>',
-      '<th colspan="2">bayes-pctile</th>',
-      '<th colspan="1">bayes-symm</th>',
-      '<th colspan="1">bayes-basic</th>',
-      '<th colspan="2">bayes-wald</th>',
-      '<th colspan="2">bayes-bca</th>',
-      '<th colspan="2">bayes-stud</th>',
-      # Param Boot: blank subheader (parametric-bootstrap-estimate: est/pval/ci) then "LR"
-      '<th colspan="3"></th>',
-      '<th colspan="2">LR</th>',
-      # Jackknife (no named sub-type)
-      '<th colspan="3"></th>',
-      # Boot-Rand: 4 types
-      '<th colspan="3">pctile</th>',
-      '<th colspan="2">stud</th>',
-      '<th colspan="2">symm-t</th>',
-      '<th colspan="2">smooth</th>',
-      # Exact other (no sub-type)
-      '<th colspan="2"></th>',
-      # Randomization: vanilla(3) + custom(2)
-      '<th colspan="3">vanilla</th>',
-      '<th colspan="2">custom</th>',
-    '</tr>',
-    # Row 3: pval / ci leaves
-    '<tr class="hdr3">',
-      # Model-Based (14)
-      '<th>est</th>',
-      '<th>pval</th><th>ci</th>',   # wald
-      '<th>pval</th><th>ci</th>',   # score
-      '<th>pval</th><th>ci</th>',   # likrat
-      '<th>pval</th><th>ci</th>',   # LR-Bart-app
-      '<th>pval</th><th>ci</th>',   # LR-Bart-ex
-      '<th>pval</th><th>ci</th>',   # grad
-      '<th>pval</th>',              # other (log-rank, pval only)
-      # Nonparam Boot (22)
-      '<th>pval</th><th>ci</th>',   # pctile
-      '<th>pval</th>',               # symm (pval only)
-      '<th>ci</th>',                 # basic (ci only)
-      '<th>pval</th><th>ci</th>',   # bca
-      '<th>pval</th><th>ci</th>',   # stud
-      '<th>pval</th><th>ci</th>',   # m-out-n
-      '<th>pval</th><th>ci</th>',   # PRW-sub
-      '<th>pval</th><th>ci</th>',   # bayes-pctile
-      '<th>pval</th>',               # bayes-symm (pval only)
-      '<th>ci</th>',                 # bayes-basic (ci only)
-      '<th>pval</th><th>ci</th>',   # bayes-wald
-      '<th>pval</th><th>ci</th>',   # bayes-bca
-      '<th>pval</th><th>ci</th>',   # bayes-stud
-      # Param Boot (5): parametric-bootstrap-estimate (est/pval/ci) then LR (pval/ci)
-      '<th>est</th><th>pval</th><th>ci</th>',
-      '<th>pval</th><th>ci</th>',
-      # Jackknife (3)
-      '<th>est</th><th>pval</th><th>ci</th>',
-      # Boot-Rand (9)
-      '<th>pval</th><th>pval(&delta;)</th><th>ci</th>',   # pctile
-      '<th>pval</th><th>ci</th>',                          # stud
-      '<th>pval</th><th>ci</th>',                          # symm-t
-      '<th>pval</th><th>ci</th>',                          # smooth
-      # Exact other (2)
-      '<th>pval</th><th>ci</th>',
-      # Randomization (5)
-      '<th>pval</th><th>pval(&delta;)</th><th>ci</th>',   # vanilla
-      '<th>pval</th><th>ci</th>',                          # custom
-    '</tr>'
+  # ── Table builder (called once per table -- see the two-table assembly at
+  # the bottom of this function) ──────────────────────────────────────────────
+  # NTS cells are always identical across a class's two formula-rows (NTS is
+  # derived once per class from EDI_INFERENCE_EXCLUDED_CAPABILITIES, never
+  # touched per-formula -- see the row-expansion code below this function),
+  # so formula_col=TRUE mode merges them visually with a plain string
+  # find-and-replace on the two rows' already-rendered HTML: row 1 of a pair
+  # gets rowspan="2" added to every NTS <td>, row 2 has the identical <td>s
+  # stripped outright (the browser slots row 1's spanned cell into that
+  # visual position). Safe because status_cell()'s "unsupported" branch
+  # always produces this exact, fixed string (fixed title/text/style, never
+  # interpolated) -- no regex needed, no risk of a false match.
+  NTS_CELL_HTML = '<td style="background:#333333;text-align:center;white-space:nowrap;color:#fff" title="Not theoretically supported by this model">NTS</td>'
+  NTS_CELL_HTML_ROWSPAN = '<td rowspan="2" style="background:#333333;text-align:center;white-space:nowrap;color:#fff" title="Not theoretically supported by this model">NTS</td>'
+  # Full column structure as the single source of truth for both the header
+  # and the per-row cell sequence (was two independently-hand-synced things
+  # -- the hardcoded hdr string and the hardcoded row_html cell-call list --
+  # which is also what made "just drop the NTS-for-everyone blocks" hard to
+  # do safely before: pruning a block now means filtering this one nested
+  # list, and the header/colspans/row cells all follow automatically instead
+  # of needing three separate hand-edits kept in sync by eye). Each leaf is
+  # a (header label, fn(r) returning that cell's HTML) pair; a "block" is
+  # one hdr2/hdr3 sub-type (e.g. "wald", "LR-Bart-app", "bayes-stud"); a
+  # "group" is one hdr1 category ("Model-Based", "Nonparam Boot", ...)
+  # nested under one hdr0 top-level ("Asymptotic"/"Exact").
+  COLUMN_SPEC = list(
+    list(top = "Asymptotic", groups = list(
+      list(sub = "Model-Based", blocks = list(
+        list(label = "est",         leaves = list(list(h = "est",  fn = function(r) cell_estimate(r)))),
+        list(label = "wald",        leaves = list(list(h = "pval", fn = function(r) cell_ap(r, "wald")),  list(h = "ci", fn = function(r) cell_ac(r, "wald")))),
+        list(label = "score",       leaves = list(list(h = "pval", fn = function(r) cell_ap(r, "score")), list(h = "ci", fn = function(r) cell_ac(r, "score")))),
+        list(label = "LR",          leaves = list(list(h = "pval", fn = function(r) cell_ap(r, "lr")),    list(h = "ci", fn = function(r) cell_ac(r, "lr")))),
+        list(label = "LR-Bart-app", leaves = list(list(h = "pval", fn = function(r) cell_likrat_bart_p(r)), list(h = "ci", fn = function(r) cell_likrat_bart_c(r)))),
+        list(label = "LR-Bart-ex",  leaves = list(list(h = "pval", fn = function(r) cell_likrat_bart_ex_p(r)), list(h = "ci", fn = function(r) cell_likrat_bart_ex_c(r)))),
+        list(label = "grad",        leaves = list(list(h = "pval", fn = function(r) cell_ap(r, "grad")),  list(h = "ci", fn = function(r) cell_ac(r, "grad")))),
+        list(label = "other",       leaves = list(list(h = "pval", fn = function(r) cell_am_other_p(r))))
+      )),
+      list(sub = "Nonparam Boot", blocks = list(
+        list(label = "pctile",       leaves = list(list(h = "pval", fn = function(r) cell_bp(r, "compute_bootstrap_two_sided_pval")), list(h = "ci", fn = function(r) cell_bc(r, "compute_bootstrap_confidence_interval")))),
+        list(label = "symm",         leaves = list(list(h = "pval", fn = function(r) cell_bp(r, "compute_bootstrap_two_sided_pval_symmetric")))),
+        list(label = "basic",        leaves = list(list(h = "ci",   fn = function(r) cell_bc(r, "compute_bootstrap_confidence_interval_basic")))),
+        list(label = "bca",          leaves = list(list(h = "pval", fn = function(r) cell_bp(r, "compute_bootstrap_two_sided_pval_bca")), list(h = "ci", fn = function(r) cell_bc(r, "compute_bootstrap_confidence_interval_bca")))),
+        list(label = "stud",         leaves = list(list(h = "pval", fn = function(r) cell_bst_p(r, "compute_bootstrap_two_sided_pval_studentized")), list(h = "ci", fn = function(r) cell_bst_c(r, "compute_bootstrap_confidence_interval_studentized")))),
+        list(label = "m-out-n",      leaves = list(list(h = "pval", fn = function(r) cell_mnboot_p(r, "compute_m_out_of_n_bootstrap_two_sided_pval")), list(h = "ci", fn = function(r) cell_mnboot_c(r, "compute_m_out_of_n_bootstrap_confidence_interval")))),
+        list(label = "PRW-sub",      leaves = list(list(h = "pval", fn = function(r) cell_prw_p(r, "compute_subsampling_two_sided_pval")), list(h = "ci", fn = function(r) cell_prw_c(r, "compute_subsampling_confidence_interval")))),
+        list(label = "bayes-pctile", leaves = list(list(h = "pval", fn = function(r) cell_bbt_p(r, "compute_bayesian_bootstrap_two_sided_pval")), list(h = "ci", fn = function(r) cell_bbt_c(r, "compute_bayesian_bootstrap_confidence_interval")))),
+        list(label = "bayes-symm",   leaves = list(list(h = "pval", fn = function(r) cell_bbt_p(r, "compute_bayesian_bootstrap_two_sided_pval_symmetric")))),
+        list(label = "bayes-basic",  leaves = list(list(h = "ci",   fn = function(r) cell_bbt_c(r, "compute_bayesian_bootstrap_confidence_interval_basic")))),
+        list(label = "bayes-wald",   leaves = list(list(h = "pval", fn = function(r) cell_bbt_p(r, "compute_bayesian_bootstrap_two_sided_pval_wald")), list(h = "ci", fn = function(r) cell_bbt_c(r, "compute_bayesian_bootstrap_confidence_interval_wald")))),
+        list(label = "bayes-bca",    leaves = list(list(h = "pval", fn = function(r) cell_bbt_p(r, "compute_bayesian_bootstrap_two_sided_pval_bca")), list(h = "ci", fn = function(r) cell_bbt_c(r, "compute_bayesian_bootstrap_confidence_interval_bca")))),
+        list(label = "bayes-stud",   leaves = list(list(h = "pval", fn = function(r) cell_bbt_p(r, "compute_bayesian_bootstrap_two_sided_pval_studentized")), list(h = "ci", fn = function(r) cell_bbt_c(r, "compute_bayesian_bootstrap_confidence_interval_studentized"))))
+      )),
+      list(sub = "Param Boot", blocks = list(
+        list(label = "",   leaves = list(list(h = "est", fn = function(r) cell_pbest_estimate(r)), list(h = "pval", fn = function(r) cell_pbest_p(r)), list(h = "ci", fn = function(r) cell_pbest_c(r)))),
+        list(label = "LR", leaves = list(list(h = "pval", fn = function(r) cell_pb_p(r, "compute_lik_ratio_bootstrap_two_sided_pval")), list(h = "ci", fn = function(r) cell_pb_c(r, "compute_lik_ratio_bootstrap_confidence_interval"))))
+      )),
+      list(sub = "Jackknife", blocks = list(
+        list(label = "", leaves = list(list(h = "est", fn = function(r) cell_jack_estimate(r)), list(h = "pval", fn = function(r) cell_jack_p(r, "compute_jackknife_wald_two_sided_pval")), list(h = "ci", fn = function(r) cell_jack_c(r, "compute_jackknife_wald_confidence_interval"))))
+      )),
+      list(sub = "Boot-Rand", blocks = list(
+        list(label = "pctile", leaves = list(list(h = "pval", fn = function(r) cell_brt_p(r, "compute_rand_bootstrap_two_sided_pval")), list(h = "pval(&delta;)", fn = function(r) cell_brt_p(r, "compute_rand_bootstrap_two_sided_pval(delta=0.5)")), list(h = "ci", fn = function(r) cell_brt_c(r, "compute_rand_bootstrap_confidence_interval")))),
+        list(label = "stud",   leaves = list(list(h = "pval", fn = function(r) cell_brt_p(r, "compute_rand_bootstrap_two_sided_pval_studentized")), list(h = "ci", fn = function(r) cell_brt_c(r, "compute_rand_bootstrap_confidence_interval_studentized")))),
+        list(label = "symm-t", leaves = list(list(h = "pval", fn = function(r) cell_brt_p(r, "compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t")), list(h = "ci", fn = function(r) cell_brt_c(r, "compute_rand_bootstrap_confidence_interval_symmetric-percentile-t")))),
+        list(label = "smooth", leaves = list(list(h = "pval", fn = function(r) cell_brt_p(r, "compute_rand_bootstrap_two_sided_pval_smoothed")), list(h = "ci", fn = function(r) cell_brt_c(r, "compute_rand_bootstrap_confidence_interval_smoothed"))))
+      ))
+    )),
+    list(top = "Exact", groups = list(
+      list(sub = "other", blocks = list(
+        list(label = "", leaves = list(list(h = "pval", fn = function(r) cell_exact_p(r)), list(h = "ci", fn = function(r) cell_exact_c(r))))
+      )),
+      list(sub = "Randomization", blocks = list(
+        list(label = "vanilla", leaves = list(list(h = "pval", fn = function(r) cell_rand_p(r, "compute_rand_two_sided_pval")), list(h = "pval(&delta;)", fn = function(r) cell_rand_p(r, "compute_rand_two_sided_pval(delta=0.5)")), list(h = "ci", fn = function(r) cell_rand_c(r, "compute_rand_confidence_interval")))),
+        list(label = "custom",  leaves = list(list(h = "pval", fn = function(r) cell_rand_custom_p(r, "compute_rand_two_sided_pval(custom)")), list(h = "ci", fn = function(r) cell_rand_custom_c(r, "compute_rand_confidence_interval(custom)"))))
+      ))
+    ))
   )
+  # "blank" (status_cell()'s not-applicable-at-all status, e.g. the "other"
+  # column for every class but the 2 it exists for) counts as prunable here
+  # too, same as NTS: both mean "this column carries zero information for
+  # this row," just with a different display connotation when the column
+  # ISN'T pruned. Without this, a column that's blank for literally every
+  # row in the table (as "other" now is in the non-regression table, none of
+  # whose 3 classes are the 2 log-rank classes it exists for) would stop
+  # being prunable the moment it stopped rendering as NTS text.
+  is_nts_html = function(cell_html) grepl(">NTS</td>", cell_html, fixed = TRUE) || grepl('background:transparent;text-align:center;white-space:nowrap" title="Not applicable', cell_html, fixed = TRUE)
+
+  # prune_nts=TRUE (only used for the non-regression table) drops a whole
+  # block -- every header level above it recomputes its colspan to match --
+  # when EVERY leaf in it is NTS for EVERY row being rendered (not "some
+  # leaves/some rows"; a partially-NTS block still renders in full). Correct
+  # by construction: this calls the exact same cell_*() closures the row
+  # loop below calls, just to inspect their output first, so "pruned"
+  # exactly tracks "would have rendered as NTS for all 3 rows here" with no
+  # separate logic to keep in sync.
+  prune_column_spec = function(spec, classes) {
+    lapply(spec, function(top_entry) {
+      groups = lapply(top_entry$groups, function(group) {
+        blocks = Filter(function(block) {
+          !all(vapply(classes, function(r) {
+            all(vapply(block$leaves, function(leaf) is_nts_html(leaf$fn(r)), logical(1)))
+          }, logical(1)))
+        }, group$blocks)
+        list(sub = group$sub, blocks = blocks)
+      })
+      groups = Filter(function(g) length(g$blocks) > 0L, groups)
+      list(top = top_entry$top, groups = groups)
+    })
+  }
+
+  build_table_html = function(classes, extra_col = NULL, prune_nts = FALSE) {
+  # extra_col (optional): list(header=<str>, cell_fn=function(r) <html-safe
+  # display string>, merge_nts=<logical, default FALSE>, group_size=<int,
+  # only meaningful when merge_nts=TRUE -- how many consecutive rows in
+  # `classes` belong to one class>). merge_nts=TRUE is only valid when NTS
+  # genuinely cannot vary within a group (true for the formula axis: a
+  # class's theoretical support doesn't depend on ~1 vs ~.); the
+  # response-type axis does NOT have that guarantee (a class can be NTS for
+  # one response type and not another -- that's the entire reason the
+  # response-type column exists), so its rows render unmerged.
+  has_extra = !is.null(extra_col)
+  spec = if (prune_nts) prune_column_spec(COLUMN_SPEC, classes) else COLUMN_SPEC
+  spec = Filter(function(t) length(t$groups) > 0L, spec)
+  n_data_cols = sum(vapply(spec, function(t) sum(vapply(t$groups, function(g) sum(vapply(g$blocks, function(b) length(b$leaves), integer(1))), integer(1))), integer(1)))
+  NCOL = 1L + n_data_cols + as.integer(has_extra)  # 1 (class) [+ 1 (extra)] + data
+
+  hdr0 = paste0('<tr class="hdr0">',
+    '<th rowspan="4" style="text-align:left">Inference Type</th>',
+    if (has_extra) sprintf('<th rowspan="4" class="formula-col" style="text-align:left">%s</th>', extra_col$header) else '',
+    paste(vapply(spec, function(t) {
+      colspan = sum(vapply(t$groups, function(g) sum(vapply(g$blocks, function(b) length(b$leaves), integer(1))), integer(1)))
+      sprintf('<th colspan="%d">%s</th>', colspan, t$top)
+    }, character(1)), collapse = ""),
+  '</tr>')
+  hdr1 = paste0('<tr class="hdr1">',
+    paste(unlist(lapply(spec, function(t) vapply(t$groups, function(g) {
+      colspan = sum(vapply(g$blocks, function(b) length(b$leaves), integer(1)))
+      sprintf('<th colspan="%d">%s</th>', colspan, g$sub)
+    }, character(1)))), collapse = ""),
+  '</tr>')
+  hdr2 = paste0('<tr class="hdr2">',
+    paste(unlist(lapply(spec, function(t) unlist(lapply(t$groups, function(g) vapply(g$blocks, function(b) {
+      sprintf('<th colspan="%d">%s</th>', length(b$leaves), b$label)
+    }, character(1)))))), collapse = ""),
+  '</tr>')
+  hdr3 = paste0('<tr class="hdr3">',
+    paste(unlist(lapply(spec, function(t) unlist(lapply(t$groups, function(g) unlist(lapply(g$blocks, function(b) {
+      vapply(b$leaves, function(leaf) sprintf('<th>%s</th>', leaf$h), character(1))
+    })))))), collapse = ""),
+  '</tr>')
+  hdr = paste0(hdr0, hdr1, hdr2, hdr3)
+
+  leaf_fns = unlist(lapply(spec, function(t) unlist(lapply(t$groups, function(g) unlist(lapply(g$blocks, function(b) b$leaves), recursive = FALSE)), recursive = FALSE)), recursive = FALSE)
+  leaf_fns = lapply(leaf_fns, `[[`, "fn")
+
+  row_html = function(r) {
+      nm = sub("^Inference", "", r$name)
+      paste0("<tr>",
+        sprintf('<td style="font-family:monospace;padding:2px 8px;white-space:nowrap">%s</td>', nm),
+        if (has_extra) sprintf('<td class="formula-col" style="text-align:center;white-space:nowrap">%s</td>', extra_col$cell_fn(r)) else '',
+        paste(vapply(leaf_fns, function(fn) fn(r), character(1)), collapse = ""),
+        "</tr>\n")
+  }
 
   sections = unique(vapply(classes, `[[`, "", "section"))
   body = ""
@@ -1139,51 +1531,30 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
     body = paste0(body, sprintf(
       '<tr><td colspan="%d" style="background:#263238;color:white;padding:4px 8px;font-weight:bold">%s</td></tr>\n',
       NCOL, sec))
-    for (r in classes[vapply(classes, function(x) x$section == sec, logical(1))]) {
-      nm = sub("^Inference", "", r$name)
-      body = paste0(body, "<tr>",
-        sprintf('<td style="font-family:monospace;padding:2px 8px;white-space:nowrap">%s</td>', nm),
-        # Model-Based (14): model "est" first, then wald/score/lr/LR-Bart-app/LR-Bart-ex/grad pval+ci, then "other"
-        cell_estimate(r),
-        cell_ap(r,"wald"),  cell_ac(r,"wald"),
-        cell_ap(r,"score"), cell_ac(r,"score"),
-        cell_ap(r,"lr"),    cell_ac(r,"lr"),
-        cell_likrat_bart_p(r), cell_likrat_bart_c(r),
-        cell_likrat_bart_ex_p(r), cell_likrat_bart_ex_c(r),
-        cell_ap(r,"grad"),  cell_ac(r,"grad"),
-        cell_am_other_p(r),
-        # Nonparam Boot (22)
-        cell_bp(r, "compute_bootstrap_two_sided_pval"), cell_bc(r, "compute_bootstrap_confidence_interval"),        # pctile p + ci
-        cell_bp(r, "compute_bootstrap_two_sided_pval_symmetric"),                                                   # symm p (no ci type)
-        cell_bc(r, "compute_bootstrap_confidence_interval_basic"),                                                   # basic ci (no p type)
-        cell_bp(r, "compute_bootstrap_two_sided_pval_bca"), cell_bc(r, "compute_bootstrap_confidence_interval_bca"), # bca p + ci
-        cell_bst_p(r, "compute_bootstrap_two_sided_pval_studentized"), cell_bst_c(r, "compute_bootstrap_confidence_interval_studentized"), # stud p + ci
-        cell_mnboot_p(r, "compute_m_out_of_n_bootstrap_two_sided_pval"), cell_mnboot_c(r, "compute_m_out_of_n_bootstrap_confidence_interval"), # m-out-n p + ci
-        cell_prw_p(r, "compute_subsampling_two_sided_pval"), cell_prw_c(r, "compute_subsampling_confidence_interval"), # PRW subsampling p + ci
-        cell_bbt_p(r, "compute_bayesian_bootstrap_two_sided_pval"), cell_bbt_c(r, "compute_bayesian_bootstrap_confidence_interval"),        # bayes-pctile p + ci
-        cell_bbt_p(r, "compute_bayesian_bootstrap_two_sided_pval_symmetric"),                                                                  # bayes-symm p (no ci type)
-        cell_bbt_c(r, "compute_bayesian_bootstrap_confidence_interval_basic"),                                                                  # bayes-basic ci (no p type)
-        cell_bbt_p(r, "compute_bayesian_bootstrap_two_sided_pval_wald"), cell_bbt_c(r, "compute_bayesian_bootstrap_confidence_interval_wald"), # bayes-wald p + ci
-        cell_bbt_p(r, "compute_bayesian_bootstrap_two_sided_pval_bca"), cell_bbt_c(r, "compute_bayesian_bootstrap_confidence_interval_bca"),   # bayes-bca p + ci
-        cell_bbt_p(r, "compute_bayesian_bootstrap_two_sided_pval_studentized"), cell_bbt_c(r, "compute_bayesian_bootstrap_confidence_interval_studentized"), # bayes-stud p + ci
-        # Param Boot (5): parametric-bootstrap-estimate (est/pval/ci) then LR (pval/ci)
-        cell_pbest_estimate(r), cell_pbest_p(r), cell_pbest_c(r),
-        cell_pb_p(r, "compute_lik_ratio_bootstrap_two_sided_pval"), cell_pb_c(r, "compute_lik_ratio_bootstrap_confidence_interval"),
-        # Jackknife (3)
-        cell_jack_estimate(r),
-        cell_jack_p(r, "compute_jackknife_wald_two_sided_pval"), cell_jack_c(r, "compute_jackknife_wald_confidence_interval"),
-        # Boot-Rand (9): pctile(pval+delta+ci), stud(pval+ci), symm-t(pval+ci), smooth(pval+ci)
-        cell_brt_p(r, "compute_rand_bootstrap_two_sided_pval"), cell_brt_p(r, "compute_rand_bootstrap_two_sided_pval(delta=0.5)"), cell_brt_c(r, "compute_rand_bootstrap_confidence_interval"), # pctile
-        cell_brt_p(r, "compute_rand_bootstrap_two_sided_pval_studentized"), cell_brt_c(r, "compute_rand_bootstrap_confidence_interval_studentized"),                                             # stud
-        cell_brt_p(r, "compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t"), cell_brt_c(r, "compute_rand_bootstrap_confidence_interval_symmetric-percentile-t"),                         # symm-t
-        cell_brt_p(r, "compute_rand_bootstrap_two_sided_pval_smoothed"), cell_brt_c(r, "compute_rand_bootstrap_confidence_interval_smoothed"),                                                     # smooth
-        # Exact other (2)
-        cell_exact_p(r), cell_exact_c(r),
-        # Randomization (5): vanilla pval + pval(δ) + ci, then custom pval + ci
-        cell_rand_p(r, "compute_rand_two_sided_pval"), cell_rand_p(r, "compute_rand_two_sided_pval(delta=0.5)"), cell_rand_c(r, "compute_rand_confidence_interval"),
-        cell_rand_custom_p(r, "compute_rand_two_sided_pval(custom)"), cell_rand_custom_c(r, "compute_rand_confidence_interval(custom)"),
-        "</tr>\n")
+    sec_classes = classes[vapply(classes, function(x) x$section == sec, logical(1))]
+    if (has_extra && isTRUE(extra_col$merge_nts)) {
+      # sec_classes is pre-ordered as adjacent (class, "~1")/(class, "~.")
+      # pairs by the row-expansion code below -- merge each pair's NTS cells
+      # via the fixed-string replace described above build_table_html().
+      group_size = extra_col$group_size %||% 2L
+      i = 1L
+      while (i <= length(sec_classes)) {
+        row1 = row_html(sec_classes[[i]])
+        row1 = gsub(NTS_CELL_HTML, NTS_CELL_HTML_ROWSPAN, row1, fixed = TRUE)
+        rest = ""
+        if (i + 1L <= length(sec_classes)) {
+          for (j in (i + 1L):min(i + group_size - 1L, length(sec_classes))) {
+            rest = paste0(rest, gsub(NTS_CELL_HTML, "", row_html(sec_classes[[j]]), fixed = TRUE))
+          }
+        }
+        body = paste0(body, row1, rest)
+        i = i + group_size
+      }
+    } else {
+      for (r in sec_classes) body = paste0(body, row_html(r))
     }
+  }
+  paste0('<table>', hdr, body, '</table>')
   }
 
   legend = '<div style="font-family:sans-serif;font-size:12px;margin-bottom:8px">
@@ -1219,7 +1590,8 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   <style>
     body{font-family:sans-serif;font-size:13px;margin:16px}
     .scroll-x-top{overflow-x:auto;overflow-y:hidden;border:1px solid #ccc;border-bottom:none;position:sticky;top:0;background:#fff;z-index:20}
-    .scroll-x-spacer{height:1px}
+    .scroll-x-bottom{overflow-x:auto;overflow-y:hidden;border:1px solid #ccc;border-top:none;background:#fff}
+    .scroll-x-spacer, .scroll-x-spacer-bottom{height:1px}
     .table-wrap{overflow-x:hidden;overflow-y:auto;max-height:85vh;border:1px solid #ccc}
     table{border-collapse:collapse;font-size:11px;border-spacing:0}
     td,th{border:1px solid #ccc;padding:2px 5px}
@@ -1228,8 +1600,19 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
     .hdr1 th{padding:3px 6px;z-index:4;top:0;background:#37474f;color:white;text-align:center;border-bottom:none}
     .hdr2 th{padding:2px 5px;z-index:3;top:0;background:#546e7a;color:white;text-align:center;border-bottom:none}
     .hdr3 th{padding:2px 5px;z-index:2;top:0;background:#607d8b;color:white;text-align:center}
-    .hdr0 th[rowspan]{z-index:6;top:0;background:#263238;border-bottom:1px solid #ccc;vertical-align:bottom;text-align:left}
+    .hdr0 th[rowspan]{z-index:6;top:0;left:0;background:#263238;border-bottom:1px solid #ccc;vertical-align:bottom;text-align:left}
     td[style*="monospace"]{position:sticky;left:0;background:#fff;z-index:1;border-right:2px solid #999}
+    /* Second frozen column ("Formula", regression table only) -- td.formula-col
+       mirrors td[style*="monospace"] above (same sticky/background/z-index/
+       border treatment); th.formula-col only needs position:sticky added,
+       everything else (top offset, background, z-index, border) already
+       comes from the .hdr0 th[rowspan] rule above, since it is still that
+       same element, just also carrying this class. Both cells left offset
+       (how far past the first frozen column to sit) varies with that
+       column actual rendered width, so it is computed and set per
+       table-block by the script below rather than hardcoded here. */
+    td.formula-col{position:sticky;background:#fff;z-index:1;border-right:2px solid #999}
+    th.formula-col{position:sticky}
     .low-estimability{margin-top:8px;font-size:12px}
     .low-estimability th{background:#ef6c00;color:#fff;text-align:left;padding:4px 6px;position:static}
     .low-estimability td{position:static;padding:3px 6px}
@@ -1237,24 +1620,60 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   </style>
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      var off = 0;
-      ["hdr0","hdr1","hdr2","hdr3"].forEach(function(cls) {
-        var tr = document.querySelector("tr." + cls);
-        if (!tr) return;
-        tr.querySelectorAll("th").forEach(function(th) { th.style.top = off + "px"; });
-        off += tr.getBoundingClientRect().height;
+      // One independent sticky-header + synced-horizontal-scroll setup per
+      // .table-block (one per rendered table -- was hardcoded to a single
+      // table via document.querySelector before the two-table split;
+      // querySelectorAll + scoping every lookup to `block` generalizes it
+      // to N tables without changing the per-table behavior itself).
+      document.querySelectorAll(".table-block").forEach(function(block) {
+        var off = 0;
+        ["hdr0","hdr1","hdr2","hdr3"].forEach(function(cls) {
+          var tr = block.querySelector("tr." + cls);
+          if (!tr) return;
+          tr.querySelectorAll("th").forEach(function(th) { th.style.top = off + "px"; });
+          off += tr.getBoundingClientRect().height;
+        });
+        // Second frozen column ("Formula", regression table only -- a no-op
+        // where .formula-col does not exist, e.g. the non-regression table):
+        // its `left` has to sit exactly at the first (class-name) column
+        // rendered width, which varies by table (class names differ in
+        // length), so it is measured here rather than hardcoded in CSS.
+        var firstColCell = block.querySelector("td[style*=monospace]") || block.querySelector("th[rowspan]");
+        if (firstColCell) {
+          var firstColWidth = firstColCell.getBoundingClientRect().width;
+          block.querySelectorAll(".formula-col").forEach(function(el) { el.style.left = firstColWidth + "px"; });
+        }
+        var topScroll = block.querySelector(".scroll-x-top");
+        var bottomScroll = block.querySelector(".scroll-x-bottom");
+        var wrap = block.querySelector(".table-wrap");
+        var table = wrap ? wrap.querySelector("table") : null;
+        var spacer = block.querySelector(".scroll-x-spacer");
+        var spacerBottom = block.querySelector(".scroll-x-spacer-bottom");
+        if (topScroll && bottomScroll && wrap && table && spacer && spacerBottom) {
+          var syncWidth = function() {
+            var w = table.scrollWidth + "px";
+            spacer.style.width = w;
+            spacerBottom.style.width = w;
+          };
+          syncWidth();
+          window.addEventListener("resize", syncWidth);
+          // Three-way sync (top bar, table itself, bottom bar): each
+          // scroll listener only ever writes the OTHER two elements
+          // scrollLeft, never its own, so this can not feedback-loop.
+          topScroll.addEventListener("scroll", function() {
+            wrap.scrollLeft = topScroll.scrollLeft;
+            bottomScroll.scrollLeft = topScroll.scrollLeft;
+          });
+          bottomScroll.addEventListener("scroll", function() {
+            wrap.scrollLeft = bottomScroll.scrollLeft;
+            topScroll.scrollLeft = bottomScroll.scrollLeft;
+          });
+          wrap.addEventListener("scroll", function() {
+            topScroll.scrollLeft = wrap.scrollLeft;
+            bottomScroll.scrollLeft = wrap.scrollLeft;
+          });
+        }
       });
-      var topScroll = document.querySelector(".scroll-x-top");
-      var wrap = document.querySelector(".table-wrap");
-      var table = wrap ? wrap.querySelector("table") : null;
-      var spacer = document.querySelector(".scroll-x-spacer");
-      if (topScroll && wrap && table && spacer) {
-        var syncWidth = function() { spacer.style.width = table.scrollWidth + "px"; };
-        syncWidth();
-        window.addEventListener("resize", syncWidth);
-        topScroll.addEventListener("scroll", function() { wrap.scrollLeft = topScroll.scrollLeft; });
-        wrap.addEventListener("scroll", function() { topScroll.scrollLeft = wrap.scrollLeft; });
-      }
     });
   </script>
   </head><body>
@@ -1263,14 +1682,128 @@ html_from_audit = function(classes, outfile = "path_audits.html") {
   <code>comprehensive_tests_results*.csv</code> files in <code>package_tests/</code>; focused <code>_filtered_</code> runs are excluded.
   Dark green means the method is theoretically guaranteed under the comprehensive-test contract.
   rand/rci/brt columns: NTS for response types where randomization is not theoretically supported (incidence/ordinal: rand=NTS; count: rci/brt_ci=NTS).
-  NTS on an individual method (as opposed to a whole column, e.g. the survival log-hazard-ratio Cox-family classes rci column) is now derived live from the registry EDI_INFERENCE_EXCLUDED_CAPABILITIES table (derive_theoretical_support() in this file) rather than hand-typed per class: the Cox-family classes randomization CI is NTS since 2026-09-06 because the generic randomization CI inverts an AFT log-time sharp null, which cannot be mapped onto a log-hazard-ratio estimand without a shape parameter the Cox model does not have (registry: EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES) -- their rand p-value and brt columns are unaffected. The same live mechanism also marks the parametric-bootstrap columns of InferenceIncidKKCondLogitGLMMOneLik NTS (the registry excludes that capability for it) rather than the weaker not-implemented label.</p>
-  ', reliability_note, legend, '<div class="scroll-x-top"><div class="scroll-x-spacer"></div></div><div class="table-wrap"><table>', hdr, body, '</table></div>', low_estimability_html(), '</body></html>')
+  NTS on an individual method (as opposed to a whole column, e.g. the survival log-hazard-ratio Cox-family classes rci column) is now derived live from the registry EDI_INFERENCE_EXCLUDED_CAPABILITIES table (derive_theoretical_support() in this file) rather than hand-typed per class: the Cox-family classes randomization CI is NTS since 2026-09-06 because the generic randomization CI inverts an AFT log-time sharp null, which cannot be mapped onto a log-hazard-ratio estimand without a shape parameter the Cox model does not have (registry: EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES) -- their rand p-value and brt columns are unaffected. The same live mechanism also marks the parametric-bootstrap columns of InferenceIncidKKCondLogitGLMMOneLik NTS (the registry excludes that capability for it) rather than the weaker not-implemented label.
+  The regression-procedures table below carries a "Formula" column: <code>~w</code> (treatment only) vs. <code>~w+.</code> (treatment plus all covariates) are tested, and audited, as two separate rows per class -- collinear-covariate risk and per-formula runtime cost differ enough between them (see package_metadata/new_feature_plans/harden_registry.md) that a single merged row was hiding real differences. NTS is identical for both rows of a class (it is a class-level fact, not a formula-level one -- see derive_theoretical_support()), so those cells are visually merged (rowspan) across the pair rather than repeated.
+  The non-regression-procedures table carries a "Response" column instead: InferenceAllSimpleAverageDiff/MeanDiffPooledVar/Wilcox all match every response type by name convention, but that single merged row hid real per-response-type differences -- most concretely InferenceAllSimpleWilcox own constructor hard-rejecting "incidence" (Hodges-Lehmann degenerates on 0/1 data), a restriction now visible as a fully-NTS row rather than invisible. Each class gets one row per response type (continuous/incidence/proportion/count/survival/ordinal); unlike the formula split, these rows are <em>not</em> rowspan-merged, since NTS can genuinely differ from one response-type row to the next within a class.</p>
+  ', reliability_note, legend,
+  paste(vapply(tables, function(t) {
+    paste0(
+      '<h3 style="margin-top:20px">', html_escape(t$title), '</h3>',
+      '<div class="table-block"><div class="scroll-x-top"><div class="scroll-x-spacer"></div></div><div class="table-wrap">',
+      build_table_html(t$classes, t$extra_col, isTRUE(t$prune_nts)),
+      '</div><div class="scroll-x-bottom"><div class="scroll-x-spacer-bottom"></div></div></div>'
+    )
+  }, character(1)), collapse = ""),
+  low_estimability_html(), '</body></html>')
   writeLines(html, outfile)
   invisible(outfile)
 }
+
+# ── Table split (2026-09-09 user decision) ─────────────────────────────────
+# Table 1: non-regression procedures -- section=="Global" (average-difference/
+# Wilcoxon-style statistics with no covariate-adjustment model_formula at
+# all), one row each, unchanged from the pre-split single-row format.
+# Table 2: regression procedures -- everything else, two rows each ("~w"
+# treatment-only vs "~w+." treatment-plus-covariates), because the two
+# formulas are genuinely different fitting procedures (the latter alone
+# faces collinear-covariate risk) whose SLOW/estimability behavior this
+# session found repeatedly differs by formula -- a single merged row was
+# hiding that. NTS is not formula-specific (see the comment on
+# audit_classes_hand_slow_methods above), so it doesn't need re-deriving per
+# formula-row; only slow_methods does, via derive_slow_methods_for_formula()/
+# derive_additional_slow_methods_for_formula() (both defined above,
+# formula-exact-match instead of the single-table derivers' "a
+# formula-restricted registry entry still marks the whole cell slow"
+# policy). Built from audit_classes_hand_slow_methods (pre-overlay hand
+# values) unioned with the formula-specific derivation, NOT from the
+# already-overlaid audit_classes$slow_methods (which is the formula-blind
+# union Table 1 needs) -- see that snapshot's own comment for why.
+# The three Global-section classes (InferenceAllSimpleAverageDiff/
+# MeanDiffPooledVar/Wilcox) match every response type by name convention
+# (their audit rows use resp="all"/"cont", which -- see derive_slow_methods()'
+# own comment -- makes exact_operations registry matching a no-op for them
+# today: that registry is response-type-scoped and a single merged row
+# doesn't correspond to one response type). They also hide real
+# per-response-type differences: InferenceAllSimpleWilcox's own constructor
+# hard-rejects "incidence" (Hodges-Lehmann degenerates on 0/1 data --
+# inference_all_simple_wilcox.R's initialize()), a restriction the single
+# merged row can't express at all. Expanded into one row per response type
+# instead, same "always show the row, let NTS carry the exclusion"
+# convention the regression table's formula split already uses -- not
+# rowspan-merged (extra_col$merge_nts left at its FALSE default) because,
+# unlike formula, NTS genuinely can differ from one response-type row to the
+# next within a class (that's the reason this split exists).
+ALL_RESPONSE_TYPES_ORDERED = c("continuous", "incidence", "proportion", "count", "survival", "ordinal")
+resp_code_for_response_type = stats::setNames(names(edi_resp_code_to_response_type), edi_resp_code_to_response_type)
+audit_classes_nonregression_hand = Filter(function(r) identical(r$section, "Global"), audit_classes)
+audit_classes_nonregression = unlist(lapply(audit_classes_nonregression_hand, function(r) {
+  hand_slow = audit_classes_hand_slow_methods[[r$name]]
+  if (is.null(hand_slow)) hand_slow = character()
+  applicable_response_types = tryCatch(
+    EDI:::get_inference_class_metadata(r$name)$response_types,
+    error = function(e) character()
+  )
+  lapply(ALL_RESPONSE_TYPES_ORDERED, function(response_type) {
+    excluded = !(response_type %in% applicable_response_types)
+    resp_code = resp_code_for_response_type[[response_type]]
+    slow_derived = if (excluded) character() else c(
+      tryCatch(derive_slow_methods(r$name, resp_code), error = function(e) character()),
+      tryCatch(derive_additional_slow_methods(r$name, additional_test_slow_paths_live), error = function(e) character())
+    )
+    modifyList(r, list(
+      resp = resp_code,
+      response_type = response_type,
+      resp_type_excluded = excluded,
+      slow_methods = unique(c(hand_slow, slow_derived))
+    ))
+  })
+}), recursive = FALSE)
+audit_classes_regression_hand = Filter(function(r) !identical(r$section, "Global"), audit_classes)
+audit_classes_regression = unlist(lapply(audit_classes_regression_hand, function(r) {
+  hand_slow = audit_classes_hand_slow_methods[[r$name]]
+  if (is.null(hand_slow)) hand_slow = character()
+  lapply(c("~1", "~."), function(formula) {
+    slow_derived = c(
+      tryCatch(derive_slow_methods_for_formula(r$name, r$resp, formula), error = function(e) character()),
+      tryCatch(derive_additional_slow_methods_for_formula(r$name, additional_test_slow_paths_live, formula), error = function(e) character())
+    )
+    if (!isTRUE(r$pboot)) {
+      slow_derived = setdiff(slow_derived, c("compute_lik_ratio_bartlett_approx_two_sided_pval", "compute_lik_ratio_bartlett_approx_confidence_interval"))
+    }
+    if (!isTRUE(r$bartlett_exact)) {
+      slow_derived = setdiff(slow_derived, c("compute_lik_ratio_bartlett_exact_two_sided_pval", "compute_lik_ratio_bartlett_exact_confidence_interval"))
+    }
+    # Count-response rand CI: rci_resp="" (NTS)/skip_rci=TRUE are hand-typed
+    # flat across both formula-rows on every count class (comprehensive_tests.R's
+    # response_type=="count" blanket skip_ci_rand rule has no theoretical basis --
+    # compute_rand_confidence_interval() is fully implemented for count responses,
+    # see its own doc comment's "multiplicative e^delta for counts" construction --
+    # so this is a practical default-off, not an NTS claim). For the specific
+    # (class, formula) pairs the registry's own escape hatch already allowlists,
+    # override both fields here rather than leaving the audit stuck showing NTS/
+    # SLOW for a path the harness itself actually runs.
+    rci_override = if (identical(r$resp, "count") &&
+        is_rand_ci_count_allowed_for_formula(r$name, additional_test_slow_paths_live, formula)) {
+      list(skip_rci = FALSE, rci_resp = "count")
+    } else {
+      list()
+    }
+    modifyList(r, c(list(formula = formula, slow_methods = unique(c(hand_slow, slow_derived))), rci_override))
+  })
+}), recursive = FALSE)
 
 # Run from repo root: Rscript R/package_tests/path_audits_source.R
 script_arg = grep("^--file=", commandArgs(FALSE), value = TRUE)[1]
 this_file = sub("^--file=", "", script_arg)
 this_dir = tryCatch(dirname(normalizePath(this_file)), error = function(e) "package_tests")
-html_from_audit(audit_classes, file.path(this_dir, "path_audits.html"))
+html_from_audit(
+  list(
+    list(title = "Non-Regression Procedures", classes = audit_classes_nonregression,
+      extra_col = list(header = "Response", cell_fn = function(r) response_type_display(r$response_type), merge_nts = FALSE),
+      prune_nts = TRUE),
+    list(title = "Regression Procedures", classes = audit_classes_regression,
+      extra_col = list(header = "Formula", cell_fn = function(r) formula_display(r$formula), merge_nts = TRUE, group_size = 2L),
+      prune_nts = FALSE)
+  ),
+  file.path(this_dir, "path_audits.html")
+)

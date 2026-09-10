@@ -581,17 +581,43 @@ is_inference_r6_generator = function(obj) {
 	FALSE
 }
 
+# Response types a class's own constructor structurally rejects despite
+# otherwise matching infer_inference_response_types()'s name-prefix
+# heuristic below (most concretely the blanket "^InferenceAll classes
+# support all 6 response types" rule, which has no way to know about a
+# specific class's own narrower constructor-level guard). Keyed by class
+# name -> excluded response_type string(s), verified by reading each
+# class's own assertResponseType()/design_compatibility_reason() guard
+# directly, not inferred from its name.
+EDI_INFERENCE_RESPONSE_TYPE_EXCLUSIONS = list(
+	# Hodges-Lehmann location-shift estimator degenerates (almost always 0)
+	# on 0/1 incidence data -- inference_all_simple_wilcox.R's initialize()
+	# hard-rejects it via assertResponseType(res_type, c("continuous",
+	# "count", "proportion", "survival", "ordinal")) and its own doc comment
+	# says so explicitly, pointing callers at InferenceAllSimpleAverageDiff
+	# or a clogit estimator instead.
+	InferenceAllSimpleWilcox = "incidence"
+)
+
 infer_inference_response_types = function(name) {
-	if (identical(name, "Inference") || grepl("^InferenceAll", name)) {
-		return(c("continuous", "incidence", "count", "proportion", "survival", "ordinal"))
+	base = if (identical(name, "Inference") || grepl("^InferenceAll", name)) {
+		c("continuous", "incidence", "count", "proportion", "survival", "ordinal")
+	} else if (grepl("^InferenceContin", name) || grepl("^InferenceBai", name)) {
+		"continuous"
+	} else if (grepl("^InferenceCount", name)) {
+		"count"
+	} else if (grepl("^InferenceIncid", name) || grepl("^InferenceIncidence", name)) {
+		"incidence"
+	} else if (grepl("^InferenceOrdinal", name)) {
+		"ordinal"
+	} else if (grepl("^InferenceProp", name)) {
+		"proportion"
+	} else if (grepl("^InferenceSurvival", name)) {
+		"survival"
+	} else {
+		character()
 	}
-	if (grepl("^InferenceContin", name) || grepl("^InferenceBai", name)) return("continuous")
-	if (grepl("^InferenceCount", name)) return("count")
-	if (grepl("^InferenceIncid", name) || grepl("^InferenceIncidence", name)) return("incidence")
-	if (grepl("^InferenceOrdinal", name)) return("ordinal")
-	if (grepl("^InferenceProp", name)) return("proportion")
-	if (grepl("^InferenceSurvival", name)) return("survival")
-	character()
+	setdiff(base, EDI_INFERENCE_RESPONSE_TYPE_EXCLUSIONS[[name]] %||% character())
 }
 
 infer_inference_likelihood_tier = function(name) {

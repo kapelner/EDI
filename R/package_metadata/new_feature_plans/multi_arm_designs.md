@@ -1,6 +1,15 @@
 # Multi-Arm (K > 2) Designs
 
 > **Depends on:** Phase 1 (design side): `fix_design_hierarchy.md` (capability metadata + `define_design_class` registration). Phase 3 (inference side): `fix_inference_hierarchy.md` (stable root + `Wald` component contract). TODO-6 (CMH guard gap) is independent — do anytime. (Global ordering: see `_master.md`.)
+>
+> **Amended 2026-09-10 (user decision):** §6c below (pairwise-comparison
+> visualization for Phase 3a's orchestrated output) targets
+> `release_v3_0_0.md` specifically — it depends on Phase 3a's
+> (TODO-4's) per-pair estimate/CI/p-value contract existing first, and
+> visualization is reporting on top of that contract, not part of building
+> it. Every other phase in this document (Phase 1a/1b/2/3a/3b, TODO-1
+> through TODO-6) keeps its original release target; this is the one
+> section split out to v3.0.0.
 
 Generated: 2026-08-09
 
@@ -839,6 +848,31 @@ hierarchy — it should only be started once there's demonstrated user demand
 that path (a)'s pairwise-comparison output genuinely doesn't serve, not
 speculatively.
 
+### 6c. Visualization: pairwise-comparison plot (added 2026-09-10, user decision — v3.0.0)
+
+Once Phase 3a (§6a, TODO-4) produces its collected per-pair
+estimates/SEs/p-values and applies its multiplicity correction
+(Bonferroni/Holm/Dunnett), the natural report is a compact
+`multcomp::plot.glht()`-style panel (Hothorn, Bretz & Westfall 2008,
+*Biometrical Journal* — the de facto R convention for exactly this output
+shape): one row per pairwise (or `K-1` vs.-reference Dunnett) comparison,
+the point estimate plus its *adjusted* CI, a reference line at the null
+(0 or 1 depending on scale), and the same significance-highlight
+convention `InferenceSuite`'s own CI forest plot already uses
+(`run_all_inference_plot_ci_forest`) — reused, not reinvented, per
+`inference_suite_interactive_reporting.md` (also v3.0.0, wired the same
+day). A wide `K` (many pairwise comparisons) is exactly the case a static
+table serves poorly and a sortable `DT`/hoverable `plotly` panel serves
+well, the same interactivity story as that sibling plan.
+
+Scoped to Path (a)'s orchestrated output specifically. Path (b)'s native
+`K`-arm classes (§6b, demand-gated per that section's own recommendation)
+would need the analogous plot for a `K-1`-vector of contrasts with a joint
+covariance structure rather than independent per-pair intervals — a
+genuinely different plot (simultaneous confidence region vs. independent
+adjusted intervals), not a trivial extension of this one. Not scoped here;
+flagged only so it isn't assumed free if/when Path (b) is ever built.
+
 ## 7. A cross-cutting note on randomization-test validity
 
 The rand-CI/randomization-test family (`inference_all_abstract_rand*.R`)
@@ -909,6 +943,13 @@ plumbing once §3/§4 land.
   `arm_control` selection (§6a), plus a real multiplicity-correction
   implementation — the first place in this plan that needs genuinely new
   statistical code rather than generalizing an existing mechanism.
+- [ ] TODO-4b (added 2026-09-10, user decision; **release target
+  `release_v3_0_0.md`**, not this plan's otherwise-v2.0.0 target): **§6c
+  visualization** — the `multcomp`-style pairwise-comparison plot over
+  TODO-4's orchestrated output, reusing `InferenceSuite`'s forest-plot
+  conventions and `inference_suite_interactive_reporting.md`'s
+  `ggplot2`/`plotly`/`DT` stack. Depends on TODO-4's result contract
+  existing first.
 - [ ] TODO-5: **Phase 3b (Inference, native — demand-gated):** purpose-written
   native `K`-arm `Inference` classes for continuous and incidence responses
   only (§6b), gated on demonstrated need beyond what Phase 3a's pairwise

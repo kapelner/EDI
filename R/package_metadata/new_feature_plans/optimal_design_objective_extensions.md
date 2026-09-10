@@ -10,6 +10,11 @@ Written 2026-08-27. Owning plan for
 `missing_theoretical_design_classes_literature_audit.md` items **#2, #3,
 #4, #5, #9, #41, #42**.
 
+**Amended 2026-09-10 (user decision):** item #5 (Tabord-Meehan
+stratification trees) was already listed above at the original 2026-08-27
+writing but no section ever addressed it — a real authoring gap, not a
+deliberate deferral. §H below closes it.
+
 ## Items
 
 ### A. Kernel-MMD balance objective (Kallus 2018) — `objective = "mmd"(kernel)`
@@ -63,13 +68,38 @@ Kasy (2016) GP-prior optimum = `Optimal` with a kernel-implied basis
 (cover via A); c-optimality ≡ Mahalanobis; Higgins-Sävje-Sekhon threshold
 blocking ≈ `OptimalBlocks`.
 
+### H. Stratification trees (Tabord-Meehan 2023, *REStud*) — `DesignFixedBlocking(strata_from = "tree")`
+
+Pilot data (covariates plus a pilot/proxy outcome — a small pre-trial
+sample or historical data, same spirit as D's pilot index but a partition
+rather than a scalar score) fits a regression tree over covariate space
+`X`; each leaf becomes a stratum, and the within-stratum allocation ratio
+is chosen — not assumed 1:1 — to maximize the asymptotic efficiency of the
+resulting stratified estimator. This is a data-driven generalization of
+EDI's existing `DesignFixedBlocking`/`DesignFixedOptimalBlocks`: those
+optimize the swap/annealing search *within* fixed strata; this optimizes
+*how the strata themselves are chosen*, from data, before that search
+ever runs. Proposed as a new argument on `DesignFixedBlocking`
+(`strata_from = "tree", pilot_data =`) rather than a new top-level class —
+the assignment mechanism once strata exist is exactly what
+`DesignFixedBlocking` already does. The actual new numerical work is the
+splitting criterion: a greedy recursive splitter (same complexity class as
+`DesignFixedGreedy`'s existing search, no new dependency) under the
+paper's asymptotic-efficiency objective, which is *not* CART's usual
+variance-reduction criterion — they coincide for the continuous-Gaussian
+estimand but diverge for others, so the per-response-type splitting rule
+needs its own derivation rather than a call to an off-the-shelf tree
+package. Ship the continuous case first; document remaining response
+types as a follow-on once it is proven.
+
 ## Tests
 
 Linear-kernel MMD ≡ Mahalanobis golden; propensity constraint verified
 over the returned set; CATE criterion vs numeric `∫Var(τ̂(x))` on the
 interacted OLS; pilot-index pairing vs `nbpMatching` on the score; BRS
 variance vs the paper's formula; k-tuple grouping vs brute force at tiny
-`n`.
+`n`; tree-stratification recovers Neyman-optimal per-stratum allocation
+ratios on synthetic pilot data with a known-efficient partition.
 
 ## TODOs
 
@@ -80,3 +110,7 @@ variance vs the paper's formula; k-tuple grouping vs brute force at tiny
 - [ ] TODO-5: E — k-tuple matching design (joint with the unequal-allocation
   plan).
 - [ ] TODO-6: F + G — energy objective; documentation cross-references.
+- [ ] TODO-7: H — pilot-data tree-stratification splitting criterion
+  (continuous response first) + `DesignFixedBlocking(strata_from =
+  "tree", pilot_data =)`; within-stratum efficiency-optimal allocation
+  ratio.

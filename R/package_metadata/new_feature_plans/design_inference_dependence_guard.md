@@ -335,6 +335,67 @@ plan asked for.
   release's own "must reproduce 1.0.0 results" standing constraint; the
   fix here is entirely additive (a new warning, a new column), not a
   change to what any existing call already returns.
+- **`combined_evidence` is a different question from the results table,
+  and the labeling above is not enough on its own.** The results-table
+  display argument ("many valid keys, don't exclude") does not carry over
+  to `InferenceSuite`'s Cauchy combined-evidence p-value
+  (`inference_suite.R:3976-3986`, `T = Σ w_i tan((0.5 - p_i)π)`), because
+  that computation is not a display — it's a single number a user may act
+  on, and `run_all_inference_compute_combined_evidence_weights()`
+  currently folds in *every* row with no dependence-tier awareness at
+  all. Checking this surfaced a real, more general redundancy the tiering
+  work makes newly relevant:
+  - `methods = NULL` (the default) already fans out to **every** supported
+    method sentinel per class — not just `rand` — up to 13 sentinels
+    (`wald`, `exact`, `rand`, `rand_bootstrap`, `jackknife`, `score`,
+    `lik_ratio`, `gradient`, two Bartlett variants, `param_boot`,
+    `param_boot_direct`, `bayes_boot`, `bootstrap`;
+    `EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY`, `inference_suite.R:312-333`).
+    So most rows already in a typical `run_all_inference()` call are *not*
+    randomization-based at all — that premise doesn't hold generally, only
+    a "rand" row is.
+  - The default `combined_evidence_weighting = "estimand_grouped"` sets
+    `w_i = 1/(G · m_i)` where `m_i = table(estimand)[i]` — a count of
+    **rows**, not distinct classes
+    (`run_all_inference_compute_combined_evidence_weights`,
+    `inference_suite.R:3922-3961`). This does correctly stop one
+    *estimand group* from outweighing another regardless of how many rows
+    it has (each group's rows always sum to `1/G` in total) — but *within*
+    a group, a class that happens to support five method sentinels for the
+    same estimand gets five times the total weight-mass of a class
+    supporting only one, even though both are one "sense of effect." This
+    is exactly the failure mode `inference_suite_plan.md`'s own TODO-15
+    rationale warned about ("5 near-redundant ... methods ... dominate the
+    combined statistic by sheer count") — that document's worked example
+    was several *classes* sharing an estimand, but the identical
+    row-counting mechanics apply just as much to one class's own
+    method-sentinel fan-out, which wasn't in scope when TODO-15 was
+    written.
+  - The Cauchy transform's own robustness (large `p` contributes a
+    *bounded* term unless it's pushed toward the `1 - pval_eps` clip,
+    where `tan((0.5-p)π)` grows just as unboundedly negative as it grows
+    positive near `p → 0`) means this is usually mild, not free — a
+    genuinely conservative Tier-1 test under a real (if attenuated)
+    effect won't typically produce p-values near that clip, so in the
+    common case its extra vote just adds noise, not a wrong-direction
+    pull. But "usually mild" is a different claim than "doesn't matter,"
+    and it compounds with the row-counting gap above.
+  - **Fix, scoped to what this plan controls:** `combined_evidence`'s
+    weight computation contributes at most one row per `(class, estimand)`
+    — the highest-`EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY`-priority
+    available row for that class — never every fanned-out row. This is a
+    change to `combined_evidence`'s weighting only, not to `results_table`
+    (every row still displays, for a human comparing methods
+    side by side) and not to any individual call's own returned
+    estimate/SE/CI/p-value. It also directly resolves this plan's own
+    Tier-1/Tier-2 case for free: a Tier-2 class's Wald row (even once
+    acknowledged) never outvotes its own better `rand` row when both are
+    present, and a Tier-1 class's conservative row is simply never the
+    higher-priority one when `rand` is available. Whether to land this as
+    part of this plan (it's what surfaced the gap) or as its own item
+    under `inference_suite_plan.md`'s TODO-15 lineage (it's a strictly
+    more general fix than this plan's own scope) is a Scope decision
+    below.
 - **`applicable_inference_class_names()`/discovery invariant is
   unaffected by the gate move.** `test-design-inference-introspection-
   audit.R` already encodes `nm %in% des$applicable_inference_class_names()
@@ -407,6 +468,17 @@ plan asked for.
   package-environment flag set, mirroring how base R throttles repeated
   `.Deprecated()` warnings, vs. `rlang::warn(.frequency = "once", 
   .frequency_id = ...)` if `rlang` is already a dependency here).
+- **Combined-evidence one-row-per-class ownership.** Confirm whether
+  "`combined_evidence` uses only the highest-priority available row per
+  `(class, estimand)`" ships as part of this plan (TODO-4c below) or is
+  spun out to its own small item under `inference_suite_plan.md`'s
+  TODO-15/15a lineage, since the fix is strictly more general than
+  Tier 1/Tier 2 — it also corrects the pre-existing gap where a class
+  supporting more method sentinels already gets proportionally more
+  combined-evidence weight than a comparable single-method class, on
+  *any* design, independent of dependence structure. Either way it must
+  land before or alongside TODO-4a, since Tier-1 rows entering
+  `combined_evidence` unfiltered is the concrete case that surfaced it.
 
 ## Tests
 
@@ -486,6 +558,15 @@ plan asked for.
 - [ ] TODO-4b: Tier-2 default exclusion from `run_all_inference()` +
   alternative-recommendation reporting (`dependence_note = "gated"` for
   any row that used the acknowledgment).
+- [ ] TODO-4c: `run_all_inference_compute_combined_evidence_weights()`
+  contributes at most one row per `(class, estimand)` to
+  `combined_evidence` — the highest-`EDI_INFERENCE_SUITE_PVAL_METHOD_
+  PRIORITY`-priority available row — never every fanned-out method row.
+  `results_table` itself is untouched (every row still displays). Per
+  TODO-1's ownership decision, may ship here or as its own item under
+  `inference_suite_plan.md`'s TODO-15/15a lineage; either way it must land
+  before or alongside TODO-4a so a Tier-1 row never casts an extra vote
+  next to its own class's better row.
 - [ ] TODO-5: Wald-path `acknowledge_design_dependence_naive` gate (new
   shared helper, gating the specific asymptotic compute methods, not
   `$new()`) wired into every Tier-2-audited class.

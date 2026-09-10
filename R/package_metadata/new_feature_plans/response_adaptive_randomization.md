@@ -5,6 +5,13 @@
 > track for K-arm bandits. **Release target: v2.0.0** (`release_v2_0_0.md
 > → TODO-2c`) — the designs are small, but valid inference after adaptive
 > assignment is a new inference contract.
+>
+> **Amended 2026-09-10 (user decision): a new "Visualization" section (the
+> allocation-proportion-over-time trajectory plot) is added, targeted at
+> `release_v3_0_0.md`.** The rest of this file's scope — the designs and
+> inference work below — is unchanged, still v2.0.0. The visualization
+> renders state the designs already accrue, not new statistical content,
+> which is why it targets a later release than the designs themselves.
 
 Written 2026-08-27. Owning plan for
 `missing_design_classes_literature_audit.md` item **#5** (Part 4B) and
@@ -63,6 +70,33 @@ ERADE variance ≈ lower bound; Thompson regret curves; replay-test size at
 nominal level; AW-AIPW coverage vs sample-mean under-coverage in
 simulation; RPW pathology at `q_A + q_B ≥ 3/2`.
 
+## Visualization: allocation-proportion-over-time trajectory (added 2026-09-10, user decision — v3.0.0)
+
+The standard way RAR papers show a rule working (or failing): realized
+allocation proportion per arm, `N_k(t)/t`, plotted against enrollment
+order, one line per arm, for whichever rule was used. For target-seeking
+rules (DBCD/ERADE), overlay the rule's own target `ρ(θ)` as a reference
+line — the plot then directly shows convergence (or its absence) to the
+theoretical target, exactly the diagnostic Hu & Zhang (2004) and Hu, Zhang
+& He (2009) use to present DBCD/ERADE's variance-optimality empirically.
+For Thompson/exploration-sampling, no fixed target exists — the plot
+instead shows the trajectory drifting toward whichever arm currently looks
+better, with the "Designs" section's already-planned diagnostics
+(time-trend check, allocation-extremity warning) rendered as annotations
+on the same time axis rather than a separate report.
+
+**Data source**: the per-subject `w`/`t` history already accrued on
+`Design`'s private state (`private$w`, growing one entry per
+`add_one_subject_to_experiment_and_assign()` call — the same fields
+`sequential_inference.md` §3 documents) — no new bookkeeping, purely a
+rendering of state the design already tracks.
+
+**Reporting layer**: same ggplot2/HTML/plotly convention as
+`inference_suite_interactive_reporting.md` and `sequential_inference.md`
+§10 — static default, optional `plotly::ggplotly()` wrap for
+hover-to-inspect the exact arm/proportion/`t` at any point on the
+trajectory.
+
 ## TODOs
 
 - [ ] TODO-1: Decision — pursue at all; which rules in the first wave;
@@ -72,3 +106,9 @@ simulation; RPW pathology at `q_A + q_B ≥ 3/2`.
 - [ ] TODO-4: Replay-test contract extension; `AdaptiveWeighting`
   inference component (AW-AIPW, batched OLS).
 - [ ] TODO-5: urn RAR; CARA second wave; diagnostics; vignette.
+- [ ] TODO-6 (added 2026-09-10, v3.0.0): **Visualization** —
+  allocation-proportion-over-time trajectory plot, one line per arm,
+  target-ratio reference line for DBCD/ERADE; renders `Design`'s existing
+  per-subject `w`/`t` history, no new bookkeeping. Static `ggplot2`
+  default, optional `plotly` wrap per
+  `inference_suite_interactive_reporting.md`'s convention.

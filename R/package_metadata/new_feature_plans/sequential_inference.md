@@ -1,6 +1,15 @@
 # Sequential Inference for `DesignSeqOneByOne*` Designs
 
 > **Depends on:** `fix_design_hierarchy.md` (public accessors must replace the `des_obj_priv_int` channel this doc's architecture describes); `fix_inference_hierarchy.md` (BayesianBootstrap component). (Global ordering: see `_master.md`.)
+>
+> **Amended 2026-09-10 (user decision): §10 (the group-sequential boundary
+> chart) is new, targeted at `release_v3_0_0.md`.** The rest of this
+> file's scope — the sequential-inference design and implementation work
+> in §1-§9 — is unchanged and stays targeted at v2.0.0 (`release_v2_0_0.md`
+> → TODO-5, "Sequential inference implementation from the 1.1.0 scoping
+> output"). §10 is visualization on top of §7's ledger, not new
+> statistical content, which is why it lands in a later release than the
+> machinery it renders.
 
 Generated: 2026-08-09
 
@@ -413,6 +422,14 @@ this section implied.
   anytime-valid confidence sequences (approach 3) for the highest-value
   `Inference*` families (mean difference, risk difference), since these
   remove the requirement to pre-commit to a look schedule at all.
+- [ ] TODO-6 (added 2026-09-10, v3.0.0): **Visualization** — the
+  group-sequential boundary chart (§10), rendering
+  `des_obj$get_analysis_events()` against `SequentialMonitor`'s configured
+  spending function/`planned_n`; static `ggplot2` default, optional
+  `plotly` wrap per `inference_suite_interactive_reporting.md`'s
+  convention. Depends on TODO-2 (the ledger); does not depend on which of
+  TODO-1/3/4/5's approaches is prioritized, only on at least one producing
+  ledger entries to render.
 
 ## 9. Non-goals
 
@@ -426,3 +443,44 @@ this section implied.
 - Not selecting a single "winning" sequential-testing approach in §4 — that
   choice should be driven by which `Inference*` families and response types
   are prioritized, and is out of scope for this feasibility document.
+
+## 10. Visualization: the group-sequential boundary chart (added 2026-09-10, user decision — v3.0.0)
+
+The canonical group-sequential-trial visualization — the plot every
+trialist expects — is the boundary chart: each interim look's test
+statistic (on the spending function's boundary scale, e.g. a Z-score)
+plotted against its information fraction (`t / planned_n`), with the
+alpha-spending stopping boundary (O'Brien-Fleming/Pocock/Lan-DeMets) drawn
+in as reference curves the observed points are checked against. This is
+the standard `gsDesign` boundary-plot shape in R — EDI's version should
+read the same way to anyone coming from that ecosystem, not invent a new
+visual language.
+
+**Data source**: entirely `des_obj$get_analysis_events()` (§7) — each
+`SequentialMonitor$look()` call already appends a
+`list(t=.., estimate=.., se=.., boundary=.., decision=..)`-shaped payload
+(§7's own example shape) keyed by `t`; the plot is a direct rendering of
+that ledger, not a new computation. Concretely: x-axis = information
+fraction (`t / planned_n`, the `SequentialMonitor$new()` argument from
+§5); y-axis = the per-look test statistic on the boundary's own scale;
+the spending function's stopping boundary (upper efficacy, and lower
+futility if the spending function defines one) drawn as reference curves
+computed once from `spending_function`/`alpha`/`planned_n`; each recorded
+look plotted as a point, colored/shaped by its recorded `decision`
+(continue / stop-efficacy / stop-futility); a vertical line or shaded
+region marking the trial's actual stopping point if one is recorded.
+
+**Reporting layer**: reuses `InferenceSuite`'s established ggplot2/HTML/
+plotly conventions (`inference_suite_interactive_reporting.md`) rather
+than inventing a new one — static `ggplot2` by default, optional
+`plotly::ggplotly()` wrap for hover-to-inspect each look's exact
+statistic/decision, `Suggests`-gated the same way.
+
+**Scope note**: this section is entirely visualization on top of §5-§7's
+ledger machinery — it adds no new statistical content and does not itself
+decide which of §4's five approaches ships. It is meaningful primarily for
+approach 1 (group-sequential alpha-spending) and, in a related but not
+identical form, approach 3 (confidence sequences, which have their own
+natural "sequence of CIs over t" visualization — a CI-over-time band
+rather than a statistic-vs-boundary chart). That variant is a follow-on
+once approach 3 is prioritized, noted here rather than scoped now.

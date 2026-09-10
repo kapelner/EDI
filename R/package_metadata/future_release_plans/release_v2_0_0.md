@@ -133,17 +133,20 @@ as the home of the KAK / BRT / KK lineage — should implement and compare
 against; they are additive on the design factory but are treated as a
 2.0.0 "modern designs" theme rather than 1.x improvements.
 
-- `gram_schmidt_walk_and_online_balancing.md` (`_master.md` Phase 5S) —
+- `modern_covariate_balancing_designs.md` (`_master.md` Phase 5S) —
   `DesignFixedGramSchmidtWalk` (Harshaw-Sävje-Spielman-Zhang 2024, with
   the balance–robustness dial `φ` and covariance-bound accessor),
   `DesignSeqOneByOneBalancingWalk` (Arbour et al. 2022),
-  `DesignSeqOneByOneARM` / `PSR` (Qin-Li-Ma-Hu), plus the two simulation
-  studies (GSW vs KAK/harmonized; ARM vs KK14).
+  `DesignSeqOneByOneARM` / `PSR` (Qin-Li-Ma-Hu),
+  `DesignSeqOneByOneOnlineMIO` (Bertsimas-Korolko-Weinstein 2019, added
+  2026-09-10), plus the two simulation studies (GSW vs KAK/harmonized; ARM
+  vs KK14).
 - `optimal_design_objective_extensions.md` (Phase 5R) — kernel-MMD
   objective (Kallus 2018), per-unit propensity / entropy-floor constraints
   (BRT / Nordin-Schultzberg / Kallus §6), `interest = "cate"` I-optimality,
   pilot-index pairing (Bai 2022) + Bai-Romano-Shaikh variance, matched
-  k-tuples (Cytrynbaum), energy objective.
+  k-tuples (Cytrynbaum), energy objective, and pilot-data tree
+  stratification (Tabord-Meehan 2023, added 2026-09-10).
 - `rerandomization_criterion_variants.md` (Phase 5Q) — generalized
   quadratic-form `w'Aw` (Mahalanobis / ridge / PCA / Bayesian / kernel /
   energy / user), tiers (Morgan-Rubin 2015), p-value acceptance (Zhao-Ding
@@ -238,11 +241,13 @@ against; they are additive on the design factory but are treated as a
   - [ ] TODO-5b-i: `sequential_design_classical_completions.md → TODO-1..7`
     (ARP coins together with 1.3.0's `target_ratio`).
   - [ ] TODO-5b-ii: `rerandomization_criterion_variants.md → TODO-1..6`.
-  - [ ] TODO-5b-iii: `optimal_design_objective_extensions.md → TODO-1..6`
+  - [ ] TODO-5b-iii: `optimal_design_objective_extensions.md → TODO-1..7`
     (shares the kernel with 5b-ii; k-tuples jointly with 1.3.0's
-    unequal-allocation route).
-  - [ ] TODO-5b-iv: `gram_schmidt_walk_and_online_balancing.md → TODO-1..5`
-    incl. the two simulation studies.
+    unequal-allocation route; TODO-7 is the 2026-09-10 stratification-tree
+    addition).
+  - [ ] TODO-5b-iv: `modern_covariate_balancing_designs.md → TODO-1..6`
+    incl. the two simulation studies (TODO-6 is the 2026-09-10 online-MIO
+    addition).
 - [ ] TODO-6: **Compute backends** — GPU dispatch architecture first
   (`gpu_optimizations.md → TODO-7`), quantum hook second, then the optional
   `npu_ai_engine_optimizations.md → TODO-1..` graph/runtime adapter.
@@ -283,9 +288,51 @@ against; they are additive on the design factory but are treated as a
 - [ ] TODO-6g: **MOVED to v1.1.0 → `TODO-17z`** (2026-09-05, user
   decision, resolving the plan's TODO-1(e)). `ModelDiagnostics`' checks
   are in-sample and need no fold/split substrate, so the declaration
-  contract and pilot batteries ship in 1.x. Nothing remains here: the
-  per-class rollout beyond the pilots is a ledger inside
-  `model_diagnostics_framework.md`, not a release item.
+  contract and pilot batteries ship in 1.x. **Amended 2026-09-10, user
+  decision: no longer "nothing remains here"** — see TODO-6i below, which
+  promotes the per-class rollout ledger to scoped v2.0.0 work.
+- [ ] TODO-6i (added 2026-09-10, user decision): **`ModelDiagnostics`
+  full-roster rollout + visualization** — `model_diagnostics_framework.md
+  → TODO-7..8`. TODO-7 extends the v1.1.0 pilot's nine class families to
+  all 66 `likelihood_tier != "none"` classes (verified against
+  `public_api_inventory.csv`; four new families beyond the pilot: Weibull
+  parametric survival, dependent-censoring transform, conditional logistic
+  matched-set, quantile regression joint-likelihood), plus documents the
+  36 `likelihood_tier = "none"` classes that correctly get no battery.
+  TODO-8 is the visualization layer the pilot's own TODO-5 never detailed:
+  one `ggplot2` diagnostic plot per check type, HTML embedding in the
+  shared report row, optional `plotly`/`DT` interactivity. Depends on the
+  v1.1.0 pilot's declaration contract (TODO-2) actually landing first.
+- [ ] TODO-6j (added 2026-09-10, user decision): **`DesignDiagnostics`
+  (new)** — `design_diagnostics_framework.md → TODO-1..7`. The design-side
+  sibling `model_diagnostics_framework.md` itself flagged as out of scope:
+  a registry-declared, per-design-family battery (baseline "Table 1" with
+  a hard no-significance-testing rule; SMD/Love plots; eCDF balance
+  overlays; the randomization/permutation distribution visualized via the
+  existing `draw_ws_according_to_design()` replay contract; propensity
+  overlap for `DesignObservational*` only; match/cluster structure
+  diagnostics visualizing the existing Grundy-Healy concurrence statistic,
+  theoretical audit item #43; sequential accrual-balance-over-time), with
+  the same ggplot2/HTML/plotly/DT reporting layer as TODO-6i, reused not
+  duplicated. Meant to become one combined pre-analysis report with
+  `ModelDiagnostics` (design realized as expected → models trust
+  themselves → here's what they estimate). No structural dependency on
+  TODO-6i beyond sharing that reporting layer.
+- [ ] TODO-6k (added 2026-09-10, user decision; corrected same day from
+  an initial v1.2.0 target since that release's own theme is explicitly
+  "no new statistical functionality" and this is reporting/UX, but it
+  fits better alongside its two diagnostics siblings here): **`InferenceSuite`
+  interactive reporting** — `inference_suite_interactive_reporting.md →
+  TODO-1..6`. `DT::datatable()` for the existing (often 40+ row) HTML
+  results table, sortable/filterable, same data
+  `run_all_inference_format_html_table()` already builds;
+  `plotly::ggplotly()` wrapping the existing CI forest plot and
+  box-and-whisker panel for hover-to-inspect. Both `Suggests`-gated,
+  `interactive = FALSE` default reproduces today's exact static output
+  bit-for-bit. This is the retrofit TODO-6i/6j's own plans already
+  cross-referenced ("the natural place to retrofit the same interactivity
+  onto `InferenceSuite`'s existing static HTML tables") — formally scoped
+  here rather than left as an aspirational note.
 - [ ] TODO-6h: **`ModelSelection` Phase B — response-type coverage only**
   (added 2026-09-02, user decision; narrowed 2026-09-05 when Phase A
   moved to v1.1.0 → `TODO-17y`; **narrowed again 2026-09-06, user

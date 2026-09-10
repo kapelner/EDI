@@ -1108,6 +1108,20 @@ ticked in their **owning plans**; this list is the release index.
   that already declares the capability it's run against. Independent of
   every other 1.1.0 item; companion to `cluster_robust_inference_glmm_
   gee.md` (5Y, v2.0.0), which this plan does not duplicate or block on.
+  **Also surfaced (TODO-4c), and tracked whether it ships here or as its
+  own item, a pre-existing, more general bug in `InferenceSuite`'s Cauchy
+  combined-evidence weighting**: `run_all_inference()`'s `methods = NULL`
+  default already fans out to every applicable method sentinel per class
+  (up to 13, not just `rand`), and the default `"estimand_grouped"`
+  weighting counts *rows* (`table(estimand)`) rather than distinct
+  classes — correctly balancing across estimand groups but letting a
+  class with more supported methods outvote a comparable single-method
+  class within one, independent of dependence structure entirely (see the
+  "Known gap found 2026-09-09" addendum in
+  `../finished_features/inference_suite_plan.md`, which documented the
+  original per-class design intent this drifted from). Fix: one
+  highest-priority row per `(class, estimand)` feeds `combined_evidence`;
+  `results_table` display is unaffected.
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

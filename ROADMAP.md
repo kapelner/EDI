@@ -1,6 +1,6 @@
 # EDI Roadmap
 
-**Where things stand (last updated 2026-09-08):** v1.0.0 is released
+**Where things stand (last updated 2026-09-10):** v1.0.0 is released
 ([Zenodo DOI](https://doi.org/10.5281/zenodo.22170036)) and has been
 submitted to CRAN; the `edi_kernels` Python package is on PyPI. Everything
 below is planned, not shipped.
@@ -102,7 +102,12 @@ needs.
   behind an explicit acknowledgment on its Wald-path methods, steered
   toward the already-correct KK pair family for matched pairs. Companion
   to the cluster-robust GLMM/GEE track below, which supplies the corrected
-  general-clustering alternative this guard cannot yet recommend.
+  general-clustering alternative this guard cannot yet recommend. Also
+  fixes a related, pre-existing bug found while auditing this: the Cauchy
+  combined-evidence p-value currently lets a class with more supported
+  computation methods outvote a comparable class with fewer, since its
+  default weighting counts result rows rather than distinct classes — one
+  vote per class per estimand, not per row, going forward.
 
 ### Honest inference after model selection
 
@@ -496,7 +501,8 @@ All produce identical results to today's code unless noted.
   [rerandomization criterion variants](R/package_metadata/new_feature_plans/rerandomization_criterion_variants.md),
   [optimal-design objective extensions](R/package_metadata/new_feature_plans/optimal_design_objective_extensions.md),
   and the
-  [Gram–Schmidt walk / online balancing family](R/package_metadata/new_feature_plans/gram_schmidt_walk_and_online_balancing.md)
+  [modern covariate-balancing designs](R/package_metadata/new_feature_plans/modern_covariate_balancing_designs.md)
+  (Gram-Schmidt walk, online balancing, ARM/PSR, online MIO)
   with its two simulation studies.
 - **[Causal forest and Bayesian tree inference](R/package_metadata/new_feature_plans/causal_forest_inference.md)** —
   a heterogeneous-treatment-effect estimand and capability contract, a
@@ -534,6 +540,34 @@ remainder.
   matching-on-the-fly designs), which is why it is 2.0.0 scope. Data
   carving is gated on the measured power cost.
 
+### Diagnostics and interactive reporting
+
+`ModelDiagnostics`' v1.1.0 pilot (nine class families) and declaration
+contract are unchanged; these three items pick up everything the pilot
+deliberately deferred, plus the matching retrofit onto `InferenceSuite`'s
+own report.
+
+- **[`ModelDiagnostics` full-roster rollout + visualization](R/package_metadata/new_feature_plans/model_diagnostics_framework.md)** —
+  extends the pilot's nine families to all 66 `likelihood_tier != "none"`
+  classes (verified against `public_api_inventory.csv`; 36 more classes
+  are genuinely simple — rank/exact/G-computation-wrapper/IVWC-only — and
+  correctly get no battery), plus the visualization layer the pilot's own
+  reporting TODO never detailed: one `ggplot2` diagnostic plot per check
+  type, HTML embedding, optional `plotly`/`DT` interactivity.
+- **[`DesignDiagnostics`](R/package_metadata/new_feature_plans/design_diagnostics_framework.md)** —
+  new. The design-side sibling `ModelDiagnostics` itself flagged as out of
+  scope: baseline "Table 1" (no significance testing — the CONSORT-backed
+  "Table 1 fallacy" rule), SMD/Love plots, eCDF balance overlays, the
+  randomization/permutation distribution visualized via the existing
+  replay contract, propensity overlap for observational designs, and
+  match/cluster structure diagnostics. Meant to become one combined
+  pre-analysis report with `ModelDiagnostics`.
+- **[`InferenceSuite` interactive reporting](R/package_metadata/new_feature_plans/inference_suite_interactive_reporting.md)** —
+  `DT::datatable()` for the existing (often 40+ row) HTML results table,
+  sortable/filterable; `plotly::ggplotly()` wrapping the existing CI
+  forest plot for hover-to-inspect. Both `Suggests`-gated; the static
+  default is unchanged, bit-for-bit.
+
 ### Backends and bindings
 
 - **[Compute backends](R/package_metadata/new_feature_plans/gpu_optimizations.md)** —
@@ -556,3 +590,52 @@ remainder.
   the deprecated greedy classes are removed, and every accumulated
   1.x → 2.0.0 contract break ships with a documented deprecation path and
   a migration guide.
+
+---
+
+## v3.0.0 — Tentative
+
+Opened 2026-09-10 as a tentative home for architecturally new work that
+lands even after v2.0.0's own "large refactorings or new architecture"
+bar — not a committed scope, and not even a fixed set of contents yet.
+Currently holds two independent new-architecture items plus a
+visualization batch added later the same day; see
+[`release_v3_0_0.md`](R/package_metadata/future_release_plans/release_v3_0_0.md).
+
+- **[Finite mixture regression](R/package_metadata/new_feature_plans/finite_mixture_regression.md)** —
+  fit any existing regression family as a K-component latent-class
+  mixture via a generic EM driver that reuses each family's existing
+  weighted kernel; user-specified K with BIC/ICL, bootstrap-only
+  inference, per-component and mixture-weighted marginal treatment
+  effects. Tentative.
+- **[Bayesian parametric primary analysis](R/package_metadata/new_feature_plans/bayesian_stan_primary_analysis_report.md)** —
+  an optional, `cmdstanr`-backed Bayesian inference family: posterior
+  effect estimate and credible interval, posterior probability of
+  benefit and Bayes factors, hierarchical/borrowing models, and a tie-in
+  to the sequential-monitoring architecture, kept complementary to and
+  separately labeled from the existing Bayesian bootstrap. Commissioned by
+  the missing-inference-classes literature audit's item 21. Purely
+  additive — no existing contract changes, no `LinkingTo` dependency added
+  to `R/EDI` itself.
+- **Visualization batch** — nine items from a dedicated brainstorm: three
+  new plans
+  ([Kaplan-Meier curves](R/package_metadata/new_feature_plans/survival_curve_visualization.md),
+  [`SimulationFramework` power/OC curves](R/package_metadata/new_feature_plans/simulation_framework_visualization.md),
+  a shared
+  [`theme_edi()` foundation](R/package_metadata/new_feature_plans/edi_visualization_theme.md))
+  plus new visualization sections grafted onto six existing plans
+  (Bayesian posterior plots, mixture-model plots, a group-sequential
+  boundary chart, a response-adaptive-randomization trajectory plot, HTE/
+  causal-forest plots, and a multi-arm pairwise-comparison panel). All
+  reuse `InferenceSuite`'s ggplot2/HTML/`plotly` reporting convention.
+  Four of the six host plans otherwise remain v2.0.0 — only their new
+  visualization section targets v3.0.0.
+- **[Per-class result plots](R/package_metadata/new_feature_plans/inference_plots.md)** —
+  every one of the package's 102 concrete `Inference*` classes gets a
+  section listing the result/effect plots (predicted-effect curves,
+  component decompositions, stratified displays — never a diagnostic,
+  never a re-description of `InferenceSuite`'s own CI forest plot) the
+  statistical literature has settled on for that model type, organized
+  by 19 model families. Six classes have a real structural dependency on
+  the Kaplan-Meier-curve item above, not mere non-overlap — see that
+  plan's own header.

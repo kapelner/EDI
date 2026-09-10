@@ -178,9 +178,34 @@ spliced into one step and marked **[spliced]**.
 >   sequential completions), 5Q (rerandomization criteria / samplers /
 >   Grundy-Healy), 5R (optimal-objective extensions), 5S (Gram-Schmidt
 >   Walk / balancing walk / ARM-PSR)**, Phase 6 item 4 landscape refresh,
->   and the greedy-class *deletion*.
+>   and the greedy-class *deletion*. **Amended 2026-09-10 (user decision):**
+>   two more theoretical-audit items, genuinely missed by the 2026-08-27
+>   sweep, folded into 5R/5S respectively rather than getting new files —
+>   Tabord-Meehan (2023) stratification trees (item #5, into
+>   `optimal_design_objective_extensions.md` §H) and
+>   Bertsimas-Korolko-Weinstein (2019) online MIO covariate-adaptive
+>   optimization (item #30, into
+>   `modern_covariate_balancing_designs.md` as
+>   `DesignSeqOneByOneOnlineMIO`).
 > The phase text below is unchanged; each release file lists its own TODO
 > order.
+>
+> **Tentative v3.0.0 opened (2026-09-10, user decision; merged same day
+> after two independent scoping efforts both proposed it).**
+> `../future_release_plans/release_v3_0_0.md` — not yet a real scope, no
+> Phase-0-style decision batch of its own, and possibly not even a
+> permanent release boundary; a shared, tentative home for two unrelated,
+> independently-gated items, each scoped that day as landing after v2.0.0:
+> `finite_mixture_regression.md` (finite/latent-class mixture regression
+> for existing response families — genuinely new architecture even by
+> v2.0.0's own bar) and `bayesian_stan_primary_analysis_report.md` (a
+> `cmdstanr`-backed optional Bayesian primary-analysis family — posterior
+> estimate/CI, decision outputs, hierarchical models, a
+> `sequential_inference.md` tie-in — commissioned by
+> `missing_inference_classes_literature_audit.md` item 21). Neither has a
+> Phase-lettered item the way 5A–5AJ do (both are new reports, not
+> promoted existing plans); their TODO order lives entirely in
+> `release_v3_0_0.md`. See Phase 7 below.
 
 Rules of use:
 
@@ -739,10 +764,11 @@ already stated there:**
 - **5R. Optimal-design objective extensions** (added 2026-08-27) →
   `release_v2_0_0.md → TODO-5b-iii`. `optimal_design_objective_extensions.md`.
   Theoretical audit #2–#5, #9, #41–#42.
-- **5S. Gram-Schmidt Walk, online balancing walk, ARM/PSR** (added
-  2026-08-27) → `release_v2_0_0.md → TODO-5b-iv`.
-  `gram_schmidt_walk_and_online_balancing.md`. Theoretical audit #1, #21,
-  #22.
+- **5S. Modern covariate-balancing designs** (Gram-Schmidt Walk, online
+  balancing walk, ARM/PSR; added 2026-08-27, online MIO added 2026-09-10)
+  → `release_v2_0_0.md → TODO-5b-iv`.
+  `modern_covariate_balancing_designs.md`. Theoretical audit #1, #21,
+  #22, #30.
 - **5T. Cluster-level covariate-balancing designs + randomized
   saturation** (added 2026-08-27) → `release_v1_3_0.md → TODO-2`.
   `cluster_level_covariate_balancing_designs.md`. Design audit #2, #4, #8.
@@ -847,6 +873,36 @@ already stated there:**
   TODO-1(e) is decided: checks are in-sample, no v2.0.0 substrate is
   needed, so the contract + pilots ship in v1.1.0 alongside 5AI's Phase
   A (sequenced after `SolverDiagnostics` for the shared report surface).
+  **Amended 2026-09-10 (user decision): the per-class rollout ledger this
+  entry originally deferred is promoted to scoped v2.0.0 work** —
+  `release_v2_0_0.md → TODO-6i` — extending the pilot's nine families to
+  all 66 `likelihood_tier != "none"` classes (verified against
+  `public_api_inventory.csv`) plus the visualization layer (`ggplot2`
+  diagnostic plots per check type, HTML, optional `plotly`/`DT`) the
+  pilot's own TODO-5 never detailed. The v1.1.0 pilot scope above is
+  unchanged by this amendment.
+- **(new, added 2026-09-10, user decision, no Phase letter — see the
+  v3.0.0 note's precedent above for why): `DesignDiagnostics`** →
+  `release_v2_0_0.md → TODO-6j`. `design_diagnostics_framework.md`. The
+  design-side sibling of 5AH, commissioned by a gap 5AH's own plan
+  explicitly flagged as out of scope: registry-declared, per-design-family
+  checks (baseline "Table 1" with a hard no-significance-testing rule;
+  SMD/Love plots; eCDF balance overlays; the randomization/permutation
+  distribution visualized via the existing `draw_ws_according_to_design()`
+  replay contract; propensity overlap for `DesignObservational*` only;
+  match/cluster structure diagnostics visualizing the existing Grundy-Healy
+  concurrence statistic; sequential accrual-balance-over-time), sharing
+  5AH's reporting layer. Meant to become one combined pre-analysis report
+  with `ModelDiagnostics` eventually, not a separate document long-term.
+- **(new, added 2026-09-10, user decision, no Phase letter, same
+  precedent): `InferenceSuite` interactive reporting** →
+  `release_v2_0_0.md → TODO-6k`. `inference_suite_interactive_reporting.md`.
+  The retrofit the two entries above already cross-referenced:
+  `DT::datatable()` for the existing (often 40+ row) results table,
+  `plotly::ggplotly()` wrapping the existing CI forest plot, both
+  `Suggests`-gated with a bit-for-bit-identical static default. Initially
+  targeted at v1.2.0, corrected same day to v2.0.0 since v1.2.0's own
+  theme is explicitly "no new statistical functionality."
 - **5AI. `ModelSelection` — comparative fit over the model × formula
   grid** (added 2026-09-02, user decision; the *relative* half of the
   same split; **split into two release phases on 2026-09-05, user
@@ -940,7 +996,21 @@ already stated there:**
   documented "many valid keys" behavior (TODO-19's lock-and-key doc), not
   redundancy — the actual redundancy (a class's own dominated Wald number
   sitting unlabeled next to its own exact `rand` number) is what the
-  warning/column target.
+  warning/column target. **Fourth revision, same day** (follow-up
+  question: doesn't that redundancy specifically poison the Cauchy
+  combined-evidence p-value, not just the display table?): checked the
+  actual weighting code — `run_all_inference()`'s `methods = NULL` default
+  already fans out to all 13 method sentinels per class (not just `rand`),
+  and `combined_evidence`'s default `"estimand_grouped"` weighting divides
+  fairly *across* estimand groups but counts rows, not classes, *within*
+  one — so a class with more supported methods already gets
+  proportionally more combined-evidence weight than a single-method class
+  targeting the same estimand, on any design, independent of dependence
+  structure. This is the identical failure mode `inference_suite_plan.md`'s
+  own TODO-15 rationale warned about for redundant classes, just not
+  extended to one class's own method fan-out. Fix: `combined_evidence`
+  weighting takes at most one (highest-priority) row per `(class,
+  estimand)`; `results_table` itself is untouched.
 
 ### Audit reports (2026-08-26/27) — reference, not work items
 
@@ -1026,6 +1096,68 @@ audits; its own TODO-1 now carries a recorded "no / defer" recommendation.
    `release_v1_2_0.md → TODO-18`** (lighten-1.1.0 pass, user decision;
    the plan's own zero-dependency status is exactly why it cost nothing
    to move).
+
+---
+
+## Phase 7 — Post-2.0.0 (tentative; opened 2026-09-10, user decision)
+
+No Phase-0 decision batch exists for this phase yet — nothing here is
+committed, and v2.0.0 remains the frontier of actually-planned work. This
+phase exists only to index `release_v3_0_0.md`'s tentative contents: four
+independent items (the third and fourth added the day of and the day
+after the first two — the third itself a cluster of nine visualization
+items), none sharing a TODO-1 decision gate with the others.
+
+1. `finite_mixture_regression.md` (added 2026-09-10) — finite
+   (latent-class) mixture regression for existing response families,
+   generalizing `em_algorithm_zero_inflated_mixtures.md`'s "EM driver
+   reusing each family's existing weighted kernel" pattern from a fixed
+   2-part mix of two families to a general K-way mix of one family, with
+   EM as the terminal optimizer rather than a start generator. Depends on
+   `marginal_estimand_report.md`'s concrete per-family wiring (verify
+   landed, not just decided, before starting) for its mixture-weighted
+   marginal estimand, and reuses `multistart_nonconcave_likelihoods.md`'s
+   random-restart infrastructure for initialization. Release index:
+   `release_v3_0_0.md → TODO-1..4`.
+2. `bayesian_stan_primary_analysis_report.md` (added 2026-09-10) — a
+   `cmdstanr`-backed optional Bayesian primary-analysis family (real
+   priors, declared likelihood, posterior probability statements,
+   optionally Bayes factors and hierarchical borrowing), complementary to
+   and separately labeled from the existing `BayesianBootstrap`.
+   Commissioned by `missing_inference_classes_literature_audit.md` item
+   21. No structural dependency on the finite-mixture item above — the
+   two share this tentative release only because both were scoped the
+   same day, not because either needs the other. Release index:
+   `release_v3_0_0.md → TODO-1, TODO-5`.
+3. **Visualization batch** (added 2026-09-10, from this session's
+   visualization brainstorm) — nine items: three brand-new plans
+   (`survival_curve_visualization.md` — Kaplan-Meier curves;
+   `simulation_framework_visualization.md` — power/operating-
+   characteristic curves for `SimulationFramework`;
+   `edi_visualization_theme.md` — a shared `theme_edi()`/`edi_palette()`
+   foundation, whose own "Scheduling caveat" argues it may belong pulled
+   forward into v2.0.0 rather than shipped here, not resolved) plus six
+   new sections grafted onto existing plans (two already v3.0.0 —
+   `bayesian_stan_primary_analysis_report.md` §4B/TODO-3,
+   `finite_mixture_regression.md` §F/step 5 — and four otherwise still
+   v2.0.0, only their new section targeting v3.0.0:
+   `sequential_inference.md → TODO-6`,
+   `response_adaptive_randomization.md → TODO-6`,
+   `causal_forest_inference.md`'s "HTE visualization" section,
+   `multi_arm_designs.md → TODO-4b`). All nine reuse
+   `inference_suite_interactive_reporting.md`'s ggplot2/HTML/`plotly`
+   convention. Release index: `release_v3_0_0.md → TODO-6..10`.
+4. **`inference_plots.md`** (added 2026-09-11, user decision) — every one
+   of the package's 102 concrete `Inference*` classes gets its own
+   section listing result/effect plots (not diagnostics, not a
+   re-description of `InferenceSuite`'s generic CI forest plot),
+   organized by the same 19 model families `model_diagnostics_framework.md`
+   §3B/§3C established. A real structural dependency (not mere
+   non-overlap) on `survival_curve_visualization.md` for six classes —
+   see that file's own note. A genuine gap in that same §3C catalogue
+   (`InferenceSurvivalKKRankRegrIVWC`, 35 listed instead of 36) surfaced
+   and was fixed while re-verifying the roster for this item. Release
+   index: `release_v3_0_0.md → TODO-11..14`.
 
 ---
 

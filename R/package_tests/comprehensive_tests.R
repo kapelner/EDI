@@ -156,25 +156,149 @@ getFromNamespace("validate_comprehensive_slow_path_rules", "EDI")(
 # -- removing them from this list alone wouldn't even change behavior.
 ADDITIONAL_TEST_SLOW_PATHS = list(
 	# Gates the whole nonparametric-bootstrap family (plain, BRT, and
-	# Bayesian bootstrap all key off this) -- consumed via
-	# is_any_inference_class(), matching every subclass too.
+	# Bayesian bootstrap all key off this via skip_bayesian_bootstrap's own
+	# "|| skip_bootstrap" clause) -- consumed via
+	# is_any_inference_class_for_formula() (optional `||~formula` suffix;
+	# an unsuffixed entry matches every formula), matching every subclass
+	# too. Populated across two production-run audit passes, 2026-09-09
+	# (real, non-forced runs; every (class, formula, function) group with
+	# real-result rows collapsed over design). First pass, mean > 30s:
+	# InferenceCountHurdleNegBin/HurdlePoisson/ZeroInflatedNegBin/
+	# ZeroInflatedPoisson are all Bayesian-bootstrap-family-only findings on
+	# ~. (35-52s mean, up to 90s) -- their plain/nonparametric bootstrap
+	# methods weren't shown slow, but this list has no per-function
+	# granularity so the whole family is gated with them.
+	# InferenceOrdinalKKGEE is the worst finding this session: 12 methods
+	# (bootstrap, jackknife, m_out_of_n, subsampling, rand all included --
+	# see rand/jackknife_exclude below too) averaging 68-105s, several
+	# bumping the CI/rand search's ~120s internal deadline.
+	# InferenceOrdinalKKGLMM: 2 bootstrap methods, 31-36s mean up to 109s
+	# max (also see rand below). InferenceSurvivalDepCensTransformRegr:
+	# only its _bca variants were confirmed slow on ~. (31.1s/30.8s mean,
+	# barely over threshold, n=25-26) -- gated at the class level like
+	# everything else here since this list can't target one method: the
+	# non-bca bootstrap methods for this class are NOT confirmed slow, a
+	# known over-broad catch. Second pass, mean 15-30s (a lower bar, so
+	# treat these as more marginal): InferencePropKKGLMM's Bayesian
+	# bootstrap turned out slow on ~1 too (25-26s mean, up to 52s), not
+	# just ~. from the first pass -- broadened from ||~. to unrestricted.
+	# InferenceAllSimpleWilcox and InferenceOrdinalAdjCatLogitRegr both
+	# show their bootstrap _studentized methods slow on both formulas
+	# across every response type tested (15-18s mean, up to 90s and 81s
+	# max respectively) -- added unrestricted.
+	# InferenceOrdinalPartialProportionalOddsRegr's ~. bootstrap
+	# _studentized is slow (24.1s/23.7s mean, up to 63s) -- added ||~.
+	# only, its ~1 side has no evidence either way.
 	bootstrap = c(
 		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
-		"InferencePropZeroOneInflatedBetaRegr"
+		"InferencePropZeroOneInflatedBetaRegr",
+		"InferenceCountHurdleNegBin||~.",
+		"InferenceCountHurdlePoisson||~.",
+		"InferenceCountZeroInflatedNegBin||~.",
+		"InferenceCountZeroInflatedPoisson||~.",
+		"InferencePropKKGLMM",
+		"InferenceOrdinalKKGEE||~.",
+		"InferenceOrdinalKKGLMM||~.",
+		"InferenceSurvivalDepCensTransformRegr||~.",
+		"InferenceAllSimpleWilcox",
+		"InferenceOrdinalAdjCatLogitRegr",
+		"InferenceOrdinalPartialProportionalOddsRegr||~."
 	),
 	# Gates every randomization-family test at once (plain pval, CI, BRT
-	# pval/CI, custom pval/CI) -- consumed via is_any_inference_class().
+	# pval/CI, custom pval/CI) -- consumed via
+	# is_any_inference_class_for_formula() (optional `||~formula` suffix).
+	# InferenceOrdinalKKGEE||~. and InferenceOrdinalKKGLMM||~. added
+	# 2026-09-09, first-pass (mean>30s) production-run audit (KKGEE rand
+	# pval: 84.7s mean; KKGLMM rand pval(delta=0.5) on ~.: 42.3s mean, up to
+	# 111.6s). InferenceOrdinalKKGLMM||~1 added in the second pass
+	# (mean 15-30s): its ~1 rand pval(delta=0.5) is also slow (18.2s mean,
+	# up to 114.5s max).
 	rand = c(
 		"InferencePropGCompMeanDiff",
 		"InferenceOrdinalCloglogRegr",
 		"InferenceOrdinalOrderedProbitRegr",
-		"InferenceOrdinalCauchitRegr"
+		"InferenceOrdinalCauchitRegr",
+		"InferenceOrdinalKKGEE||~.",
+		"InferenceOrdinalKKGLMM||~.",
+		"InferenceOrdinalKKGLMM||~1",
+		# Added 2026-09-11 from the BRT timing sweep audit: plain rand
+		# pval (both base and delta=0.5) is ~69s mean, up to 115s max,
+		# n=244 -- ~1 is fine (~8s).
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~."
 	),
 	# Gates the plain (non-CI) randomization p-value specifically --
 	# consumed via is_any_inference_class().
 	rand_pval = c(
 		"InferencePropGCompMeanDiff",
 		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"
+	),
+	# Per-class (optionally per-formula, via `||~formula`) additions to
+	# skip_bartlett_pval_slow, alongside the package's own official
+	# EDI_COMPREHENSIVE_SLOW_PATHS$bartlett_pval category -- consumed via
+	# is_any_inference_class_for_formula(). Gates both the approx and exact
+	# compute_lik_ratio_bartlett_*_two_sided_pval variants together (same
+	# scope as the official bartlett_pval category, whose own doc comment
+	# says it "gates both 'approx' and 'exact'"). Populated 2026-09-09,
+	# second-pass (mean 15-30s) production-run audit: both entries are the
+	# same bimodal shape -- p80 well under 1s (most calls near-instant) but
+	# mean dragged to 17-22s by rare, severe outliers (max 113.6s-178.7s).
+	bartlett_pval = c(
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik||~1",
+		"InferenceOrdinalKKGLMM||~1",
+		# No formula suffix: migrated 2026-09-10 from the standalone
+		# skip_hurdle_poisson_bartlett flag (which applied regardless of
+		# formula), dropping that flag's `r >= 50` numeric threshold --
+		# r is always 151 in this harness, so the threshold never actually
+		# distinguished anything in practice.
+		"InferenceCountHurdlePoisson"
+	),
+	# Same migration as bartlett_pval's InferenceCountHurdlePoisson entry
+	# above, for the CI side (the old skip_hurdle_poisson_bartlett flag
+	# gated both). Consumed via is_any_inference_class_for_formula(),
+	# OR'd into skip_pboot_ci_slow.
+	pboot_ci = c("InferenceCountHurdlePoisson"),
+	# Per-class (optionally per-formula) additions to the 5
+	# skip_brt_*_slow flags below -- consumed via
+	# is_any_inference_class_for_formula(), same OR-with-the-official-
+	# registry pattern as bartlett_pval above. Names match
+	# EDI_COMPREHENSIVE_SLOW_PATHS' own brt_pval_smoothed/brt_pval_typed/
+	# brt_ci_all/brt_ci_smoothed/brt_ci_typed categories exactly (see
+	# comprehensive_slow_paths.R) so path_audits_source.R's
+	# derive_additional_slow_methods() can reuse that file's already-built
+	# method-name mapping for them unchanged. Populated 2026-09-11 from the
+	# Nrep=3 BRT timing sweep (boston dataset, FixediBCRD design, 60s
+	# timeout, skip-repeat-after-timeout): entries below are means well
+	# over the 60s ceiling (several 95-120s), not marginal calls.
+	brt_pval_smoothed = c(
+		"InferenceOrdinalPartialProportionalOddsRegr||~1",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
+		"InferenceSurvivalWeibullRegr||~.",
+		"InferenceSurvivalKKWeibullMarginal||~."
+	),
+	brt_pval_typed = c(
+		"InferenceCountKKGLMM||~1",
+		"InferenceCountKKGLMM||~.",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~."
+	),
+	brt_ci_all = character(),
+	brt_ci_smoothed = c("InferenceCountKKHurdlePoissonOneLik||~1"),
+	brt_ci_typed = c("InferenceCountKKHurdlePoissonOneLik||~1"),
+	# Whole-pval-block gate: the base (non-typed, non-smoothed)
+	# compute_rand_bootstrap_two_sided_pval/(delta=0.5) calls have no
+	# per-variant skip lever of their own -- unlike CI, where brt_ci_all
+	# above already plays this "skip everything" role, pval had no
+	# equivalent until this key was added 2026-09-10 (removed alongside
+	# RUN_BRT/always_run_brt). No official EDI_COMPREHENSIVE_SLOW_PATHS
+	# category of this name exists; purely additional-registry-driven.
+	# Populated 2026-09-11 from the same BRT timing sweep as above:
+	# WeibullFrailtyNormalOneLik||~. is slow on both the base and
+	# delta=0.5 pval (~75s mean each); IncidKKCondLogitGLMMOneLik||~.'s
+	# base pval itself is fast (~3s) but its delta=0.5 variant is not
+	# (45.7s mean, n=2) -- this category has no per-variant lever, so the
+	# whole class/formula is gated with it.
+	brt_pval = c(
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
+		"InferenceIncidKKCondLogitGLMMOneLik||~."
 	),
 	# Gates the plain randomization confidence interval -- consumed via
 	# is_any_inference_class(); also combined at the call site with a
@@ -241,15 +365,22 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# instant, at least one pathological case) -- so only ~. is listed.
 	rand_pval_custom_allowed = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik||~."),
 	# Hard-excluded from jackknife despite otherwise qualifying -- consumed
-	# via is_any_inference_class().
-	jackknife_exclude = character(),
-	# Always gets bootstrap-randomization (BRT) methods regardless of the
-	# RUN_BRT CLI flag -- consumed via is_exact_inference_class().
-	always_run_brt = c("InferenceIncidLogBinomial"),
+	# via is_any_inference_class_for_formula() (optional `||~formula`
+	# suffix). Populated 2026-09-09, same production-run audit as bootstrap
+	# above. InferenceOrdinalKKGEE||~.: 3 jackknife methods 68-71s mean, up
+	# to 118s. InferenceOrdinalStereotypeLogitRegr||~.: weak evidence (n=1
+	# for each of its 2 methods, 36.8s/37.6s, barely over threshold) --
+	# included per the audit but worth a bigger sample before trusting it.
+	jackknife_exclude = c(
+		"InferenceOrdinalKKGEE||~.",
+		"InferenceOrdinalStereotypeLogitRegr||~."
+	),
 	# Always gets the parametric-bootstrap CI regardless of the
-	# COMPREHENSIVE_PARAM_BOOT_CI env flag -- a separate opt-in from
-	# always_run_brt above, coincidentally the same one class today;
-	# consumed via is_exact_inference_class().
+	# COMPREHENSIVE_PARAM_BOOT_CI env flag -- consumed via
+	# is_exact_inference_class(). (BRT itself has no equivalent opt-in
+	# anymore -- removed 2026-09-10 along with the RUN_BRT CLI flag and
+	# always_run_brt; BRT now runs by default for every class like every
+	# other test family, gated purely by the skip_brt_*_slow flags below.)
 	always_run_parametric_bootstrap_ci = c("InferenceIncidLogBinomial")
 )
 required_packages = c("doParallel", "PTE", "datasets", "qgam", "mlbench", "AppliedPredictiveModeling", "dplyr", "ggplot2", "gridExtra", "profvis", "data.table", "devtools", "R.utils")
@@ -365,7 +496,6 @@ if (!is.na(TEST_FAMILY_FILTER) && !(TEST_FAMILY_FILTER %in% ALL_TEST_FAMILY_FILT
 		paste(ALL_TEST_FAMILY_FILTERS, collapse = ", ")
 	)
 }
-RUN_BRT = if (length(args) >= 10) parse_bool_arg(args[10], default = FALSE) else FALSE
 force_mirai_cores = Sys.getenv("COMPREHENSIVE_FORCE_MIRAI", "0") %in% c("1", "true", "TRUE", "yes", "YES")
 set_num_cores(NUM_CORES, force_mirai = force_mirai_cores)
 toggle_asserts(FALSE)
@@ -378,7 +508,7 @@ if (is.na(INFERENCE_CLASS_FILTER)) {
 prob_censoring = 0.15
 r = 151
 pval_epsilon = 0.007
-FUNCTION_TIMEOUT_SEC = 120
+FUNCTION_TIMEOUT_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_FUNCTION_TIMEOUT_SEC", "120"))
 HEARTBEAT_LOG_FILE = Sys.getenv(
 	"COMPREHENSIVE_HEARTBEAT_LOG",
 	file.path(tempdir(), paste0("comprehensive_tests_heartbeat_", Sys.getpid(), ".log"))
@@ -417,7 +547,6 @@ if (!is.na(DATASET_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("d
 if (!is.na(BETA_T_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("beta-", sanitize_results_filter(BETA_T_FILTER)))
 if (!is.na(REP_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("rep-", sanitize_results_filter(REP_FILTER)))
 if (!is.na(TEST_FAMILY_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("family-", sanitize_results_filter(TEST_FAMILY_FILTER)))
-if (isTRUE(RUN_BRT)) extra_filter_parts = c(extra_filter_parts, "run_brt-TRUE")
 filtered_results_suffix = if (length(extra_filter_parts)) {
 	paste0("_filtered_", paste(extra_filter_parts, collapse = "_"))
 } else {
@@ -709,6 +838,28 @@ is_row_completed = function(rep_val, beta_val, dataset_val, response_val, design
 	!is.null(completed_rows_cache[[key]])
 }
 
+# Opt-in (default off): once a (dataset, response_type, design, class,
+# function_run) call hits the FUNCTION_TIMEOUT_SEC watchdog, skip that exact
+# combination for the rest of THIS invocation instead of re-attempting it on
+# every subsequent rep/beta_T -- a rep-level exploratory sweep (comparing
+# avg/p80/max duration across reps) doesn't need to re-pay a confirmed 60s
+# timeout Nrep times over. Deliberately excludes rep/beta_T from the key
+# (unlike completed_rows_cache above, which is keyed on the full row and
+# exists for a different purpose -- resuming from an existing results CSV).
+# Session-local only: nothing here is persisted, so a fresh invocation always
+# re-attempts every call at least once.
+skip_repeat_after_timeout = Sys.getenv("COMPREHENSIVE_SKIP_REPEAT_AFTER_TIMEOUT", "0") %in% c("1", "true", "TRUE", "yes", "YES")
+confirmed_timeout_cache = new.env(parent = emptyenv())
+timeout_cache_key = function(dataset_val, response_val, design_val, inference_val, function_run_val){
+	paste(dataset_val, response_val, design_val, inference_val, function_run_val, sep = "||")
+}
+mark_confirmed_timeout = function(dataset_val, response_val, design_val, inference_val, function_run_val){
+	confirmed_timeout_cache[[timeout_cache_key(dataset_val, response_val, design_val, inference_val, function_run_val)]] <- TRUE
+}
+is_confirmed_timeout = function(dataset_val, response_val, design_val, inference_val, function_run_val){
+	skip_repeat_after_timeout && !is.null(confirmed_timeout_cache[[timeout_cache_key(dataset_val, response_val, design_val, inference_val, function_run_val)]])
+}
+
 if (nrow(existing_results_dt) > 0L) {
 	rows_to_cache = if ("status" %in% colnames(existing_results_dt)) {
 		existing_results_dt[status == "ok"]
@@ -733,6 +884,33 @@ if (nrow(existing_results_dt) > 0L) {
 		}
 		for (key in keys) {
 			completed_rows_cache[[key]] <- TRUE
+		}
+		# Seed confirmed_timeout_cache from the resumed CSV too -- otherwise a
+		# timeout recorded by an EARLIER (e.g. killed and relaunched) process
+		# invocation is invisible to this fresh process's in-memory cache: a
+		# resumed row returns at is_row_completed() (above is_confirmed_timeout()
+		# in safe_call()) without ever reaching handle_timeout(), so the
+		# confirmed-slow fact never gets (re-)learned here, and every relaunch
+		# re-pays the full timeout for every already-known-slow combination
+		# instead of skipping it. Found 2026-09-10 after a 3+ hour run showed
+		# zero cache hits despite hundreds of confirmed timeouts -- the run had
+		# been killed and relaunched (different Nrep) partway through, and the
+		# resumed rows never seeded this process's fresh, empty cache.
+		if (skip_repeat_after_timeout && "error_message" %in% colnames(rows_to_cache)) {
+			timeout_rows = rows_to_cache[grepl("timeout", error_message, ignore.case = TRUE)]
+			if (nrow(timeout_rows) > 0L) {
+				timeout_keys = timeout_cache_key(
+					timeout_rows$dataset,
+					timeout_rows$response_type,
+					timeout_rows$design,
+					timeout_rows$inference_class,
+					timeout_rows$function_run
+				)
+				for (tkey in timeout_keys) {
+					confirmed_timeout_cache[[tkey]] <- TRUE
+				}
+				message(sprintf("Seeded confirmed_timeout_cache with %d already-timed-out combination(s) from the resumed results file.", length(unique(timeout_keys))))
+			}
 		}
 	}
 }
@@ -1118,7 +1296,28 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 			!is.na(inference_model_formula_str) && identical(inference_model_formula_str, parts[[2]])
 		}, logical(1)))
 	}
-	skip_bootstrap = !force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$bootstrap)
+	# Two label conventions exist depending on whether the class takes its
+	# own model_formula (run_inference_checks_both_paths' univ_label/
+	# multi_label, folded into inference_base_label above:
+	# "(model_formula=~X)") or the formula is design-driven instead
+	# (design_formula_suffix just above, appended onto inference_result_
+	# label rather than inference_base_label: "[design_formula=~X]", e.g.
+	# survival GLMM and several ordinal classes) -- check both label
+	# variables, or every formula-suffixed registry/list entry silently
+	# never matches for the second group (found 2026-09-09: a
+	# rand_pval_custom_allowed entry for InferenceSurvivalGLMMWeibullFrailty
+	# LoggammaOneLik matched nothing in a real run because this only checked
+	# inference_base_label, which never carries the bracket form). Defined
+	# here, ahead of skip_bootstrap/skip_rand/jackknife below, because those
+	# now consume it via is_any_inference_class_for_formula() too.
+	inference_model_formula_str = if (grepl(" \\(model_formula=", inference_base_label)) {
+		sub(".*\\(model_formula=([^)]*)\\).*", "\\1", inference_base_label)
+	} else if (grepl("\\[design_formula=", inference_result_label)) {
+		sub(".*\\[design_formula=([^]]*)\\].*", "\\1", inference_result_label)
+	} else {
+		NA_character_
+	}
+	skip_bootstrap = !force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$bootstrap)
 	# Package-owned, public registry; formula-, dataset-independent (an
 	# exact_operations entry may optionally restrict itself to one
 	# model_formula via a `||model_formula` suffix -- see
@@ -1126,11 +1325,6 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	slow_skip_rules = comprehensive_slow_path_rules
 	is_slow_class_rule = function(rule){
 		!force_run_slow_paths && is_exact_inference_class(slow_skip_rules[[rule]])
-	}
-	inference_model_formula_str = if (grepl(" \\(model_formula=", inference_base_label)) {
-		sub(".*\\(model_formula=([^)]*)\\).*", "\\1", inference_base_label)
-	} else {
-		NA_character_
 	}
 	is_slow_operation = function(function_run){
 		if (force_run_slow_paths) return(FALSE)
@@ -1152,34 +1346,42 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	skip_bbt_pval_wald_slow = is_slow_class_rule("bbt_pval_wald")
 	skip_bbt_pval_studentized_slow = is_slow_class_rule("bbt_pval_studentized")
 	skip_bbt_ci_slow = is_slow_class_rule("bbt_ci")
-	skip_bbt_ci_default_slow = is_slow_class_rule("bbt_ci_default")
 	skip_boot_ci_default_slow = is_slow_class_rule("boot_ci_default")
-	skip_boot_ci_basic_slow = is_slow_class_rule("boot_ci_basic")
 	skip_boot_ci_bca_slow = is_slow_class_rule("boot_ci_bca")
 	skip_boot_stud_slow = is_slow_class_rule("boot_stud")
 	skip_boot_pval_stud_slow = is_slow_class_rule("boot_pval_stud")
 	skip_boot_pval_symmetric_slow = is_slow_class_rule("boot_pval_symmetric")
 	skip_boot_ci_slow = is_slow_class_rule("boot_ci")
 	skip_jack_slow = is_slow_class_rule("jack")
-	skip_pboot_ci_slow = is_slow_class_rule("pboot_ci")
+	skip_pboot_ci_slow = is_slow_class_rule("pboot_ci") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$pboot_ci))
 	skip_lik_ratio_bootstrap_pval_slow = is_slow_class_rule("lik_ratio_bootstrap_pval")
 	skip_param_bootstrap_estimate_slow = is_slow_class_rule("param_bootstrap_estimate")
 	skip_param_bootstrap_pval_slow = is_slow_class_rule("param_bootstrap_pval")
 	skip_param_bootstrap_ci_slow = is_slow_class_rule("param_bootstrap_ci")
-	skip_bartlett_pval_slow = is_slow_class_rule("bartlett_pval")
+	skip_bartlett_pval_slow = is_slow_class_rule("bartlett_pval") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$bartlett_pval))
 	skip_rand_delta_pval_slow = is_slow_class_rule("rand_delta_pval")
-	skip_brt_pval_smoothed_slow = is_slow_class_rule("brt_pval_smoothed")
-	skip_brt_pval_typed_slow = is_slow_class_rule("brt_pval_typed")
-	skip_brt_ci_all_slow = is_slow_class_rule("brt_ci_all")
-	skip_brt_ci_smoothed_slow = is_slow_class_rule("brt_ci_smoothed")
-	skip_brt_ci_typed_slow = is_slow_class_rule("brt_ci_typed")
+	skip_brt_pval_block_slow = is_slow_class_rule("brt_pval") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_pval))
+	skip_brt_pval_smoothed_slow = is_slow_class_rule("brt_pval_smoothed") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_pval_smoothed))
+	skip_brt_pval_typed_slow = is_slow_class_rule("brt_pval_typed") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_pval_typed))
+	skip_brt_ci_all_slow = is_slow_class_rule("brt_ci_all") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_ci_all))
+	skip_brt_ci_smoothed_slow = is_slow_class_rule("brt_ci_smoothed") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_ci_smoothed))
+	skip_brt_ci_typed_slow = is_slow_class_rule("brt_ci_typed") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_ci_typed))
 	skip_m_out_of_n_slow = is_slow_class_rule("m_out_of_n")
 	skip_m_out_of_n_ci_slow = skip_m_out_of_n_slow || is_slow_class_rule("m_out_of_n_ci")
 	skip_subsampling_slow = is_slow_class_rule("subsampling")
-	# BRT pval: skip only if bootstrap structurally broken OR rand itself slow; ContinRobustRegr keeps BRT pval
-	skip_brt_pval = skip_bootstrap || skip_rand_slow
+	# BRT pval: skip only if bootstrap structurally broken OR rand itself slow
+	# OR this class's whole BRT pval block is separately flagged slow;
+	# ContinRobustRegr keeps BRT pval
+	skip_brt_pval = skip_bootstrap || skip_rand_slow || skip_brt_pval_block_slow
 	skip_brt_ci   = skip_bootstrap || skip_bootstrap_slow || skip_rand_slow || skip_rand_ci_slow || skip_brt_ci_all_slow
-	run_brt_for_class = RUN_BRT || is_exact_inference_class(ADDITIONAL_TEST_SLOW_PATHS$always_run_brt)
 	skip_bayesian_bootstrap = skip_bootstrap || skip_bootstrap_slow ||
 		!isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$supports_bayesian_bootstrap(), error = function(e) TRUE))
 	supports_parametric_bootstrap =
@@ -1230,7 +1432,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		response_type != "incidence" ||
 		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$should_use_zhang_incidence_randomization(), error = function(e) FALSE)) ||
 		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$should_use_design_randomization_for_incidence(), error = function(e) FALSE))
-	skip_rand      = !force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand)
+	skip_rand      = !force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand)
 	skip_mle_pval  = FALSE
 	skip_rand_pval = !force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_pval)
 	skip_regular_rand_pval = skip_rand_pval || !supports_incidence_rand_pval
@@ -1245,7 +1447,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 			"compute_jackknife_wald_two_sided_pval" %in% names(seq_des_inf) &&
 			"compute_jackknife_wald_confidence_interval" %in% names(seq_des_inf)
 		)
-	supports_jackknife = supports_jackknife && (force_run_slow_paths || !is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$jackknife_exclude))
+	supports_jackknife = supports_jackknife && (force_run_slow_paths || !is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$jackknife_exclude))
 	
 	snap_small_numeric_to_zero = function(x, tol = sqrt(.Machine$double.eps)){
 		if (is.null(x)) return(x)
@@ -1420,6 +1622,10 @@ safe_call = function(label, expr){
 		message("          Skipping ", label, " (too slow for this response/class path)")
 		return(invisible(NULL))
 	}
+	if (is_confirmed_timeout(dataset_name, response_type, design_type, inference_result_label, label)) {
+		message("          Skipping ", label, " (already timed out earlier this run)")
+		return(invisible(NULL))
+	}
 
 	if (!is.null(pending_rep_header)) { message(pending_rep_header); pending_rep_header <<- NULL }
 	if (!is.null(pending_beta_header)) { message(pending_beta_header); pending_beta_header <<- NULL }
@@ -1456,6 +1662,9 @@ safe_call = function(label, expr){
 				duration_time_sec = duration_time_sec,
 				error_message = msg
 			)
+			if (skip_repeat_after_timeout) {
+				mark_confirmed_timeout(dataset_name, response_type, design_type, inference_result_label, label)
+			}
 			invisible(NULL)
 		}
 
@@ -1892,10 +2101,6 @@ call_direct_asymp = function(method_name, testing_type, ...){
 			message("          Skipping compute_bootstrap_confidence_interval (too slow)")
 		}
 		for (boot_ci_type in c("basic", "bca", "studentized")) {
-			if (boot_ci_type == "basic" && skip_boot_ci_basic_slow) {
-				message("          Skipping compute_bootstrap_confidence_interval_basic (too slow)")
-				next
-			}
 			if (boot_ci_type == "bca" && skip_boot_ci_bca_slow) {
 				message("          Skipping compute_bootstrap_confidence_interval_bca (too slow)")
 				next
@@ -1928,11 +2133,7 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		}
 	# Bayesian bootstrap CI — default type first (warms the distribution cache), then extra types reuse it
 	if (should_run_test_family("bayesian_bootstrap") && !skip_slow && !skip_bayesian_bootstrap && !skip_bbt_ci_slow){
-		if (!skip_bbt_ci_default_slow) {
-			safe_call("compute_bayesian_bootstrap_confidence_interval", seq_des_inf$compute_bayesian_bootstrap_confidence_interval(B = r, na.rm = TRUE, show_progress = FALSE))
-		} else {
-			message("          Skipping compute_bayesian_bootstrap_confidence_interval (too slow)")
-		}
+		safe_call("compute_bayesian_bootstrap_confidence_interval", seq_des_inf$compute_bayesian_bootstrap_confidence_interval(B = r, na.rm = TRUE, show_progress = FALSE))
 		for (bayes_ci_type in c("basic", "wald", "bca", "studentized")) {
 			safe_call(paste0("compute_bayesian_bootstrap_confidence_interval_", bayes_ci_type),
 					  seq_des_inf$compute_bayesian_bootstrap_confidence_interval(B = r, type = bayes_ci_type, na.rm = TRUE, show_progress = FALSE))
@@ -2025,18 +2226,11 @@ call_direct_asymp = function(method_name, testing_type, ...){
 			)
 		)
 	}
-	# Hurdle-Poisson Bartlett calibration repeatedly refits a truncated-Poisson
-	# likelihood and is a documented multi-minute path.  At the comprehensive
-	# suite's default B=50 it can exhaust the per-call deadline after the other
-	# bootstrap families have already run; skip that combination explicitly
-	# rather than allowing a native elapsed-time interrupt to abort the run.
-	skip_hurdle_poisson_bartlett = is(seq_des_inf, "InferenceCountHurdlePoisson") &&
-		is.finite(r) && r >= 50L
 	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett &&
-		!skip_bartlett_pval_slow && !skip_hurdle_poisson_bartlett){
+		!skip_bartlett_pval_slow){
 		safe_call("compute_lik_ratio_bartlett_two_sided_pval", seq_des_inf$compute_lik_ratio_bartlett_two_sided_pval(B = r))
 	} else if (should_run_test_family("bartlett") && supports_bartlett &&
-		(skip_bartlett_pval_slow || skip_hurdle_poisson_bartlett)) {
+		skip_bartlett_pval_slow) {
 		message("          Skipping compute_lik_ratio_bartlett_two_sided_pval (too slow)")
 	}
 	# Explicit approx/exact variants, tested alongside the "best available"
@@ -2046,39 +2240,56 @@ call_direct_asymp = function(method_name, testing_type, ...){
 	# path_audits.html's separate "LR-Bart-app"/"LR-Bart-ex" columns were,
 	# until 2026-09-06, both silently keyed to the generic wrapper's result --
 	# giving two display columns for what was actually one shared test call.
-	# Gated on the same skip_bartlett_pval_slow/skip_hurdle_poisson_bartlett
-	# flags as the generic call: EDI_COMPREHENSIVE_SLOW_PATHS$bartlett_pval's
-	# own comment says the bucket "gates both 'approx' and 'exact'" already.
+	# Gated on the same skip_bartlett_pval_slow flag as the generic call:
+	# EDI_COMPREHENSIVE_SLOW_PATHS$bartlett_pval's own comment says the
+	# bucket "gates both 'approx' and 'exact'" already. Hurdle-Poisson's
+	# Bartlett calibration (a documented multi-minute path -- it repeatedly
+	# refits a truncated-Poisson likelihood) is skipped here via
+	# ADDITIONAL_TEST_SLOW_PATHS$bartlett_pval (pval side) and $pboot_ci
+	# (ci side below) rather than a standalone hand-rolled flag.
 	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_approx_variant &&
-		!skip_bartlett_pval_slow && !skip_hurdle_poisson_bartlett){
+		!skip_bartlett_pval_slow){
 		safe_call("compute_lik_ratio_bartlett_approx_two_sided_pval", seq_des_inf$compute_lik_ratio_bartlett_approx_two_sided_pval(B = r))
 	} else if (should_run_test_family("bartlett") && supports_bartlett_approx_variant &&
-		(skip_bartlett_pval_slow || skip_hurdle_poisson_bartlett)) {
+		skip_bartlett_pval_slow) {
 		message("          Skipping compute_lik_ratio_bartlett_approx_two_sided_pval (too slow)")
 	}
 	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_exact_variant &&
-		!skip_bartlett_pval_slow && !skip_hurdle_poisson_bartlett){
+		!skip_bartlett_pval_slow){
 		safe_call("compute_lik_ratio_bartlett_exact_two_sided_pval", seq_des_inf$compute_lik_ratio_bartlett_exact_two_sided_pval())
 	} else if (should_run_test_family("bartlett") && supports_bartlett_exact_variant &&
-		(skip_bartlett_pval_slow || skip_hurdle_poisson_bartlett)) {
+		skip_bartlett_pval_slow) {
 		message("          Skipping compute_lik_ratio_bartlett_exact_two_sided_pval (too slow)")
 	}
 	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_ci &&
-		!skip_pboot_ci_slow && !skip_hurdle_poisson_bartlett){
+		!skip_pboot_ci_slow){
 		safe_call("compute_lik_ratio_bartlett_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_confidence_interval(B = r))
 	}
 	if (should_run_test_family("bartlett") && !skip_slow && run_parametric_bootstrap_ci_for_class && supports_bartlett_approx_variant &&
-		!skip_pboot_ci_slow && !skip_hurdle_poisson_bartlett){
+		!skip_pboot_ci_slow){
 		safe_call("compute_lik_ratio_bartlett_approx_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_approx_confidence_interval(B = r))
 	}
 	if (should_run_test_family("bartlett") && !skip_slow && run_parametric_bootstrap_ci_for_class && supports_bartlett_exact_variant &&
-		!skip_pboot_ci_slow && !skip_hurdle_poisson_bartlett){
+		!skip_pboot_ci_slow){
 		safe_call("compute_lik_ratio_bartlett_exact_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_exact_confidence_interval())
 	}
 	if (should_run_test_family("jackknife") && !skip_slow && supports_jackknife && !skip_jack_slow){
-		if (response_type != "count") {
-			safe_call("compute_jackknife_estimate", seq_des_inf$compute_jackknife_estimate())
-		}
+		# No more blanket response_type == "count" skip here -- removed
+		# 2026-09-10 after a direct smoke test (InferenceAllSimpleAverageDiff/
+		# MeanDiffPooledVar on synthetic count data, 5 seeds x 3 effect sizes,
+		# 0/30 errors, jackknife estimate exactly matched compute_estimate() as
+		# expected for a linear statistic) found no structural reason these
+		# two classes' count-response jackknife estimate would fail. The
+		# blanket rule was over-broad: the count classes that genuinely are
+		# unstable under delete-one refits (hurdle/negbin/zero-augmented
+		# Poisson -- inference_count_hurdle.R, inference_count_negbin.R,
+		# inference_count_zero_augmented_poisson_abstract.R) already
+		# self-protect by overriding compute_jackknife_estimate() to return
+		# NA via cache_nonestimable_estimate() rather than erroring, and
+		# safe_call() below already catches any genuine error/timeout on its
+		# own -- there was nothing this response-type-wide pre-filter
+		# protected that wasn't already handled per-class.
+		safe_call("compute_jackknife_estimate", seq_des_inf$compute_jackknife_estimate())
 		safe_call("compute_jackknife_wald_two_sided_pval", seq_des_inf$compute_jackknife_wald_two_sided_pval())
 	}
 	if (should_run_test_family("jackknife") && !skip_slow && supports_jackknife && !skip_jack_slow){
@@ -2109,7 +2320,7 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		safe_call("compute_rand_confidence_interval", seq_des_inf$compute_rand_confidence_interval(r = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
 	}
 	# Bootstrap randomization test (BRT): row bootstrap + fresh assignment draw from the design
-	if (supports_randomization_bootstrap && run_brt_for_class && should_run_test_family("rand_bootstrap") && !skip_slow && !skip_brt_pval && !skip_rand && !skip_rand_pval && response_type %in% c("continuous", "survival", "proportion", "incidence", "count", "ordinal")){
+	if (supports_randomization_bootstrap && should_run_test_family("rand_bootstrap") && !skip_slow && !skip_brt_pval && !skip_rand && !skip_rand_pval && response_type %in% c("continuous", "survival", "proportion", "incidence", "count", "ordinal")){
 		if (run_debug_resampling) {
 			safe_call_debug("approximate_rand_bootstrap_distribution_beta_hat_T_debug",
 						seq_des_inf$approximate_rand_bootstrap_distribution_beta_hat_T(B = B_debug, debug = TRUE, show_progress = FALSE))
@@ -2132,7 +2343,7 @@ call_direct_asymp = function(method_name, testing_type, ...){
 					  seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = r, type = brt_pval_type, show_progress = FALSE))
 		}
 	}
-	if (supports_randomization_bootstrap && supports_randomization_ci && run_brt_for_class && should_run_test_family("rand_bootstrap") && !skip_slow && !skip_brt_ci && !skip_rand && !skip_ci_rand && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "count", "survival")){
+	if (supports_randomization_bootstrap && supports_randomization_ci && should_run_test_family("rand_bootstrap") && !skip_slow && !skip_brt_ci && !skip_rand && !skip_ci_rand && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "count", "survival")){
 		safe_call("compute_rand_bootstrap_confidence_interval", seq_des_inf$compute_rand_bootstrap_confidence_interval(B = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
 		for (brt_ci_type in c("studentized", "symmetric-percentile-t", "smoothed")) {
 			if (brt_ci_type == "smoothed" && skip_brt_ci_smoothed_slow) next

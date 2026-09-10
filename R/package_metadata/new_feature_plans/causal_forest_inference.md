@@ -8,6 +8,16 @@ could eventually accelerate repeated prediction or dense nuisance-model stages, 
 the first implementation should use mature R packages and preserve EDI's design and
 estimand contracts.
 
+**Amended 2026-09-10 (user decision):** the HTE visualization work Phase 6 already
+gestured at ("Add CATE plots that clearly distinguish pointwise intervals from
+simultaneous bands") is now fully scoped in "## HTE visualization" below, targeted
+at `release_v3_0_0.md` specifically. The rest of this plan's release target
+(`release_v2_0_0.md`, per `_master.md` Phase 5AC or equivalent HTE-track entry) is
+unchanged — only the visualization piece moves to v3.0.0, since it depends on a
+stable CATE/variable-importance result contract existing first (Phases 0–5 below),
+the same "reporting rides after the contract is stable" ordering `InferenceSuite`
+discovery integration already follows one paragraph below.
+
 ## Executive decision
 
 Add heterogeneous-treatment-effect (HTE) inference to EDI through two related but
@@ -340,6 +350,47 @@ Use a conservative staged matrix:
 Reject unsupported combinations early. Never flatten a cluster or constrained design
 into an iid row problem.
 
+## HTE visualization (added 2026-09-10, user decision — v3.0.0)
+
+Two plot types, one per already-distinct output the "Common HTE capability"
+section above defines — the visualization layer must never blur the line
+that section already draws between `predict_cate()`'s conditional surface
+and `compute_estimate()`'s scalar SATE/ATE:
+
+- **CATE-vs-covariate plot.** Either a partial-dependence-style curve —
+  `tau(x)` as a function of one or two covariates, the rest held at
+  representative (median/modal) values, following the `pdp` package's
+  `partial()` convention (Greenwell 2017, *JOSS*) and `iml`'s
+  `FeatureEffect` convention (Molnar, Casalicchio & Bischl 2018, *JOSS*) —
+  or a realized scatter of `predict_cate()`'s actual output against a
+  chosen covariate. Either form gets its own pointwise band from the
+  forest's/BART's per-point uncertainty (§"Pointwise CATE uncertainty" /
+  §"Bayesian uncertainty and diagnostics" above). **The scalar SATE/ATE, if
+  shown at all, is a single labeled horizontal reference line, styled
+  distinctly from the CATE band — never blended into it, and the legend
+  must state the CATE band is pointwise, not simultaneous**, the same
+  discipline the numeric API's own "Pointwise CATE uncertainty" section
+  already requires ("must not be interpreted as a multiple-testing-corrected
+  search for responders").
+- **Variable-importance plot.** For the `grf` causal-forest path,
+  `grf::variable_importance()`'s split-frequency-based scores as a
+  horizontal bar chart. For BART/BCF, posterior variable-inclusion
+  proportions / tree-usage counts (the `dbarts`/`BART` packages' own
+  variable-count convention) — never presented on the same numeric scale as
+  `grf`'s importance without a caption explaining the two are not
+  comparable across backends.
+
+**Reporting stack**: reuse, don't reinvent — `ggplot2` static plots plus
+the HTML/`plotly` conventions `inference_suite_interactive_reporting.md`
+already establishes (also v3.0.0, wired the same day): a sortable `DT`
+table as the alternative view for variable importance when there are many
+covariates, and an optional `plotly::ggplotly()` wrap on the CATE-vs-
+covariate plot for hover-to-inspect the exact `tau(x)`/interval at a point.
+Extend `InferenceSuite`'s discovery/reporting only after this capability's
+own result contract is stable (per "Register the new capability-to-method
+mapping..." above) — this section's plots are a consumer of that contract,
+not a reason to destabilize it early.
+
 ## Implementation phases
 
 ### Phase 0: contracts and statistical specification
@@ -390,7 +441,10 @@ into an iid row problem.
 ### Phase 6: integration and performance
 
 - Integrate stable classes into `InferenceSuite` and reporting.
-- Add CATE plots that clearly distinguish pointwise intervals from simultaneous bands.
+- **Visualization moved to v3.0.0** — see "## HTE visualization" above for
+  the full scope (CATE-vs-covariate plot, variable importance, the
+  pointwise-vs-scalar-ATE discipline); this phase's own scope is the
+  integration and benchmarking below, not the plotting itself.
 - Benchmark fit, prediction, memory, threading, and repeated-refit workloads.
 - Document reproducibility across backend versions and thread counts.
 
@@ -511,3 +565,9 @@ and easiest-to-misinterpret inference modes.
 - Hahn, P. R., Murray, J. S., and Carvalho, C. M. (2020). *Bayesian Regression Tree
   Models for Causal Inference: Regularization, Confounding, and Heterogeneous
   Effects*. Bayesian Analysis. https://doi.org/10.1214/19-BA1195
+- Greenwell, B. M. (2017). *pdp: An R Package for Constructing Partial Dependence
+  Plots*. The R Journal. (Partial-dependence plot convention, HTE visualization
+  section, added 2026-09-10.) `NEEDS VERIFICATION`.
+- Molnar, C., Casalicchio, G., and Bischl, B. (2018). *iml: An R package for
+  Interpretable Machine Learning*. Journal of Open Source Software.
+  (`FeatureEffect` convention, HTE visualization section.) `NEEDS VERIFICATION`.
