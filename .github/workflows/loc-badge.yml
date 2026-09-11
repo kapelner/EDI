@@ -1,0 +1,50 @@
+name: loc-badge
+
+# Keeps README's "lines of code" badge live without ever touching README.md
+# itself: on every push to main this regenerates cloc data and publishes it
+# to a Gist (not this repo), which the badge fetches live via shields.io's
+# endpoint-badge type -- see scripts/generate_loc_badge_data.py,
+# scripts/publish_loc_badge_gist.py, and README.md's badge row for the
+# consuming side.
+#
+# Deliberately NOT using GitHub Pages: this repo's Pages slot is already the
+# pkgdown site (see pkgdown.yaml, build_type "workflow"), and each
+# actions/deploy-pages call replaces the whole site -- a second, independent
+# deploy here would race and periodically clobber it. No R install and no
+# C++ compile happens in this job (just cloc, a static line counter), so
+# this is safe to run on every push rather than needing path filters.
+
+on:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  update-loc-badge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      # A gist ID is just an opaque identifier, not a credential -- safe to
+      # hardcode here. GIST_PAT (the actual credential, scoped to just
+      # "gist") is a repo secret, added separately.
+      GIST_ID: 3d96a820d6b5d6fba041fc31bc9bf36a
+      GIST_PAT: ${{ secrets.GIST_PAT }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install cloc
+        run: sudo apt-get update -y && sudo apt-get install -y cloc
+
+      - name: Generate lines-of-code badge data
+        run: |
+          python3 scripts/generate_loc_badge_data.py \
+            "$RUNNER_TEMP/loc-badge.json" "$RUNNER_TEMP/loc.html"
+
+      - name: Publish to gist
+        run: |
+          python3 scripts/publish_loc_badge_gist.py \
+            "$RUNNER_TEMP/loc-badge.json" "$RUNNER_TEMP/loc.html"

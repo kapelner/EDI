@@ -190,14 +190,89 @@ the right direction for "genuinely open."
 **Integrity, since "anyone can write" is a real risk this design must
 answer, not one the org-gated version had to face.** A contributor's
 submitted numbers must be checked before they join a public benchmark
-dataset people will query and trust. The mitigation is that
-`SimulationFramework` results are **deterministic given a seed** — CI
-independently re-runs a contributor's claimed `(design, inference,
-response_type, inference_type, scenario)` cell, or a random subsample of
-a large submission, at the submitted `seed`/`edi_commit`/`r_version`/`os`
-and rejects the PR on mismatch. This is the actual gate, not merely a
-format check — but per direct user instruction, "deterministic given a
-seed" needs to actually hold **across every method and every operating
+dataset people will query and trust — this is not optional for a
+"high-quality" claim with anonymous contributors, confirmed directly.
+But CI cannot re-run *every* submitted row itself: that would mean CI
+doing 100% of the compute a second time, which defeats the actual point
+of distributing it in the first place (a direct, correct challenge to an
+earlier draft of this section). The fix is the standard volunteer/
+distributed-computing trust model — spot-check, not full redundant
+computation, weighted by how proven a contributor is, plus let
+independent contributors corroborate each other for free:
+
+- **New or low-trust contributor**: CI verifies a *high* fraction (up to
+  all) of their first handful of submissions — cheap in absolute terms,
+  since a brand-new contributor's early volume is naturally small, and
+  it's exactly where the risk of a first bad-faith or badly-configured
+  submission is highest.
+- **Established contributor with a track record of passing checks**:
+  CI's ongoing verification rate drops to a small random sample (a
+  single-digit percentage, tuned once real submission volume exists) —
+  a credible deterrent, not exhaustive re-computation. Anyone submitting
+  at real scale has a low but non-trivial per-submission chance of being
+  checked, and a near-certain chance of eventually being caught if they
+  cheat systematically.
+- **Cross-contributor agreement, essentially free.** Because §5's
+  coordination model already treats overlapping contributions as added
+  precision rather than a race to avoid, two independent contributors
+  submitting the same cell is a *normal*, even encouraged, outcome — not
+  a special case built for this purpose. When it happens, their numbers
+  should agree within tolerance; a disagreement is itself a quality
+  signal (flag that cell, trigger a targeted CI check) that cost nothing
+  extra to obtain, since neither submission was made *for* checking.
+- **Anomaly-triggered checks, independent of trust tier**: a submission
+  that's a statistical outlier against comparable cells or against that
+  contributor's own history gets checked regardless of how established
+  the contributor otherwise is.
+- **What actually makes frequent checking cheap: verify a deterministic
+  prefix, not the full replicate count — not exotic cryptography, just
+  the seed structure already in place.** Direct answer to "is there a
+  cryptographic trick for fast verification": the heavyweight tools for
+  this exist but don't fit — zero-knowledge proofs of arbitrary
+  computation (zk-SNARKs/zkVMs) are built for circuit-friendly,
+  fixed-point/integer computation, and proving BLAS-heavy floating-point
+  numerical code through one today would be a major, disproportionate
+  research effort, likely slower than just re-running it; Trusted
+  Execution Environments (hardware attestation, e.g. SGX/Nitro Enclaves)
+  are a real, lighter alternative but require contributors to run inside
+  specific attestable hardware/cloud instances — trading cheap
+  verification for a meaningfully higher participation bar, directly
+  against the "genuinely open, anyone" goal. Neither is proposed here.
+  What's actually available is simpler and already implied by
+  §5's/`draw_binary_match_assignments_cpp`'s own seed derivation
+  (`master_seed + splitmix64(replicate_index)`, cited above): replicate
+  `k` of a properly-seeded run depends only on the master seed and `k`
+  itself, **not** on how many total replicates were requested — so the
+  first, say, 100 replicates of a contributor's 10,000-replicate
+  submission are byte-identical to the first 100 replicates of a
+  from-scratch run with the same seed asking for only 100. CI verifies
+  that short prefix — orders of magnitude cheaper than the contributor's
+  full run — rather than the whole submission. A systematic bug or a
+  fabricated result overwhelmingly shows up in *any* prefix, since it
+  isn't a late-replicate-only phenomenon; a genuinely subtle,
+  replicate-index-dependent discrepancy that only appears past replicate
+  100 is the one failure mode this doesn't catch, which is exactly what
+  the trust-tier escalation and anomaly-triggered checks above are for —
+  belt and suspenders, not a single silver bullet.
+- **A cheap, complementary integrity primitive that genuinely is
+  cryptographic — tamper-evidence, not correctness-proof.** Have a
+  contributor submit a hash (e.g. SHA-256) of their *full* raw
+  per-replicate output alongside the aggregated row. This doesn't prove
+  the computation was done correctly — a wrong build produces a
+  perfectly well-formed, self-consistent hash of its own wrong numbers —
+  but it does mean the aggregated metrics in the public dataset provably
+  match what was actually computed at submission time, closing off a
+  different attack (editing the reported numbers after the fact without
+  redoing the run). Cheap to compute and to check; worth including
+  alongside the prefix-check, not instead of it.
+- **Net effect**: CI's own compute stays a small fraction of total
+  contributed compute — the actual point of distributing the work is
+  preserved — while every submission still carries *some* chance of
+  being checked, and systematic bad-faith submission at any real scale is
+  caught with high probability, not merely deterred by an unenforced
+  policy. This is the actual gate, not merely a format check — but per
+  direct user instruction, "deterministic given a seed" needs to actually
+  hold **across every method and every operating
 system**, not just be assumed, so it was checked against the real code
 rather than taken on faith:
 
@@ -240,21 +315,58 @@ rather than taken on faith:
   the same discipline, not bit-for-bit — and pin `r_version` in the
   comparison, since R's own RNG algorithm defaults have changed across R
   versions historically.
-- **Genuinely open, not yet verified: an audit, not an assumption
-  (TODO-4).** One kernel following the master-seed/`splitmix64` pattern
-  correctly doesn't mean every kernel the benchmark's scenario grid
-  actually exercises does. This needs a real audit before the first
-  external contribution is accepted, not an inference from one example.
-- **Build cost, stated honestly.** Verifying a submission against its
-  claimed `edi_commit` means CI can build/install *that* commit, not just
-  current `HEAD` — a real, non-trivial cost per unique commit (and
-  `EDI/CLAUDE.md`'s own standing rule against full package rebuilds
-  applies to CI the same as anywhere else — this still needs to be a
-  deliberate, bounded build, not an unconstrained one triggered per PR).
-  The practical mitigation: only accept submissions against a small,
-  "blessed" set of commits (tagged releases, or periodic snapshots of
-  `main`) rather than arbitrary history, so CI needs a small number of
-  pre-built reference environments, not a fresh build per submission.
+- **This is a confirmed, currently-failing bug, not a hypothetical to
+  audit for (TODO-4) — checked directly, per a direct user question.**
+  `R/package_tests/testthat_bulk_quarantine/test-inference-suite-run-all-inference-seq-vs-parallel.R`
+  targets exactly this comparison for `InferenceSuite$run_all_inference()`
+  — and is quarantined (that directory's own README: "never run by GitHub
+  CI or the `.githooks/pre-push` hook") because it currently fails. Per
+  its header comments: CI run `33072346506` (2026-08-27) found "a real,
+  non-hanging pval mismatch between `num_cores = 1` and `num_cores = 2`,"
+  and a second check in the same file found "NA-count and 'status'
+  mismatches even with `EDI_TESTING_DISABLE_FORK_CLUSTER = 'true'`" —
+  meaning it is **not** just the already-tracked fork-deadlock hazard
+  (`parallel_fork_cluster_test_safety.md`), but a separate, deeper,
+  **not-yet-root-caused** divergence in the task-building/result-reassembly
+  logic itself. The actively-running `test-seed-determinism.R` gives no
+  cover here either — it exercises only `num_cores = 1L` throughout
+  (verified by direct inspection), so it cannot and does not catch this.
+  **Practical consequence for this plan, stated plainly: genuinely open,
+  parallel-friendly contribution is not safe to launch until this is
+  root-caused.** A contributor computing under `num_cores > 1` (the
+  whole point of contributing spare compute) could have their entirely
+  legitimate submission fail CI's serial-verification check for reasons
+  that have nothing to do with fraud — or worse, if verification isn't
+  careful, a wrong parallel-computed result could look "confirmed" against
+  an equally-wrong parallel re-check. The only currently-safe interim
+  posture: **require `num_cores = 1` for every accepted submission**
+  until this bug is fixed, accepting slower individual contributions as
+  the cost of a trustworthy dataset, rather than treating parallel
+  contribution as safe by assumption. And even once fixed, coverage
+  should extend past this one entry point — no dedicated seq-vs-parallel
+  test was found for individual `Inference*` classes' own bootstrap/
+  randomization/jackknife paths or for `SimulationFramework`'s internal
+  parallelism, and no cross-platform (same seed, same `num_cores`,
+  different OS) test was found at all, quarantined or active.
+- **Build cost — a CI-minutes/throughput question, not a `CLAUDE.md`
+  concern.** Verifying a submission against its claimed `edi_commit`
+  means CI can build/install *that* commit, not just current `HEAD` — a
+  real cost per unique commit, but on GitHub-hosted runners, not the
+  user's own machine — `EDI/CLAUDE.md`'s standing rule against full
+  rebuilds is specifically about not locking up the user's local
+  development machine (the file says so directly: the concern is a
+  second build racing the user's own tooling), and GitHub CI is exactly
+  the ephemeral, dedicated compute that rule was never written to
+  restrict; corrected after a direct user clarification rather than
+  assumed. The real, separate reason to still bound this: GitHub Actions
+  has finite per-job time limits and a monthly minutes budget regardless
+  of whose machine it is, so rebuilding from scratch per submission is
+  still wasteful throughput-wise, not a correctness or policy problem.
+  The practical mitigation is the same either way: accept submissions
+  against a small, "blessed" set of commits (tagged releases, or periodic
+  snapshots of `main`) rather than arbitrary history, so CI needs a small
+  number of pre-built (and cacheable) reference environments, not a fresh
+  build per submission — good CI hygiene, not a compliance requirement.
 
 **Coordination, reframed rather than engineered around.** The previous
 design treated two contributors computing the same cell as a race to
@@ -319,6 +431,18 @@ first.
   are combined into a tighter running estimate (smaller SE, not a
   duplicate or overwritten row) in the aggregated leaderboard view — the
   concrete form of §5's "redundancy is precision, not waste" reframing.
+- **Prefix-check validity**: a from-scratch, 100-replicate run at a given
+  seed is byte-identical (within §5's stated tolerance) to the first 100
+  replicates of a full-size run at the same seed — the specific claim
+  §5's cheap-verification design depends on, checked directly rather than
+  assumed from the general seed-determinism property.
+- **Spot-check budget honesty**: over a simulated population of
+  contributors including a modeled fraction of bad-faith ones, the
+  trust-tiered sampling rate (§5) both (a) keeps CI's total verification
+  compute to the intended small fraction of contributed compute, and (b)
+  catches sustained bad-faith submission with high probability — the two
+  competing goals §5's design has to satisfy simultaneously, verified
+  together rather than each in isolation.
 - **Ranking honesty**: a combination whose empirical type-I error exceeds
   nominal never appears ranked above a valid combination on power alone
   (assert directly on a fixture with a known-invalid combination injected).
@@ -342,23 +466,38 @@ first.
   example DuckDB `httpfs` query against a seeded fixture dataset, checked
   into the repo so the query test in "Tests" above has something concrete
   to run against.
-- [ ] TODO-4: **Cross-platform/cross-method RNG reproducibility audit**
-  (§5) — before anything else here matters: confirm every kernel the
-  scenario grid (TODO-2) actually exercises follows the
-  master-seed-plus-deterministic-substream discipline
-  `draw_binary_match_assignments_cpp` already demonstrates (§5's
-  citation), not just the one function checked this session; measure the
-  actual cross-platform floating-point tolerance needed (§5) rather than
-  guessing a number; confirm `num_cores = 1` genuinely sidesteps the
-  fork-vs-`mirai` backend divergence rather than assuming it does.
+- [ ] TODO-4: **Blocking prerequisite, not routine scoping work — root-cause
+  the confirmed `num_cores = 1` vs. `num_cores > 1` divergence in
+  `InferenceSuite$run_all_inference()`** (§5's citation:
+  `testthat_bulk_quarantine/test-inference-suite-run-all-inference-seq-vs-parallel.R`,
+  quarantined since 2026-08-27 for exactly this failure). This plan's
+  entire CI-verification integrity model (§5) assumes serial and parallel
+  execution agree; right now, for at least this one entry point, they
+  provably don't, for reasons distinct from the already-tracked
+  fork-deadlock hazard. Do not schedule TODO-5's contribution workflow
+  ahead of this — it would either reject good parallel submissions or
+  (worse) validate against an equally-broken parallel re-check. Once
+  fixed: extend coverage to the other kernels the scenario grid (TODO-2)
+  exercises (audit for the master-seed-plus-`splitmix64` discipline
+  `draw_binary_match_assignments_cpp` already demonstrates, §5's
+  citation — one compliant kernel found this session is not a package-wide
+  guarantee), measure the actual cross-platform floating-point tolerance
+  needed (§5) rather than guessing a number, and add the cross-platform
+  (same seed, same `num_cores`, different OS) test that was found not to
+  exist anywhere, quarantined or active. Interim posture until this
+  closes: accept only `num_cores = 1` submissions (§5).
 - [ ] TODO-5: **Contribution workflow** — the public GitHub Actions flow
   (§5): a template R script a contributor runs locally to produce a
-  submission file, the CI job that re-runs a contributor's claimed cells
-  at their stated `seed`/`edi_commit`/`r_version`/`os` (serial, within
-  TODO-4's tolerance) and rejects a mismatch, the blessed-commit-set
-  mechanism (§5) bounding how many reference builds CI ever needs, and
-  the merge/ingestion step that appends an accepted submission into the
-  partitioned dataset.
+  submission file plus a SHA-256 commitment hash of its full raw
+  per-replicate output; the CI job implementing the trust-tiered
+  prefix-check (§5) — a short, cheap from-scratch re-run at the submitted
+  `seed`/`edi_commit`/`r_version`/`os` (serial, within TODO-4's
+  tolerance), sampled at a high rate for new/low-trust contributors and a
+  small rate for established ones, plus anomaly-triggered checks — never
+  a full re-run of the whole submission; the blessed-commit-set mechanism
+  (§5) making each of those checks cheap via a cached build rather than
+  bounding how many submissions get checked; and the merge/ingestion step
+  that appends an accepted submission into the partitioned dataset.
 - [ ] TODO-6: **Dashboard** — the thin public leaderboard + priority-list
   page (§4/§5), fetching the public Parquet/CSV directly; Artifact vs.
   GitHub Pages is a real but low-stakes choice, unlike the earlier
