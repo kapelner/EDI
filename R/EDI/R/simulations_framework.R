@@ -2848,7 +2848,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
       private$.supports_inference_capability(inf_obj, "wald", "InferenceAsymp")
     },
     .supports_nonparam_bootstrap_inference = function(inf_obj) {
-      private$.supports_inference_capability(inf_obj, "nonparametric_bootstrap", "InferenceNonParamBootstrap")
+      private$.supports_inference_capability(inf_obj, "nonparametric_bootstrap")
     },
     .valid_inference_types = function(inf_obj) {
       valid_inference_types = character(0L)
@@ -3017,7 +3017,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         supports_inference_capability(inf_obj, "wald", "InferenceAsymp")
       }
       supports_nonparam_bootstrap_inference = function(inf_obj) {
-        supports_inference_capability(inf_obj, "nonparametric_bootstrap", "InferenceNonParamBootstrap")
+        supports_inference_capability(inf_obj, "nonparametric_bootstrap")
       }
       state_for_rep = function() {
         state$rep = current_rep_i

@@ -10,13 +10,21 @@
 > trusting any single section**: publication was first scoped as GitHub
 > Pages, then (user decision) revised to an Artifact-`db`-coordinated
 > design, then (user decision, genuinely open participation) revised again
-> to public Parquet/CSV in a public GitHub repo, queried directly — §4/§5
-> hold the current, superseding design; earlier revisions are kept
-> legible in each section's own heading rather than silently erased, per
-> this session's own established convention. **Release target: not
-> assigned** — unlike every other plan scoped this session, no release
-> placement was requested; TODO-1 records this as an open decision rather
-> than assuming one. (Global ordering: see `_master.md`.)
+> to public Parquet/CSV in a public GitHub repo, queried directly. §5's
+> verification mechanism went through its own sequence within that:
+> full re-run → a fixed 100-replicate prefix check (cheap, but gameable,
+> corrected) → CI-chosen random-index checking (correct, but exposed a
+> real cost tension against `SimulationFramework`'s actual RNG structure)
+> → the final posture, requiring `mirai`/fork execution rather than
+> serial, which turned out to solve the cost tension *and* be the only
+> resume-safe mode (a direct user question about interrupted contribution
+> surfaced this). §4/§5 hold the current, superseding design; earlier
+> revisions are kept legible in each section's own heading/prose rather
+> than silently erased, per this session's own established convention.
+> **Release target: not assigned** — unlike every other plan scoped this
+> session, no release placement was requested; TODO-1 records this as an
+> open decision rather than assuming one. (Global ordering: see
+> `_master.md`.)
 
 Written 2026-09-11 (user request: "a giant simulation to find the best
 designs x inference combinations for a variety of datasets for all
@@ -224,47 +232,83 @@ independent contributors corroborate each other for free:
   that's a statistical outlier against comparable cells or against that
   contributor's own history gets checked regardless of how established
   the contributor otherwise is.
-- **What actually makes frequent checking cheap: verify a deterministic
-  prefix, not the full replicate count — not exotic cryptography, just
-  the seed structure already in place.** Direct answer to "is there a
-  cryptographic trick for fast verification": the heavyweight tools for
-  this exist but don't fit — zero-knowledge proofs of arbitrary
-  computation (zk-SNARKs/zkVMs) are built for circuit-friendly,
-  fixed-point/integer computation, and proving BLAS-heavy floating-point
-  numerical code through one today would be a major, disproportionate
-  research effort, likely slower than just re-running it; Trusted
-  Execution Environments (hardware attestation, e.g. SGX/Nitro Enclaves)
-  are a real, lighter alternative but require contributors to run inside
-  specific attestable hardware/cloud instances — trading cheap
-  verification for a meaningfully higher participation bar, directly
-  against the "genuinely open, anyone" goal. Neither is proposed here.
-  What's actually available is simpler and already implied by
-  §5's/`draw_binary_match_assignments_cpp`'s own seed derivation
-  (`master_seed + splitmix64(replicate_index)`, cited above): replicate
-  `k` of a properly-seeded run depends only on the master seed and `k`
-  itself, **not** on how many total replicates were requested — so the
-  first, say, 100 replicates of a contributor's 10,000-replicate
-  submission are byte-identical to the first 100 replicates of a
-  from-scratch run with the same seed asking for only 100. CI verifies
-  that short prefix — orders of magnitude cheaper than the contributor's
-  full run — rather than the whole submission. A systematic bug or a
-  fabricated result overwhelmingly shows up in *any* prefix, since it
-  isn't a late-replicate-only phenomenon; a genuinely subtle,
-  replicate-index-dependent discrepancy that only appears past replicate
-  100 is the one failure mode this doesn't catch, which is exactly what
-  the trust-tier escalation and anomaly-triggered checks above are for —
-  belt and suspenders, not a single silver bullet.
+- **A fixed prefix is gameable — corrected after a direct, correct
+  challenge.** The original design here checked "the first 100
+  replicates," reasoning that replicate `k`'s seed
+  (`master_seed + splitmix64(k)`, §5's `draw_binary_match_assignments_cpp`
+  citation) doesn't depend on the total replicate count requested. That
+  math is real, but the *position* being fixed and predictable is exactly
+  the flaw: a contributor who knows only replicates 1–100 will ever be
+  checked can compute those honestly and fabricate or cut corners on the
+  remaining 9,900, and never get caught. The fix has to be CI choosing
+  **random replicate indices, using CI's own randomness, never derived
+  from anything the contributor submitted or could predict** — no
+  fixed-position check survives an adversarial contributor.
+- **The cost problem is already solved — for two of `SimulationFramework`'s
+  three execution paths — by a mechanism that already exists, verified by
+  reading `R/EDI/R/simulations_framework.R` directly rather than
+  assumed.** The **fork** path (line 1649) and the **mirai** path (line
+  1768) both derive `rep_seed = private$seed + replicate_index` and call
+  `set.seed(rep_seed)` **per replicate**, independently of every other
+  replicate — the exact index-independent property random-index checking
+  needs, already in production code, not a hypothetical refactor. CI can
+  recompute an arbitrary replicate #4,832 directly (`set.seed(private$seed
+  + 4832)`, run just that one), as cheaply as replicate #1. The **serial**
+  path (`num_cores = 1`, from line 1877) is the outlier: no per-replicate
+  `set.seed()` call exists anywhere in it — confirmed by searching the
+  whole file — so it relies on the single `set.seed(private$seed)` at the
+  top of `run()` and consumes R's RNG as one continuous stream across
+  every replicate in sequence. Only the serial path has the cheapness
+  problem; the parallel paths never did.
+- **This has a second, larger consequence: it overturns TODO-4's earlier
+  "accept only `num_cores = 1`" interim posture, per a direct user
+  question about interrupted-and-resumed contribution.**
+  `SimulationFramework`'s `continue_from_last_result_row` (the *default*)
+  skips already-completed `(replicate, cell)` work on a resumed run
+  without recomputing it. Under the fork/mirai per-replicate-independent
+  seeding, that's safe — a resumed run's remaining replicates use the
+  same stable `private$seed + index` they always would, so **start-stop-start
+  reproduces a straight-through run exactly.** Under the serial path's
+  single continuous stream, it is **not** safe — skipped replicates never
+  advance the stream the way computing them would have, so the remaining
+  replicates land at a different stream position after a resume than in
+  an uninterrupted run, and very likely produce different numbers. Serial
+  is exactly the mode that breaks under interruption, and real
+  contributors (laptop sleep, a killed process, deliberately working
+  across sessions) will hit this constantly — rejecting them for it would
+  be rejecting good-faith data over an artifact of which code path they
+  ran, not anything they did wrong. **Corrected recommendation: require
+  fork/mirai execution (`num_cores > 1`) for accepted submissions and for
+  CI's own verification re-run — not serial — precisely because it is
+  resume-safe by construction, with the added benefit of also being what
+  makes cheap random-index verification possible in the first place.**
+  The confirmed quarantined seq-vs-parallel divergence (TODO-4) means CI
+  must verify using the *same* execution-mode family a contributor used,
+  never cross-check serial against parallel or the reverse — that
+  divergence is a reason to pick one mode and stay on it consistently,
+  not a reason to default to the mode (serial) that turns out to be the
+  worse choice here.
 - **A cheap, complementary integrity primitive that genuinely is
-  cryptographic — tamper-evidence, not correctness-proof.** Have a
-  contributor submit a hash (e.g. SHA-256) of their *full* raw
-  per-replicate output alongside the aggregated row. This doesn't prove
-  the computation was done correctly — a wrong build produces a
-  perfectly well-formed, self-consistent hash of its own wrong numbers —
-  but it does mean the aggregated metrics in the public dataset provably
-  match what was actually computed at submission time, closing off a
-  different attack (editing the reported numbers after the fact without
-  redoing the run). Cheap to compute and to check; worth including
-  alongside the prefix-check, not instead of it.
+  cryptographic — tamper-evidence, not correctness-proof — made concrete
+  per direct user instruction.** A contributor's submission script
+  computes and includes `digest::digest(raw_replicate_output, algo =
+  "sha256")` — a SHA-256 hash over the *full* raw per-replicate output
+  (every `estimate`/`ci_lo`/`ci_hi`/`pval`/`true_estimand` value per
+  replicate, serialized in a fixed, documented order — not just the
+  aggregated row), stored as one more field on the submission alongside
+  `edi_commit`/`r_version`/`os`/`seed`. This doesn't prove the computation
+  was done correctly — a wrong build produces a perfectly well-formed,
+  self-consistent hash of its own wrong numbers, which is exactly why
+  it's a *complement* to the random-index check above, not a replacement
+  for it — but it does mean the aggregated metrics in the public dataset
+  provably match what was actually computed at submission time, closing
+  off a different attack: editing the reported numbers after the fact
+  without redoing the run. CI's check is a one-line re-hash-and-compare,
+  effectively free next to any re-simulation cost. Any third-party
+  auditor can independently re-verify the same hash later without needing
+  CI's own infrastructure, since the check is just "does this raw output,
+  if you have it, hash to what was published" — a small but genuine
+  transparency property beyond CI's own checking.
 - **Net effect**: CI's own compute stays a small fraction of total
   contributed compute — the actual point of distributing the work is
   preserved — while every submission still carries *some* chance of
@@ -289,21 +333,20 @@ rather than taken on faith:
   order. A `test-seed-determinism.R` suite already exists
   (`R/package_tests/testthat_bulk/`) — the integrity check should extend
   it, not invent a parallel testing story.
-- **The real, concrete risk this session's research surfaced:**
-  `SimulationFramework$run()` picks its parallelism backend **by OS** —
+- **`SimulationFramework$run()` picks its parallelism backend by OS** —
   `parallel::makeForkCluster()` on Unix only, the cross-platform `mirai`
-  package otherwise (`R/EDI/R/simulations_framework.R:833`). Two
-  structurally different execution paths producing the "same" seeded run
-  is exactly the kind of place cross-platform determinism could
-  plausibly break, and nothing found this session proves the two
-  backends assign identical seeds to identical logical replicates.
-  **Practical fix, not a research project:** CI's verification re-run
-  forces `num_cores = 1` (serial), which `SimulationFramework` already
-  supports as an ordinary parameter — sidesteps the fork-vs-`mirai`
-  question entirely for the one thing that actually needs to be exact,
-  rather than trying to prove both backends agree. A contributor's
-  *original* submission is free to use whatever parallelism they want for
-  speed; only CI's check needs to be serial.
+  package otherwise (`R/EDI/R/simulations_framework.R:833`) — but this is
+  a smaller risk than it first looked once the actual seed derivation was
+  read directly: **fork (line 1649) and mirai (line 1768) both compute
+  `rep_seed` from the identical formula, `private$seed +
+  replicate_index`** — the same code shape, just different loop-variable
+  names. The two backends *should* agree, by construction, not by luck —
+  still worth the direct cross-platform test already in "Tests" above
+  rather than taking on faith, but this is no longer the open question it
+  first appeared to be. **CI's own verification standardizes on `mirai`
+  specifically** (available on every OS CI runs on, unlike fork) for a
+  single consistent backend across CI's own multi-OS matrix; contributors
+  may use either fork or mirai on their own machines.
 - **Exact bit-equality is the wrong bar; this repo already knows that.**
   BLAS/compiler/SIMD differences across platforms and architectures can
   shift floating-point results in the last few bits even with identical
@@ -315,39 +358,34 @@ rather than taken on faith:
   the same discipline, not bit-for-bit — and pin `r_version` in the
   comparison, since R's own RNG algorithm defaults have changed across R
   versions historically.
-- **This is a confirmed, currently-failing bug, not a hypothetical to
-  audit for (TODO-4) — checked directly, per a direct user question.**
-  `R/package_tests/testthat_bulk_quarantine/test-inference-suite-run-all-inference-seq-vs-parallel.R`
-  targets exactly this comparison for `InferenceSuite$run_all_inference()`
-  — and is quarantined (that directory's own README: "never run by GitHub
-  CI or the `.githooks/pre-push` hook") because it currently fails. Per
-  its header comments: CI run `33072346506` (2026-08-27) found "a real,
-  non-hanging pval mismatch between `num_cores = 1` and `num_cores = 2`,"
-  and a second check in the same file found "NA-count and 'status'
-  mismatches even with `EDI_TESTING_DISABLE_FORK_CLUSTER = 'true'`" —
-  meaning it is **not** just the already-tracked fork-deadlock hazard
-  (`parallel_fork_cluster_test_safety.md`), but a separate, deeper,
-  **not-yet-root-caused** divergence in the task-building/result-reassembly
-  logic itself. The actively-running `test-seed-determinism.R` gives no
-  cover here either — it exercises only `num_cores = 1L` throughout
-  (verified by direct inspection), so it cannot and does not catch this.
-  **Practical consequence for this plan, stated plainly: genuinely open,
-  parallel-friendly contribution is not safe to launch until this is
-  root-caused.** A contributor computing under `num_cores > 1` (the
-  whole point of contributing spare compute) could have their entirely
-  legitimate submission fail CI's serial-verification check for reasons
-  that have nothing to do with fraud — or worse, if verification isn't
-  careful, a wrong parallel-computed result could look "confirmed" against
-  an equally-wrong parallel re-check. The only currently-safe interim
-  posture: **require `num_cores = 1` for every accepted submission**
-  until this bug is fixed, accepting slower individual contributions as
-  the cost of a trustworthy dataset, rather than treating parallel
-  contribution as safe by assumption. And even once fixed, coverage
-  should extend past this one entry point — no dedicated seq-vs-parallel
-  test was found for individual `Inference*` classes' own bootstrap/
-  randomization/jackknife paths or for `SimulationFramework`'s internal
-  parallelism, and no cross-platform (same seed, same `num_cores`,
-  different OS) test was found at all, quarantined or active.
+- **The one confirmed, currently-failing bug is about `num_cores = 1`
+  vs. `num_cores > 1`, not about fork vs. mirai — and this plan's
+  corrected posture (require fork/mirai, never serial, per the
+  start-stop-start finding above) sidesteps it rather than needing to fix
+  it first.** `R/package_tests/testthat_bulk_quarantine/test-inference-suite-run-all-inference-seq-vs-parallel.R`
+  targets exactly the serial-vs-parallel comparison for
+  `InferenceSuite$run_all_inference()` — and is quarantined (that
+  directory's own README: "never run by GitHub CI or the
+  `.githooks/pre-push` hook") because it currently fails. Per its header
+  comments: CI run `33072346506` (2026-08-27) found "a real, non-hanging
+  pval mismatch between `num_cores = 1` and `num_cores = 2`," and a
+  second check in the same file found "NA-count and 'status' mismatches
+  even with `EDI_TESTING_DISABLE_FORK_CLUSTER = 'true'`" — meaning it is
+  **not** just the already-tracked fork-deadlock hazard
+  (`parallel_fork_cluster_test_safety.md`), but a separate, deeper
+  divergence, for which TODO-4 now has a concrete hypothesis (the serial
+  path's missing per-replicate reseeding, found this session). The
+  actively-running `test-seed-determinism.R` gives no cover here either —
+  it exercises only `num_cores = 1L` throughout (verified by direct
+  inspection). Since this plan never asks serial and parallel to agree
+  with each other (fork/mirai only, consistently), this bug does not
+  block contribution launching — it remains real and worth fixing on its
+  own merits (TODO-4), just no longer load-bearing for this plan's
+  integrity model. Coverage should still extend past this one entry
+  point once picked up — no dedicated seq-vs-parallel test was found for
+  individual `Inference*` classes' own bootstrap/randomization/jackknife
+  paths, and no cross-platform (same seed, same `num_cores`, different
+  OS) test was found at all, quarantined or active.
 - **Build cost — a CI-minutes/throughput question, not a `CLAUDE.md`
   concern.** Verifying a submission against its claimed `edi_commit`
   means CI can build/install *that* commit, not just current `HEAD` — a
@@ -415,12 +453,16 @@ first.
   rejections from, say, floating-point/platform nondeterminism that isn't
   actually a fabrication) and (b) rejects a deliberately falsified
   fixture — tested in both directions, not just "the happy path works."
-- **Cross-platform reproducibility, extending `test-seed-determinism.R`**:
-  the same `(design, inference, scenario, seed)` cell, run serially
-  (`num_cores = 1`) on at least Linux, macOS, and Windows, agrees within
-  the stated numerical tolerance (§5) — the concrete check behind §5's
-  claim, run before, not discovered after, the first external
-  contribution is accepted.
+- **Cross-platform reproducibility, extending `test-seed-determinism.R`
+  (which currently only exercises `num_cores = 1L`, not the mode this
+  plan actually requires)**: the same `(design, inference, scenario,
+  seed)` cell, run under `mirai` (CI's own standardized backend, §5) on
+  at least Linux, macOS, and Windows, agrees within the stated numerical
+  tolerance — the concrete check behind §5's "fork and mirai should agree
+  by construction" claim, run before, not discovered after, the first
+  external contribution is accepted. A fork-vs-mirai agreement check on
+  a single OS (where both are available) is a useful companion, not a
+  substitute for the cross-OS check.
 - **Query correctness**: a DuckDB `httpfs` query filtered on
   `response_type`/`design_class`/`inference_class`/`inference_type`
   against the published partitioned Parquet returns exactly the rows a
@@ -431,11 +473,24 @@ first.
   are combined into a tighter running estimate (smaller SE, not a
   duplicate or overwritten row) in the aggregated leaderboard view — the
   concrete form of §5's "redundancy is precision, not waste" reframing.
-- **Prefix-check validity**: a from-scratch, 100-replicate run at a given
-  seed is byte-identical (within §5's stated tolerance) to the first 100
-  replicates of a full-size run at the same seed — the specific claim
-  §5's cheap-verification design depends on, checked directly rather than
+- **Random-index check validity**: a CI-chosen random replicate index,
+  recomputed via fork/mirai's existing `private$seed + replicate_index`
+  derivation, matches that same index in the contributor's full
+  submission (within §5's stated tolerance) — the specific claim §5's
+  cheap-verification design depends on, checked directly rather than
   assumed from the general seed-determinism property.
+- **Check-index unpredictability**: the distribution CI draws random
+  replicate indices from is not derivable by a contributor from anything
+  in their own submission (the seed, the commit, or any other field) —
+  the actual property that makes the random-index check resistant to the
+  fixed-prefix gaming this design was originally vulnerable to.
+- **Start-stop-start reproducibility, fork/mirai specifically**: an
+  interrupted-and-resumed run (`continue_from_last_result_row = TRUE`,
+  the default) produces results identical to an uninterrupted run under
+  fork/mirai execution, across at least a few different interruption
+  points — the concrete check behind §5's "resume-safe by construction"
+  claim, and the reason TODO-4 requires fork/mirai rather than serial for
+  accepted submissions.
 - **Spot-check budget honesty**: over a simulated population of
   contributors including a modeled fraction of bad-faith ones, the
   trust-tiered sampling rate (§5) both (a) keeps CI's total verification
@@ -466,38 +521,65 @@ first.
   example DuckDB `httpfs` query against a seeded fixture dataset, checked
   into the repo so the query test in "Tests" above has something concrete
   to run against.
-- [ ] TODO-4: **Blocking prerequisite, not routine scoping work — root-cause
-  the confirmed `num_cores = 1` vs. `num_cores > 1` divergence in
-  `InferenceSuite$run_all_inference()`** (§5's citation:
+- [ ] TODO-4: **Root-cause the confirmed `num_cores = 1` vs.
+  `num_cores > 1` divergence in `InferenceSuite$run_all_inference()`**
+  (§5's citation:
   `testthat_bulk_quarantine/test-inference-suite-run-all-inference-seq-vs-parallel.R`,
-  quarantined since 2026-08-27 for exactly this failure). This plan's
-  entire CI-verification integrity model (§5) assumes serial and parallel
-  execution agree; right now, for at least this one entry point, they
-  provably don't, for reasons distinct from the already-tracked
-  fork-deadlock hazard. Do not schedule TODO-5's contribution workflow
-  ahead of this — it would either reject good parallel submissions or
-  (worse) validate against an equally-broken parallel re-check. Once
-  fixed: extend coverage to the other kernels the scenario grid (TODO-2)
-  exercises (audit for the master-seed-plus-`splitmix64` discipline
-  `draw_binary_match_assignments_cpp` already demonstrates, §5's
-  citation — one compliant kernel found this session is not a package-wide
-  guarantee), measure the actual cross-platform floating-point tolerance
-  needed (§5) rather than guessing a number, and add the cross-platform
-  (same seed, same `num_cores`, different OS) test that was found not to
-  exist anywhere, quarantined or active. Interim posture until this
-  closes: accept only `num_cores = 1` submissions (§5).
+  quarantined since 2026-08-27 for exactly this failure). **No longer
+  strictly blocking for this plan** — §5's corrected posture (always
+  fork/mirai, never serial, never cross-check between modes) sidesteps
+  the need for serial and parallel to agree before contribution can
+  launch — but still a real, confirmed bug worth fixing on its own
+  merits, and a concrete lead is now on record for whoever picks it up:
+  this session's research into §5 found the serial path
+  (`R/EDI/R/simulations_framework.R`, from line 1877) has no
+  per-replicate `set.seed()` at all and consumes R's RNG as one
+  continuous stream, while the fork/mirai paths explicitly `set.seed`
+  a `private$seed + replicate_index`-derived seed per replicate — two
+  structurally different RNG schemes for the same nominal seed, which is
+  exactly the shape of bug that would produce a real, non-hanging
+  mismatch between `num_cores = 1` and `num_cores > 1`. A hypothesis to
+  investigate, not a confirmed diagnosis — the quarantined test's second,
+  more severe failure (NA-count/status mismatches even with real forking
+  disabled) may have an additional or different cause. Once fixed: extend
+  coverage to the other kernels the scenario grid (TODO-2)
+  exercises (audit for the `private$seed + replicate_index` discipline
+  the fork/mirai paths already demonstrate, §5's citation — confirmed for
+  those two execution paths this session, not yet audited past
+  `simulations_framework.R` itself into every kernel a cell might call),
+  measure the actual cross-platform floating-point tolerance needed (§5)
+  rather than guessing a number, and add the cross-platform (same seed,
+  same `num_cores`, different OS) test that was found not to exist
+  anywhere, quarantined or active. **Interim posture until this closes,
+  corrected after a direct user question about interrupted/resumed
+  contribution: require fork/mirai execution (`num_cores > 1`) for
+  accepted submissions and CI's own verification, not serial** — serial
+  is resume-unsafe (§5: no per-replicate reseeding, confirmed by reading
+  the code) and would reject good-faith contributors who paused and
+  resumed, which is exactly the outcome to avoid; fork/mirai's
+  per-replicate independent seeding is both resume-safe and what makes
+  cheap random-index verification possible, so there is no longer a
+  tradeoff between the two properties this TODO originally worried about
+  needing to choose between.
 - [ ] TODO-5: **Contribution workflow** — the public GitHub Actions flow
   (§5): a template R script a contributor runs locally to produce a
-  submission file plus a SHA-256 commitment hash of its full raw
-  per-replicate output; the CI job implementing the trust-tiered
-  prefix-check (§5) — a short, cheap from-scratch re-run at the submitted
-  `seed`/`edi_commit`/`r_version`/`os` (serial, within TODO-4's
-  tolerance), sampled at a high rate for new/low-trust contributors and a
-  small rate for established ones, plus anomaly-triggered checks — never
-  a full re-run of the whole submission; the blessed-commit-set mechanism
-  (§5) making each of those checks cheap via a cached build rather than
-  bounding how many submissions get checked; and the merge/ingestion step
-  that appends an accepted submission into the partitioned dataset.
+  submission file plus a SHA-256 commitment hash
+  (`digest::digest(raw_replicate_output, algo = "sha256")`, §5) of its
+  full raw per-replicate output in a fixed, documented serialization
+  order; the CI job implementing the trust-tiered **random-index** check
+  (§5, not a fixed prefix — cheap because fork/mirai's existing
+  `private$seed + replicate_index` derivation makes any single replicate
+  independently recomputable) at the submitted
+  `seed`/`edi_commit`/`r_version`/`os`, **same execution-mode family
+  (fork/mirai) the contributor used — never serial**, within TODO-4's
+  tolerance, with CI drawing the check indices from its own randomness,
+  never derivable from the submission; sampled at a high rate for
+  new/low-trust contributors and a small rate for established ones, plus
+  anomaly-triggered checks — never a full re-run of the whole submission;
+  the blessed-commit-set mechanism (§5) making each of those checks cheap
+  via a cached build rather than bounding how many submissions get
+  checked; and the merge/ingestion step that appends an accepted
+  submission into the partitioned dataset.
 - [ ] TODO-6: **Dashboard** — the thin public leaderboard + priority-list
   page (§4/§5), fetching the public Parquet/CSV directly; Artifact vs.
   GitHub Pages is a real but low-stakes choice, unlike the earlier

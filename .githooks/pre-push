@@ -128,7 +128,7 @@ echo
 # fetches live data from a Gist, kept fresh by .github/workflows/loc-badge.yml
 # running server-side on every push to main. README.md itself never changes,
 # so there's nothing for this hook to regenerate or warn about anymore. See
-# scripts/generate_loc_badge_data.py for the generator this replaced
+# scripts/generate_loc_badge_data.sh for the generator this replaced
 # scripts/update_readme_cloc.sh with.
 
 if [ "$roxygen_touched" = "1" ]; then

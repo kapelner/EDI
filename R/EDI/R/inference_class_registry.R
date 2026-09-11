@@ -1460,9 +1460,53 @@ get_effective_components = function(name) {
 	components
 }
 
-get_effective_capabilities = function(name) {
+# Design restrictions apply to instances, never to the class-only cache: an
+# estimator can still provide these methods for a fixed design. Descendants of
+# the named design ancestor inherit the restriction, including external classes.
+EDI_INFERENCE_DESIGN_EXCLUDED_CAPABILITIES = list(
+	DesignSeqOneByOne = "nonparametric_bootstrap"
+)
+
+get_design_excluded_inference_capabilities = function(des_obj) {
+	ancestors = intersect(class(des_obj), names(EDI_INFERENCE_DESIGN_EXCLUDED_CAPABILITIES))
+	unique(as.character(unlist(EDI_INFERENCE_DESIGN_EXCLUDED_CAPABILITIES[ancestors], use.names = FALSE)))
+}
+
+apply_inference_design_restrictions = function(self, des_obj) {
+	excluded = get_design_excluded_inference_capabilities(des_obj)
+	if (!length(excluded)) return(invisible(NULL))
+	methods = public_methods_required_for_capabilities(excluded)
+	if ("nonparametric_bootstrap" %in% excluded) {
+		# Additional public entry points and aliases of the same capability.
+		methods = c(methods,
+			"approximate_m_out_of_n_bootstrap_distribution_beta_hat_T",
+			"select_optimal_m_out_of_n_bootstrap",
+			"approximate_subsampling_distribution_beta_hat_T",
+			"select_optimal_b_subsampling", "compute_subsampling_sensitivity",
+			"compute_bootstrap_confidence_interval_generic",
+			"compute_bootstrap_confidence_interval_basic",
+			"compute_bootstrap_confidence_interval_bca")
+	}
+	for (method_name in intersect(methods, names(self))) {
+		original = self[[method_name]]
+		if (!is.function(original)) next
+		unsupported = function(...) stop("This method is not supported for DesignSeqOneByOne designs.", call. = FALSE)
+		formals(unsupported) = formals(original)
+		# R6 locks method bindings before initialize(). Preserve that lock, as
+		# the lazy-component installer does. A plain (non-lazy) stub is retained
+		# when another component later installs shared bootstrap infrastructure.
+		was_locked = bindingIsLocked(method_name, self)
+		if (was_locked) unlockBinding(method_name, self)
+		self[[method_name]] = unsupported
+		if (was_locked) lockBinding(method_name, self)
+	}
+	invisible(NULL)
+}
+
+get_effective_capabilities = function(name, des_obj = NULL) {
 	if (exists(name, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE, inherits = FALSE)) {
-		return(get(name, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE, inherits = FALSE))
+		capabilities = get(name, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE, inherits = FALSE)
+		return(setdiff(capabilities, get_design_excluded_inference_capabilities(des_obj)))
 	}
 	metadata = get_inference_class_metadata(name)
 	component_capabilities = as.character(unlist(lapply(get_effective_components(name), function(component_name) {
@@ -1473,7 +1517,7 @@ get_effective_capabilities = function(name) {
 		metadata$excluded_capabilities %||% character()
 	)
 	assign(name, capabilities, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE)
-	capabilities
+	setdiff(capabilities, get_design_excluded_inference_capabilities(des_obj))
 }
 
 inference_class_ancestor_names = function(name, registry = inference_class_registry_as_list()) {

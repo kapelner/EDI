@@ -3,7 +3,12 @@
 #' Abstract class for bootstrap-based inference.
 #'
 #' @section Design-specific validity caveats for the nonparametric bootstrap:
-#' The nonparametric bootstrap resamples experimental units with replacement from their
+#' Nonparametric bootstrap methods are not supported for any\cr
+#' \code{DesignSeqOneByOne} design or its subclasses. This includes m-out-of-n
+#' bootstrap and subsampling methods registered under the same capability.
+#' Calling these methods reports that the method is not supported.
+#'
+#' For supported designs, the nonparametric bootstrap resamples experimental units with replacement from their
 #' empirical distribution, carrying each unit's realized \code{(x, w, y)} into the
 #' replicate, and recomputes the estimator. Its validity rests on the resampled units
 #' being (approximately) iid draws from the design's unit-level superpopulation. Since
@@ -12,35 +17,21 @@
 #' which the design's dependence is replicated differ by design. In all cases below the
 #' inference is asymptotic, never finite-sample exact (for exact finite-sample inference
 #' under the design's actual randomization mechanism, use the randomization tests and
-#' randomization confidence intervals instead). Where a balance constraint of the design
-#' is broken by resampling, the bootstrap variance is inflated relative to the design's
-#' true sampling variance, so tests and intervals err \emph{conservative}
-#' (over-coverage), not anti-conservative.
+#' randomization confidence intervals where their assumptions hold). Calibration
+#' depends on the design and estimator; omitted dependence does not in general
+#' guarantee conservative inference.
 #'
 #' \describe{
-#'   \item{\code{DesignFixedBernoulli}, \code{DesignSeqOneByOneBernoulli}}{Assignments
+#'   \item{\code{DesignFixedBernoulli}}{Assignments
 #'     are iid coin flips independent of \eqn{X}, so rows genuinely are iid and
 #'     row-level resampling is fully justified. No caveat.}
-#'   \item{\code{DesignFixediBCRD}, \code{DesignSeqOneByOneiBCRD}}{Assignment depends
+#'   \item{\code{DesignFixediBCRD}}{Assignment depends
 #'     only on the treatment counts (completely randomized / without-replacement urn),
 #'     inducing negative correlation among the \eqn{w_i} through the fixed-margin
 #'     constraint. Row-level iid resampling does not replicate this constraint:
 #'     replicates have a random number of treated subjects. The extra variability is
 #'     \eqn{O(1/n)}, so the bootstrap is conservative by an asymptotically negligible
 #'     amount.}
-#'   \item{\code{DesignSeqOneByOneEfron}, \code{DesignSeqOneByOneUrn}}{Assignment
-#'     depends on the running treatment imbalance (not on \eqn{X}), inducing serial
-#'     negative dependence among the \eqn{w_i}. Row-level resampling ignores this
-#'     dependence; as with fixed margins the effect on smooth estimators is
-#'     \eqn{O(1/n)}, so the bootstrap is conservative by a negligible amount.}
-#'   \item{\code{DesignSeqOneByOneRandomBlockSize} (no strata)}{Permuted-block balance
-#'     over entry order is broken by row-level resampling. Conservative, minor: only
-#'     the counts constraint is lost since the design does not use \eqn{X}.}
-#'   \item{\code{DesignSeqOneByOneRandomBlockSize} (with strata),
-#'     \code{DesignSeqOneByOneSPBR}}{Resampling is within-strata, preserving stratum
-#'     sizes and the stratum-covariate composition. The within-block time-order balance
-#'     inside each stratum is still broken, so replicates have random within-stratum
-#'     treatment counts. Conservative, minor.}
 #'   \item{\code{DesignFixedBlocking}}{Resampling is within-strata by default
 #'     (\code{bootstrap_type = "within_blocks"}), preserving stratum sizes; the exact
 #'     within-stratum treatment/control split is not enforced in replicates, so the
@@ -63,16 +54,6 @@
 #'     matching both levels of the design's dependence (stratum and cluster). Sound,
 #'     with the same small-sample caution: few clusters per stratum means few
 #'     resampling atoms per stratum, and asymptotics are in the number of clusters.}
-#'   \item{\code{DesignSeqOneByOnePocockSimon}}{Minimization makes each assignment a
-#'     near-deterministic function of the running stratum-count imbalances. Row-level
-#'     iid resampling does not replicate this balance-forcing, so the bootstrap
-#'     variance corresponds to iid assignment rather than the (smaller)
-#'     minimization-design variance (cf. Bugni, Canay & Shah 2018). Conservative, with
-#'     the largest expected over-coverage among the sequential designs.}
-#'   \item{\code{DesignSeqOneByOneAtkinson}}{The biased-coin \eqn{D_A}-optimal rule
-#'     makes \eqn{w_i} depend on the full covariate and assignment history, and
-#'     conditional assignment probabilities differ from 1/2. Row-level resampling does
-#'     not replicate the covariate balance the rule enforces. Conservative, moderate.}
 #'   \item{\code{DesignFixedGreedyDOptimal},
 #'     \code{DesignFixedGreedy}, \code{DesignFixedRerandomization}}{The observed
 #'     \eqn{w} vector is one draw from a tightly constrained (optimized or
@@ -98,20 +79,9 @@
 #'     grows the pairing depends on the sample only through the empirical distribution
 #'     of \eqn{X} and between-pair dependence vanishes --- and the bootstrap conditions
 #'     on the realized match structure.}
-#'   \item{\code{DesignSeqOneByOneKK14}}{Matched pairs and reservoir subjects are
-#'     resampled separately as intact units, preserving within-pair anticorrelation
-#'     and the reservoir's Bernoulli assignments. Same asymptotic caveats as the fixed
-#'     matched designs, plus the split between number of pairs and reservoir size is
-#'     treated as fixed rather than random. Sound asymptotically.}
-#'   \item{\code{DesignSeqOneByOneKK21}, \code{DesignSeqOneByOneKK21stepwise}}{All
-#'     \code{DesignSeqOneByOneKK14} caveats apply, plus the matching weights are
-#'     estimated from earlier \emph{responses}, so \eqn{W} depends on \eqn{y} as well
-#'     as \eqn{X}. The bootstrap conditions on the realized response-adaptive weights
-#'     and match structure rather than replicating their sampling variability; this
-#'     extra conditioning is not quantified, and validity remains asymptotic.}
 #'   \item{\code{DesignFixedFactorial}}{Row-level resampling does not replicate the
 #'     balanced allocation across factor combinations. Conservative, minor.}
-#'   \item{\code{DesignFixedCustom}, \code{DesignCustomSequential}}{Warning: iid
+#'   \item{\code{DesignFixedCustom}}{Warning: iid
 #'     row-level resampling is used because the package has no knowledge of the
 #'     user-supplied assignment mechanism. If that mechanism balances on covariates,
 #'     the bootstrap is likely conservative; if it induces clustering or other

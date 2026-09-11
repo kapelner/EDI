@@ -3,8 +3,8 @@ name: loc-badge
 # Keeps README's "lines of code" badge live without ever touching README.md
 # itself: on every push to main this regenerates cloc data and publishes it
 # to a Gist (not this repo), which the badge fetches live via shields.io's
-# endpoint-badge type -- see scripts/generate_loc_badge_data.py,
-# scripts/publish_loc_badge_gist.py, and README.md's badge row for the
+# endpoint-badge type -- see scripts/generate_loc_badge_data.sh,
+# scripts/publish_loc_badge_gist.sh, and README.md's badge row for the
 # consuming side.
 #
 # Deliberately NOT using GitHub Pages: this repo's Pages slot is already the
@@ -13,6 +13,11 @@ name: loc-badge
 # deploy here would race and periodically clobber it. No R install and no
 # C++ compile happens in this job (just cloc, a static line counter), so
 # this is safe to run on every push rather than needing path filters.
+#
+# The two generator/publish scripts are bash + jq, not Python, deliberately:
+# build-wheels.yml's push trigger matches "**/*.py" anywhere in the repo, so
+# a .py file here would make this unrelated README-badge workflow spuriously
+# trigger that workflow's full 3-OS wheel build too.
 
 on:
   push:
@@ -41,10 +46,10 @@ jobs:
 
       - name: Generate lines-of-code badge data
         run: |
-          python3 scripts/generate_loc_badge_data.py \
-            "$RUNNER_TEMP/loc-badge.json" "$RUNNER_TEMP/loc.html"
+          bash scripts/generate_loc_badge_data.sh \
+            "$RUNNER_TEMP/loc-badge.json" "$RUNNER_TEMP/loc.md"
 
       - name: Publish to gist
         run: |
-          python3 scripts/publish_loc_badge_gist.py \
-            "$RUNNER_TEMP/loc-badge.json" "$RUNNER_TEMP/loc.html"
+          bash scripts/publish_loc_badge_gist.sh \
+            "$RUNNER_TEMP/loc-badge.json" "$RUNNER_TEMP/loc.md"

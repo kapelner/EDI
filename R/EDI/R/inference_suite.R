@@ -470,7 +470,7 @@ run_all_inference_probe_supported_types = function(nm, des_obj, params, sentinel
 	accessor = accessors[[side]]
 	priority = if (side == "ci") EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY else EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY
 	entry = Find(function(e) identical(e$label, sentinel), priority)
-	if (is.null(entry) || !(entry$capability %in% get_effective_capabilities(nm))) return(character())
+	if (is.null(entry) || !(entry$capability %in% get_effective_capabilities(nm, des_obj))) return(character())
 	tryCatch({
 		cls = get(nm, envir = getNamespace("EDI"))
 		inf_obj = do.call(cls$new, c(list(des_obj = des_obj), params))
@@ -545,8 +545,8 @@ run_all_inference_normalize_methods = function(methods) {
 #'
 #' @keywords internal
 #' @noRd
-inference_class_has_method = function(nm, m) {
-	caps = get_effective_capabilities(nm)
+inference_class_has_method = function(nm, m, des_obj = NULL) {
+	caps = get_effective_capabilities(nm, des_obj)
 	entry_ci = Find(function(e) identical(e$label, m), EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY)
 	entry_pval = Find(function(e) identical(e$label, m), EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY)
 	(!is.null(entry_ci) && entry_ci$capability %in% caps) ||
@@ -717,7 +717,7 @@ run_all_inference_class_applicable_methods = function(nm, methods, des_obj = NUL
 	if ("jackknife" %in% methods && inference_class_jackknife_always_nonestimable(nm)) {
 		methods = setdiff(methods, "jackknife")
 	}
-	Filter(function(m) inference_class_has_method(nm, m), methods)
+	Filter(function(m) inference_class_has_method(nm, m, des_obj), methods)
 }
 
 #' Whether one planned InferenceSuite task is listed in the public

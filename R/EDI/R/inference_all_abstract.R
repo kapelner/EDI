@@ -87,6 +87,7 @@ Inference = R6::R6Class("Inference",
 				)
 			}
 			private$des_obj = des_obj
+			apply_inference_design_restrictions(self, des_obj)
 			private$des_obj_priv_int = des_obj$.__enclos_env__$private
 			private$y = if (private$has_general_censoring) des_obj$get_y() else des_obj$get_effective_time()
 			private$y_temp = private$y
@@ -164,7 +165,7 @@ Inference = R6::R6Class("Inference",
 			# registered generator instead of failing closed on the unregistered leaf.
 			for (class_name in class(self)) {
 				if (exists(class_name, envir = EDI_INFERENCE_CLASS_REGISTRY, inherits = FALSE)) {
-					return(get_effective_capabilities(class_name))
+					return(get_effective_capabilities(class_name, private$des_obj))
 				}
 			}
 			character()
