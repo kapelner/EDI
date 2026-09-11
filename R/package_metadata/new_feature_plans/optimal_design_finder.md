@@ -6,20 +6,23 @@
 > `discover_applicable_inference_classes()`
 > (`R/EDI/R/inference_suite.R:136`) and `applicable_inference_class_names_for_design()`
 > (`R/EDI/R/design_abstract.R:624`) for scenario-grid validity — reused,
-> never hand-maintained. Publishing and coordination depend on the
-> Artifact platform's `db` and `assets` capabilities (runtime contract
-> 0.2.45 at time of writing — re-verify at implementation time) — §4/§5
-> ground every claim against the authoritative `db.d.ts` type definitions
-> read this session, not a remembered API shape. **Release target: not
+> never hand-maintained. **Revision history matters here — read before
+> trusting any single section**: publication was first scoped as GitHub
+> Pages, then (user decision) revised to an Artifact-`db`-coordinated
+> design, then (user decision, genuinely open participation) revised again
+> to public Parquet/CSV in a public GitHub repo, queried directly — §4/§5
+> hold the current, superseding design; earlier revisions are kept
+> legible in each section's own heading rather than silently erased, per
+> this session's own established convention. **Release target: not
 > assigned** — unlike every other plan scoped this session, no release
 > placement was requested; TODO-1 records this as an open decision rather
 > than assuming one. (Global ordering: see `_master.md`.)
 
 Written 2026-09-11 (user request: "a giant simulation to find the best
 designs x inference combinations for a variety of datasets for all
-response types," running continuously with results auto-published via an
-Artifact page, coordinating multiple computers' runs through that same
-artifact).
+response types," running continuously with results auto-published,
+**genuinely open participation**, queryable by anyone by dataset type,
+response type, inference model type, and inference action type).
 
 ## Scope
 
@@ -108,157 +111,167 @@ severity taxonomy both resist collapsing multiple valid signals into one
 blended verdict. A leaderboard row here does the same: full information,
 reader weighs the trade-off.
 
-## 4. Architecture — publishing via an Artifact page (corrected after a direct challenge to the first draft's reasoning)
+## 4. Architecture — a genuinely public, queryable dataset (second revision: Artifact `db` ruled out, not merely adjusted)
 
-**Publication mechanism: settled — an Artifact page**, per direct user
-decision. Grounded against the authoritative `db.d.ts` runtime contract
-(0.2.45, read this session) rather than a remembered shape.
+**Why the Artifact `db` design is abandoned here, not patched.** `db.d.ts`
+states plainly: "a declaring artifact is organization-internal and cannot
+be shared publicly, so every reader and writer is a signed-in member of
+the owner's organization." That is not a configuration choice to work
+around — it is what the capability *is*. Once the actual goal is
+genuinely open participation and public queryability (this session's
+clarification), no amount of schema redesign fixes an access boundary;
+the mechanism itself has to change. §4/§5 of the prior revision (the
+`db`-backed task/batch schema, the compaction job) are superseded, not
+extended, by what follows.
 
-**What the constraint actually is (corrected — the first pass of this
-section conflated two different platform limits and over-reacted to the
-wrong one):**
+**The mechanism: public, columnar data files in a public GitHub repo,
+queried directly — no server, no API, no login.**
 
-- **Per-document size (256 KiB) is not the binding constraint, and one
-  result row does not need to be big.** A single row — design class,
-  dataset/scenario id, inference class, and a dozen-ish numeric fields
-  (power, empirical size + its test-vs-nominal p-value, coverage + its
-  p-value, MSE, CI length, compute time) — serializes to roughly 250–400
-  bytes of JSON. Nowhere near the size cap.
-- **Document *count* (5,000 total per artifact) is the binding
-  constraint, and it is indifferent to how small each document is.** One
-  document per raw row would exhaust it once the grid gets large — the
-  fix is packing many rows as a JSON array inside fewer documents, not
-  making any individual row bigger.
-- **The actual headroom, worked out rather than assumed:** at ~300
-  bytes/row, one 256 KiB document holds on the order of 800 rows before
-  approaching the cap. Grouping rows by `(design_class, inference_class)`
-  pair needs one document-group per pair actually run — even a genuinely
-  large grid (say 200 pairs × 500 dataset/scenario rows each = 100,000
-  total rows) needs only ~125 documents at 800 rows/document, nowhere
-  near 5,000. The count cap only becomes a real concern past roughly
-  4,000,000 total accumulated rows — far beyond what this plan's grid
-  plausibly reaches from a one-time run. It reappears as a *long-run*
-  concern for a system meant to run indefinitely (§ below), which is a
-  different problem than "does today's grid fit," and is handled
-  differently.
-
-**A real gotcha this schema has to design around:** `db.d.ts` states
-plainly that `update()`'s merge is recursive for nested *objects* but
-"anything else (arrays included) replaces that field wholesale." A shared
-document with a `rows: [...]` array that multiple workers `update()`
-concurrently is **not** an append — each writer's update replaces the
-whole array with whatever it read-then-appended-to, and "last-writer-wins,
-no transactions" means two workers finishing near-simultaneously can
-silently clobber each other's rows. The fix is **workers never share a
-mutable array field**: each finished batch of rows becomes its own new,
-small document, never an update to an existing one.
-
-**Data model, matching the row shape directly (nested one level deeper
-than "one document per row," not restructured):**
-
-```
-db.collection("results/" + design_class + "__" + inference_class + "/batches")
-  .add({
-    rows: [ {dataset, response_type, power, size, size_pval,
-              coverage, coverage_pval, mse, ci_length, time_sec}, ... ],
-    worker_id, finished_at
-  })
-```
-
-`.add()` mints a fresh id per call — no two workers' batches can collide,
-no read-modify-write, no array-replace race. A small, separate
-`results_index/<design>__<inference_class>` document (or a query over the
-`batches` subcollection) tracks progress for the leaderboard to read. The
-published page's leaderboard renders by querying/aggregating across a
-pair's `batches` subcollection — compact per query (`limit`, `where`) even
-though the underlying history keeps growing.
-
-**Long-run compaction, since "continuous" means unbounded time, not just
-one large grid.** Even with ~125 documents for one pass over a 100,000-row
-grid, a system meant to run indefinitely keeps producing new batch
-documents forever — that *does* eventually approach 5,000, just on a time
-axis instead of a grid-size axis. The fix is the same idea one level up:
-periodically (e.g. weekly) consolidate many old, small batch documents
-for a pair into one larger compacted document (still comfortably under
-256 KiB given how small each row is), and delete the now-redundant
-originals. Flagged as a real TODO-4 item, not fully specified here —
-exactly how "periodically" gets triggered depends on TODO-1's worker
-execution model.
-
-**`assets` — a convenience export, not load-bearing.** Given the
-arithmetic above, `db` alone comfortably holds the full raw-results
-history; `assets.upload()` of a full CSV snapshot is offered only as an
-easy "download everything" link for offline analysis, not because
-anything requires it to fit.
+- Results are committed as **Parquet** (preferred — columnar, compresses
+  well, and every mainstream query tool reads it directly over HTTPS) or
+  CSV, **partitioned by `response_type` and `design_class`** (e.g.
+  `results/response_type=survival/design_class=DesignFixedBernoulli/*.parquet`)
+  so a query touching one slice doesn't have to scan everything.
+- **Row shape is exactly what was proposed two turns ago, extended with
+  provenance fields the open-contribution model now requires** (the
+  original metric/key columns were always right — only the storage layer
+  under them changed, and one thing was missing: the row didn't yet say
+  *which version of EDI* produced it, load-bearing once results come from
+  outside contributors on their own checkouts, added per direct user
+  decision): `response_type`, `design_class`, `inference_class`,
+  **`inference_type`** (the specific computation path/action within a
+  class — `ci_method`/`pval_method`, e.g. `"rand"`, `"boot"`, `"asymp"` —
+  already a tracked column in `SimulationFramework`'s own output, per §1;
+  this is the literal answer to "inference action type"), the
+  dataset/scenario-generating parameters (`n`, `p`, effect size, ...), the
+  §3 metrics (`power`, `size`, `size_pval`, `coverage`, `coverage_pval`,
+  `mse`, `ci_length`, `time_sec`), and **provenance**: `edi_commit` (full
+  git SHA, not just the `DESCRIPTION` version string, since two commits
+  can share a version number between releases), `r_version`, `os`, and
+  the `seed` used. `edi_commit` is also directly useful for querying, not
+  just integrity — it lets a query pin to one commit ("what does the
+  *current* code actually achieve") or group by commit over time ("has
+  this class's power changed across releases"), which the flat metric
+  columns alone couldn't answer.
+- **Anyone can query it with zero setup**, which is the literal ask:
+  DuckDB's `httpfs` extension (or `pandas.read_parquet`, or R's `arrow`
+  package) reads a Parquet file straight off a `raw.githubusercontent.com`
+  URL —
+  `SELECT * FROM read_parquet('https://raw.githubusercontent.com/.../results/**/*.parquet')
+  WHERE response_type = 'survival' AND inference_class = 'InferenceSurvivalCoxPHRegr'`
+  — no API key, no rate limit beyond GitHub's own CDN, no account.
+  Partitioning by `response_type`/`design_class` in the path means a
+  filtered query like that one only fetches the matching files, not the
+  whole dataset.
+- **A thin, optional dashboard** (an Artifact page, or a GitHub Pages
+  page — either works equally well here since neither needs a privileged
+  capability) can render a summary leaderboard by fetching the same
+  public Parquet/CSV directly (plain `fetch()`, or a WASM query engine
+  running client-side) — genuinely public because the *data* is public,
+  not because of anything the page itself grants. This is a presentation
+  layer over the real store, not the store.
 
 **Reused, not rebuilt:** `SimulationFramework` still does the actual
 fitting-many-replicates work (§1) — this architecture only changes where
 its output *lands*, not how it's computed.
 
-## 5. Compute: multiple machines, coordinated through the same artifact
+## 5. Contribution: genuinely open, with integrity checked rather than assumed
 
-Per direct user decision: the actual simulation compute is **distributed
-across multiple computers**, coordinated by reading and writing the same
-published artifact's `db` — not a single scheduled runner as the earlier
-draft proposed. This has a real, non-obvious platform boundary worth
-stating precisely rather than glossing over:
+**Mechanism: a public GitHub Actions workflow anyone can trigger from
+their own fork** — `workflow_dispatch`, or a PR-based flow (contributor
+opens a PR adding their result file; CI validates it; a maintainer or a
+bot merges) — the standard, well-understood open-source pattern for
+accepting external contributions, and unlike the `db`-worker design, it
+needs **no Claude Code session and no agent in the loop** for a
+contributor to participate: clone, run the R script, submit. This is a
+meaningfully lower participation bar than the previous design, which is
+the right direction for "genuinely open."
 
-**The strong lease primitive (`DocumentReference.acquire()`) is
-client-side-JS-only.** `db.d.ts` documents `acquire({holder, ttlMs,
-data})` as the correct single-writer/no-double-claim primitive — but it
-is a method on the namespace a *published page's own runtime JS* obtains
-via `await claude.use("db")`. The mechanism available to **me** (a Claude
-Code session, acting as a worker, calling the `Artifact` tool's
-`read_db`/`write_db` actions from *outside* the page) is a simpler
-get/list/query/set/update/delete/batch surface — it does **not** expose
-`acquire`. This means:
+**Integrity, since "anyone can write" is a real risk this design must
+answer, not one the org-gated version had to face.** A contributor's
+submitted numbers must be checked before they join a public benchmark
+dataset people will query and trust. The mitigation is that
+`SimulationFramework` results are **deterministic given a seed** — CI
+independently re-runs a contributor's claimed `(design, inference,
+response_type, inference_type, scenario)` cell, or a random subsample of
+a large submission, at the submitted `seed`/`edi_commit`/`r_version`/`os`
+and rejects the PR on mismatch. This is the actual gate, not merely a
+format check — but per direct user instruction, "deterministic given a
+seed" needs to actually hold **across every method and every operating
+system**, not just be assumed, so it was checked against the real code
+rather than taken on faith:
 
-- **Job-claiming across worker machines is best-effort, not race-free.**
-  Terminology note to avoid confusion with §4's results-storage
-  "batches" subcollection: the unit a worker claims here is called a
-  **task** (a `(design_class, inference_class)` pair, or a handful of
-  dataset/scenario cells within one) — claiming and finishing a task is
-  what produces one new results *batch* document in §4's schema. A worker
-  reads the task-coordination documents (`read_db` `query`/`get`), picks
-  an unclaimed or stale-claimed task, and writes a claim (`write_db`
-  `update`, its own worker id + timestamp). Two workers racing on the same
-  instant can both believe they claimed it — `db.d.ts` itself warns "a
-  bare get-then-set races and both callers believe they won," and that
-  warning applies exactly here since `acquire` isn't available on this
-  path.
-- **This is an acceptable trade-off for this use case, stated honestly
-  rather than hidden:** the cost of an occasional double-claim is a
-  *little* wasted redundant compute (two workers independently re-derive
-  the same task's results, each producing its own harmless extra results
-  batch) — not a correctness bug. Mitigate, don't chase a strong
-  guarantee: claim coarse tasks (fewer claim operations → fewer race
-  windows than claiming individual cells would), add a small
-  random jitter before a worker's claim attempt, and treat a stale claim
-  (past some age threshold with no progress update) as re-claimable so a
-  crashed worker doesn't permanently orphan a task.
-- If a future version of this plan wants the stronger guarantee, the only
-  documented path is moving the claim step *into the published page's own
-  runtime JS* (so it runs with `acquire` available) and having each
-  worker call that page rather than the `db` store directly — a
-  meaningfully different, heavier architecture not scoped here.
+- **The good news, with a concrete citation.** At least one C++ kernel
+  (`draw_binary_match_assignments_cpp`,
+  `R/EDI/src/binary_match_search.cpp:33`) already does exactly the right
+  thing for parallel reproducibility: it draws one master seed serially
+  from R's own RNG (`Rcpp::RNGScope` + `R::unif_rand()`, properly
+  bracketed), then derives each parallel replicate's substream
+  deterministically as `splitmix64_seed(master_seed + j)` — never calling
+  R's (thread-unsafe) RNG concurrently inside the OpenMP loop. This is
+  the textbook-correct pattern, and its derivation is pure arithmetic on
+  the replicate index, not dependent on thread scheduling or completion
+  order. A `test-seed-determinism.R` suite already exists
+  (`R/package_tests/testthat_bulk/`) — the integrity check should extend
+  it, not invent a parallel testing story.
+- **The real, concrete risk this session's research surfaced:**
+  `SimulationFramework$run()` picks its parallelism backend **by OS** —
+  `parallel::makeForkCluster()` on Unix only, the cross-platform `mirai`
+  package otherwise (`R/EDI/R/simulations_framework.R:833`). Two
+  structurally different execution paths producing the "same" seeded run
+  is exactly the kind of place cross-platform determinism could
+  plausibly break, and nothing found this session proves the two
+  backends assign identical seeds to identical logical replicates.
+  **Practical fix, not a research project:** CI's verification re-run
+  forces `num_cores = 1` (serial), which `SimulationFramework` already
+  supports as an ordinary parameter — sidesteps the fork-vs-`mirai`
+  question entirely for the one thing that actually needs to be exact,
+  rather than trying to prove both backends agree. A contributor's
+  *original* submission is free to use whatever parallelism they want for
+  speed; only CI's check needs to be serial.
+- **Exact bit-equality is the wrong bar; this repo already knows that.**
+  BLAS/compiler/SIMD differences across platforms and architectures can
+  shift floating-point results in the last few bits even with identical
+  RNG draws — `performance_profiling_and_upgrades.md`'s own standing
+  constraint already concedes this for at least one kernel family
+  ("libmvec, ≤4 ulp result differences... ships opt-in or as a documented
+  default change with re-justified equivalence tolerances"). The
+  integrity check should compare **within a stated numerical tolerance**,
+  the same discipline, not bit-for-bit — and pin `r_version` in the
+  comparison, since R's own RNG algorithm defaults have changed across R
+  versions historically.
+- **Genuinely open, not yet verified: an audit, not an assumption
+  (TODO-4).** One kernel following the master-seed/`splitmix64` pattern
+  correctly doesn't mean every kernel the benchmark's scenario grid
+  actually exercises does. This needs a real audit before the first
+  external contribution is accepted, not an inference from one example.
+- **Build cost, stated honestly.** Verifying a submission against its
+  claimed `edi_commit` means CI can build/install *that* commit, not just
+  current `HEAD` — a real, non-trivial cost per unique commit (and
+  `EDI/CLAUDE.md`'s own standing rule against full package rebuilds
+  applies to CI the same as anywhere else — this still needs to be a
+  deliberate, bounded build, not an unconstrained one triggered per PR).
+  The practical mitigation: only accept submissions against a small,
+  "blessed" set of commits (tagged releases, or periodic snapshots of
+  `main`) rather than arbitrary history, so CI needs a small number of
+  pre-built reference environments, not a fresh build per submission.
 
-**What "a computer" actually is in this design.** Calling the `Artifact`
-tool's `read_db`/`write_db` is something *I* (a Claude Code session) do —
-there is no public API a bare `Rscript` cron job can call directly
-without an agent in the loop. So each participating machine's realistic
-setup is: a plain `R`/`SimulationFramework` process does the actual
-compute locally (this can run as a normal cron/scheduled job, no agent
-needed for the compute itself), and a **separate, much less frequent**
-Claude Code invocation (interactive, or headless via the CLI's
-non-interactive mode) does the sync step — claim a task, hand its
-parameters to the local R process, and once finished, write results back
-and update the leaderboard. Batching the "talk to Claude" step (once per
-finished task, not once per scenario cell) keeps this cheap relative to
-running an agent continuously. **This execution model — who schedules the
-sync step on each machine, and how often — is a real open decision
-(TODO-1)**, not committed here; a GitHub Actions runner could also be one
-of the participating "computers" under this same model, alongside the
-user's own machines, if that's wanted.
+**Coordination, reframed rather than engineered around.** The previous
+design treated two contributors computing the same cell as a race to
+avoid ("wasted redundant compute"). That framing was specific to a
+private worker pool paying its own compute cost for no additional
+statistical benefit. Under genuinely open contribution, it's the wrong
+frame: **more independent replicates of the same cell is strictly more
+Monte Carlo precision, not waste** — the aggregation step (whatever
+periodically rebuilds the leaderboard from the accumulated Parquet files)
+should *pool* same-cell submissions into a running estimate rather than
+treat a second submission as redundant. No atomic claim is needed at all;
+what's actually useful is a **visible priority list** (rendered on the
+dashboard, computed from the current public dataset: which
+response-type/design/inference/scenario cells have the fewest
+accumulated replicates so far) so contributors' effort concentrates where
+it adds the most value, without anyone needing to "claim" anything
+first.
 
 ## Non-goals
 
@@ -280,25 +293,32 @@ user's own machines, if that's wanted.
 
 ## Tests / validation
 
-- **Discovery correctness**: every scheduled scenario cell is a
-  structurally valid `(design, inference, response_type)` combination per
-  the existing discovery functions (§1) — never a hand-maintained list
-  that can drift from the actual registries.
-- **Double-claim tolerance**: inject a simulated race (two workers
-  claiming the same task near-simultaneously) and confirm the outcome is
-  two harmless extra results-batch documents (§4) for that task, never
-  corrupted or silently overwritten data — the honest consequence of §5's
-  best-effort claiming, verified rather than assumed.
-- **Document-cap discipline, both axes**: (a) at a simulated large-grid
-  one-time run (§2), the `results/*/batches` document count stays far
-  under the 5,000-per-artifact cap per §4's worked arithmetic — a
-  regression guard against a future change reverting to
-  one-document-per-row; (b) simulating months of continuous accumulation
-  confirms the §4 compaction step actually keeps long-run document count
-  bounded, not just today's grid size.
-- **Report determinism**: the same accumulated `db` state always
-  regenerates a byte-identical leaderboard render — no run-to-run
-  cosmetic drift from something like unstable row ordering.
+- **Discovery correctness**: every scenario cell anyone can contribute
+  results for is a structurally valid `(design, inference, response_type)`
+  combination per the existing discovery functions (§1) — the PR-validation
+  CI rejects a submission naming an inapplicable combination, never a
+  hand-maintained list that can drift from the actual registries.
+- **Reproducibility-gate correctness**: CI's seed-based re-run (§5) both
+  (a) accepts a genuine, correctly-computed submission (no false
+  rejections from, say, floating-point/platform nondeterminism that isn't
+  actually a fabrication) and (b) rejects a deliberately falsified
+  fixture — tested in both directions, not just "the happy path works."
+- **Cross-platform reproducibility, extending `test-seed-determinism.R`**:
+  the same `(design, inference, scenario, seed)` cell, run serially
+  (`num_cores = 1`) on at least Linux, macOS, and Windows, agrees within
+  the stated numerical tolerance (§5) — the concrete check behind §5's
+  claim, run before, not discovered after, the first external
+  contribution is accepted.
+- **Query correctness**: a DuckDB `httpfs` query filtered on
+  `response_type`/`design_class`/`inference_class`/`inference_type`
+  against the published partitioned Parquet returns exactly the rows a
+  direct read of the source files would — the literal capability the
+  dataset exists to offer, verified rather than assumed to follow from
+  "the files are public."
+- **Pooling correctness**: two independent submissions for the same cell
+  are combined into a tighter running estimate (smaller SE, not a
+  duplicate or overwritten row) in the aggregated leaderboard view — the
+  concrete form of §5's "redundancy is precision, not waste" reframing.
 - **Ranking honesty**: a combination whose empirical type-I error exceeds
   nominal never appears ranked above a valid combination on power alone
   (assert directly on a fixture with a known-invalid combination injected).
@@ -306,36 +326,47 @@ user's own machines, if that's wanted.
 ## TODOs
 
 - [ ] TODO-1: **Decision gate** (ask the user, no code) — release
-  placement (genuinely open, unlike every other plan this session);
-  **worker execution model** (§5's open question: who schedules the
-  sync-to-artifact step on each participating machine, and how often —
-  cron-launched headless Claude Code CLI invocations, manual periodic
-  runs, a GitHub Actions runner as one more worker, or a mix); the task
-  granularity for §2's scenario-cell grouping (per §4's arithmetic, coarse
-  enough to keep claim-race windows small without needing to be coarse
-  for document-count reasons — that constraint turned out much looser
-  than first assumed); real-dataset scope (v1 synthetic-only, per
-  Non-goals, confirmed or overridden).
+  placement (genuinely open, unlike every other plan this session); the
+  repo home for the public results data (a `benchmarks/` directory in
+  `EDI` itself, an orphan branch, or a dedicated sibling repo — affects
+  clone size and CI scope for the main package repo); Parquet vs. CSV;
+  PR-based vs. `workflow_dispatch`-based contribution flow; real-dataset
+  scope (v1 synthetic-only, per Non-goals, confirmed or overridden).
 - [ ] TODO-2: **Scenario-grid definition** — the parameter ranges per
   response type/axis, and the applicability-discovery wiring from §1 that
-  generates valid cells rather than a hand-written list; grouped into
-  TODO-1's chosen task granularity.
-- [ ] TODO-3: **Publish the artifact** — declare `capabilities: {db: {},
-  assets: {}}`; the task-coordination collection schema, the
-  `results/<design>__<inference_class>/batches` results-storage schema,
-  and the compaction job from §4; the page's own client-side rendering of
-  the leaderboard from `db` (querying/aggregating across each pair's
-  `batches` subcollection).
-- [ ] TODO-4: **Worker sync script** — the claim/compute/report cycle
-  described in §5 (`read_db` query for an unclaimed or stale task,
-  best-effort `write_db` claim with jitter, hand the task's parameters to
-  a local `SimulationFramework` run, `write_db` `.add()` a new results
-  batch per §4 — never `update()` a shared rows array) — one script, run
-  identically on every participating machine regardless of TODO-1's
-  scheduling choice.
-- [ ] TODO-5: **Double-claim and cap-discipline tests** per the Tests
-  section above, before the first real multi-machine run.
-- [ ] TODO-6: **Documentation** — what the leaderboard means, how to read
-  a row, how to add a new worker machine, and an explicit caveat that it
+  generates valid cells rather than a hand-written list — the set of
+  cells the priority list (§5) and the contribution CI's validity check
+  (§5) both need.
+- [ ] TODO-3: **Public dataset schema + partitioning** — the row shape
+  and `response_type`/`design_class` partitioning from §4; a worked
+  example DuckDB `httpfs` query against a seeded fixture dataset, checked
+  into the repo so the query test in "Tests" above has something concrete
+  to run against.
+- [ ] TODO-4: **Cross-platform/cross-method RNG reproducibility audit**
+  (§5) — before anything else here matters: confirm every kernel the
+  scenario grid (TODO-2) actually exercises follows the
+  master-seed-plus-deterministic-substream discipline
+  `draw_binary_match_assignments_cpp` already demonstrates (§5's
+  citation), not just the one function checked this session; measure the
+  actual cross-platform floating-point tolerance needed (§5) rather than
+  guessing a number; confirm `num_cores = 1` genuinely sidesteps the
+  fork-vs-`mirai` backend divergence rather than assuming it does.
+- [ ] TODO-5: **Contribution workflow** — the public GitHub Actions flow
+  (§5): a template R script a contributor runs locally to produce a
+  submission file, the CI job that re-runs a contributor's claimed cells
+  at their stated `seed`/`edi_commit`/`r_version`/`os` (serial, within
+  TODO-4's tolerance) and rejects a mismatch, the blessed-commit-set
+  mechanism (§5) bounding how many reference builds CI ever needs, and
+  the merge/ingestion step that appends an accepted submission into the
+  partitioned dataset.
+- [ ] TODO-6: **Dashboard** — the thin public leaderboard + priority-list
+  page (§4/§5), fetching the public Parquet/CSV directly; Artifact vs.
+  GitHub Pages is a real but low-stakes choice, unlike the earlier
+  Artifact-`db` decision which turned out not to be a choice at all.
+- [ ] TODO-7: **Integrity and query tests** per the Tests section above,
+  before accepting the first real external contribution.
+- [ ] TODO-8: **Documentation** — how to contribute a run, how to query
+  the dataset (the DuckDB one-liner is the whole onboarding story — lead
+  with it), what the leaderboard means, and an explicit caveat that it
   reports empirical performance on synthetic scenarios, not a guarantee
   for any specific real dataset.

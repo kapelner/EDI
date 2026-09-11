@@ -88,6 +88,20 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 					)
 				}
 			}
+			# Populate s_beta_hat_T as a side effect when variance is wanted,
+			# same contract every peer class follows (e.g.
+			# InferenceAllSimpleAverageDiff$compute_estimate()) -- callers
+			# like infer_original_se() (inference_all_abstract_non_param_
+			# boot.R) duplicate this object and call compute_estimate(
+			# estimate_only = FALSE) expecting s_beta_hat_T to come out
+			# populated for the studentized/symmetric-percentile-t bootstrap
+			# CI pivot. Without this, that SE was always NA for this class,
+			# even though compute_s_beta_hat_T() itself works fine (it's
+			# used correctly by compute_asymp_confidence_interval()/
+			# compute_asymp_two_sided_pval() below).
+			if (!estimate_only && is.null(private$cached_values$s_beta_hat_T)) {
+				private$compute_s_beta_hat_T()
+			}
 			private$cached_values$beta_hat_T
 		},
 		#' @description Recomputes the class-specific treatment estimate for a bootstrap sample; see

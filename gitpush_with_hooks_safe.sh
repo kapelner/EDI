@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Safe wrapper around `git push`: pre-regenerates and commits every
 # generated file the pre-push hook (.githooks/pre-push) itself knows how to
-# auto-fix (README.md's cloc table, the package_tests/ drift CSVs) BEFORE
-# invoking the real `git push`, instead of letting the hook discover the
-# drift mid-push.
+# auto-fix (the package_tests/ drift CSVs) BEFORE invoking the real
+# `git push`, instead of letting the hook discover the drift mid-push.
+# (README.md's lines-of-code badge used to be handled here too, but it's now
+# a static badge fed by a Gist that .github/workflows/loc-badge.yml updates
+# server-side -- README.md itself never needs a commit for it anymore.)
 #
 # Why this exists rather than making the hook self-heal-and-continue: a
 # pre-push hook cannot include a commit it creates in the SAME push
@@ -26,20 +28,6 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$repo_root"
 
-echo "gitpush_with_hooks_safe: regenerating README.md lines-of-code table ..."
-if bash scripts/update_readme_cloc.sh; then
-	if ! git diff --exit-code -- README.md >/dev/null 2>&1; then
-		echo "gitpush_with_hooks_safe: README.md was stale -- committing the refreshed table ..."
-		git add README.md
-		git commit -m "updated README with new lines of code counts"
-	else
-		echo "gitpush_with_hooks_safe: README.md already up to date."
-	fi
-else
-	echo "gitpush_with_hooks_safe: scripts/update_readme_cloc.sh failed -- leaving README.md as-is (same as the hook's own cloc-not-installed fallback)." >&2
-fi
-
-echo
 echo "gitpush_with_hooks_safe: regenerating package_tests/ drift CSVs (this runs the full generator suite -- can take a few minutes) ..."
 
 # Generator sequence + artifact list come from R/package_tests/drift_artifacts.sh,

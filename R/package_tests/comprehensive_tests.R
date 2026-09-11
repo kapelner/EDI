@@ -265,24 +265,88 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# brt_ci_all/brt_ci_smoothed/brt_ci_typed categories exactly (see
 	# comprehensive_slow_paths.R) so path_audits_source.R's
 	# derive_additional_slow_methods() can reuse that file's already-built
-	# method-name mapping for them unchanged. Populated 2026-09-11 from the
-	# Nrep=3 BRT timing sweep (boston dataset, FixediBCRD design, 60s
-	# timeout, skip-repeat-after-timeout): entries below are means well
-	# over the 60s ceiling (several 95-120s), not marginal calls.
+	# method-name mapping for them unchanged. First batch populated
+	# 2026-09-11 from the main-CSV production-run audit: entries below are
+	# means well over the 60s ceiling (several 95-120s), not marginal
+	# calls. Second batch (see below each list) populated the same day from
+	# a dedicated Nrep=3 BRT-only sweep (boston dataset, FixediBCRD design,
+	# 60s hard timeout, skip-repeat-after-timeout) covering every class
+	# across all 6 response types -- these are CONFIRMED 60s-timeout hits,
+	# not just "slow": each entry's own function_run genuinely never
+	# completed within the timeout in the sweep, not a mean-duration
+	# estimate from partially-completed data. Note ADDITIONAL_TEST_SLOW_
+	# PATHS/EDI_COMPREHENSIVE_SLOW_PATHS have no formula axis in their
+	# class-only categories, so a class already gated for one formula via
+	# "bootstrap"/"rand" (e.g. InferenceSurvivalDepCensTransformRegr's
+	# existing bootstrap||~. entry, InferenceContinRobustRegr's official
+	# bootstrap-category membership) never even attempted BRT CI in the
+	# sweep for that formula -- checked against both registries before
+	# adding below to avoid redundant entries.
 	brt_pval_smoothed = c(
 		"InferenceOrdinalPartialProportionalOddsRegr||~1",
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
 		"InferenceSurvivalWeibullRegr||~.",
-		"InferenceSurvivalKKWeibullMarginal||~."
+		"InferenceSurvivalKKWeibullMarginal||~.",
+		# BRT sweep, 2026-09-11 (confirmed 60s-timeout hits):
+		"InferenceContinRobustRegr||~.",
+		"InferenceIncidRiskDiff||~."
 	),
 	brt_pval_typed = c(
 		"InferenceCountKKGLMM||~1",
 		"InferenceCountKKGLMM||~.",
-		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~."
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
+		# BRT sweep, 2026-09-11 (confirmed 60s-timeout hits):
+		"InferenceContinOLS||~.",
+		"InferenceAllSimpleAverageDiff||~.",
+		"InferenceAllSimpleMeanDiffPooledVar||~.",
+		"InferenceContinLin||~.",
+		"InferenceAllSimpleAverageDiff||~1",
+		"InferenceIncidWald||~1",
+		"InferenceIncidRiskDiff||~.",
+		"InferenceIncidWald||~.",
+		"InferenceSurvivalRestrictedMeanDiff||~1",
+		"InferenceSurvivalRestrictedMeanDiff||~.",
+		"InferenceAllSimpleMeanDiffPooledVar||~1"
 	),
-	brt_ci_all = character(),
-	brt_ci_smoothed = c("InferenceCountKKHurdlePoissonOneLik||~1"),
-	brt_ci_typed = c("InferenceCountKKHurdlePoissonOneLik||~1"),
+	# BRT sweep, 2026-09-11 (confirmed 60s-timeout hits): unlike the other
+	# BRT categories, this one had zero entries before the sweep -- these
+	# 6 classes are where the base (untyped) compute_rand_bootstrap_
+	# confidence_interval call itself timed out, which has no individual
+	# skip lever (only the whole block does, via skip_brt_ci) -- so gating
+	# here also disables that class/formula's typed/smoothed BRT CI, even
+	# where the sweep found those individually fast (an accepted, over-
+	# broad trade-off, same as this category's own doc comment already
+	# describes for other classes).
+	brt_ci_all = c(
+		"InferenceSurvivalLogRank||~1",
+		"InferenceSurvivalRestrictedMeanDiff||~1",
+		"InferenceSurvivalKMDiff||~1",
+		"InferenceSurvivalLogRank||~.",
+		"InferenceSurvivalRestrictedMeanDiff||~.",
+		"InferenceSurvivalKMDiff||~."
+	),
+	brt_ci_smoothed = c(
+		"InferenceCountKKHurdlePoissonOneLik||~1",
+		# BRT sweep, 2026-09-11 (confirmed 60s-timeout hits):
+		"InferenceContinOLS||~.",
+		"InferenceAllSimpleAverageDiff||~.",
+		"InferenceAllSimpleMeanDiffPooledVar||~.",
+		"InferenceContinOLS||~1",
+		"InferenceSurvivalDepCensTransformRegr||~1",
+		"InferenceAllSimpleMeanDiffPooledVar||~1",
+		"InferenceCountNegBin||~1"
+	),
+	brt_ci_typed = c(
+		"InferenceCountKKHurdlePoissonOneLik||~1",
+		# BRT sweep, 2026-09-11 (confirmed 60s-timeout hits):
+		"InferenceContinOLS||~.",
+		"InferenceAllSimpleAverageDiff||~.",
+		"InferenceAllSimpleMeanDiffPooledVar||~.",
+		"InferenceContinLin||~.",
+		"InferenceContinOLS||~1",
+		"InferenceAllSimpleAverageDiff||~1",
+		"InferenceAllSimpleMeanDiffPooledVar||~1"
+	),
 	# Whole-pval-block gate: the base (non-typed, non-smoothed)
 	# compute_rand_bootstrap_two_sided_pval/(delta=0.5) calls have no
 	# per-variant skip lever of their own -- unlike CI, where brt_ci_all
@@ -290,15 +354,37 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# equivalent until this key was added 2026-09-10 (removed alongside
 	# RUN_BRT/always_run_brt). No official EDI_COMPREHENSIVE_SLOW_PATHS
 	# category of this name exists; purely additional-registry-driven.
-	# Populated 2026-09-11 from the same BRT timing sweep as above:
-	# WeibullFrailtyNormalOneLik||~. is slow on both the base and
-	# delta=0.5 pval (~75s mean each); IncidKKCondLogitGLMMOneLik||~.'s
-	# base pval itself is fast (~3s) but its delta=0.5 variant is not
-	# (45.7s mean, n=2) -- this category has no per-variant lever, so the
-	# whole class/formula is gated with it.
+	# First batch (main-CSV audit): WeibullFrailtyNormalOneLik||~. is slow
+	# on both the base and delta=0.5 pval (~75s mean each);
+	# IncidKKCondLogitGLMMOneLik||~.'s base pval itself is fast (~3s) but
+	# its delta=0.5 variant is not (45.7s mean, n=2) -- this category has
+	# no per-variant lever, so the whole class/formula is gated with it.
+	# Second batch (BRT sweep, 2026-09-11, confirmed 60s-timeout hits):
+	# base and/or delta=0.5 pval genuinely never completed within 60s.
 	brt_pval = c(
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
-		"InferenceIncidKKCondLogitGLMMOneLik||~."
+		"InferenceIncidKKCondLogitGLMMOneLik||~.",
+		"InferenceContinOLS||~.",
+		"InferenceAllSimpleAverageDiff||~.",
+		"InferenceAllSimpleMeanDiffPooledVar||~.",
+		"InferenceContinRobustRegr||~1",
+		"InferenceContinRobustRegr||~.",
+		"InferenceContinOLS||~1",
+		"InferenceAllSimpleAverageDiff||~1",
+		"InferenceIncidWald||~1",
+		"InferenceIncidRiskDiff||~.",
+		"InferenceIncidWald||~.",
+		"InferenceSurvivalLogRank||~1",
+		"InferenceSurvivalRestrictedMeanDiff||~1",
+		"InferenceSurvivalKMDiff||~1",
+		"InferenceSurvivalCoxPHRegr||~1",
+		"InferenceSurvivalCoxPHRegr||~.",
+		"InferenceSurvivalLogRank||~.",
+		"InferenceSurvivalRestrictedMeanDiff||~.",
+		"InferenceSurvivalKMDiff||~.",
+		"InferenceOrdinalRidit||~1",
+		"InferenceOrdinalRidit||~.",
+		"InferenceAllSimpleMeanDiffPooledVar||~1"
 	),
 	# Gates the plain randomization confidence interval -- consumed via
 	# is_any_inference_class(); also combined at the call site with a

@@ -123,35 +123,13 @@ fi
 
 echo
 
-# README.md's lines-of-code table is no longer regenerated/auto-committed
-# HERE -- a commit this hook makes can never be part of the push already in
-# flight (git resolves the commit(s) to push before invoking pre-push), so
-# auto-fixing here only ever produced a guaranteed-useless first push
-# ("push again") every single time the table had drifted. Regenerate it
-# BEFORE pushing instead: ./gitpush_with_hooks_safe.sh (repo root) runs
-# scripts/update_readme_cloc.sh -- and the package_tests/ CSV drift-check
-# loop below -- ahead of the real `git push`, so any fix commit is already
-# part of history by the time git resolves what to send. This step now only
-# warns if the table is stale, so a plain `git push` still tells you to run
-# the safe wrapper instead of silently shipping a stale table.
-echo "pre-push: checking README.md lines-of-code table (not auto-fixing -- see ./gitpush_with_hooks_safe.sh) ..."
-if bash scripts/update_readme_cloc.sh; then
-	if ! git diff --exit-code -- README.md >/dev/null 2>&1; then
-		# Left as an uncommitted diff rather than reverted: a `git checkout --
-		# README.md` here would silently discard it if it happened to carry
-		# unrelated uncommitted edits the user hadn't gotten to yet. The
-		# regenerated table is correct either way -- committing it (via the
-		# wrapper script below, or by hand) is all that's left to do.
-		echo "pre-push: README.md lines-of-code table was stale -- regenerated in place, left uncommitted (diff above)." >&2
-		echo "pre-push: run ./gitpush_with_hooks_safe.sh (repo root) instead of a plain 'git push' -- it regenerates and commits this (and the package_tests/ drift CSVs) BEFORE pushing, so the fix is actually included instead of needing a second push." >&2
-		abort_push
-	fi
-else
-	echo "pre-push: scripts/update_readme_cloc.sh FAILED." >&2
-	abort_push
-fi
-
-echo
+# README.md's lines-of-code badge is no longer generated/checked here at
+# all -- it's a static badge (see README.md's "Lines of Code" section) that
+# fetches live data from a Gist, kept fresh by .github/workflows/loc-badge.yml
+# running server-side on every push to main. README.md itself never changes,
+# so there's nothing for this hook to regenerate or warn about anymore. See
+# scripts/generate_loc_badge_data.py for the generator this replaced
+# scripts/update_readme_cloc.sh with.
 
 if [ "$roxygen_touched" = "1" ]; then
 	# Run before fast_roxygenize.R: catches a citation-map drift (a renamed/
