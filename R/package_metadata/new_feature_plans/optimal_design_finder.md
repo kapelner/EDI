@@ -18,7 +18,10 @@
 > → the final posture, requiring `mirai`/fork execution rather than
 > serial, which turned out to solve the cost tension *and* be the only
 > resume-safe mode (a direct user question about interrupted contribution
-> surfaced this). §4/§5 hold the current, superseding design; earlier
+> surfaced this) → TODO-4's fork/mirai-avoidance itself reframed as
+> interim once a direct user proposal identified the actual fix (give
+> serial the same per-replicate reseeding fork/mirai already use, not a
+> result-chained seed). §4/§5 hold the current, superseding design; earlier
 > revisions are kept legible in each section's own heading/prose rather
 > than silently erased, per this session's own established convention.
 > **Release target: not assigned** — unlike every other plan scoped this
@@ -522,27 +525,38 @@ first.
   into the repo so the query test in "Tests" above has something concrete
   to run against.
 - [ ] TODO-4: **Root-cause the confirmed `num_cores = 1` vs.
-  `num_cores > 1` divergence in `InferenceSuite$run_all_inference()`**
-  (§5's citation:
+  `num_cores > 1` divergence in `InferenceSuite$run_all_inference()`, with
+  a concrete, recommended fix now on record, not just a hypothesis** (§5's
+  citation:
   `testthat_bulk_quarantine/test-inference-suite-run-all-inference-seq-vs-parallel.R`,
   quarantined since 2026-08-27 for exactly this failure). **No longer
-  strictly blocking for this plan** — §5's corrected posture (always
-  fork/mirai, never serial, never cross-check between modes) sidesteps
+  strictly blocking for this plan's launch** — §5's interim posture
+  (fork/mirai, never serial, never cross-check between modes) sidesteps
   the need for serial and parallel to agree before contribution can
-  launch — but still a real, confirmed bug worth fixing on its own
-  merits, and a concrete lead is now on record for whoever picks it up:
-  this session's research into §5 found the serial path
-  (`R/EDI/R/simulations_framework.R`, from line 1877) has no
-  per-replicate `set.seed()` at all and consumes R's RNG as one
-  continuous stream, while the fork/mirai paths explicitly `set.seed`
-  a `private$seed + replicate_index`-derived seed per replicate — two
-  structurally different RNG schemes for the same nominal seed, which is
-  exactly the shape of bug that would produce a real, non-hanging
-  mismatch between `num_cores = 1` and `num_cores > 1`. A hypothesis to
-  investigate, not a confirmed diagnosis — the quarantined test's second,
-  more severe failure (NA-count/status mismatches even with real forking
-  disabled) may have an additional or different cause. Once fixed: extend
-  coverage to the other kernels the scenario grid (TODO-2)
+  start — but worth fixing properly rather than permanently designing
+  around, and per direct user proposal, the fix is small and
+  well-precedented: **give the serial path
+  (`R/EDI/R/simulations_framework.R`, from line 1877) the same
+  per-replicate reseeding fork/mirai already use** —
+  `set.seed(private$seed + rep)` at the top of each iteration of the
+  serial `for (rep in seq_len(private$Nrep_W))` loop, the identical
+  formula already proven at lines 1649–1650 and 1768, not a redesign.
+  **Must be position-derived, never chained from a previous replicate's
+  computed *result*** — a result-chained seed would still require
+  replicate k−1 to actually be computed before replicate k could be
+  seeded, silently reintroducing the same resume-unsafety and
+  expensive-to-verify properties this fix exists to remove. Likely fixes
+  the quarantined divergence too, not just resume-safety — post-fix,
+  serial and fork/mirai would share the identical RNG scheme, directly
+  addressing the structural mismatch hypothesized as the bug's cause.
+  **One real cost to do this properly, not a reason to skip it**: this
+  changes what a serial run with a given nominal seed produces (today's
+  continuous-stream output won't match post-fix index-derived output) —
+  exactly the class of change this codebase's "bit-for-bit defaults"
+  standing constraint (used throughout its own release plans) requires to
+  ship opt-in or as an explicitly documented default change, never
+  silently. Once fixed and shipped that way: extend coverage to the other
+  kernels the scenario grid (TODO-2)
   exercises (audit for the `private$seed + replicate_index` discipline
   the fork/mirai paths already demonstrate, §5's citation — confirmed for
   those two execution paths this session, not yet audited past

@@ -1492,6 +1492,14 @@ apply_inference_design_restrictions = function(self, des_obj) {
 		if (!is.function(original)) next
 		unsupported = function(...) stop("This method is not supported for DesignSeqOneByOne designs.", call. = FALSE)
 		formals(unsupported) = formals(original)
+		# R6's clone() only re-locks a copied method binding when the function's
+		# OWN environment (pre-copy) is the object's enclosing env -- see
+		# edi_rebind_lazy_components_after_clone()'s comment for the same
+		# mechanism. `original`'s environment already is that enclosing env (R6
+		# sets it at construction), so reusing it here (rather than leaving
+		# `unsupported` closed over this function's own call frame) is what
+		# lets the stub, and its lock, survive clone()/duplicate().
+		environment(unsupported) = environment(original)
 		# R6 locks method bindings before initialize(). Preserve that lock, as
 		# the lazy-component installer does. A plain (non-lazy) stub is retained
 		# when another component later installs shared bootstrap infrastructure.

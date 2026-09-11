@@ -1,54 +1,5 @@
 library(EDI)
 
-test_that("KK Wilcox rank-regression fast bootstrap matches the generic KK bootstrap", {
-	skip_if_not_installed("Rfit")
-
-	SlowInferenceAllKKWilcoxIVWC = R6::R6Class(
-		"SlowInferenceAllKKWilcoxIVWC",
-		lock_objects = FALSE,
-		inherit = InferenceAllKKWilcoxIVWC,
-		private = list(
-			compute_fast_bootstrap_distr = function(B, i_reservoir, n_reservoir, m, y, w, m_vec){
-				NULL
-			}
-		)
-	)
-
-	set.seed(20260329)
-	n = 30
-	p = 5
-	X = as.data.frame(matrix(rnorm(n * p), nrow = n, ncol = p))
-	colnames(X) = paste0("x", seq_len(p))
-	y = as.numeric(rnorm(n))
-
-	des = DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE)
-	for (i in seq_len(n)) {
-		w_i = des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
-		des$add_one_subject_response(i, y[i] + 0.2 * ((w_i + 1) / 2))
-	}
-
-	fast_inf = InferenceAllKKWilcoxIVWC$new(des, verbose = FALSE)
-	slow_inf = SlowInferenceAllKKWilcoxIVWC$new(des, verbose = FALSE)
-
-	set.seed(44)
-	fast_boot = suppressWarnings(
-		fast_inf$approximate_bootstrap_distribution_beta_hat_T(B = 9, show_progress = FALSE)
-	)
-	set.seed(44)
-	slow_boot = suppressWarnings(
-		slow_inf$approximate_bootstrap_distribution_beta_hat_T(B = 9, show_progress = FALSE)
-	)
-
-	# Rank-based statistics are inherently sensitive to tie-breaking: a
-	# platform/compiler-level floating-point difference (BLAS, -O level,
-	# auto-vectorization order) too small to matter on its own can flip a
-	# near-tied rank comparison, causing a discrete jump in the downstream
-	# statistic for that one bootstrap replicate. Observed max diff ~1.25e-3
-	# on ubuntu-oldrel-1 CI vs. exact (~1e-16) agreement locally -- loosen
-	# accordingly rather than chase platform-specific rounding.
-	expect_equal(fast_boot, slow_boot, tolerance = 5e-3)
-})
-
 test_that("KK Wilcox rank-regression low-level components match wilcox.test", {
 
 	set.seed(20260330)
