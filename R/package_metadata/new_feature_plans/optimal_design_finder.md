@@ -413,6 +413,146 @@ accumulated replicates so far) so contributors' effort concentrates where
 it adds the most value, without anyone needing to "claim" anything
 first.
 
+**Custom functions, custom datasets, and custom `Design`/`Inference`
+classes — reviewed and merged, never accepted as loose contributor code
+or data, per direct user correction and a direct user follow-up
+extending the same principle to class-level extensions.**
+`SimulationFramework` gives contributors substantial latitude beyond the
+closed `design`/`inference`/`response_type` grid this plan has scoped so
+far — confirmed by reading its constructor's full `@param` list (not
+just the parameters found by an earlier, narrower search), it accepts
+**five distinct optional-function parameters**:
+`custom_replication_data_generator`, `custom_apply_treatment_and_noise`,
+`make_estimand_fn`, `custom_dgp`, and **`cov_draw_method`** (draws the
+`n * p` i.i.d. covariate values per replication; defaults to
+`stats::rnorm`, a risk only when a contributor overrides it — found on a
+direct follow-up question, missed in the first pass, exactly the kind of
+gap worth re-checking rather than assuming the earlier count was
+complete). Accepting a contributor's own R closures for any of these
+alongside a results submission would mean CI (or anyone reproducing
+results) has to `source()`/`eval()` untrusted code to verify them — a
+real remote-code-execution risk for a public CI system, not merely a
+quality concern, and a gap the rest of this plan's integrity design
+didn't close. Custom **datasets** — the actual mechanism is `X_mat`, a
+literal user-supplied `n × p` covariate matrix (`random_X_draws`, named
+similarly, is a different and unrelated setting — whether covariates
+redraw every replication or are reused per cell, not a data-supply
+mechanism; corrected here after conflating the two in an earlier pass) —
+are the same underlying problem in a different guise: arbitrary,
+unreviewed *data* instead of arbitrary, unreviewed *code*. And custom
+**`Design`/`Inference` classes** — EDI already has a
+first-class, documented extension contract for exactly this
+(`R/EDI/R/design_custom_extensions.R`, `inference_custom_extensions.R`,
+the `vignettes/extending-edi.Rmd` contract, `define_design_class()`/
+`define_inference_class()` as the registration path every built-in class
+already goes through) — are the same problem in a third guise: a whole
+class definition instead of one function. All three need the identical
+fix, not three different ones.
+
+**The rule: only reviewed-and-merged functions/datasets/classes may
+appear in a public submission, full stop.**
+
+**Location, final per direct user decision: `R/custom_design_simulations/`,
+one subdirectory per extension point, not one shared bucket** — a
+category-per-directory refinement of the earlier flat-directory draft,
+now eight entries (`custom_cov_draw_methods/` added after the follow-up
+audit above found the fifth function parameter):
+
+```
+R/custom_design_simulations/
+  custom_replication_data_generators/   # SimulationFramework's custom_replication_data_generator
+  custom_apply_treatment_and_noises/    # custom_apply_treatment_and_noise
+  make_estimand_fns/                    # make_estimand_fn
+  custom_dgps/                          # custom_dgp
+  custom_cov_draw_methods/              # cov_draw_method (+ cov_draw_method_args)
+  custom_datasets/                      # route (b) datasets, below — the X_mat mechanism
+  custom_design_classes/                # define_design_class() extensions
+  custom_inference_classes/             # define_inference_class() extensions
+```
+
+Every subdirectory keeps the same **one file per contribution, not one
+shared growing file** convention already established — a monolithic file
+many independent contributors all edit invites needless merge conflicts
+between semantically-unrelated PRs, and this repo's own
+`new_feature_plans/` directory already uses "one file per topic" for
+exactly this reason; splitting by extension point *in addition* makes it
+immediately legible from a path alone which of `SimulationFramework`'s
+four injection points, which class registry, or which dataset route a
+given file serves — no need to open it to find out.
+
+- **The five `SimulationFramework` function parameters**
+  (`custom_replication_data_generator`, `custom_apply_treatment_and_noise`,
+  `make_estimand_fn`, `custom_dgp`, `cov_draw_method`) each get their own
+  subdirectory above, matching the parameter name 1:1
+  (`cov_draw_method_args`, its companion argument list, travels with
+  whichever `cov_draw_method` file uses it — plain config values, not a
+  second function, so it needs no subdirectory of its own). A contributor
+  proposing a genuinely
+  new one submits it as its *own* pull request to the matching
+  subdirectory, reviewed like any other code change, merged before any
+  benchmark result using it can be submitted. **Not inside `R/EDI/`'s
+  installable package source** — coupling every new benchmark scenario to
+  a full CRAN package release would throttle contribution pace against
+  this repo's own release cadence and bloat the CRAN-facing package with
+  benchmark-only code most package users never need; this sibling,
+  version-controlled, PR-reviewed location (alongside the existing
+  `R/package_metadata/`/`R/package_tests/` siblings of `R/EDI/`) gets the
+  identical review/trust guarantee without that coupling, `source()`-able
+  directly by both a contributor's local run and CI's verification, no
+  package rebuild required either way.
+- **Custom datasets**: `custom_datasets/`, exactly two accepted routes,
+  both requiring PR review, per direct user proposal — (a) a versioned
+  CRAN package added to `Suggests` via its own PR, with the exact package
+  **version** (not just the name) recorded on every row that uses it,
+  since an unpinned package name is not actually reproducible as the
+  package evolves; or (b) the raw dataset file committed directly into
+  `custom_datasets/`, with the commit that added/last-changed it
+  implicitly pinned by that submission's own `edi_commit` field (§4's row
+  schema) — no new provenance field needed for this route, the existing
+  one already covers it. No third route; a dataset that is neither an
+  installed, versioned `Suggests` package nor a committed
+  `custom_datasets/` file is not eligible, full stop.
+- **Custom `Design`/`Inference` classes**: `custom_design_classes/` and
+  `custom_inference_classes/` respectively — two separate directories,
+  not one, matching the two separate registries
+  (`define_design_class()`/`define_inference_class()`) they go through.
+  Submitted as a PR going through the *exact same* registration every
+  built-in class already uses — not a lighter-weight, second-class path.
+  This is a materially higher bar than the function/dataset routes above:
+  the extension has to satisfy the full contract
+  `vignettes/extending-edi.Rmd` documents and
+  `test-custom-extension-contract.R` already pins for every class in this
+  codebase, not just "does it run deterministically." **The clean payoff
+  of holding that bar**: once merged and registered this way, a custom
+  class is indistinguishable from a built-in one to
+  `discover_applicable_inference_classes()`/the design registry — TODO-2's
+  scenario-grid discovery, and the "Discovery correctness" test, need no
+  special-casing for custom classes at all, since the registry doesn't
+  know or care that a class arrived via this route rather than shipping
+  in `R/EDI/` itself.
+- **Row schema addition**: `dataset_package` + `dataset_package_version`
+  (populated only for route (a); `NA` otherwise) alongside the fields §4
+  already specifies — the same "pin exact provenance, not just a name"
+  discipline `edi_commit`/`r_version`/`os` already established for code.
+- **Mechanical enforcement, same pattern as the existing "Discovery
+  correctness" check**: a submission referencing a scenario-function name
+  not found in its matching subdirectory, a dataset package+version that
+  doesn't resolve to a real installable CRAN release, or a
+  `custom_datasets/` path not present at the pinned commit is rejected
+  outright by CI — mechanical, not a judgment call, and not a new
+  integrity mechanism, just the existing validity check's scope widened
+  from "is this design/inference combination structurally valid" to also
+  cover "is this scenario function/dataset actually a reviewed, resolvable
+  thing."
+- **This composes with, rather than duplicates, the already-established
+  blessed-commit-set mechanism (§5, above)** — a submission's
+  `edi_commit` already identifies which commit of the whole repository
+  (the new custom-function/`datasets/` locations included) CI checks out
+  to verify against, so a function or dataset's reviewed-and-merged
+  status is automatically what CI reproduces from. Reproducibility and
+  code-review trust are the same guarantee here, not two systems to
+  build and keep in sync.
+
 ## Non-goals
 
 - **Not a runtime "recommend a design for my data" API.** This is a
@@ -425,11 +565,18 @@ first.
   benchmark of what already exists; the scenario grid is built from
   discovery over the current registries, not a wishlist of what should
   exist.
-- **Not scoped to real/external datasets in v1.** Synthetic
-  data-generating processes only, matching `SimulationFramework`'s
-  existing paradigm and avoiding new data-provenance/licensing questions.
-  Folding in reference real-world datasets (e.g. from published trials)
-  is a flagged possible future extension, not committed here.
+- **Superseded — real/external datasets are now in scope, gated by §5's
+  governance, not excluded.** An earlier draft of this plan deferred
+  real-world datasets entirely; that framing didn't survive the custom-
+  dataset governance work above, which explicitly designs the two
+  accepted routes (a versioned `Suggests` package, or a committed
+  `R/custom_design_simulations/custom_datasets/` file) rather than ruling
+  real data out. What's still excluded, and this *is* the real
+  boundary: **any dataset that is neither of those two reviewed
+  routes** — a contributor's own arbitrary local file, an unreviewed
+  download, anything not PR-merged and version/commit-pinned. Synthetic
+  data-generating processes remain the default and the lower-friction
+  path; real data is opt-in, reviewed, and additive to it.
 
 ## Tests / validation
 
@@ -505,13 +652,35 @@ first.
   repo home for the public results data (a `benchmarks/` directory in
   `EDI` itself, an orphan branch, or a dedicated sibling repo — affects
   clone size and CI scope for the main package repo); Parquet vs. CSV;
-  PR-based vs. `workflow_dispatch`-based contribution flow; real-dataset
-  scope (v1 synthetic-only, per Non-goals, confirmed or overridden).
+  PR-based vs. `workflow_dispatch`-based contribution flow.
+  `R/custom_design_simulations/`'s eight-subdirectory structure (TODO-2b)
+  is settled, not an open item here.
 - [ ] TODO-2: **Scenario-grid definition** — the parameter ranges per
   response type/axis, and the applicability-discovery wiring from §1 that
   generates valid cells rather than a hand-written list — the set of
   cells the priority list (§5) and the contribution CI's validity check
   (§5) both need.
+- [ ] TODO-2b: **Custom function/dataset/class governance** (§5) — stand
+  up `R/custom_design_simulations/`'s eight subdirectories
+  (`custom_replication_data_generators/`, `custom_apply_treatment_and_noises/`,
+  `make_estimand_fns/`, `custom_dgps/`, `custom_cov_draw_methods/`,
+  `custom_datasets/`, `custom_design_classes/`, `custom_inference_classes/`),
+  one file per contribution in each; the PR-review process for adding a
+  new function, dataset, or class to its matching subdirectory — for
+  classes, going through `define_design_class()`/`define_inference_class()` and
+  the existing `extending-edi.Rmd` contract, not a lighter bar — separate
+  from and prerequisite to any results submission using it; the
+  mechanical CI check rejecting a submission whose
+  `cond_exp_func_model`/custom-function name, `dataset_package` +
+  `dataset_package_version`, or `custom_datasets/` path doesn't resolve
+  against the blessed commit (custom classes need no separate check here, per
+  §5's note — the existing registry-discovery machinery, TODO-2, already
+  can't tell a registered custom class from a built-in one) — the same
+  "Discovery correctness" pattern (Tests, above) widened to cover
+  functions and datasets. A prerequisite for TODO-5's contribution
+  workflow, not optional hardening added later — an open door here
+  undermines the integrity model no matter how well TODO-4/4b's RNG work
+  turns out.
 - [ ] TODO-3: **Public dataset schema + partitioning** — the row shape
   and `response_type`/`design_class` partitioning from §4; a worked
   example DuckDB `httpfs` query against a seeded fixture dataset, checked
