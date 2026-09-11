@@ -819,6 +819,7 @@
 "registry_target_missing_generated_case","InferenceOrdinalOrderedProbitRegr::compute_rand_two_sided_pval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceOrdinalOrderedProbitRegr::compute_score_confidence_interval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceOrdinalOrderedProbitRegr::compute_wald_confidence_interval","","registry target has no generated case in current case table"
+"registry_target_missing_generated_case","InferenceOrdinalPairedSignTest::approximate_bootstrap_distribution_beta_hat_T","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceOrdinalPairedSignTest::approximate_randomization_distribution_beta_hat_T","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceOrdinalPairedSignTest::compute_asymp_two_sided_pval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceOrdinalPairedSignTest::compute_jackknife_wald_confidence_interval","","registry target has no generated case in current case table"
