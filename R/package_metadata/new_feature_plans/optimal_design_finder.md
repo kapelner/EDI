@@ -285,11 +285,15 @@ independent contributors corroborate each other for free:
   CI's own verification re-run — not serial — precisely because it is
   resume-safe by construction, with the added benefit of also being what
   makes cheap random-index verification possible in the first place.**
-  The confirmed quarantined seq-vs-parallel divergence (TODO-4) means CI
-  must verify using the *same* execution-mode family a contributor used,
-  never cross-check serial against parallel or the reverse — that
-  divergence is a reason to pick one mode and stay on it consistently,
-  not a reason to default to the mode (serial) that turns out to be the
+  This follows directly from reading `simulations_framework.R` itself —
+  the serial path's missing per-replicate reseeding (confirmed by
+  searching the whole file), set against fork/mirai's demonstrated
+  `private$seed + replicate_index` formula — with no need to lean on any
+  other code path's behavior as supporting evidence. Until TODO-4's fix
+  lands, CI must verify using the *same* execution-mode family a
+  contributor used, never cross-check serial against parallel or the
+  reverse — the two paths are not proven to agree today, so treat them as
+  independent until they demonstrably are, not a reason to default to the
   worse choice here.
 - **A cheap, complementary integrity primitive that genuinely is
   cryptographic — tamper-evidence, not correctness-proof — made concrete
@@ -361,34 +365,17 @@ rather than taken on faith:
   the same discipline, not bit-for-bit — and pin `r_version` in the
   comparison, since R's own RNG algorithm defaults have changed across R
   versions historically.
-- **The one confirmed, currently-failing bug is about `num_cores = 1`
-  vs. `num_cores > 1`, not about fork vs. mirai — and this plan's
-  corrected posture (require fork/mirai, never serial, per the
-  start-stop-start finding above) sidesteps it rather than needing to fix
-  it first.** `R/package_tests/testthat_bulk_quarantine/test-inference-suite-run-all-inference-seq-vs-parallel.R`
-  targets exactly the serial-vs-parallel comparison for
-  `InferenceSuite$run_all_inference()` — and is quarantined (that
-  directory's own README: "never run by GitHub CI or the
-  `.githooks/pre-push` hook") because it currently fails. Per its header
-  comments: CI run `33072346506` (2026-08-27) found "a real, non-hanging
-  pval mismatch between `num_cores = 1` and `num_cores = 2`," and a
-  second check in the same file found "NA-count and 'status' mismatches
-  even with `EDI_TESTING_DISABLE_FORK_CLUSTER = 'true'`" — meaning it is
-  **not** just the already-tracked fork-deadlock hazard
-  (`parallel_fork_cluster_test_safety.md`), but a separate, deeper
-  divergence, for which TODO-4 now has a concrete hypothesis (the serial
-  path's missing per-replicate reseeding, found this session). The
-  actively-running `test-seed-determinism.R` gives no cover here either —
-  it exercises only `num_cores = 1L` throughout (verified by direct
-  inspection). Since this plan never asks serial and parallel to agree
-  with each other (fork/mirai only, consistently), this bug does not
-  block contribution launching — it remains real and worth fixing on its
-  own merits (TODO-4), just no longer load-bearing for this plan's
-  integrity model. Coverage should still extend past this one entry
-  point once picked up — no dedicated seq-vs-parallel test was found for
-  individual `Inference*` classes' own bootstrap/randomization/jackknife
-  paths, and no cross-platform (same seed, same `num_cores`, different
-  OS) test was found at all, quarantined or active.
+- **A related, but out-of-scope, confirmed bug — noted for precision,
+  not because it affects this plan.** `test-seed-determinism.R` (the
+  actively-running suite) only exercises `num_cores = 1L` throughout
+  (verified by direct inspection), so it provides no serial-vs-parallel
+  coverage for anything. A separate, already-quarantined test
+  (`testthat_bulk_quarantine/test-inference-suite-run-all-inference-seq-vs-parallel.R`)
+  does target exactly that comparison, and confirms it currently fails —
+  but for `InferenceSuite$run_all_inference()`, a code path this plan's
+  pipeline never touches (confirmed by grepping `simulations_framework.R`
+  for any reference to it — none exist). Not this plan's problem to fix
+  or test around; TODO-4/4b's own scope is `SimulationFramework` only.
 - **Build cost — a CI-minutes/throughput question, not a `CLAUDE.md`
   concern.** Verifying a submission against its claimed `edi_commit`
   means CI can build/install *that* commit, not just current `HEAD` — a
@@ -446,6 +433,12 @@ first.
 
 ## Tests / validation
 
+- **Foundational note**: the tests below validate this plan's own
+  contribution/integrity workflow once built; they assume the underlying
+  package-level guarantee — replicate output is identical across
+  execution modes for a fixed seed — already holds. That guarantee is
+  not yet true (TODO-4) and its own rigorous test plan is TODO-4b, not
+  duplicated here.
 - **Discovery correctness**: every scenario cell anyone can contribute
   results for is a structurally valid `(design, inference, response_type)`
   combination per the existing discovery functions (§1) — the PR-validation
@@ -524,20 +517,11 @@ first.
   example DuckDB `httpfs` query against a seeded fixture dataset, checked
   into the repo so the query test in "Tests" above has something concrete
   to run against.
-- [ ] TODO-4: **Root-cause the confirmed `num_cores = 1` vs.
-  `num_cores > 1` divergence in `InferenceSuite$run_all_inference()`, with
-  a concrete, recommended fix now on record, not just a hypothesis** (§5's
-  citation:
-  `testthat_bulk_quarantine/test-inference-suite-run-all-inference-seq-vs-parallel.R`,
-  quarantined since 2026-08-27 for exactly this failure). **No longer
-  strictly blocking for this plan's launch** — §5's interim posture
-  (fork/mirai, never serial, never cross-check between modes) sidesteps
-  the need for serial and parallel to agree before contribution can
-  start — but worth fixing properly rather than permanently designing
-  around, and per direct user proposal, the fix is small and
-  well-precedented: **give the serial path
+- [ ] TODO-4: **Fix `SimulationFramework`'s serial-path resume/cheap-
+  verification gap — a well-understood, well-scoped fix.** Per direct
+  user proposal: give the serial path
   (`R/EDI/R/simulations_framework.R`, from line 1877) the same
-  per-replicate reseeding fork/mirai already use** —
+  per-replicate reseeding fork/mirai already use —
   `set.seed(private$seed + rep)` at the top of each iteration of the
   serial `for (rep in seq_len(private$Nrep_W))` loop, the identical
   formula already proven at lines 1649–1650 and 1768, not a redesign.
@@ -545,25 +529,22 @@ first.
   computed *result*** — a result-chained seed would still require
   replicate k−1 to actually be computed before replicate k could be
   seeded, silently reintroducing the same resume-unsafety and
-  expensive-to-verify properties this fix exists to remove. Likely fixes
-  the quarantined divergence too, not just resume-safety — post-fix,
-  serial and fork/mirai would share the identical RNG scheme, directly
-  addressing the structural mismatch hypothesized as the bug's cause.
-  **One real cost to do this properly, not a reason to skip it**: this
-  changes what a serial run with a given nominal seed produces (today's
+  expensive-to-verify properties this fix exists to remove. **One real
+  cost to do this properly, not a reason to skip it**: this changes what
+  a serial run with a given nominal seed produces (today's
   continuous-stream output won't match post-fix index-derived output) —
   exactly the class of change this codebase's "bit-for-bit defaults"
   standing constraint (used throughout its own release plans) requires to
   ship opt-in or as an explicitly documented default change, never
-  silently. Once fixed and shipped that way: extend coverage to the other
-  kernels the scenario grid (TODO-2)
-  exercises (audit for the `private$seed + replicate_index` discipline
-  the fork/mirai paths already demonstrate, §5's citation — confirmed for
-  those two execution paths this session, not yet audited past
-  `simulations_framework.R` itself into every kernel a cell might call),
-  measure the actual cross-platform floating-point tolerance needed (§5)
-  rather than guessing a number, and add the cross-platform (same seed,
-  same `num_cores`, different OS) test that was found not to exist
+  silently. Once fixed and shipped that way: extend the audit to the
+  other kernels the scenario grid (TODO-2)
+  exercises (confirm the `private$seed + replicate_index` discipline
+  fork/mirai already demonstrate, §5's citation, generalizes cleanly —
+  confirmed for `simulations_framework.R` itself this session, not yet
+  audited into every kernel a cell might call), measure the actual
+  cross-platform floating-point tolerance needed (§5) rather than
+  guessing a number, and add the cross-platform (same seed, same
+  `num_cores`, different OS) test that was found not to exist
   anywhere, quarantined or active. **Interim posture until this closes,
   corrected after a direct user question about interrupted/resumed
   contribution: require fork/mirai execution (`num_cores > 1`) for
@@ -575,6 +556,55 @@ first.
   cheap random-index verification possible, so there is no longer a
   tradeoff between the two properties this TODO originally worried about
   needing to choose between.
+- [ ] TODO-4b: **Rigorous replicate-level seed-parity test suite for
+  `SimulationFramework` — the concrete deliverable behind "don't reject
+  good-faith contributors over an artifact of which code path ran."**
+  Scoped to `SimulationFramework` only, per direct user correction: this
+  plan's pipeline runs exclusively through it, never through
+  `InferenceSuite$run_all_inference()` — confirmed by grepping
+  `simulations_framework.R` for any reference to `InferenceSuite` or
+  `run_all_inference` (none exist; they are fully independent code
+  paths). An earlier draft of this TODO pulled in a real, separately
+  confirmed bug in `InferenceSuite$run_all_inference()`'s own fork
+  dispatch (`run_all_inference_fork_dispatch()`,
+  `R/EDI/R/inference_suite.R:1323` — forks a new child per task via a
+  rolling window with **no `set.seed()` anywhere in its dispatch path**,
+  so each child inherits whatever RNG state the parent happens to have at
+  that exact fork moment, dependent on scheduling timing rather than a
+  stable per-task identifier) — genuinely worth fixing, but not reachable
+  by anything this project does, so out of scope here; removed rather
+  than left as dead weight, though worth surfacing to the user separately
+  from this plan.
+
+  Comparisons at **raw, per-replicate output**, never only aggregated
+  summary statistics — an aggregate (mean power, mean coverage) can hide
+  a real per-replicate divergence that happens to cancel out on average,
+  which is exactly the kind of bug a weaker test would miss:
+  - For a fixed seed, every replicate's raw
+    `estimate`/`ci_lo`/`ci_hi`/`pval`/`true_estimand` matches exactly
+    (within §5's numerical tolerance) across `num_cores = 1` (post-TODO-4
+    fix), `num_cores > 1` via fork, and `num_cores > 1` via `mirai` —
+    three-way agreement, not just two.
+  - Swept across: at least one design/inference/response-type combination
+    per family (the 19 families `model_diagnostics_framework.md`
+    §3B/§3C already catalogue, not one arbitrarily-chosen example),
+    multiple `Nrep_W` values (small, e.g. 5, and larger, e.g. 500), and
+    multiple `num_cores` values (1, 2, 4+).
+  - **The independence property itself, not just equal formulas**:
+    replicate k computed alone (`Nrep_W = k`, i.e. a from-scratch run
+    asking only up to k) matches replicate k computed as part of a much
+    larger batch (e.g. `Nrep_W = 10k`) — the actual guarantee
+    random-index verification and resume-safety depend on, tested
+    directly rather than inferred from "the formula looks index-based."
+  - **Cross-platform**: the above repeated on at least Linux, macOS, and
+    Windows — not assumed to generalize from one OS, per §5's existing
+    cross-platform testing commitment.
+  - **Promotion, not a test living forever in isolation**: once the
+    TODO-4 fix lands and the above passes reliably (multiple clean runs,
+    not a single lucky pass — RNG bugs are exactly the kind that
+    intermittently "happen to" pass), add it to the active
+    `testthat_bulk/` suite so it gets real, ongoing CI coverage rather
+    than being a one-time validation exercise.
 - [ ] TODO-5: **Contribution workflow** — the public GitHub Actions flow
   (§5): a template R script a contributor runs locally to produce a
   submission file plus a SHA-256 commitment hash

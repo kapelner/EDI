@@ -1493,13 +1493,19 @@ apply_inference_design_restrictions = function(self, des_obj) {
 		unsupported = function(...) stop("This method is not supported for DesignSeqOneByOne designs.", call. = FALSE)
 		formals(unsupported) = formals(original)
 		# R6's clone() only re-locks a copied method binding when the function's
-		# OWN environment (pre-copy) is the object's enclosing env -- see
-		# edi_rebind_lazy_components_after_clone()'s comment for the same
-		# mechanism. `original`'s environment already is that enclosing env (R6
-		# sets it at construction), so reusing it here (rather than leaving
-		# `unsupported` closed over this function's own call frame) is what
-		# lets the stub, and its lock, survive clone()/duplicate().
-		environment(unsupported) = environment(original)
+		# OWN environment (pre-copy) is (somewhere in the class chain of) the
+		# object's own enclosing env -- see edi_rebind_lazy_components_after_
+		# clone()'s comment for the same mechanism. `original` is not a safe
+		# source for that env here: for a lazily-installed/mixin-provided
+		# method (e.g. compute_bootstrap_confidence_interval on the KK
+		# g-computation classes) `environment(original)` is already some
+		# foreign call-frame env, not a class-chain env, so reusing it would
+		# carry the same clone-unlocks-it problem forward. `self$.__enclos_env__`
+		# (this, the PRE-clone object's own leaf enclosing env) is always a
+		# class-chain env, so closing `unsupported` over it is what lets the
+		# stub, and its lock, survive clone()/duplicate() regardless of what
+		# kind of method it's replacing.
+		environment(unsupported) = self$.__enclos_env__
 		# R6 locks method bindings before initialize(). Preserve that lock, as
 		# the lazy-component installer does. A plain (non-lazy) stub is retained
 		# when another component later installs shared bootstrap infrastructure.
