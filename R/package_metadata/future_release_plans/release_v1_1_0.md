@@ -1122,6 +1122,22 @@ ticked in their **owning plans**; this list is the release index.
   original per-class design intent this drifted from). Fix: one
   highest-priority row per `(class, estimand)` feeds `combined_evidence`;
   `results_table` display is unaffected.
+- [ ] TODO-22: **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`
+  optimizer stability** (added 2026-09-11, found via a comprehensive-test-
+  harness timing investigation, not a user report):
+  `clayton_loggamma_frailty_optimizer_stability.md → TODO-1..4`. A ~200x
+  bimodal slowdown (0.5-1s vs. 150-180s, same scenario, only the data
+  realization differs) in `compute_lik_ratio_bartlett_approx_two_sided_
+  pval()`'s B=99 Monte-Carlo null replicates, traced to the Clayton-copula/
+  loggamma-frailty C++ optimizer having no bound on its dependence
+  parameter (unlike the sibling normal-frailty optimizer's
+  `max_abs_log_sigma=8.0` cap) plus a stale-gradient mismatch (the
+  objective clips `theta` but the gradient terms don't), which can leave
+  the optimizer thrashing toward its 2000-iteration cap and triggering an
+  expensive R-level Nelder-Mead fallback cascade that only this class's
+  fit path has. Additive/no-op for every other class (different `.cpp`
+  file); needs a golden-test parity check to confirm the new bound doesn't
+  move existing point estimates. Independent of every other 1.1.0 item.
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

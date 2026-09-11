@@ -588,6 +588,21 @@ harness — it's more than just getting the point estimate right. Follow
 [`R/package_metadata/contracts/new_model_creation.md`](R/package_metadata/contracts/new_model_creation.md)
 end to end before opening a PR for one.
 
+Adding a new `Design*` class (a new randomization scheme for an existing
+timing family — fixed or sequential) touches the same breadth of wiring on
+the design side: component/capability metadata via `define_design_class()`
+and the design class registry, argument checking, documentation, unit and
+integration tests, C++ core hygiene for designs with a compiled kernel (e.g.
+`DesignFixedOptimal`'s allocation search), the R/Python core split, and
+registration in the comprehensive test harness. Start from
+[`vignette("extending-edi")`](R/EDI/vignettes/extending-edi.Rmd) and
+[`R/package_metadata/finished_features/fix_design_hierarchy.md`](R/package_metadata/finished_features/fix_design_hierarchy.md)
+for the architecture; there is no single step-by-step PR contract for the
+design side yet (unlike `new_model_creation.md`), so treat that document's
+structure as the template, adapted to `EDI_DESIGN_CLASS_REGISTRY` /
+`design_class_factory.R` and the design-family rows of the comprehensive test
+harness.
+
 ## License
 
 GPL-3 — see [`LICENSE`](LICENSE).
@@ -600,9 +615,4 @@ Zenodo: [10.5281/zenodo.22170036](https://doi.org/10.5281/zenodo.22170036).
 
 ## Lines of Code
 
-[![Lines of code](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/kapelner/3d96a820d6b5d6fba041fc31bc9bf36a/raw/loc-badge.json)](https://gist.github.com/kapelner/3d96a820d6b5d6fba041fc31bc9bf36a#file-loc-md)
-
-Click the badge for the full per-language breakdown. It's recomputed by `cloc`
-and published to a Gist on every push to main
-(see [`.github/workflows/loc-badge.yml`](.github/workflows/loc-badge.yml)), so
-this section of the README itself never needs to be regenerated or committed.
+[![Lines of code](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/kapelner/3d96a820d6b5d6fba041fc31bc9bf36a/raw/loc-badge.json)](https://gist.github.com/kapelner/3d96a820d6b5d6fba041fc31bc9bf36a#file-loc-md) (click for per-language breakdown)

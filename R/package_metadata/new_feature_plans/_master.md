@@ -1103,8 +1103,8 @@ audits; its own TODO-1 now carries a recorded "no / defer" recommendation.
 
 No Phase-0 decision batch exists for this phase yet — nothing here is
 committed, and v2.0.0 remains the frontier of actually-planned work. This
-phase exists only to index `release_v3_0_0.md`'s tentative contents: four
-independent items (the third and fourth added the day of and the day
+phase exists only to index `release_v3_0_0.md`'s tentative contents: five
+independent items (the third through fifth added the day of and the day
 after the first two — the third itself a cluster of nine visualization
 items), none sharing a TODO-1 decision gate with the others.
 
@@ -1158,6 +1158,31 @@ items), none sharing a TODO-1 decision gate with the others.
    (`InferenceSurvivalKKRankRegrIVWC`, 35 listed instead of 36) surfaced
    and was fixed while re-verifying the roster for this item. Release
    index: `release_v3_0_0.md → TODO-11..14`.
+5. **`optimal_design_finder.md`** (added 2026-09-11, user decision;
+   release placement assigned 2026-09-11, also user decision — the one
+   open item its own TODO-1 originally flagged) — a continuously-running,
+   genuinely open crowdsourced simulation benchmark comparing every
+   applicable `(design, inference, response_type)` combination EDI ships,
+   publishing results as public Parquet/CSV in a public GitHub repo
+   (DuckDB `httpfs`, no server/API/login) rather than a private dataset.
+   Pure orchestration/publishing on top of `SimulationFramework` — no new
+   statistical method, no new package functionality. Integrity for
+   anonymous contribution rests on a trust-tiered CI spot-check (never a
+   full re-run), CI-chosen random replicate indices (never a fixed,
+   gameable prefix — closed after a direct user challenge), a SHA-256
+   commitment hash over raw per-replicate output, and mandatory
+   `mirai`/fork execution (serial is resume-unsafe and not cheaply
+   spot-checkable until that plan's own TODO-4 lands). Custom functions/
+   datasets/`Design`/`Inference` classes require PR review into
+   `R/custom_design_simulations/`'s eight subdirectories before they're
+   eligible for the public dataset — no loose contributor code or data
+   ever reaches it. Every row forces `num_cores`, per-row timing, and full
+   hardware/EDI-build provenance (`edi_tuning_hardware_fingerprint()`,
+   substantially extended this session), with a client- and CI-enforced
+   scrub for genuinely identifying fields. No structural dependency on, or
+   from, items 1–4 above — shares this tentative release purely by
+   scoping-day coincidence, the same reasoning already covering them.
+   Release index: `release_v3_0_0.md → TODO-15`.
 
 ---
 

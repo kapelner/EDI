@@ -9,11 +9,16 @@ Written 2026-09-10 (user decision). **This release does not yet have a
 real scope, a Phase-0-style decision batch, or even a settled identity of
 its own** — v2.0.0 is still the frontier of actually-planned work. This
 file is a shared, tentative home for scoping efforts that landed the same
-day and were each explicitly targeted here — two new-architecture items
-(finite mixture regression, Bayesian primary analysis via Stan) and,
-added later the same day from a visualization brainstorm, a cluster of
-visualization work spanning both brand-new plans and new sections grafted
-onto several existing plans. None of these items structurally need each
+day, or on later days, and were each explicitly targeted here — two
+new-architecture items (finite mixture regression, Bayesian primary
+analysis via Stan); a cluster of visualization work (added later the same
+day, from a visualization brainstorm) spanning both brand-new plans and
+new sections grafted onto several existing plans; `inference_plots.md`
+(added 2026-09-11), giving every concrete `Inference*` class its own
+result/effect-plot section; and `optimal_design_finder.md` (added
+2026-09-11), a continuously-running, genuinely open crowdsourced
+simulation benchmark across every applicable design/inference/
+response-type combination. None of these items structurally need each
 other; they share this file only because none has a firmer release home
 yet. Expect this file's scope, and possibly its very existence as a
 release separate from v2.0.0 (or as a single release rather than several),
@@ -122,6 +127,38 @@ convention rather than inventing a new visual language each.
   mere non-overlap) — see that file's own TODO-3 below and
   `inference_plots.md`'s header for exactly which six and why.
 
+### Optimal Design × Inference Finder (added 2026-09-11, user decision)
+
+- `optimal_design_finder.md` — a continuously-running, genuinely open
+  crowdsourced simulation benchmark comparing every applicable
+  `(design, inference, response_type)` combination EDI ships, publishing
+  results as public Parquet/CSV in a public GitHub repo (queried directly
+  via DuckDB's `httpfs`, no server/API/login) rather than a private
+  dataset. Not a new statistical method or new package functionality — an
+  orchestration and publishing layer entirely on top of
+  `SimulationFramework` (that plan's §1), which still does the actual
+  fitting-many-replicates work. Genuinely open contribution is checked
+  for integrity via a trust-tiered CI spot-check (never a full re-run —
+  that would defeat the point of distributing the compute in the first
+  place), CI-chosen random replicate indices (never a fixed, gameable
+  prefix), a SHA-256 commitment hash over raw per-replicate output, and
+  mandatory `mirai`/fork execution (never serial, which is resume-unsafe
+  and not cheaply spot-checkable until that plan's own TODO-4 lands).
+  Custom functions, datasets, and `Design`/`Inference` classes are never
+  accepted as loose contributor code — only reviewed-and-merged additions
+  under `R/custom_design_simulations/`'s eight subdirectories qualify for
+  the public dataset. Every row forces `num_cores`, per-row timing, and
+  full hardware/EDI-build provenance (reusing and substantially extending
+  `edi_tuning_hardware_fingerprint()`), with a client- and CI-enforced
+  privacy scrub for genuinely identifying fields (hostname, home-directory
+  paths in BLAS/LAPACK library paths). No structural dependency on, or
+  from, any other item in this file — see that plan's own header for why
+  it shares this tentative release only by scoping-day coincidence, the
+  same reasoning already covering the other four items. Adds no new
+  `R/EDI` package dependency (`digest`/`jsonlite` are already
+  `Imports`/`Suggests`; DuckDB is an external, consumer-side query tool,
+  not a package dependency).
+
 ## Implementation TODOs (dependency order; tentative — no decision batch taken yet)
 
 - [ ] TODO-1: **Decision batch** — not yet taken for either item; neither
@@ -176,6 +213,13 @@ convention rather than inventing a new visual language each.
   ahead of it.
 - [ ] TODO-14 (added 2026-09-11): `inference_plots.md → TODO-4..5` —
   remaining sixteen families, batched, then documentation.
+- [ ] TODO-15 (added 2026-09-11): `optimal_design_finder.md → TODO-1..8`
+  (including TODO-2b, TODO-4b) — genuinely independent of every other
+  item and TODO in this file; its own internal dependency order is
+  already established there (TODO-1's decision gate on the remaining open
+  items first; TODO-2/TODO-2b before any contribution is possible;
+  TODO-4's `SimulationFramework` serial-path fix before TODO-4b's test
+  suite and TODO-5's contribution workflow; TODO-6/7/8 last).
 
 ## Standing constraints
 
@@ -193,4 +237,12 @@ convention), `bayesplot` (Bayesian posterior plots only), and
 `survminer`-convention KM plotting (built on `ggplot2`, no new hard
 dependency beyond it) — every one gated by `requireNamespace()`, every one
 degrading to a static/absent-plot fallback rather than an error, verified
-on the no-Suggests CI leg.
+on the no-Suggests CI leg. The optimal-design-finder benchmark adds no new
+`R/EDI` package dependency either (`digest`, used for its SHA-256
+commitment hash, and `jsonlite`, used for `scenario_config_json`/
+`system_provenance_json`, are already `Imports`/`Suggests`); it is
+data/infrastructure only, proposes no new `Design`/`Inference` class of
+its own, and any custom class a contributor later adds under
+`R/custom_design_simulations/` still goes through the exact same
+`define_inference_class()`/`define_design_class()` registration this
+constraint already requires of every other item here.

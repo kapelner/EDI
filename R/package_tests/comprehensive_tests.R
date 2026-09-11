@@ -265,87 +265,46 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# brt_ci_all/brt_ci_smoothed/brt_ci_typed categories exactly (see
 	# comprehensive_slow_paths.R) so path_audits_source.R's
 	# derive_additional_slow_methods() can reuse that file's already-built
-	# method-name mapping for them unchanged. First batch populated
-	# 2026-09-11 from the main-CSV production-run audit: entries below are
-	# means well over the 60s ceiling (several 95-120s), not marginal
-	# calls. Second batch (see below each list) populated the same day from
-	# a dedicated Nrep=3 BRT-only sweep (boston dataset, FixediBCRD design,
-	# 60s hard timeout, skip-repeat-after-timeout) covering every class
-	# across all 6 response types -- these are CONFIRMED 60s-timeout hits,
-	# not just "slow": each entry's own function_run genuinely never
-	# completed within the timeout in the sweep, not a mean-duration
-	# estimate from partially-completed data. Note ADDITIONAL_TEST_SLOW_
-	# PATHS/EDI_COMPREHENSIVE_SLOW_PATHS have no formula axis in their
-	# class-only categories, so a class already gated for one formula via
-	# "bootstrap"/"rand" (e.g. InferenceSurvivalDepCensTransformRegr's
-	# existing bootstrap||~. entry, InferenceContinRobustRegr's official
-	# bootstrap-category membership) never even attempted BRT CI in the
-	# sweep for that formula -- checked against both registries before
-	# adding below to avoid redundant entries.
+	# method-name mapping for them unchanged. Populated 2026-09-11 from the
+	# main-CSV production-run audit: entries below are means well over the
+	# 60s ceiling (several 95-120s), not marginal calls.
+	#
+	# A same-day dedicated Nrep=3 BRT-only sweep (boston dataset,
+	# FixediBCRD design, 60s hard timeout, skip-repeat-after-timeout,
+	# NUM_CORES=2) additionally flagged ~22 (class,formula) pairs as
+	# confirmed 60s-timeout hits. Live isolated reproduction of every one
+	# of those pairs (both pval and CI sides, whichever was gated)
+	# afterward showed 21 of them complete in well under 3 seconds in
+	# isolation -- the sweep ran all 6 response types as 6 concurrent
+	# processes (2 threads requested each = 12 threads nominal on a
+	# 12-core box, zero slack, plus unrelated external memory pressure at
+	# the time), so its 60s "timeouts" were a CPU-contention measurement
+	# artifact, not real cost. None of those 21 were ever added here.
+	# Only InferenceOrdinalPartialProportionalOddsRegr||~1's pval-smoothed
+	# entry (below) is corroborated by the sweep AND independently by the
+	# main-CSV audit (98s mean) AND by live reproduction (120.9s) -- three
+	# independent measurements agree, so it stays.
 	brt_pval_smoothed = c(
 		"InferenceOrdinalPartialProportionalOddsRegr||~1",
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
 		"InferenceSurvivalWeibullRegr||~.",
-		"InferenceSurvivalKKWeibullMarginal||~.",
-		# BRT sweep, 2026-09-11 (confirmed 60s-timeout hits):
-		"InferenceContinRobustRegr||~.",
-		"InferenceIncidRiskDiff||~."
+		"InferenceSurvivalKKWeibullMarginal||~."
 	),
 	brt_pval_typed = c(
 		"InferenceCountKKGLMM||~1",
 		"InferenceCountKKGLMM||~.",
-		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
-		# BRT sweep, 2026-09-11 (confirmed 60s-timeout hits):
-		"InferenceContinOLS||~.",
-		"InferenceAllSimpleAverageDiff||~.",
-		"InferenceAllSimpleMeanDiffPooledVar||~.",
-		"InferenceContinLin||~.",
-		"InferenceAllSimpleAverageDiff||~1",
-		"InferenceIncidWald||~1",
-		"InferenceIncidRiskDiff||~.",
-		"InferenceIncidWald||~.",
-		"InferenceSurvivalRestrictedMeanDiff||~1",
-		"InferenceSurvivalRestrictedMeanDiff||~.",
-		"InferenceAllSimpleMeanDiffPooledVar||~1"
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~."
 	),
-	# BRT sweep, 2026-09-11 (confirmed 60s-timeout hits): unlike the other
-	# BRT categories, this one had zero entries before the sweep -- these
-	# 6 classes are where the base (untyped) compute_rand_bootstrap_
-	# confidence_interval call itself timed out, which has no individual
-	# skip lever (only the whole block does, via skip_brt_ci) -- so gating
-	# here also disables that class/formula's typed/smoothed BRT CI, even
-	# where the sweep found those individually fast (an accepted, over-
-	# broad trade-off, same as this category's own doc comment already
-	# describes for other classes).
-	brt_ci_all = c(
-		"InferenceSurvivalLogRank||~1",
-		"InferenceSurvivalRestrictedMeanDiff||~1",
-		"InferenceSurvivalKMDiff||~1",
-		"InferenceSurvivalLogRank||~.",
-		"InferenceSurvivalRestrictedMeanDiff||~.",
-		"InferenceSurvivalKMDiff||~."
-	),
+	# Empty: the sweep's only brt_ci_all-shaped findings (6 survival
+	# classes) were all measurement artifacts (see comment above) -- see
+	# git history 2026-09-11 for the full sweep-derived entry list that
+	# was tried and then removed after live reproduction.
+	brt_ci_all = character(),
 	brt_ci_smoothed = c(
-		"InferenceCountKKHurdlePoissonOneLik||~1",
-		# BRT sweep, 2026-09-11 (confirmed 60s-timeout hits):
-		"InferenceContinOLS||~.",
-		"InferenceAllSimpleAverageDiff||~.",
-		"InferenceAllSimpleMeanDiffPooledVar||~.",
-		"InferenceContinOLS||~1",
-		"InferenceSurvivalDepCensTransformRegr||~1",
-		"InferenceAllSimpleMeanDiffPooledVar||~1",
-		"InferenceCountNegBin||~1"
+		"InferenceCountKKHurdlePoissonOneLik||~1"
 	),
 	brt_ci_typed = c(
-		"InferenceCountKKHurdlePoissonOneLik||~1",
-		# BRT sweep, 2026-09-11 (confirmed 60s-timeout hits):
-		"InferenceContinOLS||~.",
-		"InferenceAllSimpleAverageDiff||~.",
-		"InferenceAllSimpleMeanDiffPooledVar||~.",
-		"InferenceContinLin||~.",
-		"InferenceContinOLS||~1",
-		"InferenceAllSimpleAverageDiff||~1",
-		"InferenceAllSimpleMeanDiffPooledVar||~1"
+		"InferenceCountKKHurdlePoissonOneLik||~1"
 	),
 	# Whole-pval-block gate: the base (non-typed, non-smoothed)
 	# compute_rand_bootstrap_two_sided_pval/(delta=0.5) calls have no
@@ -354,37 +313,17 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# equivalent until this key was added 2026-09-10 (removed alongside
 	# RUN_BRT/always_run_brt). No official EDI_COMPREHENSIVE_SLOW_PATHS
 	# category of this name exists; purely additional-registry-driven.
-	# First batch (main-CSV audit): WeibullFrailtyNormalOneLik||~. is slow
-	# on both the base and delta=0.5 pval (~75s mean each);
-	# IncidKKCondLogitGLMMOneLik||~.'s base pval itself is fast (~3s) but
-	# its delta=0.5 variant is not (45.7s mean, n=2) -- this category has
-	# no per-variant lever, so the whole class/formula is gated with it.
-	# Second batch (BRT sweep, 2026-09-11, confirmed 60s-timeout hits):
-	# base and/or delta=0.5 pval genuinely never completed within 60s.
+	# Main-CSV audit: WeibullFrailtyNormalOneLik||~. is slow on both the
+	# base and delta=0.5 pval (~75s mean each); IncidKKCondLogitGLMMOneLik
+	# ||~.'s base pval itself is fast (~3s) but its delta=0.5 variant is
+	# not (45.7s mean, n=2) -- this category has no per-variant lever, so
+	# the whole class/formula is gated with it. (See brt_pval_smoothed's
+	# comment above: the BRT sweep's own brt_pval-shaped findings -- 15
+	# more (class,formula) pairs -- were all measurement artifacts and are
+	# not included here; live reproduction timed every one under 3s.)
 	brt_pval = c(
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
-		"InferenceIncidKKCondLogitGLMMOneLik||~.",
-		"InferenceContinOLS||~.",
-		"InferenceAllSimpleAverageDiff||~.",
-		"InferenceAllSimpleMeanDiffPooledVar||~.",
-		"InferenceContinRobustRegr||~1",
-		"InferenceContinRobustRegr||~.",
-		"InferenceContinOLS||~1",
-		"InferenceAllSimpleAverageDiff||~1",
-		"InferenceIncidWald||~1",
-		"InferenceIncidRiskDiff||~.",
-		"InferenceIncidWald||~.",
-		"InferenceSurvivalLogRank||~1",
-		"InferenceSurvivalRestrictedMeanDiff||~1",
-		"InferenceSurvivalKMDiff||~1",
-		"InferenceSurvivalCoxPHRegr||~1",
-		"InferenceSurvivalCoxPHRegr||~.",
-		"InferenceSurvivalLogRank||~.",
-		"InferenceSurvivalRestrictedMeanDiff||~.",
-		"InferenceSurvivalKMDiff||~.",
-		"InferenceOrdinalRidit||~1",
-		"InferenceOrdinalRidit||~.",
-		"InferenceAllSimpleMeanDiffPooledVar||~1"
+		"InferenceIncidKKCondLogitGLMMOneLik||~."
 	),
 	# Gates the plain randomization confidence interval -- consumed via
 	# is_any_inference_class(); also combined at the call site with a
@@ -582,8 +521,26 @@ if (!is.na(TEST_FAMILY_FILTER) && !(TEST_FAMILY_FILTER %in% ALL_TEST_FAMILY_FILT
 		paste(ALL_TEST_FAMILY_FILTERS, collapse = ", ")
 	)
 }
-force_mirai_cores = Sys.getenv("COMPREHENSIVE_FORCE_MIRAI", "0") %in% c("1", "true", "TRUE", "yes", "YES")
-set_num_cores(NUM_CORES, force_mirai = force_mirai_cores)
+# Deliberately NOT calling set_num_cores(NUM_CORES) here. Found 2026-09-11:
+# set_num_cores() on unix creates a persistent multi-process FORK cluster
+# (make_configured_fork_cluster()) that lives for the whole script run.
+# safe_call() (below) independently forks a fresh child per call via
+# parallel::mcparallel() for hard-timeout enforcement -- and forking a
+# process that already holds open pipes/sockets to that persistent
+# cluster's workers deadlocks the C++ BRT kernel every time it tries to
+# use its own in-process parallelism from inside that forked child
+# (confirmed via direct reproduction: a call that completes in <1s
+# standalone hangs indefinitely under this exact nested-fork pattern).
+# EDI's own hardened per-task fork dispatcher
+# (inference_suite.R::run_all_inference_fork_dispatch(), written after a
+# real 2026-08-21 CI deadlock incident) avoids this by design: each forked
+# child is a standalone process with no persistent cluster underneath it
+# at all. This script follows the same rule the simple way: no global
+# cluster is ever created; each inference object instead gets its thread
+# budget set directly via the public num_cores active binding, right
+# before any safe_call() dispatch (run_inference_checks_impl(), below) --
+# giving the C++ kernels' in-process OpenMP parallelism the same NUM_CORES
+# budget with nothing persistent for a later fork to collide with.
 toggle_asserts(FALSE)
 if (is.na(INFERENCE_CLASS_FILTER)) {
 	run_likelihood_method_smoke_suite(RESPONSE_TYPE_FILTER)
@@ -1075,8 +1032,38 @@ ensure_existing_results_schema = function(){
 }
 ensure_existing_results_schema()
 RESULTS_WRITE_BATCH_SIZE = 50L
+# Dependency-free interprocess lock for the results CSV: no package outside
+# base R is required (avoids adding a hard dependency to this harness script
+# just for locking), and mkdir() is atomic on every filesystem this runs on
+# (POSIX guarantees "create if not exists" atomicity for directory creation,
+# unlike file.create()/file.exists() checks, which race). Found 2026-09-11:
+# without this, two OS processes both appending 50-row fwrite() batches to
+# the same results_file (this harness has no other synchronization between
+# separate invocations/workers touching one file) can interleave mid-write,
+# producing torn/column-shifted rows -- confirmed via ~30,300 such rows
+# (~1% of all 6 main results files) with a missing leading field exactly at
+# a batch-boundary transition between two unrelated (dataset,design)
+# contexts.
+acquire_results_file_lock = function(timeout_sec = 30, poll_sec = 0.05){
+	lock_dir = paste0(results_file, ".lock")
+	deadline = proc.time()[["elapsed"]] + timeout_sec
+	repeat {
+		if (dir.create(lock_dir, showWarnings = FALSE)) return(invisible(lock_dir))
+		if (proc.time()[["elapsed"]] >= deadline) {
+			stop(sprintf("Timed out after %gs waiting for results file lock: %s", timeout_sec, lock_dir))
+		}
+		Sys.sleep(poll_sec)
+	}
+}
+
+release_results_file_lock = function(lock_dir){
+	unlink(lock_dir, recursive = TRUE, force = TRUE)
+}
+
 write_results_if_needed = function(force = FALSE){
 	if (nrow(results_dt) > 0L && (force || nrow(results_dt) >= RESULTS_WRITE_BATCH_SIZE)){
+		lock_dir = acquire_results_file_lock()
+		on.exit(release_results_file_lock(lock_dir), add = TRUE)
 		append_mode = file.exists(results_file) && file.info(results_file)$size > 0
 		data.table::fwrite(
 			results_dt,
@@ -1359,6 +1346,13 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	if (!should_run_inference_label(inference_result_label)) {
 		return(invisible(NULL))
 	}
+	# Per-object thread budget (public active binding), NOT a global
+	# set_num_cores() cluster -- see the removed top-level set_num_cores()
+	# call's comment for why. This gives the C++ kernels' own in-process
+	# OpenMP parallelism (n_cpp_threads()) the intended NUM_CORES budget
+	# with no persistent multi-process cluster object anywhere for
+	# safe_call()'s per-call mcparallel() fork to collide with.
+	seq_des_inf$num_cores = as.integer(NUM_CORES)
 	skip_slow = exhaustive_sweep
 	B_debug = as.integer(r)
 	r_debug = as.integer(r)

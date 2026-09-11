@@ -53,17 +53,94 @@ edi_tuning_config_path = function() {
 #' load-time "hardware appears to have changed, consider re-running" message
 #' (TODO-9) and for \code{get_local_EDI_optimization()}'s display.
 #'
+#' The \code{edi_*}-prefixed fields record EDI's own compile-time choices,
+#' not the host machine's hardware -- pulled from \code{edi_build_info_cpp()}
+#' (\code{R/EDI/src/build_info.cpp}), which is compiled into the loaded
+#' \code{EDI.so} itself and so reports what this particular binary actually
+#' was built with, not merely what \code{R/EDI/src/Makevars} would request.
+#' All \code{NA} when the loaded binary predates that export (an older
+#' install). These fields matter for fingerprint comparisons for the same
+#' reason hardware does: a saved tuning run's timings aren't comparable to a
+#' machine now running a differently-built \code{EDI.so} -- portable vs.
+#' \code{-march=native}/\code{-mtune=native}, LTO vs. not, \code{-O3} vs. not
+#' -- even on identical hardware. \code{compile_context_lines()}
+#' (\code{R/benchmark/benchmark_model_fits.R}) already treats this class of
+#' confound as first-order for EDI's own benchmarks; this fingerprint carries
+#' the same information for the same reason, flattened onto the return list
+#' rather than nested, matching every other field here. \code{edi_build_host}
+#' is included for completeness but is genuinely identifying (a
+#' contributor's own machine hostname, not an ephemeral CI runner name, when
+#' this fingerprint is built outside CI) -- callers serializing this into
+#' anything public should consider dropping it rather than assuming every
+#' field here is safe to publish as-is. \code{hostname} (from
+#' \code{Sys.info()[["nodename"]]}) carries the identical caveat, for the
+#' identical reason.
+#'
+#' The remaining, non-\code{edi_*} fields beyond the original hardware set
+#' close real cross-platform gaps rather than duplicate what was already
+#' here: \code{cpu_model}/\code{total_ram_bytes} gained Windows branches
+#' (\code{wmic}) and \code{total_ram_bytes} gained a macOS branch
+#' (\code{sysctl hw.memsize}) -- both previously \code{NA} outside Linux,
+#' the same gap \code{benchmarkme::get_cpu()}/\code{get_ram()} close via the
+#' identical shell-out technique, replicated here rather than taking on that
+#' package (and its own \code{benchmarkmeData}/\code{dplyr}/\code{foreach}/
+#' \code{doParallel}/\code{httr}/\code{Matrix}/\code{stringr}/\code{tibble}
+#' dependency chain) just for two OS-probing functions this file already
+#' hand-rolls the same way for Linux/macOS. \code{cpu_vendor_id} and
+#' \code{cpu_architecture} are genuinely new information (chip vendor,
+#' instruction-set architecture -- x86_64 vs. arm64 matters enormously for
+#' \code{-march=native} and vectorization). \code{os_description}
+#' (\code{sessionInfo()$running}) and \code{os_sysname}/\code{os_release}/
+#' \code{os_version} (\code{Sys.info()}) give a human-readable and a
+#' structured OS identity respectively, neither redundant with
+#' \code{platform}'s compiler-triple string. \code{sizeof_long}/
+#' \code{sizeof_longdouble}/\code{sizeof_pointer} (\code{.Machine}) are the
+#' three fields of \code{.Machine}'s ~30 that can actually differ across
+#' platforms EDI targets and matter for C++ reproducibility (\code{long} is
+#' 4 bytes on Windows/LLP64 vs. 8 on Linux/macOS/LP64; long double support
+#' varies) -- the rest of \code{.Machine} are IEEE-754 constants that don't
+#' vary on any supported platform, so they're deliberately left out as
+#' schema noise, not overlooked. \code{Sys.info()}'s \code{login}/
+#' \code{user}/\code{effective_user} are deliberately never included here --
+#' actual account usernames, higher-sensitivity than even
+#' \code{hostname}/\code{edi_build_host} and of no diagnostic value for a
+#' hardware/build fingerprint.
+#'
 #' @keywords internal
 #' @noRd
 edi_tuning_hardware_fingerprint = function() {
 	safe = function(expr) tryCatch(expr, error = function(e) NA, warning = function(w) NA)
+	build_info = tryCatch({
+		if (exists("edi_build_info_cpp", mode = "function")) edi_build_info_cpp() else NULL
+	}, error = function(e) NULL)
+	bi = function(name) if (!is.null(build_info)) build_info[[name]] else NA
+	sys_info = safe(Sys.info())
+	sysname = if (!identical(sys_info, NA) && !is.null(sys_info)) sys_info[["sysname"]] else NA_character_
 	cpu_model = safe({
 		if (file.exists("/proc/cpuinfo")) {
 			lines = readLines("/proc/cpuinfo", n = 200L, warn = FALSE)
 			hit = grep("^model name", lines, value = TRUE)
 			if (length(hit)) trimws(sub("^model name\\s*:\\s*", "", hit[[1]])) else NA_character_
-		} else if (identical(Sys.info()[["sysname"]], "Darwin")) {
+		} else if (identical(sysname, "Darwin")) {
 			trimws(system("sysctl -n machdep.cpu.brand_string", intern = TRUE))
+		} else if (identical(sysname, "Windows")) {
+			# Same `wmic cpu get name` approach benchmarkme::get_cpu() uses --
+			# no Linux/proc equivalent exists on Windows, so shelling out is
+			# the only option there.
+			trimws(system("wmic cpu get name", intern = TRUE)[2])
+		} else {
+			NA_character_
+		}
+	})
+	cpu_vendor_id = safe({
+		if (file.exists("/proc/cpuinfo")) {
+			lines = readLines("/proc/cpuinfo", n = 200L, warn = FALSE)
+			hit = grep("^vendor_id", lines, value = TRUE)
+			if (length(hit)) trimws(sub("^vendor_id\\s*:\\s*", "", hit[[1]])) else NA_character_
+		} else if (identical(sysname, "Darwin")) {
+			trimws(system("sysctl -n machdep.cpu.vendor", intern = TRUE))
+		} else if (identical(sysname, "Windows")) {
+			trimws(system("wmic cpu get manufacturer", intern = TRUE)[2])
 		} else {
 			NA_character_
 		}
@@ -73,6 +150,12 @@ edi_tuning_hardware_fingerprint = function() {
 			lines = readLines("/proc/meminfo", n = 5L, warn = FALSE)
 			hit = grep("^MemTotal", lines, value = TRUE)
 			if (length(hit)) as.numeric(gsub("[^0-9]", "", hit[[1]])) * 1024 else NA_real_
+		} else if (identical(sysname, "Darwin")) {
+			as.numeric(system("sysctl -n hw.memsize", intern = TRUE))
+		} else if (identical(sysname, "Windows")) {
+			# Same approach benchmarkme::get_ram() uses for Windows: sum each
+			# installed memory module's capacity (bytes) via WMI.
+			sum(as.numeric(system("wmic MemoryChip get Capacity", intern = TRUE)[-1]), na.rm = TRUE)
 		} else {
 			NA_real_
 		}
@@ -81,11 +164,49 @@ edi_tuning_hardware_fingerprint = function() {
 		logical_cores = safe(as.integer(parallel::detectCores(logical = TRUE))),
 		physical_cores = safe(as.integer(parallel::detectCores(logical = FALSE))),
 		cpu_model = cpu_model,
+		cpu_vendor_id = cpu_vendor_id,
+		cpu_architecture = safe(sys_info[["machine"]]),
 		total_ram_bytes = total_ram_bytes,
 		blas = safe(unname(extSoftVersion()[["BLAS"]])),
 		lapack = safe(unname(La_library())),
 		platform = safe(R.version$platform),
-		r_version = safe(R.version.string)
+		r_version = safe(R.version.string),
+		os_description = safe(sessionInfo()$running),
+		os_sysname = safe(sys_info[["sysname"]]),
+		os_release = safe(sys_info[["release"]]),
+		os_version = safe(sys_info[["version"]]),
+		# Genuinely identifying (this machine's own hostname) -- same
+		# publication caveat as edi_build_host below applies here too.
+		hostname = safe(sys_info[["nodename"]]),
+		# .Machine has ~30 fields; only these three can actually differ
+		# across the platforms EDI targets and matter for C++ reproducibility
+		# (sizeof(long) is 4 on Windows/LLP64 vs 8 on Linux/macOS/LP64;
+		# sizeof(long double) is 0/8 on platforms without extended
+		# precision vs 16 with it). The rest are IEEE-754 constants that
+		# don't vary on any platform this package supports, so including
+		# them would be schema noise, not signal.
+		sizeof_long = safe(.Machine$sizeof.long),
+		sizeof_longdouble = safe(.Machine$sizeof.longdouble),
+		sizeof_pointer = safe(.Machine$sizeof.pointer),
+		edi_native_tuned_build = safe(if (is.null(build_info)) NA else identical(bi("env_edi_portable"), "0")),
+		edi_lto_build = safe(if (is.null(build_info)) NA else identical(bi("env_edi_native_lto"), "1")),
+		edi_build_capture_method = safe(bi("capture_method")),
+		edi_build_timestamp = safe(bi("build_timestamp")),
+		# Genuinely identifying (the machine that built the loaded EDI.so) --
+		# see the roxygen note above and this function's `hostname` field
+		# above, which carries the same caveat for the same reason.
+		edi_build_host = safe(bi("build_host")),
+		edi_build_compiler = safe(bi("compiler")),
+		edi_build_compiler_optimize_macro = safe(bi("compiler_optimize_macro")),
+		edi_build_compiler_fast_math_macro = safe(bi("compiler_fast_math_macro")),
+		edi_build_eigen_vectorize_disabled = safe(bi("eigen_dont_vectorize_macro")),
+		edi_build_disable_vectorization_env = safe(bi("env_edi_disable_vectorization")),
+		edi_build_native_speed_env = safe(bi("env_edi_native_speed")),
+		edi_build_r_cxx20flags = safe(bi("r_cxx20flags")),
+		edi_build_r_shlib_openmp_cxxflags = safe(bi("r_shlib_openmp_cxxflags")),
+		edi_build_pkg_cppflags = safe(bi("pkg_cppflags")),
+		edi_build_pkg_cxxflags = safe(bi("pkg_cxxflags")),
+		edi_build_pkg_libs = safe(bi("pkg_libs"))
 	)
 }
 

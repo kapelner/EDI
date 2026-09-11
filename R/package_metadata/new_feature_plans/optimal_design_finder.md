@@ -24,9 +24,15 @@
 > result-chained seed). §4/§5 hold the current, superseding design; earlier
 > revisions are kept legible in each section's own heading/prose rather
 > than silently erased, per this session's own established convention.
-> **Release target: not assigned** — unlike every other plan scoped this
-> session, no release placement was requested; TODO-1 records this as an
-> open decision rather than assuming one. (Global ordering: see
+> **Release target: v3.0.0** (assigned 2026-09-11, user decision) — the
+> one item TODO-1's decision-gate bundle no longer carries open; the repo
+> home for the public results data, Parquet vs. CSV, and PR-based vs.
+> `workflow_dispatch`-based contribution flow remain genuinely open there,
+> per TODO-1 below. Unlike every other item already in `release_v3_0_0.md`,
+> this plan shares no TODO-1 decision gate, dependency, or scoping day with
+> any of them — it lands in the same tentative release only because it,
+> too, was scoped as landing after v2.0.0, the same reasoning that already
+> put four unrelated items in one file. (Global ordering: see
 > `_master.md`.)
 
 Written 2026-09-11 (user request: "a giant simulation to find the best
@@ -143,27 +149,213 @@ queried directly — no server, no API, no login.**
   CSV, **partitioned by `response_type` and `design_class`** (e.g.
   `results/response_type=survival/design_class=DesignFixedBernoulli/*.parquet`)
   so a query touching one slice doesn't have to scan everything.
-- **Row shape is exactly what was proposed two turns ago, extended with
-  provenance fields the open-contribution model now requires** (the
-  original metric/key columns were always right — only the storage layer
-  under them changed, and one thing was missing: the row didn't yet say
-  *which version of EDI* produced it, load-bearing once results come from
-  outside contributors on their own checkouts, added per direct user
-  decision): `response_type`, `design_class`, `inference_class`,
-  **`inference_type`** (the specific computation path/action within a
-  class — `ci_method`/`pval_method`, e.g. `"rand"`, `"boot"`, `"asymp"` —
-  already a tracked column in `SimulationFramework`'s own output, per §1;
-  this is the literal answer to "inference action type"), the
-  dataset/scenario-generating parameters (`n`, `p`, effect size, ...), the
-  §3 metrics (`power`, `size`, `size_pval`, `coverage`, `coverage_pval`,
-  `mse`, `ci_length`, `time_sec`), and **provenance**: `edi_commit` (full
-  git SHA, not just the `DESCRIPTION` version string, since two commits
-  can share a version number between releases), `r_version`, `os`, and
-  the `seed` used. `edi_commit` is also directly useful for querying, not
-  just integrity — it lets a query pin to one commit ("what does the
-  *current* code actually achieve") or group by commit over time ("has
-  this class's power changed across releases"), which the flat metric
-  columns alone couldn't answer.
+- **Row shape, made complete and precise per a direct user question —
+  "the dataset/scenario-generating parameters (n, p, effect size, ...)"
+  was a loose placeholder, not an actual spec.** `SimulationFramework$new()`
+  takes upwards of thirty parameters (confirmed by reading its full
+  `@param` list, the same pass that found the fifth custom-function
+  parameter). Most are purely operational — `verbose`,
+  `results_filename`, `save_to_disk_every_n_rep`, `stop_on_error`,
+  `reuse_cache`, `continue_from_last_result_row`,
+  `keep_all_intermediate_data`, `turn_off_asserts_for_speed` — and don't
+  change what gets computed, so they don't belong in the row at all.
+  **`num_cores` is the one deliberate exception, promoted into the
+  provenance tier below per direct user instruction.** It's still true
+  that `num_cores` doesn't change a replicate's *statistical* output
+  (§5's whole fork/mirai-vs-serial parity argument depends on exactly
+  that), but it changes what §3's "wall-clock compute cost per fit"
+  ranking criterion actually *means* — 50 seconds at `num_cores = 1` and
+  50 seconds at `num_cores = 16` are not the same claim, so a timing
+  column without it is not honestly interpretable, only decorative. The
+  rest genuinely does, and needs to be recorded completely enough that
+  CI's random-index check (TODO-4b) can actually reconstruct the call
+  that produced any given row, not an approximation of it. Three tiers,
+  not one flat list:
+  - **Headline, indexed/queryable columns** — the fields people actually
+    filter and group by, and the literal answer to "query by dataset
+    type, response type, inference model type, inference action type":
+    `response_type`, `design_class`, `inference_class`, **`inference_type`**
+    (the `ci_method`/`pval_method` computation path — `"rand"`, `"boot"`,
+    `"asymp"` — already tracked in `SimulationFramework`'s own output,
+    per §1), `n`, `p`, `betaT`. **These fields already double as the
+    "was a custom class used" answer** — a reviewed, registered custom
+    `Design`/`Inference` class appears here under its own class name,
+    indistinguishable from a built-in one, exactly the "clean payoff" §5
+    already establishes; no separate custom-class field is needed.
+  - **`scenario_config_json`** — every other statistically-relevant
+    constructor argument that was set to a non-default value
+    (`cond_exp_func_model`, `norm_sq_beta_vec`, `Nrep_W`, `Nrep_Y_w`,
+    `alpha`, `B_boot`, `r_rand`, `pval_epsilon`, `sd_noise`,
+    `prob_censoring`, `dgp_params`, the per-response-type clamp/epsilon/
+    shift parameters, ...) as one serialized JSON object, rather than
+    dozens of individually-indexed columns that would need a schema
+    change every time `SimulationFramework` grows a new parameter. Not
+    queried directly by the DuckDB examples below, but essential for
+    exact reproduction — TODO-4b's random-index check reads it to know
+    exactly what to recompute.
+  - **Custom-component name references, one per function-parameter slot,
+    `NA` when the built-in default was used** —
+    `custom_replication_data_generator_name`,
+    `custom_apply_treatment_and_noise_name`, `make_estimand_fn_name`,
+    `custom_dgp_name`, `cov_draw_method_name`, each a bare name string
+    (never a serialized function/closure — a row cannot and must not
+    carry executable code, only a pointer to reviewed code) resolving to
+    `R/custom_design_simulations/<matching subdirectory>/<name>.R` at
+    the row's own `edi_commit`. Kept as explicit, separate, queryable
+    columns rather than buried inside `scenario_config_json`, since
+    "which rows used a custom DGP" is exactly the kind of question the
+    public database should answer directly. A `custom_dataset_file` field
+    completes the set for route (b) datasets (§5) — `NA` for route (a),
+    where `dataset_package`/`dataset_package_version` (§5) already
+    identify the dataset precisely.
+  - Plus the §3 metrics (`power`, `size`, `size_pval`, `coverage`,
+    `coverage_pval`, `mse`, `ci_length`) and **provenance** — expanded per
+    direct user instruction ("`num_cores` should be recorded. Also force
+    recording of timings of each row. Also force recording of system
+    settings (OS, hardware specs, R version, compilation flags for EDI,
+    etc)") into three groups, all **mandatory, not optional** — a
+    submission missing any of them is rejected outright by CI (Tests,
+    below), the actual "force" the instruction asked for, not merely a
+    documented convention a contributor could skip:
+    - **Identity/reproducibility provenance** (unchanged from the earlier
+      draft): `edi_commit` (full git SHA, not just the `DESCRIPTION`
+      version string, since two commits can share a version number
+      between releases), `r_version`, `os`, and the `seed` used.
+      `edi_commit` is also directly useful for querying, not just
+      integrity — it lets a query pin to one commit ("what does the
+      *current* code actually achieve") or group by commit over time
+      ("has this class's power changed across releases"), which the flat
+      metric columns alone couldn't answer.
+    - **Performance provenance, kept as top-level queryable columns** —
+      the fields needed to make a timing number mean something, not
+      buried in JSON, because "how fast" and "on how many cores" are
+      exactly the kind of thing a query should filter/group by directly,
+      the same reasoning that keeps `response_type`/`design_class` in the
+      headline tier rather than `scenario_config_json`: `num_cores`
+      (promoted out of the excluded list above), `total_wall_time_sec`
+      (renamed from the earlier draft's `time_sec` for clarity that it's
+      the whole row's/cell's compute time, not one replicate's), and
+      `mean_replicate_time_sec` (`total_wall_time_sec / Nrep` — the
+      actual cross-hardware/cross-`num_cores`-comparable unit; a raw
+      total conflates "this combination is slow" with "this run asked
+      for more replicates").
+    - **`system_provenance_json`** — hardware and EDI-build detail, one
+      serialized JSON object per row, the same "don't force a schema
+      migration on every new field" reasoning as `scenario_config_json`
+      above, since filtering on exact CPU model or compiler flag is a
+      rare, exploratory question, not the headline "query by dataset/
+      response/inference type" use case. **Populated by calling
+      `edi_tuning_hardware_fingerprint()`
+      (`R/EDI/R/local_machine_tuning_persistence.R:111-211`) directly and
+      serializing its return value — reused, not rebuilt, and expanded
+      this session (twice, on direct follow-up) so one call covers this
+      row's full "system settings" requirement end to end**: `cpu_model`,
+      `cpu_vendor_id`, `cpu_architecture` (x86_64 vs. arm64 — matters for
+      `-march=native`/vectorization), `logical_cores`, `physical_cores`,
+      `total_ram_bytes`, `blas`, `lapack`, `platform`, `os_description`
+      (human-readable, e.g. "Ubuntu 24.04 LTS"), `os_sysname`/
+      `os_release`/`os_version`, and `sizeof_long`/`sizeof_longdouble`/
+      `sizeof_pointer` (the three `.Machine` fields that can actually
+      differ across platforms EDI targets and bear on C++
+      reproducibility — `long` is 4 bytes on Windows/LLP64 vs. 8 on
+      Linux/macOS/LP64) for the hardware/OS half (`r_version` is already
+      the top-level column above, not duplicated here) — **now with real
+      Windows and macOS coverage** (`cpu_model`/`total_ram_bytes` were
+      Linux-only, silently `NA` elsewhere, before this session's
+      follow-up; `wmic`/`sysctl` branches close that the same way
+      `benchmarkme::get_cpu()`/`get_ram()` do, without taking on that
+      package as a dependency just for two OS-probing functions this file
+      already hand-rolls the same way for Linux/macOS); plus
+      `edi_native_tuned_build` (`-march=native`/`-mtune=native` vs.
+      portable) and `edi_lto_build` for the two highest-signal
+      compile-time booleans, and the fuller compile-time set —
+      `edi_build_capture_method`, `edi_build_timestamp`, `edi_build_host`,
+      `edi_build_compiler` (`__VERSION__`),
+      `edi_build_compiler_optimize_macro`,
+      `edi_build_compiler_fast_math_macro`,
+      `edi_build_eigen_vectorize_disabled`,
+      `edi_build_disable_vectorization_env`, `edi_build_native_speed_env`,
+      `edi_build_r_cxx20flags`, `edi_build_r_shlib_openmp_cxxflags`,
+      `edi_build_pkg_cppflags`, `edi_build_pkg_cxxflags`,
+      `edi_build_pkg_libs` — all pulled inside the fingerprint function
+      itself from `edi_build_info_cpp()`
+      (`R/EDI/src/build_info.cpp:66-101`, `.Call`-exported, compiled into
+      the `.so` itself, so it reports what a given binary actually was
+      built with, not merely what `Makevars` would request), `NA`
+      throughout when the loaded binary predates that export or the
+      build-info C++ symbol isn't available. A contributor's submission
+      script does not need to call `edi_build_info_cpp()`, `sessionInfo()`,
+      `Sys.info()`, or inspect `.Machine` separately, or hand-assemble any
+      of this — one `edi_tuning_hardware_fingerprint()` call is now the
+      whole "system settings" story for this row. **Deliberately not
+      pulled in**: `Sys.info()`'s `login`/`user`/`effective_user` (actual
+      account usernames — higher sensitivity than even a hostname, and no
+      diagnostic value for a hardware/build fingerprint) and the ~26 of
+      `.Machine`'s ~30 fields that are IEEE-754 constants and don't vary
+      on any platform EDI targets — both excluded on purpose, not an
+      oversight, per the function's own roxygen.
+    - **Two privacy issues, decided directly by the user rather than left
+      as an open either/or (an earlier draft of this section presented
+      "strip vs. disclose" as unresolved — it wasn't, once asked).**
+      - **`edi_build_host`/`hostname` (real machine hostname on a
+        contributor's own run — an ephemeral runner name only for a
+        CI-built reference commit): stripped, not disclosed, and
+        enforced twice, not once.** TODO-5's submission template removes
+        both fields from the fingerprint before writing
+        `system_provenance_json` — but a template is just documented
+        convention until something checks it, exactly this plan's own
+        standing rule for anything reaching the public dataset (the
+        config-list function/closure scan, Discovery correctness, both
+        above, follow the identical logic). **CI's PR-validation job
+        (§5, TODO-2b) independently rejects any submission where either
+        field is non-`NA`** — a structural check on the submitted JSON,
+        not trust that the template ran correctly or wasn't bypassed by
+        a hand-edited submission.
+      - **Path-bearing fields — `blas`, `lapack`, `edi_build_pkg_libs`,
+        and `edi_build_pkg_cppflags`/`edi_build_pkg_cxxflags` — carry the
+        identical leak in a narrower case, caught on direct follow-up,
+        not by the original privacy pass.** On a system package manager's
+        BLAS/LAPACK these are generic (`/usr/lib/...`); on a
+        `conda`-installed or `R_LIBS_USER`-local build they resolve to
+        `/home/<username>/...` or `/Users/<username>/...` — but unlike
+        `edi_build_host`, the informative part (which BLAS backend —
+        OpenBLAS, MKL, reference — genuinely matters to this plan's own
+        cross-hardware performance-comparison use case, §4's "emergent
+        capability" below) lives in the rest of the path, not the
+        home-directory prefix, so dropping the field outright would
+        throw away real signal to fix a narrower problem. **Resolution:
+        sanitize, don't drop** — the submission template (and CI's same
+        structural check, as a backstop) strips a leading
+        `/home/<user>/`- or `/Users/<user>/`-shaped prefix from these
+        four fields specifically (regex against `Sys.getenv("HOME")`,
+        not a hardcoded pattern, so it also catches non-default home
+        directories) while keeping everything after it intact — a
+        submission with `/home/alice/miniconda3/envs/r/lib/libopenblas.so`
+        publishes as `~/miniconda3/envs/r/lib/libopenblas.so`, same BLAS
+        identity, no username. CI rejects a submission where any of these
+        four fields still contains a `/home/` or `/Users/` segment after
+        the contributor's own sanitization — the same "structural check,
+        not trust the convention" pattern as the hostname fields above,
+        just narrower (substring rejection, not whole-field rejection).
+      - **Not a reason to change `edi_tuning_hardware_fingerprint()`
+        itself** — the function is a general-purpose fingerprint used
+        well beyond this one plan (§1's local machine-tuning persistence,
+        never published, has no reason to sanitize or drop anything) —
+        both fixes belong at this plan's own contributor-facing boundary
+        (the TODO-5 template) and its CI backstop (TODO-2b), not in the
+        shared function every caller relies on.
+    - **The emergent capability this unlocks, worth stating explicitly
+      per the user's own framing ("this allows us to understand EDI's
+      speed and performance")**: because every row now carries
+      `num_cores`, normalized timing, and hardware/build provenance, the
+      same public dataset that answers "which design × inference
+      combination is statistically best" also answers "how does EDI's
+      own performance vary across hardware, core count, and build
+      configuration" — a second, genuinely useful query surface
+      (`edi_commit` already supported "has power changed across
+      releases"; this adds "has *speed* changed across releases, or
+      between portable and native-tuned builds") that falls out of the
+      same rows for free, not a second data-collection effort.
 - **Anyone can query it with zero setup**, which is the literal ask:
   DuckDB's `httpfs` extension (or `pandas.read_parquet`, or R's `arrow`
   package) reads a Parquet file straight off a `raw.githubusercontent.com`
@@ -544,6 +736,17 @@ given file serves — no need to open it to find out.
   from "is this design/inference combination structurally valid" to also
   cover "is this scenario function/dataset actually a reviewed, resolvable
   thing."
+- **A residual risk worth closing structurally, not just documenting
+  around**: `dgp_params` and other named-list config parameters
+  (`cov_draw_method_args`, any per-inference-type extra params) are
+  plain configuration values by convention — `dgp_params`'s own roxygen
+  already says "Recommended over using closures to pass DGP parameters,"
+  the package's own authors steering away from exactly this — but R does
+  not enforce that at the type level; a named list can hold a function or
+  environment object as easily as a number. CI's validation should
+  reject any submission whose config-list fields contain a
+  function/closure/environment value, not merely trust that contributors
+  follow the documented convention.
 - **This composes with, rather than duplicates, the already-established
   blessed-commit-set mechanism (§5, above)** — a submission's
   `edi_commit` already identifies which commit of the whole repository
@@ -644,17 +847,34 @@ given file serves — no need to open it to find out.
 - **Ranking honesty**: a combination whose empirical type-I error exceeds
   nominal never appears ranked above a valid combination on power alone
   (assert directly on a fixture with a known-invalid combination injected).
+- **Provenance completeness — the concrete form of "force recording,"
+  per direct user instruction.** A submission missing `num_cores`,
+  `total_wall_time_sec`, `mean_replicate_time_sec`, or any field of
+  `system_provenance_json` (§4) is rejected by CI outright, the same way
+  a submission naming an inapplicable design/inference combination is
+  (Discovery correctness, above) — this is a mandatory field check, not
+  a documented-but-unenforced convention a contributor's script could
+  silently skip.
+- **Privacy scrubbing enforced, not merely requested.** Two fixture
+  cases: (a) a submission with `edi_build_host`/`hostname` populated is
+  rejected outright; (b) a submission whose `blas`/`lapack`/
+  `edi_build_pkg_libs`/`edi_build_pkg_cppflags`/`edi_build_pkg_cxxflags`
+  still contains a `/home/`- or `/Users/`-shaped segment is rejected,
+  while an already-sanitized value (`~/miniconda3/envs/r/lib/libopenblas.so`)
+  passes — the concrete form of §4's "sanitize, don't just document"
+  resolution, run on every submission unconditionally, not sampled like
+  the random-index check.
 
 ## TODOs
 
-- [ ] TODO-1: **Decision gate** (ask the user, no code) — release
-  placement (genuinely open, unlike every other plan this session); the
-  repo home for the public results data (a `benchmarks/` directory in
-  `EDI` itself, an orphan branch, or a dedicated sibling repo — affects
-  clone size and CI scope for the main package repo); Parquet vs. CSV;
-  PR-based vs. `workflow_dispatch`-based contribution flow.
-  `R/custom_design_simulations/`'s eight-subdirectory structure (TODO-2b)
-  is settled, not an open item here.
+- [ ] TODO-1: **Decision gate** (ask the user, no code) — **release
+  placement is settled (v3.0.0, 2026-09-11, per the header above); what's
+  still open here** is the repo home for the public results data (a
+  `benchmarks/` directory in `EDI` itself, an orphan branch, or a
+  dedicated sibling repo — affects clone size and CI scope for the main
+  package repo); Parquet vs. CSV; PR-based vs. `workflow_dispatch`-based
+  contribution flow. `R/custom_design_simulations/`'s eight-subdirectory
+  structure (TODO-2b) is settled too, not an open item here.
 - [ ] TODO-2: **Scenario-grid definition** — the parameter ranges per
   response type/axis, and the applicability-discovery wiring from §1 that
   generates valid cells rather than a hand-written list — the set of
@@ -677,15 +897,24 @@ given file serves — no need to open it to find out.
   §5's note — the existing registry-discovery machinery, TODO-2, already
   can't tell a registered custom class from a built-in one) — the same
   "Discovery correctness" pattern (Tests, above) widened to cover
-  functions and datasets. A prerequisite for TODO-5's contribution
-  workflow, not optional hardening added later — an open door here
+  functions and datasets; **and the config-list scan (§5) rejecting any
+  submission whose `dgp_params`/`cov_draw_method_args`/per-inference-type
+  extra params contain a function, closure, or environment value** — a
+  structural check, not reliance on the documented convention against it.
+  A prerequisite for TODO-5's contribution workflow, not optional
+  hardening added later — an open door here
   undermines the integrity model no matter how well TODO-4/4b's RNG work
   turns out.
 - [ ] TODO-3: **Public dataset schema + partitioning** — the row shape
-  and `response_type`/`design_class` partitioning from §4; a worked
-  example DuckDB `httpfs` query against a seeded fixture dataset, checked
-  into the repo so the query test in "Tests" above has something concrete
-  to run against.
+  and `response_type`/`design_class` partitioning from §4, including the
+  mandatory performance-provenance columns (`num_cores`,
+  `total_wall_time_sec`, `mean_replicate_time_sec`) and
+  `system_provenance_json` (populated from
+  `edi_tuning_hardware_fingerprint()`, §4) — the submission script writes
+  all of them on every row, never leaves them `NULL`; a worked example
+  DuckDB `httpfs` query against a seeded fixture dataset, checked into
+  the repo so the query test in "Tests" above has something concrete to
+  run against.
 - [ ] TODO-4: **Fix `SimulationFramework`'s serial-path resume/cheap-
   verification gap — a well-understood, well-scoped fix.** Per direct
   user proposal: give the serial path
@@ -779,7 +1008,20 @@ given file serves — no need to open it to find out.
   submission file plus a SHA-256 commitment hash
   (`digest::digest(raw_replicate_output, algo = "sha256")`, §5) of its
   full raw per-replicate output in a fixed, documented serialization
-  order; the CI job implementing the trust-tiered **random-index** check
+  order; **the template script wraps the actual `SimulationFramework$run()`
+  call in timing (`system.time()`/`proc.time()`) to populate
+  `total_wall_time_sec`/`mean_replicate_time_sec`, and calls
+  `edi_tuning_hardware_fingerprint()` once to populate
+  `system_provenance_json` (§4) — both non-optional steps the template
+  performs automatically, so "force recording" doesn't depend on every
+  contributor remembering to do it by hand — **and applies §4's privacy
+  fixes before writing it**: drops `edi_build_host`/`hostname` entirely,
+  and sanitizes any leading `/home/<user>/`- or `/Users/<user>/`-shaped
+  prefix out of `blas`/`lapack`/`edi_build_pkg_libs`/
+  `edi_build_pkg_cppflags`/`edi_build_pkg_cxxflags` while keeping the rest
+  of each path (§4) — **both re-checked structurally by the CI validation
+  job itself, immediately below, not trusted to the template alone**; the CI job implementing the
+  trust-tiered **random-index** check
   (§5, not a fixed prefix — cheap because fork/mirai's existing
   `private$seed + replicate_index` derivation makes any single replicate
   independently recomputable) at the submitted
@@ -791,7 +1033,13 @@ given file serves — no need to open it to find out.
   anomaly-triggered checks — never a full re-run of the whole submission;
   the blessed-commit-set mechanism (§5) making each of those checks cheap
   via a cached build rather than bounding how many submissions get
-  checked; and the merge/ingestion step that appends an accepted
+  checked; **a privacy structural check** — reject outright if
+  `edi_build_host` or `hostname` is non-`NA`, or if `blas`/`lapack`/
+  `edi_build_pkg_libs`/`edi_build_pkg_cppflags`/`edi_build_pkg_cxxflags`
+  still contains a `/home/` or `/Users/` segment (§4) — run unconditionally
+  on every submission, not sampled like the random-index check, since it's
+  a cheap string check, not a re-simulation; and the merge/ingestion step
+  that appends an accepted
   submission into the partitioned dataset.
 - [ ] TODO-6: **Dashboard** — the thin public leaderboard + priority-list
   page (§4/§5), fetching the public Parquet/CSV directly; Artifact vs.

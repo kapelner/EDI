@@ -598,8 +598,10 @@ own report.
 Opened 2026-09-10 as a tentative home for architecturally new work that
 lands even after v2.0.0's own "large refactorings or new architecture"
 bar — not a committed scope, and not even a fixed set of contents yet.
-Currently holds two independent new-architecture items plus a
-visualization batch added later the same day; see
+Currently holds five independent items: two new-architecture items, a
+visualization batch and a per-class result-plots item added later the
+same day and the day after, and a continuously-running crowdsourced
+simulation benchmark added 2026-09-11; see
 [`release_v3_0_0.md`](R/package_metadata/future_release_plans/release_v3_0_0.md).
 
 - **[Finite mixture regression](R/package_metadata/new_feature_plans/finite_mixture_regression.md)** —
@@ -639,3 +641,18 @@ visualization batch added later the same day; see
   by 19 model families. Six classes have a real structural dependency on
   the Kaplan-Meier-curve item above, not mere non-overlap — see that
   plan's own header.
+- **[Optimal design × inference finder](R/package_metadata/new_feature_plans/optimal_design_finder.md)** —
+  a continuously-running, genuinely open crowdsourced simulation
+  benchmark comparing every applicable design/inference/response-type
+  combination EDI ships, publishing results as public Parquet/CSV in a
+  public GitHub repo (query directly via DuckDB's `httpfs`, no server or
+  login required) rather than a private dataset. Pure orchestration and
+  publishing on top of `SimulationFramework` — no new statistical method.
+  Anonymous contribution integrity rests on a trust-tiered CI spot-check,
+  CI-chosen random replicate indices, a SHA-256 commitment hash over raw
+  output, and mandatory `mirai`/fork execution; custom functions,
+  datasets, and `Design`/`Inference` classes require PR review before
+  they're eligible for the public dataset. Every row forces core count,
+  per-row timing, and full hardware/EDI-build provenance, with an
+  enforced privacy scrub for identifying fields. Tentative; release
+  placement assigned 2026-09-11.
