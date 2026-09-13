@@ -36,7 +36,7 @@
       "@type": "Person",
       "givenName": "Adam",
       "familyName": "Kapelner",
-      "email": "kapelner@qc.cuny.edu",
+      "email": "adam.kapelner@mail.huji.ac.il",
       "@id": "https://orcid.org/0000-0001-5985-6792"
     }
   ],
@@ -44,7 +44,7 @@
     "@type": "Person",
     "givenName": "Adam",
     "familyName": "Kapelner",
-    "email": "kapelner@qc.cuny.edu",
+    "email": "adam.kapelner@mail.huji.ac.il",
     "@id": "https://orcid.org/0000-0001-5985-6792"
   },
   "operatingSystem": ["Linux", "macOS", "Windows"],

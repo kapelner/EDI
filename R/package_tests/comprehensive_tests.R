@@ -412,13 +412,12 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 		"InferenceOrdinalKKGEE||~.",
 		"InferenceOrdinalStereotypeLogitRegr||~."
 	),
-	# Always gets the parametric-bootstrap CI regardless of the
-	# COMPREHENSIVE_PARAM_BOOT_CI env flag -- consumed via
-	# is_exact_inference_class(). (BRT itself has no equivalent opt-in
-	# anymore -- removed 2026-09-10 along with the RUN_BRT CLI flag and
-	# always_run_brt; BRT now runs by default for every class like every
-	# other test family, gated purely by the skip_brt_*_slow flags below.)
-	always_run_parametric_bootstrap_ci = c("InferenceIncidLogBinomial")
+	# always_run_parametric_bootstrap_ci (used to hardcode InferenceIncidLogBinomial
+	# as the one exception to the COMPREHENSIVE_PARAM_BOOT_CI opt-in gate) removed
+	# 2026-09-13 along with that gate -- see run_parametric_bootstrap_ci's removal
+	# comment near its old definition site. Same migration BRT itself already went
+	# through 2026-09-10 (RUN_BRT CLI flag + always_run_brt removed; BRT now runs
+	# by default for every class, gated purely by skip_brt_*_slow).
 )
 required_packages = c("doParallel", "PTE", "datasets", "qgam", "mlbench", "AppliedPredictiveModeling", "dplyr", "ggplot2", "gridExtra", "profvis", "data.table", "devtools", "R.utils")
 for (pkg in required_packages) {
@@ -572,7 +571,23 @@ HEARTBEAT_INTERVAL_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_HEARTBEAT_INTERVAL
 HEARTBEAT_GAP_THRESHOLD_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_HEARTBEAT_GAP_THRESHOLD_SEC", "5"))
 test_compute_confidence_interval_rand = TRUE
 run_debug_resampling = Sys.getenv("COMPREHENSIVE_DEBUG_RESAMPLING", "0") %in% c("1", "true", "TRUE", "yes", "YES")
-run_parametric_bootstrap_ci = Sys.getenv("COMPREHENSIVE_PARAM_BOOT_CI", "0") %in% c("1", "true", "TRUE", "yes", "YES")
+# run_parametric_bootstrap_ci (COMPREHENSIVE_PARAM_BOOT_CI env flag, defaulted
+# off) removed 2026-09-13: it blanket-gated compute_lik_ratio_bootstrap_
+# confidence_interval and the Bartlett CI paths behind an opt-in nobody set by
+# default, for every parametric-bootstrap-capable class at once, with only
+# InferenceIncidLogBinomial hardcoded exempt -- these never got a real
+# comprehensive-suite run and always showed "unknown" in path_audits.html.
+# Live-timed compute_lik_ratio_bootstrap_confidence_interval (B=151, n=60)
+# across one representative class per response type before removing this:
+# ContinOLS 2.7s, IncidLogRegr 13.7s, CountNegBin 4.0s, SurvivalWeibullRegr
+# 11.4s, OrdinalCauchitRegr 11.1s, PropBetaRegr 2.6s -- all well under this
+# registry's own 30s slow-path threshold (see ADDITIONAL_TEST_SLOW_PATHS'
+# header comment). Same migration BRT went through 2026-09-10 (RUN_BRT CLI
+# flag + always_run_brt removed): this CI now runs by default like every
+# other test family, gated purely by the pre-existing skip_pboot_ci_slow flag
+# (ADDITIONAL_TEST_SLOW_PATHS$pboot_ci / EDI_COMPREHENSIVE_SLOW_PATHS$pboot_ci)
+# -- any class that turns out to be genuinely slow gets caught there, same as
+# every other family, instead of every class paying a blanket opt-in tax.
 # Opt-in escape hatch to re-time entries in EDI_COMPREHENSIVE_SLOW_PATHS: when
 # set, the registry-based per-rule skips below are neutralized so a filtered
 # invocation (RESPONSE_TYPE_FILTER/INFERENCE_CLASS_FILTER/TEST_FAMILY_FILTER)
@@ -1473,17 +1488,31 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	skip_brt_ci   = skip_bootstrap || skip_bootstrap_slow || skip_rand_slow || skip_rand_ci_slow || skip_brt_ci_all_slow
 	skip_bayesian_bootstrap = skip_bootstrap || skip_bootstrap_slow ||
 		!isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$supports_bayesian_bootstrap(), error = function(e) TRUE))
+	# Deliberately NOT gated on is(seq_des_inf, "InferenceParamBootstrap") --
+	# that only catches the 7 classes literally `inherit = InferenceParamBootstrap`.
+	# EDI composes the same capability onto ~32 more classes (InferenceContinOLS,
+	# InferenceContinLin, InferenceIncidLogRegr, InferenceCountNegBin,
+	# InferencePropBetaRegr, InferenceSurvivalWeibullRegr, etc.) via
+	# `components = c(..., "ParametricLikelihoodBootstrap")` mixin composition
+	# (assemble_public()/assemble_private() in contracts_mixins.R), which copies
+	# the methods onto the object's own method table without adding
+	# InferenceParamBootstrap to its R6 class vector -- so is() was FALSE for
+	# all of them even though the methods are real and callable. Confirmed live
+	# 2026-09-13: is(InferenceContinOLS$new(...), "InferenceParamBootstrap") is
+	# FALSE, but $compute_param_bootstrap_estimate() returns a real result. The
+	# is() check added nothing the tryCatch below doesn't already provide --
+	# a class that truly lacks this capability either defines the private flag
+	# as FALSE (seen explicitly in inference_all_average_diff.R,
+	# inference_incidence_cmh.R, etc.) or lacks the method entirely, in which
+	# case the tryCatch already falls back to FALSE. Removing is() only widens
+	# eligibility for the ~32 mixin-composed classes; behavior for every other
+	# class is unchanged.
 	supports_parametric_bootstrap =
-		is(seq_des_inf, "InferenceParamBootstrap") &&
 		isTRUE(tryCatch(
 			seq_des_inf$.__enclos_env__$private$supports_lik_ratio_param_bootstrap(),
 			error = function(e) FALSE
 		))
-	run_parametric_bootstrap_ci_for_class =
-		run_parametric_bootstrap_ci ||
-		is_exact_inference_class(ADDITIONAL_TEST_SLOW_PATHS$always_run_parametric_bootstrap_ci)
 	supports_parametric_bootstrap_ci =
-		run_parametric_bootstrap_ci_for_class &&
 		supports_parametric_bootstrap &&
 		isTRUE(tryCatch({
 			ci_support_fn = seq_des_inf$.__enclos_env__$private$supports_lik_ratio_param_bootstrap_confidence_interval
@@ -1494,9 +1523,10 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	# (defaults to isTRUE(supports_lik_ratio_param_bootstrap()), so this tracks
 	# supports_parametric_bootstrap for every family unless one overrides it separately).
 	# Unlike the LR CI above, the new CI is a single reflected-quantile batch (no
-	# per-delta bisection refits), so it is not gated behind run_parametric_bootstrap_ci.
+	# per-delta bisection refits) -- it was never gated behind the now-removed
+	# run_parametric_bootstrap_ci opt-in in the first place.
+	# Same is()-removal rationale as supports_parametric_bootstrap above.
 	supports_parametric_bootstrap_estimate =
-		is(seq_des_inf, "InferenceParamBootstrap") &&
 		isTRUE(tryCatch(
 			seq_des_inf$.__enclos_env__$private$supports_param_bootstrap_estimate(),
 			error = function(e) FALSE
@@ -1510,7 +1540,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	supports_bartlett_approx_variant =
 		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$supports_bartlett_likelihood_ratio_approx(), error = function(e) FALSE))
 	supports_bartlett = supports_bartlett_exact_variant || supports_bartlett_approx_variant
-	supports_bartlett_ci = run_parametric_bootstrap_ci_for_class && supports_bartlett
+	supports_bartlett_ci = supports_bartlett
 	supports_randomization_test =
 		supports_inference_capability(seq_des_inf, "randomization_test")
 	supports_randomization_ci =
@@ -2378,11 +2408,11 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		!skip_pboot_ci_slow){
 		safe_call("compute_lik_ratio_bartlett_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_confidence_interval(B = r))
 	}
-	if (should_run_test_family("bartlett") && !skip_slow && run_parametric_bootstrap_ci_for_class && supports_bartlett_approx_variant &&
+	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_approx_variant &&
 		!skip_pboot_ci_slow){
 		safe_call("compute_lik_ratio_bartlett_approx_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_approx_confidence_interval(B = r))
 	}
-	if (should_run_test_family("bartlett") && !skip_slow && run_parametric_bootstrap_ci_for_class && supports_bartlett_exact_variant &&
+	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_exact_variant &&
 		!skip_pboot_ci_slow){
 		safe_call("compute_lik_ratio_bartlett_exact_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_exact_confidence_interval())
 	}

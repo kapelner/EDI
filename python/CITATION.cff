@@ -7,7 +7,7 @@ date-released: "2026-08-31"
 authors:
   - family-names: Kapelner
     given-names: Adam
-    email: kapelner@qc.cuny.edu
+    email: adam.kapelner@mail.huji.ac.il
     orcid: "https://orcid.org/0000-0001-5985-6792"
 repository-code: "https://github.com/kapelner/EDI/tree/main/python"
 url: "https://pypi.org/project/edi_kernels/"
@@ -33,7 +33,7 @@ preferred-citation:
   authors:
     - family-names: Kapelner
       given-names: Adam
-      email: kapelner@qc.cuny.edu
+      email: adam.kapelner@mail.huji.ac.il
       orcid: "https://orcid.org/0000-0001-5985-6792"
   repository-code: "https://github.com/kapelner/EDI"
   url: "https://github.com/kapelner/EDI"

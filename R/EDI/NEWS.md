@@ -1,4 +1,4 @@
-# EDI (development version)
+# EDI 1.0.1
 
 ## Breaking changes
 
@@ -23,6 +23,67 @@
 
 ## Bug fixes
 
+* Six ordinal-response inference classes — `InferenceOrdinalAdjCatLogitRegr`,
+  `InferenceOrdinalCauchitRegr`, `InferenceOrdinalCloglogRegr`,
+  `InferenceOrdinalOrderedProbitRegr`, `InferenceOrdinalContRatioRegr`, and
+  `InferenceOrdinalPropOddsRegr` — extracted `b[length(b)]` (the last
+  covariate's slope) as the treatment coefficient instead of `b[1]`
+  (treatment is always the design matrix's first column). The two coincide
+  only when the model has no covariates beyond treatment; with covariates
+  present, the randomization test and the Bayesian-bootstrap machinery
+  silently estimated and tested a different covariate's effect instead of
+  treatment's (confirmed via near-total null rejection on
+  `design_formula = ~.` paths). `InferenceOrdinalPropOddsRegr`'s Bayesian
+  bootstrap also always reported `NA` for the treatment coefficient's
+  per-replicate SE, discarding an already-computed value, which starved
+  its studentized/BCa variants of any SE.
+* The log-normal-frailty Weibull AFT model
+  (`InferenceSurvivalGLMMWeibullFrailtyNormalIVWC`/`OneLik`) fit its design
+  matrix with no intercept column. Without one, the control arm's baseline
+  log-time was pinned at 0 and the mean-zero Gaussian frailty could only
+  partly absorb it; the leftover bias (plus the Gumbel error's nonzero
+  mean) leaked into the treatment estimate, inflating Wald/score/LR/
+  bootstrap rejection to roughly 50-70% under the null (nominal 5%).
+* `InferenceIncidGCompRiskRatio` and `InferenceIncidKKGCompRiskRatio`'s
+  subsampling and m-out-of-n bootstrap centered and scaled on the raw
+  (risk-ratio) scale — the right pivot for a risk *difference*, but not
+  for a ratio whose null is 1 and which is right-skewed at reduced
+  effective sample size, which drove rejection rates to near 100%
+  regardless of the true effect. Both now use a log-scale pivot, matching
+  the convention already used by their percentile/BCa bootstrap CIs.
+* The zero-inflated negative binomial kernel (`fast_zinb.cpp`) had two bugs
+  in its ZIP-limit reduced fit: a fixed-parameter index was off by one, so
+  the reduced fit pinned the parameter *before* the one requested (e.g.
+  the intercept instead of the treatment coefficient); and the ZIP-limit
+  score vector was one entry shorter than the full parameter vector and
+  was not zero-padded, so score-test consumers compared it against a
+  differently-sized information matrix.
+* The generic score test (`InferenceExtInformationMatrix`) returned `NA`
+  for the large majority of calls from `InferenceContinKKGLMM` and
+  `InferenceCountKKGLMM` — their null-constrained refit's
+  nuisance-parameter information is positive definite only about 32% of
+  the time near a variance-component boundary, which is expected behavior
+  of the likelihood surface there, not a sign of a bad fit. This made the
+  score test degenerate (0% Type-I error and 0% power together, rather
+  than merely miscalibrated). A ridge-regularized fallback now activates
+  only when the unregularized path already returned a non-finite p-value.
+* Bootstrap-family methods (nonparametric, m-out-of-n, subsampling, BCa)
+  now refuse with an explicit error for `DesignSeqOneByOne` and its
+  subclasses, except `DesignSeqOneByOneBernoulli` (whose assignments do
+  not depend on prior subjects, so row resampling is valid there). These
+  methods previously ran without error for sequential designs in general
+  and were documented as merely "conservative"; that claim did not hold
+  and has been removed along with the methods for the other sequential
+  designs.
+* `InferenceSurvivalCoxPHRegr`'s fast randomization-bootstrap draw-matrix
+  path was unreachable because of a stale guard left over from the
+  removed custom-randomization-statistic mechanism (see Breaking changes
+  above); the fast path is restored.
+* `SimulationFramework`'s `mirai`-based parallelization
+  (`set_num_cores(force_mirai = TRUE)`) could hang indefinitely if a
+  daemon died before connecting. Daemon launch and every
+  daemon-collection call are now bounded by a deadline, with one relaunch
+  attempt and a clear error in place of an unbounded wait.
 * Randomization confidence intervals are no longer offered for the six
   log-hazard-ratio (Cox-family) survival classes — `InferenceSurvivalCoxPHRegr`,
   `InferenceSurvivalKKLWACoxPHIVWC`/`OneLik`, `InferenceSurvivalKKStratCoxPHIVWC`/`OneLik`,
@@ -46,6 +107,12 @@
   construction (Rosenbaum 2002; Imbens & Rubin 2015) and, for survival
   responses, the AFT residual construction and its censoring assumptions
   (Tsiatis 1990; Wei, Ying & Lin 1990; Jin, Lin, Wei & Ying 2003).
+* `InferenceOrdinalStereotypeLogitRegr`'s likelihood-ratio test
+  (`compute_lik_ratio_two_sided_pval()`) now documents that it has
+  inflated Type-I error (roughly 18-23% vs. a nominal 5%) for this class
+  specifically (a non-regular case in the sense of Davies 1977), and
+  recommends the bootstrap (~6-7%) or Bartlett-corrected (~4%) variants
+  instead. The flagged method's own behavior is unchanged.
 
 # EDI 1.0.0
 
