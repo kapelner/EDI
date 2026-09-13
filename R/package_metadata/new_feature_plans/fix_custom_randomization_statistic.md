@@ -505,6 +505,69 @@ only touches its one registry entry, not that machinery in general.)
   touched file(s) directly and relink per `CLAUDE.md`'s targeted-compile
   procedure, or ask the user to run their own build.
 
+- [ ] **TODO-10: Re-audit the `rand_custom` family's slow-path skip flags —
+  the old ones were benchmarked against a mechanism this plan deletes.**
+  Today, `skip_custom_rand_pval` (`comprehensive_tests.R:1544-1545`) and
+  `skip_ci_rand_custom` (`:1549`) gate whether the custom-statistic p-value/CI
+  actually run for a given (dataset, design, class) row of the exhaustive
+  sweep:
+  ```r
+  skip_custom_rand_pval = (skip_regular_rand_pval && !is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand_pval_custom_allowed)) ||
+  	response_type == "incidence"
+  skip_ci_rand_custom = !force_run_slow_paths && is_exact_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_ci_custom)
+  ```
+  Both were tuned for the *old* mechanism, where the custom statistic ran as
+  a method call on `seq_des_inf` itself (whatever concrete estimator class
+  the row under test happens to be):
+  - `skip_custom_rand_pval` piggybacks on `skip_regular_rand_pval` — the
+    *regular* (non-custom) randomization p-value's own slow-class exclusion
+    list (`ADDITIONAL_TEST_SLOW_PATHS$rand_pval`). That coupling made sense
+    only because the custom stat ran on the *same* object as the regular
+    test, so if `seq_des_inf`'s own class was registered as slow, the custom
+    path inherited that slowness too.
+  - `skip_ci_rand_custom` hardcodes one exclusion,
+    `rand_ci_custom = c("InferenceContinKKRobustRegrOneLik")`
+    (`comprehensive_tests.R:408`, annotated "custom rand CI slow: robust avg
+    336.6s / max 1994.8s at n=6") — a benchmark of how slow *that one class*
+    was under the old duplicate-object-per-iteration path when it lacked its
+    own fast kernel for the custom-stat case.
+
+  After TODO-7, the custom statistic runs on a freshly constructed
+  `InferenceRandCustom(seq_des_inf$get_design_object(), ...)` — a completely
+  separate object with its own `compute_fast_randomization_distr`/
+  `compute_fast_rand_bootstrap_distr` (TODO-2), the same two methods for
+  every dataset and design. Its performance no longer depends at all on
+  which concrete estimator class `seq_des_inf` happens to be, so:
+  1. Decouple `skip_custom_rand_pval` from `skip_regular_rand_pval` entirely
+     — it should default to running (not skipped) for every (dataset,
+     design, response_type) combination the outer `supports_randomization_
+     test` gate already lets through, independent of `seq_des_inf`'s own
+     slow-path status. The `response_type == "incidence"` term stays exactly
+     as-is (that's a real, `InferenceRandCustom`-independent limitation
+     already documented in TODO-2/TODO-7 and the roxygen for
+     `compute_rand_two_sided_pval`).
+  2. Re-benchmark rather than carry over `rand_ci_custom`'s single hardcoded
+     exclusion. Time `InferenceRandCustom$compute_rand_confidence_interval()`
+     at the same `n`/`r` this file already uses, across a representative
+     spread of datasets/designs (not just the one previously-excluded
+     class). If it's now uniformly fast (expected, since it always uses the
+     same fast kernel), delete the `rand_ci_custom` exclusion and
+     `skip_ci_rand_custom`'s dependency on it, replacing it with a plain
+     `force_run_slow_paths`-independent "always run" default; if some
+     dataset/design combination is still genuinely slow, record fresh timing
+     data in a comment the same way the current one does, keyed on
+     data/design shape rather than on `seq_des_inf`'s class name (since the
+     class name is no longer mechanically relevant to this test's cost).
+  3. Confirm the result: the custom p-value and custom CI both actually
+     execute, and are asserted on, for every applicable row of the
+     exhaustive sweep (every dataset × design × response type combination
+     that supports randomization inference and isn't incidence) — not just
+     a hand-picked subset. This is a coverage requirement, not just a
+     performance cleanup: the whole point of `InferenceRandCustom` replacing
+     a 20-file-scattered mechanism is that it is now ONE code path, so it
+     should be exercised as broadly as every other test family in this file
+     (`rand`, `rand_ci`, `rand_bootstrap`, ...) already is.
+
 ## Explicitly out of scope
 
 - Bootstrap-randomization CI on `InferenceRandCustom` (see Non-goals).
