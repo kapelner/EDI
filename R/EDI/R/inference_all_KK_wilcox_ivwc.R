@@ -235,7 +235,6 @@ KKWilcoxIVWCSource = list(
 		jackknife_always_nonestimable = function() TRUE,
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
-			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
 			# Optimization: w_mat and m_mat are already pre-computed matrices
 			w_mat = permutations$w_mat
 			m_mat = permutations$m_mat

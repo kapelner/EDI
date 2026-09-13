@@ -45,6 +45,10 @@ inf$compute_estimate()
     \item \href{#method-InferenceIncidGCompRiskDiff-compute_bayesian_bootstrap_confidence_interval}{\code{InferenceIncidGCompRiskDiff$compute_bayesian_bootstrap_confidence_interval()}}
     \item \href{#method-InferenceIncidGCompRiskDiff-compute_jackknife_wald_two_sided_pval}{\code{InferenceIncidGCompRiskDiff$compute_jackknife_wald_two_sided_pval()}}
     \item \href{#method-InferenceIncidGCompRiskDiff-compute_jackknife_wald_confidence_interval}{\code{InferenceIncidGCompRiskDiff$compute_jackknife_wald_confidence_interval()}}
+    \item \href{#method-InferenceIncidGCompRiskDiff-compute_subsampling_two_sided_pval}{\code{InferenceIncidGCompRiskDiff$compute_subsampling_two_sided_pval()}}
+    \item \href{#method-InferenceIncidGCompRiskDiff-compute_subsampling_confidence_interval}{\code{InferenceIncidGCompRiskDiff$compute_subsampling_confidence_interval()}}
+    \item \href{#method-InferenceIncidGCompRiskDiff-compute_m_out_of_n_bootstrap_two_sided_pval}{\code{InferenceIncidGCompRiskDiff$compute_m_out_of_n_bootstrap_two_sided_pval()}}
+    \item \href{#method-InferenceIncidGCompRiskDiff-compute_m_out_of_n_bootstrap_confidence_interval}{\code{InferenceIncidGCompRiskDiff$compute_m_out_of_n_bootstrap_confidence_interval()}}
     \item \href{#method-InferenceIncidGCompRiskDiff-clone}{\code{InferenceIncidGCompRiskDiff$clone()}}
   }
 }
@@ -187,6 +191,82 @@ inf$compute_estimate()
     \preformatted{InferenceIncidGCompRiskDiff$compute_jackknife_wald_confidence_interval(
   alpha = 0.05,
   unit = "auto"
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskDiff-compute_subsampling_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskDiff-compute_subsampling_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidGCompRiskDiff$compute_subsampling_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskDiff$compute_subsampling_two_sided_pval(
+  delta = NULL,
+  B = 501,
+  b = NULL,
+  type = "centered",
+  show_progress = TRUE,
+  min_number_usable_samples = 5L,
+  subsampling_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskDiff-compute_subsampling_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskDiff-compute_subsampling_confidence_interval}{}}}
+\subsection{\code{InferenceIncidGCompRiskDiff$compute_subsampling_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskDiff$compute_subsampling_confidence_interval(
+  alpha = 0.05,
+  B = 501,
+  b = NULL,
+  type = "basic",
+  show_progress = TRUE,
+  min_number_usable_samples = 5L,
+  subsampling_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskDiff-compute_m_out_of_n_bootstrap_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskDiff-compute_m_out_of_n_bootstrap_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidGCompRiskDiff$compute_m_out_of_n_bootstrap_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskDiff$compute_m_out_of_n_bootstrap_two_sided_pval(
+  delta = NULL,
+  B = 501,
+  m = NULL,
+  type = "centered",
+  show_progress = TRUE,
+  min_number_usable_samples = 5L,
+  bootstrap_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskDiff-compute_m_out_of_n_bootstrap_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskDiff-compute_m_out_of_n_bootstrap_confidence_interval}{}}}
+\subsection{\code{InferenceIncidGCompRiskDiff$compute_m_out_of_n_bootstrap_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskDiff$compute_m_out_of_n_bootstrap_confidence_interval(
+  alpha = 0.05,
+  B = 501,
+  m = NULL,
+  type = "basic",
+  show_progress = TRUE,
+  min_number_usable_samples = 5L,
+  bootstrap_type = NULL
 )}
     \if{html}{\out{</div>}}
   }

@@ -74,8 +74,6 @@ Dixon, W. J., and Mood, A. M. (1946). "The Statistical Sign
     \item \href{#method-InferenceOrdinalPairedSignTest-compute_estimate_with_bootstrap_weights}{\code{InferenceOrdinalPairedSignTest$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferenceOrdinalPairedSignTest-compute_asymp_confidence_interval}{\code{InferenceOrdinalPairedSignTest$compute_asymp_confidence_interval()}}
     \item \href{#method-InferenceOrdinalPairedSignTest-compute_asymp_two_sided_pval}{\code{InferenceOrdinalPairedSignTest$compute_asymp_two_sided_pval()}}
-    \item \href{#method-InferenceOrdinalPairedSignTest-approximate_bootstrap_distribution_beta_hat_T}{\code{InferenceOrdinalPairedSignTest$approximate_bootstrap_distribution_beta_hat_T()}}
-    \item \href{#method-InferenceOrdinalPairedSignTest-approximate_jackknife_distribution_beta_hat_T}{\code{InferenceOrdinalPairedSignTest$approximate_jackknife_distribution_beta_hat_T()}}
     \item \href{#method-InferenceOrdinalPairedSignTest-clone}{\code{InferenceOrdinalPairedSignTest$clone()}}
   }
 }
@@ -259,65 +257,6 @@ targets \code{1 - alpha} coverage.}
       \item{\code{delta}}{The null value for \eqn{\beta_T}; must be \code{0}.}
     }
     \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalPairedSignTest-approximate_bootstrap_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalPairedSignTest-approximate_bootstrap_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceOrdinalPairedSignTest$approximate_bootstrap_distribution_beta_hat_T()}}{
-  Uses the shared nonparametric bootstrap distribution contract; see
-  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-  Note that Bootstrap is disabled for this class as subject-level resampling violates the
-  matched-pair design constraint.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalPairedSignTest$approximate_bootstrap_distribution_beta_hat_T(
-  B = 501,
-  show_progress = TRUE,
-  debug = FALSE,
-  bootstrap_type = NULL
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{B}}{Number of bootstrap samples.}
-      \item{\code{show_progress}}{Whether to show a progress bar.}
-      \item{\code{debug}}{Whether to return diagnostics.}
-      \item{\code{bootstrap_type}}{Optional resampling scheme.}
-    }
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    A numeric vector of bootstrap estimates.
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalPairedSignTest-approximate_jackknife_distribution_beta_hat_T"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalPairedSignTest-approximate_jackknife_distribution_beta_hat_T}{}}}
-\subsection{\code{InferenceOrdinalPairedSignTest$approximate_jackknife_distribution_beta_hat_T()}}{
-  Creates the jackknife distribution of the estimate for the treatment effect.
-  Note that Jackknife is disabled for this class as subject-level deletion violates the
-  matched-pair design constraint.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalPairedSignTest$approximate_jackknife_distribution_beta_hat_T(
-  unit = "auto"
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{unit}}{Deletion unit.}
-    }
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Returns}{
-    A numeric vector of jackknife estimates.
   }
 }
 

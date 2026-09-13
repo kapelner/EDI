@@ -199,7 +199,6 @@ InferenceContinOLS = define_inference_class(
 		cached_mod = NULL,
 		max_resample_attempts = NULL,
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
-			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			# the OLS kernel only implements the additive sharp-null shift
 			if (delta != 0 && !identical(transform_responses, "none")) return(NULL)
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)
@@ -221,7 +220,6 @@ InferenceContinOLS = define_inference_class(
 		# the w_fresh-coefficient of regressing w_obs on the same design matrix. Both A_b and
 		# g_b come from one QR per draw with a two-column response.
 		compute_rand_bootstrap_ci_affine_coefs = function(rand_bootstrap_draws){
-			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			n = as.integer(private$n)
 			B = length(rand_bootstrap_draws)
 			if (B == 0L) return(NULL)

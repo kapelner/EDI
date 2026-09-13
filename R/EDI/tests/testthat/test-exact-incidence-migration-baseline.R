@@ -61,8 +61,6 @@ exact_incidence_baseline_public_methods = c(
 	"is_nonestimable",
 	"select_optimal_b_subsampling",
 	"select_optimal_m_out_of_n_bootstrap",
-	"set_custom_randomization_statistic_cpp",
-	"set_custom_randomization_statistic_function",
 	"set_optimization_alg",
 	"set_seed",
 	"supports",

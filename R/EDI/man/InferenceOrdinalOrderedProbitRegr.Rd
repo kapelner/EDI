@@ -52,8 +52,6 @@ McCullagh, P. (1980). "Regression Models for Ordinal Data."
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceOrdinalOrderedProbitRegr-set_custom_randomization_statistic_function}{\code{InferenceOrdinalOrderedProbitRegr$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceOrdinalOrderedProbitRegr-set_custom_randomization_statistic_cpp}{\code{InferenceOrdinalOrderedProbitRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceOrdinalOrderedProbitRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceOrdinalOrderedProbitRegr$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceOrdinalOrderedProbitRegr-supports_rand_pval_for_incidence}{\code{InferenceOrdinalOrderedProbitRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceOrdinalOrderedProbitRegr-compute_rand_two_sided_pval}{\code{InferenceOrdinalOrderedProbitRegr$compute_rand_two_sided_pval()}}
@@ -86,30 +84,6 @@ McCullagh, P. (1980). "Regression Models for Ordinal Data."
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalOrderedProbitRegr-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalOrderedProbitRegr-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceOrdinalOrderedProbitRegr$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalOrderedProbitRegr$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalOrderedProbitRegr-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalOrderedProbitRegr-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceOrdinalOrderedProbitRegr$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalOrderedProbitRegr$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceOrdinalOrderedProbitRegr-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalOrderedProbitRegr-approximate_randomization_distribution_beta_hat_T}{}}}

@@ -40,10 +40,12 @@
 >   continuous + incidence response types. **Finding that unlocked the
 >   original 2026-09-05 move:** the selection-inclusive randomization test
 >   needs *no* `Design`-level fold/split substrate at all. It needs only
->   the permutation engine's already-shipped user-statistic hook
->   (`set_custom_randomization_statistic_function()`,
->   `inference_all_abstract_rand.R:22`) and the registry — and every
->   design's redraw-of-`w` mechanism for the per-replicate re-run
+>   the permutation engine's already-shipped user-statistic vehicle —
+>   `InferenceRandCustom` (`inference_rand_custom.R`; replaced the prior
+>   `set_custom_randomization_statistic_function()` hook on
+>   `inference_all_abstract_rand.R` in 2026-09-13's
+>   `fix_custom_randomization_statistic.md`, `finished_features/`) — and
+>   every design's redraw-of-`w` mechanism for the per-replicate re-run
 >   already exists and is design-agnostic, since that is the package's
 >   core, already-shipped randomization engine. **Second finding that
 >   widened the move, 2026-09-06:** the one thing that *did* still need
@@ -295,9 +297,12 @@ T(w):  1. fit every (class x formula) cell in the grid
 ```
 
 and let `compute_rand_two_sided_pval()` / the BRT redraw `w` (or
-resample-then-redraw) and re-run steps 1–5 per replicate, via the
-existing custom-randomization-statistic machinery
-(`inference_ext_custom_randomization_statistic.R`). Valid post-selection
+resample-then-redraw) and re-run steps 1–5 per replicate, via
+`InferenceRandCustom`: construct it over the design with
+`custom_randomization_statistic_function` set to the whole
+choose-then-fit pipeline (steps 1–5 above, returning the winner's
+treatment estimate), then call `compute_rand_two_sided_pval()`/
+`compute_rand_confidence_interval()` on that object. Valid post-selection
 p-values with no power sacrificed to a split and no conditioning
 formula — selection costs compute, not validity.
 
@@ -686,9 +691,10 @@ other (see the header's open question and TODO-9).
 - [ ] TODO-6: **Reporting**: selection table, criterion-profile and
   calibration plots, HTML report, and the §2 rule-2 handoff footer.
 - [ ] TODO-7 *(Phase A — the core deliverable)*: **Selection-inclusive
-  randomization statistic**: pipeline wrapper over the
-  custom-randomization-statistic machinery
-  (`set_custom_randomization_statistic_function()`), the per-replicate
+  randomization statistic**: pipeline wrapper built as an
+  `InferenceRandCustom` instance (`inference_rand_custom.R`) over the
+  design, its `custom_randomization_statistic_function` the
+  choose-then-fit pipeline itself, the per-replicate
   full re-run of steps 1–5 dispatched over `set_num_cores()`'s
   persistent pool (fork on Unix, `mirai` on Windows — `globals.R:533`)
   across both replicates and cells, the provenance-driven dispatch and

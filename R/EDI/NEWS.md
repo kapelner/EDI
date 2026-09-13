@@ -1,5 +1,26 @@
 # EDI (development version)
 
+## Breaking changes
+
+* `set_custom_randomization_statistic_function()` and
+  `set_custom_randomization_statistic_cpp()` are removed from every concrete
+  estimator class. They let a bare R closure read `private$des_obj_priv_int`
+  through a hand-built environment proxy — an undocumented, fragile
+  mechanism that also forced every concrete estimator's own fast/vectorized
+  randomization-test paths to carry a guard for a feature that had nothing
+  to do with that estimator. Use the new `InferenceRandCustom` class
+  instead: `InferenceRandCustom$new(des_obj, custom_randomization_statistic_function
+  = function(y, w, dead) ...)` (or `custom_randomization_statistic_cpp =`
+  for the same C++ source/compiled-function/`RcppXPtrUtils::cppXPtr()`
+  options as before), then call `compute_rand_two_sided_pval()` or
+  `compute_rand_confidence_interval()` on it. The statistic function's
+  calling convention is now explicit arguments — `function(y, w, dead)` —
+  not implicit access to private state; existing custom statistic functions
+  need this small rewrite. `InferenceRandCustom` has its own dedicated fast
+  kernel, so performance is unchanged or better than before, uniformly
+  across every dataset and design (previously, speed depended on which
+  concrete class the statistic happened to be attached to).
+
 ## Bug fixes
 
 * Randomization confidence intervals are no longer offered for the six

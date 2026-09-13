@@ -5,9 +5,13 @@
 \title{Comprehensive-test slow-path registry}
 \format{
 A named list. `exact_operations` contains keys of the form
-  `response_type||InferenceClass||operation`; every other element contains
-  formula-, dataset-, and design-independent concrete inference-class names
-  for the named slow-path family.
+  `response_type||InferenceClass||operation`, optionally suffixed with
+  `||model_formula` (e.g. `||~1`) to restrict the entry to that one
+  formula -- an operation with no formula suffix is skipped for every
+  formula, matching the pre-2026-09-08 behavior. `model_formula` is
+  matched as the deparsed formula text (`"~1"`, `"~."`, ...). Every other
+  element contains formula-, dataset-, and design-independent concrete
+  inference-class names for the named slow-path family.
 }
 \usage{
 EDI_COMPREHENSIVE_SLOW_PATHS

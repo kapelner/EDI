@@ -17,8 +17,6 @@ for the frailty-distribution details and contrast with the gamma-frailty
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceSurvivalGLMMWeibullFrailtyNormalOneLik-set_custom_randomization_statistic_function}{\code{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceSurvivalGLMMWeibullFrailtyNormalOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceSurvivalGLMMWeibullFrailtyNormalOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceSurvivalGLMMWeibullFrailtyNormalOneLik-supports_rand_pval_for_incidence}{\code{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceSurvivalGLMMWeibullFrailtyNormalOneLik-compute_rand_two_sided_pval}{\code{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$compute_rand_two_sided_pval()}}
@@ -51,32 +49,6 @@ for the frailty-distribution details and contrast with the gamma-frailty
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalGLMMWeibullFrailtyNormalOneLik-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalGLMMWeibullFrailtyNormalOneLik-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalGLMMWeibullFrailtyNormalOneLik-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalGLMMWeibullFrailtyNormalOneLik-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$set_custom_randomization_statistic_cpp(
-  fn
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceSurvivalGLMMWeibullFrailtyNormalOneLik-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalGLMMWeibullFrailtyNormalOneLik-approximate_randomization_distribution_beta_hat_T}{}}}

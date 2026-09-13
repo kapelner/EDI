@@ -13,8 +13,6 @@ Abstract class for randomization-based inference.
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceRand-set_custom_randomization_statistic_function}{\code{InferenceRand$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceRand-set_custom_randomization_statistic_cpp}{\code{InferenceRand$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceRand-approximate_randomization_distribution_beta_hat_T}{\code{InferenceRand$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceRand-supports_rand_pval_for_incidence}{\code{InferenceRand$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceRand-compute_rand_two_sided_pval}{\code{InferenceRand$compute_rand_two_sided_pval()}}
@@ -47,76 +45,6 @@ Abstract class for randomization-based inference.
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceRand-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceRand-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceRand$set_custom_randomization_statistic_function()}}{
-  Set a custom R randomization statistic.
-
-Replaces the default treatment-effect estimate used in
-\code{approximate_randomization_distribution_beta_hat_T()} and
-\code{compute_randomization_two_sided_pval()} with a user-supplied R
-function. The function must return one scalar statistic for the current
-randomized outcome/assignment state. Pass \code{NULL} to clear the custom
-statistic. This cannot be used at the same time as
-\code{set_custom_randomization_statistic_cpp()}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceRand$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{custom_randomization_statistic_function}}{A function that returns one
-scalar value, or \code{NULL} to restore the class default statistic.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceRand-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceRand-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceRand$set_custom_randomization_statistic_cpp()}}{
-  Set a custom compiled C++ randomization statistic.
-
-Replaces the default treatment-effect estimate used in
-\code{approximate_randomization_distribution_beta_hat_T()} and
-\code{compute_randomization_two_sided_pval()} with a scalar C++ statistic.
-A source string is recommended because each parallel worker can compile
-its own copy safely. A pre-compiled Rcpp function can be used in the main
-process, but external pointers may not survive serialization to workers.
-Pass \code{NULL} to clear the custom statistic. This cannot be used at
-the same time as \code{set_custom_randomization_statistic_function()}.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceRand$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{fn}}{Either a C++ source code string, a pre-compiled Rcpp function,
-an \code{RcppXPtrUtils::cppXPtr()} external pointer, or
-\code{NULL}. A source string or Rcpp function must return a scalar
-\code{double} and accept either \code{(NumericVector y, IntegerVector w)}
-or \code{(NumericVector y, IntegerVector w, IntegerVector dead)}. An
-external pointer follows the package-wide \code{user_compiled_fns.h}
-calling convention shared with \code{DesignFixedOptimal}'s
-\code{custom_objective} -- Eigen types:
-\code{double f(const Eigen::VectorXd& y, const Eigen::VectorXd& w)}, or
-the 3-argument form appending \code{const Eigen::VectorXd& dead} --
-and, like a pre-compiled Rcpp function, is valid in the main process
-only (external pointers do not survive serialization to parallel
-workers; use a source string for parallel paths).}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceRand-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceRand-approximate_randomization_distribution_beta_hat_T}{}}}

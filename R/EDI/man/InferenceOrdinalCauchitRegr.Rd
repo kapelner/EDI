@@ -31,8 +31,6 @@ Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceOrdinalCauchitRegr-set_custom_randomization_statistic_function}{\code{InferenceOrdinalCauchitRegr$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceOrdinalCauchitRegr-set_custom_randomization_statistic_cpp}{\code{InferenceOrdinalCauchitRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceOrdinalCauchitRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceOrdinalCauchitRegr$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceOrdinalCauchitRegr-supports_rand_pval_for_incidence}{\code{InferenceOrdinalCauchitRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceOrdinalCauchitRegr-compute_rand_two_sided_pval}{\code{InferenceOrdinalCauchitRegr$compute_rand_two_sided_pval()}}
@@ -65,30 +63,6 @@ Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalCauchitRegr-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalCauchitRegr-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceOrdinalCauchitRegr$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalCauchitRegr$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalCauchitRegr-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalCauchitRegr-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceOrdinalCauchitRegr$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalCauchitRegr$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceOrdinalCauchitRegr-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalCauchitRegr-approximate_randomization_distribution_beta_hat_T}{}}}

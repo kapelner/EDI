@@ -18,6 +18,7 @@ size unspecified and does not determine when enrollment ends. Inference methods
 that assume a fixed sample size require the final size to be chosen independently
 of accumulating outcomes.
 }
+
 \examples{
 \dontrun{
 # DesignSeqOneByOne is abstract and cannot be instantiated directly;

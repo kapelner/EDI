@@ -452,7 +452,10 @@ additional_slow_path_category_methods = c(
     # its own "rand" entry already is just compute_rand_two_sided_pval, the
     # same plain non-CI method ADDITIONAL_TEST_SLOW_PATHS$rand_pval gates.
     rand_pval = "compute_rand_two_sided_pval",
-    rand_ci_custom = "compute_rand_confidence_interval(custom)",
+    # rand_ci_custom removed 2026-09-13 (fix_custom_randomization_statistic.md
+    # TODO-10): ADDITIONAL_TEST_SLOW_PATHS$rand_ci_custom no longer exists --
+    # the custom statistic now runs on a standalone InferenceRandCustom with
+    # its own fast kernel, uniformly fast regardless of seq_des_inf's class.
     # Not reused from edi_slow_path_category_methods$jack (which only lists
     # 2 of the 3 methods supports_jackknife actually gates -- verified by
     # reading comprehensive_tests.R:2138-2146 directly: compute_jackknife_

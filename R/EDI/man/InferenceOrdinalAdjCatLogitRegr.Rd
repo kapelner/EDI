@@ -35,8 +35,6 @@ inf$compute_estimate()
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceOrdinalAdjCatLogitRegr-set_custom_randomization_statistic_function}{\code{InferenceOrdinalAdjCatLogitRegr$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceOrdinalAdjCatLogitRegr-set_custom_randomization_statistic_cpp}{\code{InferenceOrdinalAdjCatLogitRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceOrdinalAdjCatLogitRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceOrdinalAdjCatLogitRegr$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceOrdinalAdjCatLogitRegr-supports_rand_pval_for_incidence}{\code{InferenceOrdinalAdjCatLogitRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceOrdinalAdjCatLogitRegr-compute_rand_two_sided_pval}{\code{InferenceOrdinalAdjCatLogitRegr$compute_rand_two_sided_pval()}}
@@ -69,30 +67,6 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalAdjCatLogitRegr-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalAdjCatLogitRegr-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceOrdinalAdjCatLogitRegr$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalAdjCatLogitRegr$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalAdjCatLogitRegr-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalAdjCatLogitRegr-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceOrdinalAdjCatLogitRegr$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalAdjCatLogitRegr$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceOrdinalAdjCatLogitRegr-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalAdjCatLogitRegr-approximate_randomization_distribution_beta_hat_T}{}}}

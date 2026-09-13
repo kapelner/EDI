@@ -47,8 +47,11 @@ which also found a **second read site this plan did not own**:
 `inference_mixin_kk_gee_shared.R:167-169` — the KK-GEE mixin's own copy of
 `compute_rand_two_sided_pval()` carries the identical
 `t0s_rand[seq_len(r)] + delta` branch, guarded only by
-`transform_responses == "none"` and no-custom-statistic, with **no hook for
-the TODO-1 predicate**. Today it is equally dead. But its guard sits *after*
+`transform_responses == "none"` (the "no-custom-statistic" half of this
+guard was dropped 2026-09-13, `fix_custom_randomization_statistic.md`:
+`custom_randomization_statistic_function` can no longer exist on a
+KK-GEE-composing class at all, so the check was dead weight there too),
+with **no hook for the TODO-1 predicate**. Today it is equally dead. But its guard sits *after*
 the mixin resolves `transform_responses` per response type (`:156-165`):
 count → `"log"`, proportion → `"logit"`, ordinal → (per its own resolution),
 so those stay dead-by-transform — while **incidence** falls through the
@@ -123,9 +126,13 @@ It does **not** hold for:
   survival — `inference_all_abstract_rand.R:427-434`) — the shift is applied
   on the transformed scale and the statistic is not linear in it; the
   existing branch already excludes this;
-- custom randomization statistics (R or compiled) — unknown functional form;
-  the existing branch already excludes the R kind, and must also exclude
-  `compiled_cpp_stat_fn`;
+- ~~custom randomization statistics (R or compiled) — unknown functional
+  form~~ **moot as of 2026-09-13** (`fix_custom_randomization_statistic.md`,
+  `finished_features/`): `custom_randomization_statistic_function`/
+  `compiled_cpp_stat_fn` no longer exist on any of the tier-1 classes below
+  (or on any class outside the new, standalone `InferenceRandCustom`), so
+  this exclusion is now structurally unreachable for them and needs no
+  guard — see TODO-1/TODO-2's updated notes;
 - non-linear model coefficients (logistic, Poisson, ordinal, Cox): with
   covariates the shifted-data MLE is not the original MLE plus δ (the
   treated-subset score does not vanish column-wise);
@@ -169,10 +176,15 @@ is O(r) arithmetic and MC is moot.
 - [ ] **TODO-1: `supports_additive_delta_shift()` predicate.** New private
   method on the inference abstract, default `FALSE`. Returns `TRUE` for
   `InferenceAllSimpleMeanDiffPooledVar`, `InferenceAllSimpleAverageDiff`,
-  `InferenceContinOLS`, `InferenceContinLin` (tier 1). Must also be `FALSE`
-  whenever `custom_randomization_statistic_function` or
-  `compiled_cpp_stat_fn` is set, whenever `transform_responses != "none"`
-  resolves for the response type, and whenever the design uses the Zhang
+  `InferenceContinOLS`, `InferenceContinLin` (tier 1). ~~Must also be
+  `FALSE` whenever `custom_randomization_statistic_function` or
+  `compiled_cpp_stat_fn` is set~~ (no longer needed as of 2026-09-13,
+  `fix_custom_randomization_statistic.md`: none of the tier-1 classes above
+  can have either field set anymore — only the new, standalone
+  `InferenceRandCustom` can, and it does not compose this predicate's host
+  hierarchy at all). Must still be `FALSE` whenever `transform_responses
+  != "none"` resolves for the response type, and whenever the design uses
+  the Zhang
   incidence exact path (`should_use_zhang_incidence_randomization()`,
   `:415`). Registered through the inference-class registry metadata so the
   `InferenceSuite` and the path audits can see it (the same way
@@ -185,9 +197,14 @@ is O(r) arithmetic and MC is moot.
   prefix), store `private$cached_values$t0s_rand = t0s` together with the
   permutation signature (`stable_signature(permutations)`) so a different
   permutation set cannot be served a stale vector. Extend the read-side
-  guard at `:436` to check that signature and the `compiled_cpp_stat_fn`
-  exclusion. Invalidate on every path that already resets `t0s_rand = NULL`
-  (custom-statistic setters, `set_seed`, response mutation).
+  guard (line numbers have shifted post-`fix_custom_randomization_
+  statistic.md`; re-locate the `transform_responses == "none" &&
+  !is.null(private$cached_values$t0s_rand) && ...` check in
+  `compute_rand_two_sided_pval()`) to check that signature — no
+  `compiled_cpp_stat_fn` exclusion needed any more, since that field no
+  longer exists on this class family (see TODO-1's note). Invalidate on
+  every path that already resets `t0s_rand = NULL` (`set_seed`, response
+  mutation — the custom-statistic setters this used to also list are gone).
 - [ ] **TODO-3: Make the CI search use it.** In
   `build_randomization_ci_search_bounds()` (`inference_all_abstract_rand_ci.R:425`),
   when the class qualifies, run the δ = 0 call with sequential MC disabled
@@ -202,8 +219,12 @@ is O(r) arithmetic and MC is moot.
   vectors to `1e-12`, which is the real equivalence). (b) Integration:
   `compute_confidence_interval_rand()` endpoints with vs without, within
   `pval_epsilon`-implied tolerance. (c) Negative: Wilcoxon, ridit, Poisson,
-  a proportion class, and a custom-statistic OLS all report
-  `supports_additive_delta_shift() == FALSE` and never populate `t0s_rand`.
+  a proportion class, and (no longer "a custom-statistic OLS" — that
+  combination can't exist post-2026-09-13, `fix_custom_randomization_
+  statistic.md`; use an `InferenceRandCustom` instance instead, confirming
+  it reports `FALSE`/has no such predicate at all rather than accidentally
+  inheriting `TRUE`) all report `supports_additive_delta_shift() == FALSE`
+  and never populate `t0s_rand`.
   (d) MC guard: with `mc_enable = TRUE` and a small `mc_batch_size`, a δ = 0
   p-value call that stops early leaves `t0s_rand` `NULL`. (e) Count the
   number of distribution computations in one CI (spy on

@@ -75,8 +75,6 @@ allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceContinKKOLSOneLik-set_custom_randomization_statistic_function}{\code{InferenceContinKKOLSOneLik$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceContinKKOLSOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceContinKKOLSOneLik$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceContinKKOLSOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceContinKKOLSOneLik$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceContinKKOLSOneLik-supports_rand_pval_for_incidence}{\code{InferenceContinKKOLSOneLik$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceContinKKOLSOneLik-compute_rand_two_sided_pval}{\code{InferenceContinKKOLSOneLik$compute_rand_two_sided_pval()}}
@@ -109,30 +107,6 @@ allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceContinKKOLSOneLik-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceContinKKOLSOneLik-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceContinKKOLSOneLik$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceContinKKOLSOneLik$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceContinKKOLSOneLik-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceContinKKOLSOneLik-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceContinKKOLSOneLik$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceContinKKOLSOneLik$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceContinKKOLSOneLik-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinKKOLSOneLik-approximate_randomization_distribution_beta_hat_T}{}}}

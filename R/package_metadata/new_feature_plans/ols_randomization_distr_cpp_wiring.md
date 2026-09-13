@@ -73,9 +73,14 @@ The Poisson class shows the intended wiring
    ColPivQR on `XᵀX`. Same estimator to ~1e-14 relative; not bit-for-bit.
    This is a documented default change under the v1.1.0 additive
    constraint, with the equivalence test tolerance set at `1e-10`.
-6. **Custom statistics, compiled or R.** Return `NULL` if either
+6. ~~**Custom statistics, compiled or R.** Return `NULL` if either
    `custom_randomization_statistic_function` or `compiled_cpp_stat_fn` is
-   set (Poisson checks only the former — check both).
+   set (Poisson checks only the former — check both).~~ **Moot as of
+   2026-09-13** (`fix_custom_randomization_statistic.md`,
+   `finished_features/`): neither field can exist on `InferenceContinOLS`
+   (or any class outside the new, standalone `InferenceRandCustom`) any
+   more, so this guard is unreachable and not needed. Number kept so
+   cross-references elsewhere still resolve.
 7. **`m_mat` (matched-pair designs).** `permutations$m_mat` is non-`NULL`
    for KK designs; the OLS class on a matched design is a different class.
    Return `NULL` if `m_mat` is present, to be safe.

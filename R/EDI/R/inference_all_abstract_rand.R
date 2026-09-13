@@ -7,109 +7,6 @@ InferenceRand = R6::R6Class("InferenceRand",
 	inherit = Inference,
 	lock_objects = FALSE,
 	public = list(
-		#' @description Set a custom R randomization statistic.
-		#'
-		#' Replaces the default treatment-effect estimate used in
-		#' \code{approximate_randomization_distribution_beta_hat_T()} and
-		#' \code{compute_randomization_two_sided_pval()} with a user-supplied R
-		#' function. The function must return one scalar statistic for the current
-		#' randomized outcome/assignment state. Pass \code{NULL} to clear the custom
-		#' statistic. This cannot be used at the same time as
-		#' \code{set_custom_randomization_statistic_cpp()}.
-		#'
-		#' @param custom_randomization_statistic_function A function that returns one
-		#'   scalar value, or \code{NULL} to restore the class default statistic.
-		set_custom_randomization_statistic_function = function(custom_randomization_statistic_function){
-			if (!is.null(custom_randomization_statistic_function) && !is.null(private[["compiled_cpp_stat_fn"]])) {
-				stop("Cannot specify both custom_randomization_statistic_function and custom_randomization_statistic_cpp.")
-			}
-			if (should_run_asserts()) {
-				assertFunction(custom_randomization_statistic_function, null.ok = TRUE)
-			}
-			private[["custom_randomization_statistic_function"]] = custom_randomization_statistic_function
-			private$cached_values$t0s_rand = NULL
-			private$cached_values$rand_distr_cache = list()
-			private$cached_values$custom_stat_analysis = NULL
-		},
-		#' @description Set a custom compiled C++ randomization statistic.
-		#'
-		#' Replaces the default treatment-effect estimate used in
-		#' \code{approximate_randomization_distribution_beta_hat_T()} and
-		#' \code{compute_randomization_two_sided_pval()} with a scalar C++ statistic.
-		#' A source string is recommended because each parallel worker can compile
-		#' its own copy safely. A pre-compiled Rcpp function can be used in the main
-		#' process, but external pointers may not survive serialization to workers.
-		#' Pass \code{NULL} to clear the custom statistic. This cannot be used at
-		#' the same time as \code{set_custom_randomization_statistic_function()}.
-		#'
-		#' @param fn Either a C++ source code string, a pre-compiled Rcpp function,
-		#'   an \code{RcppXPtrUtils::cppXPtr()} external pointer, or
-		#'   \code{NULL}. A source string or Rcpp function must return a scalar
-		#'   \code{double} and accept either \code{(NumericVector y, IntegerVector w)}
-		#'   or \code{(NumericVector y, IntegerVector w, IntegerVector dead)}. An
-		#'   external pointer follows the package-wide \code{user_compiled_fns.h}
-		#'   calling convention shared with \code{DesignFixedOptimal}'s
-		#'   \code{custom_objective} -- Eigen types:
-		#'   \code{double f(const Eigen::VectorXd& y, const Eigen::VectorXd& w)}, or
-		#'   the 3-argument form appending \code{const Eigen::VectorXd& dead} --
-		#'   and, like a pre-compiled Rcpp function, is valid in the main process
-		#'   only (external pointers do not survive serialization to parallel
-		#'   workers; use a source string for parallel paths).
-		set_custom_randomization_statistic_cpp = function(fn){
-			if (!is.null(fn) && !is.null(private[["custom_randomization_statistic_function"]])) {
-				stop("Cannot specify both custom_randomization_statistic_function and custom_randomization_statistic_cpp.")
-			}
-			if (!is.null(fn)) {
-				if (is.character(fn) && length(fn) == 1L) {
-					compiled = Rcpp::cppFunction(fn)
-					arity = length(formals(compiled))
-					if (!arity %in% c(2L, 3L)) stop("custom_randomization_statistic_cpp source must define a function with 2 arguments (y, w) or 3 arguments (y, w, dead); got ", arity, ".")
-					private[["compiled_cpp_stat_src"]] = fn
-					private[["compiled_cpp_stat_fn"]] = compiled
-				} else if (typeof(fn) == "externalptr") {
-					# Uniform XPtr handling with DesignFixedOptimal's custom_objective:
-					# shared signature check (normalize_user_cpp_fn), shared eval shims.
-					# Normalized into the compiled_cpp_stat_fn slot as an R-callable
-					# closure over the shim, so every downstream consultation site
-					# (fast-path guards, the lightweight evaluator, arity checks)
-					# behaves exactly as with a pre-compiled Rcpp function.
-					recorded = attr(fn, "args")
-					if (is.null(recorded)) {
-						stop(paste0(
-							"custom_randomization_statistic_cpp external pointers must carry ",
-							"RcppXPtrUtils::cppXPtr()'s recorded signature (a bare externalptr's ",
-							"argument count cannot be determined); build the pointer with ",
-							"RcppXPtrUtils::cppXPtr()."
-						))
-					}
-					arity = length(recorded)
-					if (!arity %in% c(2L, 3L)) stop("custom_randomization_statistic_cpp must accept 2 arguments (y, w) or 3 arguments (y, w, dead); got ", arity, ".")
-					normalized = normalize_user_cpp_fn(
-						fn, "custom_randomization_statistic_cpp",
-						if (arity == 3L) "rand_stat_dead" else "rand_stat"
-					)
-					xptr = normalized$xptr
-					private[["compiled_cpp_stat_src"]] = NULL
-					private[["compiled_cpp_stat_fn"]] = if (arity == 3L) {
-						function(y, w, dead) eval_custom_rand_stat_dead_xptr_cpp(xptr, as.numeric(y), as.numeric(w), as.numeric(dead))
-					} else {
-						function(y, w) eval_custom_rand_stat_xptr_cpp(xptr, as.numeric(y), as.numeric(w))
-					}
-				} else {
-					if (!is.function(fn)) stop("custom_randomization_statistic_cpp must be a C++ source string, a compiled Rcpp function, or an RcppXPtrUtils::cppXPtr() external pointer, not a ", class(fn)[1], ".")
-					arity = length(formals(fn))
-					if (!arity %in% c(2L, 3L)) stop("custom_randomization_statistic_cpp must accept 2 arguments (y, w) or 3 arguments (y, w, dead); got ", arity, ".")
-					private[["compiled_cpp_stat_src"]] = NULL
-					private[["compiled_cpp_stat_fn"]] = fn
-				}
-			} else {
-				private[["compiled_cpp_stat_src"]] = NULL
-				private[["compiled_cpp_stat_fn"]] = NULL
-			}
-			private$cached_values$t0s_rand = NULL
-			private$cached_values$rand_distr_cache = list()
-			private$cached_values$custom_stat_analysis = NULL
-		},
 		#' @description Computes the randomization distribution of the treatment effect estimate under the sharp null.
 		#'
 		#' @param r  					Number of randomization vectors. Default 501.
@@ -160,10 +57,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 				as.integer(mc_control_for_perms$mc_batch_size) < as.integer(r)
 			if (is.null(permutations) && !defer_permutation_generation_for_mc) permutations = private$generate_permutations(r)
 			setup = private$setup_randomization_template_and_shifts(delta, transform_responses, zero_one_logit_clamp)
-			has_custom_randomization_statistic =
-				!is.null(private[["custom_randomization_statistic_function"]]) ||
-				!is.null(private[["compiled_cpp_stat_fn"]])
-			if (!isTRUE(debug) && !is.null(permutations) && !has_custom_randomization_statistic && private$has_private_method("compute_fast_randomization_distr")) {
+			if (!isTRUE(debug) && !is.null(permutations) && private$has_private_method("compute_fast_randomization_distr")) {
 				fast_distr = tryCatch(
 					private$compute_fast_randomization_distr(setup$y_delta, permutations, delta, transform_responses, zero_one_logit_clamp),
 					error = function(e) NULL
@@ -172,8 +66,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 				# If fast path threw, fall through to the standard reusable-worker path below.
 			}
 			if (!isTRUE(debug) && !is.null(permutations) &&
-				isTRUE(private$use_reusable_bootstrap_worker()) &&
-				!has_custom_randomization_statistic) {
+				isTRUE(private$use_reusable_bootstrap_worker())) {
 				actual_rand_cores = private$effective_parallel_cores("rand_pval", self$num_cores)
 				return(private$compute_randomization_distr_via_reused_worker_states(
 					permutations = permutations,
@@ -185,12 +78,9 @@ InferenceRand = R6::R6Class("InferenceRand",
 					zero_one_logit_clamp = zero_one_logit_clamp
 				))
 			}
-			custom_stat_analysis = private$analyze_custom_randomization_statistic()
-			use_lightweight_custom_stat = isTRUE(custom_stat_analysis$can_use_lightweight_yw_only)
 			use_perms = !is.null(permutations) && (!is.null(permutations$w_mat) || length(permutations) >= r)
-			need_thread_objs = !(use_lightweight_custom_stat && use_perms)
-			inf_template = if (need_thread_objs) self$duplicate() else NULL
-			des_template = if (need_thread_objs) setup$get_template()$duplicate() else NULL
+			inf_template = self$duplicate()
+			des_template = setup$get_template()$duplicate()
 			# Warm up the design template cache if it uses covariates. The Design
 			# owns both the capability check and cache mutation; inference does not
 			# reach through its private environment (fix_design_hierarchy.md,
@@ -208,7 +98,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			if (!is.null(inf_template) && private$has_match_structure && private$object_has_private_method(inf_template, "compute_basic_match_data"))
 				inf_template$.__enclos_env__$private$compute_basic_match_data()
 			if (isTRUE(debug)) {
-				debug_results = if (isTRUE(private$use_reusable_bootstrap_worker()) && is.null(private$custom_randomization_statistic_function) && is.null(private[["compiled_cpp_stat_fn"]])){
+				debug_results = if (isTRUE(private$use_reusable_bootstrap_worker())){
 					# Fast path: use reused workers
 					worker_state = private$create_bootstrap_worker_state()
 					cleanup_worker = private$cleanup_bootstrap_worker_state
@@ -258,7 +148,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 							tryCatch({
 								worker_des = if (!is.null(des_template)) setup$get_template()$duplicate() else NULL
 								worker_inf = if (!is.null(inf_template)) self$duplicate(verbose = FALSE, make_fork_cluster = FALSE) else NULL
-								private$run_randomization_iteration(worker_des, worker_inf, if (use_perms) idx else NULL, permutations, delta, transform_responses, setup$y_delta, setup$base_template_y, setup$base_template_dead, custom_stat_analysis, setup$lightweight_custom_context, debug = TRUE, zero_one_logit_clamp = zero_one_logit_clamp)
+								private$run_randomization_iteration(worker_des, worker_inf, if (use_perms) idx else NULL, permutations, delta, transform_responses, setup$y_delta, setup$base_template_y, setup$base_template_dead, debug = TRUE, zero_one_logit_clamp = zero_one_logit_clamp)
 							}, error = function(e) list(val = NA_real_, error = conditionMessage(e))),
 							warning = function(w) { iter_warns <<- c(iter_warns, conditionMessage(w)); invokeRestart("muffleWarning") }
 						)
@@ -290,14 +180,11 @@ InferenceRand = R6::R6Class("InferenceRand",
 				))
 			}
 			actual_rand_cores = private$effective_parallel_cores("rand_pval", self$num_cores)
-			if (has_custom_randomization_statistic) {
-				actual_rand_cores = 1L
-			}
-			if (actual_rand_cores > 1L && need_thread_objs) {
+			if (actual_rand_cores > 1L) {
 				do_warmup_iter = function() {
 					w_des = if (!is.null(des_template)) des_template$duplicate() else NULL
 					w_inf = if (!is.null(inf_template)) inf_template$duplicate(make_fork_cluster = FALSE) else NULL
-					private$run_randomization_iteration(w_des, w_inf, if(use_perms) 1L else NULL, permutations, delta, transform_responses, setup$y_delta, setup$base_template_y, setup$base_template_dead, custom_stat_analysis, setup$lightweight_custom_context, zero_one_logit_clamp = zero_one_logit_clamp)
+					private$run_randomization_iteration(w_des, w_inf, if(use_perms) 1L else NULL, permutations, delta, transform_responses, setup$y_delta, setup$base_template_y, setup$base_template_dead, zero_one_logit_clamp = zero_one_logit_clamp)
 				}
 				# Run warmup TWICE and use the second timing. The first call often pays
 				# cold-start penalties (C++ JIT, OS page-cache misses, R bytecode compilation)
@@ -310,30 +197,12 @@ InferenceRand = R6::R6Class("InferenceRand",
 				if (t_rand_warmup * r < fork_overhead_estimate * actual_rand_cores * 2.0) {
 					actual_rand_cores = 1L
 				}
-			} else if (actual_rand_cores > 1L && !need_thread_objs) {
-				# Use warmup timing for the lightweight path, same guard as the thread-obj path above.
-				do_warmup_iter_lw = function() {
-					private$run_randomization_iteration(
-						NULL, NULL,
-						if (use_perms) 1L else NULL,
-						permutations, delta, transform_responses,
-						setup$y_delta, setup$base_template_y, setup$base_template_dead,
-						custom_stat_analysis, setup$lightweight_custom_context,
-						zero_one_logit_clamp = zero_one_logit_clamp
-					)
-				}
-				system.time(do_warmup_iter_lw())
-				t_lw_warmup = system.time(do_warmup_iter_lw())[[3]]
-				fork_overhead_estimate = if (!is.null(get_global_fork_cluster())) 0.01 else 0.3
-				if (t_lw_warmup * r < fork_overhead_estimate * actual_rand_cores * 2.0) {
-					actual_rand_cores = 1L
-				}
 			}
 			beta_hat_T_diff_ws = unlist(private$par_lapply(1:r, function(idx) {
 				suppressWarnings({
 					worker_des = if (!is.null(des_template)) des_template$duplicate() else NULL
 					worker_inf = if (!is.null(inf_template)) inf_template$duplicate(make_fork_cluster = FALSE) else NULL
-					private$run_randomization_iteration(worker_des, worker_inf, if(use_perms) idx else NULL, permutations, delta, transform_responses, setup$y_delta, setup$base_template_y, setup$base_template_dead, custom_stat_analysis, setup$lightweight_custom_context, zero_one_logit_clamp = zero_one_logit_clamp)
+					private$run_randomization_iteration(worker_des, worker_inf, if(use_perms) idx else NULL, permutations, delta, transform_responses, setup$y_delta, setup$base_template_y, setup$base_template_dead, zero_one_logit_clamp = zero_one_logit_clamp)
 				})
 			}, n_cores = actual_rand_cores, show_progress = show_progress,
 			export_list = list(
@@ -342,7 +211,6 @@ InferenceRand = R6::R6Class("InferenceRand",
 				permutations = permutations,
 				delta = delta,
 				setup = setup,
-				custom_stat_analysis = custom_stat_analysis,
 				use_perms = use_perms,
 				zero_one_logit_clamp = zero_one_logit_clamp
 			)))
@@ -433,7 +301,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 				)
 			}
 			cache_key = private$build_randomization_distribution_cache_key(r, delta, transform_responses, permutations)
-			if (transform_responses == "none" && is.null(private[["custom_randomization_statistic_function"]]) && !is.null(private$cached_values$t0s_rand) && length(private$cached_values$t0s_rand) >= r) {
+			if (transform_responses == "none" && !is.null(private$cached_values$t0s_rand) && length(private$cached_values$t0s_rand) >= r) {
 				t0s = private$cached_values$t0s_rand[seq_len(r)] + delta
 				t = private$compute_treatment_estimate_during_randomization_inference()
 				if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)
@@ -450,66 +318,11 @@ InferenceRand = R6::R6Class("InferenceRand",
 				return(min(1, max(2 / nsim_adj, 2 * min(sum(t0s >= t, na.rm = TRUE) / nsim_adj, sum(t0s <= t, na.rm = TRUE) / nsim_adj))))
 			}
 			private$ensure_resampling_distribution_cache("rand")
-			t = if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) {
-				custom_stat_analysis = private$analyze_custom_randomization_statistic()
-				if (isTRUE(custom_stat_analysis$can_use_lightweight_yw_only)) {
-					private$evaluate_lightweight_custom_randomization_statistic(
-						private$des_obj_priv_int,
-						private$y,
-						private$w,
-						private$dead
-					)
-				} else {
-					private$custom_randomization_statistic_function()
-				}
-			} else {
-				private$compute_treatment_estimate_during_randomization_inference()
-			}
+			t = private$compute_treatment_estimate_during_randomization_inference()
 			if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)
 			if (length(t) != 1 || !is.finite(t)) {
 				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("randomization_observed_statistic_unavailable")
 				return(NA_real_)
-			}
-			if (!is.null(private[["custom_randomization_statistic_function"]]) ||
-			    !is.null(private[["compiled_cpp_stat_fn"]])) {
-				if (!exists("custom_stat_analysis", inherits = FALSE)) {
-					custom_stat_analysis = private$analyze_custom_randomization_statistic()
-				}
-				if (isTRUE(custom_stat_analysis$can_use_lightweight_yw_only)) {
-					setup = private$setup_randomization_template_and_shifts(
-						delta,
-						transform_responses,
-						zero_one_logit_clamp
-					)
-					deadline = suppressWarnings(as.numeric(getOption("EDI.ci_timeout_deadline", default = NA_real_))[1L])
-					check_deadline = function(label = "Randomization custom statistic") {
-						guard_sec = suppressWarnings(as.numeric(getOption("EDI.ci_timeout_guard_sec", default = 0.5))[1L])
-						if (!is.finite(guard_sec) || guard_sec < 0) guard_sec = 0
-						if (is.finite(deadline) && proc.time()[["elapsed"]] >= deadline - guard_sec) {
-							stop(paste0(label, " reached elapsed time limit"), call. = FALSE)
-						}
-						invisible(NULL)
-					}
-					t0s = vapply(seq_len(as.integer(r)), function(idx) {
-						if (idx == 1L || idx %% 25L == 0L) check_deadline()
-						private$run_randomization_iteration(
-							NULL,
-							NULL,
-							idx,
-							permutations,
-							delta,
-							transform_responses,
-							setup$y_delta,
-							setup$base_template_y,
-							setup$base_template_dead,
-							custom_stat_analysis,
-							setup$lightweight_custom_context,
-							zero_one_logit_clamp = zero_one_logit_clamp
-						)
-					}, numeric(1))
-					check_deadline()
-					return(private$compute_two_sided_randomization_pval_from_t0s(t0s, t))
-				}
 			}
 			mc_pval = private$compute_two_sided_pval_with_sequential_mc(
 				t = t,
@@ -534,7 +347,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			private$compute_two_sided_randomization_pval_from_t0s(t0s, t)
 		}
 		),
-	private = c(InferenceExtCustomRandomizationStatistic$private, InferenceExtSequentialMCPval$private, list(
+	private = c(InferenceExtSequentialMCPval$private, list(
 		randomization_mc_control = NULL,
 		is_bernoulli_design = function(){
 			private$des_obj$is_a_bernoulli_capable()
@@ -698,7 +511,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 				cache$rand_distr_cache = list()
 				return(cache)
 			}
-			always_keep = c("m_cache", "t0s_rand", "custom_stat_analysis")
+			always_keep = c("m_cache", "t0s_rand")
 			for (nm in unique(c(always_keep, preserve_cache_keys))) {
 				if (!is.null(prev_cache[[nm]])) cache[[nm]] = prev_cache[[nm]]
 			}
@@ -706,7 +519,6 @@ InferenceRand = R6::R6Class("InferenceRand",
 			cache
 		},
 		compute_fast_randomization_distr_via_reused_worker = function(y, permutations, delta, transform_responses, preserve_cache_keys = character(), zero_one_logit_clamp = .Machine$double.eps){
-			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			if (is.null(permutations)) return(NULL)
 			nsim = if (!is.null(permutations$w_mat)) ncol(permutations$w_mat) else length(permutations)
 			if (!isTRUE(nsim > 0L)) return(numeric(0))
@@ -1196,7 +1008,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			
 			invisible(NULL)
 		},
-		run_randomization_iteration = function(thread_des_obj, thread_inf_obj, perm_idx, permutations, delta, transform_responses, y_delta, base_template_y, base_template_dead, custom_stat_analysis, lightweight_custom_context, debug = FALSE, zero_one_logit_clamp = .Machine$double.eps){
+		run_randomization_iteration = function(thread_des_obj, thread_inf_obj, perm_idx, permutations, delta, transform_responses, y_delta, base_template_y, base_template_dead, debug = FALSE, zero_one_logit_clamp = .Machine$double.eps){
 			use_perms = !is.null(perm_idx)
 			get_perm_data = if (use_perms) {
 				if (!is.null(permutations$w_mat)) {
@@ -1204,24 +1016,6 @@ InferenceRand = R6::R6Class("InferenceRand",
 					function(i) { j = ((i - 1L) %% n_avail) + 1L; list(w = permutations$w_mat[, j], m_vec = if (!is.null(permutations$m_mat)) permutations$m_mat[, j] else NULL) }
 				} else function(i) permutations[[i]]
 			} else NULL
-			if (isTRUE(custom_stat_analysis$can_use_lightweight_yw_only) && use_perms) {
-				perm_data = get_perm_data(perm_idx); w_sim = perm_data$w; y_sim = y_delta
-				if (delta != 0) {
-					y_sim = private$shift_randomization_responses(
-						y = y_sim,
-						w = w_sim,
-						delta = delta,
-						transform_responses = transform_responses,
-						response_type = lightweight_custom_context$response_type,
-						inverse = FALSE,
-						zero_one_logit_clamp = zero_one_logit_clamp
-					)
-				}
-				cpp_fn_override = if (is.function(custom_stat_analysis[["get_cpp_fn"]])) custom_stat_analysis$get_cpp_fn() else NULL
-				val = private$evaluate_lightweight_custom_randomization_statistic(lightweight_custom_context, y_sim, w_sim, base_template_dead, cpp_fn_override = cpp_fn_override)
-				if (isTRUE(debug)) return(list(val = val, error = NULL))
-				return(val)
-			}
 			if (use_perms) {
 				perm_data = get_perm_data(perm_idx)
 				thread_des_obj$.__enclos_env__$private$w = perm_data$w
@@ -1274,16 +1068,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 				if (!is.null(private$compute_basic_match_data)) private$compute_basic_match_data()
 				return(self$compute_estimate(estimate_only = estimate_only))
 			}
-			if (!is.null(private[["compiled_cpp_stat_fn"]])) {
-				cpp_fn = private$get_compiled_cpp_stat()
-				arity = length(formals(cpp_fn))
-				return(as.numeric(
-					if (arity >= 3L) cpp_fn(private$y, as.integer(private$w), as.integer(private$dead))
-					else cpp_fn(private$y, as.integer(private$w))
-				)[1L])
-			}
-			if (is.null(private$custom_randomization_statistic_function)) self$compute_estimate(estimate_only = estimate_only)
-			else private$custom_randomization_statistic_function()
+			self$compute_estimate(estimate_only = estimate_only)
 		}
 	))
 )

@@ -42,6 +42,19 @@ inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress =
 Kalbfleisch, J. D., and Prentice, R. L. (2002). \emph{The
   Statistical Analysis of Failure Time Data} (2nd ed.). Wiley, for the
   Weibull AFT model and its equivalence to a proportional-hazards model.
+  For the randomization confidence interval
+  (\code{compute_rand_confidence_interval()}), which inverts an AFT sharp
+  null by rescaling the recorded times of treated units — event and
+  censoring times alike, censoring indicators unchanged — the residual
+  construction and its validity under independent censoring are from
+  Tsiatis, A. A. (1990). Estimating regression parameters using linear rank
+  tests for censored data. \emph{The Annals of Statistics}, 18(1), 354-372,
+  \doi{10.1214/aos/1176347504}; Wei, L. J., Ying, Z., and Lin, D. Y. (1990).
+  Linear regression analysis of censored survival data based on rank tests.
+  \emph{Biometrika}, 77(4), 845-851, \doi{10.1093/biomet/77.4.845}; and Jin,
+  Z., Lin, D. Y., Wei, L. J., and Ying, Z. (2003). Rank-based inference for
+  the accelerated failure time model. \emph{Biometrika}, 90(2), 341-353,
+  \doi{10.1093/biomet/90.2.341}.
 }
 \seealso{
 Comparable Python API:
@@ -56,8 +69,6 @@ Comparable Python API:
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_function}{\code{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceSurvivalWeibullRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceSurvivalWeibullRegr$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceSurvivalWeibullRegr-supports_rand_pval_for_incidence}{\code{InferenceSurvivalWeibullRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceSurvivalWeibullRegr-clone}{\code{InferenceSurvivalWeibullRegr$clone()}}
@@ -89,30 +100,6 @@ Comparable Python API:
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalWeibullRegr$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-approximate_randomization_distribution_beta_hat_T}{}}}

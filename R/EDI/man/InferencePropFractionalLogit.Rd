@@ -17,7 +17,12 @@ actual distribution of \eqn{Y_i} on \eqn{[0,1]}). \eqn{\hat\beta_T} is a
 log-odds-ratio on the conditional-mean scale: \eqn{\exp(\hat\beta_T)} is
 the odds ratio for the expected proportion. Standard errors use the
 model-based (non-robust/non-sandwich) Fisher information from this
-quasi-likelihood, matching pre-migration behavior; only Wald inference is
+quasi-likelihood, scaled by an estimated quasi-binomial dispersion
+parameter \eqn{\hat\phi} (Papke & Wooldridge's own prescription; fixed
+2026-09-06 -- the unscaled Bernoulli-based variance systematically
+overstates \eqn{\mathrm{Var}(\hat\beta_T)} for a genuinely fractional
+response, since Bernoulli is the maximum-variance distribution on [0,1]
+for a given mean); only Wald inference is
 exposed (\code{private$supports_likelihood_tests()} is hard \code{FALSE}
 here even though \code{likelihood_tier = "full"} metadata is set for
 component-composition purposes — this class deliberately does not compose

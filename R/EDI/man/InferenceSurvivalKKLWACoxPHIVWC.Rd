@@ -44,8 +44,6 @@ Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceSurvivalKKLWACoxPHIVWC-set_custom_randomization_statistic_function}{\code{InferenceSurvivalKKLWACoxPHIVWC$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceSurvivalKKLWACoxPHIVWC-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalKKLWACoxPHIVWC$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceSurvivalKKLWACoxPHIVWC-approximate_randomization_distribution_beta_hat_T}{\code{InferenceSurvivalKKLWACoxPHIVWC$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceSurvivalKKLWACoxPHIVWC-supports_rand_pval_for_incidence}{\code{InferenceSurvivalKKLWACoxPHIVWC$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceSurvivalKKLWACoxPHIVWC-compute_rand_two_sided_pval}{\code{InferenceSurvivalKKLWACoxPHIVWC$compute_rand_two_sided_pval()}}
@@ -78,30 +76,6 @@ Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalKKLWACoxPHIVWC-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalKKLWACoxPHIVWC-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceSurvivalKKLWACoxPHIVWC$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalKKLWACoxPHIVWC$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalKKLWACoxPHIVWC-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalKKLWACoxPHIVWC-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceSurvivalKKLWACoxPHIVWC$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalKKLWACoxPHIVWC$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceSurvivalKKLWACoxPHIVWC-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalKKLWACoxPHIVWC-approximate_randomization_distribution_beta_hat_T}{}}}

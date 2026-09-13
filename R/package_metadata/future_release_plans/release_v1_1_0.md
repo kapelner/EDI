@@ -921,11 +921,13 @@ ticked in their **owning plans**; this list is the release index.
   test — wrap the whole choose-then-fit pipeline as the randomization
   statistic, redraw `w` from the design, re-run per replicate; exact
   under the sharp null for any selection rule — needs no `Design`-level
-  fold/split substrate at all. It is a client of the shipped
-  `set_custom_randomization_statistic_function()` hook
-  (`inference_all_abstract_rand.R:22`) plus the registry, and every
-  design's redraw-of-`w` mechanism for the per-replicate re-run already
-  exists and is design-agnostic. ~~Under fully treatment-blinded
+  fold/split substrate at all. It is a client of `InferenceRandCustom`
+  (`inference_rand_custom.R`; replaced the prior `set_custom_
+  randomization_statistic_function()` hook in 2026-09-13's
+  `fix_custom_randomization_statistic.md`, `finished_features/`) plus the
+  registry, and every design's redraw-of-`w` mechanism for the
+  per-replicate re-run already exists and is design-agnostic. ~~Under
+  fully treatment-blinded
   selection it commutes with the test, collapsing to the plain
   randomization test of the winner at zero extra cost, with CI inversion
   by de-treating once per δ.~~ **Removed 2026-09-06 (user): blinding is

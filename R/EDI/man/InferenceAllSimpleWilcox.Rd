@@ -55,6 +55,8 @@ Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
     \item \href{#method-InferenceAllSimpleWilcox-compute_estimate}{\code{InferenceAllSimpleWilcox$compute_estimate()}}
     \item \href{#method-InferenceAllSimpleWilcox-compute_asymp_two_sided_pval}{\code{InferenceAllSimpleWilcox$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferenceAllSimpleWilcox-compute_asymp_confidence_interval}{\code{InferenceAllSimpleWilcox$compute_asymp_confidence_interval()}}
+    \item \href{#method-InferenceAllSimpleWilcox-compute_wald_two_sided_pval}{\code{InferenceAllSimpleWilcox$compute_wald_two_sided_pval()}}
+    \item \href{#method-InferenceAllSimpleWilcox-compute_wald_confidence_interval}{\code{InferenceAllSimpleWilcox$compute_wald_confidence_interval()}}
     \item \href{#method-InferenceAllSimpleWilcox-compute_jackknife_estimate}{\code{InferenceAllSimpleWilcox$compute_jackknife_estimate()}}
     \item \href{#method-InferenceAllSimpleWilcox-compute_jackknife_bias_estimate}{\code{InferenceAllSimpleWilcox$compute_jackknife_bias_estimate()}}
     \item \href{#method-InferenceAllSimpleWilcox-compute_jackknife_std_error}{\code{InferenceAllSimpleWilcox$compute_jackknife_std_error()}}
@@ -168,6 +170,28 @@ likelihood-based models. Explicit starts always override this object-level polic
     \describe{
       \item{\code{alpha}}{Significance level.}
     }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleWilcox-compute_wald_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleWilcox-compute_wald_two_sided_pval}{}}}
+\subsection{\code{InferenceAllSimpleWilcox$compute_wald_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleWilcox$compute_wald_two_sided_pval(delta = 0)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleWilcox-compute_wald_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleWilcox-compute_wald_confidence_interval}{}}}
+\subsection{\code{InferenceAllSimpleWilcox$compute_wald_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleWilcox$compute_wald_confidence_interval(alpha = 0.05)}
     \if{html}{\out{</div>}}
   }
 }

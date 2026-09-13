@@ -136,9 +136,11 @@ design's imputed covariates.}
   \code{\link{fast_poisson_regression_weighted_cpp}}), used by the
   Bayesian bootstrap and related weighted-resampling machinery; see
   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
-  Always leaves the standard error and degrees of freedom unavailable
-  (\code{NA}) regardless of \code{estimate_only} — this weighted-refit
-  path never computes the sandwich variance.
+  When \code{estimate_only = FALSE}, also computes a weighted
+  Huber-White sandwich standard error (fixed 2026-09-07 -- previously
+  always \code{NA} regardless of \code{estimate_only}, which starved
+  the Bayesian-bootstrap studentized/BCa variants of a per-replicate
+  SE and left them NA on the large majority of calls).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountRobustPoisson$compute_estimate_with_bootstrap_weights(
@@ -151,8 +153,7 @@ design's imputed covariates.}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{subject_or_block_weights}}{Bootstrap weights at the subject or block level.}
-      \item{\code{estimate_only}}{Present for interface parity; this method never
-computes variance components regardless of its value.}
+      \item{\code{estimate_only}}{If TRUE, skip the sandwich-variance computation.}
     }
     \if{html}{\out{</div>}}
   }

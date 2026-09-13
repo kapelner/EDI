@@ -30,8 +30,6 @@ inf$compute_estimate()
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceSurvivalKKRankRegrIVWC-set_custom_randomization_statistic_function}{\code{InferenceSurvivalKKRankRegrIVWC$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceSurvivalKKRankRegrIVWC-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalKKRankRegrIVWC$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceSurvivalKKRankRegrIVWC-approximate_randomization_distribution_beta_hat_T}{\code{InferenceSurvivalKKRankRegrIVWC$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceSurvivalKKRankRegrIVWC-supports_rand_pval_for_incidence}{\code{InferenceSurvivalKKRankRegrIVWC$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceSurvivalKKRankRegrIVWC-compute_rand_two_sided_pval}{\code{InferenceSurvivalKKRankRegrIVWC$compute_rand_two_sided_pval()}}
@@ -64,30 +62,6 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalKKRankRegrIVWC-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalKKRankRegrIVWC-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceSurvivalKKRankRegrIVWC$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalKKRankRegrIVWC$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalKKRankRegrIVWC-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalKKRankRegrIVWC-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceSurvivalKKRankRegrIVWC$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalKKRankRegrIVWC$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceSurvivalKKRankRegrIVWC-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalKKRankRegrIVWC-approximate_randomization_distribution_beta_hat_T}{}}}

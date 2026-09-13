@@ -126,7 +126,6 @@ InferenceOrdinalJonckheereTerpstraTest = define_inference_class(
 	),
 	private = list(
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
-			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			# ordinal: no sharp-null shift supported
 			if (delta != 0) return(NULL)
 			# "smoothed" adds continuous Gaussian noise, which is not meaningful for integer

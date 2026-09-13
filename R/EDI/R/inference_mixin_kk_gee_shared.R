@@ -142,7 +142,6 @@ InferenceMixinKKGEEShared = list(
 			if (should_run_asserts()) {
 				private$assert_no_incidence_only_randomization_args(private$des_obj_priv_int$response_type, type, args_for_type)
 				if (private$des_obj_priv_int$response_type == "incidence" &&
-						is.null(private$custom_randomization_statistic_function) &&
 						!private$should_use_design_randomization_for_incidence()) {
 					stop("Randomization tests are not supported for incidence. Use Zhang method.")
 				}
@@ -164,7 +163,7 @@ InferenceMixinKKGEEShared = list(
 				)
 			}
 			cache_key = private$build_randomization_distribution_cache_key(r, delta, transform_responses, permutations)
-			if (transform_responses == "none" && is.null(private[["custom_randomization_statistic_function"]]) &&
+			if (transform_responses == "none" &&
 					!is.null(private$cached_values$t0s_rand) && length(private$cached_values$t0s_rand) >= r) {
 				t0s = private$cached_values$t0s_rand[seq_len(r)] + delta
 				t = private$compute_treatment_estimate_during_randomization_inference()

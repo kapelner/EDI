@@ -65,8 +65,6 @@ inf$compute_estimate()
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceSurvivalDepCensTransformRegr-set_custom_randomization_statistic_function}{\code{InferenceSurvivalDepCensTransformRegr$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceSurvivalDepCensTransformRegr-set_custom_randomization_statistic_cpp}{\code{InferenceSurvivalDepCensTransformRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceSurvivalDepCensTransformRegr-supports_rand_pval_for_incidence}{\code{InferenceSurvivalDepCensTransformRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceSurvivalDepCensTransformRegr-clone}{\code{InferenceSurvivalDepCensTransformRegr$clone()}}
   }
@@ -97,32 +95,6 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalDepCensTransformRegr-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalDepCensTransformRegr-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceSurvivalDepCensTransformRegr$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalDepCensTransformRegr$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceSurvivalDepCensTransformRegr-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceSurvivalDepCensTransformRegr-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceSurvivalDepCensTransformRegr$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceSurvivalDepCensTransformRegr$set_custom_randomization_statistic_cpp(
-  fn
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceSurvivalDepCensTransformRegr-supports_rand_pval_for_incidence"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalDepCensTransformRegr-supports_rand_pval_for_incidence}{}}}

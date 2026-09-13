@@ -21,6 +21,36 @@
 
 Date: 2026-09-13. Raised in conversation, not from an incident.
 
+## Status
+
+**Done.** TODO-1 through TODO-9 implemented and verified: `InferenceCustomRand`
+composes `RandomizationCI`; `InferenceRandCustom` exists with its own fast
+kernel (both the R-function and cpp/XPtr branches); the escape hatch is fully
+removed from `InferenceRand`/the `RandomizationTest` component/the abstract
+rand-bootstrap classes; all ~18 per-class guard sites plus the KKGEE mixin and
+quantile-rand-CI guard are deleted; `inference_ext_custom_randomization_statistic.R`
+is deleted; `comprehensive_tests.R`'s `rand_custom` block now builds a
+standalone `InferenceRandCustom`; NEWS.md documents the breaking change;
+`fast_roxygenize()` regenerated `NAMESPACE`/`man/` (`InferenceRandCustom` is
+exported). The full CRAN `testthat` suite passes clean (the only failures are
+a pre-existing sandboxed-environment mirai/socket limitation, unrelated), plus
+a new dedicated `test-inference-rand-custom.R` (19 assertions: construction
+validation, both statistic branches including precompiled-fn/XPtr forms,
+fast-path correctness, CI, cloning, capabilities) and updated migration/
+baseline tests that hardcoded the old shape.
+
+TODO-10's code fix (decoupling `skip_custom_rand_pval` from
+`skip_regular_rand_pval`; deleting the `rand_ci_custom`/`rand_pval_custom_
+allowed` exclusion lists) is in, and spot-checked directly (n=100, r=151:
+p-value ~0.09s, CI ~0.35s — nowhere near the old 336.6s/17.68s figures those
+exclusions were guarding against). Item 3 of TODO-10 — confirming this holds
+across every dataset × design row of the actual exhaustive `comprehensive_
+tests.R` sweep, not just a spot check — has **not** been run (it's a
+multi-hour operational sweep, not a coding task); that confirmation is a
+standing follow-up for whoever next runs the full suite, the same way
+`harden_registry.md` (`finished_features/`) shipped while deferring its own
+~82-entry slow-path staleness recheck.
+
 ## Background — what's actually there today
 
 `set_custom_randomization_statistic_function()`/`set_custom_randomization_
@@ -169,7 +199,7 @@ only touches its one registry entry, not that machinery in general.)
 
 ## Items
 
-- [ ] **TODO-1: Give `InferenceCustomRand` randomization-CI capability.**
+- [x] **TODO-1: Give `InferenceCustomRand` randomization-CI capability.**
   In `inference_custom_extensions.R:146-183`:
   ```r
   InferenceCustomRand = define_inference_class(
@@ -212,7 +242,7 @@ only touches its one registry entry, not that machinery in general.)
   assert `expect_true(is.finite(inf$compute_rand_confidence_interval(r = 51)
   [1]))` or equivalent, confirming the new capability actually resolves.
 
-- [ ] **TODO-2: Create `InferenceRandCustom`.** New file
+- [x] **TODO-2: Create `InferenceRandCustom`.** New file
   `R/EDI/R/inference_rand_custom.R`. Constructor mirrors the standard
   concrete-class pattern (e.g. `inference_all_KK_mean_diff_IVWC.R:9-18`);
   the C++ branch is ported unchanged from `set_custom_randomization_statistic_
@@ -315,16 +345,18 @@ only touches its one registry entry, not that machinery in general.)
   			})() else NULL
   			vapply(seq_len(ncol(w_mat)), function(j) private$evaluate_stat(y, w_mat[, j], dead, cpp_fn_override), numeric(1L))
   		}
-  		# compute_fast_rand_bootstrap_distr: same shape, over
-  		# private$generate_rand_bootstrap_draws()'s resampled (i_b, w_b) pairs
-  		# instead of a fixed permutation matrix — mirror
-  		# SimpleMeanDifferenceSource.compute_fast_rand_bootstrap_distr's
-  		# structure (inference_all_average_diff.R:197-207) but call
-  		# private$evaluate_stat() per draw instead of the closed-form kernel.
-  		# Deliberately NOT implementing compute_rand_bootstrap_ci_affine_coefs:
-  		# an arbitrary user statistic cannot be assumed affine in delta, so the
-  		# bisection CI search (inference_all_abstract_rand_bootstrap_ci.R) is
-  		# the correct path here, not the closed-form shortcut.
+  		# Deliberately NOT implementing compute_fast_rand_bootstrap_distr,
+  		# compute_brt_null_statistics_with_se, or compute_rand_bootstrap_ci_
+  		# affine_coefs: those back the bootstrap-randomization-test family
+  		# (RandomizationBootstrap/RandomizationBootstrapCI), which
+  		# InferenceRandCustom does not compose (see Non-goals) -- they would
+  		# never be called and would just be dead code. compute_fast_
+  		# randomization_distr above is the only fast-path method this class's
+  		# actual components (RandomizationTest, RandomizationCI) ever consult;
+  		# compute_rand_confidence_interval's bisection search
+  		# (inference_all_abstract_rand_ci.R) calls back into
+  		# approximate_randomization_distribution_beta_hat_T per delta, which is
+  		# exactly what compute_fast_randomization_distr accelerates.
   	),
   	metadata = list(likelihood_tier = "none")
   )
@@ -333,7 +365,7 @@ only touches its one registry entry, not that machinery in general.)
   next normal doc-regeneration pass — do not run this yourself; see
   "Verification" below.
 
-- [ ] **TODO-3: Remove the escape hatch from the general `RandomizationTest`
+- [x] **TODO-3: Remove the escape hatch from the general `RandomizationTest`
   component.** In `inference_all_abstract_rand.R`:
   - Delete `set_custom_randomization_statistic_function` (`:22-33`) and
     `set_custom_randomization_statistic_cpp` (`:58-112`) from `InferenceRand`
@@ -386,7 +418,7 @@ only touches its one registry entry, not that machinery in general.)
     special case for a reason, so it's worth pinning down now rather than
     discovering it's broken later.
 
-- [ ] **TODO-4: Delete the per-class escape-hatch guards.** Each of the
+- [x] **TODO-4: Delete the per-class escape-hatch guards.** Each of the
   following is a single early-return line (or two) that becomes unconditional
   dead weight once no class outside `InferenceRandCustom` can ever have this
   field set. Delete the `if (...) return(NULL)` (or, for the two `compute_
@@ -419,7 +451,7 @@ only touches its one registry entry, not that machinery in general.)
   this is a behavior-preserving change (the branch was always skipped for
   every one of these classes' normal callers) and should be bit-for-bit.
 
-- [ ] **TODO-5: Delete `inference_ext_custom_randomization_statistic.R`.**
+- [x] **TODO-5: Delete `inference_ext_custom_randomization_statistic.R`.**
   Its two methods are superseded: `analyze_custom_randomization_statistic()`'s
   regex heuristic has no purpose once the calling convention is always plain
   args, and `evaluate_lightweight_custom_randomization_statistic()`'s logic
@@ -427,7 +459,7 @@ only touches its one registry entry, not that machinery in general.)
   entry (if any) in `DESCRIPTION`, and the reference removed in TODO-3
   (`inference_all_abstract_rand.R:537`).
 
-- [ ] **TODO-6: Update `test-custom-extension-contract.R`.** Add a new
+- [x] **TODO-6: Update `test-custom-extension-contract.R`.** Add a new
   `test_that("InferenceRandCustom runs a randomization test and CI on a
   user-supplied statistic", ...)` alongside the existing custom-extension
   tests (after line 111): construct a `DesignFixedBernoulli`, build
@@ -441,7 +473,7 @@ only touches its one registry entry, not that machinery in general.)
   dispatch. Also update TODO-1's `InferenceCustomRand`-level test in this
   same file.
 
-- [ ] **TODO-7: Rewrite `comprehensive_tests.R`'s `rand_custom` block.** The
+- [x] **TODO-7: Rewrite `comprehensive_tests.R`'s `rand_custom` block.** The
   current block (`R/package_tests/comprehensive_tests.R:2447-2462`, inside
   `run_inference_checks_impl`) mutates the loop's existing `seq_des_inf`
   object in place:
@@ -488,14 +520,14 @@ only touches its one registry entry, not that machinery in general.)
   rebase this edit on top of that change rather than reverting it; the two
   are unrelated.
 
-- [ ] **TODO-8: NEWS/changelog entry.** Document the breaking change:
+- [x] **TODO-8: NEWS/changelog entry.** Document the breaking change:
   `set_custom_randomization_statistic_function()`/`_cpp()` removed from every
   concrete estimator class; users doing this should switch to
   `InferenceRandCustom$new(des_obj, custom_randomization_statistic_function =
   function(y, w, dead) ...)`, noting the calling-convention change (explicit
   `(y, w, dead)` args, no more implicit `private$des_obj_priv_int` access).
 
-- [ ] **TODO-9: Docs and registry regeneration.** After the code changes,
+- [x] **TODO-9: Docs and registry regeneration.** After the code changes,
   regenerate `NAMESPACE`/`man/` and the inference class registry the way this
   repo's own tooling normally does it — **do not** run `devtools::load_all()`,
   `pkgbuild::compile_dll()`, or `R CMD INSTALL` yourself to verify any of
@@ -505,7 +537,7 @@ only touches its one registry entry, not that machinery in general.)
   touched file(s) directly and relink per `CLAUDE.md`'s targeted-compile
   procedure, or ask the user to run their own build.
 
-- [ ] **TODO-10: Re-audit the `rand_custom` family's slow-path skip flags —
+- [x] **TODO-10: Re-audit the `rand_custom` family's slow-path skip flags —
   the old ones were benchmarked against a mechanism this plan deletes.**
   Today, `skip_custom_rand_pval` (`comprehensive_tests.R:1544-1545`) and
   `skip_ci_rand_custom` (`:1549`) gate whether the custom-statistic p-value/CI

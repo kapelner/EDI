@@ -204,7 +204,6 @@ BaiAdjustedTSource = list(
 			if (is.null(se) || length(se) != 1L) NA_real_ else se
 		},
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
-			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
 			
 			# Optimization: Ensure matching stats are calculated once
 			if (is.null(private$cached_values$KKstats)) private$compute_basic_match_data()

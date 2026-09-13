@@ -164,24 +164,45 @@ test_that("custom randomization migration golden tests compare distribution and 
 	}
 
 	builders = inference_migration_golden_design_builders()
-	for (response_type in c("continuous", "incidence")) {
-		design = builders[[response_type]](n = 12L, seed = 20260728L)
-		expect_silent(expect_inference_migration_outputs_equal(
-			legacy_class = CustomRandLegacy,
-			migrated_class = CustomRandMigrated,
-			design = design,
-			method_calls = method_calls_for(n = 12L),
-			tolerance = 1e-12
-		))
-	}
+	design_continuous = builders[["continuous"]](n = 12L, seed = 20260728L)
+	expect_silent(expect_inference_migration_outputs_equal(
+		legacy_class = CustomRandLegacy,
+		migrated_class = CustomRandMigrated,
+		design = design_continuous,
+		method_calls = method_calls_for(n = 12L),
+		tolerance = 1e-12
+	))
+	# Incidence deliberately no longer compares legacy vs. migrated bit-for-bit
+	# (fix_custom_randomization_statistic.md TODO-1): InferenceCustomRand now
+	# composes RandomizationCI (not just RandomizationTest), which pulls in the
+	# Zhang exact-combined-test dispatch for Bernoulli/matched incidence
+	# designs (see should_use_zhang_incidence_randomization()'s has_private_
+	# method("compute_exact_two_sided_pval_rand") check). CustomRandLegacy
+	# above deliberately mimics the OLD RandomizationTest-only shape and so
+	# still reports "unsupported" for incidence; that is the expected,
+	# intentional divergence this test now documents rather than treats as a
+	# regression.
+	design_incidence = builders[["incidence"]](n = 12L, seed = 20260728L)
+	legacy_incidence = CustomRandLegacy$new(design_incidence)
+	migrated_incidence = CustomRandMigrated$new(design_incidence)
+	legacy_pval_result = inference_migration_call_optional_method(
+		legacy_incidence, "compute_rand_two_sided_pval",
+		list(delta = 0, r = 9L, show_progress = FALSE, permutations = make_permutations(12L, 9L))
+	)
+	migrated_pval_result = inference_migration_call_optional_method(
+		migrated_incidence, "compute_rand_two_sided_pval",
+		list(delta = 0, r = 9L, show_progress = FALSE, permutations = make_permutations(12L, 9L))
+	)
+	expect_identical(legacy_pval_result$status, "unsupported")
+	expect_identical(migrated_pval_result$status, "ok")
+	expect_true(is.finite(migrated_pval_result$value) && migrated_pval_result$value >= 0 && migrated_pval_result$value <= 1)
 })
 
-test_that("migrated custom randomization host exposes only randomization-test optional APIs", {
+test_that("migrated custom randomization host exposes only randomization-test/CI optional APIs", {
 	EDI:::populate_inference_class_registry()
 	methods = inference_migration_public_methods("InferenceCustomRand")
-	randomization_methods = EDI:::inference_optional_method_names_for_capabilities("randomization_test")
+	randomization_methods = EDI:::inference_optional_method_names_for_capabilities(c("randomization_test", "randomization_ci"))
 	disallowed_methods = EDI:::inference_optional_method_names_for_capabilities(c(
-		"randomization_ci",
 		"randomization_bootstrap",
 		"nonparametric_bootstrap",
 		"bayesian_bootstrap",
@@ -190,8 +211,8 @@ test_that("migrated custom randomization host exposes only randomization-test op
 
 	expect_true(all(randomization_methods %in% methods))
 	expect_equal(intersect(disallowed_methods, methods), character())
-	expect_identical(EDI:::get_effective_components("InferenceCustomRand"), "RandomizationTest")
-	expect_identical(EDI:::get_effective_capabilities("InferenceCustomRand"), "randomization_test")
+	expect_identical(EDI:::get_effective_components("InferenceCustomRand"), c("RandomizationTest", "RandomizationCI"))
+	expect_identical(EDI:::get_effective_capabilities("InferenceCustomRand"), c("randomization_test", "randomization_ci"))
 	expect_silent(EDI:::mark_custom_randomization_classes_migrated("InferenceCustomRand"))
 	expect_identical(
 		EDI:::get_inference_hierarchy_migration_record("InferenceCustomRand")$migration_status,

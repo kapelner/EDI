@@ -22,6 +22,28 @@ rather than as a single additive log-odds-ratio). \code{likelihood_tier =
 "full"}: likelihood-ratio, score, gradient, and Wald tests are all
 available when the model converges, plus parametric-likelihood-bootstrap
 calibration of the likelihood-ratio test.
+}
+\details{
+\strong{\code{compute_lik_ratio_two_sided_pval()} is inflated for this
+class specifically} (confirmed empirically: ~18-23\% Type-I error against
+a nominal 5\%): the stereotype model's category-score parameters
+\eqn{\phi_k} are a textbook Davies (1977) non-regular case, not identified
+when \eqn{\beta_T} is at/near zero -- exactly the neighborhood every null
+hypothesis test sits in -- so the LR statistic's true null distribution is
+not the standard chi-square(1) this method assumes. Two already-working,
+better-calibrated alternatives exist on this class and should be preferred
+when a properly-sized likelihood-ratio-family test is needed:
+\code{compute_lik_ratio_bootstrap_two_sided_pval()} (parametric-bootstrap
+calibration via the class's own null simulation; confirmed ~6-7\% Type-I
+error) and the cheaper \code{compute_lik_ratio_bartlett_two_sided_pval()}
+(Monte-Carlo Bartlett correction; confirmed ~4\% Type-I error). Both are
+roughly 20-40x slower per call than the raw chi-square test (a fresh
+bootstrap/Monte-Carlo refit at every delta candidate), which is why they
+are excluded from this package's own routine comprehensive test suite
+(see \code{comprehensive_slow_paths.R}) despite being the statistically
+correct choice for this class. \code{compute_lik_ratio_two_sided_pval()}
+itself is left unchanged (not silently recalibrated) to avoid an
+undocumented behavior change to an existing method's contract.
 Bayesian-bootstrap inference is temporarily unavailable because the current
 non-uniform weighted hook fits a cumulative-logit surrogate rather than the
 stereotype likelihood. It will remain disabled until the native weighted
@@ -45,8 +67,6 @@ Anderson, J. A. (1984). "Regression and Ordered Categorical
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceOrdinalStereotypeLogitRegr-set_custom_randomization_statistic_function}{\code{InferenceOrdinalStereotypeLogitRegr$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceOrdinalStereotypeLogitRegr-set_custom_randomization_statistic_cpp}{\code{InferenceOrdinalStereotypeLogitRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceOrdinalStereotypeLogitRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceOrdinalStereotypeLogitRegr$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceOrdinalStereotypeLogitRegr-supports_rand_pval_for_incidence}{\code{InferenceOrdinalStereotypeLogitRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceOrdinalStereotypeLogitRegr-compute_rand_two_sided_pval}{\code{InferenceOrdinalStereotypeLogitRegr$compute_rand_two_sided_pval()}}
@@ -79,30 +99,6 @@ Anderson, J. A. (1984). "Regression and Ordered Categorical
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalStereotypeLogitRegr-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalStereotypeLogitRegr-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceOrdinalStereotypeLogitRegr$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalStereotypeLogitRegr$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceOrdinalStereotypeLogitRegr-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceOrdinalStereotypeLogitRegr-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceOrdinalStereotypeLogitRegr$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceOrdinalStereotypeLogitRegr$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceOrdinalStereotypeLogitRegr-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalStereotypeLogitRegr-approximate_randomization_distribution_beta_hat_T}{}}}

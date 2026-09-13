@@ -319,10 +319,7 @@ EDI_COMPONENT_SPECS = list(
 		source_name = "InferenceRand",
 		file = "inference_all_abstract_rand.R",
 		dependencies = character(),
-		owns_state = c(
-			"custom_randomization_statistic_function", "compiled_cpp_stat_fn",
-			"compiled_cpp_stat_src", "randomization_mc_control"
-		),
+		owns_state = "randomization_mc_control",
 		provides_capabilities = "randomization_test",
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
 		declare_body_references_optional = TRUE
@@ -2247,21 +2244,21 @@ EDI_COMPONENT_SPECS = list(
 		# so it's always present regardless of composition -- confirmed via
 		# complete_component_reference_contract()'s reference scan
 		# (EDI_VALIDATE_INFERENCE_CONTRACTS=true), which previously found this
-		# as an undeclared reference. custom_randomization_statistic_function/
-		# randomization_mc_control (RandomizationTest's owns_state) were
-		# DELIBERATELY left undeclared here despite also being referenced:
-		# they're read defensively (`is.null(private$x)`, always safe even if
-		# the binding was never materialized) and, for
-		# custom_randomization_statistic_function specifically, never exist as
-		# a static private-list entry at all -- it's created dynamically the
-		# first time `set_custom_randomization_statistic_function()` runs
-		# (`private[["custom_randomization_statistic_function"]] = ...`), so
-		# declaring it in requires_state made define_inference_class()'s
-		# static private-name check fail even though the resolved component
-		# chain genuinely includes RandomizationTest (verified: adding both
-		# here broke `InferenceCountPoissonKKGEE`'s load with "missing private
-		# state required by KKGEE"). Left as an accepted gap in the static
-		# contract rather than force-declared.
+		# as an undeclared reference. randomization_mc_control
+		# (RandomizationTest's owns_state) was DELIBERATELY left undeclared
+		# here despite also being referenced: it's read defensively
+		# (`is.null(private$x)`, always safe even if the binding was never
+		# materialized), and declaring it in requires_state made
+		# define_inference_class()'s static private-name check fail even
+		# though the resolved component chain genuinely includes
+		# RandomizationTest (verified: adding it here broke
+		# `InferenceCountPoissonKKGEE`'s load with "missing private state
+		# required by KKGEE"). Left as an accepted gap in the static contract
+		# rather than force-declared. (custom_randomization_statistic_function
+		# itself is gone -- fix_custom_randomization_statistic.md removed the
+		# general escape hatch this comment used to also cover; only
+		# InferenceRandCustom, which doesn't compose KKGEE, has anything by
+		# that name now.)
 		requires_state = c(
 			"any_censoring", "cached_values", "harden", "n", "y",
 			"des_obj_priv_int", "m"

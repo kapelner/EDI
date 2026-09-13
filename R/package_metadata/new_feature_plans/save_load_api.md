@@ -403,10 +403,12 @@ section is that candidate, now slated.
 
 Known hazards, from the v1.0.0 Design-side audit and direct code reading:
 
-- **External pointers on the inference side.** The custom
-  randomization-statistic evaluators
-  (`inference_ext_custom_randomization_statistic.R`) and the Cox data
-  cache (`fast_coxph_regression.cpp`) hold `XPtr`s that die on reload.
+- **External pointers on the inference side.** `InferenceRandCustom`
+  (`inference_rand_custom.R`; the sole host of a custom randomization
+  statistic since 2026-09-13's `fix_custom_randomization_statistic.md`,
+  `finished_features/` — replaced the prior `inference_ext_custom_
+  randomization_statistic.R` mixin, now deleted) and the Cox data cache
+  (`fast_coxph_regression.cpp`) hold `XPtr`s that die on reload.
   The parallel-worker path already solves exactly this shape of problem —
   it ships the retained C++ source string and recompiles in the worker,
   never dereferencing a serialized pointer — so the fix pattern

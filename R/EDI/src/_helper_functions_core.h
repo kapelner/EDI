@@ -76,12 +76,37 @@ using BLAS_INT_CORE = int;
 #include <type_traits>
 #include <optional>
 #include <stdexcept>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 using Eigen::VectorXd;
 using Eigen::MatrixXd;
 
+// Both functions below touch R's C API (Rcpp::checkUserInterrupt()'s
+// longjmp/exception machinery, and evaluating the "proc.time" R call) --
+// neither is safe to call from anything but R's single main thread. Found
+// 2026-09-13: kernels that call these from inside a #pragma omp parallel
+// region (e.g. compute_coxph_rand_bootstrap_parallel_cpp's per-draw Cox
+// refit loop, via edi_check_R_user_interrupt_every() below) crash the whole
+// process on a worker thread the instant checkUserInterrupt() decides to
+// fire -- the resulting Rcpp::internal::InterruptedException can't legally
+// cross the parallel-region/thread boundary (OpenMP requires exceptions to
+// be caught in the same thread that's inside the region), so the C++
+// runtime calls std::terminate()/abort() instead of unwinding cleanly.
+// Confirmed via a live gdb session: the SIGABRT always lands on a
+// libgomp-spawned worker thread, never the main R thread, and num_cores=1
+// (single-threaded, no #pragma omp parallel engaged) never reproduces it.
+// omp_get_thread_num() is 0 on the master thread even outside any parallel
+// region (and always 0 when built without OpenMP, since _OPENMP is then
+// undefined and this whole check compiles away) -- so skipping on any
+// nonzero thread num is the correct guard in both contexts, not just from
+// inside a `#pragma omp parallel` block.
 inline void edi_check_R_user_interrupt() {
 #ifndef EDI_CORE_ONLY
+#ifdef _OPENMP
+    if (omp_get_thread_num() != 0) return;
+#endif
     Rcpp::checkUserInterrupt();
 #endif
 }
@@ -97,8 +122,14 @@ inline void edi_check_R_user_interrupt() {
 // skipped rather than taking down the process. Verified empirically: an Rcpp
 // loop polling checkUserInterrupt() past the deadline crashes past tryCatch;
 // the same loop polling proc.time() instead raises a catchable TimeoutException.
+// Same worker-thread hazard as edi_check_R_user_interrupt() above (evaluating
+// an Rcpp::Function call is exactly as R-API-bound as checkUserInterrupt()
+// is) -- same guard, same reasoning.
 inline void edi_check_time_budget() {
 #ifndef EDI_CORE_ONLY
+#ifdef _OPENMP
+    if (omp_get_thread_num() != 0) return;
+#endif
     static Rcpp::Function proc_time("proc.time");
     proc_time();
 #endif

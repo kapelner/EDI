@@ -54,8 +54,6 @@ McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceIncidProbitRegr-set_custom_randomization_statistic_function}{\code{InferenceIncidProbitRegr$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceIncidProbitRegr-set_custom_randomization_statistic_cpp}{\code{InferenceIncidProbitRegr$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceIncidProbitRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceIncidProbitRegr$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceIncidProbitRegr-supports_rand_pval_for_incidence}{\code{InferenceIncidProbitRegr$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceIncidProbitRegr-clone}{\code{InferenceIncidProbitRegr$clone()}}
@@ -87,30 +85,6 @@ McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidProbitRegr-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidProbitRegr-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceIncidProbitRegr$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidProbitRegr$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidProbitRegr-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidProbitRegr-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceIncidProbitRegr$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidProbitRegr$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceIncidProbitRegr-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidProbitRegr-approximate_randomization_distribution_beta_hat_T}{}}}

@@ -362,7 +362,6 @@ InferenceContinRobustRegr = define_inference_class(
 			private$cached_values$df = nrow(X_fit) - ncol(X_fit)
 		},
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
-			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)
 			if (is.null(mats)) return(NULL)
 			X_data = private$get_X()

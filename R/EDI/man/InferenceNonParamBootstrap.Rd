@@ -62,6 +62,7 @@ This implements the same minimum-volatility idea used in PTE's
   target statistic rather than assuming one exponent is uniformly optimal.
 }
 \section{Design-specific validity caveats for the nonparametric bootstrap}{
+
 Nonparametric bootstrap methods are not supported for \code{DesignSeqOneByOne}
 designs and their subclasses, except the concrete
 \code{DesignSeqOneByOneBernoulli} class. The restriction includes m-out-of-n
@@ -199,8 +200,6 @@ Politis, D. N., Romano, J. P., and Wolf, M. (1999).
 <details><summary>+ inherited public methods from InferenceRand</summary>
 <ul>
   <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-approximate_randomization_distribution_beta_hat_T'><code>InferenceRand$approximate_randomization_distribution_beta_hat_T()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_cpp'><code>InferenceRand$set_custom_randomization_statistic_cpp()</code></a></li>
-  <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-set_custom_randomization_statistic_function'><code>InferenceRand$set_custom_randomization_statistic_function()</code></a></li>
   <li><a href='../../EDI/html/InferenceRand.html#method-InferenceRand-supports_rand_pval_for_incidence'><code>InferenceRand$supports_rand_pval_for_incidence()</code></a></li>
 </ul>
 </details>

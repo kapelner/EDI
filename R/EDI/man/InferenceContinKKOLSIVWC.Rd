@@ -42,8 +42,6 @@ inf$compute_estimate()
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceContinKKOLSIVWC-set_custom_randomization_statistic_function}{\code{InferenceContinKKOLSIVWC$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceContinKKOLSIVWC-set_custom_randomization_statistic_cpp}{\code{InferenceContinKKOLSIVWC$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceContinKKOLSIVWC-approximate_randomization_distribution_beta_hat_T}{\code{InferenceContinKKOLSIVWC$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceContinKKOLSIVWC-supports_rand_pval_for_incidence}{\code{InferenceContinKKOLSIVWC$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceContinKKOLSIVWC-compute_rand_two_sided_pval}{\code{InferenceContinKKOLSIVWC$compute_rand_two_sided_pval()}}
@@ -76,30 +74,6 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceContinKKOLSIVWC-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceContinKKOLSIVWC-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceContinKKOLSIVWC$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceContinKKOLSIVWC$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceContinKKOLSIVWC-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceContinKKOLSIVWC-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceContinKKOLSIVWC$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceContinKKOLSIVWC$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceContinKKOLSIVWC-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceContinKKOLSIVWC-approximate_randomization_distribution_beta_hat_T}{}}}

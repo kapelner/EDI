@@ -284,29 +284,25 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# entry (below) is corroborated by the sweep AND independently by the
 	# main-CSV audit (98s mean) AND by live reproduction (120.9s) -- three
 	# independent measurements agree, so it stays.
-	# 2026-09-13 additions below: the re-run (serial, deadlock-fixed) BRT
-	# sweep's clean data -- mean 10-23s, up to 71s on individual reps,
-	# confirmed with no fork/contention contamination this time.
+	# 2026-09-13 additions (InferenceCountHurdleNegBin||~1,
+	# InferencePropBetaRegr/InferencePropQuantileRegr on both formulas) were
+	# added same-day from the re-run (serial, deadlock-fixed) BRT sweep's
+	# clean data, then removed again later the same day: this registry's own
+	# threshold (see this list's header comment, "average runtime > 30s") was
+	# never actually met by them -- their mean was 10-23s, well under the
+	# bar every other entry here clears. Kept out for consistency rather than
+	# gating on sub-30s-mean cost; recheck against real data if they show up
+	# as an actual 60s timeout later.
 	brt_pval_smoothed = c(
 		"InferenceOrdinalPartialProportionalOddsRegr||~1",
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
 		"InferenceSurvivalWeibullRegr||~.",
-		"InferenceSurvivalKKWeibullMarginal||~.",
-		"InferenceCountHurdleNegBin||~1",
-		"InferencePropBetaRegr||~.",
-		"InferencePropBetaRegr||~1",
-		"InferencePropQuantileRegr||~.",
-		"InferencePropQuantileRegr||~1"
+		"InferenceSurvivalKKWeibullMarginal||~."
 	),
 	brt_pval_typed = c(
 		"InferenceCountKKGLMM||~1",
 		"InferenceCountKKGLMM||~.",
-		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
-		"InferenceCountHurdleNegBin||~1",
-		"InferencePropBetaRegr||~.",
-		"InferencePropBetaRegr||~1",
-		"InferencePropQuantileRegr||~.",
-		"InferencePropQuantileRegr||~1"
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~."
 	),
 	# InferenceSurvivalDepCensTransformRegr||~1 gates here (not just
 	# brt_ci_smoothed) because its base/untyped CI genuinely hard-times-out
@@ -342,16 +338,14 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# comment above: the BRT sweep's own brt_pval-shaped findings -- 15
 	# more (class,formula) pairs -- were all measurement artifacts and are
 	# not included here; live reproduction timed every one under 3s.)
+	# 2026-09-13 additions (InferenceCountHurdleNegBin||~1,
+	# InferencePropBetaRegr/InferencePropQuantileRegr on both formulas) were
+	# added same-day then removed again later the same day, same story as
+	# brt_pval_smoothed's comment above -- 10-23s mean never actually cleared
+	# this registry's own 30s threshold.
 	brt_pval = c(
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
-		"InferenceIncidKKCondLogitGLMMOneLik||~.",
-		# 2026-09-13 additions, clean re-swept BRT data (see brt_pval_smoothed's
-		# comment above):
-		"InferenceCountHurdleNegBin||~1",
-		"InferencePropBetaRegr||~.",
-		"InferencePropBetaRegr||~1",
-		"InferencePropQuantileRegr||~.",
-		"InferencePropQuantileRegr||~1"
+		"InferenceIncidKKCondLogitGLMMOneLik||~."
 	),
 	# Gates the plain randomization confidence interval -- consumed via
 	# is_any_inference_class(); also combined at the call site with a
@@ -394,29 +388,19 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 		"InferenceCountHurdlePoisson||~1",
 		"InferenceCountKKHurdlePoissonOneLik||~1"
 	),
-	# Gates the "(custom)" randomization CI variant specifically --
-	# consumed via is_exact_inference_class() (exact class name, not
-	# inheritance-aware, unlike every other entry here). Only robust rand CI
-	# custom timing is unmigrated/unrechecked here (avg 336.6s / max 1994.8s
-	# at n=6). InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik ("Clayton")
-	# was removed 2026-09-09 after a from-scratch recheck: its
-	# compute_rand_confidence_interval(custom) is fast on both formulas
-	# (~. n=100 mean=1.27s max=12.26s; ~1 n=50 mean=0.64s max=1.73s) -- the
-	# earlier "avg 41.9s / max 1993.3s at n=53" figure no longer holds for
-	# this method (its compute_rand_two_sided_pval(custom) is the one still
-	# genuinely slow on ~1 -- see rand_pval_custom_allowed below).
-	rand_ci_custom = c("InferenceContinKKRobustRegrOneLik"), # custom rand CI slow: robust avg 336.6s / max 1994.8s at n=6
-	# Per-class, per-formula (required `||~formula` suffix -- see
-	# is_any_inference_class_for_formula()) exceptions to skip_custom_rand_
-	# pval's blanket rand_pval-list skip, for compute_rand_two_sided_pval
-	# (custom) specifically -- does NOT affect the plain (non-custom)
-	# randomization p-value, which stays gated by rand_pval above
-	# regardless of this list. Populated 2026-09-09: InferenceSurvivalGLMM
-	# WeibullFrailtyLoggammaOneLik's custom pval is fast on ~. (n=100
-	# mean=0.10s max=0.26s) but has a severe, real outlier on ~1 (n=50
-	# mean=17.68s, p80=0.20s, max=194.70s -- bimodal: most calls near-
-	# instant, at least one pathological case) -- so only ~. is listed.
-	rand_pval_custom_allowed = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik||~."),
+	# rand_ci_custom and rand_pval_custom_allowed (both formerly here) were
+	# removed 2026-09-13 (fix_custom_randomization_statistic.md TODO-10): the
+	# recorded timings (e.g. "robust avg 336.6s / max 1994.8s at n=6") were
+	# for the OLD mechanism, where the custom statistic ran as a method call
+	# on seq_des_inf itself -- whatever concrete estimator class happened to
+	# be under test -- so a slow/pathological class made the custom-stat path
+	# slow too. The custom statistic now runs on a freshly constructed,
+	# standalone InferenceRandCustom with its own dedicated fast kernel (see
+	# that class), so its cost no longer depends at all on seq_des_inf's
+	# class; a spot check at n=100, r=151 (comparable to this file's usual
+	# scale) timed the p-value at ~0.09s and the CI at ~0.35s, nowhere near
+	# either exclusion's threshold. See skip_custom_rand_pval/skip_ci_rand_
+	# custom below, which no longer reference either list.
 	# Hard-excluded from jackknife despite otherwise qualifying -- consumed
 	# via is_any_inference_class_for_formula() (optional `||~formula`
 	# suffix). Populated 2026-09-09, same production-run audit as bootstrap
@@ -1541,12 +1525,21 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	skip_mle_pval  = FALSE
 	skip_rand_pval = !force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_pval)
 	skip_regular_rand_pval = skip_rand_pval || !supports_incidence_rand_pval
-	skip_custom_rand_pval = (skip_regular_rand_pval && !is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand_pval_custom_allowed)) ||
-		response_type == "incidence"
+	# Decoupled from skip_regular_rand_pval 2026-09-13
+	# (fix_custom_randomization_statistic.md TODO-10): the custom statistic
+	# now runs on a standalone InferenceRandCustom (its own dedicated fast
+	# kernel), not as a method call on seq_des_inf, so seq_des_inf's own
+	# slow-path status is no longer relevant to this path's cost. Incidence
+	# stays excluded -- that limitation is InferenceRandCustom-independent
+	# (see its roxygen and compute_rand_two_sided_pval()'s incidence guard).
+	skip_custom_rand_pval = response_type == "incidence"
 	skip_ci_rand   = (!force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_ci)) ||
 		(!force_run_slow_paths && response_type == "count" && !is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand_ci_count_allowed)) ||
 		(response_type != "continuous" && is(seq_des_inf, "InferenceAllSimpleAverageDiff"))
-	skip_ci_rand_custom = !force_run_slow_paths && is_exact_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_ci_custom)
+	# rand_ci_custom's exclusion list removed 2026-09-13 (fix_custom_
+	# randomization_statistic.md TODO-10) -- see the removal comment above
+	# ADDITIONAL_TEST_SLOW_PATHS's rand_ci_custom entry.
+	skip_ci_rand_custom = FALSE
 	supports_jackknife = is(seq_des_inf, "InferenceJackknife") ||
 		(
 			"compute_jackknife_wald_two_sided_pval" %in% names(seq_des_inf) &&
@@ -2473,20 +2466,28 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		}
 	}
 	if (supports_randomization_test && should_run_test_family("rand_custom")){
-		seq_des_inf$set_custom_randomization_statistic_cpp(welch_t_stat_cpp)
+		# Runs on a standalone InferenceRandCustom over the same design object,
+		# not on seq_des_inf itself (fix_custom_randomization_statistic.md
+		# TODO-7): the escape hatch that used to attach a custom statistic
+		# directly to whatever concrete estimator class seq_des_inf is was
+		# removed, replaced by this one dedicated class.
+		custom_inf = InferenceRandCustom$new(
+			seq_des_inf$get_design_object(),
+			custom_randomization_statistic_cpp = welch_t_stat_cpp,
+			verbose = FALSE
+		)
 		if (!skip_slow && !skip_custom_rand_pval){
-			safe_call("compute_rand_two_sided_pval(custom)", seq_des_inf$compute_rand_two_sided_pval(r = r, show_progress = FALSE))
+			safe_call("compute_rand_two_sided_pval(custom)", custom_inf$compute_rand_two_sided_pval(r = r, show_progress = FALSE))
 		} else if (response_type == "incidence") {
 			message("    Skipping compute_rand_two_sided_pval(custom) (custom randomization statistic unsupported for incidence)")
 		}
 		if (supports_randomization_ci && !skip_slow && !skip_ci_rand && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "survival")){
 			if (!skip_ci_rand_custom){
-				safe_call("compute_rand_confidence_interval(custom)", seq_des_inf$compute_rand_confidence_interval(r = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
+				safe_call("compute_rand_confidence_interval(custom)", custom_inf$compute_rand_confidence_interval(r = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
 			} else {
 				message("    Skipping compute_rand_confidence_interval(custom) (too slow)")
 			}
 		}
-		seq_des_inf$set_custom_randomization_statistic_cpp(NULL)
 	}
 }
 

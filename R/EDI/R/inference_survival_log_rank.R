@@ -183,7 +183,6 @@ InferenceSurvivalLogRank = define_inference_class(
 			# compute_estimate()/compute_shared() (and so through ictest()) per
 			# replicate.
 			if (isTRUE(private$has_general_censoring)) return(NULL)
-			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			# survival sharp-null shift is multiplicative (delta on the log scale)
 			if (delta != 0 && !identical(transform_responses, "log")) return(NULL)
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)

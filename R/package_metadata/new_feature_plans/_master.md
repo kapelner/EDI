@@ -928,8 +928,10 @@ already stated there:**
   selection costs compute, not validity). **Two recorded findings, both
   correcting the same underlying conflation:** (2026-09-05) the
   selection-inclusive randomization test needs *no* `Design`-level
-  fold/split substrate — it is a client of the shipped
-  `set_custom_randomization_statistic_function()` hook (~~and under
+  fold/split substrate — it is a client of `InferenceRandCustom`
+  (`inference_rand_custom.R`; replaced the prior `set_custom_
+  randomization_statistic_function()` hook in 2026-09-13's
+  `fix_custom_randomization_statistic.md`, `finished_features/`) (~~and under
   treatment-blinded selection it commutes with the test and collapses to
   the plain randomization test of the winner at zero extra cost~~ —
   **removed 2026-09-06, user decision:** `w` is in every fit, every

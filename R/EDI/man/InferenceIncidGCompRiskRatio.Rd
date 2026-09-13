@@ -52,6 +52,10 @@ inf$compute_estimate()
     \item \href{#method-InferenceIncidGCompRiskRatio-compute_bayesian_bootstrap_confidence_interval}{\code{InferenceIncidGCompRiskRatio$compute_bayesian_bootstrap_confidence_interval()}}
     \item \href{#method-InferenceIncidGCompRiskRatio-compute_jackknife_wald_two_sided_pval}{\code{InferenceIncidGCompRiskRatio$compute_jackknife_wald_two_sided_pval()}}
     \item \href{#method-InferenceIncidGCompRiskRatio-compute_jackknife_wald_confidence_interval}{\code{InferenceIncidGCompRiskRatio$compute_jackknife_wald_confidence_interval()}}
+    \item \href{#method-InferenceIncidGCompRiskRatio-compute_subsampling_two_sided_pval}{\code{InferenceIncidGCompRiskRatio$compute_subsampling_two_sided_pval()}}
+    \item \href{#method-InferenceIncidGCompRiskRatio-compute_subsampling_confidence_interval}{\code{InferenceIncidGCompRiskRatio$compute_subsampling_confidence_interval()}}
+    \item \href{#method-InferenceIncidGCompRiskRatio-compute_m_out_of_n_bootstrap_two_sided_pval}{\code{InferenceIncidGCompRiskRatio$compute_m_out_of_n_bootstrap_two_sided_pval()}}
+    \item \href{#method-InferenceIncidGCompRiskRatio-compute_m_out_of_n_bootstrap_confidence_interval}{\code{InferenceIncidGCompRiskRatio$compute_m_out_of_n_bootstrap_confidence_interval()}}
     \item \href{#method-InferenceIncidGCompRiskRatio-clone}{\code{InferenceIncidGCompRiskRatio$clone()}}
   }
 }
@@ -194,6 +198,82 @@ inf$compute_estimate()
     \preformatted{InferenceIncidGCompRiskRatio$compute_jackknife_wald_confidence_interval(
   alpha = 0.05,
   unit = "auto"
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskRatio-compute_subsampling_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskRatio-compute_subsampling_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidGCompRiskRatio$compute_subsampling_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskRatio$compute_subsampling_two_sided_pval(
+  delta = NULL,
+  B = 501,
+  b = NULL,
+  type = "centered",
+  show_progress = TRUE,
+  min_number_usable_samples = 5L,
+  subsampling_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskRatio-compute_subsampling_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskRatio-compute_subsampling_confidence_interval}{}}}
+\subsection{\code{InferenceIncidGCompRiskRatio$compute_subsampling_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskRatio$compute_subsampling_confidence_interval(
+  alpha = 0.05,
+  B = 501,
+  b = NULL,
+  type = "basic",
+  show_progress = TRUE,
+  min_number_usable_samples = 5L,
+  subsampling_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskRatio-compute_m_out_of_n_bootstrap_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskRatio-compute_m_out_of_n_bootstrap_two_sided_pval}{}}}
+\subsection{\code{InferenceIncidGCompRiskRatio$compute_m_out_of_n_bootstrap_two_sided_pval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskRatio$compute_m_out_of_n_bootstrap_two_sided_pval(
+  delta = NULL,
+  B = 501,
+  m = NULL,
+  type = "centered",
+  show_progress = TRUE,
+  min_number_usable_samples = 5L,
+  bootstrap_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceIncidGCompRiskRatio-compute_m_out_of_n_bootstrap_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceIncidGCompRiskRatio-compute_m_out_of_n_bootstrap_confidence_interval}{}}}
+\subsection{\code{InferenceIncidGCompRiskRatio$compute_m_out_of_n_bootstrap_confidence_interval()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceIncidGCompRiskRatio$compute_m_out_of_n_bootstrap_confidence_interval(
+  alpha = 0.05,
+  B = 501,
+  m = NULL,
+  type = "basic",
+  show_progress = TRUE,
+  min_number_usable_samples = 5L,
+  bootstrap_type = NULL
 )}
     \if{html}{\out{</div>}}
   }

@@ -220,7 +220,6 @@ InferenceContinLin = define_inference_class(
 		# its second column (algebraic identity: (M'M)^{-1}M'M[:,2] = e_2). Both A_b and g_b
 		# are recovered from one QR per draw with a two-column response.
 		compute_rand_bootstrap_ci_affine_coefs = function(rand_bootstrap_draws){
-			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			n = as.integer(private$n)
 			B = length(rand_bootstrap_draws)
 			if (B == 0L) return(NULL)

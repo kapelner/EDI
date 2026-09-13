@@ -147,8 +147,6 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_testing_type()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$select_optimal_b_subsampling()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$select_optimal_m_out_of_n_bootstrap()</code></li>
-  <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_custom_randomization_statistic_cpp()</code></li>
-  <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_custom_randomization_statistic_function()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_information_preference()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_testing_type()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$supports_rand_pval_for_incidence()</code></li>

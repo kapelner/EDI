@@ -45,8 +45,6 @@ Robins, J. (1986). A new approach to causal inference in
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceIncidKKGCompRiskRatio-set_custom_randomization_statistic_function}{\code{InferenceIncidKKGCompRiskRatio$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceIncidKKGCompRiskRatio-set_custom_randomization_statistic_cpp}{\code{InferenceIncidKKGCompRiskRatio$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceIncidKKGCompRiskRatio-approximate_randomization_distribution_beta_hat_T}{\code{InferenceIncidKKGCompRiskRatio$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceIncidKKGCompRiskRatio-supports_rand_pval_for_incidence}{\code{InferenceIncidKKGCompRiskRatio$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceIncidKKGCompRiskRatio-clone}{\code{InferenceIncidKKGCompRiskRatio$clone()}}
@@ -78,30 +76,6 @@ Robins, J. (1986). A new approach to causal inference in
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidKKGCompRiskRatio-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidKKGCompRiskRatio-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceIncidKKGCompRiskRatio$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidKKGCompRiskRatio$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceIncidKKGCompRiskRatio-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceIncidKKGCompRiskRatio-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceIncidKKGCompRiskRatio$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceIncidKKGCompRiskRatio$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceIncidKKGCompRiskRatio-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidKKGCompRiskRatio-approximate_randomization_distribution_beta_hat_T}{}}}

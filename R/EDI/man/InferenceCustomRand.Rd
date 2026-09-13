@@ -5,8 +5,8 @@
 \title{Internal base for user-defined randomization inference extensions}
 \description{
 This class uses the same \code{fit()} result contract as
-\code{InferenceCustomAsymp}, but only promises estimate/randomization
-behavior.
+\code{InferenceCustomAsymp}, but only promises estimate/randomization/
+randomization-CI behavior.
 }
 \keyword{internal}
 \section{Super class}{

@@ -25,6 +25,7 @@ documented fixed-sample justification, even though the bootstrap method is
 not blocked at runtime. The usual assumptions of iid subjects and potential
 outcomes, and a regular estimator, also apply.
 }
+
 \examples{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = 'continuous')
 seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))

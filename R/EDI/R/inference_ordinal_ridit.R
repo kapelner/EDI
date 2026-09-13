@@ -196,7 +196,6 @@ InferenceOrdinalRidit = define_inference_class(
 	),
 	private = list(
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
-			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			# ordinal: no sharp-null shift supported
 			if (delta != 0) return(NULL)
 			# "smoothed" adds continuous Gaussian noise, which is not meaningful for integer
@@ -233,7 +232,6 @@ InferenceOrdinalRidit = define_inference_class(
 			private$cached_values$scores       = res$scores
 		},
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
-			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
 			if (delta != 0 || transform_responses != "none") return(NULL)
 			compute_ridit_distr_parallel_cpp(
 			        as.integer(y),
@@ -244,7 +242,6 @@ InferenceOrdinalRidit = define_inference_class(
 
 		},
 		compute_fast_bootstrap_distr = function(B, ...){
-			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
 			# KK designs use design-aware resampling not available via these args; fall back to R loop.
 			if (private$is_KK) return(NULL)
 			# Simple (non-KK) bootstrap: args = (n, y, dead, w)

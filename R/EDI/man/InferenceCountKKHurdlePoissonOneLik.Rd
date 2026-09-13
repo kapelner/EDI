@@ -71,8 +71,6 @@ Analogous Python API for hurdle/zero-truncated count models:
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_function}{\code{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_cpp}{\code{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceCountKKHurdlePoissonOneLik-approximate_randomization_distribution_beta_hat_T}{\code{InferenceCountKKHurdlePoissonOneLik$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceCountKKHurdlePoissonOneLik-supports_rand_pval_for_incidence}{\code{InferenceCountKKHurdlePoissonOneLik$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceCountKKHurdlePoissonOneLik-compute_rand_two_sided_pval}{\code{InferenceCountKKHurdlePoissonOneLik$compute_rand_two_sided_pval()}}
@@ -105,30 +103,6 @@ Analogous Python API for hurdle/zero-truncated count models:
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceCountKKHurdlePoissonOneLik$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceCountKKHurdlePoissonOneLik-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountKKHurdlePoissonOneLik-approximate_randomization_distribution_beta_hat_T}{}}}

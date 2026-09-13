@@ -113,7 +113,6 @@ KKMeanDifferenceIVWCSource = list(
 	private = list(
 		compute_fast_bootstrap_distr = function(B, i_reservoir, n_reservoir, m, y, w, m_vec) {
 			# Only safe for simple additive/linear combinations right now.
-			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
 			n = length(y)
 			y_mat = matrix(0.0, nrow = n, ncol = B)
 			w_mat = matrix(0L, nrow = n, ncol = B)
@@ -151,7 +150,6 @@ KKMeanDifferenceIVWCSource = list(
 			return(res)
 		},
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
-			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
 			if (delta != 0) return(NULL)
 			n = length(y)
 			w_mat = as.matrix(permutations$w_mat)

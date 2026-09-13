@@ -232,7 +232,6 @@ SimpleWilcoxSource = list(
 		# inference()` can skip generating that doomed task entirely.
 		jackknife_always_nonestimable = function() TRUE,
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
-			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			transform_code = private$rand_bootstrap_transform_code(transform_responses)
 			if (is.null(transform_code)) return(NULL)
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)
@@ -273,7 +272,6 @@ SimpleWilcoxSource = list(
 			as.numeric(diffs[idx])
 		},
 		compute_fast_bootstrap_distr = function(B, ...) {
-			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
 			if (private$is_KK) return(NULL)
 			args = list(...)
 			n = args[[1]]; y = args[[2]]; dead = args[[3]]; w = args[[4]]
@@ -301,7 +299,6 @@ SimpleWilcoxSource = list(
 			NA_real_
 		},
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
-			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
 			w_mat = permutations$w_mat
 			res = compute_wilcox_hl_distr_parallel_cpp(
 				w_mat = as.matrix(w_mat),

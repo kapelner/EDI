@@ -745,7 +745,6 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 			# generate_mod() per replicate and so correctly reuses
 			# generate_mod_icen() above.
 			if (isTRUE(private$has_general_censoring)) return(NULL)
-			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			if (delta != 0 && !identical(transform_responses, "log")) return(NULL)
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)
 			if (is.null(mats)) return(NULL)

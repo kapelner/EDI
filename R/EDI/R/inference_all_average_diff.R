@@ -153,7 +153,6 @@ SimpleMeanDifferenceSource = list(
 			private$cached_values$df
 		},
 		compute_fast_bootstrap_distr = function(B, ...) {
-			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
 			if (private$is_KK) return(NULL)
 			args = list(...)
 			n = args[[1]]
@@ -189,13 +188,11 @@ SimpleMeanDifferenceSource = list(
 			return(res)
 		},
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
-			if (!is.null(private[["custom_randomization_statistic_function"]])) return(NULL)
 			w_mat = permutations$w_mat
 			res = compute_simple_mean_diff_parallel_cpp(as.numeric(y), w_mat, as.numeric(delta), private$n_cpp_threads(ncol(w_mat)))
 			return(res)
 		},
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
-			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			transform_code = private$rand_bootstrap_transform_code(transform_responses)
 			if (is.null(transform_code)) return(NULL)
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)
@@ -210,7 +207,6 @@ SimpleMeanDifferenceSource = list(
 		# over the fresh split and c_b = 1 - mean(w_obs | fresh treated) + mean(w_obs | fresh
 		# control) accounts for delta having been removed from the originally treated rows.
 		compute_rand_bootstrap_ci_affine_coefs = function(rand_bootstrap_draws){
-			if (!is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])) return(NULL)
 			n = as.integer(private$n)
 			B = length(rand_bootstrap_draws)
 			if (B == 0L) return(NULL)

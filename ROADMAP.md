@@ -221,19 +221,10 @@ pieces below never did.
   along the way: `comprehensive_tests.R`'s own pre-registry hardcoded
   slow-path exclusion lists, and a still-open recheck of ~82
   already-registry-backed slow-path entries for staleness.
-- **[Replace the custom-randomization-statistic escape hatch with `InferenceRandCustom`](R/package_metadata/new_feature_plans/fix_custom_randomization_statistic.md)** —
-  `set_custom_randomization_statistic_function()`/`_cpp()` today live on the
-  shared `RandomizationTest` component, so every resampling-capable estimator
-  inherits them and has to guard its own fast paths against a feature that
-  has nothing to do with that estimator (~15 duplicated guards), while the
-  R-closure path fakes a private-environment proxy and sniffs the function's
-  deparsed source to decide whether it's fast-path-safe. Replaced by one
-  exported class, `InferenceRandCustom`, built on the existing (already
-  internal, already correct) `InferenceCustomRand` extension base: construct
-  it with a plain `function(y, w, dead)` (or C++ source, unchanged from
-  today's `_cpp()` contract) and get a randomization test and randomization
-  CI, nothing else. Breaking API change, deliberately timed before the
-  pending CRAN submission.
+
+---
+
+## v1.2.0 — Performance, Kernels, and Engines
 
 Gained several items from v1.1.0's 2026-09-06 lightening pass — each
 either consumes this release's own kernel work or is exploratory

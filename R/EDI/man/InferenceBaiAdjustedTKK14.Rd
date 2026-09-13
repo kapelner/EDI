@@ -40,8 +40,6 @@ inf$compute_estimate()
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceBaiAdjustedTKK14-set_custom_randomization_statistic_function}{\code{InferenceBaiAdjustedTKK14$set_custom_randomization_statistic_function()}}
-    \item \href{#method-InferenceBaiAdjustedTKK14-set_custom_randomization_statistic_cpp}{\code{InferenceBaiAdjustedTKK14$set_custom_randomization_statistic_cpp()}}
     \item \href{#method-InferenceBaiAdjustedTKK14-approximate_randomization_distribution_beta_hat_T}{\code{InferenceBaiAdjustedTKK14$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceBaiAdjustedTKK14-supports_rand_pval_for_incidence}{\code{InferenceBaiAdjustedTKK14$supports_rand_pval_for_incidence()}}
     \item \href{#method-InferenceBaiAdjustedTKK14-compute_rand_two_sided_pval}{\code{InferenceBaiAdjustedTKK14$compute_rand_two_sided_pval()}}
@@ -74,30 +72,6 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceBaiAdjustedTKK14-set_custom_randomization_statistic_function"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceBaiAdjustedTKK14-set_custom_randomization_statistic_function}{}}}
-\subsection{\code{InferenceBaiAdjustedTKK14$set_custom_randomization_statistic_function()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceBaiAdjustedTKK14$set_custom_randomization_statistic_function(
-  custom_randomization_statistic_function
-)}
-    \if{html}{\out{</div>}}
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceBaiAdjustedTKK14-set_custom_randomization_statistic_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceBaiAdjustedTKK14-set_custom_randomization_statistic_cpp}{}}}
-\subsection{\code{InferenceBaiAdjustedTKK14$set_custom_randomization_statistic_cpp()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceBaiAdjustedTKK14$set_custom_randomization_statistic_cpp(fn)}
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceBaiAdjustedTKK14-approximate_randomization_distribution_beta_hat_T"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceBaiAdjustedTKK14-approximate_randomization_distribution_beta_hat_T}{}}}
