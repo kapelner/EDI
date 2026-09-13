@@ -1628,7 +1628,7 @@
 "InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","get_mod","InferenceAllKKMeanDiffIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1649,8 +1649,6 @@
 "InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","select_optimal_b_subsampling","InferenceAllKKMeanDiffIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","select_optimal_m_out_of_n_bootstrap","InferenceAllKKMeanDiffIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","set_custom_randomization_statistic_cpp","InferenceAllKKMeanDiffIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","set_custom_randomization_statistic_function","InferenceAllKKMeanDiffIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceAllKKMeanDiffIVWC","r6_public_method","InferenceAllKKMeanDiffIVWC","set_testing_type","InferenceAllKKMeanDiffIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -1691,7 +1689,7 @@
 "InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","get_mod","InferenceAllKKWilcoxIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1710,8 +1708,6 @@
 "InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","select_optimal_b_subsampling","InferenceAllKKWilcoxIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","select_optimal_m_out_of_n_bootstrap","InferenceAllKKWilcoxIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","set_custom_randomization_statistic_cpp","InferenceAllKKWilcoxIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","set_custom_randomization_statistic_function","InferenceAllKKWilcoxIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceAllKKWilcoxIVWC","r6_public_method","InferenceAllKKWilcoxIVWC","set_testing_type","InferenceAllKKWilcoxIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -1777,8 +1773,6 @@
 "InferenceAllSimpleAverageDiff","r6_public_method","InferenceAllSimpleAverageDiff","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleAverageDiff","r6_public_method","InferenceAllSimpleAverageDiff","select_optimal_b_subsampling","InferenceAllSimpleAverageDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleAverageDiff","r6_public_method","InferenceAllSimpleAverageDiff","select_optimal_m_out_of_n_bootstrap","InferenceAllSimpleAverageDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceAllSimpleAverageDiff","r6_public_method","InferenceAllSimpleAverageDiff","set_custom_randomization_statistic_cpp","InferenceAllSimpleAverageDiff","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceAllSimpleAverageDiff","r6_public_method","InferenceAllSimpleAverageDiff","set_custom_randomization_statistic_function","InferenceAllSimpleAverageDiff","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleAverageDiff","r6_public_method","InferenceAllSimpleAverageDiff","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleAverageDiff","r6_public_method","InferenceAllSimpleAverageDiff","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleAverageDiff","r6_public_method","InferenceAllSimpleAverageDiff","set_testing_type","InferenceAllSimpleAverageDiff","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -1844,8 +1838,6 @@
 "InferenceAllSimpleMeanDiffPooledVar","r6_public_method","InferenceAllSimpleMeanDiffPooledVar","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleMeanDiffPooledVar","r6_public_method","InferenceAllSimpleMeanDiffPooledVar","select_optimal_b_subsampling","InferenceAllSimpleMeanDiffPooledVar","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleMeanDiffPooledVar","r6_public_method","InferenceAllSimpleMeanDiffPooledVar","select_optimal_m_out_of_n_bootstrap","InferenceAllSimpleMeanDiffPooledVar","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceAllSimpleMeanDiffPooledVar","r6_public_method","InferenceAllSimpleMeanDiffPooledVar","set_custom_randomization_statistic_cpp","InferenceAllSimpleMeanDiffPooledVar","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceAllSimpleMeanDiffPooledVar","r6_public_method","InferenceAllSimpleMeanDiffPooledVar","set_custom_randomization_statistic_function","InferenceAllSimpleMeanDiffPooledVar","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleMeanDiffPooledVar","r6_public_method","InferenceAllSimpleMeanDiffPooledVar","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleMeanDiffPooledVar","r6_public_method","InferenceAllSimpleMeanDiffPooledVar","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleMeanDiffPooledVar","r6_public_method","InferenceAllSimpleMeanDiffPooledVar","set_testing_type","InferenceAllSimpleMeanDiffPooledVar","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -1905,8 +1897,6 @@
 "InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","select_optimal_b_subsampling","InferenceAllSimpleWilcox","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","select_optimal_m_out_of_n_bootstrap","InferenceAllSimpleWilcox","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","set_custom_randomization_statistic_cpp","InferenceAllSimpleWilcox","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","set_custom_randomization_statistic_function","InferenceAllSimpleWilcox","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceAllSimpleWilcox","r6_public_method","InferenceAllSimpleWilcox","set_testing_type","InferenceAllSimpleWilcox","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -1951,7 +1941,7 @@
 "InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","get_mod","InferenceBaiAdjustedTKK14","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1972,8 +1962,6 @@
 "InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","select_optimal_b_subsampling","InferenceBaiAdjustedTKK14","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","select_optimal_m_out_of_n_bootstrap","InferenceBaiAdjustedTKK14","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","set_custom_randomization_statistic_cpp","InferenceBaiAdjustedTKK14","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","set_custom_randomization_statistic_function","InferenceBaiAdjustedTKK14","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK14","r6_public_method","InferenceBaiAdjustedTKK14","set_testing_type","InferenceBaiAdjustedTKK14","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -2018,7 +2006,7 @@
 "InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","get_mod","InferenceBaiAdjustedTKK21","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -2039,8 +2027,6 @@
 "InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","select_optimal_b_subsampling","InferenceBaiAdjustedTKK21","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","select_optimal_m_out_of_n_bootstrap","InferenceBaiAdjustedTKK21","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","set_custom_randomization_statistic_cpp","InferenceBaiAdjustedTKK21","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","set_custom_randomization_statistic_function","InferenceBaiAdjustedTKK21","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceBaiAdjustedTKK21","r6_public_method","InferenceBaiAdjustedTKK21","set_testing_type","InferenceBaiAdjustedTKK21","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -2129,8 +2115,6 @@
 "InferenceContinKKGLMM","r6_public_method","InferenceContinKKGLMM","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKGLMM","r6_public_method","InferenceContinKKGLMM","select_optimal_b_subsampling","InferenceContinKKGLMM","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKGLMM","r6_public_method","InferenceContinKKGLMM","select_optimal_m_out_of_n_bootstrap","InferenceContinKKGLMM","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinKKGLMM","r6_public_method","InferenceContinKKGLMM","set_custom_randomization_statistic_cpp","InferenceContinKKGLMM","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinKKGLMM","r6_public_method","InferenceContinKKGLMM","set_custom_randomization_statistic_function","InferenceContinKKGLMM","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKGLMM","r6_public_method","InferenceContinKKGLMM","set_information_preference","InferenceContinKKGLMM","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKGLMM","r6_public_method","InferenceContinKKGLMM","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceContinKKGLMM","r6_public_method","InferenceContinKKGLMM","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -2176,7 +2160,7 @@
 "InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","get_mod","InferenceContinKKOLSIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -2197,8 +2181,6 @@
 "InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","select_optimal_b_subsampling","InferenceContinKKOLSIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","select_optimal_m_out_of_n_bootstrap","InferenceContinKKOLSIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","set_custom_randomization_statistic_cpp","InferenceContinKKOLSIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","set_custom_randomization_statistic_function","InferenceContinKKOLSIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKOLSIVWC","r6_public_method","InferenceContinKKOLSIVWC","set_testing_type","InferenceContinKKOLSIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -2288,8 +2270,6 @@
 "InferenceContinKKOLSOneLik","r6_public_method","InferenceContinKKOLSOneLik","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKOLSOneLik","r6_public_method","InferenceContinKKOLSOneLik","select_optimal_b_subsampling","InferenceContinKKOLSOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKOLSOneLik","r6_public_method","InferenceContinKKOLSOneLik","select_optimal_m_out_of_n_bootstrap","InferenceContinKKOLSOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinKKOLSOneLik","r6_public_method","InferenceContinKKOLSOneLik","set_custom_randomization_statistic_cpp","InferenceContinKKOLSOneLik","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinKKOLSOneLik","r6_public_method","InferenceContinKKOLSOneLik","set_custom_randomization_statistic_function","InferenceContinKKOLSOneLik","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKOLSOneLik","r6_public_method","InferenceContinKKOLSOneLik","set_information_preference","InferenceContinKKOLSOneLik","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKOLSOneLik","r6_public_method","InferenceContinKKOLSOneLik","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceContinKKOLSOneLik","r6_public_method","InferenceContinKKOLSOneLik","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -2335,7 +2315,7 @@
 "InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","get_mod","InferenceContinKKQuantileRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -2356,8 +2336,6 @@
 "InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","select_optimal_b_subsampling","InferenceContinKKQuantileRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","select_optimal_m_out_of_n_bootstrap","InferenceContinKKQuantileRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","set_custom_randomization_statistic_cpp","InferenceContinKKQuantileRegrIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","set_custom_randomization_statistic_function","InferenceContinKKQuantileRegrIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKQuantileRegrIVWC","r6_public_method","InferenceContinKKQuantileRegrIVWC","set_testing_type","InferenceContinKKQuantileRegrIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -2423,8 +2401,6 @@
 "InferenceContinKKQuantileRegrOneLik","r6_public_method","InferenceContinKKQuantileRegrOneLik","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKQuantileRegrOneLik","r6_public_method","InferenceContinKKQuantileRegrOneLik","select_optimal_b_subsampling","InferenceContinKKQuantileRegrOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKQuantileRegrOneLik","r6_public_method","InferenceContinKKQuantileRegrOneLik","select_optimal_m_out_of_n_bootstrap","InferenceContinKKQuantileRegrOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinKKQuantileRegrOneLik","r6_public_method","InferenceContinKKQuantileRegrOneLik","set_custom_randomization_statistic_cpp","InferenceContinKKQuantileRegrOneLik","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinKKQuantileRegrOneLik","r6_public_method","InferenceContinKKQuantileRegrOneLik","set_custom_randomization_statistic_function","InferenceContinKKQuantileRegrOneLik","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKQuantileRegrOneLik","r6_public_method","InferenceContinKKQuantileRegrOneLik","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceContinKKQuantileRegrOneLik","r6_public_method","InferenceContinKKQuantileRegrOneLik","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKQuantileRegrOneLik","r6_public_method","InferenceContinKKQuantileRegrOneLik","set_testing_type","InferenceContinKKQuantileRegrOneLik","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -2469,7 +2445,7 @@
 "InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","duplicate","InferenceContinKKRobustRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","get_mod","InferenceContinKKRobustRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -2490,8 +2466,6 @@
 "InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","select_optimal_b_subsampling","InferenceContinKKRobustRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","select_optimal_m_out_of_n_bootstrap","InferenceContinKKRobustRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","set_custom_randomization_statistic_cpp","InferenceContinKKRobustRegrIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","set_custom_randomization_statistic_function","InferenceContinKKRobustRegrIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceContinKKRobustRegrIVWC","r6_public_method","InferenceContinKKRobustRegrIVWC","set_testing_type","InferenceContinKKRobustRegrIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -2557,8 +2531,6 @@
 "InferenceContinKKRobustRegrOneLik","r6_public_method","InferenceContinKKRobustRegrOneLik","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKRobustRegrOneLik","r6_public_method","InferenceContinKKRobustRegrOneLik","select_optimal_b_subsampling","InferenceContinKKRobustRegrOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKRobustRegrOneLik","r6_public_method","InferenceContinKKRobustRegrOneLik","select_optimal_m_out_of_n_bootstrap","InferenceContinKKRobustRegrOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinKKRobustRegrOneLik","r6_public_method","InferenceContinKKRobustRegrOneLik","set_custom_randomization_statistic_cpp","InferenceContinKKRobustRegrOneLik","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinKKRobustRegrOneLik","r6_public_method","InferenceContinKKRobustRegrOneLik","set_custom_randomization_statistic_function","InferenceContinKKRobustRegrOneLik","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKRobustRegrOneLik","r6_public_method","InferenceContinKKRobustRegrOneLik","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceContinKKRobustRegrOneLik","r6_public_method","InferenceContinKKRobustRegrOneLik","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinKKRobustRegrOneLik","r6_public_method","InferenceContinKKRobustRegrOneLik","set_testing_type","InferenceContinKKRobustRegrOneLik","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -2647,8 +2619,6 @@
 "InferenceContinLin","r6_public_method","InferenceContinLin","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinLin","r6_public_method","InferenceContinLin","select_optimal_b_subsampling","InferenceContinLin","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinLin","r6_public_method","InferenceContinLin","select_optimal_m_out_of_n_bootstrap","InferenceContinLin","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinLin","r6_public_method","InferenceContinLin","set_custom_randomization_statistic_cpp","InferenceContinLin","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinLin","r6_public_method","InferenceContinLin","set_custom_randomization_statistic_function","InferenceContinLin","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinLin","r6_public_method","InferenceContinLin","set_information_preference","InferenceContinLin","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinLin","r6_public_method","InferenceContinLin","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceContinLin","r6_public_method","InferenceContinLin","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -2738,8 +2708,6 @@
 "InferenceContinOLS","r6_public_method","InferenceContinOLS","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinOLS","r6_public_method","InferenceContinOLS","select_optimal_b_subsampling","InferenceContinOLS","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinOLS","r6_public_method","InferenceContinOLS","select_optimal_m_out_of_n_bootstrap","InferenceContinOLS","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinOLS","r6_public_method","InferenceContinOLS","set_custom_randomization_statistic_cpp","InferenceContinOLS","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinOLS","r6_public_method","InferenceContinOLS","set_custom_randomization_statistic_function","InferenceContinOLS","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinOLS","r6_public_method","InferenceContinOLS","set_information_preference","InferenceContinOLS","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinOLS","r6_public_method","InferenceContinOLS","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceContinOLS","r6_public_method","InferenceContinOLS","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -2806,8 +2774,6 @@
 "InferenceContinQuantileRegr","r6_public_method","InferenceContinQuantileRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinQuantileRegr","r6_public_method","InferenceContinQuantileRegr","select_optimal_b_subsampling","InferenceContinQuantileRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinQuantileRegr","r6_public_method","InferenceContinQuantileRegr","select_optimal_m_out_of_n_bootstrap","InferenceContinQuantileRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinQuantileRegr","r6_public_method","InferenceContinQuantileRegr","set_custom_randomization_statistic_cpp","InferenceContinQuantileRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinQuantileRegr","r6_public_method","InferenceContinQuantileRegr","set_custom_randomization_statistic_function","InferenceContinQuantileRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinQuantileRegr","r6_public_method","InferenceContinQuantileRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceContinQuantileRegr","r6_public_method","InferenceContinQuantileRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinQuantileRegr","r6_public_method","InferenceContinQuantileRegr","set_testing_type","InferenceContinQuantileRegr","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -2873,8 +2839,6 @@
 "InferenceContinRobustRegr","r6_public_method","InferenceContinRobustRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinRobustRegr","r6_public_method","InferenceContinRobustRegr","select_optimal_b_subsampling","InferenceContinRobustRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinRobustRegr","r6_public_method","InferenceContinRobustRegr","select_optimal_m_out_of_n_bootstrap","InferenceContinRobustRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinRobustRegr","r6_public_method","InferenceContinRobustRegr","set_custom_randomization_statistic_cpp","InferenceContinRobustRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceContinRobustRegr","r6_public_method","InferenceContinRobustRegr","set_custom_randomization_statistic_function","InferenceContinRobustRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinRobustRegr","r6_public_method","InferenceContinRobustRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceContinRobustRegr","r6_public_method","InferenceContinRobustRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceContinRobustRegr","r6_public_method","InferenceContinRobustRegr","set_testing_type","InferenceContinRobustRegr","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -2963,8 +2927,6 @@
 "InferenceCountHurdleNegBin","r6_public_method","InferenceCountHurdleNegBin","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountHurdleNegBin","r6_public_method","InferenceCountHurdleNegBin","select_optimal_b_subsampling","InferenceCountHurdleNegBin","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountHurdleNegBin","r6_public_method","InferenceCountHurdleNegBin","select_optimal_m_out_of_n_bootstrap","InferenceCountHurdleNegBin","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountHurdleNegBin","r6_public_method","InferenceCountHurdleNegBin","set_custom_randomization_statistic_cpp","InferenceCountHurdleNegBin","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountHurdleNegBin","r6_public_method","InferenceCountHurdleNegBin","set_custom_randomization_statistic_function","InferenceCountHurdleNegBin","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountHurdleNegBin","r6_public_method","InferenceCountHurdleNegBin","set_information_preference","InferenceCountHurdleNegBin","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountHurdleNegBin","r6_public_method","InferenceCountHurdleNegBin","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountHurdleNegBin","r6_public_method","InferenceCountHurdleNegBin","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -3056,8 +3018,6 @@
 "InferenceCountHurdlePoisson","r6_public_method","InferenceCountHurdlePoisson","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountHurdlePoisson","r6_public_method","InferenceCountHurdlePoisson","select_optimal_b_subsampling","InferenceCountZeroAugmentedPoissonAbstract","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountHurdlePoisson","r6_public_method","InferenceCountHurdlePoisson","select_optimal_m_out_of_n_bootstrap","InferenceCountZeroAugmentedPoissonAbstract","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountHurdlePoisson","r6_public_method","InferenceCountHurdlePoisson","set_custom_randomization_statistic_cpp","InferenceCountZeroAugmentedPoissonAbstract","inherited",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountHurdlePoisson","r6_public_method","InferenceCountHurdlePoisson","set_custom_randomization_statistic_function","InferenceCountZeroAugmentedPoissonAbstract","inherited",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountHurdlePoisson","r6_public_method","InferenceCountHurdlePoisson","set_estimand","InferenceCountHurdlePoisson","class_local",1,"estimand",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountHurdlePoisson","r6_public_method","InferenceCountHurdlePoisson","set_information_preference","InferenceCountZeroAugmentedPoissonAbstract","inherited",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountHurdlePoisson","r6_public_method","InferenceCountHurdlePoisson","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
@@ -3154,8 +3114,6 @@
 "InferenceCountKKCondPoissonOneLik","r6_public_method","InferenceCountKKCondPoissonOneLik","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKCondPoissonOneLik","r6_public_method","InferenceCountKKCondPoissonOneLik","select_optimal_b_subsampling","InferenceCountKKCondPoissonOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKCondPoissonOneLik","r6_public_method","InferenceCountKKCondPoissonOneLik","select_optimal_m_out_of_n_bootstrap","InferenceCountKKCondPoissonOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountKKCondPoissonOneLik","r6_public_method","InferenceCountKKCondPoissonOneLik","set_custom_randomization_statistic_cpp","InferenceCountKKCondPoissonOneLik","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountKKCondPoissonOneLik","r6_public_method","InferenceCountKKCondPoissonOneLik","set_custom_randomization_statistic_function","InferenceCountKKCondPoissonOneLik","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKCondPoissonOneLik","r6_public_method","InferenceCountKKCondPoissonOneLik","set_information_preference","InferenceCountKKCondPoissonOneLik","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKCondPoissonOneLik","r6_public_method","InferenceCountKKCondPoissonOneLik","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountKKCondPoissonOneLik","r6_public_method","InferenceCountKKCondPoissonOneLik","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -3247,8 +3205,6 @@
 "InferenceCountKKGLMM","r6_public_method","InferenceCountKKGLMM","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKGLMM","r6_public_method","InferenceCountKKGLMM","select_optimal_b_subsampling","InferenceCountKKGLMM","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKGLMM","r6_public_method","InferenceCountKKGLMM","select_optimal_m_out_of_n_bootstrap","InferenceCountKKGLMM","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountKKGLMM","r6_public_method","InferenceCountKKGLMM","set_custom_randomization_statistic_cpp","InferenceCountKKGLMM","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountKKGLMM","r6_public_method","InferenceCountKKGLMM","set_custom_randomization_statistic_function","InferenceCountKKGLMM","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKGLMM","r6_public_method","InferenceCountKKGLMM","set_information_preference","InferenceCountKKGLMM","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKGLMM","r6_public_method","InferenceCountKKGLMM","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountKKGLMM","r6_public_method","InferenceCountKKGLMM","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -3294,7 +3250,7 @@
 "InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","get_mod","InferenceCountKKHurdlePoissonIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -3315,8 +3271,6 @@
 "InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","select_optimal_b_subsampling","InferenceCountKKHurdlePoissonIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","select_optimal_m_out_of_n_bootstrap","InferenceCountKKHurdlePoissonIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","set_custom_randomization_statistic_cpp","InferenceCountKKHurdlePoissonIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","set_custom_randomization_statistic_function","InferenceCountKKHurdlePoissonIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceCountKKHurdlePoissonIVWC","r6_public_method","InferenceCountKKHurdlePoissonIVWC","set_testing_type","InferenceCountKKHurdlePoissonIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -3411,8 +3365,6 @@
 "InferenceCountKKHurdlePoissonOneLik","r6_public_method","InferenceCountKKHurdlePoissonOneLik","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKHurdlePoissonOneLik","r6_public_method","InferenceCountKKHurdlePoissonOneLik","select_optimal_b_subsampling","InferenceCountKKHurdlePoissonOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKHurdlePoissonOneLik","r6_public_method","InferenceCountKKHurdlePoissonOneLik","select_optimal_m_out_of_n_bootstrap","InferenceCountKKHurdlePoissonOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountKKHurdlePoissonOneLik","r6_public_method","InferenceCountKKHurdlePoissonOneLik","set_custom_randomization_statistic_cpp","InferenceCountKKHurdlePoissonOneLik","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountKKHurdlePoissonOneLik","r6_public_method","InferenceCountKKHurdlePoissonOneLik","set_custom_randomization_statistic_function","InferenceCountKKHurdlePoissonOneLik","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKHurdlePoissonOneLik","r6_public_method","InferenceCountKKHurdlePoissonOneLik","set_information_preference","InferenceCountKKHurdlePoissonOneLik","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountKKHurdlePoissonOneLik","r6_public_method","InferenceCountKKHurdlePoissonOneLik","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountKKHurdlePoissonOneLik","r6_public_method","InferenceCountKKHurdlePoissonOneLik","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -3502,8 +3454,6 @@
 "InferenceCountNegBin","r6_public_method","InferenceCountNegBin","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountNegBin","r6_public_method","InferenceCountNegBin","select_optimal_b_subsampling","InferenceCountNegBin","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountNegBin","r6_public_method","InferenceCountNegBin","select_optimal_m_out_of_n_bootstrap","InferenceCountNegBin","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountNegBin","r6_public_method","InferenceCountNegBin","set_custom_randomization_statistic_cpp","InferenceCountNegBin","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountNegBin","r6_public_method","InferenceCountNegBin","set_custom_randomization_statistic_function","InferenceCountNegBin","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountNegBin","r6_public_method","InferenceCountNegBin","set_information_preference","InferenceCountNegBin","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountNegBin","r6_public_method","InferenceCountNegBin","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountNegBin","r6_public_method","InferenceCountNegBin","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -3595,8 +3545,6 @@
 "InferenceCountPoisson","r6_public_method","InferenceCountPoisson","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountPoisson","r6_public_method","InferenceCountPoisson","select_optimal_b_subsampling","InferenceCountPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountPoisson","r6_public_method","InferenceCountPoisson","select_optimal_m_out_of_n_bootstrap","InferenceCountPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountPoisson","r6_public_method","InferenceCountPoisson","set_custom_randomization_statistic_cpp","InferenceCountPoisson","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountPoisson","r6_public_method","InferenceCountPoisson","set_custom_randomization_statistic_function","InferenceCountPoisson","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountPoisson","r6_public_method","InferenceCountPoisson","set_estimand","InferenceCountPoisson","class_local",1,"estimand",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountPoisson","r6_public_method","InferenceCountPoisson","set_information_preference","InferenceCountPoisson","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountPoisson","r6_public_method","InferenceCountPoisson","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
@@ -3664,8 +3612,6 @@
 "InferenceCountPoissonKKGEE","r6_public_method","InferenceCountPoissonKKGEE","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountPoissonKKGEE","r6_public_method","InferenceCountPoissonKKGEE","select_optimal_b_subsampling","InferenceCountPoissonKKGEE","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountPoissonKKGEE","r6_public_method","InferenceCountPoissonKKGEE","select_optimal_m_out_of_n_bootstrap","InferenceCountPoissonKKGEE","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountPoissonKKGEE","r6_public_method","InferenceCountPoissonKKGEE","set_custom_randomization_statistic_cpp","InferenceCountPoissonKKGEE","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountPoissonKKGEE","r6_public_method","InferenceCountPoissonKKGEE","set_custom_randomization_statistic_function","InferenceCountPoissonKKGEE","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountPoissonKKGEE","r6_public_method","InferenceCountPoissonKKGEE","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountPoissonKKGEE","r6_public_method","InferenceCountPoissonKKGEE","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountPoissonKKGEE","r6_public_method","InferenceCountPoissonKKGEE","set_testing_type","InferenceCountPoissonKKGEE","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -3731,8 +3677,6 @@
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","select_optimal_b_subsampling","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","select_optimal_m_out_of_n_bootstrap","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","set_custom_randomization_statistic_cpp","InferenceCountQuasiPoisson","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","set_custom_randomization_statistic_function","InferenceCountQuasiPoisson","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","set_testing_type","InferenceCountQuasiPoisson","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -3798,8 +3742,6 @@
 "InferenceCountRobustPoisson","r6_public_method","InferenceCountRobustPoisson","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountRobustPoisson","r6_public_method","InferenceCountRobustPoisson","select_optimal_b_subsampling","InferenceCountRobustPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountRobustPoisson","r6_public_method","InferenceCountRobustPoisson","select_optimal_m_out_of_n_bootstrap","InferenceCountRobustPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountRobustPoisson","r6_public_method","InferenceCountRobustPoisson","set_custom_randomization_statistic_cpp","InferenceCountRobustPoisson","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountRobustPoisson","r6_public_method","InferenceCountRobustPoisson","set_custom_randomization_statistic_function","InferenceCountRobustPoisson","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountRobustPoisson","r6_public_method","InferenceCountRobustPoisson","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountRobustPoisson","r6_public_method","InferenceCountRobustPoisson","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountRobustPoisson","r6_public_method","InferenceCountRobustPoisson","set_testing_type","InferenceCountRobustPoisson","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -3888,8 +3830,6 @@
 "InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","select_optimal_b_subsampling","InferenceCountZeroAugmentedPoissonAbstract","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","select_optimal_m_out_of_n_bootstrap","InferenceCountZeroAugmentedPoissonAbstract","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","set_custom_randomization_statistic_cpp","InferenceCountZeroAugmentedPoissonAbstract","inherited",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","set_custom_randomization_statistic_function","InferenceCountZeroAugmentedPoissonAbstract","inherited",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","set_information_preference","InferenceCountZeroAugmentedPoissonAbstract","inherited",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedNegBin","r6_public_method","InferenceCountZeroInflatedNegBin","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -3981,8 +3921,6 @@
 "InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","select_optimal_b_subsampling","InferenceCountZeroAugmentedPoissonAbstract","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","select_optimal_m_out_of_n_bootstrap","InferenceCountZeroAugmentedPoissonAbstract","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","set_custom_randomization_statistic_cpp","InferenceCountZeroAugmentedPoissonAbstract","inherited",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","set_custom_randomization_statistic_function","InferenceCountZeroAugmentedPoissonAbstract","inherited",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","set_estimand","InferenceCountZeroInflatedPoisson","class_local",1,"estimand",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","set_information_preference","InferenceCountZeroAugmentedPoissonAbstract","inherited",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountZeroInflatedPoisson","r6_public_method","InferenceCountZeroInflatedPoisson","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
@@ -4075,8 +4013,6 @@
 "InferenceIncidBinomialIdentityRiskDiff","r6_public_method","InferenceIncidBinomialIdentityRiskDiff","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidBinomialIdentityRiskDiff","r6_public_method","InferenceIncidBinomialIdentityRiskDiff","select_optimal_b_subsampling","InferenceIncidBinomialIdentityRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidBinomialIdentityRiskDiff","r6_public_method","InferenceIncidBinomialIdentityRiskDiff","select_optimal_m_out_of_n_bootstrap","InferenceIncidBinomialIdentityRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidBinomialIdentityRiskDiff","r6_public_method","InferenceIncidBinomialIdentityRiskDiff","set_custom_randomization_statistic_cpp","InferenceIncidBinomialIdentityRiskDiff","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidBinomialIdentityRiskDiff","r6_public_method","InferenceIncidBinomialIdentityRiskDiff","set_custom_randomization_statistic_function","InferenceIncidBinomialIdentityRiskDiff","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidBinomialIdentityRiskDiff","r6_public_method","InferenceIncidBinomialIdentityRiskDiff","set_estimand","InferenceIncidBinomialIdentityRiskDiff","class_local",1,"estimand",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidBinomialIdentityRiskDiff","r6_public_method","InferenceIncidBinomialIdentityRiskDiff","set_information_preference","InferenceIncidBinomialIdentityRiskDiff","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidBinomialIdentityRiskDiff","r6_public_method","InferenceIncidBinomialIdentityRiskDiff","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
@@ -4144,8 +4080,6 @@
 "InferenceIncidCMH","r6_public_method","InferenceIncidCMH","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidCMH","r6_public_method","InferenceIncidCMH","select_optimal_b_subsampling","InferenceIncidCMH","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidCMH","r6_public_method","InferenceIncidCMH","select_optimal_m_out_of_n_bootstrap","InferenceIncidCMH","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidCMH","r6_public_method","InferenceIncidCMH","set_custom_randomization_statistic_cpp","InferenceIncidCMH","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidCMH","r6_public_method","InferenceIncidCMH","set_custom_randomization_statistic_function","InferenceIncidCMH","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidCMH","r6_public_method","InferenceIncidCMH","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidCMH","r6_public_method","InferenceIncidCMH","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidCMH","r6_public_method","InferenceIncidCMH","set_testing_type","InferenceIncidCMH","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -4286,8 +4220,6 @@
 "InferenceIncidExtendedRobins","r6_public_method","InferenceIncidExtendedRobins","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidExtendedRobins","r6_public_method","InferenceIncidExtendedRobins","select_optimal_b_subsampling","InferenceIncidExtendedRobins","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidExtendedRobins","r6_public_method","InferenceIncidExtendedRobins","select_optimal_m_out_of_n_bootstrap","InferenceIncidExtendedRobins","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidExtendedRobins","r6_public_method","InferenceIncidExtendedRobins","set_custom_randomization_statistic_cpp","InferenceIncidExtendedRobins","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidExtendedRobins","r6_public_method","InferenceIncidExtendedRobins","set_custom_randomization_statistic_function","InferenceIncidExtendedRobins","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidExtendedRobins","r6_public_method","InferenceIncidExtendedRobins","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidExtendedRobins","r6_public_method","InferenceIncidExtendedRobins","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidExtendedRobins","r6_public_method","InferenceIncidExtendedRobins","set_testing_type","InferenceIncidExtendedRobins","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -4363,8 +4295,6 @@
 "InferenceIncidGCompRiskDiff","r6_public_method","InferenceIncidGCompRiskDiff","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidGCompRiskDiff","r6_public_method","InferenceIncidGCompRiskDiff","select_optimal_b_subsampling","InferenceIncidGCompRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidGCompRiskDiff","r6_public_method","InferenceIncidGCompRiskDiff","select_optimal_m_out_of_n_bootstrap","InferenceIncidGCompRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidGCompRiskDiff","r6_public_method","InferenceIncidGCompRiskDiff","set_custom_randomization_statistic_cpp","InferenceIncidGCompRiskDiff","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidGCompRiskDiff","r6_public_method","InferenceIncidGCompRiskDiff","set_custom_randomization_statistic_function","InferenceIncidGCompRiskDiff","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidGCompRiskDiff","r6_public_method","InferenceIncidGCompRiskDiff","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidGCompRiskDiff","r6_public_method","InferenceIncidGCompRiskDiff","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidGCompRiskDiff","r6_public_method","InferenceIncidGCompRiskDiff","supports","Inference","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -4439,8 +4369,6 @@
 "InferenceIncidGCompRiskRatio","r6_public_method","InferenceIncidGCompRiskRatio","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidGCompRiskRatio","r6_public_method","InferenceIncidGCompRiskRatio","select_optimal_b_subsampling","InferenceIncidGCompRiskRatio","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidGCompRiskRatio","r6_public_method","InferenceIncidGCompRiskRatio","select_optimal_m_out_of_n_bootstrap","InferenceIncidGCompRiskRatio","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidGCompRiskRatio","r6_public_method","InferenceIncidGCompRiskRatio","set_custom_randomization_statistic_cpp","InferenceIncidGCompRiskRatio","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidGCompRiskRatio","r6_public_method","InferenceIncidGCompRiskRatio","set_custom_randomization_statistic_function","InferenceIncidGCompRiskRatio","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidGCompRiskRatio","r6_public_method","InferenceIncidGCompRiskRatio","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidGCompRiskRatio","r6_public_method","InferenceIncidGCompRiskRatio","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidGCompRiskRatio","r6_public_method","InferenceIncidGCompRiskRatio","supports","Inference","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -4501,7 +4429,7 @@
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","get_information_preference","InferenceAbstractKKCondLogitGLMM","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","get_information_source_used","InferenceAbstractKKCondLogitGLMM","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","get_last_param_bootstrap_diagnostics","InferenceAbstractKKCondLogitGLMM","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
@@ -4528,8 +4456,6 @@
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","select_optimal_b_subsampling","InferenceAbstractKKCondLogitGLMM","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","select_optimal_m_out_of_n_bootstrap","InferenceAbstractKKCondLogitGLMM","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","set_custom_randomization_statistic_cpp","InferenceAbstractKKCondLogitGLMM","inherited",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","set_custom_randomization_statistic_function","InferenceAbstractKKCondLogitGLMM","inherited",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","set_information_preference","InferenceAbstractKKCondLogitGLMM","inherited",1,"information_preference",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitGLMMIVWC","r6_public_method","InferenceIncidKKCondLogitGLMMIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
@@ -4619,8 +4545,6 @@
 "InferenceIncidKKCondLogitGLMMOneLik","r6_public_method","InferenceIncidKKCondLogitGLMMOneLik","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitGLMMOneLik","r6_public_method","InferenceIncidKKCondLogitGLMMOneLik","select_optimal_b_subsampling","InferenceAbstractKKCondLogitGLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitGLMMOneLik","r6_public_method","InferenceIncidKKCondLogitGLMMOneLik","select_optimal_m_out_of_n_bootstrap","InferenceAbstractKKCondLogitGLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKCondLogitGLMMOneLik","r6_public_method","InferenceIncidKKCondLogitGLMMOneLik","set_custom_randomization_statistic_cpp","InferenceAbstractKKCondLogitGLMM","inherited",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKCondLogitGLMMOneLik","r6_public_method","InferenceIncidKKCondLogitGLMMOneLik","set_custom_randomization_statistic_function","InferenceAbstractKKCondLogitGLMM","inherited",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitGLMMOneLik","r6_public_method","InferenceIncidKKCondLogitGLMMOneLik","set_information_preference","InferenceAbstractKKCondLogitGLMM","inherited",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitGLMMOneLik","r6_public_method","InferenceIncidKKCondLogitGLMMOneLik","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitGLMMOneLik","r6_public_method","InferenceIncidKKCondLogitGLMMOneLik","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -4666,7 +4590,7 @@
 "InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","get_mod","InferenceIncidKKCondLogitIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -4687,8 +4611,6 @@
 "InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","select_optimal_b_subsampling","InferenceIncidKKCondLogitIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","select_optimal_m_out_of_n_bootstrap","InferenceIncidKKCondLogitIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","set_custom_randomization_statistic_cpp","InferenceIncidKKCondLogitIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","set_custom_randomization_statistic_function","InferenceIncidKKCondLogitIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceIncidKKCondLogitIVWC","r6_public_method","InferenceIncidKKCondLogitIVWC","set_testing_type","InferenceIncidKKCondLogitIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -4779,8 +4701,6 @@
 "InferenceIncidKKCondLogitOneLik","r6_public_method","InferenceIncidKKCondLogitOneLik","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitOneLik","r6_public_method","InferenceIncidKKCondLogitOneLik","select_optimal_b_subsampling","InferenceIncidKKCondLogitOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitOneLik","r6_public_method","InferenceIncidKKCondLogitOneLik","select_optimal_m_out_of_n_bootstrap","InferenceIncidKKCondLogitOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKCondLogitOneLik","r6_public_method","InferenceIncidKKCondLogitOneLik","set_custom_randomization_statistic_cpp","InferenceIncidKKCondLogitOneLik","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKCondLogitOneLik","r6_public_method","InferenceIncidKKCondLogitOneLik","set_custom_randomization_statistic_function","InferenceIncidKKCondLogitOneLik","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitOneLik","r6_public_method","InferenceIncidKKCondLogitOneLik","set_information_preference","InferenceIncidKKCondLogitOneLik","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitOneLik","r6_public_method","InferenceIncidKKCondLogitOneLik","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKCondLogitOneLik","r6_public_method","InferenceIncidKKCondLogitOneLik","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -4857,8 +4777,6 @@
 "InferenceIncidKKGCompRiskDiff","r6_public_method","InferenceIncidKKGCompRiskDiff","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGCompRiskDiff","r6_public_method","InferenceIncidKKGCompRiskDiff","select_optimal_b_subsampling","InferenceIncidKKGCompRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGCompRiskDiff","r6_public_method","InferenceIncidKKGCompRiskDiff","select_optimal_m_out_of_n_bootstrap","InferenceIncidKKGCompRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKGCompRiskDiff","r6_public_method","InferenceIncidKKGCompRiskDiff","set_custom_randomization_statistic_cpp","InferenceIncidKKGCompRiskDiff","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKGCompRiskDiff","r6_public_method","InferenceIncidKKGCompRiskDiff","set_custom_randomization_statistic_function","InferenceIncidKKGCompRiskDiff","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGCompRiskDiff","r6_public_method","InferenceIncidKKGCompRiskDiff","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGCompRiskDiff","r6_public_method","InferenceIncidKKGCompRiskDiff","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGCompRiskDiff","r6_public_method","InferenceIncidKKGCompRiskDiff","supports","Inference","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -4933,8 +4851,6 @@
 "InferenceIncidKKGCompRiskRatio","r6_public_method","InferenceIncidKKGCompRiskRatio","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGCompRiskRatio","r6_public_method","InferenceIncidKKGCompRiskRatio","select_optimal_b_subsampling","InferenceIncidKKGCompRiskRatio","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGCompRiskRatio","r6_public_method","InferenceIncidKKGCompRiskRatio","select_optimal_m_out_of_n_bootstrap","InferenceIncidKKGCompRiskRatio","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKGCompRiskRatio","r6_public_method","InferenceIncidKKGCompRiskRatio","set_custom_randomization_statistic_cpp","InferenceIncidKKGCompRiskRatio","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKGCompRiskRatio","r6_public_method","InferenceIncidKKGCompRiskRatio","set_custom_randomization_statistic_function","InferenceIncidKKGCompRiskRatio","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGCompRiskRatio","r6_public_method","InferenceIncidKKGCompRiskRatio","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGCompRiskRatio","r6_public_method","InferenceIncidKKGCompRiskRatio","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGCompRiskRatio","r6_public_method","InferenceIncidKKGCompRiskRatio","supports","Inference","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -4999,8 +4915,6 @@
 "InferenceIncidKKGEE","r6_public_method","InferenceIncidKKGEE","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGEE","r6_public_method","InferenceIncidKKGEE","select_optimal_b_subsampling","InferenceIncidKKGEE","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGEE","r6_public_method","InferenceIncidKKGEE","select_optimal_m_out_of_n_bootstrap","InferenceIncidKKGEE","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKGEE","r6_public_method","InferenceIncidKKGEE","set_custom_randomization_statistic_cpp","InferenceIncidKKGEE","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKGEE","r6_public_method","InferenceIncidKKGEE","set_custom_randomization_statistic_function","InferenceIncidKKGEE","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGEE","r6_public_method","InferenceIncidKKGEE","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGEE","r6_public_method","InferenceIncidKKGEE","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKGEE","r6_public_method","InferenceIncidKKGEE","set_testing_type","InferenceIncidKKGEE","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -5089,8 +5003,6 @@
 "InferenceIncidKKModifiedPoisson","r6_public_method","InferenceIncidKKModifiedPoisson","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKModifiedPoisson","r6_public_method","InferenceIncidKKModifiedPoisson","select_optimal_b_subsampling","InferenceAbstractKKMarginalIncid","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKModifiedPoisson","r6_public_method","InferenceIncidKKModifiedPoisson","select_optimal_m_out_of_n_bootstrap","InferenceAbstractKKMarginalIncid","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKModifiedPoisson","r6_public_method","InferenceIncidKKModifiedPoisson","set_custom_randomization_statistic_cpp","InferenceAbstractKKMarginalIncid","inherited",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKModifiedPoisson","r6_public_method","InferenceIncidKKModifiedPoisson","set_custom_randomization_statistic_function","InferenceAbstractKKMarginalIncid","inherited",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKModifiedPoisson","r6_public_method","InferenceIncidKKModifiedPoisson","set_information_preference","InferenceAbstractKKMarginalIncid","inherited",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKModifiedPoisson","r6_public_method","InferenceIncidKKModifiedPoisson","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKModifiedPoisson","r6_public_method","InferenceIncidKKModifiedPoisson","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -5157,8 +5069,6 @@
 "InferenceIncidKKNewcombeRiskDiff","r6_public_method","InferenceIncidKKNewcombeRiskDiff","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKNewcombeRiskDiff","r6_public_method","InferenceIncidKKNewcombeRiskDiff","select_optimal_b_subsampling","InferenceIncidKKNewcombeRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKNewcombeRiskDiff","r6_public_method","InferenceIncidKKNewcombeRiskDiff","select_optimal_m_out_of_n_bootstrap","InferenceIncidKKNewcombeRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKNewcombeRiskDiff","r6_public_method","InferenceIncidKKNewcombeRiskDiff","set_custom_randomization_statistic_cpp","InferenceIncidKKNewcombeRiskDiff","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidKKNewcombeRiskDiff","r6_public_method","InferenceIncidKKNewcombeRiskDiff","set_custom_randomization_statistic_function","InferenceIncidKKNewcombeRiskDiff","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKNewcombeRiskDiff","r6_public_method","InferenceIncidKKNewcombeRiskDiff","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKNewcombeRiskDiff","r6_public_method","InferenceIncidKKNewcombeRiskDiff","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidKKNewcombeRiskDiff","r6_public_method","InferenceIncidKKNewcombeRiskDiff","set_testing_type","InferenceIncidKKNewcombeRiskDiff","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -5247,8 +5157,6 @@
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","select_optimal_b_subsampling","InferenceIncidLogBinomial","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","select_optimal_m_out_of_n_bootstrap","InferenceIncidLogBinomial","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","set_custom_randomization_statistic_cpp","InferenceIncidLogBinomial","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","set_custom_randomization_statistic_function","InferenceIncidLogBinomial","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","set_information_preference","InferenceIncidLogBinomial","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -5340,8 +5248,6 @@
 "InferenceIncidLogRegr","r6_public_method","InferenceIncidLogRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogRegr","r6_public_method","InferenceIncidLogRegr","select_optimal_b_subsampling","InferenceIncidLogRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogRegr","r6_public_method","InferenceIncidLogRegr","select_optimal_m_out_of_n_bootstrap","InferenceIncidLogRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidLogRegr","r6_public_method","InferenceIncidLogRegr","set_custom_randomization_statistic_cpp","InferenceIncidLogRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidLogRegr","r6_public_method","InferenceIncidLogRegr","set_custom_randomization_statistic_function","InferenceIncidLogRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogRegr","r6_public_method","InferenceIncidLogRegr","set_estimand","InferenceIncidLogRegr","class_local",1,"estimand",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogRegr","r6_public_method","InferenceIncidLogRegr","set_information_preference","InferenceIncidLogRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogRegr","r6_public_method","InferenceIncidLogRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
@@ -5409,8 +5315,6 @@
 "InferenceIncidMiettinenNurminenRiskDiff","r6_public_method","InferenceIncidMiettinenNurminenRiskDiff","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidMiettinenNurminenRiskDiff","r6_public_method","InferenceIncidMiettinenNurminenRiskDiff","select_optimal_b_subsampling","InferenceIncidMiettinenNurminenRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidMiettinenNurminenRiskDiff","r6_public_method","InferenceIncidMiettinenNurminenRiskDiff","select_optimal_m_out_of_n_bootstrap","InferenceIncidMiettinenNurminenRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidMiettinenNurminenRiskDiff","r6_public_method","InferenceIncidMiettinenNurminenRiskDiff","set_custom_randomization_statistic_cpp","InferenceIncidMiettinenNurminenRiskDiff","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidMiettinenNurminenRiskDiff","r6_public_method","InferenceIncidMiettinenNurminenRiskDiff","set_custom_randomization_statistic_function","InferenceIncidMiettinenNurminenRiskDiff","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidMiettinenNurminenRiskDiff","r6_public_method","InferenceIncidMiettinenNurminenRiskDiff","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidMiettinenNurminenRiskDiff","r6_public_method","InferenceIncidMiettinenNurminenRiskDiff","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidMiettinenNurminenRiskDiff","r6_public_method","InferenceIncidMiettinenNurminenRiskDiff","set_testing_type","InferenceIncidMiettinenNurminenRiskDiff","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -5499,8 +5403,6 @@
 "InferenceIncidModifiedPoisson","r6_public_method","InferenceIncidModifiedPoisson","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidModifiedPoisson","r6_public_method","InferenceIncidModifiedPoisson","select_optimal_b_subsampling","InferenceIncidModifiedPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidModifiedPoisson","r6_public_method","InferenceIncidModifiedPoisson","select_optimal_m_out_of_n_bootstrap","InferenceIncidModifiedPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidModifiedPoisson","r6_public_method","InferenceIncidModifiedPoisson","set_custom_randomization_statistic_cpp","InferenceIncidModifiedPoisson","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidModifiedPoisson","r6_public_method","InferenceIncidModifiedPoisson","set_custom_randomization_statistic_function","InferenceIncidModifiedPoisson","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidModifiedPoisson","r6_public_method","InferenceIncidModifiedPoisson","set_information_preference","InferenceIncidModifiedPoisson","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidModifiedPoisson","r6_public_method","InferenceIncidModifiedPoisson","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidModifiedPoisson","r6_public_method","InferenceIncidModifiedPoisson","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -5567,8 +5469,6 @@
 "InferenceIncidNewcombeRiskDiff","r6_public_method","InferenceIncidNewcombeRiskDiff","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidNewcombeRiskDiff","r6_public_method","InferenceIncidNewcombeRiskDiff","select_optimal_b_subsampling","InferenceIncidNewcombeRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidNewcombeRiskDiff","r6_public_method","InferenceIncidNewcombeRiskDiff","select_optimal_m_out_of_n_bootstrap","InferenceIncidNewcombeRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidNewcombeRiskDiff","r6_public_method","InferenceIncidNewcombeRiskDiff","set_custom_randomization_statistic_cpp","InferenceIncidNewcombeRiskDiff","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidNewcombeRiskDiff","r6_public_method","InferenceIncidNewcombeRiskDiff","set_custom_randomization_statistic_function","InferenceIncidNewcombeRiskDiff","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidNewcombeRiskDiff","r6_public_method","InferenceIncidNewcombeRiskDiff","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidNewcombeRiskDiff","r6_public_method","InferenceIncidNewcombeRiskDiff","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidNewcombeRiskDiff","r6_public_method","InferenceIncidNewcombeRiskDiff","set_testing_type","InferenceIncidNewcombeRiskDiff","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -5657,8 +5557,6 @@
 "InferenceIncidProbitRegr","r6_public_method","InferenceIncidProbitRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidProbitRegr","r6_public_method","InferenceIncidProbitRegr","select_optimal_b_subsampling","InferenceIncidProbitRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidProbitRegr","r6_public_method","InferenceIncidProbitRegr","select_optimal_m_out_of_n_bootstrap","InferenceIncidProbitRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidProbitRegr","r6_public_method","InferenceIncidProbitRegr","set_custom_randomization_statistic_cpp","InferenceIncidProbitRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidProbitRegr","r6_public_method","InferenceIncidProbitRegr","set_custom_randomization_statistic_function","InferenceIncidProbitRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidProbitRegr","r6_public_method","InferenceIncidProbitRegr","set_information_preference","InferenceIncidProbitRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidProbitRegr","r6_public_method","InferenceIncidProbitRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidProbitRegr","r6_public_method","InferenceIncidProbitRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -5725,8 +5623,6 @@
 "InferenceIncidRiskDiff","r6_public_method","InferenceIncidRiskDiff","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidRiskDiff","r6_public_method","InferenceIncidRiskDiff","select_optimal_b_subsampling","InferenceIncidRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidRiskDiff","r6_public_method","InferenceIncidRiskDiff","select_optimal_m_out_of_n_bootstrap","InferenceIncidRiskDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidRiskDiff","r6_public_method","InferenceIncidRiskDiff","set_custom_randomization_statistic_cpp","InferenceIncidRiskDiff","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidRiskDiff","r6_public_method","InferenceIncidRiskDiff","set_custom_randomization_statistic_function","InferenceIncidRiskDiff","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidRiskDiff","r6_public_method","InferenceIncidRiskDiff","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidRiskDiff","r6_public_method","InferenceIncidRiskDiff","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidRiskDiff","r6_public_method","InferenceIncidRiskDiff","set_testing_type","InferenceIncidRiskDiff","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -5792,8 +5688,6 @@
 "InferenceIncidWald","r6_public_method","InferenceIncidWald","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidWald","r6_public_method","InferenceIncidWald","select_optimal_b_subsampling","InferenceIncidWald","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidWald","r6_public_method","InferenceIncidWald","select_optimal_m_out_of_n_bootstrap","InferenceIncidWald","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidWald","r6_public_method","InferenceIncidWald","set_custom_randomization_statistic_cpp","InferenceIncidWald","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidWald","r6_public_method","InferenceIncidWald","set_custom_randomization_statistic_function","InferenceIncidWald","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidWald","r6_public_method","InferenceIncidWald","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidWald","r6_public_method","InferenceIncidWald","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidWald","r6_public_method","InferenceIncidWald","set_testing_type","InferenceIncidWald","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -5882,8 +5776,6 @@
 "InferenceOrdinalAdjCatLogitRegr","r6_public_method","InferenceOrdinalAdjCatLogitRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalAdjCatLogitRegr","r6_public_method","InferenceOrdinalAdjCatLogitRegr","select_optimal_b_subsampling","InferenceOrdinalAdjCatLogitRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalAdjCatLogitRegr","r6_public_method","InferenceOrdinalAdjCatLogitRegr","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalAdjCatLogitRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalAdjCatLogitRegr","r6_public_method","InferenceOrdinalAdjCatLogitRegr","set_custom_randomization_statistic_cpp","InferenceOrdinalAdjCatLogitRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalAdjCatLogitRegr","r6_public_method","InferenceOrdinalAdjCatLogitRegr","set_custom_randomization_statistic_function","InferenceOrdinalAdjCatLogitRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalAdjCatLogitRegr","r6_public_method","InferenceOrdinalAdjCatLogitRegr","set_information_preference","InferenceOrdinalAdjCatLogitRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalAdjCatLogitRegr","r6_public_method","InferenceOrdinalAdjCatLogitRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalAdjCatLogitRegr","r6_public_method","InferenceOrdinalAdjCatLogitRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -5973,8 +5865,6 @@
 "InferenceOrdinalCauchitRegr","r6_public_method","InferenceOrdinalCauchitRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalCauchitRegr","r6_public_method","InferenceOrdinalCauchitRegr","select_optimal_b_subsampling","InferenceOrdinalCauchitRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalCauchitRegr","r6_public_method","InferenceOrdinalCauchitRegr","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalCauchitRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalCauchitRegr","r6_public_method","InferenceOrdinalCauchitRegr","set_custom_randomization_statistic_cpp","InferenceOrdinalCauchitRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalCauchitRegr","r6_public_method","InferenceOrdinalCauchitRegr","set_custom_randomization_statistic_function","InferenceOrdinalCauchitRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalCauchitRegr","r6_public_method","InferenceOrdinalCauchitRegr","set_information_preference","InferenceOrdinalCauchitRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalCauchitRegr","r6_public_method","InferenceOrdinalCauchitRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalCauchitRegr","r6_public_method","InferenceOrdinalCauchitRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -6064,8 +5954,6 @@
 "InferenceOrdinalCloglogRegr","r6_public_method","InferenceOrdinalCloglogRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalCloglogRegr","r6_public_method","InferenceOrdinalCloglogRegr","select_optimal_b_subsampling","InferenceOrdinalCloglogRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalCloglogRegr","r6_public_method","InferenceOrdinalCloglogRegr","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalCloglogRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalCloglogRegr","r6_public_method","InferenceOrdinalCloglogRegr","set_custom_randomization_statistic_cpp","InferenceOrdinalCloglogRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalCloglogRegr","r6_public_method","InferenceOrdinalCloglogRegr","set_custom_randomization_statistic_function","InferenceOrdinalCloglogRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalCloglogRegr","r6_public_method","InferenceOrdinalCloglogRegr","set_information_preference","InferenceOrdinalCloglogRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalCloglogRegr","r6_public_method","InferenceOrdinalCloglogRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalCloglogRegr","r6_public_method","InferenceOrdinalCloglogRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -6155,8 +6043,6 @@
 "InferenceOrdinalContRatioRegr","r6_public_method","InferenceOrdinalContRatioRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalContRatioRegr","r6_public_method","InferenceOrdinalContRatioRegr","select_optimal_b_subsampling","InferenceOrdinalContRatioRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalContRatioRegr","r6_public_method","InferenceOrdinalContRatioRegr","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalContRatioRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalContRatioRegr","r6_public_method","InferenceOrdinalContRatioRegr","set_custom_randomization_statistic_cpp","InferenceOrdinalContRatioRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalContRatioRegr","r6_public_method","InferenceOrdinalContRatioRegr","set_custom_randomization_statistic_function","InferenceOrdinalContRatioRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalContRatioRegr","r6_public_method","InferenceOrdinalContRatioRegr","set_information_preference","InferenceOrdinalContRatioRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalContRatioRegr","r6_public_method","InferenceOrdinalContRatioRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalContRatioRegr","r6_public_method","InferenceOrdinalContRatioRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -6223,8 +6109,6 @@
 "InferenceOrdinalGCompMeanDiff","r6_public_method","InferenceOrdinalGCompMeanDiff","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalGCompMeanDiff","r6_public_method","InferenceOrdinalGCompMeanDiff","select_optimal_b_subsampling","InferenceOrdinalGCompMeanDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalGCompMeanDiff","r6_public_method","InferenceOrdinalGCompMeanDiff","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalGCompMeanDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalGCompMeanDiff","r6_public_method","InferenceOrdinalGCompMeanDiff","set_custom_randomization_statistic_cpp","InferenceOrdinalGCompMeanDiff","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalGCompMeanDiff","r6_public_method","InferenceOrdinalGCompMeanDiff","set_custom_randomization_statistic_function","InferenceOrdinalGCompMeanDiff","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalGCompMeanDiff","r6_public_method","InferenceOrdinalGCompMeanDiff","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalGCompMeanDiff","r6_public_method","InferenceOrdinalGCompMeanDiff","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalGCompMeanDiff","r6_public_method","InferenceOrdinalGCompMeanDiff","set_testing_type","InferenceOrdinalGCompMeanDiff","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -6290,8 +6174,6 @@
 "InferenceOrdinalJonckheereTerpstraTest","r6_public_method","InferenceOrdinalJonckheereTerpstraTest","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalJonckheereTerpstraTest","r6_public_method","InferenceOrdinalJonckheereTerpstraTest","select_optimal_b_subsampling","InferenceOrdinalJonckheereTerpstraTest","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalJonckheereTerpstraTest","r6_public_method","InferenceOrdinalJonckheereTerpstraTest","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalJonckheereTerpstraTest","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalJonckheereTerpstraTest","r6_public_method","InferenceOrdinalJonckheereTerpstraTest","set_custom_randomization_statistic_cpp","InferenceOrdinalJonckheereTerpstraTest","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalJonckheereTerpstraTest","r6_public_method","InferenceOrdinalJonckheereTerpstraTest","set_custom_randomization_statistic_function","InferenceOrdinalJonckheereTerpstraTest","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalJonckheereTerpstraTest","r6_public_method","InferenceOrdinalJonckheereTerpstraTest","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalJonckheereTerpstraTest","r6_public_method","InferenceOrdinalJonckheereTerpstraTest","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalJonckheereTerpstraTest","r6_public_method","InferenceOrdinalJonckheereTerpstraTest","set_testing_type","InferenceOrdinalJonckheereTerpstraTest","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -6357,8 +6239,6 @@
 "InferenceOrdinalKKCLMM","r6_public_method","InferenceOrdinalKKCLMM","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMM","r6_public_method","InferenceOrdinalKKCLMM","select_optimal_b_subsampling","InferenceAbstractKKOrdinalCLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMM","r6_public_method","InferenceOrdinalKKCLMM","select_optimal_m_out_of_n_bootstrap","InferenceAbstractKKOrdinalCLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKCLMM","r6_public_method","InferenceOrdinalKKCLMM","set_custom_randomization_statistic_cpp","InferenceAbstractKKOrdinalCLMM","inherited",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKCLMM","r6_public_method","InferenceOrdinalKKCLMM","set_custom_randomization_statistic_function","InferenceAbstractKKOrdinalCLMM","inherited",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMM","r6_public_method","InferenceOrdinalKKCLMM","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMM","r6_public_method","InferenceOrdinalKKCLMM","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMM","r6_public_method","InferenceOrdinalKKCLMM","set_testing_type","InferenceAbstractKKOrdinalCLMM","inherited",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -6424,8 +6304,6 @@
 "InferenceOrdinalKKCLMMCauchit","r6_public_method","InferenceOrdinalKKCLMMCauchit","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMCauchit","r6_public_method","InferenceOrdinalKKCLMMCauchit","select_optimal_b_subsampling","InferenceAbstractKKOrdinalCLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMCauchit","r6_public_method","InferenceOrdinalKKCLMMCauchit","select_optimal_m_out_of_n_bootstrap","InferenceAbstractKKOrdinalCLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKCLMMCauchit","r6_public_method","InferenceOrdinalKKCLMMCauchit","set_custom_randomization_statistic_cpp","InferenceAbstractKKOrdinalCLMM","inherited",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKCLMMCauchit","r6_public_method","InferenceOrdinalKKCLMMCauchit","set_custom_randomization_statistic_function","InferenceAbstractKKOrdinalCLMM","inherited",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMCauchit","r6_public_method","InferenceOrdinalKKCLMMCauchit","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMCauchit","r6_public_method","InferenceOrdinalKKCLMMCauchit","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMCauchit","r6_public_method","InferenceOrdinalKKCLMMCauchit","set_testing_type","InferenceAbstractKKOrdinalCLMM","inherited",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -6491,8 +6369,6 @@
 "InferenceOrdinalKKCLMMCloglog","r6_public_method","InferenceOrdinalKKCLMMCloglog","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMCloglog","r6_public_method","InferenceOrdinalKKCLMMCloglog","select_optimal_b_subsampling","InferenceAbstractKKOrdinalCLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMCloglog","r6_public_method","InferenceOrdinalKKCLMMCloglog","select_optimal_m_out_of_n_bootstrap","InferenceAbstractKKOrdinalCLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKCLMMCloglog","r6_public_method","InferenceOrdinalKKCLMMCloglog","set_custom_randomization_statistic_cpp","InferenceAbstractKKOrdinalCLMM","inherited",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKCLMMCloglog","r6_public_method","InferenceOrdinalKKCLMMCloglog","set_custom_randomization_statistic_function","InferenceAbstractKKOrdinalCLMM","inherited",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMCloglog","r6_public_method","InferenceOrdinalKKCLMMCloglog","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMCloglog","r6_public_method","InferenceOrdinalKKCLMMCloglog","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMCloglog","r6_public_method","InferenceOrdinalKKCLMMCloglog","set_testing_type","InferenceAbstractKKOrdinalCLMM","inherited",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -6558,8 +6434,6 @@
 "InferenceOrdinalKKCLMMProbit","r6_public_method","InferenceOrdinalKKCLMMProbit","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMProbit","r6_public_method","InferenceOrdinalKKCLMMProbit","select_optimal_b_subsampling","InferenceAbstractKKOrdinalCLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMProbit","r6_public_method","InferenceOrdinalKKCLMMProbit","select_optimal_m_out_of_n_bootstrap","InferenceAbstractKKOrdinalCLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKCLMMProbit","r6_public_method","InferenceOrdinalKKCLMMProbit","set_custom_randomization_statistic_cpp","InferenceAbstractKKOrdinalCLMM","inherited",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKCLMMProbit","r6_public_method","InferenceOrdinalKKCLMMProbit","set_custom_randomization_statistic_function","InferenceAbstractKKOrdinalCLMM","inherited",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMProbit","r6_public_method","InferenceOrdinalKKCLMMProbit","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMProbit","r6_public_method","InferenceOrdinalKKCLMMProbit","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCLMMProbit","r6_public_method","InferenceOrdinalKKCLMMProbit","set_testing_type","InferenceAbstractKKOrdinalCLMM","inherited",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -6625,8 +6499,6 @@
 "InferenceOrdinalKKCondAdjCatLogitRegr","r6_public_method","InferenceOrdinalKKCondAdjCatLogitRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCondAdjCatLogitRegr","r6_public_method","InferenceOrdinalKKCondAdjCatLogitRegr","select_optimal_b_subsampling","InferenceOrdinalKKCondAdjCatLogitRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCondAdjCatLogitRegr","r6_public_method","InferenceOrdinalKKCondAdjCatLogitRegr","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalKKCondAdjCatLogitRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKCondAdjCatLogitRegr","r6_public_method","InferenceOrdinalKKCondAdjCatLogitRegr","set_custom_randomization_statistic_cpp","InferenceOrdinalKKCondAdjCatLogitRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKCondAdjCatLogitRegr","r6_public_method","InferenceOrdinalKKCondAdjCatLogitRegr","set_custom_randomization_statistic_function","InferenceOrdinalKKCondAdjCatLogitRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCondAdjCatLogitRegr","r6_public_method","InferenceOrdinalKKCondAdjCatLogitRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCondAdjCatLogitRegr","r6_public_method","InferenceOrdinalKKCondAdjCatLogitRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKCondAdjCatLogitRegr","r6_public_method","InferenceOrdinalKKCondAdjCatLogitRegr","set_testing_type","InferenceOrdinalKKCondAdjCatLogitRegr","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -6692,8 +6564,6 @@
 "InferenceOrdinalKKGEE","r6_public_method","InferenceOrdinalKKGEE","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKGEE","r6_public_method","InferenceOrdinalKKGEE","select_optimal_b_subsampling","InferenceOrdinalKKGEE","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKGEE","r6_public_method","InferenceOrdinalKKGEE","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalKKGEE","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKGEE","r6_public_method","InferenceOrdinalKKGEE","set_custom_randomization_statistic_cpp","InferenceOrdinalKKGEE","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKGEE","r6_public_method","InferenceOrdinalKKGEE","set_custom_randomization_statistic_function","InferenceOrdinalKKGEE","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKGEE","r6_public_method","InferenceOrdinalKKGEE","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKGEE","r6_public_method","InferenceOrdinalKKGEE","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKGEE","r6_public_method","InferenceOrdinalKKGEE","set_testing_type","InferenceOrdinalKKGEE","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -6782,8 +6652,6 @@
 "InferenceOrdinalKKGLMM","r6_public_method","InferenceOrdinalKKGLMM","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKGLMM","r6_public_method","InferenceOrdinalKKGLMM","select_optimal_b_subsampling","InferenceOrdinalKKGLMM","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKGLMM","r6_public_method","InferenceOrdinalKKGLMM","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalKKGLMM","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKGLMM","r6_public_method","InferenceOrdinalKKGLMM","set_custom_randomization_statistic_cpp","InferenceOrdinalKKGLMM","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalKKGLMM","r6_public_method","InferenceOrdinalKKGLMM","set_custom_randomization_statistic_function","InferenceOrdinalKKGLMM","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKGLMM","r6_public_method","InferenceOrdinalKKGLMM","set_information_preference","InferenceOrdinalKKGLMM","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKGLMM","r6_public_method","InferenceOrdinalKKGLMM","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalKKGLMM","r6_public_method","InferenceOrdinalKKGLMM","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -6873,8 +6741,6 @@
 "InferenceOrdinalOrderedProbitRegr","r6_public_method","InferenceOrdinalOrderedProbitRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalOrderedProbitRegr","r6_public_method","InferenceOrdinalOrderedProbitRegr","select_optimal_b_subsampling","InferenceOrdinalOrderedProbitRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalOrderedProbitRegr","r6_public_method","InferenceOrdinalOrderedProbitRegr","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalOrderedProbitRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalOrderedProbitRegr","r6_public_method","InferenceOrdinalOrderedProbitRegr","set_custom_randomization_statistic_cpp","InferenceOrdinalOrderedProbitRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalOrderedProbitRegr","r6_public_method","InferenceOrdinalOrderedProbitRegr","set_custom_randomization_statistic_function","InferenceOrdinalOrderedProbitRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalOrderedProbitRegr","r6_public_method","InferenceOrdinalOrderedProbitRegr","set_information_preference","InferenceOrdinalOrderedProbitRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalOrderedProbitRegr","r6_public_method","InferenceOrdinalOrderedProbitRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalOrderedProbitRegr","r6_public_method","InferenceOrdinalOrderedProbitRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -6941,8 +6807,6 @@
 "InferenceOrdinalPairedSignTest","r6_public_method","InferenceOrdinalPairedSignTest","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPairedSignTest","r6_public_method","InferenceOrdinalPairedSignTest","select_optimal_b_subsampling","InferenceOrdinalPairedSignTest","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPairedSignTest","r6_public_method","InferenceOrdinalPairedSignTest","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalPairedSignTest","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalPairedSignTest","r6_public_method","InferenceOrdinalPairedSignTest","set_custom_randomization_statistic_cpp","InferenceOrdinalPairedSignTest","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalPairedSignTest","r6_public_method","InferenceOrdinalPairedSignTest","set_custom_randomization_statistic_function","InferenceOrdinalPairedSignTest","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPairedSignTest","r6_public_method","InferenceOrdinalPairedSignTest","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPairedSignTest","r6_public_method","InferenceOrdinalPairedSignTest","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPairedSignTest","r6_public_method","InferenceOrdinalPairedSignTest","set_testing_type","InferenceOrdinalPairedSignTest","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -7009,8 +6873,6 @@
 "InferenceOrdinalPartialProportionalOddsRegr","r6_public_method","InferenceOrdinalPartialProportionalOddsRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPartialProportionalOddsRegr","r6_public_method","InferenceOrdinalPartialProportionalOddsRegr","select_optimal_b_subsampling","InferenceOrdinalPartialProportionalOddsRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPartialProportionalOddsRegr","r6_public_method","InferenceOrdinalPartialProportionalOddsRegr","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalPartialProportionalOddsRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalPartialProportionalOddsRegr","r6_public_method","InferenceOrdinalPartialProportionalOddsRegr","set_custom_randomization_statistic_cpp","InferenceOrdinalPartialProportionalOddsRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalPartialProportionalOddsRegr","r6_public_method","InferenceOrdinalPartialProportionalOddsRegr","set_custom_randomization_statistic_function","InferenceOrdinalPartialProportionalOddsRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPartialProportionalOddsRegr","r6_public_method","InferenceOrdinalPartialProportionalOddsRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPartialProportionalOddsRegr","r6_public_method","InferenceOrdinalPartialProportionalOddsRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPartialProportionalOddsRegr","r6_public_method","InferenceOrdinalPartialProportionalOddsRegr","set_testing_type","InferenceOrdinalPartialProportionalOddsRegr","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -7099,8 +6961,6 @@
 "InferenceOrdinalPropOddsRegr","r6_public_method","InferenceOrdinalPropOddsRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPropOddsRegr","r6_public_method","InferenceOrdinalPropOddsRegr","select_optimal_b_subsampling","InferenceOrdinalPropOddsRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPropOddsRegr","r6_public_method","InferenceOrdinalPropOddsRegr","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalPropOddsRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalPropOddsRegr","r6_public_method","InferenceOrdinalPropOddsRegr","set_custom_randomization_statistic_cpp","InferenceOrdinalPropOddsRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalPropOddsRegr","r6_public_method","InferenceOrdinalPropOddsRegr","set_custom_randomization_statistic_function","InferenceOrdinalPropOddsRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPropOddsRegr","r6_public_method","InferenceOrdinalPropOddsRegr","set_information_preference","InferenceOrdinalPropOddsRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPropOddsRegr","r6_public_method","InferenceOrdinalPropOddsRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalPropOddsRegr","r6_public_method","InferenceOrdinalPropOddsRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -7169,8 +7029,6 @@
 "InferenceOrdinalRidit","r6_public_method","InferenceOrdinalRidit","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalRidit","r6_public_method","InferenceOrdinalRidit","select_optimal_b_subsampling","InferenceOrdinalRidit","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalRidit","r6_public_method","InferenceOrdinalRidit","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalRidit","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalRidit","r6_public_method","InferenceOrdinalRidit","set_custom_randomization_statistic_cpp","InferenceOrdinalRidit","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalRidit","r6_public_method","InferenceOrdinalRidit","set_custom_randomization_statistic_function","InferenceOrdinalRidit","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalRidit","r6_public_method","InferenceOrdinalRidit","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalRidit","r6_public_method","InferenceOrdinalRidit","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalRidit","r6_public_method","InferenceOrdinalRidit","set_testing_type","InferenceOrdinalRidit","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -7259,8 +7117,6 @@
 "InferenceOrdinalStereotypeLogitRegr","r6_public_method","InferenceOrdinalStereotypeLogitRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalStereotypeLogitRegr","r6_public_method","InferenceOrdinalStereotypeLogitRegr","select_optimal_b_subsampling","InferenceOrdinalStereotypeLogitRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalStereotypeLogitRegr","r6_public_method","InferenceOrdinalStereotypeLogitRegr","select_optimal_m_out_of_n_bootstrap","InferenceOrdinalStereotypeLogitRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalStereotypeLogitRegr","r6_public_method","InferenceOrdinalStereotypeLogitRegr","set_custom_randomization_statistic_cpp","InferenceOrdinalStereotypeLogitRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceOrdinalStereotypeLogitRegr","r6_public_method","InferenceOrdinalStereotypeLogitRegr","set_custom_randomization_statistic_function","InferenceOrdinalStereotypeLogitRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalStereotypeLogitRegr","r6_public_method","InferenceOrdinalStereotypeLogitRegr","set_information_preference","InferenceOrdinalStereotypeLogitRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalStereotypeLogitRegr","r6_public_method","InferenceOrdinalStereotypeLogitRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceOrdinalStereotypeLogitRegr","r6_public_method","InferenceOrdinalStereotypeLogitRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -7352,8 +7208,6 @@
 "InferencePropBetaRegr","r6_public_method","InferencePropBetaRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropBetaRegr","r6_public_method","InferencePropBetaRegr","select_optimal_b_subsampling","InferencePropBetaRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropBetaRegr","r6_public_method","InferencePropBetaRegr","select_optimal_m_out_of_n_bootstrap","InferencePropBetaRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropBetaRegr","r6_public_method","InferencePropBetaRegr","set_custom_randomization_statistic_cpp","InferencePropBetaRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropBetaRegr","r6_public_method","InferencePropBetaRegr","set_custom_randomization_statistic_function","InferencePropBetaRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropBetaRegr","r6_public_method","InferencePropBetaRegr","set_estimand","InferencePropBetaRegr","class_local",1,"estimand",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropBetaRegr","r6_public_method","InferencePropBetaRegr","set_information_preference","InferencePropBetaRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropBetaRegr","r6_public_method","InferencePropBetaRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
@@ -7437,8 +7291,6 @@
 "InferencePropFractionalLogit","r6_public_method","InferencePropFractionalLogit","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropFractionalLogit","r6_public_method","InferencePropFractionalLogit","select_optimal_b_subsampling","InferencePropFractionalLogit","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropFractionalLogit","r6_public_method","InferencePropFractionalLogit","select_optimal_m_out_of_n_bootstrap","InferencePropFractionalLogit","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropFractionalLogit","r6_public_method","InferencePropFractionalLogit","set_custom_randomization_statistic_cpp","InferencePropFractionalLogit","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropFractionalLogit","r6_public_method","InferencePropFractionalLogit","set_custom_randomization_statistic_function","InferencePropFractionalLogit","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropFractionalLogit","r6_public_method","InferencePropFractionalLogit","set_information_preference","InferencePropFractionalLogit","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropFractionalLogit","r6_public_method","InferencePropFractionalLogit","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferencePropFractionalLogit","r6_public_method","InferencePropFractionalLogit","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -7506,8 +7358,6 @@
 "InferencePropGCompMeanDiff","r6_public_method","InferencePropGCompMeanDiff","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropGCompMeanDiff","r6_public_method","InferencePropGCompMeanDiff","select_optimal_b_subsampling","InferencePropGCompMeanDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropGCompMeanDiff","r6_public_method","InferencePropGCompMeanDiff","select_optimal_m_out_of_n_bootstrap","InferencePropGCompMeanDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropGCompMeanDiff","r6_public_method","InferencePropGCompMeanDiff","set_custom_randomization_statistic_cpp","InferencePropGCompMeanDiff","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropGCompMeanDiff","r6_public_method","InferencePropGCompMeanDiff","set_custom_randomization_statistic_function","InferencePropGCompMeanDiff","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropGCompMeanDiff","r6_public_method","InferencePropGCompMeanDiff","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferencePropGCompMeanDiff","r6_public_method","InferencePropGCompMeanDiff","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropGCompMeanDiff","r6_public_method","InferencePropGCompMeanDiff","supports","Inference","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -7572,8 +7422,6 @@
 "InferencePropKKGEE","r6_public_method","InferencePropKKGEE","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKGEE","r6_public_method","InferencePropKKGEE","select_optimal_b_subsampling","InferencePropKKGEE","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKGEE","r6_public_method","InferencePropKKGEE","select_optimal_m_out_of_n_bootstrap","InferencePropKKGEE","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropKKGEE","r6_public_method","InferencePropKKGEE","set_custom_randomization_statistic_cpp","InferencePropKKGEE","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropKKGEE","r6_public_method","InferencePropKKGEE","set_custom_randomization_statistic_function","InferencePropKKGEE","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKGEE","r6_public_method","InferencePropKKGEE","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferencePropKKGEE","r6_public_method","InferencePropKKGEE","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKGEE","r6_public_method","InferencePropKKGEE","set_testing_type","InferencePropKKGEE","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -7662,8 +7510,6 @@
 "InferencePropKKGLMM","r6_public_method","InferencePropKKGLMM","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKGLMM","r6_public_method","InferencePropKKGLMM","select_optimal_b_subsampling","InferenceAbstractKKCondLogitGLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKGLMM","r6_public_method","InferencePropKKGLMM","select_optimal_m_out_of_n_bootstrap","InferenceAbstractKKCondLogitGLMM","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropKKGLMM","r6_public_method","InferencePropKKGLMM","set_custom_randomization_statistic_cpp","InferenceAbstractKKCondLogitGLMM","inherited",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropKKGLMM","r6_public_method","InferencePropKKGLMM","set_custom_randomization_statistic_function","InferenceAbstractKKCondLogitGLMM","inherited",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKGLMM","r6_public_method","InferencePropKKGLMM","set_information_preference","InferenceAbstractKKCondLogitGLMM","inherited",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKGLMM","r6_public_method","InferencePropKKGLMM","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferencePropKKGLMM","r6_public_method","InferencePropKKGLMM","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -7709,7 +7555,7 @@
 "InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","get_mod","InferencePropKKQuantileRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -7730,8 +7576,6 @@
 "InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","select_optimal_b_subsampling","InferencePropKKQuantileRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","select_optimal_m_out_of_n_bootstrap","InferencePropKKQuantileRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","set_custom_randomization_statistic_cpp","InferencePropKKQuantileRegrIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","set_custom_randomization_statistic_function","InferencePropKKQuantileRegrIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferencePropKKQuantileRegrIVWC","r6_public_method","InferencePropKKQuantileRegrIVWC","set_testing_type","InferencePropKKQuantileRegrIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -7797,8 +7641,6 @@
 "InferencePropKKQuantileRegrOneLik","r6_public_method","InferencePropKKQuantileRegrOneLik","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKQuantileRegrOneLik","r6_public_method","InferencePropKKQuantileRegrOneLik","select_optimal_b_subsampling","InferencePropKKQuantileRegrOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKQuantileRegrOneLik","r6_public_method","InferencePropKKQuantileRegrOneLik","select_optimal_m_out_of_n_bootstrap","InferencePropKKQuantileRegrOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropKKQuantileRegrOneLik","r6_public_method","InferencePropKKQuantileRegrOneLik","set_custom_randomization_statistic_cpp","InferencePropKKQuantileRegrOneLik","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropKKQuantileRegrOneLik","r6_public_method","InferencePropKKQuantileRegrOneLik","set_custom_randomization_statistic_function","InferencePropKKQuantileRegrOneLik","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKQuantileRegrOneLik","r6_public_method","InferencePropKKQuantileRegrOneLik","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferencePropKKQuantileRegrOneLik","r6_public_method","InferencePropKKQuantileRegrOneLik","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropKKQuantileRegrOneLik","r6_public_method","InferencePropKKQuantileRegrOneLik","set_testing_type","InferencePropKKQuantileRegrOneLik","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -7864,8 +7706,6 @@
 "InferencePropQuantileRegr","r6_public_method","InferencePropQuantileRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropQuantileRegr","r6_public_method","InferencePropQuantileRegr","select_optimal_b_subsampling","InferencePropQuantileRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropQuantileRegr","r6_public_method","InferencePropQuantileRegr","select_optimal_m_out_of_n_bootstrap","InferencePropQuantileRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropQuantileRegr","r6_public_method","InferencePropQuantileRegr","set_custom_randomization_statistic_cpp","InferencePropQuantileRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropQuantileRegr","r6_public_method","InferencePropQuantileRegr","set_custom_randomization_statistic_function","InferencePropQuantileRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropQuantileRegr","r6_public_method","InferencePropQuantileRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferencePropQuantileRegr","r6_public_method","InferencePropQuantileRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropQuantileRegr","r6_public_method","InferencePropQuantileRegr","set_testing_type","InferencePropQuantileRegr","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -7956,8 +7796,6 @@
 "InferencePropZeroOneInflatedBetaRegr","r6_public_method","InferencePropZeroOneInflatedBetaRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropZeroOneInflatedBetaRegr","r6_public_method","InferencePropZeroOneInflatedBetaRegr","select_optimal_b_subsampling","InferencePropZeroOneInflatedBetaRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropZeroOneInflatedBetaRegr","r6_public_method","InferencePropZeroOneInflatedBetaRegr","select_optimal_m_out_of_n_bootstrap","InferencePropZeroOneInflatedBetaRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropZeroOneInflatedBetaRegr","r6_public_method","InferencePropZeroOneInflatedBetaRegr","set_custom_randomization_statistic_cpp","InferencePropZeroOneInflatedBetaRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferencePropZeroOneInflatedBetaRegr","r6_public_method","InferencePropZeroOneInflatedBetaRegr","set_custom_randomization_statistic_function","InferencePropZeroOneInflatedBetaRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropZeroOneInflatedBetaRegr","r6_public_method","InferencePropZeroOneInflatedBetaRegr","set_estimand","InferencePropZeroOneInflatedBetaRegr","class_local",1,"estimand",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropZeroOneInflatedBetaRegr","r6_public_method","InferencePropZeroOneInflatedBetaRegr","set_information_preference","InferencePropZeroOneInflatedBetaRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropZeroOneInflatedBetaRegr","r6_public_method","InferencePropZeroOneInflatedBetaRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
@@ -7965,6 +7803,35 @@
 "InferencePropZeroOneInflatedBetaRegr","r6_public_method","InferencePropZeroOneInflatedBetaRegr","set_testing_type","InferencePropZeroOneInflatedBetaRegr","class_local",1,"testing_type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropZeroOneInflatedBetaRegr","r6_public_method","InferencePropZeroOneInflatedBetaRegr","supports","Inference","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferencePropZeroOneInflatedBetaRegr","r6_public_method","InferencePropZeroOneInflatedBetaRegr","supports_rand_pval_for_incidence","InferencePropZeroOneInflatedBetaRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"InferenceRandCustom","r6_class","InferenceRandCustom","","","",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","approximate_randomization_distribution_beta_hat_T","InferenceCustomRand","inherited",7,"debug;delta;permutations;r;show_progress;transform_responses;zero_one_logit_clamp",TRUE,TRUE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","capabilities","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","clone","InferenceRandCustom","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","compute_asymp_confidence_interval","Inference","inherited",1,"alpha",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","compute_asymp_two_sided_pval","Inference","inherited",1,"delta",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","compute_estimate","InferenceCustomRand","inherited",1,"estimate_only",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","compute_exact_confidence_interval","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","compute_exact_two_sided_pval_for_treatment_effect","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","compute_rand_confidence_interval","InferenceCustomRand","inherited",7,"alpha;args_for_type;ci_search_control;pval_epsilon;r;show_progress;type",TRUE,TRUE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","compute_rand_two_sided_pval","InferenceCustomRand","inherited",9,"args_for_type;delta;na.rm;permutations;r;show_progress;transform_responses;type;zero_one_logit_clamp",TRUE,TRUE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","fit","InferenceRandCustom","class_local",1,"estimate_only",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","get_covariates","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","get_nonestimable_stage","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","get_optimization_alg","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","get_response","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","get_response_type","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","get_treatment","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","initialize","InferenceRandCustom","class_local",4,"custom_randomization_statistic_cpp;custom_randomization_statistic_function;des_obj;verbose",TRUE,TRUE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","supports","Inference","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",FALSE
+"InferenceRandCustom","r6_public_method","InferenceRandCustom","supports_rand_pval_for_incidence","InferenceCustomRand","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
 "InferenceSuite","r6_class","InferenceSuite","","","",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSuite","r6_public_method","InferenceSuite","clone","InferenceSuite","class_local",1,"deep",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSuite","r6_public_method","InferenceSuite","initialize","InferenceSuite","class_local",3,"des_obj;inference_params;model_formula",TRUE,TRUE,TRUE,FALSE,"",TRUE
@@ -8045,8 +7912,6 @@
 "InferenceSurvivalCoxPHRegr","r6_public_method","InferenceSurvivalCoxPHRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalCoxPHRegr","r6_public_method","InferenceSurvivalCoxPHRegr","select_optimal_b_subsampling","InferenceSurvivalCoxPHRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalCoxPHRegr","r6_public_method","InferenceSurvivalCoxPHRegr","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalCoxPHRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalCoxPHRegr","r6_public_method","InferenceSurvivalCoxPHRegr","set_custom_randomization_statistic_cpp","InferenceSurvivalCoxPHRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalCoxPHRegr","r6_public_method","InferenceSurvivalCoxPHRegr","set_custom_randomization_statistic_function","InferenceSurvivalCoxPHRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalCoxPHRegr","r6_public_method","InferenceSurvivalCoxPHRegr","set_information_preference","InferenceSurvivalCoxPHRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalCoxPHRegr","r6_public_method","InferenceSurvivalCoxPHRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalCoxPHRegr","r6_public_method","InferenceSurvivalCoxPHRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -8139,8 +8004,6 @@
 "InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","select_optimal_b_subsampling","InferenceSurvivalDepCensTransformRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalDepCensTransformRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","set_custom_randomization_statistic_cpp","InferenceSurvivalDepCensTransformRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","set_custom_randomization_statistic_function","InferenceSurvivalDepCensTransformRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","set_information_preference","InferenceSurvivalDepCensTransformRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalDepCensTransformRegr","r6_public_method","InferenceSurvivalDepCensTransformRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -8207,8 +8070,6 @@
 "InferenceSurvivalGehanWilcox","r6_public_method","InferenceSurvivalGehanWilcox","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGehanWilcox","r6_public_method","InferenceSurvivalGehanWilcox","select_optimal_b_subsampling","InferenceSurvivalGehanWilcox","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGehanWilcox","r6_public_method","InferenceSurvivalGehanWilcox","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalGehanWilcox","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalGehanWilcox","r6_public_method","InferenceSurvivalGehanWilcox","set_custom_randomization_statistic_cpp","InferenceSurvivalGehanWilcox","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalGehanWilcox","r6_public_method","InferenceSurvivalGehanWilcox","set_custom_randomization_statistic_function","InferenceSurvivalGehanWilcox","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGehanWilcox","r6_public_method","InferenceSurvivalGehanWilcox","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGehanWilcox","r6_public_method","InferenceSurvivalGehanWilcox","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGehanWilcox","r6_public_method","InferenceSurvivalGehanWilcox","set_testing_type","InferenceSurvivalGehanWilcox","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -8253,7 +8114,7 @@
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","get_mod","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -8274,8 +8135,6 @@
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","select_optimal_b_subsampling","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","set_custom_randomization_statistic_cpp","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","set_custom_randomization_statistic_function","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","set_testing_type","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -8364,8 +8223,6 @@
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","select_optimal_b_subsampling","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","set_custom_randomization_statistic_cpp","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","set_custom_randomization_statistic_function","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","set_information_preference","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -8411,7 +8268,7 @@
 "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","get_mod","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -8432,8 +8289,6 @@
 "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","select_optimal_b_subsampling","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","set_custom_randomization_statistic_cpp","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","set_custom_randomization_statistic_function","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","set_testing_type","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -8524,8 +8379,6 @@
 "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","select_optimal_b_subsampling","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","set_custom_randomization_statistic_cpp","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","set_custom_randomization_statistic_function","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","set_information_preference","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -8571,7 +8424,7 @@
 "InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","get_mod","InferenceSurvivalKKLWACoxPHIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -8592,8 +8445,6 @@
 "InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","select_optimal_b_subsampling","InferenceSurvivalKKLWACoxPHIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalKKLWACoxPHIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","set_custom_randomization_statistic_cpp","InferenceSurvivalKKLWACoxPHIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","set_custom_randomization_statistic_function","InferenceSurvivalKKLWACoxPHIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKLWACoxPHIVWC","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","set_testing_type","InferenceSurvivalKKLWACoxPHIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -8682,8 +8533,6 @@
 "InferenceSurvivalKKLWACoxPHOneLik","r6_public_method","InferenceSurvivalKKLWACoxPHOneLik","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKLWACoxPHOneLik","r6_public_method","InferenceSurvivalKKLWACoxPHOneLik","select_optimal_b_subsampling","InferenceSurvivalKKLWACoxPHOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKLWACoxPHOneLik","r6_public_method","InferenceSurvivalKKLWACoxPHOneLik","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalKKLWACoxPHOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKKLWACoxPHOneLik","r6_public_method","InferenceSurvivalKKLWACoxPHOneLik","set_custom_randomization_statistic_cpp","InferenceSurvivalKKLWACoxPHOneLik","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKKLWACoxPHOneLik","r6_public_method","InferenceSurvivalKKLWACoxPHOneLik","set_custom_randomization_statistic_function","InferenceSurvivalKKLWACoxPHOneLik","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKLWACoxPHOneLik","r6_public_method","InferenceSurvivalKKLWACoxPHOneLik","set_information_preference","InferenceSurvivalKKLWACoxPHOneLik","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKLWACoxPHOneLik","r6_public_method","InferenceSurvivalKKLWACoxPHOneLik","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKLWACoxPHOneLik","r6_public_method","InferenceSurvivalKKLWACoxPHOneLik","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -8729,7 +8578,7 @@
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","get_mod","InferenceSurvivalKKRankRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -8750,8 +8599,6 @@
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","select_optimal_b_subsampling","InferenceSurvivalKKRankRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalKKRankRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","set_custom_randomization_statistic_cpp","InferenceSurvivalKKRankRegrIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","set_custom_randomization_statistic_function","InferenceSurvivalKKRankRegrIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","set_testing_type","InferenceSurvivalKKRankRegrIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -8796,7 +8643,7 @@
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","get_covariates","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","get_mod","InferenceSurvivalKKStratCoxPHIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -8817,8 +8664,6 @@
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","select_optimal_b_subsampling","InferenceSurvivalKKStratCoxPHIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalKKStratCoxPHIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","set_custom_randomization_statistic_cpp","InferenceSurvivalKKStratCoxPHIVWC","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","set_custom_randomization_statistic_function","InferenceSurvivalKKStratCoxPHIVWC","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","set_testing_type","InferenceSurvivalKKStratCoxPHIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -8907,8 +8752,6 @@
 "InferenceSurvivalKKStratCoxPHOneLik","r6_public_method","InferenceSurvivalKKStratCoxPHOneLik","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKStratCoxPHOneLik","r6_public_method","InferenceSurvivalKKStratCoxPHOneLik","select_optimal_b_subsampling","InferenceSurvivalKKStratCoxPHOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKStratCoxPHOneLik","r6_public_method","InferenceSurvivalKKStratCoxPHOneLik","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalKKStratCoxPHOneLik","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKKStratCoxPHOneLik","r6_public_method","InferenceSurvivalKKStratCoxPHOneLik","set_custom_randomization_statistic_cpp","InferenceSurvivalKKStratCoxPHOneLik","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKKStratCoxPHOneLik","r6_public_method","InferenceSurvivalKKStratCoxPHOneLik","set_custom_randomization_statistic_function","InferenceSurvivalKKStratCoxPHOneLik","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKStratCoxPHOneLik","r6_public_method","InferenceSurvivalKKStratCoxPHOneLik","set_information_preference","InferenceSurvivalKKStratCoxPHOneLik","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKStratCoxPHOneLik","r6_public_method","InferenceSurvivalKKStratCoxPHOneLik","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKStratCoxPHOneLik","r6_public_method","InferenceSurvivalKKStratCoxPHOneLik","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -8975,8 +8818,6 @@
 "InferenceSurvivalKKWeibullMarginal","r6_public_method","InferenceSurvivalKKWeibullMarginal","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKWeibullMarginal","r6_public_method","InferenceSurvivalKKWeibullMarginal","select_optimal_b_subsampling","InferenceSurvivalKKWeibullMarginal","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKWeibullMarginal","r6_public_method","InferenceSurvivalKKWeibullMarginal","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalKKWeibullMarginal","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKKWeibullMarginal","r6_public_method","InferenceSurvivalKKWeibullMarginal","set_custom_randomization_statistic_cpp","InferenceSurvivalKKWeibullMarginal","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKKWeibullMarginal","r6_public_method","InferenceSurvivalKKWeibullMarginal","set_custom_randomization_statistic_function","InferenceSurvivalKKWeibullMarginal","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKWeibullMarginal","r6_public_method","InferenceSurvivalKKWeibullMarginal","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKWeibullMarginal","r6_public_method","InferenceSurvivalKKWeibullMarginal","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKWeibullMarginal","r6_public_method","InferenceSurvivalKKWeibullMarginal","set_testing_type","InferenceSurvivalKKWeibullMarginal","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -9043,8 +8884,6 @@
 "InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","select_optimal_b_subsampling","InferenceSurvivalKMDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalKMDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","set_custom_randomization_statistic_cpp","InferenceSurvivalKMDiff","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","set_custom_randomization_statistic_function","InferenceSurvivalKMDiff","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","set_testing_type","InferenceSurvivalKMDiff","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -9111,8 +8950,6 @@
 "InferenceSurvivalLogRank","r6_public_method","InferenceSurvivalLogRank","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalLogRank","r6_public_method","InferenceSurvivalLogRank","select_optimal_b_subsampling","InferenceSurvivalLogRank","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalLogRank","r6_public_method","InferenceSurvivalLogRank","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalLogRank","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalLogRank","r6_public_method","InferenceSurvivalLogRank","set_custom_randomization_statistic_cpp","InferenceSurvivalLogRank","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalLogRank","r6_public_method","InferenceSurvivalLogRank","set_custom_randomization_statistic_function","InferenceSurvivalLogRank","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalLogRank","r6_public_method","InferenceSurvivalLogRank","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalLogRank","r6_public_method","InferenceSurvivalLogRank","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalLogRank","r6_public_method","InferenceSurvivalLogRank","set_testing_type","InferenceSurvivalLogRank","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -9178,8 +9015,6 @@
 "InferenceSurvivalRestrictedMeanDiff","r6_public_method","InferenceSurvivalRestrictedMeanDiff","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalRestrictedMeanDiff","r6_public_method","InferenceSurvivalRestrictedMeanDiff","select_optimal_b_subsampling","InferenceSurvivalRestrictedMeanDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalRestrictedMeanDiff","r6_public_method","InferenceSurvivalRestrictedMeanDiff","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalRestrictedMeanDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalRestrictedMeanDiff","r6_public_method","InferenceSurvivalRestrictedMeanDiff","set_custom_randomization_statistic_cpp","InferenceSurvivalRestrictedMeanDiff","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalRestrictedMeanDiff","r6_public_method","InferenceSurvivalRestrictedMeanDiff","set_custom_randomization_statistic_function","InferenceSurvivalRestrictedMeanDiff","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalRestrictedMeanDiff","r6_public_method","InferenceSurvivalRestrictedMeanDiff","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalRestrictedMeanDiff","r6_public_method","InferenceSurvivalRestrictedMeanDiff","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalRestrictedMeanDiff","r6_public_method","InferenceSurvivalRestrictedMeanDiff","set_testing_type","InferenceSurvivalRestrictedMeanDiff","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE
@@ -9261,8 +9096,6 @@
 "InferenceSurvivalStratCoxPHRegr","r6_public_method","InferenceSurvivalStratCoxPHRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalStratCoxPHRegr","r6_public_method","InferenceSurvivalStratCoxPHRegr","select_optimal_b_subsampling","InferenceSurvivalStratCoxPHRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalStratCoxPHRegr","r6_public_method","InferenceSurvivalStratCoxPHRegr","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalStratCoxPHRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalStratCoxPHRegr","r6_public_method","InferenceSurvivalStratCoxPHRegr","set_custom_randomization_statistic_cpp","InferenceSurvivalStratCoxPHRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalStratCoxPHRegr","r6_public_method","InferenceSurvivalStratCoxPHRegr","set_custom_randomization_statistic_function","InferenceSurvivalStratCoxPHRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalStratCoxPHRegr","r6_public_method","InferenceSurvivalStratCoxPHRegr","set_information_preference","InferenceSurvivalStratCoxPHRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalStratCoxPHRegr","r6_public_method","InferenceSurvivalStratCoxPHRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalStratCoxPHRegr","r6_public_method","InferenceSurvivalStratCoxPHRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -9352,8 +9185,6 @@
 "InferenceSurvivalWeibullRegr","r6_public_method","InferenceSurvivalWeibullRegr","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalWeibullRegr","r6_public_method","InferenceSurvivalWeibullRegr","select_optimal_b_subsampling","InferenceSurvivalWeibullRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalWeibullRegr","r6_public_method","InferenceSurvivalWeibullRegr","select_optimal_m_out_of_n_bootstrap","InferenceSurvivalWeibullRegr","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalWeibullRegr","r6_public_method","InferenceSurvivalWeibullRegr","set_custom_randomization_statistic_cpp","InferenceSurvivalWeibullRegr","class_local",1,"fn",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalWeibullRegr","r6_public_method","InferenceSurvivalWeibullRegr","set_custom_randomization_statistic_function","InferenceSurvivalWeibullRegr","class_local",1,"custom_randomization_statistic_function",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalWeibullRegr","r6_public_method","InferenceSurvivalWeibullRegr","set_information_preference","InferenceSurvivalWeibullRegr","class_local",1,"information_preference",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalWeibullRegr","r6_public_method","InferenceSurvivalWeibullRegr","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalWeibullRegr","r6_public_method","InferenceSurvivalWeibullRegr","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
