@@ -411,7 +411,7 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	jackknife_exclude = c(
 		"InferenceOrdinalKKGEE||~.",
 		"InferenceOrdinalStereotypeLogitRegr||~."
-	),
+	)
 	# always_run_parametric_bootstrap_ci (used to hardcode InferenceIncidLogBinomial
 	# as the one exception to the COMPREHENSIVE_PARAM_BOOT_CI opt-in gate) removed
 	# 2026-09-13 along with that gate -- see run_parametric_bootstrap_ci's removal
@@ -1978,9 +1978,33 @@ safe_call = function(label, expr){
 			# this avoids by construction: the parent process itself must
 			# never be the one to actually invoke n_cpp_threads()-threaded
 			# C++ code.
+			# The child's own return value is wrapped in a sentinel envelope
+			# (.safe_call_child_completed = TRUE) rather than returned bare.
+			# Verified live 2026-09-14: when a forked child dies from a signal
+			# mccollect() doesn't treat at all (SIGABRT from a process-level
+			# abort() -- the exact OpenMP-worker-thread-checkUserInterrupt crash
+			# root-caused and fixed in _helper_functions_core.h earlier this
+			# session, or any other native crash/OOM kill), mccollect() still
+			# returns a non-NULL outer list once the child's pipe closes, but
+			# collected[[1]] itself is bare NULL -- NOT a try-error condition,
+			# indistinguishable by value from a method that legitimately
+			# returns NULL. Before this wrapper, that NULL fell all the way
+			# through handle_success()'s checks (has_invalid_numeric(NULL) is
+			# FALSE by design) to record_result(), which writes result=NA,
+			# status="ok" with no error_message -- a crashed call silently
+			# recorded as a normal completed result, polluting the
+			# nonestimability rate data with a fabricated data point for a
+			# call that never actually finished. The parent process itself is
+			# NOT affected (confirmed live: sending SIGABRT to a mcparallel()
+			# child does not take down the parent) -- this was never a
+			# whole-run-dies problem, only a silent-misclassification one.
+			# With the wrapper, only a call that truly ran to completion
+			# (including ones that legitimately return NULL) produces the
+			# envelope; a dead child's collected[[1]] stays bare NULL/not-a-list,
+			# now handled explicitly below instead of reaching handle_success().
 			child = parallel::mcparallel({
 				seq_des_inf$num_cores = as.integer(NUM_CORES)
-				eval(expr)
+				list(.safe_call_child_completed = TRUE, value = eval(expr))
 			}, silent = TRUE, mc.set.seed = FALSE)
 			deadline = start_elapsed + FUNCTION_TIMEOUT_SEC
 			collected = NULL
@@ -1995,13 +2019,19 @@ safe_call = function(label, expr){
 				try(parallel::mccollect(child, wait = FALSE), silent = TRUE)
 				return(handle_timeout())
 			}
-			result = collected[[1]]
-			if (inherits(result, "try-error")) {
-				cond = attr(result, "condition")
-				e = if (!is.null(cond)) cond else simpleError(as.character(result))
+			envelope = collected[[1]]
+			if (inherits(envelope, "try-error")) {
+				cond = attr(envelope, "condition")
+				e = if (!is.null(cond)) cond else simpleError(as.character(envelope))
 				return(handle_error(e))
 			}
-			return(handle_success(result))
+			if (!is.list(envelope) || !isTRUE(envelope$.safe_call_child_completed)) {
+				return(handle_error(simpleError(sprintf(
+					"Child process for %s terminated abnormally with no result and no R-level error -- likely a native crash (signal/abort) rather than a caught condition.",
+					label
+				))))
+			}
+			return(handle_success(envelope$value))
 		}
 		tryCatch({
 			result <- R.utils::withTimeout(
