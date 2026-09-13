@@ -21,8 +21,49 @@
   across every dataset and design (previously, speed depended on which
   concrete class the statistic happened to be attached to).
 
+## New features
+
+* `InferenceIncidGCompRiskRatio` and `InferenceIncidKKGCompRiskRatio` gain
+  subsampling and m-out-of-n bootstrap confidence intervals and two-sided
+  p-values (previously only available for the risk-difference gcomp
+  classes). The risk-ratio pivot is computed on the log scale (null at
+  `log(delta)`, centered on `log(estimate)`), matching the convention
+  already used by their percentile/BCa bootstrap CIs, since the raw-scale
+  pivot correct for a difference is not correct for a ratio whose null is
+  1 and which is right-skewed at reduced effective sample size.
+* `get_local_EDI_optimization()`'s hardware fingerprint now detects
+  CPU/RAM on Windows and macOS as well as Linux.
+
 ## Bug fixes
 
+* The randomization confidence interval's bisection search picked the
+  wrong "conservative" fallback endpoint when it had no reliable sign
+  change to bracket: it always fell back to the lower endpoint `l`
+  whenever the lower p-value was non-significant, which is correct when
+  searching for a *lower* bound (`l` is the outer/conservative end there)
+  but wrong when searching for an *upper* bound, where `l` is the point
+  estimate itself and is essentially always non-significant. Every such
+  "conservative" upper bound silently collapsed to the point estimate,
+  producing badly-too-narrow intervals — confirmed by simulation at
+  roughly 51-61% empirical coverage instead of the nominal 95% for
+  `InferenceContinLin`, `InferenceContinOLS`, `InferenceContinQuantileRegr`,
+  and the KK one-likelihood classes. The fallback now keys on which bound
+  is being computed rather than which p-value was non-significant.
+* `SurvivalDepCensTransformSource` (the dependent-censoring AFT residual
+  transform) protected only the treatment column from the hardened QR
+  column-dropping fallback, not the intercept — dropping the intercept
+  left a severe bias under the null (mean `beta_hat` around 0.71 instead
+  of about 0.005, coverage around 13% instead of 95%). Both columns are
+  now protected, the same pattern already used for the Weibull-frailty
+  design matrix below.
+* `InferenceSurvivalStratCoxPHRegr`'s score-test information closures
+  returned the raw Cox partial-likelihood Hessian unnegated. Since that
+  Hessian is negative semi-definite (a concave log-likelihood), the
+  "information" matrix fed to the score test was itself negative-definite,
+  so the shared score-test helper's positivity check always failed —
+  `compute_score_two_sided_pval()`/`compute_score_confidence_interval()`
+  returned `NA` on every call, regardless of formula. Fixed to negate, as
+  the sibling `InferenceSurvivalCoxPHRegr` already did.
 * Six ordinal-response inference classes — `InferenceOrdinalAdjCatLogitRegr`,
   `InferenceOrdinalCauchitRegr`, `InferenceOrdinalCloglogRegr`,
   `InferenceOrdinalOrderedProbitRegr`, `InferenceOrdinalContRatioRegr`, and
@@ -33,10 +74,7 @@
   present, the randomization test and the Bayesian-bootstrap machinery
   silently estimated and tested a different covariate's effect instead of
   treatment's (confirmed via near-total null rejection on
-  `design_formula = ~.` paths). `InferenceOrdinalPropOddsRegr`'s Bayesian
-  bootstrap also always reported `NA` for the treatment coefficient's
-  per-replicate SE, discarding an already-computed value, which starved
-  its studentized/BCa variants of any SE.
+  `design_formula = ~.` paths).
 * The log-normal-frailty Weibull AFT model
   (`InferenceSurvivalGLMMWeibullFrailtyNormalIVWC`/`OneLik`) fit its design
   matrix with no intercept column. Without one, the control arm's baseline
@@ -44,13 +82,6 @@
   partly absorb it; the leftover bias (plus the Gumbel error's nonzero
   mean) leaked into the treatment estimate, inflating Wald/score/LR/
   bootstrap rejection to roughly 50-70% under the null (nominal 5%).
-* `InferenceIncidGCompRiskRatio` and `InferenceIncidKKGCompRiskRatio`'s
-  subsampling and m-out-of-n bootstrap centered and scaled on the raw
-  (risk-ratio) scale — the right pivot for a risk *difference*, but not
-  for a ratio whose null is 1 and which is right-skewed at reduced
-  effective sample size, which drove rejection rates to near 100%
-  regardless of the true effect. Both now use a log-scale pivot, matching
-  the convention already used by their percentile/BCa bootstrap CIs.
 * The zero-inflated negative binomial kernel (`fast_zinb.cpp`) had two bugs
   in its ZIP-limit reduced fit: a fixed-parameter index was off by one, so
   the reduced fit pinned the parameter *before* the one requested (e.g.
@@ -58,6 +89,47 @@
   score vector was one entry shorter than the full parameter vector and
   was not zero-padded, so score-test consumers compared it against a
   differently-sized information matrix.
+* `InferenceOrdinalKKGEE` fit its GEE model on the raw, unreduced design
+  matrix; rank-deficient fixtures (e.g. `~0+.` model matrices) made the
+  `multgee::ordLORgee()` backend refuse the fit outright, silently
+  swallowed to `NULL` (74-89% `NA` rates observed on affected data shapes).
+  It now retries through the same QR-hardened rank-reduction machinery
+  used elsewhere before giving up.
+* Five classes' Bayesian-bootstrap machinery discarded an already-computed
+  per-replicate SE for the treatment coefficient and always reported `NA`
+  instead, starving their studentized/BCa variants of any SE:
+  `InferenceOrdinalPropOddsRegr`, `InferenceCountQuasipoisson`,
+  `InferenceCountRobustPoisson`, the glmmTMB-based weighted refit path
+  shared by the zero-augmented Poisson classes, and
+  `InferenceAbstractKKOrdinalCLMM` (the shared base of the KK ordinal
+  CLMM classes).
+* `InferenceProportionFractionalLogit` was missing quasi-binomial
+  dispersion scaling, systematically overstating standard errors — 0
+  rejections out of several hundred simulated replicates under the true
+  null (near-zero power rather than nominal-level power).
+* `InferenceIncidLogBinomial`'s Bayesian bootstrap discarded
+  boundary-hitting refit replicates instead of retaining them, shrinking
+  the empirical spread of the bootstrap distribution — observed test size
+  25-36% instead of nominal 5%, and CI coverage 56-70% instead of 95%.
+* `InferenceExtPRWSubsampling` was missing the finite-population
+  correction for without-replacement subsampling, observed at roughly
+  9.75% Type-I error instead of nominal 5% at a subsample fraction of
+  about 0.4.
+* `InferenceExtPRWSubsampling` and `InferenceExtMOutOfNBootstrap`'s
+  failure gate checked only the absolute count of finite replicates
+  (default minimum 5), not the fraction of the requested `B`/`m`. With
+  `B` in the hundreds, a high (24%+) convergence-failure rate could still
+  pass the gate, producing a falsely-precise, degenerate p-value. The gate
+  now also requires a majority of replicates to succeed.
+* The zero-augmented Poisson classes' shared information-matrix code now
+  neutralizes the zero-inflation coefficient block when the ZI submodel's
+  fitted probability collapses to its boundary, preventing inflated
+  likelihood-ratio-test Type-I error in that regime.
+* The KK-GEE shared mixin's QR-hardened column-dropping fallback read a
+  nonexistent `attempt$X_fit` field (the correct field is `attempt$fit`),
+  so the fallback candidate was never actually generated for any class
+  composing that mixin (continuous/count/incidence/proportion/ordinal-KK
+  GEE classes).
 * The generic score test (`InferenceExtInformationMatrix`) returned `NA`
   for the large majority of calls from `InferenceContinKKGLMM` and
   `InferenceCountKKGLMM` — their null-constrained refit's
@@ -67,6 +139,23 @@
   score test degenerate (0% Type-I error and 0% power together, rather
   than merely miscalibrated). A ridge-regularized fallback now activates
   only when the unregularized path already returned a non-finite p-value.
+* `DesignFixedBlocking` silently ignored user-supplied block IDs: the
+  randomization draw always re-derived blocks from the raw covariates
+  instead of using the `m` a caller passed at construction.
+* `InferenceSurvivalGehanWilcox` and `InferenceSurvivalLogRank` fit their
+  null Cox model with the default (Efron) tie-handling, inconsistent with
+  the Breslow/Nelson-Aalen convention their fast C++ kernels assume — a
+  genuinely different martingale residual under tied event times. Both
+  now fit with `method = "breslow"` explicitly.
+* `InferenceSurvivalRestrictedMeanDiff` (RMST) never populated the
+  treatment coefficient's SE on a full (non-`estimate_only`) fit, unlike
+  every peer class, so bootstrap callers expecting it for a studentized
+  pivot got `NA`.
+* `InferenceOrdinalPairedSignTest`: an estimate is no longer `NaN`
+  whenever any single pair-difference is `NA` — valid pairs are now used.
+  Its bootstrap and jackknife distribution methods, previously disabled
+  with an error asserting they violate the matched-pair design
+  constraint, are available again.
 * Bootstrap-family methods (nonparametric, m-out-of-n, subsampling, BCa)
   now refuse with an explicit error for `DesignSeqOneByOne` and its
   subclasses, except `DesignSeqOneByOneBernoulli` (whose assignments do
@@ -75,10 +164,18 @@
   and were documented as merely "conservative"; that claim did not hold
   and has been removed along with the methods for the other sequential
   designs.
-* `InferenceSurvivalCoxPHRegr`'s fast randomization-bootstrap draw-matrix
-  path was unreachable because of a stale guard left over from the
-  removed custom-randomization-statistic mechanism (see Breaking changes
-  above); the fast path is restored.
+* An OpenMP worker thread (not the master) calling into R's interrupt or
+  time-budget checks could raise an exception across the OpenMP thread
+  boundary, crashing the whole R process (`SIGABRT`) instead of cleanly
+  interrupting, under `num_cores > 1`. Both checks now no-op on any
+  thread but the master.
+* `InferenceSurvivalCoxPHRegr`'s internal `coxph.fit` wrapper crashed
+  assigning column names to a 0-column design matrix (`length of
+  'dimnames' [2] not equal to array extent`) on null-model refits — e.g.
+  `compute_lik_ratio_two_sided_pval()`/`compute_score_two_sided_pval()`
+  under `model_formula = ~1` — because `paste0("x", seq_len(0))` returns
+  `"x"` rather than `character(0)`. The column-naming step is now skipped
+  for a 0-column matrix.
 * `SimulationFramework`'s `mirai`-based parallelization
   (`set_num_cores(force_mirai = TRUE)`) could hang indefinitely if a
   daemon died before connecting. Daemon launch and every
@@ -113,6 +210,12 @@
   specifically (a non-regular case in the sense of Davies 1977), and
   recommends the bootstrap (~6-7%) or Bartlett-corrected (~4%) variants
   instead. The flagged method's own behavior is unchanged.
+* `InferenceSuite`'s combined-evidence documentation adds a "same-Y does
+  not mean same estimand" caveat: rows testing the same outcome under
+  different link functions/estimands do not share one coherent null
+  hypothesis under the weak (asymptotic) null, only under the
+  randomization sharp null — relevant to interpreting
+  `combined_evidence$pval`.
 
 # EDI 1.0.0
 

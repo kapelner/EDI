@@ -10,8 +10,8 @@ Authors@R: c(person(given = "Adam",
 Description: Implements a comprehensive suite of experimental designs, both
     fixed (e.g., block, stratified, matched-pair, cluster, factorial, and
     mixed-integer-programming-based optimal designs) and sequential
-    (including matching-on-the-fly designs such as Atkinson, Efron, Pocock-
-    Simon, and covariate-adaptive urn designs that assign treatment one
+    (including matching-on-the-fly designs, biased coin designs, and 
+    covariate-adaptive urn designs that assign treatment one
     subject at a time while maintaining covariate balance), for
     continuous, incidence, count, proportion, survival, and ordinal response
     types. For each design and response type combination, provides the

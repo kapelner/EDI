@@ -2511,7 +2511,16 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		} else if (response_type == "incidence") {
 			message("    Skipping compute_rand_two_sided_pval(custom) (custom randomization statistic unsupported for incidence)")
 		}
-		if (supports_randomization_ci && !skip_slow && !skip_ci_rand && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "survival")){
+		# response_type set matches the plain/BRT rand-CI set (continuous,
+		# proportion, count, survival) as of 2026-09-13 -- count was previously
+		# excluded here with no matching restriction, unlike ordinal/incidence
+		# which both hit real package-level stop()s (see this file's earlier
+		# response_type %in% c(...) gates and their own comments). Live-verified
+		# before widening: InferenceRandCustom$compute_rand_confidence_interval()
+		# on a count-response design returns a real CI (with the routine
+		# "conservative bound" warning every response type can get, not an
+		# error) -- there was never a structural reason to exclude count here.
+		if (supports_randomization_ci && !skip_slow && !skip_ci_rand && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "count", "survival")){
 			if (!skip_ci_rand_custom){
 				safe_call("compute_rand_confidence_interval(custom)", custom_inf$compute_rand_confidence_interval(r = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
 			} else {
