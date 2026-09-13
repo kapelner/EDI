@@ -185,12 +185,12 @@ EDI_CUSTOM_RANDOMIZATION_TARGETS = list(
 	InferenceCustomRand = list(
 		host_kind = "extension_base",
 		target_parent = "Inference",
-		target_components = "RandomizationTest",
+		target_components = c("RandomizationTest", "RandomizationCI"),
 		class_owned_capabilities = character(),
-		intentional_capabilities = "randomization_test",
+		intentional_capabilities = c("randomization_test", "randomization_ci"),
 		migration_status = "migrated",
 		migration_evidence = c("method_snapshot", "golden_randomization"),
-		notes = "Custom randomization extension hosts should inherit only the root Inference state and add RandomizationTest explicitly; randomization CI and bootstrap APIs are accidental unless their components are listed."
+		notes = "Custom randomization extension hosts should inherit only the root Inference state and add RandomizationTest (transitively via RandomizationCI) explicitly; bootstrap APIs remain accidental unless NonparametricBootstrap is listed."
 	)
 )
 
@@ -1086,7 +1086,7 @@ infer_inference_direct_components = function(name) {
 		InferencePropKKGEE = "KKGEE",
 		InferenceKKPassThroughCompound = "KKCompound",
 		InferenceKKPassThroughCompoundNoParamBootstrap = "KKCompound",
-		InferenceCustomRand = "RandomizationTest",
+		InferenceCustomRand = "RandomizationCI",
 		InferenceAllSimpleAverageDiff = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 		InferenceAllSimpleMeanDiffPooledVar = c("BayesianBootstrap", "Wald", "SimpleMeanDifferencePooledVar"),
 		InferenceAllKKMeanDiffIVWC = c("BayesianBootstrap", "Wald", "KKMeanDifferenceIVWC"),

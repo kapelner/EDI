@@ -139,14 +139,14 @@ InferenceCustomAsymp = define_inference_class(
 #' Internal base for user-defined randomization inference extensions
 #'
 #' This class uses the same \code{fit()} result contract as
-#' \code{InferenceCustomAsymp}, but only promises estimate/randomization
-#' behavior.
+#' \code{InferenceCustomAsymp}, but only promises estimate/randomization/
+#' randomization-CI behavior.
 #'
 #' @keywords internal
 InferenceCustomRand = define_inference_class(
 	classname = "InferenceCustomRand",
 	inherit = Inference,
-	components = "RandomizationTest",
+	components = "RandomizationCI",
 	public = list(
 		#' @description Calls the user-defined fit callback for this custom inference path; see
 		#'   \code{\link[EDI:InferenceCustomAsymp]{InferenceCustomAsymp}}.
@@ -174,10 +174,20 @@ InferenceCustomRand = define_inference_class(
 				private$cache_nonestimable_estimate(reason)
 			}
 			private$cached_values$beta_hat_T
-		}
+		},
+		#' @description Computes a randomization two-sided p-value. Delegates to
+		#'   the `RandomizationCI`-provided dispatch (Zhang incidence support,
+		#'   type/args_for_type) since `RandomizationCI` pulls in `RandomizationTest`,
+		#'   and the two provide conflicting `compute_rand_two_sided_pval`
+		#'   implementations -- the same conflict `InferenceCustomAsymp` and
+		#'   `InferenceCustomBoot` resolve the same way.
+		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
 	),
 	private = list(
 		is_a_custom_rand = function() TRUE
+	),
+	overrides = list(
+		public = "compute_rand_two_sided_pval"
 	),
 	metadata = list(likelihood_tier = "none")
 )

@@ -108,6 +108,15 @@ test_that("custom randomization inference works from an external-package-like en
 	expect_equal(inf$get_treatment(), rep(c(0, 1), each = 10))
 	expect_equal(nrow(inf$get_analysis_data()), 20)
 	expect_equal(inf$compute_estimate(), 11)
+	# InferenceCustomRand carries RandomizationCI (which pulls in
+	# RandomizationTest transitively), not just the bare randomization test --
+	# see fix_custom_randomization_statistic.md TODO-1.
+	set.seed(20260913)
+	pval = inf$compute_rand_two_sided_pval(r = 51, show_progress = FALSE)
+	expect_true(is.finite(pval) && pval >= 0 && pval <= 1)
+	ci = inf$compute_rand_confidence_interval(r = 51, show_progress = FALSE)
+	expect_length(ci, 2)
+	expect_true(all(is.finite(ci)))
 })
 
 test_that("custom bootstrap inference works from an external-package-like environment", {

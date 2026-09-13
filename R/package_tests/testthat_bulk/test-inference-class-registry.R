@@ -375,20 +375,20 @@ test_that("custom randomization behavior manifest records target metadata", {
 	expect_identical(record$host_kind, "extension_base")
 	expect_identical(record$current_parent, "Inference")
 	expect_identical(record$target_parent, "Inference")
-	expect_identical(record$target_components, "RandomizationTest")
+	expect_identical(record$target_components, c("RandomizationTest", "RandomizationCI"))
 	expect_identical(record$class_owned_capabilities, character())
-	expect_identical(record$intentional_capabilities, "randomization_test")
+	expect_identical(record$intentional_capabilities, c("randomization_test", "randomization_ci"))
 	expect_identical(record$migration_status, "migrated")
 	expect_setequal(record$migration_evidence, c("method_snapshot", "golden_randomization"))
-	expect_identical(EDI:::get_direct_components("InferenceCustomRand"), "RandomizationTest")
-	expect_identical(EDI:::get_effective_components("InferenceCustomRand"), "RandomizationTest")
-	expect_identical(EDI:::get_effective_capabilities("InferenceCustomRand"), "randomization_test")
+	expect_identical(EDI:::get_direct_components("InferenceCustomRand"), "RandomizationCI")
+	expect_identical(EDI:::get_effective_components("InferenceCustomRand"), c("RandomizationTest", "RandomizationCI"))
+	expect_identical(EDI:::get_effective_capabilities("InferenceCustomRand"), c("randomization_test", "randomization_ci"))
 	expect_setequal(record$intentional_public_methods, c(
 		"approximate_randomization_distribution_beta_hat_T",
+		"compute_rand_confidence_interval",
 		"compute_rand_two_sided_pval"
 	))
 	expect_equal(intersect(record$legacy_optional_surface, c(
-		"compute_rand_confidence_interval",
 		"approximate_rand_bootstrap_distribution_beta_hat_T",
 		"compute_rand_bootstrap_two_sided_pval",
 		"compute_rand_bootstrap_confidence_interval"
