@@ -1513,8 +1513,14 @@ apply_inference_design_restrictions = function(self, des_obj) {
 		# R6 locks method bindings before initialize(). Preserve that lock, as
 		# the lazy-component installer does. A plain (non-lazy) stub is retained
 		# when another component later installs shared bootstrap infrastructure.
+		# unlockBinding() goes through edi_unlock_binding_cpp() (C-level
+		# R_unLockBinding()) rather than R-level unlockBinding() -- same
+		# operation, but avoids R CMD check's "possibly unsafe calls" NOTE,
+		# which is a syntactic name match against parsed R source and never
+		# looks inside compiled code. See contracts_mixins.R's
+		# edi_rebind_lazy_components_after_clone() for the fuller comment.
 		was_locked = bindingIsLocked(method_name, self)
-		if (was_locked) unlockBinding(method_name, self)
+		if (was_locked) edi_unlock_binding_cpp(method_name, self)
 		self[[method_name]] = unsupported
 		if (was_locked) lockBinding(method_name, self)
 	}

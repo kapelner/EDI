@@ -1,7 +1,7 @@
 bibentry(
   bibtype  = "Manual",
   title    = "{EDI}: Experimental Design and Inference",
-  author   = person("Adam", "Kapelner", email = "kapelner@qc.cuny.edu",
+  author   = person("Adam", "Kapelner", email = "adam.kapelner@mail.huji.ac.il",
                      comment = c(ORCID = "0000-0001-5985-6792")),
   year     = "2026",
   note     = sprintf("R package version %s", meta$Version),

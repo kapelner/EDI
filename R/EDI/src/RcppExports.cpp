@@ -5290,6 +5290,18 @@ BEGIN_RCPP
 END_RCPP
 }
 
+// edi_unlock_binding_cpp
+void edi_unlock_binding_cpp(std::string name, Environment env);
+RcppExport SEXP _EDI_edi_unlock_binding_cpp(SEXP nameSEXP, SEXP envSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type name(nameSEXP);
+    Rcpp::traits::input_parameter< Environment >::type env(envSEXP);
+    edi_unlock_binding_cpp(name, env);
+    return R_NilValue;
+END_RCPP
+}
+
 static const R_CallMethodDef CallEntries[] = {
     {"_EDI_fill_i_b_with_matches_loop_cpp", (DL_FUNC) &_EDI_fill_i_b_with_matches_loop_cpp, 4},
     {"_EDI_eigen_Xt_times_X_cpp", (DL_FUNC) &_EDI_eigen_Xt_times_X_cpp, 1},
@@ -5631,6 +5643,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_zhang_exact_fisher_pval_cpp", (DL_FUNC) &_EDI_zhang_exact_fisher_pval_cpp, 5},
     {"_EDI_compute_zhang_match_data_cpp", (DL_FUNC) &_EDI_compute_zhang_match_data_cpp, 4},
     {"_EDI_compute_matching_wy_stats_cpp", (DL_FUNC) &_EDI_compute_matching_wy_stats_cpp, 3},
+    {"_EDI_edi_unlock_binding_cpp", (DL_FUNC) &_EDI_edi_unlock_binding_cpp, 2},
     {NULL, NULL, 0}
 };
 

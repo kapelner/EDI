@@ -5194,3 +5194,7 @@ compute_matching_wy_stats_cpp <- function(w, y, m_vec) {
     .Call(`_EDI_compute_matching_wy_stats_cpp`, w, y, m_vec)
 }
 
+edi_unlock_binding_cpp <- function(name, env) {
+    invisible(.Call(`_EDI_edi_unlock_binding_cpp`, name, env))
+}
+

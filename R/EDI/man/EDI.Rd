@@ -31,7 +31,7 @@ Useful links:
 
 }
 \author{
-Adam Kapelner \email{kapelner@qc.cuny.edu}
+Adam Kapelner \email{adam.kapelner@mail.huji.ac.il}
 }
 \keyword{design}
 \keyword{pair-matching}

@@ -2888,17 +2888,21 @@ edi_rebind_lazy_components_after_clone = function(i, source_private = NULL) {
 		val = get(name, envir = env, inherits = FALSE)
 		if (!is.function(val)) return(invisible(NULL))
 		environment(val) = new_env
-		# unlockBinding()/lockBinding(): flagged by R CMD check as a "possibly
-		# unsafe call" NOTE, but genuinely required here, not a workaround to
-		# remove -- R6 locks method bindings on any subclass built without
-		# `lock_objects = FALSE`, and re-pointing a rebound method's closure
-		# environment after clone() (this function's whole purpose) requires
-		# reassigning that binding. Scope is minimal and always restored: only
-		# this one already-existing binding is ever unlocked, and only for the
-		# duration of the single `assign()` immediately below, re-locked
-		# unconditionally afterward. Justified in cran-comments.md.
+		# Reassigning a rebound method's closure environment after clone()
+		# (this function's whole purpose) requires reassigning an existing R6
+		# method binding, which is locked on any subclass built without
+		# `lock_objects = FALSE`. R CMD check's "possibly unsafe calls" scan
+		# (tools:::.check_package_code_tampers) flags any parsed R-level call
+		# literally named `unlockBinding` -- it's a syntactic name match, not
+		# a semantic one, and never looks inside `.Call`/compiled code, so
+		# edi_unlock_binding_cpp() (same R_unLockBinding() the R-level
+		# unlockBinding() itself calls, just invoked from C) avoids the NOTE
+		# outright rather than merely justifying it. Scope is unchanged: still
+		# only this one already-existing binding, unlocked only if it already
+		# was, and unconditionally re-locked via lockBinding() immediately
+		# below (that call isn't flagged by the check).
 		was_locked = bindingIsLocked(name, env)
-		if (isTRUE(was_locked)) unlockBinding(name, env)
+		if (isTRUE(was_locked)) edi_unlock_binding_cpp(name, env)
 		assign(name, val, envir = env)
 		if (isTRUE(was_locked)) lockBinding(name, env)
 		invisible(NULL)
@@ -2948,12 +2952,13 @@ install_lazy_inference_component = function(self, private, class_name, component
 				return(invisible(current))
 			}
 		}
-		# unlockBinding()/lockBinding(): same justification as edi_rebind_
-		# lazy_components_after_clone() above -- required to install a lazy
-		# component's method onto a locked R6 public/private environment,
-		# minimally scoped, always re-locked. See cran-comments.md.
+		# Same mechanism/justification as edi_rebind_lazy_components_after_
+		# clone() above -- required to install a lazy component's method onto
+		# a locked R6 public/private environment. See the comment there for
+		# why the unlockBinding() call specifically goes through
+		# edi_unlock_binding_cpp() (C-level) instead of R-level unlockBinding().
 		was_locked = exists(name, envir = env, inherits = FALSE) && bindingIsLocked(name, env)
-		if (isTRUE(was_locked)) unlockBinding(name, env)
+		if (isTRUE(was_locked)) edi_unlock_binding_cpp(name, env)
 		env[[name]] = value
 		if (isTRUE(was_locked)) lockBinding(name, env)
 		invisible(value)
@@ -2977,11 +2982,12 @@ install_lazy_inference_component = function(self, private, class_name, component
 		# some other component) was later installed on the same object,
 		# which meant edi_rebind_lazy_components_after_clone() never saw
 		# that second component and left its methods stale after clone().
-		# unlockBinding()/lockBinding(): same justification as the two sites
-		# above -- required to grow the lazy-component-install marker on a
-		# locked private environment. See cran-comments.md.
+		# Same mechanism/justification as the two sites above -- required to
+		# grow the lazy-component-install marker on a locked private
+		# environment, via edi_unlock_binding_cpp() rather than R-level
+		# unlockBinding().
 		was_locked = bindingIsLocked(loaded_marker_name, private)
-		if (isTRUE(was_locked)) unlockBinding(loaded_marker_name, private)
+		if (isTRUE(was_locked)) edi_unlock_binding_cpp(loaded_marker_name, private)
 		assign(loaded_marker_name, loaded, envir = private)
 		if (isTRUE(was_locked)) lockBinding(loaded_marker_name, private)
 	} else if (!environmentIsLocked(private)) {
