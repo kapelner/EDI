@@ -194,8 +194,8 @@ spliced into one step and marked **[spliced]**.
 > after two independent scoping efforts both proposed it).**
 > `../future_release_plans/release_v3_0_0.md` — not yet a real scope, no
 > Phase-0-style decision batch of its own, and possibly not even a
-> permanent release boundary; a shared, tentative home for two unrelated,
-> independently-gated items, each scoped that day as landing after v2.0.0:
+> permanent release boundary; a shared, tentative home for unrelated,
+> independently-gated items, each scoped as landing after v2.0.0:
 > `finite_mixture_regression.md` (finite/latent-class mixture regression
 > for existing response families — genuinely new architecture even by
 > v2.0.0's own bar) and `bayesian_stan_primary_analysis_report.md` (a
@@ -205,7 +205,12 @@ spliced into one step and marked **[spliced]**.
 > `missing_inference_classes_literature_audit.md` item 21). Neither has a
 > Phase-lettered item the way 5A–5AJ do (both are new reports, not
 > promoted existing plans); their TODO order lives entirely in
-> `release_v3_0_0.md`. See Phase 7 below.
+> `release_v3_0_0.md`. **Added 2026-09-11 (this session):
+> `continuous_treatments.md`** — makes `w` a genuinely continuous dose
+> rather than today's hard-coded `{0,1}`, on both the design (randomized
+> continuous-dose assignment) and inference (dose-response estimand)
+> sides; independently gated (its own TODO-1), no dependency on the other
+> two items here. See Phase 7 below.
 
 Rules of use:
 
@@ -1103,8 +1108,8 @@ audits; its own TODO-1 now carries a recorded "no / defer" recommendation.
 
 No Phase-0 decision batch exists for this phase yet — nothing here is
 committed, and v2.0.0 remains the frontier of actually-planned work. This
-phase exists only to index `release_v3_0_0.md`'s tentative contents: five
-independent items (the third through fifth added the day of and the day
+phase exists only to index `release_v3_0_0.md`'s tentative contents: six
+independent items (the third through sixth added the day of and the days
 after the first two — the third itself a cluster of nine visualization
 items), none sharing a TODO-1 decision gate with the others.
 
@@ -1183,6 +1188,27 @@ items), none sharing a TODO-1 decision gate with the others.
    from, items 1–4 above — shares this tentative release purely by
    scoping-day coincidence, the same reasoning already covering them.
    Release index: `release_v3_0_0.md → TODO-15`.
+6. **`continuous_treatments.md`** (added 2026-09-11) — makes `w` a
+   genuinely continuous dose (drug dose, ad spend, duration, …) rather
+   than today's hard-coded `{0,1}`
+   (`EDI/R/design_fixed_abstract.R:173`, `EDI/R/design_abstract.R:423`),
+   on both the design side (a `treatment_type` axis on the root-owned `w`
+   state, plus `DesignFixedContinuousUniform` — the MVP randomized
+   continuous-dose analog of `DesignFixedBernoulli`) and the inference
+   side (a new `"dose_response"` `set_estimand()` value: a fitted average
+   dose-response function plus a classical marginal-effect scalar for
+   compatibility with the existing Wald/LR/bootstrap/randomization
+   contracts). MVP estimator is parametric, reusing existing
+   continuous-covariate GLM/OLS/Cox machinery; a generalized-propensity-
+   score adjustment wave (Hirano & Imbens 2004) follows. Explicitly not
+   Phase I dose-finding (permanently out of scope per
+   `missing_design_classes_literature_audit.md` #32 — a safety rule, not
+   randomization) and not a full rerandomization/D-optimal continuous-
+   dose design or a doubly-robust nonparametric dose-response curve
+   (Kennedy et al. 2017) — both deferred past this first landing. No
+   structural dependency on, or from, items 1–5 above — shares this
+   tentative release purely by scoping-day coincidence. Release index:
+   `release_v3_0_0.md → TODO-16..23`.
 
 ---
 

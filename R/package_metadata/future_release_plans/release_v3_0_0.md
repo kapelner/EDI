@@ -15,10 +15,13 @@ analysis via Stan); a cluster of visualization work (added later the same
 day, from a visualization brainstorm) spanning both brand-new plans and
 new sections grafted onto several existing plans; `inference_plots.md`
 (added 2026-09-11), giving every concrete `Inference*` class its own
-result/effect-plot section; and `optimal_design_finder.md` (added
+result/effect-plot section; `optimal_design_finder.md` (added
 2026-09-11), a continuously-running, genuinely open crowdsourced
 simulation benchmark across every applicable design/inference/
-response-type combination. None of these items structurally need each
+response-type combination; and `continuous_treatments.md` (added
+2026-09-11), making `w` a genuinely continuous dose rather than `{0,1}`,
+on both the design (randomized continuous-dose assignment) and inference
+(dose-response estimand) sides. None of these items structurally need each
 other; they share this file only because none has a firmer release home
 yet. Expect this file's scope, and possibly its very existence as a
 release separate from v2.0.0 (or as a single release rather than several),
@@ -154,10 +157,30 @@ convention rather than inventing a new visual language each.
   paths in BLAS/LAPACK library paths). No structural dependency on, or
   from, any other item in this file — see that plan's own header for why
   it shares this tentative release only by scoping-day coincidence, the
-  same reasoning already covering the other four items. Adds no new
+  same reasoning already covering the other items. Adds no new
   `R/EDI` package dependency (`digest`/`jsonlite` are already
   `Imports`/`Suggests`; DuckDB is an external, consumer-side query tool,
   not a package dependency).
+
+### Continuous treatments (dose-response `w`) (added 2026-09-11)
+
+- `continuous_treatments.md` — makes `w` a genuinely continuous dose
+  (drug dose, ad spend, duration, …) rather than today's hard-coded
+  `{0,1}`, on both sides: design (a `treatment_type` axis on the
+  root-owned `w` state, plus `DesignFixedContinuousUniform`, the MVP
+  randomized continuous-dose analog of `DesignFixedBernoulli`) and
+  inference (a new `"dose_response"` `set_estimand()` value — a fitted
+  average dose-response function plus a classical marginal-effect
+  scalar for compatibility with the existing Wald/LR/bootstrap/
+  randomization contracts). MVP estimator is parametric (reuses existing
+  continuous-covariate GLM/OLS/Cox machinery); a generalized-propensity-
+  score adjustment wave (Hirano & Imbens 2004) follows. Explicitly not
+  Phase I dose-finding (permanently out of scope elsewhere — that's a
+  safety rule, not randomization) and not a full rerandomization/
+  D-optimal continuous-dose design or a doubly-robust nonparametric
+  dose-response curve — both deferred past this first landing. No
+  structural dependency on any other item in this file; shares this
+  tentative release by scoping-day coincidence, same as the others.
 
 ## Implementation TODOs (dependency order; tentative — no decision batch taken yet)
 
@@ -220,6 +243,29 @@ convention rather than inventing a new visual language each.
   items first; TODO-2/TODO-2b before any contribution is possible;
   TODO-4's `SimulationFramework` serial-path fix before TODO-4b's test
   suite and TODO-5's contribution workflow; TODO-6/7/8 last).
+- [ ] TODO-16 (added 2026-09-11): `continuous_treatments.md → TODO-1` —
+  decision gate: pursue at all, and first-landing scope (parametric-only
+  vs. parametric + GPS together). Genuinely independent of every other
+  item and TODO in this file.
+- [ ] TODO-17 (added 2026-09-11): `continuous_treatments.md → TODO-2` —
+  the `treatment_type` root-owned-state type relaxation on `w`
+  (`EDI/R/design_fixed_abstract.R:173`, `EDI/R/design_abstract.R:423`,
+  plus a full-repo audit for other binary-`w` assumptions). Everything
+  else in this item depends on it.
+- [ ] TODO-18 (added 2026-09-11): `continuous_treatments.md → TODO-3` —
+  `DesignFixedContinuousUniform`.
+- [ ] TODO-19 (added 2026-09-11): `continuous_treatments.md → TODO-4` —
+  the `"dose_response"` estimand and parametric ADRF fit.
+- [ ] TODO-20 (added 2026-09-11): `continuous_treatments.md → TODO-5` —
+  bootstrap and randomization-inference paths for the dose-response
+  estimand.
+- [ ] TODO-21 (added 2026-09-11): `continuous_treatments.md → TODO-6` —
+  GPS-adjustment second wave.
+- [ ] TODO-22 (added 2026-09-11): `continuous_treatments.md → TODO-7` —
+  `SimulationFramework` ADRF generator and coverage simulation.
+- [ ] TODO-23 (added 2026-09-11): `continuous_treatments.md → TODO-8` —
+  documentation, `path_audits.html` row, benchmark row, comprehensive-
+  suite wiring.
 
 ## Standing constraints
 
@@ -245,4 +291,8 @@ data/infrastructure only, proposes no new `Design`/`Inference` class of
 its own, and any custom class a contributor later adds under
 `R/custom_design_simulations/` still goes through the exact same
 `define_inference_class()`/`define_design_class()` registration this
-constraint already requires of every other item here.
+constraint already requires of every other item here. Continuous
+treatments adds no new package dependency either; binary `w` remains the
+default `treatment_type` and every existing class's behavior must stay
+bit-identical once that axis lands (the golden no-op test in that plan's
+own "Tests" section).

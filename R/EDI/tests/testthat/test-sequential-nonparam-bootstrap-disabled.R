@@ -15,9 +15,9 @@ make_sequential_bootstrap_policy_design = function(name, response_type = "contin
 	des
 }
 
-test_that("all sequential allocation families reject nonparametric bootstrap", {
+test_that("dependent sequential allocation families reject nonparametric bootstrap", {
 	for (name in c(
-		"DesignSeqOneByOneBernoulli", "DesignSeqOneByOneiBCRD",
+		"DesignSeqOneByOneiBCRD",
 		"DesignSeqOneByOneEfron", "DesignSeqOneByOneUrn",
 		"DesignSeqOneByOneAtkinson", "DesignSeqOneByOnePocockSimon",
 		"DesignSeqOneByOneRandomBlockSize", "DesignSeqOneByOneSPBR",
@@ -39,6 +39,18 @@ test_that("all sequential allocation families reject nonparametric bootstrap", {
 			"InferenceContinOLS", des, list(), "bootstrap", "ci"
 		), character())
 	}
+})
+
+test_that("concrete sequential Bernoulli retains iid row bootstrap", {
+	des = make_sequential_bootstrap_policy_design("DesignSeqOneByOneBernoulli")
+	inf = InferenceContinOLS$new(des)
+	inf$num_cores = 1L
+	expect_true(unname(inf$supports("nonparametric_bootstrap")))
+	expect_true("nonparametric_bootstrap" %in% inf$capabilities())
+	expect_length(inf$approximate_bootstrap_distribution_beta_hat_T(B = 5L, show_progress = FALSE), 5L)
+	expect_true("bootstrap" %in% EDI:::run_all_inference_class_applicable_methods(
+		"InferenceContinOLS", "bootstrap", des
+	))
 })
 
 test_that("sequential restrictions survive aliases, lazy loading, and clones", {
@@ -67,7 +79,7 @@ test_that("fixed-design support and class metadata are not contaminated by seque
 	des$add_all_subjects_to_experiment(data.frame(x = sin(1:24)))
 	des$assign_w_to_all_subjects()
 	des$add_all_subject_responses(cos(1:24) + des$get_w())
-	seq_des = make_sequential_bootstrap_policy_design("DesignSeqOneByOneBernoulli")
+	seq_des = make_sequential_bootstrap_policy_design("DesignSeqOneByOneKK14")
 	class_caps = EDI:::get_effective_capabilities("InferenceContinOLS")
 	expect_true("nonparametric_bootstrap" %in% class_caps)
 	expect_false("nonparametric_bootstrap" %in% EDI:::get_effective_capabilities("InferenceContinOLS", seq_des))

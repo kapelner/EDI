@@ -14,6 +14,17 @@ version, the realized number of treated subjects after \eqn{t} arrivals is rando
 actively balance assignment counts or covariates (e.g.
 \code{\link[EDI:DesignSeqOneByOneAtkinson]{DesignSeqOneByOneAtkinson}}).
 }
+\section{Nonparametric bootstrap}{
+
+The ordinary row bootstrap for this design is supported under a prespecified
+fixed sample size: choose \code{n} before enrollment and stop after exactly
+\code{n} subjects, without using interim outcomes to decide when to stop.
+EDI does not implement sequential monitoring or check that this stopping
+condition was followed. In particular, \code{n = NULL} does not satisfy the
+documented fixed-sample justification, even though the bootstrap method is
+not blocked at runtime. The usual assumptions of iid subjects and potential
+outcomes, and a regular estimator, also apply.
+}
 \examples{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = 'continuous')
 seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
@@ -140,7 +151,9 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
       \item{\code{prob_T}}{The probability of the treatment assignment. This defaults to \code{0.5}.}
       \item{\code{include_is_missing_as_a_new_feature}}{If missing data is present in a variable,
 should we include another dummy variable for its missingness? The default is \code{TRUE}.}
-      \item{\code{n}}{The sample size (if fixed). Default is \code{NULL}.}
+      \item{\code{n}}{The prespecified sample size for fixed-sample inference.
+Default is \code{NULL}; the nonparametric bootstrap justification
+above requires a fixed \code{n}.}
       \item{\code{verbose}}{A flag indicating whether messages should be displayed.}
       \item{\code{missingness_method}}{How to handle missing values in covariates.}
       \item{\code{design_formula}}{A formula object.}

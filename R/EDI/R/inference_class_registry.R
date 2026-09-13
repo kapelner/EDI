@@ -1463,11 +1463,15 @@ get_effective_components = function(name) {
 # Design restrictions apply to instances, never to the class-only cache: an
 # estimator can still provide these methods for a fixed design. Descendants of
 # the named design ancestor inherit the restriction, including external classes.
+# The concrete sequential Bernoulli design is an exception: its assignments do
+# not depend on previous subjects. Subclasses remain restricted because they may
+# override that allocation rule.
 EDI_INFERENCE_DESIGN_EXCLUDED_CAPABILITIES = list(
 	DesignSeqOneByOne = "nonparametric_bootstrap"
 )
 
 get_design_excluded_inference_capabilities = function(des_obj) {
+	if (identical(class(des_obj)[1L], "DesignSeqOneByOneBernoulli")) return(character())
 	ancestors = intersect(class(des_obj), names(EDI_INFERENCE_DESIGN_EXCLUDED_CAPABILITIES))
 	unique(as.character(unlist(EDI_INFERENCE_DESIGN_EXCLUDED_CAPABILITIES[ancestors], use.names = FALSE)))
 }

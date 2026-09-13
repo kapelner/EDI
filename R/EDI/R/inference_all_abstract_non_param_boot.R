@@ -3,10 +3,11 @@
 #' Abstract class for bootstrap-based inference.
 #'
 #' @section Design-specific validity caveats for the nonparametric bootstrap:
-#' Nonparametric bootstrap methods are not supported for any\cr
-#' \code{DesignSeqOneByOne} design or its subclasses. This includes m-out-of-n
+#' Nonparametric bootstrap methods are not supported for \code{DesignSeqOneByOne}
+#' designs and their subclasses, except the concrete
+#' \code{DesignSeqOneByOneBernoulli} class. The restriction includes m-out-of-n
 #' bootstrap and subsampling methods registered under the same capability.
-#' Calling these methods reports that the method is not supported.
+#' Calling restricted methods reports that the method is not supported.
 #'
 #' For supported designs, the nonparametric bootstrap resamples experimental units with replacement from their
 #' empirical distribution, carrying each unit's realized \code{(x, w, y)} into the
@@ -22,9 +23,13 @@
 #' guarantee conservative inference.
 #'
 #' \describe{
-#'   \item{\code{DesignFixedBernoulli}}{Assignments
-#'     are iid coin flips independent of \eqn{X}, so rows genuinely are iid and
-#'     row-level resampling is fully justified. No caveat.}
+#'   \item{\code{DesignFixedBernoulli} and \code{DesignSeqOneByOneBernoulli}}{
+#'     Assignments are independent coin flips that do not use covariates or past
+#'     assignments. If subjects and their potential outcomes arrive iid, with a
+#'     noninformative sample size, observed rows are iid and ordinary row-level
+#'     resampling has its usual asymptotic justification for regular estimators.
+#'     Independent assignments alone do not establish iid rows under time trends,
+#'     dependent recruitment, or informative stopping.}
 #'   \item{\code{DesignFixediBCRD}}{Assignment depends
 #'     only on the treatment counts (completely randomized / without-replacement urn),
 #'     inducing negative correlation among the \eqn{w_i} through the fixed-margin

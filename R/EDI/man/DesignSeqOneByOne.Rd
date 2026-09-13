@@ -7,6 +7,17 @@
 Abstract R6 class encapsulating data and functionality for a sequential one-by-
 one experimental design.
 }
+\section{Sample size and stopping}{
+
+Subjects are assigned one at a time, but this class does not implement interim
+outcome monitoring or an outcome-dependent stopping rule. For the usual
+fixed-sample analysis, specify the target sample size \code{n} before enrollment
+and stop after exactly \code{n} subjects; the caller is responsible for ending
+enrollment at that point. With \code{n = NULL}, the class leaves the final sample
+size unspecified and does not determine when enrollment ends. Inference methods
+that assume a fixed sample size require the final size to be chosen independently
+of accumulating outcomes.
+}
 \examples{
 \dontrun{
 # DesignSeqOneByOne is abstract and cannot be instantiated directly;
@@ -111,7 +122,9 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
       \item{\code{prob_T}}{The probability of the treatment assignment.}
       \item{\code{include_is_missing_as_a_new_feature}}{If missing data is present, include a dummy
 variable for it.}
-      \item{\code{n}}{The sample size (if fixed).}
+      \item{\code{n}}{The prespecified target sample size for fixed-sample analysis.
+If \code{NULL}, the final sample size is left to the caller; the class
+does not provide a stopping rule.}
       \item{\code{verbose}}{Whether to print progress messages.}
       \item{\code{missingness_method}}{How to handle missing values in covariates.}
       \item{\code{design_formula}}{A formula object.}

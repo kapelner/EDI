@@ -284,22 +284,43 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# entry (below) is corroborated by the sweep AND independently by the
 	# main-CSV audit (98s mean) AND by live reproduction (120.9s) -- three
 	# independent measurements agree, so it stays.
+	# 2026-09-13 additions below: the re-run (serial, deadlock-fixed) BRT
+	# sweep's clean data -- mean 10-23s, up to 71s on individual reps,
+	# confirmed with no fork/contention contamination this time.
 	brt_pval_smoothed = c(
 		"InferenceOrdinalPartialProportionalOddsRegr||~1",
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
 		"InferenceSurvivalWeibullRegr||~.",
-		"InferenceSurvivalKKWeibullMarginal||~."
+		"InferenceSurvivalKKWeibullMarginal||~.",
+		"InferenceCountHurdleNegBin||~1",
+		"InferencePropBetaRegr||~.",
+		"InferencePropBetaRegr||~1",
+		"InferencePropQuantileRegr||~.",
+		"InferencePropQuantileRegr||~1"
 	),
 	brt_pval_typed = c(
 		"InferenceCountKKGLMM||~1",
 		"InferenceCountKKGLMM||~.",
-		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~."
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
+		"InferenceCountHurdleNegBin||~1",
+		"InferencePropBetaRegr||~.",
+		"InferencePropBetaRegr||~1",
+		"InferencePropQuantileRegr||~.",
+		"InferencePropQuantileRegr||~1"
 	),
-	# Empty: the sweep's only brt_ci_all-shaped findings (6 survival
-	# classes) were all measurement artifacts (see comment above) -- see
-	# git history 2026-09-11 for the full sweep-derived entry list that
-	# was tried and then removed after live reproduction.
-	brt_ci_all = character(),
+	# InferenceSurvivalDepCensTransformRegr||~1 gates here (not just
+	# brt_ci_smoothed) because its base/untyped CI genuinely hard-times-out
+	# at 60s (the one confirmed timeout in the clean re-sweep), not just
+	# "slow" like its typed/smoothed siblings (10-11s mean) -- same
+	# over-broad trade-off this category's own doc comment already
+	# describes for other classes.
+	brt_ci_all = c(
+		"InferenceContinQuantileRegr||~.",
+		"InferenceCountHurdlePoisson||~1",
+		"InferenceCountNegBin||~1",
+		"InferenceCountZeroInflatedPoisson||~1",
+		"InferenceSurvivalDepCensTransformRegr||~1"
+	),
 	brt_ci_smoothed = c(
 		"InferenceCountKKHurdlePoissonOneLik||~1"
 	),
@@ -323,7 +344,14 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# not included here; live reproduction timed every one under 3s.)
 	brt_pval = c(
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
-		"InferenceIncidKKCondLogitGLMMOneLik||~."
+		"InferenceIncidKKCondLogitGLMMOneLik||~.",
+		# 2026-09-13 additions, clean re-swept BRT data (see brt_pval_smoothed's
+		# comment above):
+		"InferenceCountHurdleNegBin||~1",
+		"InferencePropBetaRegr||~.",
+		"InferencePropBetaRegr||~1",
+		"InferencePropQuantileRegr||~.",
+		"InferencePropQuantileRegr||~1"
 	),
 	# Gates the plain randomization confidence interval -- consumed via
 	# is_any_inference_class(); also combined at the call site with a
@@ -1346,13 +1374,10 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	if (!should_run_inference_label(inference_result_label)) {
 		return(invisible(NULL))
 	}
-	# Per-object thread budget (public active binding), NOT a global
-	# set_num_cores() cluster -- see the removed top-level set_num_cores()
-	# call's comment for why. This gives the C++ kernels' own in-process
-	# OpenMP parallelism (n_cpp_threads()) the intended NUM_CORES budget
-	# with no persistent multi-process cluster object anywhere for
-	# safe_call()'s per-call mcparallel() fork to collide with.
-	seq_des_inf$num_cores = as.integer(NUM_CORES)
+	# NOTE: seq_des_inf$num_cores is deliberately NOT set here (in the
+	# parent). It's set inside safe_call()'s forked child instead, right
+	# before evaluating expr -- see that comment for why setting it here
+	# was unsafe even without a persistent fork cluster.
 	skip_slow = exhaustive_sweep
 	B_debug = as.integer(r)
 	r_debug = as.integer(r)
@@ -1918,7 +1943,22 @@ safe_call = function(label, expr){
 		# back to the old setTimeLimit()/withTimeout() path on non-Unix, where
 		# mcparallel() is unavailable.
 		if (.Platform$OS.type == "unix") {
-			child = parallel::mcparallel(eval(expr), silent = TRUE, mc.set.seed = FALSE)
+			# num_cores is set HERE, inside the forked child's own expression,
+			# not in the parent (see run_inference_checks_impl()'s note) --
+			# whatever C++ kernel expr calls only ever spins up its OpenMP
+			# threads inside this one disposable, about-to-exit child process,
+			# never in the long-lived parent that keeps forking new children
+			# for every subsequent safe_call(). A first attempt that set
+			# num_cores on seq_des_inf in the parent instead (still with no
+			# persistent fork cluster) segfaulted/corrupted state on a later
+			# fork -- consistent with the general OpenMP-vs-fork() hazard
+			# this avoids by construction: the parent process itself must
+			# never be the one to actually invoke n_cpp_threads()-threaded
+			# C++ code.
+			child = parallel::mcparallel({
+				seq_des_inf$num_cores = as.integer(NUM_CORES)
+				eval(expr)
+			}, silent = TRUE, mc.set.seed = FALSE)
 			deadline = start_elapsed + FUNCTION_TIMEOUT_SEC
 			collected = NULL
 			repeat {
