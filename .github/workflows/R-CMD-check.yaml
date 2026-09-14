@@ -171,6 +171,23 @@ jobs:
         if: runner.os == 'Linux'
         run: nohup bash .github/scripts/test-hang-watchdog.sh >/dev/null 2>&1 &
 
+      # Windows counterpart of the step above -- for the separate, still-
+      # unexplained windows-latest-only hang in "checking examples with
+      # --run-donttest" (see this job's timeout-minutes comment below).
+      # test-hang-watchdog.sh can't run here: it shells out to gdb/stat -c/
+      # md5sum, none of which exist in Windows' Git-Bash. Start-Process
+      # (not a background job tied to this step's shell) so it survives
+      # into later steps the same way `nohup ... &` does above. See the
+      # script's own header comment for exactly what it captures (and
+      # doesn't -- no gdb-equivalent stack dump).
+      - name: Start test-hang watchdog (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Start-Process -FilePath "pwsh" `
+            -ArgumentList "-NoProfile", "-File", "${{ github.workspace }}\.github\scripts\test-hang-watchdog.ps1" `
+            -WindowStyle Hidden
+
       # Reference BLAS/LAPACK (Ubuntu's R default) is 10-50x slower than
       # OpenBLAS for the test suite's linear-algebra-heavy fits (GLMM,
       # frailty, copula, ...) -- confirmed 2026-08-26 as the dominant cause
@@ -298,6 +315,17 @@ jobs:
           else
             echo "no hang-watch.log written"
           fi
+
+      - name: Dump test-hang watchdog log (Windows)
+        if: always() && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $logPath = Join-Path $env:RUNNER_TEMP "hang-watch.log"
+          if (Test-Path -LiteralPath $logPath) {
+            Get-Content -LiteralPath $logPath -Tail 4000
+          } else {
+            Write-Host "no hang-watch.log written"
+          }
 
   # CRAN also verifies a package works with only its hard dependencies
   # (Depends/Imports/LinkingTo) present -- catching an unconditional use of a

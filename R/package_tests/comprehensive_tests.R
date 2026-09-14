@@ -341,11 +341,28 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 		"InferenceCountZeroInflatedPoisson||~1",
 		"InferenceSurvivalDepCensTransformRegr||~1"
 	),
+	# InferenceSurvivalKKStratCoxPHOneLik||~. added 2026-09-14 immediately
+	# after the skip_brt_ci fixes above unblocked it for the first time ever
+	# (previously always skipped, first genuine timing data that exists for
+	# it): smoothed 33.2s (n=1), symmetric-percentile-t 85.4s (n=1) -- both
+	# over the 30s threshold, though on a weak n=1 sample each (same caveat
+	# as jackknife_exclude's InferenceOrdinalStereotypeLogitRegr entry
+	# below -- included per the evidence available but worth a bigger sample
+	# before fully trusting). base CI (20.7s mean, n=2) and studentized
+	# (28.4s, n=1) stayed under the bar and are NOT gated -- brt_ci_typed has
+	# no separate lever for studentized vs symmetric-percentile-t (same
+	# over-broad trade-off this category's own doc comment already
+	# describes elsewhere), so studentized rides along gated with it. Only
+	# ~. was reachable in this test (~1 hit an unrelated "no covariates"
+	# construction skip for the dataset available); ~1 has no evidence
+	# either way.
 	brt_ci_smoothed = c(
-		"InferenceCountKKHurdlePoissonOneLik||~1"
+		"InferenceCountKKHurdlePoissonOneLik||~1",
+		"InferenceSurvivalKKStratCoxPHOneLik||~."
 	),
 	brt_ci_typed = c(
-		"InferenceCountKKHurdlePoissonOneLik||~1"
+		"InferenceCountKKHurdlePoissonOneLik||~1",
+		"InferenceSurvivalKKStratCoxPHOneLik||~."
 	),
 	# Whole-pval-block gate: the base (non-typed, non-smoothed)
 	# compute_rand_bootstrap_two_sided_pval/(delta=0.5) calls have no
@@ -407,11 +424,31 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# KKHurdlePoissonOneLik show a real formula split, fast-ish on ~1
 	# (9-21s mean) but consistently over the 30s threshold on ~. (28-47s
 	# mean, up to 107-120s) -- their ~. case stays behind the blanket rule.
+	# InferenceCountKKGLMM and InferenceCountPoissonKKGEE added 2026-09-14:
+	# path_audits_source.R's own hand-typed audit notes for both classes
+	# already claimed "rand CI force-run and verified fast" (KKGLMM: 0.2-10.1s
+	# 2026-09-10; PoissonKKGEE: 26.3s at n=40, r=151 -- that note flagged
+	# itself as "worth a larger-n check before fully trusting") but neither
+	# class was ever actually added here, so the blanket count-response skip
+	# stayed in force despite the audit believing otherwise -- exactly the
+	# mismatch a fresh audit pass surfaced (both showed real, complete
+	# coverage for every other rand method but zero for rand-CI/BRT-CI/
+	# custom-CI). Live-verified same day at diamonds scale (n=148, r=151,
+	# 6 design/rep samples per formula): KKGLMM is fast on both formulas
+	# (~1 mean 11.6s max 14.1s; ~. mean 14.9s max 20.8s) -- added
+	# unrestricted. PoissonKKGEE's self-flagged "worth a larger-n check"
+	# caution was justified: ~1 is fast (mean 3.9s max 4.3s) but ~. is
+	# consistently slow at this scale (mean 43.5s, max 51.1s, 6/6 samples
+	# over the 30s threshold) -- added ||~1 only, matching the same
+	# formula-split pattern already seen in this list for HurdlePoisson/
+	# KKHurdlePoissonOneLik.
 	rand_ci_count_allowed = c(
 		"InferenceCountNegBin||~1",
 		"InferenceCountZeroInflatedPoisson",
 		"InferenceCountHurdlePoisson||~1",
-		"InferenceCountKKHurdlePoissonOneLik||~1"
+		"InferenceCountKKHurdlePoissonOneLik||~1",
+		"InferenceCountKKGLMM",
+		"InferenceCountPoissonKKGEE||~1"
 	),
 	# rand_ci_custom and rand_pval_custom_allowed (both formerly here) were
 	# removed 2026-09-13 (fix_custom_randomization_statistic.md TODO-10): the
@@ -1117,6 +1154,30 @@ write_results_if_needed = function(force = FALSE){
 		lock_dir = acquire_results_file_lock()
 		on.exit(release_results_file_lock(lock_dir), add = TRUE)
 		append_mode = file.exists(results_file) && file.info(results_file)$size > 0
+		if (append_mode) {
+			# Defensive re-alignment against record_result()'s own column
+			# construction order drifting from the file's actual header again
+			# in the future (see record_result()'s comment on this exact
+			# 2026-09-14 bug): appends write no header (col.names=FALSE
+			# below), so fwrite() blindly serializes results_dt in whatever
+			# order it currently has -- if that ever again differs from the
+			# existing file's header, every appended row silently lands under
+			# the wrong column, permanently, with no error. Re-derive the
+			# order from the file itself (safe to read here: we hold
+			# lock_dir, so no other writer can be mid-append) rather than
+			# trusting results_dt's order matches by construction.
+			file_header = names(data.table::fread(results_file, nrows = 0L, showProgress = FALSE))
+			if (!setequal(file_header, names(results_dt))) {
+				stop(
+					"results_dt columns do not match ", results_file, "'s header -- ",
+					"refusing to append (would silently corrupt the file). ",
+					"In file but not results_dt: ", paste(setdiff(file_header, names(results_dt)), collapse = ", "),
+					"; in results_dt but not file: ", paste(setdiff(names(results_dt), file_header), collapse = ", "),
+					call. = FALSE
+				)
+			}
+			data.table::setcolorder(results_dt, file_header)
+		}
 		data.table::fwrite(
 			results_dt,
 			results_file,
@@ -1255,16 +1316,32 @@ record_result = function(dataset_name, dataset_n_rows, dataset_n_cols, response_
 	cache_estimate_logging_theta(inference_class, dataset_name, beta_T, response_type, coverage_truth)
 	run_row_id <<- run_row_id + 1L
 	error_message_chr = if (is.null(error_message)) NA_character_ else as.character(error_message)
+	# Column order here MUST match the existing results CSVs' header
+	# (function_run first) -- this is not cosmetic. write_results_if_needed()
+	# appends with col.names=FALSE for files that already exist, so fwrite()
+	# serializes results_dt in ITS OWN column order with no header written;
+	# if that order doesn't match the file's actual header, every appended
+	# row silently lands under the wrong column, permanently, for every
+	# single row (not intermittently -- confirmed 2026-09-14: 100% of a
+	# fresh run's newly-appended rows in comprehensive_tests_results_nc_1_
+	# continuous.csv were shifted by exactly one column, e.g. a real
+	# compute_param_bootstrap_estimate() call for InferenceContinLin showing
+	# up under "inference_class" instead of "function_run"). This was
+	# previously misdiagnosed as a torn/concurrent-write race (which the
+	# file-lock fix earlier this session addressed but did not -- and could
+	# not -- fix, since this mismatch is deterministic, not a race). See
+	# the defensive setcolorder() in write_results_if_needed() below for the
+	# second half of this fix, which also guards against this drifting again.
 	results_dt <<- data.table::rbindlist(list(
 		results_dt,
 		data.table(
+			function_run = function_run,
 			rep = as.integer(rep_curr),
 			beta_T = beta_T,
 			dataset = dataset_name,
 			response_type = response_type,
 			design = design_type,
 			inference_class = inference_class,
-			function_run = function_run,
 			id = build_result_key(rep_curr, beta_T, dataset_name, response_type, design_type, inference_class, function_run),
 			case_id = build_comprehensive_case_id(dataset_name, response_type, design_type, inference_class, function_run),
 			coverage_scope = "comprehensive_workflow",
@@ -1528,7 +1605,22 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	# OR this class's whole BRT pval block is separately flagged slow;
 	# ContinRobustRegr keeps BRT pval
 	skip_brt_pval = skip_bootstrap || skip_rand_slow || skip_brt_pval_block_slow
-	skip_brt_ci   = skip_bootstrap || skip_bootstrap_slow || skip_rand_slow || skip_rand_ci_slow || skip_brt_ci_all_slow
+	# skip_rand_ci_slow deliberately excluded here (was included until
+	# 2026-09-14): EDI_COMPREHENSIVE_SLOW_PATHS$rand_ci and ADDITIONAL_TEST_
+	# SLOW_PATHS$rand_ci both classify the PLAIN compute_rand_confidence_
+	# interval()'s slowness, a structurally different code path from this
+	# bootstrap variant -- conflating them here reproduced the exact same bug
+	# just fixed above for supports_randomization_ci. Confirmed live 2026-09-14
+	# for InferenceSurvivalKKStratCoxPHOneLik (in EDI_COMPREHENSIVE_SLOW_PATHS
+	# $rand_ci): compute_rand_bootstrap_confidence_interval() returns a real
+	# result (-11.48, 9.99), not slow at all. That registry entry's own
+	# comment (comprehensive_slow_paths.R) even says its removal was left
+	# "unverified, not confirmed-fast" because a 2026-09-08 recheck "produced
+	# zero matching calls" -- i.e. this exact bug was already silently
+	# preventing anyone from ever verifying it, a self-reinforcing loop this
+	# removal breaks. skip_brt_ci_all_slow (BRT-CI's own dedicated registry
+	# category) remains the correct lever for a genuinely slow BRT-CI.
+	skip_brt_ci   = skip_bootstrap || skip_bootstrap_slow || skip_rand_slow || skip_brt_ci_all_slow
 	skip_bayesian_bootstrap = skip_bootstrap || skip_bootstrap_slow ||
 		!isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$supports_bayesian_bootstrap(), error = function(e) TRUE))
 	# Deliberately NOT gated on is(seq_des_inf, "InferenceParamBootstrap") --
@@ -2559,7 +2651,27 @@ call_direct_asymp = function(method_name, testing_type, ...){
 					  seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = r, type = brt_pval_type, show_progress = FALSE))
 		}
 	}
-	if (supports_randomization_bootstrap && supports_randomization_ci && should_run_test_family("rand_bootstrap") && !skip_slow && !skip_brt_ci && !skip_rand && !skip_ci_rand && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "count", "survival")){
+	# Deliberately NOT gated on supports_randomization_ci -- that's the PLAIN
+	# compute_rand_confidence_interval()'s capability, not this bootstrap
+	# variant's. Confirmed live 2026-09-14: InferenceSurvivalKKLWACoxPHOneLik/
+	# KKStratCoxPHOneLik/CoxPHRegr/StratCoxPHRegr all have
+	# randomization_ci=FALSE (their plain rand-CI genuinely errors -- log-
+	# hazard-ratio estimand units are incompatible with the generic epsilon-
+	# search machinery) but randomization_bootstrap=TRUE, and
+	# compute_rand_bootstrap_confidence_interval() works fine for them (real
+	# results, not errors) -- the package's own error message for the plain
+	# method even says so explicitly: "The randomization p-value and the
+	# randomization-bootstrap CI remain available." Requiring
+	# supports_randomization_ci here was silently skipping a working,
+	# documented-as-available path for every log-hazard-ratio class, forever.
+	# The one class of genuine BRT-CI failure (ordinal model-coefficient
+	# estimands, confirmed live to still error) is already caught gracefully
+	# by handle_error()'s existing "not implemented" pattern match below, the
+	# same as every other structural-limitation error in this file --
+	# response_type's own filter already excludes incidence (BRT-CI's other
+	# structural-failure case) from this block entirely, so that message
+	# never reaches here regardless.
+	if (supports_randomization_bootstrap && should_run_test_family("rand_bootstrap") && !skip_slow && !skip_brt_ci && !skip_rand && !skip_ci_rand && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "count", "survival")){
 		safe_call("compute_rand_bootstrap_confidence_interval", seq_des_inf$compute_rand_bootstrap_confidence_interval(B = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
 		for (brt_ci_type in c("studentized", "symmetric-percentile-t", "smoothed")) {
 			if (brt_ci_type == "smoothed" && skip_brt_ci_smoothed_slow) next

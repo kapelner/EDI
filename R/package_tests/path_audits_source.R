@@ -335,10 +335,35 @@ derive_theoretical_support = function(name) {
 # entire nested loop of typed variants at once in comprehensive_tests.R, so
 # they map to every method_id in that family.
 edi_slow_path_category_methods = list(
+  # Re-verified 2026-09-14 against comprehensive_tests.R's actual skip_*
+  # consumption sites: skip_bootstrap cascades via OR-chains into
+  # skip_brt_pval, skip_brt_ci, AND skip_bayesian_bootstrap (lines ~1570-
+  # 1573), and directly gates the m-out-n/subsampling calls too (both
+  # wrapped in the same !skip_bootstrap condition as the classical CI/pval
+  # calls). A class in this category therefore has ALL of these permanently
+  # skipped by the real harness, not just the 8 classical methods -- the
+  # mapping previously only listed those 8, so classes here (e.g.
+  # InferenceAllSimpleWilcox, InferencePropKKGLMM, both unrestricted) showed
+  # their BRT/Bayesian-bootstrap/m-out-n/subsampling cells as "unknown"
+  # (implying data might still arrive) instead of "SLOW" (the true status --
+  # these will never be attempted while the class stays in this list).
   bootstrap = c("compute_bootstrap_confidence_interval", "compute_bootstrap_confidence_interval_basic",
                 "compute_bootstrap_confidence_interval_bca", "compute_bootstrap_confidence_interval_studentized",
                 "compute_bootstrap_two_sided_pval", "compute_bootstrap_two_sided_pval_symmetric",
-                "compute_bootstrap_two_sided_pval_bca", "compute_bootstrap_two_sided_pval_studentized"),
+                "compute_bootstrap_two_sided_pval_bca", "compute_bootstrap_two_sided_pval_studentized",
+                "compute_m_out_of_n_bootstrap_confidence_interval", "compute_m_out_of_n_bootstrap_two_sided_pval",
+                "compute_subsampling_confidence_interval", "compute_subsampling_two_sided_pval",
+                "compute_bayesian_bootstrap_two_sided_pval", "compute_bayesian_bootstrap_two_sided_pval_symmetric",
+                "compute_bayesian_bootstrap_two_sided_pval_wald", "compute_bayesian_bootstrap_two_sided_pval_bca",
+                "compute_bayesian_bootstrap_two_sided_pval_studentized",
+                "compute_bayesian_bootstrap_confidence_interval", "compute_bayesian_bootstrap_confidence_interval_basic",
+                "compute_bayesian_bootstrap_confidence_interval_wald", "compute_bayesian_bootstrap_confidence_interval_bca",
+                "compute_bayesian_bootstrap_confidence_interval_studentized",
+                "compute_rand_bootstrap_two_sided_pval", "compute_rand_bootstrap_two_sided_pval(delta=0.5)",
+                "compute_rand_bootstrap_two_sided_pval_studentized", "compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t",
+                "compute_rand_bootstrap_two_sided_pval_smoothed",
+                "compute_rand_bootstrap_confidence_interval", "compute_rand_bootstrap_confidence_interval_studentized",
+                "compute_rand_bootstrap_confidence_interval_symmetric-percentile-t", "compute_rand_bootstrap_confidence_interval_smoothed"),
   boot_ci = c("compute_bootstrap_confidence_interval", "compute_bootstrap_confidence_interval_basic",
               "compute_bootstrap_confidence_interval_bca", "compute_bootstrap_confidence_interval_studentized"),
   boot_ci_default = "compute_bootstrap_confidence_interval",
@@ -1322,13 +1347,27 @@ html_from_audit = function(tables, outfile = "path_audits.html") {
     if (isTRUE(r$skip_rci) || isTRUE(r$skip_rand_ci)) return(method_cell(r, method_id, "slow"))
     method_cell(r, method_id, "maybe")
   }
+  # Custom-statistic pval is permanently unsupported for incidence,
+  # independent of rand_resp (which is non-empty ("i") for incidence classes
+  # since the PLAIN rand pval works there via Zhang dispatch -- reusing that
+  # field here would wrongly imply custom shares that support). Confirmed
+  # live 2026-09-14: InferenceRandCustom$compute_rand_two_sided_pval() on an
+  # incidence design errors "Randomization tests are not supported for
+  # incidence. Use Zhang method." -- matching comprehensive_tests.R's own
+  # unconditional skip_custom_rand_pval = response_type == "incidence".
   cell_rand_custom_p = function(r, method_id) {
+    if (identical(r$resp, "incid")) return(method_cell(r, method_id, "unsupported"))
     if (!nchar(r$rand_resp)) return(method_cell(r, method_id, "unsupported"))
     if (isTRUE(r$skip_rand) || isTRUE(r$skip_rpv)) return(method_cell(r, method_id, "slow"))
     method_cell(r, method_id, "maybe")
   }
+  # "count" added 2026-09-14 to match comprehensive_tests.R's own custom-CI
+  # response_type set, widened the same day after confirming live that
+  # InferenceRandCustom$compute_rand_confidence_interval() on a count design
+  # returns a real CI -- there was never a structural reason to exclude count
+  # here (or there), it was a stale, never-revisited restriction.
   cell_rand_custom_c = function(r, method_id) {
-    if (!r$resp %in% c("cont", "prop", "surv")) return(method_cell(r, method_id, "unsupported"))
+    if (!r$resp %in% c("cont", "prop", "surv", "count")) return(method_cell(r, method_id, "unsupported"))
     if (isTRUE(r$skip_rci)) return(method_cell(r, method_id, "slow"))
     method_cell(r, method_id, "maybe")
   }

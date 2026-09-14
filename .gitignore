@@ -89,6 +89,13 @@ test_ols_ivwc_onelik.R
 # instead of chasing each new location with its own entry.
 .claude/
 R/package_metadata/gradient_method_comparison_outputs/*
+
+# Downloaded ICPSR/openICPSR data (R/package_metadata/icpsr_download.R's
+# default download_dir) -- must never be committed, see the licensing
+# note in R/package_metadata/experimental_datasets.md. Fetch at
+# test/run time under your own ICPSR account instead of vendoring a copy.
+R/package_metadata/icpsr_data/*
+!R/package_metadata/icpsr_data/.gitkeep
 R/benchmark/simd_matrix/*
 R/benchmark/benchmark_pb_high_load.R
 R/benchmark/benchmark_pb_precision.R
