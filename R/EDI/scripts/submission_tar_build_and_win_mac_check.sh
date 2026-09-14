@@ -88,8 +88,8 @@ rsync -a \
 
 echo "== 1a. Patching scratch copy's configure so an UNSET EDI_PORTABLE defaults to the portable build =="
 echo "  (only $CLEAN_PKG_DIR/configure is touched -- the real repo file is never modified)"
-CONFIGURE_DEFAULT_LINE='edi_portable="$(env_or_default EDI_PORTABLE 0)"'
-CONFIGURE_PATCHED_LINE='edi_portable="$(env_or_default EDI_PORTABLE 1)"'
+CONFIGURE_DEFAULT_LINE='  edi_portable=0'
+CONFIGURE_PATCHED_LINE='  edi_portable=1'
 if ! grep -qF "$CONFIGURE_DEFAULT_LINE" "$CLEAN_PKG_DIR/configure"; then
   echo "ERROR: expected line not found in $CLEAN_PKG_DIR/configure -- configure's EDI_PORTABLE default logic may have changed; update this script's patch to match." >&2
   exit 1

@@ -6,13 +6,14 @@ number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
 "Versioning" checklist item) — a `.postN` suffix is used for
 Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
-## [Unreleased]
+## [1.0.1] - 2026-09-14
 
 Kernel-level changes in `R/EDI/src/*.cpp` (commits `831be080`, `c289adfa`,
-`5e8f4578`, 2026-09-03 to 2026-09-07), so per the versioning rule above the
-next release is *not* `.postN`-eligible. All three fixes came out of the R
-package's comprehensive-suite testing rounds; the Python bindings compile the
-same sources, so they inherit them verbatim.
+`5e8f4578`, 2026-09-03 to 2026-09-07), so per the versioning rule above this
+release is not a `.postN`; it tracks `R/EDI/DESCRIPTION`'s own `1.0.0` ->
+`1.0.1` bump. The fixes below came out of the R package's comprehensive-suite
+testing rounds; the Python bindings compile the same sources, so they
+inherit them verbatim.
 
 ### Fixed
 
@@ -85,6 +86,14 @@ Python module.
   length at the ZIP limit and reports a
   `"observed_conditional_on_zero_inflation_boundary"` covariance type; both
   are R-only output fields.
+- `_helper_functions_core.h`'s `edi_check_R_user_interrupt()`/
+  `edi_check_time_budget()` gained a guard against crashing on a worker
+  thread when called from inside `#pragma omp parallel`
+  (`compute_coxph_rand_bootstrap_parallel_cpp`'s per-draw refit loop;
+  commit `c4dbf91f`). Both functions' entire bodies are already
+  `#ifndef EDI_CORE_ONLY`-gated to no-ops, so the guard — and the crash it
+  fixes — exists only in the R build; nothing changes for the Python
+  module.
 
 ## [1.0.0.post6] - 2026-08-31
 

@@ -202,7 +202,17 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 		"InferenceSurvivalDepCensTransformRegr||~.",
 		"InferenceAllSimpleWilcox",
 		"InferenceOrdinalAdjCatLogitRegr",
-		"InferenceOrdinalPartialProportionalOddsRegr||~."
+		"InferenceOrdinalPartialProportionalOddsRegr||~.",
+		# Added 2026-09-14 from a full post-fix comprehensive-suite audit
+		# (real production data, not a forced sample): all 8 plain-bootstrap
+		# CI+pval methods (basic/bca/studentized CI, base/symmetric/bca/
+		# studentized pval, m-out-of-n, subsampling) average 95-96s, n=9-11
+		# each, well over the 30s threshold. This directly contradicts the
+		# 2026-09-09 "Fourth pass" bulk-ungating, which removed this exact
+		# class from this list based on a 10x COMPREHENSIVE_FORCE_SLOW_PATHS
+		# force-run showing it fast -- that sample looks like it got lucky;
+		# this much larger real sample says otherwise.
+		"InferenceCountPoissonKKGEE||~."
 	),
 	# Gates every randomization-family test at once (plain pval, CI, BRT
 	# pval/CI, custom pval/CI) -- consumed via
@@ -250,7 +260,13 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 		# formula), dropping that flag's `r >= 50` numeric threshold --
 		# r is always 151 in this harness, so the threshold never actually
 		# distinguished anything in practice.
-		"InferenceCountHurdlePoisson"
+		"InferenceCountHurdlePoisson",
+		# Added 2026-09-14 from a full post-fix comprehensive-suite audit:
+		# compute_lik_ratio_bartlett_approx_two_sided_pval averages 114s
+		# mean, n=62 -- a well-populated, non-marginal finding. Existing
+		# ||~1 entry above (from the 2026-09-09 audit) is unrelated: the ~.
+		# side just wasn't tested with enough volume back then to surface.
+		"InferenceOrdinalKKGLMM||~."
 	),
 	# Same migration as bartlett_pval's InferenceCountHurdlePoisson entry
 	# above, for the CI side (the old skip_hurdle_poisson_bartlett flag
@@ -293,16 +309,24 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# bar every other entry here clears. Kept out for consistency rather than
 	# gating on sub-30s-mean cost; recheck against real data if they show up
 	# as an actual 60s timeout later.
+	# InferenceIncidKKCondLogitGLMMOneLik||~1 added to this and the two
+	# categories below 2026-09-14 from a full post-fix comprehensive-suite
+	# audit: its ~1 side is slow across every BRT pval variant (smoothed and
+	# pval(delta=0.5) ~120s mean n=8; base/symm-t/studentized ~71s mean n=7)
+	# -- the existing brt_pval entry for this class below covers ||~. only
+	# (a different, separately-diagnosed finding from 2026-09-11).
 	brt_pval_smoothed = c(
 		"InferenceOrdinalPartialProportionalOddsRegr||~1",
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
 		"InferenceSurvivalWeibullRegr||~.",
-		"InferenceSurvivalKKWeibullMarginal||~."
+		"InferenceSurvivalKKWeibullMarginal||~.",
+		"InferenceIncidKKCondLogitGLMMOneLik||~1"
 	),
 	brt_pval_typed = c(
 		"InferenceCountKKGLMM||~1",
 		"InferenceCountKKGLMM||~.",
-		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~."
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
+		"InferenceIncidKKCondLogitGLMMOneLik||~1"
 	),
 	# InferenceSurvivalDepCensTransformRegr||~1 gates here (not just
 	# brt_ci_smoothed) because its base/untyped CI genuinely hard-times-out
@@ -345,7 +369,8 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# this registry's own 30s threshold.
 	brt_pval = c(
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
-		"InferenceIncidKKCondLogitGLMMOneLik||~."
+		"InferenceIncidKKCondLogitGLMMOneLik||~.",
+		"InferenceIncidKKCondLogitGLMMOneLik||~1"
 	),
 	# Gates the plain randomization confidence interval -- consumed via
 	# is_any_inference_class(); also combined at the call site with a
@@ -1421,7 +1446,25 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	} else {
 		NA_character_
 	}
-	skip_bootstrap = !force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$bootstrap)
+	# Structural capability check added 2026-09-14: a full post-fix
+	# comprehensive-suite audit found InferenceIncidExactFisher/
+	# ExactBinomial/ExactZhang erroring ("attempt to apply non-function") on
+	# their entire nonparametric-bootstrap (and, via skip_bootstrap's OR
+	# term below, Bayesian-bootstrap) family, 100% of every real error in
+	# the audited data. Root cause: these 3 classes were removed from
+	# ADDITIONAL_TEST_SLOW_PATHS$bootstrap on 2026-09-08 on the premise that
+	# "the capability system already independently agrees" (get_effective_
+	# capabilities() does correctly omit nonparametric_bootstrap for all
+	# three) -- but skip_bootstrap never actually consulted that capability
+	# system, only this hardcoded list, so removing the entries left
+	# nothing to stop the harness from attempting calls that error every
+	# time. Unlike the slow-list term below, this check is NOT gated behind
+	# force_run_slow_paths -- a class that structurally lacks the capability
+	# would just error again on a forced re-run, not answer a timing
+	# question, so COMPREHENSIVE_FORCE_SLOW_PATHS has no business re-enabling
+	# it.
+	skip_bootstrap = !supports_inference_capability(seq_des_inf, "nonparametric_bootstrap") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$bootstrap))
 	# Package-owned, public registry; formula-, dataset-independent (an
 	# exact_operations entry may optionally restrict itself to one
 	# model_formula via a `||model_formula` suffix -- see

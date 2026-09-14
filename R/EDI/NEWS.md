@@ -64,6 +64,13 @@
   `compute_score_two_sided_pval()`/`compute_score_confidence_interval()`
   returned `NA` on every call, regardless of formula. Fixed to negate, as
   the sibling `InferenceSurvivalCoxPHRegr` already did.
+* `get_clogit_plus_glmm_hessian_cpp()`'s exported wrapper negated an
+  objective that already returns the positive information matrix (not the
+  raw log-likelihood Hessian), so `InferencePropKKGLMM` and
+  `InferenceIncidKKCondLogitGLMMIVWC`/`OneLik` fed the score test a
+  negative-definite matrix — the same failure mode as the StratCoxPH bug
+  above, reproducing an approximately 100% `NA` rate for their score test
+  regardless of formula. The extra negation is removed.
 * Six ordinal-response inference classes — `InferenceOrdinalAdjCatLogitRegr`,
   `InferenceOrdinalCauchitRegr`, `InferenceOrdinalCloglogRegr`,
   `InferenceOrdinalOrderedProbitRegr`, `InferenceOrdinalContRatioRegr`, and
