@@ -1,3 +1,6 @@
+library(testthat)
+library(EDI)
+
 make_rand_custom_design = function(n = 20, seed = 20260913){
 	set.seed(seed)
 	des = DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)

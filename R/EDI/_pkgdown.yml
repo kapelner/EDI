@@ -162,6 +162,7 @@ reference:
   - InferenceCustomAsymp
   - InferenceCustomBoot
   - InferenceCustomRand
+  - InferenceRandCustom
 
 - title: "Inference: Infrastructure"
   desc: >

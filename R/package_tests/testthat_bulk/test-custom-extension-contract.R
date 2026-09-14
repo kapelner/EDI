@@ -1,3 +1,6 @@
+library(testthat)
+library(EDI)
+
 test_that("custom extension base classes are internal but usable for subclassing", {
 	exports = getNamespaceExports("EDI")
 	expect_false("InferenceCustomAsymp" %in% exports)
