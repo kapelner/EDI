@@ -627,7 +627,13 @@ test_that("ordinal hardening drops QR-ranked covariates only when enabled", {
 	expect_false(all(is.finite(kk_adj_raw$compute_asymp_confidence_interval())))
 })
 
-test_that("bootstrap debug preserves per-iteration records for sequential count designs", {
+test_that("bootstrap is rejected (not hung/miscomputed) for sequential count designs still on the exclusion list", {
+	# SPBR and KK21 remain on EDI_INFERENCE_DESIGN_EXCLUDED_CAPABILITIES's
+	# nonparametric_bootstrap blocklist (unlike DesignSeqOneByOneBernoulli,
+	# ungated once audited -- see inference_class_registry.R). This test used
+	# to exercise approximate_bootstrap_distribution_beta_hat_T(debug = TRUE)'s
+	# per-iteration record-keeping on these designs; that's no longer reachable,
+	# so it now just pins the rejection itself.
 	dat <- stats::na.omit(MASS::Cars93)
 	x_dat <- as.data.frame(subset(dat, select = -Price))
 	y_count <- as.integer(round(dat$Price))
@@ -653,16 +659,11 @@ test_that("bootstrap debug preserves per-iteration records for sequential count 
 	add_all_subject_responses_seq(des_spbr, y_count)
 
 	inf_spbr <- InferenceAllSimpleAverageDiff$new(des_spbr, verbose = FALSE)
-	debug_spbr <- inf_spbr$approximate_bootstrap_distribution_beta_hat_T(
-		B = 12,
-		show_progress = FALSE,
-		debug = TRUE
+	expect_false(unname(inf_spbr$supports("nonparametric_bootstrap")))
+	expect_error(
+		inf_spbr$approximate_bootstrap_distribution_beta_hat_T(B = 12, show_progress = FALSE, debug = TRUE),
+		"This method is not supported"
 	)
-	expect_length(debug_spbr$values, 12)
-	expect_length(debug_spbr$errors, 12)
-	expect_length(debug_spbr$warnings, 12)
-	expect_true(all(vapply(debug_spbr$errors, is.character, logical(1))))
-	expect_true(all(vapply(debug_spbr$warnings, is.character, logical(1))))
 
 	des_kk21 <- DesignSeqOneByOneKK21$new(response_type = "count", n = nrow(x_dat))
 	for (i in seq_len(nrow(x_dat))) {
@@ -671,17 +672,17 @@ test_that("bootstrap debug preserves per-iteration records for sequential count 
 	add_all_subject_responses_seq(des_kk21, y_count)
 
 	inf_kk21 <- InferenceCountNegBin$new(des_kk21, verbose = FALSE)
-	debug_kk21 <- inf_kk21$approximate_bootstrap_distribution_beta_hat_T(
-		B = 8,
-		show_progress = FALSE,
-		debug = TRUE
+	expect_false(unname(inf_kk21$supports("nonparametric_bootstrap")))
+	expect_error(
+		inf_kk21$approximate_bootstrap_distribution_beta_hat_T(B = 8, show_progress = FALSE, debug = TRUE),
+		"This method is not supported"
 	)
-	expect_length(debug_kk21$values, 8)
-	expect_length(debug_kk21$errors, 8)
-	expect_length(debug_kk21$warnings, 8)
 })
 
-test_that("proportion g-computation bootstrap worker keeps mutable screening state", {
+test_that("bootstrap is rejected (not hung/miscomputed) for sequential proportion designs still on the exclusion list", {
+	# PocockSimon and Urn remain on the nonparametric_bootstrap exclusion list
+	# -- see the sibling test_that above for why this now pins rejection
+	# rather than the old mutable-screening-state behavior.
 	dat <- stats::na.omit(MASS::Cars93)
 	x_dat <- as.data.frame(subset(dat, select = -Price))
 	y_prop <- pmin(0.99, pmax(0.01, dat$Price / max(dat$Price)))
@@ -706,15 +707,15 @@ test_that("proportion g-computation bootstrap worker keeps mutable screening sta
 	add_all_subject_responses_seq(des_pocock, y_prop)
 
 	inf_pocock <- InferencePropGCompMeanDiff$new(des_pocock, verbose = FALSE)
-	debug_pocock <- inf_pocock$approximate_bootstrap_distribution_beta_hat_T(
-		B = 20,
-		show_progress = FALSE,
-		debug = TRUE
+	expect_false(unname(inf_pocock$supports("nonparametric_bootstrap")))
+	expect_error(
+		inf_pocock$approximate_bootstrap_distribution_beta_hat_T(B = 20, show_progress = FALSE, debug = TRUE),
+		"This method is not supported"
 	)
-	expect_lt(debug_pocock$prop_illegal_values, 1)
-	expect_true(any(is.finite(debug_pocock$values)))
-	expect_true(all(is.finite(inf_pocock$compute_bootstrap_confidence_interval(B = 20, show_progress = FALSE))))
-	expect_true(is.finite(inf_pocock$compute_bootstrap_two_sided_pval(B = 20)))
+	expect_error(
+		inf_pocock$compute_bootstrap_confidence_interval(B = 20, show_progress = FALSE),
+		"This method is not supported"
+	)
 
 	des_urn <- DesignSeqOneByOneUrn$new(
 		response_type = "proportion",
@@ -726,13 +727,13 @@ test_that("proportion g-computation bootstrap worker keeps mutable screening sta
 	add_all_subject_responses_seq(des_urn, y_prop)
 
 	inf_urn <- InferencePropGCompMeanDiff$new(des_urn, verbose = FALSE)
-	debug_urn <- inf_urn$approximate_bootstrap_distribution_beta_hat_T(
-		B = 12,
-		show_progress = FALSE,
-		debug = TRUE
+	expect_false(unname(inf_urn$supports("nonparametric_bootstrap")))
+	expect_error(
+		inf_urn$approximate_bootstrap_distribution_beta_hat_T(B = 12, show_progress = FALSE, debug = TRUE),
+		"This method is not supported"
 	)
-	expect_lt(debug_urn$prop_illegal_values, 1)
-	expect_true(any(is.finite(debug_urn$values)))
-	expect_true(all(is.finite(inf_urn$compute_bootstrap_confidence_interval(B = 12, show_progress = FALSE))))
-	expect_true(is.finite(inf_urn$compute_bootstrap_two_sided_pval(B = 12)))
+	expect_error(
+		inf_urn$compute_bootstrap_confidence_interval(B = 12, show_progress = FALSE),
+		"This method is not supported"
+	)
 })

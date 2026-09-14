@@ -132,8 +132,16 @@ test_that("proportion bootstrap diagnostics explain any comprehensive-style fail
 	print(diagnostics)
 
 	expect_equal(nrow(diagnostics), length(class_names) * length(design_names))
-	expect_false(any(diagnostics$debug_error))
 
+	# iBCRD and Efron are still on EDI_INFERENCE_DESIGN_EXCLUDED_CAPABILITIES's
+	# nonparametric_bootstrap blocklist (unlike Bernoulli, ungated once audited
+	# -- see inference_class_registry.R), so their rows report a capability
+	# rejection rather than a numerical fit failure. That rejection is itself
+	# the explanation, not an unexplained failure this test should flag.
+	capability_rejected = grepl("This method is not supported", diagnostics$debug_error_message, fixed = TRUE)
+	expect_false(any(diagnostics$debug_error & !capability_rejected))
+
+	diagnostics = diagnostics[!capability_rejected, , drop = FALSE]
 	failed = diagnostics[diagnostics$boot_ci_failed | diagnostics$boot_ci_degenerate | diagnostics$boot_p_failed, , drop = FALSE]
 	if (nrow(failed) > 0L) {
 		expect_true(all(
