@@ -1485,7 +1485,7 @@
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","transform_y","Design","inherited",3,"ordinal_levels;transform_fun;transformed_response_type",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","unavailable_inference_classes_due_to_missing_packages","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","warm_all_subject_data_cache","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"edi_build_info_cpp","function","","","","",0,"",FALSE,FALSE,FALSE,FALSE,"",FALSE
+"edi_build_info_cpp","function","","","","",0,"",FALSE,FALSE,FALSE,TRUE,"",FALSE
 "EDI_COMPREHENSIVE_SLOW_PATHS","data","","","","",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
 "exact_jonckheere_terpstra_pval_cpp","function","","","","",2,"w;y",FALSE,TRUE,FALSE,FALSE,"",FALSE
 "expand_adjacent_category_data_cpp","function","","","","",4,"K;strata;w;y",FALSE,TRUE,FALSE,FALSE,"",FALSE
