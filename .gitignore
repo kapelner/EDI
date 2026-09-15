@@ -90,13 +90,14 @@ test_ols_ivwc_onelik.R
 .claude/
 R/package_metadata/gradient_method_comparison_outputs/*
 
-# Downloaded ICPSR/openICPSR data (R/package_metadata/icpsr_download.R's
-# default download_dir) -- must never be committed, see the licensing
-# note in R/package_metadata/experimental_datasets.md. Fetch at
-# test/run time under your own ICPSR account instead of vendoring a copy.
-R/package_metadata/icpsr_data/*
-!R/package_metadata/icpsr_data/.gitkeep
-R/package_metadata/icpsr_data.tar.bz2
+# Downloaded experimental-dataset data (Dataverse/CRAN/ICPSR, via
+# R/package_metadata/download_experimental_datasets.R's default
+# download_dir) -- must never be committed, see the licensing note in
+# R/package_metadata/experimental_datasets.md. Fetch at test/run time
+# instead of vendoring a copy.
+R/package_metadata/randomized_experiment_datasets/*
+!R/package_metadata/randomized_experiment_datasets/.gitkeep
+R/package_metadata/randomized_experiment_datasets.tar.bz2
 R/benchmark/simd_matrix/*
 R/benchmark/benchmark_pb_high_load.R
 R/benchmark/benchmark_pb_precision.R

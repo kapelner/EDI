@@ -78,6 +78,20 @@ needs.
   the jackknife/bootstrap for this class stops rebuilding its model from
   scratch per fold, with bit-identical results.
 
+### Repository hygiene *(maintenance)*
+
+- **[`lintr` policy](R/package_metadata/new_feature_plans/implement_a_lintr.md)** —
+  codify EDI's actual house style (`=` assignment, tab indentation —
+  the inverse of lintr's defaults) in a `.lintr` that produces zero style
+  findings on the current tree with every correctness linter on, triage
+  the correctness findings, decide the fate of the small `<-`/space
+  minority, then gate it in the pre-push hook and a CI step. No runtime
+  effect.
+- **[Documentation spell-check](R/package_metadata/new_feature_plans/spellcheck.md)** —
+  `spelling::spell_check_package()` with an `inst/WORDLIST` for the
+  statistical vocabulary and a `tests/spelling.R` check so new typos fail
+  `R CMD check` in CI. No runtime effect.
+
 ### InferenceSuite
 
 - **[Wilkinson r-out-of-k combined evidence, Stage 1](R/package_metadata/new_feature_plans/wilkinson_combined_pval.md)** —

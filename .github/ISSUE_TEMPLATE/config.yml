@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or usage help
+    url: https://github.com/kapelner/EDI/discussions
+    about: Ask in Discussions rather than opening an issue.
+  - name: Documentation and reference
+    url: https://kapelner.github.io/EDI/
+    about: Every design class, inference class, and C++ kernel, plus vignettes and the notation glossary.
+  - name: Contributing guide
+    url: https://github.com/kapelner/EDI/blob/main/CONTRIBUTING.md
+    about: Setup, the compilation rule, the required pre-work and pre-push checks, and the PR checklist.

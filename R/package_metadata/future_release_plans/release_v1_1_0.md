@@ -140,6 +140,13 @@ track from this release without replacement; it does not block the release.
 
 ## In scope (by plan)
 
+Repository hygiene *(maintenance, added 2026-09-16, user decision)*:
+`implement_a_lintr.md` (a `.lintr` codifying EDI's actual `=`/tab house
+style, correctness linters on, content-gated hook + CI step — `TODO-23`)
+and `spellcheck.md` (`spelling` + `inst/WORDLIST` + `tests/spelling.R` —
+`TODO-24`). Both depend on nothing and can land at any point in the
+release; neither changes runtime behavior.
+
 The corrections family — **core only** (**minus `marginal_estimand_report.md`,
 pulled into v1.0.0 — amended 2026-08-18, user decision; see
 `release_v1_0_0.md`'s item 14; and minus the L1/L2-and-beyond tail, moved
@@ -1146,6 +1153,28 @@ ticked in their **owning plans**; this list is the release index.
   acceptance plan moves) — run it on the 1.1.0 candidate; `edi_kernels`
   1.1.0 wheel ships from the same commit family, per `release.md`'s
   Python-coordination section.
+
+- **`TODO-23`** (added 2026-09-16, user decision; *(maintenance)*, no
+  user-visible effect): **`lintr` policy** — `implement_a_lintr.md →
+  TODO-1..4`. EDI has no `.lintr` and its house style (`=` assignment,
+  tab indentation — measured 26,306 `=` vs. 605 `<-`, 71,133 tab- vs.
+  5,622 space-indented lines in `R/EDI/R`) is the inverse of lintr's
+  defaults, so the plan is: write a `.lintr` that describes the code as
+  written (zero style findings on the current tree, every *correctness*
+  linter on), triage the correctness findings, take one explicit decision
+  on the `<-`/space minority (recommended: freeze via per-file exclusions,
+  migrate when touched), then gate — content-gated in the pre-push hook on
+  changed `R/EDI/R/*.R`, plus a path-filtered CI step with inline PR
+  annotations. Depends on nothing; can run any time in the release.
+- **`TODO-24`** (added 2026-09-16, user decision; *(maintenance)*):
+  **Spell-check the documentation** — `spellcheck.md → TODO-1..3`.
+  `spelling::spell_check_package()` + a bootstrapped `inst/WORDLIST` for
+  the statistical vocabulary, `Language: en-US` in `DESCRIPTION`, and
+  `spelling::spell_check_test()` in `tests/spelling.R` so new typos fail
+  `R CMD check` in our matrix (skipped on CRAN). Hook integration is
+  content-gated on the same roxygen-edit trigger `fast_roxygenize` already
+  uses, plus vignette/`NEWS.md` changes. One-time triage cost, then ~zero.
+  Depends on nothing.
 
 ## Standing constraints
 

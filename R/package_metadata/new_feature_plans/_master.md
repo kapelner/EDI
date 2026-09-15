@@ -1036,6 +1036,31 @@ audits; its own TODO-1 now carries a recorded "no / defer" recommendation.
 
 ---
 
+**Repository hygiene (added 2026-09-16, user decision; grew out of the
+CONTRIBUTING.md / pre-push-hook work — "what else can we gate before a
+push?"; *(maintenance)*, no user-visible effect, no dependency on any
+phase above — schedule anywhere in v1.1.0):**
+`implement_a_lintr.md` → TODO-1..4. EDI has no `.lintr`, and its house
+style is the inverse of lintr's defaults (measured 2026-09-16 over
+`R/EDI/R`: 26,306 statement-level `=` assignments vs. 605 `<-`; 71,133
+tab-indented lines vs. 5,622 space-indented), so lintr cannot simply be
+switched on — the first step is a `.lintr` that *describes* the code as
+written (zero style findings on the current tree, every correctness
+linter on), then a triage of the correctness findings (the real payoff:
+`object_usage`, `equals_na`, `seq`, `vector_logic`), then one explicit
+user decision on the `<-`/space minority (recommended: freeze via
+per-file exclusions, migrate when touched — not a repo-wide reformat),
+then gating: content-gated in `.githooks/pre-push` on changed
+`R/EDI/R/*.R` plus a path-filtered CI step with inline PR annotations.
+`spellcheck.md` → TODO-1..3. The non-controversial sibling:
+`spelling::spell_check_package()` with a bootstrapped `inst/WORDLIST`
+for the statistical vocabulary, `Language: en-US` in `DESCRIPTION`, and
+`spelling::spell_check_test()` in `tests/spelling.R` so new typos fail
+`R CMD check` in our matrix (skipped on CRAN); hook integration reuses
+`fast_roxygenize`'s roxygen-edit trigger plus vignette/`NEWS.md` changes.
+Release index: `release_v1_1_0.md → TODO-23` (lintr), `→ TODO-24`
+(spelling).
+
 ## Phase 6 — Exploratory / later
 
 1. `sequential_inference.md` — after Phase 1E.4 delivers the public accessors

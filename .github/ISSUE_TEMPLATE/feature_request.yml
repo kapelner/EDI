@@ -1,0 +1,68 @@
+name: Feature request
+description: A new design, inference method, response-type support, kernel, or capability.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, check [ROADMAP.md](../blob/main/ROADMAP.md) and the
+        per-feature plans in
+        [`R/package_metadata/new_feature_plans/`](../tree/main/R/package_metadata/new_feature_plans)
+        — many things are already planned, and an existing plan is the
+        place to add to. Non-trivial features in this repo are implemented
+        *from* a plan file (see [CONTRIBUTING.md §3](../blob/main/CONTRIBUTING.md)),
+        so a good request reads like the first draft of one.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      options:
+        - New design class
+        - New inference class / estimator
+        - Extend an existing class to a new response type
+        - New or faster C++ kernel (affects R and Python)
+        - Python bindings (edi_kernels) only
+        - SimulationFramework / InferenceSuite capability
+        - Documentation / vignette
+        - Performance
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What can't be done today, and why it matters
+      description: The experimental-design or inference situation this serves. Cite the method (paper, textbook) if it's an established procedure.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Class/method names following the `Design<Fixed|SeqOneByOne><Method>` / `Inference<ResponseType><Method>` convention; which response types; which capabilities (exact, asymptotic, randomization, bootstrap, ...) it should expose through the registry; expected API.
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: How correctness would be validated
+      description: A reference implementation to match, a closed form, a simulation showing nominal coverage / Type-I error, or a golden test. Everything in EDI that ships has one of these.
+
+  - type: input
+    id: plan
+    attributes:
+      label: Related plan / roadmap item
+      description: Path to an existing plan in `R/package_metadata/` or a ROADMAP.md bullet, if any.
+      placeholder: R/package_metadata/new_feature_plans/<plan>.md
+
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: Contribution
+      options:
+        - label: I'm willing to implement this following CONTRIBUTING.md.

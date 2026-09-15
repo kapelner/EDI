@@ -1,0 +1,118 @@
+name: Bug report
+description: Something produces an error, a wrong number, or a hang.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The fields below are what a fix actually needs
+        — EDI dispatches on *response type × design class × inference class*,
+        so a bug almost always lives at one specific combination. Please
+        fill them in rather than describing the combination in prose.
+        Read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) if you intend to
+        fix it yourself.
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - EDI (R)
+        - edi_kernels (Python)
+        - both / the shared C++ kernels (R/EDI/src)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: response_type
+    attributes:
+      label: Response type
+      description: The `response_type` the Design was constructed with.
+      options:
+        - continuous
+        - incidence
+        - count
+        - proportion
+        - survival
+        - ordinal
+        - not applicable / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: design_class
+    attributes:
+      label: Design class
+      description: Exact class name, e.g. `DesignFixedBlocking`, `DesignSeqOneByOneKK21`. Include constructor arguments that matter (strata, block size, lambda, ...).
+      placeholder: DesignSeqOneByOneKK21 (lambda = 0.5)
+    validations:
+      required: true
+
+  - type: input
+    id: inference_class
+    attributes:
+      label: Inference class / method
+      description: Exact class and the method that misbehaves, e.g. `InferenceContinKKOLSIVWC$compute_bootstrap_confidence_interval()`; or `InferenceSuite`, `SimulationFramework`, or a `fast_*` kernel.
+      placeholder: InferenceIncidKKGCompRiskRatio$compute_rand_two_sided_pval(r = 201)
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproducible example
+      description: Complete, self-contained, seeded code that triggers it — construct the design, assign, record responses, call the method. Smallest `n` that still reproduces. Synthetic data is fine; no private data.
+      render: r
+      placeholder: |
+        library(EDI)
+        set.seed(1)
+        n <- 40
+        X <- data.frame(x = rnorm(n))
+        des <- DesignSeqOneByOneKK21$new(n = n, response_type = "continuous")
+        for (i in seq_len(n)) {
+          w <- des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+          des$add_one_subject_response(i, rnorm(1) + 0.5 * w)
+        }
+        inf <- InferenceContinKKOLSIVWC$new(des)
+        inf$compute_bootstrap_confidence_interval(B = 50)
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened — and, for a wrong-number report, why you believe the number is wrong (a reference implementation, a known closed form, a simulation showing miscalibrated coverage/Type-I error, ...).
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Full error message / traceback, the wrong value, or "hangs at ..." with how long you waited. For hangs, whether `num_cores > 1` / `set_num_cores()` was in effect.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Output of `sessionInfo()` (R) or `python -c "import edi_kernels, numpy, sys; print(edi_kernels.__version__, numpy.__version__, sys.version)"` plus OS. Say whether EDI was built with `EDI_PORTABLE=1` (default `0` on a local install).
+      render: text
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and this isn't a duplicate.
+          required: true
+        - label: The example above is minimal, seeded, and reproduces on a clean session.
+          required: true
+        - label: I'm on the latest released version (or say which commit on `main`).
+          required: true

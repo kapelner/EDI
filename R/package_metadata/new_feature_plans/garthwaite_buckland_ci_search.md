@@ -146,6 +146,51 @@ a single p-value evaluation vs. a single indicator draw), which is exactly
 why this needs the empirical harness rather than a closed-form "this many
 times faster" claim.
 
+### Pre-benchmark speedup estimate (2026-09-16)
+
+The planning estimate is a **roughly 2x wall-clock speedup** on eligible
+randomization CIs, with **1.5--3x** as the plausible typical range. This is a
+pre-implementation estimate, not evidence for promotion; TODO-4's paired A/B
+report remains authoritative.
+
+At the default `r = 501`, the current bisection search commonly needs about
+8--12 candidate-delta evaluations per bound. Sequential Monte Carlo can stop
+far-from-root evaluations after the default minimum of 100 draws, but
+near-root evaluations generally consume most or all 501 draws. In addition,
+`high_precision_confirm_and_refine_ci_bound()` spends at least two full
+501-draw evaluations per bound and can perform further full-precision
+bisection when confirmation disagrees. A representative accounting is thus
+about 3,000--6,000 replicate-equivalents per bound for bisection, versus at
+most 2,000 single-replicate steps under the proposed default RM driver:
+
+```
+estimated speedup = (3,000--6,000) / 2,000 = 1.5--3x
+```
+
+The `max_steps = 2000L` scale also has a statistical back-of-the-envelope
+justification. At a 95% CI boundary, `p = 0.025`; estimating that Bernoulli
+tail probability to about `0.005` requires approximately
+`0.025 * 0.975 / 0.005^2 = 975` independent indicators under ideal tuning.
+Allowing roughly a factor of two for imperfect step calibration and dependent
+successive iterates puts the working budget near 2,000 draws. This calculation
+does not establish equivalent CI coverage or width; only TODO-4 can do that.
+
+Expected regimes before measurement:
+
+- easy, steep `p(delta)`: about 0.8--1.5x, with RM potentially slower;
+- typical eligible randomization CI: about 1.5--3x;
+- flat `p(delta)` or expensive model refits: about 3--6x;
+- bootstrap-calibrated LR with two refits per draw: potentially 3--8x;
+- additive-shift mean-difference / OLS / Lin classes after affine-shift reuse:
+  no expected gain, hence the required dispatch back to bisection.
+
+If coverage/width equivalence requires 4,000--8,000 RM steps rather than
+1,000--2,000, the expected gain may disappear. Conversely, refit-heavy
+consumers can exceed the typical range because avoiding whole repeated
+batches saves proportionally more wall time. Release notes should therefore
+describe the current expectation as "about 2x, plausibly 1.5--3x; potentially
+larger for refit-heavy bootstrap methods" until the A/B measurements exist.
+
 ### Interfaces
 
 **Consumes** (from the existing codebase, unchanged):
