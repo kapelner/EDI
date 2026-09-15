@@ -252,6 +252,10 @@ annealing_design_search_cpp <- function(objective_kind, M1, M2, n_T, n_chains, m
     .Call(`_EDI_annealing_design_search_cpp`, objective_kind, M1, M2, n_T, n_chains, max_iter, initial_temp, cooling_rate, custom_objective)
 }
 
+edi_unlock_binding_cpp <- function(name, env) {
+    invisible(.Call(`_EDI_edi_unlock_binding_cpp`, name, env))
+}
+
 #' @note Seeded from one R::unif_rand() draw into edi_rng::RRng (RNG.h), a
 #'   portable re-implementation of R's own Mersenne-Twister generator -- a
 #'   given seed therefore produces identical draws in R and in any future
@@ -5192,9 +5196,5 @@ compute_zhang_match_data_cpp <- function(X, y, w, m_vec) {
 
 compute_matching_wy_stats_cpp <- function(w, y, m_vec) {
     .Call(`_EDI_compute_matching_wy_stats_cpp`, w, y, m_vec)
-}
-
-edi_unlock_binding_cpp <- function(name, env) {
-    invisible(.Call(`_EDI_edi_unlock_binding_cpp`, name, env))
 }
 

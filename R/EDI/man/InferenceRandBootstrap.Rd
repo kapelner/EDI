@@ -349,7 +349,10 @@ across \code{delta} values. Default \code{NULL}.}
   \code{"percentile"} if the SE is unavailable.
   \code{"smoothed"} adds kernel noise \eqn{\varepsilon_b \sim N(0, \hat{\sigma}/\sqrt{n})}
   to each resampled draw before imposing the null shift, reducing discreteness in the
-  null distribution. Only meaningful for continuous responses.
+  null distribution. Only meaningful for continuous responses. For count responses the
+  noisy draw is rounded and floored at zero so it stays on the non-negative integer
+  support the Poisson-family likelihoods require; at the default bandwidth this makes
+  the smoothing nearly a no-op for low counts.
 
   \strong{Theoretical justification.} Order-statistic/rank-based estimators (e.g. the
   Hodges-Lehmann pseudo-median) take only finitely many values, so their bootstrap/

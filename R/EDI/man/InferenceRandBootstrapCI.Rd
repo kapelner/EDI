@@ -172,7 +172,8 @@ Require the class to expose a standard error; return \code{NA} bounds in harden
 mode if unavailable.
 \code{"smoothed"} adds per-draw kernel noise \eqn{\varepsilon_b \sim N(0, \hat{\sigma}/\sqrt{n})}
 to the resampled responses before imposing the null shift, reducing discreteness.
-Only meaningful for continuous responses. See
+Only meaningful for continuous responses; count responses are rounded and floored at
+zero after the noise so the Poisson-family refits stay on the integer support. See
 \code{\link{InferenceRandBootstrap}}'s \code{compute_rand_bootstrap_two_sided_pval} for
 the theoretical justification (Silverman 1981; Silverman & Young 1987; Hall, DiCiccio &
 Romano 1989), an explicit caveat that the bandwidth used here (\eqn{\hat{\sigma}/\sqrt{n}},
