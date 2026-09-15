@@ -14,9 +14,9 @@
 **EDI** (Experimental Design and Inference) is software that marries experimental
 designs (fixed and sequential) and inference procedures
 (exact, asymptotic, and distribution-free) tailored to each design and
-response type (continuous, incidence, count, proportion, survival with left/right censoring, and
-ordinal). The core estimation and variance-computing kernels are written in C++ (Eigen +
-LBFGS++) for speed.
+response type (continuous, incidence, count, proportion, survival with
+left/right/interval censoring, and ordinal). The core estimation and
+variance-computing kernels are written in C++ (Eigen + LBFGS++) for speed.
 
 This repo hosts the eponymous R package `EDI` under [`R/EDI`](R/EDI), with R6
 classes for designs, inference, and simulation. It also hosts the distinct
@@ -27,16 +27,34 @@ and benchmark results.
 
 ## Highlights
 
-- **Designs and inference that match.** Each experimental design (fixed or
-  sequential) is paired with the inference procedures that are actually valid
-  for it.
-- **Six response types, 50+ inference families.** Continuous, incidence,
+- **Designs and inference that match.** 24 design classes (13 fixed, 11
+  sequential), each paired with the inference procedures that are actually
+  valid for it.
+- **Six response types, 100+ inference classes.** Continuous, incidence,
   count, proportion, survival (with left/right/interval censoring), and
-  ordinal — each with design-appropriate estimators and estimands.
-- **Four inference engines from one object.** Asymptotic, likelihood-based
-  (score/LR), nonparametric and parametric bootstrap, and exact
-  randomization (design-based) tests and confidence intervals, all from the
-  same fitted `Inference` object.
+  ordinal — each with design-appropriate estimators and estimands:
+
+  | Response family | Inference classes |
+  | --- | ---: |
+  | Incidence | 25 |
+  | Ordinal | 19 |
+  | Survival | 18 |
+  | Count | 13 |
+  | Continuous | 11 |
+  | Proportion | 9 |
+  | Any type | 8 |
+
+- **14 inference procedures from one object.** Wald, exact, score,
+  likelihood ratio (plain and two Bartlett-corrected variants), gradient,
+  nonparametric bootstrap, Bayesian bootstrap, parametric bootstrap (direct
+  and likelihood-ratio-calibrated), jackknife, randomization (design-based)
+  test, and randomization-bootstrap — every one yielding both a p-value and
+  a confidence interval from the same fitted `Inference` object.
+- **Six resampling flavors.** The i.i.d. nonparametric bootstrap alone
+  offers 10 interval types (percentile, basic, studentized, bootstrap-t,
+  symmetric percentile-t, BCa, prepivoted, double, calibrated, smoothed);
+  m-out-of-n bootstrap, subsampling, Bayesian bootstrap, parametric bootstrap,
+  and randomization-bootstrap round out the set.
 - **`InferenceSuite`.** Run every applicable procedure at once and get a
   results table, combined-evidence summary, and CI-forest plots per estimand.
 - **Fast.** The estimation kernels are C++ (Eigen + LBFGS++), OpenMP-parallel,
@@ -267,9 +285,9 @@ estimate of any single effect size.
 
 ### Design bakeoffs via SimulationFramework
 
-`SimulationFramework` can also run several *designs* head-to-head under an
-identical data-generating process, rather than comparing inference
-procedures on one fixed design. Pass more than one design class in
+Besides comparing inference procedures on one fixed design,
+`SimulationFramework` can run several *designs* head-to-head under an
+identical data-generating process. Pass more than one design class in
 `design_classes_and_params` and `$summarize()` reports `power`/`MSE`/
 `coverage` broken out by design. Designs with required constructor arguments
 (e.g. `DesignSeqOneByOnePocockSimon`'s `strata_cols`) get a sensible default
@@ -496,7 +514,7 @@ cores. This is not applied automatically -- call set_num_cores(4) to opt in.
 
 You still have to call `set_num_cores(4)` (or whatever count the message
 names) yourself for parallel execution to actually take effect — see
-"Setting a seed for reproducible output" below for why `num_cores` also
+"Setting a seed for reproducible output" above for why `num_cores` also
 matters for reproducibility.
 
 ## Why `EDI` targets the CPU (and not GPUs, TPUs, or quantum hardware)

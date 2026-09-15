@@ -388,7 +388,10 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   \code{"percentile"} if the SE is unavailable.
 		#'   \code{"smoothed"} adds kernel noise \eqn{\varepsilon_b \sim N(0, \hat{\sigma}/\sqrt{n})}
 		#'   to each resampled draw before imposing the null shift, reducing discreteness in the
-		#'   null distribution. Only meaningful for continuous responses.
+		#'   null distribution. Only meaningful for continuous responses. For count responses the
+		#'   noisy draw is rounded and floored at zero so it stays on the non-negative integer
+		#'   support the Poisson-family likelihoods require; at the default bandwidth this makes
+		#'   the smoothing nearly a no-op for low counts.
 		#'
 		#'   \strong{Theoretical justification.} Order-statistic/rank-based estimators (e.g. the
 		#'   Hodges-Lehmann pseudo-median) take only finitely many values, so their bootstrap/
@@ -597,6 +600,23 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		# constants (one per class/file) rather than shared, since the two
 		# classes are separate R6 generators.
 		rand_bootstrap_pval_types = c("percentile", "studentized", "symmetric-percentile-t", "smoothed"),
+		# Adds the per-draw smoothed-BRT kernel noise to a resampled response vector.
+		# Count responses are projected back onto the non-negative integer support
+		# (round, then floor at 0) -- the same convention shift_randomization_responses()
+		# uses for the multiplicative count shift. Without it a slightly negative noisy
+		# count became a large negative integer after a nonzero-delta shift, every
+		# Poisson/GLMM refit on that draw failed ("negative values not allowed for the
+		# 'Poisson' family", 2026-09-15 count suite), and the CI inversion degenerated.
+		# Every other response type keeps the raw additive noise. The C++ batch kernels
+		# (mean difference, Wilcoxon, survival) apply noise_mat themselves; none of them
+		# fits an integer-support likelihood, so they are unaffected.
+		add_rand_bootstrap_smooth_noise = function(y, noise, response_type){
+			y_noisy = as.numeric(y) + as.numeric(noise)
+			if (identical(response_type, "count")) {
+				return(pmax(0L, as.integer(round(y_noisy))))
+			}
+			y_noisy
+		},
 		# Maps (transform_responses, response_type) to the shared C++ shift code used by all
 		# BRT batch kernels: 0 = additive, 1 = multiplicative (log), 2 = logit,
 		# 4 = multiplicative with count rounding. NULL = unsupported (callers fall back).
@@ -723,15 +743,16 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				as.numeric(des_obj$draw_ws_according_to_design(1L)[, 1L])
 			}
 			if (length(w_new) != length(draw$i_b)) stop("Fresh assignment length does not match the bootstrap sample size.")
+			response_type_sim = if (!is.null(des_priv)) des_priv$response_type else private$des_obj_priv_int$response_type
 			y_sim = y0_full[draw$i_b]
-			if (!is.null(draw[["smooth_noise"]])) y_sim = y_sim + as.numeric(draw[["smooth_noise"]])
+			if (!is.null(draw[["smooth_noise"]])) y_sim = private$add_rand_bootstrap_smooth_noise(y_sim, draw[["smooth_noise"]], response_type_sim)
 			if (delta != 0) {
 				y_sim = private$shift_randomization_responses(
 					y = y_sim,
 					w = w_new,
 					delta = delta,
 					transform_responses = transform_responses,
-					response_type = if (!is.null(des_priv)) des_priv$response_type else private$des_obj_priv_int$response_type,
+					response_type = response_type_sim,
 					inverse = FALSE,
 					zero_one_logit_clamp = zero_one_logit_clamp
 				)
@@ -899,7 +920,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			if (length(w_new) != length(draw$i_b)) return(c(t0 = NA_real_, se0 = NA_real_))
 			sub_des_priv$w = w_new
 			y_sim = y0_full[draw$i_b]
-			if (!is.null(draw[["smooth_noise"]])) y_sim = y_sim + as.numeric(draw[["smooth_noise"]])
+			if (!is.null(draw[["smooth_noise"]])) y_sim = private$add_rand_bootstrap_smooth_noise(y_sim, draw[["smooth_noise"]], sub_des_priv$response_type)
 			if (delta != 0) {
 				y_sim = private$shift_randomization_responses(
 					y = y_sim, w = w_new, delta = delta,
@@ -1031,7 +1052,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			# The resampled control potential outcomes are w-invariant under the sharp null;
 			# re-impose the delta shift on the freshly treated.
 			y_sim = y0_full[draw$i_b]
-			if (!is.null(draw[["smooth_noise"]])) y_sim = y_sim + as.numeric(draw[["smooth_noise"]])
+			if (!is.null(draw[["smooth_noise"]])) y_sim = private$add_rand_bootstrap_smooth_noise(y_sim, draw[["smooth_noise"]], sub_des_priv$response_type)
 			if (delta != 0) {
 				y_sim = private$shift_randomization_responses(
 					y = y_sim,

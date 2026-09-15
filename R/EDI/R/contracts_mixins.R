@@ -437,6 +437,7 @@ EDI_COMPONENT_SPECS = list(
 		),
 		provides_private_methods = c(
 			"rand_bootstrap_transform_code", "rand_bootstrap_draw_matrices",
+			"add_rand_bootstrap_smooth_noise",
 			"generate_rand_bootstrap_draws", "load_rand_bootstrap_draw_into_worker",
 			"load_rand_bootstrap_assignment_into_worker",
 			"compute_rand_bootstrap_distribution_with_reused_workers",
