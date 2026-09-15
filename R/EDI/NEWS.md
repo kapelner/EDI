@@ -1,3 +1,21 @@
+# EDI (development version)
+
+## Bug fixes
+
+* `compute_rand_bootstrap_confidence_interval(type = "smoothed")` and
+  `compute_rand_bootstrap_two_sided_pval(type = "smoothed")` added
+  raw-scale Gaussian kernel noise to count responses, so a resampled zero
+  could become a slightly negative non-integer. Under the CI inversion's
+  multiplicative count shift that became a large negative integer, the
+  Rcpp Poisson-GLMM fit gave up, and the glmmTMB fallback rejected every
+  such draw (`GLMM FIT ERROR: negative values not allowed for the 'Poisson'
+  family`), corrupting the null distribution and yielding a degenerate
+  conservative bound (e.g. `InferenceCountKKGLMM`). With `use_rcpp = FALSE`
+  every draw failed and the p-value was `NA`. Kernel noise on count
+  responses is now rounded and floored at zero so the resampled draw stays
+  on the non-negative integer support (the same convention the count shift
+  already uses); other response types are unchanged.
+
 # EDI 1.0.1
 
 ## Breaking changes
@@ -35,20 +53,6 @@
   CPU/RAM on Windows and macOS as well as Linux.
 
 ## Bug fixes
-
-* `compute_rand_bootstrap_confidence_interval(type = "smoothed")` and
-  `compute_rand_bootstrap_two_sided_pval(type = "smoothed")` added
-  raw-scale Gaussian kernel noise to count responses, so a resampled zero
-  could become a slightly negative non-integer. Under the CI inversion's
-  multiplicative count shift that became a large negative integer, the
-  Rcpp Poisson-GLMM fit gave up, and the glmmTMB fallback rejected every
-  such draw (`GLMM FIT ERROR: negative values not allowed for the 'Poisson'
-  family`), corrupting the null distribution and yielding a degenerate
-  conservative bound (e.g. `InferenceCountKKGLMM`). With `use_rcpp = FALSE`
-  every draw failed and the p-value was `NA`. Kernel noise on count
-  responses is now rounded and floored at zero so the resampled draw stays
-  on the non-negative integer support (the same convention the count shift
-  already uses); other response types are unchanged.
 
 * The randomization confidence interval's bisection search picked the
   wrong "conservative" fallback endpoint when it had no reliable sign
