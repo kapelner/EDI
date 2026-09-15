@@ -1,0 +1,28 @@
+{
+	"name": "EDI (R + Python)",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"workspaceFolder": "/workspaces/EDI",
+	"postCreateCommand": "bash .devcontainer/post-create.sh",
+	// Named volume (not bind-mounted from the host) so the ccache cache
+	// survives a "Rebuild Container" -- otherwise every rebuild recompiles
+	// R/EDI's 100+ .cpp files from a cold cache. See the Dockerfile's
+	// CCACHE_DIR/~/.R/Makevars setup for how this gets used.
+	"mounts": [
+		"source=edi-devcontainer-ccache,target=/ccache,type=volume"
+	],
+	"remoteEnv": {
+		// See R/EDI/configure: skips the machine-tuned -march=native build.
+		"EDI_PORTABLE": "1"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"REditorSupport.r",
+				"ms-python.python",
+				"ms-vscode.cpptools"
+			]
+		}
+	}
+}

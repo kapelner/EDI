@@ -271,8 +271,65 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# Same migration as bartlett_pval's InferenceCountHurdlePoisson entry
 	# above, for the CI side (the old skip_hurdle_poisson_bartlett flag
 	# gated both). Consumed via is_any_inference_class_for_formula(),
-	# OR'd into skip_pboot_ci_slow.
-	pboot_ci = c("InferenceCountHurdlePoisson"),
+	# OR'd into skip_pboot_ci_slow. This single entry gates FOUR call
+	# families at once (compute_lik_ratio_bartlett_confidence_interval,
+	# _approx_confidence_interval, compute_param_bootstrap_confidence_
+	# interval, compute_lik_ratio_bootstrap_confidence_interval -- see
+	# comprehensive_tests.R's skip_pboot_ci_slow usage sites), so one
+	# missing entry here silently lets a class burn real time (often the
+	# full 120s FUNCTION_TIMEOUT_SEC) on all four every rep.
+	#
+	# Expanded 2026-09-15 from a full production results-CSV audit (real,
+	# non-forced data; mean/max computed per class[/formula] across
+	# whichever of the four functions had rows, n=15-688 per entry --
+	# every entry below has n>=15 on its weakest function). Unrestricted
+	# (no ||formula) where both ~1 and ~. showed slow evidence;
+	# formula-restricted where only one side did (the other side has no
+	# evidence either way, not evidence of being fast):
+	# InferenceCountKKGLMM (~.: 31-120s mean n=25, ~1: 46-46s mean n=25),
+	# InferenceCountKKHurdlePoissonOneLik (~.: 43-108s n=25, ~1: 68-68s
+	# n=25), InferenceOrdinalCauchitRegr (~.: 50-54s n=42, ~1: 30-32s
+	# n=31), InferenceOrdinalCloglogRegr (~.: 55-109s n=42, ~1: 85-85s
+	# n=31), InferenceOrdinalKKGLMM (~.: 113s n=18, ~1: 103-113s n=18),
+	# InferenceOrdinalOrderedProbitRegr (~.: 39-52s n=42, ~1: 33-33s
+	# n=31), InferenceOrdinalPropOddsRegr (~.: 30s n=42, ~1: 35-37s
+	# n=31), InferenceSurvivalGLMMWeibullFrailtyNormalOneLik (~.: 58-108s
+	# n=28, ~1: 42-46s n=15). Formula-restricted, single-formula evidence
+	# only: InferenceCountHurdleNegBin||~. (50s n=77),
+	# InferenceCountZeroInflatedPoisson||~. (44s n=77),
+	# InferencePropBetaRegr||~. (48s n=126),
+	# InferencePropZeroOneInflatedBetaRegr||~. (47-111s n=93),
+	# InferenceSurvivalDepCensTransformRegr||~. (47s n=172),
+	# InferenceSurvivalKKStratCoxPHOneLik||~. (87s n=28),
+	# InferenceOrdinalAdjCatLogitRegr||~1 (53-55s n=31),
+	# InferenceOrdinalContRatioRegr||~1 (33s n=31),
+	# InferencePropKKGLMM||~1 (51s n=32).
+	# InferenceSurvivalKKLWACoxPHOneLik||~. added 2026-09-15 from a
+	# post-migration audit re-run: bartlett CI + approx CI both ~30.1-30.2s
+	# mean, n=30 each -- right at the 30s bar, not a deep-margin case, but a
+	# real, well-sampled (n=30) finding, not a weak n=1-2. ~1 has no
+	# evidence either way.
+	pboot_ci = c(
+		"InferenceCountHurdlePoisson",
+		"InferenceCountKKGLMM",
+		"InferenceCountKKHurdlePoissonOneLik",
+		"InferenceOrdinalCauchitRegr",
+		"InferenceOrdinalCloglogRegr",
+		"InferenceOrdinalKKGLMM",
+		"InferenceOrdinalOrderedProbitRegr",
+		"InferenceOrdinalPropOddsRegr",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik",
+		"InferenceCountHurdleNegBin||~.",
+		"InferenceCountZeroInflatedPoisson||~.",
+		"InferencePropBetaRegr||~.",
+		"InferencePropZeroOneInflatedBetaRegr||~.",
+		"InferenceSurvivalDepCensTransformRegr||~.",
+		"InferenceSurvivalKKStratCoxPHOneLik||~.",
+		"InferenceOrdinalAdjCatLogitRegr||~1",
+		"InferenceOrdinalContRatioRegr||~1",
+		"InferencePropKKGLMM||~1",
+		"InferenceSurvivalKKLWACoxPHOneLik||~."
+	),
 	# Per-class (optionally per-formula) additions to the 5
 	# skip_brt_*_slow flags below -- consumed via
 	# is_any_inference_class_for_formula(), same OR-with-the-official-
@@ -315,18 +372,25 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# pval(delta=0.5) ~120s mean n=8; base/symm-t/studentized ~71s mean n=7)
 	# -- the existing brt_pval entry for this class below covers ||~. only
 	# (a different, separately-diagnosed finding from 2026-09-11).
+	# InferenceCountKKHurdlePoissonOneLik||~. added 2026-09-15 from the
+	# post-migration audit re-run: 34.1s mean, n=65, max 99s.
 	brt_pval_smoothed = c(
 		"InferenceOrdinalPartialProportionalOddsRegr||~1",
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
 		"InferenceSurvivalWeibullRegr||~.",
 		"InferenceSurvivalKKWeibullMarginal||~.",
-		"InferenceIncidKKCondLogitGLMMOneLik||~1"
+		"InferenceIncidKKCondLogitGLMMOneLik||~1",
+		"InferenceCountKKHurdlePoissonOneLik||~."
 	),
+	# InferenceCountPoissonKKGEE||~. added 2026-09-15 from the post-migration
+	# audit re-run: studentized and symmetric-percentile-t both ~53.8s mean,
+	# n=65 each.
 	brt_pval_typed = c(
 		"InferenceCountKKGLMM||~1",
 		"InferenceCountKKGLMM||~.",
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
-		"InferenceIncidKKCondLogitGLMMOneLik||~1"
+		"InferenceIncidKKCondLogitGLMMOneLik||~1",
+		"InferenceCountPoissonKKGEE||~."
 	),
 	# InferenceSurvivalDepCensTransformRegr||~1 gates here (not just
 	# brt_ci_smoothed) because its base/untyped CI genuinely hard-times-out
@@ -334,12 +398,18 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# "slow" like its typed/smoothed siblings (10-11s mean) -- same
 	# over-broad trade-off this category's own doc comment already
 	# describes for other classes.
+	# InferenceSurvivalKKStratCoxPHOneLik||~. and InferenceCountKKGLMM||~.
+	# added 2026-09-15 from the post-migration audit re-run: base
+	# compute_rand_bootstrap_confidence_interval() means 76.2s (n=15) and
+	# 49.3s (n=9) respectively. Neither has ~1 evidence either way.
 	brt_ci_all = c(
 		"InferenceContinQuantileRegr||~.",
 		"InferenceCountHurdlePoisson||~1",
 		"InferenceCountNegBin||~1",
 		"InferenceCountZeroInflatedPoisson||~1",
-		"InferenceSurvivalDepCensTransformRegr||~1"
+		"InferenceSurvivalDepCensTransformRegr||~1",
+		"InferenceSurvivalKKStratCoxPHOneLik||~.",
+		"InferenceCountKKGLMM||~."
 	),
 	# InferenceSurvivalKKStratCoxPHOneLik||~. added 2026-09-14 immediately
 	# after the skip_brt_ci fixes above unblocked it for the first time ever
@@ -356,13 +426,28 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	# ~. was reachable in this test (~1 hit an unrelated "no covariates"
 	# construction skip for the dataset available); ~1 has no evidence
 	# either way.
+	# InferenceCountKKGLMM||~., InferenceSurvivalDepCensTransformRegr||~1,
+	# InferenceCountHurdlePoisson||~1 added 2026-09-15 from the
+	# post-migration audit re-run: smoothed CI means 113.4s (n=9), 39.5s
+	# (n=463 -- a large, well-powered sample), and 32.8s (n=194)
+	# respectively.
 	brt_ci_smoothed = c(
 		"InferenceCountKKHurdlePoissonOneLik||~1",
-		"InferenceSurvivalKKStratCoxPHOneLik||~."
+		"InferenceSurvivalKKStratCoxPHOneLik||~.",
+		"InferenceCountKKGLMM||~.",
+		"InferenceSurvivalDepCensTransformRegr||~1",
+		"InferenceCountHurdlePoisson||~1"
 	),
+	# InferenceCountKKGLMM added 2026-09-15 (unrestricted: studentized/
+	# symmetric-percentile-t both ~120s mean n=9 on ~., ~106s mean n=9 on
+	# ~1 -- slow on both formulas). InferenceSurvivalKKLWACoxPHOneLik||~.
+	# also added: symmetric-percentile-t 30.5s mean, n=15; ~1 no evidence
+	# either way.
 	brt_ci_typed = c(
 		"InferenceCountKKHurdlePoissonOneLik||~1",
-		"InferenceSurvivalKKStratCoxPHOneLik||~."
+		"InferenceSurvivalKKStratCoxPHOneLik||~.",
+		"InferenceCountKKGLMM",
+		"InferenceSurvivalKKLWACoxPHOneLik||~."
 	),
 	# Whole-pval-block gate: the base (non-typed, non-smoothed)
 	# compute_rand_bootstrap_two_sided_pval/(delta=0.5) calls have no
@@ -1621,8 +1706,16 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	# removal breaks. skip_brt_ci_all_slow (BRT-CI's own dedicated registry
 	# category) remains the correct lever for a genuinely slow BRT-CI.
 	skip_brt_ci   = skip_bootstrap || skip_bootstrap_slow || skip_rand_slow || skip_brt_ci_all_slow
+	# Migrated 2026-09-15 to EDI:::get_effective_capabilities(seq_des_inf) --
+	# the package function now accepts a live object (not just a class name)
+	# and, for the small set of capabilities in its own
+	# EDI_INFERENCE_LIVE_CAPABILITY_GATES map (bayesian_bootstrap included),
+	# consults the live private supports_*() gate instead of only the
+	# static mixin-composition answer. Direct private access is no longer
+	# needed for this one. Requires EDI >= the 2026-09-15 install with this
+	# signature change -- confirmed live against the installed package.
 	skip_bayesian_bootstrap = skip_bootstrap || skip_bootstrap_slow ||
-		!isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$supports_bayesian_bootstrap(), error = function(e) TRUE))
+		!("bayesian_bootstrap" %in% EDI:::get_effective_capabilities(seq_des_inf))
 	# Deliberately NOT gated on is(seq_des_inf, "InferenceParamBootstrap") --
 	# that only catches the 7 classes literally `inherit = InferenceParamBootstrap`.
 	# EDI composes the same capability onto ~32 more classes (InferenceContinOLS,
@@ -1642,11 +1735,48 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	# case the tryCatch already falls back to FALSE. Removing is() only widens
 	# eligibility for the ~32 mixin-composed classes; behavior for every other
 	# class is unchanged.
+	# Structural method-existence check added 2026-09-15: a full results-CSV
+	# audit found InferenceSurvivalCoxPHRegr/StratCoxPHRegr producing 1,740
+	# "attempt to apply non-function" errors on compute_lik_ratio_bootstrap_
+	# two_sided_pval()/_confidence_interval() (the latter via
+	# supports_parametric_bootstrap_ci below, which requires this flag).
+	# Root cause confirmed via R6 generator introspection (no live object
+	# needed): both classes' private supports_lik_ratio_param_bootstrap()
+	# returns TRUE, but neither actually defines the public
+	# compute_lik_ratio_bootstrap_two_sided_pval() method -- so the harness
+	# dispatches a call that doesn't exist on the object. Their KK-family
+	# siblings (InferenceSurvivalKKLWACoxPHOneLik, KKStratCoxPHOneLik) do NOT
+	# have this mismatch: both the flag and the public method are present.
+	# Fixed generally (not by hardcoding these 2 class names) by also
+	# requiring the public method to actually exist -- R6 objects return NULL
+	# for a missing field, so is.function() on it is a safe, error-free FALSE
+	# for exactly this mismatch, with no effect on any class where the flag
+	# and method already agree.
+	#
+	# Migrated 2026-09-15 to EDI:::get_effective_capabilities(seq_des_inf)
+	# for the base capability check -- the package function now accepts a
+	# live object and, for "parametric_likelihood_bootstrap" specifically,
+	# consults the live private supports_lik_ratio_param_bootstrap() gate
+	# (EDI_INFERENCE_LIVE_CAPABILITY_GATES), the same private method this
+	# used to call directly. The is.function() method-existence check stays
+	# -- that's the separate, still-real package inconsistency above (the
+	# capability flag can say TRUE while the public method backing it was
+	# never wired up), which the capability system has no way to know about
+	# regardless of how the flag itself is computed.
+	#
+	# supports_parametric_bootstrap_ci below is NOT migrated: its gate
+	# (supports_lik_ratio_param_bootstrap_confidence_interval) is a finer
+	# sub-check under the same capability umbrella with no capability name
+	# of its own in EDI_INFERENCE_LIVE_CAPABILITY_GATES, so there's nothing
+	# for get_effective_capabilities() to look up -- same for
+	# supports_parametric_bootstrap_estimate/supports_bartlett_exact_variant
+	# further below (supports_param_bootstrap_estimate and
+	# supports_bartlett_likelihood_ratio_exact are likewise un-mapped,
+	# finer-grained checks). Direct private access remains correct for all
+	# of those.
 	supports_parametric_bootstrap =
-		isTRUE(tryCatch(
-			seq_des_inf$.__enclos_env__$private$supports_lik_ratio_param_bootstrap(),
-			error = function(e) FALSE
-		))
+		("parametric_likelihood_bootstrap" %in% EDI:::get_effective_capabilities(seq_des_inf)) &&
+		is.function(seq_des_inf$compute_lik_ratio_bootstrap_two_sided_pval)
 	supports_parametric_bootstrap_ci =
 		supports_parametric_bootstrap &&
 		isTRUE(tryCatch({
@@ -2011,7 +2141,26 @@ safe_call = function(label, expr){
 						record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
 				return(invisible(NULL))
 			}
-			msg = if (length(e$message) == 0L) "" else e$message
+			# Use conditionMessage(e), not the raw e$message slot, to build the
+			# classification text below. Found 2026-09-15 from a results-CSV
+			# audit: 4 rows recorded status="error" with error_message exactly
+			# "ignoring SIGPIPE signal" -- a message that IS listed in the
+			# is_non_fatal check just below and, live-reproduced, satisfies
+			# grepl("ignoring SIGPIPE signal", e$message, fixed=TRUE) for a
+			# plain simpleError. Since is_non_fatal always routes to
+			# status="ok" once matched (see the block below), and the exact
+			# same text ended up recorded via conditionMessage(e) at the
+			# status="error" call site further down, the only way both are
+			# true is if e$message and conditionMessage(e) disagreed at
+			# classification time for whatever condition object these calls
+			# actually threw -- confirmed possible in general (not just
+			# theoretical) by reproducing a condition with a custom
+			# conditionMessage() S3 method where the two diverge.
+			# conditionMessage() is the canonical, S3-dispatched accessor (and
+			# is already what gets recorded on both the "ok" and "error"
+			# paths), so using it here instead of the raw slot is strictly
+			# more correct with no downside for the ordinary case.
+			msg = if (length(conditionMessage(e)) == 0L) "" else conditionMessage(e)
 			is_non_fatal = grepl("not implemented", msg, fixed = TRUE) ||
 			                 grepl("must implement", msg, fixed = TRUE) ||
 			                 grepl("no informative strata are available", msg, fixed = TRUE) ||
@@ -2853,7 +3002,26 @@ apply_treatment_effect_and_noise = function(y_t, w_t, response_type){
 		return(as.numeric(stats::rbinom(1, size = 1, prob = p_t)))
 	}
 	if (response_type == "proportion"){
-		return(pmin(1, pmax(0, y_t + bt + eps)))
+		# Was a raw additive shift on the [0,1] scale, hard-clamped with
+		# pmin(1,pmax(0,...)) -- fixed 2026-09-15 to shift on the logit
+		# scale instead, mirroring the incidence branch above. Root cause
+		# (results-CSV audit): the raw-scale version, combined with
+		# finagle_different_responses_from_continuous()'s baseline
+		# proportion sitting close to the [0,1] edges, clamped 58% of the
+		# diamonds treatment arm (beta_T=0.5) to the exact boundary value
+		# 1.0 -- a majority-boundary-mass response that Beta regression/
+		# quantile regression/fractional logit (all fit a continuous (0,1)
+		# likelihood) have no well-defined behavior for, producing
+		# coefficient estimates of 30-35 against a ~0.06 typical value.
+		# A logit-scale shift asymptotically approaches but never reaches
+		# the boundary, matching how a real bounded-proportion treatment
+		# effect would behave. The baseline itself was also tightened
+		# (0.1 + 0.8 * ... instead of a near-0/1-reaching epsilon pad) --
+		# this qlogis()/plogis() round-trip is a second, independent layer
+		# of the same fix, not a substitute for it.
+		p_base = pmin(0.95, pmax(0.05, y_t))
+		p_t = plogis(qlogis(p_base) + bt + eps)
+		return(p_t)
 	}
 	if (response_type == "count"){
 		lambda_t = pmax(.Machine$double.eps, y_t * exp(bt + eps))

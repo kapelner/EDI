@@ -165,7 +165,18 @@ Inference = R6::R6Class("Inference",
 			# registered generator instead of failing closed on the unregistered leaf.
 			for (class_name in class(self)) {
 				if (exists(class_name, envir = EDI_INFERENCE_CLASS_REGISTRY, inherits = FALSE)) {
-					return(get_effective_capabilities(class_name, private$des_obj))
+					# Passes self (2026-09-15), not just class_name, so callers of
+					# $supports()/$capabilities() get the same live-gate refinement
+					# (EDI_INFERENCE_LIVE_CAPABILITY_GATES) as calling
+					# get_effective_capabilities() directly with a live object --
+					# previously only direct callers benefited; $supports()/
+					# $capabilities() themselves stayed purely static. class_name
+					# (the resolved, possibly-ancestor registry match, not
+					# necessarily class(self)[1]) is still passed as the name/
+					# cache-key argument, so the external/test-subclass ancestor
+					# fallback above is completely unaffected -- self only adds
+					# the live-gate layer on top, exactly like passing des_obj.
+					return(get_effective_capabilities(class_name, private$des_obj, live_obj = self))
 				}
 			}
 			character()

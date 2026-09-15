@@ -108,10 +108,21 @@ EDI_COMPREHENSIVE_SLOW_PATHS = list(
 	boot_ci = c("InferenceOrdinalKKGLMM"),
 	jack = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik", "InferenceContinKKGLMM"),
 	pboot_ci = c("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"),
-	lik_ratio_bootstrap_pval = c("InferenceSurvivalStratCoxPHRegr"),
-	param_bootstrap_estimate = c("InferenceSurvivalStratCoxPHRegr"),
-	param_bootstrap_pval = c("InferenceSurvivalStratCoxPHRegr"),
-	param_bootstrap_ci = c("InferenceSurvivalStratCoxPHRegr"),
+	# InferenceOrdinalKKGLMM added 2026-09-15 to all four of these
+	# categories from a comprehensive_tests.R results-CSV audit: on ~.,
+	# compute_lik_ratio_bootstrap_two_sided_pval/compute_param_bootstrap_
+	# estimate/_pval/_confidence_interval are ALL pegged at the 120s
+	# timeout on every one of n=19 samples each -- these four categories
+	# have no ADDITIONAL_TEST_SLOW_PATHS entry of their own (the harness
+	# consults only is_slow_class_rule() for them, no OR'd-in local list),
+	# so this package registry is the only place a fix can go. No formula
+	# distinction available at this list's granularity (is_exact_
+	# inference_class() is a bare class-name check) -- ~1 has no evidence
+	# either way but is gated along with ~. as a result.
+	lik_ratio_bootstrap_pval = c("InferenceSurvivalStratCoxPHRegr", "InferenceOrdinalKKGLMM"),
+	param_bootstrap_estimate = c("InferenceSurvivalStratCoxPHRegr", "InferenceOrdinalKKGLMM"),
+	param_bootstrap_pval = c("InferenceSurvivalStratCoxPHRegr", "InferenceOrdinalKKGLMM"),
+	param_bootstrap_ci = c("InferenceSurvivalStratCoxPHRegr", "InferenceOrdinalKKGLMM"),
 	# The 7 non-KK ordinal classes added 2026-08-24 (per user investigation:
 	# "ordinal iBCRD" ran ~13 minutes) each recompute the Bartlett-approx
 	# correction factor -- a fresh B=99-replicate parametric bootstrap (each

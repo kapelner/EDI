@@ -96,6 +96,7 @@ R/package_metadata/gradient_method_comparison_outputs/*
 # test/run time under your own ICPSR account instead of vendoring a copy.
 R/package_metadata/icpsr_data/*
 !R/package_metadata/icpsr_data/.gitkeep
+R/package_metadata/icpsr_data.tar.bz2
 R/benchmark/simd_matrix/*
 R/benchmark/benchmark_pb_high_load.R
 R/benchmark/benchmark_pb_precision.R

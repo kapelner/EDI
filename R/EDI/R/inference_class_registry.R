@@ -11,6 +11,31 @@ EDI_INFERENCE_CLASS_REGISTRY = new.env(parent = emptyenv())
 EDI_INFERENCE_EFFECTIVE_COMPONENTS_CACHE = new.env(parent = emptyenv())
 EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE = new.env(parent = emptyenv())
 
+# Capabilities whose static, class-name-only answer (from EDI_COMPONENT_SPECS'
+# provides_capabilities) can disagree with a specific constructed object,
+# because the private method that actually gates the capability is
+# conditional on a constructor argument rather than a fixed TRUE/FALSE (e.g.
+# InferenceSurvivalCoxPHRegr/InferenceContinKKGLMM's supports_lik_ratio_
+# param_bootstrap() = isTRUE(private$use_rcpp), settable at construction).
+# get_effective_capabilities() consults this mapping only when called with a
+# live object (see below) -- never for the name-only, cached fast path, so
+# it can't affect that path's cost or behavior.
+#
+# Deliberately a short, hand-curated, evidence-based list, not an
+# auto-derived one: EDI_COMPONENT_SPECS' provides_private_methods often
+# contains several "supports_*" methods per capability (e.g.
+# ParametricLikelihoodBootstrap alone has five), and at least one method
+# name (supports_lik_ratio_param_bootstrap) is reused by a second, unrelated
+# component (CountLikelihoodPlumbing) for a *different* capability
+# (count_likelihood_plumbing) -- naively matching by name would silently
+# pick the wrong gate for that component. Each entry here was individually
+# confirmed to be the single, unambiguous root gate for its capability.
+EDI_INFERENCE_LIVE_CAPABILITY_GATES = list(
+	bayesian_bootstrap = "supports_bayesian_bootstrap",
+	parametric_likelihood_bootstrap = "supports_lik_ratio_param_bootstrap",
+	bartlett_approximation = "supports_bartlett_likelihood_ratio_approx"
+)
+
 EDI_INFERENCE_ALLOWED_LIKELIHOOD_TIERS = c("none", "quasi", "partial", "full")
 
 # Transitional corrections for legacy deep-inheritance classes whose parent
@@ -1039,8 +1064,21 @@ infer_inference_direct_components = function(name) {
 		InferenceAsympLikStdModCache = "StandardModelCache",
 		InferenceAsympLikStdModCacheNoParamBootstrap = "StandardModelCache",
 			InferenceCountZeroAugmentedPoissonAbstract = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "ZeroAugmentedCountLikelihood"),
-			InferenceCountQuasiPoisson = c("Wald", "CountCompositeLikelihood"),
-			InferenceCountRobustPoisson = c("Wald", "CountCompositeLikelihood", "RobustSandwich"),
+			# BayesianBootstrap added 2026-09-15: this hand-maintained switch had
+			# drifted out of sync with these two classes' own define_inference_
+			# class(components=...) declarations (inference_count_quasipoisson.R/
+			# inference_count_robust_poisson.R both include "BayesianBootstrap",
+			# which is what actually drives real method assembly via assemble_
+			# public()/assemble_private() -- this switch feeds ONLY the metadata/
+			# capability registry, a completely separate, independently-maintained
+			# list). Found via a systematic real-vs-registry components audit
+			# across all 88 classes with a components= declaration -- confirmed
+			# the only 2 genuine mismatches (a 3rd apparent one,
+			# InferenceSurvivalGLMMWeibullFrailtyNormalOneLik, was a false
+			# positive from the audit script's own regex choking on parentheses
+			# inside a code comment, not a real discrepancy).
+			InferenceCountQuasiPoisson = c("Wald", "CountCompositeLikelihood", "BayesianBootstrap"),
+			InferenceCountRobustPoisson = c("Wald", "CountCompositeLikelihood", "RobustSandwich", "BayesianBootstrap"),
 			InferenceOrdinalPropOddsRegr = c(
 				"BayesianBootstrap",
 				"ParametricLikelihoodBootstrap",
@@ -1527,21 +1565,71 @@ apply_inference_design_restrictions = function(self, des_obj) {
 	invisible(NULL)
 }
 
-get_effective_capabilities = function(name, des_obj = NULL) {
+#' @param name Either a class name (character), or an already-constructed
+#'   inference object. Passing an object additionally refines the static
+#'   answer with that object's own live-checkable capability gates (see
+#'   EDI_INFERENCE_LIVE_CAPABILITY_GATES) -- some supports_*() private
+#'   methods are conditional on constructor arguments (e.g.
+#'   InferenceSurvivalCoxPHRegr's use_rcpp), which a class-name-only,
+#'   cached lookup can never reflect. The name-only path's cost and cached
+#'   result are unaffected by this -- a live object is never written into
+#'   EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE, since the answer for one
+#'   specific instance must not be silently handed to every future
+#'   name-only caller for that class.
+#' @param live_obj Optional: an already-constructed inference object to use
+#'   for the live-gate refinement, separate from \code{name}. Use this (with
+#'   \code{name} still a character string) when the correct registry key
+#'   isn't simply \code{class(live_obj)[1]} -- e.g. an external/test
+#'   subclass whose own leaf class isn't registered, where the caller has
+#'   already resolved \code{name} to the nearest registered ancestor (see
+#'   Inference$capabilities()) and passing the object as \code{name} instead
+#'   would silently look up the wrong (unregistered) key. Ignored if
+#'   \code{name} is itself a non-character object (that overload already
+#'   derives its own live_obj).
+get_effective_capabilities = function(name, des_obj = NULL, live_obj = NULL) {
+	if (!is.character(name)) {
+		live_obj = name
+		name = class(live_obj)[1]
+		if (is.null(des_obj)) {
+			des_obj = tryCatch(live_obj$.__enclos_env__$private$des_obj, error = function(e) NULL)
+		}
+	}
 	if (exists(name, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE, inherits = FALSE)) {
 		capabilities = get(name, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE, inherits = FALSE)
-		return(setdiff(capabilities, get_design_excluded_inference_capabilities(des_obj)))
+	} else {
+		metadata = get_inference_class_metadata(name)
+		component_capabilities = as.character(unlist(lapply(get_effective_components(name), function(component_name) {
+			get_inference_component(component_name)$provides_capabilities
+		}), use.names = FALSE))
+		capabilities = setdiff(
+			unique(c(component_capabilities, metadata$capabilities %||% character())),
+			metadata$excluded_capabilities %||% character()
+		)
+		assign(name, capabilities, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE)
 	}
-	metadata = get_inference_class_metadata(name)
-	component_capabilities = as.character(unlist(lapply(get_effective_components(name), function(component_name) {
-		get_inference_component(component_name)$provides_capabilities
-	}), use.names = FALSE))
-	capabilities = setdiff(
-		unique(c(component_capabilities, metadata$capabilities %||% character())),
-		metadata$excluded_capabilities %||% character()
-	)
-	assign(name, capabilities, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE)
-	setdiff(capabilities, get_design_excluded_inference_capabilities(des_obj))
+	capabilities = setdiff(capabilities, get_design_excluded_inference_capabilities(des_obj))
+	if (is.null(live_obj)) return(capabilities)
+	# The live gate is authoritative for the capabilities it covers,
+	# regardless of what the static/mixin-composition set said -- it can
+	# both ADD a capability the static scan missed (e.g.
+	# InferenceSurvivalCoxPHRegr defines supports_lik_ratio_param_
+	# bootstrap() natively, not via mixin composition, so the static scan
+	# of provides_capabilities never sees "parametric_likelihood_bootstrap"
+	# for it at all) and REMOVE one the static scan assumed present but
+	# this specific instance's constructor arguments disable.
+	live_add = character()
+	live_remove = character()
+	for (capability in names(EDI_INFERENCE_LIVE_CAPABILITY_GATES)) {
+		gate_method = EDI_INFERENCE_LIVE_CAPABILITY_GATES[[capability]]
+		gate_fn = tryCatch(live_obj$.__enclos_env__$private[[gate_method]], error = function(e) NULL)
+		if (!is.function(gate_fn)) next
+		if (isTRUE(tryCatch(gate_fn(), error = function(e) FALSE))) {
+			live_add = c(live_add, capability)
+		} else {
+			live_remove = c(live_remove, capability)
+		}
+	}
+	setdiff(union(capabilities, live_add), live_remove)
 }
 
 inference_class_ancestor_names = function(name, registry = inference_class_registry_as_list()) {

@@ -36,14 +36,27 @@ finagle_different_responses_from_continuous = function(y_cont){
 	list(
 		continuous = y_scaled,
 		incidence =  stats::plogis(as.numeric(y_scaled)),
-		# Padding widened from 1e-6 to 1e-3 (2026-09-03): with 1e-6, the
-		# extreme resampled observation lands within ~1e-6 of 0/1, so
-		# logit(y) for that single point is ~-13.8 -- huge leverage for any
-		# logit-scale proportion model (e.g. InferencePropQuantileRegr fits
-		# on logit(y)). 1e-3 keeps the fixture testing genuine near-boundary
-		# behavior (logit ~= -6.9) without manufacturing near-infinite
-		# leverage points that aren't representative of real proportion data.
-		proportion = clamp_proportion_response((y_cont - min(y_cont) + 1e-3) / max(y_cont - min(y_cont) + 2e-3)),
+		# Rescaled into an inner [0.1, 0.9] band (2026-09-15), replacing the
+		# old tiny-additive-epsilon padding (1e-3, widened from 1e-6 on
+		# 2026-09-03 for the same underlying reason: near-boundary leverage).
+		# That epsilon padding is only ever a fixed absolute offset, so for
+		# any dataset whose y_cont range is much larger than ~1e-3 it's
+		# negligible after min-max normalization -- confirmed via a
+		# results-CSV audit: for diamonds/log(price), the un-padded baseline
+		# already spans [0.0003, 0.9997] (min/max), i.e. essentially the old
+		# padding did nothing. That baseline sitting right at the boundary is
+		# what let apply_treatment_effect_and_noise()'s beta_T=0.5 additive
+		# shift clamp 58% of the diamonds treatment arm to the exact
+		# boundary value 1.0, which is what made several proportion-family
+		# estimators (Beta regression, quantile regression, fractional
+		# logit) produce wildly unstable coefficient estimates (30-35 vs a
+		# ~0.06 typical value) -- those methods assume a continuous (0,1)
+		# response and have no well-defined behavior once a majority of a
+		# group is an exact boundary mass point. A fixed proportional margin
+		# (not an absolute epsilon) keeps the baseline away from 0/1
+		# regardless of the dataset's y_cont scale, giving downstream
+		# beta_T shifts real headroom instead of starting from the edge.
+		proportion = clamp_proportion_response(0.1 + 0.8 * (y_cont - min(y_cont)) / (max(y_cont) - min(y_cont) + .Machine$double.eps)),
 		count =      round(y_cont - min(y_cont)),
 		survival =   y_scaled - min(y_scaled) + 0.1,
 		ordinal =    as.integer(cut(y_cont, breaks = unique(quantile(y_cont, probs = seq(0, 1, length.out = 5))), include.lowest = TRUE))
